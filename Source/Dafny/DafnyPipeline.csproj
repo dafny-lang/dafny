@@ -1,227 +1,39 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="dotnet tool restore &amp;&amp; dotnet tool run coco $(ProjectDir)Dafny.atg -namespace Microsoft.Dafny -frames $(ProjectDir)../../third_party/Coco/src" />
+    <!-- Recompute files to build according to https://stackoverflow.com/a/44829863/93197 -->
+    <ItemGroup>
+      <Compile Include="**/*$(DefaultLanguageSourceExtension)"
+               Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />
+    </ItemGroup>
+  </Target>
+  
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>9.0.30729</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{FE44674A-1633-4917-99F4-57635E6FA740}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Microsoft.Dafny</RootNamespace>
     <AssemblyName>DafnyPipeline</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <CodeContractsAssemblyMode>0</CodeContractsAssemblyMode>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\InterimKey.snk</AssemblyOriginatorKeyFile>
-    <FileUpgradeFlags>
-    </FileUpgradeFlags>
-    <OldToolsVersion>3.5</OldToolsVersion>
-    <UpgradeBackupLocation />
-    <PublishUrl>publish\</PublishUrl>
-    <Install>true</Install>
-    <InstallFrom>Disk</InstallFrom>
-    <UpdateEnabled>false</UpdateEnabled>
-    <UpdateMode>Foreground</UpdateMode>
-    <UpdateInterval>7</UpdateInterval>
-    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
-    <UpdatePeriodically>false</UpdatePeriodically>
-    <UpdateRequired>false</UpdateRequired>
-    <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
-    <UseApplicationTrust>false</UseApplicationTrust>
-    <BootstrapperEnabled>true</BootstrapperEnabled>
-    <TargetFrameworkProfile>
-    </TargetFrameworkProfile>
+    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <DefineConstants>TRACE</DefineConstants>
+    <PackageVersion>1.1.0</PackageVersion>
+    
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;NO_ENABLE_IRONDAFNY</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <CodeContractsEnableRuntimeChecking>True</CodeContractsEnableRuntimeChecking>
-    <CodeContractsRuntimeOnlyPublicSurface>False</CodeContractsRuntimeOnlyPublicSurface>
-    <CodeContractsRuntimeThrowOnFailure>True</CodeContractsRuntimeThrowOnFailure>
-    <CodeContractsRuntimeCallSiteRequires>False</CodeContractsRuntimeCallSiteRequires>
-    <CodeContractsRunCodeAnalysis>False</CodeContractsRunCodeAnalysis>
-    <CodeContractsNonNullObligations>False</CodeContractsNonNullObligations>
-    <CodeContractsBoundsObligations>False</CodeContractsBoundsObligations>
-    <CodeContractsArithmeticObligations>False</CodeContractsArithmeticObligations>
-    <CodeContractsPointerObligations>False</CodeContractsPointerObligations>
-    <CodeContractsContainerAnalysis>False</CodeContractsContainerAnalysis>
-    <CodeContractsRedundantAssumptions>False</CodeContractsRedundantAssumptions>
-    <CodeContractsRunInBackground>True</CodeContractsRunInBackground>
-    <CodeContractsShowSquigglies>False</CodeContractsShowSquigglies>
-    <CodeContractsUseBaseLine>False</CodeContractsUseBaseLine>
-    <CodeContractsEmitXMLDocs>False</CodeContractsEmitXMLDocs>
-    <CodeContractsCustomRewriterAssembly>
-    </CodeContractsCustomRewriterAssembly>
-    <CodeContractsCustomRewriterClass>
-    </CodeContractsCustomRewriterClass>
-    <CodeContractsLibPaths>
-    </CodeContractsLibPaths>
-    <CodeContractsExtraRewriteOptions>
-    </CodeContractsExtraRewriteOptions>
-    <CodeContractsExtraAnalysisOptions>
-    </CodeContractsExtraAnalysisOptions>
-    <CodeContractsBaseLineFile>
-    </CodeContractsBaseLineFile>
-    <CodeContractsRuntimeCheckingLevel>None</CodeContractsRuntimeCheckingLevel>
-    <CodeContractsReferenceAssembly>DoNotBuild</CodeContractsReferenceAssembly>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <CodeContractsRuntimeSkipQuantifiers>False</CodeContractsRuntimeSkipQuantifiers>
-    <CodeContractsEnumObligations>False</CodeContractsEnumObligations>
-    <CodeContractsCacheAnalysisResults>False</CodeContractsCacheAnalysisResults>
-    <CodeContractsAnalysisWarningLevel>0</CodeContractsAnalysisWarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE;NO_ENABLE_IRONDAFNY</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Checked|AnyCPU'">
-    <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\Checked\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;NO_ENABLE_IRONDAFNY</DefineConstants>
-    <DebugType>full</DebugType>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
-    <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
-    <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
-    <CodeAnalysisFailOnMissingRules>false</CodeAnalysisFailOnMissingRules>
-    <CodeContractsEnableRuntimeChecking>True</CodeContractsEnableRuntimeChecking>
-    <CodeContractsRuntimeOnlyPublicSurface>False</CodeContractsRuntimeOnlyPublicSurface>
-    <CodeContractsRuntimeThrowOnFailure>True</CodeContractsRuntimeThrowOnFailure>
-    <CodeContractsRuntimeCallSiteRequires>False</CodeContractsRuntimeCallSiteRequires>
-    <CodeContractsRuntimeSkipQuantifiers>False</CodeContractsRuntimeSkipQuantifiers>
-    <CodeContractsRunCodeAnalysis>False</CodeContractsRunCodeAnalysis>
-    <CodeContractsNonNullObligations>False</CodeContractsNonNullObligations>
-    <CodeContractsBoundsObligations>False</CodeContractsBoundsObligations>
-    <CodeContractsArithmeticObligations>False</CodeContractsArithmeticObligations>
-    <CodeContractsEnumObligations>False</CodeContractsEnumObligations>
-    <CodeContractsRedundantAssumptions>False</CodeContractsRedundantAssumptions>
-    <CodeContractsRunInBackground>True</CodeContractsRunInBackground>
-    <CodeContractsShowSquigglies>False</CodeContractsShowSquigglies>
-    <CodeContractsUseBaseLine>False</CodeContractsUseBaseLine>
-    <CodeContractsEmitXMLDocs>False</CodeContractsEmitXMLDocs>
-    <CodeContractsCustomRewriterAssembly />
-    <CodeContractsCustomRewriterClass />
-    <CodeContractsLibPaths />
-    <CodeContractsExtraRewriteOptions />
-    <CodeContractsExtraAnalysisOptions />
-    <CodeContractsBaseLineFile />
-    <CodeContractsCacheAnalysisResults>False</CodeContractsCacheAnalysisResults>
-    <CodeContractsRuntimeCheckingLevel>Full</CodeContractsRuntimeCheckingLevel>
-    <CodeContractsReferenceAssembly>Build</CodeContractsReferenceAssembly>
-    <CodeContractsAnalysisWarningLevel>0</CodeContractsAnalysisWarningLevel>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-<PropertyGroup>
-  <PreBuildEvent>
-    "..\..\..\..\third_party\Coco\bin\Coco.exe" "../../../../Source/Dafny/Dafny.atg" "-namespace" "Microsoft.Dafny" "-frames" "../../../../third_party/Coco/src" 
-  </PreBuildEvent>
-</PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="BoogieBasetypes">
-      <HintPath>..\..\..\boogie\Binaries\BoogieBasetypes.dll</HintPath>
-    </Reference>
-    <Reference Include="BoogieCore">
-      <HintPath>..\..\..\boogie\Binaries\BoogieCore.dll</HintPath>
-    </Reference>
-    <Reference Include="BoogieParserHelper">
-      <HintPath>..\..\..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
-    </Reference>
-    <PackageReference Include="Mono.Cecil" Version="0.11.2" />
-    <Reference Include="System" />
-    <Reference Include="System.Core">
-      <RequiredTargetFramework>4.8</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="System.Numerics" />
+      <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
+      <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
+      <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
   </ItemGroup>
+
   <ItemGroup>
-    <Compile Include="Cloner.cs" />
-    <Compile Include="Compiler-Csharp.cs" />
-    <Compile Include="Compiler-go.cs" />
-    <Compile Include="Compiler-js.cs" />
-    <Compile Include="Compiler-cpp.cs" />
-    <Compile Include="Compiler-java.cs" />
-    <Compile Include="Reporting.cs" />
-    <Compile Include="Triggers\QuantifiersCollection.cs" />
-    <Compile Include="Triggers\QuantifierSplitter.cs" />
-    <Compile Include="Triggers\TriggerExtensions.cs" />
-    <Compile Include="Triggers\QuantifiersCollector.cs" />
-    <Compile Include="Triggers\TriggersCollector.cs" />
-    <Compile Include="Triggers\TriggerUtils.cs" />
-    <Compile Include="Util.cs" />
-    <Compile Include="Compiler.cs" />
-    <Compile Include="BigIntegerParser.cs" />
-    <Compile Include="DafnyAst.cs" />
-    <Compile Include="DafnyMain.cs" />
-    <Compile Include="DafnyOptions.cs" />
-    <Compile Include="Printer.cs" />
-    <Compile Include="RefinementTransformer.cs" />
-    <Compile Include="Resolver.cs" />
-    <Compile Include="Rewriter.cs" />
-    <Compile Include="SccGraph.cs" />
-    <Compile Include="Translator.cs" />
+      <ProjectReference Include="..\boogie\Source\Basetypes\Basetypes-NetCore.csproj" />
+      <ProjectReference Include="..\boogie\Source\Core\Core-NetCore.csproj" />
+      <ProjectReference Include="..\boogie\Source\ParserHelper\ParserHelper-NetCore.csproj" />
+      <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="..\version.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="cce.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Dafny.atg" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Parser.cs" Visible="False" />
-    <Compile Include="Scanner.cs" Visible="False" />
-  </ItemGroup>
-  <ItemGroup>
-    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
-      <Install>false</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.5 SP1</ProductName>
-      <Install>true</Install>
-    </BootstrapperPackage>
-    <BootstrapperPackage Include="Microsoft.Windows.Installer.3.1">
-      <Visible>False</Visible>
-      <ProductName>Windows Installer 3.1</ProductName>
-      <Install>true</Install>
-    </BootstrapperPackage>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj">
-      <Project>{3e2944e9-3e1d-4e03-a881-fb04a7a6ed67}</Project>
-      <Name>DafnyRuntime</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
-  <PropertyGroup>
-    <CodeContractsInstallDir Condition="'$(CodeContractsInstallDir)'==''">C:\Program Files (x86)\Microsoft\Contracts\</CodeContractsInstallDir>
-  </PropertyGroup>
-  <Import Condition="'$(CodeContractsImported)' != 'true' AND '$(DontImportCodeContracts)' != 'true' AND Exists($(CodeContractsInstallDir))" Project="$(CodeContractsInstallDir)MsBuild\v14.0\Microsoft.CodeContracts.targets" />
 </Project>

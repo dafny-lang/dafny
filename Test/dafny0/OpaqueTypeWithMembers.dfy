@@ -146,7 +146,3 @@ method M() returns (r: FailureCompatible) {
   r :| true;
 }
 
-method N() returns (x: int) {
-  var s :- M();
-  var t: real := s;
-}
