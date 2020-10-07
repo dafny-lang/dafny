@@ -10430,7 +10430,7 @@ namespace Microsoft.Dafny {
           // ProcessLhss has laid down framing conditions and the ProcessUpdateAssignRhss will check subranges (nats),
           // but we need to generate the distinctness condition (two LHS are equal only when the RHS is also
           // equal). We need both the LHS and the RHS to do this, which is why we need to do it here.
-          CheckLhssDistinctness(finalRhss, s.Rhss, lhss, builder, etran, lhsObjs, lhsFields, lhsNames);
+          CheckLhssDistinctness(finalRhss, s.Rhss, lhss, builder, etran, lhsObjs, lhsFields, lhsNames, s.OriginalInitialLhs);
           // Now actually perform the assignments to the LHS.
           for (int i = 0; i < lhss.Count; i++) {
             lhsBuilder[i](finalRhss[i], s.Rhss[i] is HavocRhs, builder, etran);
@@ -12024,7 +12024,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr[] ignore1, ignore2;
       string[] ignore3;
       var tySubst = s.MethodSelect.TypeArgumentSubstitutionsWithParents();
-      ProcessLhss(s.Lhs, true, true, builder, locals, etran, out lhsBuilders, out bLhss, out ignore1, out ignore2, out ignore3);
+      ProcessLhss(s.Lhs, true, true, builder, locals, etran, out lhsBuilders, out bLhss, out ignore1, out ignore2, out ignore3, s.OriginalInitialLhs);
       Contract.Assert(s.Lhs.Count == lhsBuilders.Count);
       Contract.Assert(s.Lhs.Count == bLhss.Count);
       var lhsTypes = new List<Type>();
@@ -13047,7 +13047,7 @@ namespace Microsoft.Dafny {
 
     private void CheckLhssDistinctness(List<Bpl.Expr> rhs, List<AssignmentRhs> rhsOriginal, List<Expression> lhss,
       BoogieStmtListBuilder builder, ExpressionTranslator etran,
-      Bpl.Expr[] objs, Bpl.Expr[] fields, string[] names) {
+      Bpl.Expr[] objs, Bpl.Expr[] fields, string[] names, Expression originalInitialLhs = null) {
       Contract.Requires(rhs != null);
       Contract.Requires(rhsOriginal != null);
       Contract.Requires(lhss != null);
@@ -13066,6 +13066,12 @@ namespace Microsoft.Dafny {
         IToken tok = lhs.tok;
 
         if (lhs is IdentifierExpr) {
+          if (originalInitialLhs != null) {
+            var prev = originalInitialLhs as IdentifierExpr;
+            if (prev != null && names[i] == prev.Name) {
+              builder.Add(Assert(tok, Bpl.Expr.False, string.Format("when two left-hand sides refer to the same location, they must be assigned the same value")));
+            }
+          }
           for (int j = 0; j < i; j++) {
             if (rhsOriginal[j] is HavocRhs) { continue; }
             var prev = lhss[j] as IdentifierExpr;
@@ -13130,7 +13136,7 @@ namespace Microsoft.Dafny {
     void ProcessLhss(List<Expression> lhss, bool rhsCanAffectPreviouslyKnownExpressions, bool checkDistinctness,
       BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
       out List<AssignToLhs> lhsBuilders, out List<Bpl.IdentifierExpr/*may be null*/> bLhss,
-      out Bpl.Expr[] prevObj, out Bpl.Expr[] prevIndex, out string[] prevNames) {
+      out Bpl.Expr[] prevObj, out Bpl.Expr[] prevIndex, out string[] prevNames, Expression originalInitialLhs = null) {
 
       Contract.Requires(cce.NonNullElements(lhss));
       Contract.Requires(builder != null);
@@ -13161,6 +13167,13 @@ namespace Microsoft.Dafny {
           var ie = (IdentifierExpr)lhs;
           // Note, the resolver does not check for duplicate IdentifierExpr's in LHSs, so do it here.
           if (checkDistinctness) {
+            if (originalInitialLhs != null) {
+              var prev = originalInitialLhs as NameSegment;
+              if (prev != null && ie.Name == prev.Name) {
+                builder.Add(Assert(tok, Bpl.Expr.False,
+                  string.Format("left-hand sides 0 and {0} refer to the same location", i)));
+              }
+            }
             for (int j = 0; j < i; j++) {
               var prev = lhss[j] as IdentifierExpr;
               if (prev != null && ie.Name == prev.Name) {

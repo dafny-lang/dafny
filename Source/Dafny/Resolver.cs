@@ -11353,7 +11353,8 @@ namespace Microsoft.Dafny
           foreach (var ll in update.Lhss) {
             resolvedLhss.Add(ll.Resolved);
           }
-          var a = new CallStmt(methodCallInfo.Tok, update.EndTok, resolvedLhss, methodCallInfo.Callee, methodCallInfo.Args);
+          CallStmt a = new CallStmt(methodCallInfo.Tok, update.EndTok, resolvedLhss, methodCallInfo.Callee, methodCallInfo.Args);
+          a.OriginalInitialLhs = update.OriginalInitialLhs;
           update.ResolvedStatements.Add(a);
         }
       }
@@ -11383,6 +11384,18 @@ namespace Microsoft.Dafny
 
     private Expression VarDotMethod(IToken tok, string varname, string methodname) {
       return new ApplySuffix(tok, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<Expression>() { });
+    }
+
+    private Expression makeTemp(String prefix, AssignOrReturnStmt s, ICodeContext codeContext, Expression ex) {
+      var temp = FreshTempVarName(prefix, codeContext);
+      var locvar = new LocalVariable(s.Tok, s.Tok, temp, ex.Type, false);
+      var id = new IdentifierExpr(s.Tok, temp);
+      var idlist = new List<Expression>() { id };
+      var lhss = new List<LocalVariable>() { locvar };
+      var rhss = new List<AssignmentRhs>() { new ExprRhs(ex) };
+      var up = new UpdateStmt(s.Tok, s.Tok, idlist, rhss);
+      s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, up));
+      return id;
     }
 
     /// <summary>
@@ -11507,6 +11520,42 @@ namespace Microsoft.Dafny
           "Internal Error: Unknown failure type in :- statement");
         return;
       }
+
+      Expression lhsExtract = null;
+      if (expectExtract) {
+        Method caller = codeContext as Method;
+        if (caller != null && caller.Outs.Count == 0) {
+          reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
+            caller.Name);
+          return;
+        }
+
+        lhsExtract = s.Lhss[0];
+        if (lhsExtract is ExprDotName lex) {
+          Expression id = makeTemp("recv", s, codeContext, lex.Lhs);
+          lhsExtract = new ExprDotName(lex.tok, id, lex.SuffixName, lex.OptTypeArguments);
+        } else if (lhsExtract is SeqSelectExpr lseq) {
+          Expression id = makeTemp("recv", s, codeContext, lseq.Seq);
+          Expression id0 = null;
+          Expression id1 = null;
+          if (lseq.E0 != null) {
+            id0 = makeTemp("idx", s, codeContext, lseq.E0);
+          }
+          if (lseq.E1 != null) {
+            id1 = makeTemp("idx", s, codeContext, lseq.E1);
+          }
+          lhsExtract = new SeqSelectExpr(lseq.tok, lseq.SelectOne, id, id0, id1);
+
+        } else if (lhsExtract is MultiSelectExpr lmulti) {
+          Expression id = makeTemp("recv", s, codeContext, lmulti.Array);
+          var idxs = new List<Expression>();
+          foreach (var i in lmulti.Indices) {
+            Expression idx = makeTemp("idx", s, codeContext, i);
+            idxs.Add(idx);
+          }
+          lhsExtract = new MultiSelectExpr(lmulti.tok, id, idxs);
+        }
+      }
       var temp = FreshTempVarName("valueOrError", codeContext);
       var lhss = new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, firstType, false) };
       // "var temp ;"
@@ -11531,8 +11580,11 @@ namespace Microsoft.Dafny
         }
       }
       // " temp, ... := MethodOrExpression, ...;"
-      s.ResolvedStatements.Add(new UpdateStmt(s.Tok, s.Tok, lhss2, rhss2));
-
+      UpdateStmt up = new UpdateStmt(s.Tok, s.Tok, lhss2, rhss2);
+      if (expectExtract) {
+        up.OriginalInitialLhs = s.Lhss.Count == 0 ? null : s.Lhss[0];
+      }
+      s.ResolvedStatements.Add(up);
 
       if (s.ExpectToken != null) {
         var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
@@ -11560,7 +11612,7 @@ namespace Microsoft.Dafny
         // "y := temp.Extract();"
         s.ResolvedStatements.Add(
           new UpdateStmt(s.Tok, s.Tok,
-            new List<Expression>() { s.Lhss[0] },
+            new List<Expression>() { lhsExtract },
             new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "Extract")) }
             ));
       }
