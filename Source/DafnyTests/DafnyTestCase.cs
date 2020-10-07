@@ -5,28 +5,59 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Extensions.FileProviders;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 using XUnitExtensions;
 using YamlDotNet.Core;
-using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using YamlDotNet.Serialization.ObjectFactories;
 
 namespace DafnyTests {
-
-
+  
   public class DafnyTestSpec : IEnumerable<DafnyTestCase> {
 
+    private static DirectoryInfo OUTPUT_ROOT = new DirectoryInfo(Directory.GetCurrentDirectory());
+    
+    // TODO-RS: This is an ugly method of locating the project root.
+    // The proper fix is to run entirely out of the output directory,
+    // and the projects are at least partially configured to make that possible,
+    // but it's not quite working yet.
+    private static string DAFNY_ROOT = 
+      OUTPUT_ROOT.Parent.Parent.Parent.Parent.Parent.FullName;
+
+    public static readonly string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
+    public static readonly string OUTPUT_DIR = Path.Combine(TEST_ROOT, "Output") + Path.DirectorySeparatorChar;
+    
+    public static readonly string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/dafny");
+
+    private static readonly IFileProvider manifestFileProvider = new ManifestEmbeddedFileProvider(
+      Assembly.GetExecutingAssembly());
+    private static readonly Dictionary<string, string> PathsForResourceNames = GetPathsForResourceNames(
+      "DafnyTests", manifestFileProvider, "DafnyTests");
+    
     public string SourcePath;
     public Dictionary<string, object> DafnyArguments = new Dictionary<string, object>();
 
     public DafnyTestCase.Expectation Expect = new DafnyTestCase.Expectation();
 
     public DafnyTestSpec(string manifestResourceName) {
-      SourcePath = manifestResourceName;
+      SourcePath = "comp/" + PathsForResourceNames[manifestResourceName].Substring("DafnyTests/Test".Length + 1);
+    }
+    
+    private static Dictionary<string, string> GetPathsForResourceNames(string assemblyName, IFileProvider fileProvider, string path = null) {
+      return fileProvider.GetDirectoryContents(path).SelectMany(file => {
+        var childName = path == null ? file.Name : path + "/" + file.Name;
+       if (file.IsDirectory) {
+          return GetPathsForResourceNames(assemblyName, fileProvider, childName);
+        } else {
+          var result = new Dictionary<string, string>();
+          result[assemblyName + "." + childName.Replace("/", ".")] = childName;
+          return result;
+        }
+      }).ToDictionary(pair => pair.Key, pair => pair.Value);
     }
     
     public IEnumerator<DafnyTestCase> GetEnumerator() {
@@ -35,7 +66,6 @@ namespace DafnyTests {
         .GetEnumerator();
     }
     
-
     private static IEnumerable<DafnyTestCase> ResolveCompile(string sourcePath, Dictionary<string, string> config, DafnyTestCase.Expectation expect) {
       var compile = "3";
       if (config.ContainsKey("compile")) {
@@ -86,24 +116,8 @@ namespace DafnyTests {
     }
   }
   
-  public class DafnyTestCase {
+  public class DafnyTestCase: IXunitSerializable {
 
-    private static DirectoryInfo OUTPUT_ROOT = new DirectoryInfo(Directory.GetCurrentDirectory());
-    
-    // TODO-RS: This is an ugly method of locating the project root.
-    // The proper fix is to run entirely out of the output directory,
-    // and the projects are at least partially configured to make that possible,
-    // but it's not quite working yet.
-    private static string DAFNY_ROOT =
-      OUTPUT_ROOT.Parent.Parent.Parent.Parent.Parent.FullName;
-
-    public static readonly string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
-    public static string COMP_DIR = Path.Combine(TEST_ROOT, "comp") + Path.DirectorySeparatorChar;
-    private static string OUTPUT_DIR = Path.Combine(TEST_ROOT, "Output") + Path.DirectorySeparatorChar;
-    
-    private static string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/dafny");
-        
-    public string DafnyFile;
     public string[] Arguments;
 
     public class Expectation : IXunitSerializable {
@@ -121,7 +135,7 @@ namespace DafnyTests {
           result.OutputFile = sourceFile + ".expect";
           if (compileTarget != null) {
             var specialCasePath = sourceFile + "." + compileTarget + ".expect";
-            if (File.Exists(Path.Combine(TEST_ROOT, specialCasePath))) {
+            if (File.Exists(DafnyTestSpec.TEST_ROOT + specialCasePath)) {
               result.SpecialCase = true;
               result.OutputFile = specialCasePath;
             }
@@ -164,24 +178,37 @@ namespace DafnyTests {
     public DafnyTestCase(string dafnyFile, Dictionary<string, string> config, string compileTarget, Expectation expected) {
       Expected = expected;
       
-      DafnyFile = dafnyFile;
-      Arguments = config.Select(ConfigPairToArgument).ToArray();
+      var arguments = new []{ dafnyFile }.Concat(config.Select(ConfigPairToArgument)).ToList();
       
       if (compileTarget != null) {
-        Arguments = Arguments.Concat(new[] {"/compileTarget:" + compileTarget}).ToArray();
+        arguments.Add("/compileTarget:" + compileTarget);
         // Include any additional files
-        var additionalFilesPath = dafnyFile + "." + compileTarget + ".files";
-        IEnumerable<string> additionalFiles = GetType().Assembly.GetManifestResourceNames()
-          .Where(name => name.StartsWith(additionalFilesPath));
-        Arguments = Arguments.Concat(additionalFiles).ToArray();
+        var additionalFilesPath = DafnyTestSpec.TEST_ROOT + dafnyFile + "." + compileTarget + ".files";
+        if (Directory.Exists(additionalFilesPath)) {
+          var relativePaths = Directory.GetFiles(additionalFilesPath)
+            .Select(path => Path.GetRelativePath(DafnyTestSpec.TEST_ROOT, path));
+          arguments.AddRange(relativePaths);
+        }
       }
+      
+      Arguments = arguments.ToArray();
     }
 
     public DafnyTestCase() {
       
     }
+  
+    public void Serialize(IXunitSerializationInfo info) {
+      info.AddValue(nameof(Arguments), Arguments);
+      info.AddValue(nameof(Expected), Expected);
+    }
+    
+    public void Deserialize(IXunitSerializationInfo info) {
+      Arguments = info.GetValue<string[]>(nameof(Arguments));
+      Expected = info.GetValue<Expectation>(nameof(Expected));
+    }
 
-    public static string RunDafny(string workingDirectory, IEnumerable<string> arguments) {
+    public static string RunDafny(IEnumerable<string> arguments) {
       // TODO-RS: Let these be overridden
       List<string> dafnyArguments = new List<string> {
         // Expected output does not contain logo
@@ -198,8 +225,7 @@ namespace DafnyTests {
       dafnyArguments.AddRange(arguments);
 
       using (Process dafnyProcess = new Process()) {
-//        dafnyProcess.StartInfo.FileName = "mono";
-        dafnyProcess.StartInfo.FileName = DAFNY_EXE;
+        dafnyProcess.StartInfo.FileName = DafnyTestSpec.DAFNY_EXE;
         foreach (var argument in dafnyArguments) {
           dafnyProcess.StartInfo.Arguments += " " + argument;
         }
@@ -209,8 +235,7 @@ namespace DafnyTests {
         dafnyProcess.StartInfo.RedirectStandardError = true;
         dafnyProcess.StartInfo.CreateNoWindow = true;
         // Necessary for JS to find bignumber.js
-//        dafnyProcess.StartInfo.WorkingDirectory = TEST_ROOT;
-        dafnyProcess.StartInfo.WorkingDirectory = workingDirectory;
+        dafnyProcess.StartInfo.WorkingDirectory = DafnyTestSpec.TEST_ROOT;
 
         // Only preserve specific whitelisted environment variables
         dafnyProcess.StartInfo.EnvironmentVariables.Clear();
@@ -232,9 +257,7 @@ namespace DafnyTests {
     }
 
     private static string ConfigPairToArgument(KeyValuePair<string, string> pair) {
-      if (pair.Key.Equals("otherFiles")) {
-        return pair.Value;
-      } else if (pair.Value.Equals("yes")) {
+      if (pair.Value.Equals("yes")) {
         return String.Format("/{0}", pair.Key);
       } else {
         return String.Format("/{0}:{1}", pair.Key, pair.Value);
@@ -242,44 +265,41 @@ namespace DafnyTests {
     }
 
     public void Run() {
-      var arguments = new []{ DafnyFile }.Concat(Arguments);
-      
       string output;
-      if (arguments.Any(arg => arg.StartsWith("/out"))) {
-        output = RunDafny(TEST_ROOT, arguments);
+      if (Arguments.Any(arg => arg.StartsWith("/out"))) {
+        output = RunDafny(Arguments);
       } else {
         // Note that the temporary directory has to be an ancestor of Test
         // or else Javascript won't be able to locate bignumber.js :(
-        using (var tempDir = new TemporaryDirectory(OUTPUT_DIR)) {
-          using (var fileStream = File.Create(tempDir.DirInfo.FullName + "/" + DafnyFile)) {
-            GetType().Assembly.GetManifestResourceStream(DafnyFile).CopyTo(fileStream);
-          }
-          
+        using (var tempDir = new TemporaryDirectory(DafnyTestSpec.OUTPUT_DIR)) {
           // Add an extra component to the path to keep the files created inside the
           // temporary directory, since some compilers will
           // interpret the path as a single file basename rather than a directory.
           var outArgument = "/out:" + tempDir.DirInfo.FullName + "/Program";
-          var dafnyArguments = new []{ outArgument }.Concat(arguments);
-          output = RunDafny(tempDir.DirInfo.FullName, dafnyArguments);
+          var dafnyArguments = new []{ outArgument }.Concat(Arguments);
+          output = RunDafny(dafnyArguments);
         }
       }
 
       if (Expected.OutputFile != null) {
-        var expectedOutput = new StreamReader(GetType().Assembly.GetManifestResourceStream(Expected.OutputFile)).ReadToEnd();
+        var expectedOutput = File.ReadAllText(Path.Combine(DafnyTestSpec.TEST_ROOT, Expected.OutputFile));
         AssertWithDiff.Equal(expectedOutput, output);
       }
 
-      Skip.If(Expected.SpecialCase, "Confirmed known exception for arguments: " + String.Join(" ", arguments));
+      Skip.If(Expected.SpecialCase, "Confirmed known exception for arguments: " + String.Join(" ", Arguments));
+    }
+
+    public override string ToString() {
+      return String.Join(" ", Arguments) + " => " + Expected;
     }
   }
 
   
   public class DafnyTestYamlDataDiscoverer : YamlDataDiscoverer {
 
-    private const string DEFAULT_CONFIG = @"
-!dafnyTestSpec
-dafnyArguments:
-  compile: 3
+    private const string DEFAULT_CONFIG = 
+@"!dafnyTestSpec
+dafnyArguments: {}
 ";
     
     public override IParser GetYamlParser(string manifestResourceName, Stream stream) {
@@ -308,13 +328,8 @@ dafnyArguments:
 
     public override IDeserializer GetDeserializer(string manifestResourceName) {
       var defaultObjectFactory = new DefaultObjectFactory();
-      var customObjectFactory = new LambdaObjectFactory(type => {
-        if (type == typeof(DafnyTestSpec)) {
-          return new DafnyTestSpec(manifestResourceName);
-        } else {
-          return defaultObjectFactory.Create(type);
-        }
-      });
+      var customObjectFactory = new LambdaObjectFactory(type => 
+        type == typeof(DafnyTestSpec) ? new DafnyTestSpec(manifestResourceName) : defaultObjectFactory.Create(type));
       
       return new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
@@ -336,11 +351,9 @@ dafnyArguments:
     public static void MetaTest() {
       var discoverer = new DafnyTestYamlDataDiscoverer();
       var testMethod = typeof(DafnyTests).GetMethod(nameof(Test));
-      var dataAttribute = testMethod.GetCustomAttributesData().ToList()[1];
-      IEnumerable<object[]> data = discoverer.GetData(Reflector.Wrap(dataAttribute), Reflector.Wrap(testMethod));
-      List<object[]> list = data.ToList();
+      discoverer.GetData(testMethod, false).ToList();
     }
-    
+
     [ParallelTheory]
     [DafnyTestData(false)]
     public static void Test(DafnyTestCase testCase) {

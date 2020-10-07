@@ -3,28 +3,21 @@
     <PropertyGroup>
         <TargetFramework>netcoreapp3.1</TargetFramework>
         <AssemblyName>DafnyTests</AssemblyName>
+        <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="DiffPlex" Version="1.6.3" />
+        <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="5.0.0-rc.1.20451.17" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
         <PackageReference Include="xunit" Version="2.4.1" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1" />
         <PackageReference Include="Xunit.SkippableFact" Version="1.4.8" />
         <PackageReference Include="YamlDotNet" Version="8.1.2" />
-<!--        <ProjectReference Include="../../Source/DafnyDriver/DafnyDriver.csproj" />-->
     </ItemGroup>
 
     <ItemGroup>
-<!--        <Content Include="../**/*.*" Exclude="../DafnyTests/**/*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="Test" />-->
-<!--        <None Include="../../Binaries/z3/**/*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="z3" />-->
-        <EmbeddedResource Include="XUnitExtensions\YamlDataTests\CalculatorCombinatorialTest.yml" />
-        <EmbeddedResource Include="XUnitExtensions\YamlDataTests\CalculatorTest.yml" />
-        <EmbeddedResource Include="XUnitExtensions\YamlDataTests\CustomDataDiscovererTest.yml" />
-        <EmbeddedResource Include="XUnitExtensions\YamlDataTests\DictionaryTest.yml" />
-
-        <EmbeddedResource Include="..\..\Test\comp\Arrays.dfy" LinkBase="DafnyTests\Test"/>
-        <EmbeddedResource Include="..\..\Test\comp\Arrays.dfy.expect" LinkBase="DafnyTests\Test"/>
+        <EmbeddedResource Include="XUnitExtensions\YamlDataTests\*.yml" />
+        <EmbeddedResource Include="..\..\Test\comp\**\*.*" LinkBase="DafnyTests\Test" />
     </ItemGroup>
-    
 </Project>

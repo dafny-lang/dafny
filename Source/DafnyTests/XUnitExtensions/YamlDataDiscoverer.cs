@@ -41,30 +41,37 @@ namespace XUnitExtensions {
     }
     
     private IEnumerable<object[]> ResourceData(MethodInfo testMethod, string resourceName, bool withParameterNames) {
-      Stream stream = testMethod.DeclaringType.Assembly.GetManifestResourceStream(resourceName);
-      IParser parser = GetYamlParser(resourceName, stream);
-      if (parser == null) {
-        return Enumerable.Empty<object[]>();
-      }
-      IDeserializer deserializer = GetDeserializer(resourceName);
-      parser.Consume<StreamStart>();
-      parser.Consume<DocumentStart>();
-            
-      if (withParameterNames) {
-        IObjectFactory argumentsFactory = new DefaultObjectFactory();
-        INodeDeserializer collectionDeserializer = new CollectionNodeDeserializer(argumentsFactory);
-        var nestedObjectDeserializer = ForMethodInfoDeserializeFn(deserializer, testMethod);
-        if (collectionDeserializer.Deserialize(parser, typeof(List<MethodArguments>), nestedObjectDeserializer, out var value)) {
-          List<MethodArguments> argumentses = (List<MethodArguments>) value;
-          return argumentses.SelectMany(a => a.Combinations());
-        } else {
-          throw new ArgumentException();
+      try {
+        Stream stream = testMethod.DeclaringType.Assembly.GetManifestResourceStream(resourceName);
+        IParser parser = GetYamlParser(resourceName, stream);
+        if (parser == null) {
+          return Enumerable.Empty<object[]>();
         }
-      } else {
-        IEnumerable<ParameterInfo> parameters = testMethod.GetParameters();
-        Type targetType = typeof(IEnumerable<>).MakeGenericType(parameters.Single().ParameterType);
-        IEnumerable<object> results = (IEnumerable<object>) deserializer.Deserialize(parser, targetType);
-        return results.Select(value => new[] {value});
+
+        IDeserializer deserializer = GetDeserializer(resourceName);
+        parser.Consume<StreamStart>();
+        parser.Consume<DocumentStart>();
+
+        if (withParameterNames) {
+          IObjectFactory argumentsFactory = new DefaultObjectFactory();
+          INodeDeserializer collectionDeserializer = new CollectionNodeDeserializer(argumentsFactory);
+          var nestedObjectDeserializer = ForMethodInfoDeserializeFn(deserializer, testMethod);
+          if (collectionDeserializer.Deserialize(parser, typeof(List<MethodArguments>), nestedObjectDeserializer,
+            out var value)) {
+            List<MethodArguments> argumentses = (List<MethodArguments>) value;
+            return argumentses.SelectMany(a => a.Combinations());
+          } else {
+            throw new ArgumentException();
+          }
+        } else {
+          IEnumerable<ParameterInfo> parameters = testMethod.GetParameters();
+          Type targetType = typeof(IEnumerable<>).MakeGenericType(parameters.Single().ParameterType);
+          IEnumerable<object> results = (IEnumerable<object>) deserializer.Deserialize(parser, targetType);
+          return results.Select(value => new[] {value});
+        }
+      } catch (Exception e) {
+        throw new ArgumentException(
+          "Exception thrown while trying to deserialize test data from manifest resource: " + resourceName, e);
       }
     }
 
@@ -74,10 +81,14 @@ namespace XUnitExtensions {
       if (methodInfo == null) {
         return null;
       }
-      
-      List<object> attributeArgs = attributeInfo.GetConstructorArguments().ToList();
-      bool withParameterNames = (bool)attributeArgs[0];
 
+      List<object> attributeArgs = attributeInfo.GetConstructorArguments().ToList();
+      bool withParameterNames = (bool) attributeArgs[0];
+
+      return GetData(methodInfo, withParameterNames);
+    }
+
+    public IEnumerable<object[]> GetData(MethodInfo methodInfo, bool withParameterNames) {
       string resourceNamePrefix = methodInfo.DeclaringType.FullName + "." + methodInfo.Name;
       IEnumerable<object[]> result = methodInfo.DeclaringType.Assembly.GetManifestResourceNames()
         .Where(n => n.StartsWith(resourceNamePrefix))

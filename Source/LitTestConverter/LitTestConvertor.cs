@@ -31,6 +31,7 @@ namespace DafnyTests {
     private int count = 0;
     private int verifyOnlyCount = 0;
     private int defaultCount = 0;
+    private int otherFilesCount = 0;
     private int invalidCount = 0;
         
     public void ConvertLitTest(string filePath) {
@@ -87,7 +88,7 @@ namespace DafnyTests {
       return line.Substring(LIT_COMMAND_PREFIX.Length).Trim();
     }
         
-    private static Dictionary<string, string> ParseDafnyCommandArguments(string dafnyCommand) {
+    private Dictionary<string, string> ParseDafnyCommandArguments(string dafnyCommand) {
       var testConfig = new Dictionary<string, string>();
       var otherFiles = new List<string>();
       
@@ -131,6 +132,7 @@ namespace DafnyTests {
 
       if (otherFiles.Any()) {
         testConfig[TEST_CONFIG_OTHER_FILES] = String.Join(" ", otherFiles);
+        otherFilesCount++;
       }
       return testConfig;
     }
@@ -163,6 +165,7 @@ namespace DafnyTests {
       }
       Console.WriteLine("Default: " + defaultCount + "/" + count);
       Console.WriteLine("Verify only: " + verifyOnlyCount + "/" + count);
+      Console.WriteLine("With other files: " + otherFilesCount + "/" + count);
       Console.WriteLine("Invalid: " + invalidCount + "/" + count);
     }
     
