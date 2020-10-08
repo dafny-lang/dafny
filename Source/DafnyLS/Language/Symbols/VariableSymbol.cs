@@ -6,6 +6,8 @@ namespace DafnyLS.Language.Symbols {
   internal class FieldSymbol : ISymbol {
     private readonly Field _node;
 
+    public string Name => _node.Name;
+
     public FieldSymbol(Field field) {
       _node = field;
     }

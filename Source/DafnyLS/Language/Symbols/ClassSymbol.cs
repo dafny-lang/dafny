@@ -6,6 +6,8 @@ namespace DafnyLS.Language.Symbols {
   internal class ClassSymbol : ISymbol {
     private readonly ClassDecl _node;
 
+    public string Name => _node.Name;
+
     public ClassSymbol(ClassDecl classDeclaration) {
       _node = classDeclaration;
     }

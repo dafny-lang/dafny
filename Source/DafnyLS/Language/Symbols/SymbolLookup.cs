@@ -24,7 +24,7 @@ namespace DafnyLS.Language.Symbols {
     /// <returns>The initialized symbol lookup.</returns>
     public static SymbolLookup FromSymbolTable(SymbolTable symbolTable, CancellationToken cancellationToken) {
       var symbols = new IntervalTree<Position, ISymbol>(new PositionComparer());
-      foreach(var symbol in symbolTable.AllSymbols(cancellationToken)) {
+      foreach(var symbol in symbolTable.AllSymbols(cancellationToken).Concat(symbolTable.AllReferences(cancellationToken))) {
         var range = symbol.GetHoverRange();
         symbols.Add(range.Start, range.End, symbol);
       }
@@ -38,8 +38,7 @@ namespace DafnyLS.Language.Symbols {
     /// <param name="symbol">The symbol that could be identified at the given position, or <c>null</c> if no symbol could be identified.</param>
     /// <returns><c>true</c> if a symbol was found, otherwise <c>false</c>.</returns>
     public bool TryGetSymbolAt(Position position, [NotNullWhen(true)] out ISymbol? symbol) {
-      // TODO Decide what should be done when multiple hits were encountered.
-      symbol = _symbols.Query(position).FirstOrDefault();
+      symbol = _symbols.Query(position).SingleOrDefault();
       return symbol != null;
     }
 

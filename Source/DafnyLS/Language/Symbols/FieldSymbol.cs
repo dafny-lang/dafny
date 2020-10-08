@@ -6,6 +6,8 @@ namespace DafnyLS.Language.Symbols {
   internal class VariableSymbol : ISymbol {
     private readonly IVariable _node;
 
+    public string Name => _node.Name;
+
     public VariableSymbol(IVariable variable) {
       _node = variable;
     }

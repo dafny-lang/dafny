@@ -7,6 +7,8 @@ namespace DafnyLS.Language.Symbols {
   internal class MethodSymbol : ISymbol {
     private readonly Method _node;
 
+    public string Name => _node.Name;
+
     public MethodSymbol(Method method) {
       _node = method;
     }

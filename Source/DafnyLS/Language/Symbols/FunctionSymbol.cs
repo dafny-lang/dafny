@@ -7,6 +7,8 @@ namespace DafnyLS.Language.Symbols {
   internal class FunctionSymbol : ISymbol {
     private readonly Function _node;
 
+    public string Name => _node.Name;
+
     public FunctionSymbol(Function function) {
       _node = function;
     }

@@ -7,6 +7,11 @@ namespace DafnyLS.Language.Symbols {
   /// </summary>
   internal interface ISymbol {
     /// <summary>
+    /// Gets the name of the symbol.
+    /// </summary>
+    string Name { get; }
+
+    /// <summary>
     /// Converts the current symbol into its LSP counterpart.
     /// </summary>
     /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
