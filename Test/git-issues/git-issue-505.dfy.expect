@@ -1,14 +1,2 @@
-git-issue-505.dfy(4,6): Verification of 'Impl$$_module.__default.a' timed out after 20 seconds
-git-issue-505.dfy(10,17): Timed out on: assertion violation
-Execution trace:
-    (0,0): anon0
-git-issue-505.dfy(12,6): Verification of 'Impl$$_module.__default.b' timed out after 20 seconds
-git-issue-505.dfy(18,17): Timed out on: assertion violation
-Execution trace:
-    (0,0): anon0
-git-issue-505.dfy(20,6): Verification of 'Impl$$_module.__default.c' timed out after 20 seconds
-git-issue-505.dfy(26,17): Timed out on: assertion violation
-Execution trace:
-    (0,0): anon0
 
-Dafny program verifier finished with 2 verified, 0 errors, 3 time outs
+Dafny program verifier finished with 2 verified, 0 errors

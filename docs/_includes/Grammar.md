@@ -91,6 +91,21 @@ will link to the definition of the entity.**
 
 <!-- TODO: Those grammar hyperlinks are not implemented -->
 
+## Dafny Input {#sec-unicode}
+
+Dafny source code files are readable text encoded as UTF-8 Unicode
+(because this is what the Coco/R-generated scanner and parser read). 
+All program text other than the contents of comments, character, string and verbatim string literals
+are printable and white-space ASCII characters,
+that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters,
+with the exception of a few allowed unicode mathematical symbols.
+
+However, a current limitation is that the Coco/R tool used by Dafny is not up to date,
+and consequently, only printable and white-space ASCII characters can be used.
+Use `\u` escapes in string and character literals to insert unicode characters.
+Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication. 
+Unicode in verbatim strings will likely not be interpreted as intended. [Outstanding issue #818].
+
 ## Character Classes {#sec-character-classes}
 This section defines character classes used later in the token definitions.
 In this section a backslash is used to start an escape sequence; so for example
@@ -98,7 +113,7 @@ In this section a backslash is used to start an escape sequence; so for example
 enclose the set of characters constituting a character class; enclosing single
 quotes are used when there is just one character in the class. `+` indicates
 the union of two character classes; `-` is the set-difference between the 
-two classes. `ANY` designates all ASCII characters.
+two classes. `ANY` designates all [unicode characters](#sec-unicode).
 
 ````grammar
 letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -113,8 +128,9 @@ A digit is just one of the base-10 digits.
 
 ````grammar
 posDigit = "123456789"
+posDigit2 = "23456789"
 ````
-A ``posDigit`` is a digit, excluding 0.
+A ``posDigit`` is a digit, excluding 0. ``posDigit2`` excludes both 0 and 1.
 
 ````grammar
 hexdigit = "0123456789ABCDEFabcdef"
@@ -166,22 +182,29 @@ The characters that can be used in an identifier.
 ````grammar
 nonidchar = ANY - idchar
 ````
-Any character except those that can be used in an identifier.
+Any character except those that can be used in an identifier.  
+Here the scanner generator will interpret `ANY` as any unicode character. 
+However, `nonidchar` is used only to mark the end of the `!in` token;
+in this context any character other than [whitespace or printable ASCII](#sec-unicode)
+will trigger a subsequent scanning or parsing error.
 
 ````grammar
 charChar = ANY - '\'' - '\\' - cr - lf
 ````
 Characters that can appear in a character constant.
+See the [discussion on unicode support](#sec-unicode).
 
 ````grammar
 stringChar = ANY - '"' - '\\' - cr - lf
 ````
 Characters that can appear in a string constant.
+See the [discussion on unicode support](#sec-unicode).
 
 ````grammar
 verbatimStringChar = ANY - '"'
 ````
 Characters that can appear in a verbatim string.
+See the [discussion on unicode support](#sec-unicode).
 
 ### Comments
 Comments are in two forms.
@@ -202,6 +225,9 @@ method m() {
 ```
 is permitted; this feature is convenient for commenting out blocks of 
 program statements that already have multi-line comments within them.
+Other than looking for  end-of-comment delimiters,
+the contents of a comment are not interpreted.
+Comments may contain any unicode character, but see the [discussion on unicode support](#sec-unicode) for more information.
 
 ## Tokens {#sec-tokens}
 As with most languages, Dafny syntax is defined in two levels. First the stream
@@ -216,51 +242,58 @@ as identifiers of user-defined entities:
 reservedword =
     "abstract" | "array" | "as" | "assert" | "assume" | "bool" | 
     "break" | "calc" | "case" | "char" | "class" | "codatatype" | 
-    "colemma" | "constructor" | "copredicate" | "datatype" | "decreases" |
-    "default" | "else" | "ensures" | "exists" | "extends" | "false" |
-    "forall" | "free" | "fresh" | "function" | "ghost" | "if" | "imap" | "import" |
-    "in" | "include" | "inductive" | "int" | "invariant" | "iset" | "iterator" | "label" |
-    "lemma" | "map" | "match" | "method" | "modifies" | "modify" |
-    "module" | "multiset" | "nat" | "new" | "newtype" | "null" | "object" |
-    "old" | "opened" | "predicate" | "print" | "protected" | "provides"
-    "reads" | "real" | "refines" | "requires" | "return" | "returns" | "reveals" | "seq" |
-    "set" | "static" | "string" | "then" | "this" | "trait" | "true" | "twostate" | "type" |
-    "unchanged" | "var" | "where" | "while" | "yield" | "yields" | arrayToken
+    "colemma" | "constructor" | "copredicate" | "datatype" | 
+    "decreases" | "default" | "else" | "ensures" | "exists" | 
+    "extends" | "false" | "forall" | "fresh" | "function" | 
+    "ghost" | "if" | "imap" | "import" | "in" | "include" | 
+    "inductive" | "int" | "invariant" | "is" | "iset" | 
+    "iterator" | "label" | "lemma" | "map" | "match" | "method" | 
+    "modifies" | "modify" | "module" | "multiset" | "nat" | 
+    "new" | "newtype" | "null" | "object" | "old" | "opened" | 
+    "predicate" | "print" | "protected" | "provides" "reads" | 
+    "real" | "refines" | "requires" | "return" | "returns" | 
+    "reveals" | "seq" | "set" | "static" | "string" | "then" | 
+    "this" | "trait" | "true" | "twostate" | "type" | 
+    "unchanged" | "var" | "where" | "while" | "yield" | "yields" | 
+    arrayToken
 
-arrayToken = "array" [ posDigit { digit }]
+arrayToken = "array" [ posdigit2 | posDigit digit { digit }]["?"] 
 ```
 
 An ``arrayToken`` is a reserved word that denotes an array type of
 given rank. `array` is an array type of rank 1 (aka a vector). `array2`
-is the type of two-dimensional arrays, etc.
+is the type of two-dimensional arrays, etc. 
+`array1` and `array1?` are not reserved words; they are just ordinary identifiers.
 
 ### Identifiers
 
-````grammar
-ident = nondigitIdChar { idchar } - arraytoken - chartoken - reservedword
 ````
-In general Dafny identifiers are sequences of ``idChar`` characters where
+ident = nondigitIdChar { idchar } - arrayToken - charToken - reservedword
+````
+In general Dafny identifiers are sequences of ``idchar`` characters where
 the first character is a ``nondigitIdChar``. However tokens that fit this pattern
 are not identifiers if they look like an array type token, a character literal,
 or a reserved word.
+Also, `ident` tokens that begin with an `_` are not permitted as user identifiers.
 
 ### Digits
 ````grammar
 digits = digit {['_'] digit}
 ````
 
-A sequence of decimal digits, possibly interspersed with underscores for readability. Example: `1_234_567`.
-````grammar
+A sequence of decimal digits, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
+Example: `1_234_567`.
+````
 hexdigits = "0x" hexdigit {['_'] hexdigit}
 ````
 
-A hexadecimal constant, possibly interspersed with underscores for readability.
+A hexadecimal constant, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
 Example: `0xffff_ffff`.
 
 ````grammar
 decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}
 ````
-A decimal fraction constant, possibly interspersed with underscores for readability.
+A decimal fraction constant, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
 Example: `123_456.789_123`.
 
 ### Escaped Character
@@ -284,8 +317,8 @@ charToken = "'" ( charChar | escapedChar ) "'"
 
 A character constant is enclosed by "'" and includes either a character
 from the ``charChar`` set, or an escaped character. Note that although Unicode
-letters are not allowed in Dafny identifiers, Dafny does support Unicode
-in its character and string constants and in its data. A character
+letters are not allowed in Dafny identifiers, Dafny does support [Unicode
+in its character, string, and verbatim strings constants and in its comments](#sec-unicode). A character
 constant has type `char`.
 
 
@@ -333,7 +366,7 @@ the token following the "." may be an identifier,
 * `m.reads` is used to denote the things that method m may read.
 
 ````grammar
-NoUSIdent = ident - "_" { idChar }
+NoUSIdent = ident - "_" { idchar }
 ````
 A ``NoUSIdent`` is an identifier except that identifiers with a **leading**
 underscore are not allowed. The names of user-defined entities are
@@ -442,5 +475,3 @@ A ``Nat`` represents a natural number expressed in either decimal or hexadecimal
 Dec = decimaldigits
 ````
 A ``Dec`` represents a decimal fraction literal.
-
-
