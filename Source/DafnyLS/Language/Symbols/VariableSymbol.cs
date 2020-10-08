@@ -23,7 +23,7 @@ namespace DafnyLS.Language.Symbols {
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
-      return $"{_node.Name}:{_node.Type}";
+      return $"{_node.Name} : {_node.Type}";
     }
 
     public Range GetHoverRange() {

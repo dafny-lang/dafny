@@ -25,7 +25,7 @@ namespace DafnyLS.Language.Symbols {
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
-      return $"method {_node.Name}({_node.Ins.AsCommaSeperatedText()}):({_node.Outs.AsCommaSeperatedText()})";
+      return $"method {_node.Name}({_node.Ins.AsCommaSeperatedText()}) : ({_node.Outs.AsCommaSeperatedText()})";
     }
 
     public Range GetHoverRange() {
