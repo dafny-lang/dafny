@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using FluentAssertions;
 using Microsoft.Extensions.FileProviders;
 using Xunit;
 using Xunit.Abstractions;
@@ -208,7 +209,7 @@ namespace DafnyTests {
       Expected = info.GetValue<Expectation>(nameof(Expected));
     }
 
-    public static string RunDafny(IEnumerable<string> arguments) {
+    public static ProcessResult RunDafny(IEnumerable<string> arguments) {
       // TODO-RS: Let these be overridden
       List<string> dafnyArguments = new List<string> {
         // Expected output does not contain logo
@@ -247,12 +248,7 @@ namespace DafnyTests {
         dafnyProcess.WaitForExit();
         string output = dafnyProcess.StandardOutput.ReadToEnd();
         string error = dafnyProcess.StandardError.ReadToEnd();
-        if (dafnyProcess.ExitCode != 0) {
-          var message = String.Format("Non-zero Dafny exit code: {0}\n{1}\n{2}", dafnyProcess.ExitCode, output, error);
-          Assert.True(false,  message);
-        }
-
-        return output + error;
+        return new ProcessResult(dafnyProcess.ExitCode, output, error);
       }
     }
 
@@ -265,9 +261,9 @@ namespace DafnyTests {
     }
 
     public void Run() {
-      string output;
+      ProcessResult dafnyResult;
       if (Arguments.Any(arg => arg.StartsWith("/out"))) {
-        output = RunDafny(Arguments);
+        dafnyResult = RunDafny(Arguments);
       } else {
         // Note that the temporary directory has to be an ancestor of Test
         // or else Javascript won't be able to locate bignumber.js :(
@@ -277,13 +273,14 @@ namespace DafnyTests {
           // interpret the path as a single file basename rather than a directory.
           var outArgument = "/out:" + tempDir.DirInfo.FullName + "/Program";
           var dafnyArguments = new []{ outArgument }.Concat(Arguments);
-          output = RunDafny(dafnyArguments);
+          dafnyResult = RunDafny(dafnyArguments);
         }
       }
 
+      dafnyResult.ExitCode.Should().Be(Expected.ExitCode);
       if (Expected.OutputFile != null) {
         var expectedOutput = File.ReadAllText(Path.Combine(DafnyTestSpec.TEST_ROOT, Expected.OutputFile));
-        AssertWithDiff.Equal(expectedOutput, output);
+        AssertWithDiff.Equal(expectedOutput, dafnyResult.StandardOutput);
       }
 
       Skip.If(Expected.SpecialCase, "Confirmed known exception for arguments: " + String.Join(" ", Arguments));
