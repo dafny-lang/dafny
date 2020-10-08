@@ -254,8 +254,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return seq.<R>update((int)idx, t);
     }
 
-    public <U> boolean contains(U t) {
-        // assume U is a supertype of T
+    public boolean contains(Object t) {
         assert t != null : "Precondition Violation";
         return asList().indexOf((T)t) != -1;
     }
@@ -593,8 +592,7 @@ final class StringDafnySequence extends NonLazyDafnySequence<Character> {
     }
 
     @Override
-    public <U> boolean contains(U t) {
-        // assume U == Character
+    public boolean contains(Object t) {
         assert t != null : "Precondition Violation";
         return string.indexOf((Character)t) != -1;
     }
