@@ -107,8 +107,20 @@ namespace DafnyLS.Language {
       }
     }
 
+    public virtual void Visit(ExprRhs expressionRhs) {
+      VisitNullableAttributes(expressionRhs.Attributes);
+      Visit(expressionRhs.Expr);
+    }
+
     public virtual void Visit(AssignmentRhs assignmentRhs) {
-      VisitNullableAttributes(assignmentRhs.Attributes);
+      switch(assignmentRhs) {
+      case ExprRhs expressionRhs:
+        Visit(expressionRhs);
+        break;
+      default:
+        VisitUnknown(assignmentRhs, assignmentRhs.Tok);
+        break;
+      }
     }
 
     public virtual void Visit(TypeRhs typeRhs) {
@@ -266,6 +278,9 @@ namespace DafnyLS.Language {
       case ExprDotName expressionDotName:
         Visit(expressionDotName);
         break;
+      case ApplySuffix applySuffix:
+        Visit(applySuffix);
+        break;
       default:
         VisitUnknown(expression, expression.tok);
         break;
@@ -299,10 +314,10 @@ namespace DafnyLS.Language {
     }
 
     public virtual void Visit(ApplySuffix applySuffix) {
+      Visit(applySuffix.Lhs);
       foreach(var argument in applySuffix.Args) {
         Visit(argument);
       }
-      Visit(applySuffix.Lhs);
     }
 
     public virtual void Visit(NameSegment nameSegment) {

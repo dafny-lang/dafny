@@ -53,20 +53,25 @@ namespace DafnyLS.Language.Symbols {
       _currentTable.Register(new FieldSymbol(field));
     }
 
+    public override void Visit(LocalVariable localVariable) {
+      _currentTable.Register(new VariableSymbol(localVariable));
+      base.Visit(localVariable);
+    }
+
     public override void Visit(NameSegment nameSegment) {
       RegisterReference(nameSegment.tok, nameSegment.Name);
       base.Visit(nameSegment);
     }
 
-    private void RegisterReference(Microsoft.Boogie.IToken token, string symbolName) {
-      if(!_currentTable.TryRegisterReference(token,  symbolName)) {
-        _logger.LogWarning("failed to resolve a symbol with name {} in {}@({},{})", symbolName, Path.GetFileName(token.filename), token.line, token.col);
-      }
+    public override void Visit(ApplySuffix applySuffix) {
+      //RegisterReference(applySuffix.tok, applySuffix.)
+      base.Visit(applySuffix);
     }
 
-    public override void Visit(LocalVariable localVariable) {
-      _currentTable.Register(new VariableSymbol(localVariable));
-      base.Visit(localVariable);
+    private void RegisterReference(Microsoft.Boogie.IToken token, string symbolName) {
+      if(!_currentTable.TryRegisterReference(token, symbolName)) {
+        _logger.LogWarning("failed to resolve a symbol with name {} in {}@({},{})", symbolName, Path.GetFileName(token.filename), token.line, token.col);
+      }
     }
   }
 }
