@@ -1102,12 +1102,14 @@ namespace Dafny
     }
     public static int ToIntChecked(BigInteger i, string msg) {
       if (i > Int32.MaxValue || i < Int32.MinValue) {
+        if (msg == null) msg = "value out of range for a 32-bit int";
         throw new HaltException(msg + ": " + i);
       }
       return (int)i;
     }
     public static int ToIntChecked(long i, string msg) {
       if (i > Int32.MaxValue || i < Int32.MinValue) {
+        if (msg == null) msg = "value out of range for a 32-bit int";
         throw new HaltException(msg + ": " + i);
       }
       return (int)i;

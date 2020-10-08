@@ -1309,11 +1309,14 @@ namespace Microsoft.Dafny
       wr.Write(")");
     }
 
+    // if checkRange is false, msg is ignored
+    // if checkRange is true and msg is null and the value is out of range, a generic message is emitted
+    // if checkRange is true and msg is not null and the value is out of range, msg is emitted in the error message
     protected void TrExprAsInt(Expression expr, TargetWriter wr, bool inLetExprBody, bool checkRange = false,
       string msg = null) {
       wr.Write($"{GetHelperModuleName()}.ToIntChecked(");
       TrExpr(expr, wr, inLetExprBody);
-      wr.Write($", \"{msg}\")");
+      if (checkRange) wr.Write(msg == null ? ", null" : $", \"{msg}\")");
     }
 
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr) {
