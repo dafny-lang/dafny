@@ -10,6 +10,7 @@ using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Linq.Expressions;
+using System.Security.Cryptography;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny
@@ -11592,12 +11593,10 @@ namespace Microsoft.Dafny
           "The PropagateFailure member may not be ghost");
       }
 
-      if (expectExtract&& m != null) {
-        m = ResolveMember(tok, tp, "Extract", out _);
-        if (m.IsGhost) {
-          origReporter.Error(MessageSource.Resolver, m.tok,
-            "The Extract member may not be ghost");
-        }
+      m = ResolveMember(tok, tp, "Extract", out _);
+      if (expectExtract && m != null && m.IsGhost) {
+         origReporter.Error(MessageSource.Resolver, m.tok,
+           "The Extract member may not be ghost");
       }
 
       this.reporter = origReporter;

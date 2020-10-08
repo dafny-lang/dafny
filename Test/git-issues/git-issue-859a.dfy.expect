@@ -1,0 +1,4 @@
+git-issue-859a.dfy(5,12): Error: The IsFailure member may not be ghost
+git-issue-859a.dfy(6,11): Error: The PropagateFailure member may not be ghost
+git-issue-859a.dfy(7,15): Error: The Extract member may not be ghost
+3 resolution/type errors detected in git-issue-859a.dfy
