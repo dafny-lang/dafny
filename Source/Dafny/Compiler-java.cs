@@ -610,7 +610,6 @@ namespace Microsoft.Dafny{
       Contract.Requires(tok != null);
       var typeName = BoxedTypeName(type, wr, tok);
       if (variance == TypeParameter.TPVariance.Co) {
-        // TODO: possible change: if "type" has no subtypes in Java, then return just "typeName"
         return "? extends " + typeName;
       } else if (variance == TypeParameter.TPVariance.Contra) {
         if (type.IsRefType) {
