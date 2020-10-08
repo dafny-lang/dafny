@@ -63,11 +63,6 @@ namespace DafnyLS.Language.Symbols {
       base.Visit(nameSegment);
     }
 
-    public override void Visit(ApplySuffix applySuffix) {
-      //RegisterReference(applySuffix.tok, applySuffix.)
-      base.Visit(applySuffix);
-    }
-
     private void RegisterReference(Microsoft.Boogie.IToken token, string symbolName) {
       if(!_currentTable.TryRegisterReference(token, symbolName)) {
         _logger.LogWarning("failed to resolve a symbol with name {} in {}@({},{})", symbolName, Path.GetFileName(token.filename), token.line, token.col);
