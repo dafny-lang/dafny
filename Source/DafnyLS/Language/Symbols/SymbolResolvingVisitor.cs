@@ -8,12 +8,12 @@ namespace DafnyLS.Language.Symbols {
   /// This visitor is the first pass when resolving the symbols of a given document. It visits
   /// all available declarations inside the document and stores them within the symbol table.
   /// </summary>
-  internal class SymbolDeclarationResolvingVisitor : SyntaxTreeVisitor {
+  internal class SymbolResolvingVisitor : SyntaxTreeVisitor {
     private readonly ILogger _logger;
 
     private SymbolTable _currentTable;
 
-    public SymbolDeclarationResolvingVisitor(ILogger logger, SymbolTable rootTable) {
+    public SymbolResolvingVisitor(ILogger logger, SymbolTable rootTable) {
       _logger = logger;
       _currentTable = rootTable;
     }
