@@ -1,3 +1,12 @@
+/*
+---
+!dafnyTestSpec
+compileTargetOverrides:
+    java:
+        expected:
+            outputFile: Dt.dfy.java.expect
+            specialCaseReason: Set output is inconsistently ordered
+*/
 datatype List = Nil | Cons(head: int, tail: List)
 
 method Main() {

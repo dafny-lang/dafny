@@ -1,3 +1,24 @@
+/*
+---
+!dafnyTestSpec
+compileTargetOverrides:
+    java:
+        otherFiles:
+            - AllDafny.java
+            - AllExtern.java
+            - LibClass.java
+            - Mixed.java
+            - OtherClass.java
+    cs:
+        otherFiles:
+            - Extern2.cs
+    js:
+        otherFiles:
+            - Extern3.js
+    go:
+        otherFiles:
+            - Extern4.go
+*/
 method Main() {
   print "Hello\n";
   var x, y := Library.LibClass.CallMeInt(30);

@@ -89,6 +89,9 @@ namespace DafnyTests {
         }
         return null;
       }
+      set {
+        DafnyArguments["compile"] = value;
+      }
     }
     public string CompileTarget {
       get {
@@ -100,7 +103,11 @@ namespace DafnyTests {
     }
 
     private IEnumerable<DafnyTestSpec> ResolveCompile() {
-      if ("3".Equals(Compile ?? "3") && CompileTarget == null) {
+      if (Compile == null) {
+        Compile = "3";
+      }
+      
+      if ("3".Equals(Compile) && CompileTarget == null) {
         var compileTargets = new[] {"cs", "java", "go", "js"};
 
         var justVerify = new Dictionary<string, object>(DafnyArguments) {

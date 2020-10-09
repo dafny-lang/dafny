@@ -1,3 +1,12 @@
+/*
+---
+!dafnyTestSpec
+compileTargetOverrides:
+    go:
+        expected:
+            outputFile: Numbers.dfy.go.expect
+            specialCaseReason: Inconsistent printing of rationals
+*/
 method Main() {
   Literals();
   Arithmetic();

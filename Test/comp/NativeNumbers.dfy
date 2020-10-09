@@ -1,3 +1,12 @@
+/*
+---
+!dafnyTestSpec
+compileTargetOverrides:
+    js:
+        expected:
+            outputFile: NativeNumbers.dfy.js.expect
+            specialCaseReason: :nativeType doesn't worry correctly for JavaScript
+*/
 method Main() {
   CastTests();
   DefaultTests();

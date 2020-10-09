@@ -1,3 +1,12 @@
+/*
+---
+!dafnyTestSpec
+compileTargetOverrides:
+    java:
+        expected:
+            outputFile: Comprehensions.dfy.java.expect
+            specialCaseReason: Java doesn't always print strings correctly
+*/
 method Main() {
   AssignSuchThat();
   LetSuchThat();

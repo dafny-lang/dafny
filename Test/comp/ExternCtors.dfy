@@ -1,5 +1,26 @@
-// FIXME: Extern constructors are currently broken in Go and JavaScript
-
+/*
+---
+!dafnyTestSpec
+compileTargetOverrides:
+    java:
+        otherFiles:
+            - Class.java
+    cs:
+        otherFiles:
+            - Library.cs
+    js:
+        otherFiles:
+            - Library.js
+        expected:
+            outputFile: ~
+            specialCaseReason: Extern constructors are currently broken in JavaScript
+    go:
+        otherFiles:
+            - Library.go
+        expected:
+            outputFile: ~
+            specialCaseReason: Extern constructors are currently broken in Go
+*/
 method Main() {
   Library.Class.SayHi();
   var obj := new Library.Class(42);

@@ -5,9 +5,11 @@ compileTargetOverrides:
     cs:
         expected:
             outputFile: Collections.dfy.cs.expect
+            specialCaseReason: Set output is inconsistently ordered
     java:
         expected:
             outputFile: Collections.dfy.java.expect
+            specialCaseReason: Set output is inconsistently ordered
 */
 method Main() {
   Sets();

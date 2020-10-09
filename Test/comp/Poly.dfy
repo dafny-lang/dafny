@@ -1,3 +1,12 @@
+/*
+---
+!dafnyTestSpec
+compileTargetOverrides:
+    go:
+        expected:
+            outputFile: Poly.dfy.go.expect
+            specialCaseReason: Inconsistent printing of rationals
+*/
 trait Shape {
   function method Center(): (real, real) reads this
   method PrintCenter() {

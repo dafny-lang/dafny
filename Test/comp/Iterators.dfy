@@ -1,3 +1,13 @@
+/*
+---
+!dafnyTestSpec
+compileTargetOverrides:
+    java:
+        expected:
+            exitCode: 134
+            outputFile: ~
+            specialCaseReason: Iterators are not implemented for Java
+*/
 class C {
   var x: int
   // for variety, the following tests the use of an instance Main method

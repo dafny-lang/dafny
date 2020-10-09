@@ -1,3 +1,16 @@
+/*
+---
+!dafnyTestSpec
+compileTargetOverrides:
+    js:
+        expected:
+            outputFile: TailRecursion.dfy.js.expect
+            specialCaseReason: Set output is inconsistently ordered
+    go:
+        expected:
+            outputFile: TailRecursion.dfy.go.expect
+            specialCaseReason: Set output is inconsistently ordered
+*/
 method Main() {
   // In the following, 2_000_000 is too large an argument without tail-calls
   var x := M(2_000_000, 0);
