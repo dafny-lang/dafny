@@ -1,3 +1,14 @@
+/*
+---
+!dafnyTestSpec
+compileTargetOverrides:
+    cs:
+        expected:
+            outputFile: Collections.dfy.cs.expect
+    java:
+        expected:
+            outputFile: Collections.dfy.java.expect
+*/
 method Main() {
   Sets();
   SubSets();

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -30,6 +31,7 @@ namespace DafnyTests {
       OUTPUT_ROOT.Parent.Parent.Parent.Parent.Parent.FullName;
 
     public static readonly string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
+    public static readonly string COMP_DIR = Path.Combine(TEST_ROOT, "comp") + Path.DirectorySeparatorChar;
     public static readonly string OUTPUT_DIR = Path.Combine(TEST_ROOT, "Output") + Path.DirectorySeparatorChar;
     
     public static readonly string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/dafny");
@@ -39,13 +41,25 @@ namespace DafnyTests {
     private static readonly Dictionary<string, string> PathsForResourceNames = GetPathsForResourceNames(
       "DafnyTests", manifestFileProvider, "DafnyTests");
     
+    // Absolute file system path to the main Dafny file
     public string SourcePath;
+    
     public Dictionary<string, object> DafnyArguments = new Dictionary<string, object>();
-
-    public DafnyTestCase.Expectation Expect = new DafnyTestCase.Expectation();
+    public IEnumerable<string> OtherFiles = Enumerable.Empty<string>();
+    
+    public Dictionary<string, DafnyTestSpec> CompileTargetOverrides = new Dictionary<string, DafnyTestSpec>();
+    
+    public DafnyTestCase.Expectation Expected;
 
     public DafnyTestSpec(string manifestResourceName) {
-      SourcePath = "comp/" + PathsForResourceNames[manifestResourceName].Substring("DafnyTests/Test".Length + 1);
+      SourcePath = COMP_DIR + PathsForResourceNames[manifestResourceName].Substring("DafnyTests/Test".Length + 1);
+    }
+
+    private DafnyTestSpec(string sourcePath, Dictionary<string, object> dafnyArguments, IEnumerable<string> otherFiles, DafnyTestCase.Expectation expected) {
+      SourcePath = sourcePath;
+      DafnyArguments = dafnyArguments;
+      OtherFiles = otherFiles;
+      Expected = expected;
     }
     
     private static Dictionary<string, string> GetPathsForResourceNames(string assemblyName, IFileProvider fileProvider, string path = null) {
@@ -62,35 +76,85 @@ namespace DafnyTests {
     }
     
     public IEnumerator<DafnyTestCase> GetEnumerator() {
-      return ExpandArguments(DafnyArguments)
-        .SelectMany(args => ResolveCompile(SourcePath, args, Expect))
+      return ResolveCompile()
+        .SelectMany(spec => spec.ExpandArguments())
+        .Select(spec => spec.ResolveExpected().ToTestCase())
         .GetEnumerator();
     }
-    
-    private static IEnumerable<DafnyTestCase> ResolveCompile(string sourcePath, Dictionary<string, string> config, DafnyTestCase.Expectation expect) {
-      var compile = "3";
-      if (config.ContainsKey("compile")) {
-        compile = config["compile"];
-        config.Remove("compile");
+
+    public string Compile {
+      get {
+        if (DafnyArguments.TryGetValue("compile", out var compile)) {
+          return (string) compile;
+        }
+        return null;
       }
-        
-      if (compile.Equals("3") && !config.ContainsKey("compileTarget")) {
+    }
+    public string CompileTarget {
+      get {
+        if (DafnyArguments.TryGetValue("compileTarget", out var compileTarget)) {
+          return (string) compileTarget;
+        }
+        return null;
+      }
+    }
+
+    private IEnumerable<DafnyTestSpec> ResolveCompile() {
+      if ("3".Equals(Compile ?? "3") && CompileTarget == null) {
         var compileTargets = new[] {"cs", "java", "go", "js"};
-        
-        var justVerify = new Dictionary<string, string>(config);
-        justVerify["compile"] = "0";
-        yield return new DafnyTestCase(sourcePath, justVerify, null, DafnyTestCase.Expectation.NO_OUTPUT);
+
+        var justVerify = new Dictionary<string, object>(DafnyArguments) {
+          ["compile"] = "0"
+        };
+        yield return new DafnyTestSpec(SourcePath, justVerify, OtherFiles, DafnyTestCase.Expectation.NO_OUTPUT);
         
         foreach (var compileTarget in compileTargets) {
-          var withLanguage = new Dictionary<string, string>(config);
-          withLanguage["noVerify"] = "yes";
-          withLanguage["compile"] = "4";
-          yield return new DafnyTestCase(sourcePath, withLanguage, compileTarget, expect.Resolve(sourcePath, compileTarget));
+          var withLanguage = new Dictionary<string, object>(DafnyArguments) {
+              ["noVerify"] = "yes", 
+              ["compile"] = "4",
+              ["compileTarget"] = compileTarget
+            };
+          var specForLanguage = new DafnyTestSpec(SourcePath, withLanguage, OtherFiles, Expected);
+          if (CompileTargetOverrides.TryGetValue(compileTarget, out var compileTargetOverride)) {
+            yield return specForLanguage.ApplyOverride(compileTargetOverride);
+          } else {
+            yield return specForLanguage;
+          }
         }
       } else {
-        config.TryGetValue("compileTarget", out var compileTarget);
-        config["compile"] = compile;
-        yield return new DafnyTestCase(sourcePath, config, compileTarget, expect.Resolve(sourcePath, compileTarget));
+        yield return this;
+      }
+    }
+
+    private DafnyTestSpec ApplyOverride(DafnyTestSpec otherSpec) {
+      var mergedArguments = new Dictionary<string, object>(DafnyArguments);
+      foreach (KeyValuePair<string, object> pair in otherSpec.DafnyArguments) {
+        mergedArguments[pair.Key] = pair.Value;
+      }
+      return new DafnyTestSpec(otherSpec.SourcePath, mergedArguments, OtherFiles.Concat(otherSpec.OtherFiles), otherSpec.Expected);
+    }
+    
+    private DafnyTestSpec ResolveExpected() {
+      if (Expected == null) {
+        return new DafnyTestSpec(SourcePath, DafnyArguments, OtherFiles, 
+                                 new DafnyTestCase.Expectation(0, Path.GetFileName(SourcePath) + ".expect", null));
+      } else {
+        return this;
+      }
+    }
+    
+    private DafnyTestCase ToTestCase() {
+      var arguments = new []{ Path.GetRelativePath(TEST_ROOT, SourcePath) }
+        .Concat(DafnyArguments.Select(ConfigPairToArgument))
+        .Concat(OtherFiles.Select(otherFile => "comp/" + otherFile));
+      return new DafnyTestCase(arguments, Expected.Adjust());
+    }
+    
+    private static string ConfigPairToArgument(KeyValuePair<string, object> pair) {
+      if (pair.Value.Equals("yes")) {
+        return String.Format("/{0}", pair.Key);
+      } else {
+        return String.Format("/{0}:{1}", pair.Key, pair.Value);
       }
     }
 
@@ -98,24 +162,27 @@ namespace DafnyTests {
       return GetEnumerator();
     }
     
-    private static IEnumerable<Dictionary<string, string>> ExpandArguments(Dictionary<string, object> arguments) {
-      return arguments.Select(ExpandValue)
-                      .CartesianProduct()
-                      .Select(e => e.ToDictionary(p => p.Key, p => p.Value));
+    private IEnumerable<DafnyTestSpec> ExpandArguments() {
+      return DafnyArguments.Select(ExpandValue)
+                           .CartesianProduct()
+                           .Select(e => e.ToDictionary(p => p.Key, p => p.Value))
+                           .Select(args => new DafnyTestSpec(SourcePath, args, OtherFiles, Expected));
     }
-    
+
     public static IEnumerable<string> Expand(object obj) {
-      if (obj is IEnumerable<string> e) {
-        return e;
+      if (obj is ForEachArgumentList forEach) {
+        return forEach;
       } else {
         return new[] {(string)obj};
       }
     }
 
-    private static IEnumerable<KeyValuePair<string, string>> ExpandValue(KeyValuePair<string, object> pair) {
-      return Expand(pair.Value).Select(v => new KeyValuePair<string, string>(pair.Key, v));
+    private static IEnumerable<KeyValuePair<string, object>> ExpandValue(KeyValuePair<string, object> pair) {
+      return Expand(pair.Value).Select(v => new KeyValuePair<string, object>(pair.Key, v));
     }
   }
+
+  public class ForEachArgumentList : List<string> { }
   
   public class DafnyTestCase: IXunitSerializable {
 
@@ -126,31 +193,14 @@ namespace DafnyTests {
       public string OutputFile;
       public int ExitCode = 0;
 
-      public bool SpecialCase = false;
+      public string SpecialCaseReason;
 
-      public static Expectation NO_OUTPUT = new Expectation(0, null);
+      public static Expectation NO_OUTPUT = new Expectation(0, null, null);
       
-      public Expectation Resolve(string sourceFile, string compileTarget) {
-        Expectation result = (Expectation)MemberwiseClone();
-        if (result.OutputFile == null) {
-          result.OutputFile = sourceFile + ".expect";
-          if (compileTarget != null) {
-            var specialCasePath = sourceFile + "." + compileTarget + ".expect";
-            if (File.Exists(DafnyTestSpec.TEST_ROOT + specialCasePath)) {
-              result.SpecialCase = true;
-              result.OutputFile = specialCasePath;
-            }
-          }
-        } else if (result.OutputFile.Equals("no")) {
-          result.OutputFile = null;
-        }
-
-        return result;
-      }
-
-      public Expectation(int exitCode, string outputFile) {
+      public Expectation(int exitCode, string outputFile, string specialCaseReason) {
         ExitCode = exitCode;
         OutputFile = outputFile;
+        SpecialCaseReason = specialCaseReason;
       }
 
       public Expectation() {
@@ -160,15 +210,19 @@ namespace DafnyTests {
       public void Deserialize(IXunitSerializationInfo info) {
         OutputFile = info.GetValue<string>(nameof(OutputFile));
         ExitCode = info.GetValue<int>(nameof(ExitCode));
-        SpecialCase = info.GetValue<bool>(nameof(SpecialCase));
+        SpecialCaseReason = info.GetValue<string>(nameof(SpecialCaseReason));
       }
 
       public void Serialize(IXunitSerializationInfo info) {
         info.AddValue(nameof(OutputFile), OutputFile);
         info.AddValue(nameof(ExitCode), ExitCode);
-        info.AddValue(nameof(SpecialCase), SpecialCase);
+        info.AddValue(nameof(SpecialCaseReason), SpecialCaseReason);
       }
 
+      public Expectation Adjust() {
+        return new Expectation(ExitCode, OutputFile == null ? null : "comp/" + OutputFile, SpecialCaseReason);
+      }
+      
       public override string ToString() {
         return OutputFile ?? "-";
       }
@@ -176,22 +230,8 @@ namespace DafnyTests {
 
     public Expectation Expected;
 
-    public DafnyTestCase(string dafnyFile, Dictionary<string, string> config, string compileTarget, Expectation expected) {
+    public DafnyTestCase(IEnumerable<string> arguments, Expectation expected) {
       Expected = expected;
-      
-      var arguments = new []{ dafnyFile }.Concat(config.Select(ConfigPairToArgument)).ToList();
-      
-      if (compileTarget != null) {
-        arguments.Add("/compileTarget:" + compileTarget);
-        // Include any additional files
-        var additionalFilesPath = DafnyTestSpec.TEST_ROOT + dafnyFile + "." + compileTarget + ".files";
-        if (Directory.Exists(additionalFilesPath)) {
-          var relativePaths = Directory.GetFiles(additionalFilesPath)
-            .Select(path => Path.GetRelativePath(DafnyTestSpec.TEST_ROOT, path));
-          arguments.AddRange(relativePaths);
-        }
-      }
-      
       Arguments = arguments.ToArray();
     }
 
@@ -252,14 +292,6 @@ namespace DafnyTests {
       }
     }
 
-    private static string ConfigPairToArgument(KeyValuePair<string, string> pair) {
-      if (pair.Value.Equals("yes")) {
-        return String.Format("/{0}", pair.Key);
-      } else {
-        return String.Format("/{0}:{1}", pair.Key, pair.Value);
-      }
-    }
-
     public void Run() {
       ProcessResult dafnyResult;
       if (Arguments.Any(arg => arg.StartsWith("/out"))) {
@@ -277,13 +309,17 @@ namespace DafnyTests {
         }
       }
 
-      dafnyResult.ExitCode.Should().Be(Expected.ExitCode);
+      if (dafnyResult.ExitCode != Expected.ExitCode) {
+        throw new AssertActualExpectedException(Expected.ExitCode, dafnyResult.ExitCode,
+          String.Format("Expected exit code to be {0} but was {1}. Standard error output:\n{2}",
+            Expected.ExitCode, dafnyResult.ExitCode, dafnyResult.StandardError));
+      }
       if (Expected.OutputFile != null) {
         var expectedOutput = File.ReadAllText(Path.Combine(DafnyTestSpec.TEST_ROOT, Expected.OutputFile));
         AssertWithDiff.Equal(expectedOutput, dafnyResult.StandardOutput);
       }
 
-      Skip.If(Expected.SpecialCase, "Confirmed known exception for arguments: " + String.Join(" ", Arguments));
+      Skip.If(Expected.SpecialCaseReason != null, Expected.SpecialCaseReason);
     }
 
     public override string ToString() {
@@ -331,6 +367,7 @@ dafnyArguments: {}
       return new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .WithTagMapping("!dafnyTestSpec", typeof(DafnyTestSpec))
+        .WithTagMapping("!foreach", typeof(ForEachArgumentList))
         .WithObjectFactory(customObjectFactory)
         .Build();
     }

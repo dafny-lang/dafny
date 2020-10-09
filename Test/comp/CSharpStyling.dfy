@@ -4,6 +4,8 @@
 dafnyArguments:
     compile: 3
     compileTarget: cs
+otherFiles:
+    - CSharpStyling2.cs
 */
 
 method Main() {

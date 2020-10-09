@@ -4,6 +4,19 @@
 dafnyArguments:
     compile: 3
     coverage: "-"
+compileTargetOverrides:
+    java:
+        otherFiles: 
+            - CodeCoverage.java
+    cs:
+        otherFiles: 
+            - BranchCoverage2.cs
+    js:
+        otherFiles: 
+            - BranchCoverage3.js
+    go:
+        otherFiles: 
+            - BranchCoverage4.go
 */
 
 // The Main method is at the end of this file, because that makes it easier to maintain

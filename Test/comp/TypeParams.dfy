@@ -1,3 +1,20 @@
+/*
+---
+!dafnyTestSpec
+compileTargetOverrides:
+    cs:
+        expected:
+            outputFile: TypeParams.dfy.cs.expect
+    java:
+        expected:
+            outputFile: TypeParams.dfy.java.expect
+    js:
+        expected:
+            outputFile: TypeParams.dfy.js.expect
+    go:
+        expected:
+            outputFile: TypeParams.dfy.go.expect
+*/
 datatype Color = Orange | Pink | Teal
 type Six = x | x <= 6
 newtype Even = x | x % 2 == 0
