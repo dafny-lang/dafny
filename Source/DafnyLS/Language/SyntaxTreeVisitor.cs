@@ -315,6 +315,9 @@ namespace DafnyLS.Language {
       case OldExpr oldExpression:
         Visit(oldExpression);
         break;
+      case ITEExpr ifThenElseExpression:
+        Visit(ifThenElseExpression);
+        break;
       default:
         VisitUnknown(expression, expression.tok);
         break;
@@ -424,6 +427,12 @@ namespace DafnyLS.Language {
 
     public virtual void Visit(OldExpr oldExpression) {
       Visit(oldExpression.E);
+    }
+
+    public virtual void Visit(ITEExpr ifThenElseExpression) {
+      Visit(ifThenElseExpression.Test);
+      Visit(ifThenElseExpression.Thn);
+      Visit(ifThenElseExpression.Els);
     }
   }
 }
