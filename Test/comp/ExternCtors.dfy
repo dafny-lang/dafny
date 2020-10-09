@@ -7,16 +7,16 @@ compileTargetOverrides:
             - Class.java
     cs:
         otherFiles:
-            - Library.cs
+            - ExternCtors-externs/Library.cs
     js:
         otherFiles:
-            - Library.js
+            - ExternCtors-externs/Library.js
         expected:
             outputFile: ~
             specialCaseReason: Extern constructors are currently broken in JavaScript
     go:
         otherFiles:
-            - Library.go
+            - ExternCtors-externs/Library.go
         expected:
             outputFile: ~
             specialCaseReason: Extern constructors are currently broken in Go
