@@ -1,0 +1,18 @@
+git-issue-276r.dfy(6,10): Info: newtype b0 resolves as {:nativeType "byte"} (Detected Range: 0 .. 5)
+git-issue-276r.dfy(7,10): Info: newtype b1 resolves as {:nativeType "byte"} (Detected Range: 0 .. 1)
+git-issue-276r.dfy(8,10): Info: newtype b2 resolves as {:nativeType "byte"} (Detected Range: 0 .. 6)
+git-issue-276r.dfy(10,10): Info: newtype b4 resolves as {:nativeType "byte"} (Detected Range: 0 .. 2)
+git-issue-276r.dfy(11,10): Info: newtype b5 resolves as {:nativeType "ushort"} (Detected Range: 0 .. 1000)
+git-issue-276r.dfy(12,10): Info: newtype b6 resolves as {:nativeType "byte"} (Detected Range: 0 .. 99)
+git-issue-276r.dfy(13,10): Info: newtype b7 resolves as {:nativeType "ushort"} (Detected Range: 0 .. 2000)
+git-issue-276r.dfy(14,10): Info: newtype b8 resolves as {:nativeType "byte"} (Detected Range: 0 .. 20)
+git-issue-276r.dfy(15,10): Info: newtype b9 resolves as {:nativeType "byte"} (Detected Range: 0 .. 20)
+git-issue-276r.dfy(16,10): Info: newtype b10 resolves as {:nativeType "byte"} (Detected Range: 0 .. 30)
+git-issue-276r.dfy(17,10): Info: newtype b11 resolves as {:nativeType "byte"} (Detected Range: 0 .. 35)
+git-issue-276r.dfy(18,10): Info: newtype b12 resolves as {:nativeType "byte"} (Detected Range: 0 .. 35)
+git-issue-276r.dfy(19,10): Info: newtype b13 resolves as {:nativeType "byte"} (Detected Range: 0 .. 40)
+git-issue-276r.dfy(20,10): Info: newtype b14 resolves as {:nativeType "byte"} (Detected Range: 0 .. 40)
+git-issue-276r.dfy(21,10): Info: newtype b15 resolves as {:nativeType "byte"} (Detected Range: 0 .. 40)
+git-issue-276r.dfy(22,10): Info: newtype b16 resolves as {:nativeType "byte"} (Detected Range: 0 .. 35)
+
+Dafny program verifier finished with 17 verified, 0 errors
