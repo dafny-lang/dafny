@@ -25,7 +25,7 @@ method M3() returns (r: FailureCompatible3) { }
 
 method N() returns (s: real) {
   ghost var ss: real := 1.0;
-  var sss := ss;
+  var sss := ss; // auto ghost now works for initializations from expressions
   print ss, sss; // ERROR - ghost expressions
 }
 
@@ -33,10 +33,5 @@ method NN() returns (ss: real) {
   var s4 :- M2(); // OK - s4 is auto-ghost
   var s5 :- M3(); // OK
   print s4, s4+1.0, s5; // two ghost expressions
-}
-
-method Main() {
-  var x := N();
-  print x, "\n";
 }
 

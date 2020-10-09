@@ -7737,8 +7737,6 @@ namespace Microsoft.Dafny
           var s = (AssignOrReturnStmt)stmt;
           s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable));
           s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
-          // Error(stmt, "Internal Error: uses of :- should be desugared away at this point");
-          // Contract.Assert(false);
 
         } else if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;

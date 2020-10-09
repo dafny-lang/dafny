@@ -1,8 +1,7 @@
-git-issue-859a.dfy(28,4): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-git-issue-859a.dfy(28,4): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
-git-issue-859a.dfy(28,4): Error: actual out-parameter is required to be a ghost variable
-git-issue-859a.dfy(33,4): Error: actual out-parameter is required to be a ghost variable
-git-issue-859a.dfy(44,9): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-git-issue-859a.dfy(44,9): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
-git-issue-859a.dfy(50,8): Error: ghost variables are allowed only in specification contexts
-7 resolution/type errors detected in git-issue-859a.dfy
+git-issue-859a.dfy(28,2): Error: The Extract member may not be ghost unless the initial LHS is ghost
+git-issue-859a.dfy(5,12): Error: The IsFailure member may not be ghost
+git-issue-859a.dfy(6,11): Error: The PropagateFailure member may not be ghost
+git-issue-859a.dfy(33,2): Error: The Extract member may not be ghost unless the initial LHS is ghost
+git-issue-859a.dfy(5,12): Error: The IsFailure member may not be ghost
+git-issue-859a.dfy(6,11): Error: The PropagateFailure member may not be ghost
+6 resolution/type errors detected in git-issue-859a.dfy
