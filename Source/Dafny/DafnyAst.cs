@@ -7314,6 +7314,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhs != null);
       return LhsIsToGhost_Which(lhs) == NonGhostKind.IsGhost;
     }
+    public static bool LhsIsToGhostOrAutoGhost(Expression lhs) {
+      Contract.Requires(lhs != null);
+      return LhsIsToGhost_Which(lhs) == NonGhostKind.IsGhost || lhs.Resolved is AutoGhostIdentifierExpr;
+        ;
+    }
     public enum NonGhostKind { IsGhost, Variable, Field, ArrayElement }
     public static string NonGhostKind_To_String(NonGhostKind gk) {
       Contract.Requires(gk != NonGhostKind.IsGhost);
@@ -7332,7 +7337,13 @@ namespace Microsoft.Dafny {
     public static NonGhostKind LhsIsToGhost_Which(Expression lhs) {
       Contract.Requires(lhs != null);
       lhs = lhs.Resolved;
-      if (lhs is IdentifierExpr) {
+      if (lhs is AutoGhostIdentifierExpr) {
+        // TODO: Should we return something different for this case?
+        var x = (IdentifierExpr)lhs;
+        if (!x.Var.IsGhost) {
+          return NonGhostKind.Variable;
+        }
+      } else if (lhs is IdentifierExpr) {
         var x = (IdentifierExpr)lhs;
         if (!x.Var.IsGhost) {
           return NonGhostKind.Variable;

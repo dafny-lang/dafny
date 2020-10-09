@@ -25,29 +25,14 @@ method M3() returns (r: FailureCompatible3) { }
 
 method N() returns (s: real) {
   ghost var ss: real := 1.0;
-  s :- M(); // ERRORS
-}
-
-method N1() returns (s: real) {
-  ghost var ss: real := 1.0;
-  s :- M2(); // ERROR - ghost assigned to non-ghost
-}
-
-method N2() returns (s: real) {
-  ghost var ss: real := 1.0;
-  s :- M3(); // OK
-  ss :- M2(); // OK
-  ss :- M3(); // OK
+  var sss := ss;
+  print ss, sss; // ERROR - ghost expressions
 }
 
 method NN() returns (ss: real) {
-  var s1 :- M(); // ERRORS
-}
-
-method NN2() returns (ss: real) {
   var s4 :- M2(); // OK - s4 is auto-ghost
   var s5 :- M3(); // OK
-  print s4, s5; // ERROR - s4 is ghost
+  print s4, s4+1.0, s5; // two ghost expressions
 }
 
 method Main() {
