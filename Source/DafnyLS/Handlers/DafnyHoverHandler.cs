@@ -44,7 +44,8 @@ namespace DafnyLS.Handlers {
       return new Hover {
         Contents = new MarkedStringsOrMarkupContent(
           new MarkupContent {
-            Kind = MarkupKind.PlainText,
+            // TODO It appears that setting plaintext/markdown doesn't make a difference, at least in VSCode.
+            Kind = MarkupKind.Markdown,
             Value = $"```dafny\n{symbol.GetDetailText(cancellationToken)}\n```"
           }
         )
