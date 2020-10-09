@@ -46,6 +46,11 @@ namespace DafnyLS.Language {
     public async Task VerifyAsync(Microsoft.Dafny.Program program, CancellationToken cancellationToken) {
       await _mutex.WaitAsync(cancellationToken);
       try {
+        if(program.reporter.AllMessages[ErrorLevel.Error].Count > 0) {
+          // TODO Change logic so that the loader is responsible to ensure that the previous steps were sucessful.
+          _logger.LogDebug("skipping program verification since the parser or resolvers already reported errors");
+          return;
+        }
         var translated = Translator.Translate(program, program.reporter, new Translator.TranslatorFlags { InsertChecksums = true });
         foreach(var (_, boogieProgram) in translated) {
           cancellationToken.ThrowIfCancellationRequested();

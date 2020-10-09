@@ -13,6 +13,7 @@ namespace DafnyLS.Language.Symbols {
   /// this parser serializes all invocations.
   /// </remarks>
   internal class DafnyLangSymbolResolver : ISymbolResolver {
+    // TODO accesses to the resolver may need synchronization.
     private readonly ILogger _logger;
 
     public DafnyLangSymbolResolver(ILogger<DafnyLangSymbolResolver> logger) {
