@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\dafny\Source\boogie\Source\ExecutionEngine\ExecutionEngine-NetCore.csproj" />
     <ProjectReference Include="..\..\dafny\Source\Dafny\DafnyPipeline.csproj" />
     
     <!-- SMTLib is implicitely required by Dafny since its loaded on-demand by boogie. -->
@@ -30,6 +31,8 @@
     <None Update="nlog.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="..\..\dafny\Binaries\DafnyPrelude.bpl" Link="DafnyPrelude.bpl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
-
 </Project>

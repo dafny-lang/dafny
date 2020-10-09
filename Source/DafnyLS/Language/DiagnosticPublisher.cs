@@ -33,7 +33,8 @@ namespace DafnyLS.Language {
           yield return new Diagnostic {
             Severity = ToSeverity(level),
             Range = message.token.GetLspRange(),
-            Message = message.message
+            Message = message.message,
+            Source = message.source.ToString()
           };
         }
       }

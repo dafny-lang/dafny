@@ -21,6 +21,7 @@ namespace DafnyLS.Language {
       return services
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
+        .AddSingleton<IProgramVerifier>(serviceProvider => DafnyProgramVerifier.Create(serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>()))
         .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>();
     }
   }
