@@ -45,7 +45,7 @@ namespace DafnyLS.Handlers {
         Contents = new MarkedStringsOrMarkupContent(
           new MarkupContent {
             Kind = MarkupKind.PlainText,
-            Value = symbol.GetDetailText(cancellationToken)
+            Value = $"```dafny\n{symbol.GetDetailText(cancellationToken)}\n```"
           }
         )
       };
