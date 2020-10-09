@@ -7,6 +7,7 @@ namespace DafnyLS.Language {
   internal abstract class SyntaxTreeVisitor {
     // TODO ensure that all Visit(...) methods cover all the nested syntax elements in post-order traversal.
     // TODO Double-dispatching would be convenient here, but requirees adaptions to the AST.
+    // TODO Is visiting Attributes necessary, i.e., does it belong to the AST?
 
     /// <summary>
     /// This method is invoked as soon as the visitor encounters an unknown syntax node.
@@ -70,6 +71,13 @@ namespace DafnyLS.Language {
       }
       foreach(var outDefinition in method.Outs) {
         Visit(outDefinition);
+      }
+      VisitNullableAttributes(method.Attributes);
+      foreach(var requirement in method.Req) {
+        Visit(requirement);
+      }
+      foreach(var ensurement in method.Ens) {
+        Visit(ensurement);
       }
       Visit(method.Body);
     }
@@ -182,12 +190,29 @@ namespace DafnyLS.Language {
       case UpdateStmt updateStatement:
         Visit(updateStatement);
         break;
+      case AssertStmt assertStatement:
+        Visit(assertStatement);
+        break;
+      case ReturnStmt returnStatement:
+        Visit(returnStatement);
+        break;
       default:
         VisitUnknown(statement, statement.Tok);
         break;
       }
     }
 
+    public virtual void Visit(AssertStmt assertStatement) {
+      VisitNullableAttributes(assertStatement.Attributes);
+      Visit(assertStatement.Expr);
+    }
+
+    public virtual void Visit(ReturnStmt returnStatement) {
+      VisitNullableAttributes(returnStatement.Attributes);
+      foreach(var rhs in returnStatement.rhss) {
+        Visit(rhs);
+      }
+    }
 
     public virtual void Visit(Expression expression) {
       switch(expression) {
@@ -281,6 +306,15 @@ namespace DafnyLS.Language {
       case ApplySuffix applySuffix:
         Visit(applySuffix);
         break;
+      case ChainingExpression chainingExpression:
+        Visit(chainingExpression);
+        break;
+      case NegationExpression negationExpression:
+        Visit(negationExpression);
+        break;
+      case OldExpr oldExpression:
+        Visit(oldExpression);
+        break;
       default:
         VisitUnknown(expression, expression.tok);
         break;
@@ -346,6 +380,8 @@ namespace DafnyLS.Language {
     }
 
     public virtual void Visit(AttributedExpression attributedExpression) {
+      VisitNullableAttributes(attributedExpression.Attributes);
+      Visit(attributedExpression.E);
     }
 
     public virtual void Visit(SeqSelectExpr sequenceSelectExpression) {
@@ -374,6 +410,20 @@ namespace DafnyLS.Language {
       VisitNullableExpression(ternaryExpression.E0);
       VisitNullableExpression(ternaryExpression.E1);
       VisitNullableExpression(ternaryExpression.E2);
+    }
+
+    public virtual void Visit(ChainingExpression chainingExpression) {
+      foreach(var operand in chainingExpression.Operands) {
+        Visit(operand);
+      }
+    }
+
+    public virtual void Visit(NegationExpression negationExpression) {
+      Visit(negationExpression.E);
+    }
+
+    public virtual void Visit(OldExpr oldExpression) {
+      Visit(oldExpression.E);
     }
   }
 }

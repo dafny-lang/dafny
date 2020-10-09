@@ -8,12 +8,12 @@ namespace DafnyLS.Language.Symbols {
   /// This visitor is the first pass when resolving the symbols of a given document. It visits
   /// all available declarations inside the document and stores them within the symbol table.
   /// </summary>
-  internal class SymbolResolvingVisitor : SyntaxTreeVisitor {
+  internal class SymbolDeclarationVisitor : SyntaxTreeVisitor {
     private readonly ILogger _logger;
 
     private SymbolTable _currentTable;
 
-    public SymbolResolvingVisitor(ILogger logger, SymbolTable rootTable) {
+    public SymbolDeclarationVisitor(ILogger logger, SymbolTable rootTable) {
       _logger = logger;
       _currentTable = rootTable;
     }
@@ -59,6 +59,9 @@ namespace DafnyLS.Language.Symbols {
     }
 
     public override void Visit(NameSegment nameSegment) {
+      // TODO Simplification for PoC of hovering. The declarations have to be processed in a 1st-pass and the
+      //      references in a 2nd-pass. Otherwise, accesses to members of foreign classes cannot be resolved,
+      //      unless they were declared/processed before.
       RegisterReference(nameSegment.tok, nameSegment.Name);
       base.Visit(nameSegment);
     }
