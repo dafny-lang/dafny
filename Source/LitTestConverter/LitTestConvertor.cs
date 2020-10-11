@@ -2,9 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using Microsoft.SqlServer.Server;
 
 namespace DafnyTests {
   
@@ -13,12 +10,12 @@ namespace DafnyTests {
     private const string DAFNY_COMMENT_PREFIX = "//";
     private const string LIT_COMMAND_PREFIX = "RUN:";
     private const string LIT_DAFNY = "%dafny";
-    private const string DAFNY_COMPILE = "compile";
-    private const string DAFNY_COMPILE_TARGET = "compileTarget";
+    private const string LIT_SERVER = "%server";
+    
     // Fake options to which files are passed to the CLI
-    private const string TEST_CONFIG_OTHER_FILES = "otherFiles";
-    private const string TEST_CONFIG_INCLUDE_THIS_FILE = "includeThisFile";
-
+    public const string TEST_CONFIG_OTHER_FILES = "otherFiles";
+    public const string TEST_CONFIG_INCLUDE_THIS_FILE = "includeThisFile";
+    
     // Arguments that are taken care of automatically. If a test is actually using the output of
     // one of these as input in another command, that will be flagged as an unsupported
     // use of lit substitution.
@@ -35,7 +32,7 @@ namespace DafnyTests {
     private int invalidCount = 0;
         
     public void ConvertLitTest(string filePath) {
-      if (filePath.Contains("/Inputs/") || filePath.Contains("/comp/")) {
+      if (filePath.Contains("/Inputs/")) {
         // TODO-RS: Need to add .common.yml file to disable Inputs/*.dfy
         return;
       }
@@ -48,8 +45,7 @@ namespace DafnyTests {
         throw new ArgumentException("Lit commands are not consecutive");
       }
       if (!litCommands.Any()) {
-        // TODO-RS: Check if in an Inputs directory
-        throw new ArgumentException("No lit commands found");
+        return;
       }
 
       if (!litCommands[^1].Equals("%diff \"%s.expect\" \"%t\"")) {
@@ -61,9 +57,10 @@ namespace DafnyTests {
 
       if (testConfigs.Count == 1 && 
           testConfigs[0].Count == 1 && 
-          DictionaryContainsEntry(testConfigs[0], DAFNY_COMPILE, "0")) {
+          DictionaryContainsEntry(testConfigs[0], DafnyTestSpec.DAFNY_COMPILE_OPTION, "0")) {
         verifyOnlyCount++;
-      } else if (testConfigs.Count(c => c.ContainsKey(DAFNY_COMPILE_TARGET)) > 1) {
+        
+      } else if (testConfigs.Count(c => c.ContainsKey(DafnyTestSpec.DAFNY_COMPILE_TARGET_OPTION)) > 1) {
         defaultCount++;
       }
     }
@@ -154,6 +151,7 @@ namespace DafnyTests {
     }
 
     public void Run(string root) {
+      // TODO-RS: Search for "*.transcript" too
       foreach (var file in Directory.GetFiles(root, "*.dfy", SearchOption.AllDirectories)) {
         try {
           count++;

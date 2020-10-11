@@ -42,7 +42,7 @@ namespace XUnitExtensions {
     
     private IEnumerable<object[]> ResourceData(MethodInfo testMethod, string resourceName, bool withParameterNames) {
       try {
-        Stream stream = testMethod.DeclaringType.Assembly.GetManifestResourceStream(resourceName);
+        using Stream stream = testMethod.DeclaringType.Assembly.GetManifestResourceStream(resourceName);
         IParser parser = GetYamlParser(resourceName, stream);
         if (parser == null) {
           return Enumerable.Empty<object[]>();

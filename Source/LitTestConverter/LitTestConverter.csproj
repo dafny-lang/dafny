@@ -8,4 +8,8 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\DafnyTests\DafnyTests.csproj" />
+  </ItemGroup>
+
 </Project>

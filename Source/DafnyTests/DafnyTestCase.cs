@@ -36,6 +36,11 @@ namespace DafnyTests {
     
     public static readonly string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/dafny");
 
+    // Dafny options with special handling
+    public const string DAFNY_COMPILE_OPTION = "compile";
+    public const string DAFNY_COMPILE_TARGET_OPTION = "compileTarget";
+    public const string DAFNY_NO_VERIFY_OPTION = "noVerify";
+
     private static readonly IFileProvider manifestFileProvider = new ManifestEmbeddedFileProvider(
       Assembly.GetExecutingAssembly());
     private static readonly Dictionary<string, string> PathsForResourceNames = GetPathsForResourceNames(
@@ -84,18 +89,18 @@ namespace DafnyTests {
 
     public string Compile {
       get {
-        if (DafnyArguments.TryGetValue("compile", out var compile)) {
+        if (DafnyArguments.TryGetValue(DAFNY_COMPILE_OPTION, out var compile)) {
           return (string) compile;
         }
         return null;
       }
       set {
-        DafnyArguments["compile"] = value;
+        DafnyArguments[DAFNY_COMPILE_OPTION] = value;
       }
     }
     public string CompileTarget {
       get {
-        if (DafnyArguments.TryGetValue("compileTarget", out var compileTarget)) {
+        if (DafnyArguments.TryGetValue(DAFNY_COMPILE_TARGET_OPTION, out var compileTarget)) {
           return (string) compileTarget;
         }
         return null;
@@ -111,15 +116,15 @@ namespace DafnyTests {
         var compileTargets = new[] {"cs", "java", "go", "js"};
 
         var justVerify = new Dictionary<string, object>(DafnyArguments) {
-          ["compile"] = "0"
+          [DAFNY_COMPILE_OPTION] = "0"
         };
         yield return new DafnyTestSpec(SourcePath, justVerify, OtherFiles, DafnyTestCase.Expectation.NO_OUTPUT);
         
         foreach (var compileTarget in compileTargets) {
           var withLanguage = new Dictionary<string, object>(DafnyArguments) {
-              ["noVerify"] = "yes", 
-              ["compile"] = "4",
-              ["compileTarget"] = compileTarget
+              [DAFNY_NO_VERIFY_OPTION] = "yes", 
+              [DAFNY_COMPILE_OPTION] = "4",
+              [DAFNY_COMPILE_TARGET_OPTION] = compileTarget
             };
           var specForLanguage = new DafnyTestSpec(SourcePath, withLanguage, OtherFiles, Expected);
           if (CompileTargetOverrides.TryGetValue(compileTarget, out var compileTargetOverride)) {
@@ -191,6 +196,8 @@ namespace DafnyTests {
 
   public class ForEachArgumentList : List<string> { }
   
+  // TODO-RS: This is really close to a generic CLI test case -
+  // can we move all the dafny-specific stuff to DafnyTestSpec instead?
   public class DafnyTestCase: IXunitSerializable {
 
     public string[] Arguments;
@@ -341,27 +348,28 @@ namespace DafnyTests {
 @"!dafnyTestSpec
 dafnyArguments: {}
 ";
-    
-    public override IParser GetYamlParser(string manifestResourceName, Stream stream) {
-      if (!manifestResourceName.EndsWith(".dfy")) {
-        return null;
-      }
-      
-      string content = DEFAULT_CONFIG;
-      
-      // TODO-RS: Figure out how to do this cleanly on a TextReader instead,
-      // and to handle things like nested comments.
-      string fullText = new StreamReader(stream).ReadToEnd();
+
+    public static string GetTestCaseConfigYaml(string fullText) {
       var commentStart = fullText.IndexOf("/*");
       if (commentStart >= 0) {
         var commentEnd = fullText.IndexOf("*/", commentStart + 2);
         if (commentEnd >= 0) {
           var commentContent = fullText.Substring(commentStart + 2, commentEnd - commentStart - 2).Trim();
           if (commentContent.StartsWith("---")) {
-            content = commentContent;
+            return commentContent;
           }
         }
       }
+
+      return null;
+    }
+    
+    public override IParser GetYamlParser(string manifestResourceName, Stream stream) {
+      if (!manifestResourceName.EndsWith(".dfy")) {
+        return null;
+      }
+      
+      string content = GetTestCaseConfigYaml(new StreamReader(stream).ReadToEnd()) ?? DEFAULT_CONFIG;
   
       return new Parser(new StringReader(content));
     }
