@@ -231,4 +231,4 @@ Execution trace:
 Dafny program verifier finished with 56 verified, 47 errors
 SmallTests.dfy.tmp.dprint.dfy(451,4): Warning: /!\ No trigger covering all quantified variables found.
 
-Dafny program verifier finished without attempting verification
+Dafny program verifier did not attempt verification

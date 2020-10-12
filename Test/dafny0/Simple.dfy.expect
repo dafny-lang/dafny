@@ -106,4 +106,4 @@ colemma M'(x': int)
 {
 }
 
-Dafny program verifier finished without attempting verification
+Dafny program verifier did not attempt verification
