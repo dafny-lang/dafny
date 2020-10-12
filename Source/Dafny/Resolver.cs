@@ -16902,8 +16902,11 @@ namespace Microsoft.Dafny
         }
         return me.Cases.Exists(mc => UsesSpecFeatures(mc.Body));
       } else if (expr is ConcreteSyntaxExpression) {
-        var e = (ConcreteSyntaxExpression)expr;
+        var e = (ConcreteSyntaxExpression) expr;
         return e.ResolvedExpression != null && UsesSpecFeatures(e.ResolvedExpression);
+      } else if (expr is SeqConstructionExpr) {
+        var e = (SeqConstructionExpr) expr;
+        return UsesSpecFeatures(e.N) || UsesSpecFeatures(e.Initializer);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
