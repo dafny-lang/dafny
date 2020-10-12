@@ -1315,10 +1315,20 @@ namespace Microsoft.Dafny
       wr.Write(")");
     }
 
+    // if checkRange is false, msg is ignored
+    // if checkRange is true and msg is null and the value is out of range, a generic message is emitted
+    // if checkRange is true and msg is not null and the value is out of range, msg is emitted in the error message
+    protected void TrExprAsInt(Expression expr, TargetWriter wr, bool inLetExprBody, bool checkRange = false,
+      string msg = null) {
+      wr.Write($"{GetHelperModuleName()}.ToIntChecked(");
+      TrExpr(expr, wr, inLetExprBody);
+      if (checkRange) wr.Write(msg == null ? ", null" : $", \"{msg}\")");
+    }
+
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr) {
       var wrs = EmitNewArray(elmtType, tok, dimensions.Count, mustInitialize, wr);
       for (int i = 0; i < wrs.Count; i++) {
-        TrExpr(dimensions[i], wrs[i], inLetExprBody: false);
+        TrExprAsInt(dimensions[i], wrs[i], inLetExprBody: false, true, "C# arrays may not be larger than the max 32-bit integer");
       }
     }
 
@@ -1330,10 +1340,10 @@ namespace Microsoft.Dafny
         wr.Write("new {0}", typeNameSansBrackets);
         string prefix = "[";
         for (var d = 0; d < dimCount; d++) {
-          wr.Write("{0}(int)(", prefix);
+          wr.Write("{0}{1}", prefix, "Dafny.Helpers.ToIntChecked(");
           var w = wr.Fork();
           wrs.Add(w);
-          wr.Write(")");
+          wr.Write(",\"C# array size must not be larger than max 32-bit int\")");
           prefix = ", ";
         }
         wr.Write("]{0}", brackets);
