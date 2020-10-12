@@ -386,7 +386,7 @@ namespace Microsoft.Dafny
     private static void WriteTrailer(PipelineStatistics stats) {
       if (CommandLineOptions.Clo.vcVariety != CommandLineOptions.VCVariety.Doomed && !CommandLineOptions.Clo.Verify && stats.ErrorCount == 0) {
         Console.WriteLine();
-        Console.Write("{0} finished without attempting verification", CommandLineOptions.Clo.DescriptiveToolName);
+        Console.Write("{0} did not attempt verification!", CommandLineOptions.Clo.DescriptiveToolName);
         if (stats.InconclusiveCount != 0) {
           Console.Write(", {0} inconclusive{1}", stats.InconclusiveCount, stats.InconclusiveCount == 1 ? "" : "s");
         }
