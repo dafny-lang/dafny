@@ -2194,7 +2194,7 @@ namespace Microsoft.Dafny{
         // literal values
         case "false":
         case "null":
-        case "true": 
+        case "true":
         case "toString":
         case "equals":
         case "hashCode":
@@ -3483,20 +3483,27 @@ namespace Microsoft.Dafny{
       }
     }
 
-    private void TrExprAsInt(Expression expr, TargetWriter wr, bool inLetExprBody) {
+    // if checkRange is false, msg is ignored
+    // if checkRange is true and msg is null and the value is out of range, a generic message is emitted
+    // if checkRange is true and msg is not null and the value is out of range, msg is emitted in the error message
+    private void TrExprAsInt(Expression expr, TargetWriter wr, bool inLetExprBody, bool checkRange = false, string msg = null) {
       var nt = AsNativeType(expr.Type);
       if (nt == null) {
+        wr.Write($"{DafnyHelpersClass}.toInt" + (checkRange ? "Checked(" : "("));
         TrParenExpr(expr, wr, inLetExprBody);
-        wr.Write(".intValue()");
+        if (checkRange) wr.Write( msg == null ? ", null" : $", \"{msg}\"");
+        wr.Write(")");
       } else if (nt.Sel == NativeType.Selection.Int || nt.Sel == NativeType.Selection.UInt) {
         TrExpr(expr, wr, inLetExprBody);
       } else if (IsUnsignedJavaNativeType(nt)) {
-        wr.Write($"{DafnyHelpersClass}.unsignedToInt(");
+        wr.Write($"{DafnyHelpersClass}.unsignedToInt" + (checkRange ? "Checked(" : "("));
         TrExpr(expr, wr, inLetExprBody);
+        if (checkRange) wr.Write( msg == null ? ", null" : $", \"{msg}\"");
         wr.Write(")");
       } else {
-        wr.Write($"{DafnyHelpersClass}.toInt(");
+        wr.Write($"{DafnyHelpersClass}.toInt" + (checkRange ? "Checked(" : "("));
         TrExpr(expr, wr, inLetExprBody);
+        if (checkRange) wr.Write( msg == null ? ", null" : $", \"{msg}\"");
         wr.Write(")");
       }
     }
@@ -3514,7 +3521,7 @@ namespace Microsoft.Dafny{
         arrays.Add(dimensions.Count);
         wr.Write($"new {DafnyMultiArrayClass(dimensions.Count)}<>({TypeDescriptor(elmtType, wr, tok)}, ");
         foreach (var dim in dimensions) {
-          TrExprAsInt(dim, wr, inLetExprBody: false);
+          TrExprAsInt(dim, wr, inLetExprBody: false, true, "Java arrays may be no larger than the maximum 32-bit signed int");
           wr.Write(", ");
         }
         wBareArray = wr.Fork();
@@ -3542,7 +3549,7 @@ namespace Microsoft.Dafny{
       var sep = "";
       foreach (var dim in dimensions) {
         wBareArray.Write(sep);
-        TrExprAsInt(dim, wBareArray, inLetExprBody: false);
+        TrExprAsInt(dim, wBareArray, inLetExprBody: false, true, "Java arrays may be no larger than the maximum 32-bit signed int");
         sep = ", ";
       }
       wBareArray.Write(")");
