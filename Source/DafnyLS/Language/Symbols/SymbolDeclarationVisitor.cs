@@ -18,6 +18,11 @@ namespace DafnyLS.Language.Symbols {
       _currentTable = rootTable;
     }
 
+    public override void Visit(ModuleDefinition moduleDefinition) {
+      _currentTable.Register(new ModuleSymbol(moduleDefinition));
+      ScopeSymbolTable(() => base.Visit(moduleDefinition));
+    }
+
     public override void VisitUnknown(object node, Microsoft.Boogie.IToken token) {
       _logger.LogWarning("encountered unknown syntax node of type {} in {}@({},{})", node.GetType(), Path.GetFileName(token.filename), token.line, token.col);
     }

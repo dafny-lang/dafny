@@ -29,12 +29,8 @@ namespace DafnyLS.Language.Symbols {
         return rootSymbolTable;
       }
       if(RunDafnyResolver(textDocument, program)) {
-        foreach(var module in program.Modules()) {
-          cancellationToken.ThrowIfCancellationRequested();
-          var moduleSymbolTable = rootSymbolTable.NewChild();
-          var visitor = new SymbolDeclarationVisitor(_logger, moduleSymbolTable);
-          visitor.Visit(module);
-        }
+        var visitor = new SymbolDeclarationVisitor(_logger, rootSymbolTable);
+        visitor.Visit(program);
       }
       return rootSymbolTable;
     }

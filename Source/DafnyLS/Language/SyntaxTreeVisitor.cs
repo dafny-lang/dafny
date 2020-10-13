@@ -16,6 +16,12 @@ namespace DafnyLS.Language {
     /// <param name="token">The token asociated with the unknown node.</param>
     public abstract void VisitUnknown(object node, Microsoft.Boogie.IToken token);
 
+    public virtual void Visit(Microsoft.Dafny.Program program) {
+      foreach(var module in program.Modules()) {
+        Visit(module);
+      }
+    }
+
     public virtual void Visit(TopLevelDecl topLevelDeclaration) {
       switch(topLevelDeclaration) {
       case ClassDecl classDeclaration:
