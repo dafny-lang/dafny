@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 hello, instance
 x is 0
 0.0 1.0 2.0 3.0 4.0 5.0 

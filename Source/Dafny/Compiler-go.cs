@@ -2169,7 +2169,7 @@ namespace Microsoft.Dafny {
         case "println":
         case "real":
         case "recover":
-          
+
         case "String":
         case "Equals":
         case "EqualsGeneric":
@@ -3283,17 +3283,17 @@ namespace Microsoft.Dafny {
       wr.Write(".ToMap()");
     }
 
-    protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
-      if (ct is MapType) {
-        wr.Write("_dafny.NewMapBuilder()");
-      } else if (ct is SetType || ct is MultiSetType) {
-        wr.Write("_dafny.NewBuilder()");
-      } else {
-        Contract.Assume(false);  // unepxected collection type
-      }
+    protected override void EmitSetBuilder_New(TargetWriter wr, SetComprehension e, string collectionName) {
+      var wrVarInit = DeclareLocalVar(collectionName, null, null, wr);
+      wrVarInit.Write("_dafny.NewBuilder()");
     }
 
-    protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitMapBuilder_New(TargetWriter wr, MapComprehension e, string collectionName) {
+      var wrVarInit = DeclareLocalVar(collectionName, null, null, wr);
+      wrVarInit.Write("_dafny.NewMapBuilder()");
+    }
+
+    protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
       Contract.Assume(ct is SetType || ct is MultiSetType);  // follows from precondition
       wr.Write("{0}.Add(", collName);
       TrExpr(elmt, wr, inLetExprBody);
@@ -3312,8 +3312,6 @@ namespace Microsoft.Dafny {
     protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
       if (ct is SetType) {
         return collName + ".ToSet()";
-      } else if (ct is MultiSetType) {
-        return collName + ".ToMultiSet()";
       } else {
         Contract.Assert(ct is MapType);
         return collName + ".ToMap()";

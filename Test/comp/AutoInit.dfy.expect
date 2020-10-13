@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 3 false 0
 Cell.Cell(false) false true
 () (0, false, false, [])
