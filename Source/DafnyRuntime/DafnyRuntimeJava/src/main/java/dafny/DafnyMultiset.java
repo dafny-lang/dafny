@@ -110,8 +110,7 @@ public class DafnyMultiset<T> {
         return isSubsetOf(other) && this.cardinality().compareTo(other.cardinality()) < 0;
     }
 
-    public <U> boolean contains(U t) {
-        // assume U is a supertype of T
+    public boolean contains(Object t) {
         // Relies on invariant that all keys have a positive multiplicity
         return innerMap.containsKey(t);
     }

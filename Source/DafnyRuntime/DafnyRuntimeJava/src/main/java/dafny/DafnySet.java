@@ -66,8 +66,7 @@ public class DafnySet<T> {
         return isSubsetOf(other) && size() < other.size();
     }
 
-    public <U> boolean contains(U t) {
-        // assume U is a supertype of T
+    public boolean contains(Object t) {
         assert t != null : "Precondition Violation";
         return innerSet.contains(t);
     }

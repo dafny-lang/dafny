@@ -38,7 +38,7 @@ public class DafnyMap<K, V> implements Map<K, V> {
                 DafnyMap.empty());
     }
 
-    public <T> boolean contains(T t) {
+    public boolean contains(Object t) {
         return innerMap.containsKey(t);
     }
 

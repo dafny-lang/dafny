@@ -1,7 +1,7 @@
 
 Dafny program verifier finished with 25 verified, 0 errors
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -55,7 +55,7 @@ true
 1 1
 1 1
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -109,7 +109,7 @@ true
 1 1
 1 1
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -163,7 +163,7 @@ true
 1 1
 1 1
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]

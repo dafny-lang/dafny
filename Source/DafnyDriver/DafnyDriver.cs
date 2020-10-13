@@ -371,9 +371,8 @@ namespace Microsoft.Dafny
           TimeSpan ts = watch.Elapsed;
           string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}",
             ts.Hours, ts.Minutes, ts.Seconds);
-
           ExecutionEngine.printer.AdvisoryWriteLine("Elapsed time: {0}", elapsedTime);
-          ExecutionEngine.printer.WriteTrailer(newstats);
+          WriteTrailer(newstats);
         }
 
         statss.Add(prog.Item1, newstats);
@@ -382,6 +381,30 @@ namespace Microsoft.Dafny
       watch.Stop();
 
       return isVerified;
+    }
+
+    private static void WriteTrailer(PipelineStatistics stats) {
+      if (CommandLineOptions.Clo.vcVariety != CommandLineOptions.VCVariety.Doomed && !CommandLineOptions.Clo.Verify && stats.ErrorCount == 0) {
+        Console.WriteLine();
+        Console.Write("{0} did not attempt verification", CommandLineOptions.Clo.DescriptiveToolName);
+        if (stats.InconclusiveCount != 0) {
+          Console.Write(", {0} inconclusive{1}", stats.InconclusiveCount, stats.InconclusiveCount == 1 ? "" : "s");
+        }
+        if (stats.TimeoutCount != 0) {
+          Console.Write(", {0} time out{1}", stats.TimeoutCount, stats.TimeoutCount == 1 ? "" : "s");
+        }
+        if (stats.OutOfMemoryCount != 0) {
+          Console.Write(", {0} out of memory", stats.OutOfMemoryCount);
+        }
+        if (stats.OutOfResourceCount != 0) {
+          Console.Write(", {0} out of resource", stats.OutOfResourceCount);
+        }
+        Console.WriteLine();
+        Console.Out.Flush();
+      } else {
+        // This calls a routine within Boogie
+        ExecutionEngine.printer.WriteTrailer(stats);
+      }
     }
 
     private static void WriteStatss(Dictionary<string, PipelineStatistics> statss) {
@@ -398,7 +421,7 @@ namespace Microsoft.Dafny
         statSum.CachedVerifiedCount += stats.Value.CachedVerifiedCount;
         statSum.InconclusiveCount += stats.Value.InconclusiveCount;
       }
-      ExecutionEngine.printer.WriteTrailer(statSum);
+      WriteTrailer(statSum);
     }
 
 
