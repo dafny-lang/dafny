@@ -3,12 +3,10 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
-  internal class VariableSymbol : ISymbol {
+  internal class VariableSymbol : Symbol, ILocalizableSymbol {
     private readonly IVariable _node;
 
-    public string Name => _node.Name;
-
-    public VariableSymbol(IVariable variable) {
+    public VariableSymbol(Symbol? scope, IVariable variable) : base(scope, variable.Name) {
       _node = variable;
     }
 

@@ -1,7 +1,6 @@
 ﻿using Microsoft.Dafny;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,23 +15,29 @@ namespace DafnyLS.Language.Symbols {
   internal class DafnyLangSymbolResolver : ISymbolResolver {
     // TODO accesses to the resolver may need synchronization.
     private readonly ILogger _logger;
+    private readonly SemaphoreSlim _resolverMutex = new SemaphoreSlim(1);
 
     public DafnyLangSymbolResolver(ILogger<DafnyLangSymbolResolver> logger) {
       _logger = logger;
     }
 
-    public async Task<SymbolTable> ResolveSymbolsAsync(TextDocumentItem textDocument, Microsoft.Dafny.Program program, CancellationToken cancellationToken) {
-      var rootSymbolTable = new SymbolTable();
+    public async Task<CompilationUnit> ResolveSymbolsAsync(TextDocumentItem textDocument, Microsoft.Dafny.Program program, CancellationToken cancellationToken) {
       int parserErrors = GetErrorCount(program);
       if(parserErrors > 0) {
         _logger.LogTrace("document {} had {} parser errors, skipping symbol resolution", textDocument.Uri, parserErrors);
-        return rootSymbolTable;
+        return new CompilationUnit(program);
       }
-      if(RunDafnyResolver(textDocument, program)) {
-        var visitor = new SymbolDeclarationVisitor(_logger, rootSymbolTable);
-        visitor.Visit(program);
+
+      // TODO Check if mutual exclusion of the resolving process is necessary.
+      await _resolverMutex.WaitAsync(cancellationToken);
+      try {
+        if(!RunDafnyResolver(textDocument, program)) {
+          return new CompilationUnit(program);
+        }
+      } finally {
+        _resolverMutex.Release();
       }
-      return rootSymbolTable;
+      return new SymbolDeclarationResolver(_logger, cancellationToken).ProcessProgram(program);
     }
 
     private static int GetErrorCount(Microsoft.Dafny.Program program) {
@@ -48,6 +53,88 @@ namespace DafnyLS.Language.Symbols {
         return false;
       }
       return true;
+    }
+
+    private class SymbolDeclarationResolver {
+      private readonly ILogger _logger;
+      private readonly CancellationToken _cancellationToken;
+
+      public SymbolDeclarationResolver(ILogger logger, CancellationToken cancellationToken) {
+        _logger = logger;
+        _cancellationToken = cancellationToken;
+      }
+
+      public CompilationUnit ProcessProgram(Microsoft.Dafny.Program program) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        var compilationUnit = new CompilationUnit(program);
+        foreach(var module in program.Modules()) {
+          compilationUnit.Modules.Add(ProcessModule(compilationUnit, module));
+        }
+        return compilationUnit;
+      }
+
+      private ModuleSymbol ProcessModule(Symbol scope, ModuleDefinition moduleDefinition) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        var moduleSymbol = new ModuleSymbol(scope, moduleDefinition);
+        foreach(var declaration in moduleDefinition.TopLevelDecls) {
+          var topLevelSymbol = ProcessTopLevelDeclaration(moduleSymbol, declaration);
+          if(topLevelSymbol != null) {
+            moduleSymbol.Declarations.Add(topLevelSymbol);
+          }
+        }
+        return moduleSymbol;
+      }
+
+      private Symbol? ProcessTopLevelDeclaration(ModuleSymbol moduleSymbol, TopLevelDecl topLevelDeclaration) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        switch(topLevelDeclaration) {
+        case ClassDecl classDeclaration:
+          return ProcessClassDeclaration(moduleSymbol, classDeclaration);
+        default:
+          _logger.LogWarning("encountered unknown top level declaration {}", topLevelDeclaration.GetType());
+          return null;
+        }
+      }
+
+      private ClassSymbol ProcessClassDeclaration(Symbol scope, ClassDecl classDeclaration) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        var classSymbol = new ClassSymbol(scope, classDeclaration);
+        foreach(var member in classDeclaration.Members) {
+          var memberSymbol = ProcessClassMember(scope, member);
+          if(memberSymbol != null) {
+            // TODO upon completion, this should never be null.
+            classSymbol.Members.Add(memberSymbol);
+          }
+        }
+        return classSymbol;
+      }
+
+      private Symbol? ProcessClassMember(Symbol scope, MemberDecl memberDeclaration) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        switch(memberDeclaration) {
+        case Function function:
+          return ProcessFunction(scope, function);
+        case Method method:
+          return ProcessMethod(scope, method);
+        default:
+          _logger.LogWarning("encountered unknown class member declaration {}", memberDeclaration.GetType());
+          return null;
+        }
+      }
+
+      private FunctionSymbol ProcessFunction(Symbol scope, Function function) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        var functionSymbol = new FunctionSymbol(scope, function);
+        // TODO register parameters and locals
+        return functionSymbol;
+      }
+
+      private MethodSymbol ProcessMethod(Symbol scope, Method method) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        var methodSymbol = new MethodSymbol(scope, method);
+        // TODO register parameters and locals
+        return methodSymbol;
+      }
     }
   }
 }

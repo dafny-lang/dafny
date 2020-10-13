@@ -10,9 +10,9 @@ namespace DafnyLS.Language.Symbols {
   /// This class represents a lookup table to resolve the closest symbol when being queried with a location.
   /// </summary>
   internal class SymbolLookup {
-    private readonly IIntervalTree<Position, ISymbol> _symbols;
+    private readonly IIntervalTree<Position, ILocalizableSymbol> _symbols;
 
-    private SymbolLookup(IIntervalTree<Position, ISymbol> symbols) {
+    private SymbolLookup(IIntervalTree<Position, ILocalizableSymbol> symbols) {
       _symbols = symbols;
     }
 
@@ -22,9 +22,10 @@ namespace DafnyLS.Language.Symbols {
     /// <param name="symbolTable">The symbol table to create a lookup of.</param>
     /// <param name="cancellationToken"></param>
     /// <returns>The initialized symbol lookup.</returns>
-    public static SymbolLookup FromSymbolTable(SymbolTable symbolTable, CancellationToken cancellationToken) {
-      var symbols = new IntervalTree<Position, ISymbol>(new PositionComparer());
-      foreach(var symbol in symbolTable.AllSymbols(cancellationToken).Concat(symbolTable.AllReferences(cancellationToken))) {
+    public static SymbolLookup FromSymbolTable(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
+      var symbols = new IntervalTree<Position, ILocalizableSymbol>(new PositionComparer());
+      foreach(var symbol in compilationUnit.GetAllDescendantsAndSelf().OfType<ILocalizableSymbol>()) {
+        cancellationToken.ThrowIfCancellationRequested();
         var range = symbol.GetHoverRange();
         symbols.Add(range.Start, range.End, symbol);
       }
@@ -37,7 +38,7 @@ namespace DafnyLS.Language.Symbols {
     /// <param name="position">The requested position.</param>
     /// <param name="symbol">The symbol that could be identified at the given position, or <c>null</c> if no symbol could be identified.</param>
     /// <returns><c>true</c> if a symbol was found, otherwise <c>false</c>.</returns>
-    public bool TryGetSymbolAt(Position position, [NotNullWhen(true)] out ISymbol? symbol) {
+    public bool TryGetSymbolAt(Position position, [NotNullWhen(true)] out ILocalizableSymbol? symbol) {
       symbol = _symbols.Query(position).SingleOrDefault();
       return symbol != null;
     }

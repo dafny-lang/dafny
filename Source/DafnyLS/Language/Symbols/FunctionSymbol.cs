@@ -1,15 +1,16 @@
 ﻿using Microsoft.Dafny;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
-  internal class FunctionSymbol : ISymbol {
+  internal class FunctionSymbol : Symbol, ILocalizableSymbol {
     private readonly Function _node;
 
-    public string Name => _node.Name;
+    public ISet<Symbol> Parameters { get; } = new HashSet<Symbol>();
 
-    public FunctionSymbol(Function function) {
+    public FunctionSymbol(Symbol? scope, Function function) : base(scope, function.Name) {
       _node = function;
     }
 
@@ -20,7 +21,7 @@ namespace DafnyLS.Language.Symbols {
         Range = new Range(_node.tok.GetLspPosition(), _node.BodyEndTok.GetLspPosition()),
         SelectionRange = GetHoverRange(),
         Detail = GetDetailText(cancellationToken),
-        Children = _node.Formals.Select(input => new VariableSymbol(input)).AsLspSymbols(cancellationToken).ToList()
+        Children = Parameters.WithCancellation(cancellationToken).OfType<ILocalizableSymbol>().Select(child => child.AsLspSymbol(cancellationToken)).ToArray()
       };
     }
 
@@ -30,6 +31,15 @@ namespace DafnyLS.Language.Symbols {
 
     public Range GetHoverRange() {
       return _node.tok.GetLspRange();
+    }
+
+    public override IEnumerable<Symbol> GetAllDescendantsAndSelf() {
+      yield return this;
+      foreach(var parameter in Parameters) {
+        foreach(var descendant in parameter.GetAllDescendantsAndSelf()) {
+          yield return descendant;
+        }
+      }
     }
   }
 }

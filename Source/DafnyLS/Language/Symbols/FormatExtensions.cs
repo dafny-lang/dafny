@@ -52,7 +52,7 @@ namespace DafnyLS.Language.Symbols {
     /// </summary>
     /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
     /// <returns>An enumerable with the converted symbols in the LSP format.</returns>
-    public static IEnumerable<DocumentSymbol> AsLspSymbols(this IEnumerable<ISymbol> symbols, CancellationToken cancellationToken) {
+    public static IEnumerable<DocumentSymbol> AsLspSymbols(this IEnumerable<ILocalizableSymbol> symbols, CancellationToken cancellationToken) {
       return symbols.WithCancellation(cancellationToken).Select(symbol => symbol.AsLspSymbol(cancellationToken));
     }
   }

@@ -3,12 +3,10 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
-  internal class FieldSymbol : ISymbol {
+  internal class FieldSymbol : Symbol, ILocalizableSymbol {
     private readonly Field _node;
 
-    public string Name => _node.Name;
-
-    public FieldSymbol(Field field) {
+    public FieldSymbol(Symbol? scope, Field field) : base(scope, field.Name) {
       _node = field;
     }
 

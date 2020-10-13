@@ -3,14 +3,9 @@ using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
   /// <summary>
-  /// Represents a resolved symbol.
+  /// Represents a symbol that can be localized within the document.
   /// </summary>
-  internal interface ISymbol {
-    /// <summary>
-    /// Gets the name of the symbol.
-    /// </summary>
-    string Name { get; }
-
+  internal interface ILocalizableSymbol {
     /// <summary>
     /// Converts the current symbol into its LSP counterpart.
     /// </summary>

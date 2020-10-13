@@ -35,10 +35,11 @@ namespace DafnyLS.Handlers {
         _logger.LogWarning("symbols requested for unloaded document {}", request.TextDocument.Uri);
         return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(_emptySymbols);
       }
-      var symbols = document.SymbolTable
-        .AllSymbols(cancellationToken)
+      var symbols = document.CompilationUnit.Modules
+        .WithCancellation(cancellationToken)
+        .OfType<ILocalizableSymbol>()
         .AsLspSymbols(cancellationToken)
-        .ToList();
+        .ToArray();
       return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(symbols);
     }
   }

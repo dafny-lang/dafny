@@ -32,7 +32,7 @@ namespace DafnyLS.Handlers {
         return Task.FromResult(new Hover());
       }
 
-      ISymbol? symbol;
+      ILocalizableSymbol? symbol;
       if(!textDocument.SymbolLookup.TryGetSymbolAt(request.Position, out symbol)) {
         _logger.LogDebug("no symbol was found at {} in {}", request.Position, request.TextDocument);
         return Task.FromResult(new Hover());
@@ -40,7 +40,7 @@ namespace DafnyLS.Handlers {
       return Task.FromResult(CreateHover(symbol, cancellationToken));
     }
 
-    private static Hover CreateHover(ISymbol symbol, CancellationToken cancellationToken) {
+    private static Hover CreateHover(ILocalizableSymbol symbol, CancellationToken cancellationToken) {
       return new Hover {
         Contents = new MarkedStringsOrMarkupContent(
           new MarkupContent {

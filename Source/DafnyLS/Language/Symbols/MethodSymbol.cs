@@ -1,15 +1,17 @@
 ﻿using Microsoft.Dafny;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
-  internal class MethodSymbol : ISymbol {
+  internal class MethodSymbol : Symbol, ILocalizableSymbol {
     private readonly Method _node;
 
-    public string Name => _node.Name;
+    public ISet<Symbol> Parameters { get; } = new HashSet<Symbol>();
+    public ISet<Symbol> Returns { get; } = new HashSet<Symbol>();
 
-    public MethodSymbol(Method method) {
+    public MethodSymbol(Symbol? scope, Method method) : base(scope, method.Name) {
       _node = method;
     }
 
@@ -20,7 +22,7 @@ namespace DafnyLS.Language.Symbols {
         Range = new Range(_node.tok.GetLspPosition(), _node.BodyEndTok.GetLspPosition()),
         SelectionRange = GetHoverRange(),
         Detail = GetDetailText(cancellationToken),
-        Children = _node.Ins.Concat(_node.Outs).Select(input => new VariableSymbol(input)).AsLspSymbols(cancellationToken).ToList()
+        Children = Parameters.Concat(Returns).WithCancellation(cancellationToken).OfType<ILocalizableSymbol>().Select(child => child.AsLspSymbol(cancellationToken)).ToArray()
       };
     }
 
@@ -30,6 +32,15 @@ namespace DafnyLS.Language.Symbols {
 
     public Range GetHoverRange() {
       return _node.tok.GetLspRange();
+    }
+
+    public override IEnumerable<Symbol> GetAllDescendantsAndSelf() {
+      yield return this;
+      foreach(var child in Parameters.Concat(Returns)) {
+        foreach(var descendant in child.GetAllDescendantsAndSelf()) {
+          yield return descendant;
+        }
+      }
     }
   }
 }
