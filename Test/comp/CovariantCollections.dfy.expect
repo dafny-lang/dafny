@@ -1,7 +1,7 @@
 
 Dafny program verifier finished with 14 verified, 0 errors
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -47,7 +47,7 @@ Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
   eq: true true true true true true
   eq: true true true true true true
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -93,7 +93,7 @@ Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
   eq: true true true true true true
   eq: true true true true true true
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -139,7 +139,7 @@ Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
   eq: true true true true true true
   eq: true true true true true true
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
