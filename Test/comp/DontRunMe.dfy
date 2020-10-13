@@ -1,1 +1,0 @@
-Not a valid Dafny file

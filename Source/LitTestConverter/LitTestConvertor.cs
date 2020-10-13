@@ -53,16 +53,20 @@ namespace DafnyTests {
       }
       litCommands.RemoveAt(litCommands.Count - 1);
       
-      var testConfigs = litCommands.Select(ParseDafnyCommandArguments).ToList();
+      List<DafnyTestSpec> testConfigs = litCommands.Select(c => ParseDafnyCommandArguments(filePath, c)).ToList();
 
       if (testConfigs.Count == 1 && 
-          testConfigs[0].Count == 1 && 
-          DictionaryContainsEntry(testConfigs[0], DafnyTestSpec.DAFNY_COMPILE_OPTION, "0")) {
+          testConfigs[0].DafnyArguments.Count == 1 && 
+          DictionaryContainsEntry(testConfigs[0].DafnyArguments, DafnyTestSpec.DAFNY_COMPILE_OPTION, "0")) {
         verifyOnlyCount++;
         
-      } else if (testConfigs.Count(c => c.ContainsKey(DafnyTestSpec.DAFNY_COMPILE_TARGET_OPTION)) > 1) {
+      } else if (testConfigs.Count(c => c.CompileTarget != null) > 1) {
         defaultCount++;
       }
+
+      IEnumerable<string> otherLines = lines.Skip(litCommands.Count);
+      
+
     }
 
     private static bool DictionaryContainsEntry<K, V>(Dictionary<K, V> dictionary, K key, V value) {
@@ -85,9 +89,8 @@ namespace DafnyTests {
       return line.Substring(LIT_COMMAND_PREFIX.Length).Trim();
     }
         
-    private Dictionary<string, object> ParseDafnyCommandArguments(string dafnyCommand) {
-      var testConfig = new Dictionary<string, object>();
-      var otherFiles = new List<string>();
+    private DafnyTestSpec ParseDafnyCommandArguments(string filePath, string dafnyCommand) {
+      var spec = new DafnyTestSpec(filePath);
       
       if (!dafnyCommand.StartsWith(LIT_DAFNY)) {
         throw new ArgumentException("Lit command is not expected %dafny: " + dafnyCommand);
@@ -108,7 +111,7 @@ namespace DafnyTests {
       arguments.RemoveRange(arguments.Count - 2, 2);
 
       if (!arguments.Remove("\"%s\"")) {
-        testConfig[TEST_CONFIG_INCLUDE_THIS_FILE] = "no";
+        spec.DafnyArguments[TEST_CONFIG_INCLUDE_THIS_FILE] = "no";
       }
       
       // Check the arguments for anything non-standard
@@ -121,17 +124,13 @@ namespace DafnyTests {
           throw new ArgumentException("Use of lit substitution (% variable) requires manual conversion: " + argument);
         }
         if (pair.Key.Equals(TEST_CONFIG_OTHER_FILES)) {
-          otherFiles.Add(pair.Value);
+          spec.OtherFiles.Add(pair.Value);
         } else {
-          testConfig.Add(pair.Key, pair.Value);
+          spec.DafnyArguments.Add(pair.Key, pair.Value);
         }
       }
 
-      if (otherFiles.Any()) {
-        testConfig[TEST_CONFIG_OTHER_FILES] = otherFiles;
-        otherFilesCount++;
-      }
-      return testConfig;
+      return spec;
     }
 
     private static KeyValuePair<string, string> ParseDafnyArgument(string argument) {

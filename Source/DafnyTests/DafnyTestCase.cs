@@ -1,12 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using FluentAssertions;
 using Microsoft.Extensions.FileProviders;
 using Xunit;
 using Xunit.Abstractions;
@@ -41,43 +39,26 @@ namespace DafnyTests {
     public const string DAFNY_COMPILE_TARGET_OPTION = "compileTarget";
     public const string DAFNY_NO_VERIFY_OPTION = "noVerify";
 
-    private static readonly IFileProvider manifestFileProvider = new ManifestEmbeddedFileProvider(
-      Assembly.GetExecutingAssembly());
-    private static readonly Dictionary<string, string> PathsForResourceNames = GetPathsForResourceNames(
-      "DafnyTests", manifestFileProvider, "DafnyTests");
-    
     // Absolute file system path to the main Dafny file
-    public string SourcePath;
+    [YamlIgnore]
+    public readonly string SourcePath;
     
     public Dictionary<string, object> DafnyArguments = new Dictionary<string, object>();
-    public IEnumerable<string> OtherFiles = Enumerable.Empty<string>();
+    public List<string> OtherFiles = new List<string>();
     
     public Dictionary<string, DafnyTestSpec> CompileTargetOverrides = new Dictionary<string, DafnyTestSpec>();
     
     public DafnyTestCase.Expectation Expected;
 
-    public DafnyTestSpec(string manifestResourceName) {
-      SourcePath = COMP_DIR + PathsForResourceNames[manifestResourceName].Substring("DafnyTests/Test".Length + 1);
+    public DafnyTestSpec(string sourcePath) {
+      SourcePath = sourcePath;
     }
 
-    private DafnyTestSpec(string sourcePath, Dictionary<string, object> dafnyArguments, IEnumerable<string> otherFiles, DafnyTestCase.Expectation expected) {
+    private DafnyTestSpec(string sourcePath, Dictionary<string, object> dafnyArguments, List<string> otherFiles, DafnyTestCase.Expectation expected) {
       SourcePath = sourcePath;
       DafnyArguments = dafnyArguments;
       OtherFiles = otherFiles;
       Expected = expected;
-    }
-    
-    private static Dictionary<string, string> GetPathsForResourceNames(string assemblyName, IFileProvider fileProvider, string path = null) {
-      return fileProvider.GetDirectoryContents(path).SelectMany(file => {
-        var childName = path == null ? file.Name : path + "/" + file.Name;
-       if (file.IsDirectory) {
-          return GetPathsForResourceNames(assemblyName, fileProvider, childName);
-        } else {
-          var result = new Dictionary<string, string>();
-          result[assemblyName + "." + childName.Replace("/", ".")] = childName;
-          return result;
-        }
-      }).ToDictionary(pair => pair.Key, pair => pair.Value);
     }
     
     public IEnumerator<DafnyTestCase> GetEnumerator() {
@@ -143,7 +124,7 @@ namespace DafnyTests {
       foreach (KeyValuePair<string, object> pair in otherSpec.DafnyArguments) {
         mergedArguments[pair.Key] = pair.Value;
       }
-      return new DafnyTestSpec(otherSpec.SourcePath, mergedArguments, OtherFiles.Concat(otherSpec.OtherFiles), otherSpec.Expected);
+      return new DafnyTestSpec(otherSpec.SourcePath, mergedArguments, OtherFiles.Concat(otherSpec.OtherFiles).ToList(), otherSpec.Expected);
     }
     
     private DafnyTestSpec ResolveExpected() {
@@ -349,6 +330,30 @@ namespace DafnyTests {
 dafnyArguments: {}
 ";
 
+    private static readonly IFileProvider ManifestFileProvider = new ManifestEmbeddedFileProvider(
+      Assembly.GetExecutingAssembly());
+    private static readonly Dictionary<string, string> PathsForResourceNames = GetPathsForResourceNames(
+      "DafnyTests", ManifestFileProvider, "DafnyTests");
+    
+    private static Dictionary<string, string> GetPathsForResourceNames(string assemblyName, IFileProvider fileProvider, string path = null) {
+      return fileProvider.GetDirectoryContents(path).SelectMany(file => {
+        var childName = path == null ? file.Name : path + "/" + file.Name;
+        if (file.IsDirectory) {
+          return GetPathsForResourceNames(assemblyName, fileProvider, childName);
+        } else {
+          var result = new Dictionary<string, string>();
+          result[assemblyName + "." + childName.Replace("/", ".")] = childName;
+          return result;
+        }
+      }).ToDictionary(pair => pair.Key, pair => pair.Value);
+    }
+
+    private static DafnyTestSpec SpecForResourceName(string manifestResourceName) {
+      string filePath = DafnyTestSpec.COMP_DIR +
+                        PathsForResourceNames[manifestResourceName].Substring("DafnyTests/Test".Length + 1);
+      return new DafnyTestSpec(filePath);
+    }
+    
     public static string GetTestCaseConfigYaml(string fullText) {
       var commentStart = fullText.IndexOf("/*");
       if (commentStart >= 0) {
@@ -377,7 +382,7 @@ dafnyArguments: {}
     public override IDeserializer GetDeserializer(string manifestResourceName) {
       var defaultObjectFactory = new DefaultObjectFactory();
       var customObjectFactory = new LambdaObjectFactory(type => 
-        type == typeof(DafnyTestSpec) ? new DafnyTestSpec(manifestResourceName) : defaultObjectFactory.Create(type));
+        type == typeof(DafnyTestSpec) ? SpecForResourceName(manifestResourceName) : defaultObjectFactory.Create(type));
       
       return new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
