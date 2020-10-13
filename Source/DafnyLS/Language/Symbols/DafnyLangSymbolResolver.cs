@@ -1,6 +1,7 @@
 ﻿using Microsoft.Dafny;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -28,10 +29,12 @@ namespace DafnyLS.Language.Symbols {
         return rootSymbolTable;
       }
       if(RunDafnyResolver(textDocument, program)) {
-        // TODO Unsafe assumption: This requires that the previous step (parser) defines the parsed document as the default module.
-        // TODO Any reason to retrieve the symbols defined in other modules (aka documents)?
-        var visitor = new SymbolDeclarationVisitor(_logger, rootSymbolTable);
-        visitor.Visit(program.DefaultModuleDef);
+        foreach(var module in program.Modules()) {
+          cancellationToken.ThrowIfCancellationRequested();
+          var moduleSymbolTable = rootSymbolTable.NewChild();
+          var visitor = new SymbolDeclarationVisitor(_logger, moduleSymbolTable);
+          visitor.Visit(module);
+        }
       }
       return rootSymbolTable;
     }
