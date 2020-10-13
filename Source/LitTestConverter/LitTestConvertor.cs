@@ -85,8 +85,8 @@ namespace DafnyTests {
       return line.Substring(LIT_COMMAND_PREFIX.Length).Trim();
     }
         
-    private Dictionary<string, string> ParseDafnyCommandArguments(string dafnyCommand) {
-      var testConfig = new Dictionary<string, string>();
+    private Dictionary<string, object> ParseDafnyCommandArguments(string dafnyCommand) {
+      var testConfig = new Dictionary<string, object>();
       var otherFiles = new List<string>();
       
       if (!dafnyCommand.StartsWith(LIT_DAFNY)) {
@@ -128,7 +128,7 @@ namespace DafnyTests {
       }
 
       if (otherFiles.Any()) {
-        testConfig[TEST_CONFIG_OTHER_FILES] = String.Join(" ", otherFiles);
+        testConfig[TEST_CONFIG_OTHER_FILES] = otherFiles;
         otherFilesCount++;
       }
       return testConfig;

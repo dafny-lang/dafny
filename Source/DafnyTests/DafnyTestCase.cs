@@ -281,7 +281,7 @@ namespace DafnyTests {
 
       using (Process dafnyProcess = new Process()) {
         dafnyProcess.StartInfo.FileName = DafnyTestSpec.DAFNY_EXE;
-        foreach (var argument in dafnyArguments) {
+        foreach(var argument in dafnyArguments) {
           dafnyProcess.StartInfo.Arguments += " " + argument;
         }
 
@@ -299,9 +299,9 @@ namespace DafnyTests {
         dafnyProcess.StartInfo.EnvironmentVariables.Add("HOME", Environment.GetEnvironmentVariable("HOME"));
 
         dafnyProcess.Start();
-        dafnyProcess.WaitForExit();
         string output = dafnyProcess.StandardOutput.ReadToEnd();
         string error = dafnyProcess.StandardError.ReadToEnd();
+        dafnyProcess.WaitForExit();
         return new ProcessResult(dafnyProcess.ExitCode, output, error);
       }
     }
