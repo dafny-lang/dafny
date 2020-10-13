@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:1 /compileTarget:cs /print:"%t.print" /dprint:"%t.dprint" "%s" "%S%{dirsep}ExternCopyFromTraitLibrary.cs" > "%t"
+// RUN: %dafny /compile:1 /compileTarget:cs /print:"%t.print" /dprint:"%t.dprint" "%s" ExternCopyFromTraitLibrary.cs > "%t"
 // RUN: %diff "%s.expect" "%t"
 module {:extern "M"} M {
   trait {:extern} T1 {
