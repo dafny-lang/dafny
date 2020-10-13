@@ -2,21 +2,12 @@
 Dafny program verifier finished with 1 verified, 0 errors
 
 Dafny program verifier did not attempt verification
-0 0 0
-[] [] []
-C.Nothing C.Nothing C.Nothing
+[Program halted] C# arrays may not be larger than the max 32-bit integer: 9223372036854775808
 
 Dafny program verifier did not attempt verification
-0 0 0
-[] [] []
-C.Nothing C.Nothing C.Nothing
 
 Dafny program verifier did not attempt verification
-0 0 0
-[] [] []
-C.Nothing C.Nothing C.Nothing
+[Program halted] runtime error: makeslice: len out of range
 
 Dafny program verifier did not attempt verification
-0 0 0
-[] [] []
-C.Nothing C.Nothing C.Nothing
+[Program halted] Java arrays may be no larger than the maximum 32-bit signed int: 9223372036854775808

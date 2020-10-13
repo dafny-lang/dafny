@@ -1,25 +1,25 @@
 
 Dafny program verifier finished with 0 verified, 0 errors
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 {(3, false), (4, true), (5, false)}
 {3, 4, 5}
 {false, true}
 true false true false
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 {(5, false), (4, true), (3, false)}
 {5, 4, 3}
 {false, true}
 true false true false
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 {(5, false), (4, true), (3, false)}
 {5, 4, 3}
 {false, true}
 true false true false
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 {(5, false), (3, false), (4, true)}
 {3, 4, 5}
 {false, true}

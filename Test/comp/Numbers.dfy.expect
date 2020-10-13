@@ -1,7 +1,7 @@
 
 Dafny program verifier finished with 56 verified, 0 errors
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 0
 0
 3
@@ -103,7 +103,7 @@ MyNumber:
 120 120.0 120 120 120 x
 120 120
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 0
 0
 3
@@ -205,7 +205,7 @@ MyNumber:
 120 120.0 120 120 120 x
 120 120
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 0
 0
 3
@@ -307,7 +307,7 @@ MyNumber:
 120 120.0 120 120 120 x
 120 120
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 0
 0
 3
