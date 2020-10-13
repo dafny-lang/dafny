@@ -657,11 +657,12 @@ namespace Microsoft.Dafny
   /compile:<n>  0 - do not compile Dafny program
                 1 (default) - upon successful verification of the Dafny
                     program, compile it to the designated target language
+                    (/noVerify automatically counts as failed verification)
                 2 - always attempt to compile Dafny program to the target
                     language, regardless of verification outcome
                 3 - if there is a Main method and there are no verification
-                    errors, compiles program in memory (i.e., does not write
-                    an output file) and runs it
+                    errors and /noVerify is not used, compiles program in
+                    memory (i.e., does not write an output file) and runs it
                 4 - like (3), but attempts to compile and run regardless of
                     verification outcome
   /compileTarget:<lang>
@@ -685,8 +686,8 @@ namespace Microsoft.Dafny
                 1 - write the compiled Dafny program in the target language, 
                     if it is being compiled
                 2 - write the compiled Dafny program in the target language, 
-                    provided it passes the verifier, regardless of /compile 
-                    setting
+                    provided it passes the verifier (and /noVerify is NOT used),
+                    regardless of /compile setting
                 3 - write the compiled Dafny program in the target language, 
                     regardless of verification outcome and /compile setting
                 NOTE: If there are .cs or .dll files on the command line, then

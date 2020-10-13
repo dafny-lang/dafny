@@ -8035,10 +8035,13 @@ namespace Microsoft.Dafny {
         var letBody = Substitute(e.Body, null, substMap);
         CheckWellformed(letBody, options, locals, builder, etran);
         if (e.Constraint_Bounds != null) {
-          Contract.Assert(!e.BoundVars.All(bv => bv.IsGhost));
           var substMap_prime = SetupBoundVarsAsLocals(lhsVars, builder, locals, etran);
-          var rhs_prime = Substitute(e.RHSs[0], null, substMap_prime);
-          var letBody_prime = Substitute(e.Body, null, substMap_prime);
+          var nonGhostMap_prime = new Dictionary<IVariable, Expression>();
+          foreach (BoundVar bv in lhsVars) {
+            nonGhostMap_prime.Add(bv, bv.IsGhost ? substMap[bv] : substMap_prime[bv]);
+          }
+          var rhs_prime = Substitute(e.RHSs[0], null, nonGhostMap_prime);
+          var letBody_prime = Substitute(e.Body, null, nonGhostMap_prime);
           builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(rhs_prime, etran)));
           builder.Add(TrAssumeCmd(e.tok, etran.TrExpr(rhs_prime)));
           builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(letBody_prime, etran)));
@@ -12345,7 +12348,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Dictionary<IVariable, Expression> SetupBoundVarsAsLocals(List<BoundVar> boundVars, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, Dictionary<TypeParameter, Type> typeMap = null, string nameSuffix = null) {
+    Dictionary<IVariable, Expression> SetupBoundVarsAsLocals(List<BoundVar> boundVars, BoogieStmtListBuilder builder,
+      List<Variable> locals, ExpressionTranslator etran, Dictionary<TypeParameter, Type> typeMap = null,
+      string nameSuffix = null) {
       Contract.Requires(boundVars != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
