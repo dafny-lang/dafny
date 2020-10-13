@@ -115,6 +115,7 @@ namespace DafnyLS.Language.Symbols {
         case Function function:
           return ProcessFunction(scope, function);
         case Method method:
+          // TODO handle the constructors explicitely? The constructor is a sub-class of Method.
           return ProcessMethod(scope, method);
         default:
           _logger.LogWarning("encountered unknown class member declaration {}", memberDeclaration.GetType());
@@ -125,15 +126,29 @@ namespace DafnyLS.Language.Symbols {
       private FunctionSymbol ProcessFunction(Symbol scope, Function function) {
         _cancellationToken.ThrowIfCancellationRequested();
         var functionSymbol = new FunctionSymbol(scope, function);
-        // TODO register parameters and locals
+        foreach(var parameter in function.Formals) {
+          functionSymbol.Parameters.Add(ProcessFormal(scope, parameter));
+        }
+        // TODO resolve locals
         return functionSymbol;
       }
 
       private MethodSymbol ProcessMethod(Symbol scope, Method method) {
         _cancellationToken.ThrowIfCancellationRequested();
         var methodSymbol = new MethodSymbol(scope, method);
-        // TODO register parameters and locals
+        foreach(var parameter in method.Ins) {
+          methodSymbol.Parameters.Add(ProcessFormal(scope, parameter));
+        }
+        foreach(var result in method.Outs) {
+          methodSymbol.Returns.Add(ProcessFormal(scope, result));
+        }
+        // TODO resolve locals
         return methodSymbol;
+      }
+
+      private VariableSymbol ProcessFormal(Symbol scope, Formal formal) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        return new VariableSymbol(scope, formal);
       }
     }
   }
