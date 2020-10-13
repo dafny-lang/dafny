@@ -11865,7 +11865,7 @@ namespace Microsoft.Dafny
                 firstType = call.Outs[0].Type;
               } else {
                 reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
-                  nm);
+                  call.Name);
               }
             } else {
               ResolveExpression(asx, new ResolveOpts(codeContext, true));
@@ -11882,7 +11882,7 @@ namespace Microsoft.Dafny
               firstType = call.Outs[0].Type;
             } else {
               reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
-                nm);
+                call.Name);
             }
           }
         }
@@ -11935,7 +11935,7 @@ namespace Microsoft.Dafny
       Expression lhsExtract = null;
       if (expectExtract) {
         Method caller = codeContext as Method;
-        if (caller != null && caller.Outs.Count == 0) {
+        if (caller != null && caller.Outs.Count == 0 && s.ExpectToken == null) {
           reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
             caller.Name);
           return;

@@ -1,0 +1,5 @@
+git-issue-817c.dfy(26,5): Error: left-hand sides 0 and 1 refer to the same location
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 6 verified, 1 error
