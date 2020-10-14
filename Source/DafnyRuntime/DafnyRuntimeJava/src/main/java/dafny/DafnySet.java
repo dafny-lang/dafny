@@ -44,12 +44,12 @@ public class DafnySet<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> Type<DafnySet<T>> _type(Type<T> elementType) {
+    public static <T> Type<DafnySet<? extends T>> _type(Type<T> elementType) {
         // Fudge the type parameter; it's not great, but it's safe because
         // (for now) type descriptors are only used for default values
-        return Type.referenceWithInitializer(
-                (Class<DafnySet<T>>) (Class<?>) DafnySet.class,
-                DafnySet::empty);
+        return Type.referenceWithDefault(
+                (Class<DafnySet<? extends T>>) (Class<?>) DafnySet.class,
+                DafnySet.empty());
     }
 
     // Determines if the current object is a subset of the DafnySet passed in. Requires that the input DafnySet is not
@@ -66,16 +66,15 @@ public class DafnySet<T> {
         return isSubsetOf(other) && size() < other.size();
     }
 
-    public <U> boolean contains(U t) {
-        // assume U is a supertype of T
+    public boolean contains(Object t) {
         assert t != null : "Precondition Violation";
         return innerSet.contains(t);
     }
 
-    public boolean disjoint(DafnySet<T> other) {
+    public <U> boolean disjoint(DafnySet<? extends U> other) {
         assert other != null : "Precondition Violation";
-        for (T ele : innerSet) {
-            if (other.contains(ele)) return false;
+        for (U u : other.innerSet) {
+            if (contains(u)) return false;
         }
         return true;
     }
