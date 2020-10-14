@@ -27,12 +27,21 @@ namespace DafnyLS.Language.Symbols {
     /// <returns></returns>
     public static SymbolTable CreateFrom(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
       var symbolTable = new SymbolTable(compilationUnit);
-      foreach(var symbol in compilationUnit.GetAllDescendantsAndSelf().OfType<ILocalizableSymbol>()) {
+      foreach(var symbol in GetAllDescendantsAndSelf(compilationUnit).OfType<ILocalizableSymbol>()) {
         cancellationToken.ThrowIfCancellationRequested();
         // TODO create a base class instead the interface ILocallizableSymbol to avoid this situation?
         //symbolTable.RegisterDeclaration(symbol.Node, (Symbol)symbol);
       }
       return symbolTable;
+    }
+
+    private static IEnumerable<Symbol> GetAllDescendantsAndSelf(Symbol symbol) {
+      yield return symbol;
+      foreach(var child in symbol.Children) {
+        foreach(var descendant in GetAllDescendantsAndSelf(child)) {
+          yield return descendant;
+        }
+      }
     }
 
     private void RegisterDeclaration(AstElement node, Symbol symbol) {

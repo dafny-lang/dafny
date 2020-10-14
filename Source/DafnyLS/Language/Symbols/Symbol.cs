@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace DafnyLS.Language.Symbols {
   /// <summary>
@@ -11,6 +12,11 @@ namespace DafnyLS.Language.Symbols {
     public string Identifier { get; }
 
     /// <summary>
+    /// Gets all children of the current symbol.
+    /// </summary>
+    public virtual IEnumerable<Symbol> Children => Enumerable.Empty<Symbol>();
+
+    /// <summary>
     /// Gets the symbol representing the enclosing scope, <c>null</c> if no other symbol.
     /// </summary>
     public Symbol? Scope { get; }
@@ -18,14 +24,6 @@ namespace DafnyLS.Language.Symbols {
     public Symbol(Symbol? scope, string identifier) {
       Scope = scope;
       Identifier = identifier;
-    }
-
-    /// <summary>
-    /// Gets all descendants in pre-order, i.e., the current symbol is emitted before its children and their descendants.
-    /// </summary>
-    /// <returns>The symbol itself and all its descendants.</returns>
-    public virtual IEnumerable<Symbol> GetAllDescendantsAndSelf() {
-      yield return this;
     }
   }
 }

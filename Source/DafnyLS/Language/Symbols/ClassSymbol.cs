@@ -8,7 +8,9 @@ namespace DafnyLS.Language.Symbols {
   internal class ClassSymbol : Symbol, ILocalizableSymbol {
     private readonly ClassDecl _node;
 
-    public IList<Symbol> Members = new List<Symbol>();
+    public IList<Symbol> Members { get; } = new List<Symbol>();
+
+    public override IEnumerable<Symbol> Children => Members;
 
     public ClassSymbol(Symbol? scope, ClassDecl classDeclaration) : base(scope, classDeclaration.Name) {
       _node = classDeclaration;
@@ -31,15 +33,6 @@ namespace DafnyLS.Language.Symbols {
 
     public Range GetHoverRange() {
       return _node.tok.GetLspRange();
-    }
-
-    public override IEnumerable<Symbol> GetAllDescendantsAndSelf() {
-      yield return this;
-      foreach(var member in Members) {
-        foreach(var descendant in member.GetAllDescendantsAndSelf()) {
-          yield return descendant;
-        }
-      }
     }
   }
 }

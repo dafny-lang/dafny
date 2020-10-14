@@ -10,6 +10,8 @@ namespace DafnyLS.Language.Symbols {
 
     public ISet<Symbol> Declarations { get; } = new HashSet<Symbol>();
 
+    public override IEnumerable<Symbol> Children => Declarations;
+
     public ModuleSymbol(Symbol? scope, ModuleDefinition moduleDefinition) : base(scope, moduleDefinition.Name) {
       _node = moduleDefinition;
     }
@@ -31,15 +33,6 @@ namespace DafnyLS.Language.Symbols {
 
     public Range GetHoverRange() {
       return _node.tok.GetLspRange();
-    }
-
-    public override IEnumerable<Symbol> GetAllDescendantsAndSelf() {
-      yield return this;
-      foreach(var declaration in Declarations) {
-        foreach(var descendant in declaration.GetAllDescendantsAndSelf()) {
-          yield return descendant;
-        }
-      }
     }
   }
 }

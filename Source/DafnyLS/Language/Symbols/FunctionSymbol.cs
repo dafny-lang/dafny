@@ -10,6 +10,8 @@ namespace DafnyLS.Language.Symbols {
 
     public ISet<Symbol> Parameters { get; } = new HashSet<Symbol>();
 
+    public override IEnumerable<Symbol> Children => Parameters;
+
     public FunctionSymbol(Symbol? scope, Function function) : base(scope, function.Name) {
       _node = function;
     }
@@ -31,15 +33,6 @@ namespace DafnyLS.Language.Symbols {
 
     public Range GetHoverRange() {
       return _node.tok.GetLspRange();
-    }
-
-    public override IEnumerable<Symbol> GetAllDescendantsAndSelf() {
-      yield return this;
-      foreach(var parameter in Parameters) {
-        foreach(var descendant in parameter.GetAllDescendantsAndSelf()) {
-          yield return descendant;
-        }
-      }
     }
   }
 }
