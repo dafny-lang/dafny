@@ -9,10 +9,11 @@ namespace DafnyLS.Language.Symbols {
     public Method Declaration { get; }
     public object Node => Declaration;
 
-    public ISet<ISymbol> Parameters { get; } = new HashSet<ISymbol>();
-    public ISet<ISymbol> Returns { get; } = new HashSet<ISymbol>();
+    public IList<VariableSymbol> Parameters { get; } = new List<VariableSymbol>();
+    public ISet<VariableSymbol> Returns { get; } = new HashSet<VariableSymbol>();
+    public IList<VariableSymbol> Locals { get; } = new List<VariableSymbol>();
 
-    public override IEnumerable<ISymbol> Children => Parameters.Concat(Returns);
+    public override IEnumerable<ISymbol> Children => Parameters.Concat(Returns).Concat(Locals);
 
     public MethodSymbol(ISymbol? scope, Method method) : base(scope, method.Name) {
       Declaration = method;

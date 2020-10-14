@@ -1,6 +1,8 @@
 ﻿using Microsoft.Dafny;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,7 +12,7 @@ namespace DafnyLS.Language.Symbols {
   /// </summary>
   /// <remarks>
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
-  /// this parser serializes all invocations.
+  /// this resolver serializes all invocations.
   /// </remarks>
   internal class DafnyLangSymbolResolver : ISymbolResolver {
     // TODO accesses to the resolver may need synchronization.
@@ -131,7 +133,6 @@ namespace DafnyLS.Language.Symbols {
         foreach(var parameter in function.Formals) {
           functionSymbol.Parameters.Add(ProcessFormal(scope, parameter));
         }
-        // TODO resolve locals
         return functionSymbol;
       }
 
@@ -144,8 +145,16 @@ namespace DafnyLS.Language.Symbols {
         foreach(var result in method.Outs) {
           methodSymbol.Returns.Add(ProcessFormal(scope, result));
         }
-        // TODO resolve locals
+        foreach(var local in GetLocalVariables(methodSymbol, method.Body)) {
+          methodSymbol.Locals.Add(local);
+        }
         return methodSymbol;
+      }
+
+      private IEnumerable<VariableSymbol> GetLocalVariables(Symbol symbol, BlockStmt blockStatement) {
+        var localVisitor = new LocalVariableDeclarationVisitor(_logger, symbol);
+        localVisitor.Visit(blockStatement);
+        return localVisitor.Locals;
       }
 
       private FieldSymbol ProcessField(Symbol scope, Field field) {
@@ -156,6 +165,28 @@ namespace DafnyLS.Language.Symbols {
       private VariableSymbol ProcessFormal(Symbol scope, Formal formal) {
         _cancellationToken.ThrowIfCancellationRequested();
         return new VariableSymbol(scope, formal);
+      }
+    }
+
+    private class LocalVariableDeclarationVisitor : SyntaxTreeVisitor {
+      private readonly ILogger _logger;
+      private readonly ISymbol _scope;
+
+      public LocalVariableDeclarationVisitor(ILogger logger, ISymbol scope) {
+        // TODO support cancellation
+        _logger = logger;
+        _scope = scope;
+      }
+
+      public IList<VariableSymbol> Locals { get; } = new List<VariableSymbol>();
+
+      public override void VisitUnknown(object node, Microsoft.Boogie.IToken token) {
+        _logger.LogWarning("encountered unknown syntax node of type {} in {}@({},{})", node.GetType(), Path.GetFileName(token.filename), token.line, token.col);
+      }
+
+      public override void Visit(LocalVariable localVariable) {
+        // TODO Adapt visitor so it supports returning values?
+        Locals.Add(new VariableSymbol(_scope, localVariable));
       }
     }
   }

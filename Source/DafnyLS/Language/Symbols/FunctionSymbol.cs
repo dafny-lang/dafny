@@ -8,7 +8,7 @@ namespace DafnyLS.Language.Symbols {
     public Function Declaration { get; }
     public object Node => Declaration;
 
-    public ISet<ISymbol> Parameters { get; } = new HashSet<ISymbol>();
+    public IList<VariableSymbol> Parameters { get; } = new List<VariableSymbol>();
 
     public override IEnumerable<ISymbol> Children => Parameters;
 
