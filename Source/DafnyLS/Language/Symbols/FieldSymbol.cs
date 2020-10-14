@@ -3,20 +3,20 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
-  internal class VariableSymbol : Symbol, ILocalizableSymbol {
-    private readonly IVariable _node;
+  internal class FieldSymbol : Symbol, ILocalizableSymbol {
+    private readonly Field _node;
 
     public object Node => _node;
 
-    public VariableSymbol(ISymbol? scope, IVariable variable) : base(scope, variable.Name) {
-      _node = variable;
+    public FieldSymbol(ISymbol? scope, Field field) : base(scope, field.Name) {
+      _node = field;
     }
 
     public DocumentSymbol AsLspSymbol(CancellationToken cancellationToken) {
       return new DocumentSymbol {
         Name = _node.Name,
-        Kind = SymbolKind.Variable,
-        Range = _node.Tok.GetLspRange(),
+        Kind = SymbolKind.Field,
+        Range = _node.tok.GetLspRange(),
         SelectionRange = GetHoverRange(),
         Detail = GetDetailText(cancellationToken)
       };
@@ -27,7 +27,11 @@ namespace DafnyLS.Language.Symbols {
     }
 
     public Range GetHoverRange() {
-      return _node.Tok.GetLspRange();
+      return _node.tok.GetLspRange();
+    }
+
+    public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {
+      return visitor.Visit(this);
     }
   }
 }

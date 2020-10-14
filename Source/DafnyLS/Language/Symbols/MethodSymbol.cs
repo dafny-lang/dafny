@@ -37,5 +37,9 @@ namespace DafnyLS.Language.Symbols {
     public Range GetHoverRange() {
       return _node.tok.GetLspRange();
     }
+
+    public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {
+      return visitor.Visit(this);
+    }
   }
 }

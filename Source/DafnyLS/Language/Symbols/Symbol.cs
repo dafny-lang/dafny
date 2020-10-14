@@ -25,5 +25,7 @@ namespace DafnyLS.Language.Symbols {
       Scope = scope;
       Identifier = identifier;
     }
+
+    public abstract TResult Accept<TResult>(ISymbolVisitor<TResult> visitor);
   }
 }

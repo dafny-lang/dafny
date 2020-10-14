@@ -11,5 +11,9 @@ namespace DafnyLS.Language.Symbols {
 
     public CompilationUnit(Microsoft.Dafny.Program program) : base(null, program.Name) {
     }
+
+    public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {
+      return visitor.Visit(this);
+    }
   }
 }
