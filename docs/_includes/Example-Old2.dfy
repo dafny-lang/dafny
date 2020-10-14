@@ -8,7 +8,7 @@ class A {
 }
 
 class B {
-   var a: A;
+   var a: A
    constructor () { a := new A(); }
 
    method m()

@@ -435,13 +435,13 @@ given statement label.
 Note that **old** and **old@** only affect heap dereferences,
 like `o.f` and `a[i]`.
 In particular, neither form has any effect on the value returned for local
-variables or out-parameters or ghost values (as they are not on the heap).[^Old]
+variables or out-parameters (as they are not on the heap).[^Old]
 If the value of an entire expression at a
 particular point in the method body is needed later on in the method body,
 the clearest means is to declare a ghost variable, initializing it to the
 expression in question.
 
-[^Old]: The semantics of `old` in dafny is quite different than similar
+[^Old]: The semantics of `old` in dafny differs from similar
 constructs in other specification languages like ACSL or JML.
 
 The argument of an `old` expression may not contain nested `old`,
@@ -450,19 +450,16 @@ or [`unchanged`](#sec-unchanged) expressions,
 nor [two-state functions](#sec-two-state) or [two-state lemmas](#sec-two-state-lemma).
 
 Here are some explanatory examples. All `assert` statements verify to be true.
-```
+```dafny
 {% include Example-Old.dfy %}
 ```
-```
+```dafny
 {% include Example-Old2.dfy %}
 ```
 The next example demonstrates the interation between `old` and array elements.
-```
+```dafny
 {% include Example-Old3.dfy %}
 ```
-
-
-TODO: Make sure links above are connected
 
 ## Unchanged Expressions {#sec-unchanged}
 

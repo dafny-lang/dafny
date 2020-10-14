@@ -1,6 +1,6 @@
 class A {
 
-  var value: int;
+  var value: int
 
   method m(i: int)
     requires i == 6
