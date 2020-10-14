@@ -172,13 +172,13 @@ namespace DafnyLS.Language.Symbols {
       private readonly ILogger _logger;
       private readonly ISymbol _scope;
 
+      public IList<VariableSymbol> Locals { get; } = new List<VariableSymbol>();
+
       public LocalVariableDeclarationVisitor(ILogger logger, ISymbol scope) {
         // TODO support cancellation
         _logger = logger;
         _scope = scope;
       }
-
-      public IList<VariableSymbol> Locals { get; } = new List<VariableSymbol>();
 
       public override void VisitUnknown(object node, Microsoft.Boogie.IToken token) {
         _logger.LogWarning("encountered unknown syntax node of type {} in {}@({},{})", node.GetType(), Path.GetFileName(token.filename), token.line, token.col);
