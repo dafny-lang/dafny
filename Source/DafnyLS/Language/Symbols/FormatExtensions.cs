@@ -1,9 +1,6 @@
 ﻿using Microsoft.Dafny;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
   /// <summary>
@@ -45,15 +42,6 @@ namespace DafnyLS.Language.Symbols {
       // TODO Currently a copy of "ToString()".
       // TODO Use the module definition for the name resolution?
       return type.TypeName(null, false);
-    }
-
-    /// <summary>
-    /// Converts the specified enumerable of symbols into their LSP representation.
-    /// </summary>
-    /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
-    /// <returns>An enumerable with the converted symbols in the LSP format.</returns>
-    public static IEnumerable<DocumentSymbol> AsLspSymbols(this IEnumerable<ILocalizableSymbol> symbols, CancellationToken cancellationToken) {
-      return symbols.WithCancellation(cancellationToken).Select(symbol => symbol.AsLspSymbol(cancellationToken));
     }
   }
 }

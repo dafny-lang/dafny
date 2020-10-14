@@ -24,7 +24,7 @@ namespace DafnyLS.Language.Symbols {
     /// <returns>The initialized symbol lookup.</returns>
     public static SymbolLookup FromSymbolTable(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
       var symbols = new IntervalTree<Position, ILocalizableSymbol>(new PositionComparer());
-      foreach(var symbol in compilationUnit.Children.OfType<ILocalizableSymbol>()) {
+      foreach(var symbol in compilationUnit.GetAllDescendantsAndSelf().OfType<ILocalizableSymbol>()) {
         cancellationToken.ThrowIfCancellationRequested();
         var range = symbol.GetHoverRange();
         symbols.Add(range.Start, range.End, symbol);

@@ -27,20 +27,11 @@ namespace DafnyLS.Language.Symbols {
     /// <returns></returns>
     public static SymbolTable CreateFrom(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
       var symbolTable = new SymbolTable(compilationUnit);
-      foreach(var symbol in GetAllDescendantsAndSelf(compilationUnit).OfType<ILocalizableSymbol>()) {
+      foreach(var symbol in compilationUnit.GetAllDescendantsAndSelf().OfType<ILocalizableSymbol>()) {
         cancellationToken.ThrowIfCancellationRequested();
         symbolTable.RegisterDeclaration(symbol.Node, symbol);
       }
       return symbolTable;
-    }
-
-    private static IEnumerable<ISymbol> GetAllDescendantsAndSelf(ISymbol symbol) {
-      yield return symbol;
-      foreach(var child in symbol.Children) {
-        foreach(var descendant in GetAllDescendantsAndSelf(child)) {
-          yield return descendant;
-        }
-      }
     }
 
     private void RegisterDeclaration(AstElement node, ILocalizableSymbol symbol) {

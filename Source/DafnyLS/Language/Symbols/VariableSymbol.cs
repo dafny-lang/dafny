@@ -11,16 +11,6 @@ namespace DafnyLS.Language.Symbols {
       Declaration = variable;
     }
 
-    public DocumentSymbol AsLspSymbol(CancellationToken cancellationToken) {
-      return new DocumentSymbol {
-        Name = Declaration.Name,
-        Kind = SymbolKind.Variable,
-        Range = Declaration.Tok.GetLspRange(),
-        SelectionRange = GetHoverRange(),
-        Detail = GetDetailText(cancellationToken)
-      };
-    }
-
     public string GetDetailText(CancellationToken cancellationToken) {
       return $"{Declaration.Name} : {Declaration.Type}";
     }

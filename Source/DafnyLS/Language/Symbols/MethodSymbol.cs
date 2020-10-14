@@ -18,17 +18,6 @@ namespace DafnyLS.Language.Symbols {
       Declaration = method;
     }
 
-    public DocumentSymbol AsLspSymbol(CancellationToken cancellationToken) {
-      return new DocumentSymbol {
-        Name = Declaration.Name,
-        Kind = SymbolKind.Method,
-        Range = new Range(Declaration.tok.GetLspPosition(), Declaration.BodyEndTok.GetLspPosition()),
-        SelectionRange = GetHoverRange(),
-        Detail = GetDetailText(cancellationToken),
-        Children = Parameters.Concat(Returns).WithCancellation(cancellationToken).OfType<ILocalizableSymbol>().Select(child => child.AsLspSymbol(cancellationToken)).ToArray()
-      };
-    }
-
     public string GetDetailText(CancellationToken cancellationToken) {
       return $"method {Declaration.Name}({Declaration.Ins.AsCommaSeperatedText()}) : ({Declaration.Outs.AsCommaSeperatedText()})";
     }

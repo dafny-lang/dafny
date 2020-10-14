@@ -1,7 +1,6 @@
 ﻿using Microsoft.Dafny;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
@@ -15,17 +14,6 @@ namespace DafnyLS.Language.Symbols {
 
     public FunctionSymbol(ISymbol? scope, Function function) : base(scope, function.Name) {
       Declaration = function;
-    }
-
-    public DocumentSymbol AsLspSymbol(CancellationToken cancellationToken) {
-      return new DocumentSymbol {
-        Name = Declaration.Name,
-        Kind = SymbolKind.Method,
-        Range = new Range(Declaration.tok.GetLspPosition(), Declaration.BodyEndTok.GetLspPosition()),
-        SelectionRange = GetHoverRange(),
-        Detail = GetDetailText(cancellationToken),
-        Children = Parameters.WithCancellation(cancellationToken).OfType<ILocalizableSymbol>().Select(child => child.AsLspSymbol(cancellationToken)).ToArray()
-      };
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
