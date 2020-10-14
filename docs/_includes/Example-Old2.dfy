@@ -1,5 +1,5 @@
 class A {
-  var value: int;
+  var value: int
   constructor () 
      ensures value == 10
   {

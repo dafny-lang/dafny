@@ -456,7 +456,7 @@ Here are some explanatory examples. All `assert` statements verify to be true.
 ```dafny
 {% include Example-Old2.dfy %}
 ```
-The next example demonstrates the interation between `old` and array elements.
+The next example demonstrates the interaction between `old` and array elements.
 ```dafny
 {% include Example-Old3.dfy %}
 ```
