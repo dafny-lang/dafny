@@ -1,6 +1,7 @@
 datatype Status =
 | Success
-| Failure(error: string) {
+| Failure(error: string)
+{
   predicate method IsFailure() { this.Failure?  }
   function method PropagateFailure(): Status
     requires IsFailure()

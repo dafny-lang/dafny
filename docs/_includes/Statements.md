@@ -249,29 +249,33 @@ UpdateFailureStmt  =
     Expression(allowLemma: false, allowLambda: false) { "," Rhs } 
 ````
 
-An update statement using `:-` instead of `:=` exits execution of a method immediately 
-if a failure is reported. 
+A `:-` statement is similar to a `:=` statement, but allows for immediate return if a failure is detected.
 This is a language feature somewhat analogous to exceptions in other languages.
+
+An update-with-failure statement uses _failure-compatible_ types.
+A failure-compatible type is a type that has the following members (each with no in-parameters and one out-parameter):
+
+ * a function method `IsFailure()` that returns a `bool`
+ * a function method `PropagateFailure()` that returns a value assignable to the first out-parameter of the caller
+ * an optional method or function `Extract()`
+
+A failure-compatible type with an `Extract` method is called _value-carrying_.
+
 
 To use this form of update,
 
  * the caller must have a first out-parameter whose type matches the output of `PropagateFailure` applied to the first output of the callee
  * if the RHS of the update-with-failure statement is a method call, the first out-parameter of the callee must be failure-compatible
  * if instead the RHS of the update-with-failure statement is one or more expressions, the first of these expressions must be a value with a failure-compatible type
- * if the failure-compatible type of the RHS does not have an Extract method,
+ * if the failure-compatible type of the RHS does not have an `Extract` method,
 then the LHS of the `:-` statement has one less expression than the RHS 
 (or than the number of out-parameters from the method call)
- * if the failure-compatible type of the RHS does have an Extract method,
-then the LHS of the `:-` statement has the same numnber of expressions as the RHS 
-(or than the number of out-parameters from the method call)
-and the type of the first LHS expression must be assignable from the return type of the Extract method
-* the IsFailure, PropagateFailure and Extract methods may not be ghost
-
-A failure-compatible type is a type that has the following (each with no in-parameters and one out-parameter):
-
- * a method or function `IsFailure()` that returns a `bool`
- * a method or function `PropagateFailure()` that returns a value assignable to the first out-parameter of the caller
- * an optional method or function `Extract()`
+ * if the failure-compatible type of the RHS does have an `Extract` method,
+then the LHS of the `:-` statement has the same number of expressions as the RHS 
+(or as the number of out-parameters from the method call)
+and the type of the first LHS expression must be assignable from the return type of the `Extract` method
+* the `IsFailure` and `PropagateFailure` methods may not be ghost
+* the LHS expression assigned the output of the `Extract` member is ghost precisely if `Extract` is ghost
 
 ### Failure compatible types
 
@@ -284,8 +288,6 @@ A commonly used alternative that carries some value information is something lik
 ```dafny
 {% include Example-Fail2.dfy %}
 ```
-
-A failure-compatible type with an `Extract` method is called _value-carrying_.
 
 
 ### Simple status return with no other outputs
@@ -312,6 +314,16 @@ The value returned by `Caller` (the value of `rr` in the code above) is the resu
 If `Callee` does not return `Failure` (that is, returns a value for which `IsFailure()` is `false`) 
 then that return value is forgotten and execution proceeds normally with the statements following the call of `callee` in the body of `Caller`.
 
+The desugaring of the `:- Callee(i);` statement is
+```dafny
+var tmp;
+tmp := Callee(i);
+if tmp.IsFailure() {
+  return tmp.PropagateFailure();
+}
+```
+In this and subsequent examples of desugaring, the `tmp` variable is a new, unique variable, unused elsewhere in the calling member.
+
 ### Status return with additional outputs
 
 The example in the previous subsection affects the program only through side effects or the status return itself. 
@@ -336,13 +348,22 @@ method Caller(i: int) returns (rr: Status, k: int)
 
 Here `Callee` has two outputs in addition to the `Status` output. 
 The LHS of the `:-` statement accordingly has two l-values to receive those outputs. 
-Those outputs may be any sort of l-values;
+The recipients of those outputs may be any sort of l-values;
 here they are a local variable and an out-parameter of the caller.
 Those outputs are assigned in the `:-` call regardless of the `Status` value:
 
    * If `Callee` returns a failure value as its first output, then the other outputs are assigned, the _caller's_ first out-parameter (here `rr`) is assigned the value of `PropagateFailure`, and the caller returns.
    * If `Callee` returns a non-failure value as its first output, then the other outputs are assigned and the 
 caller continues execution as normal.
+
+The desugaring of the `j, k :- Callee(i);` statement is
+```dafny
+var tmp;
+tmp, j, k := Callee(i);
+if tmp.IsFailure() {
+  return tmp.PropagateFailure();
+}
+```
 
 
 ### Failure-returns with additional data
@@ -363,7 +384,8 @@ method Caller(i: int) returns (rr: Outcome<int>, k: int)
   j, k :- Callee(i);
   k := k + k;
 }
-```dafny
+```
+
 Suppose `Caller` is called with an argument of `10`. 
 Then `Callee` is called with argument `10` 
 and returns `r` and `v` of `Outcome<nat>.Success(10)` and `20`. 
@@ -373,7 +395,8 @@ and `k` is assigned `20`.
 Control flow proceeds to the next line, where `k` now gets the value `40`.
 
 Suppose instead that `Caller` is called with an argument of `-1`.
-Then `Callee` is called with the value `-1` and returns `r` and `v` with values `Outcome<nat>.Failure("negative")` and `-2`.
+Then `Callee` is called with the value `-1`
+ and returns `r` and `v` with values `Outcome<nat>.Failure("negative")` and `-2`.
 `k` is assigned the value of `v` (-2).
 But `r.IsFailure()` is `true`, so control proceeds directly to return from `Caller`.
 The first out-parameter of `Caller` (`rr`) gets the value of `r.PropagateFailure()`,
@@ -385,6 +408,16 @@ It will keep propagating up the call stack
 as long as there are callers with this first special output type
 and calls that use `:-` 
 and the return value keeps having `IsFailure()` true.
+
+The desugaring of the `j, k :- Callee(i);` statement in this example is
+```dafny
+var tmp;
+tmp, k := Callee(i);
+if tmp.IsFailure() {
+  return tmp.PropagateFailure();
+}
+j := tmp.Extract();
+```
 
 ### RHS with expression list
 
@@ -406,6 +439,23 @@ and the execution of the caller's body is ended.
 
 A RHS with a method call cannot be mixed with a RHS containing multiple expressions.
 
+For example, the desugaring of 
+```dafny
+method m(Status r) returns (rr: Status) {
+  var j, k;
+  j, k :- r, 7;
+  ...
+}
+```
+is
+```dafny
+var j, k;
+var tmp;
+tmp, k := r, 7;
+if tmp.IsFailure() {
+  return tmp.PropagateFailure();
+}
+```
 ### Failure with initialized declaration.
 
 The `:-` syntax can also be used in initalization, as in
@@ -422,7 +472,20 @@ with the semantics as described above.
 ### Expect alternative
 
 In any of the above described uses of `:-`, the `:-` token may be followed immediately by the keyword `expect`.
-This keyword states that the RHS evaluation is expected to be successful: if the failure-compatible value is a failure, then the program halts immediately (precisely as with the `expect` statement); if the return value is not a failure, the semantics is as described in previous sub-sections.
+This keyword states that the RHS evaluation is expected to be successful: 
+if the failure-compatible value is a failure, then the program halts immediately (precisely as with the `expect` statement); 
+if the return value is not a failure, the semantics is as described in previous sub-sections.
+
+The equivalent desugaring replaces
+```dafny
+if tmp.IsFailure() {
+  return tmp.PropagateFailure();
+}
+```
+with
+```dafny
+expect !tmp.IsFailure(), temp;
+```
 
 ### Key points
 
@@ -433,13 +496,13 @@ It has a special type and that type indicates that the value is inspected to see
 from the caller is warranted. 
 This type is often a datatype, as shown in the examples above, but it may be any type with the appropriate members.
  * The restriction on the type of caller's first out-parameter is
-just that is must be possible (perhaps through generic instantiation and type inference, as in these examples) for `PropagateFailure` applied to the failure-compatible output from the callee to produce a value of the caller's first out-parameter type.
+just that it must be possible (perhaps through generic instantiation and type inference, as in these examples) for `PropagateFailure` applied to the failure-compatible output from the callee to produce a value of the caller's first out-parameter type.
 If the caller's first out-parameter type is failure-compatible (which it need not be),
  then failures can be propagated up the call chain. 
  * In the statement `j, k :- callee(i);`,
- when the callee's return value has an `Extract method`, 
+ when the callee's return value has an `Extract` member,
 the type of `j` is not the type of the first out-parameter of `callee`. 
-Rather it is the output type of `Extract` applied to the first out-value of `callee`.
+Rather it is a type assignable from the output type of `Extract` applied to the first out-value of `callee`.
  * A method like `callee` with a special first out-parameter type can still be used in the normal way:
 `r, k := callee(i)`. 
 Now `r` gets the first output value from callee, of type `Status` or `Outcome<nat>` in the examples above. 
@@ -448,7 +511,7 @@ Subsequent code can do its own testing of the value of `r`
 and whatever other computations or control flow are desired.
  * The caller and callee can have any (positive) number of output arguments, 
 as long as the callee's first out-parameter has a failure-compatible type
-and the caller's first out-parameter type matches 'PropagateFailure`.
+and the caller's first out-parameter type matches `PropagateFailure`.
  * If there is more than one LHS, the LHSs must denote different l-values, unless the RHS is a list of expressions and the corresponding RHS values are equal. 
  * The LHS l-values are evaluated before the RHS method call, 
 in case the method call has side-effects or return values that modify the l-values prior to assignments being made.
@@ -466,13 +529,13 @@ explicit handling of failure values.
 
 ### Failure returns and exceptions
 
-The `:-` mechanism for exceptional returns is like the exceptions used in other programming languages, with some similarities and differences.
+The `:-` mechanism like the exceptions used in other programming languages, with some similarities and differences.
 
  * There is essentially just one kind of 'exception' in Dafny, 
 the variations of the failure-compatible data type. 
  * Exceptions are passed up the call stack whether or not intervening methods are aware of the possibility of an exception, 
 that is, whether or not the intervening methods have declared that they throw exceptions.
-Not so in Dafny: a failure is passed up the call stack only if each caller has a failure-compatible first out-parameter, is itself called in a `:-=` statement, and returns a value that responds true to `IsFailure()`.
+Not so in Dafny: a failure is passed up the call stack only if each caller has a failure-compatible first out-parameter, is itself called in a `:-` statement, and returns a value that responds true to `IsFailure()`.
  * All methods that contain failure-return callees must explicitly handle those failures
 using either `:-` statements or using `:=` statements with a LHS to receive the failure value.
 
