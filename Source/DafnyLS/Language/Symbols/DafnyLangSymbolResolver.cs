@@ -117,6 +117,8 @@ namespace DafnyLS.Language.Symbols {
         case Method method:
           // TODO handle the constructors explicitely? The constructor is a sub-class of Method.
           return ProcessMethod(scope, method);
+        case Field field:
+          return ProcessField(scope, field);
         default:
           _logger.LogWarning("encountered unknown class member declaration {}", memberDeclaration.GetType());
           return null;
@@ -144,6 +146,11 @@ namespace DafnyLS.Language.Symbols {
         }
         // TODO resolve locals
         return methodSymbol;
+      }
+
+      private FieldSymbol ProcessField(Symbol scope, Field field) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        return new FieldSymbol(scope, field);
       }
 
       private VariableSymbol ProcessFormal(Symbol scope, Formal formal) {
