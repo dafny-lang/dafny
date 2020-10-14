@@ -8,11 +8,13 @@ namespace DafnyLS.Language.Symbols {
   internal class FunctionSymbol : Symbol, ILocalizableSymbol {
     private readonly Function _node;
 
-    public ISet<Symbol> Parameters { get; } = new HashSet<Symbol>();
+    public object Node => _node;
 
-    public override IEnumerable<Symbol> Children => Parameters;
+    public ISet<ISymbol> Parameters { get; } = new HashSet<ISymbol>();
 
-    public FunctionSymbol(Symbol? scope, Function function) : base(scope, function.Name) {
+    public override IEnumerable<ISymbol> Children => Parameters;
+
+    public FunctionSymbol(ISymbol? scope, Function function) : base(scope, function.Name) {
       _node = function;
     }
 

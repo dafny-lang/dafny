@@ -1,11 +1,17 @@
 ﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
+using AstNode = System.Object;
 
 namespace DafnyLS.Language.Symbols {
   /// <summary>
   /// Represents a symbol that can be localized within the document.
   /// </summary>
-  internal interface ILocalizableSymbol {
+  internal interface ILocalizableSymbol : ISymbol {
+    /// <summary>
+    /// Gets the syntax node of the AST> that declared this symbol.
+    /// </summary>
+    AstNode Node { get; }
+
     /// <summary>
     /// Converts the current symbol into its LSP counterpart.
     /// </summary>

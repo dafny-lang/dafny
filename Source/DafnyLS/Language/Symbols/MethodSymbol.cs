@@ -8,12 +8,14 @@ namespace DafnyLS.Language.Symbols {
   internal class MethodSymbol : Symbol, ILocalizableSymbol {
     private readonly Method _node;
 
-    public ISet<Symbol> Parameters { get; } = new HashSet<Symbol>();
-    public ISet<Symbol> Returns { get; } = new HashSet<Symbol>();
+    public object Node => _node;
 
-    public override IEnumerable<Symbol> Children => Parameters.Concat(Returns);
+    public ISet<ISymbol> Parameters { get; } = new HashSet<ISymbol>();
+    public ISet<ISymbol> Returns { get; } = new HashSet<ISymbol>();
 
-    public MethodSymbol(Symbol? scope, Method method) : base(scope, method.Name) {
+    public override IEnumerable<ISymbol> Children => Parameters.Concat(Returns);
+
+    public MethodSymbol(ISymbol? scope, Method method) : base(scope, method.Name) {
       _node = method;
     }
 

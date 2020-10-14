@@ -8,11 +8,13 @@ namespace DafnyLS.Language.Symbols {
   internal class ModuleSymbol : Symbol, ILocalizableSymbol {
     private readonly ModuleDefinition _node;
 
-    public ISet<Symbol> Declarations { get; } = new HashSet<Symbol>();
+    public object Node => _node;
 
-    public override IEnumerable<Symbol> Children => Declarations;
+    public ISet<ISymbol> Declarations { get; } = new HashSet<ISymbol>();
 
-    public ModuleSymbol(Symbol? scope, ModuleDefinition moduleDefinition) : base(scope, moduleDefinition.Name) {
+    public override IEnumerable<ISymbol> Children => Declarations;
+
+    public ModuleSymbol(ISymbol? scope, ModuleDefinition moduleDefinition) : base(scope, moduleDefinition.Name) {
       _node = moduleDefinition;
     }
 

@@ -6,7 +6,9 @@ namespace DafnyLS.Language.Symbols {
   internal class FieldSymbol : Symbol, ILocalizableSymbol {
     private readonly Field _node;
 
-    public FieldSymbol(Symbol? scope, Field field) : base(scope, field.Name) {
+    public object Node => _node;
+
+    public FieldSymbol(ISymbol? scope, Field field) : base(scope, field.Name) {
       _node = field;
     }
 

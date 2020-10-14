@@ -7,7 +7,7 @@ namespace DafnyLS.Language.Symbols {
   internal class CompilationUnit : Symbol {
     public ISet<ModuleSymbol> Modules { get; } = new HashSet<ModuleSymbol>();
 
-    public override IEnumerable<Symbol> Children => Modules;
+    public override IEnumerable<ISymbol> Children => Modules;
 
     public CompilationUnit(Microsoft.Dafny.Program program) : base(null, program.Name) {
     }

@@ -8,11 +8,13 @@ namespace DafnyLS.Language.Symbols {
   internal class ClassSymbol : Symbol, ILocalizableSymbol {
     private readonly ClassDecl _node;
 
-    public IList<Symbol> Members { get; } = new List<Symbol>();
+    public object Node => _node;
 
-    public override IEnumerable<Symbol> Children => Members;
+    public IList<ISymbol> Members { get; } = new List<ISymbol>();
 
-    public ClassSymbol(Symbol? scope, ClassDecl classDeclaration) : base(scope, classDeclaration.Name) {
+    public override IEnumerable<ISymbol> Children => Members;
+
+    public ClassSymbol(ISymbol? scope, ClassDecl classDeclaration) : base(scope, classDeclaration.Name) {
       _node = classDeclaration;
     }
 

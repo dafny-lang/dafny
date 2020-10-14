@@ -1,29 +1,23 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 
 namespace DafnyLS.Language.Symbols {
   /// <summary>
   /// Represents a resolved symbol.
   /// </summary>
-  internal abstract class Symbol : ISymbol {
+  internal interface ISymbol {
     /// <summary>
     /// Gets the identifier of the symbol.
     /// </summary>
-    public string Identifier { get; }
+    string Identifier { get; }
 
     /// <summary>
     /// Gets all children of the current symbol.
     /// </summary>
-    public virtual IEnumerable<ISymbol> Children => Enumerable.Empty<ISymbol>();
+    IEnumerable<ISymbol> Children { get; }
 
     /// <summary>
     /// Gets the symbol representing the enclosing scope, <c>null</c> if no other symbol.
     /// </summary>
-    public ISymbol? Scope { get; }
-
-    public Symbol(ISymbol? scope, string identifier) {
-      Scope = scope;
-      Identifier = identifier;
-    }
+    ISymbol? Scope { get; }
   }
 }

@@ -6,7 +6,9 @@ namespace DafnyLS.Language.Symbols {
   internal class VariableSymbol : Symbol, ILocalizableSymbol {
     private readonly IVariable _node;
 
-    public VariableSymbol(Symbol? scope, IVariable variable) : base(scope, variable.Name) {
+    public object Node => _node;
+
+    public VariableSymbol(ISymbol? scope, IVariable variable) : base(scope, variable.Name) {
       _node = variable;
     }
 
