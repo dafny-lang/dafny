@@ -4,30 +4,29 @@ using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
   internal class VariableSymbol : Symbol, ILocalizableSymbol {
-    private readonly IVariable _node;
-
-    public object Node => _node;
+    public IVariable Declaration { get; }
+    public object Node => Declaration;
 
     public VariableSymbol(ISymbol? scope, IVariable variable) : base(scope, variable.Name) {
-      _node = variable;
+      Declaration = variable;
     }
 
     public DocumentSymbol AsLspSymbol(CancellationToken cancellationToken) {
       return new DocumentSymbol {
-        Name = _node.Name,
+        Name = Declaration.Name,
         Kind = SymbolKind.Variable,
-        Range = _node.Tok.GetLspRange(),
+        Range = Declaration.Tok.GetLspRange(),
         SelectionRange = GetHoverRange(),
         Detail = GetDetailText(cancellationToken)
       };
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
-      return $"{_node.Name} : {_node.Type}";
+      return $"{Declaration.Name} : {Declaration.Type}";
     }
 
     public Range GetHoverRange() {
-      return _node.Tok.GetLspRange();
+      return Declaration.Tok.GetLspRange();
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

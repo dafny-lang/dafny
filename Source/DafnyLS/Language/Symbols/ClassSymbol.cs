@@ -6,23 +6,22 @@ using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
   internal class ClassSymbol : Symbol, ILocalizableSymbol {
-    private readonly ClassDecl _node;
-
-    public object Node => _node;
+    public ClassDecl Declaration { get; }
+    public object Node => Declaration;
 
     public IList<ISymbol> Members { get; } = new List<ISymbol>();
 
     public override IEnumerable<ISymbol> Children => Members;
 
     public ClassSymbol(ISymbol? scope, ClassDecl classDeclaration) : base(scope, classDeclaration.Name) {
-      _node = classDeclaration;
+      Declaration = classDeclaration;
     }
 
     public DocumentSymbol AsLspSymbol(CancellationToken cancellationToken) {
       return new DocumentSymbol {
-        Name = _node.Name,
+        Name = Declaration.Name,
         Kind = SymbolKind.Class,
-        Range = new Range(_node.tok.GetLspPosition(), _node.BodyEndTok.GetLspPosition()),
+        Range = new Range(Declaration.tok.GetLspPosition(), Declaration.BodyEndTok.GetLspPosition()),
         SelectionRange = GetHoverRange(),
         Detail = GetDetailText(cancellationToken),
         Children = Members.WithCancellation(cancellationToken).OfType<ILocalizableSymbol>().Select(child => child.AsLspSymbol(cancellationToken)).ToArray()
@@ -30,11 +29,11 @@ namespace DafnyLS.Language.Symbols {
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
-      return $"class {_node.Name}";
+      return $"class {Declaration.Name}";
     }
 
     public Range GetHoverRange() {
-      return _node.tok.GetLspRange();
+      return Declaration.tok.GetLspRange();
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

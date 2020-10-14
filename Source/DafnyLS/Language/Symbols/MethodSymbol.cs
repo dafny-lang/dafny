@@ -6,9 +6,8 @@ using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
   internal class MethodSymbol : Symbol, ILocalizableSymbol {
-    private readonly Method _node;
-
-    public object Node => _node;
+    public Method Declaration { get; }
+    public object Node => Declaration;
 
     public ISet<ISymbol> Parameters { get; } = new HashSet<ISymbol>();
     public ISet<ISymbol> Returns { get; } = new HashSet<ISymbol>();
@@ -16,14 +15,14 @@ namespace DafnyLS.Language.Symbols {
     public override IEnumerable<ISymbol> Children => Parameters.Concat(Returns);
 
     public MethodSymbol(ISymbol? scope, Method method) : base(scope, method.Name) {
-      _node = method;
+      Declaration = method;
     }
 
     public DocumentSymbol AsLspSymbol(CancellationToken cancellationToken) {
       return new DocumentSymbol {
-        Name = _node.Name,
+        Name = Declaration.Name,
         Kind = SymbolKind.Method,
-        Range = new Range(_node.tok.GetLspPosition(), _node.BodyEndTok.GetLspPosition()),
+        Range = new Range(Declaration.tok.GetLspPosition(), Declaration.BodyEndTok.GetLspPosition()),
         SelectionRange = GetHoverRange(),
         Detail = GetDetailText(cancellationToken),
         Children = Parameters.Concat(Returns).WithCancellation(cancellationToken).OfType<ILocalizableSymbol>().Select(child => child.AsLspSymbol(cancellationToken)).ToArray()
@@ -31,11 +30,11 @@ namespace DafnyLS.Language.Symbols {
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
-      return $"method {_node.Name}({_node.Ins.AsCommaSeperatedText()}) : ({_node.Outs.AsCommaSeperatedText()})";
+      return $"method {Declaration.Name}({Declaration.Ins.AsCommaSeperatedText()}) : ({Declaration.Outs.AsCommaSeperatedText()})";
     }
 
     public Range GetHoverRange() {
-      return _node.tok.GetLspRange();
+      return Declaration.tok.GetLspRange();
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {
