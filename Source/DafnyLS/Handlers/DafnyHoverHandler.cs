@@ -33,7 +33,7 @@ namespace DafnyLS.Handlers {
       }
 
       ILocalizableSymbol? symbol;
-      if(!textDocument.SymbolLookup.TryGetSymbolAt(request.Position, out symbol)) {
+      if(!textDocument.SymbolTable.TryGetSymbolAt(request.Position, out symbol)) {
         _logger.LogDebug("no symbol was found at {} in {}", request.Position, request.TextDocument);
         return Task.FromResult(new Hover());
       }

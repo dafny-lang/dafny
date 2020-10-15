@@ -101,7 +101,7 @@ namespace DafnyLS.Language.Symbols {
         _cancellationToken.ThrowIfCancellationRequested();
         var classSymbol = new ClassSymbol(scope, classDeclaration);
         foreach(var member in classDeclaration.Members) {
-          var memberSymbol = ProcessClassMember(scope, member);
+          var memberSymbol = ProcessClassMember(classSymbol, member);
           if(memberSymbol != null) {
             // TODO upon completion, this should never be null.
             classSymbol.Members.Add(memberSymbol);
@@ -110,7 +110,7 @@ namespace DafnyLS.Language.Symbols {
         return classSymbol;
       }
 
-      private Symbol? ProcessClassMember(Symbol scope, MemberDecl memberDeclaration) {
+      private Symbol? ProcessClassMember(ClassSymbol scope, MemberDecl memberDeclaration) {
         _cancellationToken.ThrowIfCancellationRequested();
         switch(memberDeclaration) {
         case Function function:

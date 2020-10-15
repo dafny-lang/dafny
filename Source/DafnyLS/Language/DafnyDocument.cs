@@ -15,14 +15,16 @@ namespace DafnyLS.Language {
     public Microsoft.Dafny.Program Program { get; }
     public ErrorReporter Errors { get; }
     public CompilationUnit CompilationUnit { get; }
-    public SymbolLookup SymbolLookup { get; }
+    public SymbolTable SymbolTable { get; }
 
-    public DafnyDocument(TextDocumentItem textDocument, ErrorReporter errors, Microsoft.Dafny.Program program, CompilationUnit compilationUnit, SymbolLookup symbolLookup) {
+    public DafnyDocument(
+        TextDocumentItem textDocument, ErrorReporter errors, Microsoft.Dafny.Program program, CompilationUnit compilationUnit, SymbolTable symbolTable
+    ) {
       Text = textDocument;
       Program = program;
       Errors = errors;
       CompilationUnit = compilationUnit;
-      SymbolLookup = symbolLookup;
+      SymbolTable = symbolTable;
     }
   }
 }
