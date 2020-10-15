@@ -202,6 +202,9 @@ namespace DafnyLS.Language {
       case ReturnStmt returnStatement:
         Visit(returnStatement);
         break;
+      case BlockStmt blockStatement:
+        Visit(blockStatement);
+        break;
       default:
         VisitUnknown(statement, statement.Tok);
         break;
