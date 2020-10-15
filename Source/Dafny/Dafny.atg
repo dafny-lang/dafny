@@ -1593,21 +1593,19 @@ MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<Attr
   .)
   SYNC
   ( "modifies" { Attribute<ref modAttrs> }
-               FrameExpression<out fe, false, false>         (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
-               { "," FrameExpression<out fe, false, false>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
-               }
-               OldSemi
-  |
-    ( "requires"
-      { Attribute<ref reqAttrs> }
-      [ IF(IsLabel(true))
-        LabelIdent<out lbl> ":"
-      ]
-      Expression<out e, false, false> OldSemi                (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
-    | "ensures"
-      { Attribute<ref ensAttrs> }
-      Expression<out e, false, false> OldSemi                (. ens.Add(new AttributedExpression(e, ensAttrs)); .)
-    )
+    FrameExpression<out fe, false, false>         (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
+    { "," FrameExpression<out fe, false, false>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
+    }
+    OldSemi
+  | "requires"
+    { Attribute<ref reqAttrs> }
+    [ IF(IsLabel(true))
+      LabelIdent<out lbl> ":"
+    ]
+    Expression<out e, false, false> OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
+  | "ensures"
+    { Attribute<ref ensAttrs> }
+    Expression<out e, false, false> OldSemi       (. ens.Add(new AttributedExpression(e, ensAttrs)); .)
   | "decreases" { Attribute<ref decAttrs> } DecreasesList<decreases, true, false> OldSemi
   )
   .
