@@ -896,6 +896,14 @@ namespace Microsoft.Dafny {
         // see comment in BplBvType
         Contract.Assert(n.IsZero);
         return Bpl.Expr.Literal(0);
+      } else if (n.IsNegative) {
+        // This can only happen if some error is reported elsewhere. Nevertheless, we do need to
+        // generate a Boogie expression and Boogie would crash if we pass a negative number to
+        // Bpl.LiteralExpr for a bitvector.
+        var zero = new Bpl.LiteralExpr(tok, Basetypes.BigNum.ZERO, width);
+        var absN = new Bpl.LiteralExpr(tok, -n, width);
+        var etran = new ExpressionTranslator(this, predef, tok);
+        return etran.TrToFunctionCall(tok, "sub_bv" + width, BplBvType(width), zero, absN, false);
       } else {
         return new Bpl.LiteralExpr(tok, n, width);
       }
