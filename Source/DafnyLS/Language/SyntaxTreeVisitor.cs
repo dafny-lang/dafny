@@ -2,10 +2,9 @@
 
 namespace DafnyLS.Language {
   /// <summary>
-  /// Base syntax tree visitor implementation that visits all nodes in post-order traversal.
+  /// Base syntax tree visitor implementation that visits all nodes.
   /// </summary>
   internal abstract class SyntaxTreeVisitor {
-    // TODO ensure that all Visit(...) methods cover all the nested syntax elements in post-order traversal.
     // TODO Double-dispatching would be convenient here, but requirees adaptions to the AST.
     // TODO Is visiting Attributes necessary, i.e., does it belong to the AST?
 
