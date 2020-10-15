@@ -552,7 +552,7 @@ bool IsTypeSequence(ref IToken pt, int endBracketKind) {
 bool IsType(ref IToken pt) {
   if (!IsNonArrowType(ref pt)) return false;
   while (pt.kind == _sarrow || pt.kind == _qarrow || pt.kind == _larrow) {
-    pt = scanner.Peek(); 
+    pt = scanner.Peek();
     if (!IsNonArrowType(ref pt)) return false;
   }
   return true;
@@ -1597,7 +1597,7 @@ MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<Attr
                { "," FrameExpression<out fe, false, false>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
                }
                OldSemi
-  | 
+  |
     ( "requires"
       { Attribute<ref reqAttrs> }
       [ IF(IsLabel(true))
