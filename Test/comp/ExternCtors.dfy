@@ -12,12 +12,16 @@ compileTargetOverrides:
         otherFiles:
             - ExternCtors-externs/Library.js
         expected:
+            # The expected exit code should be 3, but /countVerificationErrors:0 is overriding that
+            # https://github.com/dafny-lang/dafny/issues/887
             outputFile: ~
             specialCaseReason: Extern constructors are currently broken in JavaScript
     go:
         otherFiles:
             - ExternCtors-externs/Library.go
         expected:
+            # The expected exit code should be 3, but /countVerificationErrors:0 is overriding that
+            # https://github.com/dafny-lang/dafny/issues/887
             outputFile: ~
             specialCaseReason: Extern constructors are currently broken in Go
 */

@@ -5,7 +5,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.VisualBasic.CompilerServices;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -68,15 +70,19 @@ namespace DafnyTests {
         .GetEnumerator();
     }
 
-    public string Compile {
+    public int? Compile {
       get {
         if (DafnyArguments.TryGetValue(DAFNY_COMPILE_OPTION, out var compile)) {
-          return (string) compile;
+          return Int32.Parse((string) compile);
         }
         return null;
       }
       set {
-        DafnyArguments[DAFNY_COMPILE_OPTION] = value;
+        if (value != null) {
+          DafnyArguments[DAFNY_COMPILE_OPTION] = value.ToString();
+        } else {
+          DafnyArguments.Remove(DAFNY_COMPILE_OPTION);
+        }
       }
     }
     public string CompileTarget {
@@ -88,12 +94,21 @@ namespace DafnyTests {
       }
     }
 
+    public bool NoVerify {
+      get {
+        if (DafnyArguments.TryGetValue(DAFNY_NO_VERIFY_OPTION, out var noVerify)) {
+          return (string)noVerify == "yes";
+        }
+        return false;
+      }
+    }
+
     private IEnumerable<DafnyTestSpec> ResolveCompile() {
       if (Compile == null) {
-        Compile = "3";
+        Compile = 3;
       }
       
-      if ("3".Equals(Compile) && CompileTarget == null) {
+      if (Compile > 0) {
         var compileTargets = new[] {"cs", "java", "go", "js"};
 
         var justVerify = new Dictionary<string, object>(DafnyArguments) {
@@ -104,7 +119,7 @@ namespace DafnyTests {
         foreach (var compileTarget in compileTargets) {
           var withLanguage = new Dictionary<string, object>(DafnyArguments) {
               [DAFNY_NO_VERIFY_OPTION] = "yes", 
-              [DAFNY_COMPILE_OPTION] = "4",
+              [DAFNY_COMPILE_OPTION] = Compile > 2 ? "4" : "2",
               [DAFNY_COMPILE_TARGET_OPTION] = compileTarget
             };
           var specForLanguage = new DafnyTestSpec(SourcePath, withLanguage, OtherFiles, Expected);
@@ -219,7 +234,19 @@ namespace DafnyTests {
       }
       
       public override string ToString() {
-        return OutputFile ?? "-";
+        string result;
+        if (ExitCode != 0) {
+          result = String.Format("<failure: {0}>", ExitCode);
+        } else if (OutputFile != null) {
+          result = OutputFile;
+        } else {
+          result = "<success>";
+        }
+
+        if (SpecialCaseReason != null) {
+          result += " (special case)";
+        }
+        return result;
       }
     }
 

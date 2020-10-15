@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using YamlDotNet.Serialization;
 
 namespace DafnyTests {
   
@@ -22,30 +23,59 @@ namespace DafnyTests {
     private static readonly string[] DAFNY_IGNORED_OPTIONS = {
       "print",
       "dprint",
-      "rprint"
+      "rprint",
+      "spillTargetCode"
     };
     
     private int count = 0;
     private int verifyOnlyCount = 0;
     private int defaultCount = 0;
-    private int otherFilesCount = 0;
+    private int alreadyConverted = 0;
     private int invalidCount = 0;
-        
-    public void ConvertLitTest(string filePath) {
-      if (filePath.Contains("/Inputs/")) {
-        // TODO-RS: Need to add .common.yml file to disable Inputs/*.dfy
-        return;
-      }
-      
-      string[] lines = File.ReadAllLines(filePath);
 
-      var litCommands = lines.Select(ExtractLitCommand).TakeWhile(c => c != null).ToList();
-      // Make sure the commands are consecutive
-      if (lines.Skip(litCommands.Count).Any(line => ExtractLitCommand(line) != null)) {
-        throw new ArgumentException("Lit commands are not consecutive");
+    public void ConvertLitTest(string filePath) {
+      IEnumerable<DafnyTestCase> testSpec;
+      IEnumerable<string> testContent;
+      
+      if (filePath.Contains("/Inputs/")) {
+        testSpec = Enumerable.Empty<DafnyTestCase>();
+        testContent = File.ReadAllLines(filePath);
+      } else {
+
+        string[] lines = File.ReadAllLines(filePath);
+
+        var litCommands = lines.Select(ExtractLitCommand).TakeWhile(c => c != null).ToList();
+        if (!litCommands.Any()) {
+          alreadyConverted++;
+          return;
+        }
+        testContent = lines.Skip(litCommands.Count);
+        
+        // Make sure the commands are consecutive
+        if (testContent.Any(line => ExtractLitCommand(line) != null)) {
+          throw new ArgumentException("Lit commands are not consecutive");
+        }
+
+        testSpec = ConvertLitCommands(filePath, litCommands);
       }
-      if (!litCommands.Any()) {
-        return;
+
+      using (StreamWriter file = new StreamWriter(filePath)) {
+        if (testSpec != null) {
+          file.WriteLine("/*");
+          file.WriteLine("---");
+          new Serializer().Serialize(file, testSpec);
+          file.WriteLine("*/");
+          foreach(var line in testContent) {
+            file.WriteLine(line);
+          }
+        }
+      }
+    }
+
+    private IEnumerable<DafnyTestCase> ConvertLitCommands(string filePath, List<string> litCommands) {
+      if (litCommands.Count == 1 && litCommands.Single().StartsWith("echo")) {
+        // This is an idiom for Dafny files used elsewhere
+        return Enumerable.Empty<DafnyTestCase>();
       }
 
       if (!litCommands[^1].Equals("%diff \"%s.expect\" \"%t\"")) {
@@ -55,26 +85,33 @@ namespace DafnyTests {
       
       List<DafnyTestSpec> testConfigs = litCommands.Select(c => ParseDafnyCommandArguments(filePath, c)).ToList();
 
-      if (testConfigs.Count == 1 && 
-          testConfigs[0].DafnyArguments.Count == 1 && 
-          DictionaryContainsEntry(testConfigs[0].DafnyArguments, DafnyTestSpec.DAFNY_COMPILE_OPTION, "0")) {
-        verifyOnlyCount++;
-        
-      } else if (testConfigs.Count(c => c.CompileTarget != null) > 1) {
-        defaultCount++;
-      }
-
-      IEnumerable<string> otherLines = lines.Skip(litCommands.Count);
+      if (testConfigs.Count == 1) {
+        var single = testConfigs.Single();
+        if (IsStandardVerifyOnly(single)) {
+          verifyOnlyCount++;
+        }
+        return single;
+      } 
       
-
-    }
-
-    private static bool DictionaryContainsEntry<K, V>(Dictionary<K, V> dictionary, K key, V value) {
-      if (dictionary.TryGetValue(key, out var dictionaryValue)) {
-        return value.Equals(dictionaryValue);
-      } else {
-        return false;
+      if (IsStandardVerifyOnly(testConfigs[0]) && testConfigs.Skip(1).All(IsStandardCompileAndRun)
+            || testConfigs.Skip(1).All(IsStandardCompileAndRun)) {
+        defaultCount++;
+        return null;
       }
+      
+      throw new ArgumentException("Multi-command lit tests require manual conversion");
+    }
+    
+    private static bool IsStandardCompileAndRun(DafnyTestSpec spec) {
+      
+      return spec.CompileTarget != null &&
+             ((spec.Compile == 3 && spec.DafnyArguments.Count == 2) ||
+              // /compile:4 might be used with /noVerify
+              (spec.Compile == 4 && spec.DafnyArguments.Count <= 3));
+    }
+    
+    private static bool IsStandardVerifyOnly(DafnyTestSpec spec) {
+      return spec.Compile == 0 && spec.DafnyArguments.Count == 1;
     }
     
     private static string ExtractLitCommand(string line) {
@@ -91,7 +128,7 @@ namespace DafnyTests {
         
     private DafnyTestSpec ParseDafnyCommandArguments(string filePath, string dafnyCommand) {
       var spec = new DafnyTestSpec(filePath);
-      
+
       if (!dafnyCommand.StartsWith(LIT_DAFNY)) {
         throw new ArgumentException("Lit command is not expected %dafny: " + dafnyCommand);
       }
@@ -160,9 +197,11 @@ namespace DafnyTests {
           Console.WriteLine(file + ": " + e.Message);
         }
       }
+      
+      Console.WriteLine("");
+      Console.WriteLine("Already converted: " + alreadyConverted + "/" + count);
       Console.WriteLine("Default: " + defaultCount + "/" + count);
       Console.WriteLine("Verify only: " + verifyOnlyCount + "/" + count);
-      Console.WriteLine("With other files: " + otherFilesCount + "/" + count);
       Console.WriteLine("Invalid: " + invalidCount + "/" + count);
     }
     

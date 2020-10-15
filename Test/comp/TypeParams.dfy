@@ -5,19 +5,19 @@ compileTargetOverrides:
     cs:
         expected:
             outputFile: TypeParams.dfy.cs.expect
-            specialCaseReason: Function output is inconsistent
+            specialCaseReason: Function printing is inconsistent
     java:
         expected:
             outputFile: TypeParams.dfy.java.expect
-            specialCaseReason: Function output is inconsistent
+            specialCaseReason: Function printing is inconsistent
     js:
         expected:
             outputFile: TypeParams.dfy.js.expect
-            specialCaseReason: Function output is inconsistent
+            specialCaseReason: Function printing is inconsistent
     go:
         expected:
             outputFile: TypeParams.dfy.go.expect
-            specialCaseReason: Function output is inconsistent
+            specialCaseReason: Function printing is inconsistent
 */
 datatype Color = Orange | Pink | Teal
 type Six = x | x <= 6
