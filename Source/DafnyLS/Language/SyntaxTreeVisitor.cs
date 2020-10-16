@@ -169,6 +169,9 @@ namespace DafnyLS.Language {
       foreach(var localVariable in variableDeclarationStatement.Locals) {
         Visit(localVariable);
       }
+      if(variableDeclarationStatement.Update != null) {
+        Visit(variableDeclarationStatement.Update);
+      }
     }
 
     public virtual void Visit(UpdateStmt updateStatement) {

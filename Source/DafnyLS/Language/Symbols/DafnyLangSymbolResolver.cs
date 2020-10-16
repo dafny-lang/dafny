@@ -29,10 +29,14 @@ namespace DafnyLS.Language.Symbols {
         return new CompilationUnit(program);
       }
 
-      // TODO Check if mutual exclusion of the resolving process is necessary.
+      // TODO Check if mutual exclusion of the resolution process is necessary.
       await _resolverMutex.WaitAsync(cancellationToken);
       try {
         if(!RunDafnyResolver(textDocument, program)) {
+          // We cannot proceeed without a successful resolution. Due to the contracts in dafny-lang, we cannot
+          // access a property without potential contract violations. For example, a variable may have an
+          // unresolved type represented by null. However, the contract prohibits the use of the type property
+          // because it must not be null.
           return new CompilationUnit(program);
         }
       } finally {

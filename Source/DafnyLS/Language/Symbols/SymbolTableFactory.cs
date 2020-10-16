@@ -21,8 +21,17 @@ namespace DafnyLS.Language.Symbols {
     public SymbolTable CreateFrom(Microsoft.Dafny.Program program, CompilationUnit compilationUnit, CancellationToken cancellationToken) {
       var declarations = CreateDeclarationDictionary(compilationUnit, cancellationToken);
       var designatorVisitor = new DesignatorVisitor(_logger, declarations, compilationUnit, cancellationToken);
-      designatorVisitor.Visit(program);
+      if(HasErrors(program)) {
+        _logger.LogDebug("cannot create symbol table from a program with errors");
+      } else {
+        designatorVisitor.Visit(program);
+      }
       return new SymbolTable(designatorVisitor.SymbolLookup);
+    }
+
+    private static bool HasErrors(Microsoft.Dafny.Program program) {
+      // TODO create extension method
+      return program.reporter.AllMessages[ErrorLevel.Error].Count > 0;
     }
 
     private static IDictionary<AstElement, ILocalizableSymbol> CreateDeclarationDictionary(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
@@ -53,6 +62,8 @@ namespace DafnyLS.Language.Symbols {
     private class DesignatorVisitor : SyntaxTreeVisitor {
       private readonly ILogger _logger;
       private readonly IDictionary<AstElement, ILocalizableSymbol> _declarations;
+      private readonly DafnyLangTypeResolver _typeResolver;
+      private readonly IDictionary<AstElement, ISymbol> _designators =  new Dictionary<AstElement, ISymbol>();
       private readonly CancellationToken _cancellationToken;
 
       private ISymbol _currentScope;
@@ -64,6 +75,7 @@ namespace DafnyLS.Language.Symbols {
       ) {
         _logger = logger;
         _declarations = declarations;
+        _typeResolver = new DafnyLangTypeResolver(declarations);
         _currentScope = rootScope;
         _cancellationToken = cancellationToken;
       }
@@ -94,18 +106,22 @@ namespace DafnyLS.Language.Symbols {
 
       public override void Visit(ExprDotName expressionDotName) {
         base.Visit(expressionDotName);
+        if(_typeResolver.TryGetTypeSymbol(expressionDotName.Lhs, out var leftHandSideType)) {
+          RegisterDesignator(leftHandSideType, expressionDotName, expressionDotName.tok, expressionDotName.SuffixName);
+        }
       }
 
       public override void Visit(NameSegment nameSegment) {
         _cancellationToken.ThrowIfCancellationRequested();
-        RegisterDisgnator(nameSegment.tok, nameSegment.Name);
+        RegisterDesignator(_currentScope, nameSegment, nameSegment.tok, nameSegment.Name);
       }
 
-      private void RegisterDisgnator(Microsoft.Boogie.IToken token, string identifier) {
-        var symbol = GetDeclaration(identifier);
+      private void RegisterDesignator(ISymbol scope, AstElement node, Microsoft.Boogie.IToken token, string identifier) {
+        var symbol = GetDeclaration(scope, identifier);
         if(symbol != null) {
           var range = token.GetLspRange();
           SymbolLookup.Add(range.Start, range.End, symbol);
+          _designators.Add(node, symbol);
         } else {
           _logger.LogWarning("could not resolve the symbol of designator named {} in {}@({},{})", identifier, Path.GetFileName(token.filename), token.line, token.col);
         }
@@ -118,16 +134,16 @@ namespace DafnyLS.Language.Symbols {
         _currentScope = oldScope;
       }
 
-      private ILocalizableSymbol? GetDeclaration(string identifier) {
-        var scope = _currentScope;
-        while(scope != null) {
-          foreach(var child in scope.Children.OfType<ILocalizableSymbol>()) {
+      private ILocalizableSymbol? GetDeclaration(ISymbol scope, string identifier) {
+        var currentScope = scope;
+        while(currentScope != null) {
+          foreach(var child in currentScope.Children.OfType<ILocalizableSymbol>()) {
             _cancellationToken.ThrowIfCancellationRequested();
             if(child.Identifier == identifier) {
               return child;
             }
           }
-          scope = scope.Scope;
+          currentScope = currentScope.Scope;
         }
         return null;
       }
