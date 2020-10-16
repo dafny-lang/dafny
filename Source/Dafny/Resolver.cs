@@ -3278,19 +3278,6 @@ namespace Microsoft.Dafny
       GetAnyConst = (Expression e, Stack<ConstantField> consts) => {
         if (e is LiteralExpr l) {
           return l.Value;
-        } else if (e is NegationExpression ne) {
-          object e0 = GetAnyConst(ne.E, consts);
-          if (e0 != null) {
-            if (ne.Type.IsIntegerType) {
-              return -(BigInteger)e0;
-            }
-            if (ne.Type.IsBitVectorType) {
-              return MaxBV(ne.Type) - (BigInteger)e0 + BigInteger.One;
-            }
-            if (ne.Type.IsRealType) {
-              return ((Basetypes.BigDec)e0).Negate;
-            }
-          }
         } else if (e is UnaryOpExpr un) {
           if (un.Op == UnaryOpExpr.Opcode.Not) {
             object e0 = GetAnyConst(un.E, consts);
