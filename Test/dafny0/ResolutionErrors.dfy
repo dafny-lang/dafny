@@ -803,7 +803,7 @@ module GhostLetExpr {
     var x;
     var g := G(x, y);
     ghost var h := ghost var ta := F(); 5;
-    var j; j := var tb := F(); 5;  // error: allowed only if 'tb' were ghost
+    var j; j := var tb := F(); 5;  // tb is ghost, j is not
     assert h == j;
   }
 
@@ -824,7 +824,7 @@ module GhostLetExpr {
         ghost var z := aa + F();
         ghost var t0 := var y := z; z + 3;
         ghost var t1 := ghost var y := z + bb; y + z + 3;
-        var t2; t2 := ghost var y := z; y + 3;  // error: 'y' can only be used in ghost contexts
+        var t2; t2 := ghost var y := z; y + 3;  // t2 is not ghost - error
     }
   }
 
