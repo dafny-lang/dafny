@@ -344,6 +344,7 @@ method Caller(i: int) returns (rr: Status, k: int)
   var j: int;
   j, k :- Callee(i);
   k := k + k;
+  ...
 }
 ```
 
@@ -385,6 +386,7 @@ method Caller(i: int) returns (rr: Outcome<int>, k: int)
   var j: int;
   j, k :- Callee(i);
   k := k + k;
+  ...
 }
 ```
 
