@@ -259,7 +259,7 @@ A failure-compatible type is a type that has the following members (each with no
  * a function method `PropagateFailure()` that returns a value assignable to the first out-parameter of the caller
  * an optional method or function `Extract()`
 
-A failure-compatible type with an `Extract` method is called _value-carrying_.
+A failure-compatible type with an `Extract` member is called _value-carrying_.
 
 
 To use this form of update,
@@ -267,13 +267,13 @@ To use this form of update,
  * the caller must have a first out-parameter whose type matches the output of `PropagateFailure` applied to the first output of the callee
  * if the RHS of the update-with-failure statement is a method call, the first out-parameter of the callee must be failure-compatible
  * if instead the RHS of the update-with-failure statement is one or more expressions, the first of these expressions must be a value with a failure-compatible type
- * if the failure-compatible type of the RHS does not have an `Extract` method,
+ * if the failure-compatible type of the RHS does not have an `Extract` member,
 then the LHS of the `:-` statement has one less expression than the RHS 
 (or than the number of out-parameters from the method call)
- * if the failure-compatible type of the RHS does have an `Extract` method,
+ * if the failure-compatible type of the RHS does have an `Extract` member,
 then the LHS of the `:-` statement has the same number of expressions as the RHS 
 (or as the number of out-parameters from the method call)
-and the type of the first LHS expression must be assignable from the return type of the `Extract` method
+and the type of the first LHS expression must be assignable from the return type of the `Extract` member
 * the `IsFailure` and `PropagateFailure` methods may not be ghost
 * the LHS expression assigned the output of the `Extract` member is ghost precisely if `Extract` is ghost
 
@@ -319,7 +319,8 @@ The desugaring of the `:- Callee(i);` statement is
 var tmp;
 tmp := Callee(i);
 if tmp.IsFailure() {
-  return tmp.PropagateFailure();
+  rr := tmp.PropagateFailure();
+  return;
 }
 ```
 In this and subsequent examples of desugaring, the `tmp` variable is a new, unique variable, unused elsewhere in the calling member.
@@ -334,8 +335,8 @@ Here is an example:
 ```dafny
 method Callee(i: int) returns (r: Status, v: int, w: int)
 {
-  if i < 0 { return Failure("negative"); }
-  return Success(i), i+i, i*i;
+  if i < 0 { return Failure("negative"), 0, 0; }
+  return Success, i+i, i*i;
 }
 
 method Caller(i: int) returns (rr: Status, k: int)
@@ -361,7 +362,8 @@ The desugaring of the `j, k :- Callee(i);` statement is
 var tmp;
 tmp, j, k := Callee(i);
 if tmp.IsFailure() {
-  return tmp.PropagateFailure();
+  rr := tmp.PropagateFailure();
+  return;
 }
 ```
 
@@ -374,7 +376,7 @@ In this case there is a (first) LHS l-value to receive this additional data.
 ```dafny
 method Callee(i: int) returns (r: Outcome<nat>, v: int)
 {
-  if i < 0 { return Failure("negative"); }
+  if i < 0 { return Failure("negative"), i+i; }
   return Success(i), i+i;
 }
 
@@ -414,7 +416,8 @@ The desugaring of the `j, k :- Callee(i);` statement in this example is
 var tmp;
 tmp, k := Callee(i);
 if tmp.IsFailure() {
-  return tmp.PropagateFailure();
+  rr := tmp.PropagateFailure();
+  return;
 }
 j := tmp.Extract();
 ```
@@ -453,7 +456,8 @@ var j, k;
 var tmp;
 tmp, k := r, 7;
 if tmp.IsFailure() {
-  return tmp.PropagateFailure();
+  rr := tmp.PropagateFailure();
+  return;
 }
 ```
 ### Failure with initialized declaration.
@@ -479,12 +483,13 @@ if the return value is not a failure, the semantics is as described in previous 
 The equivalent desugaring replaces
 ```dafny
 if tmp.IsFailure() {
-  return tmp.PropagateFailure();
+  rr := tmp.PropagateFailure();
+  return;
 }
 ```
 with
 ```dafny
-expect !tmp.IsFailure(), temp;
+expect !tmp.IsFailure(), tmp;
 ```
 
 ### Key points
@@ -529,7 +534,7 @@ explicit handling of failure values.
 
 ### Failure returns and exceptions
 
-The `:-` mechanism like the exceptions used in other programming languages, with some similarities and differences.
+The `:-` mechanism is like the exceptions used in other programming languages, with some similarities and differences.
 
  * There is essentially just one kind of 'exception' in Dafny, 
 the variations of the failure-compatible data type. 
