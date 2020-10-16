@@ -16866,7 +16866,8 @@ namespace Microsoft.Dafny
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         if (e.Exact) {
-          return Contract.Exists(e.RHSs, ee => UsesSpecFeatures(ee)) || UsesSpecFeatures(e.Body);
+          return UsesSpecFeatures(e.Body);
+          //return Contract.Exists(e.RHSs, ee => UsesSpecFeatures(ee)) || UsesSpecFeatures(e.Body);
         } else {
           return true;  // let-such-that is always ghost
         }
@@ -16907,6 +16908,9 @@ namespace Microsoft.Dafny
       } else if (expr is SeqConstructionExpr) {
         var e = (SeqConstructionExpr) expr;
         return UsesSpecFeatures(e.N) || UsesSpecFeatures(e.Initializer);
+      } else if (expr is MultiSetFormingExpr) {
+        var e = (MultiSetFormingExpr) expr;
+        return UsesSpecFeatures(e.E);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
