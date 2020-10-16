@@ -130,6 +130,9 @@ namespace DafnyLS.Language {
       case ExprRhs expressionRhs:
         Visit(expressionRhs);
         break;
+      case TypeRhs typeRhs:
+        Visit(typeRhs);
+        break;
       default:
         VisitUnknown(assignmentRhs, assignmentRhs.Tok);
         break;
@@ -328,6 +331,9 @@ namespace DafnyLS.Language {
         break;
       case ITEExpr ifThenElseExpression:
         Visit(ifThenElseExpression);
+        break;
+      case null:
+        // TODO This most-likely occured while typing. Maybe log this situation.
         break;
       default:
         VisitUnknown(expression, expression.tok);
