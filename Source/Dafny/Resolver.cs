@@ -10,7 +10,6 @@ using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Linq.Expressions;
-using System.Security.Cryptography;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny
