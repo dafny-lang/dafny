@@ -57,8 +57,8 @@ namespace Microsoft.Dafny{
 
     const string TypeMethodName = "_type";
 
-    private String ModuleName;
-    private String ModulePath;
+    private string ModuleName;
+    private string ModulePath;
     private int FileCount = 0;
     private Import ModuleImport;
     private HashSet<int> tuples = new HashSet<int>();
@@ -872,21 +872,19 @@ namespace Microsoft.Dafny{
       var wCtorParams = wBody.Fork();
       var wCtorBody = wBody.NewBigBlock(")", "");
 
-      var allTypeParameters = new List<TypeArgumentInstantiation>();
       if (typeParameters != null) {
-        allTypeParameters.AddRange(TypeArgumentInstantiation.ListFromFormals(typeParameters));
-      }
-      sep = "";
-      foreach (var ta in allTypeParameters) {
-        if (NeedsTypeDescriptor(ta.Formal)) {
-          var fieldName = FormatTypeDescriptorVariable(ta.Formal.CompileName);
-          var decl = $"{TypeClass}<{BoxedTypeName(ta.Actual, wTypeFields, ta.Formal.tok)}> {fieldName}";
-          wTypeFields.WriteLine($"private {decl};");
-          if (ta.Formal.Parent == cls) {
-            wCtorParams.Write($"{sep}{decl}");
+        sep = "";
+        foreach (var ta in TypeArgumentInstantiation.ListFromFormals(typeParameters)) {
+          if (NeedsTypeDescriptor(ta.Formal)) {
+            var fieldName = FormatTypeDescriptorVariable(ta.Formal.CompileName);
+            var decl = $"{TypeClass}<{BoxedTypeName(ta.Actual, wTypeFields, ta.Formal.tok)}> {fieldName}";
+            wTypeFields.WriteLine($"private {decl};");
+            if (ta.Formal.Parent == cls) {
+              wCtorParams.Write($"{sep}{decl}");
+            }
+            wCtorBody.WriteLine($"this.{fieldName} = {TypeDescriptor(ta.Actual, wCtorBody, ta.Formal.tok)};");
+            sep = ", ";
           }
-          wCtorBody.WriteLine($"this.{fieldName} = {TypeDescriptor(ta.Actual, wCtorBody, ta.Formal.tok)};");
-          sep = ", ";
         }
       }
 
