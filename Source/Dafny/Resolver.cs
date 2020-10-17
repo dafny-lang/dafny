@@ -11109,7 +11109,7 @@ namespace Microsoft.Dafny
       foreach (var PB in pairPB) {
         var pat = PB.Item1;
         if (pat is LitPattern lpat) {
-          if (!alternatives.Exists(x => x.Value.Equals(lpat.OptimisticallyDesugaredLit.Value))) {
+          if (!alternatives.Exists(x => object.Equals(x.Value, lpat.OptimisticallyDesugaredLit.Value))) {
             alternatives.Add(lpat.OptimisticallyDesugaredLit);
           }
         }
@@ -11119,12 +11119,11 @@ namespace Microsoft.Dafny
       // For each possible alternatives, filter potential cases and recur
       foreach (var currLit in alternatives) {
         List<RBranch> currBranches = new List<RBranch>();
-        for (int i = 0; i < pairPB.Count; i++) {
-          var PB = pairPB.ElementAt(i);
+        foreach (var PB in pairPB) {
           switch (PB.Item1) {
             case LitPattern currPattern:
               // if pattern matches the current alternative, add it to the branch for this case, otherwise ignore it
-              if (currPattern.OptimisticallyDesugaredLit.Value.Equals(currLit.Value)) {
+              if (object.Equals(currPattern.OptimisticallyDesugaredLit.Value, currLit.Value)) {
                 mti.UpdateBranchID(PB.Item2.BranchID, 1);
                 currBranches.Add(CloneRBranch(PB.Item2));
               }

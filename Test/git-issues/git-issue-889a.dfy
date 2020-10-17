@@ -107,3 +107,22 @@ method Bv1() returns (v: bv1) {
     case 0 =>
   }
 }
+
+method NullRegression(obj: object?) {
+  var u;
+  match obj {
+    case null =>
+      u := 0;
+    case null =>  // warning: this branch is redundant
+      u := 1;
+    case _ =>
+      u := 2;
+  }
+  assert u != 1;
+  u := match obj {
+    case null => 3
+    case null => 4  // warning: this branch is redundant
+    case _ => 5
+  };
+  assert u == 3 || u == 5;
+}
