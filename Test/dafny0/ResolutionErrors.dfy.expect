@@ -97,9 +97,9 @@ ResolutionErrors.dfy(729,22): Error: a possibly infinite loop is allowed only if
 ResolutionErrors.dfy(762,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(793,19): Error: calls to methods with side-effects are not allowed inside a statement expression
 ResolutionErrors.dfy(794,20): Error: wrong number of method result arguments (got 0, expected 1)
-ResolutionErrors.dfy(806,23): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(806,26): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(816,4): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(827,36): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(827,40): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(836,17): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(850,6): Error: RHS (of type B) not assignable to LHS (of type object)
 ResolutionErrors.dfy(852,6): Error: RHS (of type B) not assignable to LHS (of type object)
@@ -163,7 +163,7 @@ ResolutionErrors.dfy(1139,13): Error: arguments must have comparable types (got 
 ResolutionErrors.dfy(1150,10): Error: new can be applied only to class types (got JJ)
 ResolutionErrors.dfy(1158,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
 ResolutionErrors.dfy(1160,38): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
-ResolutionErrors.dfy(1165,24): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
+ResolutionErrors.dfy(1165,27): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
 ResolutionErrors.dfy(1173,15): Error: arguments to / must be numeric or bitvector types (got set<bool>)
 ResolutionErrors.dfy(1180,20): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1195,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
@@ -232,11 +232,11 @@ ResolutionErrors.dfy(1452,29): Error: only ghost methods can be called from this
 ResolutionErrors.dfy(1454,17): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(1570,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1588,12): Error: trying to break out of more loop levels than there are enclosing loops
-ResolutionErrors.dfy(1600,16): Error: ghost fields are allowed only in specification contexts
+ResolutionErrors.dfy(1600,20): Error: ghost fields are allowed only in specification contexts
 ResolutionErrors.dfy(1607,9): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(1613,4): Error: non-ghost variable cannot be assigned a value that depends on a ghost
 ResolutionErrors.dfy(1630,8): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ResolutionErrors.dfy(1639,26): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(1639,29): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined

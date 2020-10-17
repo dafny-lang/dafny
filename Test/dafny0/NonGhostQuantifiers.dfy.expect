@@ -13,5 +13,5 @@ NonGhostQuantifiers.dfy(167,4): Error: a quantifier involved in a function defin
 NonGhostQuantifiers.dfy(171,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
 NonGhostQuantifiers.dfy(176,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
 NonGhostQuantifiers.dfy(181,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
-NonGhostQuantifiers.dfy(192,13): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
+NonGhostQuantifiers.dfy(192,16): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
 16 resolution/type errors detected in NonGhostQuantifiers.dfy

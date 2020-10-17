@@ -803,7 +803,7 @@ module GhostLetExpr {
     var x;
     var g := G(x, y);
     ghost var h := ghost var ta := F(); 5;
-    var j := var tb := F(); 5;  // error: allowed only if 'tb' were ghost
+    var j; j := var tb := F(); 5;  // tb is ghost, j is not
     assert h == j;
   }
 
@@ -824,7 +824,7 @@ module GhostLetExpr {
         ghost var z := aa + F();
         ghost var t0 := var y := z; z + 3;
         ghost var t1 := ghost var y := z + bb; y + z + 3;
-        var t2 := ghost var y := z; y + 3;  // error: 'y' can only be used in ghost contexts
+        var t2; t2 := ghost var y := z; y + 3;  // t2 is not ghost - error
     }
   }
 
@@ -1160,9 +1160,9 @@ module ObjectSetComprehensions {
   function method B() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
 
   // outside functions, the comprehension is permitted, but it cannot be compiled
-  lemma C() { var x := set o : object | true :: o; }
+  lemma C() { var x; x := set o : object | true :: o; }
 
-  method D() { var x := set o : object | true :: o; }  // error: not (easily) compilable
+  method D() { var x; x := set o : object | true :: o; }  // error: not (easily) compilable
 }
 
 // ------ regression test for type checking of integer division -----
@@ -1597,7 +1597,7 @@ module BadGhostTransfer {
   datatype DTD_List = DTD_Nil | DTD_Cons(Car: int, Cdr: DTD_List, ghost g: int)
 
   method DatatypeDestructors_Ghost(d: DTD_List) {
-    var g1 := d.g;  // error: cannot use ghost member in non-ghost code
+    var g1; g1 := d.g;  // error: cannot use ghost member in non-ghost code
   }
   method AssignSuchThatFromGhost()
   {
@@ -1636,7 +1636,7 @@ module MoreGhostPrintAttempts {
 module MoreLetSuchThatExpr {
   method LetSuchThat_Ghost(ghost z: int, n: nat)
   {
-    var x := var y :| y < z; y;  // error: contraint depend on ghost (z)
+    var x; x := var y :| y < z; y;  // error: contraint depend on ghost (z)
   }
 }
 

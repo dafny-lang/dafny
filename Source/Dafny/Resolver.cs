@@ -7733,7 +7733,9 @@ namespace Microsoft.Dafny
           s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
 
         } else if (stmt is AssignOrReturnStmt) {
-          stmt.IsGhost = false; // TODO when do we want to allow this feature in ghost code? Note that return changes control flow
+          var s = (AssignOrReturnStmt)stmt;
+          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable));
+          s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
 
         } else if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;
@@ -7761,6 +7763,7 @@ namespace Microsoft.Dafny
           var s = (AssignStmt)stmt;
           var lhs = s.Lhs.Resolved;
           var gk = AssignStmt.LhsIsToGhost_Which(lhs);
+          var isAutoGhost = AssignStmt.LhsIsToGhostOrAutoGhost(lhs);
           if (gk == AssignStmt.NonGhostKind.IsGhost) {
             s.IsGhost = true;
             if (s.Rhs is TypeRhs) {
@@ -7778,9 +7781,19 @@ namespace Microsoft.Dafny
             } else if (gk == AssignStmt.NonGhostKind.ArrayElement) {
               resolver.CheckIsCompilable(lhs);
             }
+
+
             if (s.Rhs is ExprRhs) {
               var rhs = (ExprRhs)s.Rhs;
-              resolver.CheckIsCompilable(rhs.Expr);
+              if (isAutoGhost) {
+                if (resolver.UsesSpecFeatures(rhs.Expr)) {
+                  // TODO: Is this the proper way to determine if an expression is ghost?
+                  ((lhs as AutoGhostIdentifierExpr).Var as LocalVariable).MakeGhost();
+                }
+              } else {
+                resolver.CheckIsCompilable(rhs.Expr);
+              }
+
             } else if (s.Rhs is HavocRhs) {
               // cool
             } else {
@@ -11874,6 +11887,11 @@ namespace Microsoft.Dafny
         firstType = s.Rhs.Type;
       }
 
+      if ((codeContext as Method).Outs.Count == 0 && s.ExpectToken == null) {
+        reporter.Error(MessageSource.Resolver, s.Tok, "A method containing a :- statement must have an out-parameter ({0})",
+          (codeContext as Method).Name);
+        return;
+      }
       if (firstType != null) {
         firstType = PartiallyResolveTypeForMemberSelection(s.Rhs.tok, firstType);
         if (firstType.AsTopLevelTypeWithMembers != null) {
@@ -11965,11 +11983,19 @@ namespace Microsoft.Dafny
 
       if (expectExtract) {
         // "y := temp.Extract();"
+        var lhs = s.Lhss[0];
         s.ResolvedStatements.Add(
           new UpdateStmt(s.Tok, s.Tok,
-            new List<Expression>() { s.Lhss[0] },
+            new List<Expression>() { lhs },
             new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "Extract")) }
             ));
+        // The following check is not necessary, because the ghost mismatch is caught later.
+        // However the error message here is much clearer.
+        var m = ResolveMember(s.Tok, firstType, "Extract", out _);
+        if (m != null && m.IsGhost && !AssignStmt.LhsIsToGhostOrAutoGhost(lhs)) {
+          reporter.Error(MessageSource.Resolver, lhs.tok,
+            "The Extract member may not be ghost unless the initial LHS is ghost");
+        }
       }
 
       s.ResolvedStatements.ForEach( a => ResolveStatement(a, codeContext) );
@@ -11984,12 +12010,24 @@ namespace Microsoft.Dafny
 
       if (ResolveMember(tok, tp, "IsFailure", out _) == null ||
           ResolveMember(tok, tp, "PropagateFailure", out _) == null ||
-          (ResolveMember(tok, tp, "Extract", out _) != null) != expectExtract
-      ) {
+          (ResolveMember(tok, tp, "Extract", out _) != null) != expectExtract) {
         // more details regarding which methods are missing have already been reported by regular resolution
         origReporter.Error(MessageSource.Resolver, tok,
           "The right-hand side of ':-', which is of type '{0}', must have members 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'",
           tp, expectExtract ? "and" : "but not");
+      }
+
+      // The following checks are not necessary, because the ghost mismatch is caught later.
+      // However the error messages here are much clearer.
+      var m = ResolveMember(tok, tp, "IsFailure", out _);
+      if (m != null && m.IsGhost) {
+        origReporter.Error(MessageSource.Resolver, m.tok,
+          "The IsFailure member may not be ghost");
+      }
+      m = ResolveMember(tok, tp, "PropagateFailure", out _);
+      if (m != null && m.IsGhost) {
+        origReporter.Error(MessageSource.Resolver, m.tok,
+          "The PropagateFailure member may not be ghost");
       }
 
       this.reporter = origReporter;
@@ -16827,7 +16865,8 @@ namespace Microsoft.Dafny
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         if (e.Exact) {
-          return Contract.Exists(e.RHSs, ee => UsesSpecFeatures(ee)) || UsesSpecFeatures(e.Body);
+          return UsesSpecFeatures(e.Body);
+          //return Contract.Exists(e.RHSs, ee => UsesSpecFeatures(ee)) || UsesSpecFeatures(e.Body);
         } else {
           return true;  // let-such-that is always ghost
         }
@@ -16863,8 +16902,14 @@ namespace Microsoft.Dafny
         }
         return me.Cases.Exists(mc => UsesSpecFeatures(mc.Body));
       } else if (expr is ConcreteSyntaxExpression) {
-        var e = (ConcreteSyntaxExpression)expr;
+        var e = (ConcreteSyntaxExpression) expr;
         return e.ResolvedExpression != null && UsesSpecFeatures(e.ResolvedExpression);
+      } else if (expr is SeqConstructionExpr) {
+        var e = (SeqConstructionExpr) expr;
+        return UsesSpecFeatures(e.N) || UsesSpecFeatures(e.Initializer);
+      } else if (expr is MultiSetFormingExpr) {
+        var e = (MultiSetFormingExpr) expr;
+        return UsesSpecFeatures(e.E);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
