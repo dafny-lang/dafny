@@ -1185,11 +1185,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private bool NeedsTypeDescriptor(TypeParameter tp) {
-      Contract.Requires(tp != null);
-      return tp.Characteristics.MustSupportZeroInitialization;
-    }
-
     protected override int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
       var sep = "";
       var c = 0;

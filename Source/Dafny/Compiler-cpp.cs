@@ -791,7 +791,7 @@ namespace Microsoft.Dafny {
       var sep = "";
       var c = 0;
       foreach (var ta in typeArgs) {
-        if (useAllTypeArgs || ta.Formal.Characteristics.MustSupportZeroInitialization) {
+        if (useAllTypeArgs || NeedsTypeDescriptor(ta.Formal)) {
           wr.Write("{0}{1}", sep, RuntimeTypeDescriptor(ta.Actual, tok, wr));
           sep = ", ";
           c++;

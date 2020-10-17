@@ -2360,8 +2360,7 @@ namespace Microsoft.Dafny{
     /// To get this threaded through everywhere, all type arguments must always be passed with a
     /// corresponding type descriptor. :(  Thus, this method returns "true".
     /// </summary>
-    private bool NeedsTypeDescriptor(TypeParameter tp) {
-      Contract.Requires(tp != null);
+    protected override bool NeedsTypeDescriptor(TypeParameter tp) {
       return true;
     }
 

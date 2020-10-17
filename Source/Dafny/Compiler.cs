@@ -222,6 +222,11 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected virtual bool NeedsTypeDescriptor(TypeParameter tp) {
+      Contract.Requires(tp != null);
+      return tp.Characteristics.MustSupportZeroInitialization;
+    }
+
     protected virtual int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
       Contract.Requires(typeArgs != null);
       Contract.Requires(tok != null);
