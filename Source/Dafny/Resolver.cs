@@ -6072,8 +6072,8 @@ namespace Microsoft.Dafny
             CheckTypeIsDetermined(local.Tok, local.Type, "local variable");
             CheckTypeArgsContainNoOrdinal(local.Tok, local.type);
           }
-        } else if (stmt is LetStmt) {
-          var s = (LetStmt)stmt;
+        } else if (stmt is VarDeclPattern) {
+          var s = (VarDeclPattern)stmt;
           s.LocalVars.Iter(local => CheckTypeIsDetermined(local.Tok, local.Type, "local variable"));
           s.LocalVars.Iter(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.Type));
 
@@ -6680,7 +6680,7 @@ namespace Microsoft.Dafny
         if (s.Update != null) {
           return CheckTailRecursive(s.Update, enclosingMethod, ref tailCall, reportErrors);
         }
-      } else if (stmt is LetStmt) {
+      } else if (stmt is VarDeclPattern) {
       } else if (stmt is ExpectStmt) {
       } else {
         Contract.Assert(false);  // unexpected statement type
@@ -7307,8 +7307,8 @@ namespace Microsoft.Dafny
               CheckEqualityTypes_Type(v.Tok, v.Type);
             }
           }
-        } else if (stmt is LetStmt) {
-          var s = (LetStmt)stmt;
+        } else if (stmt is VarDeclPattern) {
+          var s = (VarDeclPattern)stmt;
           foreach (var v in s.LocalVars) {
             CheckEqualityTypes_Type(v.Tok, v.Type);
           }
@@ -7750,15 +7750,24 @@ namespace Microsoft.Dafny
           }
           s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
 
-        } else if (stmt is LetStmt) {
-          var s = (LetStmt)stmt;
+        } else if (stmt is VarDeclPattern) {
+          var s = (VarDeclPattern)stmt;
+
           if (mustBeErasable) {
             foreach (var local in s.LocalVars) {
               local.IsGhost = true;
             }
           }
-          resolver.CheckIsCompilable(s.RHS);
-          s.IsGhost = s.LocalVars.All(v => v.IsGhost);
+          if (!s.IsAutoGhost || mustBeErasable) {
+            s.IsGhost = s.LocalVars.All(v => v.IsGhost);
+          } else {
+            bool spec = resolver.UsesSpecFeatures(s.RHS);
+            foreach (var local in s.LocalVars) {
+              local.IsGhost = spec;
+            }
+            if (!spec) resolver.CheckIsCompilable(s.RHS);
+            s.IsGhost = spec;
+          }
 
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
@@ -10188,8 +10197,8 @@ namespace Microsoft.Dafny
             }
           }
         }
-      } else if (stmt is LetStmt) {
-        LetStmt s = (LetStmt)stmt;
+      } else if (stmt is VarDeclPattern) {
+        VarDeclPattern s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
           int prevErrorCount = reporter.Count(ErrorLevel.Error);
           ResolveType(local.Tok, local.OptionalType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
@@ -10973,7 +10982,7 @@ namespace Microsoft.Dafny
       if (branch is RBranchStmt branchStmt) {
         var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
         var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
-        var cLet = new LetStmt(cLVar.Tok, cLVar.Tok, cPat, expr);
+        var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr);
         branchStmt.Body.Insert(0, cLet);
       } else if (branch is RBranchExpr branchExpr) {
         var cBVar = new BoundVar(var.Tok, name, type);
@@ -12303,7 +12312,7 @@ namespace Microsoft.Dafny
         if (s.Update != null) {
           CheckForallStatementBodyRestrictions(s.Update, kind);
         }
-      } else if (stmt is LetStmt) {
+      } else if (stmt is VarDeclPattern) {
         // Are we fine?
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
@@ -12466,7 +12475,7 @@ namespace Microsoft.Dafny
         if (s.Update != null) {
           CheckHintRestrictions(s.Update, localsAllowedInUpdates, where);
         }
-      } else if (stmt is LetStmt) {
+      } else if (stmt is VarDeclPattern) {
         // Are we fine?
       } else if (stmt is ModifyStmt) {
         reporter.Error(MessageSource.Resolver, stmt, "modify statements are not allowed inside {0}", where);

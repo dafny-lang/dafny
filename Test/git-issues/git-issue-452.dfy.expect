@@ -1,3 +1,14 @@
-git-issue-452.dfy(9,16): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-git-issue-452.dfy(10,11): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-2 resolution/type errors detected in git-issue-452.dfy
+
+Dafny program verifier finished with 0 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+41 43 (41, 43)
+
+Dafny program verifier did not attempt verification
+41 43 (41, 43)
+
+Dafny program verifier did not attempt verification
+41 43 (41, 43)
+
+Dafny program verifier did not attempt verification
+41 43 (41, 43)

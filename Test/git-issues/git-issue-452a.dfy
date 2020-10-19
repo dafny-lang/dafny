@@ -1,8 +1,4 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function TwinPrimes(): (int, int) {
@@ -17,5 +13,15 @@ method Main() {
   var (x, y) := TwinPrimesM();  // x and y are not ghost
   var p := TwinPrimesM();  // p is not ghost
   print x, " ", y, " ", p, "\n"; // OK
+}
+method mg() {
+  ghost var (x, y) := TwinPrimesM();
+  ghost var p := TwinPrimesM();
+  print x, " ", y, " ", p, "\n"; // ERROR
+}
+method m() {
+  var (x, y) := TwinPrimes();  // OK: x and y are ghost
+  var p := TwinPrimes();  // OK: p is ghost
+  print x, " ", y, " ", p, "\n"; // ERROR: x, y, p are ghost
 }
 

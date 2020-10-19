@@ -7111,15 +7111,17 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class LetStmt : Statement
+  public class VarDeclPattern : Statement
   {
     public readonly CasePattern<LocalVariable> LHS;
     public readonly Expression RHS;
+    public bool IsAutoGhost;
 
-    public LetStmt(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs)
+    public VarDeclPattern(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs, bool isAutoGhost = false)
       : base(tok, endTok) {
       LHS = lhs;
       RHS = rhs;
+      IsAutoGhost = isAutoGhost;
     }
 
     public override IEnumerable<Expression> SubExpressions {

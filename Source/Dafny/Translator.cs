@@ -10854,8 +10854,8 @@ namespace Microsoft.Dafny {
         if (s.Update != null) {
           TrStmt(s.Update, builder, locals, etran);
         }
-      } else if (stmt is LetStmt) {
-        var s = (LetStmt)stmt;
+      } else if (stmt is VarDeclPattern) {
+        var s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
           Bpl.LocalVariable bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type)));
           locals.Add(bvar);
