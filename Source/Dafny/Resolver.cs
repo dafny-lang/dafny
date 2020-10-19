@@ -16875,6 +16875,7 @@ namespace Microsoft.Dafny
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         if (e.Exact) {
+          MakeGhostAsNeeded(e.LHSs);
           return UsesSpecFeatures(e.Body);
           //return Contract.Exists(e.RHSs, ee => UsesSpecFeatures(ee)) || UsesSpecFeatures(e.Body);
         } else {
@@ -16924,6 +16925,30 @@ namespace Microsoft.Dafny
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
     }
+
+    void MakeGhostAsNeeded(List<CasePattern<BoundVar>> lhss) {
+      foreach (CasePattern<BoundVar> lhs in lhss) {
+        MakeGhostAsNeeded(lhs);
+      }
+    }
+
+    void MakeGhostAsNeeded(CasePattern<BoundVar> lhs) {
+      if (lhs.Ctor != null && lhs.Arguments != null) {
+        for (int i = 0; i < lhs.Arguments.Count && i < lhs.Ctor.Destructors.Count; i++) {
+          MakeGhostAsNeeded(lhs.Arguments[i], lhs.Ctor.Destructors[i]);
+        }
+      }
+    }
+
+    void MakeGhostAsNeeded(CasePattern<BoundVar> arg, DatatypeDestructor d) {
+      if (arg.Expr is IdentifierExpr ie && ie.Var is BoundVar bv) {
+        if (d.IsGhost) bv.makeGhost();
+      }
+      if (arg.Ctor != null) {
+        MakeGhostAsNeeded(arg);
+      }
+    }
+
 
     /// <summary>
     /// This method adds to "friendlyCalls" all

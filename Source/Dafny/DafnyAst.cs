@@ -5830,6 +5830,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public void makeGhost() {
+      IsGhost = true;
+    }
+
     public BoundVar(IToken tok, string name, Type type)
       : base(tok, name, type, false) {
       Contract.Requires(tok != null);
