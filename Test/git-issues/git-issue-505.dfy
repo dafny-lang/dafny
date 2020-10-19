@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /timeLimit:8 "%s" > "%t"
+// RUN: %dafny /compile:0 /timeLimit:20 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 lemma d()

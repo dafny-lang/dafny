@@ -323,10 +323,6 @@ namespace Microsoft.Dafny {
     }
     protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok);
 
-    protected virtual TargetWriter DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, TargetWriter wr, Type t){
-      return DeclareLocalVar(name, type, tok, wr);
-    }
-
     protected virtual TargetWriter EmitAssignment(ILvalue wLhs, Type/*?*/ lhsType, Type/*?*/ rhsType, TargetWriter wr) {
       var w = wLhs.EmitWrite(wr);
       w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, tok: Bpl.Token.NoToken, wr: w);
@@ -437,7 +433,6 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < rhsVars.Count; i++) {
         TargetWriter wRhsVar = EmitAssignment(lhssn[i], lhsTypes[i], rhsTypes[i], wr);
         wRhsVar.Write(rhsVars[i]);
-        EndStmt(wr);
       }
     }
 
@@ -897,10 +892,18 @@ namespace Microsoft.Dafny {
     protected abstract void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr);  // used for sets, multisets, and sequences
     protected abstract void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr);
-    protected abstract void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr);
-    protected abstract void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr);
+
+    protected abstract void EmitSetBuilder_New(TargetWriter wr, SetComprehension e, string collectionName);
+    protected abstract void EmitMapBuilder_New(TargetWriter wr, MapComprehension e, string collectionName);
+
+    protected abstract void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr);
     protected abstract TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term, bool inLetExprBody, TargetWriter wr);
+
+    /// <summary>
+    /// The "ct" type is either a SetType or a MapType.
+    /// </summary>
     protected abstract string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr);
+
     protected virtual void EmitIntegerRange(Type type, out TargetWriter wLo, out TargetWriter wHi, TargetWriter wr) {
       if (AsNativeType(type) != null) {
         wr.Write("{0}.IntegerRange(", IdProtect(type.AsNewtype.FullCompileName));
@@ -2185,12 +2188,6 @@ namespace Microsoft.Dafny {
     }
 
     // ----- Type ---------------------------------------------------------------------------------
-
-    protected virtual string DafnySetClass => "Dafny.Set";
-    protected virtual string DafnyMultiSetClass => "Dafny.MultiSet";
-    protected virtual string DafnySeqClass => "Dafny.ISequence";
-    protected virtual string DafnySeqHelperClass => "Dafny.Sequence";
-    protected virtual string DafnyMapClass => "Dafny.Map";
 
     protected NativeType AsNativeType(Type typ) {
       Contract.Requires(typ != null);
@@ -3626,7 +3623,7 @@ namespace Microsoft.Dafny {
         TrExpr(eRhs.Expr, wr, false);
       } else {
         var nw = idGenerator.FreshId("_nw");
-        var wRhs = DeclareLocalVar(nw, null, null, wStmts, tRhs.Type);
+        var wRhs = DeclareLocalVar(nw, tRhs.Type, rhs.Tok, wStmts);
         TrTypeRhs(tRhs, wRhs);
 
         // Proceed with initialization
@@ -4433,10 +4430,10 @@ namespace Microsoft.Dafny {
         // }))()
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
         var typeName = TypeName(e.Type.AsSetType.Arg, wr, e.tok);
-        var collection_name = idGenerator.FreshId("_coll");
+        var collectionName = idGenerator.FreshId("_coll");
         var bwr = CreateIIFE0(e.Type.AsSetType, e.tok, wr);
         wr = bwr;
-        EmitSetComprehension(wr, expr, collection_name);
+        EmitSetBuilder_New(wr, e, collectionName);
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
         for (var i = 0; i < n; i++) {
@@ -4450,8 +4447,8 @@ namespace Microsoft.Dafny {
         TargetWriter guardWriter;
         var thn = EmitIf(out guardWriter, false, wr);
         TrExpr(e.Range, guardWriter, inLetExprBody);
-        EmitCollectionBuilder_Add(e.Type.AsSetType, collection_name, e.Term, inLetExprBody, thn);
-        var s = GetCollectionBuilder_Build(e.Type.AsSetType, e.tok, collection_name, wr);
+        EmitSetBuilder_Add(e.Type.AsSetType, collectionName, e.Term, inLetExprBody, thn);
+        var s = GetCollectionBuilder_Build(e.Type.AsSetType, e.tok, collectionName, wr);
         EmitReturnExpr(s, bwr);
 
       } else if (expr is MapComprehension) {
@@ -4478,9 +4475,7 @@ namespace Microsoft.Dafny {
         var collection_name = idGenerator.FreshId("_coll");
         var bwr = CreateIIFE0(e.Type.AsMapType, e.tok, wr);
         wr = bwr;
-        using (var wrVarInit = DeclareLocalVar(collection_name, null, null, wr, e.Type.AsMapType)){
-          EmitCollectionBuilder_New(e.Type.AsMapType, e.tok, wrVarInit);
-        }
+        EmitMapBuilder_New(wr, e, collection_name);
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
         for (var i = 0; i < n; i++) {
@@ -4560,13 +4555,6 @@ namespace Microsoft.Dafny {
       }
 
       su = new Translator.Substituter(null, sm, new Dictionary<TypeParameter, Type>());
-    }
-
-    protected virtual void EmitSetComprehension(TargetWriter wr, Expression expr, String collection_name){
-      var e = (SetComprehension) expr;
-        using (var wrVarInit = DeclareLocalVar(collection_name, null, null, wr)){
-          EmitCollectionBuilder_New(e.Type.AsSetType, e.tok, wrVarInit);
-        }
     }
 
     protected bool IsHandleComparison(Bpl.IToken tok, Expression e0, Expression e1, TextWriter errorWr) {

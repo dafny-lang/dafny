@@ -2,8 +2,6 @@
 Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
-p=(13, 14)
-q=(13, 14, yes)
 true false
 true false
 map[12 := 6, 13 := 6, 14 := 7]
@@ -47,8 +45,6 @@ false false false
 Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
-p=(13, 14)
-q=(13, 14, yes)
 true false
 true false
 map[12 := 6, 13 := 6, 14 := 7]
@@ -92,8 +88,6 @@ false false false
 Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
-p=(13, 14)
-q=(13, 14, yes)
 true false
 true false
 map[12 := 6, 13 := 6, 14 := 7]
@@ -137,8 +131,6 @@ false false false
 Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
-p=(13, 14)
-q=(13, 14, [y, e, s])
 true false
 true false
 map[12 := 6, 13 := 6, 14 := 7]
