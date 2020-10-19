@@ -42,6 +42,18 @@ method BadNewtypeLiterals() returns (b: int8, r: smallneg) {
     r := -(1.0);  // error: 1.0 is not a value of type smallneg
 }
 
+method MoreBadLiterals() returns (b: int8, r: smallneg) {
+  if
+  case true =>
+    b := --128;  // error: the result of the unary minus, 128, is not a int8
+  case true =>
+    b := - - 128;  // error: the result of the unary minus, 128, is not a int8
+  case true =>
+    r := --1.0;  // error: the result of the unary minus, 1.0, is not a value of type smallneg
+  case true =>
+    r := - - 1.0;  // error: the result of the unary minus, 1.0, is not a value of type smallneg
+}
+
 // ---------------------------------
 
 method MatchCaseParsing(x: int, p: (int, int)) {
@@ -106,6 +118,12 @@ method Bv1() returns (v: bv1) {
     match v  // error: missing case
     case 0 =>
   }
+}
+
+method Bv8() returns (v: bv8) {
+  v := --128;
+  assert v == 128;
+  assert v == - - 128;
 }
 
 method NullRegression(obj: object?) {

@@ -1,5 +1,5 @@
-git-issue-889a.dfy(116,4): Warning: this branch is redundant
-git-issue-889a.dfy(124,4): Warning: this branch is redundant 
+git-issue-889a.dfy(134,4): Warning: this branch is redundant
+git-issue-889a.dfy(142,4): Warning: this branch is redundant 
 git-issue-889a.dfy(37,15): Error: result of operation might violate newtype constraint for 'int8'
 Execution trace:
     (0,0): anon0
@@ -12,12 +12,28 @@ git-issue-889a.dfy(42,11): Error: result of operation might violate newtype cons
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
-git-issue-889a.dfy(82,11): Error: assertion violation
+git-issue-889a.dfy(48,9): Error: result of operation might violate newtype constraint for 'int8'
 Execution trace:
     (0,0): anon0
-git-issue-889a.dfy(106,4): Error: missing case in match statement: c:bv1 (not all possibilities for constant 'c' have been covered)
+    (0,0): anon6_Then
+git-issue-889a.dfy(50,9): Error: result of operation might violate newtype constraint for 'int8'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+git-issue-889a.dfy(52,9): Error: result of operation might violate newtype constraint for 'smallneg'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+git-issue-889a.dfy(54,9): Error: result of operation might violate newtype constraint for 'smallneg'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+git-issue-889a.dfy(94,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+git-issue-889a.dfy(118,4): Error: missing case in match statement: c:bv1 (not all possibilities for constant 'c' have been covered)
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Else
 
-Dafny program verifier finished with 7 verified, 5 errors
+Dafny program verifier finished with 8 verified, 9 errors

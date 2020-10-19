@@ -3183,10 +3183,13 @@ namespace Microsoft.Dafny
     }
 
     private BigInteger MaxBV(Type t) {
+      Contract.Requires(t != null);
+      Contract.Requires(t.IsBitVectorType);
       return MaxBV(t.AsBitVectorType.Width);
     }
 
     private BigInteger MaxBV(int bits) {
+      Contract.Requires(0 <= bits);
       return BigInteger.Pow(new BigInteger(2), bits) - BigInteger.One;
     }
 
@@ -6102,7 +6105,7 @@ namespace Microsoft.Dafny
             var n = (BigInteger)e.Value;
             var absN = n < 0 ? -n : n;
             // For bitvectors, check that the magnitude fits the width
-            if (e.Type.IsBitVectorType && BigInteger.Pow(2, e.Type.AsBitVectorType.Width) <= absN) {
+            if (e.Type.IsBitVectorType && resolver.MaxBV(e.Type.AsBitVectorType.Width) < absN) {
               resolver.reporter.Error(MessageSource.Resolver, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
             }
             // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
