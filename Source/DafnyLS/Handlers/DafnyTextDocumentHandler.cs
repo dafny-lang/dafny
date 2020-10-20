@@ -62,7 +62,8 @@ namespace DafnyLS.Handlers {
     TextDocumentChangeRegistrationOptions IRegistration<TextDocumentChangeRegistrationOptions>.GetRegistrationOptions() {
       return new TextDocumentChangeRegistrationOptions() {
         DocumentSelector = _documentSelector,
-        SyncKind = TextDocumentSyncKind.Full
+        //SyncKind = TextDocumentSyncKind.Full
+        SyncKind = TextDocumentSyncKind.Incremental
       };
     }
 
