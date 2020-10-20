@@ -5,7 +5,7 @@ using System.Linq;
 using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
-  internal class MethodSymbol : Symbol, ILocalizableSymbol {
+  public class MethodSymbol : Symbol, ILocalizableSymbol {
     public Method Declaration { get; }
     public object Node => Declaration;
 

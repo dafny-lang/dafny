@@ -15,7 +15,7 @@ namespace DafnyLS.Workspace {
   /// <remarks>
   /// The current implementation only supports full document updates (not deltas).
   /// </remarks>
-  internal class DocumentDatabase : IDocumentDatabase {
+  public class DocumentDatabase : IDocumentDatabase {
     private readonly ILogger _logger;
     private readonly ConcurrentDictionary<DocumentUri, DafnyDocument> _documents = new ConcurrentDictionary<DocumentUri, DafnyDocument>();
     private readonly ITextDocumentLoader _documentLoader;

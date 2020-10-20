@@ -6,7 +6,7 @@ namespace DafnyLS.Language.Symbols {
   /// <summary>
   /// Represents a symbol that can be localized within the document.
   /// </summary>
-  internal interface ILocalizableSymbol : ISymbol {
+  public interface ILocalizableSymbol : ISymbol {
     /// <summary>
     /// Gets the syntax node of the AST> that declared this symbol.
     /// </summary>

@@ -11,7 +11,7 @@ namespace DafnyLS.Handlers {
   /// <summary>
   /// LSP handler responsible to resolve the location of a designator at the specified position.
   /// </summary>
-  internal class DafnyDefinitionHandler : DefinitionHandler {
+  public class DafnyDefinitionHandler : DefinitionHandler {
     private readonly ILogger _logger;
     private readonly IDocumentDatabase _documents;
 

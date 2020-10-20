@@ -9,7 +9,7 @@ namespace DafnyLS.Language.Symbols {
   /// <summary>
   /// Represents the symbol table
   /// </summary>
-  internal class SymbolTable {
+  public class SymbolTable {
     private readonly IIntervalTree<Position, ILocalizableSymbol> _symbolLookup;
 
     public SymbolTable(IIntervalTree<Position, ILocalizableSymbol> symbolLookup) {

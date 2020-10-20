@@ -13,7 +13,7 @@ namespace DafnyLS.Language {
   /// any access is synchronized. Moreover, it ensures that exactly one instance exists over the whole
   /// application lifetime.
   /// </summary>
-  internal class DafnyProgramVerifier : IProgramVerifier {
+  public class DafnyProgramVerifier : IProgramVerifier {
     private static readonly object _initializationSyncObject = new object();
     private static bool _initialized;
 

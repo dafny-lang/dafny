@@ -7,7 +7,7 @@ namespace DafnyLS.Language {
   /// <summary>
   /// Internal representation of a dafny document.
   /// </summary>
-  internal class DafnyDocument {
+  public class DafnyDocument {
     public TextDocumentItem Text { get; }
     public DocumentUri Uri => Text.Uri;
     public long Version => Text.Version;

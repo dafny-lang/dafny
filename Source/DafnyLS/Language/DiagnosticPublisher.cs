@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading;
 
 namespace DafnyLS.Language {
-  internal class DiagnosticPublisher : IDiagnosticPublisher {
+  public class DiagnosticPublisher : IDiagnosticPublisher {
     private readonly ILanguageServer _languageServer;
 
     public DiagnosticPublisher(ILanguageServer languageServer) {

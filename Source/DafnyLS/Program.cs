@@ -13,7 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace DafnyLS {
-  internal class Program {
+  public class Program {
     private static async Task Main() {
       try {
         var server = await LanguageServer.From(

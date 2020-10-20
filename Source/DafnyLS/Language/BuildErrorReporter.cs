@@ -6,6 +6,6 @@ namespace DafnyLS.Language {
   /// However, since there are no abstract members, we simply inherit from it since it provides
   /// all the necessary functionallity already.
   /// </summary>
-  internal class BuildErrorReporter : ErrorReporter {
+  public class BuildErrorReporter : ErrorReporter {
   }
 }

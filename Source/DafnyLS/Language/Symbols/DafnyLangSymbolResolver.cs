@@ -15,7 +15,7 @@ namespace DafnyLS.Language.Symbols {
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
   /// this resolver serializes all invocations.
   /// </remarks>
-  internal class DafnyLangSymbolResolver : ISymbolResolver {
+  public class DafnyLangSymbolResolver : ISymbolResolver {
     private readonly ILogger _logger;
     private readonly SemaphoreSlim _resolverMutex = new SemaphoreSlim(1);
 

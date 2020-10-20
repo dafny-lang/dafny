@@ -5,7 +5,7 @@ namespace DafnyLS.Language {
   /// <summary>
   /// Implementations of this interface are responsible to verify the correctness of a program.
   /// </summary>
-  internal interface IProgramVerifier {
+  public interface IProgramVerifier {
     /// <summary>
     /// Applies the program verification to the specified dafny program.
     /// </summary>

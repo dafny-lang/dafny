@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace DafnyLS.Handlers {
-  internal class DafnyHoverHandler : IHoverHandler {
+  public class DafnyHoverHandler : IHoverHandler {
     private readonly ILogger _logger;
     private readonly IDocumentDatabase _documents;
 

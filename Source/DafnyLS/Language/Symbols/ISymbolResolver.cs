@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace DafnyLS.Language.Symbols {
-  internal interface ISymbolResolver {
+  public interface ISymbolResolver {
     /// <summary>
     /// Resolves the symbols of the specified dafny syntax tree.
     /// </summary>

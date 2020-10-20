@@ -10,7 +10,7 @@ namespace DafnyLS.Language {
   /// <remarks>
   /// Any implementation has to guarantee thread-safety of its public members.
   /// </remarks>
-  internal interface IDafnyParser {
+  public interface IDafnyParser {
     /// <summary>
     /// Parses the specified document to generate a syntax tree.
     /// </summary>

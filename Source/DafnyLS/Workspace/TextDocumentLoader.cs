@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace DafnyLS.Workspace {
-  internal class TextDocumentLoader : ITextDocumentLoader {
+  public class TextDocumentLoader : ITextDocumentLoader {
     private readonly IDafnyParser _parser;
     private readonly ISymbolResolver _symbolResolver;
     private readonly IProgramVerifier _verifier;

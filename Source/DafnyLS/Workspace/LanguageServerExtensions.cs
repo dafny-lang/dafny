@@ -7,7 +7,7 @@ namespace DafnyLS.Workspace {
   /// <summary>
   /// Extension methods to register the dafny workspace services to the language server implementation.
   /// </summary>
-  internal static class LanguageServerExtensions {
+  public static class LanguageServerExtensions {
     /// <summary>
     /// Registers all services necessary to manage the dafny workspace.
     /// </summary>

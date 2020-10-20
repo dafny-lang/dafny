@@ -3,7 +3,7 @@
   /// Visitor to traverse the symbol hierarchy.
   /// </summary>
   /// <typeparam name="TResult">The return value of the visit methods.</typeparam>
-  internal interface ISymbolVisitor<TResult> {
+  public interface ISymbolVisitor<TResult> {
     TResult Visit(ISymbol symbol);
 
     TResult Visit(CompilationUnit compilationUnit);

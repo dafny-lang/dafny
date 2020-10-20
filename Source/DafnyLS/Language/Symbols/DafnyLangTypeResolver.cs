@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using AstElement = System.Object;
 
 namespace DafnyLS.Language.Symbols {
-  internal class DafnyLangTypeResolver {
+  public class DafnyLangTypeResolver {
     private readonly IDictionary<AstElement, ILocalizableSymbol> _declarations;
 
     public DafnyLangTypeResolver(IDictionary<AstElement, ILocalizableSymbol> declarations) {

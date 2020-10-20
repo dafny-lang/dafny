@@ -3,6 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 
 namespace DafnyLS.Language.Symbols {
-  internal interface ITypeSymbol {
+  public interface ITypeSymbol {
   }
 }

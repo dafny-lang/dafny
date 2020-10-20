@@ -4,7 +4,7 @@ namespace DafnyLS.Language.Symbols {
   /// <summary>
   /// Factory definition to generate a symbol table out of a given dafny program and compilation unit.
   /// </summary>
-  internal interface ISymbolTableFactory {
+  public interface ISymbolTableFactory {
     /// <summary>
     /// Initializes a new symbol table with the given compilation unit.
     /// </summary>

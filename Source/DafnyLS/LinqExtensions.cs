@@ -5,7 +5,7 @@ namespace DafnyLS {
   /// <summary>
   /// Extension methods for the use with LINQ expressions.
   /// </summary>
-  internal static class LinqExtensions {
+  public static class LinqExtensions {
     /// <summary>
     /// Checks between each entry of an enumerable if a cancellation was requested before continuing.
     /// </summary>

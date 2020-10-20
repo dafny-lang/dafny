@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
-  internal class ModuleSymbol : Symbol, ILocalizableSymbol {
+  public class ModuleSymbol : Symbol, ILocalizableSymbol {
     public ModuleDefinition Declaration { get; }
     public object Node => Declaration;
 

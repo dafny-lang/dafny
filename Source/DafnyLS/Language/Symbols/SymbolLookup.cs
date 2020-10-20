@@ -9,7 +9,7 @@ namespace DafnyLS.Language.Symbols {
   /// <summary>
   /// This class represents a lookup table to resolve the closest symbol when being queried with a location.
   /// </summary>
-  internal class SymbolLookup {
+  public class SymbolLookup {
     private readonly IIntervalTree<Position, ILocalizableSymbol> _symbols;
 
     private SymbolLookup(IIntervalTree<Position, ILocalizableSymbol> symbols) {

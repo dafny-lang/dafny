@@ -8,7 +8,7 @@ namespace DafnyLS.Workspace {
   /// <summary>
   /// Stores and manages the provided documents.
   /// </summary>
-  internal interface IDocumentDatabase {
+  public interface IDocumentDatabase {
     /// <summary>
     /// Closes the document with the specified ID.
     /// </summary>

@@ -8,7 +8,7 @@ namespace DafnyLS.Workspace {
   /// Implementations are responsible to load a specified language server document and generate
   /// a dafny document out of it.
   /// </summary>
-  internal interface ITextDocumentLoader {
+  public interface ITextDocumentLoader {
     /// <summary>
     /// Loads the specified document item of the language server and applies the necessary steps
     /// to generate a dafny document instance.

@@ -11,7 +11,7 @@ using System.Threading;
 using AstElement = System.Object;
 
 namespace DafnyLS.Language.Symbols {
-  internal class SymbolTableFactory : ISymbolTableFactory {
+  public class SymbolTableFactory : ISymbolTableFactory {
     private readonly ILogger _logger;
 
     public SymbolTableFactory(ILogger<SymbolTableFactory> logger) {

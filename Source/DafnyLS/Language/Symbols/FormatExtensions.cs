@@ -6,7 +6,7 @@ namespace DafnyLS.Language.Symbols {
   /// <summary>
   /// Extension methods to format dafny and boogie symbols.
   /// </summary>
-  internal static class FormatExtensions {
+  public static class FormatExtensions {
     /// <summary>
     /// Converts the given list of formals into a comma seperated string.
     /// </summary>

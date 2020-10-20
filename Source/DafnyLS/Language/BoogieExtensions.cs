@@ -5,7 +5,7 @@ namespace DafnyLS.Language {
   /// <summary>
   /// Extension methods for the use with boogie data.
   /// </summary>
-  internal static class BoogieExtensions {
+  public static class BoogieExtensions {
     /// <summary>
     /// The offset to convert a boogie line-number to an LSP line-number.
     /// </summary>

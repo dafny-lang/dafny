@@ -4,7 +4,7 @@ namespace DafnyLS.Handlers {
   /// <summary>
   /// Extension methods to register the dafny related handlers to interact with the language server.
   /// </summary>
-  internal static class LanguageServerExtensions {
+  public static class LanguageServerExtensions {
     /// <summary>
     /// Registers all handlers necessary to provide the language server integration of dafny.
     /// </summary>

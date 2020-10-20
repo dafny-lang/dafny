@@ -15,7 +15,7 @@ namespace DafnyLS.Language {
   /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
   /// this parser serializes all invocations.
   /// </remarks>
-  internal sealed class DafnyLangParser : IDafnyParser, IDisposable {
+  public sealed class DafnyLangParser : IDafnyParser, IDisposable {
     private static readonly object _initializationSyncObject = new object();
     private static bool _initialized;
 

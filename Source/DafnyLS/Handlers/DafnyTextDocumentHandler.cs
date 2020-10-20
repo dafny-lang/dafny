@@ -15,7 +15,7 @@ namespace DafnyLS.Handlers {
   /// LSP Synchronization handler for document based events, such as change, open, close and save.
   /// The documents are managed using an implementaiton of <see cref="IDocumentDatabase"/>.
   /// </summary>
-  internal class DafnyTextDocumentHandler : ITextDocumentSyncHandler {
+  public class DafnyTextDocumentHandler : ITextDocumentSyncHandler {
     private readonly ILogger _logger;
     private readonly IDocumentDatabase _documents;
     private readonly IDiagnosticPublisher _diagnosticPublisher;

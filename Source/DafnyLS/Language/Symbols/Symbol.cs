@@ -5,7 +5,7 @@ namespace DafnyLS.Language.Symbols {
   /// <summary>
   /// Represents a resolved symbol.
   /// </summary>
-  internal abstract class Symbol : ISymbol {
+  public abstract class Symbol : ISymbol {
     /// <summary>
     /// Gets the identifier of the symbol.
     /// </summary>

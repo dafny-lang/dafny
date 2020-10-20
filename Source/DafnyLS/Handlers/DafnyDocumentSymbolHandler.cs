@@ -12,7 +12,7 @@ namespace DafnyLS.Handlers {
   /// <summary>
   /// LSP Synchronization handler for symbol based events, i.e. the client requests the symbols of the specified document.
   /// </summary>
-  internal class DafnyDocumentSymbolHandler : DocumentSymbolHandler {
+  public class DafnyDocumentSymbolHandler : DocumentSymbolHandler {
     private static readonly SymbolInformationOrDocumentSymbol[] _emptySymbols = new SymbolInformationOrDocumentSymbol[0];
 
     private readonly ILogger _logger;

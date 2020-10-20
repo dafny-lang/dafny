@@ -7,7 +7,7 @@ namespace DafnyLS.Language {
   /// <summary>
   /// Error reporter implementation that logs the errors to the configured dotnet core logging provider.
   /// </summary>
-  internal class LogErrorReporter : ErrorReporter {
+  public class LogErrorReporter : ErrorReporter {
     private readonly ILogger _logger;
 
     public LogErrorReporter(ILogger<LogErrorReporter> logger) {

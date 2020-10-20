@@ -6,7 +6,7 @@ namespace DafnyLS.Language.Symbols {
   /// <summary>
   /// Visitor responsible to generate the LSP symbol representation.
   /// </summary>
-  internal class LspSymbolGeneratingVisitor : ISymbolVisitor<DocumentSymbol> {
+  public class LspSymbolGeneratingVisitor : ISymbolVisitor<DocumentSymbol> {
     private readonly CancellationToken _cancellationToken;
 
     public LspSymbolGeneratingVisitor(CancellationToken cancellationToken) {

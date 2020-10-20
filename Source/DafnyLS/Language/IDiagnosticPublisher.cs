@@ -5,7 +5,7 @@ namespace DafnyLS.Language {
   /// Implementations of this interface are responsible to publish the diagnostics
   /// of a <see cref="DafnyDocument"/> to the LSP client.
   /// </summary>
-  internal interface IDiagnosticPublisher {
+  public interface IDiagnosticPublisher {
     /// <summary>
     /// Publishes the diagnostics of the specified dafny document to the connected LSP client.
     /// </summary>

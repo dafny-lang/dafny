@@ -7,7 +7,7 @@ namespace DafnyLS.Language {
   /// <summary>
   /// Extension methods to register the dafny language services to the language server implementation.
   /// </summary>
-  internal static class LanguageServerExtensions {
+  public static class LanguageServerExtensions {
     /// <summary>
     /// Registers all services necessary to manage the dafny language.
     /// </summary>

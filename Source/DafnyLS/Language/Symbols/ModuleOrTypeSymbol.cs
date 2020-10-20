@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 namespace DafnyLS.Language.Symbols {
-  internal class ModuleOrTypeSymbol : ISymbol {
+  public class ModuleOrTypeSymbol : ISymbol {
     public string Identifier => throw new System.NotImplementedException();
 
     public IEnumerable<ISymbol> Children => throw new System.NotImplementedException();

@@ -4,7 +4,7 @@ namespace DafnyLS.Language.Symbols {
   /// <summary>
   /// Extension methods when working with the symbols of the language server.
   /// </summary>
-  internal static class SymbolExtensions {
+  public static class SymbolExtensions {
     /// <summary>
     /// Recursively resolves (in pre-order) all the descendants of the given symbol including itself.
     /// </summary>
