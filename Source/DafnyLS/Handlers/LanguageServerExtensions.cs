@@ -14,7 +14,8 @@ namespace DafnyLS.Handlers {
       return options
         .WithHandler<DafnyTextDocumentHandler>()
         .WithHandler<DafnyDocumentSymbolHandler>()
-        .WithHandler<DafnyHoverHandler>();
+        .WithHandler<DafnyHoverHandler>()
+        .WithHandler<DafnyDefinitionHandler>();
     }
   }
 }
