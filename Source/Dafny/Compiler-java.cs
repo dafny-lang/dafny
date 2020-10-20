@@ -2462,19 +2462,19 @@ namespace Microsoft.Dafny{
           }
         }
 
-        return AddTypeDescriptorArgs(s, udt.ResolvedClass.TypeArgs, udt.TypeArgs, relevantTypeArgs, wr, udt.tok);
+        return AddTypeDescriptorArgs(s, udt.TypeArgs, relevantTypeArgs, wr, udt.tok);
       } else if (type is SetType setType) {
         var tp = new TypeParameter(tok, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive);
-        return AddTypeDescriptorArgs(DafnySetClass, new List<TypeParameter>() { tp }, setType.TypeArgs, setType.TypeArgs, wr, tok);
+        return AddTypeDescriptorArgs(DafnySetClass, setType.TypeArgs, setType.TypeArgs, wr, tok);
       } else if (type is SeqType seqType) {
         var tp = new TypeParameter(tok, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive);
-        return AddTypeDescriptorArgs(DafnySeqClass, new List<TypeParameter>() { tp }, seqType.TypeArgs, seqType.TypeArgs, wr, tok);
+        return AddTypeDescriptorArgs(DafnySeqClass, seqType.TypeArgs, seqType.TypeArgs, wr, tok);
       } else if (type is MultiSetType multiSetType) {
         var tp = new TypeParameter(tok, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive);
-        return AddTypeDescriptorArgs(DafnyMultiSetClass, new List<TypeParameter>() { tp }, multiSetType.TypeArgs, multiSetType.TypeArgs, wr, tok);
+        return AddTypeDescriptorArgs(DafnyMultiSetClass, multiSetType.TypeArgs, multiSetType.TypeArgs, wr, tok);
       } else if (type is MapType mapType) {
         var tp = new TypeParameter(tok, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive);
-        return AddTypeDescriptorArgs(DafnyMapClass, new List<TypeParameter>() { tp, tp }, mapType.TypeArgs, mapType.TypeArgs, wr, tok);
+        return AddTypeDescriptorArgs(DafnyMapClass, mapType.TypeArgs, mapType.TypeArgs, wr, tok);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
@@ -2490,14 +2490,12 @@ namespace Microsoft.Dafny{
       }
     }
 
-    private string AddTypeDescriptorArgs(string fullCompileName, List<TypeParameter> typeFormals, List<Type> typeArgs, List<Type> relevantTypeArgs, TextWriter wr, Bpl.IToken tok) {
+    private string AddTypeDescriptorArgs(string fullCompileName, List<Type> typeArgs, List<Type> relevantTypeArgs, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(fullCompileName != null);
-      Contract.Requires(typeFormals != null);
       Contract.Requires(typeArgs != null);
       Contract.Requires(relevantTypeArgs != null);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
-      Contract.Requires(typeFormals.Count == typeArgs.Count);
 
       string s = $"{IdProtect(fullCompileName)}.";
       if (typeArgs != null && typeArgs.Count != 0) {
