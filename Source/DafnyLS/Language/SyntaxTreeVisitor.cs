@@ -84,18 +84,18 @@ namespace DafnyLS.Language {
       foreach(var ensurement in method.Ens) {
         Visit(ensurement);
       }
-      Visit(method.Body);
+      VisitNullableBlock(method.Body);
     }
 
     public virtual void Visit(Constructor constructor) {
       foreach(var outDefinition in constructor.Outs) {
         Visit(outDefinition);
       }
-      Visit(constructor.Body);
+      VisitNullableBlock(constructor.Body);
     }
 
     public virtual void Visit(Function function) {
-      Visit(function.Body);
+      VisitNullableExpression(function.Body);
     }
 
     public virtual void Visit(NonglobalVariable nonGlobalVariable) {
@@ -143,11 +143,16 @@ namespace DafnyLS.Language {
       VisitNullableAttributes(typeRhs.Attributes);
     }
 
-
     public virtual void Visit(BlockStmt blockStatement) {
       VisitNullableAttributes(blockStatement.Attributes);
       foreach(var statement in blockStatement.Body) {
         Visit(statement);
+      }
+    }
+
+    private void VisitNullableBlock(BlockStmt? blockStatement) {
+      if(blockStatement != null) {
+        Visit(blockStatement);
       }
     }
 
@@ -158,13 +163,13 @@ namespace DafnyLS.Language {
         Visit(invariant);
       }
       // TODO Visit Decreases, Mod?
-      Visit(whileStatement.Body);
+      VisitNullableBlock(whileStatement.Body);
     }
 
     public virtual void Visit(IfStmt ifStatement) {
       Visit(ifStatement.Guard);
       VisitNullableAttributes(ifStatement.Attributes);
-      Visit(ifStatement.Thn);
+      VisitNullableBlock(ifStatement.Thn);
       Visit(ifStatement.Els);
     }
 

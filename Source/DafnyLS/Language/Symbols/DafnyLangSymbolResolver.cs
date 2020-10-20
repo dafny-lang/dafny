@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -154,7 +155,11 @@ namespace DafnyLS.Language.Symbols {
         return methodSymbol;
       }
 
-      private IEnumerable<VariableSymbol> GetLocalVariables(Symbol symbol, BlockStmt blockStatement) {
+      private IEnumerable<VariableSymbol> GetLocalVariables(Symbol symbol, BlockStmt? blockStatement) {
+        if(blockStatement == null) {
+          // TODO capture all syntax node null possibilities in the visitor?
+          return Enumerable.Empty<VariableSymbol>();
+        }
         var localVisitor = new LocalVariableDeclarationVisitor(_logger, symbol);
         localVisitor.Visit(blockStatement);
         return localVisitor.Locals;
