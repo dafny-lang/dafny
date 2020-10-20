@@ -2351,8 +2351,14 @@ VarDeclStatement<.out Statement/*!*/ s.>
     SYNC ";"                         (. endTok = t; .)
     (. ConcreteUpdateStatement update;
        var lhsExprs = new List<Expression>();
-       foreach (var lhs in lhss) {
-         lhsExprs.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
+       if (isGhost || (rhss.Count == 0 && exceptionExpr == null && suchThat == null)) { // explicitly ghost or no init
+         foreach (var lhs in lhss) {
+           lhsExprs.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
+         }
+       } else { // not explicitly ghost, but with init - so auto-ghost
+         foreach (var lhs in lhss) {
+           lhsExprs.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name));
+         }
        }
        if (suchThat != null) {
          update = new AssignSuchThatStmt(assignTok, endTok, lhsExprs, suchThat, suchThatAssume, attrs);
@@ -2361,11 +2367,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
        } else if (rhss.Count == 0) {
          update = null;
        } else {
-         var ies = new List<Expression>();
-         foreach (var lhs in lhss) {
-           ies.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name));
-         }
-         update = new UpdateStmt(assignTok, endTok, ies, rhss);
+         update = new UpdateStmt(assignTok, endTok, lhsExprs, rhss);
        }
        s = new VarDeclStmt(x, endTok, lhss, update);
     .)
