@@ -12,7 +12,7 @@ namespace DafnyLS.Language.Symbols {
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
-      return $"{Declaration.Name} : {Declaration.Type}";
+      return Declaration.AsText();
     }
 
     public Range GetHoverRange() {

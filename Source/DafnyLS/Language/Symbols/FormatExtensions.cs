@@ -8,13 +8,13 @@ namespace DafnyLS.Language.Symbols {
   /// </summary>
   public static class FormatExtensions {
     /// <summary>
-    /// Converts the given list of formals into a comma seperated string.
+    /// Converts the given enumerable of variables into a comma seperated string.
     /// </summary>
-    /// <param name="formals">The formals to get the string representation of.</param>
-    /// <returns>The string representation of the formals seperated by commas.</returns>
-    public static string AsCommaSeperatedText(this IReadOnlyList<Formal> formals) {
+    /// <param name="variables">The variables to get the string representation of.</param>
+    /// <returns>The string representation of the variables seperated by commas.</returns>
+    public static string AsCommaSeperatedText<TVariable>(this IEnumerable<TVariable> variables) where TVariable : IVariable {
       var combined = new StringBuilder();
-      foreach(var formal in formals) {
+      foreach(var formal in variables) {
         if(combined.Length > 0) {
           combined.Append(", ");
         }
@@ -24,14 +24,13 @@ namespace DafnyLS.Language.Symbols {
     }
 
     /// <summary>
-    /// Returns a text representation of the given formal.
+    /// Returns a text representation of the given variable.
     /// </summary>
-    /// <param name="formal">The formal to get a text representation of.</param>
-    /// <returns>The text representation of the formal.</returns>
-    public static string AsText(this Formal formal) {
-      return $"{formal.Name}:{formal.Type}";
+    /// <param name="variable">The variable to get a text representation of.</param>
+    /// <returns>The text representation of the variable.</returns>
+    public static string AsText(this IVariable variable) {
+      return $"{variable.Name} : {variable.Type}";
     }
-
 
     /// <summary>
     /// Returns a text representation of the given formal.
