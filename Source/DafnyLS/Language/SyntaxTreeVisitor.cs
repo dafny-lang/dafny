@@ -268,9 +268,6 @@ namespace DafnyLS.Language {
       //case MultiSetFormingExpr multiSetFormingExpression:
       //  Visit(multiSetFormingExpression);
       //  break;
-      //case OldExpr oldExpression:
-      //  Visit(oldExpression);
-      //  break;
       //case UnchangedExpr unchangedExpr:
       //  Visit(unchangedExpr);
       //  break;
@@ -297,9 +294,6 @@ namespace DafnyLS.Language {
       //  break;
       //case StmtExpr statementExpression:
       //  Visit(statementExpression);
-      //  break;
-      //case ITEExpr iteExpression:
-      //  Visit(iteExpression);
       //  break;
       //case MatchExpr matchExpression:
       //  Visit(matchExpression);
