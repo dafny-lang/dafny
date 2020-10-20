@@ -91,25 +91,28 @@ namespace DafnyLS.Workspace {
 
     private static int GetAbsolutePosition(string text, Position position, CancellationToken cancellationToken) {
       int line = 0;
-      int character = -1;
-      for(int i = 0; i < text.Length; i++) {
+      int character = 0;
+      int absolutePosition = 0;
+      do {
         cancellationToken.ThrowIfCancellationRequested();
-        character++;
-        if(IsEndOfLine(text, i)) {
-          line++;
-          character = -1;
-        }
         if(line == position.Line && character == position.Character) {
-          return i;
+          return absolutePosition;
         }
-        if(line > position.Line) {
-          break;
+        if(IsEndOfLine(text, absolutePosition)) {
+          line++;
+          character = 0;
+        } else {
+          character++;
         }
-      }
+        absolutePosition++;
+      } while(line <= position.Line && absolutePosition <= text.Length);
       throw new ArgumentException("could not resolve the absolute position");
     }
 
     private static bool IsEndOfLine(string text, int absolutePosition) {
+      if(absolutePosition >= text.Length) {
+        return false;
+      }
       return text[absolutePosition] switch {
         '\n' => true,
         '\r' => absolutePosition + 1 == text.Length || text[absolutePosition + 1] != '\n',
