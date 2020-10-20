@@ -170,7 +170,7 @@ namespace DafnyLS.Language {
       Visit(ifStatement.Guard);
       VisitNullableAttributes(ifStatement.Attributes);
       VisitNullableBlock(ifStatement.Thn);
-      Visit(ifStatement.Els);
+      VisitNullableStatement(ifStatement.Els);
     }
 
     public virtual void Visit(VarDeclStmt variableDeclarationStatement) {
@@ -218,6 +218,12 @@ namespace DafnyLS.Language {
       default:
         VisitUnknown(statement, statement.Tok);
         break;
+      }
+    }
+
+    private void VisitNullableStatement(Statement? statement) {
+      if(statement != null) {
+        Visit(statement);
       }
     }
 
