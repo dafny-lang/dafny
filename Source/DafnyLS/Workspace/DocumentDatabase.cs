@@ -65,7 +65,6 @@ namespace DafnyLS.Workspace {
         LanguageId = oldDocument.Text.LanguageId,
         Uri = oldDocument.Uri,
         Version = documentChange.TextDocument.Version,
-        // TODO The full document is synchronized at this time. So there should be exactly one change.
         Text = ApplyChanges(oldDocument.Text.Text, documentChange.ContentChanges, cancellationToken)
       };
       return _documentLoader.LoadAsync(mergedItem, cancellationToken);
