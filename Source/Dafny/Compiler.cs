@@ -2313,13 +2313,7 @@ namespace Microsoft.Dafny {
     protected string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(cce.NonNullElements(types));
       Contract.Ensures(Contract.Result<string>() != null);
-      string res = "";
-      string c = "";
-      foreach (var t in types) {
-        res += c + TypeName(t, wr, tok);
-        c = ",";
-      }
-      return res;
+      return Util.Comma(types, ty => TypeName(ty, wr, tok));
     }
 
     // TODO: move this method into CsharpCompiler
