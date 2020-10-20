@@ -1733,7 +1733,9 @@ namespace Microsoft.Dafny{
           w.WriteLine("return theDefault;");
         }
       } else {
-        var w = wr.NewBigBlock($"public static <{typeArgsStr}> {dt}<{typeArgsStr}> Default({Util.Comma(usedTypeArgs, tp => $"{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}")})", "");
+        wr.Write($"public static <{typeArgsStr}> {dt}<{typeArgsStr}> Default(");
+        wr.Write(Util.Comma(usedTypeArgs, tp => $"{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}"));
+        var w = wr.NewBigBlock(")", "");
         w.Write("return ");
         wDefault = w.Fork();
         w.WriteLine(";");
