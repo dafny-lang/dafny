@@ -12077,13 +12077,13 @@ namespace Microsoft.Dafny
       // However the error messages here are much clearer.
       var m = ResolveMember(tok, tp, "IsFailure", out _);
       if (m != null && m.IsGhost) {
-        origReporter.Error(MessageSource.Resolver, m.tok,
-          "The IsFailure member may not be ghost");
+        origReporter.Error(MessageSource.Resolver, tok,
+          $"The IsFailure member may not be ghost (type {tp} used in :- statement)");
       }
       m = ResolveMember(tok, tp, "PropagateFailure", out _);
       if (m != null && m.IsGhost) {
-        origReporter.Error(MessageSource.Resolver, m.tok,
-          "The PropagateFailure member may not be ghost");
+        origReporter.Error(MessageSource.Resolver, tok,
+          $"The PropagateFailure member may not be ghost (type {tp} used in :- statement)");
       }
 
       this.reporter = origReporter;
