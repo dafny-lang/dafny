@@ -6,6 +6,7 @@
 // ---------------------------------
 
 newtype int8 = x | -128 <= x < 128
+newtype exactly5 = x | x == 5 witness 5
 newtype smallneg = r | -1.0 <= r <= 0.0
 
 method GoodNewtypeLiterals() returns (b: int8, r: smallneg) {
@@ -31,13 +32,15 @@ method GoodNewtypeLiterals() returns (b: int8, r: smallneg) {
   }
 }
 
-method BadNewtypeLiterals() returns (b: int8, r: smallneg) {
+method BadNewtypeLiterals() returns (b: int8, r: smallneg, five: exactly5) {
   if
   case true =>
     b := -(128 as int8);  // error: 128 is not a int8
   case true =>
     b := -128;
     assert 64 + 64 + b == 0;  // error: the subexpression "64 + 64" gives a value that's too large
+  case true =>
+    five := --5;  // error: -5 is not an "exactly5" (note, "--5" should NOT be preprocessed to be turned into "5")
   case true =>
     r := -(1.0);  // error: 1.0 is not a value of type smallneg
 }
