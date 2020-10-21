@@ -13065,22 +13065,18 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < lhss.Count; i++) {
         var lhs = lhss[i];
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
-        if (rhsOriginal[i] is HavocRhs) {
-          continue;
-        }
         if (originalInitialLhs != null) {
-          // TODO - fix RHS values
+          // TODO - check RHS values?
           AssertDistinctness(lhs, originalInitialLhs, builder, etran);
         }
-
         for (int j = 0; j < i; j++) {
-          if (rhsOriginal[j] is HavocRhs) {
-            continue;
+          if (rhsOriginal[i] is HavocRhs || rhsOriginal[j] is HavocRhs) {
+            AssertDistinctness(lhs, lhss[j], builder, etran);
+          } else {
+            AssertDistinctness(lhs, lhss[j], rhs[i], rhs[j], builder, etran);
           }
-          AssertDistinctness(lhs, lhss[j], rhs[i], rhs[j], builder, etran);
         }
       }
-    }
     }
 
     /// <summary>
@@ -13146,10 +13142,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AssertDistinctness(Expression lhsa, Expression lhsb, Expression rhsa, Expression rhsb, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    void AssertDistinctness(Expression lhsa, Expression lhsb, Bpl.Expr rhsa, Bpl.Expr rhsb, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Bpl.Expr e = CheckDistinctness(lhsa, lhsb, etran);
       if (e != null) {
-        e = Bpl.Expr.Or(e, Bpl.Expr.Eq(etran.TrExpr(rhsa), etran.TrExpr(rhsb)));
+        e = Bpl.Expr.Or(e, Bpl.Expr.Eq(rhsa,rhsb));
         builder.Add(Assert(lhsa.tok, e,
           ($"when left-hand sides {Printer.ExprToString(lhsa)} and {Printer.ExprToString(lhsb)} refer to the same location, they must be assigned the same value")));
       }
