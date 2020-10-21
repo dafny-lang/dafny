@@ -67,6 +67,7 @@ namespace DafnyLS.Workspace {
         Version = documentChange.TextDocument.Version,
         Text = ApplyChanges(oldDocument.Text.Text, documentChange.ContentChanges, cancellationToken)
       };
+      // TODO check if dafny could resolve the semantic model. If that's not the case, adapt the current symbol table according to the changes.
       return _documentLoader.LoadAsync(mergedItem, cancellationToken);
     }
 
