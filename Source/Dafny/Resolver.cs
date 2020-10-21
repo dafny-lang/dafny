@@ -11960,22 +11960,22 @@ namespace Microsoft.Dafny
         }
 
         lhsExtract = s.Lhss[0];
-        if (lhsExtract is ExprDotName lex) {
-          Expression id = makeTemp("recv", s, codeContext, lex.Lhs);
-          lhsExtract = new ExprDotName(lex.tok, id, lex.SuffixName, lex.OptTypeArguments);
-        } else if (lhsExtract is SeqSelectExpr lseq) {
+        var lhsResolved = s.Lhss[0].Resolved;
+        // Make a new unresolved expression
+        if (lhsResolved is MemberSelectExpr lexr) {
+          Expression id = makeTemp("recv", s, codeContext, lexr.Obj);
+          var lex = lhsExtract as ExprDotName; // might be just a NameSegment
+          lhsExtract = new ExprDotName(lexr.tok, id, lexr.MemberName, lex == null ? null : lex.OptTypeArguments);
+        } else if (lhsResolved is SeqSelectExpr lseq) {
           Expression id = makeTemp("recv", s, codeContext, lseq.Seq);
           Expression id0 = null;
-          Expression id1 = null;
           if (lseq.E0 != null) {
             id0 = makeTemp("idx", s, codeContext, lseq.E0);
           }
-          if (lseq.E1 != null) {
-            id1 = makeTemp("idx", s, codeContext, lseq.E1);
-          }
-          lhsExtract = new SeqSelectExpr(lseq.tok, lseq.SelectOne, id, id0, id1);
-
-        } else if (lhsExtract is MultiSelectExpr lmulti) {
+          Contract.Assert(lseq.E1 == null);
+          lhsExtract = new SeqSelectExpr(lseq.tok, lseq.SelectOne, id, id0, null);
+          lhsExtract.Type = lseq.Type;
+        } else if (lhsResolved is MultiSelectExpr lmulti) {
           Expression id = makeTemp("recv", s, codeContext, lmulti.Array);
           var idxs = new List<Expression>();
           foreach (var i in lmulti.Indices) {
@@ -11983,6 +11983,11 @@ namespace Microsoft.Dafny
             idxs.Add(idx);
           }
           lhsExtract = new MultiSelectExpr(lmulti.tok, id, idxs);
+          lhsExtract.Type = lmulti.Type;
+        } else if (lhsResolved is IdentifierExpr) {
+          // do nothing
+        } else {
+          Contract.Assert(false, "Internal error: unexpected option in ResolveAssignOrReturnStmt");
         }
       }
       var temp = FreshTempVarName("valueOrError", codeContext);

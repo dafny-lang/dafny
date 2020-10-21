@@ -66,3 +66,16 @@ method mmm() returns (rr: Result<int>) {
   assert d[0,0] == 42 && dd[0,0] == 100;
   expect d[0,0] == 42 && dd[0,0] == 100;
 }
+
+class C {
+  var x: int;
+
+  method m() returns (rr: Result<int>)
+    modifies this;
+  {
+    var y: int;
+    var r := Success(100);
+    x, y :- r, 100;
+    rr := r;
+  }
+}
