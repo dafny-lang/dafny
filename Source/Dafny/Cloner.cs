@@ -684,7 +684,7 @@ namespace Microsoft.Dafny
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
       if(pat is LitPattern) {
         var p = (LitPattern)pat;
-        return new LitPattern(p.Tok, (LiteralExpr)CloneExpr(p.Lit));
+        return new LitPattern(p.Tok, CloneExpr(p.OrigLit));
       } else if (pat is IdPattern) {
         var p = (IdPattern)pat;
         return new IdPattern(p.Tok, p.Id, p.Arguments.ConvertAll(CloneExtendedPattern));
