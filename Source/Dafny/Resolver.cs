@@ -3183,10 +3183,13 @@ namespace Microsoft.Dafny
     }
 
     private BigInteger MaxBV(Type t) {
+      Contract.Requires(t != null);
+      Contract.Requires(t.IsBitVectorType);
       return MaxBV(t.AsBitVectorType.Width);
     }
 
     private BigInteger MaxBV(int bits) {
+      Contract.Requires(0 <= bits);
       return BigInteger.Pow(new BigInteger(2), bits) - BigInteger.One;
     }
 
@@ -3278,19 +3281,6 @@ namespace Microsoft.Dafny
       GetAnyConst = (Expression e, Stack<ConstantField> consts) => {
         if (e is LiteralExpr l) {
           return l.Value;
-        } else if (e is NegationExpression ne) {
-          object e0 = GetAnyConst(ne.E, consts);
-          if (e0 != null) {
-            if (ne.Type.IsIntegerType) {
-              return -(BigInteger)e0;
-            }
-            if (ne.Type.IsBitVectorType) {
-              return MaxBV(ne.Type) - (BigInteger)e0 + BigInteger.One;
-            }
-            if (ne.Type.IsRealType) {
-              return ((Basetypes.BigDec)e0).Negate;
-            }
-          }
         } else if (e is UnaryOpExpr un) {
           if (un.Op == UnaryOpExpr.Opcode.Not) {
             object e0 = GetAnyConst(un.E, consts);
@@ -6111,12 +6101,18 @@ namespace Microsoft.Dafny
       protected override void VisitOneExpr(Expression expr) {
         if (expr is LiteralExpr) {
           var e = (LiteralExpr)expr;
-          var t = e.Type as BitvectorType;
-          if (t != null) {
+          if (e.Type.IsBitVectorType || e.Type.IsBigOrdinalType) {
             var n = (BigInteger)e.Value;
-            // check that the given literal fits into the bitvector width
-            if (BigInteger.Pow(2, t.Width) <= n) {
-              resolver.reporter.Error(MessageSource.Resolver, e.tok, "bitvector literal ({0}) is too large for the type {1}", e.Value, t);
+            var absN = n < 0 ? -n : n;
+            // For bitvectors, check that the magnitude fits the width
+            if (e.Type.IsBitVectorType && resolver.MaxBV(e.Type.AsBitVectorType.Width) < absN) {
+              resolver.reporter.Error(MessageSource.Resolver, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
+            }
+            // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
+            // This can happen only in `match` patterns (see comment by LitPattern.OptimisticallyDesugaredLit).
+            if (n < 0 || e.tok.val == "-0") {
+              Contract.Assert(e.tok.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
+              resolver.reporter.Error(MessageSource.Resolver, e.tok, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.Type);
             }
           }
 
@@ -6320,18 +6316,33 @@ namespace Microsoft.Dafny
             }
           } else if (expr is NegationExpression) {
             var e = (NegationExpression)expr;
-            Expression zero;
-            if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-              zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
-            } else {
-              Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType);
-              zero = new LiteralExpr(e.tok, 0);
+            Expression resolved = null;
+            if (e.E is LiteralExpr lit) { // note, not e.E.Resolved, since we don't want to do this for double negations
+              // For real-based types, integer-based types, and bi (but not bitvectors), "-" followed by a literal is just a literal expression with a negative value
+              if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+                var d = (Basetypes.BigDec)lit.Value;
+                Contract.Assert(!d.IsNegative);
+                resolved = new LiteralExpr(e.tok, -d);
+              } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+                var n = (BigInteger)lit.Value;
+                Contract.Assert(0 <= n);
+                resolved = new LiteralExpr(e.tok, -n);
+              }
             }
-            zero.Type = expr.Type;
-            var subtract = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E);
-            subtract.Type = expr.Type;
-            subtract.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
-            e.ResolvedExpression = subtract;
+            if (resolved == null) {
+              // Treat all other expressions "-e" as "0 - e"
+              Expression zero;
+              if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+                zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
+              } else {
+                Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType);
+                zero = new LiteralExpr(e.tok, 0);
+              }
+              zero.Type = expr.Type;
+              resolved = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E) {ResolvedOp = BinaryExpr.ResolvedOpcode.Sub};
+            }
+            resolved.Type = expr.Type;
+            e.ResolvedExpression = resolved;
           }
         }
       }
@@ -11114,8 +11125,8 @@ namespace Microsoft.Dafny
       foreach (var PB in pairPB) {
         var pat = PB.Item1;
         if (pat is LitPattern lpat) {
-          if (!alternatives.Exists(x => x.Value.Equals(lpat.Lit.Value))) {
-            alternatives.Add(lpat.Lit);
+          if (!alternatives.Exists(x => object.Equals(x.Value, lpat.OptimisticallyDesugaredLit.Value))) {
+            alternatives.Add(lpat.OptimisticallyDesugaredLit);
           }
         }
       }
@@ -11124,12 +11135,11 @@ namespace Microsoft.Dafny
       // For each possible alternatives, filter potential cases and recur
       foreach (var currLit in alternatives) {
         List<RBranch> currBranches = new List<RBranch>();
-        for (int i = 0; i < pairPB.Count; i++) {
-          var PB = pairPB.ElementAt(i);
+        foreach (var PB in pairPB) {
           switch (PB.Item1) {
             case LitPattern currPattern:
               // if pattern matches the current alternative, add it to the branch for this case, otherwise ignore it
-              if (currPattern.Lit.Value.Equals(currLit.Value)) {
+              if (object.Equals(currPattern.OptimisticallyDesugaredLit.Value, currLit.Value)) {
                 mti.UpdateBranchID(PB.Item2.BranchID, 1);
                 currBranches.Add(CloneRBranch(PB.Item2));
               }
@@ -13487,7 +13497,6 @@ namespace Microsoft.Dafny
 
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
-        var errorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(e.E, opts);
         e.Type = e.E.Type;
         AddXConstraint(e.E.tok, "NumericOrBitvector", e.E.Type, "type of unary - must be of a numeric or bitvector type (instead got {0})");
