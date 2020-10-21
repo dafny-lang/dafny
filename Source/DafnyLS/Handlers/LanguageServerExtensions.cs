@@ -15,7 +15,8 @@ namespace DafnyLS.Handlers {
         .WithHandler<DafnyTextDocumentHandler>()
         .WithHandler<DafnyDocumentSymbolHandler>()
         .WithHandler<DafnyHoverHandler>()
-        .WithHandler<DafnyDefinitionHandler>();
+        .WithHandler<DafnyDefinitionHandler>()
+        .WithHandler<DafnyCompletionHandler>();
     }
   }
 }
