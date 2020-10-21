@@ -81,8 +81,8 @@ namespace DafnyLS.Handlers {
       }
 
       private static Position GetPositionOfSymbolBefore(Position position) {
-        // The sent location is of the . character. We want the symbol right before it.
-        return new Position(position.Line, position.Character - 1);
+        // The sent location is right after the . character. We want the symbol right before it.
+        return new Position(position.Line, position.Character - 2);
       }
 
       private CompletionList CreateCompletionListFromSymbols(IEnumerable<ISymbol> symbols) {
