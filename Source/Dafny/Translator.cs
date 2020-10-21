@@ -13068,62 +13068,19 @@ namespace Microsoft.Dafny {
         if (rhsOriginal[i] is HavocRhs) {
           continue;
         }
-        IToken tok = lhs.tok;
+        if (originalInitialLhs != null) {
+          // TODO - fix RHS values
+          AssertDistinctness(lhs, originalInitialLhs, builder, etran);
+        }
 
-        if (lhs is IdentifierExpr) {
-          if (originalInitialLhs != null) {
-            var prev = originalInitialLhs as IdentifierExpr;
-            if (prev != null && names[i] == prev.Name) {
-              builder.Add(Assert(tok, Bpl.Expr.False, string.Format("when two left-hand sides refer to the same location, they must be assigned the same value")));
-            }
+        for (int j = 0; j < i; j++) {
+          if (rhsOriginal[j] is HavocRhs) {
+            continue;
           }
-          for (int j = 0; j < i; j++) {
-            if (rhsOriginal[j] is HavocRhs) { continue; }
-            var prev = lhss[j] as IdentifierExpr;
-            if (prev != null && names[i] == names[j]) {
-              builder.Add(Assert(tok, Bpl.Expr.Imp(Bpl.Expr.True, Bpl.Expr.Eq(rhs[i], rhs[j])), string.Format("when left-hand sides {0} and {1} refer to the same location, they must be assigned the same value", j, i)));
-            }
-          }
-        } else if (lhs is MemberSelectExpr) {
-          var fse = (MemberSelectExpr)lhs;
-          // check that this LHS is not the same as any previous LHSs
-          for (int j = 0; j < i; j++) {
-            if (rhsOriginal[j] is HavocRhs) { continue; }
-            var prev = lhss[j] as MemberSelectExpr;
-            var field = fse.Member as Field;
-            Contract.Assert(field != null);
-            var prevField = prev == null ? null : prev.Member as Field;
-            if (prev != null && prevField == field) {
-              builder.Add(Assert(tok, Bpl.Expr.Imp(Bpl.Expr.Eq(objs[j], objs[i]), Bpl.Expr.Eq(rhs[i], rhs[j])), string.Format("when left-hand sides {0} and {1} refer to the same location, they must be assigned the same value", j, i)));
-            }
-          }
-        } else if (lhs is SeqSelectExpr) {
-          SeqSelectExpr sel = (SeqSelectExpr)lhs;
-          // check that this LHS is not the same as any previous LHSs
-          for (int j = 0; j < i; j++) {
-            if (rhsOriginal[j] is HavocRhs) { continue; }
-            var prev = lhss[j] as SeqSelectExpr;
-            if (prev != null) {
-              builder.Add(Assert(tok,
-                Bpl.Expr.Imp(Bpl.Expr.And(Bpl.Expr.Eq(objs[j], objs[i]), Bpl.Expr.Eq(fields[j], fields[i])), Bpl.Expr.Eq(rhs[i], rhs[j])),
-                string.Format("when left-hand sides {0} and {1} may refer to the same location, they must be assigned the same value", j, i)));
-            }
-          }
-        } else {
-          MultiSelectExpr mse = (MultiSelectExpr)lhs;
-          // check that this LHS is not the same as any previous LHSs
-          for (int j = 0; j < i; j++) {
-            if (rhsOriginal[j] is HavocRhs) { continue; }
-            var prev = lhss[j] as MultiSelectExpr;
-            if (prev != null) {
-              builder.Add(Assert(tok,
-                Bpl.Expr.Imp(Bpl.Expr.And(Bpl.Expr.Eq(objs[j], objs[i]), Bpl.Expr.Eq(fields[j], fields[i])), Bpl.Expr.Eq(rhs[i], rhs[j])),
-                string.Format("when left-hand sides {0} and {1} refer to the same location, they must be assigned the same value", j, i)));
-            }
-          }
-
+          AssertDistinctness(lhs, lhss[j], rhs[i], rhs[j], builder, etran);
         }
       }
+    }
     }
 
     /// <summary>
@@ -13131,6 +13088,72 @@ namespace Microsoft.Dafny {
     /// is still done.
     /// </summary>
     delegate void AssignToLhs(Bpl.Expr/*?*/ rhs, bool origRhsIsHavoc, BoogieStmtListBuilder builder, ExpressionTranslator etran);
+
+    // Returns an expression, which, if false, means that the two LHS expressions are
+    // not distinct; if null then the LHSs are trivially distinct
+    Bpl.Expr CheckDistinctness(Expression lhsa, Expression lhsb, ExpressionTranslator etran) {
+      {
+        if (lhsa is IdentifierExpr iea && lhsb is IdentifierExpr ieb) {
+          if (iea.Name != ieb.Name) return null;
+          return Bpl.Expr.False;
+        }
+      }
+      {
+        if (lhsa is MemberSelectExpr iea && lhsb is MemberSelectExpr ieb) {
+          if (iea.Member is Field fa && ieb.Member is Field fb) {
+            if (fa != fb) return null;
+            return Bpl.Expr.Neq(etran.TrExpr(iea.Obj), etran.TrExpr(ieb.Obj));
+          }
+        }
+      }
+      {
+        if (lhsa is SeqSelectExpr iea && lhsb is SeqSelectExpr ieb) {
+          Bpl.Expr ex = Bpl.Expr.Neq(etran.TrExpr(iea.Seq), etran.TrExpr(ieb.Seq));
+          if (iea.E1 == null && ieb.E1 == null) {
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Neq(etran.TrExpr(iea.E0), etran.TrExpr(ieb.E0)));
+          } else if (iea.E1 == null && ieb.E1 != null) {
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Le(etran.TrExpr(ieb.E1), etran.TrExpr(iea.E0)));
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Lt(etran.TrExpr(iea.E0), etran.TrExpr(ieb.E0)));
+          } else if (iea.E1 != null && ieb.E1 == null) {
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Le(etran.TrExpr(iea.E1), etran.TrExpr(ieb.E0)));
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Lt(etran.TrExpr(ieb.E0), etran.TrExpr(iea.E0)));
+          } else {
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Le(etran.TrExpr(iea.E1), etran.TrExpr(ieb.E0)));
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Le(etran.TrExpr(ieb.E1), etran.TrExpr(iea.E0)));
+          }
+          return ex;
+        }
+      }
+      {
+        if (lhsa is MultiSelectExpr iea && lhsb is MultiSelectExpr ieb && iea.Indices.Count == ieb.Indices.Count) {
+          Bpl.Expr ex = Bpl.Expr.Neq(etran.TrExpr(iea.Array), etran.TrExpr(ieb.Array));
+          for (int i = 0; i < iea.Indices.Count; i++) {
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Neq(etran.TrExpr(iea.Indices[i]), etran.TrExpr(ieb.Indices[i])));
+          }
+          return ex;
+        }
+      }
+
+      return null;
+    }
+
+    void AssertDistinctness(Expression lhsa, Expression lhsb, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      Bpl.Expr e = CheckDistinctness(lhsa, lhsb, etran);
+      if (e != null) {
+        string may = e == Bpl.Expr.False ? "" : "may ";
+        builder.Add(Assert(lhsa.tok, e,
+          ($"left-hand sides {Printer.ExprToString(lhsa)} and {Printer.ExprToString(lhsb)} {may}refer to the same location")));
+      }
+    }
+
+    void AssertDistinctness(Expression lhsa, Expression lhsb, Expression rhsa, Expression rhsb, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      Bpl.Expr e = CheckDistinctness(lhsa, lhsb, etran);
+      if (e != null) {
+        e = Bpl.Expr.Or(e, Bpl.Expr.Eq(etran.TrExpr(rhsa), etran.TrExpr(rhsb)));
+        builder.Add(Assert(lhsa.tok, e,
+          ($"when left-hand sides {Printer.ExprToString(lhsa)} and {Printer.ExprToString(lhsb)} refer to the same location, they must be assigned the same value")));
+      }
+    }
 
     /// <summary>
     /// Creates a list of protected Boogie LHSs for the given Dafny LHSs.  Along the way,
@@ -13163,29 +13186,27 @@ namespace Microsoft.Dafny {
 
       var lhsNameSet = new Dictionary<string, object>();
 
+      // Note, the resolver does not check for duplicate IdentifierExpr's in LHSs, so do it here.
       foreach (var lhs in lhss) {
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
+        if (checkDistinctness) {
+          if (originalInitialLhs != null) {
+            AssertDistinctness(lhs, originalInitialLhs.Resolved, builder, etran);
+          }
+          for (int j = 0; j < i; j++) {
+            AssertDistinctness(lhs, lhss[j], builder, etran);
+          }
+        }
+        i++;
+      }
+
+      i = 0;
+      foreach (var lhs in lhss) {
         IToken tok = lhs.tok;
         TrStmt_CheckWellformed(lhs, builder, locals, etran, true, true);
 
         if (lhs is IdentifierExpr) {
           var ie = (IdentifierExpr)lhs;
-          // Note, the resolver does not check for duplicate IdentifierExpr's in LHSs, so do it here.
-          if (checkDistinctness) {
-            if (originalInitialLhs != null) {
-              var prev = originalInitialLhs as NameSegment;
-              if (prev != null && ie.Name == prev.Name) {
-                builder.Add(Assert(tok, Bpl.Expr.False,
-                  string.Format("left-hand sides 0 and {0} refer to the same location", i)));
-              }
-            }
-            for (int j = 0; j < i; j++) {
-              var prev = lhss[j] as IdentifierExpr;
-              if (prev != null && ie.Name == prev.Name) {
-                builder.Add(Assert(tok, Bpl.Expr.False, string.Format("left-hand sides {0} and {1} refer to the same location", j, i)));
-              }
-            }
-          }
           prevNames[i] = ie.Name;
           var bLhs = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
           bLhss.Add(rhsCanAffectPreviouslyKnownExpressions ? null : bLhs);
@@ -13212,17 +13233,6 @@ namespace Microsoft.Dafny {
           if (!useSurrogateLocal) {
             // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj]);
             builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, GetField(fse)), "assignment may update an object not in the enclosing context's modifies clause"));
-          }
-
-          if (checkDistinctness) {
-            // check that this LHS is not the same as any previous LHSs
-            for (int j = 0; j < i; j++) {
-              var prev = lhss[j] as MemberSelectExpr;
-              var prevField = prev == null ? null : prev.Member as Field;
-              if (prevField != null && prevField == field) {
-                builder.Add(Assert(tok, Bpl.Expr.Neq(prevObj[j], obj), string.Format("left-hand sides {0} and {1} may refer to the same location", j, i)));
-              }
-            }
           }
 
           if (useSurrogateLocal) {
@@ -13269,17 +13279,6 @@ namespace Microsoft.Dafny {
           // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
           builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing context's modifies clause"));
 
-          if (checkDistinctness) {
-            // check that this LHS is not the same as any previous LHSs
-            for (int j = 0; j < i; j++) {
-              var prev = lhss[j] as SeqSelectExpr;
-              if (prev != null) {
-                builder.Add(Assert(tok,
-                  Bpl.Expr.Or(Bpl.Expr.Neq(prevObj[j], obj), Bpl.Expr.Neq(prevIndex[j], fieldName)),
-                  string.Format("left-hand sides {0} and {1} may refer to the same location", j, i)));
-              }
-            }
-          }
           bLhss.Add(null);
           lhsBuilders.Add(delegate(Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
             if (rhs != null) {
@@ -13303,17 +13302,6 @@ namespace Microsoft.Dafny {
           prevIndex[i] = fieldName;
           builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing context's modifies clause"));
 
-          if (checkDistinctness) {
-            // check that this LHS is not the same as any previous LHSs
-            for (int j = 0; j < i; j++) {
-              var prev = lhss[j] as MultiSelectExpr;
-              if (prev != null) {
-                builder.Add(Assert(tok,
-                  Bpl.Expr.Or(Bpl.Expr.Neq(prevObj[j], obj), Bpl.Expr.Neq(prevIndex[j], fieldName)),
-                  string.Format("left-hand sides {0} and {1} may refer to the same location", j, i)));
-              }
-            }
-          }
           bLhss.Add(null);
           lhsBuilders.Add(delegate(Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
             if (rhs != null) {
