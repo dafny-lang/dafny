@@ -1,8 +1,8 @@
 ﻿using DafnyLS.Language;
+using DafnyLS.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
@@ -85,40 +85,9 @@ namespace DafnyLS.Workspace {
         // The property Range is null if a full document change was sent.
         return change.Text;
       }
-      int absoluteStart = GetAbsolutePosition(originalText, change.Range.Start, cancellationToken);
-      int absoluteEnd = GetAbsolutePosition(originalText, change.Range.End, cancellationToken);
+      int absoluteStart = change.Range.Start.ToAbsolutePosition(originalText, cancellationToken);
+      int absoluteEnd = change.Range.End.ToAbsolutePosition(originalText, cancellationToken);
       return originalText[..absoluteStart] + change.Text + originalText[absoluteEnd..];
-    }
-
-    private static int GetAbsolutePosition(string text, Position position, CancellationToken cancellationToken) {
-      int line = 0;
-      int character = 0;
-      int absolutePosition = 0;
-      do {
-        cancellationToken.ThrowIfCancellationRequested();
-        if(line == position.Line && character == position.Character) {
-          return absolutePosition;
-        }
-        if(IsEndOfLine(text, absolutePosition)) {
-          line++;
-          character = 0;
-        } else {
-          character++;
-        }
-        absolutePosition++;
-      } while(line <= position.Line && absolutePosition <= text.Length);
-      throw new ArgumentException("could not resolve the absolute position");
-    }
-
-    private static bool IsEndOfLine(string text, int absolutePosition) {
-      if(absolutePosition >= text.Length) {
-        return false;
-      }
-      return text[absolutePosition] switch {
-        '\n' => true,
-        '\r' => absolutePosition + 1 == text.Length || text[absolutePosition + 1] != '\n',
-        _ => false
-      };
     }
 
     public bool TryGetDocument(TextDocumentIdentifier documentId, [NotNullWhen(true)] out DafnyDocument? document) {
