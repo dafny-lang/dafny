@@ -74,7 +74,7 @@ namespace DafnyLS.Workspace {
       var mergedText = originalText;
       foreach(var change in changes) {
         cancellationToken.ThrowIfCancellationRequested();
-        mergedText = ApplyChanges(originalText, change, cancellationToken);
+        mergedText = ApplyChanges(mergedText, change, cancellationToken);
       }
       return mergedText;
     }
