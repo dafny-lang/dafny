@@ -22,7 +22,8 @@ namespace DafnyLS.Workspace {
         .AddSingleton<IDocumentDatabase, DocumentDatabase>()
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
         .AddSingleton<ITextDocumentLoader, TextDocumentLoader>()
-        .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>();
+        .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>()
+        .AddSingleton<IDocumentUpdater, DocumentUpdater>();
     }
   }
 }
