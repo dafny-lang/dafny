@@ -7207,6 +7207,7 @@ namespace Microsoft.Dafny {
   {
     public readonly List<AssignmentRhs> Rhss;
     public readonly bool CanMutateKnownState;
+    public Expression OriginalInitialLhs = null;
 
     public readonly List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
     public override IEnumerable<Statement> SubStatements {
@@ -7490,6 +7491,7 @@ namespace Microsoft.Dafny {
     public readonly List<Expression> Lhs;
     public readonly MemberSelectExpr MethodSelect;
     public readonly List<Expression> Args;
+    public Expression OriginalInitialLhs = null;
 
     public Expression Receiver { get { return MethodSelect.Obj; } }
     public Method Method { get { return (Method)MethodSelect.Member; } }
