@@ -25,6 +25,8 @@ namespace DafnyLS.Workspace {
     /// A dafny document representing the loaded text document.
     /// If there was a newer existing text document already loaded, it will be returned instead.
     /// </returns>
+    /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem document, CancellationToken cancellationToken);
 
     /// <summary>
@@ -37,6 +39,8 @@ namespace DafnyLS.Workspace {
     /// If there was a newer existing text document already loaded, it will be returned instead.
     /// In the case that the update was sent for an unloaded document, <c>null</c> will be returned.
     /// </returns>
+    /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     Task<DafnyDocument?> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
 
     /// <summary>
