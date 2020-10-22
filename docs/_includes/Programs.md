@@ -120,7 +120,7 @@ The following table shows modifiers that are available
 for each of the kinds of declaration. In the table
 we use already-ghost to denote that the item is not
 allowed to have the ghost modifier because it is already
-implicitly ghost.
+implicitly ghost or non-ghost.
 
 
  Declaration              | allowed modifiers                     

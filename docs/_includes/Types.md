@@ -1904,7 +1904,7 @@ predicates (see [#sec-inductive-datatypes]). Methods declared with the
 `colemma` keyword are discussed later in the context of co-inductive
 types, in section [#sec-colemmas].
 
-A method without is body is _abstract_. A method is allowed to be
+A method without a body is _abstract_. A method is allowed to be
 abstract under the following circumstances:
 
 * It contains an `{:axiom}` attribute
