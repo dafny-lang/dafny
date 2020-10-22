@@ -1,0 +1,7 @@
+git-issue-452a.dfy(20,8): Error: ghost variables are allowed only in specification contexts
+git-issue-452a.dfy(20,16): Error: ghost variables are allowed only in specification contexts
+git-issue-452a.dfy(20,24): Error: ghost variables are allowed only in specification contexts
+git-issue-452a.dfy(25,8): Error: ghost variables are allowed only in specification contexts
+git-issue-452a.dfy(25,16): Error: ghost variables are allowed only in specification contexts
+git-issue-452a.dfy(25,24): Error: ghost variables are allowed only in specification contexts
+6 resolution/type errors detected in git-issue-452a.dfy

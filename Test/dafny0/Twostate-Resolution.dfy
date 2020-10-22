@@ -227,7 +227,7 @@ module J {
   {
     assert P();
     b := P();  // error: cannot assign a ghost to a non-ghost
-    var p': () -> bool := P;  // error: cannot assign a ghost
+    var p': () -> bool; p' := P;  // error: cannot assign a ghost
   }
 }
 
