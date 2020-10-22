@@ -2000,6 +2000,48 @@ namespace Microsoft.Dafny
       TrExprList(arguments, wr, inLetExprBody);
     }
 
+    protected override TargetWriter EmitDowncast(Type from, Type to, Bpl.IToken tok, TargetWriter wr) {
+      from = from.NormalizeExpand();
+      to = to.NormalizeExpand();
+      Contract.Assert(Type.SameHead(from, to));
+
+      wr.Write("(");
+      var w = wr.Fork();
+      wr.Write(").DowncastClone<");
+      var wTypeArgs = wr.Fork();
+      wr.Write(">(");
+      var wConverters = wr.Fork();
+      wr.Write(")");
+      Contract.Assert(from.TypeArgs.Count == to.TypeArgs.Count);
+      var sep = "";
+      for (var i = 0; i < to.TypeArgs.Count; i++) {
+        var ta = to.TypeArgs[i];
+        var fa = from.TypeArgs[i];
+        wTypeArgs.Write("{0}{1}", sep, TypeName(ta, wTypeArgs, tok));
+        wConverters.Write("{0}{1}", sep, DowncastConverter(fa, ta, wConverters, tok));
+        sep = ", ";
+      }
+      return w;
+    }
+
+    string DowncastConverter(Type from, Type to, TargetWriter errorWr, Bpl.IToken tok) {
+      if (IsTargetSupertype(from, to, true)) {
+        return $"Dafny.Helpers.Id<{TypeName(to, errorWr, tok)}>";
+      }
+      if (from.AsCollectionType != null) {
+        var sTo = TypeName(to, errorWr, tok);
+        // (from x) => { return x.DowncastClone<A, B, ...>(aConverter, bConverter, ...); }
+        var wr = new TargetWriter();
+        wr.Write("({0} x) => {{ return ", TypeName(from, errorWr, tok));
+        var wrFrom = EmitDowncast(from, to, tok, wr);
+        wrFrom.Write("x");
+        wr.Write("; }");
+        return wr.ToString();
+      }
+      // use a type
+      return $"Dafny.Helpers.CastConverter<{TypeName(from, errorWr, tok)}, {TypeName(to, errorWr, tok)}>";
+    }
+
     protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {
       var typeArgs = TypeName_UDT(ArrowType.Arrow_FullCompileName, Util.Snoc(boundTypes, resultType), wr, tok);
       wr.Write("Dafny.Helpers.Id<{0}>(({1}) => ", typeArgs, Util.Comma(boundVars));
@@ -2032,22 +2074,12 @@ namespace Microsoft.Dafny
       return w;
     }
 
-    protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      wr.Write("Dafny.Helpers.Let<{0},{1}>(", TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
-      TrExpr(source, wr, inLetExprBody);
+    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, TargetWriter wr, out TargetWriter wrRhs, out TargetWriter wrBody) {
+      wr.Write("Dafny.Helpers.Let<{0}, {1}>(", TypeName(bvType, wr, bvTok), TypeName(bodyType, wr, bodyTok));
+      wrRhs = wr.Fork();
       wr.Write(", {0} => ", bvName);
-      var w = wr.Fork();
+      wrBody = wr.Fork();
       wr.Write(")");
-      int y = ((System.Func<int,int>)((u) => u + 5))(6);
-      return w;
-    }
-
-    protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      wr.Write("Dafny.Helpers.Let<{0},{1}>(", TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
-      wr.Write("{0}, {1} => ", source, bvName);
-      var w = wr.Fork();
-      wr.Write(")");
-      return w;
     }
 
     protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
