@@ -1,10 +1,10 @@
-﻿using IntervalTree;
+﻿using DafnyLS.Util;
+using IntervalTree;
 using Microsoft.Dafny;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -42,21 +42,6 @@ namespace DafnyLS.Language.Symbols {
           symbol => symbol.Node,
           symbol => symbol
         );
-    }
-
-    private class PositionComparer : Comparer<Position> {
-      public override int Compare([AllowNull] Position x, [AllowNull] Position y) {
-        if(x == null) {
-          return y != null ? -1 : 0;
-        } else if(y == null) {
-          return 1;
-        }
-        int lineComparison = x.Line.CompareTo(y.Line);
-        if(lineComparison != 0) {
-          return lineComparison;
-        }
-        return x.Character.CompareTo(y.Character);
-      }
     }
 
     private class DesignatorVisitor : SyntaxTreeVisitor {
