@@ -26,6 +26,7 @@ namespace DafnyLS.Workspace {
       };
       var loadedDocument = await _documentLoader.LoadAsync(mergedItem, cancellationToken);
       if(!loadedDocument.SymbolTable.Resolved) {
+        // TODO relocate the symbol declarations. it could be necessary/convenient to change to an immutable design.
         return new DafnyDocument(
           loadedDocument.Text,
           loadedDocument.Errors,
@@ -110,7 +111,7 @@ namespace DafnyLS.Workspace {
     }
 
     private bool IsDesignatorAfterChange(PositionComparer comparer, Range changeRange, Position symbolFrom) {
-      return comparer.Compare(symbolFrom, changeRange.Start) >= 0;
+      return comparer.Compare(symbolFrom, changeRange.End) >= 0;
     }
   }
 }
