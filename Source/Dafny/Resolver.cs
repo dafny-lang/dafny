@@ -3182,6 +3182,17 @@ namespace Microsoft.Dafny
       }
     }
 
+    private BigInteger MaxBV(Type t) {
+      Contract.Requires(t != null);
+      Contract.Requires(t.IsBitVectorType);
+      return MaxBV(t.AsBitVectorType.Width);
+    }
+
+    private BigInteger MaxBV(int bits) {
+      Contract.Requires(0 <= bits);
+      return BigInteger.Pow(new BigInteger(2), bits) - BigInteger.One;
+    }
+
     private void FigureOutNativeType(NewtypeDecl dd) {
       Contract.Requires(dd != null);
 
@@ -3248,45 +3259,435 @@ namespace Microsoft.Dafny
         bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint);
       }
 
+      // Returns null if the argument is a constrained newtype (recursively)
+      // Returns the transitive base type if the argument is recusively unconstrained
+      Type AsUnconstrainedType(Type t) {
+        while (true) {
+          if (t.AsNewtype == null) return t;
+          if (t.AsNewtype.Constraint != null) return null;
+          t = t.AsNewtype.BaseType;
+        }
+      }
+
       // Find which among the allowable native types can hold "dd". Give an
       // error for any user-specified native type that's not big enough.
       var bigEnoughNativeTypes = new List<NativeType>();
-      // But first, define a local, recursive function GetConst:
+      // But first, define a local, recursive function GetConst/GetAnyConst:
+      // These fold any constant computations, including symbolic constants,
+      // returning null if folding is not possible. If an operation is undefined
+      // (divide by zero, conversion out of range, etc.), then null is returned.
       Func<Expression, BigInteger?> GetConst = null;
-      GetConst = (Expression e) => {
-        int m = 1;
-        BinaryExpr bin = e as BinaryExpr;
-        if (bin != null && bin.Op == BinaryExpr.Opcode.Sub && GetConst(bin.E0) == BigInteger.Zero) {
-          m = -1;
-          e = bin.E1;
-        }
-        LiteralExpr l = e as LiteralExpr;
-        if (l != null && l.Value is BigInteger) {
-          return m * (BigInteger)l.Value;
-        }
-        return null;
-      };
-      // Now, then, let's go through them types.
-      foreach (var nativeT in nativeTypeChoices ?? NativeTypes) {
-        bool lowerOk = false;
-        bool upperOk = false;
-        foreach (var bound in bounds) {
-          if (bound is ComprehensionExpr.IntBoundedPool) {
-            var bnd = (ComprehensionExpr.IntBoundedPool)bound;
-            if (bnd.LowerBound != null) {
-              BigInteger? lower = GetConst(bnd.LowerBound);
-              if (lower != null && nativeT.LowerBound <= lower) {
-                lowerOk = true;
-              }
+      Func<Expression, Stack<ConstantField>, Object> GetAnyConst = null;
+      GetAnyConst = (Expression e, Stack<ConstantField> consts) => {
+        if (e is LiteralExpr l) {
+          return l.Value;
+        } else if (e is UnaryOpExpr un) {
+          if (un.Op == UnaryOpExpr.Opcode.Not) {
+            object e0 = GetAnyConst(un.E, consts);
+            if (e0 is bool) {
+              return !(bool)e0;
             }
-            if (bnd.UpperBound != null) {
-              BigInteger? upper = GetConst(bnd.UpperBound);
-              if (upper != null && upper <= nativeT.UpperBound) {
-                upperOk = true;
+            if (un.Type.IsBitVectorType) {
+              int width = un.Type.AsBitVectorType.Width;
+              return ((BigInteger.One << width) - 1) ^ (BigInteger)e0;
+            }
+          } else if (un.Op == UnaryOpExpr.Opcode.Cardinality) {
+            object e0 = GetAnyConst(un.E, consts);
+            if (e0 is string ss) {
+              return (BigInteger)(ss.Length);
+            }
+          }
+        } else if (e is MemberSelectExpr m) {
+          if (m.Member is ConstantField c && c.IsStatic && c.Rhs != null) {
+            // This aspect of type resolution happens before the check for cyclic references
+            // so we have to do a check here as well. If cyclic, null is silently returned,
+            // counting on the later error message to alert the user.
+            if (consts.Contains(c)) { return null; }
+            consts.Push(c);
+            Object o = GetAnyConst(c.Rhs, consts);
+            consts.Pop();
+            return o;
+          } else if (m.Member is SpecialField sf) {
+            string nm = sf.Name;
+            if (nm == "Floor") {
+              Object ee = GetAnyConst(m.Obj, consts);
+              if (ee != null && m.Obj.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+                ((Basetypes.BigDec)ee).FloorCeiling(out var f, out _);
+                return f;
               }
             }
           }
+        } else if (e is BinaryExpr bin) {
+          Object e0 = GetAnyConst(bin.E0, consts);
+          Object e1 = GetAnyConst(bin.E1, consts);
+          bool isBool = bin.E0.Type == Type.Bool && bin.E1.Type == Type.Bool;
+          bool shortCircuit = isBool && (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And
+                                         || bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or
+                                         || bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp);
+
+          if (e0 == null || (!shortCircuit && e1 == null)) { return null; }
+          bool isAnyReal = bin.E0.Type.IsNumericBased(Type.NumericPersuation.Real)
+                        && bin.E1.Type.IsNumericBased(Type.NumericPersuation.Real);
+          bool isAnyInt = bin.E0.Type.IsNumericBased(Type.NumericPersuation.Int)
+                       && bin.E1.Type.IsNumericBased(Type.NumericPersuation.Int);
+          bool isReal = bin.Type.IsRealType;
+          bool isInt = bin.Type.IsIntegerType;
+          bool isBV = bin.E0.Type.IsBitVectorType;
+          int width = isBV ? bin.E0.Type.AsBitVectorType.Width : 0;
+          bool isString = e0 is string && e1 is string;
+          switch (bin.ResolvedOp) {
+            case BinaryExpr.ResolvedOpcode.Add:
+              if (isInt) return (BigInteger) e0 + (BigInteger) e1;
+              if (isBV) return ((BigInteger) e0 + (BigInteger) e1) & MaxBV(bin.Type);
+              if (isReal) return (Basetypes.BigDec) e0 + (Basetypes.BigDec) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.Concat:
+              if (isString) return (string) e0 + (string) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.Sub:
+              if (isInt) return (BigInteger) e0 - (BigInteger) e1;
+              if (isBV) return ((BigInteger) e0 - (BigInteger) e1) & MaxBV(bin.Type);
+              if (isReal) return (Basetypes.BigDec) e0 - (Basetypes.BigDec) e1;
+              // Allow a special case: If the result type is a newtype that is integer-based (i.e., isInt && !isInteger)
+              // then we generally do not fold the operations, because we do not determine whether the
+              // result of the operation satisfies the new type constraint. However, on the occasion that
+              // a newtype aliases int without a constraint, it occurs that a value of the newtype is initialized
+              // with a negative value, which is represented as "0 - N", that is, it comes to this case. It
+              // is a nuisance not to constant-fold the result, as not doing so can alter the determination
+              // of the representation type.
+              if (isAnyInt && AsUnconstrainedType(bin.Type) != null) {
+                return ((BigInteger)e0)-((BigInteger)e1);
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.Mul:
+              if (isInt) return (BigInteger) e0 * (BigInteger) e1;
+              if (isBV) return ((BigInteger) e0 * (BigInteger) e1) & MaxBV(bin.Type);
+              if (isReal) return (Basetypes.BigDec) e0 * (Basetypes.BigDec) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.BitwiseAnd:
+              Contract.Assert(isBV);
+              return (BigInteger) e0 & (BigInteger) e1;
+            case BinaryExpr.ResolvedOpcode.BitwiseOr:
+              Contract.Assert(isBV);
+              return (BigInteger) e0 | (BigInteger) e1;
+            case BinaryExpr.ResolvedOpcode.BitwiseXor:
+              Contract.Assert(isBV);
+              return (BigInteger) e0 ^ (BigInteger) e1;
+            case BinaryExpr.ResolvedOpcode.Div:
+              if (isInt) {
+                if ((BigInteger) e1 == 0) {
+                  return null; // Divide by zero
+                } else {
+                  BigInteger a0 = (BigInteger) e0;
+                  BigInteger a1 = (BigInteger) e1;
+                  BigInteger d = a0/a1;
+                  return a0 >= 0 || a0 == d*a1 ? d : a1 > 0 ? d-1 : d+1;
+                }
+              }
+              if (isBV) {
+                if ((BigInteger) e1 == 0) {
+                  return null; // Divide by zero
+                } else {
+                  return ((BigInteger) e0) / ((BigInteger) e1);
+                }
+              }
+              if (isReal) {
+                if ((Basetypes.BigDec) e1 == Basetypes.BigDec.ZERO) {
+                  return null; // Divide by zero
+                } else {
+                  // BigDec does not have divide and is not a representation of rationals, so we don't do constant folding
+                  return null;
+                }
+              }
+
+              break;
+            case BinaryExpr.ResolvedOpcode.Mod:
+              if (isInt) {
+                if ((BigInteger) e1 == 0) {
+                  return null; // Mod by zero
+                } else {
+                  BigInteger a = BigInteger.Abs((BigInteger) e1);
+                  BigInteger d = (BigInteger) e0 % a;
+                  return (BigInteger)e0 >= 0 ? d : d+a;
+                }
+              }
+              if (isBV) {
+                if ((BigInteger) e1 == 0) {
+                  return null; // Mod by zero
+                } else {
+                  return (BigInteger) e0 % (BigInteger) e1;
+                }
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.LeftShift: {
+              if ((BigInteger)e1 < 0) {
+                return null; // Negative shift
+              }
+              if ((BigInteger)e1 > bin.Type.AsBitVectorType.Width) {
+                return null; // Shift is too large
+              }
+              return ((BigInteger)e0 << (int)(BigInteger)e1) & MaxBV(bin.E0.Type);
+            }
+            case BinaryExpr.ResolvedOpcode.RightShift: {
+              if ((BigInteger)e1 < 0) {
+                return null; // Negative shift
+              }
+              if ((BigInteger)e1 > bin.Type.AsBitVectorType.Width) {
+                return null; // Shift too large
+              }
+              return (BigInteger)e0 >> (int)(BigInteger)e1;
+            }
+            case BinaryExpr.ResolvedOpcode.And: {
+              if ((bool) e0 && e1 == null) return null;
+              return (bool) e0 && (bool) e1;
+            }
+            case BinaryExpr.ResolvedOpcode.Or: {
+              if (!(bool) e0 && e1 == null) return null;
+              return (bool) e0 || (bool) e1;
+            }
+            case BinaryExpr.ResolvedOpcode.Imp: { // ==> and <==
+              if ((bool) e0 && e1 == null) return null;
+              return !(bool) e0 || (bool) e1;
+            }
+            case BinaryExpr.ResolvedOpcode.Iff: return (bool) e0 == (bool) e1; // <==>
+            case BinaryExpr.ResolvedOpcode.Gt:
+              if (isAnyInt) return (BigInteger) e0 > (BigInteger) e1;
+              if (isBV) return (BigInteger) e0 > (BigInteger) e1;
+              if (isAnyReal) return (Basetypes.BigDec) e0 > (Basetypes.BigDec) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.GtChar:
+              if (bin.E0.Type.IsCharType) return ((string) e0)[0] > ((string) e1)[0];
+              break;
+            case BinaryExpr.ResolvedOpcode.Ge:
+              if (isAnyInt) return (BigInteger) e0 >= (BigInteger) e1;
+              if (isBV) return (BigInteger) e0 >= (BigInteger) e1;
+              if (isAnyReal) return (Basetypes.BigDec) e0 >= (Basetypes.BigDec) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.GeChar:
+              if (bin.E0.Type.IsCharType) return ((string) e0)[0] >= ((string) e1)[0];
+              break;
+            case BinaryExpr.ResolvedOpcode.Lt:
+              if (isAnyInt) return (BigInteger) e0 < (BigInteger) e1;
+              if (isBV) return (BigInteger) e0 < (BigInteger) e1;
+              if (isAnyReal) return (Basetypes.BigDec) e0 < (Basetypes.BigDec) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.LtChar:
+              if (bin.E0.Type.IsCharType) return ((string) e0)[0] < ((string) e1)[0];
+              break;
+            case BinaryExpr.ResolvedOpcode.ProperPrefix:
+              if (isString) return ((string)e1).StartsWith((string)e0) && !((string) e1).Equals((string) e0);
+              break;
+            case BinaryExpr.ResolvedOpcode.Le:
+              if (isAnyInt) return (BigInteger) e0 <= (BigInteger) e1;
+              if (isBV) return (BigInteger) e0 <= (BigInteger) e1;
+              if (isAnyReal) return (Basetypes.BigDec) e0 <= (Basetypes.BigDec) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.LeChar:
+              if (bin.E0.Type.IsCharType) return ((string) e0)[0] <= ((string) e1)[0];
+              break;
+            case BinaryExpr.ResolvedOpcode.Prefix:
+              if (isString) return ((string) e1).StartsWith((string)e0);
+              break;
+            case BinaryExpr.ResolvedOpcode.EqCommon: {
+              if (isBool) {
+                return (bool) e0 == (bool) e1;
+              } else if (isAnyInt || isBV) {
+                return (BigInteger) e0 == (BigInteger) e1;
+              } else if (isAnyReal) {
+                return (Basetypes.BigDec) e0 == (Basetypes.BigDec) e1;
+              } else if (bin.E0.Type.IsCharType) {
+                return ((string) e0)[0] == ((string) e1)[0];
+              }
+              break;
+            }
+            case BinaryExpr.ResolvedOpcode.SeqEq:
+              if (isString) {
+                return (string) e0 == (string) e1;
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.SeqNeq:
+              if (isString) {
+                return (string) e0 != (string) e1;
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.NeqCommon: {
+              if (isBool) {
+                return (bool) e0 != (bool) e1;
+              } else if (isAnyInt || isBV) {
+                return (BigInteger) e0 != (BigInteger) e1;
+              } else if (isAnyReal) {
+                return (Basetypes.BigDec) e0 != (Basetypes.BigDec) e1;
+              } else if (bin.E0.Type.IsCharType) {
+                return ((string) e0)[0] != ((string) e1)[0];
+              } else if (isString) {
+                return (string) e0 != (string) e1;
+              }
+              break;
+            }
+          }
+        } else if (e is ConversionExpr ce) {
+          object o = GetAnyConst(ce.E, consts);
+          if (o == null || ce.E.Type == ce.Type) return o;
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
+                ce.Type.IsBitVectorType) {
+            ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
+            if (ff < 0 || ff > MaxBV(ce.Type)) {
+              return null; // Out of range
+            }
+            if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
+              return null; // Out of range
+            }
+            return ff;
+          }
+
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+            ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
+              return null; // Argument not an integer
+            }
+            return ff;
+          }
+
+          if (ce.E.Type.IsBitVectorType &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return o;
+          }
+
+          if (ce.E.Type.IsBitVectorType &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return Basetypes.BigDec.FromBigInt((BigInteger) o);
+          }
+
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
+                ce.Type.IsBitVectorType) {
+            BigInteger b = (BigInteger) o;
+            if (b < 0 || b > MaxBV(ce.Type)) {
+              return null; // Argument out of range
+            }
+            return o;
+          }
+
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+            // This case includes int-based newtypes to int-based new types
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return o;
+          }
+
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+            // This case includes real-based newtypes to real-based new types
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return o;
+          }
+
+          if (ce.E.Type.IsBitVectorType && ce.Type.IsBitVectorType) {
+            BigInteger b = (BigInteger) o;
+            if (b < 0 || b > MaxBV(ce.Type)) {
+              return null; // Argument out of range
+            }
+            return o;
+          }
+
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return Basetypes.BigDec.FromBigInt((BigInteger) o);
+          }
+
+          if (ce.E.Type.IsCharType && ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+            char c = ((String) o)[0];
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return new BigInteger(((string) o)[0]);
+          }
+
+          if (ce.E.Type.IsCharType && ce.Type.IsBitVectorType) {
+            char c = ((String) o)[0];
+            if ((int) c > MaxBV(ce.Type)) {
+              return null; // Argument out of range
+            }
+            return new BigInteger(((string) o)[0]);
+          }
+
+          if ((ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) || ce.E.Type.IsBitVectorType) &&
+                ce.Type.IsCharType) {
+            BigInteger b = (BigInteger) o;
+            if (b < BigInteger.Zero || b > new BigInteger(65535)) {
+              return null; // Argument out of range
+            }
+            return ((char) (int) b).ToString();
+          }
+
+          if (ce.E.Type.IsCharType &&
+              ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return Basetypes.BigDec.FromInt(((string) o)[0]);
+          }
+
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
+                ce.Type.IsCharType) {
+            ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
+            if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
+              return null; // Argument not an integer
+            }
+            if (ff < BigInteger.Zero || ff > new BigInteger(65535)) {
+              return null; // Argument out of range
+            }
+            return ((char) (int) ff).ToString();
+          }
+
+        } else if (e is SeqSelectExpr sse) {
+          var b = GetAnyConst(sse.Seq, consts) as string;
+          BigInteger index = (BigInteger)GetAnyConst(sse.E0, consts);
+          if (b == null || index == null) return null;
+          if (index < 0 || index >= b.Length || index > Int32.MaxValue) {
+            return null; // Index out of range
+          }
+          return b[(int)index].ToString();
+        } else if (e is ITEExpr ite) {
+          Object b = GetAnyConst(ite.Test, consts);
+          if (b == null) return null;
+          return ((bool)b) ? GetAnyConst(ite.Thn, consts) : GetAnyConst(ite.Els, consts);
+        } else if (e is ConcreteSyntaxExpression n) {
+          return GetAnyConst(n.ResolvedExpression, consts);
+        } else {
+          return null;
         }
+        return null;
+      };
+      GetConst = (Expression e) => {
+        Object ee = GetAnyConst(e.Resolved ?? e, new Stack<ConstantField>());
+        return ee as BigInteger?;
+      };
+      // Now, then, let's go through them types.
+      // FIXME - should first go through the bounds to find the most constraining values
+      // then check those values against the possible types. Note that also presumes the types are in order.
+      BigInteger? lowest = null;
+      BigInteger? highest = null;
+      foreach (var bound in bounds) {
+        if (bound is ComprehensionExpr.IntBoundedPool) {
+          var bnd = (ComprehensionExpr.IntBoundedPool)bound;
+          if (bnd.LowerBound != null) {
+            BigInteger? lower = GetConst(bnd.LowerBound);
+            if (lower != null && (lowest == null || lower < lowest)) {
+              lowest = lower;
+            }
+          }
+          if (bnd.UpperBound != null) {
+            BigInteger? upper = GetConst(bnd.UpperBound);
+            if (upper != null && (highest == null || upper > highest)) {
+              highest = upper;
+            }
+          }
+        }
+      }
+      foreach (var nativeT in nativeTypeChoices ?? NativeTypes) {
+        bool lowerOk = (lowest != null && nativeT.LowerBound <= lowest);
+        bool upperOk = (highest != null && nativeT.UpperBound >= highest);
         if (lowerOk && upperOk) {
           bigEnoughNativeTypes.Add(nativeT);
         } else if (nativeTypeChoices != null) {
@@ -3312,7 +3713,7 @@ namespace Microsoft.Dafny
         if (nativeTypeChoices != null && nativeTypeChoices.Count == 1) {
           Contract.Assert(dd.NativeType == nativeTypeChoices[0]);
         } else {
-          reporter.Info(MessageSource.Resolver, dd.tok, "{:nativeType \"" + dd.NativeType.Name + "\"}");
+          reporter.Info(MessageSource.Resolver, dd.tok, "newtype " + dd.Name + " resolves as {:nativeType \"" + dd.NativeType.Name + "\"} (Detected Range: " + lowest + " .. " + highest + ")");
         }
       } else if (nativeTypeChoices != null) {
         reporter.Error(MessageSource.Resolver, dd,
@@ -5661,8 +6062,8 @@ namespace Microsoft.Dafny
             CheckTypeIsDetermined(local.Tok, local.Type, "local variable");
             CheckTypeArgsContainNoOrdinal(local.Tok, local.type);
           }
-        } else if (stmt is LetStmt) {
-          var s = (LetStmt)stmt;
+        } else if (stmt is VarDeclPattern) {
+          var s = (VarDeclPattern)stmt;
           s.LocalVars.Iter(local => CheckTypeIsDetermined(local.Tok, local.Type, "local variable"));
           s.LocalVars.Iter(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.Type));
 
@@ -5700,12 +6101,18 @@ namespace Microsoft.Dafny
       protected override void VisitOneExpr(Expression expr) {
         if (expr is LiteralExpr) {
           var e = (LiteralExpr)expr;
-          var t = e.Type as BitvectorType;
-          if (t != null) {
+          if (e.Type.IsBitVectorType || e.Type.IsBigOrdinalType) {
             var n = (BigInteger)e.Value;
-            // check that the given literal fits into the bitvector width
-            if (BigInteger.Pow(2, t.Width) <= n) {
-              resolver.reporter.Error(MessageSource.Resolver, e.tok, "bitvector literal ({0}) is too large for the type {1}", e.Value, t);
+            var absN = n < 0 ? -n : n;
+            // For bitvectors, check that the magnitude fits the width
+            if (e.Type.IsBitVectorType && resolver.MaxBV(e.Type.AsBitVectorType.Width) < absN) {
+              resolver.reporter.Error(MessageSource.Resolver, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
+            }
+            // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
+            // This can happen only in `match` patterns (see comment by LitPattern.OptimisticallyDesugaredLit).
+            if (n < 0 || e.tok.val == "-0") {
+              Contract.Assert(e.tok.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
+              resolver.reporter.Error(MessageSource.Resolver, e.tok, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.Type);
             }
           }
 
@@ -5909,18 +6316,33 @@ namespace Microsoft.Dafny
             }
           } else if (expr is NegationExpression) {
             var e = (NegationExpression)expr;
-            Expression zero;
-            if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-              zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
-            } else {
-              Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType);
-              zero = new LiteralExpr(e.tok, 0);
+            Expression resolved = null;
+            if (e.E is LiteralExpr lit) { // note, not e.E.Resolved, since we don't want to do this for double negations
+              // For real-based types, integer-based types, and bi (but not bitvectors), "-" followed by a literal is just a literal expression with a negative value
+              if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+                var d = (Basetypes.BigDec)lit.Value;
+                Contract.Assert(!d.IsNegative);
+                resolved = new LiteralExpr(e.tok, -d);
+              } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+                var n = (BigInteger)lit.Value;
+                Contract.Assert(0 <= n);
+                resolved = new LiteralExpr(e.tok, -n);
+              }
             }
-            zero.Type = expr.Type;
-            var subtract = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E);
-            subtract.Type = expr.Type;
-            subtract.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
-            e.ResolvedExpression = subtract;
+            if (resolved == null) {
+              // Treat all other expressions "-e" as "0 - e"
+              Expression zero;
+              if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+                zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
+              } else {
+                Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType);
+                zero = new LiteralExpr(e.tok, 0);
+              }
+              zero.Type = expr.Type;
+              resolved = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E) {ResolvedOp = BinaryExpr.ResolvedOpcode.Sub};
+            }
+            resolved.Type = expr.Type;
+            e.ResolvedExpression = resolved;
           }
         }
       }
@@ -6269,7 +6691,7 @@ namespace Microsoft.Dafny
         if (s.Update != null) {
           return CheckTailRecursive(s.Update, enclosingMethod, ref tailCall, reportErrors);
         }
-      } else if (stmt is LetStmt) {
+      } else if (stmt is VarDeclPattern) {
       } else if (stmt is ExpectStmt) {
       } else {
         Contract.Assert(false);  // unexpected statement type
@@ -6896,8 +7318,8 @@ namespace Microsoft.Dafny
               CheckEqualityTypes_Type(v.Tok, v.Type);
             }
           }
-        } else if (stmt is LetStmt) {
-          var s = (LetStmt)stmt;
+        } else if (stmt is VarDeclPattern) {
+          var s = (VarDeclPattern)stmt;
           foreach (var v in s.LocalVars) {
             CheckEqualityTypes_Type(v.Tok, v.Type);
           }
@@ -7322,7 +7744,9 @@ namespace Microsoft.Dafny
           s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
 
         } else if (stmt is AssignOrReturnStmt) {
-          stmt.IsGhost = false; // TODO when do we want to allow this feature in ghost code? Note that return changes control flow
+          var s = (AssignOrReturnStmt)stmt;
+          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable));
+          s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
 
         } else if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;
@@ -7337,19 +7761,30 @@ namespace Microsoft.Dafny
           }
           s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
 
-        } else if (stmt is LetStmt) {
-          var s = (LetStmt)stmt;
+        } else if (stmt is VarDeclPattern) {
+          var s = (VarDeclPattern)stmt;
+
           if (mustBeErasable) {
             foreach (var local in s.LocalVars) {
               local.IsGhost = true;
             }
           }
-          s.IsGhost = s.LocalVars.All(v => v.IsGhost);
+          if (!s.IsAutoGhost || mustBeErasable) {
+            s.IsGhost = s.LocalVars.All(v => v.IsGhost);
+          } else {
+            bool spec = resolver.UsesSpecFeatures(s.RHS);
+            foreach (var local in s.LocalVars) {
+              local.IsGhost = spec;
+            }
+            if (!spec) resolver.CheckIsCompilable(s.RHS);
+            s.IsGhost = spec;
+          }
 
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
           var lhs = s.Lhs.Resolved;
           var gk = AssignStmt.LhsIsToGhost_Which(lhs);
+          var isAutoGhost = AssignStmt.LhsIsToGhostOrAutoGhost(lhs);
           if (gk == AssignStmt.NonGhostKind.IsGhost) {
             s.IsGhost = true;
             if (s.Rhs is TypeRhs) {
@@ -7367,9 +7802,19 @@ namespace Microsoft.Dafny
             } else if (gk == AssignStmt.NonGhostKind.ArrayElement) {
               resolver.CheckIsCompilable(lhs);
             }
+
+
             if (s.Rhs is ExprRhs) {
               var rhs = (ExprRhs)s.Rhs;
-              resolver.CheckIsCompilable(rhs.Expr);
+              if (isAutoGhost) {
+                if (resolver.UsesSpecFeatures(rhs.Expr)) {
+                  // TODO: Is this the proper way to determine if an expression is ghost?
+                  ((lhs as AutoGhostIdentifierExpr).Var as LocalVariable).MakeGhost();
+                }
+              } else {
+                resolver.CheckIsCompilable(rhs.Expr);
+              }
+
             } else if (s.Rhs is HavocRhs) {
               // cool
             } else {
@@ -9763,8 +10208,8 @@ namespace Microsoft.Dafny
             }
           }
         }
-      } else if (stmt is LetStmt) {
-        LetStmt s = (LetStmt)stmt;
+      } else if (stmt is VarDeclPattern) {
+        VarDeclPattern s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
           int prevErrorCount = reporter.Count(ErrorLevel.Error);
           ResolveType(local.Tok, local.OptionalType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
@@ -10548,7 +10993,7 @@ namespace Microsoft.Dafny
       if (branch is RBranchStmt branchStmt) {
         var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
         var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
-        var cLet = new LetStmt(cLVar.Tok, cLVar.Tok, cPat, expr);
+        var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr);
         branchStmt.Body.Insert(0, cLet);
       } else if (branch is RBranchExpr branchExpr) {
         var cBVar = new BoundVar(var.Tok, name, type);
@@ -10690,8 +11135,8 @@ namespace Microsoft.Dafny
       foreach (var PB in pairPB) {
         var pat = PB.Item1;
         if (pat is LitPattern lpat) {
-          if (!alternatives.Exists(x => x.Value.Equals(lpat.Lit.Value))) {
-            alternatives.Add(lpat.Lit);
+          if (!alternatives.Exists(x => object.Equals(x.Value, lpat.OptimisticallyDesugaredLit.Value))) {
+            alternatives.Add(lpat.OptimisticallyDesugaredLit);
           }
         }
       }
@@ -10700,12 +11145,11 @@ namespace Microsoft.Dafny
       // For each possible alternatives, filter potential cases and recur
       foreach (var currLit in alternatives) {
         List<RBranch> currBranches = new List<RBranch>();
-        for (int i = 0; i < pairPB.Count; i++) {
-          var PB = pairPB.ElementAt(i);
+        foreach (var PB in pairPB) {
           switch (PB.Item1) {
             case LitPattern currPattern:
               // if pattern matches the current alternative, add it to the branch for this case, otherwise ignore it
-              if (currPattern.Lit.Value.Equals(currLit.Value)) {
+              if (object.Equals(currPattern.OptimisticallyDesugaredLit.Value, currLit.Value)) {
                 mti.UpdateBranchID(PB.Item2.BranchID, 1);
                 currBranches.Add(CloneRBranch(PB.Item2));
               }
@@ -11467,6 +11911,11 @@ namespace Microsoft.Dafny
         firstType = s.Rhs.Type;
       }
 
+      if ((codeContext as Method).Outs.Count == 0 && s.ExpectToken == null) {
+        reporter.Error(MessageSource.Resolver, s.Tok, "A method containing a :- statement must have an out-parameter ({0})",
+          (codeContext as Method).Name);
+        return;
+      }
       if (firstType != null) {
         firstType = PartiallyResolveTypeForMemberSelection(s.Rhs.tok, firstType);
         if (firstType.AsTopLevelTypeWithMembers != null) {
@@ -11558,11 +12007,19 @@ namespace Microsoft.Dafny
 
       if (expectExtract) {
         // "y := temp.Extract();"
+        var lhs = s.Lhss[0];
         s.ResolvedStatements.Add(
           new UpdateStmt(s.Tok, s.Tok,
-            new List<Expression>() { s.Lhss[0] },
+            new List<Expression>() { lhs },
             new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "Extract")) }
             ));
+        // The following check is not necessary, because the ghost mismatch is caught later.
+        // However the error message here is much clearer.
+        var m = ResolveMember(s.Tok, firstType, "Extract", out _);
+        if (m != null && m.IsGhost && !AssignStmt.LhsIsToGhostOrAutoGhost(lhs)) {
+          reporter.Error(MessageSource.Resolver, lhs.tok,
+            "The Extract member may not be ghost unless the initial LHS is ghost");
+        }
       }
 
       s.ResolvedStatements.ForEach( a => ResolveStatement(a, codeContext) );
@@ -11577,12 +12034,24 @@ namespace Microsoft.Dafny
 
       if (ResolveMember(tok, tp, "IsFailure", out _) == null ||
           ResolveMember(tok, tp, "PropagateFailure", out _) == null ||
-          (ResolveMember(tok, tp, "Extract", out _) != null) != expectExtract
-      ) {
+          (ResolveMember(tok, tp, "Extract", out _) != null) != expectExtract) {
         // more details regarding which methods are missing have already been reported by regular resolution
         origReporter.Error(MessageSource.Resolver, tok,
           "The right-hand side of ':-', which is of type '{0}', must have members 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'",
           tp, expectExtract ? "and" : "but not");
+      }
+
+      // The following checks are not necessary, because the ghost mismatch is caught later.
+      // However the error messages here are much clearer.
+      var m = ResolveMember(tok, tp, "IsFailure", out _);
+      if (m != null && m.IsGhost) {
+        origReporter.Error(MessageSource.Resolver, tok,
+          $"The IsFailure member may not be ghost (type {tp} used in :- statement)");
+      }
+      m = ResolveMember(tok, tp, "PropagateFailure", out _);
+      if (m != null && m.IsGhost) {
+        origReporter.Error(MessageSource.Resolver, tok,
+          $"The PropagateFailure member may not be ghost (type {tp} used in :- statement)");
       }
 
       this.reporter = origReporter;
@@ -11857,7 +12326,7 @@ namespace Microsoft.Dafny
         if (s.Update != null) {
           CheckForallStatementBodyRestrictions(s.Update, kind);
         }
-      } else if (stmt is LetStmt) {
+      } else if (stmt is VarDeclPattern) {
         // Are we fine?
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
@@ -12020,7 +12489,7 @@ namespace Microsoft.Dafny
         if (s.Update != null) {
           CheckHintRestrictions(s.Update, localsAllowedInUpdates, where);
         }
-      } else if (stmt is LetStmt) {
+      } else if (stmt is VarDeclPattern) {
         // Are we fine?
       } else if (stmt is ModifyStmt) {
         reporter.Error(MessageSource.Resolver, stmt, "modify statements are not allowed inside {0}", where);
@@ -13042,7 +13511,6 @@ namespace Microsoft.Dafny
 
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
-        var errorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(e.E, opts);
         e.Type = e.E.Type;
         AddXConstraint(e.E.tok, "NumericOrBitvector", e.E.Type, "type of unary - must be of a numeric or bitvector type (instead got {0})");
@@ -16420,7 +16888,9 @@ namespace Microsoft.Dafny
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         if (e.Exact) {
-          return Contract.Exists(e.RHSs, ee => UsesSpecFeatures(ee)) || UsesSpecFeatures(e.Body);
+          MakeGhostAsNeeded(e.LHSs);
+          return UsesSpecFeatures(e.Body);
+          //return Contract.Exists(e.RHSs, ee => UsesSpecFeatures(ee)) || UsesSpecFeatures(e.Body);
         } else {
           return true;  // let-such-that is always ghost
         }
@@ -16456,12 +16926,42 @@ namespace Microsoft.Dafny
         }
         return me.Cases.Exists(mc => UsesSpecFeatures(mc.Body));
       } else if (expr is ConcreteSyntaxExpression) {
-        var e = (ConcreteSyntaxExpression)expr;
+        var e = (ConcreteSyntaxExpression) expr;
         return e.ResolvedExpression != null && UsesSpecFeatures(e.ResolvedExpression);
+      } else if (expr is SeqConstructionExpr) {
+        var e = (SeqConstructionExpr) expr;
+        return UsesSpecFeatures(e.N) || UsesSpecFeatures(e.Initializer);
+      } else if (expr is MultiSetFormingExpr) {
+        var e = (MultiSetFormingExpr) expr;
+        return UsesSpecFeatures(e.E);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
     }
+
+    void MakeGhostAsNeeded(List<CasePattern<BoundVar>> lhss) {
+      foreach (CasePattern<BoundVar> lhs in lhss) {
+        MakeGhostAsNeeded(lhs);
+      }
+    }
+
+    void MakeGhostAsNeeded(CasePattern<BoundVar> lhs) {
+      if (lhs.Ctor != null && lhs.Arguments != null) {
+        for (int i = 0; i < lhs.Arguments.Count && i < lhs.Ctor.Destructors.Count; i++) {
+          MakeGhostAsNeeded(lhs.Arguments[i], lhs.Ctor.Destructors[i]);
+        }
+      }
+    }
+
+    void MakeGhostAsNeeded(CasePattern<BoundVar> arg, DatatypeDestructor d) {
+      if (arg.Expr is IdentifierExpr ie && ie.Var is BoundVar bv) {
+        if (d.IsGhost) bv.makeGhost();
+      }
+      if (arg.Ctor != null) {
+        MakeGhostAsNeeded(arg);
+      }
+    }
+
 
     /// <summary>
     /// This method adds to "friendlyCalls" all

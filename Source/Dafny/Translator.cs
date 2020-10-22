@@ -896,6 +896,14 @@ namespace Microsoft.Dafny {
         // see comment in BplBvType
         Contract.Assert(n.IsZero);
         return Bpl.Expr.Literal(0);
+      } else if (n.IsNegative) {
+        // This can only happen if some error is reported elsewhere. Nevertheless, we do need to
+        // generate a Boogie expression and Boogie would crash if we pass a negative number to
+        // Bpl.LiteralExpr for a bitvector.
+        var zero = new Bpl.LiteralExpr(tok, Basetypes.BigNum.ZERO, width);
+        var absN = new Bpl.LiteralExpr(tok, -n, width);
+        var etran = new ExpressionTranslator(this, predef, tok);
+        return etran.TrToFunctionCall(tok, "sub_bv" + width, BplBvType(width), zero, absN, false);
       } else {
         return new Bpl.LiteralExpr(tok, n, width);
       }
@@ -8035,10 +8043,13 @@ namespace Microsoft.Dafny {
         var letBody = Substitute(e.Body, null, substMap);
         CheckWellformed(letBody, options, locals, builder, etran);
         if (e.Constraint_Bounds != null) {
-          Contract.Assert(!e.BoundVars.All(bv => bv.IsGhost));
           var substMap_prime = SetupBoundVarsAsLocals(lhsVars, builder, locals, etran);
-          var rhs_prime = Substitute(e.RHSs[0], null, substMap_prime);
-          var letBody_prime = Substitute(e.Body, null, substMap_prime);
+          var nonGhostMap_prime = new Dictionary<IVariable, Expression>();
+          foreach (BoundVar bv in lhsVars) {
+            nonGhostMap_prime.Add(bv, bv.IsGhost ? substMap[bv] : substMap_prime[bv]);
+          }
+          var rhs_prime = Substitute(e.RHSs[0], null, nonGhostMap_prime);
+          var letBody_prime = Substitute(e.Body, null, nonGhostMap_prime);
           builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(rhs_prime, etran)));
           builder.Add(TrAssumeCmd(e.tok, etran.TrExpr(rhs_prime)));
           builder.Add(TrAssumeCmd(e.tok, CanCallAssumption(letBody_prime, etran)));
@@ -10851,8 +10862,8 @@ namespace Microsoft.Dafny {
         if (s.Update != null) {
           TrStmt(s.Update, builder, locals, etran);
         }
-      } else if (stmt is LetStmt) {
-        var s = (LetStmt)stmt;
+      } else if (stmt is VarDeclPattern) {
+        var s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
           Bpl.LocalVariable bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type)));
           locals.Add(bvar);
@@ -12345,7 +12356,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Dictionary<IVariable, Expression> SetupBoundVarsAsLocals(List<BoundVar> boundVars, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, Dictionary<TypeParameter, Type> typeMap = null, string nameSuffix = null) {
+    Dictionary<IVariable, Expression> SetupBoundVarsAsLocals(List<BoundVar> boundVars, BoogieStmtListBuilder builder,
+      List<Variable> locals, ExpressionTranslator etran, Dictionary<TypeParameter, Type> typeMap = null,
+      string nameSuffix = null) {
       Contract.Requires(boundVars != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);

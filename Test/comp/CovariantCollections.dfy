@@ -6,11 +6,13 @@
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
-  // TODO: include tests of assignments from coll<Number> back to coll<Integer> when all elements are known to be Integer
   Sequences();
   Sets();
   Multisets();
   Maps();
+  Downcasts();
+  DeepDowncast();
+  CovarianceRegressions.Test();
 }
 
 trait Number {
@@ -319,3 +321,177 @@ method PrintPairs(prefix: string, S: set<(Number, Number)>) {
   print "}";
 }
 */
+
+// -------------------- downcasts --------------------
+
+method Downcasts() {
+  var a := new Integer(20);
+  var b := new Integer(30);
+
+  var m: set<Number>, n: multiset<Number>, o: seq<Number>, p: map<Number, Number>;
+  var s: set<Integer>, t: multiset<Integer>, u: seq<Integer>, v: map<Integer, Integer>;
+  m, n, o, p := Create<Number>(a, b);
+  s, t, u, v := m, n, o, p;  // in C#, this requires a downcast clone
+  m, n, o, p := s, t, u, v;
+  s, t, u, v := m, n, o, p;  // here, the downcast clone is the identity
+  m, n, o, p := s, t, u, v;
+
+  PrintSet("set: ", m); print "\n";
+  PrintMultiset("multiset: ", n); print "\n";
+  PrintSeq("seq: ", o); print "\n";
+  PrintMap("map: ", p); print "\n";
+
+  s := DowncastF(m);  // cast in, cast out
+  s := DowncastM(m);  // cast in, cast out
+  var s': set<Integer>;
+  s, s' := DowncastM2(m);  // cast in, cast out
+  s := var v: set<Integer> := m; v;  // regression test -- this once tripped up the compilation to Java, whereas the next line had not
+  s' := var u: set<Number> := var v: set<Integer> := m; v; u;
+  var eq := s == m && m == s;
+  print eq, "\n";  // true
+
+  s := FId<Integer>(m);  // cast in
+  s := FId<Number>(s);  // cast out
+  s := MId<Integer>(m);  // cast in
+  s := MId<Number>(s);  // cast out
+  s, s' := MId2<Integer>(m);  // cast in
+  s, s' := MId2<Number>(m);  // cast out
+  eq := s == m && m == s;
+  print eq, "\n";  // true
+
+  TailRecursiveMethod(12, 1, s);
+  var f16 := TailRecursiveFunction(12, 1, s);
+}
+
+// This method will create the collections of type coll<T>
+method Create<T>(a: T, b: T) returns (m: set<T>, n: multiset<T>, o: seq<T>, p: map<T, T>)
+  ensures m == {a, b} && n == multiset{a, b} && o == [a, b]
+  ensures p == map[a := b, b := a]
+{
+  m, n, o := {a, b}, multiset{a, b}, [a, b];
+  p := map[a := b, b := a];
+}
+
+function method DowncastF(s: set<Integer>): set<Number> { s }
+method DowncastM(s: set<Integer>) returns (r: set<Number>)
+  ensures r == s
+{
+  r := s;
+}
+method DowncastM2(s: set<Integer>) returns (r0: set<Number>, r1: set<Number>)
+  ensures r0 == r1 == s
+{
+  r0, r1 := s, s;
+}
+
+function method FId<T>(s: set<T>): set<T> { s }
+method MId<T>(s: set<T>) returns (r: set<T>)
+  ensures r == s
+{
+  r := s;
+}
+method MId2<T>(s: set<T>) returns (r0: set<T>, r1: set<T>)
+  ensures r0 == r1 == s
+{
+  r0, r1 := s, s;
+}
+
+method {:tailrecursion} TailRecursiveMethod(x: nat, ghost u: int, s: set<Integer>) {
+  var n: set<Number> := s;
+  if x != 0 {
+    TailRecursiveMethod(x - 1, 100 * u, n);
+  }
+}
+
+function method {:tailrecursion} TailRecursiveFunction(x: nat, ghost u: int, s: set<Integer>): int {
+  var n: set<Number> := s;
+  if x == 0 then 16 else TailRecursiveFunction(x - 1, 100 * u, n)
+}
+
+class Class {
+  constructor (s: set<Integer>) {
+    ns, is := s, s;
+  }
+  var ns: set<Number>
+  var is: set<Integer>
+}
+
+method HeapAssignmentDowncasts() {
+  var n: Number := new Integer(22);
+  var ns: set<Number> := {n};
+  var c := new Class(ns);
+  c.ns := c.is;
+  c.is := c.ns;
+  PrintSet("c.is: ", c.is); print " ";
+
+  var a := new set<Integer>[20];
+  var m := new set<Integer>[18, 18];
+  a[7] := ns;
+  // m[7, 9] := ns;  // TODO: type checking gives an error, which is questionable (see https://github.com/dafny-lang/dafny/issues/885)
+  ns := a[1];
+  ns := m[3, 3];
+  PrintSet(" a[7]: ", a[7]); print "\n";
+}
+
+method DeepDowncast() {
+  // test covariant types whose components are also of a covariant type
+  // (this requires some machinery to accomplish in C#)
+
+  var t: Number := new Integer(4);
+  var ttt: set<seq<Number>> := SetOfSeqOf<Number>(t);
+  var ccc: set<seq<Integer>> := ttt;
+  print |ttt|, " ", |ccc|, "\n";
+
+  var o := new object;
+  var mtt: map<seq<Number>, object> := MapOfSeqOf<Number, object>(t, o);
+  var mcc: map<seq<Integer>, object> := mtt;
+  print |mtt|, " ", |mcc|, "\n";
+}
+
+function method SetOfSeqOf<T(==)>(t: T): set<seq<T>> {
+  {[t]}
+}
+
+function method MapOfSeqOf<T(==), U>(t: T, u: U): map<seq<T>, U> {
+  map[[t] := u]
+}
+
+// -------------------- some regression tets --------------------
+
+module CovarianceRegressions {
+  trait Trait { }
+
+  method Test() {
+    var a: set<Trait>;
+    var b: seq<Trait>;
+    var c: multiset<Trait>;
+    var d: map<Trait, Trait>;
+    Ins(a, b, c, d);
+    a, b, c, d := Outs();
+
+    Anything(a);
+    Anything(b);
+    Anything(c);
+    Anything(d);
+  }
+
+  method Anything<X>(x: X) { }
+
+  method Ins(a: set<Trait>, b: seq<Trait>, c: multiset<Trait>, d: map<Trait, Trait>) {
+  }
+
+  method Outs() returns (a: set<Trait>, b: seq<Trait>, c: multiset<Trait>, d: map<Trait, Trait>) {
+  }
+
+  class Class extends Trait { }
+
+  method TestDisjointTypeArgument_Set(a: set<Trait>, b: set<Class>) {
+    var x := a !! b;
+    var y := b !! a;
+  }
+
+  method TestDisjointTypeArgument_MultiSet(a: multiset<Trait>, b: multiset<Class>) {
+    var x := a !! b;
+    var y := b !! a;
+  }
+}

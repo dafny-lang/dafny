@@ -1,7 +1,7 @@
 
-Dafny program verifier finished with 14 verified, 0 errors
+Dafny program verifier finished with 25 verified, 0 errors
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -46,8 +46,16 @@ Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
   eq: true false true false true false
   eq: true true true true true true
   eq: true true true true true true
+set: {20, 30}
+multiset: {20, 30}
+seq: [20, 30]
+map: {20 := 30, 30 := 20}
+true
+true
+1 1
+1 1
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -92,8 +100,16 @@ Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
   eq: true false true false true false
   eq: true true true true true true
   eq: true true true true true true
+set: {20, 30}
+multiset: {20, 30}
+seq: [20, 30]
+map: {20 := 30, 30 := 20}
+true
+true
+1 1
+1 1
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -138,8 +154,16 @@ Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
   eq: true false true false true false
   eq: true true true true true true
   eq: true true true true true true
+set: {20, 30}
+multiset: {20, 30}
+seq: [20, 30]
+map: {20 := 30, 30 := 20}
+true
+true
+1 1
+1 1
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -184,3 +208,11 @@ Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
   eq: true false true false true false
   eq: true true true true true true
   eq: true true true true true true
+set: {20, 30}
+multiset: {20, 30}
+seq: [20, 30]
+map: {20 := 30, 30 := 20}
+true
+true
+1 1
+1 1
