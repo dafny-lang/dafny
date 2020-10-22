@@ -12,7 +12,7 @@ namespace DafnyLS.Util {
     /// </summary>
     /// <param name="position">The position to get the absolute position of.</param>
     /// <param name="text">The text where the position should be resolved.</param>
-    /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
+    /// <param name="cancellationToken">A token to cancel the resolution before its completion.</param>
     /// <returns>The absolute position within the text.</returns>
     /// <exception cref="ArgumentException">Thrown if the specified position does not belong to the given text.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
@@ -35,6 +35,32 @@ namespace DafnyLS.Util {
         absolutePosition++;
       } while(line <= position.Line && absolutePosition <= text.Length);
       throw new ArgumentException("could not resolve the absolute position");
+    }
+
+    /// <summary>
+    /// Gets the LSP position at the end of the given text.
+    /// </summary>
+    /// <param name="text">The text to get the LSP end of.</param>
+    /// <param name="cancellationToken">A token to cancel the resolution before its completion.</param>
+    /// <returns>The LSP position at the end of the text.</returns>
+    /// <exception cref="ArgumentException">Thrown if the specified position does not belong to the given text.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
+    public static Position GetEofPosition(this string text, CancellationToken cancellationToken) {
+      int line = 0;
+      int character = 0;
+      int absolutePosition = 0;
+      do {
+        cancellationToken.ThrowIfCancellationRequested();
+        if(IsEndOfLine(text, absolutePosition)) {
+          line++;
+          character = 0;
+        } else {
+          character++;
+        }
+        absolutePosition++;
+      } while(absolutePosition <= text.Length);
+      return new Position(line, character);
     }
 
     private static bool IsEndOfLine(string text, int absolutePosition) {

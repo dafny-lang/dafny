@@ -1,5 +1,4 @@
 ﻿using DafnyLS.Language;
-using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;

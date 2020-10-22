@@ -23,10 +23,10 @@ namespace DafnyLS.Language.Symbols {
       var designatorVisitor = new DesignatorVisitor(_logger, declarations, compilationUnit, cancellationToken);
       if(HasErrors(program)) {
         _logger.LogDebug("cannot create symbol table from a program with errors");
-      } else {
-        designatorVisitor.Visit(program);
+        return new SymbolTable(designatorVisitor.SymbolLookup, false);
       }
-      return new SymbolTable(designatorVisitor.SymbolLookup);
+      designatorVisitor.Visit(program);
+      return new SymbolTable(designatorVisitor.SymbolLookup, true);
     }
 
     private static bool HasErrors(Microsoft.Dafny.Program program) {
