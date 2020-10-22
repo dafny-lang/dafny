@@ -11987,12 +11987,13 @@ namespace Microsoft.Dafny
           var lex = lhsExtract as ExprDotName; // might be just a NameSegment
           lhsExtract = new ExprDotName(lexr.tok, id, lexr.MemberName, lex == null ? null : lex.OptTypeArguments);
         } else if (lhsResolved is SeqSelectExpr lseq) {
-          Expression id = makeTemp("recv", s, codeContext, lseq.Seq);
-          Expression id0 = null;
-          if (lseq.E0 != null) {
-            id0 = makeTemp("idx", s, codeContext, lseq.E0);
+          if (!lseq.SelectOne || lseq.E0 == null) {
+            reporter.Error(MessageSource.Resolver, s.Tok,
+              "Element ranges not allowed as l-values");
+            return;
           }
-          Contract.Assert(lseq.E1 == null);
+          Expression id = makeTemp("recv", s, codeContext, lseq.Seq);
+          Expression id0 = id0 = makeTemp("idx", s, codeContext, lseq.E0);
           lhsExtract = new SeqSelectExpr(lseq.tok, lseq.SelectOne, id, id0, null);
           lhsExtract.Type = lseq.Type;
         } else if (lhsResolved is MultiSelectExpr lmulti) {

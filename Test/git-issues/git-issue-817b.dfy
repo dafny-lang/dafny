@@ -8,7 +8,7 @@ datatype Result<T> = Failure(msg: string) | Success(value: T) {
 }
 
 class Cell {
-  var data: int;
+  var data: int
 }
 
 method M(c: Cell) returns (r: Result<int>)

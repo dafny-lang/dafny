@@ -13,7 +13,7 @@ datatype Result<T> = Failure(msg: string) | Success(value: T) {
 
 class D {
   constructor (vv: int) ensures v == vv { v := vv; }
-  var v: int;
+  var v: int
 }
 method Main() {
   var _ := m();
@@ -68,10 +68,10 @@ method mmm() returns (rr: Result<int>) {
 }
 
 class C {
-  var x: int;
+  var x: int
 
   method m() returns (rr: Result<int>)
-    modifies this;
+    modifies this
   {
     var y: int;
     var r := Success(100);

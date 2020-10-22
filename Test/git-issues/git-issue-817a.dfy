@@ -12,7 +12,7 @@ datatype Result<T> = Failure(msg: string) | Success(value: T) {
 }
 
 class Cell {
-  var data: int;
+  var data: int
 }
 
 method M(a: array<int>, c: Cell) returns (r: Result<int>)
