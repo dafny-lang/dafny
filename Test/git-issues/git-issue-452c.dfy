@@ -12,7 +12,7 @@ function method TwinPrimes(): Record {
 }
 
 method Main() {
-  var u := var Record(x, y) := TwinPrimes(); y; // x and w are non-ghost
+  var u := var Record(x, y) := TwinPrimes(); y; // x is non-ghost
   var w := var Record(x, y) := TwinPrimes(); x; // x and w are non-ghost
   //@ assert u == 43;
   print w, "\n";
