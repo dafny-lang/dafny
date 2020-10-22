@@ -254,12 +254,6 @@ namespace Microsoft.Dafny{
       wr.Write($"({s})");
     }
 
-    protected override void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, Expression rhs,
-      bool inLetExprBody, TargetWriter wr, Type t){
-      var w = DeclareLocalVar(name, t, tok, wr);
-      TrExpr(rhs, w, inLetExprBody);
-    }
-
     protected override TargetWriter EmitIngredients(TargetWriter wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs){
       using (var wrVarInit = wr){
         wrVarInit.Write($"java.util.ArrayList<{DafnyTupleClass(L)}<{tupleTypeArgs}>> {ingredients} = ");
@@ -718,7 +712,7 @@ namespace Microsoft.Dafny{
     string ArrayTypeName(Type elType, int dims, TextWriter wr, Bpl.IToken tok) {
       if (dims > 1) {
         arrays.Add(dims);
-        return $"{DafnyMultiArrayClass(dims)}<{BoxedTypeName(elType, wr, tok)}>";
+        return $"{DafnyMultiArrayClass(dims)}<{ActualTypeArgument(elType, TypeParameter.TPVariance.Non, wr, tok)}>";
       } else if (elType.IsTypeParameter) {
         return "java.lang.Object";
       } else {
@@ -2584,15 +2578,6 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitAssignment(out TargetWriter wLhs, Type /*?*/ lhsType, out TargetWriter wRhs, Type /*?*/ rhsType, TargetWriter wr) {
-      wLhs = wr.Fork();
-      wr.Write(" = ");
-      TargetWriter w;
-      w = rhsType != null ? EmitCoercionIfNecessary(@from: rhsType, to: lhsType, tok: Bpl.Token.NoToken, wr: wr) : wr;
-      wRhs = w.Fork();
-      EndStmt(wr);
-    }
-
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
       EmitDatatypeValue(dt, dtv.Ctor, dtv.IsCoCall, arguments, wr);
@@ -3612,6 +3597,13 @@ namespace Microsoft.Dafny{
       TrExprList(arguments, wr, inLetExprBody);
     }
 
+    protected override TargetWriter EmitDowncast(Type from, Type to, Bpl.IToken tok, TargetWriter wr) {
+      wr.Write($"(({TypeName(to, wr, tok)})(");
+      var w = wr.Fork();
+      wr.Write("))");
+      return w;
+    }
+
     protected override TargetWriter EmitCoercionToNativeInt(TargetWriter wr) {
       wr.Write("((java.math.BigInteger)");
       var w = wr.Fork();
@@ -3859,23 +3851,12 @@ namespace Microsoft.Dafny{
       return wr.NewBlock("public static void Main(string[] args)");
     }
 
-    protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok,
-      Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      wr.Write($"{DafnyHelpersClass}.Let(");
-      wr.Write($"{source}, {bvName} -> ");
-      var w = wr.Fork();
-      wr.Write(")");
-      return w;
-    }
-
-    protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok,
-      Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      wr.Write($"{DafnyHelpersClass}.Let(");
-      TrExpr(source, wr, inLetExprBody);
+    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, TargetWriter wr, out TargetWriter wrRhs, out TargetWriter wrBody) {
+      wr.Write("{0}.<{1}, {2}>Let(", DafnyHelpersClass, BoxedTypeName(bvType, wr, bvTok), BoxedTypeName(bodyType, wr, bodyTok));
+      wrRhs = wr.Fork();
       wr.Write($", {bvName} -> ");
-      var w = wr.Fork();
+      wrBody = wr.Fork();
       wr.Write(")");
-      return w;
     }
 
     protected override string GetQuantifierName(string bvType) {

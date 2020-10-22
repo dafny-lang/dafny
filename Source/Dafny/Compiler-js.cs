@@ -1713,20 +1713,14 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, TargetWriter wr, out TargetWriter wrRhs, out TargetWriter wrBody) {
       var w = wr.NewExprBlock("function ({0})", bvName);
       w.Write("return ");
-      w.BodySuffix = ";" + w.NewLine;
-      TrParenExpr(source, wr, inLetExprBody);
-      return w;
-    }
-
-    protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      var w = wr.NewExprBlock("function ({0})", bvName);
-      w.Write("return ");
-      w.BodySuffix = ";" + w.NewLine;
-      wr.Write("({0})", source);
-      return w;
+      wrBody = w.Fork();
+      w.WriteLine(";");
+      wr.Write("(");
+      wrRhs = wr.Fork();
+      wr.Write(")");
     }
 
     protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
