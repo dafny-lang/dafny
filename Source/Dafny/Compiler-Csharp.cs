@@ -36,6 +36,8 @@ namespace Microsoft.Dafny
     const string DafnySeqClass = "Dafny.Sequence";
     const string DafnyMapClass = "Dafny.Map";
 
+    const string DafnyHelpersClass = "Dafny.Helpers";
+
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
       wr.WriteLine("// To recompile, use 'csc' with");
@@ -128,7 +130,7 @@ namespace Microsoft.Dafny
       return wr.NewBigBlock(s, " // end of " + s);
     }
 
-    protected override string GetHelperModuleName() => "Dafny.Helpers";
+    protected override string GetHelperModuleName() => DafnyHelpersClass;
 
     string TypeParameters(List<TypeParameter> targs) {
       Contract.Requires(cce.NonNullElements(targs));
@@ -551,7 +553,7 @@ namespace Microsoft.Dafny
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
             string nm = FormalName(arg, i);
-            w.WriteLine("hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.{0}));", nm);
+            w.WriteLine($"hash = ((hash << 5) + hash) + ((ulong){DafnyHelpersClass}.GetHashCode(this.{nm}));");
             i++;
           }
         }
@@ -581,7 +583,7 @@ namespace Microsoft.Dafny
                 if (i != 0) {
                   w.WriteLine("{0} += \", \";", tempVar);
                 }
-                w.WriteLine("{0} += Dafny.Helpers.ToString(this.{1});", tempVar, FormalName(arg, i));
+                w.WriteLine("{0} += {2}.ToString(this.{1});", tempVar, FormalName(arg, i), DafnyHelpersClass);
                 i++;
               }
             }
@@ -1190,7 +1192,7 @@ namespace Microsoft.Dafny
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
-      wr.Write("Dafny.Helpers.Print");
+      wr.Write($"{DafnyHelpersClass}.Print");
       if (arg.Type.AsArrowType != null) {
         string typestr = TypeName(arg.Type, wr, null, null);
         wr.Write("<" + typestr + " >");
@@ -1259,7 +1261,7 @@ namespace Microsoft.Dafny
     }
 
     protected override string GetQuantifierName(string bvType) {
-      return string.Format("Dafny.Helpers.Quantifier<{0}>", bvType);
+      return string.Format($"{DafnyHelpersClass}.Quantifier<{bvType}>");
     }
 
     protected override BlockTargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
@@ -1340,7 +1342,7 @@ namespace Microsoft.Dafny
         wr.Write("new {0}", typeNameSansBrackets);
         string prefix = "[";
         for (var d = 0; d < dimCount; d++) {
-          wr.Write("{0}{1}", prefix, "Dafny.Helpers.ToIntChecked(");
+          wr.Write($"{prefix}{DafnyHelpersClass}.ToIntChecked(");
           var w = wr.Fork();
           wrs.Add(w);
           wr.Write(",\"C# array size must not be larger than max 32-bit int\")");
@@ -1894,7 +1896,7 @@ namespace Microsoft.Dafny
 
     protected override void EmitSeqSelectRange(Expression source, Expression/*?*/ lo, Expression/*?*/ hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
       if (fromArray) {
-        wr.Write("Dafny.Helpers.SeqFromArray");
+        wr.Write($"{DafnyHelpersClass}.SeqFromArray");
       }
       TrParenExpr(source, wr, inLetExprBody);
       if (hi != null) {
@@ -1992,7 +1994,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr) {
-      wr.Write("Dafny.Helpers.Id<");
+      wr.Write($"{DafnyHelpersClass}.Id<");
       wr.Write(TypeName(functionType, wr, tok));
       wr.Write(">(");
       TrExpr(function, wr, inLetExprBody);
@@ -2044,7 +2046,7 @@ namespace Microsoft.Dafny
 
     protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {
       var typeArgs = TypeName_UDT(ArrowType.Arrow_FullCompileName, Util.Snoc(boundTypes, resultType), wr, tok);
-      wr.Write("Dafny.Helpers.Id<{0}>(({1}) => ", typeArgs, Util.Comma(boundVars));
+      wr.Write("{2}.Id<{0}>(({1}) => ", typeArgs, Util.Comma(boundVars), DafnyHelpersClass);
       var w = wr.Fork();
       wr.Write(")");
       TrExprList(arguments, wr, inLetExprBody);
@@ -2075,7 +2077,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, TargetWriter wr, out TargetWriter wrRhs, out TargetWriter wrBody) {
-      wr.Write("Dafny.Helpers.Let<{0}, {1}>(", TypeName(bvType, wr, bvTok), TypeName(bodyType, wr, bodyTok));
+      wr.Write("{2}.Let<{0}, {1}>(", TypeName(bvType, wr, bvTok), TypeName(bodyType, wr, bodyTok), DafnyHelpersClass);
       wrRhs = wr.Fork();
       wr.Write(", {0} => ", bvName);
       wrBody = wr.Fork();
@@ -2092,7 +2094,7 @@ namespace Microsoft.Dafny
     }
 
     protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      wr.Write("Dafny.Helpers.Let<int,{0}>(", TypeName(resultType, wr, resultTok));
+      wr.Write($"{DafnyHelpersClass}.Let<int, {TypeName(resultType, wr, resultTok)}>(");
       wr.Write("{0}, {1} => ", source, bvName);
       var w = wr.NewBigExprBlock("", ")");
       return w;
@@ -2197,7 +2199,7 @@ namespace Microsoft.Dafny
         case BinaryExpr.ResolvedOpcode.Div:
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = "Dafny.Helpers.EuclideanDivision" + suffix;
+            staticCallString = $"{DafnyHelpersClass}.EuclideanDivision{suffix}";
           } else {
             opString = "/";  // for reals
           }
@@ -2205,7 +2207,7 @@ namespace Microsoft.Dafny
         case BinaryExpr.ResolvedOpcode.Mod:
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = "Dafny.Helpers.EuclideanModulus" + suffix;
+            staticCallString = $"{DafnyHelpersClass}.EuclideanModulus{suffix}";
           } else {
             opString = "%";  // for reals
           }
@@ -2451,7 +2453,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr) {
-      wr.Write("Dafny.Helpers.SingleValue<{0}>", type);
+      wr.Write($"{DafnyHelpersClass}.SingleValue<{type}>");
       TrParenExpr(e, wr, inLetExprBody);
     }
 

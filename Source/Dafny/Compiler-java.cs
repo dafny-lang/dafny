@@ -2804,9 +2804,9 @@ namespace Microsoft.Dafny{
           } else if (AsNativeType(resultType) != null) {
             var nt = AsNativeType(resultType);
             if (nt.Sel == NativeType.Selection.Byte) {
-              staticCallString = "dafny.Helpers.divideUnsignedByte";
+              staticCallString = $"{DafnyHelpersClass}.divideUnsignedByte";
             } else if (nt.Sel == NativeType.Selection.UShort) {
-              staticCallString = "dafny.Helpers.divideUnsignedShort";
+              staticCallString = $"{DafnyHelpersClass}.divideUnsignedShort";
             } else {
               preOpString = CastIfSmallNativeType(resultType);
               staticCallString = HelperClass(AsNativeType(resultType)) + ".divideUnsigned";
@@ -2821,9 +2821,9 @@ namespace Microsoft.Dafny{
           } else if (AsNativeType(resultType) != null) {
             var nt = AsNativeType(resultType);
             if (nt.Sel == NativeType.Selection.Byte) {
-              staticCallString = "dafny.Helpers.remainderUnsignedByte";
+              staticCallString = $"{DafnyHelpersClass}.remainderUnsignedByte";
             } else if (nt.Sel == NativeType.Selection.UShort) {
-              staticCallString = "dafny.Helpers.remainderUnsignedShort";
+              staticCallString = $"{DafnyHelpersClass}.remainderUnsignedShort";
             } else {
               preOpString = CastIfSmallNativeType(resultType);
               staticCallString = HelperClass(AsNativeType(resultType)) + ".remainderUnsigned";
