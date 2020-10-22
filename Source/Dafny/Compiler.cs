@@ -2934,8 +2934,8 @@ namespace Microsoft.Dafny {
           TrStmt(s.Update, wr);
         }
 
-      } else if (stmt is LetStmt) {
-        var s = (LetStmt)stmt;
+      } else if (stmt is VarDeclPattern) {
+        var s = (VarDeclPattern)stmt;
         if (Contract.Exists(s.LHS.Vars, bv => !bv.IsGhost)) {
           TrCasePatternOpt(s.LHS, s.RHS, wr, false);
         }

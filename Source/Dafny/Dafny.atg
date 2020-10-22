@@ -414,10 +414,10 @@ bool IsIdentParen() {
 }
 
 /* Used to disambiguate the LHS of a VarDeclStmt. If it looks like the start of a CasePattern,
- * we consider it to be a LetStmt. But if we are looking at a simple identifier, then we
+ * we consider it to be a VarDeclPattern. But if we are looking at a simple identifier, then we
  * consider it to be a VarDeclStmt.
  */
-bool IsLetStmt() {
+bool IsPatternDecl() {
   return IsIdentParen() || la.kind == _openparen;
 }
 
@@ -2323,7 +2323,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
   [ "ghost"                                 (. isGhost = true;  x = t; .)
   ]
   "var"                                     (. if (!isGhost) { x = t; } .)
-  ( IF(!IsLetStmt())
+  ( IF(!IsPatternDecl())
     { Attribute<ref attrs> }
     LocalIdentTypeOptional<out d, isGhost>    (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
     { ","
@@ -2383,7 +2383,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
     Expression<out e, false, true>
 
     ";"
-    (. s = new LetStmt(e.tok, e.tok, pat, e); .)
+    (. s = new VarDeclPattern(e.tok, e.tok, pat, e, !isGhost); .)
   )
   .
 IfStmt<out Statement/*!*/ ifStmt>
