@@ -89,7 +89,7 @@ namespace DafnyLS.Handlers {
       private string[] GetMemberAccessChainBefore(Position position) {
         var text = _document.Text.Text;
         var absolutePosition = position.ToAbsolutePosition(text, _cancellationToken);
-        return new MemberAccessChainResolver(text, absolutePosition).ResolveFromBehind().Reverse().ToArray();
+        return new MemberAccessChainResolver(text, absolutePosition, _cancellationToken).ResolveFromBehind().Reverse().ToArray();
       }
 
       private Position? GetLinePositionBeforeDot() {
@@ -125,19 +125,22 @@ namespace DafnyLS.Handlers {
     private class MemberAccessChainResolver {
       private readonly string _text;
       private int _position;
+      private readonly CancellationToken _cancellationToken;
 
       private bool IsTabOrSpace => _text[_position] == ' ' || _text[_position] == '\t';
       private bool IsAtNewStatement => _text[_position] == '\r' || _text[_position] == '\n' || _text[_position] == ';';
       private bool IsIdentifierCharacter => char.IsLetterOrDigit(_text[_position]) || _text[_position] == '_'; // TODO any other characters that are allowed characters?
       private bool IsMemberAccessOperator => _text[_position] == '.';
 
-      public MemberAccessChainResolver(string text, int endPosition) {
+      public MemberAccessChainResolver(string text, int endPosition, CancellationToken cancellationToken) {
         _text = text;
         _position = endPosition;
+        _cancellationToken = cancellationToken;
       }
 
       public IEnumerable<string> ResolveFromBehind() {
         while(_position >= 0) {
+          _cancellationToken.ThrowIfCancellationRequested();
           SkipTabsAndSpaces();
           if(IsAtNewStatement) {
             yield break;
