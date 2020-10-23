@@ -81,7 +81,7 @@ namespace DafnyLS.Language {
     }
 
     private class VerifierOutputPrinter : OutputPrinter {
-      private ILogger _logger;
+      private readonly ILogger _logger;
 
       public VerifierOutputPrinter(ILogger logger) {
         _logger = logger;
