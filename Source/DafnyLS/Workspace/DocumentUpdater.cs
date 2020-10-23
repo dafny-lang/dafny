@@ -26,12 +26,10 @@ namespace DafnyLS.Workspace {
       };
       var loadedDocument = await _documentLoader.LoadAsync(mergedItem, cancellationToken);
       if(!loadedDocument.SymbolTable.Resolved) {
-        // TODO relocate the symbol declarations. it could be necessary/convenient to change to an immutable design.
         return new DafnyDocument(
           loadedDocument.Text,
           loadedDocument.Errors,
           loadedDocument.Program,
-          loadedDocument.CompilationUnit,
           MigrateSymbolTable(oldDocument, documentChange.ContentChanges, cancellationToken)
         );
       }
@@ -63,9 +61,10 @@ namespace DafnyLS.Workspace {
       foreach(var change in contentChanges) {
         cancellationToken.ThrowIfCancellationRequested();
         migratedLookupTree = MigrateLookupTree(migratedLookupTree, change, cancellationToken);
+        // TODO migrate the declarations
       }
       _logger.LogTrace("migrated the lookup tree, lookup before={}, after={}", oldDocument.SymbolTable.LookupTree.Count, migratedLookupTree.Count);
-      return new SymbolTable(migratedDeclarations, migratedLookupTree, true);
+      return new SymbolTable(oldDocument.SymbolTable.CompilationUnit, migratedDeclarations, migratedLookupTree, true);
     }
 
     private IIntervalTree<Position, ILocalizableSymbol> MigrateLookupTree(IIntervalTree<Position, ILocalizableSymbol> lookupTree, TextDocumentContentChangeEvent change, CancellationToken cancellationToken) {

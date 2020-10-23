@@ -1,8 +1,10 @@
-﻿using IntervalTree;
+﻿using DafnyLS.Util;
+using IntervalTree;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
   /// <summary>
@@ -10,6 +12,7 @@ namespace DafnyLS.Language.Symbols {
   /// </summary>
   public class SymbolTable {
     // TODO Guard the properties from changes
+    public CompilationUnit CompilationUnit { get; }
 
     /// <summary>
     /// Gets the interval tree backing this symbol table. Do not modify this instance.
@@ -23,7 +26,8 @@ namespace DafnyLS.Language.Symbols {
 
     public bool Resolved { get; }
 
-    public SymbolTable(IDictionary<ISymbol, SymbolLocation> locations, IIntervalTree<Position, ILocalizableSymbol> symbolLookup, bool symbolsResolved) {
+    public SymbolTable(CompilationUnit compilationUnit, IDictionary<ISymbol, SymbolLocation> locations, IIntervalTree<Position, ILocalizableSymbol> symbolLookup, bool symbolsResolved) {
+      CompilationUnit = compilationUnit;
       Locations = locations;
       LookupTree = symbolLookup;
       Resolved = symbolsResolved;
@@ -38,6 +42,7 @@ namespace DafnyLS.Language.Symbols {
     /// <param name="position">The requested position.</param>
     /// <param name="symbol">The symbol that could be identified at the given position, or <c>null</c> if no symbol could be identified.</param>
     /// <returns><c>true</c> if a symbol was found, otherwise <c>false</c>.</returns>
+    /// <exception cref="System.InvalidOperationException">Thrown if there was one more symbol at the specified position. This should never happen, unless there was an error.</exception>
     public bool TryGetSymbolAt(Position position, [NotNullWhen(true)] out ILocalizableSymbol? symbol) {
       symbol = LookupTree.Query(position).SingleOrDefault();
       return symbol != null;
@@ -51,6 +56,40 @@ namespace DafnyLS.Language.Symbols {
     /// <returns><c>true</c> if a location was found, otherwise <c>false</c>.</returns>
     public bool TryGetLocationOf(ISymbol symbol, [NotNullWhen(true)] out SymbolLocation? location) {
       return Locations.TryGetValue(symbol, out location);
+    }
+
+    /// <summary>
+    /// Resolves the innermost symbol that encloses the given position.
+    /// </summary>
+    /// <param name="position">The position to get the innermost symbol of.</param>
+    /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
+    /// <returns>The innermost symbol at the specified position.</returns>
+    /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
+    public ISymbol GetEnclosingSymbol(Position position, CancellationToken cancellationToken) {
+      // TODO use a suitable data-structure to resolve the locations efficiently.
+      var comparer = new PositionComparer();
+      ISymbol innerMostSymbol = CompilationUnit;
+      var innerMostRange = new Range(new Position(0, 0), new Position(0, int.MaxValue));
+      foreach(var (symbol, location) in Locations) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var range = location.Declaration;
+        if(IsSmallerThan(comparer, innerMostRange, range) && IsInside(comparer, range, position)) {
+          innerMostSymbol = symbol;
+          innerMostRange = range;
+        }
+      }
+      return innerMostSymbol;
+    }
+
+    private static bool IsSmallerThan(PositionComparer comparer, Range current, Range tested) {
+      return comparer.Compare(tested.Start, current.Start) >= 0
+        && comparer.Compare(tested.End, current.End) <= 0;
+    }
+
+    private static bool IsInside(PositionComparer comparer, Range range, Position position) {
+      return comparer.Compare(position, range.Start) >= 0
+        && comparer.Compare(position, range.End) <= 0;
     }
   }
 }

@@ -24,11 +24,11 @@ namespace DafnyLS.Language.Symbols {
       var declarationVisitor = new SymbolDeclarationVisitor(cancellationToken);
       if(HasErrors(program)) {
         _logger.LogDebug("cannot create symbol table from a program with errors");
-        return new SymbolTable(declarationVisitor.Declarations, designatorVisitor.SymbolLookup, false);
+        return new SymbolTable(compilationUnit, declarationVisitor.Declarations, designatorVisitor.SymbolLookup, false);
       }
       designatorVisitor.Visit(program);
       declarationVisitor.Visit(compilationUnit);
-      return new SymbolTable(declarationVisitor.Declarations, designatorVisitor.SymbolLookup, true);
+      return new SymbolTable(compilationUnit, declarationVisitor.Declarations, designatorVisitor.SymbolLookup, true);
     }
 
     private static bool HasErrors(Microsoft.Dafny.Program program) {
