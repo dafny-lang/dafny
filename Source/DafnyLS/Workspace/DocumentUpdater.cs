@@ -59,12 +59,13 @@ namespace DafnyLS.Workspace {
 
     private SymbolTable MigrateSymbolTable(DafnyDocument oldDocument, Container<TextDocumentContentChangeEvent> contentChanges, CancellationToken cancellationToken) {
       var migratedLookupTree = oldDocument.SymbolTable.LookupTree;
+      var migratedDeclarations = oldDocument.SymbolTable.Locations;
       foreach(var change in contentChanges) {
         cancellationToken.ThrowIfCancellationRequested();
         migratedLookupTree = MigrateLookupTree(migratedLookupTree, change, cancellationToken);
       }
       _logger.LogTrace("migrated the lookup tree, lookup before={}, after={}", oldDocument.SymbolTable.LookupTree.Count, migratedLookupTree.Count);
-      return new SymbolTable(migratedLookupTree, true);
+      return new SymbolTable(migratedDeclarations, migratedLookupTree, true);
     }
 
     private IIntervalTree<Position, ILocalizableSymbol> MigrateLookupTree(IIntervalTree<Position, ILocalizableSymbol> lookupTree, TextDocumentContentChangeEvent change, CancellationToken cancellationToken) {

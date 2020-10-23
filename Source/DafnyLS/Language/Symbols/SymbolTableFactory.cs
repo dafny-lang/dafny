@@ -1,9 +1,9 @@
 ﻿using DafnyLS.Util;
 using IntervalTree;
+using MediatR;
 using Microsoft.Dafny;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -21,12 +21,14 @@ namespace DafnyLS.Language.Symbols {
     public SymbolTable CreateFrom(Microsoft.Dafny.Program program, CompilationUnit compilationUnit, CancellationToken cancellationToken) {
       var declarations = CreateDeclarationDictionary(compilationUnit, cancellationToken);
       var designatorVisitor = new DesignatorVisitor(_logger, declarations, compilationUnit, cancellationToken);
+      var declarationVisitor = new SymbolDeclarationVisitor(cancellationToken);
       if(HasErrors(program)) {
         _logger.LogDebug("cannot create symbol table from a program with errors");
-        return new SymbolTable(designatorVisitor.SymbolLookup, false);
+        return new SymbolTable(declarationVisitor.Declarations, designatorVisitor.SymbolLookup, false);
       }
       designatorVisitor.Visit(program);
-      return new SymbolTable(designatorVisitor.SymbolLookup, true);
+      declarationVisitor.Visit(compilationUnit);
+      return new SymbolTable(declarationVisitor.Declarations, designatorVisitor.SymbolLookup, true);
     }
 
     private static bool HasErrors(Microsoft.Dafny.Program program) {
@@ -112,7 +114,7 @@ namespace DafnyLS.Language.Symbols {
         }
       }
 
-      private void ProcessNestedScope(AstElement node, Action visit) {
+      private void ProcessNestedScope(AstElement node, System.Action visit) {
         var oldScope = _currentScope;
         _currentScope = _declarations[node];
         visit();
@@ -131,6 +133,102 @@ namespace DafnyLS.Language.Symbols {
           currentScope = currentScope.Scope;
         }
         return null;
+      }
+    }
+
+    private class SymbolDeclarationVisitor : ISymbolVisitor<Unit> {
+      private readonly CancellationToken _cancellationToken;
+
+      public IDictionary<ISymbol, SymbolLocation> Declarations { get; } = new Dictionary<ISymbol, SymbolLocation>();
+
+      public SymbolDeclarationVisitor(CancellationToken cancellationToken) {
+        _cancellationToken = cancellationToken;
+      }
+
+      public Unit Visit(ISymbol symbol) {
+        symbol.Accept(this);
+        return Unit.Value;
+      }
+
+      public Unit Visit(CompilationUnit compilationUnit) {
+        VisitChildren(compilationUnit);
+        return Unit.Value;
+      }
+
+      public Unit Visit(ModuleSymbol moduleSymbol) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterLocation(
+          moduleSymbol,
+          moduleSymbol.Declaration.tok.GetLspRange(),
+          new Range(moduleSymbol.Declaration.tok.GetLspPosition(), moduleSymbol.Declaration.BodyEndTok.GetLspPosition())
+        );
+        VisitChildren(moduleSymbol);
+        return Unit.Value;
+      }
+
+      public Unit Visit(ClassSymbol classSymbol) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterLocation(
+          classSymbol,
+          classSymbol.Declaration.tok.GetLspRange(),
+          new Range(classSymbol.Declaration.tok.GetLspPosition(), classSymbol.Declaration.BodyEndTok.GetLspPosition())
+        );
+        VisitChildren(classSymbol);
+        return Unit.Value;
+      }
+
+      public Unit Visit(FieldSymbol fieldSymbol) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterLocation(
+          fieldSymbol,
+          fieldSymbol.Declaration.tok.GetLspRange(),
+          new Range(fieldSymbol.Declaration.tok.GetLspPosition(), fieldSymbol.Declaration.BodyEndTok.GetLspPosition())
+        );
+        VisitChildren(fieldSymbol);
+        return Unit.Value;
+      }
+
+      public Unit Visit(FunctionSymbol functionSymbol) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterLocation(
+          functionSymbol,
+          functionSymbol.Declaration.tok.GetLspRange(),
+          new Range(functionSymbol.Declaration.tok.GetLspPosition(), functionSymbol.Declaration.BodyEndTok.GetLspPosition())
+        );
+        VisitChildren(functionSymbol);
+        return Unit.Value;
+      }
+
+      public Unit Visit(MethodSymbol methodSymbol) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterLocation(
+          methodSymbol,
+          methodSymbol.Declaration.tok.GetLspRange(),
+          new Range(methodSymbol.Declaration.tok.GetLspPosition(), methodSymbol.Declaration.BodyEndTok.GetLspPosition())
+        );
+        VisitChildren(methodSymbol);
+        return Unit.Value;
+      }
+
+      public Unit Visit(VariableSymbol variableSymbol) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterLocation(
+          variableSymbol,
+          variableSymbol.Declaration.Tok.GetLspRange(),
+          variableSymbol.Declaration.Tok.GetLspRange()
+        );
+        VisitChildren(variableSymbol);
+        return Unit.Value;
+      }
+
+      private void VisitChildren(ISymbol symbol) {
+        foreach(var child in symbol.Children) {
+          child.Accept(this);
+        }
+      }
+
+      private void RegisterLocation(ISymbol symbol, Range identifier, Range declaration) {
+        Declarations.Add(symbol, new SymbolLocation(identifier, declaration));
       }
     }
   }

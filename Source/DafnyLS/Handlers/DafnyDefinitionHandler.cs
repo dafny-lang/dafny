@@ -37,14 +37,22 @@ namespace DafnyLS.Handlers {
         _logger.LogDebug("no symbol was found at {} in {}", request.Position, request.TextDocument);
         return Task.FromResult(new LocationOrLocationLinks());
       }
-      return Task.FromResult<LocationOrLocationLinks>(new[] { GetLspLocation(document, symbol) });
+      var location = GetLspLocation(document, symbol);
+      if(!location.HasValue) {
+        _logger.LogDebug("failed to resolve the location of the symbol {} at {} in {}", symbol.Identifier, request.Position, request.TextDocument);
+        return Task.FromResult(new LocationOrLocationLinks());
+      }
+      return Task.FromResult<LocationOrLocationLinks>(new[] { location.Value });
     }
 
-    private LocationOrLocationLink GetLspLocation(DafnyDocument document, ILocalizableSymbol symbol) {
-      return new Location {
-        Uri = document.Uri,
-        Range = symbol.GetHoverRange()
-      };
+    private LocationOrLocationLink? GetLspLocation(DafnyDocument document, ISymbol symbol) {
+      if(document.SymbolTable.TryGetLocationOf(symbol, out var location)) {
+        return new Location {
+          Uri = document.Uri,
+          Range = location.Identifier
+        };
+      }
+      return null;
     }
   }
 }
