@@ -70,11 +70,11 @@ namespace DafnyLS.Language.Symbols {
       // TODO use a suitable data-structure to resolve the locations efficiently.
       var comparer = new PositionComparer();
       ISymbol innerMostSymbol = CompilationUnit;
-      var innerMostRange = new Range(new Position(0, 0), new Position(0, int.MaxValue));
+      var innerMostRange = new Range(new Position(0, 0), new Position(int.MaxValue, int.MaxValue));
       foreach(var (symbol, location) in Locations) {
         cancellationToken.ThrowIfCancellationRequested();
         var range = location.Declaration;
-        if(IsSmallerThan(comparer, innerMostRange, range) && IsInside(comparer, range, position)) {
+        if(IsEnclosedBy(comparer, innerMostRange, range) && IsInside(comparer, range, position)) {
           innerMostSymbol = symbol;
           innerMostRange = range;
         }
@@ -82,7 +82,7 @@ namespace DafnyLS.Language.Symbols {
       return innerMostSymbol;
     }
 
-    private static bool IsSmallerThan(PositionComparer comparer, Range current, Range tested) {
+    private static bool IsEnclosedBy(PositionComparer comparer, Range current, Range tested) {
       return comparer.Compare(tested.Start, current.Start) >= 0
         && comparer.Compare(tested.End, current.End) <= 0;
     }
