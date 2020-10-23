@@ -27,6 +27,9 @@ namespace DafnyLS.Language.Symbols {
       Locations = locations;
       LookupTree = symbolLookup;
       Resolved = symbolsResolved;
+
+      // TODO IntervalTree goes out of sync after any change and "fixes" its state upon the first query. Replace it with another implementation that can be queried without potential side-effects.
+      LookupTree.Query(new Position(0, 0));
     }
 
     /// <summary>
