@@ -22,18 +22,25 @@ namespace DafnyLS.Language.Symbols {
       var declarations = CreateDeclarationDictionary(compilationUnit, cancellationToken);
       var designatorVisitor = new DesignatorVisitor(_logger, declarations, compilationUnit, cancellationToken);
       var declarationVisitor = new SymbolDeclarationVisitor(cancellationToken);
-      if(HasErrors(program)) {
+      var symbolsResolved = !HasErrors(program);
+      if(symbolsResolved) {
+        designatorVisitor.Visit(program);
+        declarationVisitor.Visit(compilationUnit);
+      } else {
         // TODO This is an unfortunate situation. The syntax could be correct but contain some semantic errors.
         //      However, due to the contracts of the resolver we cannot pro-actively check if certain information could be resolved or not.
         //      Therefore, we only have "all or nothing" when re-using the semantic model. Check if there is really no possibility to
         //      check if information was set without actually retrieving it (i.e., it's not possible to access the Type attribute due to a contract
         //      prohibiting it to be null).
         _logger.LogDebug("cannot create symbol table from a program with errors");
-        return new SymbolTable(compilationUnit, declarationVisitor.Declarations, designatorVisitor.SymbolLookup, false);
       }
-      designatorVisitor.Visit(program);
-      declarationVisitor.Visit(compilationUnit);
-      return new SymbolTable(compilationUnit, declarationVisitor.Declarations, designatorVisitor.SymbolLookup, true);
+      return new SymbolTable(
+        compilationUnit,
+        declarations,
+        declarationVisitor.Declarations,
+        designatorVisitor.SymbolLookup,
+        symbolsResolved
+      );
     }
 
     private static bool HasErrors(Microsoft.Dafny.Program program) {

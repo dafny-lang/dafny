@@ -83,7 +83,53 @@ namespace DafnyLS.Handlers {
         }
         // TODO maybe one of the members was successfully resolved before. This should be a more reliable source instead of trying to resolve it manually.
         var memberAccesses = GetMemberAccessChainBefore(position);
-        return new CompletionList();
+        if(memberAccesses.Length == 0) {
+          return new CompletionList();
+        }
+        return CreateCompletionListFromSymbols(GetSymbolsToSuggest(position, memberAccesses));
+      }
+
+      private IEnumerable<ISymbol> GetSymbolsToSuggest(Position position, string[] memberAccessChain) {
+        var enclosingSymbol = _document.SymbolTable.GetEnclosingSymbol(position, _cancellationToken);
+        var currentDesignator = GetAccessedSymbolOfEnclosingScopes(enclosingSymbol, memberAccessChain[0]);
+        if(currentDesignator == null) {
+          return Enumerable.Empty<ISymbol>();
+        }
+
+        // TODO resolve the whole chain
+        int currentMemberAccess = 0;
+        ISymbol? currentDesignatorType = null;
+        do {
+          if(currentMemberAccess > 0) {
+            currentDesignator = FindSymbolOfName(currentDesignatorType!, memberAccessChain[currentMemberAccess]);
+          }
+          if(currentDesignator == null ||!_document.SymbolTable.TryGetTypeOf(currentDesignator, out currentDesignatorType)) {
+            return Enumerable.Empty<ISymbol>();
+          }
+          currentMemberAccess++;
+        } while(currentMemberAccess < memberAccessChain.Length);
+        return currentDesignatorType?.Children ?? Enumerable.Empty<ISymbol>();
+      }
+
+      private ISymbol? GetAccessedSymbolOfEnclosingScopes(ISymbol? scope, string identifier) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        if(scope == null) {
+          return null;
+        }
+        var symbol = FindSymbolOfName(scope, identifier);
+        if(symbol == null) {
+          return GetAccessedSymbolOfEnclosingScopes(scope.Scope, identifier);
+        }
+        return symbol;
+      }
+
+      private ISymbol? FindSymbolOfName(ISymbol containingSymbol, string identifier) {
+        // TODO Careful: The current implementation of the method/function symbols do not respect scopes fully. Therefore, there might be
+        // multiple symbols with the same name (e.g. locals of nested scopes, parameters,).
+        return containingSymbol.Children
+          .WithCancellation(_cancellationToken)
+          .Where(child => child.Identifier == identifier)
+          .FirstOrDefault();
       }
 
       private string[] GetMemberAccessChainBefore(Position position) {
@@ -162,6 +208,7 @@ namespace DafnyLS.Handlers {
 
       private void SkipTabsAndSpaces() {
         while(_position >= 0 && IsTabOrSpace) {
+          _cancellationToken.ThrowIfCancellationRequested();
           _position--;
         }
       }
@@ -169,6 +216,7 @@ namespace DafnyLS.Handlers {
       private string ReadIdentifier() {
         int identifierEnd = _position + 1;
         while(_position >= 0 && IsIdentifierCharacter) {
+          _cancellationToken.ThrowIfCancellationRequested();
           _position--;
         }
         return _text[(_position + 1)..identifierEnd];

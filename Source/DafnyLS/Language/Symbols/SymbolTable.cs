@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
+using AstElement = System.Object;
 
 namespace DafnyLS.Language.Symbols {
   /// <summary>
@@ -15,22 +16,37 @@ namespace DafnyLS.Language.Symbols {
     public CompilationUnit CompilationUnit { get; }
 
     /// <summary>
-    /// Gets the interval tree backing this symbol table. Do not modify this instance.
+    /// Gets the dictionary providing a mapping from an Ast Element to the symbol backing it.
     /// </summary>
-    internal IIntervalTree<Position, ILocalizableSymbol> LookupTree { get; }
+    internal IDictionary<AstElement, ILocalizableSymbol> Declarations { get; }
 
     /// <summary>
     /// Gets the dictionary allowing to resolve the location of a specified symbol. Do not modify this instance.
     /// </summary>
-    internal IDictionary<ISymbol, SymbolLocation> Locations;
+    internal IDictionary<ISymbol, SymbolLocation> Locations { get; }
+
+    /// <summary>
+    /// Gets the interval tree backing this symbol table. Do not modify this instance.
+    /// </summary>
+    internal IIntervalTree<Position, ILocalizableSymbol> LookupTree { get; }
 
     public bool Resolved { get; }
 
-    public SymbolTable(CompilationUnit compilationUnit, IDictionary<ISymbol, SymbolLocation> locations, IIntervalTree<Position, ILocalizableSymbol> symbolLookup, bool symbolsResolved) {
+    private readonly DafnyLangTypeResolver _typeResolver;
+
+    public SymbolTable(
+        CompilationUnit compilationUnit,
+        IDictionary<AstElement, ILocalizableSymbol> declarations,
+        IDictionary<ISymbol, SymbolLocation> locations,
+        IIntervalTree<Position, ILocalizableSymbol> symbolLookup,
+        bool symbolsResolved
+    ) {
       CompilationUnit = compilationUnit;
+      Declarations = declarations;
       Locations = locations;
       LookupTree = symbolLookup;
       Resolved = symbolsResolved;
+      _typeResolver = new DafnyLangTypeResolver(declarations);
 
       // TODO IntervalTree goes out of sync after any change and "fixes" its state upon the first query. Replace it with another implementation that can be queried without potential side-effects.
       LookupTree.Query(new Position(0, 0));
@@ -90,6 +106,25 @@ namespace DafnyLS.Language.Symbols {
     private static bool IsInside(PositionComparer comparer, Range range, Position position) {
       return comparer.Compare(position, range.Start) >= 0
         && comparer.Compare(position, range.End) <= 0;
+    }
+
+    /// <summary>
+    /// Tries to resolve the type of the given symbol.
+    /// </summary>
+    /// <param name="symbol">The symbol to get the type of.</param>
+    /// <param name="type">The type of the symbol, or <c>null</c> if the type could not be resolved.</param>
+    /// <returns><c>true</c> if the type was successfully resolved, otherwise <c>false</c>.</returns>
+    public bool TryGetTypeOf(ISymbol symbol, [NotNullWhen(true)] out ISymbol? type) {
+      var dafnyType = symbol switch {
+        FieldSymbol field => field.Declaration.Type,
+        VariableSymbol variable => variable.Declaration.Type,
+        _ => null
+      };
+      if(dafnyType == null) {
+        type = null;
+        return false;
+      }
+      return _typeResolver.TryGetTypeSymbol(dafnyType, out type);
     }
   }
 }

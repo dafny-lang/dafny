@@ -12,7 +12,11 @@ namespace DafnyLS.Language.Symbols {
     }
 
     public bool TryGetTypeSymbol(Expression expression, [NotNullWhen(true)] out ISymbol? typeSymbol) {
-      typeSymbol = expression.Type switch {
+      return TryGetTypeSymbol(expression.Type, out typeSymbol);
+    }
+
+    public bool TryGetTypeSymbol(Type type, [NotNullWhen(true)] out ISymbol? typeSymbol) {
+      typeSymbol = type switch {
         UserDefinedType userDefinedType => GetTypeSymbol(userDefinedType),
         _ => null
       };
