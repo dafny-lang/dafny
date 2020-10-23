@@ -106,7 +106,7 @@ namespace DafnyLS.Language {
         _logger.LogError(message);
       }
 
-      public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace = true) {
+      public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {
       }
 
       public void WriteTrailer(PipelineStatistics stats) {
