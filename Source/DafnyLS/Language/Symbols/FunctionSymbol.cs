@@ -1,5 +1,4 @@
 ﻿using Microsoft.Dafny;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -18,10 +17,6 @@ namespace DafnyLS.Language.Symbols {
 
     public string GetDetailText(CancellationToken cancellationToken) {
       return $"function {Declaration.Name}({Declaration.Formals.AsCommaSeperatedText()}) : {Declaration.ResultType.AsText()}";
-    }
-
-    public Range GetHoverRange() {
-      return Declaration.tok.GetLspRange();
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

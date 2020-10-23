@@ -20,10 +20,6 @@ namespace DafnyLS.Language.Symbols {
       return $"module {Declaration.Name}";
     }
 
-    public Range GetHoverRange() {
-      return Declaration.tok.GetLspRange();
-    }
-
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {
       return visitor.Visit(this);
     }
