@@ -102,7 +102,7 @@ namespace DafnyLS.Language {
         _logger.LogInformation(s);
       }
 
-      public void ReportBplError(IToken tok, string message, bool error, TextWriter tw, [AllowNull] string category = null) {
+      public void ReportBplError(IToken tok, string message, bool error, TextWriter tw, [AllowNull] string category) {
         _logger.LogError(message);
       }
 
