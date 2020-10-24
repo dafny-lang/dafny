@@ -237,3 +237,11 @@ public static TypeDescriptor<T> NULL<T>() where T : class {
 }
 ```
 
+Arrow types
+-----------
+
+For any type `U` and list of types `TT`, the default values of the partial arrow types
+`TT ~> U` and `TT --> U` is the entirely partial function. Such a function can never be
+invoked, the so value used for it is `null`. Hence, the type descriptors for these types
+are obtained using `Dafny.Helpers.NULL`.
+
