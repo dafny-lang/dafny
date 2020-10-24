@@ -197,6 +197,16 @@ To obtain a type descriptor for `S<GG>`, the compiler emits the expression
 where `td_G` is the type descriptor `G`, for each type `G` that corresponds to an
 auto-init type parameter of `S`.
 
+Newtypes
+--------
+
+A `newtype` declaration defines a new numeric type. It has the general form
+
+    newtype N = x: B | E witness W
+
+It gives rise to the declarations of `Witness`, `_TYPE`, and `_TypeDescriptor` as described
+above for subset types. Note that a `newtype` does not have any type parameters.
+
 Collection types
 ----------------
 
