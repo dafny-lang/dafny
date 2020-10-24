@@ -204,12 +204,24 @@ A `newtype` declaration defines a new numeric type. It has the general form
 
     newtype N = x: B | E witness W
 
-It gives rise to the declarations of `Witness`, `_TYPE`, and `_TypeDescriptor` as described
-above for subset types. Note that a `newtype` does not have any type parameters.
+It gives rise to the declarations of `Witness` (if the type has a `witness` clause),
+`_TYPE`, and `_TypeDescriptor` as described above for subset types. Note that a `newtype`
+does not have any type parameters.
 
 Collection types
 ----------------
 
-...special case of
-* having type parameters
-* no type parameter if `(0)`
+The collections types, like `set<T>` and `map<T, U>`, also give rise to a `_TypeDescriptor`
+method, as well as a `_TYPE` field (because the type parameters of collections type are not
+auto-init). For `set<T>`, these declarations are found in `Set<T>` (note, not `ISet<T>`, since
+C# doesn't allow declarations in an interface) and are:
+
+```
+private static readonly Dafny.TypeDescriptor<ISet<T>> _TYPE = new Dafny.TypeDescriptor<ISet<T>>(Empty);
+public static Dafny.TypeDescriptor<ISet<T>> _TypeDescriptor() {
+  return _TYPE;
+}
+```
+
+where `Empty` denotes the empty set. The other collections are similar.
+

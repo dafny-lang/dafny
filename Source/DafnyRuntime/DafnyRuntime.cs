@@ -37,6 +37,12 @@ namespace Dafny
       this.containsNull = containsNull;
     }
     public static readonly ISet<T> Empty = new Set<T>(ImmutableHashSet<T>.Empty, false);
+
+    private static readonly TypeDescriptor<ISet<T>> _TYPE = new Dafny.TypeDescriptor<ISet<T>>(Empty);
+    public static TypeDescriptor<ISet<T>> _TypeDescriptor() {
+      return _TYPE;
+    }
+
     public static ISet<T> FromElements(params T[] values) {
       return FromCollection(values);
     }
@@ -272,6 +278,12 @@ namespace Dafny
       this.occurrencesOfNull = occurrencesOfNull;
     }
     public static readonly MultiSet<T> Empty = new MultiSet<T>(ImmutableDictionary<T, BigInteger>.Empty.ToBuilder(), BigInteger.Zero);
+
+    private static readonly TypeDescriptor<IMultiSet<T>> _TYPE = new Dafny.TypeDescriptor<IMultiSet<T>>(Empty);
+    public static TypeDescriptor<IMultiSet<T>> _TypeDescriptor() {
+      return _TYPE;
+    }
+
     public static MultiSet<T> FromIMultiSet(IMultiSet<T> s) {
       return s as MultiSet<T> ?? FromCollection(s.Elements);
     }
@@ -583,6 +595,11 @@ namespace Dafny
     }
     public static readonly Map<U, V> Empty = new Map<U, V>(ImmutableDictionary<U, V>.Empty.ToBuilder(), false, default(V));
 
+    private static readonly TypeDescriptor<IMap<U, V>> _TYPE = new Dafny.TypeDescriptor<IMap<U, V>>(Empty);
+    public static TypeDescriptor<IMap<U, V>> _TypeDescriptor() {
+      return _TYPE;
+    }
+
     public static Map<U, V> FromElements(params IPair<U, V>[] values) {
       var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
       var hasNullKey = false;
@@ -802,11 +819,13 @@ namespace Dafny
 
   public abstract class Sequence<T>: ISequence<T>
   {
-    public static ISequence<T> Empty {
-      get {
-        return new ArraySequence<T>(new T[0]);
-      }
+    public static readonly ISequence<T> Empty = new ArraySequence<T>(new T[0]);
+
+    private static readonly TypeDescriptor<ISequence<T>> _TYPE = new Dafny.TypeDescriptor<ISequence<T>>(Empty);
+    public static TypeDescriptor<ISequence<T>> _TypeDescriptor() {
+      return _TYPE;
     }
+
     public static ISequence<T> Create(BigInteger length, System.Func<BigInteger, T> init) {
       var len = (int)length;
       var values = new T[len];
@@ -1176,31 +1195,15 @@ namespace Dafny
     public static readonly TypeDescriptor<char> CHAR = new TypeDescriptor<char>('D');
     public static readonly TypeDescriptor<BigInteger> INTEGER = new TypeDescriptor<BigInteger>(BigInteger.Zero);
     public static readonly TypeDescriptor<BigRational> REAL = new TypeDescriptor<BigRational>(BigRational.ZERO);
-    public static readonly TypeDescriptor<sbyte> INT8 = new TypeDescriptor<sbyte>(0);
     public static readonly TypeDescriptor<byte> UINT8 = new TypeDescriptor<byte>(0);
-    public static readonly TypeDescriptor<short> INT16 = new TypeDescriptor<short>(0);
     public static readonly TypeDescriptor<ushort> UINT16 = new TypeDescriptor<ushort>(0);
-    public static readonly TypeDescriptor<int> INT32 = new TypeDescriptor<int>(0);
     public static readonly TypeDescriptor<uint> UINT32 = new TypeDescriptor<uint>(0);
-    public static readonly TypeDescriptor<long> INT64 = new TypeDescriptor<long>(0);
     public static readonly TypeDescriptor<ulong> UINT64 = new TypeDescriptor<ulong>(0);
 
     public static TypeDescriptor<T> NULL<T>() where T : class {
       return new TypeDescriptor<T>(null);
     }
 
-    public static TypeDescriptor<ISet<A>> SET<A>() {
-      return new TypeDescriptor<ISet<A>>(Set<A>.Empty);
-    }
-    public static TypeDescriptor<IMultiSet<A>> MULTISET<A>() {
-      return new TypeDescriptor<IMultiSet<A>>(MultiSet<A>.Empty);
-    }
-    public static TypeDescriptor<ISequence<A>> SEQ<A>() {
-      return new TypeDescriptor<ISequence<A>>(Sequence<A>.Empty);
-    }
-    public static TypeDescriptor<IMap<A, B>> MAP<A, B>() {
-      return new TypeDescriptor<IMap<A, B>>(Map<A, B>.Empty);
-    }
     public static TypeDescriptor<A[]> ARRAY<A>() {
       return new TypeDescriptor<A[]>(new A[0]);
     }

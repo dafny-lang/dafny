@@ -1248,13 +1248,13 @@ namespace Microsoft.Dafny
           return "Dafny.Helpers.INTEGER";
         }
       } else if (type is SetType setType) {
-        return $"Dafny.Helpers.SET<{TypeName(setType.Arg, wr, tok)}>()";
+        return $"{DafnySetClass}<{TypeName(setType.Arg, wr, tok)}>.{TypeDescriptorMethodName}()";
       } else if (type is SeqType seqType) {
-        return $"Dafny.Helpers.SEQ<{TypeName(seqType.Arg, wr, tok)}>()";
+        return $"{DafnySeqClass}<{TypeName(seqType.Arg, wr, tok)}>.{TypeDescriptorMethodName}()";
       } else if (type is MultiSetType multisetType) {
-        return $"Dafny.Helpers.MULTISET<{TypeName(multisetType.Arg, wr, tok)}>()";
+        return $"{DafnyMultiSetClass}<{TypeName(multisetType.Arg, wr, tok)}>.{TypeDescriptorMethodName}()";
       } else if (type is MapType mapType) {
-        return $"Dafny.Helpers.MAP<{TypeName(mapType.Domain, wr, tok)}, {TypeName(mapType.Range, wr, tok)}>()";
+        return $"{DafnyMapClass}<{TypeName(mapType.Domain, wr, tok)}, {TypeName(mapType.Range, wr, tok)}>.{TypeDescriptorMethodName}()";
       } else if (type.IsRefType) {
         return $"Dafny.Helpers.NULL<{TypeName(type, wr, tok)}>()";
       } else if (type.IsArrayType) {
