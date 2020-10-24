@@ -225,3 +225,15 @@ public static Dafny.TypeDescriptor<ISet<T>> _TypeDescriptor() {
 
 where `Empty` denotes the empty set. The other collections are similar.
 
+Reference types
+---------------
+
+The default value of any possibly-null reference types is `null`. It's obtained via the following
+method, in `Dafny.Helpers`:
+
+```
+public static TypeDescriptor<T> NULL<T>() where T : class {
+  return new TypeDescriptor<T>(null);
+}
+```
+
