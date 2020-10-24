@@ -1690,14 +1690,8 @@ namespace Microsoft.Dafny{
     }
 
     IClassWriter CompileDatatypeBase(DatatypeDecl dt, TargetWriter wr) {
-      string DtT = dt.CompileName;
-      string DtT_protected = IdProtect(DtT);
-      string DtT_TypeArgs = "";
-      if (dt.TypeArgs.Count != 0) {
-        DtT_TypeArgs = "<" + TypeParameters(dt.TypeArgs) + ">";
-        DtT += DtT_TypeArgs;
-        DtT_protected += DtT_TypeArgs;
-      }
+      string DtT_TypeArgs = dt.TypeArgs.Count == 0 ? "" : $"<{TypeParameters(dt.TypeArgs)}>";
+      string DtT_protected = IdProtect(dt.CompileName) + DtT_TypeArgs;
       var filename = $"{ModulePath}/{dt}.java";
       wr = wr.NewFile(filename);
       FileCount += 1;
