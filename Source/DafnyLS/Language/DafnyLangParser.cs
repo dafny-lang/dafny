@@ -71,6 +71,8 @@ namespace DafnyLS.Language {
         // TODO handle errors of an include?
         var includeError = Main.ParseIncludes(module, builtIns, new List<string>(), new Errors(errorReporter));
         if(includeError != null) {
+          // TODO currently the diagnostic publisher ignores errors of foreign files. It should at least report
+          //      that there were some errors.
           _logger.LogDebug("encountered error while parsing includes: {}", includeError);
         }
         return new Microsoft.Dafny.Program(fileName, module, builtIns, errorReporter);
