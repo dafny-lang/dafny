@@ -115,6 +115,13 @@ namespace DafnyLS.Language.Symbols {
         RegisterDesignator(_currentScope, nameSegment, nameSegment.tok, nameSegment.Name);
       }
 
+      public override void Visit(TypeRhs typeRhs) {
+        // TODO get the name of the type
+        // TODO the token is pointing to the "new" keyword.
+        //RegisterDesignator(_currentScope, typeRhs, typeRhs.Tok, typeRhs.Type.ToString());
+        base.Visit(typeRhs);
+      }
+
       private void RegisterDesignator(ISymbol scope, AstElement node, Microsoft.Boogie.IToken token, string identifier) {
         var symbol = GetDeclaration(scope, identifier);
         if(symbol != null) {

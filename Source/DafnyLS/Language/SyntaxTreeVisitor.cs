@@ -141,6 +141,16 @@ namespace DafnyLS.Language {
 
     public virtual void Visit(TypeRhs typeRhs) {
       VisitNullableAttributes(typeRhs.Attributes);
+      if(typeRhs.Arguments != null) {
+        foreach(var argument in typeRhs.Arguments) {
+          Visit(argument);
+        }
+      }
+      if(typeRhs.ArrayDimensions != null) {
+        foreach(var dimension in typeRhs.ArrayDimensions) {
+          Visit(dimension);
+        }
+      }
     }
 
     public virtual void Visit(BlockStmt blockStatement) {
