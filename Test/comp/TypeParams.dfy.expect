@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 20 verified, 0 errors
+Dafny program verifier finished with 21 verified, 0 errors
 0 0 0 false Color.Orange 0.0 {} DtZ.DZ0(Color.Orange)
 null null null null null
 {} multiset{} [] map[] {} map[]
@@ -17,9 +17,10 @@ Color.Pink 19 -3
 null null null null
 System.Func`2[Dafny.BigRational,System.Boolean]
 System.Func`1[System.Numerics.BigInteger]
-System.Func`3[_module.Color,Dafny.Set`1[System.UInt16],System.UInt32]
+System.Func`3[_module.Color,Dafny.ISet`1[System.UInt16],System.UInt32]
+0 0
 
-Dafny program verifier finished with 20 verified, 0 errors
+Dafny program verifier finished with 21 verified, 0 errors
 0 0 0 false Color.Orange 0.0 {} DtZ.DZ0(Color.Orange)
 null null null null null
 {} multiset{} [] map[] {} map[]
@@ -38,8 +39,9 @@ null null null null
 function () { return false; }
 function () { return new BigNumber(0); }
 function () { return new BigNumber(0); }
+0 0
 
-Dafny program verifier finished with 20 verified, 0 errors
+Dafny program verifier finished with 21 verified, 0 errors
 0 0 0 false Color.Orange 0.0 {} DtZ.DZ0(Color.Orange)
 null null null null null
 {} multiset{} [] map[] {} map[]
@@ -58,8 +60,9 @@ null null null null
 func(dafny.Real) bool
 func() dafny.Int
 func(main.Color, dafny.Set) uint32
+0 0
 
-Dafny program verifier finished with 20 verified, 0 errors
+Dafny program verifier finished with 21 verified, 0 errors
 0 0 0 false Color.Orange 0.0 {} DtZ.DZ0(Color.Orange)
 null null null null null
 {} multiset{} [] map[] {} map[]
@@ -78,3 +81,4 @@ null null null null
 Function
 Function
 Function
+0 0

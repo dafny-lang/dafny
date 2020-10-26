@@ -1,7 +1,7 @@
 
-Dafny program verifier finished with 72 verified, 0 errors
+Dafny program verifier finished with 73 verified, 0 errors
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 y=120
 x=12
 d=800
@@ -33,6 +33,7 @@ true true true true
 false false false false
 5.2 5.2
 1.2 1.2
+1.2 1.2
 15 30
 15 30
 15 30
@@ -56,8 +57,14 @@ f(4) = 7
 g(4) = 7
 g(4) = 7
 41 15 26
+true true
+true true
+true true
+true true
+true true true
+true true true
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 y=120
 x=12
 d=800
@@ -89,6 +96,7 @@ true true true true
 false false false false
 5.2 5.2
 1.2 1.2
+1.2 1.2
 15 30
 15 30
 15 30
@@ -112,8 +120,14 @@ f(4) = 7
 g(4) = 7
 g(4) = 7
 41 15 26
+true true
+true true
+true true
+true true
+true true true
+true true true
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 y=120
 x=12
 d=800
@@ -145,6 +159,7 @@ true true true true
 false false false false
 5.2 5.2
 1.2 1.2
+1.2 1.2
 15 30
 15 30
 15 30
@@ -168,8 +183,14 @@ f(4) = 7
 g(4) = 7
 g(4) = 7
 41 15 26
+true true
+true true
+true true
+true true
+true true true
+true true true
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 y=120
 x=12
 d=800
@@ -201,6 +222,7 @@ true true true true
 false false false false
 5.2 5.2
 1.2 1.2
+1.2 1.2
 15 30
 15 30
 15 30
@@ -224,3 +246,9 @@ f(4) = 7
 g(4) = 7
 g(4) = 7
 41 15 26
+true true
+true true
+true true
+true true
+true true true
+true true true

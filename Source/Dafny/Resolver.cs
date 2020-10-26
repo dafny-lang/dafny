@@ -271,14 +271,14 @@ namespace Microsoft.Dafny
       // a family of types rolled up in one ValuetypeDecl. Therefore, we use the special SelfType as the result type.
       List<Formal> formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
       var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", prog.BuiltIns.SystemModule, false, false, false, new List<TypeParameter>(), formals, new SelfType(),
-        new List<MaybeFreeExpression>(), new List<FrameExpression>(), new List<MaybeFreeExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
+        new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateLeft.EnclosingClass = valuetypeDecls[(int)ValuetypeVariety.Bitvector];
       rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       valuetypeDecls[(int)ValuetypeVariety.Bitvector].Members.Add(rotateLeft.Name, rotateLeft);
 
       formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
       var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", prog.BuiltIns.SystemModule, false, false, false, new List<TypeParameter>(), formals, new SelfType(),
-        new List<MaybeFreeExpression>(), new List<FrameExpression>(), new List<MaybeFreeExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
+        new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateRight.EnclosingClass = valuetypeDecls[(int)ValuetypeVariety.Bitvector];
       rotateRight.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       valuetypeDecls[(int)ValuetypeVariety.Bitvector].Members.Add(rotateRight.Name, rotateRight);
@@ -287,7 +287,7 @@ namespace Microsoft.Dafny
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(builtIns != null);
-      Contract.Invariant(cce.NonNullElements(dependencies));
+      Contract.Invariant(cce.NonNullElements(dependencies.GetVertices()));
       Contract.Invariant(cce.NonNullDictionaryAndValues(classMembers) && Contract.ForAll(classMembers.Values, v => cce.NonNullDictionaryAndValues(v)));
       Contract.Invariant(cce.NonNullDictionaryAndValues(datatypeCtors) && Contract.ForAll(datatypeCtors.Values, v => cce.NonNullDictionaryAndValues(v)));
       Contract.Invariant(!inBodyInitContext || currentMethod is Constructor);
@@ -1435,6 +1435,11 @@ namespace Microsoft.Dafny
           dependencies.AddEdge(decl, d);
           var subbindings = bindings.SubBindings(d.Name);
           ProcessDependencies(d, subbindings ?? bindings, dependencies);
+          if (!m.IsAbstract && d is ModuleFacadeDecl && ((ModuleFacadeDecl) d).Root != null) {
+            reporter.Error(MessageSource.Resolver, d.tok,
+              "The abstract import named {0} (using :) may only be used in an abstract module declaration",
+              d.Name);
+          }
         }
       }
     }
@@ -1766,25 +1771,25 @@ namespace Microsoft.Dafny
           // iterator type) does.
           // --- here comes the constructor
           var init = new Constructor(iter.tok, "_ctor", new List<TypeParameter>(), iter.Ins,
-            new List<MaybeFreeExpression>(),
+            new List<AttributedExpression>(),
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
-            new List<MaybeFreeExpression>(),
+            new List<AttributedExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
             null, null, null);
           // --- here comes predicate Valid()
           var valid = new Predicate(iter.tok, "Valid", false, true, true, new List<TypeParameter>(),
             new List<Formal>(),
-            new List<MaybeFreeExpression>(),
+            new List<AttributedExpression>(),
             new List<FrameExpression>(),
-            new List<MaybeFreeExpression>(),
+            new List<AttributedExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
             null, Predicate.BodyOriginKind.OriginalOrInherited, null, null);
           // --- here comes method MoveNext
           var moveNext = new Method(iter.tok, "MoveNext", false, false, new List<TypeParameter>(),
             new List<Formal>(), new List<Formal>() { new Formal(iter.tok, "more", Type.Bool, false, false) },
-            new List<MaybeFreeExpression>(),
+            new List<AttributedExpression>(),
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
-            new List<MaybeFreeExpression>(),
+            new List<AttributedExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
             null, null, null);
           // add these implicit members to the class
@@ -1975,9 +1980,9 @@ namespace Microsoft.Dafny
               // create prefix predicate
               cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.HasStaticKeyword, cop.IsProtected,
                 tyvars, k, formals,
-                cop.Req.ConvertAll(cloner.CloneMayBeFreeExpr),
+                cop.Req.ConvertAll(cloner.CloneAttributedExpr),
                 cop.Reads.ConvertAll(cloner.CloneFrameExpr),
-                cop.Ens.ConvertAll(cloner.CloneMayBeFreeExpr),
+                cop.Ens.ConvertAll(cloner.CloneAttributedExpr),
                 new Specification<Expression>(new List<Expression>() { new IdentifierExpr(cop.tok, k.Name) }, null),
                 cop.Body,
                 null,
@@ -1996,8 +2001,8 @@ namespace Microsoft.Dafny
               // Create prefix lemma.  Note that the body is not cloned, but simply shared.
               // For a colemma, the postconditions are filled in after the colemma's postconditions have been resolved.
               // For an inductive lemma, the preconditions are filled in after the inductive lemma's preconditions have been resolved.
-              var req = com is CoLemma ? com.Req.ConvertAll(cloner.CloneMayBeFreeExpr) : new List<MaybeFreeExpression>();
-              var ens = com is CoLemma ? new List<MaybeFreeExpression>() : com.Ens.ConvertAll(cloner.CloneMayBeFreeExpr);
+              var req = com is CoLemma ? com.Req.ConvertAll(cloner.CloneAttributedExpr) : new List<AttributedExpression>();
+              var ens = com is CoLemma ? new List<AttributedExpression>() : com.Ens.ConvertAll(cloner.CloneAttributedExpr);
               com.PrefixLemma = new PrefixLemma(com.tok, extraName, com.HasStaticKeyword,
                 com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
                 req, cloner.CloneSpecFrameExpr(com.Mod), ens,
@@ -2264,21 +2269,21 @@ namespace Microsoft.Dafny
     }
 
     public static readonly List<NativeType> NativeTypes = new List<NativeType>() {
-      new NativeType("byte", 0, 0x100, 8, NativeType.Selection.Byte, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
-      new NativeType("sbyte", -0x80, 0x80, 0, NativeType.Selection.SByte, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
-      new NativeType("ushort", 0, 0x1_0000, 16, NativeType.Selection.UShort, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
-      new NativeType("short", -0x8000, 0x8000, 0, NativeType.Selection.Short, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
-      new NativeType("uint", 0, 0x1_0000_0000, 32, NativeType.Selection.UInt, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
-      new NativeType("int", -0x8000_0000, 0x8000_0000, 0, NativeType.Selection.Int, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
+      new NativeType("byte", 0, 0x100, 8,NativeType.Selection.Byte, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
+      new NativeType("sbyte", -0x80, 0x80, 0, NativeType.Selection.SByte, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
+      new NativeType("ushort", 0, 0x1_0000, 16, NativeType.Selection.UShort, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
+      new NativeType("short", -0x8000, 0x8000, 0, NativeType.Selection.Short, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
+      new NativeType("uint", 0, 0x1_0000_0000, 32, NativeType.Selection.UInt, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
+      new NativeType("int", -0x8000_0000, 0x8000_0000, 0, NativeType.Selection.Int, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
       new NativeType("number", -0x1f_ffff_ffff_ffff, 0x20_0000_0000_0000, 0, NativeType.Selection.Number, DafnyOptions.CompilationTarget.JavaScript),  // JavaScript integers
-      new NativeType("ulong", 0, new BigInteger(0x1_0000_0000) * new BigInteger(0x1_0000_0000), 64, NativeType.Selection.ULong, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
-      new NativeType("long", Int64.MinValue, 0x8000_0000_0000_0000, 0, NativeType.Selection.Long, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
+      new NativeType("ulong", 0, new BigInteger(0x1_0000_0000) * new BigInteger(0x1_0000_0000), 64, NativeType.Selection.ULong, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
+      new NativeType("long", Int64.MinValue, 0x8000_0000_0000_0000, 0, NativeType.Selection.Long, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
     };
 
     public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
       Contract.Requires(declarations != null);
-      Contract.Requires(cce.NonNullElements(datatypeDependencies));
-      Contract.Requires(cce.NonNullElements(codatatypeDependencies));
+      Contract.Requires(cce.NonNullElements(datatypeDependencies.GetVertices()));
+      Contract.Requires(cce.NonNullElements(codatatypeDependencies.GetVertices()));
       Contract.Requires(AllTypeConstraints.Count == 0);
 
       Contract.Ensures(AllTypeConstraints.Count == 0);
@@ -2520,6 +2525,9 @@ namespace Microsoft.Dafny
               }
             }
             ResolveClassMembers_Pass1(dd);
+          } else if (d is OpaqueTypeDecl) {
+            var dd = (OpaqueTypeDecl)d;
+            ResolveClassMembers_Pass1(dd);
           }
         }
       }
@@ -2545,7 +2553,7 @@ namespace Microsoft.Dafny
               CollectFriendlyCallsInFixpointLemmaSpecification(p.E, true, coConclusions, true, com);
               var subst = new FixpointLemmaSpecificationSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name), this.reporter, true);
               var post = subst.CloneExpr(p.E);
-              prefixLemma.Ens.Add(new MaybeFreeExpression(post, p.IsFree));
+              prefixLemma.Ens.Add(new AttributedExpression(post));
               foreach (var e in coConclusions) {
                 var fce = e as FunctionCallExpr;
                 if (fce != null) {  // the other possibility is that "e" is a BinaryExpr
@@ -2569,7 +2577,7 @@ namespace Microsoft.Dafny
               CollectFriendlyCallsInFixpointLemmaSpecification(p.E, true, antecedents, false, com);
               var subst = new FixpointLemmaSpecificationSubstituter(antecedents, new IdentifierExpr(k.tok, k.Name), this.reporter, false);
               var pre = subst.CloneExpr(p.E);
-              prefixLemma.Req.Add(new MaybeFreeExpression(pre, p.IsFree));
+              prefixLemma.Req.Add(new AttributedExpression(pre, p.Label, null));
               foreach (var e in antecedents) {
                 var fce = (FunctionCallExpr)e;  // we expect "antecedents" to contain only FunctionCallExpr's
                 InductivePredicate predicate = (InductivePredicate)fce.Function;
@@ -2642,7 +2650,7 @@ namespace Microsoft.Dafny
 #endif
               attrs = new Attributes("auto_generated", new List<Expression>(), attrs);
               var forallBody = new BlockStmt(com.tok, com.tok, new List<Statement>() { recursiveCall });
-              var forallStmt = new ForallStmt(com.tok, com.tok, bvs, attrs, range, new List<MaybeFreeExpression>(), forallBody);
+              var forallStmt = new ForallStmt(com.tok, com.tok, bvs, attrs, range, new List<AttributedExpression>(), forallBody);
               els = new BlockStmt(com.BodyStartTok, mainBody.EndTok, new List<Statement>() { forallStmt });
             } else {
               kk = new IdentifierExpr(k.tok, k.Name);
@@ -3174,6 +3182,17 @@ namespace Microsoft.Dafny
       }
     }
 
+    private BigInteger MaxBV(Type t) {
+      Contract.Requires(t != null);
+      Contract.Requires(t.IsBitVectorType);
+      return MaxBV(t.AsBitVectorType.Width);
+    }
+
+    private BigInteger MaxBV(int bits) {
+      Contract.Requires(0 <= bits);
+      return BigInteger.Pow(new BigInteger(2), bits) - BigInteger.One;
+    }
+
     private void FigureOutNativeType(NewtypeDecl dd) {
       Contract.Requires(dd != null);
 
@@ -3240,45 +3259,435 @@ namespace Microsoft.Dafny
         bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint);
       }
 
+      // Returns null if the argument is a constrained newtype (recursively)
+      // Returns the transitive base type if the argument is recusively unconstrained
+      Type AsUnconstrainedType(Type t) {
+        while (true) {
+          if (t.AsNewtype == null) return t;
+          if (t.AsNewtype.Constraint != null) return null;
+          t = t.AsNewtype.BaseType;
+        }
+      }
+
       // Find which among the allowable native types can hold "dd". Give an
       // error for any user-specified native type that's not big enough.
       var bigEnoughNativeTypes = new List<NativeType>();
-      // But first, define a local, recursive function GetConst:
+      // But first, define a local, recursive function GetConst/GetAnyConst:
+      // These fold any constant computations, including symbolic constants,
+      // returning null if folding is not possible. If an operation is undefined
+      // (divide by zero, conversion out of range, etc.), then null is returned.
       Func<Expression, BigInteger?> GetConst = null;
-      GetConst = (Expression e) => {
-        int m = 1;
-        BinaryExpr bin = e as BinaryExpr;
-        if (bin != null && bin.Op == BinaryExpr.Opcode.Sub && GetConst(bin.E0) == BigInteger.Zero) {
-          m = -1;
-          e = bin.E1;
-        }
-        LiteralExpr l = e as LiteralExpr;
-        if (l != null && l.Value is BigInteger) {
-          return m * (BigInteger)l.Value;
-        }
-        return null;
-      };
-      // Now, then, let's go through them types.
-      foreach (var nativeT in nativeTypeChoices ?? NativeTypes) {
-        bool lowerOk = false;
-        bool upperOk = false;
-        foreach (var bound in bounds) {
-          if (bound is ComprehensionExpr.IntBoundedPool) {
-            var bnd = (ComprehensionExpr.IntBoundedPool)bound;
-            if (bnd.LowerBound != null) {
-              BigInteger? lower = GetConst(bnd.LowerBound);
-              if (lower != null && nativeT.LowerBound <= lower) {
-                lowerOk = true;
-              }
+      Func<Expression, Stack<ConstantField>, Object> GetAnyConst = null;
+      GetAnyConst = (Expression e, Stack<ConstantField> consts) => {
+        if (e is LiteralExpr l) {
+          return l.Value;
+        } else if (e is UnaryOpExpr un) {
+          if (un.Op == UnaryOpExpr.Opcode.Not) {
+            object e0 = GetAnyConst(un.E, consts);
+            if (e0 is bool) {
+              return !(bool)e0;
             }
-            if (bnd.UpperBound != null) {
-              BigInteger? upper = GetConst(bnd.UpperBound);
-              if (upper != null && upper <= nativeT.UpperBound) {
-                upperOk = true;
+            if (un.Type.IsBitVectorType) {
+              int width = un.Type.AsBitVectorType.Width;
+              return ((BigInteger.One << width) - 1) ^ (BigInteger)e0;
+            }
+          } else if (un.Op == UnaryOpExpr.Opcode.Cardinality) {
+            object e0 = GetAnyConst(un.E, consts);
+            if (e0 is string ss) {
+              return (BigInteger)(ss.Length);
+            }
+          }
+        } else if (e is MemberSelectExpr m) {
+          if (m.Member is ConstantField c && c.IsStatic && c.Rhs != null) {
+            // This aspect of type resolution happens before the check for cyclic references
+            // so we have to do a check here as well. If cyclic, null is silently returned,
+            // counting on the later error message to alert the user.
+            if (consts.Contains(c)) { return null; }
+            consts.Push(c);
+            Object o = GetAnyConst(c.Rhs, consts);
+            consts.Pop();
+            return o;
+          } else if (m.Member is SpecialField sf) {
+            string nm = sf.Name;
+            if (nm == "Floor") {
+              Object ee = GetAnyConst(m.Obj, consts);
+              if (ee != null && m.Obj.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+                ((Basetypes.BigDec)ee).FloorCeiling(out var f, out _);
+                return f;
               }
             }
           }
+        } else if (e is BinaryExpr bin) {
+          Object e0 = GetAnyConst(bin.E0, consts);
+          Object e1 = GetAnyConst(bin.E1, consts);
+          bool isBool = bin.E0.Type == Type.Bool && bin.E1.Type == Type.Bool;
+          bool shortCircuit = isBool && (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And
+                                         || bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or
+                                         || bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp);
+
+          if (e0 == null || (!shortCircuit && e1 == null)) { return null; }
+          bool isAnyReal = bin.E0.Type.IsNumericBased(Type.NumericPersuation.Real)
+                        && bin.E1.Type.IsNumericBased(Type.NumericPersuation.Real);
+          bool isAnyInt = bin.E0.Type.IsNumericBased(Type.NumericPersuation.Int)
+                       && bin.E1.Type.IsNumericBased(Type.NumericPersuation.Int);
+          bool isReal = bin.Type.IsRealType;
+          bool isInt = bin.Type.IsIntegerType;
+          bool isBV = bin.E0.Type.IsBitVectorType;
+          int width = isBV ? bin.E0.Type.AsBitVectorType.Width : 0;
+          bool isString = e0 is string && e1 is string;
+          switch (bin.ResolvedOp) {
+            case BinaryExpr.ResolvedOpcode.Add:
+              if (isInt) return (BigInteger) e0 + (BigInteger) e1;
+              if (isBV) return ((BigInteger) e0 + (BigInteger) e1) & MaxBV(bin.Type);
+              if (isReal) return (Basetypes.BigDec) e0 + (Basetypes.BigDec) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.Concat:
+              if (isString) return (string) e0 + (string) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.Sub:
+              if (isInt) return (BigInteger) e0 - (BigInteger) e1;
+              if (isBV) return ((BigInteger) e0 - (BigInteger) e1) & MaxBV(bin.Type);
+              if (isReal) return (Basetypes.BigDec) e0 - (Basetypes.BigDec) e1;
+              // Allow a special case: If the result type is a newtype that is integer-based (i.e., isInt && !isInteger)
+              // then we generally do not fold the operations, because we do not determine whether the
+              // result of the operation satisfies the new type constraint. However, on the occasion that
+              // a newtype aliases int without a constraint, it occurs that a value of the newtype is initialized
+              // with a negative value, which is represented as "0 - N", that is, it comes to this case. It
+              // is a nuisance not to constant-fold the result, as not doing so can alter the determination
+              // of the representation type.
+              if (isAnyInt && AsUnconstrainedType(bin.Type) != null) {
+                return ((BigInteger)e0)-((BigInteger)e1);
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.Mul:
+              if (isInt) return (BigInteger) e0 * (BigInteger) e1;
+              if (isBV) return ((BigInteger) e0 * (BigInteger) e1) & MaxBV(bin.Type);
+              if (isReal) return (Basetypes.BigDec) e0 * (Basetypes.BigDec) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.BitwiseAnd:
+              Contract.Assert(isBV);
+              return (BigInteger) e0 & (BigInteger) e1;
+            case BinaryExpr.ResolvedOpcode.BitwiseOr:
+              Contract.Assert(isBV);
+              return (BigInteger) e0 | (BigInteger) e1;
+            case BinaryExpr.ResolvedOpcode.BitwiseXor:
+              Contract.Assert(isBV);
+              return (BigInteger) e0 ^ (BigInteger) e1;
+            case BinaryExpr.ResolvedOpcode.Div:
+              if (isInt) {
+                if ((BigInteger) e1 == 0) {
+                  return null; // Divide by zero
+                } else {
+                  BigInteger a0 = (BigInteger) e0;
+                  BigInteger a1 = (BigInteger) e1;
+                  BigInteger d = a0/a1;
+                  return a0 >= 0 || a0 == d*a1 ? d : a1 > 0 ? d-1 : d+1;
+                }
+              }
+              if (isBV) {
+                if ((BigInteger) e1 == 0) {
+                  return null; // Divide by zero
+                } else {
+                  return ((BigInteger) e0) / ((BigInteger) e1);
+                }
+              }
+              if (isReal) {
+                if ((Basetypes.BigDec) e1 == Basetypes.BigDec.ZERO) {
+                  return null; // Divide by zero
+                } else {
+                  // BigDec does not have divide and is not a representation of rationals, so we don't do constant folding
+                  return null;
+                }
+              }
+
+              break;
+            case BinaryExpr.ResolvedOpcode.Mod:
+              if (isInt) {
+                if ((BigInteger) e1 == 0) {
+                  return null; // Mod by zero
+                } else {
+                  BigInteger a = BigInteger.Abs((BigInteger) e1);
+                  BigInteger d = (BigInteger) e0 % a;
+                  return (BigInteger)e0 >= 0 ? d : d+a;
+                }
+              }
+              if (isBV) {
+                if ((BigInteger) e1 == 0) {
+                  return null; // Mod by zero
+                } else {
+                  return (BigInteger) e0 % (BigInteger) e1;
+                }
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.LeftShift: {
+              if ((BigInteger)e1 < 0) {
+                return null; // Negative shift
+              }
+              if ((BigInteger)e1 > bin.Type.AsBitVectorType.Width) {
+                return null; // Shift is too large
+              }
+              return ((BigInteger)e0 << (int)(BigInteger)e1) & MaxBV(bin.E0.Type);
+            }
+            case BinaryExpr.ResolvedOpcode.RightShift: {
+              if ((BigInteger)e1 < 0) {
+                return null; // Negative shift
+              }
+              if ((BigInteger)e1 > bin.Type.AsBitVectorType.Width) {
+                return null; // Shift too large
+              }
+              return (BigInteger)e0 >> (int)(BigInteger)e1;
+            }
+            case BinaryExpr.ResolvedOpcode.And: {
+              if ((bool) e0 && e1 == null) return null;
+              return (bool) e0 && (bool) e1;
+            }
+            case BinaryExpr.ResolvedOpcode.Or: {
+              if (!(bool) e0 && e1 == null) return null;
+              return (bool) e0 || (bool) e1;
+            }
+            case BinaryExpr.ResolvedOpcode.Imp: { // ==> and <==
+              if ((bool) e0 && e1 == null) return null;
+              return !(bool) e0 || (bool) e1;
+            }
+            case BinaryExpr.ResolvedOpcode.Iff: return (bool) e0 == (bool) e1; // <==>
+            case BinaryExpr.ResolvedOpcode.Gt:
+              if (isAnyInt) return (BigInteger) e0 > (BigInteger) e1;
+              if (isBV) return (BigInteger) e0 > (BigInteger) e1;
+              if (isAnyReal) return (Basetypes.BigDec) e0 > (Basetypes.BigDec) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.GtChar:
+              if (bin.E0.Type.IsCharType) return ((string) e0)[0] > ((string) e1)[0];
+              break;
+            case BinaryExpr.ResolvedOpcode.Ge:
+              if (isAnyInt) return (BigInteger) e0 >= (BigInteger) e1;
+              if (isBV) return (BigInteger) e0 >= (BigInteger) e1;
+              if (isAnyReal) return (Basetypes.BigDec) e0 >= (Basetypes.BigDec) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.GeChar:
+              if (bin.E0.Type.IsCharType) return ((string) e0)[0] >= ((string) e1)[0];
+              break;
+            case BinaryExpr.ResolvedOpcode.Lt:
+              if (isAnyInt) return (BigInteger) e0 < (BigInteger) e1;
+              if (isBV) return (BigInteger) e0 < (BigInteger) e1;
+              if (isAnyReal) return (Basetypes.BigDec) e0 < (Basetypes.BigDec) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.LtChar:
+              if (bin.E0.Type.IsCharType) return ((string) e0)[0] < ((string) e1)[0];
+              break;
+            case BinaryExpr.ResolvedOpcode.ProperPrefix:
+              if (isString) return ((string)e1).StartsWith((string)e0) && !((string) e1).Equals((string) e0);
+              break;
+            case BinaryExpr.ResolvedOpcode.Le:
+              if (isAnyInt) return (BigInteger) e0 <= (BigInteger) e1;
+              if (isBV) return (BigInteger) e0 <= (BigInteger) e1;
+              if (isAnyReal) return (Basetypes.BigDec) e0 <= (Basetypes.BigDec) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.LeChar:
+              if (bin.E0.Type.IsCharType) return ((string) e0)[0] <= ((string) e1)[0];
+              break;
+            case BinaryExpr.ResolvedOpcode.Prefix:
+              if (isString) return ((string) e1).StartsWith((string)e0);
+              break;
+            case BinaryExpr.ResolvedOpcode.EqCommon: {
+              if (isBool) {
+                return (bool) e0 == (bool) e1;
+              } else if (isAnyInt || isBV) {
+                return (BigInteger) e0 == (BigInteger) e1;
+              } else if (isAnyReal) {
+                return (Basetypes.BigDec) e0 == (Basetypes.BigDec) e1;
+              } else if (bin.E0.Type.IsCharType) {
+                return ((string) e0)[0] == ((string) e1)[0];
+              }
+              break;
+            }
+            case BinaryExpr.ResolvedOpcode.SeqEq:
+              if (isString) {
+                return (string) e0 == (string) e1;
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.SeqNeq:
+              if (isString) {
+                return (string) e0 != (string) e1;
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.NeqCommon: {
+              if (isBool) {
+                return (bool) e0 != (bool) e1;
+              } else if (isAnyInt || isBV) {
+                return (BigInteger) e0 != (BigInteger) e1;
+              } else if (isAnyReal) {
+                return (Basetypes.BigDec) e0 != (Basetypes.BigDec) e1;
+              } else if (bin.E0.Type.IsCharType) {
+                return ((string) e0)[0] != ((string) e1)[0];
+              } else if (isString) {
+                return (string) e0 != (string) e1;
+              }
+              break;
+            }
+          }
+        } else if (e is ConversionExpr ce) {
+          object o = GetAnyConst(ce.E, consts);
+          if (o == null || ce.E.Type == ce.Type) return o;
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
+                ce.Type.IsBitVectorType) {
+            ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
+            if (ff < 0 || ff > MaxBV(ce.Type)) {
+              return null; // Out of range
+            }
+            if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
+              return null; // Out of range
+            }
+            return ff;
+          }
+
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+            ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
+              return null; // Argument not an integer
+            }
+            return ff;
+          }
+
+          if (ce.E.Type.IsBitVectorType &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return o;
+          }
+
+          if (ce.E.Type.IsBitVectorType &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return Basetypes.BigDec.FromBigInt((BigInteger) o);
+          }
+
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
+                ce.Type.IsBitVectorType) {
+            BigInteger b = (BigInteger) o;
+            if (b < 0 || b > MaxBV(ce.Type)) {
+              return null; // Argument out of range
+            }
+            return o;
+          }
+
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+            // This case includes int-based newtypes to int-based new types
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return o;
+          }
+
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+            // This case includes real-based newtypes to real-based new types
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return o;
+          }
+
+          if (ce.E.Type.IsBitVectorType && ce.Type.IsBitVectorType) {
+            BigInteger b = (BigInteger) o;
+            if (b < 0 || b > MaxBV(ce.Type)) {
+              return null; // Argument out of range
+            }
+            return o;
+          }
+
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return Basetypes.BigDec.FromBigInt((BigInteger) o);
+          }
+
+          if (ce.E.Type.IsCharType && ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+            char c = ((String) o)[0];
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return new BigInteger(((string) o)[0]);
+          }
+
+          if (ce.E.Type.IsCharType && ce.Type.IsBitVectorType) {
+            char c = ((String) o)[0];
+            if ((int) c > MaxBV(ce.Type)) {
+              return null; // Argument out of range
+            }
+            return new BigInteger(((string) o)[0]);
+          }
+
+          if ((ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) || ce.E.Type.IsBitVectorType) &&
+                ce.Type.IsCharType) {
+            BigInteger b = (BigInteger) o;
+            if (b < BigInteger.Zero || b > new BigInteger(65535)) {
+              return null; // Argument out of range
+            }
+            return ((char) (int) b).ToString();
+          }
+
+          if (ce.E.Type.IsCharType &&
+              ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return Basetypes.BigDec.FromInt(((string) o)[0]);
+          }
+
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
+                ce.Type.IsCharType) {
+            ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
+            if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
+              return null; // Argument not an integer
+            }
+            if (ff < BigInteger.Zero || ff > new BigInteger(65535)) {
+              return null; // Argument out of range
+            }
+            return ((char) (int) ff).ToString();
+          }
+
+        } else if (e is SeqSelectExpr sse) {
+          var b = GetAnyConst(sse.Seq, consts) as string;
+          BigInteger index = (BigInteger)GetAnyConst(sse.E0, consts);
+          if (b == null || index == null) return null;
+          if (index < 0 || index >= b.Length || index > Int32.MaxValue) {
+            return null; // Index out of range
+          }
+          return b[(int)index].ToString();
+        } else if (e is ITEExpr ite) {
+          Object b = GetAnyConst(ite.Test, consts);
+          if (b == null) return null;
+          return ((bool)b) ? GetAnyConst(ite.Thn, consts) : GetAnyConst(ite.Els, consts);
+        } else if (e is ConcreteSyntaxExpression n) {
+          return GetAnyConst(n.ResolvedExpression, consts);
+        } else {
+          return null;
         }
+        return null;
+      };
+      GetConst = (Expression e) => {
+        Object ee = GetAnyConst(e.Resolved ?? e, new Stack<ConstantField>());
+        return ee as BigInteger?;
+      };
+      // Now, then, let's go through them types.
+      // FIXME - should first go through the bounds to find the most constraining values
+      // then check those values against the possible types. Note that also presumes the types are in order.
+      BigInteger? lowest = null;
+      BigInteger? highest = null;
+      foreach (var bound in bounds) {
+        if (bound is ComprehensionExpr.IntBoundedPool) {
+          var bnd = (ComprehensionExpr.IntBoundedPool)bound;
+          if (bnd.LowerBound != null) {
+            BigInteger? lower = GetConst(bnd.LowerBound);
+            if (lower != null && (lowest == null || lower < lowest)) {
+              lowest = lower;
+            }
+          }
+          if (bnd.UpperBound != null) {
+            BigInteger? upper = GetConst(bnd.UpperBound);
+            if (upper != null && (highest == null || upper > highest)) {
+              highest = upper;
+            }
+          }
+        }
+      }
+      foreach (var nativeT in nativeTypeChoices ?? NativeTypes) {
+        bool lowerOk = (lowest != null && nativeT.LowerBound <= lowest);
+        bool upperOk = (highest != null && nativeT.UpperBound >= highest);
         if (lowerOk && upperOk) {
           bigEnoughNativeTypes.Add(nativeT);
         } else if (nativeTypeChoices != null) {
@@ -3304,7 +3713,7 @@ namespace Microsoft.Dafny
         if (nativeTypeChoices != null && nativeTypeChoices.Count == 1) {
           Contract.Assert(dd.NativeType == nativeTypeChoices[0]);
         } else {
-          reporter.Info(MessageSource.Resolver, dd.tok, "{:nativeType \"" + dd.NativeType.Name + "\"}");
+          reporter.Info(MessageSource.Resolver, dd.tok, "newtype " + dd.Name + " resolves as {:nativeType \"" + dd.NativeType.Name + "\"} (Detected Range: " + lowest + " .. " + highest + ")");
         }
       } else if (nativeTypeChoices != null) {
         reporter.Error(MessageSource.Resolver, dd,
@@ -3605,7 +4014,7 @@ namespace Microsoft.Dafny
       Contract.Requires(t != null);
       Contract.Requires(!(t is TypeProxy));
       Contract.Requires(!(t is ArtificialType));
-      if (_recursionDepth == 20) {
+      if (_recursionDepth == 20000) {
         Contract.Assume(false);  // possible infinite recursion
       }
       _recursionDepth++;
@@ -4122,7 +4531,7 @@ namespace Microsoft.Dafny
                 var tt = Type.HeadWithProxyArgs(meet);
                 satisfied = tt is SeqType || tt is MultiSetType || tt is MapType || (tt.IsArrayType && tt.AsArrayType.Dims == 1);
                 if (satisfied) {
-                  resolver.AssignProxyAndHandleItsConstraints(proxy, tt);
+                  resolver.AssignProxyAndHandleItsConstraints(proxy, tt, true);
                   convertedIntoOtherTypeConstraints = true;
                 }
               } else {
@@ -4142,7 +4551,7 @@ namespace Microsoft.Dafny
                 var tt = Type.HeadWithProxyArgs(meet);
                 satisfied = tt is SeqType || (tt.IsArrayType && tt.AsArrayType.Dims == 1);
                 if (satisfied) {
-                  resolver.AssignProxyAndHandleItsConstraints(proxy, tt);
+                  resolver.AssignProxyAndHandleItsConstraints(proxy, tt, true);
                   convertedIntoOtherTypeConstraints = true;
                 }
               } else {
@@ -4170,7 +4579,7 @@ namespace Microsoft.Dafny
               var value = xcWithExprs.Exprs[1];
               if (t is SeqType) {
                 var s = (SeqType)t;
-                resolver.ConstrainSubtypeRelation(Type.Int, index.Type, index, "sequence update requires integer index (got {0})", index.Type);
+                resolver.ConstrainToIntegerType(index, true, "sequence update requires integer- or bitvector-based index (got {0})");
                 resolver.ConstrainSubtypeRelation(s.Arg, value.Type, value, "sequence update requires the value to have the element type of the sequence (got {0})", value.Type);
               } else if (t is MapType) {
                 var s = (MapType)t;
@@ -4184,7 +4593,7 @@ namespace Microsoft.Dafny
               } else if (t is MultiSetType) {
                 var s = (MultiSetType)t;
                 resolver.ConstrainSubtypeRelation(s.Arg, index.Type, index, "multiset update requires domain element to be of type {0} (got {1})", s.Arg, index.Type);
-                resolver.ConstrainToIntegerType(value, "multiset update requires integer-based numeric value (got {0})");
+                resolver.ConstrainToIntegerType(value, false, "multiset update requires integer-based numeric value (got {0})");
               } else {
                 satisfied = false;
                 break;
@@ -4195,10 +4604,10 @@ namespace Microsoft.Dafny
           case "ContainerIndex":
             // The semantics of this XConstraint is that *if* the head is seq/array/map/multiset, then its element/domain type must a supertype of "u"
             Type indexType;
-            if (t is SeqType) {
-              indexType = resolver.NewIntegerBasedProxy(tok);
-            } else if (t.IsArrayType) {
-              indexType = resolver.NewIntegerBasedProxy(tok);
+            if (t is SeqType || t.IsArrayType) {
+              resolver.ConstrainToIntegerType(errorMsg.Tok, Types[1], true, errorMsg);
+              convertedIntoOtherTypeConstraints = true;
+              return true;
             } else if (t is MapType) {
               indexType = ((MapType)t).Domain;
             } else if (t is MultiSetType) {
@@ -4749,7 +5158,115 @@ namespace Microsoft.Dafny
             }
             break;
 
-          case 11:
+          case 11: {
+            // Last resort decisions. Sometimes get here even with some 'obvious'
+            // inferences. Before this case was added, the type inference returned with
+            // failure, so this is a conservative addition, and could be made more
+            // capable.
+            if (!allowDecisions) break;
+            foreach (var c in AllXConstraints) {
+              if (c.ConstraintName == "EquatableArg") {
+                ConstrainSubtypeRelation_Equal(c.Types[0], c.Types[1], c.errorMsg);
+                anyNewConstraints = true;
+                AllXConstraints.Remove(c);
+                break;
+              }
+            }
+            if (anyNewConstraints) break;
+            TypeConstraint oneSuper = null;
+            TypeConstraint oneSub = null;
+            var ss = new HashSet<Type>();
+            foreach (var c in AllTypeConstraints) {
+              var super = c.Super.NormalizeExpand();
+              var sub = c.Sub.NormalizeExpand();
+              if (super is TypeProxy && !ss.Contains(super)) {
+                ss.Add(super);
+              }
+              if (sub is TypeProxy && !ss.Contains(sub)) {
+                ss.Add(sub);
+              }
+            }
+
+            foreach (var t in ss) {
+              var lowers = new HashSet<Type>();
+              var uppers = new HashSet<Type>();
+              foreach (var c in AllTypeConstraints) {
+                var super = c.Super.NormalizeExpand();
+                var sub = c.Sub.NormalizeExpand();
+                if (t.Equals(super)) {
+                  lowers.Add(sub);
+                  oneSub = c;
+                }
+                if (t.Equals(sub)) {
+                  uppers.Add(super);
+                  oneSuper = c;
+                }
+              }
+
+              bool done = false;
+              foreach (var tl in lowers) {
+                foreach (var tu in uppers) {
+                  if (tl.Equals(tu)) {
+                    if (!ContainsAsTypeParameter(tu, t)) {
+                      var errorMsg = new TypeConstraint.ErrorMsgWithBase(AllTypeConstraints[0].errorMsg,
+                        "Decision: {0} is decided to be {1} because the latter is both the upper and lower bound to the proxy",
+                        t, tu);
+                      ConstrainSubtypeRelation_Equal(t, tu, errorMsg);
+                      // The above changes t so that it is a proxy with an assigned type
+                      anyNewConstraints = true;
+                      done = true;
+                      break;
+                    }
+                  }
+                }
+                if (done) break;
+              }
+            }
+            if (anyNewConstraints) break;
+            foreach (var t in ss) {
+              var lowers = new HashSet<Type>();
+              var uppers = new HashSet<Type>();
+              foreach (var c in AllTypeConstraints) {
+                var super = c.Super.NormalizeExpand();
+                var sub = c.Sub.NormalizeExpand();
+                if (t.Equals(super)) lowers.Add(sub);
+                if (t.Equals(sub)) uppers.Add(super);
+              }
+
+              if (uppers.Count == 0) {
+                if (lowers.Count == 1) {
+                  var em = lowers.GetEnumerator();
+                  em.MoveNext();
+                  if (!ContainsAsTypeParameter(em.Current, t)) {
+                    var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSub.errorMsg,
+                      "Decision: {0} is decided to be {1} because the latter is a lower bound to the proxy and there is no constraint with an upper bound",
+                      t, em.Current);
+                    ConstrainSubtypeRelation_Equal(t, em.Current, errorMsg);
+                    anyNewConstraints = true;
+                    break;
+                  }
+                }
+              }
+              if (lowers.Count == 0) {
+                if (uppers.Count == 1) {
+                  var em = uppers.GetEnumerator();
+                  em.MoveNext();
+                  if (!ContainsAsTypeParameter(em.Current, t)) {
+                    var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSuper.errorMsg,
+                      "Decision: {0} is decided to be {1} because the latter is an upper bound to the proxy and there is no constraint with a lower bound",
+                      t, em.Current);
+                    ConstrainSubtypeRelation_Equal(t, em.Current, errorMsg);
+                    anyNewConstraints = true;
+                    break;
+                  }
+                }
+              }
+            }
+
+            break;
+          }
+
+          case 12:
             // we're so out of here
             return;
         }
@@ -4759,6 +5276,21 @@ namespace Microsoft.Dafny
           state++;
         }
       }
+    }
+
+    private bool ContainsAsTypeParameter(Type t, Type u) {
+      if (t.Equals(u)) return true;
+      if (t is UserDefinedType udt) {
+        foreach (var tp in udt.TypeArgs) {
+          if (ContainsAsTypeParameter(tp, u)) return true;
+        }
+      }
+      if (t is CollectionType st) {
+        foreach (var tp in st.TypeArgs) {
+          if (ContainsAsTypeParameter(tp, u)) return true;
+        }
+      }
+      return false;
     }
 
     private void AddAllProxies(Type type, HashSet<TypeProxy> proxies) {
@@ -5467,7 +5999,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    private void CheckTypeInference_MaybeFreeExpression(MaybeFreeExpression mfe, ICodeContext codeContext) {
+    private void CheckTypeInference_MaybeFreeExpression(AttributedExpression mfe, ICodeContext codeContext) {
       Contract.Requires(mfe != null);
       Contract.Requires(codeContext != null);
       foreach (var e in Attributes.SubExpressions(mfe.Attributes)) {
@@ -5530,8 +6062,8 @@ namespace Microsoft.Dafny
             CheckTypeIsDetermined(local.Tok, local.Type, "local variable");
             CheckTypeArgsContainNoOrdinal(local.Tok, local.type);
           }
-        } else if (stmt is LetStmt) {
-          var s = (LetStmt)stmt;
+        } else if (stmt is VarDeclPattern) {
+          var s = (VarDeclPattern)stmt;
           s.LocalVars.Iter(local => CheckTypeIsDetermined(local.Tok, local.Type, "local variable"));
           s.LocalVars.Iter(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.Type));
 
@@ -5569,14 +6101,27 @@ namespace Microsoft.Dafny
       protected override void VisitOneExpr(Expression expr) {
         if (expr is LiteralExpr) {
           var e = (LiteralExpr)expr;
-          var t = e.Type as BitvectorType;
-          if (t != null) {
+          if (e.Type.IsBitVectorType || e.Type.IsBigOrdinalType) {
             var n = (BigInteger)e.Value;
-            // check that the given literal fits into the bitvector width
-            if (BigInteger.Pow(2, t.Width) <= n) {
-              resolver.reporter.Error(MessageSource.Resolver, e.tok, "bitvector literal ({0}) is too large for the type {1}", e.Value, t);
+            var absN = n < 0 ? -n : n;
+            // For bitvectors, check that the magnitude fits the width
+            if (e.Type.IsBitVectorType && resolver.MaxBV(e.Type.AsBitVectorType.Width) < absN) {
+              resolver.reporter.Error(MessageSource.Resolver, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
+            }
+            // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
+            // This can happen only in `match` patterns (see comment by LitPattern.OptimisticallyDesugaredLit).
+            if (n < 0 || e.tok.val == "-0") {
+              Contract.Assert(e.tok.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
+              resolver.reporter.Error(MessageSource.Resolver, e.tok, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.Type);
             }
           }
+
+          if (expr is StaticReceiverExpr stexpr) {
+            if (stexpr.OriginalResolved != null) {
+              Visit(stexpr.OriginalResolved);
+            }
+          }
+
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
           foreach (var bv in e.BoundVars) {
@@ -5619,14 +6164,14 @@ namespace Microsoft.Dafny
             }
             if ((e is SetComprehension && ((SetComprehension)e).Finite) || (e is MapComprehension && ((MapComprehension)e).Finite)) {
               // the comprehension had better produce a finite set
-              if (e is SetComprehension && e.Type.HasFinitePossibleValues) {
+              if (e.Type.HasFinitePossibleValues) {
                 // This means the set is finite, regardless of if the Range is bounded.  So, we don't give any error here.
                 // However, if this expression is used in a non-ghost context (which is not yet known at this stage of
                 // resolution), the resolver will generate an error about that later.
               } else {
                 // we cannot be sure that the set/map really is finite
                 foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Finite)) {
-                  resolver.reporter.Error(MessageSource.Resolver, e, "a {0} must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{1}'", what, bv.Name);
+                  resolver.reporter.Error(MessageSource.Resolver, e, "the result of a {0} must be finite, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{1}'", what, bv.Name);
                 }
               }
             }
@@ -5771,18 +6316,33 @@ namespace Microsoft.Dafny
             }
           } else if (expr is NegationExpression) {
             var e = (NegationExpression)expr;
-            Expression zero;
-            if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-              zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
-            } else {
-              Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType);
-              zero = new LiteralExpr(e.tok, 0);
+            Expression resolved = null;
+            if (e.E is LiteralExpr lit) { // note, not e.E.Resolved, since we don't want to do this for double negations
+              // For real-based types, integer-based types, and bi (but not bitvectors), "-" followed by a literal is just a literal expression with a negative value
+              if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+                var d = (Basetypes.BigDec)lit.Value;
+                Contract.Assert(!d.IsNegative);
+                resolved = new LiteralExpr(e.tok, -d);
+              } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+                var n = (BigInteger)lit.Value;
+                Contract.Assert(0 <= n);
+                resolved = new LiteralExpr(e.tok, -n);
+              }
             }
-            zero.Type = expr.Type;
-            var subtract = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E);
-            subtract.Type = expr.Type;
-            subtract.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
-            e.ResolvedExpression = subtract;
+            if (resolved == null) {
+              // Treat all other expressions "-e" as "0 - e"
+              Expression zero;
+              if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+                zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
+              } else {
+                Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType);
+                zero = new LiteralExpr(e.tok, 0);
+              }
+              zero.Type = expr.Type;
+              resolved = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E) {ResolvedOp = BinaryExpr.ResolvedOpcode.Sub};
+            }
+            resolved.Type = expr.Type;
+            e.ResolvedExpression = resolved;
           }
         }
       }
@@ -6131,7 +6691,7 @@ namespace Microsoft.Dafny
         if (s.Update != null) {
           return CheckTailRecursive(s.Update, enclosingMethod, ref tailCall, reportErrors);
         }
-      } else if (stmt is LetStmt) {
+      } else if (stmt is VarDeclPattern) {
       } else if (stmt is ExpectStmt) {
       } else {
         Contract.Assert(false);  // unexpected statement type
@@ -6758,8 +7318,8 @@ namespace Microsoft.Dafny
               CheckEqualityTypes_Type(v.Tok, v.Type);
             }
           }
-        } else if (stmt is LetStmt) {
-          var s = (LetStmt)stmt;
+        } else if (stmt is VarDeclPattern) {
+          var s = (VarDeclPattern)stmt;
           foreach (var v in s.LocalVars) {
             CheckEqualityTypes_Type(v.Tok, v.Type);
           }
@@ -7184,7 +7744,9 @@ namespace Microsoft.Dafny
           s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
 
         } else if (stmt is AssignOrReturnStmt) {
-          stmt.IsGhost = false; // TODO when do we want to allow this feature in ghost code? Note that return changes control flow
+          var s = (AssignOrReturnStmt)stmt;
+          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable));
+          s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
 
         } else if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;
@@ -7199,19 +7761,30 @@ namespace Microsoft.Dafny
           }
           s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
 
-        } else if (stmt is LetStmt) {
-          var s = (LetStmt)stmt;
+        } else if (stmt is VarDeclPattern) {
+          var s = (VarDeclPattern)stmt;
+
           if (mustBeErasable) {
             foreach (var local in s.LocalVars) {
               local.IsGhost = true;
             }
           }
-          s.IsGhost = s.LocalVars.All(v => v.IsGhost);
+          if (!s.IsAutoGhost || mustBeErasable) {
+            s.IsGhost = s.LocalVars.All(v => v.IsGhost);
+          } else {
+            bool spec = resolver.UsesSpecFeatures(s.RHS);
+            foreach (var local in s.LocalVars) {
+              local.IsGhost = spec;
+            }
+            if (!spec) resolver.CheckIsCompilable(s.RHS);
+            s.IsGhost = spec;
+          }
 
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
           var lhs = s.Lhs.Resolved;
           var gk = AssignStmt.LhsIsToGhost_Which(lhs);
+          var isAutoGhost = AssignStmt.LhsIsToGhostOrAutoGhost(lhs);
           if (gk == AssignStmt.NonGhostKind.IsGhost) {
             s.IsGhost = true;
             if (s.Rhs is TypeRhs) {
@@ -7229,9 +7802,19 @@ namespace Microsoft.Dafny
             } else if (gk == AssignStmt.NonGhostKind.ArrayElement) {
               resolver.CheckIsCompilable(lhs);
             }
+
+
             if (s.Rhs is ExprRhs) {
               var rhs = (ExprRhs)s.Rhs;
-              resolver.CheckIsCompilable(rhs.Expr);
+              if (isAutoGhost) {
+                if (resolver.UsesSpecFeatures(rhs.Expr)) {
+                  // TODO: Is this the proper way to determine if an expression is ghost?
+                  ((lhs as AutoGhostIdentifierExpr).Var as LocalVariable).MakeGhost();
+                }
+              } else {
+                resolver.CheckIsCompilable(rhs.Expr);
+              }
+
             } else if (s.Rhs is HavocRhs) {
               // cool
             } else {
@@ -7246,7 +7829,11 @@ namespace Microsoft.Dafny
                 }
               }
               if (rhs.InitCall != null) {
-                rhs.InitCall.Args.ForEach(resolver.CheckIsCompilable);
+                for (var i = 0; i < rhs.InitCall.Args.Count; i++) {
+                  if (!rhs.InitCall.Method.Ins[i].IsGhost) {
+                    resolver.CheckIsCompilable(rhs.InitCall.Args[i]);
+                  }
+                }
               }
             }
           }
@@ -7892,7 +8479,7 @@ namespace Microsoft.Dafny
 
       foreach (var member in classMembers[cl].Values) {
         if (member is PrefixPredicate || member is PrefixLemma) {
-          // these are handled with the corresponding extremem predicate/lemma
+          // these are handled with the corresponding extreme predicate/lemma
           continue;
         }
         if (member.EnclosingClass != cl) {
@@ -7902,13 +8489,15 @@ namespace Microsoft.Dafny
           // but that will be checked by the verifier.  And it should also have a body, but that will be checked by the compiler.)
           if (member.IsStatic) {
             // nothing to do
-          } else if (member is Field || (member as Function)?.Body != null || (member as Method)?.Body != null) {
-            // member is a field or a fully defined function or method
-            cl.InheritedMembers.Add(member);
-          } else if (cl is TraitDecl) {
-            // there are no expectations that a field needs to repeat the signature of inherited body-less members
           } else {
-            reporter.Error(MessageSource.Resolver, cl.tok, "{0} '{1}' does not implement trait {2} '{3}.{4}'", cl.WhatKind, cl.Name, member.WhatKind, member.EnclosingClass.Name, member.Name);
+            cl.InheritedMembers.Add(member);
+            if (member is Field || (member as Function)?.Body != null || (member as Method)?.Body != null) {
+              // member is a field or a fully defined function or method
+            } else if (cl is TraitDecl) {
+              // there are no expectations that a field needs to repeat the signature of inherited body-less members
+            } else {
+              reporter.Error(MessageSource.Resolver, cl.tok, "{0} '{1}' does not implement trait {2} '{3}.{4}'", cl.WhatKind, cl.Name, member.WhatKind, member.EnclosingClass.Name, member.Name);
+            }
           }
           continue;
         }
@@ -8572,7 +9161,7 @@ namespace Microsoft.Dafny
       if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
         DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
-      foreach (MaybeFreeExpression e in f.Req) {
+      foreach (AttributedExpression e in f.Req) {
         Expression r = e.E;
         ResolveExpression(r, new ResolveOpts(f, f is TwoStateFunction));
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
@@ -8581,7 +9170,7 @@ namespace Microsoft.Dafny
       foreach (FrameExpression fr in f.Reads) {
         ResolveFrameExpression(fr, FrameExpressionUse.Reads, f);
       }
-      foreach (MaybeFreeExpression e in f.Ens) {
+      foreach (AttributedExpression e in f.Ens) {
         Expression r = e.E;
         if (f.Result != null) {
           scope.PushMarker();
@@ -8713,7 +9302,7 @@ namespace Microsoft.Dafny
         }
 
         // Start resolving specification...
-        foreach (MaybeFreeExpression e in m.Req) {
+        foreach (AttributedExpression e in m.Req) {
           ResolveAttributes(e.Attributes, null, new ResolveOpts(m, m is TwoStateLemma));
           ResolveExpression(e.E, new ResolveOpts(m, m is TwoStateLemma));
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
@@ -8756,7 +9345,7 @@ namespace Microsoft.Dafny
         }
 
         // ... continue resolving specification
-        foreach (MaybeFreeExpression e in m.Ens) {
+        foreach (AttributedExpression e in m.Ens) {
           ResolveAttributes(e.Attributes, null, new ResolveOpts(m, true));
           ResolveExpression(e.E, new ResolveOpts(m, true));
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
@@ -8880,7 +9469,7 @@ namespace Microsoft.Dafny
       foreach (FrameExpression fe in iter.Modifies.Expressions) {
         ResolveFrameExpression(fe, FrameExpressionUse.Modifies, iter);
       }
-      foreach (MaybeFreeExpression e in iter.Requires) {
+      foreach (AttributedExpression e in iter.Requires) {
         ResolveExpression(e.E, new ResolveOpts(iter, false));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
@@ -8894,17 +9483,17 @@ namespace Microsoft.Dafny
       currentClass = iter;
       Contract.Assert(scope.AllowInstance);
 
-      foreach (MaybeFreeExpression e in iter.YieldRequires) {
+      foreach (AttributedExpression e in iter.YieldRequires) {
         ResolveExpression(e.E, new ResolveOpts(iter, false));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.E, "Yield precondition must be a boolean (got {0})");
       }
-      foreach (MaybeFreeExpression e in iter.YieldEnsures) {
+      foreach (AttributedExpression e in iter.YieldEnsures) {
         ResolveExpression(e.E, new ResolveOpts(iter, true));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.E, "Yield postcondition must be a boolean (got {0})");
       }
-      foreach (MaybeFreeExpression e in iter.Ensures) {
+      foreach (AttributedExpression e in iter.Ensures) {
         ResolveExpression(e.E, new ResolveOpts(iter, true));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.E, "Postcondition must be a boolean (got {0})");
@@ -8953,17 +9542,17 @@ namespace Microsoft.Dafny
       var ens = iter.Member_Init.Ens;
       foreach (var p in iter.Ins) {
         // ensures this.x == x;
-        ens.Add(new MaybeFreeExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
+        ens.Add(new AttributedExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
           new MemberSelectExpr(p.tok, new ThisExpr(p.tok), p.Name), new IdentifierExpr(p.tok, p.Name))));
       }
       foreach (var p in iter.OutsHistoryFields) {
         // ensures this.ys == [];
-        ens.Add(new MaybeFreeExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
+        ens.Add(new AttributedExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
           new MemberSelectExpr(p.tok, new ThisExpr(p.tok), p.Name), new SeqDisplayExpr(p.tok, new List<Expression>()))));
       }
       // ensures this.Valid();
       var valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>());
-      ens.Add(new MaybeFreeExpression(valid_call));
+      ens.Add(new AttributedExpression(valid_call));
       // ensures this._reads == old(ReadsClause);
       var modSetSingletons = new List<Expression>();
       Expression frameSet = new SetDisplayExpr(iter.tok, true, modSetSingletons);
@@ -8976,7 +9565,7 @@ namespace Microsoft.Dafny
           frameSet = new BinaryExpr(fr.tok, BinaryExpr.Opcode.Add, frameSet, fr.E);
         }
       }
-      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
+      ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
         new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_reads"),
         new OldExpr(iter.tok, frameSet))));
       // ensures this._modifies == old(ModifiesClause);
@@ -8991,18 +9580,18 @@ namespace Microsoft.Dafny
           frameSet = new BinaryExpr(fr.tok, BinaryExpr.Opcode.Add, frameSet, fr.E);
         }
       }
-      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
+      ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
         new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_modifies"),
         new OldExpr(iter.tok, frameSet))));
       // ensures this._new == {};
-      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
+      ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
         new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
         new SetDisplayExpr(iter.tok, true, new List<Expression>()))));
       // ensures this._decreases0 == old(DecreasesClause[0]) && ...;
       Contract.Assert(iter.Decreases.Expressions.Count == iter.DecreasesFields.Count);
       for (int i = 0; i < iter.Decreases.Expressions.Count; i++) {
         var p = iter.Decreases.Expressions[i];
-        ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
+        ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
           new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), iter.DecreasesFields[i].Name),
           new OldExpr(iter.tok, p))));
       }
@@ -9017,7 +9606,7 @@ namespace Microsoft.Dafny
       // requires this.Valid();
       var req = iter.Member_MoveNext.Req;
       valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>());
-      req.Add(new MaybeFreeExpression(valid_call));
+      req.Add(new AttributedExpression(valid_call));
       // requires YieldRequires;
       req.AddRange(iter.YieldRequires);
       // modifies this, this._modifies, this._new;
@@ -9027,17 +9616,17 @@ namespace Microsoft.Dafny
       mod.Add(new FrameExpression(iter.tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"), null));
       // ensures fresh(_new - old(_new));
       ens = iter.Member_MoveNext.Ens;
-      ens.Add(new MaybeFreeExpression(new UnaryOpExpr(iter.tok, UnaryOpExpr.Opcode.Fresh,
+      ens.Add(new AttributedExpression(new UnaryOpExpr(iter.tok, UnaryOpExpr.Opcode.Fresh,
         new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub,
           new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
           new OldExpr(iter.tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))))));
       // ensures null !in _new
-      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.NotIn,
+      ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.NotIn,
         new LiteralExpr(iter.tok),
         new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))));
       // ensures more ==> this.Valid();
       valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>());
-      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
+      ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
         new IdentifierExpr(iter.tok, "more"),
         valid_call)));
       // ensures this.ys == if more then old(this.ys) + [this.y] else old(this.ys);
@@ -9051,20 +9640,20 @@ namespace Microsoft.Dafny
             new SeqDisplayExpr(iter.tok, new List<Expression>() { new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), y.Name) })),
           new OldExpr(iter.tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name)));
         var eq = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name), ite);
-        ens.Add(new MaybeFreeExpression(eq));
+        ens.Add(new AttributedExpression(eq));
       }
       // ensures more ==> YieldEnsures;
       foreach (var ye in iter.YieldEnsures) {
-        ens.Add(new MaybeFreeExpression(
-          new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp, new IdentifierExpr(iter.tok, "more"), ye.E),
-          ye.IsFree));
+        ens.Add(new AttributedExpression(
+          new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp, new IdentifierExpr(iter.tok, "more"), ye.E)
+          ));
       }
       // ensures !more ==> Ensures;
       foreach (var e in iter.Ensures) {
-        ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
+        ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
           new UnaryOpExpr(iter.tok, UnaryOpExpr.Opcode.Not, new IdentifierExpr(iter.tok, "more")),
-          e.E),
-          e.IsFree));
+          e.E)
+        ));
       }
       // decreases this._decreases0, this._decreases1, ...;
       Contract.Assert(iter.Decreases.Expressions.Count == iter.DecreasesFields.Count);
@@ -9577,16 +10166,19 @@ namespace Microsoft.Dafny
           // resolve the whole thing
           ResolveConcreteUpdateStmt(s.Update, codeContext);
         }
+
         if (s.Update is AssignOrReturnStmt) {
           var assignOrRet = (AssignOrReturnStmt)s.Update;
           // resolve the LHS
-          Contract.Assert(assignOrRet.Lhss.Count == 1);
-          Contract.Assert(s.Locals.Count == 1);
-          var local = s.Locals[0];
-          var lhs = (IdentifierExpr)assignOrRet.Lhss[0];  // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
-          Contract.Assert(lhs.Type == null);  // not yet resolved
-          lhs.Var = local;
-          lhs.Type = local.Type;
+          Contract.Assert(assignOrRet.Lhss.Count == s.Locals.Count);
+          for (int i = 0; i < s.Locals.Count; i++) {
+            var local = s.Locals[i];
+            var lhs = (IdentifierExpr)assignOrRet
+              .Lhss[i]; // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
+            Contract.Assert(lhs.Type == null); // not yet resolved
+            lhs.Var = local;
+            lhs.Type = local.Type;
+          }
 
           // resolve the whole thing
           ResolveAssignOrReturnStmt(assignOrRet, codeContext);
@@ -9616,8 +10208,8 @@ namespace Microsoft.Dafny
             }
           }
         }
-      } else if (stmt is LetStmt) {
-        LetStmt s = (LetStmt)stmt;
+      } else if (stmt is VarDeclPattern) {
+        VarDeclPattern s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
           int prevErrorCount = reporter.Count(ErrorLevel.Error);
           ResolveType(local.Tok, local.OptionalType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
@@ -9849,7 +10441,7 @@ namespace Microsoft.Dafny
               s.Kind = ForallStmt.BodyKind.Proof;
               // add the conclusion of the calc as a free postcondition
               var result = ((CalcStmt)s0).Result;
-              s.Ens.Add(new MaybeFreeExpression(result, true));
+              s.Ens.Add(new AttributedExpression(result));
               reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(result));
             } else {
               s.Kind = ForallStmt.BodyKind.Proof;
@@ -9979,13 +10571,13 @@ namespace Microsoft.Dafny
       }
     }
 
-    private void ResolveLoopSpecificationComponents(List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> modifies, ICodeContext codeContext, HashSet<IVariable> fvs, ref bool usesHeap) {
+    private void ResolveLoopSpecificationComponents(List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> modifies, ICodeContext codeContext, HashSet<IVariable> fvs, ref bool usesHeap) {
       Contract.Requires(invariants != null);
       Contract.Requires(decreases != null);
       Contract.Requires(modifies != null);
       Contract.Requires(codeContext != null);
 
-      foreach (MaybeFreeExpression inv in invariants) {
+      foreach (AttributedExpression inv in invariants) {
         ResolveAttributes(inv.Attributes, null, new ResolveOpts(codeContext, true));
         ResolveExpression(inv.E, new ResolveOpts(codeContext, true));
         Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
@@ -10361,13 +10953,13 @@ namespace Microsoft.Dafny
       Expression expr = genExpr;
       if (genExpr is IdentifierExpr idExpr) {
         if (idExpr.Name.StartsWith("_")) {
-          expr = new IdentifierExpr(var.Tok, idExpr.Var) {Type = idExpr.Type};
+          expr = new IdentifierExpr(var.Tok, idExpr.Var);
         }
       }
       if (branch is RBranchStmt branchStmt) {
         var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
         var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
-        var cLet = new LetStmt(cLVar.Tok, cLVar.Tok, cPat, expr);
+        var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr);
         branchStmt.Body.Insert(0, cLet);
       } else if (branch is RBranchExpr branchExpr) {
         var cBVar = new BoundVar(var.Tok, name, type);
@@ -10509,8 +11101,8 @@ namespace Microsoft.Dafny
       foreach (var PB in pairPB) {
         var pat = PB.Item1;
         if (pat is LitPattern lpat) {
-          if (!alternatives.Exists(x => x.Value.Equals(lpat.Lit.Value))) {
-            alternatives.Add(lpat.Lit);
+          if (!alternatives.Exists(x => object.Equals(x.Value, lpat.OptimisticallyDesugaredLit.Value))) {
+            alternatives.Add(lpat.OptimisticallyDesugaredLit);
           }
         }
       }
@@ -10519,12 +11111,11 @@ namespace Microsoft.Dafny
       // For each possible alternatives, filter potential cases and recur
       foreach (var currLit in alternatives) {
         List<RBranch> currBranches = new List<RBranch>();
-        for (int i = 0; i < pairPB.Count; i++) {
-          var PB = pairPB.ElementAt(i);
+        foreach (var PB in pairPB) {
           switch (PB.Item1) {
             case LitPattern currPattern:
               // if pattern matches the current alternative, add it to the branch for this case, otherwise ignore it
-              if (currPattern.Lit.Value.Equals(currLit.Value)) {
+              if (object.Equals(currPattern.OptimisticallyDesugaredLit.Value, currLit.Value)) {
                 mti.UpdateBranchID(PB.Item2.BranchID, 1);
                 currBranches.Add(CloneRBranch(PB.Item2));
               }
@@ -10639,7 +11230,7 @@ namespace Microsoft.Dafny
           }
         }
         // Add variables corresponding to the arguments of the current constructor (ctor) to the matchees
-        List<IdentifierExpr> freshMatchees = freshPatBV.ConvertAll(x => new IdentifierExpr(x.tok, x) { Var = x, Type = x.Type });
+        List<IdentifierExpr> freshMatchees = freshPatBV.ConvertAll(x => new IdentifierExpr(x.tok, x));
         List<Expression> cmatchees = matchees.Select(x => x).ToList();
         cmatchees.InsertRange(0, freshMatchees);
         // Update the current context
@@ -10887,9 +11478,13 @@ namespace Microsoft.Dafny
       }
 
       if (!type.IsDatatype) {
-        if (pat is IdPattern) {
-          /* =[1]= */
-          CheckLinearVarPattern(type, (IdPattern) pat);
+        if (pat is IdPattern id) {
+          if (id.Id == BuiltIns.TupleTypeCtorNamePrefix + "0") {
+            reporter.Error(MessageSource.Resolver, pat.Tok, "case argument type does not match source argument type");
+          } else {
+            /* =[1]= */
+            CheckLinearVarPattern(type, (IdPattern) pat);
+          }
           return;
         } else if (pat is LitPattern) {
           /* =[2]= */
@@ -11168,7 +11763,8 @@ namespace Microsoft.Dafny
           foreach (var ll in update.Lhss) {
             resolvedLhss.Add(ll.Resolved);
           }
-          var a = new CallStmt(methodCallInfo.Tok, update.EndTok, resolvedLhss, methodCallInfo.Callee, methodCallInfo.Args);
+          CallStmt a = new CallStmt(methodCallInfo.Tok, update.EndTok, resolvedLhss, methodCallInfo.Callee, methodCallInfo.Args);
+          a.OriginalInitialLhs = update.OriginalInitialLhs;
           update.ResolvedStatements.Add(a);
         }
       }
@@ -11200,22 +11796,217 @@ namespace Microsoft.Dafny
       return new ApplySuffix(tok, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<Expression>() { });
     }
 
+    private Expression makeTemp(String prefix, AssignOrReturnStmt s, ICodeContext codeContext, Expression ex) {
+      var temp = FreshTempVarName(prefix, codeContext);
+      var locvar = new LocalVariable(s.Tok, s.Tok, temp, ex.Type, false);
+      var id = new IdentifierExpr(s.Tok, temp);
+      var idlist = new List<Expression>() { id };
+      var lhss = new List<LocalVariable>() { locvar };
+      var rhss = new List<AssignmentRhs>() { new ExprRhs(ex) };
+      var up = new UpdateStmt(s.Tok, s.Tok, idlist, rhss);
+      s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, up));
+      return id;
+    }
+
     /// <summary>
-    /// Desugars "y :- MethodOrExpression" into
-    /// "var temp := MethodOrExpression; if temp.IsFailure() { return temp.PropagateFailure(); } y := temp.Extract();"
-    /// and "y :- expect MethodOrExpression" into
-    /// "var temp := MethodOrExpression; expect !temp.IsFailure(), temp.PropagateFailure(); y := temp.Extract();"
+    /// Desugars "y, ... :- MethodOrExpression" into
+    /// var temp;
+    /// temp, ... := MethodOrExpression;
+    /// if temp.IsFailure() { return temp.PropagateFailure(); }
+    /// y := temp.Extract();
+    ///
+    /// If the type of MethodExpression does not have an Extract, then the desugaring is
+    /// var temp;
+    /// temp, y, ... := MethodOrExpression;
+    /// if temp.IsFailure() { return temp.PropagateFailure(); }
+    ///
+    /// If there are multiple RHSs then "y, ... :- Expression, ..." becomes
+    /// var temp;
+    /// temp, ... := Expression, ...;
+    /// if temp.IsFailure() { return temp.PropagateFailure(); }
+    /// y := temp.Extract();
+    /// OR
+    /// var temp;
+    /// temp, y, ... := Expression, ...;
+    /// if temp.IsFailure() { return temp.PropagateFailure(); }
+    ///
+    /// and "y, ... :- expect MethodOrExpression, ..." into
+    /// var temp, [y, ] ... := MethodOrExpression, ...;
+    /// expect !temp.IsFailure(), temp.PropagateFailure();
+    /// [y := temp.Extract();]
+    ///
     /// and saves the result into s.ResolvedStatements.
     /// </summary>
     private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
       // TODO Do I have any responsibilities regarding the use of codeContext? Is it mutable?
 
+      // We need to figure out whether we are using a status type that has Extract or not,
+      // as that determines how the AssignOrReturnStmt is desugared. Thus if the Rhs is a
+      // method call we need to know which one (to inpsectx its first output); if RHs is a
+      // list of expressions, we need to know the type of the first one. FOr all of this we have
+      // to do some partial type resolution.
+
+      bool expectExtract = s.Lhss.Count != 0; // default value if we cannot determine and inspect the type
+      Type firstType = null;
+      Method call = null;
+      if (s.Rhss != null && s.Rhss.Count != 0) {
+        ResolveExpression(s.Rhs, new ResolveOpts(codeContext, true));
+        firstType = s.Rhs.Type;
+      } else if (s.Rhs is ApplySuffix asx) {
+        ResolveApplySuffix(asx, new ResolveOpts(codeContext, true), true);
+        if (asx.Lhs is NameSegment lhname) {
+          if (codeContext is Method meth) {
+            String nm = lhname.Name;
+            MemberDecl mem = ((TopLevelDeclWithMembers) meth.EnclosingClass).Members.Find(x => x.Name == nm);
+            if (mem is Method) {
+              call = (Method)mem;
+              if (call.Outs.Count != 0) {
+                firstType = call.Outs[0].Type;
+              } else {
+                reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
+                  call.Name);
+              }
+            } else {
+              ResolveExpression(asx, new ResolveOpts(codeContext, true));
+              firstType = asx.Type;
+            }
+          }
+        } else if (asx.Lhs is ExprDotName dotname) {
+          Type ty = PartiallyResolveTypeForMemberSelection(dotname.tok, dotname.Lhs.Type);
+          String nm = dotname.SuffixName;
+          MemberDecl mem = ty.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == nm);
+          if (mem is Method) {
+            call = (Method) mem;
+            if (call.Outs.Count != 0) {
+              firstType = call.Outs[0].Type;
+            } else {
+              reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
+                call.Name);
+            }
+          }
+        }
+      } else {
+        ResolveExpression(s.Rhs, new ResolveOpts(codeContext, true));
+        firstType = s.Rhs.Type;
+      }
+
+      if ((codeContext as Method).Outs.Count == 0 && s.ExpectToken == null) {
+        reporter.Error(MessageSource.Resolver, s.Tok, "A method containing a :- statement must have an out-parameter ({0})",
+          (codeContext as Method).Name);
+        return;
+      }
+      if (firstType != null) {
+        firstType = PartiallyResolveTypeForMemberSelection(s.Rhs.tok, firstType);
+        if (firstType.AsTopLevelTypeWithMembers != null) {
+          if (firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "IsFailure") == null) {
+            reporter.Error(MessageSource.Resolver, s.Tok,
+              "member IsFailure does not exist in {0}, in :- statement", firstType);
+            return;
+          }
+          expectExtract = firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "Extract") != null;
+          if (expectExtract && call == null && s.Lhss.Count != 1 + s.Rhss.Count) {
+            reporter.Error(MessageSource.Resolver, s.Tok,
+              "number of lhs ({0}) must match number of rhs ({1}) for a rhs type ({2}) with member Extract",
+              s.Lhss.Count, 1 + s.Rhss.Count, firstType);
+            return;
+          } else if (expectExtract && call != null && s.Lhss.Count != call.Outs.Count) {
+            reporter.Error(MessageSource.Resolver, s.Tok,
+              "wrong number of method result arguments (got {0}, expected {1}) for a rhs type ({2}) with member Extract",
+              s.Lhss.Count, call.Outs.Count, firstType);
+            return;
+
+          } else if (!expectExtract && call == null && s.Lhss.Count != s.Rhss.Count){
+            reporter.Error(MessageSource.Resolver, s.Tok,
+              "number of lhs ({0}) must be one less than number of rhs ({1}) for a rhs type ({2}) without member Extract", s.Lhss.Count, 1+s.Rhss.Count, firstType);
+            return;
+
+          } else if (!expectExtract && call != null && s.Lhss.Count != call.Outs.Count - 1){
+            reporter.Error(MessageSource.Resolver, s.Tok,
+              "wrong number of method result arguments (got {0}, expected {1}) for a rhs type ({2}) without member Extract", s.Lhss.Count, call.Outs.Count-1, firstType);
+            return;
+          }
+        } else {
+          reporter.Error(MessageSource.Resolver, s.Tok,
+            "The type of the first expression is not a failure type in :- statement");
+          return;
+        }
+      } else {
+        reporter.Error(MessageSource.Resolver, s.Tok,
+          "Internal Error: Unknown failure type in :- statement");
+        return;
+      }
+
+      Expression lhsExtract = null;
+      if (expectExtract) {
+        Method caller = codeContext as Method;
+        if (caller != null && caller.Outs.Count == 0 && s.ExpectToken == null) {
+          reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
+            caller.Name);
+          return;
+        }
+
+        lhsExtract = s.Lhss[0];
+        var lhsResolved = s.Lhss[0].Resolved;
+        // Make a new unresolved expression
+        if (lhsResolved is MemberSelectExpr lexr) {
+          Expression id = makeTemp("recv", s, codeContext, lexr.Obj);
+          var lex = lhsExtract as ExprDotName; // might be just a NameSegment
+          lhsExtract = new ExprDotName(lexr.tok, id, lexr.MemberName, lex == null ? null : lex.OptTypeArguments);
+        } else if (lhsResolved is SeqSelectExpr lseq) {
+          if (!lseq.SelectOne || lseq.E0 == null) {
+            reporter.Error(MessageSource.Resolver, s.Tok,
+              "Element ranges not allowed as l-values");
+            return;
+          }
+          Expression id = makeTemp("recv", s, codeContext, lseq.Seq);
+          Expression id0 = id0 = makeTemp("idx", s, codeContext, lseq.E0);
+          lhsExtract = new SeqSelectExpr(lseq.tok, lseq.SelectOne, id, id0, null);
+          lhsExtract.Type = lseq.Type;
+        } else if (lhsResolved is MultiSelectExpr lmulti) {
+          Expression id = makeTemp("recv", s, codeContext, lmulti.Array);
+          var idxs = new List<Expression>();
+          foreach (var i in lmulti.Indices) {
+            Expression idx = makeTemp("idx", s, codeContext, i);
+            idxs.Add(idx);
+          }
+          lhsExtract = new MultiSelectExpr(lmulti.tok, id, idxs);
+          lhsExtract.Type = lmulti.Type;
+        } else if (lhsResolved is IdentifierExpr) {
+          // do nothing
+        } else {
+          Contract.Assert(false, "Internal error: unexpected option in ResolveAssignOrReturnStmt");
+        }
+      }
       var temp = FreshTempVarName("valueOrError", codeContext);
-      var tempType = new InferredTypeProxy();
-      s.ResolvedStatements.Add(
-        // "var temp := MethodOrExpression;"
-        new VarDeclStmt(s.Tok, s.Tok, new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, tempType, false) },
-          new UpdateStmt(s.Tok, s.Tok, new List<Expression>() { new IdentifierExpr(s.Tok, temp) }, new List<AssignmentRhs>() { new ExprRhs(s.Rhs) })));
+      var lhss = new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, firstType, false) };
+      // "var temp ;"
+      s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, null));
+      var lhss2 = new List<Expression>() { new IdentifierExpr(s.Tok, temp) };
+      for (int k = (expectExtract?1:0); k < s.Lhss.Count; ++k) {
+        lhss2.Add(s.Lhss[k]);
+      }
+      List<AssignmentRhs> rhss2 = new List<AssignmentRhs>() {new ExprRhs(s.Rhs)};
+      if (s.Rhss != null) {
+        s.Rhss.ForEach(e => rhss2.Add(e));
+      }
+      if (s.Rhss != null && s.Rhss.Count > 0) {
+        if (lhss2.Count != rhss2.Count) {
+          reporter.Error(MessageSource.Resolver, s.Tok,
+            "Mismatch in expected number of LHSs and RHSs");
+          if (lhss2.Count < rhss2.Count) {
+            rhss2.RemoveRange(lhss2.Count, rhss2.Count - lhss2.Count);
+          } else {
+            lhss2.RemoveRange(rhss2.Count, lhss2.Count - rhss2.Count);
+          }
+        }
+      }
+      // " temp, ... := MethodOrExpression, ...;"
+      UpdateStmt up = new UpdateStmt(s.Tok, s.Tok, lhss2, rhss2);
+      if (expectExtract) {
+        up.OriginalInitialLhs = s.Lhss.Count == 0 ? null : s.Lhss[0];
+      }
+      s.ResolvedStatements.Add(up);
+
       if (s.ExpectToken != null) {
         var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
         s.ResolvedStatements.Add(
@@ -11225,29 +12016,38 @@ namespace Microsoft.Dafny
         s.ResolvedStatements.Add(
           // "if temp.IsFailure()"
           new IfStmt(s.Tok, s.Tok, false, VarDotMethod(s.Tok, temp, "IsFailure"),
-            // THEN: { return temp.PropagateFailure(); }
+            // THEN: { out := temp.PropagateFailure(); return; }
             new BlockStmt(s.Tok, s.Tok, new List<Statement>() {
-              new ReturnStmt(s.Tok, s.Tok, new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}),
+              new UpdateStmt(s.Tok, s.Tok,
+                new List<Expression>() {new IdentifierExpr(s.Tok, (codeContext as Method).Outs[0].CompileName)},
+                new List<AssignmentRhs>() {new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}
+                ),
+              new ReturnStmt(s.Tok, s.Tok, null),
             }),
             // ELSE: no else block
             null
           ));
       }
 
-      Contract.Assert(s.Lhss.Count <= 1);
-      if (s.Lhss.Count == 1)
-      {
+      if (expectExtract) {
         // "y := temp.Extract();"
+        var lhs = s.Lhss[0];
         s.ResolvedStatements.Add(
-          new UpdateStmt(s.Tok, s.Tok, s.Lhss, new List<AssignmentRhs>() {
-            new ExprRhs(VarDotMethod(s.Tok, temp, "Extract"))}));
+          new UpdateStmt(s.Tok, s.Tok,
+            new List<Expression>() { lhsExtract },
+            new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "Extract")) }
+            ));
+        // The following check is not necessary, because the ghost mismatch is caught later.
+        // However the error message here is much clearer.
+        var m = ResolveMember(s.Tok, firstType, "Extract", out _);
+        if (m != null && m.IsGhost && !AssignStmt.LhsIsToGhostOrAutoGhost(lhs)) {
+          reporter.Error(MessageSource.Resolver, lhs.tok,
+            "The Extract member may not be ghost unless the initial LHS is ghost");
+        }
       }
 
-      foreach (var a in s.ResolvedStatements) {
-        ResolveStatement(a, codeContext);
-      }
-      bool expectExtract = s.Lhss.Count != 0;
-      EnsureSupportsErrorHandling(s.Tok, PartiallyResolveTypeForMemberSelection(s.Tok, tempType), expectExtract);
+      s.ResolvedStatements.ForEach( a => ResolveStatement(a, codeContext) );
+      EnsureSupportsErrorHandling(s.Tok, firstType, expectExtract);
     }
 
     private void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract) {
@@ -11258,12 +12058,24 @@ namespace Microsoft.Dafny
 
       if (ResolveMember(tok, tp, "IsFailure", out _) == null ||
           ResolveMember(tok, tp, "PropagateFailure", out _) == null ||
-          (ResolveMember(tok, tp, "Extract", out _) != null) != expectExtract
-      ) {
+          (ResolveMember(tok, tp, "Extract", out _) != null) != expectExtract) {
         // more details regarding which methods are missing have already been reported by regular resolution
         origReporter.Error(MessageSource.Resolver, tok,
           "The right-hand side of ':-', which is of type '{0}', must have members 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'",
           tp, expectExtract ? "and" : "but not");
+      }
+
+      // The following checks are not necessary, because the ghost mismatch is caught later.
+      // However the error messages here are much clearer.
+      var m = ResolveMember(tok, tp, "IsFailure", out _);
+      if (m != null && m.IsGhost) {
+        origReporter.Error(MessageSource.Resolver, tok,
+          $"The IsFailure member may not be ghost (type {tp} used in :- statement)");
+      }
+      m = ResolveMember(tok, tp, "PropagateFailure", out _);
+      if (m != null && m.IsGhost) {
+        origReporter.Error(MessageSource.Resolver, tok,
+          $"The PropagateFailure member may not be ghost (type {tp} used in :- statement)");
       }
 
       this.reporter = origReporter;
@@ -11331,6 +12143,7 @@ namespace Microsoft.Dafny
         j++;
       }
 
+      bool tryToResolve = false;
       if (callee.Ins.Count != s.Args.Count) {
         reporter.Error(MessageSource.Resolver, s, "wrong number of method arguments (got {0}, expected {1})", s.Args.Count, callee.Ins.Count);
       } else if (callee.Outs.Count != s.Lhs.Count) {
@@ -11338,11 +12151,15 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, s, "a method called as an initialization method must not have any result arguments");
         } else {
           reporter.Error(MessageSource.Resolver, s, "wrong number of method result arguments (got {0}, expected {1})", s.Lhs.Count, callee.Outs.Count);
+          tryToResolve = true;
         }
       } else {
         if (isInitCall) {
           if (callee.IsStatic) {
-            reporter.Error(MessageSource.Resolver, s.Tok, "a method called as an initialization method must not be 'static'");
+            reporter.Error(MessageSource.Resolver, s.Tok,
+              "a method called as an initialization method must not be 'static'");
+          } else {
+            tryToResolve = true;
           }
         } else if (!callee.IsStatic) {
           if (!scope.AllowInstance && s.Receiver is ThisExpr) {
@@ -11352,8 +12169,15 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, s.Receiver, "'this' is not allowed in a 'static' context");
           } else if (s.Receiver is StaticReceiverExpr) {
             reporter.Error(MessageSource.Resolver, s.Receiver, "call to instance method requires an instance");
+          } else {
+            tryToResolve = true;
           }
+        } else {
+          tryToResolve = true;
         }
+      }
+
+      if (tryToResolve) {
         // type check the arguments
         var subst = s.MethodSelect.TypeArgumentSubstitutionsAtMemberDeclaration();
         for (int i = 0; i < callee.Ins.Count; i++) {
@@ -11361,11 +12185,14 @@ namespace Microsoft.Dafny
           Type st = SubstType(it, subst);
           AddAssignableConstraint(s.Tok, st, s.Args[i].Type, "incorrect type of method in-parameter" + (callee.Ins.Count == 1 ? "" : " " + i) + " (expected {0}, got {1})");
         }
-        for (int i = 0; i < callee.Outs.Count; i++) {
+        for (int i = 0; i < callee.Outs.Count && i < s.Lhs.Count; i++) {
           var it = callee.Outs[i].Type;
           Type st = SubstType(it, subst);
           var lhs = s.Lhs[i];
           AddAssignableConstraint(s.Tok, lhs.Type, st, "incorrect type of method out-parameter" + (callee.Outs.Count == 1 ? "" : " " + i) + " (expected {1}, got {0})");
+        }
+        for (int i = 0; i < s.Lhs.Count; i++) {
+          var lhs = s.Lhs[i];
           // LHS must denote a mutable field.
           CheckIsLvalue(lhs.Resolved, codeContext);
         }
@@ -11523,7 +12350,7 @@ namespace Microsoft.Dafny
         if (s.Update != null) {
           CheckForallStatementBodyRestrictions(s.Update, kind);
         }
-      } else if (stmt is LetStmt) {
+      } else if (stmt is VarDeclPattern) {
         // Are we fine?
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
@@ -11686,7 +12513,7 @@ namespace Microsoft.Dafny
         if (s.Update != null) {
           CheckHintRestrictions(s.Update, localsAllowedInUpdates, where);
         }
-      } else if (stmt is LetStmt) {
+      } else if (stmt is VarDeclPattern) {
         // Are we fine?
       } else if (stmt is ModifyStmt) {
         reporter.Error(MessageSource.Resolver, stmt, "modify statements are not allowed inside {0}", where);
@@ -11788,7 +12615,7 @@ namespace Microsoft.Dafny
           foreach (Expression dim in rr.ArrayDimensions) {
             Contract.Assert(dim != null);
             ResolveExpression(dim, new ResolveOpts(codeContext, false));
-            ConstrainToIntegerType(dim, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", rr.ArrayDimensions.Count == 1 ? "" : " for index " + i));
+            ConstrainToIntegerType(dim, false, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", rr.ArrayDimensions.Count == 1 ? "" : " for index " + i));
             i++;
           }
           rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType, codeContext, false);
@@ -12017,6 +12844,7 @@ namespace Microsoft.Dafny
               return r;
             }
           }
+
           if (DafnyOptions.O.TypeInferenceDebug) {
             Console.WriteLine("  ----> found no improvement, giving up");
           }
@@ -12031,10 +12859,10 @@ namespace Microsoft.Dafny
         return t;  // simplification did the trick
       }
       if (DafnyOptions.O.TypeInferenceDebug) {
-        Console.Write("DEBUG: Member selection{3}:  {1} :> {0} :> {2}", t,
-        Util.Comma(proxy.SupertypesKeepConstraints, su => su.ToString()),
-        Util.Comma(proxy.SubtypesKeepConstraints, su => su.ToString()),
-        memberName == null ? "" : " (" + memberName + ")");
+        Console.WriteLine("DEBUG: Member selection{3}:  {1} :> {0} :> {2}", t,
+          Util.Comma(proxy.SupertypesKeepConstraints, su => su.ToString()),
+          Util.Comma(proxy.SubtypesKeepConstraints, su => su.ToString()),
+          memberName == null ? "" : " (" + memberName + ")");
       }
 
       var artificialSuper = proxy.InClusterOfArtificial(AllXConstraints);
@@ -12095,7 +12923,19 @@ namespace Microsoft.Dafny
                   } else {
                     // pick the supertype "mbr.EnclosingClass" of "cl"
                     Contract.Assert(mbr.EnclosingClass is TraitDecl);  // a proper supertype of a ClassDecl must be a TraitDecl
-                    var proxyTypeArgs = mbr.EnclosingClass.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
+                    var typeMapping = cl.ParentFormalTypeParametersToActuals;
+                    TopLevelDecl td = mbr.EnclosingClass;
+                    foreach (var tt in cl.TraitAncestors()) {
+                      // If there is a match, the list of Type actuals is unique
+                      // (a class cannot inherit both Trait<T1> and Trait<T2> with T1 != T2).
+                      if (tt == (TraitDecl)mbr.EnclosingClass) {
+                         td = tt;
+                      }
+                    }
+                    List<Type> proxyTypeArgs = td.TypeArgs.ConvertAll(t0 => typeMapping.ContainsKey(t0) ? typeMapping[t0] : (Type)new InferredTypeProxy());
+                    var meetMapping = TypeSubstitutionMap(cl.TypeArgs, meet.TypeArgs);
+                    proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => SubstType(t0, meetMapping));
+                    proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => t0.AsTypeParameter == null ? t0 : (Type)new InferredTypeProxy());
                     var pickItFromHere = new UserDefinedType(tok, mbr.EnclosingClass.Name, mbr.EnclosingClass, proxyTypeArgs);
                     if (DafnyOptions.O.TypeInferenceDebug) {
                       Console.WriteLine("  ----> improved to {0} through meet and member lookup", pickItFromHere);
@@ -12110,7 +12950,6 @@ namespace Microsoft.Dafny
         }
         if (DafnyOptions.O.TypeInferenceDebug) {
           Console.WriteLine("  ----> found no improvement, because meet does not determine type enough");
-          return t;
         }
       }
 
@@ -12320,7 +13159,8 @@ namespace Microsoft.Dafny
       }
 
       if (meet == null) {
-        meet = Type.HeadWithProxyArgs(t);
+        // stick with what we've got
+        meet = t;
         return true;
       } else if (Type.IsHeadSupertypeOf(meet, t)) {
         // stick with what we've got
@@ -12695,7 +13535,6 @@ namespace Microsoft.Dafny
 
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
-        var errorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(e.E, opts);
         e.Type = e.E.Type;
         AddXConstraint(e.E.tok, "NumericOrBitvector", e.E.Type, "type of unary - must be of a numeric or bitvector type (instead got {0})");
@@ -12892,7 +13731,7 @@ namespace Microsoft.Dafny
           Contract.Assert(idx != null);
           ResolveExpression(idx, opts);
           Contract.Assert(idx.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainToIntegerType(idx, "array selection requires integer-based numeric indices (got {0} for index " + i + ")");
+          ConstrainToIntegerType(idx, true, "array selection requires integer- or bitvector-based numeric indices (got {0} for index " + i + ")");
           i++;
         }
         e.Type = elementType;
@@ -12903,7 +13742,7 @@ namespace Microsoft.Dafny
         Contract.Assert(e.Seq.Type != null);  // follows from postcondition of ResolveExpression
         ResolveExpression(e.Index, opts);
         ResolveExpression(e.Value, opts);
-        AddXConstraint(expr.tok, "SeqUpdatable", e.Seq.Type, e.Index, e.Value, "update requires a sequence, map, multiset, or datatype (got {0})");
+        AddXConstraint(expr.tok, "SeqUpdatable", e.Seq.Type, e.Index, e.Value, "update requires a sequence, map, or multiset (got {0})");
         expr.Type = e.Seq.Type;
 
       } else if (expr is DatatypeUpdateExpr) {
@@ -12956,7 +13795,7 @@ namespace Microsoft.Dafny
         var elementType = e.ExplicitElementType ?? new InferredTypeProxy();
         ResolveType(e.tok, elementType, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         ResolveExpression(e.N, opts);
-        ConstrainToIntegerType(e.N, "sequence construction must use an integer-based expression for the sequence size (got {0})");
+        ConstrainToIntegerType(e.N, false, "sequence construction must use an integer-based expression for the sequence size (got {0})");
         ResolveExpression(e.Initializer, opts);
         var arrowType = new ArrowType(e.tok, builtIns.ArrowTypeDecls[1], new List<Type>() { Type.Int }, elementType);
         var hintString = " (perhaps write '_ =>' in front of the expression you gave in order to make it an arrow type)";
@@ -13495,17 +14334,29 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Adds appropriate type constraints that says "expr" evaluates to an integer (not a bitvector, but possibly an
-    /// int-based newtype).  The "errFormat" string can contain a "{0}", referring to the name of the type of "expr".
+    /// Adds appropriate type constraints that says "expr" evaluates to an integer or (if "allowBitVector" is true) a
+    /// a bitvector.  The "errFormat" string can contain a "{0}", referring to the name of the type of "expr".
     /// </summary>
-    void ConstrainToIntegerType(Expression expr, string errFormat) {
+    void ConstrainToIntegerType(Expression expr, bool allowBitVector, string errFormat) {
       Contract.Requires(expr != null);
       Contract.Requires(errFormat != null);
+      var err = new TypeConstraint.ErrorMsgWithToken(expr.tok, errFormat, expr.Type);
+      ConstrainToIntegerType(expr.tok, expr.Type, allowBitVector, err);
+    }
+
+    /// <summary>
+    /// See ConstrainToIntegerType description for the overload above.
+    /// </summary>
+    void ConstrainToIntegerType(IToken tok, Type type, bool allowBitVector, TypeConstraint.ErrorMsg errorMsg) {
+      Contract.Requires(tok != null);
+      Contract.Requires(type != null);
+      Contract.Requires(errorMsg != null);
       // We do two constraints: the first can aid in determining types, but allows bit-vectors; the second excludes bit-vectors.
       // However, we reuse the error message, so that only one error gets reported.
-      var err = new TypeConstraint.ErrorMsgWithToken(expr.tok, errFormat, expr.Type);
-      ConstrainSubtypeRelation(new IntVarietiesSupertype(), expr.Type, err);
-      AddXConstraint(expr.tok, "IntegerType", expr.Type, err);
+      ConstrainSubtypeRelation(new IntVarietiesSupertype(), type, errorMsg);
+      if (!allowBitVector) {
+        AddXConstraint(tok, "IntegerType", type, errorMsg);
+      }
     }
 
     void AddAssignableConstraint(IToken tok, Type lhs, Type rhs, string errMsgFormat) {
@@ -14358,9 +15209,10 @@ namespace Microsoft.Dafny
           Expression receiver;
           if (!member.IsStatic) {
             receiver = expr.Lhs;
+            AddAssignableConstraint(expr.tok, tentativeReceiverType, receiver.Type, "receiver type ({1}) does not have a member named " + name);
             r = ResolveExprDotCall(expr.tok, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, opts, allowMethodCall);
           } else {
-            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false);
+            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false, lhs);
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
           }
         }
@@ -14541,7 +15393,7 @@ namespace Microsoft.Dafny
         var m = (Method)member;
         if (!allowMethodCall) {
           // it's a method and method calls are not allowed in the given context
-          reporter.Error(MessageSource.Resolver, tok, "expression is not allowed to invoke a method ({0})", member.Name);
+          reporter.Error(MessageSource.Resolver, tok, "expression is not allowed to invoke a {0} ({1})", member.WhatKind, member.Name);
         }
         int suppliedTypeArguments = optTypeArguments == null ? 0 : optTypeArguments.Count;
         if (optTypeArguments != null && suppliedTypeArguments != m.TypeArgs.Count) {
@@ -14661,7 +15513,7 @@ namespace Microsoft.Dafny
                 var cRhs = new MethodCallInformation(e.tok, mse, e.Args);
                 return cRhs;
               } else {
-                reporter.Error(MessageSource.Resolver, e.tok, "method call is not allowed to be used in an expression context ({0})", mse.Member.Name);
+                reporter.Error(MessageSource.Resolver, e.tok, "{0} call is not allowed to be used in an expression context ({1})", mse.Member.WhatKind, mse.Member.Name);
               }
             } else if (lhs != null) {  // if e.Lhs.Resolved is null, then e.Lhs was not successfully resolved and an error has already been reported
               reporter.Error(MessageSource.Resolver, e.tok, "non-function expression (of type {0}) is called with parameters", e.Lhs.Type);
@@ -15209,7 +16061,7 @@ namespace Microsoft.Dafny
       } else if (bv.Type.IsCharType) {
         bounds.Add(new ComprehensionExpr.CharBoundedPool());
       } else if (bv.Type.IsDatatype && bv.Type.AsDatatype.HasFinitePossibleValues) {
-        bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
+        bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsDatatype));
       } else if (bv.Type.IsNumericBased(Type.NumericPersuation.Int)) {
         bounds.Add(new AssignSuchThatStmt.WiggleWaggleBound());
       } else if (bv.Type.IsAllocFree) {
@@ -15256,7 +16108,7 @@ namespace Microsoft.Dafny
         switch (c.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.InSet:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1, e0.Type.Equals(e1.Type.AsSetType.Arg), e1.Type.AsSetType.Finite));
+              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1, e0.Type, e1.Type.AsSetType.Arg, e1.Type.AsSetType.Finite));
             }
             break;
           case BinaryExpr.ResolvedOpcode.Subset:
@@ -15268,17 +16120,17 @@ namespace Microsoft.Dafny
             break;
           case BinaryExpr.ResolvedOpcode.InMultiSet:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.MultiSetBoundedPool(e1, e0.Type.Equals(e1.Type.AsMultiSetType.Arg)));
+              bounds.Add(new ComprehensionExpr.MultiSetBoundedPool(e1, e0.Type, e1.Type.AsMultiSetType.Arg));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InSeq:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1, e0.Type.Equals(e1.Type.AsSeqType.Arg)));
+              bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1, e0.Type, e1.Type.AsSeqType.Arg));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InMap:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.MapBoundedPool(e1, e0.Type.Equals(e1.Type.AsMapType.Arg), e1.Type.AsMapType.Finite));
+              bounds.Add(new ComprehensionExpr.MapBoundedPool(e1, e0.Type, e1.Type.AsMapType.Arg, e1.Type.AsMapType.Finite));
             }
             break;
           case BinaryExpr.ResolvedOpcode.EqCommon:
@@ -16030,7 +16882,9 @@ namespace Microsoft.Dafny
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         if (e.Exact) {
-          return Contract.Exists(e.RHSs, ee => UsesSpecFeatures(ee)) || UsesSpecFeatures(e.Body);
+          MakeGhostAsNeeded(e.LHSs);
+          return UsesSpecFeatures(e.Body);
+          //return Contract.Exists(e.RHSs, ee => UsesSpecFeatures(ee)) || UsesSpecFeatures(e.Body);
         } else {
           return true;  // let-such-that is always ghost
         }
@@ -16066,12 +16920,42 @@ namespace Microsoft.Dafny
         }
         return me.Cases.Exists(mc => UsesSpecFeatures(mc.Body));
       } else if (expr is ConcreteSyntaxExpression) {
-        var e = (ConcreteSyntaxExpression)expr;
+        var e = (ConcreteSyntaxExpression) expr;
         return e.ResolvedExpression != null && UsesSpecFeatures(e.ResolvedExpression);
+      } else if (expr is SeqConstructionExpr) {
+        var e = (SeqConstructionExpr) expr;
+        return UsesSpecFeatures(e.N) || UsesSpecFeatures(e.Initializer);
+      } else if (expr is MultiSetFormingExpr) {
+        var e = (MultiSetFormingExpr) expr;
+        return UsesSpecFeatures(e.E);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
     }
+
+    void MakeGhostAsNeeded(List<CasePattern<BoundVar>> lhss) {
+      foreach (CasePattern<BoundVar> lhs in lhss) {
+        MakeGhostAsNeeded(lhs);
+      }
+    }
+
+    void MakeGhostAsNeeded(CasePattern<BoundVar> lhs) {
+      if (lhs.Ctor != null && lhs.Arguments != null) {
+        for (int i = 0; i < lhs.Arguments.Count && i < lhs.Ctor.Destructors.Count; i++) {
+          MakeGhostAsNeeded(lhs.Arguments[i], lhs.Ctor.Destructors[i]);
+        }
+      }
+    }
+
+    void MakeGhostAsNeeded(CasePattern<BoundVar> arg, DatatypeDestructor d) {
+      if (arg.Expr is IdentifierExpr ie && ie.Var is BoundVar bv) {
+        if (d.IsGhost) bv.makeGhost();
+      }
+      if (arg.Ctor != null) {
+        MakeGhostAsNeeded(arg);
+      }
+    }
+
 
     /// <summary>
     /// This method adds to "friendlyCalls" all

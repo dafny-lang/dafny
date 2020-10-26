@@ -1048,14 +1048,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal void PrintSpec(string kind, List<MaybeFreeExpression> ee, int indent, bool newLine = true) {
+    internal void PrintSpec(string kind, List<AttributedExpression> ee, int indent, bool newLine = true) {
       Contract.Requires(kind != null);
       Contract.Requires(ee != null);
       if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }
-      foreach (MaybeFreeExpression e in ee) {
+      foreach (AttributedExpression e in ee) {
         Contract.Assert(e != null);
         Indent(indent);
-        wr.Write("{0}{1}", e.IsFree ? "free " : "", kind);
+        wr.Write("{0}", kind);
 
         if (e.HasAttributes()) {
           PrintAttributes(e.Attributes);
@@ -1501,8 +1501,8 @@ namespace Microsoft.Dafny {
         }
         wr.Write(";");
 
-      } else if (stmt is LetStmt) {
-        var s = (LetStmt)stmt;
+      } else if (stmt is VarDeclPattern) {
+        var s = (VarDeclPattern)stmt;
         wr.Write("var ");
         PrintCasePattern(s.LHS);
         wr.Write(" := ");

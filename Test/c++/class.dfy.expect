@@ -1,0 +1,15 @@
+
+Dafny program verifier finished with 16 verified, 0 errors
+1 1 0
+103 102 102 106 105 105
+203 17 0 18 8 9 69 70
+202 17 0 18 8 9 69 70
+202 17 0 18 8 9 69 70
+0 18 9 70
+0 18 9 70
+0 18 9 70
+stuffWithAr
+5
+EqualityReflexive: This is expected
+ClassAndPtrDiffer: This is expected
+DeepEquality: This is expected
