@@ -2,6 +2,8 @@
 using Microsoft.Dafny;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading;
@@ -44,20 +46,22 @@ namespace DafnyLS.Language {
     }
 
     public async Task VerifyAsync(Microsoft.Dafny.Program program, CancellationToken cancellationToken) {
+      if(program.reporter.AllMessages[ErrorLevel.Error].Count > 0) {
+        // TODO Change logic so that the loader is responsible to ensure that the previous steps were sucessful.
+        _logger.LogDebug("skipping program verification since the parser or resolvers already reported errors");
+        return;
+      }
+      IEnumerable<Tuple<string, Microsoft.Boogie.Program>> translated;
       await _mutex.WaitAsync(cancellationToken);
       try {
-        if(program.reporter.AllMessages[ErrorLevel.Error].Count > 0) {
-          // TODO Change logic so that the loader is responsible to ensure that the previous steps were sucessful.
-          _logger.LogDebug("skipping program verification since the parser or resolvers already reported errors");
-          return;
-        }
-        var translated = Translator.Translate(program, program.reporter, new Translator.TranslatorFlags { InsertChecksums = true });
-        foreach(var (_, boogieProgram) in translated) {
-          cancellationToken.ThrowIfCancellationRequested();
-          VerifyWithBoogie(boogieProgram, program.reporter);
-        }
+        translated = Translator.Translate(program, program.reporter, new Translator.TranslatorFlags { InsertChecksums = true });
       } finally {
         _mutex.Release();
+      }
+      // It appears that boogie is thread-safe.
+      foreach(var (_, boogieProgram) in translated) {
+        cancellationToken.ThrowIfCancellationRequested();
+        VerifyWithBoogie(boogieProgram, program.reporter);
       }
     }
 
