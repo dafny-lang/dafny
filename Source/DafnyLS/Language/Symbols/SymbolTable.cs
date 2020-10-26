@@ -112,9 +112,14 @@ namespace DafnyLS.Language.Symbols {
     /// Tries to resolve the type of the given symbol.
     /// </summary>
     /// <param name="symbol">The symbol to get the type of.</param>
-    /// <param name="type">The type of the symbol, or <c>null</c> if the type could not be resolved.</param>
+    /// <param name="type">The type of the symbol, or <c>null</c> if the type could not be resolved. If <paramref name="symbol"/> is already a type, it is returned.</param>
     /// <returns><c>true</c> if the type was successfully resolved, otherwise <c>false</c>.</returns>
     public bool TryGetTypeOf(ISymbol symbol, [NotNullWhen(true)] out ISymbol? type) {
+      if(symbol is ClassSymbol) {
+        // TODO other type symbols should be supported in the future.
+        type = symbol;
+        return true;
+      }
       var dafnyType = symbol switch {
         FieldSymbol field => field.Declaration.Type,
         VariableSymbol variable => variable.Declaration.Type,

@@ -73,17 +73,15 @@ namespace DafnyLS.Handlers {
       }
 
       private CompletionList CreateDotCompletionList() {
-        /*if(_document.SymbolTable.TryGetSymbolAt(GetPositionOfSymbolBefore(_request.Position), out var symbol)) {
-          return CreateCompletionListFromSymbols(symbol.Children);
-        }
-        _logger.LogDebug("no symbol was found before {} in {} for dot completion", _request.Position, _request.TextDocument);*/
         var position = GetLinePositionBeforeDot();
         if(position == null) {
+          _logger.LogTrace("dot was placed at the start of a line");
           return new CompletionList();
         }
         // TODO maybe one of the members was successfully resolved before. This should be a more reliable source instead of trying to resolve it manually.
         var memberAccesses = GetMemberAccessChainBefore(position);
         if(memberAccesses.Length == 0) {
+          _logger.LogDebug("could not resolve the member access chain in front of the dot");
           return new CompletionList();
         }
         return CreateCompletionListFromSymbols(GetSymbolsToSuggest(position, memberAccesses));
@@ -91,23 +89,26 @@ namespace DafnyLS.Handlers {
 
       private IEnumerable<ISymbol> GetSymbolsToSuggest(Position position, string[] memberAccessChain) {
         var enclosingSymbol = _document.SymbolTable.GetEnclosingSymbol(position, _cancellationToken);
-        var currentDesignator = GetAccessedSymbolOfEnclosingScopes(enclosingSymbol, memberAccessChain[0]);
-        if(currentDesignator == null) {
-          return Enumerable.Empty<ISymbol>();
-        }
-
-        // TODO resolve the whole chain
-        int currentMemberAccess = 0;
+        ISymbol? currentDesignator;
         ISymbol? currentDesignatorType = null;
-        do {
-          if(currentMemberAccess > 0) {
-            currentDesignator = FindSymbolOfName(currentDesignatorType!, memberAccessChain[currentMemberAccess]);
+        for(int currentMemberAccess = 0; currentMemberAccess < memberAccessChain.Length; currentMemberAccess++) {
+          _cancellationToken.ThrowIfCancellationRequested();
+          string currentDesignatorName = memberAccessChain[currentMemberAccess];
+          if(currentMemberAccess == 0) {
+            if(currentDesignatorName == "this") {
+              // This actually the type, but TryGetTypeOf respects the case that the symbol itself is already a type.
+              currentDesignator = GetEnclosingClass(enclosingSymbol);
+            } else {
+              currentDesignator = GetAccessedSymbolOfEnclosingScopes(enclosingSymbol, currentDesignatorName);
+            }
+          } else {
+            currentDesignator = FindSymbolWithName(currentDesignatorType, currentDesignatorName);
           }
-          if(currentDesignator == null ||!_document.SymbolTable.TryGetTypeOf(currentDesignator, out currentDesignatorType)) {
+          if(currentDesignator == null || !_document.SymbolTable.TryGetTypeOf(currentDesignator, out currentDesignatorType)) {
+            _logger.LogDebug("could not resolve the designator {} of the member access chain '{}'", currentMemberAccess, memberAccessChain);
             return Enumerable.Empty<ISymbol>();
           }
-          currentMemberAccess++;
-        } while(currentMemberAccess < memberAccessChain.Length);
+        }
         return currentDesignatorType?.Children ?? Enumerable.Empty<ISymbol>();
       }
 
@@ -116,17 +117,25 @@ namespace DafnyLS.Handlers {
         if(scope == null) {
           return null;
         }
-        var symbol = FindSymbolOfName(scope, identifier);
+        var symbol = FindSymbolWithName(scope, identifier);
         if(symbol == null) {
           return GetAccessedSymbolOfEnclosingScopes(scope.Scope, identifier);
         }
         return symbol;
       }
 
-      private ISymbol? FindSymbolOfName(ISymbol containingSymbol, string identifier) {
+      private ClassSymbol? GetEnclosingClass(ISymbol? scope) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        if(scope is ClassSymbol classSymbol) {
+          return classSymbol;
+        }
+        return GetEnclosingClass(scope?.Scope);
+      }
+
+      private ISymbol? FindSymbolWithName(ISymbol? containingSymbol, string identifier) {
         // TODO Careful: The current implementation of the method/function symbols do not respect scopes fully. Therefore, there might be
         // multiple symbols with the same name (e.g. locals of nested scopes, parameters,).
-        return containingSymbol.Children
+        return containingSymbol?.Children
           .WithCancellation(_cancellationToken)
           .Where(child => child.Identifier == identifier)
           .FirstOrDefault();
@@ -191,7 +200,7 @@ namespace DafnyLS.Handlers {
           if(IsAtNewStatement) {
             yield break;
           }
-          // TODO method/function invocations not supported yet. Maybe just skip to their identifier?
+          // TODO method/function invocations and indexers are not supported yet. Maybe just skip to their identifier?
           if(IsIdentifierCharacter) {
             yield return ReadIdentifier();
           } else {
