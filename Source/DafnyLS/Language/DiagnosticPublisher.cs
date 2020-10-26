@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny;
+﻿using DafnyLS.Util;
+using Microsoft.Dafny;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
@@ -22,14 +23,19 @@ namespace DafnyLS.Language {
       return new PublishDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
-        Diagnostics = ToDiagnostics(document.Errors, cancellationToken).ToArray(),
+        Diagnostics = ToDiagnostics(document, cancellationToken).ToArray(),
       };
     }
 
-    private static IEnumerable<Diagnostic> ToDiagnostics(ErrorReporter errors, CancellationToken cancellationToken) {
-      foreach(var (level, messages) in errors.AllMessages) {
+    private static IEnumerable<Diagnostic> ToDiagnostics(DafnyDocument document, CancellationToken cancellationToken) {
+      var documentFileName = document.Uri.GetFileName();
+      foreach(var (level, messages) in document.Errors.AllMessages) {
         foreach(var message in messages) {
           cancellationToken.ThrowIfCancellationRequested();
+          if(message.token.filename != documentFileName) {
+            // TODO The reported error belongs to another file. Report it anyway?
+            continue;
+          }
           yield return new Diagnostic {
             Severity = ToSeverity(level),
             Range = message.token.GetLspRange(),

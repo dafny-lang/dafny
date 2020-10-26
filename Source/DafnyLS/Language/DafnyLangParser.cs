@@ -1,8 +1,9 @@
-﻿using Microsoft.Dafny;
+﻿using DafnyLS.Util;
+using Microsoft.Dafny;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -52,20 +53,25 @@ namespace DafnyLS.Language {
     public async Task<Microsoft.Dafny.Program> ParseAsync(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       await _mutex.WaitAsync(cancellationToken);
       try {
-        var filePath = document.Uri.GetFileSystemPath();
-        var fileName = Path.GetFileName(filePath);
+        var fileName = document.Uri.GetFileName();
         var module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
         var builtIns = new BuiltIns();
         var parseErrors = Parser.Parse(
           document.Text,
-          filePath,
-          Path.GetFileName(filePath),
+          document.Uri.GetFileSystemPath(),
+          fileName,
           module,
           builtIns,
           errorReporter
         );
         if(parseErrors != 0) {
           _logger.LogDebug("encountered {} errors while parsing {}", parseErrors, document.Uri);
+        }
+        // TODO handle include errors
+        // TODO handle errors of an include?
+        var includeError = Main.ParseIncludes(module, builtIns, new List<string>(), new Errors(errorReporter));
+        if(includeError != null) {
+          _logger.LogDebug("encountered error while parsing includes: {}", includeError);
         }
         return new Microsoft.Dafny.Program(fileName, module, builtIns, errorReporter);
       } finally {
