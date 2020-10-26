@@ -6839,9 +6839,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(rhsType is UserDefinedType && ((UserDefinedType)rhsType).ResolvedClass != null);
         var rhsTypeUdt = (UserDefinedType)rhsType;
         var typeSubstMap = Resolver.TypeSubstitutionMap(rhsTypeUdt.ResolvedClass.TypeArgs, rhsTypeUdt.TypeArgs);
-        if (pat.Arguments.Count == 0) {
 
-        }
         var ctor = pat.Ctor;
         var correctConstructor = FunctionCall(pat.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, rhs);
         if (ctor.EnclosingDatatype.Ctors.Count == 1) {
