@@ -159,17 +159,42 @@ namespace DafnyLS.Handlers {
 
       private CompletionList CreateCompletionListFromSymbols(IEnumerable<ISymbol> symbols) {
         var completionItems = symbols.WithCancellation(_cancellationToken)
+          .Where(symbol => !IsConstructor(symbol))
           .Select(CreateCompletionItem)
           .ToArray();
         return new CompletionList(completionItems);
       }
 
+      private bool IsConstructor(ISymbol symbol) {
+        return symbol is MethodSymbol method
+          && method.Identifier == "_ctor";
+      }
+
       private CompletionItem CreateCompletionItem(ISymbol symbol) {
         return new CompletionItem {
           Label = symbol.Identifier,
-          Kind = CompletionItemKind.Reference,
-          InsertText = symbol.Identifier,
+          Kind = GetCompletionKind(symbol),
+          InsertText = GetCompletionText(symbol),
           Detail = (symbol as ILocalizableSymbol)?.GetDetailText(_cancellationToken)
+        };
+      }
+
+      private CompletionItemKind GetCompletionKind(ISymbol symbol) {
+        return symbol switch {
+          ClassSymbol _ => CompletionItemKind.Class,
+          MethodSymbol _ => CompletionItemKind.Method,
+          FunctionSymbol _ => CompletionItemKind.Function,
+          VariableSymbol _ => CompletionItemKind.Variable,
+          FieldSymbol _ => CompletionItemKind.Field,
+          _ => CompletionItemKind.Reference
+        };
+      }
+
+      private string GetCompletionText(ISymbol symbol) {
+        return symbol switch {
+          MethodSymbol _ => $"{symbol.Identifier}(",
+          FunctionSymbol _ => $"{symbol.Identifier}(",
+          _ => symbol.Identifier
         };
       }
     }
