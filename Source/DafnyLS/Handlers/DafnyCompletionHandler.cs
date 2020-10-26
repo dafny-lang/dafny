@@ -128,6 +128,9 @@ namespace DafnyLS.Handlers {
 
       private ClassSymbol? GetEnclosingClass(ISymbol? scope) {
         _cancellationToken.ThrowIfCancellationRequested();
+        if(scope == null) {
+          return null;
+        }
         if(scope is ClassSymbol classSymbol) {
           return classSymbol;
         }
