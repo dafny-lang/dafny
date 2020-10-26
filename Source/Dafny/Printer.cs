@@ -2742,7 +2742,7 @@ namespace Microsoft.Dafny {
           } else {
             wr.Write(idPat.Id);
           }
-          if (idPat.Arguments.Count != 0) {
+          if (idPat.Arguments != null) {
             wr.Write("(");
             var sep = "";
             foreach (var arg in idPat.Arguments) {
