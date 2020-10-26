@@ -11512,9 +11512,14 @@ namespace Microsoft.Dafny
 
       if (!type.IsDatatype) { // Neither tuple nor datatype
         if (pat is IdPattern id) {
-          if (id.Arguments != null) { // pat is a tuple or constructor
-            reporter.Error(MessageSource.Resolver, pat.Tok, $"member {id.Id} does not exist in type {type.ToString()}");
-          } else { // pat is a simple variable
+          if (id.Arguments != null) {
+            // pat is a tuple or constructor
+            if (id.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+              reporter.Error(MessageSource.Resolver, pat.Tok, $"tuple type does not match type {type.ToString()}");
+            } else {
+              reporter.Error(MessageSource.Resolver, pat.Tok, $"member {id.Id} does not exist in type {type.ToString()}");
+            }
+        } else { // pat is a simple variable
             /* =[1]= */
             CheckLinearVarPattern(type, (IdPattern) pat, opts);
           }
