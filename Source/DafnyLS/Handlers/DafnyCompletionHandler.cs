@@ -28,8 +28,14 @@ namespace DafnyLS.Handlers {
       };
     }
 
+    // TODO when is this method called and for what?
     public override bool CanResolve(CompletionItem completionItem) {
       return false;
+    }
+
+    // TODO when is this method called and for what?
+    public override Task<CompletionItem> Handle(CompletionItem request, CancellationToken cancellationToken) {
+      return Task.FromResult(request);
     }
 
     public override Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
@@ -39,10 +45,6 @@ namespace DafnyLS.Handlers {
         return Task.FromResult(new CompletionList());
       }
       return Task.FromResult(new CompletionProcessor(_logger, document, request, cancellationToken).Process());
-    }
-
-    public override Task<CompletionItem> Handle(CompletionItem request, CancellationToken cancellationToken) {
-      return Task.FromResult(request);
     }
 
     private class CompletionProcessor {
