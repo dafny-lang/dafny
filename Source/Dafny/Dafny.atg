@@ -2617,7 +2617,7 @@ ExtendedPattern<.out ExtendedPattern pat.>
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
     if (pat == null) {
-      pat = new IdPattern(t, "_ParseError", new List<ExtendedPattern>());
+      pat = new IdPattern(t, "_ParseError", null);
     }
   .)
   .
@@ -3723,7 +3723,7 @@ CasePattern<.out CasePattern<BoundVar> pat.>
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
      if (pat == null) {
-       pat = new CasePattern<BoundVar>(t, "_ParseError", new List<CasePattern<BoundVar>>());
+       pat = new CasePattern<BoundVar>(t, "_ParseError", null);
      }
   .)
   .
@@ -3766,7 +3766,7 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
      if (pat == null) {
-       pat = new CasePattern<LocalVariable>(t, "_ParseError", new List<CasePattern<LocalVariable>>());
+       pat = new CasePattern<LocalVariable>(t, "_ParseError", null);
      }
   .)
   .
