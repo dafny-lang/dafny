@@ -3,5 +3,4 @@ NestedPatterns.dfy(86,23): Error: Duplicate parameter name: h
 NestedPatterns.dfy(94,20): Error: Duplicate parameter name: h
 NestedPatterns.dfy(102,23): Error: Duplicate parameter name: e
 NestedPatterns.dfy(118,7): Error: case arguments count does not match source arguments count
-NestedPatterns.dfy(124,2): Error: match source tuple needs at least 1 argument
-5 resolution/type errors detected in NestedPatterns.dfy
+4 resolution/type errors detected in NestedPatterns.dfy

@@ -10638,26 +10638,9 @@ namespace Microsoft.Dafny
         }
       }
 
-      var errorCount = reporter.Count(ErrorLevel.Error);
-      if (s.Source is DatatypeValue) {
-        var e = (DatatypeValue)s.Source;
-        if (e.Arguments.Count < 1) {
-          reporter.Error(MessageSource.Resolver, s.Tok, "match source tuple needs at least 1 argument");
-        }
-        foreach (var arg in e.Arguments) {
-          if (arg is DatatypeValue && ((DatatypeValue)arg).Arguments.Count < 1) {
-            reporter.Error(MessageSource.Resolver, s.Tok, "match source tuple needs at least 1 argument");
-          }
-        }
-      }
-
-      if (reporter.Count(ErrorLevel.Error) != errorCount) {
-        return;
-      }
-
       var sourceType = PartiallyResolveTypeForMemberSelection(s.Source.tok, s.Source.Type).NormalizeExpand();
 
-      errorCount = reporter.Count(ErrorLevel.Error);
+      var errorCount = reporter.Count(ErrorLevel.Error);
       CheckLinearNestedMatchStmt(sourceType, s, opts);
       if (reporter.Count(ErrorLevel.Error) != errorCount) return;
 
@@ -10680,22 +10663,6 @@ namespace Microsoft.Dafny
       ResolveExpression(s.Source, new ResolveOpts(codeContext, true));
       Contract.Assert(s.Source.Type != null);  // follows from postcondition of ResolveExpression
       var errorCount = reporter.Count(ErrorLevel.Error);
-
-      if (s.Source is DatatypeValue) {
-        var e = (DatatypeValue)s.Source;
-        if (e.Arguments.Count < 1) {
-          reporter.Error(MessageSource.Resolver, s.Tok, "match source tuple needs at least 1 argument");
-        }
-        foreach (var arg in e.Arguments) {
-          if (arg is DatatypeValue && ((DatatypeValue)arg).Arguments.Count < 1) {
-            reporter.Error(MessageSource.Resolver, s.Tok, "match source tuple needs at least 1 argument");
-          }
-        }
-      }
-
-      if (reporter.Count(ErrorLevel.Error) != errorCount) {
-        return;
-      }
       var sourceType = PartiallyResolveTypeForMemberSelection(s.Source.tok, s.Source.Type).NormalizeExpand();
 
       var dtd = sourceType.AsDatatype;
@@ -14652,7 +14619,7 @@ namespace Microsoft.Dafny
 
       var errorCount = reporter.Count(ErrorLevel.Error);
       var sourceType = PartiallyResolveTypeForMemberSelection(me.Source.tok, me.Source.Type).NormalizeExpand();
-
+      if (reporter.Count(ErrorLevel.Error) != errorCount) return;
       errorCount = reporter.Count(ErrorLevel.Error);
       if (debug) Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr  1 - Checking Linearity of patterns", me.tok.line);
       CheckLinearNestedMatchExpr(sourceType, me, opts);
@@ -14681,21 +14648,7 @@ namespace Microsoft.Dafny
       ResolveExpression(me.Source, opts);
 
       Contract.Assert(me.Source.Type != null);  // follows from postcondition of ResolveExpression
-      var errorCount = reporter.Count(ErrorLevel.Error);
-      if (me.Source is DatatypeValue) {
-        var e = (DatatypeValue)me.Source;
-        if (e.Arguments.Count < 1) {
-          reporter.Error(MessageSource.Resolver, me.tok, "match source tuple needs at least 1 argument");
-        }
-        foreach (var arg in e.Arguments) {
-          if (arg is DatatypeValue && ((DatatypeValue)arg).Arguments.Count < 1) {
-            reporter.Error(MessageSource.Resolver, me.tok, "match source tuple needs at least 1 argument");
-          }
-        }
-      }
-      if (reporter.Count(ErrorLevel.Error) != errorCount) {
-        return;
-      }
+
       var sourceType = PartiallyResolveTypeForMemberSelection(me.Source.tok, me.Source.Type).NormalizeExpand();
       if (debug) Console.WriteLine("DEBUG: {0} ResolvedMatchExpr - Done Resolving Source" );
 

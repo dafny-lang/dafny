@@ -1,0 +1,7 @@
+git-issue-032-errors.dfy(8,17): Error: case arguments count does not match source arguments count
+git-issue-032-errors.dfy(9,17): Error: case arguments count does not match source arguments count
+git-issue-032-errors.dfy(10,18): Error: case arguments count does not match source arguments count
+git-issue-032-errors.dfy(11,27): Error: case arguments count does not match source arguments count
+git-issue-032-errors.dfy(12,27): Error: case arguments count does not match source arguments count
+git-issue-032-errors.dfy(13,28): Error: case arguments count does not match source arguments count
+6 resolution/type errors detected in git-issue-032-errors.dfy
