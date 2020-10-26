@@ -225,6 +225,9 @@ namespace DafnyLS.Language {
       case BlockStmt blockStatement:
         Visit(blockStatement);
         break;
+      case MatchStmt matchStatement:
+        Visit(matchStatement);
+        break;
       default:
         VisitUnknown(statement, statement.Tok);
         break;
@@ -246,6 +249,22 @@ namespace DafnyLS.Language {
       VisitNullableAttributes(returnStatement.Attributes);
       foreach(var rhs in returnStatement.rhss) {
         Visit(rhs);
+      }
+    }
+
+    public virtual void Visit(MatchStmt matchStatement) {
+      Visit(matchStatement.Source);
+      foreach(var matchCase in matchStatement.Cases) {
+        Visit(matchCase);
+      }
+    }
+
+    public virtual void Visit(MatchCaseStmt matchCaseStatement) {
+      foreach(var argument in matchCaseStatement.Arguments) {
+        Visit(argument);
+      }
+      foreach(var body in matchCaseStatement.Body) {
+        Visit(body);
       }
     }
 
