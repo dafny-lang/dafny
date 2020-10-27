@@ -1191,9 +1191,9 @@ namespace Dafny
       System.Console.Write(ToString(g));
     }
 
-    public static readonly TypeDescriptor<bool> BOOLEAN = new TypeDescriptor<bool>(false);
+    public static readonly TypeDescriptor<bool> BOOL = new TypeDescriptor<bool>(false);
     public static readonly TypeDescriptor<char> CHAR = new TypeDescriptor<char>('D');
-    public static readonly TypeDescriptor<BigInteger> INTEGER = new TypeDescriptor<BigInteger>(BigInteger.Zero);
+    public static readonly TypeDescriptor<BigInteger> INT = new TypeDescriptor<BigInteger>(BigInteger.Zero);
     public static readonly TypeDescriptor<BigRational> REAL = new TypeDescriptor<BigRational>(BigRational.ZERO);
     public static readonly TypeDescriptor<byte> UINT8 = new TypeDescriptor<byte>(0);
     public static readonly TypeDescriptor<ushort> UINT16 = new TypeDescriptor<ushort>(0);
@@ -1592,7 +1592,7 @@ namespace @_System
       this._1 = _1;
     }
     public override bool Equals(object other) {
-      var oth = other as _System.@Tuple2<T0,T1>;
+      var oth = other as _System.Tuple2<T0,T1>;
       return oth != null && object.Equals(this._0, oth._0) && object.Equals(this._1, oth._1);
     }
     public override int GetHashCode() {
@@ -1611,22 +1611,16 @@ namespace @_System
       s += ")";
       return s;
     }
-#if CHECK_ON_WHAT_OTHER_DATATYPES_DO
-    static Tuple2<T0,T1> theDefault;
-    public static Tuple2<T0,T1> Default {
-      get {
-        if (theDefault == null) {
-          theDefault = new _System.@Tuple2<T0,T1>(Dafny.Helpers.Default<T0>(), Dafny.Helpers.Default<T1>());
-        }
-        return theDefault;
-      }
+    public static Tuple2<T0,T1> Default(Dafny.TypeDescriptor<T0> _td_T0,Dafny.TypeDescriptor<T1> _td_T1) {
+      return create(_td_T0.Default(),_td_T1.Default());
     }
-    public static Tuple2<T0,T1> _DafnyDefaultValue() { return Default; }
-#endif
+    public static Dafny.TypeDescriptor<_System.Tuple2<T0,T1>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0,Dafny.TypeDescriptor<T1> _td_T1) {
+      return new Dafny.TypeDescriptor<_System.Tuple2<T0,T1>>(_System.Tuple2<T0,T1>.Default(_td_T0,_td_T1));
+    }
     public static Tuple2<T0,T1> create(T0 _0, T1 _1) {
       return new Tuple2<T0,T1>(_0, _1);
     }
-    public bool is____hMake3 { get { return true; } }
+    public bool is____hMake2 { get { return true; } }
     public T0 dtor__0 {
       get {
         return this._0;

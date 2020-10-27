@@ -6,43 +6,44 @@ Automatic Initialization of Variables
 Dafny is a type-safe language, which primarily means that every use of a _variable_
 (local variable, parameter, bound variable, object field, or array element)
 evaluates to a value of the variable's type. The type checker and verifier together
-enforce that the value assigned to a variable is indeed a value of that variable's
+enforce that each value assigned to a variable is indeed a value of that variable's
 type. Since the type of a variable never changes, this ensures type safety, provided
 a variable is assigned before it is used. But what about any uses before then?
 
 If a variable is used before it has been assigned, Dafny still arranges for the
-variable to be initialized with _some_ value of the variable's type. (Since this
-is a nondeterministic assignment, this behavior can be converted to a static error
-by using the command-line option `/definiteAssignment:3`.) To accomplish this,
-the compiler needs to have the ability to emit an expression that produces a
-value of a given type. This is possible for many, but not all, types.
+variable to be initialized with _some_ value of the variable's type.[^fn-determinism]
+To accomplish this, the compiler needs to have the ability to emit an expression that
+produces a value of a given type. This is possible for many, but not all, types.
 
 This document describes for which types the compiler can produce initializing
 expressions and the mechanism used for doing so.
 
+[^fn-determinism]: The command-line option `/definiteAssignment:3` tells Dafny to
+    instead generate an error if a variable is not assigned by the program.
+
 Types
 -----
 
-For reference, Dafny has the following kinds of types:
+Dafny supports the following kinds of types:
 
-* primitive types (`int`, `real`, `char`, `bool`, bitvectors of any width, and `ORDINAL`)
-* collection types (sets, multisets, sequences, and maps)
+* primitive types (`int`, `real`, `bool`, `char`, bitvectors of any width, and `ORDINAL`)
 * `newtype`s (these are distinct numeric types, whose values of mimic those of the given
   numeric base type, or possibly a subset thereof)
+* possibly-null reference types (classes, arrays of any dimension, traits)
+* type parameters
+* collection types (sets, multisets, sequences, and maps)
 * datatypes and co-datatypes
 * arrow types (first-class function values of any arity)
-* possibly-null reference types (classes, arrays of any dimension, traits)
 * subset types (a subset type of a base type `B` has a subset of the values of `B`; this
   subset is characterized by a constraint on `B`)
-* type parameters
 
-In addition, there are _synonym types_ (which are just that--synonyms for other types) and
+In addition, there are _type synonyms_ (which are just that--synonyms for other types) and
 _opaque types_ (which cannot be compiled, so they don't play a role here).
 
 Notes:
 * `nat` is a built-in subset type of `int`
 * `string` is a built-in type synonym for `seq<char>`
-* tuple types are datatypes
+* tuple types are built-in datatypes
 * iterators give rise to class types
 * collection types, datatypes, co-datatypes, arrow types, reference types, and subset
   types can have type parameters
@@ -53,38 +54,188 @@ Notes:
   to `B`), which in turn has a built-in subset `AA -> B` (total functions from `AA` to
   `B`)
 
+Compilation of types
+--------------------
+
+The compilation of types involves several notions, defined here.
+
+The _target type_ of a Dafny type `T` is the target-language type used to represent `T`.
+The target type may not be unique to one Dafny type; in other words, several Dafny
+types may compile to the same target type.
+
+type                            | C# target type
+--------------------------------|---------------------------------------------------
+`int`                           | `BigInteger`
+`real`                          | `BigRational`
+`bool`                          | `bool`
+`char`                          | `char`
+bitvectors                      | `byte`, `ushort`, `uint`, `ulong`, or `BigInteger`
+`ORDINAL`                       | `BigInteger`
+integer-based `newtype`         | bounded C# integer or `BigInteger`
+real-based `newtype`            | `BigRational`
+`trait Tr`                      | interface `Tr`
+`class Cl`                      | class `Cl`
+`array<T>`, `array2<T>`, ...    | `T[]`, `T[,]`, ...
+type parameter `T`              | `T`
+collection type                 | `ISet<T>`, `IMultiset<T>`, `ISequence<T>`, `IMap<T, U>`
+datatype or co-datatype `D`     | interface of class `D`
+`TT ~> U`                       | `System.Func<TT, U>`
+subset type for a base type `B` | `B`
+
+The compilation of a type may emit some fields and methods that are used at run time.
+These are emitted into a _companion class_. In some cases, the companion class is the
+same as the target type, and in other cases there is no companion class at all.
+
+type                            | companion class
+--------------------------------|---------------------------------------------------
+`int`                           | none
+`real`                          | none
+`bool`                          | none
+`char`                          | none
+bitvectors                      | none
+`ORDINAL`                       | none
+`newtype` `T`                   | `T`
+`trait Tr`                      | `_Companion_Tr`
+`class Cl`                      | `Cl`
+`array<T>`, `array2<T>`, ...    | none
+type parameter `T`              | none
+collection type                 | `Set<T>`, `Multiset<T>`, `Sequence<T>`, `Map<T, U>`
+datatype or co-datatype `D`     | class `D`
+`TT ~> U`                       | none
+subset type `T`                 | `T`
+
+Types can have type parameters. Each _formal_ type parameter is compiled into a corresponding
+formal type parameter in the target language, with one exception. The exception is for
+subset types, whose type parameters are expanded as part of the base type. Each _actual_
+type argument is compiled to that type's target type.
+
+Because target types are not unique, the type arguments passed as required by the target
+language do not carry all information that is needed about the type at run time.
+Therefore, the Dafny compiler augments the target language's type parameters by a
+system of _type descriptors_. These are described in a section below.
+
+Type descriptors are passed only for type parameters that bear the Dafny type characteristic
+`(0)`. Such type parameters are called _auto-init type parameters_.
+
+For inductive datatypes, the compiler uses one more notion of types, namely the
+_used type parameters_. This refers to those type parameters that play a role in the
+creation of a value of the datatype's "root constructor", explained below.
+TODO: These "used type parameters" were needed long ago, but things have changed in
+the language; can they now be removed?
+
 Auto-init types
 ---------------
 
 A type is called an _auto-init type_ if it is legal for a program to use a variable of
 that type before the variable has been initialized.
 
-All primitive types are auto-init types. For example, the following is a legal program
+For example, `char` is an auto-init type. Therefore, the following is a legal program
 snippet:
 
-    var x: int;
     var ch: char;
-    print x, " ", ch, "\n";
+    print ch, "\n";
 
-A compiler is permitted to assign _any_ values to `x` and `ch`, so long as those values
-are of types `int` and `char`, respectively. In fact, the compiler is free to choose
-different values each time this program snippet is executed, even in the same run of the
-program. In other words, the language allows the selection of the values to be
-nondeterministic.
+A compiler is permitted to assign _any_ value to `ch`, so long as that value is of
+type `char`. In fact, the compiler is free to emit code that chooses a different
+initial value each time this program snippet is encountered at run time. In other words,
+the language allows the selection of the values to be nondeterministic.
 
 The purpose of this document is to describe how the compiler (in particular, the
-Dafny-to-C# compiler in `Compiler-CSharp.cs`, but the other targets are similar) implements
+Dafny-to-C# compiler in `Compiler-CSharp.cs`, though the other targets are similar) implements
 the auto-init feature. It will be convenient (and, for this particular compiler, accurate)
 to speak of each type as having a _default value_. However, please note that this
 terminology is specific to an implementation of a compiler--the Dafny _language_ itself
-does not have a notion of specific "default values" of types, not even for auto-init types.
+does not have a notion of specific a "default value" of any type, not even for auto-init
+types.
+
+Default-valued expressions
+--------------------------
+
+To fabricate default values, the compiler uses a combination of _default-valued expressions_
+and _type descriptors_. This section describes the former; the next section describes the
+latter.
+
+A default-valued expression is simply an expression that evaluates to a default value
+for the type.
+
+type                                             | default-valued expression
+-------------------------------------------------|------------------------------------------
+`int`                                            | `BigInteger.Zero`
+`real`                                           | `BigRational.ZERO`
+`bool`                                           | `false`
+`char`                                           | `D`
+bitvectors                                       | `0` or `BigInteger.Zero`
+`ORDINAL`                                        | `BigInteger.Zero`
+integer-based `newtype` without `witness` clause | same as for base type, cast appropriately
+real-based `newtype` without `witness` clause    | same as for base type, cast appropriately
+`newtype` `NT` with `witness` clause             | `NT.Witness`
+possibly-null reference types                    | `null`
+type parameter `T`                               | `td_T.Default()`
+collection type `C`                              | `C.Empty`
+datatype or co-datatype `D`                      | `D.Default(E, ...)`
+`TT ~> U`                                        | `null`
+`TT --> U`                                       | `null`
+subset type without `witness` clause             | same as for base type
+subset type `S` with `witness` clause            | `S.Witness`
+
+Other types do not have default-valued expressions.
+Here are some additional explanations of the table:
+
+The `witness` clause, if any, of a `newtype` or subset type gets recorded in a static field of the
+companion class:
+
+```
+public static readonly B Witness = E;
+```
+
+where `B` is type's target type and `E` is the expression given in the `witness` clause.
+No such `Witness` field is emitted if either there is no `witness` clause or it is given as
+a `ghost witness` clause.
+
+If a type parameter `T` is an auto-init type parameter (that is, if it has been declared
+with the `(0)` type characteristic), then the context in the target code will contain a
+parameter or field named `td_T`. This is the type descriptor associated with `T`, as described
+below, and calling `Default()` on it yields a value of the type that `T` stands for.
+
+Each datatype and co-datatype has a _root constructor_. For a `datatype`, the root constructor
+is selected when the resolver ascertains that the datatype is nonempty. For a `codatatype`,
+the selection of the root constructor lacks sophistication--it is just the first of the given
+constructors. The default value of a (co-)datatype is this root constructor, called with values
+for its parameters:
+
+    D.create_RootCtor(E, ...)
+
+This value is produced by the `Default(...)` method emitted by the compiler into the type's
+companion class:
+
+```
+public static DT Default(T e, ...) {
+  return create_RootCtor(e, ...);
+}
+```
+
+where `DT` is the target type of the (co-)datatype.
+TODO: What are the parameters to this `Default(...)` method? I think it's only a subset of the
+parameters passed to the root constructor, right? Only those parameters that can be constructed
+only through auto-init type parameters are needed. This affects the first sentence of the next paragraph.
+
+If the root constructor takes no parameters, or if the (co-)datatype itself takes no type
+parameters, then then target type of the (co-)datatype always results in that same value.
+In those cases, the value returned by the `Default()` method is pre-computed and reused:
+
+```
+private static readonly DT theDefault = create_RootCtor(...);
+public static DT Default() {
+  return theDefault;
+}
+```
 
 Type descriptors
 ----------------
 
 To obtain default values of certain type parameters, the compiler emits _run-time type descriptors_
 (or just _type descriptors_ for short). A type descriptor has the ability to produce a
-default value of a given type.
+default value for the type that the type parameter represents.
 
 The C# declaration of the class of type descriptors lives in the `Dafny` namespace:
 
@@ -108,128 +259,60 @@ For an uninitialized local variable of type `G`, the compiler will assign the de
 
 where `td_G` is type descriptor for `G`. (More on where `td_G` comes from below.)
 
-Primitive types
----------------
+The following table shows the type descriptors for the various types:
 
-Primitive types are auto-init types. Their default values are chosen to be
-`false` for `bool`,
-`0.0` for `real`,
-`'D'` for `char`,
-and `0` for `int`, bitvector types, and `ORDINAL`.
+type                                             | type descriptor
+-------------------------------------------------|------------------------------------------
+`int`                                            | `Dafny.Helpers.INT`
+`real`                                           | `Dafny.Helpers.REAL`
+`bool`                                           | `Dafny.Helpers.BOOL`
+`char`                                           | `Dafny.Helpers.CHAR`
+bitvectors                                       | `Dafny.Helpers.{UINT8, UINT16, UINT32, UINT64, INT}`
+`ORDINAL`                                        | `Dafny.Helpers.INT`
+`newtype` `NT`                                   | `NT._TypeDescriptor()`
+possibly-null reference type `T`                 | `Dafny.Helpers.NULL<T>()`
+type parameter `T`                               | `td_T`
+collection type `C`                              | `C._TypeDescriptor()`
+datatype or co-datatype `D`                      | `D._TypeDescriptor(typeDescriptors, ...)`
+arrow type `T`                                   | `Dafny.Helpers.NULL<T>()`
+subset type `S`                                  | `D._TypeDescriptor(typeDescriptors, ...)`
 
-Type descriptors for these types are available as static fields in the `Dafny.Helpers` class.
-For example:
+
+## Primitive types
+
+The type descriptors for primitive types are defined in the `Dafny.Helpers` class:
 
 ```
-public static readonly TypeDescriptor<bool> BOOLEAN = new TypeDescriptor<bool>(false);
+public static readonly TypeDescriptor<bool> BOOL = new TypeDescriptor<bool>(false);
 public static readonly TypeDescriptor<char> CHAR = new TypeDescriptor<char>('D');
-public static readonly TypeDescriptor<BigInteger> INTEGER = new TypeDescriptor<BigInteger>(BigInteger.Zero);
+public static readonly TypeDescriptor<BigInteger> INT = new TypeDescriptor<BigInteger>(BigInteger.Zero);
 public static readonly TypeDescriptor<BigRational> REAL = new TypeDescriptor<BigRational>(BigRational.ZERO);
-```
 
-Since `ORDINAL` is at run time represented like `int`, it also uses the `Helpers.INTEGER` type descriptor.
-
-Bitvectors are represented as unsigned C# integer types, if possible, and as `BigInteger` otherwise.
-For this purpose, it uses the `Dafny.Helpers` fields
-
-```
 public static readonly TypeDescriptor<byte> UINT8 = new TypeDescriptor<byte>(0);
 public static readonly TypeDescriptor<ushort> UINT16 = new TypeDescriptor<ushort>(0);
 public static readonly TypeDescriptor<uint> UINT32 = new TypeDescriptor<uint>(0);
 public static readonly TypeDescriptor<ulong> UINT64 = new TypeDescriptor<ulong>(0);
 ```
 
-for bitvectors up to 8, 16, 32, and 64 bits, respectively, and uses `Helpers.INTEGER` for wider bitvectors.
+## Newtypes
 
-Subset types
-------------
-
-A subset type `S` with list of type parameters `TT` has the form
-
-    type S<TT> = b: B | E witness W
-
-where `B` is the base type, `E` is a constraint (in terms of the bound variable `b`), and
-`W` in the optional `witness` clause is a value that satisfies `E`.
-
-The target representation for `S` is the same as for `B`. Nevertheless, the compiler emits a
-class named `S`, which holds certain information about `S`. If `S` has a `witness` clause,
-the target class `S` will contain the following field:
+The type descriptor for a `newtype` `NT` is given by the static `_TypeDescriptor` method that
+the compiler emits into the companion class for `NT`.
 
 ```
-class S<TT> {
-  public static readonly B Witness = W;
-  //...
-}
-```
-
-The target class `S` will also contain a method `_TypeDescriptor` that returns a type
-descriptor for `S`. If `S` has a `witness` clause, the method is
-
-```
-public static Dafny.TypeDescriptor<B> _TypeDescriptor(TypeDescriptor<T> td_T, ...) {
-  return new Dafny.TypeDescriptor<B>(Witness);
-}
-```
-
-where `TypeDescriptor<T> td_T, ...` denotes one parameter for each type `T` in `TT` constrained
-to be an auto-init type. A type parameter is constrained to be an auto-init type if
-it bears the `(0)` suffix (called a _type characteristic).
-
-If `S` has no type parameters, then the value returned by `_TypeDescriptor` is cached as
-follows:
-
-```
-private static readonly Dafny.TypeDescriptor<B> _TYPE = new Dafny.TypeDescriptor<B>(Witness);
+private static readonly Dafny.TypeDescriptor<B> _TYPE = new Dafny.TypeDescriptor<B>(Dve);
 public static Dafny.TypeDescriptor<B> _TypeDescriptor() {
   return _TYPE;
 }
 ```
 
-If `S` has no `witness` clause of if it instead has a `ghost witness` clause, then
-`Witness` in the body of `_TypeDescriptor` or the RHS of `_TYPE` is replaced by the default value
-of type `B` (which, due to checks performed by the type checker and verifier, will
-necessarily be a zero-equivalent value in C#).
+where `B` is the target type of `NT`,
+and `Dve` is the default-valued expression for `NT` (`Witness` or some form of `0` or `0.0`).
 
-To obtain a type descriptor for `S<GG>`, the compiler emits the expression
+## Reference types
 
-    S<G>._TypeDescriptor(td_G, ...)
-
-where `td_G` is the type descriptor `G`, for each type `G` that corresponds to an
-auto-init type parameter of `S`.
-
-Newtypes
---------
-
-A `newtype` declaration defines a new numeric type. It has the general form
-
-    newtype N = x: B | E witness W
-
-It gives rise to the declarations of `Witness` (if the type has a `witness` clause),
-`_TYPE`, and `_TypeDescriptor` as described above for subset types. Note that a `newtype`
-does not have any type parameters.
-
-Collection types
-----------------
-
-The collections types, like `set<T>` and `map<T, U>`, also give rise to a `_TypeDescriptor`
-method, as well as a `_TYPE` field (because the type parameters of collections type are not
-auto-init). For `set<T>`, these declarations are found in `Set<T>` (note, not `ISet<T>`, since
-C# doesn't allow declarations in an interface) and are:
-
-```
-private static readonly Dafny.TypeDescriptor<ISet<T>> _TYPE = new Dafny.TypeDescriptor<ISet<T>>(Empty);
-public static Dafny.TypeDescriptor<ISet<T>> _TypeDescriptor() {
-  return _TYPE;
-}
-```
-
-where `Empty` denotes the empty set. The other collections are similar.
-
-Reference types
----------------
-
-The default value of any possibly-null reference types is `null`. It's obtained via the following
-method, in `Dafny.Helpers`:
+The type descriptor for possibly-null reference types is given by the following method in
+`Dafny.Helpers`:
 
 ```
 public static TypeDescriptor<T> NULL<T>() where T : class {
@@ -237,11 +320,100 @@ public static TypeDescriptor<T> NULL<T>() where T : class {
 }
 ```
 
-Arrow types
------------
+## Type parameters
 
-For any type `U` and list of types `TT`, the default values of the partial arrow types
-`TT ~> U` and `TT --> U` is the entirely partial function. Such a function can never be
-invoked, the so value used for it is `null`. Hence, the type descriptors for these types
-are obtained using `Dafny.Helpers.NULL`.
+For each formal auto-init type parameter `T`, there is an associated type descriptor named
+`td_T` (of type `Dafny.TypeDescriptor<T>`). What exactly `td_T` is depends on the parent
+declaration of `T`.
 
+If `T` is a type parameter of a method or function, then `td_T` is simply an additional
+parameter to the method or function.
+
+If `T` is a type parameter of a class, then `td_T` is a field of the target type. Its
+value is given by a parameter to the target-type constructor. For example, for
+
+```
+class Cl<T(0)> {
+  constructor Init(x: int) { ... }
+  ...
+}
+```
+
+the target type will be
+
+```
+class Cl<T> {
+  private Dafny.TypeDescriptor<T> td_T;
+  public Cl(Dafny.TypeDescriptor<T> td_T) {
+    this.td_T = td_T;
+  }
+  public void Init(x: BigInteger) { ... }
+  ...
+}
+```
+
+If `T` is a type parameter of a trait, then...
+TODO: If `T` is used as the type of an undeclared local variable in the method of a
+trait, then does this really work? I guess this can work if the target interface
+has a `td_T` getter that's computed appropriately in the class.
+
+If `T` is a type parameter of a (co-)datatype, then...
+TODO: See the concern about traits immediately above. Should auto-init type parameters
+be disallowed in (co-)datatypes? Is that also a reasonable solution for traits?
+
+## Collection types
+
+Type descriptors for collection types are provided by the `_TypeDescriptor()` method in
+the type's companion class. In each case, the return returned is a value computed once
+and for all into a static field.
+
+For each collection class (for example, `set<T>`), the companion class (`Set<T>` for
+`set<T>`) contains the following field and method:
+
+```
+private static readonly TypeDescriptor<B> _TYPE = new Dafny.TypeDescriptor<B>(Empty);
+public static TypeDescriptor<B> _TypeDescriptor() {
+  return _TYPE;
+}
+```
+
+where `B` denotes the target type of the collection type (`ISet<T>` for `set<T>`).
+
+## Datatypes and co-datatypes
+
+For any (co-)datatype `D<TT>`, the companion class for `D<TT>` declares:
+
+```
+public static Dafny.TypeDescriptor<D<TT>> _TypeDescriptor(Dafny.TypeDescriptor<T> _td_T, ...) {
+  return new Dafny.TypeDescriptor<D<TT>>(Default(_td_T, ...));
+}
+```
+
+where the list of type parameters denoted by `T, ...` are the auto-init type parameters from `TT`.
+
+TODO: What about "used type parameters"?
+
+## Subset types
+
+The companion class of a subset type `S<TT>` contains a method `_TypeDescriptor` that returns
+a type descriptor for `S<TT>`.
+
+```
+public static Dafny.TypeDescriptor<B> _TypeDescriptor(TypeDescriptor<T> td_T, ...) {
+  return new Dafny.TypeDescriptor<B>(Dve);
+}
+```
+
+where the list of type parameters denoted by `T, ...` are the auto-init type parameters from `TT`,
+`B` is the target type of `S<TT>`, and
+`Dve` is the default-valued expression for `S<TT>`.
+
+If `S` has no type parameters, then the value returned by `_TypeDescriptor` is pre-computed
+and reused:
+
+```
+private static readonly Dafny.TypeDescriptor<B> _TYPE = new Dafny.TypeDescriptor<B>(Dve);
+public static Dafny.TypeDescriptor<B> _TypeDescriptor() {
+  return _TYPE;
+}
+```
