@@ -104,7 +104,7 @@ namespace DafnyLS.Handlers {
               currentDesignator = GetAccessedSymbolOfEnclosingScopes(enclosingSymbol, currentDesignatorName);
             }
           } else {
-            currentDesignator = FindSymbolWithName(currentDesignatorType, currentDesignatorName);
+            currentDesignator = FindSymbolWithName(currentDesignatorType!, currentDesignatorName);
           }
           if(currentDesignator == null || !_document.SymbolTable.TryGetTypeOf(currentDesignator, out currentDesignatorType)) {
             _logger.LogDebug("could not resolve the designator {} of the member access chain '{}'", currentMemberAccess, memberAccessChain);
@@ -114,33 +114,27 @@ namespace DafnyLS.Handlers {
         return currentDesignatorType?.Children ?? Enumerable.Empty<ISymbol>();
       }
 
-      private ISymbol? GetAccessedSymbolOfEnclosingScopes(ISymbol? scope, string identifier) {
+      private ISymbol? GetAccessedSymbolOfEnclosingScopes(ISymbol scope, string identifier) {
         _cancellationToken.ThrowIfCancellationRequested();
-        if(scope == null) {
-          return null;
-        }
         var symbol = FindSymbolWithName(scope, identifier);
-        if(symbol == null) {
+        if(symbol == null && scope.Scope != null) {
           return GetAccessedSymbolOfEnclosingScopes(scope.Scope, identifier);
         }
         return symbol;
       }
 
-      private ClassSymbol? GetEnclosingClass(ISymbol? scope) {
+      private ClassSymbol? GetEnclosingClass(ISymbol scope) {
         _cancellationToken.ThrowIfCancellationRequested();
-        if(scope == null) {
-          return null;
-        }
         if(scope is ClassSymbol classSymbol) {
           return classSymbol;
         }
-        return GetEnclosingClass(scope?.Scope);
+        return scope.Scope == null ? null : GetEnclosingClass(scope.Scope);
       }
 
-      private ISymbol? FindSymbolWithName(ISymbol? containingSymbol, string identifier) {
+      private ISymbol? FindSymbolWithName(ISymbol containingSymbol, string identifier) {
         // TODO Careful: The current implementation of the method/function symbols do not respect scopes fully. Therefore, there might be
         // multiple symbols with the same name (e.g. locals of nested scopes, parameters,).
-        return containingSymbol?.Children
+        return containingSymbol.Children
           .WithCancellation(_cancellationToken)
           .Where(child => child.Identifier == identifier)
           .FirstOrDefault();
