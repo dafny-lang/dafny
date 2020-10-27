@@ -23,7 +23,6 @@ namespace DafnyLS.Workspace {
       var program = await _parser.ParseAsync(textDocument, errorReporter, cancellationToken);
       var compilationUnit = await _symbolResolver.ResolveSymbolsAsync(textDocument, program, cancellationToken);
       var symbolTable = _symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
-      //var symbolLookup = SymbolLookup.FromSymbolTable(symbolTable, cancellationToken);
       await _verifier.VerifyAsync(program, cancellationToken);
       return new DafnyDocument(textDocument, errorReporter, program, symbolTable);
     }
