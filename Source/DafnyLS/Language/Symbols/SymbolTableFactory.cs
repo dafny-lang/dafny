@@ -49,13 +49,16 @@ namespace DafnyLS.Language.Symbols {
     }
 
     private static IDictionary<AstElement, ILocalizableSymbol> CreateDeclarationDictionary(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
-      return compilationUnit.GetAllDescendantsAndSelf()
-        .WithCancellation(cancellationToken)
-        .OfType<ILocalizableSymbol>()
-        .ToDictionary(
-          symbol => symbol.Node,
-          symbol => symbol
-        );
+      var declarations = new Dictionary<AstElement, ILocalizableSymbol>();
+      foreach(var symbol in compilationUnit.GetAllDescendantsAndSelf()) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if(symbol is ILocalizableSymbol localizableSymbol) {
+          // TODO we're using try-add since it appears that nodes of the System module are re-used accross several builtins.
+          // TODO Maybe refine the mapping of the "declarations".
+          declarations.TryAdd(localizableSymbol.Node, localizableSymbol);
+        }
+      }
+      return declarations;
     }
 
     private class DesignatorVisitor : SyntaxTreeVisitor {
