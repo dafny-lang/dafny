@@ -373,7 +373,7 @@ namespace Microsoft.Dafny{
         this.Compiler = compiler;
         this.InstanceMemberWriter = instanceMemberWriter;
         this.CtorBodyWriter = ctorBodyWriter;
-        this.StaticMemberWriter = staticMemberWriter == null ? instanceMemberWriter : staticMemberWriter;
+        this.StaticMemberWriter = staticMemberWriter ?? instanceMemberWriter;
       }
 
       public TargetWriter Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
@@ -548,12 +548,11 @@ namespace Microsoft.Dafny{
     }
 
     protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, ClassWriter cw) {
-      if (isStatic){
+      if (isStatic) {
         var r = StripTypeParameters((rhs != null) ? rhs : DefaultValue(type, cw.StaticMemberWriter, tok));
         var t = StripTypeParameters(TypeName(type, cw.StaticMemberWriter, tok));
         cw.StaticMemberWriter.WriteLine($"public static {t} {name} = {r};");
-      }
-      else{
+      } else {
         Contract.Assert(cw.CtorBodyWriter != null, "Unexpected instance field");
         cw.InstanceMemberWriter.WriteLine("public {0} {1};", TypeName(type, cw.InstanceMemberWriter, tok), name);
         cw.CtorBodyWriter.WriteLine("this.{0} = {1};", name, rhs ?? DefaultValue(type, cw.CtorBodyWriter, tok, inAutoInitContext: true));
@@ -1719,7 +1718,7 @@ namespace Microsoft.Dafny{
       TargetWriter wDefault;
       wr.WriteLine();
       if (dt.TypeArgs.Count == 0) {
-        wr.Write($"static {IdName(dt)} theDefault = ");
+        wr.Write($"private static final {IdName(dt)} theDefault = ");
         wDefault = wr.Fork();
         wr.WriteLine(";");
 
