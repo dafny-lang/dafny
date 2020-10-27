@@ -49,7 +49,7 @@ namespace DafnyLS.Handlers {
     private LocationOrLocationLink? GetLspLocation(DafnyDocument document, ISymbol symbol) {
       if(document.SymbolTable.TryGetLocationOf(symbol, out var location)) {
         return new Location {
-          Uri = document.Uri,
+          Uri = location.Uri,
           Range = location.Identifier
         };
       }

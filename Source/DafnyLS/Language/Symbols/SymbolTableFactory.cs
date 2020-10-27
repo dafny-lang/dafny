@@ -3,6 +3,7 @@ using IntervalTree;
 using MediatR;
 using Microsoft.Dafny;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.IO;
@@ -181,6 +182,7 @@ namespace DafnyLS.Language.Symbols {
         _cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           moduleSymbol,
+          moduleSymbol.Declaration.tok,
           moduleSymbol.Declaration.tok.GetLspRange(),
           new Range(moduleSymbol.Declaration.tok.GetLspPosition(), moduleSymbol.Declaration.BodyEndTok.GetLspPosition())
         );
@@ -192,6 +194,7 @@ namespace DafnyLS.Language.Symbols {
         _cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           classSymbol,
+          classSymbol.Declaration.tok,
           classSymbol.Declaration.tok.GetLspRange(),
           new Range(classSymbol.Declaration.tok.GetLspPosition(), classSymbol.Declaration.BodyEndTok.GetLspPosition())
         );
@@ -203,6 +206,7 @@ namespace DafnyLS.Language.Symbols {
         _cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           fieldSymbol,
+          fieldSymbol.Declaration.tok,
           fieldSymbol.Declaration.tok.GetLspRange(),
           new Range(fieldSymbol.Declaration.tok.GetLspPosition(), fieldSymbol.Declaration.BodyEndTok.GetLspPosition())
         );
@@ -214,6 +218,7 @@ namespace DafnyLS.Language.Symbols {
         _cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           functionSymbol,
+          functionSymbol.Declaration.tok,
           functionSymbol.Declaration.tok.GetLspRange(),
           new Range(functionSymbol.Declaration.tok.GetLspPosition(), functionSymbol.Declaration.BodyEndTok.GetLspPosition())
         );
@@ -225,6 +230,7 @@ namespace DafnyLS.Language.Symbols {
         _cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           methodSymbol,
+          methodSymbol.Declaration.tok,
           methodSymbol.Declaration.tok.GetLspRange(),
           new Range(methodSymbol.Declaration.tok.GetLspPosition(), methodSymbol.Declaration.BodyEndTok.GetLspPosition())
         );
@@ -236,6 +242,7 @@ namespace DafnyLS.Language.Symbols {
         _cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(
           variableSymbol,
+          variableSymbol.Declaration.Tok,
           variableSymbol.Declaration.Tok.GetLspRange(),
           variableSymbol.Declaration.Tok.GetLspRange()
         );
@@ -249,8 +256,11 @@ namespace DafnyLS.Language.Symbols {
         }
       }
 
-      private void RegisterLocation(ISymbol symbol, Range identifier, Range declaration) {
-        Declarations.Add(symbol, new SymbolLocation(identifier, declaration));
+      private void RegisterLocation(ISymbol symbol, Microsoft.Boogie.IToken token, Range identifier, Range declaration) {
+        if(token.filename != null) {
+          // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
+          Declarations.Add(symbol, new SymbolLocation(DocumentUri.FromFileSystemPath(token.filename), identifier, declaration));
+        }
       }
     }
   }

@@ -1,10 +1,16 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace DafnyLS.Language.Symbols {
   /// <summary>
   /// Holds all location information of a certain symbol.
   /// </summary>
   public class SymbolLocation {
+    /// <summary>
+    /// Gets the document uri of the containing file.
+    /// </summary>
+    public DocumentUri Uri { get; }
+
     /// <summary>
     /// Gets the range of the symbol's identifier.
     /// </summary>
@@ -16,7 +22,8 @@ namespace DafnyLS.Language.Symbols {
     /// </summary>
     public Range Declaration { get; }
 
-    public SymbolLocation(Range identifier, Range declaration) {
+    public SymbolLocation(DocumentUri uri, Range identifier, Range declaration) {
+      Uri = uri;
       Identifier = identifier;
       Declaration = declaration;
     }
