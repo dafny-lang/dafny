@@ -38,13 +38,13 @@ namespace DafnyLS.Language.Symbols {
         CompilationUnit compilationUnit,
         IDictionary<AstElement, ILocalizableSymbol> declarations,
         IDictionary<ISymbol, SymbolLocation> locations,
-        IIntervalTree<Position, ILocalizableSymbol> symbolLookup,
+        IIntervalTree<Position, ILocalizableSymbol> lookupTree,
         bool symbolsResolved
     ) {
       CompilationUnit = compilationUnit;
       Declarations = declarations;
       Locations = locations;
-      LookupTree = symbolLookup;
+      LookupTree = lookupTree;
       Resolved = symbolsResolved;
       _typeResolver = new DafnyLangTypeResolver(declarations);
 

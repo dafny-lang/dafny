@@ -77,7 +77,8 @@ namespace DafnyLS.Language {
           //      that there were some errors.
           _logger.LogDebug("encountered error while parsing includes: {}", includeError);
         }
-        return new Microsoft.Dafny.Program(document.Uri.GetFileName(), module, builtIns, errorReporter);
+        // TODO Remove PoC workaround: the file system path is used as a program name to 
+        return new Microsoft.Dafny.Program(document.Uri.GetFileSystemPath(), module, builtIns, errorReporter);
       } finally {
         _mutex.Release();
       }

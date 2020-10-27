@@ -21,7 +21,7 @@ namespace DafnyLS.Language.Symbols {
 
     public SymbolTable CreateFrom(Microsoft.Dafny.Program program, CompilationUnit compilationUnit, CancellationToken cancellationToken) {
       var declarations = CreateDeclarationDictionary(compilationUnit, cancellationToken);
-      var designatorVisitor = new DesignatorVisitor(_logger, declarations, compilationUnit, cancellationToken);
+      var designatorVisitor = new DesignatorVisitor(_logger, program, declarations, compilationUnit, cancellationToken);
       var declarationVisitor = new SymbolDeclarationVisitor(cancellationToken);
       var symbolsResolved = !HasErrors(program);
       if(symbolsResolved) {
@@ -64,6 +64,7 @@ namespace DafnyLS.Language.Symbols {
 
     private class DesignatorVisitor : SyntaxTreeVisitor {
       private readonly ILogger _logger;
+      private readonly Microsoft.Dafny.Program _program;
       private readonly IDictionary<AstElement, ILocalizableSymbol> _declarations;
       private readonly DafnyLangTypeResolver _typeResolver;
       private readonly IDictionary<AstElement, ISymbol> _designators =  new Dictionary<AstElement, ISymbol>();
@@ -74,9 +75,10 @@ namespace DafnyLS.Language.Symbols {
       public IIntervalTree<Position, ILocalizableSymbol> SymbolLookup { get; } = new IntervalTree<Position, ILocalizableSymbol>(new PositionComparer());
 
       public DesignatorVisitor(
-          ILogger logger, IDictionary<AstElement, ILocalizableSymbol> declarations, ISymbol rootScope, CancellationToken cancellationToken
+          ILogger logger, Microsoft.Dafny.Program program, IDictionary<AstElement, ILocalizableSymbol> declarations, ISymbol rootScope, CancellationToken cancellationToken
       ) {
         _logger = logger;
+        _program = program;
         _declarations = declarations;
         _typeResolver = new DafnyLangTypeResolver(declarations);
         _currentScope = rootScope;
@@ -89,22 +91,22 @@ namespace DafnyLS.Language.Symbols {
 
       public override void Visit(ModuleDefinition moduleDefinition) {
         _cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(moduleDefinition, () => base.Visit(moduleDefinition));
+        ProcessNestedScope(moduleDefinition, moduleDefinition.tok, () => base.Visit(moduleDefinition));
       }
 
       public override void Visit(ClassDecl classDeclaration) {
         _cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(classDeclaration, () => base.Visit(classDeclaration));
+        ProcessNestedScope(classDeclaration, classDeclaration.tok, () => base.Visit(classDeclaration));
       }
 
       public override void Visit(Method method) {
         _cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(method, () => base.Visit(method));
+        ProcessNestedScope(method, method.tok, () => base.Visit(method));
       }
 
       public override void Visit(Function function) {
         _cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(function, () => base.Visit(function));
+        ProcessNestedScope(function, function.tok, () => base.Visit(function));
       }
 
       public override void Visit(ExprDotName expressionDotName) {
@@ -137,7 +139,11 @@ namespace DafnyLS.Language.Symbols {
         }
       }
 
-      private void ProcessNestedScope(AstElement node, System.Action visit) {
+      private void ProcessNestedScope(AstElement node, Microsoft.Boogie.IToken token, System.Action visit) {
+        if(token.filename != null && token.filename != _program.FullName) {
+          // TODO remove this workaround to no longer depend on the fact that the program name has to be equal to the root filename.
+          return;
+        }
         var oldScope = _currentScope;
         _currentScope = _declarations[node];
         visit();
