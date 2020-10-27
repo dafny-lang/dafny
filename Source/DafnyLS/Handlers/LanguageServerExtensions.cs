@@ -13,7 +13,8 @@ namespace DafnyLS.Handlers {
     public static LanguageServerOptions WithDafnyHandlers(this LanguageServerOptions options) {
       return options
         .WithHandler<DafnyTextDocumentHandler>()
-        .WithHandler<DafnyDocumentSymbolHandler>()
+        // TODO Disabled since its functionallity cannot be observed in VS Code (yet).
+        //.WithHandler<DafnyDocumentSymbolHandler>()
         .WithHandler<DafnyHoverHandler>()
         .WithHandler<DafnyDefinitionHandler>()
         .WithHandler<DafnyCompletionHandler>();
