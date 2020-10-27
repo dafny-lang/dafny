@@ -59,6 +59,7 @@ namespace DafnyLS.Language {
         var parseErrors = Parser.Parse(
           document.Text,
           document.Uri.GetFileSystemPath(),
+          // We use the full path as filename so we can better re-construct the DocumentUri for the definition lookup.
           document.Uri.GetFileSystemPath(),
           module,
           builtIns,
