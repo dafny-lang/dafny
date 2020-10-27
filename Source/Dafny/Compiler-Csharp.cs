@@ -160,24 +160,29 @@ namespace Microsoft.Dafny
       }
 
       var wBody = wr.NewBlock("");
-      var wTypeFields = wBody.ForkSection();
+      if (cls is ClassDecl cl && !(cl is TraitDecl) && !cl.IsDefaultClass) {
+        if (cl.Members.TrueForAll(member => !(member is Constructor ctor) || !ctor.IsExtern(out var _, out var _))) {
+          // This is a (non-default) class with no :extern constructor, so emit a C# constructor for the target class
+          var wTypeFields = wBody.ForkSection();
 
-      wBody.Write($"public {name}(");
-      var wCtorParams = wBody.Fork();
-      var wCtorBody = wBody.NewBigBlock(")", "");
+          wBody.Write($"public {name}(");
+          var wCtorParams = wBody.Fork();
+          var wCtorBody = wBody.NewBigBlock(")", "");
 
-      if (typeParameters != null) {
-        var sep = "";
-        foreach (var ta in TypeArgumentInstantiation.ListFromFormals(typeParameters)) {
-          if (NeedsTypeDescriptor(ta.Formal)) {
-            var fieldName = FormatTypeDescriptorVariable(ta.Formal.CompileName);
-            var decl = $"{TypeClass}<{TypeName(ta.Actual, wTypeFields, ta.Formal.tok)}> {fieldName}";
-            wTypeFields.WriteLine($"private {decl};");
-            if (ta.Formal.Parent == cls) {
-              wCtorParams.Write($"{sep}{decl}");
+          if (typeParameters != null) {
+            var sep = "";
+            foreach (var ta in TypeArgumentInstantiation.ListFromFormals(typeParameters)) {
+              if (NeedsTypeDescriptor(ta.Formal)) {
+                var fieldName = FormatTypeDescriptorVariable(ta.Formal.CompileName);
+                var decl = $"{TypeClass}<{TypeName(ta.Actual, wTypeFields, ta.Formal.tok)}> {fieldName}";
+                wTypeFields.WriteLine($"private {decl};");
+                if (ta.Formal.Parent == cls) {
+                  wCtorParams.Write($"{sep}{decl}");
+                }
+                wCtorBody.WriteLine($"this.{fieldName} = {TypeDescriptor(ta.Actual, wCtorBody, ta.Formal.tok)};");
+                sep = ", ";
+              }
             }
-            wCtorBody.WriteLine($"this.{fieldName} = {TypeDescriptor(ta.Actual, wCtorBody, ta.Formal.tok)};");
-            sep = ", ";
           }
         }
       }
