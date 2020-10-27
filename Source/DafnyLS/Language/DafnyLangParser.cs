@@ -54,13 +54,12 @@ namespace DafnyLS.Language {
     public async Task<Microsoft.Dafny.Program> ParseAsync(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       await _mutex.WaitAsync(cancellationToken);
       try {
-        var fileName = document.Uri.GetFileName();
         var module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
         var builtIns = new BuiltIns();
         var parseErrors = Parser.Parse(
           document.Text,
           document.Uri.GetFileSystemPath(),
-          fileName,
+          document.Uri.GetFileSystemPath(),
           module,
           builtIns,
           errorReporter
@@ -77,7 +76,7 @@ namespace DafnyLS.Language {
           //      that there were some errors.
           _logger.LogDebug("encountered error while parsing includes: {}", includeError);
         }
-        return new Microsoft.Dafny.Program(fileName, module, builtIns, errorReporter);
+        return new Microsoft.Dafny.Program(document.Uri.GetFileName(), module, builtIns, errorReporter);
       } finally {
         _mutex.Release();
       }

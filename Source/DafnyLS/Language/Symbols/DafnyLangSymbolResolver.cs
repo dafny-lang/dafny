@@ -75,7 +75,7 @@ namespace DafnyLS.Language.Symbols {
         var compilationUnit = new CompilationUnit(program);
         //foreach(var module in program.Modules()) {
         // TODO program.CompileModules would probably more suitable here, since we want the symbols of the System module as well.
-        //      However, it appears that the AST of program.CompileModules not not hold the correct location of the nodes - at least of the declarations.
+        //      However, it appears that the AST of program.CompileModules does not hold the correct location of the nodes - at least of the declarations.
         foreach(var module in program.Modules()) {
           compilationUnit.Modules.Add(ProcessModule(compilationUnit, module));
         }
