@@ -42,6 +42,7 @@ namespace DafnyLS.Language {
         // TODO no error reporter is supplied at this time since it appears that there is not any usage inside dafny.
         DafnyOptions.Install(new DafnyOptions());
         DafnyOptions.Clo.ApplyDefaultOptions();
+        DafnyOptions.O.PrintIncludesMode = DafnyOptions.IncludesModes.None;
         // TODO Provide a counter-example model file.
         //DafnyOptions.O.ModelViewFile = ...;
         _initialized = true;
@@ -69,6 +70,7 @@ namespace DafnyLS.Language {
         }
         // TODO handle include errors
         // TODO handle errors of an include?
+        // TODO includes that are opened by the editor (i.e. managed by the DocumentDatabase) should be taken from there.
         var includeError = Main.ParseIncludes(module, builtIns, new List<string>(), new Errors(errorReporter));
         if(includeError != null) {
           // TODO currently the diagnostic publisher ignores errors of foreign files. It should at least report
