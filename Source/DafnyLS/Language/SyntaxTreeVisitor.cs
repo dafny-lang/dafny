@@ -21,6 +21,12 @@ namespace DafnyLS.Language {
       }
     }
 
+    public virtual void Visit(ModuleDefinition moduleDefinition) {
+      foreach(var topLevelDeclaration in moduleDefinition.TopLevelDecls) {
+        Visit(topLevelDeclaration);
+      }
+    }
+
     public virtual void Visit(TopLevelDecl topLevelDeclaration) {
       switch(topLevelDeclaration) {
       case ClassDecl classDeclaration:
@@ -409,12 +415,6 @@ namespace DafnyLS.Language {
     }
 
     public virtual void Visit(NameSegment nameSegment) {
-    }
-
-    public virtual void Visit(ModuleDefinition moduleDefinition) {
-      foreach(var topLevelDeclaration in moduleDefinition.TopLevelDecls) {
-        Visit(topLevelDeclaration);
-      }
     }
 
     public virtual void Visit(AliasModuleDecl aliasModuleDecl) {
