@@ -1236,7 +1236,7 @@ namespace Microsoft.Dafny {
         return "_dafny.MapType";
       } else if (xType.IsBuiltinArrowType) {
         return string.Format("_dafny.TypeWithDefault({0})", TypeInitializationValue(xType, wr, tok, false));
-      } else if (xType.IsObjectQ) {
+      } else if (xType.IsObjectQ || xType.IsTraitType) {
         return "_dafny.PointerType";
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;

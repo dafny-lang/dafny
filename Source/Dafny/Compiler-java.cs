@@ -549,7 +549,7 @@ namespace Microsoft.Dafny{
 
     protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, ClassWriter cw) {
       if (isStatic) {
-        var r = StripTypeParameters((rhs != null) ? rhs : DefaultValue(type, cw.StaticMemberWriter, tok));
+        var r = rhs ?? DefaultValue(type, cw.StaticMemberWriter, tok);
         var t = StripTypeParameters(TypeName(type, cw.StaticMemberWriter, tok));
         cw.StaticMemberWriter.WriteLine($"public static {t} {name} = {r};");
       } else {
