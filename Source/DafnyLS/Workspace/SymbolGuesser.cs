@@ -104,6 +104,7 @@ namespace DafnyLS.Workspace {
       private ISymbol? FindSymbolWithName(ISymbol containingSymbol, string identifier) {
         // TODO Careful: The current implementation of the method/function symbols do not respect scopes fully. Therefore, there might be
         // multiple symbols with the same name (e.g. locals of nested scopes, parameters,).
+        // Important: This only works as long as Dafny does not support overloading.
         return containingSymbol.Children
           .WithCancellation(_cancellationToken)
           .Where(child => child.Identifier == identifier)

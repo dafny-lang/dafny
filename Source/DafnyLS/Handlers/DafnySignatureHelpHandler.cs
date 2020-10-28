@@ -1,0 +1,93 @@
+﻿using DafnyLS.Language;
+using DafnyLS.Language.Symbols;
+using DafnyLS.Workspace;
+using Microsoft.Dafny;
+using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol.Document;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace DafnyLS.Handlers {
+  public class DafnySignatureHelpHandler : SignatureHelpHandler {
+    private readonly ILogger _logger;
+    private readonly IDocumentDatabase _documents;
+    private readonly ISymbolGuesser _symbolGuesser;
+
+    public DafnySignatureHelpHandler(ILogger<DafnySignatureHelpHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) : base(CreateRegistrationOptions()) {
+      _logger = logger;
+      _documents = documents;
+      _symbolGuesser = symbolGuesser;
+    }
+
+    private static SignatureHelpRegistrationOptions CreateRegistrationOptions() {
+      return new SignatureHelpRegistrationOptions {
+        DocumentSelector = DocumentSelector.ForLanguage("dafny"),
+        TriggerCharacters = new Container<string>("(")
+      };
+    }
+
+    public override Task<SignatureHelp> Handle(SignatureHelpParams request, CancellationToken cancellationToken) {
+      DafnyDocument? document;
+      if(!_documents.TryGetDocument(request.TextDocument, out document)) {
+        _logger.LogWarning("location requested for unloaded document {}", request.TextDocument.Uri);
+        return Task.FromResult(new SignatureHelp());
+      }
+      return Task.FromResult(new SignatureHelpProcessor(_symbolGuesser, document, request, cancellationToken).Process());
+    }
+
+    private Position GetOpenParenthesePosition(SignatureHelpParams request) {
+      return new Position(request.Position.Line, request.Position.Character - 1);
+    }
+
+    private class SignatureHelpProcessor {
+      private readonly ISymbolGuesser _symbolGuesser;
+      private readonly DafnyDocument _document;
+      private readonly SignatureHelpParams _request;
+      private readonly CancellationToken _cancellationToken;
+
+      public SignatureHelpProcessor(ISymbolGuesser symbolGuesser, DafnyDocument document, SignatureHelpParams request, CancellationToken cancellationToken) {
+        _symbolGuesser = symbolGuesser;
+        _document = document;
+        _request = request;
+        _cancellationToken = cancellationToken;
+      }
+
+      public SignatureHelp Process() {
+        ISymbol? symbol;
+        if(!_symbolGuesser.TryGetSymbolBefore(_document, GetOpenParenthesePosition(), _cancellationToken, out symbol)) {
+          return new SignatureHelp();
+        }
+        return CreateSignatureHelp(symbol);
+      }
+
+      private Position GetOpenParenthesePosition() {
+        return new Position(_request.Position.Line, _request.Position.Character - 1);
+      }
+
+      private SignatureHelp CreateSignatureHelp(ISymbol symbol) {
+        var signatureInformation = symbol switch {
+          MethodSymbol method => CreateSignatureInformation(method),
+          FunctionSymbol function => CreateSignatureInformation(function),
+          _ => null
+        };
+        return new SignatureHelp {
+          Signatures = new[] { signatureInformation }
+        };
+      }
+
+      private SignatureInformation CreateSignatureInformation(ILocalizableSymbol symbol) {
+        return new SignatureInformation {
+          Label = symbol.Identifier,
+          Documentation = new MarkupContent {
+            Kind = MarkupKind.Markdown,
+            Value = $"```dafny\n{symbol.GetDetailText(_cancellationToken)}\n```"
+          },
+        };
+      }
+    }
+  }
+}
