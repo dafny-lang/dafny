@@ -131,11 +131,7 @@ namespace DafnyLS.Handlers {
       }
 
       private string GetCompletionText(ISymbol symbol) {
-        return symbol switch {
-          MethodSymbol _ => $"{symbol.Identifier}(",
-          FunctionSymbol _ => $"{symbol.Identifier}(",
-          _ => symbol.Identifier
-        };
+        return symbol.Identifier;
       }
     }
   }
