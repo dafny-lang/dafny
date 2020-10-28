@@ -234,7 +234,7 @@ namespace DafnyLS.Language {
       case MatchStmt matchStatement:
         Visit(matchStatement);
         break;
-      case NestedMatchStmt nestedMatchStatement;
+      case NestedMatchStmt nestedMatchStatement:
         Visit(nestedMatchStatement);
         break;
       case ForallStmt forAllStatement:
