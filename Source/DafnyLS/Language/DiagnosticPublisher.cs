@@ -28,7 +28,7 @@ namespace DafnyLS.Language {
     }
 
     private static IEnumerable<Diagnostic> ToDiagnostics(DafnyDocument document, CancellationToken cancellationToken) {
-      var documentFileName = document.Uri.GetFileName();
+      var documentFileName = document.Uri.GetFileSystemPath();
       foreach(var (level, messages) in document.Errors.AllMessages) {
         foreach(var message in messages) {
           cancellationToken.ThrowIfCancellationRequested();
