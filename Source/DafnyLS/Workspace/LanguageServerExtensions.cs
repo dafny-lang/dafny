@@ -23,7 +23,8 @@ namespace DafnyLS.Workspace {
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
         .AddSingleton<ITextDocumentLoader, TextDocumentLoader>()
         .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>()
-        .AddSingleton<IDocumentUpdater, DocumentUpdater>();
+        .AddSingleton<IDocumentUpdater, DocumentUpdater>()
+        .AddSingleton<ISymbolGuesser, SymbolGuesser>();
     }
   }
 }
