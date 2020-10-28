@@ -9,11 +9,15 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace DafnyLS {
   public class Program {
+    // TODO The plugin automatically updates the LS server if the reported version is older.
+    private static readonly string DafnyVersion = "3.0"; //Assembly.GetExecutingAssembly().GetName().Version!.ToString();
+
     private static async Task Main() {
       try {
         var server = await LanguageServer.From(
@@ -25,6 +29,7 @@ namespace DafnyLS {
             .WithDafnyWorkspace()
             .WithDafnyHandlers()
             .OnInitialize(Initialize)
+            .OnStarted(Started)
         );
         await server.WaitForExit;
       } finally {
@@ -43,6 +48,13 @@ namespace DafnyLS {
         .AddNLog("nlog.config")
         // The log-level is managed by NLog.
         .SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+    }
+
+    private static Task Started(ILanguageServer server, InitializeResult result, CancellationToken cancellationToken) {
+      // TODO this currently only sent to get rid of the "Server answer pending" of the VSCode plugin.
+      server.SendNotification("serverStarted", DafnyVersion);
+      server.SendNotification("dafnyLanguageServerVersionReceived", DafnyVersion);
+      return Task.CompletedTask;
     }
   }
 }
