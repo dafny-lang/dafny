@@ -9,7 +9,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
