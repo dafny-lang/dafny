@@ -1,5 +1,9 @@
 name: .NET Core
 
+defaults:
+  run:
+    working-directory: ./Source
+
 on:
   push:
     branches: [ master ]
