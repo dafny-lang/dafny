@@ -1,18 +1,16 @@
 ﻿using DafnyLS.Language;
 using DafnyLS.Language.Symbols;
 using DafnyLS.Workspace;
-using Microsoft.Dafny;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace DafnyLS.Handlers {
   public class DafnySignatureHelpHandler : SignatureHelpHandler {
+    // TODO this is a very basic implementation that only displays the signature when typing an opening parenthese.
+    //      It should be enriched to show information about the actual parameter depending on the cursor's position.
     private readonly ILogger _logger;
     private readonly IDocumentDatabase _documents;
     private readonly ISymbolGuesser _symbolGuesser;
@@ -37,10 +35,6 @@ namespace DafnyLS.Handlers {
         return Task.FromResult(new SignatureHelp());
       }
       return Task.FromResult(new SignatureHelpProcessor(_symbolGuesser, document, request, cancellationToken).Process());
-    }
-
-    private Position GetOpenParenthesePosition(SignatureHelpParams request) {
-      return new Position(request.Position.Line, request.Position.Character - 1);
     }
 
     private class SignatureHelpProcessor {
