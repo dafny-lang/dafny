@@ -24,5 +24,15 @@ namespace DafnyLS.Language {
       Errors = errors;
       SymbolTable = symbolTable;
     }
+
+
+    /// <summary>
+    /// Checks if the specified token is part of this document.
+    /// </summary>
+    /// <param name="token">The token to check.</param>
+    /// <returns><c>true</c> if the given token belongs to this document.</returns>
+    public bool IsPartOf(Microsoft.Boogie.IToken token) {
+      return Program.IsPartOfEntryDocument(token);
+    }
   }
 }

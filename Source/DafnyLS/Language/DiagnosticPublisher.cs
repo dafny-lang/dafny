@@ -28,11 +28,10 @@ namespace DafnyLS.Language {
     }
 
     private static IEnumerable<Diagnostic> ToDiagnostics(DafnyDocument document, CancellationToken cancellationToken) {
-      var documentFileName = document.Uri.GetFileSystemPath();
       foreach(var (level, messages) in document.Errors.AllMessages) {
         foreach(var message in messages) {
           cancellationToken.ThrowIfCancellationRequested();
-          if(message.token.filename != documentFileName) {
+          if(!document.IsPartOf(message.token)) {
             // TODO The reported error belongs to another file. Report it anyway?
             continue;
           }

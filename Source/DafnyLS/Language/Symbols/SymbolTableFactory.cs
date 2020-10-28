@@ -140,8 +140,7 @@ namespace DafnyLS.Language.Symbols {
       }
 
       private void ProcessNestedScope(AstElement node, Microsoft.Boogie.IToken token, System.Action visit) {
-        if(token.filename != null && token.filename != _program.FullName) {
-          // TODO remove this workaround to no longer depend on the fact that the program name has to be equal to the root filename.
+        if(!_program.IsPartOfEntryDocument(token)) {
           return;
         }
         var oldScope = _currentScope;
