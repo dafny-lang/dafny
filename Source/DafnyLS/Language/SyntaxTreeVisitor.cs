@@ -398,6 +398,9 @@ namespace DafnyLS.Language {
       case ITEExpr ifThenElseExpression:
         Visit(ifThenElseExpression);
         break;
+      case ForallExpr forAllExpression:
+        Visit(forAllExpression);
+        break;
       case null:
         // TODO This most-likely occured while typing. Maybe log this situation.
         break;
@@ -510,6 +513,12 @@ namespace DafnyLS.Language {
       Visit(ifThenElseExpression.Test);
       Visit(ifThenElseExpression.Thn);
       Visit(ifThenElseExpression.Els);
+    }
+
+    public virtual void Visit(ForallExpr forAllExpression) {
+      VisitNullableAttributes(forAllExpression.Attributes);
+      Visit(forAllExpression.Range);
+      Visit(forAllExpression.Term);
     }
   }
 }
