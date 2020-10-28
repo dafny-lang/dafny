@@ -1957,12 +1957,7 @@ namespace Microsoft.Dafny {
         }
         Coverage.Instrument(m.Body.Tok, $"entry to method {m.FullName}", w);
 
-        int nonGhostOutsCount = 0;
-        foreach (var p in m.Outs) {
-          if (!p.IsGhost) {
-            nonGhostOutsCount++;
-          }
-        }
+        var nonGhostOutsCount = m.Outs.Count(p => !p.IsGhost);
 
         var useReturnStyleOuts = UseReturnStyleOuts(m, nonGhostOutsCount);
         foreach (var p in m.Outs) {
