@@ -265,6 +265,7 @@ namespace DafnyLS.Language {
     }
 
     public virtual void Visit(MatchStmt matchStatement) {
+      VisitNullableAttributes(matchStatement.Attributes);
       Visit(matchStatement.Source);
       foreach(var matchCase in matchStatement.Cases) {
         Visit(matchCase);
@@ -292,6 +293,11 @@ namespace DafnyLS.Language {
       foreach(var body in nestedMatchCaseStatement.Body) {
         Visit(body);
       }
+    }
+
+    public virtual void Visit(ForallStmt forAllStatement) {
+      VisitNullableAttributes(forAllStatement.Attributes);
+      Visit(forAllStatement.Body);
     }
 
     public virtual void Visit(Expression expression) {
