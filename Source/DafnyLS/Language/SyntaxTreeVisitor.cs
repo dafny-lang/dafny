@@ -234,6 +234,12 @@ namespace DafnyLS.Language {
       case MatchStmt matchStatement:
         Visit(matchStatement);
         break;
+      case NestedMatchStmt nestedMatchStatement;
+        Visit(nestedMatchStatement);
+        break;
+      case ForallStmt forAllStatement:
+        Visit(forAllStatement);
+        break;
       default:
         VisitUnknown(statement, statement.Tok);
         break;
@@ -270,6 +276,20 @@ namespace DafnyLS.Language {
         Visit(argument);
       }
       foreach(var body in matchCaseStatement.Body) {
+        Visit(body);
+      }
+    }
+
+    public virtual void Visit(NestedMatchStmt nestedMatchStatement) {
+      VisitNullableAttributes(nestedMatchStatement.Attributes);
+      Visit(nestedMatchStatement.Source);
+      foreach(var nestedMatchCase in nestedMatchStatement.Cases) {
+        Visit(nestedMatchCase);
+      }
+    }
+
+    public virtual void Visit(NestedMatchCaseStmt nestedMatchCaseStatement) {
+      foreach(var body in nestedMatchCaseStatement.Body) {
         Visit(body);
       }
     }
