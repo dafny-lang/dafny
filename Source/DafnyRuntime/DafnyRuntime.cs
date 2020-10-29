@@ -843,6 +843,18 @@ namespace Dafny
     public static ISequence<char> FromString(string s) {
       return new ArraySequence<char>(s.ToCharArray());
     }
+    public ISequence<U> DowncastClone<U>(Func<T, U> converter) {
+      if (this is ISequence<U> th) {
+        return th;
+      } else {
+        var values = new U[this.LongCount];
+        for (long i = 0; i < this.LongCount; i++) {
+          var val = converter(this.Select(i));
+          values[i] = val;
+        }
+        return new ArraySequence<U>(values);
+      }
+    }
     public static ISequence<T> Update(ISequence<T> sequence, long index, T t) {
       T[] tmp = (T[])sequence.Elements.Clone();
       tmp[index] = t;
