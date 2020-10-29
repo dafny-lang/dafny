@@ -150,7 +150,7 @@ not determine the value of the expression.  Logically speaking, the
 expression `A && B` is defined when `A` is defined and either `A`
 evaluates to `false` or `B` is defined.  When `A && B` is defined, its
 meaning is the same as the ordinary, symmetric mathematical
-conjunction &and;.  The same holds for `||` and &or;.
+conjunction `&`.  The same holds for `||` and `|`.
 
 ### Implication and  Reverse Implication
 Implication is _right associative_ and is short-circuiting from left
@@ -162,9 +162,9 @@ associativity rules, each of the following four lines expresses the
 same property, for any `A`, `B`, and `C` of type `bool`:
 ```dafny
 A ==> B ==> C
-A ==> (B ==> C)  // parentheses redundant, since ==> is right associative
+A ==> (B ==> C) // parentheses redundant, ==> is right associative
 C <== B <== A
-(C <== B) <== A  // parentheses redundant, since <== is left associative
+(C <== B) <== A // parentheses redundant, <== is left associative
 ```
 To illustrate the short-circuiting rules, note that the expression
 `a.Length` is defined for an array `a` only if `a` is not `null` (see
