@@ -46,16 +46,16 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-16.04' }}
       run: |
         cd ${{env.binaryPath}}
-        wget ${{env.z3BaseUri}}/${{os.z3}}.zip
-        unzip ${{os.z3}}.zip
-        rm ${{os.z3}}.zip
-        mv ${{os.z3}} z3
+        wget ${{env.z3BaseUri}}/${{matrix.z3}}.zip
+        unzip ${{matrix.z3}}.zip
+        rm ${{matrix.z3}}.zip
+        mv ${{matrix.z3}} z3
     - name: Load Z3 (Win)
       if: ${{ matrix.os == 'windows-2019' }}
       run: |
-        Invoke-WebRequest ${{env.z3BaseUri}}/${{os.z3}}.zip -OutFile z3.zip
+        Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
         Expand-Archive z3.zip .
-        Rename-Item ${{os.z3}} z3
+        Rename-Item ${{matrix.z3}} z3
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
       with:
