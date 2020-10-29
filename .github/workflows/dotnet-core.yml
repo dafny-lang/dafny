@@ -37,4 +37,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: DafnyLS.zip
-        path: ./Source/${binaryPath}/DafnyLS.zip
+        path: ./Source/${{env.binaryPath}}/DafnyLS.zip
