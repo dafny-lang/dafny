@@ -271,7 +271,7 @@ namespace Microsoft.Dafny {
       if (superClasses != null) {
         // Emit a method that returns the ID of each parent trait
         var parentTraitsWriter = w.NewBlock($"func (_this *{name}) ParentTraits_() []*_dafny.TraitID");
-        parentTraitsWriter.WriteLine("return [](*_dafny.TraitID){{{0}}};", Util.Comma(", ", superClasses, parent => {
+        parentTraitsWriter.WriteLine("return [](*_dafny.TraitID){{{0}}};", Util.Comma(superClasses, parent => {
           var trait = ((UserDefinedType)parent).ResolvedClass;
           return TypeName_Companion(trait, parentTraitsWriter, tok) + ".TraitID_";
         }));
@@ -1127,7 +1127,7 @@ namespace Microsoft.Dafny {
         if (outTypes.Count > 1) {
           wr.Write('(');
         }
-        wr.Write(Util.Comma(", ", outTypes, ty => TypeName(ty, wr, tok)));
+        wr.Write(Util.Comma(outTypes, ty => TypeName(ty, wr, tok)));
         if (outTypes.Count > 1) {
           wr.Write(')');
         }

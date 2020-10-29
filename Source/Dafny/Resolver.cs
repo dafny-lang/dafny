@@ -645,7 +645,7 @@ namespace Microsoft.Dafny
               showIt = ((Method)m).IsRecursive;
             }
             if (showIt) {
-              s += "decreases " + Util.Comma(", ", m.Decreases.Expressions, Printer.ExprToString);
+              s += "decreases " + Util.Comma(m.Decreases.Expressions, Printer.ExprToString);
               // Note, in the following line, we use the location information for "clbl", not "m".  These
               // are the same, except in the case where "clbl" is a CoLemma and "m" is a prefix lemma.
               reporter.Info(MessageSource.Resolver, clbl.Tok, s);
@@ -8353,8 +8353,8 @@ namespace Microsoft.Dafny
         var ty = group[0].Item1;
         for (var i = 1; i < group.Count; i++) {
           if (!group.GetRange(0, i).Exists(pair => pair.Item1.Equals(group[i].Item1))) {
-            var via0 = group[0].Item2.Count == 0 ? "" : " (via " + Util.Comma(", ", group[0].Item2, traitDecl => traitDecl.Name) + ")";
-            var via1 = group[i].Item2.Count == 0 ? "" : " (via " + Util.Comma(", ", group[i].Item2, traitDecl => traitDecl.Name) + ")";
+            var via0 = group[0].Item2.Count == 0 ? "" : " (via " + Util.Comma(group[0].Item2, traitDecl => traitDecl.Name) + ")";
+            var via1 = group[i].Item2.Count == 0 ? "" : " (via " + Util.Comma(group[i].Item2, traitDecl => traitDecl.Name) + ")";
             reporter.Error(MessageSource.Resolver, cl.tok,
               "duplicate trait parents with the same head type must also have the same type arguments; got {0}{1} and {2}{3}",
               ty, via0, group[i].Item1, via1);
@@ -10361,7 +10361,7 @@ namespace Microsoft.Dafny
         } else {
           Contract.Assert(s.BodySurrogate == null);  // .BodySurrogate is set only once
           s.BodySurrogate = new WhileStmt.LoopBodySurrogate(new List<IVariable>(fvs.Where(fv => fv.IsMutable)), usesHeap);
-          var text = Util.Comma(", ", s.BodySurrogate.LocalLoopTargets, fv => fv.Name);
+          var text = Util.Comma(s.BodySurrogate.LocalLoopTargets, fv => fv.Name);
           if (s.BodySurrogate.UsesHeap) {
             text += text.Length == 0 ? "$Heap" : ", $Heap";
           }
@@ -11672,7 +11672,7 @@ namespace Microsoft.Dafny
         loopStmt.InferredDecreases = true;
       }
       if (loopStmt.InferredDecreases) {
-        string s = "decreases " + Util.Comma(", ", theDecreases, Printer.ExprToString);
+        string s = "decreases " + Util.Comma(theDecreases, Printer.ExprToString);
         reporter.Info(MessageSource.Resolver, loopStmt.Tok, s);
       }
     }

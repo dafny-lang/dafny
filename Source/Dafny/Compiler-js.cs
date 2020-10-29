@@ -90,7 +90,7 @@ namespace Microsoft.Dafny {
       }
       if (superClasses != null) {
         var parentTraitsWriter = w.NewBlock("_parentTraits()");
-        parentTraitsWriter.WriteLine("return [{0}];", Util.Comma(", ", superClasses, parent => TypeName(parent, parentTraitsWriter, tok)));
+        parentTraitsWriter.WriteLine("return [{0}];", Util.Comma(superClasses, parent => TypeName(parent, parentTraitsWriter, tok)));
       }
       var methodWriter = w;
       return new ClassWriter(this, methodWriter, fieldWriter);

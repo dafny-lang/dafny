@@ -676,7 +676,7 @@ namespace Microsoft.Dafny {
 
       if (typeArgs != null && typeArgs.Count > 0 &&
           (!parseAble || !typeArgs[0].TypeName(context, parseAble).StartsWith("_"))) {
-        return string.Format("<{0}>",Util.Comma(", ", typeArgs, ty => ty.TypeName(context, parseAble)));
+        return string.Format("<{0}>",Util.Comma(typeArgs, ty => ty.TypeName(context, parseAble)));
       }
       return "";
     }
@@ -2374,7 +2374,7 @@ namespace Microsoft.Dafny {
       }
       string s = "";
       if (domainNeedsParens) { s += "("; }
-      s += Util.Comma(", ", typeArgs.Take(arity), arg => arg.TypeName(context, parseAble));
+      s += Util.Comma(typeArgs.Take(arity), arg => arg.TypeName(context, parseAble));
       if (domainNeedsParens) { s += ")"; }
       s += " " + arrow + " ";
       s += (result ?? typeArgs.Last()).TypeName(context, parseAble);
@@ -2813,7 +2813,7 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Ensures(Contract.Result<string>() != null);
       if (BuiltIns.IsTupleTypeName(Name)) {
-        return "(" + Util.Comma(", ", TypeArgs, ty => ty.TypeName(context, parseAble)) + ")";
+        return "(" + Util.Comma(TypeArgs, ty => ty.TypeName(context, parseAble)) + ")";
       } else if (ArrowType.IsPartialArrowTypeName(Name)) {
         return ArrowType.PrettyArrowTypeName(ArrowType.PARTIAL_ARROW, TypeArgs, null, context, parseAble);
       } else if (ArrowType.IsTotalArrowTypeName(Name)) {

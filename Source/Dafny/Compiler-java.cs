@@ -2905,7 +2905,7 @@ namespace Microsoft.Dafny{
       wrTop.Write("public class Tuple");
       wrTop.Write(i);
       if (i != 0) {
-        wrTop.Write("<{0}>", Util.Comma(", ", i, j => $"T{j}"));
+        wrTop.Write("<{0}>", Util.Comma(i, j => $"T{j}"));
       }
 
       var wr = wrTop.NewBlock("");
@@ -2914,7 +2914,7 @@ namespace Microsoft.Dafny{
       }
       wr.WriteLine();
 
-      wr.Write("public Tuple{0}({1}", i, Util.Comma(", ", i, j => $"T{j} _{j}"));
+      wr.Write("public Tuple{0}({1}", i, Util.Comma(i, j => $"T{j} _{j}"));
       using (var wrCtor = wr.NewBlock(")")) {
         for (var j = 0; j < i; j++) {
           wrCtor.WriteLine("this._{0} = _{0};", j);
@@ -2926,7 +2926,7 @@ namespace Microsoft.Dafny{
         typeParams.Add(new TypeParameter(Bpl.Token.NoToken, $"T{j}", TypeParameter.TPVarianceSyntax.Covariant_Permissive));
       }
       var typeParamString = typeParams.Count == 0 ? "" : $"<{TypeParameters(typeParams)}>";
-      var initializer = string.Format("Default({0})", Util.Comma(", ", i, j => $"_td_T{j}"));
+      var initializer = string.Format("Default({0})", Util.Comma(i, j => $"_td_T{j}"));
       EmitTypeMethod(null, $"Tuple{i}", typeParams, typeParams, $"Tuple{i}{typeParamString}", initializer, wr);
 
       // public static Tuple4<T0, T1, T2, T3> Default(dafny.Type<T0> _td_T0, dafny.Type<T1> _td_T1, dafny.Type<T2> _td_T2, dafny.Type<T3> _td_T3) {
@@ -2936,11 +2936,11 @@ namespace Microsoft.Dafny{
       if (i == 0) {
         wr.Write("public static Tuple0");
       } else {
-        wr.Write("public static <{1}> Tuple{0}<{1}>", i, Util.Comma(", ", i, j => $"T{j}"));
+        wr.Write("public static <{1}> Tuple{0}<{1}>", i, Util.Comma(i, j => $"T{j}"));
       }
-      wr.Write(" Default({0})", Util.Comma(", ", i, j => $"dafny.Type<T{j}> _td_T{j}"));
+      wr.Write(" Default({0})", Util.Comma(i, j => $"dafny.Type<T{j}> _td_T{j}"));
       using (var w = wr.NewBlock("")) {
-        w.WriteLine("return new Tuple{0}{1}({2});", i, i == 0 ? "" : "<>", Util.Comma(", ", i, j => $"_td_T{j}.defaultValue()"));
+        w.WriteLine("return new Tuple{0}{1}({2});", i, i == 0 ? "" : "<>", Util.Comma(i, j => $"_td_T{j}.defaultValue()"));
       }
 
       wr.WriteLine();
@@ -3051,7 +3051,7 @@ namespace Microsoft.Dafny{
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
             var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, inAutoInitContext);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) -> rangeDefaultValue)
-            return $"(({Util.Comma(", ", udt.TypeArgs.Count - 1, i => $"{BoxedTypeName(udt.TypeArgs[i], wr, udt.tok)} x{i}")}) -> {rangeDefaultValue})";
+            return $"(({Util.Comma(udt.TypeArgs.Count - 1, i => $"{BoxedTypeName(udt.TypeArgs[i], wr, udt.tok)} x{i}")}) -> {rangeDefaultValue})";
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
             // non-null array type; we know how to initialize them
             var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
