@@ -267,8 +267,8 @@ is the type of two-dimensional arrays, etc.
 
 ### Identifiers
 
-````
-ident = nondigitIdChar { idchar } - arrayToken - charToken - reservedword
+````grammar
+ident = nondigitIdChar { idchar } - arraytoken - chartoken - reservedword
 ````
 In general Dafny identifiers are sequences of ``idchar`` characters where
 the first character is a ``nondigitIdChar``. However tokens that fit this pattern

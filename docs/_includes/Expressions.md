@@ -418,7 +418,7 @@ TO BE WRITTEN -- allocated predicate
 
 ## Old and Old@ Expressions {#sec-old-expression}
 
-````
+````grammar
 OldExpression_ = "old" [ "@" ident ] "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
