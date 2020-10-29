@@ -4,9 +4,6 @@ defaults:
   run:
     working-directory: ./Source
 
-env:
-  binaryPath: "DafnyLS/bin/Release/netcoreapp3.1/"
-
 on:
   push:
     branches: [ master ]
@@ -16,6 +13,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      binaryPath: "DafnyLS/bin/Release/netcoreapp3.1/"
     outputs:
       binaries: ${{env.binaryPath}}
     steps:
@@ -32,12 +31,10 @@ jobs:
       run: dotnet build --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-restore --verbosity normal
-  artifacts:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
     - name: Pack Binaries
       run: zip -r DafnyLS.zip ${{env.binaryPath}}
+    - name: Get current dir
+      run: pwd && ls -al .
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
       with:
