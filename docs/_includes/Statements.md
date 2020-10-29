@@ -68,6 +68,21 @@ is equivalent to
   }
 }
 ```
+var i := 0;
+while i < 10 {
+  var j := 0;
+  while j < 10 {
+    var k := 0;
+    while k < 10 {
+      if (j + k == 15) break break;
+      k := k + 1;
+    }
+    j := j + 1;
+  }
+  // control continues here after the break
+  i := i + 1;
+}
+``` 
 
 If no label is specified and the statement lists `n`
 occurrences of `break`, then the statement must be enclosed in
