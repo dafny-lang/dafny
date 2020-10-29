@@ -3,9 +3,7 @@ WORKDIR /build
 RUN apt-get update \
     && apt-get install -y unzip \
     && rm -rf /var/lib/apt/lists/*
-#RUN wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-ubuntu-16.04.zip \
-COPY z3-4.8.4.d6df51951f4c-x64-ubuntu-16.04.zip .
-RUN pwd \
+RUN wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-ubuntu-16.04.zip \
     && unzip z3*.zip \
     && rm z3*.zip \
     && mv z3* z3
