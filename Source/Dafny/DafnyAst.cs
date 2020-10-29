@@ -3297,17 +3297,13 @@ namespace Microsoft.Dafny {
 
   public class TypeParameter : Declaration {
     public interface ParentType {
-      string FullName {
-        get;
-      }
+      string FullName { get; }
     }
-    [Peer]
     ParentType parent;
     public ParentType Parent {
       get {
         return parent;
       }
-      [param: Captured]
       set {
         Contract.Requires(Parent == null);  // set it only once
         Contract.Requires(value != null);
