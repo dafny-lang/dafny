@@ -29,3 +29,10 @@ jobs:
       run: dotnet build --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-restore --verbosity normal
+    - name: Pack Binaries
+      run: zip -r DafnyLS.zip DafnyLS/bin/Release/netcoreapp3.1/
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: DafnyLS.zip
+        path: DafnyLS/DafnyLS.zip
