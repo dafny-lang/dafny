@@ -118,9 +118,9 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> Type<DafnySequence<T>> _type(Type<T> elementType) {
+    public static <T> Type<DafnySequence<? extends T>> _type(Type<T> elementType) {
         return Type.referenceWithDefault(
-                (Class<DafnySequence<T>>) (Class<?>) DafnySequence.class,
+                (Class<DafnySequence<? extends T>>) (Class<?>) DafnySequence.class,
                 DafnySequence.empty(elementType));
     }
 
@@ -246,8 +246,15 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return seq.<R>update(b.intValue(), t);
     }
 
-    public <U> boolean contains(U t) {
-        // assume U is a supertype of T
+    public static <R> DafnySequence<R> update(DafnySequence<? extends R> seq, int idx, R t) {
+        return seq.<R>update(idx, t);
+    }
+
+    public static <R> DafnySequence<R> update(DafnySequence<? extends R> seq, long idx, R t) {
+        return seq.<R>update((int)idx, t);
+    }
+
+    public boolean contains(Object t) {
         assert t != null : "Precondition Violation";
         return asList().indexOf((T)t) != -1;
     }
@@ -317,9 +324,9 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return take(hi.intValue());
     }
 
-    public final DafnySequence<DafnySequence<T>> slice(List<Integer> l) {
+    public final DafnySequence<? extends DafnySequence<? extends T>> slice(List<Integer> l) {
         assert l != null : "Precondition Violation";
-        ArrayList<DafnySequence<T>> list = new ArrayList<>();
+        ArrayList<DafnySequence<? extends T>> list = new ArrayList<>();
         int curr = 0;
         for (Integer i : l) {
             assert i != null : "Precondition Violation";
@@ -327,7 +334,9 @@ public abstract class DafnySequence<T> implements Iterable<T> {
             curr += i;
         }
 
-        return fromList(_type(elementType()), list);
+        Type<T> eexx = elementType();
+        Type<DafnySequence<? extends T>> ssxx = _type(eexx);
+        return fromList(ssxx, list);
     }
 
     public DafnyMultiset<T> asDafnyMultiset() {
@@ -583,8 +592,7 @@ final class StringDafnySequence extends NonLazyDafnySequence<Character> {
     }
 
     @Override
-    public <U> boolean contains(U t) {
-        // assume U == Character
+    public boolean contains(Object t) {
         assert t != null : "Precondition Violation";
         return string.indexOf((Character)t) != -1;
     }

@@ -1,5 +1,5 @@
 # Programs
-````
+````grammar
 Dafny = { IncludeDirective_ } { TopDecl } EOF
 ````
 At the top level, a Dafny program (stored as files with extension `.dfy`)
@@ -48,7 +48,7 @@ It consists of a sequence of optional _include_ directives followed by top
 level declarations followed by the end of the file.
 
 ## Include Directives
-````
+````grammar
 IncludeDirective_ = "include" stringToken
 ````
 
@@ -62,7 +62,7 @@ but will not invoke the verifier on these unless they have been listed
 explicitly on the command line.
 
 ## Top Level Declarations
-````
+````grammar
 TopDecl = { { DeclModifier }
   ( SubModuleDecl
   | ClassDecl
@@ -88,7 +88,7 @@ declared as static). In addition a ``ClassMemberDecl`` that appears at
 the top level cannot be a ``FieldDecl``.
 
 ## Declaration Modifiers
-````
+````grammar
 DeclModifier =
   ( "abstract" | "ghost" | "static" | "protected"
   | "extern" [ stringToken]
@@ -122,29 +122,27 @@ we use already-ghost to denote that the item is not
 allowed to have the ghost modifier because it is already
 implicitly ghost.
 
-```
-+--------------------------+---------------------------------------+
-| Declaration              | allowed modifiers                     |
-+--------------------------+---------------------------------------+
-| module                   | abstract                              |
-| class                    | extern                                |
-| trait                    | -                                     |
-| datatype or codatatype   | -                                     |
-| field                    | ghost                                 |
-| newtype                  | -                                     |
-| synonym types            | -                                     |
-| iterators                | -                                     |
-| method                   | ghost static extern                   |
-| lemma, colemma, comethod | already-ghost static protected        |
-| inductive lemma          | already-ghost static                  |
-| constructor              | -                                     |
-| function (non-method)    | already-ghost static protected        |
-| function method          | already-ghost static protected extern |
-| predicate (non-method)   | already-ghost static protected        |
-| predicate method         | already-ghost static protected extern |
-| inductive predicate      | already-ghost static protected        |
-| copredicate              | already-ghost static protected        |
-+--------------------------+---------------------------------------+
-```
+
+ Declaration              | allowed modifiers                     
+--------------------------|---------------------------------------
+ module                   | abstract                              
+ class                    | extern                                
+ trait                    | -                                     
+ datatype or codatatype   | -                                     
+ field                    | ghost                                 
+ newtype                  | -                                     
+ synonym types            | -                                     
+ iterators                | -                                     
+ method                   | ghost static extern                   
+ lemma, colemma, comethod | already-ghost static protected        
+ inductive lemma          | already-ghost static                  
+ constructor              | -                                     
+ function (non-method)    | already-ghost static protected        
+ function method          | already-ghost static protected extern 
+ predicate (non-method)   | already-ghost static protected        
+ predicate method         | already-ghost static protected extern 
+ inductive predicate      | already-ghost static protected        
+ copredicate              | already-ghost static protected        
+
 
 

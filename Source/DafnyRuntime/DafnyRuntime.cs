@@ -25,6 +25,7 @@ namespace Dafny
     IEnumerable<ISet<T>> AllSubsets { get; }
     bool Contains<G>(G t);
     bool EqualsAux(ISet<object> other);
+    ISet<U> DowncastClone<U>(Func<T, U> converter);
   }
 
   public class Set<T> : ISet<T>
@@ -41,10 +42,7 @@ namespace Dafny
     }
 
     public static Set<T> FromISet(ISet<T> s) {
-      if (s is Set<T> st) {
-        return st;
-      }
-      return FromCollection(s.Elements);
+      return s as Set<T> ?? FromCollection(s.Elements);
     }
     public static Set<T> FromCollection(IEnumerable<T> values) {
       var d = ImmutableHashSet<T>.Empty.ToBuilder();
@@ -74,6 +72,18 @@ namespace Dafny
         }
       }
       return new Set<T>(d.ToImmutable(), containsNull);
+    }
+    public ISet<U> DowncastClone<U>(Func<T, U> converter) {
+      if (this is ISet<U> th) {
+        return th;
+      } else {
+        var d = ImmutableHashSet<U>.Empty.ToBuilder();
+        foreach (var t in this.setImpl) {
+          var u = converter(t);
+          d.Add(u);
+        }
+        return new Set<U>(d.ToImmutable(), this.containsNull);
+      }
     }
     public int Count {
       get { return this.setImpl.Count + (containsNull ? 1 : 0); }
@@ -143,9 +153,12 @@ namespace Dafny
       return true;
     }
     public override bool Equals(object other) {
-      if (other is ISet<T> s) {
-        return Equals(s);
-      } else if (this is ISet<object> th && other is ISet<object> oth) {
+      if (other is ISet<T>) {
+        return Equals((ISet<T>)other);
+      }
+      var th = this as ISet<object>;
+      var oth = other as ISet<object>;
+      if (th != null && oth != null) {
         // We'd like to obtain the more specific type parameter U for oth's type ISet<U>.
         // We do that by making a dynamically dispatched call, like:
         //     oth.Equals(this)
@@ -161,7 +174,8 @@ namespace Dafny
     }
 
     public bool EqualsAux(ISet<object> other) {
-      if (other is ISet<T> s) {
+      var s = other as ISet<T>;
+      if (s != null) {
         return Equals(s);
       } else {
         return false;
@@ -250,6 +264,7 @@ namespace Dafny
     BigInteger Select<G>(G t);
     IMultiSet<T> Update<G>(G t, BigInteger i);
     bool EqualsAux(IMultiSet<object> other);
+    IMultiSet<U> DowncastClone<U>(Func<T, U> converter);
   }
 
   public class MultiSet<T> : IMultiSet<T>
@@ -262,10 +277,7 @@ namespace Dafny
     }
     public static readonly MultiSet<T> Empty = new MultiSet<T>(ImmutableDictionary<T, BigInteger>.Empty.ToBuilder(), BigInteger.Zero);
     public static MultiSet<T> FromIMultiSet(IMultiSet<T> s) {
-      if (s is MultiSet<T> st) {
-        return st;
-      }
-      return FromCollection(s.Elements);
+      return s as MultiSet<T> ?? FromCollection(s.Elements);
     }
     public static MultiSet<T> FromElements(params T[] values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
@@ -327,6 +339,18 @@ namespace Dafny
       }
       return new MultiSet<T>(d, containsNull ? BigInteger.One : BigInteger.Zero);
     }
+    public IMultiSet<U> DowncastClone<U>(Func<T, U> converter) {
+      if (this is IMultiSet<U> th) {
+        return th;
+      } else {
+        var d = ImmutableDictionary<U, BigInteger>.Empty.ToBuilder();
+        foreach (var item in this.dict) {
+          var k = converter(item.Key);
+          d.Add(k, item.Value);
+        }
+        return new MultiSet<U>(d, this.occurrencesOfNull);
+      }
+    }
 
     public static MultiSet<T> _DafnyDefaultValue() {
       return Empty;
@@ -336,9 +360,12 @@ namespace Dafny
       return IsSubsetOf(this, other) && IsSubsetOf(other, this);
     }
     public override bool Equals(object other) {
-      if (other is IMultiSet<T> s) {
-        return Equals(s);
-      } else if (this is IMultiSet<object> th && other is IMultiSet<object> oth) {
+      if (other is IMultiSet<T>) {
+        return Equals((IMultiSet<T>)other);
+      }
+      var th = this as IMultiSet<object>;
+      var oth = other as IMultiSet<object>;
+      if (th != null && oth != null) {
         // See comment in Set.Equals
         return oth.EqualsAux(th);
       } else {
@@ -347,7 +374,8 @@ namespace Dafny
     }
 
     public bool EqualsAux(IMultiSet<object> other) {
-      if (other is IMultiSet<T> s) {
+      var s = other as IMultiSet<T>;
+      if (s != null) {
         return Equals(s);
       } else {
         return false;
@@ -415,7 +443,9 @@ namespace Dafny
     public BigInteger Select<G>(G t) {
       if (t == null) {
         return occurrencesOfNull;
-      } else if (t is T && dict.TryGetValue((T)(object)t, out var m)) {
+      }
+      BigInteger m;
+      if (t is T && dict.TryGetValue((T)(object)t, out m)) {
         return m;
       } else {
         return BigInteger.Zero;
@@ -491,7 +521,7 @@ namespace Dafny
       return new MultiSet<T>(r, b.occurrencesOfNull < a.occurrencesOfNull ? a.occurrencesOfNull - b.occurrencesOfNull : BigInteger.Zero);
     }
 
-    public bool IsEmpty => occurrencesOfNull == 0 && dict.IsEmpty;
+    public bool IsEmpty { get { return occurrencesOfNull == 0 && dict.IsEmpty; } }
 
     public int Count {
       get { return (int)ElementCount(); }
@@ -545,6 +575,7 @@ namespace Dafny
     /// Returns "true" iff "this is IMap<object, object>" and "this" equals "other".
     /// </summary>
     bool EqualsObjObj(IMap<object, object> other);
+    IMap<UU, VV> DowncastClone<UU, VV>(Func<U, UU> keyConverter, Func<V, VV> valueConverter);
   }
 
   public class Map<U, V> : IMap<U, V>
@@ -589,10 +620,20 @@ namespace Dafny
       return new Map<U, V>(d, hasNullKey, nullValue);
     }
     public static Map<U, V> FromIMap(IMap<U, V> m) {
-      if (m is Map<U, V> mp) {
-        return mp;
+      return m as Map<U, V> ?? FromCollection(m.ItemEnumerable);
+    }
+    public IMap<UU, VV> DowncastClone<UU, VV>(Func<U, UU> keyConverter, Func<V, VV> valueConverter) {
+      if (this is IMap<UU, VV> th) {
+        return th;
+      } else {
+        var d = ImmutableDictionary<UU, VV>.Empty.ToBuilder();
+        foreach (var item in this.dict) {
+          var k = keyConverter(item.Key);
+          var v = valueConverter(item.Value);
+          d.Add(k, v);
+        }
+        return new Map<UU, VV>(d, this.hasNullKey, (VV)(object)this.nullValue);
       }
-      return FromCollection(m.ItemEnumerable);
     }
     public int Count {
       get { return dict.Count + (hasNullKey ? 1 : 0); }
@@ -643,9 +684,12 @@ namespace Dafny
     }
     public override bool Equals(object other) {
       // See comment in Set.Equals
-      if (other is IMap<U, V> m) {
+      var m = other as IMap<U, V>;
+      if (m != null) {
         return Equals(m);
-      } else if (other is IMap<object, object> imapoo) {
+      }
+      var imapoo = other as IMap<object, object>;
+      if (imapoo != null) {
         return EqualsObjObj(imapoo);
       } else {
         return false;
@@ -764,6 +808,7 @@ namespace Dafny
     ISequence<T> Subsequence(BigInteger lo, ulong hi);
     ISequence<T> Subsequence(BigInteger lo, BigInteger hi);
     bool EqualsAux(ISequence<object> other);
+    ISequence<U> DowncastClone<U>(Func<T, U> converter);
   }
 
   public abstract class Sequence<T>: ISequence<T>
@@ -792,6 +837,18 @@ namespace Dafny
     }
     public static ISequence<T> _DafnyDefaultValue() {
       return Empty;
+    }
+    public ISequence<U> DowncastClone<U>(Func<T, U> converter) {
+      if (this is ISequence<U> th) {
+        return th;
+      } else {
+        var values = new U[this.LongCount];
+        for (long i = 0; i < this.LongCount; i++) {
+          var val = converter(this.Select(i));
+          values[i] = val;
+        }
+        return new ArraySequence<U>(values);
+      }
     }
     public static ISequence<T> Update(ISequence<T> sequence, long index, T t) {
       T[] tmp = (T[])sequence.Elements.Clone();
@@ -872,9 +929,12 @@ namespace Dafny
       return n == other.Elements.Length && EqualUntil(this, other, n);
     }
     public override bool Equals(object other) {
-      if (other is ISequence<T> s) {
-        return Equals(s);
-      } else if (this is ISequence<object> th && other is ISequence<object> oth) {
+      if (other is ISequence<T>) {
+        return Equals((ISequence<T>)other);
+      }
+      var th = this as ISequence<object>;
+      var oth = other as ISequence<object>;
+      if (th != null && oth != null) {
         // see explanation in Set.Equals
         return oth.EqualsAux(th);
       } else {
@@ -882,7 +942,8 @@ namespace Dafny
       }
     }
     public bool EqualsAux(ISequence<object> other) {
-      if (other is ISequence<T> s) {
+      var s = other as ISequence<T>;
+      if (s != null) {
         return Equals(s);
       } else {
         return false;
@@ -1079,17 +1140,37 @@ namespace Dafny
   }
   public class Pair<A, B> : IPair<A, B>
   {
-    public A Car { get; }
-    public B Cdr { get; }
+    private A car;
+    private B cdr;
+    public A Car { get { return car; } }
+    public B Cdr { get { return cdr; } }
     public Pair(A a, B b) {
-      this.Car = a;
-      this.Cdr = b;
+      this.car = a;
+      this.cdr = b;
     }
   }
   public partial class Helpers {
     public static int GetHashCode<G>(G g) {
       return g == null ? 1001 : g.GetHashCode();
     }
+    public static int ToIntChecked(BigInteger i, string msg) {
+      if (i > Int32.MaxValue || i < Int32.MinValue) {
+        if (msg == null) msg = "value out of range for a 32-bit int";
+        throw new HaltException(msg + ": " + i);
+      }
+      return (int)i;
+    }
+    public static int ToIntChecked(long i, string msg) {
+      if (i > Int32.MaxValue || i < Int32.MinValue) {
+        if (msg == null) msg = "value out of range for a 32-bit int";
+        throw new HaltException(msg + ": " + i);
+      }
+      return (int)i;
+    }
+    public static int ToIntChecked(int i, string msg) {
+      return i;
+    }
+
     public static string ToString<G>(G g) {
       if (g == null) {
         return "null";
@@ -1278,6 +1359,11 @@ namespace Dafny
         return c.IsZero ? c : BigInteger.Subtract(bp, c);
       }
     }
+
+    public static U CastConverter<T, U>(T t) {
+      return (U)(object)t;
+    }
+
     public static Sequence<T> SeqFromArray<T>(T[] array) {
       return new ArraySequence<T>((T[])array.Clone());
     }

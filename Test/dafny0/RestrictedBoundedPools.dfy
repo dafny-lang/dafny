@@ -268,7 +268,7 @@ module FiniteBecauseOfType {
   method M() {
     ghost var s := set x: int | true :: false;  // this denotes a finite set, because the argument type is bool
     ghost var m := map x: int | true :: true := 6;  // this denotes a finite map, because the key type is bool
-    var s' := set x: int | true :: false;  // error: although this is a finite set, it's not clear it can be computed in finite time
-    var m' := map x: int | true :: true := 6;  // error: ditto
+    var s'; s' := set x: int | true :: false;  // error: although this is a finite set, it's not clear it can be computed in finite time
+    var m'; m' := map x: int | true :: true := 6;  // error: ditto
   }
 }

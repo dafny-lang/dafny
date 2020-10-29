@@ -454,4 +454,4 @@ DirtyLoops.dfy.tmp.dprint.dfy(409,2): Warning: the conclusion of the body of thi
 DirtyLoops.dfy.tmp.dprint.dfy(415,2): Warning: note, this loop has no body (loop frame: x)
 DirtyLoops.dfy.tmp.dprint.dfy(409,2): Warning: /!\ No terms found to trigger on.
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification

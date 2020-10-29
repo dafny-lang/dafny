@@ -1,7 +1,7 @@
-BitvectorResolution.dfy(9,13): Error: bitvector literal (5000) is too large for the type bv1
-BitvectorResolution.dfy(15,9): Error: bitvector literal (1) is too large for the type bv0
-BitvectorResolution.dfy(18,9): Error: bitvector literal (4294967296) is too large for the type bv32
-BitvectorResolution.dfy(24,12): Error: bitvector literal (1) is too large for the type bv0
+BitvectorResolution.dfy(9,13): Error: literal (5000) is too large for the bitvector type bv1
+BitvectorResolution.dfy(15,9): Error: literal (1) is too large for the bitvector type bv0
+BitvectorResolution.dfy(18,9): Error: literal (4294967296) is too large for the bitvector type bv32
+BitvectorResolution.dfy(24,12): Error: literal (1) is too large for the bitvector type bv0
 BitvectorResolution.dfy(35,6): Error: RHS (of type bv67) not assignable to LHS (of type int)
 BitvectorResolution.dfy(36,6): Error: RHS (of type bv67) not assignable to LHS (of type int)
 BitvectorResolution.dfy(38,6): Error: RHS (of type bv67) not assignable to LHS (of type int)
