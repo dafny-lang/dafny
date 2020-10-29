@@ -15,16 +15,13 @@ jobs:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [ubuntu-16.04]
         include:
           - os: ubuntu-16.04
             suffix: ubuntu-16.04
             z3uri: https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-ubuntu-16.04.zip
-          - os: windows-2019
-            suffix: win
-            z3uri: https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-win.zip
     env:
       binaryPath: DafnyLS/bin/Release/netcoreapp3.1
+      binaryArchive: DafnyLS-${{matrix.suffix}}.zip 
     outputs:
       binaries: ${{env.binaryPath}}
     steps:
@@ -47,10 +44,11 @@ jobs:
         wget ${{matrix.z3uri}}
         unzip z3*.zip
         rm z3*.zip
+        mv z3* z3
     - name: Pack Binaries
-      run: cd ${{env.binaryPath}} && zip -r DafnyLS.zip .
+      run: cd ${{env.binaryPath}} && zip -r ${{env.binaryArchive}} .
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: DafnyLS-${{matrix.suffix}}.zip
-        path: ./Source/${{env.binaryPath}}/DafnyLS.zip
+        name: ${{env.binaryArchive}}
+        path: ./Source/${{env.binaryPath}}/${{env.binaryArchive}}
