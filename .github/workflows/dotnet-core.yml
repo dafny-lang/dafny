@@ -43,15 +43,7 @@ jobs:
     - name: Test
       run: dotnet test --no-restore --verbosity normal
     - name: Load Z3
-      if: ${{ matrix.os == 'ubuntu-16.04' }}
-      run: |
-        cd ${{env.binaryPath}}
-        wget ${{env.z3BaseUri}}/${{matrix.z3}}.zip
-        unzip ${{matrix.z3}}.zip
-        rm ${{matrix.z3}}.zip
-        mv ${{matrix.z3}} z3
-    - name: Load Z3 (Win)
-      if: ${{ matrix.os == 'windows-2019' }}
+      shell: pwsh
       run: |
         Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
         Expand-Archive z3.zip .
