@@ -44,7 +44,7 @@ jobs:
     - name: Load Z3
       run: |
         cd ${{env.binaryPath}}
-        wget ${{z3uri}}
+        wget ${{matrix.z3uri}}
         unzip z3*.zip
         rm z3*.zip
     - name: Pack Binaries
