@@ -1,7 +1,7 @@
-﻿using DafnyLS.Language;
-using DafnyLS.Language.Symbols;
-using DafnyLS.Util;
-using DafnyLS.Workspace;
+﻿using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -11,7 +11,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.Handlers {
+namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyCompletionHandler : CompletionHandler {
     private readonly ILogger _logger;
     private readonly IDocumentDatabase _documents;

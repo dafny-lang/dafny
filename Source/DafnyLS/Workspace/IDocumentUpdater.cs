@@ -1,9 +1,9 @@
-﻿using DafnyLS.Language;
+﻿using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.Workspace {
+namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Implementations are responsible to carefully merge the changes from the current file state to the new file state.
   /// </summary>

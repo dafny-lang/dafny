@@ -1,6 +1,6 @@
 ﻿using Microsoft.Dafny;
 
-namespace DafnyLS.Language {
+namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// Base syntax tree visitor implementation that visits all nodes.
   /// </summary>

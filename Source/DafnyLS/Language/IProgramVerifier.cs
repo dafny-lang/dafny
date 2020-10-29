@@ -1,7 +1,7 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.Language {
+namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// Implementations of this interface are responsible to verify the correctness of a program.
   /// </summary>

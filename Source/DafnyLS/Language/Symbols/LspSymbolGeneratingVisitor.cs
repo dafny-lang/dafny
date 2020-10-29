@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading;
 
-namespace DafnyLS.Language.Symbols {
+namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// Visitor responsible to generate the LSP symbol representation.
   /// </summary>

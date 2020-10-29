@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using AstElement = System.Object;
 
-namespace DafnyLS.Language.Symbols {
+namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class DafnyLangTypeResolver {
     private readonly IDictionary<AstElement, ILocalizableSymbol> _declarations;
 

@@ -1,10 +1,10 @@
-﻿using DafnyLS.Language;
+﻿using Microsoft.Dafny.LanguageServer.Language;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.Workspace {
+namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Stores and manages the provided documents.
   /// </summary>

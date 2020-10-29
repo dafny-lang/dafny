@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace DafnyLS.Language.Symbols {
+namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// Extension methods when working with the symbols of the language server.
   /// </summary>

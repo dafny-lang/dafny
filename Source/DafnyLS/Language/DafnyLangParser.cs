@@ -1,4 +1,4 @@
-﻿using DafnyLS.Util;
+﻿using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.Language {
+namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// Parser implementation that makes use of the parse of dafny-lang. It may only be initialized exactly once since
   /// it requires initial setup of static members.

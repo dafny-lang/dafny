@@ -1,9 +1,9 @@
-﻿using DafnyLS.Language.Symbols;
+﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
-namespace DafnyLS.Language {
+namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// Internal representation of a dafny document.
   /// </summary>

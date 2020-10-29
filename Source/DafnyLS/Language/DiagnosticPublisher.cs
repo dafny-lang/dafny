@@ -1,4 +1,4 @@
-﻿using DafnyLS.Util;
+﻿using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-namespace DafnyLS.Language {
+namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticPublisher : IDiagnosticPublisher {
     private readonly ILanguageServer _languageServer;
 

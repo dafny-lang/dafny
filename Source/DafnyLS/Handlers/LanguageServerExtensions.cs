@@ -1,6 +1,6 @@
 ﻿using OmniSharp.Extensions.LanguageServer.Server;
 
-namespace DafnyLS.Handlers {
+namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
   /// Extension methods to register the dafny related handlers to interact with the language server.
   /// </summary>

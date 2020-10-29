@@ -3,7 +3,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace DafnyLS.Language.Symbols {
+namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class ModuleSymbol : Symbol, ILocalizableSymbol {
     public ModuleDefinition Declaration { get; }
     public object Node => Declaration;

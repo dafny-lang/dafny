@@ -1,9 +1,9 @@
-﻿using DafnyLS.Language.Symbols;
+﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 
-namespace DafnyLS.Language {
+namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// Extension methods to register the dafny language services to the language server implementation.
   /// </summary>

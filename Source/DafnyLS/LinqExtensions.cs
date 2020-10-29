@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 
-namespace DafnyLS {
+namespace Microsoft.Dafny.LanguageServer {
   /// <summary>
   /// Extension methods for the use with LINQ expressions.
   /// </summary>

@@ -1,4 +1,4 @@
-﻿using DafnyLS.Util;
+﻿using Microsoft.Dafny.LanguageServer.Util;
 using IntervalTree;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading;
 using AstElement = System.Object;
 
-namespace DafnyLS.Language.Symbols {
+namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// Represents the symbol table
   /// </summary>

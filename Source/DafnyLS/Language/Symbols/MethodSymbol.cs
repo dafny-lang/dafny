@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-namespace DafnyLS.Language.Symbols {
+namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class MethodSymbol : Symbol, ILocalizableSymbol {
     public Method Declaration { get; }
     public object Node => Declaration;

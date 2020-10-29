@@ -1,7 +1,7 @@
 ﻿using Microsoft.Boogie;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
-namespace DafnyLS.Language {
+namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// Extension methods for the use with boogie data.
   /// </summary>

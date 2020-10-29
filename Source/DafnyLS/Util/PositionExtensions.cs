@@ -2,7 +2,7 @@
 using System;
 using System.Threading;
 
-namespace DafnyLS.Util {
+namespace Microsoft.Dafny.LanguageServer.Util {
   /// <summary>
   /// Extension methods related to LSP Positions.
   /// </summary>

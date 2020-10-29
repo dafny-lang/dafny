@@ -1,4 +1,4 @@
-﻿namespace DafnyLS.Language {
+﻿namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// Extension methods to work with elements that belong to dafny-lang.
   /// </summary>

@@ -1,4 +1,4 @@
-﻿using DafnyLS.Util;
+﻿using Microsoft.Dafny.LanguageServer.Util;
 using IntervalTree;
 using MediatR;
 using Microsoft.Dafny;
@@ -11,7 +11,7 @@ using System.Linq;
 using System.Threading;
 using AstElement = System.Object;
 
-namespace DafnyLS.Language.Symbols {
+namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class SymbolTableFactory : ISymbolTableFactory {
     private readonly ILogger _logger;
 
