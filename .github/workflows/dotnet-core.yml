@@ -45,6 +45,7 @@ jobs:
     - name: Load Z3
       shell: pwsh
       run: |
+        Set-Location ${{env.binaryPath}}
         Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
         Expand-Archive z3.zip .
         Rename-Item ${{matrix.z3}} z3
