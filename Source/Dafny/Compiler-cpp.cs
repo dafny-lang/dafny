@@ -46,11 +46,10 @@ namespace Microsoft.Dafny {
     // Dedicated hash-function definitions for each type
     private TargetWriter hashWr = null;
 
-    // Shadowing variables in Compiler.cs
-    new string DafnySetClass = "DafnySet";
-    new string DafnyMultiSetClass = "DafnyMultiset";
-    new string DafnySeqClass = "DafnySequence";
-    new string DafnyMapClass = "DafnyMap";
+    const string DafnySetClass = "DafnySet";
+    const string DafnyMultiSetClass = "DafnyMultiset";
+    const string DafnySeqClass = "DafnySequence";
+    const string DafnyMapClass = "DafnyMap";
 
     public override string TargetLanguage => "Cpp";
     protected override string ModuleSeparator => "::";
@@ -1748,7 +1747,7 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override string ArrayIndexToInt(string arrayIndex) {
+    protected override string ArrayIndexToInt(string arrayIndex, Type fromType) {
       return arrayIndex;
     }
 
@@ -1892,20 +1891,14 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      var w = wr.NewExprBlock("[&]({0} {1}) -> {2} ", TypeName(sourceType, wr, sourceTok), bvName, TypeName(resultType, wr, resultTok));
+    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, TargetWriter wr, out TargetWriter wrRhs, out TargetWriter wrBody) {
+      var w = wr.NewExprBlock("[&]({0} {1}) -> {2} ", TypeName(bvType, wr, bvTok), bvName, TypeName(bodyType, wr, bodyTok));
       w.Write("return ");
-      w.BodySuffix = ";" + w.NewLine;
-      TrParenExpr(source, wr, inLetExprBody);
-      return w;
-    }
-
-    protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      var w = wr.NewExprBlock("[&]({0} {1}) -> {2} ", TypeName(sourceType, wr, sourceTok), bvName, TypeName(resultType, wr, resultTok));
-      w.Write("return ");
-      w.BodySuffix = ";" + w.NewLine;
-      wr.Write("({0})", source);
-      return w;
+      wrBody = w.Fork();
+      w.WriteLine(";");
+      wr.Write("(");
+      wrRhs = wr.Fork();
+      wr.Write(")");
     }
 
     protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
@@ -2313,15 +2306,16 @@ namespace Microsoft.Dafny {
       wr.Write("})");
     }
 
-    protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
-      if (ct is SetType) {
-        wr.Write("DafnySet<{0}>()", TypeName(ct.TypeArgs[0], wr, tok, null, false));
-      } else {
-        throw NotSupported("EmitCollectionBuilder_New/non_set", tok);
-      }
+    protected override void EmitSetBuilder_New(TargetWriter wr, SetComprehension e, string collectionName) {
+      var wrVarInit = DeclareLocalVar(collectionName, null, null, wr);
+      wrVarInit.Write("DafnySet<{0}>()", TypeName(e.Type.AsSetType.Arg, wrVarInit, e.tok, null, false));
     }
 
-    protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitMapBuilder_New(TargetWriter wr, MapComprehension e, string collectionName) {
+      throw NotSupported("EmitMapBuilder_New", e.tok);
+    }
+
+    protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
       Contract.Assume(ct is SetType || ct is MultiSetType);  // follows from precondition
       if (ct is MultiSetType) {
         throw NotSupported("EmitCollectionBuilder_Add/MultiSetType");

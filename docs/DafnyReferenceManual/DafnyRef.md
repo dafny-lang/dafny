@@ -16,12 +16,6 @@ user understand how to do proofs with Dafny.
 [Link to current document as pdf](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef.pdf)<br/>
 [Link to current document as html](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef)
 
-<!--
-Sample math B: $a \to b$ or 
-<p style="text-align: center;">$$ a \to \pi $$</p>
- or \\( a \top \\) or \\[ a \to \pi \\] 
--->
-
 1. numbered toc 
 {:toc}
 
@@ -37,13 +31,19 @@ Sample math B: $a \to b$ or
 
 {% include Types.md %}
 
+# Type Inference
+
+TO BE WRITTEN
+
 {% include Statements.md %}
 
 {% include Expressions.md %}
 
-{% include Grammar.md %}
+# Variable Initialization and Definite Assignment
 
-# Well-Founded Orders {#sec-well-founded-orders}
+TO BE WRITTEN -- rules for default initialization; resulting rules for constructors; definite assignment rules
+
+# Well-founded Orders {#sec-well-founded-orders}
 
 TODO: Write this section
 
@@ -55,6 +55,35 @@ TODO: Write this section.
 
 {% include UserGuide.md %}
 
+# TODO
+
+-- const, static const
+
+-- declarations
+
+-- inference of array sizes
+
+-- witness, ghost witness clauses
+
+-- customizable error messages
+
+-- opaque types
+
+-- the !new type parameter characteristic
+
+-- traits, object
+
+-- non-null types
+
+-- abstemious functions
+
+-- labels (for program locations)
+
+-- updates to shared destructors
+
+-- labelled assertion statements, labelled preconditions
+
 # References
 [BIB]
 
+{% include SyntaxTests.md %}

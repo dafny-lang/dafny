@@ -1,6 +1,7 @@
 # Statements
-````
-Stmt = ( BlockStmt | AssertStmt | AssumeStmt | PrintStmt | UpdateStmt
+````grammar
+Stmt = ( BlockStmt | AssertStmt | AssumeStmt | ExpectStmt | PrintStmt 
+  | UpdateStmt | UpdateFailureStmt
   | VarDeclStatement | IfStmt | WhileStmt | MatchStmt | ForallStmt
   | CalcStmt | ModifyStmt | LabeledStmt_ | BreakStmt_ | ReturnStmt
   | RevealStmt | YieldStmt
@@ -21,7 +22,7 @@ This grammar production shows the different kinds of Dafny statements.
 They are described in subsequent sections.
 
 ## Labeled Statement
-````
+````grammar
 LabeledStmt_ = "label" LabelName ":" Stmt
 ````
 A labeled statement is just the keyword `label` followed by an identifier
@@ -37,7 +38,7 @@ must have been encountered during the control flow in route to the `old`
 expression. That is, again, the label must dominate the use of the label.
 
 ## Break Statement
-````
+````grammar
 BreakStmt_ = "break" ( LabelName | { "break" } ) ";"
 ````
 A break statement provides a means to transfer control
@@ -51,7 +52,7 @@ used to exit a sequence of statements in a block statement before
 reaching the end of the block.
 
 For example,
-```
+```dafny
 L: {
   var n := ReadNext();
   if n < 0  { break L; }
@@ -59,20 +60,13 @@ L: {
 }
 ```
 is equivalent to
-```
+```dafny
 {
   var n: ReadNext();
   if 0 <= n {
     DoSomething(n);
   }
 }
-```
-
-If no label is specified and the statement lists `n`
-occurrences of `break`, then the statement must be enclosed in
-at least `n` levels of loops. Control continues after exiting `n`
-enclosing loops. For example,
-
 ```
 var i := 0;
 while i < 10 {
@@ -90,15 +84,37 @@ while i < 10 {
 }
 ``` 
 
+If no label is specified and the statement lists `n`
+occurrences of `break`, then the statement must be enclosed in
+at least `n` levels of loops. Control continues after exiting `n`
+enclosing loops. For example,
+
+```dafny
+var i := 0;
+while i < 10 {
+  var j := 0;
+  while j < 10 {
+    var k := 0;
+    while k < 10 {
+      if (j + k == 15) break break;
+      k := k + 1;
+    }
+    j := j + 1;
+  }
+  // control continues here after the break
+  i := i + 1;
+}
+``` 
+
 ## Block Statement
-````
+````grammar
 BlockStmt = "{" { Stmt } "}"
 ````
 A block statement is just a sequence of statements enclosed by curly braces.
 Local variables declared in the block end their scope at the end of the block.
 
 ## Return Statement
-````
+````grammar
 ReturnStmt = "return" [ Rhs { "," Rhs } ] ";"
 ````
 A return statement can only be used in a method. It is used
@@ -119,7 +135,7 @@ evaluated, then they are assigned to the out-parameters, and then the
 method terminates.
 
 ## Yield Statement
-````
+````grammar
 YieldStmt = "yield" [ Rhs { "," Rhs } ] ";"
 ````
 
@@ -145,7 +161,7 @@ assigned to the yield parameters, and then the iterator
 yields.
 
 ## Update and Call Statements {#sec-update-and-call-statement}
-````
+````grammar
 UpdateStmt =
     Lhs
     ( {Attribute} ";"
@@ -162,7 +178,7 @@ corresponding right-hand sides also denote the same value.
     )
 ````
 
-````
+````grammar
 CallStmt_ =
     [ Lhs { , Lhs } ":=" ] Lhs ";"
 ````
@@ -210,7 +226,7 @@ variables such that the boolean expression on the right hand side
 is satisfied. This can be used to make a choice as in the
 following example where we choose an element in a set.
 
-```
+```dafny
 method Sum(X: set<int>) returns (s: int)
 {
   s := 0; var Y := X;
@@ -233,14 +249,320 @@ when executed.
 
 Note that the form
 
-````
+````grammar
     Lhs ":"
 ````
 
 is diagnosed as a label in which the user forgot the **label** keyword.
 
-## Variable Declaration Statement
+## Update with Failure Statement (`:-`)
+````grammar
+UpdateFailureStmt  =
+    [ Lhs { "," Lhs } ]
+    ":-"
+    [ "expect" ]
+    Expression(allowLemma: false, allowLambda: false) { "," Rhs } 
 ````
+
+A `:-` statement is similar to a `:=` statement, but allows for immediate return if a failure is detected.
+This is a language feature somewhat analogous to exceptions in other languages.
+
+An update-with-failure statement uses _failure-compatible_ types.
+A failure-compatible type is a type that has the following members (each with no in-parameters and one out-parameter):
+
+ * a function method `IsFailure()` that returns a `bool`
+ * a function method `PropagateFailure()` that returns a value assignable to the first out-parameter of the caller
+ * an optional method or function `Extract()`
+
+A failure-compatible type with an `Extract` member is called _value-carrying_.
+
+
+To use this form of update,
+
+ * the caller must have a first out-parameter whose type matches the output of `PropagateFailure` applied to the first output of the callee
+ * if the RHS of the update-with-failure statement is a method call, the first out-parameter of the callee must be failure-compatible
+ * if instead the RHS of the update-with-failure statement is one or more expressions, the first of these expressions must be a value with a failure-compatible type
+ * if the failure-compatible type of the RHS does not have an `Extract` member,
+then the LHS of the `:-` statement has one less expression than the RHS 
+(or than the number of out-parameters from the method call)
+ * if the failure-compatible type of the RHS does have an `Extract` member,
+then the LHS of the `:-` statement has the same number of expressions as the RHS 
+(or as the number of out-parameters from the method call)
+and the type of the first LHS expression must be assignable from the return type of the `Extract` member
+* the `IsFailure` and `PropagateFailure` methods may not be ghost
+* the LHS expression assigned the output of the `Extract` member is ghost precisely if `Extract` is ghost
+
+### Failure compatible types
+
+A simple failure-compatible type is the following:
+```dafny
+{% include Example-Fail1.dfy %}
+```
+
+A commonly used alternative that carries some value information is something like this generic type:
+```dafny
+{% include Example-Fail2.dfy %}
+```
+
+
+### Simple status return with no other outputs
+
+The simplest use of this failure-return style of programming is to have a method call that just returns a non-value-carrying `Status` value:
+```dafny
+method Callee(i: int) returns (r: Status)
+{
+  if i < 0 { return Failure("negative"); }
+  return Success;
+}
+
+method Caller(i: int) returns (rr: Status)
+{
+  :- Callee(i);
+  ...
+}
+```
+
+Note that there is no LHS to the `:-` statement. 
+If `Callee` returns `Failure`, then the caller immediately returns, 
+not executing any statements following the call of `Callee`. 
+The value returned by `Caller` (the value of `rr` in the code above) is the result of `PropagateFailure` applied to the value returned by `Callee`, which is often just the same value. 
+If `Callee` does not return `Failure` (that is, returns a value for which `IsFailure()` is `false`) 
+then that return value is forgotten and execution proceeds normally with the statements following the call of `callee` in the body of `Caller`.
+
+The desugaring of the `:- Callee(i);` statement is
+```dafny
+var tmp;
+tmp := Callee(i);
+if tmp.IsFailure() {
+  rr := tmp.PropagateFailure();
+  return;
+}
+```
+In this and subsequent examples of desugaring, the `tmp` variable is a new, unique variable, unused elsewhere in the calling member.
+
+### Status return with additional outputs
+
+The example in the previous subsection affects the program only through side effects or the status return itself. 
+It may well be convenient to have additional out-parameters, as is allowed for `:=` updates;
+these out-parameters behave just as for `:=`.
+Here is an example:
+
+```dafny
+method Callee(i: int) returns (r: Status, v: int, w: int)
+{
+  if i < 0 { return Failure("negative"), 0, 0; }
+  return Success, i+i, i*i;
+}
+
+method Caller(i: int) returns (rr: Status, k: int)
+{
+  var j: int;
+  j, k :- Callee(i);
+  k := k + k;
+  ...
+}
+```
+
+Here `Callee` has two outputs in addition to the `Status` output. 
+The LHS of the `:-` statement accordingly has two l-values to receive those outputs. 
+The recipients of those outputs may be any sort of l-values;
+here they are a local variable and an out-parameter of the caller.
+Those outputs are assigned in the `:-` call regardless of the `Status` value:
+
+   * If `Callee` returns a failure value as its first output, then the other outputs are assigned, the _caller's_ first out-parameter (here `rr`) is assigned the value of `PropagateFailure`, and the caller returns.
+   * If `Callee` returns a non-failure value as its first output, then the other outputs are assigned and the 
+caller continues execution as normal.
+
+The desugaring of the `j, k :- Callee(i);` statement is
+```dafny
+var tmp;
+tmp, j, k := Callee(i);
+if tmp.IsFailure() {
+  rr := tmp.PropagateFailure();
+  return;
+}
+```
+
+
+### Failure-returns with additional data
+
+The failure-compatible return value can carry additional data as shown in the `Outcome<T>` example above. 
+In this case there is a (first) LHS l-value to receive this additional data.
+
+```dafny
+method Callee(i: int) returns (r: Outcome<nat>, v: int)
+{
+  if i < 0 { return Failure("negative"), i+i; }
+  return Success(i), i+i;
+}
+
+method Caller(i: int) returns (rr: Outcome<int>, k: int)
+{
+  var j: int;
+  j, k :- Callee(i);
+  k := k + k;
+  ...
+}
+```
+
+Suppose `Caller` is called with an argument of `10`. 
+Then `Callee` is called with argument `10` 
+and returns `r` and `v` of `Outcome<nat>.Success(10)` and `20`. 
+Here `r.IsFailure()` is `false`, so control proceeds normally. 
+The `j` is assigned the result of `r.Extract()`, which will be `10`, 
+and `k` is assigned `20`. 
+Control flow proceeds to the next line, where `k` now gets the value `40`.
+
+Suppose instead that `Caller` is called with an argument of `-1`.
+Then `Callee` is called with the value `-1`
+ and returns `r` and `v` with values `Outcome<nat>.Failure("negative")` and `-2`.
+`k` is assigned the value of `v` (-2).
+But `r.IsFailure()` is `true`, so control proceeds directly to return from `Caller`.
+The first out-parameter of `Caller` (`rr`) gets the value of `r.PropagateFailure()`,
+which is `Outcome<int>.Failure("negative")`; `k` already has the value `-2`.
+The rest of the body of `Caller` is skipped.
+In this example, the first out-parameter of `Caller` has a failure-compatible type
+so the exceptional return will propagate up the call stack.
+It will keep propagating up the call stack
+as long as there are callers with this first special output type
+and calls that use `:-` 
+and the return value keeps having `IsFailure()` true.
+
+The desugaring of the `j, k :- Callee(i);` statement in this example is
+```dafny
+var tmp;
+tmp, k := Callee(i);
+if tmp.IsFailure() {
+  rr := tmp.PropagateFailure();
+  return;
+}
+j := tmp.Extract();
+```
+
+### RHS with expression list
+
+Instead of a failure-returning method call on the RHS of the statement,
+the RHS can instead be a list of expressions.
+As for a `:=` statement, in this form, the expressions on the left and right sides of `:-` must correspond, 
+just omitting a LHS l-value for the first RHS expression if its type is not value-carrying. 
+The semantics is very similar to that in the previous subsection. 
+
+ * The first RHS expression must have a failure-compatible type.
+ * All the assignments of RHS expressions to LHS values except for the first RHS value are made.
+ * If the first RHS value (say `r`) responds `true` to `r.IsFailure()`, 
+then `r.PropagateFailure()` is assigned to the first out-parameter of the _caller_ 
+and the execution of the caller's body is ended.
+ * If the first RHS value (say `r`) responds `false` to `r.IsFailure()`, then
+   * if the type of `r` is value-carrying, then `r.Extract()` is assigned to the first LHS value of the `:-` statement
+(if `r` is not value-carrying, then the corresponding LHS l-value is omitted)
+   * execution of the caller's body continues with the statement following the `:-` statement.
+
+A RHS with a method call cannot be mixed with a RHS containing multiple expressions.
+
+For example, the desugaring of 
+```dafny
+method m(Status r) returns (rr: Status) {
+  var j, k;
+  j, k :- r, 7;
+  ...
+}
+```
+is
+```dafny
+var j, k;
+var tmp;
+tmp, k := r, 7;
+if tmp.IsFailure() {
+  rr := tmp.PropagateFailure();
+  return;
+}
+```
+### Failure with initialized declaration.
+
+The `:-` syntax can also be used in initalization, as in
+```dafny
+var s :- M();
+```
+This is equivalent to
+```dafny
+var s;
+s :- M();
+```
+with the semantics as described above.
+
+### Expect alternative
+
+In any of the above described uses of `:-`, the `:-` token may be followed immediately by the keyword `expect`.
+This keyword states that the RHS evaluation is expected to be successful: 
+if the failure-compatible value is a failure, then the program halts immediately (precisely as with the `expect` statement); 
+if the return value is not a failure, the semantics is as described in previous sub-sections.
+
+The equivalent desugaring replaces
+```dafny
+if tmp.IsFailure() {
+  rr := tmp.PropagateFailure();
+  return;
+}
+```
+with
+```dafny
+expect !tmp.IsFailure(), tmp;
+```
+
+### Key points
+
+There are several points to note.
+
+ * The first out-parameter of the callee is special. 
+It has a special type and that type indicates that the value is inspected to see if an immediate return 
+from the caller is warranted. 
+This type is often a datatype, as shown in the examples above, but it may be any type with the appropriate members.
+ * The restriction on the type of caller's first out-parameter is
+just that it must be possible (perhaps through generic instantiation and type inference, as in these examples) for `PropagateFailure` applied to the failure-compatible output from the callee to produce a value of the caller's first out-parameter type.
+If the caller's first out-parameter type is failure-compatible (which it need not be),
+ then failures can be propagated up the call chain. 
+ * In the statement `j, k :- callee(i);`,
+ when the callee's return value has an `Extract` member,
+the type of `j` is not the type of the first out-parameter of `callee`. 
+Rather it is a type assignable from the output type of `Extract` applied to the first out-value of `callee`.
+ * A method like `callee` with a special first out-parameter type can still be used in the normal way:
+`r, k := callee(i)`. 
+Now `r` gets the first output value from callee, of type `Status` or `Outcome<nat>` in the examples above. 
+No special semantics or exceptional control paths apply. 
+Subsequent code can do its own testing of the value of `r` 
+and whatever other computations or control flow are desired.
+ * The caller and callee can have any (positive) number of output arguments, 
+as long as the callee's first out-parameter has a failure-compatible type
+and the caller's first out-parameter type matches `PropagateFailure`.
+ * If there is more than one LHS, the LHSs must denote different l-values, unless the RHS is a list of expressions and the corresponding RHS values are equal. 
+ * The LHS l-values are evaluated before the RHS method call, 
+in case the method call has side-effects or return values that modify the l-values prior to assignments being made.
+
+It is important to note the connection between the failure-compatible types used in the caller and callee,
+if they both use them. 
+They do not have to be the same type, but they must be closely related, 
+as it must be possible for the callee's `PropagateFailure` to return a value of the caller's failure-compatible type. 
+In practice this means that one such failure-compatible type should be used for an entire program. 
+If a Dafny program uses a library shared by multiple programs, the library should supply such a type and it should be used by all the client programs (and, effectively, all Dafny libraries). 
+It is also the case that it is inconvenient to mix types such as `Outcome` and `Status` above within the same program.
+If there is a mix of failure-compatible types, then the program will need to use `:=` statements and code for 
+explicit handling of failure values.
+
+
+### Failure returns and exceptions
+
+The `:-` mechanism is like the exceptions used in other programming languages, with some similarities and differences.
+
+ * There is essentially just one kind of 'exception' in Dafny, 
+the variations of the failure-compatible data type. 
+ * Exceptions are passed up the call stack whether or not intervening methods are aware of the possibility of an exception, 
+that is, whether or not the intervening methods have declared that they throw exceptions.
+Not so in Dafny: a failure is passed up the call stack only if each caller has a failure-compatible first out-parameter, is itself called in a `:-` statement, and returns a value that responds true to `IsFailure()`.
+ * All methods that contain failure-return callees must explicitly handle those failures
+using either `:-` statements or using `:=` statements with a LHS to receive the failure value.
+
+## Variable Declaration Statement
+````grammar
 VarDeclStatement = [ "ghost" ] "var" { Attribute }
   (
     LocalIdentTypeOptional 
@@ -248,6 +570,7 @@ VarDeclStatement = [ "ghost" ] "var" { Attribute }
     [ ":=" Rhs { "," Rhs }
     | { Attribute } ":|" [ "assume" ] 
                     Expression(allowLemma: false, allowLambda: true)
+    | ":-" [ "expect" ] Expression { "," Rhs }
     ]
   |
     "(" CasePattern { "," CasePattern } ")"
@@ -264,7 +587,7 @@ of values must match the number of variables declared.
 
 Note that the type of each variable must be given individually. The following code
 
-```
+```dafny
 var x, y : int;
 ```
 does not declare both `x` and `y` to be of type `int`. Rather it will give an
@@ -280,7 +603,7 @@ if the **ghost** keyword is not part of the variable declaration statement.
 The left-hand side can also contain a tuple of patterns which will be
 matched against the right-hand-side. For example:
 
-```
+```dafny
 function returnsTuple() : (int, int)
 {
     (5, 10)
@@ -294,7 +617,7 @@ function usesTuple() : int
 ```
 
 ## Guards
-````
+````grammar
 Guard = ( "*" 
         | "(" "*" ")" 
         | Expression(allowLemma: true, allowLambda: true) 
@@ -310,7 +633,7 @@ unspecified boolean value is returned. The value returned
 may be different each time it is executed.
 
 ## Binding Guards
-````
+````grammar
 BindingGuard(allowLambda) =
   IdentTypeOptional { "," IdentTypeOptional } { Attribute }
   ":|" Expression(allowLemma: true, allowLambda)
@@ -324,13 +647,13 @@ where the bound variables are not in scope.
 
 In other words, the statement
 
-```
+```dafny
 if x :| P { S } else { T }
 ```
 
 has the same meaning as
 
-```
+```dafny
 if exists x :| P { var x :| P; S } else { T }
 ```
 
@@ -340,7 +663,7 @@ used in specification contexts.
 
 Here is an example:
 
-```
+```dafny
 predicate P(n: int)
 {
   n % 2 == 0
@@ -357,9 +680,10 @@ method M1() returns (ghost y: int)
 ```
 
 ## If Statement
-````
+````grammar
 IfStmt = "if"
   ( IfAlternativeBlock
+  | "{" IfAlternativeBlock "}"
   |
     ( BindingGuard(allowLambda: true)
     | Guard
@@ -369,20 +693,20 @@ IfStmt = "if"
   )
 ````
 
-````
+````grammar
 IfAlternativeBlock =
-   "{" { "case"
+      { "case"
       (
         BindingGuard(allowLambda:false)
       | Expression(allowLemma: true, allowLambda: false)
-      ) "=>" { Stmt } } "}" .
+      ) "=>" { Stmt } } .
 ````
 
 The simplest form of an `if` statement uses a guard that is a boolean
 expression. It then has the same form as in C\# and other common
 programming languages. For example,
 
-```
+```dafny
   if x < 0 {
     x := -x;
   }
@@ -390,7 +714,7 @@ programming languages. For example,
 
 If the guard is an asterisk then a non-deterministic choice is made:
 
-```
+```dafny
   if * {
     print "True";
   } else {
@@ -403,7 +727,7 @@ The `if` statement using the `IfAlternativeBlock` form is similar to the
 Edsger W. Dijkstra. It is used for a multi-branch `if`.
 
 For example:
-```
+```dafny
   if {
     case x <= y => max := y;
     case y <= x => max := x;
@@ -417,9 +741,9 @@ to the right of `=>` for that guard are executed. The statement requires
 at least one of the guards to evaluate to `true`.
 
 ## While Statement
-````
+````grammar
 WhileStmt = "while"
-  ( LoopSpecWhile WhileAlternativeBlock
+  ( LoopSpecWhile ( WhileAlternativeBlock | "{" WhileAlternativeBlock "}" )
   | ( Guard | "..." ) LoopSpec
       ( BlockStmt
       | "..."
@@ -428,7 +752,7 @@ WhileStmt = "while"
   )
 ````
 
-````
+````grammar
 WhileAlternativeBlock =
    "{" 
    { "case" Expression(allowLemma: true, allowLambda: false) 
@@ -447,7 +771,7 @@ forms.
 The first form is similar to a while loop in a C-like language. For
 example:
 
-```
+```dafny
   var i := 0;
   while i < 5 {
     i := i + 1;
@@ -478,7 +802,7 @@ The second form uses the `WhileAlternativeBlock`. It is similar to the
 `do ... od` construct used in the book "A Discipline of Programming" by
 Edsger W. Dijkstra. For example:
 
-```
+```dafny
   while
     decreases if 0 <= r then r else -r;
   {
@@ -522,7 +846,7 @@ the loop, or we wouldn't need the loop. Like pre- and postconditions, an
 invariant is a property that is preserved for each execution of the loop,
 expressed using the same boolean expressions we have seen. For example,
 
-```
+```dafny
 var i := 0;
 while i < n
   invariant 0 <= i
@@ -565,7 +889,7 @@ that decreases, but other things that can be used as well. In the case of
 integers, the bound is assumed to be zero. For example, the following is
 a proper use of `decreases` on a loop:
 
-```
+```dafny
   while 0 < i
     invariant 0 <= i
     decreases i
@@ -581,7 +905,7 @@ tend to count up instead of down. In this case, what decreases is not the
 counter itself, but rather the distance between the counter and the upper
 bound. A simple trick for dealing with this situation is given below:
 
-```
+```dafny
   while i < n
     invariant 0 <= i <= n
     decreases n - i
@@ -609,7 +933,7 @@ See the discussion of framing in methods for a fuller discussion.
 TO BE WRITTEN
 
 ## Match Statement
-````
+````grammar
 MatchStmt = "match" Expression(allowLemma: true, allowLambda: true)
   ( "{" { CaseStatement } "}"
   | { CaseStatement }
@@ -642,7 +966,7 @@ same constructor. In that case `x1` is bound to value `v1` and
 `x2` is bound to `v2`. The identifiers in the case pattern
 are not mutable. Here is an example of the use of a `match` statement.
 
-```
+```dafny
 datatype Tree = Empty | Node(left: Tree, data: int, right: Tree)
 
 // Return the sum of the data in a tree.
@@ -665,7 +989,7 @@ coinductive this would not have been possible since `x` might have been
 infinite.
 
 ## Assert Statement
-````
+````grammar
 AssertStmt =
     "assert" { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
@@ -683,14 +1007,12 @@ the user may help by inserting assertions that Dafny can prove,
 and whose truth may aid in the larger verification effort,
 much as lemmas might be used in mathematical proofs.
 
-<!--
-Describe where refinement is described.
+Using `...` as the argument of the statement is part of module refinement, as described [here](#sec-module-refinement).
 
-If the proposition is `...` then (TODO: what does this mean?).
--->
+TO BE WRITTEN - assert by statements
 
 ## Assume Statement
-````
+````grammar
 AssumeStmt =
     "assume" { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
@@ -712,6 +1034,115 @@ An `assume` statement cannot be compiled. In fact, the compiler
 will complain if it finds an **assume** anywhere where it has not
 been replaced through a refinement step.
 
+Using `...` as the argument of the statement is part of module refinement, as described [here](#sec-module-refinement).
+
+## Expect Statement
+
+````grammar
+ExpectStmt =
+    "expect" { Attribute }
+    ( Expression(allowLemma: false, allowLambda: true)
+    | "..."
+    )
+    [ "," Expression(allowLemma: false, allowLambda: true) ]
+    ";"
+````
+
+The `expect` statement states a boolean expression that is 
+(a) assumed to be true by the verifier
+and (b) checked to be true
+at run-time. That is, the compiler inserts into the run-time executable a 
+check that the given expression is true; if the expression is false, then
+the execution of the program halts immediately. If a second argument is
+given, it may be a value of any type.
+That value is converted to a string (just like the `print` statement)
+and  the string is included 
+in the message emitted by the program
+when it halts; otherwise a default message is emitted.
+
+Because the expect expression and optional second argument are compiled, they cannot be ghost expressions.
+
+`assume` statements are ignored at run-time. The `expect` statement behaves like 
+`assume` for the verifier, but also inserts a run-time check that the 
+assumption is indeed correct (for the test cases used at run-time).
+
+Here are a few use-cases for the `expect` statement.
+
+A) To check the specifications of external methods.
+
+Consider an external method `Random` that takes a `nat` as input
+and returns a `nat` value that is less than the input.
+Such a method could be specified as
+```dafny
+method {:extern} Random(n: nat) returns (r: nat)
+  ensures r < n
+```
+But because there is no body for `Random` (only the external non-dafny implementation),
+it cannot be verified that `Random` actually satisfies this specification.
+
+To mitigate this situation somewhat, we can define a wrapper function, `Random'`,
+that calls `Random` but in which we can put some run-time checks:
+```dafny
+method {:extern} Random(n: nat) returns (r: nat)
+
+method Random'(n: nat) returns (r: nat)
+  ensures r < n
+{
+  r := Random(n);
+  expect r < n;
+}
+```
+Here we can verify that `Random'` satisfies its own specification,
+relying on the unverified specification of `Random`.
+But we are also checking at run-time that any input-output pairs for `Random`
+encountered during execution
+do satisfy the specification,
+as they are checked by the `expect` statement.
+
+Note, in this example, two problems are still remaining.
+One problem is that the out-parameter of the extern `Random` has type `nat`,
+but there is no check that the value returned really is non-negative.
+It would be better to declare the out-parameter of `Random` to be `int` and
+to include `0 <= r` in the condition checked by the `expect` statement in `Random'`.
+The other problem is that `Random` surely will need `n` to be strictly positive.
+This can be fixed by adding `requires n != 0` to `Random'` and `Random`.
+
+B) Run-time testing
+
+Verification and run-time testing are complementary
+and both have their role in assuring that software does what is intended.
+Dafny can produce executables
+and these can be instrumented with unit tests.
+Annotating a method with the `{:test}` attribute
+indicates to the compiler
+that it should produce target code
+that is correspondingly annotated to mark the method
+as a unit test (e.g., an XUnit test) in the target language. 
+Within that method one might use `expect` statements (as well as `print` statements)
+to insert checks that the target program is behaving as expected.
+
+C) Compiler tests
+
+If one wants to assure that compiled code is behaving at run-time consistently with the statically verified code,
+one can use paired assert/expect statements with the same expression:
+```dafny
+assert _P_;
+expect _P_;
+```
+The verifier will check that _P_ is always true at the given point in a program
+(at the `assert` statement).
+
+At run-time, the compiler will insert checks that the same predicate,
+in the `expect` statement is true.
+Any difference identifies a compiler bug.
+Note that the `expect` must be after the `assert`.
+If the `expect` is first, 
+then the verifier will interpret the `expect` like an `assume`,
+in which case the `assert` will be proved trivially
+and potential unsoundness will be hidden.
+
+Using `...` as the argument of the `expect` statement is part of module refinement, as described [here](#sec-module-refinement).
+
 <!--
 Describe where refinement is described.
 
@@ -719,7 +1150,7 @@ If the proposition is `...` then (TODO: what does this mean?).
 -->
 
 ## Print Statement
-````
+````grammar
 PrintStmt =
     "print" Expression(allowLemma: false, allowLambda: true)
     { "," Expression(allowLemma: false, allowLambda: true) } ";"
@@ -734,7 +1165,7 @@ line you should include `"\n"` as part of one of the expressions.
 Dafny automatically creates implementations of methods that convert values to strings
 for all Dafny data types. For example,
 
-```
+```dafny
 datatype Tree = Empty | Node(left: Tree, data: int, right: Tree)
 method Main()
 {
@@ -754,7 +1185,7 @@ override the built-in value->string conversion.  Nor is there a way to
 explicitly invoke this conversion.
 
 ## Forall Statement
-````
+````grammar
 ForallStmt = "forall"
   ( "(" [ QuantifierDomain ] ")"
   | [ QuantifierDomain ]
@@ -788,7 +1219,7 @@ into the new buffer.
 
 [leino233]: http://research.microsoft.com/en-us/um/people/leino/papers/krml233.pdf
 
-```
+```dafny
 class {:autocontracts} SimpleQueue<Data>
 {
   ghost var Contents: seq<Data>;
@@ -816,7 +1247,7 @@ Here is an example of a _call_ `forall` statement and the
 callee. This is contained in the `CloudMake-ConsistentBuilds.dfy`
 test in the Dafny repository.
 
-```
+```dafny
 forall cmd', deps', e' | 
        Hash(Loc(cmd', deps', e')) == Hash(Loc(cmd, deps, e)) {
   HashProperty(cmd', deps', e', cmd, deps, e);
@@ -830,7 +1261,7 @@ lemma HashProperty(cmd: Expression, deps: Expression, ext: string,
 
 The following example of a _proof_ `forall` statement comes from the same file:
 
-```
+```dafny
 forall p | p in DomSt(stCombinedC.st) && p in DomSt(stExecC.st)
   ensures GetSt(p, stCombinedC.st) == GetSt(p, stExecC.st)
 {
@@ -841,12 +1272,12 @@ forall p | p in DomSt(stCombinedC.st) && p in DomSt(stExecC.st)
 ```
 
 More generally, the statement
-```
+```dafny
 forall x | P(x) { Lemma(x); }
 ```
 is used to invoke `Lemma(x)` on all `x` for which `P(x)` holds. If
 `Lemma(x)` ensures `Q(x)`, then the forall statement establishes
-```
+```dafny
 forall x :: P(x) ==> Q(x).
 ```
 
@@ -854,7 +1285,7 @@ The `forall` statement is also used extensively in the de-sugared forms of
 co-predicates and co-lemmas. See section [#sec-co-inductive-datatypes].
 
 ## Modify Statement
-````
+````grammar
 ModifyStmt =
   "modify" { Attribute }
   ( FrameExpression(allowLemma: false, allowLambda: true)
@@ -876,7 +1307,7 @@ followed by a `modify` statement that may modify any field
 in the object. After that we can no longer prove that the field
 `x` still has the value we assigned to it.
 
-```
+```dafny
 class MyClass {
   var x: int
   method N()
@@ -895,7 +1326,7 @@ block statement. Namely, only memory locations specified
 by the frame expressions of the block `modify` statement
 may be modified. Consider the following example.
 
-```
+```dafny
 class ModifyBody {
   var x: int
   var y: int
@@ -925,7 +1356,7 @@ class ModifyBody {
   }
 ```
 
-```
+```dafny
   method M3()
     modifies this
   {
@@ -955,7 +1386,7 @@ the modify statement do not apply to local variables, only those
 that are heap-based.
 
 ## Calc Statement
-````
+````grammar
 CalcStmt = "calc" { Attribute } [ CalcOp ] "{" CalcBody "}"
 CalcBody = { CalcLine [ CalcOp ] Hints }
 CalcLine = Expression(allowLemma: false, allowLambda: true) ";"
@@ -1004,7 +1435,7 @@ Here is an example using `calc` statements to prove an elementary
 algebraic identity. As it turns out, Dafny is able to prove this without
 the `calc` statements, but the example illustrates the syntax.
 
-```
+```dafny
 lemma docalc(x : int, y: int)
   ensures (x + y) * (x + y) == x * x + 2 * x * y + y * y
 {
@@ -1058,7 +1489,7 @@ every pair of expressions by giving a default operator between
 the `calc` keyword and the opening brace as shown in this abbreviated
 version of the above calc statement:
 
-```
+```dafny
 calc == {
   (x + y) * (x + y);
   x * (x + y) + y * (x + y);
@@ -1083,7 +1514,7 @@ TO BE WRITTEN
 Move to discussion of refinement.
 
 ## Skeleton Statement
-````
+````grammar
 SkeletonStmt =
   "..."
   ["where" Ident {"," Ident } ":="
@@ -1092,4 +1523,3 @@ SkeletonStmt =
   ] ";"
 ````
 -->
-
