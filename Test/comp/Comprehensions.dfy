@@ -36,9 +36,9 @@ method AssignSuchThat() {
 method LetSuchThat() {
   assert Thirteen(13);
   var p := var x, y :| 12 <= x < y < 15 && Thirteen(x); (x, y);
-  print "p=", p, "\n";
+  assert p == (13, 14);
   var q := var x, b, y :| 12 <= x < y < 15 && Thirteen(x) && b; (x, y, if b then "yes" else "no");
-  print "q=", q, "\n";
+  assert q == (13, 14, "yes");
 }
 
 method Quantifier() {
