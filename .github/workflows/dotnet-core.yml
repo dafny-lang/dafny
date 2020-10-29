@@ -24,7 +24,6 @@ jobs:
             z3: z3-4.8.4.d6df51951f4c-x64-win
     env:
       binaryPath: DafnyLS/bin/Release/netcoreapp3.1
-      binaryArchive: DafnyLS-${{matrix.suffix}}.zip 
       z3BaseUri: https://github.com/Z3Prover/z3/releases/download/z3-4.8.4
     outputs:
       binaries: ${{env.binaryPath}}
@@ -53,5 +52,5 @@ jobs:
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: ${{env.binaryArchive}}
+        name: DafnyLS-${{matrix.suffix}}
         path: ./Source/${{env.binaryPath}}/
