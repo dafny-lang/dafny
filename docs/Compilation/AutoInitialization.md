@@ -219,58 +219,6 @@ TODO: What are the parameters to this `Default(...)` method? I think it's only a
 parameters passed to the root constructor, right? Only those parameters that can be constructed
 only through auto-init type parameters are needed. This affects the first sentence of the next paragraph.
 
-If the root constructor takes no parameters, or if the (co-)datatype itself takes no type
-parameters, then then target type of the (co-)datatype always results in that same value.
-In those cases, the value returned by the `Default()` method is pre-computed and reused:
-
-```
-private static readonly DT theDefault = create_RootCtor(...);
-public static DT Default() {
-  return theDefault;
-}
-```
-
-Type descriptors
-----------------
-
-To obtain default values of certain type parameters, the compiler emits _run-time type descriptors_
-(or just _type descriptors_ for short). A type descriptor has the ability to produce a
-default value for the type that the type parameter represents.
-
-The C# declaration of the class of type descriptors lives in the `Dafny` namespace:
-
-```
-public class TypeDescriptor<T>
-{
-  private readonly T initValue;
-  public TypeDescriptor(T initValue) {
-    this.initValue = initValue;
-  }
-  public T Default() {
-    return initValue;
-  }
-}
-```
-
-For example, consider a Dafny program where `G` is a type parameter that represents an auto-init type.
-For an uninitialized local variable of type `G`, the compiler will assign the default value
-
-    td_G.Default()
-
-where `td_G` is type descriptor for `G`. (More on where `td_G` comes from below.)
-
-The following table shows the type descriptors for the various types:
-
-type                                             | type descriptor
--------------------------------------------------|------------------------------------------
-`int`                                            | `Dafny.Helpers.INT`
-`real`                                           | `Dafny.Helpers.REAL`
-`bool`                                           | `Dafny.Helpers.BOOL`
-`char`                                           | `Dafny.Helpers.CHAR`
-bitvectors                                       | `Dafny.Helpers.{UINT8, UINT16, UINT32, UINT64, INT}`
-`ORDINAL`                                        | `Dafny.Helpers.INT`
-`newtype` `NT`                                   | `NT._TypeDescriptor()`
-possibly-null reference type `T`                 | `Dafny.Helpers.NULL<T>()`
 type parameter `T`                               | `td_T`
 collection type `C`                              | `C._TypeDescriptor()`
 datatype or co-datatype `D`                      | `D._TypeDescriptor(typeDescriptors, ...)`
@@ -319,47 +267,6 @@ public static TypeDescriptor<T> NULL<T>() where T : class {
   return new TypeDescriptor<T>(null);
 }
 ```
-
-## Type parameters
-
-For each formal auto-init type parameter `T`, there is an associated type descriptor named
-`td_T` (of type `Dafny.TypeDescriptor<T>`). What exactly `td_T` is depends on the parent
-declaration of `T`.
-
-If `T` is a type parameter of a method or function, then `td_T` is simply an additional
-parameter to the method or function.
-
-If `T` is a type parameter of a class, then `td_T` is a field of the target type. Its
-value is given by a parameter to the target-type constructor. For example, for
-
-```
-class Cl<T(0)> {
-  constructor Init(x: int) { ... }
-  ...
-}
-```
-
-the target type will be
-
-```
-class Cl<T> {
-  private Dafny.TypeDescriptor<T> td_T;
-  public Cl(Dafny.TypeDescriptor<T> td_T) {
-    this.td_T = td_T;
-  }
-  public void Init(x: BigInteger) { ... }
-  ...
-}
-```
-
-If `T` is a type parameter of a trait, then...
-TODO: If `T` is used as the type of an undeclared local variable in the method of a
-trait, then does this really work? I guess this can work if the target interface
-has a `td_T` getter that's computed appropriately in the class.
-
-If `T` is a type parameter of a (co-)datatype, then...
-TODO: See the concern about traits immediately above. Should auto-init type parameters
-be disallowed in (co-)datatypes? Is that also a reasonable solution for traits?
 
 ## Collection types
 
@@ -417,3 +324,161 @@ public static Dafny.TypeDescriptor<B> _TypeDescriptor() {
   return _TYPE;
 }
 ```
+
+## Type parameters
+
+Finally, type parameters. These are the most involved.
+For each formal auto-init type parameter `T`, there is an associated type descriptor named
+`td_T` (of type `Dafny.TypeDescriptor<T>`). What exactly `td_T` is depends on both the
+parent declaration of `T` and the context of use.
+
+### Type parameters of a method or function
+
+If `T` is a type parameter of a method or function, then `td_T` is simply an additional
+parameter to the method or function.
+
+For example, a method `method M<T(0)>(x: int)` is compiled into
+
+```
+void M<T>(Dafny.TypeDescriptor<T> td_T, BigInteger x)
+```
+
+### Type parameters of a class
+
+If `T` is a type parameter of a class, then `td_T` is a field of the target type. Its
+value is given by a parameter to the target-type constructor.
+
+For example, for
+
+```
+class Cl<T(0)> {
+  constructor Init(x: int) { ... }
+  ...
+}
+```
+
+the target type will be
+
+```
+class Cl<T> {
+  private Dafny.TypeDescriptor<T> td_T;
+  public Cl(Dafny.TypeDescriptor<T> td_T) {
+    this.td_T = td_T;
+  }
+  public void Init(x: BigInteger) { ... }
+  ...
+}
+```
+
+### Type parameters of a trait
+
+TODO: If `T` is used as the type of an undeclared local variable in the method of a
+trait, then does this really work? I guess this can work if the target interface
+has a `td_T` getter that's computed appropriately in the class.
+
+### Type parameter of a class or trait used in a static method or function
+
+In C#, the type parameters of a class are available in static methods. However,
+any type descriptors of the class are stored in instance fields, since the target
+types are not unique. The instance fields are not available in static methods, so
+the static methods need to take the type descriptors as parameters.
+
+For example, the class
+
+```
+class Class<A(0)> {
+  static method M(x: int)
+}
+```
+
+is compiled into
+
+```
+class Class<A> {
+  Dafny.TypeDescriptor<A> td_A;
+  ...
+  static method M(Dafny.TypeDescriptor<A> td_A, BigInteger x)
+}
+```
+
+### Type parameter of a `newtype` or (co-)datatype
+
+If `T` is a type parameter of a (co-)datatype, then...
+TODO: See the concern about traits immediately above. Should auto-init type parameters
+be disallowed in (co-)datatypes? Is that also a reasonable solution for traits?
+
+
+
+---------------------------------------
+Notes
+---------------------------------------
+
+* List<TypeParameter>
+  CombineTypeParameters(MemberDecl member, bool forCompanionClass = false)
+
+  Return ta.Formal for either of the calls below.
+
+  + as argument to CreateFunction (3x), for ConstantField in CompileClassMembers
+  + as argument to CreateFunction, in CompileFunction
+  + as argument to CreateMethod, in CompileMethod
+
+* List<TypeArgumentInstantiation>
+  CombineTypeArgumentsForCompanionClass(MemberDecl member, List<Type> typeArgsEnclosingClass, List<Type> typeArgsMember)
+
+  For C#, member parameters only.
+  For non-C#, class parameters whenever any of:
+  - any static member
+  - instance member in newtype
+  - instance const/function/method in trait with rhs/body/body
+
+  + used by EmitCallToInheritedConstRHS, for both TP and TD
+  + used by EmitCallToInheritedFunction, for both TP and TD
+  + used by EmitCallToInheritedMethod, for both TP and TD
+
+* List<TypeArgumentInstantiation>
+  CombineTypeArguments(MemberDecl member, List<Type> typeArgsEnclosingClass, List<Type> typeArgsMember)
+
+  For C#, member parameters only.
+  For non-C#, class parameters whenever any of:
+  - any static member
+  - instance member in newtype
+
+  + used by TrCallStmt, for both TP and TD
+  + used 4x by TrExpr (case MemberSelectExpr), which calls EmitMemberSelect
+  + used by CompileFunctionCallExpr, for both TP and TD
+
+
+                                   type parameters       type descriptors
+newtype
+  const
+  function<B(0)>                      B                     B
+  method<B(0)>                        B                     B
+  static const
+  static function<B(0)>               B                     B
+  static method<B(0)>                 B                     B
+
+datatype<A(0)>
+  const
+  function<B(0)>                      B                     A,B
+  method<B(0)>                        B                     A,B
+  static const
+  static function<B(0)>               A,B                   A,B
+  static method<B(0)>                 A,B                   A,B
+
+trait<A(0)>
+  const
+  function<B(0)>                      B                    B
+  method<B(0)>                        B                    B
+  static const
+  static function<B(0)>               A,B                  A,B
+  static method<B(0)>                 A,B                  A,B
+
+class<A(0)>
+  const
+  function<B(0)>                      B                    B
+  method<B(0)>                        B                    B
+  static const
+  static function<B(0)>               B                    A,B
+  static method<B(0)>                 B                    A,B
+
+*) type descriptors for functions don't actually seem necessary

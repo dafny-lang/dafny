@@ -746,9 +746,11 @@ namespace Microsoft.Dafny {
         };
 
         if (classActuals != null) {
+          Contract.Assert(member.EnclosingClass.TypeArgs.TrueForAll(ta => ta.Parent is TopLevelDecl));
           add(member.EnclosingClass.TypeArgs, classActuals);
         }
         if (memberActuals != null && member is ICallable icallable) {
+          Contract.Assert(icallable.TypeArgs.TrueForAll(ta => !(ta.Parent is TopLevelDecl)));
           add(icallable.TypeArgs, memberActuals);
         }
         return r;
@@ -1781,7 +1783,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(typeArgsEnclosingClass != null);
       Contract.Requires(typeArgsMember != null);
 
-      if ((member.IsStatic || NeedsCustomReceiver(member)) && !SupportsStaticsInGenericClasses) {
+      if (member.IsStatic || NeedsCustomReceiver(member)) {
         return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
       } else {
         return TypeArgumentInstantiation.ListFromMember(member, null, typeArgsMember);
@@ -1793,7 +1795,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(typeArgsEnclosingClass != null);
       Contract.Requires(typeArgsMember != null);
 
-      if ((member.IsStatic || (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl))) && !SupportsStaticsInGenericClasses) {
+      if (member.IsStatic || (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl))) {
         return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
       } else {
         return TypeArgumentInstantiation.ListFromMember(member, null, typeArgsMember);
