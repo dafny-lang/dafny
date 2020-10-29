@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.Language.Symbols {
+namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public interface ISymbolResolver {
     /// <summary>
     /// Resolves the symbols of the specified dafny syntax tree.

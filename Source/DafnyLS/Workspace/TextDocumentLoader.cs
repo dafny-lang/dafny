@@ -1,10 +1,10 @@
-﻿using DafnyLS.Language;
-using DafnyLS.Language.Symbols;
+﻿using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.Workspace {
+namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class TextDocumentLoader : ITextDocumentLoader {
     private readonly IDafnyParser _parser;
     private readonly ISymbolResolver _symbolResolver;

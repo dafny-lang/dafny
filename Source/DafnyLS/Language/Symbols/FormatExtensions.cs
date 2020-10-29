@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DafnyLS.Language.Symbols {
+namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// Extension methods to format dafny and boogie symbols.
   /// </summary>

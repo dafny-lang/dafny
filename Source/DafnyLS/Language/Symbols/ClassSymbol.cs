@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace DafnyLS.Language.Symbols {
+namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class ClassSymbol : Symbol, ILocalizableSymbol {
     public ClassDecl Declaration { get; }
     public object Node => Declaration;

@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.Language.Symbols {
+namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// Symbol resolver that utilizes dafny-lang to resolve the symbols.
   /// </summary>

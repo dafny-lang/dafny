@@ -9,7 +9,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.Language {
+namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// dafny-lang based implementation of the program verifier. Since it makes use of static members,
   /// any access is synchronized. Moreover, it ensures that exactly one instance exists over the whole

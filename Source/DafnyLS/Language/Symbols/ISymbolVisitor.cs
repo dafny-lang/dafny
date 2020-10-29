@@ -1,4 +1,4 @@
-﻿namespace DafnyLS.Language.Symbols {
+﻿namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// Visitor to traverse the symbol hierarchy.
   /// </summary>

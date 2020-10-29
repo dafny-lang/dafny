@@ -1,4 +1,4 @@
-﻿using DafnyLS.Language;
+﻿using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -7,7 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.Workspace {
+namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Thread-safe document database implementation.
   /// </summary>

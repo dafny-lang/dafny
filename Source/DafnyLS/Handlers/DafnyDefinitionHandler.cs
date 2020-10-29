@@ -1,6 +1,6 @@
-﻿using DafnyLS.Language;
-using DafnyLS.Language.Symbols;
-using DafnyLS.Workspace;
+﻿using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
@@ -8,7 +8,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.Handlers {
+namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
   /// LSP handler responsible to resolve the location of a designator at the specified position.
   /// </summary>

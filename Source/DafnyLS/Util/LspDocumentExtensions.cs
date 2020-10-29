@@ -1,7 +1,7 @@
 ﻿using OmniSharp.Extensions.LanguageServer.Protocol;
 using System.IO;
 
-namespace DafnyLS.Util {
+namespace Microsoft.Dafny.LanguageServer.Util {
   /// <summary>
   /// Extension methods for interacting with documents of the language server protocol.
   /// </summary>

@@ -1,6 +1,6 @@
-﻿using DafnyLS.Handlers;
-using DafnyLS.Language;
-using DafnyLS.Workspace;
+﻿using Microsoft.Dafny.LanguageServer.Handlers;
+using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NLog;
@@ -12,14 +12,14 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS {
+namespace Microsoft.Dafny.LanguageServer {
   public class Program {
     // TODO The plugin automatically updates the LS server if the reported version is older.
     private static readonly string DafnyVersion = "3.0"; //Assembly.GetExecutingAssembly().GetName().Version!.ToString();
 
     private static async Task Main() {
       try {
-        var server = await LanguageServer.From(
+        var server = await OmniSharp.Extensions.LanguageServer.Server.LanguageServer.From(
           options => options
             .WithInput(Console.OpenStandardInput())
             .WithOutput(Console.OpenStandardOutput())

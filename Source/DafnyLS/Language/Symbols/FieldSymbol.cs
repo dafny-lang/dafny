@@ -1,7 +1,7 @@
 ﻿using Microsoft.Dafny;
 using System.Threading;
 
-namespace DafnyLS.Language.Symbols {
+namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class FieldSymbol : Symbol, ILocalizableSymbol {
     public Field Declaration { get; }
     public object Node => Declaration;

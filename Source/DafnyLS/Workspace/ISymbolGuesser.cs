@@ -1,10 +1,10 @@
-﻿using DafnyLS.Language;
-using DafnyLS.Language.Symbols;
+﻿using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
-namespace DafnyLS.Workspace {
+namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
   /// Implementations of this interface are responsible to guess the symbol at a given location.
   /// </summary>

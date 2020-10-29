@@ -1,6 +1,6 @@
 ﻿using System.Threading;
 
-namespace DafnyLS.Language.Symbols {
+namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// Factory definition to generate a symbol table out of a given dafny program and compilation unit.
   /// </summary>

@@ -1,6 +1,6 @@
-﻿using DafnyLS.Language;
-using DafnyLS.Language.Symbols;
-using DafnyLS.Util;
+﻿using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 
-namespace DafnyLS.Workspace {
+namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class SymbolGuesser : ISymbolGuesser {
     private readonly ILogger _logger;
 

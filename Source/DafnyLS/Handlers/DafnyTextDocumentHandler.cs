@@ -1,5 +1,5 @@
-﻿using DafnyLS.Language;
-using DafnyLS.Workspace;
+﻿using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -10,7 +10,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.Handlers {
+namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
   /// LSP Synchronization handler for document based events, such as change, open, close and save.
   /// The documents are managed using an implementaiton of <see cref="IDocumentDatabase"/>.

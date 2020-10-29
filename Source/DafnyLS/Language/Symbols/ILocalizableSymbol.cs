@@ -1,7 +1,7 @@
 ﻿using System.Threading;
 using AstNode = System.Object;
 
-namespace DafnyLS.Language.Symbols {
+namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// Represents a symbol that can be localized within the document.
   /// </summary>

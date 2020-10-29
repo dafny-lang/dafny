@@ -1,6 +1,6 @@
-﻿using DafnyLS.Language;
-using DafnyLS.Language.Symbols;
-using DafnyLS.Workspace;
+﻿using Microsoft.Dafny.LanguageServer.Language;
+using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -8,7 +8,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.Handlers {
+namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
   /// LSP Synchronization handler for symbol based events, i.e. the client requests the symbols of the specified document.
   /// </summary>

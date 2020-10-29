@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace DafnyLS.Util {
+namespace Microsoft.Dafny.LanguageServer.Util {
   /// <summary>
   /// Comparer implementation to define the order of LSP positions.
   /// </summary>

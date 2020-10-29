@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace DafnyLS.Language.Symbols {
+namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// A compilation unit represents the outermost scope/symbol of a document.
   /// </summary>
