@@ -2175,8 +2175,8 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
-      if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
-        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+      if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           throw NotSupported("Real numbers", e.tok);
         } else if (e.ToType.IsCharType) {
           wr.Write("_dafny.Char(");
@@ -2238,9 +2238,9 @@ namespace Microsoft.Dafny {
 
           }
         }
-      } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+      } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
         Contract.Assert(AsNativeType(e.E.Type) == null);
-        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody);
@@ -2254,7 +2254,7 @@ namespace Microsoft.Dafny {
         }
       } else {
         Contract.Assert(e.E.Type.IsBigOrdinalType);
-        Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
+        Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuasion.Int));
         // identity will do
         TrExpr(e.E, wr, inLetExprBody);
       }

@@ -1909,10 +1909,10 @@ namespace Microsoft.Dafny {
               type = f.ResultType
             };
             Expression unit;
-            if (f.ResultType.IsNumericBased(Type.NumericPersuation.Int) || f.ResultType.IsBigOrdinalType) {
+            if (f.ResultType.IsNumericBased(Type.NumericPersuasion.Int) || f.ResultType.IsBigOrdinalType) {
               unit = new LiteralExpr(f.tok, f.TailRecursion == Function.TailStatus.Accumulate_Mul ? 1 : 0);
               unit.Type = f.ResultType;
-            } else if (f.ResultType.IsNumericBased(Type.NumericPersuation.Real)) {
+            } else if (f.ResultType.IsNumericBased(Type.NumericPersuasion.Real)) {
               unit = new LiteralExpr(f.tok, f.TailRecursion == Function.TailStatus.Accumulate_Mul ? BigDec.FromInt(1) : BigDec.ZERO);
               unit.Type = f.ResultType;
             } else if (f.ResultType.IsBitVectorType) {

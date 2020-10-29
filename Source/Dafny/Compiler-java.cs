@@ -3647,8 +3647,8 @@ namespace Microsoft.Dafny{
       Expression arg = e.E;
       Type fromType = e.E.Type;
       Type toType = e.ToType;
-      if (fromType.IsNumericBased(Type.NumericPersuation.Int) || fromType.IsBitVectorType || fromType.IsCharType) {
-        if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.IsBitVectorType || fromType.IsCharType) {
+        if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // (int or bv or char) -> real
           Contract.Assert(AsNativeType(toType) == null);
           wr.Write($"new {DafnyBigRationalClass}(");
@@ -3763,9 +3763,9 @@ namespace Microsoft.Dafny{
             }
           }
         }
-      } else if (fromType.IsNumericBased(Type.NumericPersuation.Real)) {
+      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
         Contract.Assert(AsNativeType(fromType) == null);
-        if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+        if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
           Contract.Assert(AsNativeType(toType) == null);
           TrExpr(arg, wr, inLetExprBody);
@@ -3787,7 +3787,7 @@ namespace Microsoft.Dafny{
           }
         }
       } else if (fromType.IsBigOrdinalType) {
-        if (toType.IsNumericBased(Type.NumericPersuation.Int) || toType.IsCharType) {
+        if (toType.IsNumericBased(Type.NumericPersuasion.Int) || toType.IsCharType) {
           // ordinal -> int, char
           if (AsNativeType(toType) != null) {
             TrParenExpr(arg, wr, inLetExprBody);
@@ -3799,7 +3799,7 @@ namespace Microsoft.Dafny{
           } else {
             TrParenExpr(arg, wr, inLetExprBody);
           }
-        } else if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+        } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // ordinal -> real
           wr.Write($"new {DafnyBigRationalClass}(");
           TrExpr(arg, wr, inLetExprBody);

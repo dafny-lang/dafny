@@ -3022,8 +3022,8 @@ namespace Microsoft.Dafny {
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
       if (e.ToType.Equals(e.E.Type)) {
         TrParenExpr(e.E, wr, inLetExprBody);
-      } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType || e.E.Type.IsBigOrdinalType) {
-        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+      } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType || e.E.Type.IsBigOrdinalType) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // (int or bv or char) -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           wr.Write("_dafny.RealOfFrac(");
@@ -3103,9 +3103,9 @@ namespace Microsoft.Dafny {
             }
           }
         }
-      } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+      } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
         Contract.Assert(AsNativeType(e.E.Type) == null);
-        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody);

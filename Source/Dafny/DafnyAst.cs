@@ -836,16 +836,16 @@ namespace Microsoft.Dafny {
       var t = NormalizeExpand();
       return t.IsIntegerType || t.IsRealType || t.AsNewtype != null;
     }
-    public enum NumericPersuation { Int, Real }
+    public enum NumericPersuasion { Int, Real }
     [Pure]
-    public bool IsNumericBased(NumericPersuation p) {
+    public bool IsNumericBased(NumericPersuasion p) {
       Type t = this;
       while (true) {
         t = t.NormalizeExpand();
         if (t.IsIntegerType) {
-          return p == NumericPersuation.Int;
+          return p == NumericPersuasion.Int;
         } else if (t.IsRealType) {
-          return p == NumericPersuation.Real;
+          return p == NumericPersuasion.Real;
         }
         var d = t.AsNewtype;
         if (d == null) {
@@ -1698,15 +1698,15 @@ namespace Microsoft.Dafny {
       b = towerB[0];
 
       if (a is IntVarietiesSupertype) {
-        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuation.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
+        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
       } else if (b is IntVarietiesSupertype) {
-        return a.IsNumericBased(NumericPersuation.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
+        return a.IsNumericBased(NumericPersuasion.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
       } else if (a.IsBoolType || a.IsCharType || a.IsBitVectorType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
         return a.Equals(b) ? a : null;
       } else if (a is RealVarietiesSupertype) {
-        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuation.Real) ? b : null;
+        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Real) ? b : null;
       } else if (b is RealVarietiesSupertype) {
-        return a.IsNumericBased(NumericPersuation.Real) ? a : null;
+        return a.IsNumericBased(NumericPersuasion.Real) ? a : null;
       } else if (a.IsNumericBased()) {
         // Note, for meet, we choose not to step down to IntVarietiesSupertype or RealVarietiesSupertype
         return a.Equals(b) ? a : null;
@@ -1925,15 +1925,15 @@ namespace Microsoft.Dafny {
       Contract.Assert(towerA.Count == 1 && towerB.Count == 1);
 
       if (a is IntVarietiesSupertype) {
-        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuation.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
+        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
       } else if (b is IntVarietiesSupertype) {
-        return a.IsNumericBased(NumericPersuation.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
+        return a.IsNumericBased(NumericPersuasion.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
       } else if (a.IsBoolType || a.IsCharType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
         return a.Equals(b) ? a : null;
       } else if (a is RealVarietiesSupertype) {
-        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuation.Real) ? b : null;
+        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Real) ? b : null;
       } else if (b is RealVarietiesSupertype) {
-        return a.IsNumericBased(NumericPersuation.Real) ? a : null;
+        return a.IsNumericBased(NumericPersuasion.Real) ? a : null;
       } else if (a.IsNumericBased()) {
         return a.Equals(b) ? a : null;
       } else if (a is SetType) {
@@ -3001,9 +3001,9 @@ namespace Microsoft.Dafny {
         return Family.Bool;
       } else if (t.IsCharType) {
         return Family.Char;
-      } else if (t.IsNumericBased(NumericPersuation.Int) || t is IntVarietiesSupertype) {
+      } else if (t.IsNumericBased(NumericPersuasion.Int) || t is IntVarietiesSupertype) {
         return Family.IntLike;
-      } else if (t.IsNumericBased(NumericPersuation.Real) || t is RealVarietiesSupertype) {
+      } else if (t.IsNumericBased(NumericPersuasion.Real) || t is RealVarietiesSupertype) {
         return Family.RealLike;
       } else if (t.IsBigOrdinalType) {
         return Family.Ordinal;
@@ -8555,8 +8555,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Requires(
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)));
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Add, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;  // resolve here
@@ -8571,8 +8571,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Requires(
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)));
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Mul, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Mul;  // resolve here
@@ -8588,11 +8588,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Requires(
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)));
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
       Contract.Ensures(Contract.Result<Expression>() != null);
 
-      Type toType = e0.Type.IsNumericBased(Type.NumericPersuation.Int) ? (Type)Type.Int : Type.Real;
+      Type toType = e0.Type.IsNumericBased(Type.NumericPersuasion.Int) ? (Type)Type.Int : Type.Real;
       e0 = CastIfNeeded(e0, toType);
       e1 = CastIfNeeded(e1, toType);
       return CreateSubtract(e0, e1);
@@ -8617,8 +8617,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(e1 != null);
       Contract.Requires(e1.Type != null);
       Contract.Requires(
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)) ||
         (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
@@ -8633,7 +8633,7 @@ namespace Microsoft.Dafny {
     public static Expression CreateIncrement(Expression e, int n) {
       Contract.Requires(e != null);
       Contract.Requires(e.Type != null);
-      Contract.Requires(e.Type.IsNumericBased(Type.NumericPersuation.Int));
+      Contract.Requires(e.Type.IsNumericBased(Type.NumericPersuasion.Int));
       Contract.Requires(0 <= n);
       Contract.Ensures(Contract.Result<Expression>() != null);
       if (n == 0) {
@@ -8648,7 +8648,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static Expression CreateDecrement(Expression e, int n) {
       Contract.Requires(e != null);
-      Contract.Requires(e.Type.IsNumericBased(Type.NumericPersuation.Int));
+      Contract.Requires(e.Type.IsNumericBased(Type.NumericPersuasion.Int));
       Contract.Requires(0 <= n);
       Contract.Ensures(Contract.Result<Expression>() != null);
       if (n == 0) {
@@ -8689,7 +8689,7 @@ namespace Microsoft.Dafny {
     public static Expression CreateNatLiteral(IToken tok, int n, Type ty) {
       Contract.Requires(tok != null);
       Contract.Requires(0 <= n);
-      Contract.Requires(ty.IsNumericBased(Type.NumericPersuation.Int) || ty is BigOrdinalType);
+      Contract.Requires(ty.IsNumericBased(Type.NumericPersuasion.Int) || ty is BigOrdinalType);
       var nn = new LiteralExpr(tok, n);
       nn.Type = ty;
       return nn;
@@ -8767,7 +8767,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Requires(
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
         (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1);
@@ -8783,8 +8783,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Requires(
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)));
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;  // resolve here

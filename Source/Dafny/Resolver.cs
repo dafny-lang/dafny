@@ -210,8 +210,8 @@ namespace Microsoft.Dafny
 
       valuetypeDecls = new ValuetypeDecl[] {
         new ValuetypeDecl("bool", builtIns.SystemModule, 0, t => t.IsBoolType, typeArgs => Type.Bool),
-        new ValuetypeDecl("int", builtIns.SystemModule, 0, t => t.IsNumericBased(Type.NumericPersuation.Int), typeArgs => Type.Int),
-        new ValuetypeDecl("real", builtIns.SystemModule, 0, t => t.IsNumericBased(Type.NumericPersuation.Real), typeArgs => Type.Real),
+        new ValuetypeDecl("int", builtIns.SystemModule, 0, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
+        new ValuetypeDecl("real", builtIns.SystemModule, 0, t => t.IsNumericBased(Type.NumericPersuasion.Real), typeArgs => Type.Real),
         new ValuetypeDecl("ORDINAL", builtIns.SystemModule, 0, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
         new ValuetypeDecl("_bv", builtIns.SystemModule, 0, t => t.IsBitVectorType, null),  // "_bv" represents a family of classes, so no typeTester or type creator is supplied
         new ValuetypeDecl("map", builtIns.SystemModule, 2, t => t.IsMapType, typeArgs => new MapType(true, typeArgs[0], typeArgs[1])),
@@ -3200,7 +3200,7 @@ namespace Microsoft.Dafny
       bool mustUseNativeType;
       List<NativeType> nativeTypeChoices = null;  // null means "no preference"
       var args = Attributes.FindExpressions(dd.Attributes, "nativeType");
-      if (args != null && !dd.BaseType.IsNumericBased(Type.NumericPersuation.Int)) {
+      if (args != null && !dd.BaseType.IsNumericBased(Type.NumericPersuasion.Int)) {
         reporter.Error(MessageSource.Resolver, dd, ":nativeType can only be used on integral types");
         return;
       } else if (args == null) {
@@ -3311,7 +3311,7 @@ namespace Microsoft.Dafny
             string nm = sf.Name;
             if (nm == "Floor") {
               Object ee = GetAnyConst(m.Obj, consts);
-              if (ee != null && m.Obj.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+              if (ee != null && m.Obj.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
                 ((Basetypes.BigDec)ee).FloorCeiling(out var f, out _);
                 return f;
               }
@@ -3326,10 +3326,10 @@ namespace Microsoft.Dafny
                                          || bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp);
 
           if (e0 == null || (!shortCircuit && e1 == null)) { return null; }
-          bool isAnyReal = bin.E0.Type.IsNumericBased(Type.NumericPersuation.Real)
-                        && bin.E1.Type.IsNumericBased(Type.NumericPersuation.Real);
-          bool isAnyInt = bin.E0.Type.IsNumericBased(Type.NumericPersuation.Int)
-                       && bin.E1.Type.IsNumericBased(Type.NumericPersuation.Int);
+          bool isAnyReal = bin.E0.Type.IsNumericBased(Type.NumericPersuasion.Real)
+                        && bin.E1.Type.IsNumericBased(Type.NumericPersuasion.Real);
+          bool isAnyInt = bin.E0.Type.IsNumericBased(Type.NumericPersuasion.Int)
+                       && bin.E1.Type.IsNumericBased(Type.NumericPersuasion.Int);
           bool isReal = bin.Type.IsRealType;
           bool isInt = bin.Type.IsIntegerType;
           bool isBV = bin.E0.Type.IsBitVectorType;
@@ -3528,7 +3528,7 @@ namespace Microsoft.Dafny
         } else if (e is ConversionExpr ce) {
           object o = GetAnyConst(ce.E, consts);
           if (o == null || ce.E.Type == ce.Type) return o;
-          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Real) &&
                 ce.Type.IsBitVectorType) {
             ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
             if (ff < 0 || ff > MaxBV(ce.Type)) {
@@ -3540,8 +3540,8 @@ namespace Microsoft.Dafny
             return ff;
           }
 
-          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
-                ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Real) &&
+                ce.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
             ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
             if (AsUnconstrainedType(ce.Type) == null) return null;
             if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
@@ -3551,18 +3551,18 @@ namespace Microsoft.Dafny
           }
 
           if (ce.E.Type.IsBitVectorType &&
-                ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+                ce.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
             if (AsUnconstrainedType(ce.Type) == null) return null;
             return o;
           }
 
           if (ce.E.Type.IsBitVectorType &&
-                ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+                ce.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             if (AsUnconstrainedType(ce.Type) == null) return null;
             return Basetypes.BigDec.FromBigInt((BigInteger) o);
           }
 
-          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Int) &&
                 ce.Type.IsBitVectorType) {
             BigInteger b = (BigInteger) o;
             if (b < 0 || b > MaxBV(ce.Type)) {
@@ -3571,15 +3571,15 @@ namespace Microsoft.Dafny
             return o;
           }
 
-          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
-                ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Int) &&
+                ce.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
             // This case includes int-based newtypes to int-based new types
             if (AsUnconstrainedType(ce.Type) == null) return null;
             return o;
           }
 
-          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
-                ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Real) &&
+                ce.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             // This case includes real-based newtypes to real-based new types
             if (AsUnconstrainedType(ce.Type) == null) return null;
             return o;
@@ -3593,13 +3593,13 @@ namespace Microsoft.Dafny
             return o;
           }
 
-          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
-                ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Int) &&
+                ce.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             if (AsUnconstrainedType(ce.Type) == null) return null;
             return Basetypes.BigDec.FromBigInt((BigInteger) o);
           }
 
-          if (ce.E.Type.IsCharType && ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+          if (ce.E.Type.IsCharType && ce.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
             char c = ((String) o)[0];
             if (AsUnconstrainedType(ce.Type) == null) return null;
             return new BigInteger(((string) o)[0]);
@@ -3613,7 +3613,7 @@ namespace Microsoft.Dafny
             return new BigInteger(((string) o)[0]);
           }
 
-          if ((ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) || ce.E.Type.IsBitVectorType) &&
+          if ((ce.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || ce.E.Type.IsBitVectorType) &&
                 ce.Type.IsCharType) {
             BigInteger b = (BigInteger) o;
             if (b < BigInteger.Zero || b > new BigInteger(65535)) {
@@ -3623,12 +3623,12 @@ namespace Microsoft.Dafny
           }
 
           if (ce.E.Type.IsCharType &&
-              ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+              ce.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             if (AsUnconstrainedType(ce.Type) == null) return null;
             return Basetypes.BigDec.FromInt(((string) o)[0]);
           }
 
-          if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
+          if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Real) &&
                 ce.Type.IsCharType) {
             ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
             if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
@@ -4433,7 +4433,7 @@ namespace Microsoft.Dafny
             satisfied = t.IsNumericBased();
             break;
           case "IntegerType":
-            satisfied = t.IsNumericBased(Type.NumericPersuation.Int);
+            satisfied = t.IsNumericBased(Type.NumericPersuasion.Int);
             break;
           case "IsBitvector":
             satisfied = t.IsBitVectorType;
@@ -4470,9 +4470,9 @@ namespace Microsoft.Dafny
           case "IntOrORDINAL":
             if (!(t is TypeProxy)) {
               if (TernaryExpr.PrefixEqUsesNat) {
-                satisfied = t.IsNumericBased(Type.NumericPersuation.Int);
+                satisfied = t.IsNumericBased(Type.NumericPersuasion.Int);
               } else {
-                satisfied = t.IsNumericBased(Type.NumericPersuation.Int) || t.IsBigOrdinalType;
+                satisfied = t.IsNumericBased(Type.NumericPersuasion.Int) || t.IsBigOrdinalType;
               }
             } else if (fullstrength) {
               var proxy = (TypeProxy)t;
@@ -4495,7 +4495,7 @@ namespace Microsoft.Dafny
             satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsCharType || t.IsBigOrdinalType;
             break;
           case "IntLikeOrBitvector":
-            satisfied = t.IsNumericBased(Type.NumericPersuation.Int) || t.IsBitVectorType;
+            satisfied = t.IsNumericBased(Type.NumericPersuasion.Int) || t.IsBitVectorType;
             break;
           case "BooleanBits":
             satisfied = t.IsBoolType || t.IsBitVectorType;
@@ -6319,11 +6319,11 @@ namespace Microsoft.Dafny
             Expression resolved = null;
             if (e.E is LiteralExpr lit) { // note, not e.E.Resolved, since we don't want to do this for double negations
               // For real-based types, integer-based types, and bi (but not bitvectors), "-" followed by a literal is just a literal expression with a negative value
-              if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+              if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
                 var d = (Basetypes.BigDec)lit.Value;
                 Contract.Assert(!d.IsNegative);
                 resolved = new LiteralExpr(e.tok, -d);
-              } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+              } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
                 var n = (BigInteger)lit.Value;
                 Contract.Assert(0 <= n);
                 resolved = new LiteralExpr(e.tok, -n);
@@ -6332,10 +6332,10 @@ namespace Microsoft.Dafny
             if (resolved == null) {
               // Treat all other expressions "-e" as "0 - e"
               Expression zero;
-              if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+              if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
                 zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
               } else {
-                Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType);
+                Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType);
                 zero = new LiteralExpr(e.tok, 0);
               }
               zero.Type = expr.Type;
@@ -13912,9 +13912,9 @@ namespace Microsoft.Dafny
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
+          if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int)) {
             AddXConstraint(expr.tok, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
-          } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+          } else if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
             AddXConstraint(expr.tok, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (e.ToType.IsBitVectorType) {
             AddXConstraint(expr.tok, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
@@ -15558,7 +15558,7 @@ namespace Microsoft.Dafny
                   reporter.Error(MessageSource.Resolver, e.tok, "conversion operation to {0} got wrong number of arguments (expected 1, got {1})", decl.Name, e.Args.Count);
                 }
                 var conversionArg = 1 <= e.Args.Count ? e.Args[0] :
-                  ty.IsNumericBased(Type.NumericPersuation.Int) ? LiteralExpr.CreateIntLiteral(e.tok, 0) :
+                  ty.IsNumericBased(Type.NumericPersuasion.Int) ? LiteralExpr.CreateIntLiteral(e.tok, 0) :
                   LiteralExpr.CreateRealLiteral(e.tok, Basetypes.BigDec.ZERO);
                 r = new ConversionExpr(e.tok, conversionArg, ty);
                 ResolveExpression(r, opts);
@@ -16126,7 +16126,7 @@ namespace Microsoft.Dafny
         bounds.Add(new ComprehensionExpr.CharBoundedPool());
       } else if (bv.Type.IsDatatype && bv.Type.AsDatatype.HasFinitePossibleValues) {
         bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsDatatype));
-      } else if (bv.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+      } else if (bv.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
         bounds.Add(new AssignSuchThatStmt.WiggleWaggleBound());
       } else if (bv.Type.IsAllocFree) {
         bounds.Add(new ComprehensionExpr.AllocFreeBoundedPool(bv.Type));
@@ -16209,7 +16209,7 @@ namespace Microsoft.Dafny
           case BinaryExpr.ResolvedOpcode.Ge:
             Contract.Assert(false); throw new cce.UnreachableException();  // promised by postconditions of NormalizedConjunct
           case BinaryExpr.ResolvedOpcode.Lt:
-            if (e0.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+            if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
               if (whereIsBv == 0) {  // bv < E
                 bounds.Add(new ComprehensionExpr.IntBoundedPool(null, e1));
               } else {  // E < bv
@@ -16218,7 +16218,7 @@ namespace Microsoft.Dafny
             }
             break;
           case BinaryExpr.ResolvedOpcode.Le:
-            if (e0.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+            if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
               if (whereIsBv == 0) {  // bv <= E
                 bounds.Add(new ComprehensionExpr.IntBoundedPool(null, Expression.CreateIncrement(e1, 1)));
               } else {  // E <= bv
