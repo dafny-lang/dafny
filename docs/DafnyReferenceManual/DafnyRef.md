@@ -83,5 +83,8 @@ TODO: Write this section.
 
 # References
 [BIB]
+<<<<<<< HEAD
+=======
 
 {% include SyntaxTests.md %}
+>>>>>>> master
