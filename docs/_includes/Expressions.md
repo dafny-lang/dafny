@@ -4,40 +4,40 @@ reflects the precedence of Dafny operators. The following
 table shows the Dafny operators and their precedence
 in order of increasing binding power.
 
- operator                 | description                        
+ operator                 | description
 --------------------------|------------------------------------
- `;`                      | In LemmaCall;Expression            
+ `;`                      | In LemmaCall;Expression
 --------------------------|------------------------------------
- `<==>`, &hArr;           | equivalence (if and only if)       
+ `<==>`, &hArr;           | equivalence (if and only if)
 --------------------------|------------------------------------
- `==>`, &rArr;            | implication (implies)              
- `<==`, &lArr;            | reverse implication (follows from) 
+ `==>`, &rArr;            | implication (implies)
+ `<==`, &lArr;            | reverse implication (follows from)
 --------------------------|------------------------------------
- `&&`, `&`                | conjunction (and)                  
- `||`, `|`                | disjunction (or)                   
+ `&&`, `&`                | conjunction (and)
+ `||`, `|`                | disjunction (or)
 --------------------------|------------------------------------
- `==`                     | equality                           
- `==#[k]`                 | prefix equality (co-inductive)    
- `!=`                     | disequality                        
- `!=#[k]`                 | prefix disequality (co-inductive)  
- `<`                      | less than                          
- `<=`                     | at most                            
- `>=`                     | at least                           
- `>`                      | greater than                       
- `in`                     | collection membership              
- `!in`                    | collection non-membership          
- `!!`                     | disjointness                       
+ `==`                     | equality
+ `==#[k]`                 | prefix equality (co-inductive)
+ `!=`                     | disequality
+ `!=#[k]`                 | prefix disequality (co-inductive)
+ `<`                      | less than
+ `<=`                     | at most
+ `>=`                     | at least
+ `>`                      | greater than
+ `in`                     | collection membership
+ `!in`                    | collection non-membership
+ `!!`                     | disjointness
 --------------------------|------------------------------------
- `+`                      | addition (plus)                    
- `-`                      | subtraction (minus)                
+ `+`                      | addition (plus)
+ `-`                      | subtraction (minus)
 --------------------------|------------------------------------
- `*`                      | multiplication (times)             
- `/`                      | division (divided by)              
- `%`                      | modulus (mod)                      
+ `*`                      | multiplication (times)
+ `/`                      | division (divided by)
+ `%`                      | modulus (mod)
 --------------------------|------------------------------------
- `-`                      | arithmetic negation (unary minus)  
- `!`, &not;               | logical negation                   
- Primary Expressions      |                                    
+ `-`                      | arithmetic negation (unary minus)
+ `!`, &not;               | logical negation
+ Primary Expressions      |
 
 We are calling the ``UnaryExpression``s that are neither
 arithmetic nor logical negation the _primary expressions_.
@@ -416,21 +416,52 @@ or a collection of object references.
 
 TO BE WRITTEN -- allocated predicate
 
-## Old Expressions {#sec-old-expression}
+## Old and Old@ Expressions {#sec-old-expression}
 
 ````grammar
 OldExpression_ = "old" [ "@" ident ] "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
-An _old expression_ is used in postconditions. `old(e)` evaluates to
-the value expression `e` had on entry to the current method.
-Note that **old** only affects heap dereferences, like `o.f` and `a[i]`.
-In particular, **old** has no effect on the value returned for local
-variables or out-parameters.
+An _old expression_ is used in postconditions or in the body of a method
+or in the body or specification of any two-state function or two-state lemma;
+an _old_ expression with a label is used only in the body of a method at a point
+where the label dominates its use in this expression.
 
-TO BE WRITTEN -- Inside an old, disallow unchanged, fresh, two-state functions, two-state lemmas, and nested old
+`old(e)` evaluates
+the argument using the value of the heap on entry to the method;
+`old@ident(e)` evaluates the argument using the value of the heap at the
+given statement label.
 
-## Unchanged Expressions
+Note that **old** and **old@** only affect heap dereferences,
+like `o.f` and `a[i]`.
+In particular, neither form has any effect on the value returned for local
+variables or out-parameters (as they are not on the heap).[^Old]
+If the value of an entire expression at a
+particular point in the method body is needed later on in the method body,
+the clearest means is to declare a ghost variable, initializing it to the
+expression in question.
+
+[^Old]: The semantics of `old` in dafny differs from similar
+constructs in other specification languages like ACSL or JML.
+
+The argument of an `old` expression may not contain nested `old`,
+[`fresh`](#sec-fresh),
+or [`unchanged`](#sec-unchanged) expressions,
+nor [two-state functions](#sec-two-state) or [two-state lemmas](#sec-two-state-lemma).
+
+Here are some explanatory examples. All `assert` statements verify to be true.
+```dafny
+{% include Example-Old.dfy %}
+```
+```dafny
+{% include Example-Old2.dfy %}
+```
+The next example demonstrates the interaction between `old` and array elements.
+```dafny
+{% include Example-Old3.dfy %}
+```
+
+## Unchanged Expressions {#sec-unchanged}
 
 TO BE WRITTEN -- including with labels
 
@@ -1147,6 +1178,46 @@ Expressions =
 
 The ``Expressions`` non-terminal represents a list of
 one or more expressions separated by a comma.
+
+## Compile-Time Constants {#sec-compile-time-constants}
+
+In certain situations in Dafny it is helpful to know what the value of a
+constant is during program analysis, before verification or execution takes
+place. For example, a compiler can choose an optimized representation of a
+`newtype` that is a subset of `int` if it knows the range of possible values
+of the subset type: if the range is within 0 to less than 256, then an
+unsigned 8-bit representation can be used.
+
+To continue this example, suppose a new type is defined as
+```
+const MAX := 47
+newtype mytype = x | 0 <= x < MAX*4
+```
+In this case, we would prefer that Dafny recognize that `MAX*4` is
+known to be constant with a value of `188`. The kinds of expressions
+for which such an optimization is possible are called
+_compile-time constants_. Note that the representation of `mytype` makes
+no difference semantically, but can affect how compiled code is represented at run time.
+In addition, though, using a symbolic constant (which may
+well be used elsewhere as well) improves the self-documentation of the code.
+
+In Dafny, the following expressions are compile-time constants[^CTC], recursively
+(that is, the arguments of any operation must themselves be compile-time constants):
+- int, bitvector, real, boolean, char and string literals
+- int operations: `+ - * / %` and unary `-` and comparisons `< <= > >= == !=`
+- real operations: `+ - *` and unary `-` and comparisons `< <= > >= == !='
+- bool operations: `&& || ==> <== <==> == !=` and unary '!'
+- bitvector operations: `+ - * / % << >> & | ^` and unary `! -` and comparisons `< <= > >= == !=`
+- char operations: `< <= > >= == !=`
+- string operations: length: `|...|`, concatenation: `+`, comparisons `< <= == !=`, indexing `[]`
+- conversions between: int real char bitvector
+- newtype operations: newtype arguments, but not newtype results
+- symbolic values that are declared `const` and have an explicit initialization value that is a compile-time constant
+- conditional (if-then-else) expressions
+- parenthesized expressions
+
+[^CTC]: This set of operations that are constant-folded may be enlarged in
+future versions of Dafny.
 
 ## Map comprehensions
 

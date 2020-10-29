@@ -40,4 +40,5 @@ ParseErrors.dfy(155,18): Error: a set comprehension with more than one bound var
 ParseErrors.dfy(156,22): Error: a set comprehension with more than one bound variable must have a term expression
 ParseErrors.dfy(163,2): Error: mutable fields are not allowed in value types
 ParseErrors.dfy(167,2): Error: mutable fields are not allowed in value types
-42 parse errors detected in ParseErrors.dfy
+ParseErrors.dfy(170,2): Error: mutable fields are not allowed in value types
+43 parse errors detected in ParseErrors.dfy
