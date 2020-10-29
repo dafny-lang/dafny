@@ -1,16 +1,16 @@
 
 Dafny program verifier finished with 4 verified, 0 errors
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 RuntimeTypeTests0.dfy(49,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
 RuntimeTypeTests0.dfy(58,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 RuntimeTypeTests0.dfy(49,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
 RuntimeTypeTests0.dfy(58,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
 File RuntimeTypeTests0/RuntimeTypeTests0.java contains the partially compiled program
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 {5, 7} and {5, 7}
 Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
 Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
@@ -20,7 +20,7 @@ multiset{_module.Class0} and multiset{_module.Class0}
 map[7 := _module.Class0] and map[7 := _module.Class0]
 [_module.Class0, _module.Class0] and [_module.Class0, _module.Class0]
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification
 {5, 7} and {5, 7}
 Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)
 Dt.Atom(_module.Class0) and Dt.Atom(_module.Class0)

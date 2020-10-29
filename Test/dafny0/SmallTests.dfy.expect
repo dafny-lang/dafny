@@ -172,7 +172,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
     (0,0): anon2
-SmallTests.dfy(618,19): Error: left-hand sides 0 and 1 may refer to the same location
+SmallTests.dfy(618,19): Error: left-hand sides n.next and n.next.next may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon23_Then
@@ -183,7 +183,7 @@ Execution trace:
     (0,0): anon26_Then
     (0,0): anon27_Then
     (0,0): anon10
-SmallTests.dfy(620,14): Error: left-hand sides 1 and 2 may refer to the same location
+SmallTests.dfy(620,14): Error: left-hand sides a[j] and a[i] may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon23_Then
@@ -231,4 +231,4 @@ Execution trace:
 Dafny program verifier finished with 56 verified, 47 errors
 SmallTests.dfy.tmp.dprint.dfy(451,4): Warning: /!\ No trigger covering all quantified variables found.
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification

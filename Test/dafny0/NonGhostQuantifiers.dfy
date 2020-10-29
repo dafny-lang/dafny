@@ -189,7 +189,7 @@ module DependencyOnAllAllocatedObjects {
 module DependencyOnAllAllocatedObjects_More {
   method M()
   {
-    var b := forall c: SomeClass :: c.f == 0;  // error: non-ghost code requires bounds
+    var b; b := forall c: SomeClass :: c.f == 0;  // error: non-ghost code requires bounds
     ghost var g := forall c: SomeClass :: c.f == 0;  // cool (this is in a ghost context
                                                 // outside a function)
   }
