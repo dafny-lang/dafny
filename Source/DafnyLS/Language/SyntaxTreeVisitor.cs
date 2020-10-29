@@ -234,6 +234,12 @@ namespace DafnyLS.Language {
       case MatchStmt matchStatement:
         Visit(matchStatement);
         break;
+      case NestedMatchStmt nestedMatchStatement:
+        Visit(nestedMatchStatement);
+        break;
+      case ForallStmt forAllStatement:
+        Visit(forAllStatement);
+        break;
       default:
         VisitUnknown(statement, statement.Tok);
         break;
@@ -259,6 +265,7 @@ namespace DafnyLS.Language {
     }
 
     public virtual void Visit(MatchStmt matchStatement) {
+      VisitNullableAttributes(matchStatement.Attributes);
       Visit(matchStatement.Source);
       foreach(var matchCase in matchStatement.Cases) {
         Visit(matchCase);
@@ -272,6 +279,25 @@ namespace DafnyLS.Language {
       foreach(var body in matchCaseStatement.Body) {
         Visit(body);
       }
+    }
+
+    public virtual void Visit(NestedMatchStmt nestedMatchStatement) {
+      VisitNullableAttributes(nestedMatchStatement.Attributes);
+      Visit(nestedMatchStatement.Source);
+      foreach(var nestedMatchCase in nestedMatchStatement.Cases) {
+        Visit(nestedMatchCase);
+      }
+    }
+
+    public virtual void Visit(NestedMatchCaseStmt nestedMatchCaseStatement) {
+      foreach(var body in nestedMatchCaseStatement.Body) {
+        Visit(body);
+      }
+    }
+
+    public virtual void Visit(ForallStmt forAllStatement) {
+      VisitNullableAttributes(forAllStatement.Attributes);
+      Visit(forAllStatement.Body);
     }
 
     public virtual void Visit(Expression expression) {
@@ -371,6 +397,9 @@ namespace DafnyLS.Language {
         break;
       case ITEExpr ifThenElseExpression:
         Visit(ifThenElseExpression);
+        break;
+      case ForallExpr forAllExpression:
+        Visit(forAllExpression);
         break;
       case null:
         // TODO This most-likely occured while typing. Maybe log this situation.
@@ -484,6 +513,12 @@ namespace DafnyLS.Language {
       Visit(ifThenElseExpression.Test);
       Visit(ifThenElseExpression.Thn);
       Visit(ifThenElseExpression.Els);
+    }
+
+    public virtual void Visit(ForallExpr forAllExpression) {
+      VisitNullableAttributes(forAllExpression.Attributes);
+      Visit(forAllExpression.Range);
+      Visit(forAllExpression.Term);
     }
   }
 }
