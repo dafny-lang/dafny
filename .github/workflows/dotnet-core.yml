@@ -35,4 +35,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: DafnyLS.zip
-        path: DafnyLS/DafnyLS.zip
+        path: DafnyLS.zip
