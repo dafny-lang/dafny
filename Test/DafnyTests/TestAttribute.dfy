@@ -1,3 +1,4 @@
+// RUN: %dafny /out:Output/DafnyMain.cs TestAttribute.dfy /compile:0 /spillTargetCode:3 /noVerify
 // RUN: msbuild -t:restore ../DafnyTests.sln
 // RUN: msbuild -t:Test -v:q -noLogo > "%t".raw || true
 // Remove the absolute file path before the expected error

@@ -68,12 +68,12 @@ public class DafnyMultiset<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> Type<DafnyMultiset<T>> _type(Type<T> elementType) {
+    public static <T> Type<DafnyMultiset<? extends T>> _type(Type<T> elementType) {
         // Fudge the type parameter; it's not great, but it's safe because
         // (for now) type descriptors are only used for default values
-        return Type.referenceWithInitializer(
-                (Class<DafnyMultiset<T>>) (Class<?>) DafnyMultiset.class,
-                DafnyMultiset::empty);
+        return Type.referenceWithDefault(
+                (Class<DafnyMultiset<? extends T>>) (Class<?>) DafnyMultiset.class,
+                DafnyMultiset.empty());
     }
 
     public BigInteger cardinality() {
@@ -110,16 +110,15 @@ public class DafnyMultiset<T> {
         return isSubsetOf(other) && this.cardinality().compareTo(other.cardinality()) < 0;
     }
 
-    public <U> boolean contains(U t) {
-        // assume U is a supertype of T
+    public boolean contains(Object t) {
         // Relies on invariant that all keys have a positive multiplicity
         return innerMap.containsKey(t);
     }
 
-    public boolean disjoint(DafnyMultiset<T> other) {
+    public <U> boolean disjoint(DafnyMultiset<? extends U> other) {
         assert other != null : "Precondition Violation";
-        for (T t : other.innerMap.keySet()) {
-            if (innerMap.containsKey(t)) return false;
+        for (U u : other.innerMap.keySet()) {
+            if (innerMap.containsKey(u)) return false;
         }
         return true;
     }

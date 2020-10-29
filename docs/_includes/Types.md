@@ -2122,13 +2122,13 @@ given datatype value using the _datatype update_ expression.  For any
 a parameter (destructor) named `f` of type `T`, and any expression `t`
 of type `T`,
 ```dafny
-d[f := t]
+d.(f := t)
 ```
 constructs a value like `d` but whose `f` parameter is `t`.  The
 operation requires that `d` satisfies `C?`.  For example, the
 following equality holds:
 ```dafny
-Cons(4, Nil)[tail := Cons(3, Nil)] == Cons(4, Cons(3, Nil))
+Cons(4, Nil).(tail := Cons(3, Nil)) == Cons(4, Cons(3, Nil))
 ```
 
 The datatype update expression also accepts multiple field
@@ -2136,7 +2136,7 @@ names, provided these are distinct. For example, a node of some
 inductive datatype for trees may be updated as follows:
 
 ```dafny
-node[left := L, right := R]
+node.(left := L, right := R)
 ```
 
 ## Tuple types
@@ -2724,6 +2724,12 @@ section [#sec-nativetype].
 
 There is a restriction that the value `0` must be part of every
 newtype.[^fn-newtype-zero]
+
+Furthermore, for the compiler to be able to make an appropriate choice of
+representation, the constants in the defining expression as shown above must be
+known constants at compile-time. They need not be numeric literals; combinations
+of basic operations and symbolic constants are also allowed as described 
+in [Section: Compile-Time Constants](#sec-compile-time-constants).
 
 [^fn-newtype-zero]: The restriction is due to a current limitation in
     the compiler.  This will change in the future and will also open

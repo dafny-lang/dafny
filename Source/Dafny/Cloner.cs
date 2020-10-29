@@ -294,6 +294,10 @@ namespace Microsoft.Dafny
           return new ThisExpr(Tok(expr.tok));
         }
 
+      } else if (expr is AutoGhostIdentifierExpr) {
+        var e = (AutoGhostIdentifierExpr)expr;
+        return new AutoGhostIdentifierExpr(Tok(e.tok), e.Name);
+
       } else if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
         return new IdentifierExpr(Tok(e.tok), e.Name);
@@ -643,16 +647,16 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AssignOrReturnStmt) {
         var s = (AssignOrReturnStmt)stmt;
-        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs), s.ExpectToken == null ? null : Tok(s.ExpectToken));
+        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs), s.ExpectToken == null ? null : Tok(s.ExpectToken), s.Rhss == null ? null : s.Rhss.ConvertAll(e => CloneRHS(e)));
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));
         r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
 
-      } else if (stmt is LetStmt) {
-        var s = (LetStmt) stmt;
-        r = new LetStmt(Tok(s.Tok), Tok(s.EndTok), CloneCasePattern(s.LHS), CloneExpr(s.RHS));
+      } else if (stmt is VarDeclPattern) {
+        var s = (VarDeclPattern) stmt;
+        r = new VarDeclPattern(Tok(s.Tok), Tok(s.EndTok), CloneCasePattern(s.LHS), CloneExpr(s.RHS), s.IsAutoGhost);
 
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
@@ -680,7 +684,7 @@ namespace Microsoft.Dafny
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
       if(pat is LitPattern) {
         var p = (LitPattern)pat;
-        return new LitPattern(p.Tok, (LiteralExpr)CloneExpr(p.Lit));
+        return new LitPattern(p.Tok, CloneExpr(p.OrigLit));
       } else if (pat is IdPattern) {
         var p = (IdPattern)pat;
         return new IdPattern(p.Tok, p.Id, p.Arguments.ConvertAll(CloneExtendedPattern));
