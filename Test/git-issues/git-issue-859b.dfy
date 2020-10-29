@@ -32,6 +32,6 @@ method N() returns (s: real) {
 method NN() returns (ss: real) {
   var s4 :- M2(); // OK - s4 is auto-ghost
   var s5 :- M3(); // OK
-  print s4, s4+1.0, s5; // two ghost expressions
+  print s4, s4+1.0, s5; // ERROR - two ghost expressions
 }
 

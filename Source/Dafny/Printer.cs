@@ -1501,8 +1501,8 @@ namespace Microsoft.Dafny {
         }
         wr.Write(";");
 
-      } else if (stmt is LetStmt) {
-        var s = (LetStmt)stmt;
+      } else if (stmt is VarDeclPattern) {
+        var s = (VarDeclPattern)stmt;
         wr.Write("var ");
         PrintCasePattern(s.LHS);
         wr.Write(" := ");

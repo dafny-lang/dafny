@@ -25,7 +25,7 @@ method M3() returns (r: FailureCompatible3) { }
 
 method N() returns (s: real) {
   ghost var ss: real := 1.0;
-  s :- M(); // ERRORS
+  s :- M(); // ERRORS - IsFailure, PropagateFailure are ghost; Extract is ghost assigning to non-ghost
 }
 
 method N1() returns (s: real) {
@@ -41,17 +41,7 @@ method N2() returns (s: real) {
 }
 
 method NN() returns (ss: real) {
-  var s1 :- M(); // ERRORS
-}
-
-method NN2() returns (ss: real) {
-  var s4 :- M2(); // OK - s4 is auto-ghost
-  var s5 :- M3(); // OK
-  print s4, s5; // ERROR - s4 is ghost
-}
-
-method Main() {
-  var x := N();
-  print x, "\n";
+  var s1 :- M(); // ERRORS - IsFailure, PropagateFailure; s1 is auto-ghost so OK to get non-ghost value from Extract
+  print s1, "\n"; // verifying s1 is non-ghost
 }
 

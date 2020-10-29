@@ -3183,10 +3183,13 @@ namespace Microsoft.Dafny
     }
 
     private BigInteger MaxBV(Type t) {
+      Contract.Requires(t != null);
+      Contract.Requires(t.IsBitVectorType);
       return MaxBV(t.AsBitVectorType.Width);
     }
 
     private BigInteger MaxBV(int bits) {
+      Contract.Requires(0 <= bits);
       return BigInteger.Pow(new BigInteger(2), bits) - BigInteger.One;
     }
 
@@ -3278,19 +3281,6 @@ namespace Microsoft.Dafny
       GetAnyConst = (Expression e, Stack<ConstantField> consts) => {
         if (e is LiteralExpr l) {
           return l.Value;
-        } else if (e is NegationExpression ne) {
-          object e0 = GetAnyConst(ne.E, consts);
-          if (e0 != null) {
-            if (ne.Type.IsIntegerType) {
-              return -(BigInteger)e0;
-            }
-            if (ne.Type.IsBitVectorType) {
-              return MaxBV(ne.Type) - (BigInteger)e0 + BigInteger.One;
-            }
-            if (ne.Type.IsRealType) {
-              return ((Basetypes.BigDec)e0).Negate;
-            }
-          }
         } else if (e is UnaryOpExpr un) {
           if (un.Op == UnaryOpExpr.Opcode.Not) {
             object e0 = GetAnyConst(un.E, consts);
@@ -6072,8 +6062,8 @@ namespace Microsoft.Dafny
             CheckTypeIsDetermined(local.Tok, local.Type, "local variable");
             CheckTypeArgsContainNoOrdinal(local.Tok, local.type);
           }
-        } else if (stmt is LetStmt) {
-          var s = (LetStmt)stmt;
+        } else if (stmt is VarDeclPattern) {
+          var s = (VarDeclPattern)stmt;
           s.LocalVars.Iter(local => CheckTypeIsDetermined(local.Tok, local.Type, "local variable"));
           s.LocalVars.Iter(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.Type));
 
@@ -6111,12 +6101,18 @@ namespace Microsoft.Dafny
       protected override void VisitOneExpr(Expression expr) {
         if (expr is LiteralExpr) {
           var e = (LiteralExpr)expr;
-          var t = e.Type as BitvectorType;
-          if (t != null) {
+          if (e.Type.IsBitVectorType || e.Type.IsBigOrdinalType) {
             var n = (BigInteger)e.Value;
-            // check that the given literal fits into the bitvector width
-            if (BigInteger.Pow(2, t.Width) <= n) {
-              resolver.reporter.Error(MessageSource.Resolver, e.tok, "bitvector literal ({0}) is too large for the type {1}", e.Value, t);
+            var absN = n < 0 ? -n : n;
+            // For bitvectors, check that the magnitude fits the width
+            if (e.Type.IsBitVectorType && resolver.MaxBV(e.Type.AsBitVectorType.Width) < absN) {
+              resolver.reporter.Error(MessageSource.Resolver, e.tok, "literal ({0}) is too large for the bitvector type {1}", absN, e.Type);
+            }
+            // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
+            // This can happen only in `match` patterns (see comment by LitPattern.OptimisticallyDesugaredLit).
+            if (n < 0 || e.tok.val == "-0") {
+              Contract.Assert(e.tok.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
+              resolver.reporter.Error(MessageSource.Resolver, e.tok, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.Type);
             }
           }
 
@@ -6320,18 +6316,33 @@ namespace Microsoft.Dafny
             }
           } else if (expr is NegationExpression) {
             var e = (NegationExpression)expr;
-            Expression zero;
-            if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-              zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
-            } else {
-              Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType);
-              zero = new LiteralExpr(e.tok, 0);
+            Expression resolved = null;
+            if (e.E is LiteralExpr lit) { // note, not e.E.Resolved, since we don't want to do this for double negations
+              // For real-based types, integer-based types, and bi (but not bitvectors), "-" followed by a literal is just a literal expression with a negative value
+              if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+                var d = (Basetypes.BigDec)lit.Value;
+                Contract.Assert(!d.IsNegative);
+                resolved = new LiteralExpr(e.tok, -d);
+              } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+                var n = (BigInteger)lit.Value;
+                Contract.Assert(0 <= n);
+                resolved = new LiteralExpr(e.tok, -n);
+              }
             }
-            zero.Type = expr.Type;
-            var subtract = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E);
-            subtract.Type = expr.Type;
-            subtract.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
-            e.ResolvedExpression = subtract;
+            if (resolved == null) {
+              // Treat all other expressions "-e" as "0 - e"
+              Expression zero;
+              if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+                zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
+              } else {
+                Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType);
+                zero = new LiteralExpr(e.tok, 0);
+              }
+              zero.Type = expr.Type;
+              resolved = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E) {ResolvedOp = BinaryExpr.ResolvedOpcode.Sub};
+            }
+            resolved.Type = expr.Type;
+            e.ResolvedExpression = resolved;
           }
         }
       }
@@ -6680,7 +6691,7 @@ namespace Microsoft.Dafny
         if (s.Update != null) {
           return CheckTailRecursive(s.Update, enclosingMethod, ref tailCall, reportErrors);
         }
-      } else if (stmt is LetStmt) {
+      } else if (stmt is VarDeclPattern) {
       } else if (stmt is ExpectStmt) {
       } else {
         Contract.Assert(false);  // unexpected statement type
@@ -7307,8 +7318,8 @@ namespace Microsoft.Dafny
               CheckEqualityTypes_Type(v.Tok, v.Type);
             }
           }
-        } else if (stmt is LetStmt) {
-          var s = (LetStmt)stmt;
+        } else if (stmt is VarDeclPattern) {
+          var s = (VarDeclPattern)stmt;
           foreach (var v in s.LocalVars) {
             CheckEqualityTypes_Type(v.Tok, v.Type);
           }
@@ -7750,14 +7761,24 @@ namespace Microsoft.Dafny
           }
           s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
 
-        } else if (stmt is LetStmt) {
-          var s = (LetStmt)stmt;
+        } else if (stmt is VarDeclPattern) {
+          var s = (VarDeclPattern)stmt;
+
           if (mustBeErasable) {
             foreach (var local in s.LocalVars) {
               local.IsGhost = true;
             }
           }
-          s.IsGhost = s.LocalVars.All(v => v.IsGhost);
+          if (!s.IsAutoGhost || mustBeErasable) {
+            s.IsGhost = s.LocalVars.All(v => v.IsGhost);
+          } else {
+            bool spec = resolver.UsesSpecFeatures(s.RHS);
+            foreach (var local in s.LocalVars) {
+              local.IsGhost = spec;
+            }
+            if (!spec) resolver.CheckIsCompilable(s.RHS);
+            s.IsGhost = spec;
+          }
 
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
@@ -10187,8 +10208,8 @@ namespace Microsoft.Dafny
             }
           }
         }
-      } else if (stmt is LetStmt) {
-        LetStmt s = (LetStmt)stmt;
+      } else if (stmt is VarDeclPattern) {
+        VarDeclPattern s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
           int prevErrorCount = reporter.Count(ErrorLevel.Error);
           ResolveType(local.Tok, local.OptionalType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
@@ -10972,7 +10993,7 @@ namespace Microsoft.Dafny
       if (branch is RBranchStmt branchStmt) {
         var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
         var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
-        var cLet = new LetStmt(cLVar.Tok, cLVar.Tok, cPat, expr);
+        var cLet = new VarDeclPattern(cLVar.Tok, cLVar.Tok, cPat, expr);
         branchStmt.Body.Insert(0, cLet);
       } else if (branch is RBranchExpr branchExpr) {
         var cBVar = new BoundVar(var.Tok, name, type);
@@ -11114,8 +11135,8 @@ namespace Microsoft.Dafny
       foreach (var PB in pairPB) {
         var pat = PB.Item1;
         if (pat is LitPattern lpat) {
-          if (!alternatives.Exists(x => x.Value.Equals(lpat.Lit.Value))) {
-            alternatives.Add(lpat.Lit);
+          if (!alternatives.Exists(x => object.Equals(x.Value, lpat.OptimisticallyDesugaredLit.Value))) {
+            alternatives.Add(lpat.OptimisticallyDesugaredLit);
           }
         }
       }
@@ -11124,12 +11145,11 @@ namespace Microsoft.Dafny
       // For each possible alternatives, filter potential cases and recur
       foreach (var currLit in alternatives) {
         List<RBranch> currBranches = new List<RBranch>();
-        for (int i = 0; i < pairPB.Count; i++) {
-          var PB = pairPB.ElementAt(i);
+        foreach (var PB in pairPB) {
           switch (PB.Item1) {
             case LitPattern currPattern:
               // if pattern matches the current alternative, add it to the branch for this case, otherwise ignore it
-              if (currPattern.Lit.Value.Equals(currLit.Value)) {
+              if (object.Equals(currPattern.OptimisticallyDesugaredLit.Value, currLit.Value)) {
                 mti.UpdateBranchID(PB.Item2.BranchID, 1);
                 currBranches.Add(CloneRBranch(PB.Item2));
               }
@@ -11492,9 +11512,13 @@ namespace Microsoft.Dafny
       }
 
       if (!type.IsDatatype) {
-        if (pat is IdPattern) {
-          /* =[1]= */
-          CheckLinearVarPattern(type, (IdPattern) pat);
+        if (pat is IdPattern id) {
+          if (id.Id == BuiltIns.TupleTypeCtorNamePrefix + "0") {
+            reporter.Error(MessageSource.Resolver, pat.Tok, "case argument type does not match source argument type");
+          } else {
+            /* =[1]= */
+            CheckLinearVarPattern(type, (IdPattern) pat);
+          }
           return;
         } else if (pat is LitPattern) {
           /* =[2]= */
@@ -11773,7 +11797,8 @@ namespace Microsoft.Dafny
           foreach (var ll in update.Lhss) {
             resolvedLhss.Add(ll.Resolved);
           }
-          var a = new CallStmt(methodCallInfo.Tok, update.EndTok, resolvedLhss, methodCallInfo.Callee, methodCallInfo.Args);
+          CallStmt a = new CallStmt(methodCallInfo.Tok, update.EndTok, resolvedLhss, methodCallInfo.Callee, methodCallInfo.Args);
+          a.OriginalInitialLhs = update.OriginalInitialLhs;
           update.ResolvedStatements.Add(a);
         }
       }
@@ -11803,6 +11828,18 @@ namespace Microsoft.Dafny
 
     private Expression VarDotMethod(IToken tok, string varname, string methodname) {
       return new ApplySuffix(tok, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<Expression>() { });
+    }
+
+    private Expression makeTemp(String prefix, AssignOrReturnStmt s, ICodeContext codeContext, Expression ex) {
+      var temp = FreshTempVarName(prefix, codeContext);
+      var locvar = new LocalVariable(s.Tok, s.Tok, temp, ex.Type, false);
+      var id = new IdentifierExpr(s.Tok, temp);
+      var idlist = new List<Expression>() { id };
+      var lhss = new List<LocalVariable>() { locvar };
+      var rhss = new List<AssignmentRhs>() { new ExprRhs(ex) };
+      var up = new UpdateStmt(s.Tok, s.Tok, idlist, rhss);
+      s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, up));
+      return id;
     }
 
     /// <summary>
@@ -11861,7 +11898,7 @@ namespace Microsoft.Dafny
                 firstType = call.Outs[0].Type;
               } else {
                 reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
-                  nm);
+                  call.Name);
               }
             } else {
               ResolveExpression(asx, new ResolveOpts(codeContext, true));
@@ -11878,7 +11915,7 @@ namespace Microsoft.Dafny
               firstType = call.Outs[0].Type;
             } else {
               reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
-                nm);
+                call.Name);
             }
           }
         }
@@ -11932,6 +11969,48 @@ namespace Microsoft.Dafny
           "Internal Error: Unknown failure type in :- statement");
         return;
       }
+
+      Expression lhsExtract = null;
+      if (expectExtract) {
+        Method caller = codeContext as Method;
+        if (caller != null && caller.Outs.Count == 0 && s.ExpectToken == null) {
+          reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
+            caller.Name);
+          return;
+        }
+
+        lhsExtract = s.Lhss[0];
+        var lhsResolved = s.Lhss[0].Resolved;
+        // Make a new unresolved expression
+        if (lhsResolved is MemberSelectExpr lexr) {
+          Expression id = makeTemp("recv", s, codeContext, lexr.Obj);
+          var lex = lhsExtract as ExprDotName; // might be just a NameSegment
+          lhsExtract = new ExprDotName(lexr.tok, id, lexr.MemberName, lex == null ? null : lex.OptTypeArguments);
+        } else if (lhsResolved is SeqSelectExpr lseq) {
+          if (!lseq.SelectOne || lseq.E0 == null) {
+            reporter.Error(MessageSource.Resolver, s.Tok,
+              "Element ranges not allowed as l-values");
+            return;
+          }
+          Expression id = makeTemp("recv", s, codeContext, lseq.Seq);
+          Expression id0 = id0 = makeTemp("idx", s, codeContext, lseq.E0);
+          lhsExtract = new SeqSelectExpr(lseq.tok, lseq.SelectOne, id, id0, null);
+          lhsExtract.Type = lseq.Type;
+        } else if (lhsResolved is MultiSelectExpr lmulti) {
+          Expression id = makeTemp("recv", s, codeContext, lmulti.Array);
+          var idxs = new List<Expression>();
+          foreach (var i in lmulti.Indices) {
+            Expression idx = makeTemp("idx", s, codeContext, i);
+            idxs.Add(idx);
+          }
+          lhsExtract = new MultiSelectExpr(lmulti.tok, id, idxs);
+          lhsExtract.Type = lmulti.Type;
+        } else if (lhsResolved is IdentifierExpr) {
+          // do nothing
+        } else {
+          Contract.Assert(false, "Internal error: unexpected option in ResolveAssignOrReturnStmt");
+        }
+      }
       var temp = FreshTempVarName("valueOrError", codeContext);
       var lhss = new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, firstType, false) };
       // "var temp ;"
@@ -11956,8 +12035,11 @@ namespace Microsoft.Dafny
         }
       }
       // " temp, ... := MethodOrExpression, ...;"
-      s.ResolvedStatements.Add(new UpdateStmt(s.Tok, s.Tok, lhss2, rhss2));
-
+      UpdateStmt up = new UpdateStmt(s.Tok, s.Tok, lhss2, rhss2);
+      if (expectExtract) {
+        up.OriginalInitialLhs = s.Lhss.Count == 0 ? null : s.Lhss[0];
+      }
+      s.ResolvedStatements.Add(up);
 
       if (s.ExpectToken != null) {
         var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
@@ -11986,7 +12068,7 @@ namespace Microsoft.Dafny
         var lhs = s.Lhss[0];
         s.ResolvedStatements.Add(
           new UpdateStmt(s.Tok, s.Tok,
-            new List<Expression>() { lhs },
+            new List<Expression>() { lhsExtract },
             new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "Extract")) }
             ));
         // The following check is not necessary, because the ghost mismatch is caught later.
@@ -12021,13 +12103,13 @@ namespace Microsoft.Dafny
       // However the error messages here are much clearer.
       var m = ResolveMember(tok, tp, "IsFailure", out _);
       if (m != null && m.IsGhost) {
-        origReporter.Error(MessageSource.Resolver, m.tok,
-          "The IsFailure member may not be ghost");
+        origReporter.Error(MessageSource.Resolver, tok,
+          $"The IsFailure member may not be ghost (type {tp} used in :- statement)");
       }
       m = ResolveMember(tok, tp, "PropagateFailure", out _);
       if (m != null && m.IsGhost) {
-        origReporter.Error(MessageSource.Resolver, m.tok,
-          "The PropagateFailure member may not be ghost");
+        origReporter.Error(MessageSource.Resolver, tok,
+          $"The PropagateFailure member may not be ghost (type {tp} used in :- statement)");
       }
 
       this.reporter = origReporter;
@@ -12302,7 +12384,7 @@ namespace Microsoft.Dafny
         if (s.Update != null) {
           CheckForallStatementBodyRestrictions(s.Update, kind);
         }
-      } else if (stmt is LetStmt) {
+      } else if (stmt is VarDeclPattern) {
         // Are we fine?
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
@@ -12465,7 +12547,7 @@ namespace Microsoft.Dafny
         if (s.Update != null) {
           CheckHintRestrictions(s.Update, localsAllowedInUpdates, where);
         }
-      } else if (stmt is LetStmt) {
+      } else if (stmt is VarDeclPattern) {
         // Are we fine?
       } else if (stmt is ModifyStmt) {
         reporter.Error(MessageSource.Resolver, stmt, "modify statements are not allowed inside {0}", where);
@@ -13487,7 +13569,6 @@ namespace Microsoft.Dafny
 
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
-        var errorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(e.E, opts);
         e.Type = e.E.Type;
         AddXConstraint(e.E.tok, "NumericOrBitvector", e.E.Type, "type of unary - must be of a numeric or bitvector type (instead got {0})");
@@ -16865,6 +16946,7 @@ namespace Microsoft.Dafny
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         if (e.Exact) {
+          MakeGhostAsNeeded(e.LHSs);
           return UsesSpecFeatures(e.Body);
           //return Contract.Exists(e.RHSs, ee => UsesSpecFeatures(ee)) || UsesSpecFeatures(e.Body);
         } else {
@@ -16914,6 +16996,30 @@ namespace Microsoft.Dafny
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
     }
+
+    void MakeGhostAsNeeded(List<CasePattern<BoundVar>> lhss) {
+      foreach (CasePattern<BoundVar> lhs in lhss) {
+        MakeGhostAsNeeded(lhs);
+      }
+    }
+
+    void MakeGhostAsNeeded(CasePattern<BoundVar> lhs) {
+      if (lhs.Ctor != null && lhs.Arguments != null) {
+        for (int i = 0; i < lhs.Arguments.Count && i < lhs.Ctor.Destructors.Count; i++) {
+          MakeGhostAsNeeded(lhs.Arguments[i], lhs.Ctor.Destructors[i]);
+        }
+      }
+    }
+
+    void MakeGhostAsNeeded(CasePattern<BoundVar> arg, DatatypeDestructor d) {
+      if (arg.Expr is IdentifierExpr ie && ie.Var is BoundVar bv) {
+        if (d.IsGhost) bv.makeGhost();
+      }
+      if (arg.Ctor != null) {
+        MakeGhostAsNeeded(arg);
+      }
+    }
+
 
     /// <summary>
     /// This method adds to "friendlyCalls" all
