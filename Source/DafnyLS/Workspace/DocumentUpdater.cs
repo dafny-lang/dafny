@@ -125,7 +125,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         int newCharacter = position.Character;
         if(newLine == changeOffset.Line) {
           // The end of the change occured within the line of the given position.
-          newCharacter = position.Character - originalOffset.Character + changeOffset.Character;
+          newCharacter = position.Character - originalOffset.Character + changeOffset.Character - 1;
         }
         return new Position(newLine, newCharacter);
       }
