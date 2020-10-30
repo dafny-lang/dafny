@@ -4,6 +4,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -42,6 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       private readonly DafnyDocument _originalDocument;
       private readonly Container<TextDocumentContentChangeEvent> _contentChanges;
       private readonly CancellationToken _cancellationToken;
+      private readonly PositionComparer _positionComparer = new PositionComparer();
 
       public ChangeProcessor(ILogger logger, DafnyDocument originalDocument, Container<TextDocumentContentChangeEvent> contentChanges, CancellationToken cancellationToken) {
         _logger = logger;
@@ -76,6 +78,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           _cancellationToken.ThrowIfCancellationRequested();
           var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change);
           migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change, afterChangeEndOffset);
+          migratedDeclarations = ApplyDeclarationsChange(migratedDeclarations, change, afterChangeEndOffset);
           // TODO migrate the declarations
         }
         _logger.LogTrace("migrated the lookup tree, lookup before={}, after={}", _originalDocument.SymbolTable.LookupTree.Count, migratedLookupTree.Count);
@@ -91,15 +94,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       private IIntervalTree<Position, ILocalizableSymbol> ApplyLookupTreeChange(
           IIntervalTree<Position, ILocalizableSymbol> previousLookupTree, TextDocumentContentChangeEvent change, Position afterChangeEndOffset
       ) {
-        var positionComparer = new PositionComparer();
-        var migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>(positionComparer);
+        var migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>(new PositionComparer());
         foreach(var entry in previousLookupTree) {
           _cancellationToken.ThrowIfCancellationRequested();
-          if(IsDesignatorBeforeChange(positionComparer, change.Range, entry.To)) {
+          if(IsPositionBeforeChange(change.Range, entry.To)) {
             migratedLookupTree.Add(entry.From, entry.To, entry.Value);
           }
-          if(IsDesignatorAfterChange(positionComparer, change.Range, entry.From)) {
-            // TODO adapt location
+          if(IsPositionAfterChange(change.Range, entry.From)) {
             var beforeChangeEndOffset = change.Range.End;
             var from = GetPositionWithOffset(entry.From, beforeChangeEndOffset, afterChangeEndOffset);
             var to = GetPositionWithOffset(entry.To, beforeChangeEndOffset, afterChangeEndOffset);
@@ -129,12 +130,61 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return new Position(newLine, newCharacter);
       }
 
-      private bool IsDesignatorBeforeChange(PositionComparer comparer, Range changeRange, Position symbolTo) {
-        return comparer.Compare(symbolTo, changeRange.Start) <= 0;
+      private bool IsPositionBeforeChange(Range changeRange, Position symbolTo) {
+        return _positionComparer.Compare(symbolTo, changeRange.Start) <= 0;
       }
 
-      private bool IsDesignatorAfterChange(PositionComparer comparer, Range changeRange, Position symbolFrom) {
-        return comparer.Compare(symbolFrom, changeRange.End) >= 0;
+      private bool IsPositionAfterChange(Range changeRange, Position symbolFrom) {
+        return _positionComparer.Compare(symbolFrom, changeRange.End) >= 0;
+      }
+
+      private IDictionary<ISymbol, SymbolLocation> ApplyDeclarationsChange(IDictionary<ISymbol, SymbolLocation> previousDeclarations, TextDocumentContentChangeEvent change, Position afterChangeEndOffset) {
+        var migratedDeclarations = new Dictionary<ISymbol, SymbolLocation>();
+        foreach(var (symbol, location) in previousDeclarations) {
+          _cancellationToken.ThrowIfCancellationRequested();
+          if(!_originalDocument.IsDocument(location.Uri)) {
+            migratedDeclarations.Add(symbol, location);
+            continue;
+          }
+          var newLocation = ComputeNewSymbolLocation(location, change.Range, afterChangeEndOffset);
+          if(newLocation != null) {
+            migratedDeclarations.Add(symbol, newLocation);
+          }
+        }
+        return migratedDeclarations;
+      }
+
+      private SymbolLocation? ComputeNewSymbolLocation(SymbolLocation oldLocation, Range changeRange, Position afterChangeEndOffset) {
+        var identifier = ComputeNewRange(oldLocation.Identifier, changeRange, afterChangeEndOffset);
+        if(identifier == null) {
+          return null;
+        }
+        var declaration = ComputeNewRange(oldLocation.Declaration, changeRange, afterChangeEndOffset);
+        if(declaration == null) {
+          return null;
+        }
+        return new SymbolLocation(oldLocation.Uri, identifier, declaration);
+      }
+
+      private Range? ComputeNewRange(Range oldRange, Range changeRange, Position afterChangeEndOffset) {
+        if(IsPositionBeforeChange(changeRange, oldRange.End)) {
+          // The range is strictly before the change.
+          return oldRange;
+        }
+        var beforeChangeEndOffset = changeRange.End;
+        if(IsPositionAfterChange(changeRange, oldRange.Start)) {
+          // The range is strictly after the change.
+          var from = GetPositionWithOffset(oldRange.Start, beforeChangeEndOffset, afterChangeEndOffset);
+          var to = GetPositionWithOffset(oldRange.End, beforeChangeEndOffset, afterChangeEndOffset);
+          return new Range(from, to);
+        }
+        if(IsPositionBeforeChange(changeRange, oldRange.Start) && IsPositionAfterChange(changeRange, oldRange.End)) {
+          // The change is inbetween the range.
+          var to = GetPositionWithOffset(oldRange.End, beforeChangeEndOffset, afterChangeEndOffset);
+          return new Range(oldRange.Start, to);
+        }
+        // The change overlaps with the start and/or the end of the range. We cannot compute a reliable change.
+        return null;
       }
     }
   }

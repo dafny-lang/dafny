@@ -1,5 +1,4 @@
 ﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -33,6 +32,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <returns><c>true</c> if the given token belongs to this document.</returns>
     public bool IsPartOf(Microsoft.Boogie.IToken token) {
       return Program.IsPartOfEntryDocument(token);
+    }
+
+    /// <summary>
+    /// Checks if the given document uri is pointing to this dafny document.
+    /// </summary>
+    /// <param name="documentUri">The document uri to check.</param>
+    /// <returns><c>true</c> if the specified document uri points to the file represented by this document.</returns>
+    public bool IsDocument(DocumentUri documentUri) {
+      return documentUri == Uri;
     }
   }
 }
