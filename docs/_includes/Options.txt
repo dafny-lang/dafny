@@ -1,9 +1,8 @@
 ```
   ---- Dafny options ---------------------------------------------------------
 
- All the .dfy files supplied on the command line along with files recursively 
- included by 'include' directives are considered a single Dafny program; 
- however only those files listed on the command line are verified.
+  Multiple .dfy files supplied on the command line are concatenated into one
+  Dafny program.
 
   /dprelude:<file>
                 choose Dafny prelude file
@@ -20,22 +19,23 @@
   /rprint:<file>
                 print Dafny program after resolving it
                 (use - as <file> to print to console)
-  /pmtrace      print pattern-match compiler debug info
   /titrace      print type-inference debug info
   /view:<view1, view2>
                 print the filtered views of a module after it is resolved (/rprint).
-                If print before the module is resolved (/dprint), then everything in the module
-                is printed.
-                If no view is specified, then everything in the module is printed.
-
+                if print before the module is resolved (/dprint), then everthing in the module is printed
+                if no view is specified, then everything in the module is printed. 
+                
   /dafnyVerify:<n>
                 0 - stop after typechecking
                 1 - continue on to translation, verification, and compilation
   /compile:<n>  0 - do not compile Dafny program
                 1 (default) - upon successful verification of the Dafny
-                    program, compile it to the designated target language
-                2 - always attempt to compile Dafny program to the target
-                    language, regardless of verification outcome
+                    program, compile Dafny program to .NET assembly
+                    Program.exe (if the program has a Main method) or
+                    Program.dll (othewise), where Program.dfy is the name
+                    of the last .dfy file on the command line
+                2 - always attempt to compile Dafny program to C# program
+                    out.cs, regardless of verification outcome
                 3 - if there is a Main method and there are no verification
                     errors, compiles program in memory (i.e., does not write
                     an output file) and runs it
@@ -45,13 +45,6 @@
                 cs (default) - Compilation to .NET via C#
                 go - Compilation to Go
                 js - Compilation to JavaScript
-                java - Compilation to Java
-                cpp - Compilation to C++
-                php - Compilation to PHP
-
-                Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
-                This includes lack of support for BigIntegers (aka int), most higher order
-                functions, and advanced features like traits or co-inductive types.
   /compileVerbose:<n>
                 0 - don't print status of compilation to the console
                 1 (default) - print information such as files being written by
@@ -59,24 +52,18 @@
   /spillTargetCode:<n>
                 0 (default) - don't write the compiled Dafny program (but
                     still compile it, if /compile indicates to do so)
-                1 - write the compiled Dafny program in the target language, 
-                    if it is being compiled
-                2 - write the compiled Dafny program in the target language, 
-                    provided it passes the verifier, regardless of /compile 
-                    setting
-                3 - write the compiled Dafny program in the target language, 
-                    regardless of verification outcome and /compile setting
+                1 - write the compiled Dafny program as a .cs file, if it
+                    is being compiled
+                2 - write the compiled Dafny program as a .cs file, provided
+                    it passes the verifier, regardless of /compile setting
+                3 - write the compiled Dafny program as a .cs file, regardless
+                    of verification outcome and /compile setting
                 NOTE: If there are .cs or .dll files on the command line, then
                 the compiled Dafny program will also be written. More precisely,
                 such files on the command line implies /spillTargetCode:1 (or
                 higher, if manually specified).
   /out:<file>
-                filename and location for the generated target language files
-  /coverage:<file>
-                The compiler emits branch-coverage calls and outputs into
-                <file> a legend that gives a description of each
-                source-location identifier used in the branch-coverage calls.
-                (use - as <file> to print to console)
+                filename and location for the generated .cs, .dll or .exe files 
   /dafnycc      Disable features not supported by DafnyCC
   /noCheating:<n>
                 0 (default) - allow assume statements and free invariants
@@ -139,6 +126,10 @@
                 1 (default) - In the body of prefix lemmas, rewrite any use of a focal predicate
                               P to P#[_k-1].
   /optimize     Produce optimized C# code, meaning:
+                  - selects optimized C# prelude by passing 
+                    /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE to csc.exe (requires 
+                    System.Collections.Immutable.dll in the source directory to successfully 
+                    compile).
                   - passes /optimize flag to csc.exe.
   /optimizeResolution:<n>
                 0 - Resolve and translate all methods
@@ -162,7 +153,7 @@
                 0 - don't give any warnings about deprecated features
                 1 (default) - show warnings about deprecated features
                 2 - also point out where there's new simpler syntax
-  /verifyAllModules
+  /verifyAllModules 
                 Verify modules that come from an include directive
   /separateModuleOutput
                 Output verification results for each module separately, rather than
@@ -195,8 +186,8 @@
                 these features may cause your code to become incompatible with future
                 releases of Dafny.
   /noIronDafny  Disable Ironclad/Ironfleet features, if enabled by default.
-  /printTooltips
-                Dump additional positional information (displayed as mouse-over tooltips by
+  /printTooltips    
+                Dump additional positional information (displayed as mouse-over tooltips by 
                 the VS plugin) to stdout as 'Info' messages.
   /printIncludes:<None|Immediate|Transitive>
                 None is the default.
@@ -206,7 +197,6 @@
   /disableScopes
                 Treat all export sets as 'export reveal *'. i.e. don't hide function bodies
                 or type definitions during translation.
-  /version      Print the Dafny version number and exit.
 
 
   /nologo       suppress printing of version number, copyright message
@@ -415,6 +405,7 @@
                 Translate Boogie's A ==> B into prover's A ==> A && B.
   /typeEncoding:<m>
                 how to encode types when sending VC to theorem prover
+                   n = none (unsound)
                    p = predicates (default)
                    a = arguments
                    m = monomorphic
@@ -563,9 +554,5 @@
   CVC4 specific options:
   /cvc4exe:<path>
                 path to CVC4 executable
-
-  Yices2 specific options:
-  /yices2exe:<path>
-                path to Yices2 executable
 
 ```
