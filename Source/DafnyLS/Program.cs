@@ -9,13 +9,18 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer {
   public class Program {
-    // TODO The plugin automatically updates the LS server if the reported version is older.
-    private static readonly string DafnyVersion = "3.0"; //Assembly.GetExecutingAssembly().GetName().Version!.ToString();
+    private static string DafnyVersion {
+      get {
+        var version = Assembly.GetExecutingAssembly().GetName().Version!;
+        return $"{version.Major}.{version.Minor}.{version.Build}";
+      }
+    }
 
     private static async Task Main() {
       try {
