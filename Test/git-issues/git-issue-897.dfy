@@ -6,7 +6,7 @@ function missing_number(nums: seq<nat>): nat
   requires forall x :: x in nums ==> 0 <= x <= |nums|
 {
   var p := x => 0 <= x <= |nums| && x !in nums;
-  assert exists x {:trigger p(x)} :: p(x) && forall y {:trigger p(y)} :: p(y) ==> y == x by {
+  assert exists x :: p(x) && forall y :: p(y) ==> y == x by {
     var range := set i | 0 <= i <= |nums|;
     assert |range| == |nums| + 1;
     var missing := range - set i | i in nums;
