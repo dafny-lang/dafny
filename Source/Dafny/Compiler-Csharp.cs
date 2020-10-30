@@ -138,19 +138,19 @@ namespace Microsoft.Dafny
 
     const string TypeClass = "Dafny.TypeDescriptor";
 
-    string TypeParameters(List<TypeParameter> targs) {
-      Contract.Requires(cce.NonNullElements(targs));
+    string TypeParameters(List<TypeParameter>/*?*/ targs) {
+      Contract.Requires(targs == null || cce.NonNullElements(targs));
       Contract.Ensures(Contract.Result<string>() != null);
 
-      return Util.Comma(targs, tp => IdName(tp));
+      if (targs == null || targs.Count == 0) {
+        return "";
+      }
+      return "<" + Util.Comma(targs, tp => IdName(tp)) + ">";
     }
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
-      wr.Write("public partial class {0}", name);
-      if (typeParameters != null && typeParameters.Count != 0) {
-        wr.Write("<{0}>", TypeParameters(typeParameters));
-      }
+      wr.Write("public partial class {0}{1}", name, TypeParameters(typeParameters));
       if (superClasses != null) {
         string sep = " : ";
         foreach (var trait in superClasses) {
@@ -224,10 +224,7 @@ namespace Microsoft.Dafny
     }
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
-      wr.Write("public interface {0}", IdProtect(name));
-      if (typeParameters != null && typeParameters.Count != 0) {
-        wr.Write("<{0}>", TypeParameters(typeParameters));
-      }
+      wr.Write("public interface {0}{1}", IdProtect(name), TypeParameters(typeParameters));
       if (superClasses != null) {
         string sep = " : ";
         foreach (var trait in superClasses) {
@@ -238,10 +235,7 @@ namespace Microsoft.Dafny
       var instanceMemberWriter = wr.NewBlock("");
 
       //writing the _Companion class
-      wr.Write("public class _Companion_{0}", name);
-      if (typeParameters != null && typeParameters.Count != 0) {
-        wr.Write("<{0}>", TypeParameters(typeParameters));
-      }
+      wr.Write("public class _Companion_{0}{1}", name, TypeParameters(typeParameters));
       var staticMemberWriter = wr.NewBlock("");
 
       return new ClassWriter(this, instanceMemberWriter, null, staticMemberWriter);
@@ -360,14 +354,8 @@ namespace Microsoft.Dafny
       //    }}
       //   ...
       // }
-      string DtT = dt.CompileName;
-      string DtT_protected = IdProtect(DtT);
-      string DtT_TypeArgs = "";
-      if (dt.TypeArgs.Count != 0) {
-        DtT_TypeArgs = "<" + TypeParameters(dt.TypeArgs) + ">";
-        DtT += DtT_TypeArgs;
-        DtT_protected += DtT_TypeArgs;
-      }
+      string DtT_TypeArgs = TypeParameters(dt.TypeArgs);
+      string DtT_protected = IdProtect(dt.CompileName) + DtT_TypeArgs;
 
       // from here on, write everything into the new block created here:
       var btw = wr.NewNamedBlock("public{0} class {1}", dt.IsRecordType ? "" : " abstract", DtT_protected);
@@ -427,7 +415,7 @@ namespace Microsoft.Dafny
         wr.Write("public static {0} {1}(", DtT_protected, DtCreateName(ctor));
         WriteFormals("", ctor.Formals, wr);
         var w = wr.NewBlock(")");
-        w.Write("return new {0}(", DtCtorDeclarationName(ctor, dt.TypeArgs));
+        w.Write("return new {0}{1}(", DtCtorDeclarationName(ctor), TypeParameters(dt.TypeArgs));
         var sep = "";
         var i = 0;
         foreach (var arg in ctor.Formals) {
@@ -518,7 +506,7 @@ namespace Microsoft.Dafny
 
     void CompileDatatypeConstructors(DatatypeDecl dt, TargetWriter wrx) {
       Contract.Requires(dt != null);
-      string typeParams = dt.TypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeParameters(dt.TypeArgs));
+      string typeParams = TypeParameters(dt.TypeArgs);
       if (dt is CoDatatypeDecl) {
         // public class Dt__Lazy<T> : Dt<T> {
         //   public delegate Dt<T> Computer();
@@ -543,7 +531,8 @@ namespace Microsoft.Dafny
       }
       int constructorIndex = 0; // used to give each constructor a different name
       foreach (DatatypeCtor ctor in dt.Ctors) {
-        var wr = wrx.NewNamedBlock("public class {0} : {1}{2}", DtCtorDeclarationName(ctor, dt.TypeArgs), IdName(dt), typeParams);
+        var wr = wrx.NewNamedBlock("public class {0}{1} : {2}{3}",
+          DtCtorDeclarationName(ctor), TypeParameters(dt.TypeArgs), IdName(dt), typeParams);
         DatatypeFieldsAndConstructor(ctor, constructorIndex, wr);
         constructorIndex++;
       }
@@ -594,14 +583,13 @@ namespace Microsoft.Dafny
       }
 
       if (dt is CoDatatypeDecl) {
-        string typeParams = dt.TypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeParameters(dt.TypeArgs));
+        string typeParams = TypeParameters(dt.TypeArgs);
         wr.WriteLine("public override {0}{1} _Get() {{ return this; }}", dt.CompileName, typeParams);
       }
 
       // Equals method
       using (var w = wr.NewBlock("public override bool Equals(object other)")) {
-        w.Write("var oth = other as {0}", DtCtorName(ctor, dt.TypeArgs));
-        w.WriteLine(";");
+        w.WriteLine("var oth = other as {0}{1};", DtCtorName(ctor), TypeParameters(dt.TypeArgs));
         w.Write("return oth != null");
         i = 0;
         foreach (Formal arg in ctor.Formals) {
@@ -668,19 +656,6 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Returns a protected name with type parameters.
-    /// </summary>
-    string DtCtorDeclarationName(DatatypeCtor ctor, List<TypeParameter> typeParams) {
-      Contract.Requires(ctor != null);
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      var s = DtCtorDeclarationName(ctor);
-      if (typeParams != null && typeParams.Count != 0) {
-        s += "<" + TypeParameters(typeParams) + ">";
-      }
-      return s;
-    }
-    /// <summary>
     /// Returns a protected name.
     /// </summary>
     string DtCtorDeclarationName(DatatypeCtor ctor) {
@@ -689,20 +664,6 @@ namespace Microsoft.Dafny
 
       var dt = ctor.EnclosingDatatype;
       return dt.IsRecordType ? IdName(dt) : dt.CompileName + "_" + ctor.CompileName;
-    }
-    /// <summary>
-    /// Returns a protected name with type parameters.
-    /// </summary>
-    string DtCtorName(DatatypeCtor ctor, List<TypeParameter> typeParams) {
-      Contract.Requires(ctor != null);
-      Contract.Requires(typeParams != null);
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      var s = DtCtorName(ctor);
-      if (typeParams.Count != 0) {
-        s += "<" + TypeParameters(typeParams) + ">";
-      }
-      return s;
     }
     /// <summary>
     /// Returns a protected name with type parameters.
@@ -840,16 +801,13 @@ namespace Microsoft.Dafny
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
 
       AddTestCheckerIfNeeded(m.Name, m, wr);
-      wr.Write("{0}{1}{2}{3} {4}",
+      wr.Write("{0}{1}{2}{3} {4}{5}(",
         createBody ? "public " : "",
         m.IsStatic || customReceiver ? "static " : "",
         hasDllImportAttribute ? "extern " : "",
         targetReturnTypeReplacement ?? "void",
-        IdName(m));
-      if (typeArgs.Count != 0) {
-        wr.Write("<{0}>", TypeParameters(typeArgs));
-      }
-      wr.Write("(");
+        IdName(m),
+        TypeParameters(typeArgs));
       var nIns = WriteRuntimeTypeDescriptorsFormals(typeArgs, wr);
       var sep = nIns > 0 ? ", " : "";
       if (customReceiver) {
@@ -884,11 +842,13 @@ namespace Microsoft.Dafny
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(member);
 
       AddTestCheckerIfNeeded(name, member, wr);
-      wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
-      if (typeArgs.Count != 0) {
-        wr.Write("<{0}>", TypeParameters(typeArgs));
-      }
-      wr.Write("(");
+      wr.Write("{0}{1}{2}{3} {4}{5}(",
+        createBody ? "public " : "",
+        isStatic || customReceiver ? "static " : "",
+        hasDllImportAttribute ? "extern " : "",
+        TypeName(resultType, wr, tok),
+        name,
+        TypeParameters(ArgumentInstantiationsToTypeParameters(typeArgs)));
       var argCount = WriteRuntimeTypeDescriptorsFormals(typeArgs, wr);
       var sep = argCount > 0 ? ", " : "";
       if (customReceiver) {
