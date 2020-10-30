@@ -62,10 +62,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private string ApplyTextChange(string previousText, TextDocumentContentChangeEvent change) {
-        if(change.Range == null) {
-          // The property Range is null if a full document change was sent.
-          return change.Text;
-        }
         int absoluteStart = change.Range.Start.ToAbsolutePosition(previousText, _cancellationToken);
         int absoluteEnd = change.Range.End.ToAbsolutePosition(previousText, _cancellationToken);
         return previousText[..absoluteStart] + change.Text + previousText[absoluteEnd..];
@@ -79,7 +75,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change);
           migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change, afterChangeEndOffset);
           migratedDeclarations = ApplyDeclarationsChange(migratedDeclarations, change, afterChangeEndOffset);
-          // TODO migrate the declarations
         }
         _logger.LogTrace("migrated the lookup tree, lookup before={}, after={}", _originalDocument.SymbolTable.LookupTree.Count, migratedLookupTree.Count);
         return new SymbolTable(
