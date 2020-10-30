@@ -1,7 +1,7 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
+﻿using IntervalTree;
+using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Util;
-using IntervalTree;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
@@ -18,11 +18,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> ApplyChangesAsync(DafnyDocument oldDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
+      var changeProcessor = new ChangeProcessor(_logger, oldDocument, documentChange.ContentChanges, cancellationToken);
       var mergedItem = new TextDocumentItem {
         LanguageId = oldDocument.Text.LanguageId,
         Uri = oldDocument.Uri,
         Version = documentChange.TextDocument.Version,
-        Text = ApplyTextChanges(oldDocument.Text.Text, documentChange.ContentChanges, cancellationToken)
+        Text = changeProcessor.MigrateText()
       };
       var loadedDocument = await _documentLoader.LoadAsync(mergedItem, cancellationToken);
       if(!loadedDocument.SymbolTable.Resolved) {
@@ -30,94 +31,111 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           loadedDocument.Text,
           loadedDocument.Errors,
           loadedDocument.Program,
-          MigrateSymbolTable(oldDocument, documentChange.ContentChanges, cancellationToken)
+          changeProcessor.MigrateSymbolTable()
         );
       }
       return loadedDocument;
     }
 
-    private static string ApplyTextChanges(string originalText, Container<TextDocumentContentChangeEvent> changes, CancellationToken cancellationToken) {
-      var mergedText = originalText;
-      foreach(var change in changes) {
-        cancellationToken.ThrowIfCancellationRequested();
-        mergedText = ApplyTextChange(mergedText, change, cancellationToken);
-      }
-      return mergedText;
-    }
+    private class ChangeProcessor {
+      private readonly ILogger _logger;
+      private readonly DafnyDocument _originalDocument;
+      private readonly Container<TextDocumentContentChangeEvent> _contentChanges;
+      private readonly CancellationToken _cancellationToken;
 
-    private static string ApplyTextChange(string originalText, TextDocumentContentChangeEvent change, CancellationToken cancellationToken) {
-      if(change.Range == null) {
-        // The property Range is null if a full document change was sent.
-        return change.Text;
+      public ChangeProcessor(ILogger logger, DafnyDocument originalDocument, Container<TextDocumentContentChangeEvent> contentChanges, CancellationToken cancellationToken) {
+        _logger = logger;
+        _originalDocument = originalDocument;
+        _contentChanges = contentChanges;
+        _cancellationToken = cancellationToken;
       }
-      int absoluteStart = change.Range.Start.ToAbsolutePosition(originalText, cancellationToken);
-      int absoluteEnd = change.Range.End.ToAbsolutePosition(originalText, cancellationToken);
-      return originalText[..absoluteStart] + change.Text + originalText[absoluteEnd..];
-    }
 
-    private SymbolTable MigrateSymbolTable(DafnyDocument oldDocument, Container<TextDocumentContentChangeEvent> contentChanges, CancellationToken cancellationToken) {
-      var migratedLookupTree = oldDocument.SymbolTable.LookupTree;
-      var migratedDeclarations = oldDocument.SymbolTable.Locations;
-      foreach(var change in contentChanges) {
-        cancellationToken.ThrowIfCancellationRequested();
-        migratedLookupTree = MigrateLookupTree(migratedLookupTree, change, cancellationToken);
-        // TODO migrate the declarations
-      }
-      _logger.LogTrace("migrated the lookup tree, lookup before={}, after={}", oldDocument.SymbolTable.LookupTree.Count, migratedLookupTree.Count);
-      return new SymbolTable(
-        oldDocument.SymbolTable.CompilationUnit,
-        oldDocument.SymbolTable.Declarations,
-        migratedDeclarations,
-        migratedLookupTree,
-        true
-      );
-    }
-
-    private IIntervalTree<Position, ILocalizableSymbol> MigrateLookupTree(IIntervalTree<Position, ILocalizableSymbol> lookupTree, TextDocumentContentChangeEvent change, CancellationToken cancellationToken) {
-      var positionComparer = new PositionComparer();
-      var migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>(positionComparer);
-      var changeOffset = GetPositionAtEndOfAppliedChange(change, cancellationToken);
-      foreach(var entry in lookupTree) {
-        cancellationToken.ThrowIfCancellationRequested();
-        if(IsDesignatorBeforeChange(positionComparer, change.Range, entry.To)) {
-          migratedLookupTree.Add(entry.From, entry.To, entry.Value);
+      public string MigrateText() {
+        var mergedText = _originalDocument.Text.Text;
+        foreach(var change in _contentChanges) {
+          _cancellationToken.ThrowIfCancellationRequested();
+          mergedText = ApplyTextChange(mergedText, change);
         }
-        if(IsDesignatorAfterChange(positionComparer, change.Range, entry.From)) {
-          // TODO adapt location
-          var from = GetPositionWithOffset(entry.From, change.Range.End, changeOffset);
-          var to = GetPositionWithOffset(entry.To, change.Range.End, changeOffset);
-          migratedLookupTree.Add(from, to, entry.Value);
+        return mergedText;
+      }
+
+      private string ApplyTextChange(string previousText, TextDocumentContentChangeEvent change) {
+        if(change.Range == null) {
+          // The property Range is null if a full document change was sent.
+          return change.Text;
         }
+        int absoluteStart = change.Range.Start.ToAbsolutePosition(previousText, _cancellationToken);
+        int absoluteEnd = change.Range.End.ToAbsolutePosition(previousText, _cancellationToken);
+        return previousText[..absoluteStart] + change.Text + previousText[absoluteEnd..];
       }
-      return migratedLookupTree;
-    }
 
-    private Position GetPositionAtEndOfAppliedChange(TextDocumentContentChangeEvent change, CancellationToken cancellationToken) {
-      var changeStart = change.Range.Start;
-      var changeEof = change.Text.GetEofPosition(cancellationToken);
-      var characterOffset = changeEof.Character;
-      if(changeEof.Line == 0) {
-        characterOffset = changeStart.Character + changeEof.Character;
+      public SymbolTable MigrateSymbolTable() {
+        var migratedLookupTree = _originalDocument.SymbolTable.LookupTree;
+        var migratedDeclarations = _originalDocument.SymbolTable.Locations;
+        foreach(var change in _contentChanges) {
+          _cancellationToken.ThrowIfCancellationRequested();
+          var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change);
+          migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change, afterChangeEndOffset);
+          // TODO migrate the declarations
+        }
+        _logger.LogTrace("migrated the lookup tree, lookup before={}, after={}", _originalDocument.SymbolTable.LookupTree.Count, migratedLookupTree.Count);
+        return new SymbolTable(
+          _originalDocument.SymbolTable.CompilationUnit,
+          _originalDocument.SymbolTable.Declarations,
+          migratedDeclarations,
+          migratedLookupTree,
+          true
+        );
       }
-      return new Position(changeStart.Line + changeEof.Line, characterOffset);
-    }
 
-    private Position GetPositionWithOffset(Position position, Position originalOffset, Position changeOffset) {
-      int newLine = position.Line - originalOffset.Line + changeOffset.Line;
-      int newCharacter = position.Character;
-      if(newLine == changeOffset.Line) {
-        // The end of the change occured within the line of the given position.
-        newCharacter = position.Character - originalOffset.Character + changeOffset.Character;
+      private IIntervalTree<Position, ILocalizableSymbol> ApplyLookupTreeChange(
+          IIntervalTree<Position, ILocalizableSymbol> previousLookupTree, TextDocumentContentChangeEvent change, Position afterChangeEndOffset
+      ) {
+        var positionComparer = new PositionComparer();
+        var migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>(positionComparer);
+        foreach(var entry in previousLookupTree) {
+          _cancellationToken.ThrowIfCancellationRequested();
+          if(IsDesignatorBeforeChange(positionComparer, change.Range, entry.To)) {
+            migratedLookupTree.Add(entry.From, entry.To, entry.Value);
+          }
+          if(IsDesignatorAfterChange(positionComparer, change.Range, entry.From)) {
+            // TODO adapt location
+            var beforeChangeEndOffset = change.Range.End;
+            var from = GetPositionWithOffset(entry.From, beforeChangeEndOffset, afterChangeEndOffset);
+            var to = GetPositionWithOffset(entry.To, beforeChangeEndOffset, afterChangeEndOffset);
+            migratedLookupTree.Add(from, to, entry.Value);
+          }
+        }
+        return migratedLookupTree;
       }
-      return new Position(newLine, newCharacter);
-    }
 
-    private bool IsDesignatorBeforeChange(PositionComparer comparer, Range changeRange, Position symbolTo) {
-      return comparer.Compare(symbolTo, changeRange.Start) <= 0;
-    }
+      private Position GetPositionAtEndOfAppliedChange(TextDocumentContentChangeEvent change) {
+        var changeStart = change.Range.Start;
+        var changeEof = change.Text.GetEofPosition(_cancellationToken);
+        var characterOffset = changeEof.Character;
+        if(changeEof.Line == 0) {
+          characterOffset = changeStart.Character + changeEof.Character;
+        }
+        return new Position(changeStart.Line + changeEof.Line, characterOffset);
+      }
 
-    private bool IsDesignatorAfterChange(PositionComparer comparer, Range changeRange, Position symbolFrom) {
-      return comparer.Compare(symbolFrom, changeRange.End) >= 0;
+      private Position GetPositionWithOffset(Position position, Position originalOffset, Position changeOffset) {
+        int newLine = position.Line - originalOffset.Line + changeOffset.Line;
+        int newCharacter = position.Character;
+        if(newLine == changeOffset.Line) {
+          // The end of the change occured within the line of the given position.
+          newCharacter = position.Character - originalOffset.Character + changeOffset.Character;
+        }
+        return new Position(newLine, newCharacter);
+      }
+
+      private bool IsDesignatorBeforeChange(PositionComparer comparer, Range changeRange, Position symbolTo) {
+        return comparer.Compare(symbolTo, changeRange.Start) <= 0;
+      }
+
+      private bool IsDesignatorAfterChange(PositionComparer comparer, Range changeRange, Position symbolFrom) {
+        return comparer.Compare(symbolFrom, changeRange.End) >= 0;
+      }
     }
   }
 }
