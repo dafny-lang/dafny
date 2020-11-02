@@ -18735,9 +18735,15 @@ namespace Microsoft.Dafny {
           foreach (var bv in s.BoundVars) {
             substMap.Remove(bv);
           }
+
           // Put things together
           var rr = new ForallStmt(s.Tok, s.EndTok, newBoundVars, SubstAttributes(s.Attributes), Substitute(s.Range), s.Ens.ConvertAll(SubstMayBeFreeExpr), body);
           rr.Kind = s.Kind;
+          rr.CanConvert = s.CanConvert;
+          rr.Bounds = SubstituteBoundedPoolList(s.Bounds);
+          if (s.ForallExpressions != null) {
+            rr.ForallExpressions = s.ForallExpressions.ConvertAll(Substitute);
+          }
           r = rr;
         } else if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;
