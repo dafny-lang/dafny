@@ -270,7 +270,7 @@ namespace Microsoft.Dafny
             "a class declaration ({0}) in a refining module cannot replace a different kind of declaration in the refinement base",
             nw.Name);
         }
-      } else if (nw is TypeSynonymDecl && d is TypeSynonymDecl 
+      } else if (nw is TypeSynonymDecl && d is TypeSynonymDecl
                                        && ((TypeSynonymDecl)nw).Rhs != null
                                        && ((TypeSynonymDecl)d).Rhs != null) {
         reporter.Error(MessageSource.RefinementTransformer, d,
@@ -958,7 +958,7 @@ namespace Microsoft.Dafny
                 if (subber != null && subber.SubstitutionsMade.Count < subber.Exprs.Count) {
                   foreach (var s in subber.SubstitutionsMade)
                     subber.Exprs.Remove(s);
-                  reporter.Error(MessageSource.RefinementTransformer, c.Tok, "could not find labeled expression(s): " + Util.Comma(", ", subber.Exprs.Keys, x => x));
+                  reporter.Error(MessageSource.RefinementTransformer, c.Tok, "could not find labeled expression(s): " + Util.Comma(subber.Exprs.Keys, x => x));
                 }
               }
               i++;

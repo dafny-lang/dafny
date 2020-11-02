@@ -222,6 +222,11 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected virtual bool NeedsTypeDescriptor(TypeParameter tp) {
+      Contract.Requires(tp != null);
+      return tp.Characteristics.MustSupportZeroInitialization;
+    }
+
     protected virtual int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
       Contract.Requires(typeArgs != null);
       Contract.Requires(tok != null);
@@ -1904,10 +1909,10 @@ namespace Microsoft.Dafny {
               type = f.ResultType
             };
             Expression unit;
-            if (f.ResultType.IsNumericBased(Type.NumericPersuation.Int) || f.ResultType.IsBigOrdinalType) {
+            if (f.ResultType.IsNumericBased(Type.NumericPersuasion.Int) || f.ResultType.IsBigOrdinalType) {
               unit = new LiteralExpr(f.tok, f.TailRecursion == Function.TailStatus.Accumulate_Mul ? 1 : 0);
               unit.Type = f.ResultType;
-            } else if (f.ResultType.IsNumericBased(Type.NumericPersuation.Real)) {
+            } else if (f.ResultType.IsNumericBased(Type.NumericPersuasion.Real)) {
               unit = new LiteralExpr(f.tok, f.TailRecursion == Function.TailStatus.Accumulate_Mul ? BigDec.FromInt(1) : BigDec.ZERO);
               unit.Type = f.ResultType;
             } else if (f.ResultType.IsBitVectorType) {
@@ -1952,12 +1957,7 @@ namespace Microsoft.Dafny {
         }
         Coverage.Instrument(m.Body.Tok, $"entry to method {m.FullName}", w);
 
-        int nonGhostOutsCount = 0;
-        foreach (var p in m.Outs) {
-          if (!p.IsGhost) {
-            nonGhostOutsCount++;
-          }
-        }
+        var nonGhostOutsCount = m.Outs.Count(p => !p.IsGhost);
 
         var useReturnStyleOuts = UseReturnStyleOuts(m, nonGhostOutsCount);
         foreach (var p in m.Outs) {
@@ -2308,13 +2308,7 @@ namespace Microsoft.Dafny {
     protected string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(cce.NonNullElements(types));
       Contract.Ensures(Contract.Result<string>() != null);
-      string res = "";
-      string c = "";
-      foreach (var t in types) {
-        res += c + TypeName(t, wr, tok);
-        c = ",";
-      }
-      return res;
+      return Util.Comma(types, ty => TypeName(ty, wr, tok));
     }
 
     // TODO: move this method into CsharpCompiler
