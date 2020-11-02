@@ -7,7 +7,7 @@ function Crash(xs: List): int
   requires xs.Cons?
   ensures Crash(xs) == xs.head
 {
-  var Cons(h, Nil) := xs; h
+  var Cons(h, Nil) := xs; h // ERROR: xs may not match Cons(_, Nil)
 }
 
 function Crash2(xs: List): int

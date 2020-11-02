@@ -11535,14 +11535,23 @@ namespace Microsoft.Dafny
         if (!(pat is IdPattern)) {
           reporter.Error(MessageSource.Resolver, pat.Tok, "pattern doesn't correspond to a tuple");
         }
+
         IdPattern idpat = (IdPattern) pat;
-        if (idpat.Arguments == null) { // simple variable
+        if (idpat.Arguments == null) {
+          // simple variable
           CheckLinearVarPattern(udt, idpat, opts);
           return;
         }
+
         //We expect the number of arguments in the type of the matchee and the provided pattern to match, except if the pattern is a bound variable
         if (udt.TypeArgs.Count != idpat.Arguments.Count) {
-          reporter.Error(MessageSource.Resolver, pat.Tok, "case arguments count does not match source arguments count");
+          if (idpat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+            reporter.Error(MessageSource.Resolver, pat.Tok,
+              $"the case pattern is a {idpat.Arguments.Count}-element tuple, while the match expression is a {udt.TypeArgs.Count}-element tuple");
+          } else {
+            reporter.Error(MessageSource.Resolver, pat.Tok,
+              $"case pattern {idpat.Id} has {idpat.Arguments.Count} arguments whereas the match expression has {udt.TypeArgs.Count}");
+          }
         }
 
         var pairTP = udt.TypeArgs.Zip(idpat.Arguments, (x, y) => new Tuple<Type, ExtendedPattern>(x, y));
