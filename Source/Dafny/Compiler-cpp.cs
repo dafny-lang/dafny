@@ -603,7 +603,7 @@ namespace Microsoft.Dafny {
         templateDecl = DeclareTemplate(sst.Var.Type.TypeArgs);
       }
 
-      this.modDeclWr.WriteLine("{2} using {1} = {0};", TypeName(sst.Var.Type, wr, sst.tok), IdName(sst), templateDecl);
+      this.modDeclWr.WriteLine("{0} using {1} = {2};", templateDecl, IdName(sst), TypeName(sst.Var.Type, wr, sst.tok));
 
       var className = "class_" + IdName(sst);
       var cw = CreateClass(sst.Module.CompileName, className, sst, wr) as CppCompiler.ClassWriter;

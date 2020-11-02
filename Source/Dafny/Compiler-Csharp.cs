@@ -458,7 +458,7 @@ namespace Microsoft.Dafny
         var w = wrx.NewNamedBlock("public class {0}__Lazy{2} : {1}{2}", dt.CompileName, IdName(dt), typeParams);
         w.WriteLine("public {2}delegate {0}{1} Computer();", dt.CompileName, typeParams, NeedsNew(dt, "Computer"));
         w.WriteLine("{0}Computer c;", NeedsNew(dt, "c"));
-        w.WriteLine("{2}{0}{1} d;", dt.CompileName, typeParams, NeedsNew(dt, "d"));
+        w.WriteLine("{0}{1}{2} d;", NeedsNew(dt, "d"), dt.CompileName, typeParams);
         w.WriteLine("public {0}__Lazy(Computer c) {{ this.c = c; }}", dt.CompileName);
         w.WriteLine("public override {0}{1} _Get() {{ if (c != null) {{ d = c(); c = null; }} return d; }}", dt.CompileName, typeParams);
         w.WriteLine("public override string ToString() { return _Get().ToString(); }");
@@ -2046,7 +2046,7 @@ namespace Microsoft.Dafny
 
     protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {
       var typeArgs = TypeName_UDT(ArrowType.Arrow_FullCompileName, Util.Snoc(boundTypes, resultType), wr, tok);
-      wr.Write("{2}.Id<{0}>(({1}) => ", typeArgs, Util.Comma(boundVars), DafnyHelpersClass);
+      wr.Write("{0}.Id<{1}>(({2}) => ", DafnyHelpersClass, typeArgs, Util.Comma(boundVars));
       var w = wr.Fork();
       wr.Write(")");
       TrExprList(arguments, wr, inLetExprBody);
@@ -2077,7 +2077,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, TargetWriter wr, out TargetWriter wrRhs, out TargetWriter wrBody) {
-      wr.Write("{2}.Let<{0}, {1}>(", TypeName(bvType, wr, bvTok), TypeName(bodyType, wr, bodyTok), DafnyHelpersClass);
+      wr.Write("{0}.Let<{1}, {2}>(", DafnyHelpersClass, TypeName(bvType, wr, bvTok), TypeName(bodyType, wr, bodyTok));
       wrRhs = wr.Fork();
       wr.Write(", {0} => ", bvName);
       wrBody = wr.Fork();
