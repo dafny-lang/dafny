@@ -2613,11 +2613,11 @@ ExtendedPattern<.out ExtendedPattern pat.>
      ")"
                                            (. pat = new IdPattern(id, id.val, arguments); .)
   | PossiblyNegatedLiteralExpr<out lit>    (. pat = new LitPattern(lit.tok, lit); .)
-  | IdentTypeOptional<out bv>              (. pat = new IdPattern(bv.tok, bv.Name, bv.SyntacticType, new List<ExtendedPattern>()); .)
+  | IdentTypeOptional<out bv>              (. pat = new IdPattern(bv.tok, bv.Name, bv.SyntacticType, null); .)
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
     if (pat == null) {
-      pat = new IdPattern(t, "_ParseError", new List<ExtendedPattern>());
+      pat = new IdPattern(t, "_ParseError", null);
     }
   .)
   .
@@ -3723,7 +3723,7 @@ CasePattern<.out CasePattern<BoundVar> pat.>
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
      if (pat == null) {
-       pat = new CasePattern<BoundVar>(t, "_ParseError", new List<CasePattern<BoundVar>>());
+       pat = new CasePattern<BoundVar>(t, "_ParseError", null);
      }
   .)
   .
@@ -3766,7 +3766,7 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
      if (pat == null) {
-       pat = new CasePattern<LocalVariable>(t, "_ParseError", new List<CasePattern<LocalVariable>>());
+       pat = new CasePattern<LocalVariable>(t, "_ParseError", null);
      }
   .)
   .

@@ -6839,17 +6839,18 @@ namespace Microsoft.Dafny {
         Contract.Assert(rhsType is UserDefinedType && ((UserDefinedType)rhsType).ResolvedClass != null);
         var rhsTypeUdt = (UserDefinedType)rhsType;
         var typeSubstMap = Resolver.TypeSubstitutionMap(rhsTypeUdt.ResolvedClass.TypeArgs, rhsTypeUdt.TypeArgs);
+
+        var ctor = pat.Ctor;
+        var correctConstructor = FunctionCall(pat.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, rhs);
+        if (ctor.EnclosingDatatype.Ctors.Count == 1) {
+          // There is only one constructor, so the value must have been constructed by it; might as well assume that here.
+          builder.Add(TrAssumeCmd(pat.tok, correctConstructor));
+        } else {
+          builder.Add(Assert(pat.tok, correctConstructor, string.Format("RHS is not certain to look like the pattern '{0}'", ctor.Name)));
+        }
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];
-          var ctor = pat.Ctor;
           var dtor = ctor.Destructors[i];
-          var correctConstructor = FunctionCall(pat.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, rhs);
-          if (ctor.EnclosingDatatype.Ctors.Count == 1) {
-            // There is only one constructor, so the value must have been constructed by it; might as well assume that here.
-            builder.Add(TrAssumeCmd(pat.tok, correctConstructor));
-          } else {
-            builder.Add(Assert(pat.tok, correctConstructor, string.Format("RHS is not certain to look like the pattern '{0}'", ctor.Name)));
-          }
 
           var r = new Bpl.NAryExpr(arg.tok, new Bpl.FunctionCall(GetReadonlyField(dtor)), new List<Bpl.Expr> { rhs });
           Type argType = Resolver.SubstType(dtor.Type, typeSubstMap);

@@ -11314,9 +11314,13 @@ namespace Microsoft.Dafny {
     // After successful resolution, exactly one of the following two fields is non-null.
     public DatatypeCtor Ctor;  // finalized by resolution (null if the pattern is a bound variable)
     public VT Var;  // finalized by resolution (null if the pattern is a constructor)  Invariant:  Var != null ==> Arguments == null
-    public readonly List<CasePattern<VT>> Arguments;
+    public List<CasePattern<VT>> Arguments;
 
     public Expression Expr;  // an r-value version of the CasePattern; filled in by resolution
+
+    public void MakeAConstructor() {
+      this.Arguments = new List<CasePattern<VT>>();
+    }
 
     public CasePattern(IToken tok, string id, [Captured] List<CasePattern<VT>> arguments) {
       Contract.Requires(tok != null);
@@ -11564,7 +11568,8 @@ namespace Microsoft.Dafny {
   /*
   ExtendedPattern is either:
   1 - A LitPattern of a LiteralExpr, representing a constant pattern
-  2 - An IdPattern of a string and a list of ExtendedPattern, representing either a bound variable or a constructor applied to n arguments
+  2 - An IdPattern of a string and a list of ExtendedPattern, representing either
+      a bound variable or a constructor applied to n arguments or a symbolic constant
   */
   public abstract class ExtendedPattern
   {
@@ -11639,7 +11644,12 @@ namespace Microsoft.Dafny {
   {
     public readonly String Id;
     public readonly Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
-    public readonly List<ExtendedPattern> Arguments;
+    public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
+    public LiteralExpr ResolvedLit; // null if just an identifier
+
+    public void MakeAConstructor() {
+      this.Arguments = new List<ExtendedPattern>();
+    }
 
     public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments, bool isGhost = false) : base(tok, isGhost) {
       Contract.Requires(id != null);
@@ -11659,7 +11669,7 @@ namespace Microsoft.Dafny {
     }
 
     public override string ToString() {
-      if (Arguments.Count == 0) {
+      if (Arguments == null || Arguments.Count == 0) {
         return Id;
       } else {
         List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
