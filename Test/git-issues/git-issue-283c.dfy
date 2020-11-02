@@ -14,13 +14,6 @@ trait Foo
 {
   static const S: string := "asd"
 
-  method FooMethod1() returns (r: Result<string>)
-    ensures
-      match Result<string>.Failure(S) {
-        case Failure(X) => true  // X is a constant, but wrong type, so a variable
-        case Success(C1) => true // C1 is a variable (not a string)
-      }
-
   method FooMethod2() returns (r: Result<Bar>)
     ensures
       match r { // missing case
@@ -37,4 +30,3 @@ trait Foo
       }
 
 }
-

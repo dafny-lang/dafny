@@ -11103,8 +11103,11 @@ namespace Microsoft.Dafny
       foreach (var PB in pairPB) {
         var pat = PB.Item1;
         LiteralExpr lit = null;
-        if (pat is LitPattern lpat) lit = lpat.OptimisticallyDesugaredLit;
-        if (pat is IdPattern id && id.ResolvedLit != null) lit = id.ResolvedLit;
+        if (pat is LitPattern lpat) {
+          lit = lpat.OptimisticallyDesugaredLit;
+        } else if (pat is IdPattern id && id.ResolvedLit != null) {
+          lit = id.ResolvedLit;
+        }
 
         if (lit != null && !alternatives.Exists(x => object.Equals(x.Value,lit.Value))) {
           alternatives.Add(lit);
@@ -11474,18 +11477,19 @@ namespace Microsoft.Dafny
         } else {
           // finds in full scope, not just current scope
           if (e.Resolved is MemberSelectExpr mse) {
-            if (mse.Member.IsStatic && mse.Member is ConstantField cf && type.Equals(e.Resolved.Type)) {
-              if (type.Equals(e.ResolvedExpression.Type)) {
-                // OK - recognized as a declared const
-                Expression c = cf.Rhs;
-                if (c is LiteralExpr lit) {
-                  pat.ResolvedLit = lit;
+            if (mse.Member.IsStatic && mse.Member is ConstantField cf) {
+              Expression c = cf.Rhs;
+              if (c is LiteralExpr lit) {
+                pat.ResolvedLit = lit;
+                if (type.Equals(e.ResolvedExpression.Type)) {
+                  // OK - type is correct
                 } else {
-                  reporter.Error(MessageSource.Resolver, pat.Tok , "{0} is not initialized as a constant literal", pat.Id);
-                  ScopePushAndReport(scope, new BoundVar(pat.Tok, pat.Id, type), "parameter");
+                  // may well be a proxy so add a type constraint
+                  ConstrainSubtypeRelation(e.ResolvedExpression.Type, type, pat.Tok,
+                    "the type of the pattern ({0}) does not agree with the match expression ({1})", e.ResolvedExpression.Type, type);
                 }
               } else {
-                // Wrong type, so still a variable
+                reporter.Error(MessageSource.Resolver, pat.Tok , "{0} is not initialized as a constant literal", pat.Id);
                 ScopePushAndReport(scope, new BoundVar(pat.Tok, pat.Id, type), "parameter");
               }
             } else {
@@ -11519,7 +11523,7 @@ namespace Microsoft.Dafny
             } else {
               reporter.Error(MessageSource.Resolver, pat.Tok, $"member {id.Id} does not exist in type {type.ToString()}");
             }
-        } else { // pat is a simple variable
+        } else { // pat is a simple variable or a constant
             /* =[1]= */
             CheckLinearVarPattern(type, (IdPattern) pat, opts);
           }
@@ -11577,7 +11581,7 @@ namespace Microsoft.Dafny
         if (ctors.TryGetValue(idpat.Id, out ctor)) {
           /* =[3]= */
           if (ctor != null && idpat.Arguments == null && ctor.Formals.Count == 0) {
-            // nullary constructor without () -- so convert it to  aconstructor
+            // nullary constructor without () -- so convert it to a constructor
             idpat.MakeAConstructor();
           }
           if (idpat.Arguments == null) {
@@ -14908,8 +14912,9 @@ namespace Microsoft.Dafny
       if (v != null) {
         // ----- 0. local variable, parameter, or bound variable
         if (expr.OptTypeArguments != null) {
-          if (complain) reporter.Error(MessageSource.Resolver, expr.tok, "variable '{0}' does not take any type parameters", name);
-          else {
+          if (complain) {
+            reporter.Error(MessageSource.Resolver, expr.tok, "variable '{0}' does not take any type parameters", name);
+          } else {
             expr.ResolvedExpression = null;
             return null;
           }
@@ -14922,8 +14927,9 @@ namespace Microsoft.Dafny
           receiver = new StaticReceiverExpr(expr.tok, UserDefinedType.FromTopLevelDecl(expr.tok, currentClass, currentClass.TypeArgs), (TopLevelDeclWithMembers)member.EnclosingClass, true);
         } else {
           if (!scope.AllowInstance) {
-            if (complain) reporter.Error(MessageSource.Resolver, expr.tok, "'this' is not allowed in a 'static' context"); //TODO: Rephrase this
-            else {
+            if (complain) {
+              reporter.Error(MessageSource.Resolver, expr.tok, "'this' is not allowed in a 'static' context"); //TODO: Rephrase this
+            } else {
               expr.ResolvedExpression = null;
               return null;
             }
@@ -14937,15 +14943,17 @@ namespace Microsoft.Dafny
         // ----- 2. datatype constructor
         if (pair.Item2) {
           // there is more than one constructor with this name
-          if (complain) reporter.Error(MessageSource.Resolver, expr.tok, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", expr.Name, pair.Item1.EnclosingDatatype.Name);
-          else {
+          if (complain) {
+            reporter.Error(MessageSource.Resolver, expr.tok, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", expr.Name, pair.Item1.EnclosingDatatype.Name);
+          } else {
             expr.ResolvedExpression = null;
             return null;
           }
         } else {
           if (expr.OptTypeArguments != null) {
-            if (complain) reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
-            else {
+            if (complain) {
+              reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
+            } else {
               expr.ResolvedExpression = null;
               return null;
             }
@@ -14967,8 +14975,9 @@ namespace Microsoft.Dafny
         // ----- 3. Member of the enclosing module
         if (decl is AmbiguousTopLevelDecl) {
           var ad = (AmbiguousTopLevelDecl)decl;
-          if (complain) reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", expr.Name, ad.ModuleNames());
-          else {
+          if (complain) {
+            reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)", expr.Name, ad.ModuleNames());
+          } else {
             expr.ResolvedExpression = null;
             return null;
           }
@@ -14981,8 +14990,9 @@ namespace Microsoft.Dafny
             if (decl is ClassDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
               // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
               // the name of the class, C. Report an error and continue.
-              if (complain) reporter.Error(MessageSource.Resolver, expr.tok, "To access members of {0} '{1}', write '{1}', not '{2}'", decl.WhatKind, decl.Name, name);
-              else {
+              if (complain) {
+                reporter.Error(MessageSource.Resolver, expr.tok, "To access members of {0} '{1}', write '{1}', not '{2}'", decl.WhatKind, decl.Name, name);
+              } else {
                 expr.ResolvedExpression = null;
                 return null;
               }
@@ -14996,8 +15006,9 @@ namespace Microsoft.Dafny
         Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
         if (member is AmbiguousMemberDecl) {
           var ambiguousMember = (AmbiguousMemberDecl)member;
-          if (complain) reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.Name, ambiguousMember.ModuleNames());
-          else {
+          if (complain) {
+            reporter.Error(MessageSource.Resolver, expr.tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.Name, ambiguousMember.ModuleNames());
+          } else {
             expr.ResolvedExpression = null;
             return null;
           }
@@ -15008,8 +15019,9 @@ namespace Microsoft.Dafny
 
       } else {
         // ----- None of the above
-        if (complain) reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
-        else {
+        if (complain) {
+          reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
+        } else {
           expr.ResolvedExpression = null;
           return null;
         }
@@ -15722,12 +15734,17 @@ namespace Microsoft.Dafny
       return subst;
     }
 
+    /// <summary>
+    /// the return value is false iff there is an error in resolving the datatype value;
+    /// if there is an error then an error message is emitted iff complain is true
+    /// </summary>
     private bool ResolveDatatypeValue(ResolveOpts opts, DatatypeValue dtv, DatatypeDecl dt, Type ty, bool complain = true) {
       Contract.Requires(opts != null);
       Contract.Requires(dtv != null);
       Contract.Requires(dt != null);
       Contract.Requires(ty == null || (ty.AsDatatype == dt && ty.TypeArgs.Count == dt.TypeArgs.Count));
 
+      var ok = true;
       var gt = new List<Type>(dt.TypeArgs.Count);
       var subst = new Dictionary<TypeParameter, Type>();
       for (int i = 0; i < dt.TypeArgs.Count; i++) {
@@ -15741,17 +15758,17 @@ namespace Microsoft.Dafny
 
       DatatypeCtor ctor;
       if (!datatypeCtors[dt].TryGetValue(dtv.MemberName, out ctor)) {
-        if (complain) reporter.Error(MessageSource.Resolver, dtv.tok, "undeclared constructor {0} in datatype {1}", dtv.MemberName, dtv.DatatypeName);
-        else {
-          return false;
+        ok = false;
+        if (complain) {
+          reporter.Error(MessageSource.Resolver, dtv.tok, "undeclared constructor {0} in datatype {1}", dtv.MemberName, dtv.DatatypeName);
         }
       } else {
         Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
         dtv.Ctor = ctor;
         if (ctor.Formals.Count != dtv.Arguments.Count) {
-          if (complain) reporter.Error(MessageSource.Resolver, dtv.tok, "wrong number of arguments to datatype constructor {0} (found {1}, expected {2})", ctor.Name, dtv.Arguments.Count, ctor.Formals.Count);
-          else {
-            return false;
+          ok = false;
+          if (complain) {
+            reporter.Error(MessageSource.Resolver, dtv.tok, "wrong number of arguments to datatype constructor {0} (found {1}, expected {2})", ctor.Name, dtv.Arguments.Count, ctor.Formals.Count);
           }
         }
       }
@@ -15766,7 +15783,7 @@ namespace Microsoft.Dafny
         }
         j++;
       }
-      return true;
+      return ok;
     }
 
     /// <summary>

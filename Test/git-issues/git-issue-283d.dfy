@@ -41,3 +41,14 @@ method Main() {
   x := m2(R(1));
   expect x == 2;
 }
+
+datatype Cell<T> = Cell(value: T)
+
+const X := 1
+method q() {
+  var c: Cell;  // note, type argument omitted; it will eventually be inferred
+  match c {
+    case Cell(X) => assert X == 1; // at this time, the type argument hasn't yet been inferred, but X is a const so it is not a variable
+    case Cell(_) =>     // if X is a const, then this case is not redundant
+  }
+}
