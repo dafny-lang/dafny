@@ -1,0 +1,3 @@
+NestedPatternsA.dfy(10,11): Error: parentheses are not allowed around a pattern
+NestedPatternsA.dfy(11,18): Error: parentheses are not allowed around a pattern
+2 parse errors detected in NestedPatternsA.dfy

@@ -687,7 +687,7 @@ namespace Microsoft.Dafny
         return new LitPattern(p.Tok, CloneExpr(p.OrigLit));
       } else if (pat is IdPattern) {
         var p = (IdPattern)pat;
-        return new IdPattern(p.Tok, p.Id, p.Arguments.ConvertAll(CloneExtendedPattern));
+        return new IdPattern(p.Tok, p.Id, p.Arguments == null ? null : p.Arguments.ConvertAll(CloneExtendedPattern));
       } else {
         Contract.Assert(false);
         return null;
