@@ -11430,6 +11430,7 @@ namespace Microsoft.Dafny
         for (int id = 0; id < mti.BranchIDCount.Length; id++) {
           if (mti.BranchIDCount[id] <= 0) {
             reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant ");
+            ResolveExpression(e.Cases.ElementAt(id).Body, new ResolveOpts(codeContext, false)); // TODO: what is the correct value for IsTwoState
           }
         }
       } else {
@@ -11476,6 +11477,7 @@ namespace Microsoft.Dafny
         for (int id = 0; id < mti.BranchIDCount.Length; id++) {
           if (mti.BranchIDCount[id] <= 0) {
             reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant");
+            s.Cases.ElementAt(id).Body.ForEach(s => ResolveStatement(s, codeContext));
           }
         }
       } else {
