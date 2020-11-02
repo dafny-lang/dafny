@@ -1,7 +1,7 @@
 ArrayElementInitResolution.dfy(16,26): Error: array-allocation initialization expression expected to have type 'int ~> real' (instead got 'real -> real') (contravariant type parameter 0 would require int <: real)
 ArrayElementInitResolution.dfy(23,23): Error: array-allocation initialization expression expected to have type 'int ~> D' (instead got 'D') (perhaps write '_ =>' in front of the expression you gave in order to make it an arrow type)
 ArrayElementInitResolution.dfy(38,33): Error: array-allocation initialization expression expected to have type '(int, int, int) ~> char' (instead got 'int -> char')
-ArrayElementInitResolution.dfy(55,31): Error: array-allocation initialization expression expected to have type '(int, int, int, int, int) ~> D' (instead got 'D') (perhaps write '(_,_,_,_,_) =>' in front of the expression you gave in order to make it an arrow type)
+ArrayElementInitResolution.dfy(55,31): Error: array-allocation initialization expression expected to have type '(int, int, int, int, int) ~> D' (instead got 'D') (perhaps write '(_, _, _, _, _) =>' in front of the expression you gave in order to make it an arrow type)
 ArrayElementInitResolution.dfy(64,25): Error: ghost fields are allowed only in specification contexts
 ArrayElementInitResolution.dfy(79,36): Error: initial value must be assignable to array's elements (expected 'int32', got 'int')
 ArrayElementInitResolution.dfy(86,34): Error: ghost variables are allowed only in specification contexts

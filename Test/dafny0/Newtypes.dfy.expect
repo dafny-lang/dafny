@@ -41,7 +41,7 @@ Execution trace:
     (0,0): anon44_Then
     (0,0): anon45_Then
     (0,0): anon25
-Newtypes.dfy(223,15): Error: new number of occurrences might be negative
+Newtypes.dfy(223,21): Error: new number of occurrences might be negative
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then

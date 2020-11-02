@@ -1,3 +1,5 @@
+<p></p> <!-- avoids duplicate title -->
+
 # Termination
 
 Dafny proves that all programs terminate. There are two

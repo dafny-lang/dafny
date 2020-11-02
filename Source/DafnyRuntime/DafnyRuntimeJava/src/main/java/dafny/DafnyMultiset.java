@@ -19,7 +19,12 @@ public class DafnyMultiset<T> {
         assert m != null : "Precondition Violation";
         innerMap = new HashMap<>();
         for (Map.Entry<T, BigInteger> e : m.entrySet()) {
-            put(e.getKey(), e.getValue());
+            BigInteger n = e.getValue();
+            int cmp = n.compareTo(BigInteger.ZERO);
+            assert 0 <= cmp : "Precondition Violation";
+            if (0 < cmp) {
+                innerMap.put(e.getKey(), n);
+            }
         }
     }
 
@@ -27,7 +32,7 @@ public class DafnyMultiset<T> {
         assert s != null : "Precondition Violation";
         innerMap = new HashMap<>();
         for (T t : s) {
-            increment(t, BigInteger.ONE);
+            incrementMultiplicity(t, BigInteger.ONE);
         }
     }
 
@@ -35,17 +40,17 @@ public class DafnyMultiset<T> {
         assert c != null : "Precondition Violation";
         innerMap = new HashMap<>();
         for (T t : c) {
-            increment(t, BigInteger.ONE);
+            incrementMultiplicity(t, BigInteger.ONE);
         }
     }
 
     // Adds all elements found in the list to a new DafnyMultiSet. The number of occurrences in the list becomes the
-    // multiplicity in the DafnyMultiSet
+    // multiplicity in the DafnyMultiset
     public DafnyMultiset(List<T> l) {
         assert l != null : "Precondition Violation";
         innerMap = new HashMap<>();
         for (T t : l) {
-            increment(t, BigInteger.ONE);
+            incrementMultiplicity(t, BigInteger.ONE);
         }
     }
 
@@ -63,122 +68,130 @@ public class DafnyMultiset<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> Type<DafnyMultiset<T>> _type(Type<T> elementType) {
+    public static <T> Type<DafnyMultiset<? extends T>> _type(Type<T> elementType) {
         // Fudge the type parameter; it's not great, but it's safe because
         // (for now) type descriptors are only used for default values
-        return Type.referenceWithInitializer(
-                (Class<DafnyMultiset<T>>) (Class<?>) DafnyMultiset.class,
-                DafnyMultiset::empty);
+        return Type.referenceWithDefault(
+                (Class<DafnyMultiset<? extends T>>) (Class<?>) DafnyMultiset.class,
+                DafnyMultiset.empty());
     }
 
     public BigInteger cardinality() {
-        BigInteger b = BigInteger.ZERO;
-        for (BigInteger big : innerMap.values()) {
-            b = b.add(big);
+        BigInteger sum = BigInteger.ZERO;
+        for (BigInteger m : innerMap.values()) {
+            sum = sum.add(m);
         }
-        return b;
+        return sum;
     }
 
+    // cardinalityInt should be called only if the cardinality is known to fit in an "int"
     public int cardinalityInt() {
-        int b = 0;
-        for (BigInteger big : innerMap.values()) {
-            b += big.intValue();
+        int sum = 0;
+        for (BigInteger m : innerMap.values()) {
+            sum += m.intValue();
         }
-        return b;
+        return sum;
     }
 
     // Determines if the current object is a subset of the DafnyMultiSet passed in. Requires that the input
-    // Dafny MultiSet is not null.
-    public boolean isSubsetOf(DafnyMultiset<T> other) {
+    // DafnyMultiset is not null.
+    public boolean isSubsetOf(DafnyMultiset other) {
         assert other != null : "Precondition Violation";
         for (Map.Entry<T, BigInteger> entry : innerMap.entrySet()) {
-            if (other.multiplicity(entry.getKey()).compareTo(entry.getValue()) < 0) return false;
+            if (multiplicity(other, entry.getKey()).compareTo(entry.getValue()) < 0) return false;
         }
         return true;
     }
 
     // Determines if the current object is a proper subset of the DafnyMultiSet passed in. Requires that the input
     // Dafny MultiSet is not null.
-    public boolean isProperSubsetOf(DafnyMultiset<T> other) {
+    public boolean isProperSubsetOf(DafnyMultiset other) {
         assert other != null : "Precondition Violation";
         return isSubsetOf(other) && this.cardinality().compareTo(other.cardinality()) < 0;
     }
 
-    public boolean contains(T t) {
+    public boolean contains(Object t) {
         // Relies on invariant that all keys have a positive multiplicity
         return innerMap.containsKey(t);
     }
 
-    public boolean disjoint(DafnyMultiset<T> other) {
+    public <U> boolean disjoint(DafnyMultiset<? extends U> other) {
         assert other != null : "Precondition Violation";
-        for (T t : other.innerMap.keySet()) {
-            if (innerMap.containsKey(t)) return false;
+        for (U u : other.innerMap.keySet()) {
+            if (innerMap.containsKey(u)) return false;
         }
         return true;
     }
 
-    public BigInteger multiplicity(T t) {
-        return innerMap.get(t) == null ? BigInteger.ZERO : innerMap.get(t);
+    public static <T> BigInteger multiplicity(DafnyMultiset<? extends T> th, T t) {
+        BigInteger m = th.innerMap.get(t);
+        return m == null ? BigInteger.ZERO : m;
     }
 
-    // Do we want to make this change so it is immutable?
-    public DafnyMultiset<T> update(T t, BigInteger b) {
+    public static <T> DafnyMultiset<T> update(DafnyMultiset<? extends T> th, T t, BigInteger b) {
+        assert th != null : "Precondition Violation";
         assert b != null && b.compareTo(BigInteger.ZERO) >= 0 : "Precondition Violation";
-        HashMap<T, BigInteger> copy = new HashMap<>(innerMap);
-        if (b.compareTo(BigInteger.ZERO) == 0) {
-            copy.remove(t);
-        } else {
-            copy.put(t, b);
-        }
-        return new DafnyMultiset<>(copy);
+        DafnyMultiset<T> copy = new DafnyMultiset<>(((DafnyMultiset<T>)th).innerMap);
+        copy.setMultiplicity(t, b);
+        return copy;
     }
 
-    public DafnyMultiset<T> union(DafnyMultiset<T> other) {
+    // destructively sets multiplicity of t to b; a negative value is treated as 0
+    private void setMultiplicity(T t, BigInteger b) {
+        assert b != null : "Precondition Violation";
+        if (b.compareTo(BigInteger.ZERO) > 0) {
+            innerMap.put(t, b);
+        } else {
+            innerMap.remove(t);
+        }
+    }
+
+    // destructively adds n (possibly negative) to value of t
+    private void incrementMultiplicity(T t, BigInteger b) {
+        assert b != null : "Precondition Violation";
+        setMultiplicity(t, multiplicity(this, t).add(b));
+    }
+
+    public static <T> DafnyMultiset<T> union(DafnyMultiset<? extends T> th, DafnyMultiset<? extends T> other) {
+        assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";
-        DafnyMultiset<T> u = new DafnyMultiset<>(innerMap);
-        for (Map.Entry<T, BigInteger> entry : other.innerMap.entrySet()) {
-            u.increment(entry.getKey(), entry.getValue());
+
+        DafnyMultiset<T> u = new DafnyMultiset<>(((DafnyMultiset<T>)th).innerMap);
+        for (Map.Entry<T, BigInteger> entry : ((DafnyMultiset<T>)other).innerMap.entrySet()) {
+            u.incrementMultiplicity(entry.getKey(), entry.getValue());
         }
         return u;
     }
 
     // Returns a DafnyMultiSet with multiplicities that are
     // max(this.multiplicity(e)-other.multiplicity(e), BigInteger.ZERO)
-    public DafnyMultiset<T> difference(DafnyMultiset<T> other) {
+    public static <T> DafnyMultiset<T> difference(DafnyMultiset<? extends T> th, DafnyMultiset<? extends T> other) {
+        assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";
-        DafnyMultiset<T> u = new DafnyMultiset<>(innerMap);
-        for (Map.Entry<T, BigInteger> entry : other.innerMap.entrySet()) {
-            u.increment(entry.getKey(), entry.getValue().negate());
+
+        DafnyMultiset<T> u = new DafnyMultiset<>(((DafnyMultiset<T>)th).innerMap);
+        for (Map.Entry<T, BigInteger> entry : ((DafnyMultiset<T>)other).innerMap.entrySet()) {
+            T key = entry.getKey();
+            BigInteger m0 = multiplicity(u, key);
+            BigInteger m1 = entry.getValue();
+            u.setMultiplicity(key, m0.subtract(m1));
         }
         return u;
     }
 
     // Returns a DafnyMultiSet with multiplicities that are min(this.multiplicity(e), other.multiplicity(e))
-    public DafnyMultiset<T> intersection(DafnyMultiset<T> other) {
+    public static <T> DafnyMultiset<T> intersection(DafnyMultiset<? extends T> th, DafnyMultiset<? extends T> other) {
+        assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";
+
         DafnyMultiset<T> u = new DafnyMultiset<>();
-        for (Map.Entry<T, BigInteger> entry : innerMap.entrySet()) {
-            u = u.update(entry.getKey(), entry.getValue().min(other.multiplicity(entry.getKey())));
+        for (Map.Entry<T, BigInteger> entry : ((DafnyMultiset<T>)th).innerMap.entrySet()) {
+            T key = entry.getKey();
+            BigInteger m0 = entry.getValue();
+            BigInteger m1 = multiplicity((DafnyMultiset<T>)other, key);
+            u.setMultiplicity(key, m0.min(m1));
         }
-
         return u;
-    }
-
-    //adds n (possibly negative) to value of t. Removes if sum <= 0.
-    public BigInteger increment(T t, BigInteger b) {
-        assert b != null : "Precondition Violation";
-        BigInteger n = b.negate().compareTo(multiplicity(t)) >= 0 ? BigInteger.ZERO : multiplicity(t).add(b);
-        put(t, n);
-        return n;
-    }
-
-    private void put(T t, BigInteger b){
-        assert b != null && b.compareTo(BigInteger.ZERO) >= 0 : "Precondition Violation";
-        if (b.compareTo(BigInteger.ZERO) == 0) {
-            innerMap.remove(t);
-        } else {
-            innerMap.put(t, b);
-        }
     }
 
     public Iterable<T> Elements(){
@@ -194,7 +207,6 @@ public class DafnyMultiset<T> {
     public Iterable<T> UniqueElements(){
         return innerMap.keySet();
     }
-
 
     @Override
     protected Object clone() throws CloneNotSupportedException {

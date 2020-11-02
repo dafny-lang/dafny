@@ -263,3 +263,12 @@ module Allocated1 {
     fresh(d)  // this value depends on the pre-state, but it's allowed in any case because the pre-state is non-variant in the frame axiom
   }
 }
+
+module FiniteBecauseOfType {
+  method M() {
+    ghost var s := set x: int | true :: false;  // this denotes a finite set, because the argument type is bool
+    ghost var m := map x: int | true :: true := 6;  // this denotes a finite map, because the key type is bool
+    var s'; s' := set x: int | true :: false;  // error: although this is a finite set, it's not clear it can be computed in finite time
+    var m'; m' := map x: int | true :: true := 6;  // error: ditto
+  }
+}
