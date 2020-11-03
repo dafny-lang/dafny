@@ -10559,7 +10559,7 @@ namespace Microsoft.Dafny
       } else if (stmt is NestedMatchStmt) {
         var s = (NestedMatchStmt)stmt;
         var opts = new ResolveOpts(codeContext, false);
-        ResolveNestedMatchStmt(s, codeContext, opts);
+        ResolveNestedMatchStmt(s, opts);
       } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;
         reporter.Error(MessageSource.Resolver, s.Tok, "skeleton statements are allowed only in refining methods");
@@ -10617,7 +10617,8 @@ namespace Microsoft.Dafny
     /// 2 - desugaring it into a decision tree of MatchStmt and IfStmt (for constant matching)
     /// 3 - resolving the generated (sub)statement.
     /// </summary>
-    void ResolveNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext, ResolveOpts opts) {
+    void ResolveNestedMatchStmt(NestedMatchStmt s, ResolveOpts opts) {
+      ICodeContext codeContext = opts.codeContext;
       Contract.Requires(s != null);
       Contract.Requires(codeContext != null);
       Contract.Requires(s.ResolvedStatement == null);
@@ -10645,7 +10646,7 @@ namespace Microsoft.Dafny
       if (reporter.Count(ErrorLevel.Error) != errorCount) return;
 
       errorCount = reporter.Count(ErrorLevel.Error);
-      CompileNestedMatchStmt(s, codeContext);
+      CompileNestedMatchStmt(s, opts);
       if (reporter.Count(ErrorLevel.Error) != errorCount) return;
 
       enclosingStatementLabels.PushMarker();
@@ -11403,7 +11404,10 @@ namespace Microsoft.Dafny
         for (int id = 0; id < mti.BranchIDCount.Length; id++) {
           if (mti.BranchIDCount[id] <= 0) {
             reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant ");
+            scope.PushMarker();
+            CheckLinearNestedMatchCase(e.Source.Type, e.Cases.ElementAt(id), opts);
             ResolveExpression(e.Cases.ElementAt(id).Body, opts);
+            scope.PopMarker();
           }
         }
       } else {
@@ -11418,7 +11422,8 @@ namespace Microsoft.Dafny
     /// Input is an unresolved NestedMatchStmt with potentially nested, overlapping patterns
     /// On output, the NestedMatchStmt has field ResolvedStatement filled with semantically equivalent code
     /// </summary>
-    private void CompileNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
+    private void CompileNestedMatchStmt(NestedMatchStmt s, ResolveOpts opts) {
+      ICodeContext codeContext = opts.codeContext;
       if (s.ResolvedStatement != null) {
         //post-resolve, skip
         return;
@@ -11450,7 +11455,10 @@ namespace Microsoft.Dafny
         for (int id = 0; id < mti.BranchIDCount.Length; id++) {
           if (mti.BranchIDCount[id] <= 0) {
             reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant");
+            scope.PushMarker();
+            CheckLinearNestedMatchCase(s.Source.Type, s.Cases.ElementAt(id), opts);
             s.Cases.ElementAt(id).Body.ForEach(s => ResolveStatement(s, codeContext));
+            scope.PopMarker();
           }
         }
       } else {

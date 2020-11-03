@@ -20,3 +20,16 @@ method Moo(c: Color) returns (x: int) {
   case Red =>
 }
 
+datatype Bar = Bar(value: int)
+function method Zoo(b: Bar, x: real): int requires b.value == 4 {
+  match b
+  case Bar(_) => 4
+  case Bar(x) => assert x == 4; 5
+}
+
+method Coo(b: Bar) {
+  var x: real;
+  match b
+  case Bar(_) =>
+  case Bar(x) => print x+1;
+}
