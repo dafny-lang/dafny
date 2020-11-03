@@ -448,37 +448,50 @@ Notes
   + used by CompileFunctionCallExpr, for both TP and TD
 
 
-                                   type parameters       type descriptors
-newtype
-  const
-  function<B(0)>                      B                     B
-  method<B(0)>                        B                     B
-  static const
-  static function<B(0)>               B                     B
-  static method<B(0)>                 B                     B
+------------------------------------
 
-datatype<A(0)>
-  const
-  function<B(0)>                      B                     A,B
-  method<B(0)>                        B                     A,B
-  static const
-  static function<B(0)>               A,B                   A,B
-  static method<B(0)>                 A,B                   A,B
+In the following table, the rows show instance and static members (`const`/`function`/`method`) of
+the types that support members. The type is shown with a type parameter `A(0)` (except `newtype`,
+which doesn't take any type parameters). Each member is also shown with a type parameter `B(0)`
+(except `const`, which doesn't take any type parameters).
 
-trait<A(0)>
-  const
-  function<B(0)>                      B                    B
-  method<B(0)>                        B                    B
-  static const
-  static function<B(0)>               A,B                  A,B
-  static method<B(0)>                 A,B                  A,B
+For some target languages, the target type for traits does not allow implementations. In those
+cases, the target type has a signature for the member and the implementation is relegated to
+the companion class. This is reflected in the table by having two rows for instance members of
+traits.
 
-class<A(0)>
-  const
-  function<B(0)>                      B                    B
-  method<B(0)>                        B                    B
-  static const
-  static function<B(0)>               B                    A,B
-  static method<B(0)>                 B                    A,B
+For each row, the "TP" column shows which of the Dafny type parameters contribute to the type
+parameters in the target language, and the "TD" column shows which of the Dafny type parameters
+contribute to the type descriptors in the target code.
 
-*) type descriptors for functions don't actually seem necessary
+If `A` is missing from a "TP" column, it means that either the type parameter is available from
+the enclosing type or the target language doesn't support type parameters. If `A` is missing from
+a "TD" column, it means that the type descriptor is available via the receiver `this`.
+
+                                    | C#        | Java      | JavaScript | Go        |
+TYPE                                | TP  | TD  | TP  | TD  | TP  | TD   | TP  | TD  |
+------------------------------------|-----|-----|-----|-----|-----|------|-----|-----|
+`newtype`
+  instance member `<B(0)>`          | B   | B   | B   | B   |     | B    |     | B   |
+  static member `<B(0)>`            | B   | B   | B   | B   |     | B    |     | B   |
+
+`datatype<A(0)>`
+  instance member `<B(0)>`          | B   | A,B | B   | A,B |     | A,B  |     | A,B |
+  static member `<B(0)>`            | B   | A,B | A,B | A,B |     | A,B  |     | A,B |
+
+`trait<A(0)>`
+  instance member `<B(0)>`          | B   | B   | B   | B   |     | B    |     | B   |
+  instance member `<B(0)>` rhs/body | B   | A,B | B   | A,B | N/A | N/A  |     | A,B |
+  static member `<B(0)>`            | B   | A,B | A,B | A,B |     | A,B  |     | A,B |
+
+`class<A(0)>`
+  instance member `<B(0)>`          | B   | B   | B   | B   |     | B    |     | B   |
+  static member `<B(0)>`            | B   | A,B | A,B | A,B |     | A,B  |     | A,B |
+
+*) type descriptors for functions don't actually seem necessary (but if functions have them,
+then const's need them, too)
+
+If the type parameters `A` and `B` does not have the `(0)` characteristic, then it is dropped
+from the TD column.
+
+This table is implemented in the `TypeArgDescUse` method in the compiler.

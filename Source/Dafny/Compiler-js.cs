@@ -569,11 +569,11 @@ namespace Microsoft.Dafny {
         this.FieldWriter = fieldWriter;
       }
 
-      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, bool forBodyInheritance) {
-        return Compiler.CreateMethod(m, typeArgs, createBody, MethodWriter, forBodyInheritance);
+      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+        return Compiler.CreateMethod(m, typeArgs, createBody, MethodWriter, forBodyInheritance, lookasideBody);
       }
-      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance) {
-        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, MethodWriter, forBodyInheritance);
+      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
+        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, MethodWriter, forBodyInheritance, lookasideBody);
       }
       public BlockTargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
         return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, MethodWriter);
@@ -593,20 +593,22 @@ namespace Microsoft.Dafny {
 
     protected override bool SupportsStaticsInGenericClasses => false;
 
-    protected BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, TargetWriter wr, bool forBodyInheritance) {
+    protected BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, TargetWriter wr, bool forBodyInheritance, bool lookasideBody) {
       if (!createBody) {
         return null;
       }
 
       var customReceiver = !forBodyInheritance && NeedsCustomReceiver(m);
       wr.Write("{0}{1}(", m.IsStatic || customReceiver ? "static " : "", IdName(m));
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(typeArgs, false, wr);
+      var sep = "";
+      WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
       if (customReceiver) {
         var nt = m.EnclosingClass;
         var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
-        DeclareFormal(nTypes != 0 ? ", " : "", "_this", receiverType, m.tok, true, wr);
+        DeclareFormal(sep, "_this", receiverType, m.tok, true, wr);
+        sep = ", ";
       }
-      int nIns = WriteFormals(nTypes != 0 || customReceiver ? ", " : "", m.Ins, wr);
+      WriteFormals(sep, m.Ins, wr);
       var w = wr.NewBlock(")");
 
       if (!m.IsStatic && !customReceiver) {
@@ -622,20 +624,22 @@ namespace Microsoft.Dafny {
       return wr;
     }
 
-    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr, bool forBodyInheritance) {
+    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr, bool forBodyInheritance, bool lookasideBody) {
       if (!createBody) {
         return null;
       }
 
       var customReceiver = !forBodyInheritance && NeedsCustomReceiver(member);
       wr.Write("{0}{1}(", isStatic || customReceiver ? "static " : "", name);
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(typeArgs, false, wr);
+      var sep = "";
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(member, ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.CompileName}");
       if (customReceiver) {
         var nt = member.EnclosingClass;
         var receiverType = UserDefinedType.FromTopLevelDecl(tok, nt);
-        DeclareFormal(nTypes != 0 ? ", " : "", "_this", receiverType, tok, true, wr);
+        DeclareFormal(sep, "_this", receiverType, tok, true, wr);
+        sep = ", ";
       }
-      int nIns = WriteFormals(nTypes != 0 || customReceiver ? ", " : "", formals, wr);
+      WriteFormals(sep, formals, wr);
       var w = wr.NewBlock(")", ";");
       if (!isStatic && !customReceiver) {
         w.WriteLine("let _this = this;");
@@ -650,7 +654,7 @@ namespace Microsoft.Dafny {
       int c = 0;
       foreach (var tp in typeParams) {
         if (useAllTypeArgs || NeedsTypeDescriptor(tp)) {
-          wr.Write("{0}{1}", prefix, "rtd$_" + tp.CompileName);
+          wr.Write($"{prefix}rtd$_{tp.CompileName}");
           prefix = ", ";
           c++;
         }

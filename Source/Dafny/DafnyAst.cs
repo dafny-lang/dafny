@@ -9535,10 +9535,14 @@ namespace Microsoft.Dafny {
       var subst = new Dictionary<TypeParameter, Type>();
 
       // Add the mappings from the member's own type parameters
-      if (member is ICallable icallable) {
-        Contract.Assert(typeApplicationMember.Count == icallable.TypeArgs.Count);
-        for (var i = 0; i < icallable.TypeArgs.Count; i++) {
-          subst.Add(icallable.TypeArgs[i], typeApplicationMember[i]);
+      if (member is ICallable) {
+        // Make sure to include the member's type parameters all the way up the inheritance chain
+        for (var ancestor = member; ancestor != null; ancestor = ancestor.OverriddenMember) {
+          var icallable = (ICallable)ancestor;
+          Contract.Assert(typeApplicationMember.Count == icallable.TypeArgs.Count);
+          for (var i = 0; i < icallable.TypeArgs.Count; i++) {
+            subst.Add(icallable.TypeArgs[i], typeApplicationMember[i]);
+          }
         }
       } else {
         Contract.Assert(typeApplicationMember.Count == 0);

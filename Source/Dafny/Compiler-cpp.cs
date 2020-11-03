@@ -678,11 +678,11 @@ namespace Microsoft.Dafny {
         this.Finisher = finisher;
       }
 
-      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, bool forBodyInheritance) {
-        return Compiler.CreateMethod(m, createBody, MethodDeclWriter, MethodWriter, forBodyInheritance);
+      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+        return Compiler.CreateMethod(m, typeArgs, createBody, MethodDeclWriter, MethodWriter, lookasideBody);
       }
-      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance) {
-        return Compiler.CreateFunction(member.EnclosingClass.CompileName, member.EnclosingClass.TypeArgs, name, typeArgs, formals, resultType, tok, isStatic, createBody, MethodDeclWriter, MethodWriter);
+      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
+        return Compiler.CreateFunction(member.EnclosingClass.CompileName, member.EnclosingClass.TypeArgs, name, typeArgs, formals, resultType, tok, isStatic, createBody, member, MethodDeclWriter, MethodWriter, lookasideBody);
       }
       public BlockTargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
         return Compiler.CreateGetter(name, enclosingDecl, resultType, tok, isStatic, isConst, createBody, MethodDeclWriter, MethodWriter);
@@ -700,7 +700,7 @@ namespace Microsoft.Dafny {
       public void Finish() { }
     }
 
-    protected BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, BlockTargetWriter wdr, TargetWriter wr, bool forBodyInheritance) {
+    protected BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, BlockTargetWriter wdr, TargetWriter wr, bool lookasideBody) {
       List<Formal> nonGhostOuts = m.Outs.Where(o => !o.IsGhost).ToList();
       string targetReturnTypeReplacement = null;
       if (nonGhostOuts.Count == 1) {
@@ -713,9 +713,10 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      if (m.TypeArgs.Count != 0) {
-        wdr.WriteLine(DeclareTemplate(m.TypeArgs));
-        wr.WriteLine(DeclareTemplate(m.TypeArgs));
+      if (typeArgs.Count != 0) {
+        var formalTypeParameters = TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, m, lookasideBody));
+        wdr.WriteLine(DeclareTemplate(formalTypeParameters));
+        wr.WriteLine(DeclareTemplate(formalTypeParameters));
       }
 
       if (m.EnclosingClass.TypeArgs != null && m.EnclosingClass.TypeArgs.Count > 0) {
@@ -753,17 +754,18 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected BlockTargetWriter/*?*/ CreateFunction(string className,  List<TypeParameter> classArgs, string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, BlockTargetWriter wdr, TargetWriter wr) {
+    protected BlockTargetWriter/*?*/ CreateFunction(string className, List<TypeParameter> classArgs, string name, List<TypeArgumentInstantiation>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, BlockTargetWriter wdr, TargetWriter wr, bool lookasideBody) {
       if (!createBody) {
         return null;
       }
 
       if (typeArgs.Count != 0) {
-        wdr.WriteLine(DeclareTemplate(typeArgs));
-        wr.WriteLine(DeclareTemplate(typeArgs));
+        var formalTypeParameters = TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, member, lookasideBody));
+        wdr.WriteLine(DeclareTemplate(formalTypeParameters));
+        wr.WriteLine(DeclareTemplate(formalTypeParameters));
       }
       if (classArgs != null && classArgs.Count != 0) {
-        wr.WriteLine(DeclareTemplate(typeArgs));
+        wr.WriteLine(DeclareTemplate(classArgs));
       }
 
       wdr.Write("{0}{1} {2}",
