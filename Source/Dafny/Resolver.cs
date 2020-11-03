@@ -3792,8 +3792,7 @@ namespace Microsoft.Dafny
         AddAssignableConstraint(tok, A[1], B[1], em);
         moreXConstraints = true;
       } else if (typeHead is CollectionType) {
-        var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter expects {1} <: {0}", A[0],
-          B[0]);
+        var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "covariance for type parameter expects {1} <: {0}", A[0], B[0]);
         AddAssignableConstraint(tok, A[0], B[0], em);
         moreXConstraints = true;
       } else {
