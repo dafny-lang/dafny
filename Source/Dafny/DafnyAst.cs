@@ -4434,6 +4434,14 @@ namespace Microsoft.Dafny {
       : this(systemModule, CreateCovariantTypeParameters(dims), attributes) {
       Contract.Requires(0 <= dims);
       Contract.Requires(systemModule != null);
+
+      // Resolve the type parameters here
+      Contract.Assert(TypeArgs.Count == dims);
+      for (var i = 0; i < dims; i++) {
+        var tp = TypeArgs[i];
+        tp.Parent = this;
+        tp.PositionalIndex = i;
+      }
     }
 
     private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, Attributes attributes)
