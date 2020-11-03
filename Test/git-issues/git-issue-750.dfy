@@ -8,7 +8,17 @@ method m() {
   b := a;
   a := b;
   mm(b, a);
-  print "Done\n";
 }
 
 method mm(x: array<nat>, y: array<int>) {}
+
+method q() {
+
+  var a: seq<nat>;
+  var b: seq<int>;
+  b := a;
+  a := b;
+  qq(b, a);
+}
+
+method qq(x: seq<nat>, y: seq<int>) {}
