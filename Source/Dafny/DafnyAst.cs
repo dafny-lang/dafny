@@ -1392,7 +1392,8 @@ namespace Microsoft.Dafny {
       } else {
         var udtT = (UserDefinedType)t;
         var udtU = u as UserDefinedType;
-        return udtU != null && udtT.ResolvedClass == udtU.ResolvedClass;
+        return udtU != null && (udtT.ResolvedClass == udtU.ResolvedClass
+                   || (udtU.ResolvedClass is NonNullTypeDecl nudtU && udtT.ResolvedClass == nudtU.Class));
       }
     }
 

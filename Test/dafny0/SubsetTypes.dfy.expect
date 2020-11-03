@@ -187,22 +187,6 @@ SubsetTypes.dfy(289,11): Error: value does not satisfy the subset constraints of
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Then
-SubsetTypes.dfy(300,11): Error: value does not satisfy the subset constraints of 'Cell<Person>' (possible cause: it may be null)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon14_Then
-SubsetTypes.dfy(302,11): Error: value does not satisfy the subset constraints of 'Cell<Person?>' (possible cause: it may be null)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon15_Then
-SubsetTypes.dfy(306,11): Error: value does not satisfy the subset constraints of 'Cell<Person?>' (possible cause: it may be null)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-SubsetTypes.dfy(308,11): Error: value does not satisfy the subset constraints of 'Cell<Person>' (possible cause: it may be null)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon18_Then
 SubsetTypes.dfy(326,28): Error: value does not satisfy the subset constraints of 'byte'
 Execution trace:
     (0,0): anon0
@@ -327,4 +311,4 @@ SubsetTypes.dfy(455,9): Error: value does not satisfy the subset constraints of 
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 11 verified, 88 errors
+Dafny program verifier finished with 11 verified, 84 errors
