@@ -204,7 +204,7 @@ module AssignmentsFromNewAllocation {
     b := new Person[N](_ => p);
     b := new Person[N](_ => null);  // error: null is not a Person
   }
-/* Type errors -- cf SubsetTypesERR.dfy
+
   method K(p: Person) returns (a: array<Person?>, b: array<Person>) {
     if * {
       a := new Person[0];  // error: cannot assign array<Person> to array<Person?>
@@ -228,21 +228,21 @@ module AssignmentsFromNewAllocation {
       b := a;  // error: ditto
     }
   }
-*/
+
   method M(N: nat, p: Person) {
     var a: array<Person?>;
     var b: array<Person>;
     if * {
-      // a := b;  // error
+      a := b;  // error
     } else if * {
-      // b := a;  // error
+      b := a;  // error
     } else if * {
       a := new Person?[N](_ => p);
-      // b := a;  // error
+      b := a;  // error
     } else if * {
-      // a := new Person[N](_ => p);  // error: cannot assign array<Person> to array<Person?>
+      a := new Person[N](_ => p);  // error: cannot assign array<Person> to array<Person?>
     } else if * {
-      // b := new Person?[N](_ => p);  // error: cannot assign array<Person?> to array<Person>
+      b := new Person?[N](_ => p);  // error: cannot assign array<Person?> to array<Person>
     }
   }
 
@@ -252,16 +252,16 @@ module AssignmentsFromNewAllocation {
     var d := new Person?[1];
     if * {
       assume b.Length == 0;  // the next line is an error even in this case
-      // a := b;  // error
+      a := b;  // error
     } else if * {
       assume a.Length == 0;  // the next line is an error even in this case
-      // b := a;  // error
+      b := a;  // error
     } else if * {
       a := c;
-      b := c;  // error -- FIXME why is this not a type error
+      b := c;  // error
     } else if * {
       b := d;
-      a := d;  // error -- FIXME why is this not a type error
+      a := d;  // error
     }
   }
 
@@ -297,15 +297,15 @@ module AssignmentsFromNewAllocation {
     if * {
       c := new Cell<Person?>;
     } else if * {
-      // d := new Cell<Person?>;  // error: Cell<Person?> is not assignable to Cell<Person>
+      d := new Cell<Person?>;  // error: Cell<Person?> is not assignable to Cell<Person>
     } else if * {
-      // c := new Cell<Person>;  // error: Cell<Person> is not assignable to Cell<Person?>
+      c := new Cell<Person>;  // error: Cell<Person> is not assignable to Cell<Person?>
     } else if * {
       d := new Cell<Person>;
     } else if * {
-      // c := dd;  // error: Cell<Person> is not assignable to Cell<Person?>
+      c := dd;  // error: Cell<Person> is not assignable to Cell<Person?>
     } else if * {
-      // d := cc;  // error: Cell<Person?> is not assignable to Cell<Person>
+      d := cc;  // error: Cell<Person?> is not assignable to Cell<Person>
     }
   }
 }

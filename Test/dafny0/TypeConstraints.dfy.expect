@@ -15,6 +15,10 @@ TypeConstraints.dfy(149,16): Error: type of + must be of a numeric type, a bitve
 TypeConstraints.dfy(176,6): Error: RHS (of type C) not assignable to LHS (of type R)
 TypeConstraints.dfy(182,6): Error: RHS (of type object) not assignable to LHS (of type C)
 TypeConstraints.dfy(188,6): Error: RHS (of type object) not assignable to LHS (of type R)
+TypeConstraints.dfy(426,8): Error: type array<nat> is not assignable to LHS (of type array<int>) (nonvariance for type parameter expects nat <: int)
+TypeConstraints.dfy(428,8): Error: type array<int> is not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects int <: nat)
+TypeConstraints.dfy(431,8): Error: RHS (of type array<int>) not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects int <: nat)
+TypeConstraints.dfy(433,8): Error: RHS (of type array<nat>) not assignable to LHS (of type array<int>) (nonvariance for type parameter expects nat <: int)
 // TypeConstraints.dfy
 
 /*
@@ -798,6 +802,36 @@ module Arrays_and_SubsetTypes {
   }
 }
 
+module Arrays_and_SubsetTypesOK {
+  /* CALL GRAPH for module Arrays_and_SubsetTypesOK:
+   * SCC at height 2:
+   *   M
+   * SCC at height 1:
+   *   array
+   * SCC at height 0:
+   *   nat
+   */
+  method M()
+  {
+    var a: array<nat>;
+    var b: array<int>;
+    if * {
+      a := new nat[100];
+    } else if * {
+      b := new int[100];
+    } else if * {
+    } else if * {
+    } else if * {
+      var n: array<nat> := new nat[100];
+      if * {
+        a := n;
+      } else {
+        b := n;
+      }
+    }
+  }
+}
+
 module TypeArgumentPrintTests {
   /* CALL GRAPH for module TypeArgumentPrintTests:
    * SCC at height 3:
@@ -848,4 +882,4 @@ module TypeArgumentPrintTests {
   type {:axiom} B(==)<Y> = c: B?<Y> | c != null /*special witness*/
   */
 }
-17 resolution/type errors detected in TypeConstraints.dfy
+21 resolution/type errors detected in TypeConstraints.dfy

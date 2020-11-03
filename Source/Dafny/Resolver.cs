@@ -3768,7 +3768,9 @@ namespace Microsoft.Dafny
         var lhsWithProxyArgs = Type.HeadWithProxyArgs(lhs);
         ConstrainSubtypeRelation(lhsWithProxyArgs, rhs, errMsg, false, allowDecisions);
         ConstrainAssignableTypeArgs(lhs, lhsWithProxyArgs.TypeArgs, lhs.TypeArgs, errMsg, out moreXConstraints);
-        ConstrainAssignableTypeArgs(lhs, lhs.TypeArgs, rhs.TypeArgs, errMsg, out moreXConstraints);
+        if (lhs.IsArrayType) {
+          ConstrainAssignableTypeArgs(lhs, lhs.TypeArgs, rhs.TypeArgs, errMsg, out moreXConstraints);
+        }
       }
     }
 
