@@ -1374,7 +1374,7 @@ namespace Microsoft.Dafny {
     /// It is assumed that t and u have been normalized and expanded by the caller, according
     /// to its purposes.
     /// </summary>
-    public static bool SameHead(Type t, Type u) {
+    public static bool SameHead(Type t, Type u, bool allowNonNull = false) {
       Contract.Requires(t != null);
       Contract.Requires(u != null);
       if (t is TypeProxy) {
@@ -1393,7 +1393,7 @@ namespace Microsoft.Dafny {
         var udtT = (UserDefinedType)t;
         var udtU = u as UserDefinedType;
         return udtU != null && (udtT.ResolvedClass == udtU.ResolvedClass
-                   || (udtU.ResolvedClass is NonNullTypeDecl nudtU && udtT.ResolvedClass == nudtU.Class));
+                   || (allowNonNull && udtU.ResolvedClass is NonNullTypeDecl nudtU && udtT.ResolvedClass == nudtU.Class));
       }
     }
 
