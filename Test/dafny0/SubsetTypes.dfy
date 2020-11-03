@@ -297,15 +297,15 @@ module AssignmentsFromNewAllocation {
     if * {
       c := new Cell<Person?>;
     } else if * {
-      // d := new Cell<Person?>;  // error: Cell<Person?> is not assignable to Cell<Person>
+      d := new Cell<Person?>;  // error: Cell<Person?> is not assignable to Cell<Person>
     } else if * {
-      // c := new Cell<Person>;  // error: Cell<Person> is not assignable to Cell<Person?>
+      c := new Cell<Person>;  // error: Cell<Person> is not assignable to Cell<Person?>
     } else if * {
       d := new Cell<Person>;
     } else if * {
-      // c := dd;  // error: Cell<Person> is not assignable to Cell<Person?>
+      c := dd;  // error: Cell<Person> is not assignable to Cell<Person?>
     } else if * {
-      // d := cc;  // error: Cell<Person?> is not assignable to Cell<Person>
+      d := cc;  // error: Cell<Person?> is not assignable to Cell<Person>
     }
   }
 }
