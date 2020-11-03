@@ -7,10 +7,10 @@ all: runtime boogie exe refman
 exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
 
-boogie: ${DIR}/../boogie/Binaries/Boogie.exe
+boogie: ${DIR}/Source/boogie/Binaries/Boogie.exe
 
-${DIR}/../boogie/Binaries/Boogie.exe:
-	(cd ${DIR}/../boogie ; msbuild Source/Boogie.sln )
+${DIR}/Source/boogie/Binaries/Boogie.exe:
+	(cd ${DIR}/../boogie ; dotnet build Source/boogie/Source/Boogie.sln )
 
 parser:
 	make -C ${DIR}/Source/Dafny -f Makefile.linux all
@@ -32,7 +32,7 @@ z3-ubuntu:
 	mv z3-4.8.4.d6df51951f4c-x64-ubuntu-16.04 ${DIR}/Binaries/z3
 
 clean:
-	(cd ${DIR} ; msbuild Source/Dafny.sln -target:clean )
+	(cd ${DIR} ; dotnet build Source/Dafny.sln -target:clean )
 	make -C ${DIR}/Source/Dafny -f Makefile.Linux clean
 	(cd ${DIR}/Source/DafnyRuntime/DafnyRuntimeJava; ./gradlew clean)
 	make -C ${DIR}/docs/DafnyReferenceManual clean
