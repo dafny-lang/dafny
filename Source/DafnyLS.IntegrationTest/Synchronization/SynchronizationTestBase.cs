@@ -9,7 +9,7 @@ namespace DafnyLS.IntegrationTest.Synchronization {
   public class SynchronizationTestBase : DafnyLanguageServerTestBase {
     protected ILanguageClient Client { get; private set; }
 
-    protected Task ApplyChangeAndWaitCompletionAsync(TextDocumentItem documentItem, Range range, int rangeLength, string newText) {
+    protected Task ApplyChangeAndWaitCompletionAsync(TextDocumentItem documentItem, Range range, string newText) {
       Client.DidChangeTextDocument(new DidChangeTextDocumentParams {
         TextDocument = new VersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
@@ -18,8 +18,7 @@ namespace DafnyLS.IntegrationTest.Synchronization {
         ContentChanges = new[] {
           new TextDocumentContentChangeEvent {
             Text = newText,
-            Range = range,
-            RangeLength = rangeLength
+            Range = range
           }
         }
       });

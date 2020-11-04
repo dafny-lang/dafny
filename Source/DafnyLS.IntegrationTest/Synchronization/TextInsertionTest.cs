@@ -23,7 +23,6 @@ function GetConstant2(): int {
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((0, 0), (0, 0)),
-        0,
         change
       );
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
@@ -55,7 +54,6 @@ function GetConstant2(): int {
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((4, 0), (4, 0)),
-        0,
         change
       );
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
@@ -91,7 +89,6 @@ function GetConstant2(): int {
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((4, 0), (4, 0)),
-        0,
         change
       );
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
@@ -122,7 +119,6 @@ function GetConstant(): int {
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((0, 12), (0, 12)),
-        0,
         change
       );
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
@@ -149,7 +145,6 @@ function Some";
       await ApplyChangeAndWaitCompletionAsync(
         documentItem,
         new Range((0, 12), (0, 12)),
-        0,
         change
       );
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
