@@ -6,8 +6,6 @@ using System.Threading.Tasks;
 namespace DafnyLS.IntegrationTest.Synchronization {
   [TestClass]
   public class TextReplacementTest : SynchronizationTestBase {
-    // TODO Should RangeLength include line breaks?
-
     [TestMethod]
     public async Task ReplaceSingleLineTextAtStart() {
       var source = @"
