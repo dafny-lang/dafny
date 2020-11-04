@@ -13,6 +13,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// any access is synchronized. Moreover, it ensures that exactly one instance exists over the whole
   /// application lifetime.
   /// </summary>
+  /// <remarks>
+  /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
+  /// this verifier serializes all invocations.
+  /// </remarks>
   public class DafnyProgramVerifier : IProgramVerifier {
     private static readonly object _initializationSyncObject = new object();
     private static bool _initialized;
