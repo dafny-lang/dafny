@@ -681,7 +681,7 @@ namespace Microsoft.Dafny {
       var c = 0;
       foreach (var ta in typeArgs) {
         if (useAllTypeArgs || NeedsTypeDescriptor(ta.Formal)) {
-          wr.Write("{0}{1}", sep, RuntimeTypeDescriptor(ta.Actual, tok, wr));
+          wr.Write("{0}{1}", sep, TypeDescriptor(ta.Actual, wr, tok));
           sep = ", ";
           c++;
         }
@@ -689,7 +689,7 @@ namespace Microsoft.Dafny {
       return c;
     }
 
-    string RuntimeTypeDescriptor(Type type, Bpl.IToken tok, TextWriter wr, bool inAutoInitContext = false) {
+    string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok, bool inAutoInitContext = false) {
       Contract.Requires(type != null);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
@@ -892,7 +892,7 @@ namespace Microsoft.Dafny {
         if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
           return "undefined";
         } else {
-          return string.Format("{0}.Default", RuntimeTypeDescriptor(udt, udt.tok, wr, inAutoInitContext));
+          return string.Format("{0}.Default", TypeDescriptor(udt, wr, udt.tok, inAutoInitContext));
         }
       }
       var cl = udt.ResolvedClass;
@@ -1545,7 +1545,7 @@ namespace Microsoft.Dafny {
           suffixWr.Write("(");
           var suffixSep = "";
           foreach (var ta in typeArgs) {
-            suffixWr.Write("{0}{1}", suffixSep, RuntimeTypeDescriptor(ta.Actual, fn.tok, suffixWr));
+            suffixWr.Write("{0}{1}", suffixSep, TypeDescriptor(ta.Actual, suffixWr, fn.tok));
             suffixSep = ", ";
           }
           if (additionalCustomParameter != null) {
@@ -1578,7 +1578,7 @@ namespace Microsoft.Dafny {
             var end = "";
             foreach (var ta in ForTypeDescriptors(typeArgs, member, false)) {
               if (NeedsTypeDescriptor(ta.Formal)) {
-                w.Write($"{sep}{RuntimeTypeDescriptor(ta.Actual, ta.Formal.tok, w)}");
+                w.Write($"{sep}{TypeDescriptor(ta.Actual, w, ta.Formal.tok)}");
                 sep = ", ";
                 end = ")";
               }
@@ -1602,7 +1602,7 @@ namespace Microsoft.Dafny {
             var end = "";
             foreach (var ta in ForTypeDescriptors(typeArgs, member, false)) {
               if (NeedsTypeDescriptor(ta.Formal)) {
-                w.Write($"{sep}{RuntimeTypeDescriptor(ta.Actual, ta.Formal.tok, w)}");
+                w.Write($"{sep}{TypeDescriptor(ta.Actual, w, ta.Formal.tok)}");
                 sep = ", ";
                 end = ")";
               }
