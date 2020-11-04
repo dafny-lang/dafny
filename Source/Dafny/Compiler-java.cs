@@ -1296,7 +1296,9 @@ namespace Microsoft.Dafny{
         Contract.Assert(member is Field);
         if (member.IsStatic) {
           return SimpleLvalue(w => {
-            w.Write("{0}.{1}()", TypeName_Companion(objType, w, member.tok, member), IdName(member));
+            w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w);
+            w.Write(")");
           });
         } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
           // instance const in a newtype
@@ -1311,7 +1313,12 @@ namespace Microsoft.Dafny{
         } else if (internalAccess) {
           return SuffixLvalue(obj, $".{IdName(member)}");
         } else if (member is ConstantField) {
-          return SuffixLvalue(obj, $".{IdName(member)}()");
+          return SimpleLvalue(w => {
+            obj(w);
+            w.Write(".{0}(", IdName(member));
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w);
+            w.Write(")");
+          });
         } else if (member.EnclosingClass is TraitDecl) {
           return GetterSetterLvalue(obj, IdName(member), $"set_{IdName(member)}");
         } else {
@@ -2345,8 +2352,8 @@ namespace Microsoft.Dafny{
         needsTypeParameter = isStatic;
         needsTypeDescriptor = true;
       } else if (cl is TraitDecl) {
-        needsTypeParameter = isStatic;
-        needsTypeDescriptor = isStatic;
+        needsTypeParameter = isStatic || lookasideBody;
+        needsTypeDescriptor = isStatic || lookasideBody;
       } else {
         Contract.Assert(cl is ClassDecl);
         needsTypeParameter = isStatic;

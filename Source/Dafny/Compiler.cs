@@ -822,17 +822,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected virtual void TypeArgDescUse(bool isStatic, bool memberHasBody, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
       Contract.Requires(cl is DatatypeDecl || cl is ClassDecl);
-      if (cl is DatatypeDecl) {
-        needsTypeParameter = false;
-        needsTypeDescriptor = true;
-      } else if (cl is TraitDecl) {
-        needsTypeParameter = false;
-        needsTypeDescriptor = isStatic;
-      } else {
-        Contract.Assert(cl is ClassDecl);
-        needsTypeParameter = false;
-        needsTypeDescriptor = isStatic;
-      }
+      throw new NotImplementedException();
     }
 
     protected List<TypeArgumentInstantiation> ForTypeParameters(List<TypeArgumentInstantiation> typeArgs, MemberDecl member, bool lookasideBody) {
@@ -1849,7 +1839,7 @@ namespace Microsoft.Dafny {
       EndStmt(wr);
 
       if (returnStyleOutCollector != null) {
-        EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outTypes, outTypesOriginal, method.tok);
+        EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outTypes, outTypes, method.tok);
         EmitReturn(method.Outs, wr);
       } else if (!returnStyleOuts) {
         for (int j = 0, l = 0; j < method.Outs.Count; j++) {
