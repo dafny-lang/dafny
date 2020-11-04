@@ -1452,7 +1452,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
               classWriter.DeclareField("_" + cf.CompileName, c, false, false, cfType, cf.tok, DefaultValue(cfType, errorWr, cf.tok, true), cf);
             }
-            var w = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, true, cf, true);
+            var w = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, true, classWriter);
             Contract.Assert(w != null);  // since the previous line asked for a body
             if (cf.Rhs == null) {
               var sw = EmitReturnExpr(w);
@@ -1528,7 +1528,7 @@ namespace Microsoft.Dafny {
             } else {
               BlockTargetWriter wBody;
               if (cf.IsStatic) {
-                wBody = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, true, true, true, cf, false);
+                wBody = CreateFunctionOrGetter(cf, IdName(cf), c, true, true, false, classWriter);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
               } else if (NeedsCustomReceiver(cf)) {
                 // An instance field in a newtype needs to be modeled as a static function that takes a parameter,
@@ -1539,19 +1539,19 @@ namespace Microsoft.Dafny {
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
                 if (c is TraitDecl) {
                   // also declare a function for the field in the interface
-                  var wBodyInterface = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, false, cf, false);
+                  var wBodyInterface = CreateFunctionOrGetter(cf, IdName(cf), c, false, false, false, classWriter);
                   Contract.Assert(wBodyInterface == null);  // since the previous line said not to create a body
                 }
               } else if (c is TraitDecl) {
-                wBody = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, false, cf, false);
+                wBody = CreateFunctionOrGetter(cf, IdName(cf), c, false, false, false, classWriter);
                 Contract.Assert(wBody == null);  // since the previous line said not to create a body
               } else if (cf.Rhs == null && c is ClassDecl) {
                 // create a backing field, since this constant field may be assigned in constructors
                 classWriter.DeclareField("_" + f.CompileName, c, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true), f);
-                wBody = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, true, cf, false);
+                wBody = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, false, classWriter);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
               } else {
-                wBody = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, true, cf, false);
+                wBody = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, false, classWriter);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
               }
               if (wBody != null) {
@@ -1649,12 +1649,23 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected BlockTargetWriter /*?*/ CreateFunctionOrGetter(ConstantField cf, string name, TopLevelDecl enclosingDecl, bool isStatic,
+      bool createBody, bool forBodyInheritance, IClassWriter classWriter) {
+      var typeArgs = CombineAllTypeArguments(cf);
+      var typeDescriptors = ForTypeDescriptors(typeArgs, cf, false);
+      if (NeedsTypeDescriptors(typeDescriptors)) {
+        return classWriter.CreateFunction(name, typeArgs, new List<Formal>(), cf.Type, cf.tok, isStatic, createBody, cf, forBodyInheritance, false);
+      } else {
+        return classWriter.CreateGetter(name, enclosingDecl, cf.Type, cf.tok, isStatic, true, createBody, cf, forBodyInheritance);
+      }
+    }
+
     private void RedeclareInheritedMember(MemberDecl member, IClassWriter classWriter) {
       Contract.Requires(member != null);
       Contract.Requires(classWriter != null);
 
       if (member is ConstantField cf) {
-        var wBody = classWriter.CreateGetter(IdName(cf), member.EnclosingClass, cf.Type, cf.tok, false, true, false, cf, false);
+        var wBody = CreateFunctionOrGetter(cf, IdName(cf), member.EnclosingClass, false, false, false, classWriter);
         Contract.Assert(wBody == null); // since the previous line said not to create a body
       } else if (member is Field field) {
         TargetWriter wSet;

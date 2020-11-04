@@ -767,13 +767,7 @@ namespace Microsoft.Dafny
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, createBody, member), forBodyInheritance, lookasideBody);
       }
       public BlockTargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
-        var typeArgs = Compiler.CombineAllTypeArguments(member);
-        var typeDescriptors = Compiler.ForTypeDescriptors(typeArgs, member, false);
-        if (Compiler.NeedsTypeDescriptors(typeDescriptors)) {
-          return CreateFunction(name, typeArgs, new List<Formal>(), resultType, tok, isStatic, createBody, member, forBodyInheritance, false);
-        } else {
-          return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, createBody, member));
-        }
+        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, createBody, member));
       }
       public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance) {
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic, createBody, member));
