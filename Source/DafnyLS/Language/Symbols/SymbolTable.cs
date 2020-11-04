@@ -18,17 +18,17 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <summary>
     /// Gets the dictionary providing a mapping from an Ast Element to the symbol backing it.
     /// </summary>
-    internal IDictionary<AstElement, ILocalizableSymbol> Declarations { get; }
+    public IDictionary<AstElement, ILocalizableSymbol> Declarations { get; }
 
     /// <summary>
     /// Gets the dictionary allowing to resolve the location of a specified symbol. Do not modify this instance.
     /// </summary>
-    internal IDictionary<ISymbol, SymbolLocation> Locations { get; }
+    public IDictionary<ISymbol, SymbolLocation> Locations { get; }
 
     /// <summary>
     /// Gets the interval tree backing this symbol table. Do not modify this instance.
     /// </summary>
-    internal IIntervalTree<Position, ILocalizableSymbol> LookupTree { get; }
+    public IIntervalTree<Position, ILocalizableSymbol> LookupTree { get; }
 
     /// <summary>
     /// <c>true</c> if the symbol table results from a successful resolution by the dafny resolver.

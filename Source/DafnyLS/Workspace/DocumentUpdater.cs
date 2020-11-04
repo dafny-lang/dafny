@@ -82,7 +82,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           _originalDocument.SymbolTable.Declarations,
           migratedDeclarations,
           migratedLookupTree,
-          true
+          false
         );
       }
 
