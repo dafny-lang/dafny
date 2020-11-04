@@ -480,7 +480,7 @@ TYPE                                | TP  | TD  | TP  | TD  | TP  | TD   | TP  |
   static member `<B(0)>`            | B   | A,B | A,B | A,B |     | A,B  |     | A,B |
 
 `trait<A(0)>`
-  instance member `<B(0)>`          | B   | B   | B   | B   |     | B    |     | A,B |
+  instance member `<B(0)>`          | B   | B   | B   | B   |     | B    |     | B   |
   instance member `<B(0)>` rhs/body | B   | A,B | B   | A,B |     | A,B  |     | A,B |
   static member `<B(0)>`            | B   | A,B | A,B | A,B |     | A,B  |     | A,B |
 

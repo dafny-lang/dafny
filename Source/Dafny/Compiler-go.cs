@@ -2452,17 +2452,9 @@ namespace Microsoft.Dafny {
         ILvalue lvalue;
         if (member.IsStatic) {
           lvalue = SimpleLvalue(w => {
-            w.Write("{0}.{1}()", TypeName_Companion(objType, w, member.tok, member), IdName(member));
-            var sep = "(";
-            var end = "";
-            foreach (var ta in ForTypeDescriptors(typeArgs, member, false)) {
-              if (NeedsTypeDescriptor(ta.Formal)) {
-                w.Write($"{sep}{RuntimeTypeDescriptor(ta.Actual, ta.Formal.tok, w)}");
-                sep = ", ";
-                end = ")";
-              }
-            }
-            w.Write(end);
+            w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w);
+            w.Write(")");
           });
         } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
           // instance const in a newtype
@@ -2475,23 +2467,17 @@ namespace Microsoft.Dafny {
           lvalue = SuffixLvalue(obj, $"._{member.CompileName}");
         } else if (internalAccess) {
           lvalue = SuffixLvalue(obj, $".{IdName(member)}");
-        } else if (!(member is ConstantField) && member.EnclosingClass is TraitDecl) {
-          lvalue = GetterSetterLvalue(obj, IdName(member), $"{IdName(member)}_set_");
-        } else {
+        } else if (member is ConstantField) {
           lvalue = SimpleLvalue(w => {
             obj(w);
-            w.Write(".{0}", IdName(member));
-            var sep = "(";
-            var end = "";
-            foreach (var ta in ForTypeDescriptors(typeArgs, member, false)) {
-              if (NeedsTypeDescriptor(ta.Formal)) {
-                w.Write($"{sep}{RuntimeTypeDescriptor(ta.Actual, ta.Formal.tok, w)}");
-                sep = ", ";
-                end = ")";
-              }
-            }
-            w.Write(end);
+            w.Write(".{0}(", IdName(member));
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w);
+            w.Write(")");
           });
+        } else if (member.EnclosingClass is TraitDecl) {
+          lvalue = GetterSetterLvalue(obj, IdName(member), $"{IdName(member)}_set_");
+        } else {
+          lvalue = SuffixLvalue(obj, $".{IdName(member)}");
         }
         return CoercedLvalue(lvalue, field.Type, expectedType);
       }
