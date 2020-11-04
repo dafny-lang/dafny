@@ -1190,7 +1190,7 @@ namespace Microsoft.Dafny {
       var c = 0;
       foreach (var ta in typeArgs) {
         if (useAllTypeArgs || NeedsTypeDescriptor(ta.Formal)) {
-          wr.Write("{0}{1}", sep, RuntimeTypeDescriptor(ta.Actual, tok, wr));
+          wr.Write("{0}{1}", sep, TypeDescriptor(ta.Actual, wr, tok));
           sep = ", ";
           c++;
         }
@@ -1198,7 +1198,7 @@ namespace Microsoft.Dafny {
       return c;
     }
 
-    string RuntimeTypeDescriptor(Type type, Bpl.IToken tok, TextWriter wr, bool inAutoInitContext = false) {
+    string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok, bool inAutoInitContext = false) {
       Contract.Requires(type != null);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
@@ -1426,7 +1426,7 @@ namespace Microsoft.Dafny {
         } else {
           var w = new TargetWriter(0, true);
           w = EmitCoercionIfNecessary(from:null, to:xType, tok:tok, wr:w);
-          w.Write(RuntimeTypeDescriptor(udt, udt.tok, wr, inAutoInitContext));
+          w.Write(TypeDescriptor(udt, wr, udt.tok, inAutoInitContext));
           w.Write(".Default()");
           return w.ToString();
         }
@@ -1479,7 +1479,7 @@ namespace Microsoft.Dafny {
         if (inAutoInitContext) {
           return string.Format("{0}{{}}", TypeName(udt, wr, tok));
         }
-        return string.Format("{0}.Default().({1})", RuntimeTypeDescriptor(type, tok, wr, inAutoInitContext), TypeName(udt, wr, tok));
+        return string.Format("{0}.Default().({1})", TypeDescriptor(type, wr, tok, inAutoInitContext), TypeName(udt, wr, tok));
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -2406,7 +2406,7 @@ namespace Microsoft.Dafny {
           suffixWr.Write("(");
           var suffixSep = "";
           foreach (var ta in typeArgs) {
-            suffixWr.Write("{0}{1}", suffixSep, RuntimeTypeDescriptor(ta.Actual, fn.tok, suffixWr));
+            suffixWr.Write("{0}{1}", suffixSep, TypeDescriptor(ta.Actual, suffixWr, fn.tok));
             suffixSep = ", ";
           }
           if (additionalCustomParameter != null) {
