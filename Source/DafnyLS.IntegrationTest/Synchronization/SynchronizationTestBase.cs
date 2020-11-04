@@ -10,17 +10,22 @@ namespace DafnyLS.IntegrationTest.Synchronization {
     protected ILanguageClient Client { get; private set; }
 
     protected Task ApplyChangeAndWaitCompletionAsync(TextDocumentItem documentItem, Range range, string newText) {
+      return ApplyChangesAndWaitCompletionAsync(
+        documentItem,
+        new TextDocumentContentChangeEvent {
+          Text = newText,
+          Range = range
+        }
+      );
+    }
+
+    protected Task ApplyChangesAndWaitCompletionAsync(TextDocumentItem documentItem, params TextDocumentContentChangeEvent[] changes) {
       Client.DidChangeTextDocument(new DidChangeTextDocumentParams {
         TextDocument = new VersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
         },
-        ContentChanges = new[] {
-          new TextDocumentContentChangeEvent {
-            Text = newText,
-            Range = range
-          }
-        }
+        ContentChanges = changes
       });
       return Client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
     }
