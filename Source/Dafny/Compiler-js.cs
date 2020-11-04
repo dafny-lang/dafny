@@ -1566,15 +1566,10 @@ namespace Microsoft.Dafny {
           return SimpleLvalue(w => {
             w.Write("{0}.{1}", TypeName_Companion(objType, w, member.tok, member), IdName(member));
             var sep = "(";
-            var end = "";
-            foreach (var ta in ForTypeDescriptors(typeArgs, member, false)) {
-              if (NeedsTypeDescriptor(ta.Formal)) {
-                w.Write($"{sep}{TypeDescriptor(ta.Actual, w, ta.Formal.tok)}");
-                sep = ", ";
-                end = ")";
-              }
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w, ref sep);
+            if (sep != "(") {
+              w.Write(")");
             }
-            w.Write(end);
           });
         } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
           // instance const in a newtype
@@ -1590,15 +1585,10 @@ namespace Microsoft.Dafny {
             obj(w);
             w.Write(".{0}", IdName(member));
             var sep = "(";
-            var end = "";
-            foreach (var ta in ForTypeDescriptors(typeArgs, member, false)) {
-              if (NeedsTypeDescriptor(ta.Formal)) {
-                w.Write($"{sep}{TypeDescriptor(ta.Actual, w, ta.Formal.tok)}");
-                sep = ", ";
-                end = ")";
-              }
+            EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w, ref sep);
+            if (sep != "(") {
+              w.Write(")");
             }
-            w.Write(end);
           });
         }
       }
