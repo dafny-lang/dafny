@@ -1,5 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.Util;
-using IntervalTree;
+﻿using IntervalTree;
+using Microsoft.Dafny.LanguageServer.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -30,6 +30,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// </summary>
     internal IIntervalTree<Position, ILocalizableSymbol> LookupTree { get; }
 
+    /// <summary>
+    /// <c>true</c> if the symbol table results from a successful resolution by the dafny resolver.
+    /// </summary>
     public bool Resolved { get; }
 
     private readonly DafnyLangTypeResolver _typeResolver;
