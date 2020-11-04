@@ -223,6 +223,11 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected bool NeedsTypeDescriptors(List<TypeArgumentInstantiation> typeArgs) {
+      Contract.Requires(typeArgs != null);
+      return typeArgs.Any(ta => NeedsTypeDescriptor(ta.Formal));
+    }
+
     protected virtual bool NeedsTypeDescriptor(TypeParameter tp) {
       Contract.Requires(tp != null);
       return tp.Characteristics.MustSupportZeroInitialization;
@@ -1447,7 +1452,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
               classWriter.DeclareField("_" + cf.CompileName, c, false, false, cfType, cf.tok, DefaultValue(cfType, errorWr, cf.tok, true), cf);
             }
-            var w = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, true, null, true);
+            var w = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, true, cf, true);
             Contract.Assert(w != null);  // since the previous line asked for a body
             if (cf.Rhs == null) {
               var sw = EmitReturnExpr(w);
@@ -1530,7 +1535,7 @@ namespace Microsoft.Dafny {
                 // because a newtype value is always represented as some existing type.
                 // Likewise, an instance const with a RHS in a trait needs to be modeled as a static function (in the companion class)
                 // that takes a parameter, because trait-equivalents in target languages don't allow implementations.
-                wBody = classWriter.CreateFunction(IdName(cf), CombineTypeParameters(cf, true), new List<Formal>(), cf.Type, cf.tok, true, true, cf, false, false);
+                wBody = classWriter.CreateFunction(IdName(cf), CombineTypeParameters(cf, true), new List<Formal>(), cf.Type, cf.tok, true, true, cf, false, true);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
                 if (c is TraitDecl) {
                   // also declare a function for the field in the interface
@@ -1540,7 +1545,7 @@ namespace Microsoft.Dafny {
               } else if (c is TraitDecl) {
                 wBody = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, false, cf, false);
                 Contract.Assert(wBody == null);  // since the previous line said not to create a body
-              } else if (cf.Rhs == null) {
+              } else if (cf.Rhs == null && c is ClassDecl) {
                 // create a backing field, since this constant field may be assigned in constructors
                 classWriter.DeclareField("_" + f.CompileName, c, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true), f);
                 wBody = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, true, cf, false);
@@ -1552,7 +1557,7 @@ namespace Microsoft.Dafny {
               if (wBody != null) {
                 if (cf.Rhs != null) {
                   CompileReturnBody(cf.Rhs, cf.Type, wBody, null);
-                } else if (!cf.IsStatic) {
+                } else if (!cf.IsStatic && c is ClassDecl) {
                   var sw = EmitReturnExpr(wBody);
                   var typeSubst = new Dictionary<TypeParameter, Type>();
                   cf.EnclosingClass.TypeArgs.ForEach(tp => typeSubst.Add(tp, (Type)new UserDefinedType(tp)));

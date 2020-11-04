@@ -767,7 +767,13 @@ namespace Microsoft.Dafny
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, createBody, member), forBodyInheritance, lookasideBody);
       }
       public BlockTargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
-        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, createBody, member));
+        var typeArgs = Compiler.CombineAllTypeArguments(member);
+        var typeDescriptors = Compiler.ForTypeDescriptors(typeArgs, member, false);
+        if (Compiler.NeedsTypeDescriptors(typeDescriptors)) {
+          return CreateFunction(name, typeArgs, new List<Formal>(), resultType, tok, isStatic, createBody, member, forBodyInheritance, false);
+        } else {
+          return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, createBody, member));
+        }
       }
       public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance) {
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic, createBody, member));
@@ -2026,6 +2032,16 @@ namespace Microsoft.Dafny
         if (member.IsStatic) {
           return SimpleLvalue(w => {
             w.Write("{0}.{1}", TypeName_Companion(objType, w, member.tok, member), IdName(member));
+            var sep = "(";
+            var end = "";
+            foreach (var ta in ForTypeDescriptors(typeArgs, member, false)) {
+              if (NeedsTypeDescriptor(ta.Formal)) {
+                w.Write($"{sep}{TypeDescriptor(ta.Actual, w, ta.Formal.tok)}");
+                sep = ", ";
+                end = ")";
+              }
+            }
+            w.Write(end);
           });
         } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
           // instance const in a newtype
@@ -2038,7 +2054,20 @@ namespace Microsoft.Dafny
         } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
           return SuffixLvalue(obj, $"._{member.CompileName}");
         } else {
-          return SuffixLvalue(obj, $".{IdName(member)}");
+          return SimpleLvalue(w => {
+            obj(w);
+            w.Write(".{0}", IdName(member));
+            var sep = "(";
+            var end = "";
+            foreach (var ta in ForTypeDescriptors(typeArgs, member, false)) {
+              if (NeedsTypeDescriptor(ta.Formal)) {
+                w.Write($"{sep}{TypeDescriptor(ta.Actual, w, ta.Formal.tok)}");
+                sep = ", ";
+                end = ")";
+              }
+            }
+            w.Write(end);
+          });
         }
       }
     }

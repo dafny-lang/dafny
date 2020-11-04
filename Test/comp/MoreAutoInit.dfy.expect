@@ -1,74 +1,128 @@
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 17 verified, 0 errors
 
 Dafny program verifier did not attempt verification
-Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-{} ++ {}
-[] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-
-Dafny program verifier did not attempt verification
-Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-{} ++ {}
-[] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-
-Dafny program verifier did not attempt verification
-Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-{} ++ {}
-[] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-
-Dafny program verifier did not attempt verification
-Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
-{} ++ {}
-[] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
-[] {} ++ [] {} ++ [] {} ++ [] {}
+Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni
+Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+  ++ Methods_Compile.Uni.Uni Methods_Compile.Uni.Uni
+{}
+  ++ {}
+[] {}
+  ++ [] {}
+[] {}
+  ++ [] {}
+  ++ [] {}
+  ++ [] {}
+[] {}
+  ++ [] {}
+  ++ [] {}
+  ++ [] {}
+[] {}
+  ++ [] {}
+  ++ [] {}
+  ++ [] {}
+[] {}
+  ++ [] {}
+  ++ [] {}
+[] {}
+  ++ [] {}
+  ++ [] {}
+  ++ [] {}
+[] {}
+  ++ [] {}
+  ++ [] {}
+  ++ [] {}
+Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni
+Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+  ++ Functions_Compile.Uni.Uni Functions_Compile.Uni.Uni
+{2}
+  ++ {2}
+[Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+[Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+[Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+[Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+[Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+[Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+[Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+  ++ [Functions_Compile.Uni.Uni] {2}
+Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
+  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
+Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
+  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
+Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
+Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
+  ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
+  ** Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni
+[] ++ [] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni]
+  ** [] ++ []
+[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [] ++ [Consts_Compile.Uni.Uni] ++ []
+  ** [] ++ []
+[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [] ++ [Consts_Compile.Uni.Uni] ++ []
+[Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ []
+  ++ [Consts_Compile.Uni.Uni] ++ []
+  ** [] ++ [] ++ []
