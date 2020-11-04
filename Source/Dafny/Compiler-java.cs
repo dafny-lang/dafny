@@ -2323,13 +2323,13 @@ namespace Microsoft.Dafny{
     protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt initCall, TargetWriter wr) {
       var ctor = (Constructor)initCall?.Method; // correctness of cast follows from precondition of "EmitNew"
       wr.Write($"new {TypeName(type, wr, tok)}(");
+      var sep = "";
       if (type is UserDefinedType definedType) {
         var typeArguments = TypeArgumentInstantiation.ListFromClass(definedType.ResolvedClass, definedType.TypeArgs);
-        EmitRuntimeTypeDescriptors(typeArguments, tok, wr);
+        EmitTypeDescriptorsActuals(typeArguments, tok, wr, ref sep);
       }
       if (ctor != null && ctor.IsExtern(out _, out _)) {
         // the arguments of any external constructor are placed here
-        string sep = "";
         for (int i = 0; i < ctor.Ins.Count; i++) {
           Formal p = ctor.Ins[i];
           if (!p.IsGhost) {
@@ -2368,18 +2368,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    private void EmitRuntimeTypeDescriptors(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, TargetWriter wr) {
-      var sep = "";
-      foreach (var ta in typeArgs) {
-        if (NeedsTypeDescriptor(ta.Formal)) {
-          wr.Write(sep);
-          wr.Write(TypeDescriptor(ta.Actual, wr, tok));
-          sep = ", ";
-        }
-      }
-    }
-
-    private string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok) {
       type = type.NormalizeExpandKeepConstraints();
       if (type is BoolType) {
         return $"{TypeClass}.BOOLEAN";
@@ -3500,20 +3489,6 @@ namespace Microsoft.Dafny{
         sep = ", ";
       }
       wBareArray.Write(")");
-    }
-
-    protected override int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
-      var sep = "";
-      var c = 0;
-      foreach (var ta in typeArgs) {
-        if (useAllTypeArgs || NeedsTypeDescriptor(ta.Formal)) {
-          wr.Write(sep);
-          wr.Write(TypeDescriptor(ta.Actual, wr, tok));
-          sep = ", ";
-          c++;
-        }
-      }
-      return c;
     }
 
     protected override bool TargetLambdaCanUseEnclosingLocals => false;

@@ -789,20 +789,7 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
-      var sep = "";
-      var c = 0;
-      foreach (var ta in typeArgs) {
-        if (useAllTypeArgs || NeedsTypeDescriptor(ta.Formal)) {
-          wr.Write("{0}{1}", sep, RuntimeTypeDescriptor(ta.Actual, tok, wr));
-          sep = ", ";
-          c++;
-        }
-      }
-      return c;
-    }
-
-    string RuntimeTypeDescriptor(Type type, Bpl.IToken tok, TextWriter wr) {
+    protected override string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(type != null);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
@@ -1330,11 +1317,11 @@ namespace Microsoft.Dafny {
         var ctor = initCall == null ? null : (Constructor)initCall.Method;  // correctness of cast follows from precondition of "EmitNew"
         wr.Write("std::make_shared<{0}> (", TypeName(type, wr, tok, null, true));
         var tas = TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs);
-        EmitRuntimeTypeDescriptorsActuals(tas, tok, false, wr);
+        var sep = "";
+        EmitTypeDescriptorsActuals(tas, tok, wr, ref sep);
         string q, n;
         if (ctor != null && ctor.IsExtern(out q, out n)) {
           // the arguments of any external constructor are placed here
-          string sep = "";
           for (int i = 0; i < ctor.Ins.Count; i++) {
             Formal p = ctor.Ins[i];
             if (!p.IsGhost) {

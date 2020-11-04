@@ -233,12 +233,27 @@ namespace Microsoft.Dafny {
       return tp.Characteristics.MustSupportZeroInitialization;
     }
 
-    protected virtual int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
+    protected abstract string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok);
+
+    protected void EmitTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, TargetWriter wr, bool useAllTypeArgs = false) {
+      var prefix = "";
+      EmitTypeDescriptorsActuals(typeArgs, tok, wr, ref prefix, useAllTypeArgs);
+    }
+
+    protected void EmitTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, TargetWriter wr, ref string prefix, bool useAllTypeArgs = false) {
       Contract.Requires(typeArgs != null);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
-      return 0;
+      Contract.Requires(prefix != null);
+
+      foreach (var ta in typeArgs) {
+        if (useAllTypeArgs || NeedsTypeDescriptor(ta.Formal)) {
+          wr.Write("{0}{1}", prefix, TypeDescriptor(ta.Actual, wr, tok));
+          prefix = ", ";
+        }
+      }
     }
+
     /// <summary>
     /// EmitTailCallStructure evolves "wr" into a structure that can be used as the jump target
     /// for tail calls (see EmitJumpToTailCallStart).
@@ -1704,8 +1719,8 @@ namespace Microsoft.Dafny {
       var typeArgs = CombineAllTypeArguments(f, thisContext);
       EmitNameAndActualTypeArgs(IdName(f), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
       wr.Write("(");
-      var nRTDs = EmitRuntimeTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f, true), f.tok, false, wr);
-      string sep = nRTDs == 0 ? "" : ", ";
+      var sep = "";
+      EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f, true), f.tok, wr, ref sep);
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
@@ -1740,8 +1755,8 @@ namespace Microsoft.Dafny {
       var typeArgs = CombineAllTypeArguments(f, thisContext);
       EmitNameAndActualTypeArgs(IdName(f), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
       wr.Write("(");
-      var nRTDs = EmitRuntimeTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f, true), f.tok, false, wr);
-      string sep = nRTDs == 0 ? "" : ", ";
+      var sep = "";
+      EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f, true), f.tok, wr, ref sep);
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
@@ -1804,8 +1819,8 @@ namespace Microsoft.Dafny {
       var typeArgs = CombineAllTypeArguments(method, thisContext);
       EmitNameAndActualTypeArgs(protectedName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, method, true)), method.tok, wr);
       wr.Write("(");
-      var nRTDs = EmitRuntimeTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, method, true), method.tok, false, wr);
-      string sep = nRTDs == 0 ? "" : ", ";
+      var sep = "";
+      EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, method, true), method.tok, wr, ref sep);
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(method.tok, thisContext), calleeReceiverType, method.tok, wr);
@@ -4091,8 +4106,8 @@ namespace Microsoft.Dafny {
         var typeArgs = CombineAllTypeArguments(s.Method, s.MethodSelect.TypeApplication_AtEnclosingClass, s.MethodSelect.TypeApplication_JustMember);
         EmitNameAndActualTypeArgs(protectedName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, s.Method, false)), s.Tok, wr);
         wr.Write("(");
-        var nRTDs = EmitRuntimeTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, s.Method, false), s.Tok, false, wr);
-        string sep = nRTDs == 0 ? "" : ", ";
+        var sep = "";
+        EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, s.Method, false), s.Tok, wr, ref sep);
         if (customReceiver) {
           wr.Write(sep);
           var w = EmitCoercionIfNecessary(s.Receiver.Type, UserDefinedType.UpcastToMemberEnclosingType(s.Receiver.Type, s.Method), s.Tok, wr);
@@ -4344,7 +4359,7 @@ namespace Microsoft.Dafny {
             EmitNameAndActualTypeArgs(IdName(e.Member), typeArgs, e.tok, wr);
             wr.Write("(");
             var tas = TypeArgumentInstantiation.ListFromClass(sf.EnclosingClass, typeArgs);
-            EmitRuntimeTypeDescriptorsActuals(tas, e.tok, false, wr);
+            EmitTypeDescriptorsActuals(tas, e.tok, wr);
             wr.Write(")");
           } else {
             void writeObj(TargetWriter w) {
@@ -4959,8 +4974,8 @@ namespace Microsoft.Dafny {
       var typeArgs = CombineAllTypeArguments(f, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction);
       EmitNameAndActualTypeArgs(compileName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, false)), f.tok, wr);
       wr.Write("(");
-      var nRTDs = EmitRuntimeTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f, false), e.tok, false, wr);
-      string sep = nRTDs == 0 ? "" : ", ";
+      var sep = "";
+      EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f, false), e.tok, wr, ref sep);
       if (customReceiver) {
         wr.Write(sep);
         var w = EmitCoercionIfNecessary(e.Receiver.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Receiver.Type, e.Function), e.tok, wr);

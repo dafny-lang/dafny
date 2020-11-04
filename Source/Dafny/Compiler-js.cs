@@ -676,20 +676,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
-      var sep = "";
-      var c = 0;
-      foreach (var ta in typeArgs) {
-        if (useAllTypeArgs || NeedsTypeDescriptor(ta.Formal)) {
-          wr.Write("{0}{1}", sep, TypeDescriptor(ta.Actual, wr, tok));
-          sep = ", ";
-          c++;
-        }
-      }
-      return c;
+    protected override string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok) {
+      return TypeDescriptor(type, wr, tok, false);
     }
 
-    string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok, bool inAutoInitContext = false) {
+    string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok, bool inAutoInitContext) {
       Contract.Requires(type != null);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
@@ -744,7 +735,7 @@ namespace Microsoft.Dafny {
           var dt = (DatatypeDecl)cl;
           var w = new TargetWriter();
           w.Write("{0}.Rtd(", dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt));
-          EmitRuntimeTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), udt.tok, true, w);
+          EmitTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), udt.tok, w, true);
           w.Write(")");
           return w.ToString();
         } else if (xType.IsNonNullRefType) {
@@ -948,7 +939,7 @@ namespace Microsoft.Dafny {
         var s = dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt);
         var w = new TargetWriter();
         w.Write("{0}.Rtd(", s);
-        EmitRuntimeTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), udt.tok, true, w);
+        EmitTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), udt.tok, w, true);
         w.Write(").Default");
         return w.ToString();
       } else {
@@ -1183,7 +1174,7 @@ namespace Microsoft.Dafny {
         wr.Write("_dafny.NewObject()");
       } else {
         wr.Write("new {0}(", TypeName(type, wr, tok));
-        EmitRuntimeTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, false, wr);
+        EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, wr);
         wr.Write(")");
       }
     }
