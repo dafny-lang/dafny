@@ -6,6 +6,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="TestFiles\**" />
+    <EmbeddedResource Remove="TestFiles\**" />
+    <None Remove="TestFiles\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />
     <PackageReference Include="MSTest.TestAdapter" Version="2.1.1" />
     <PackageReference Include="MSTest.TestFramework" Version="2.1.1" />
@@ -15,10 +21,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DafnyLS\DafnyLS.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="TestFiles\" />
   </ItemGroup>
 
 </Project>

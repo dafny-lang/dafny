@@ -1,4 +1,5 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol.Client;
+﻿using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
@@ -16,11 +17,15 @@ namespace DafnyLS.IntegrationTest.Extensions {
     }
 
     public static Task OpenDocumentAndWaitAsync(this ILanguageClient client, TextDocumentItem documentItem, CancellationToken cancellationToken) {
+      client.OpenDocument(documentItem);
+      return client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
+    }
+
+    public static Task WaitForNotificationCompletionAsync(this ILanguageClient client, DocumentUri documentUri, CancellationToken cancellationToken) {
       // The underlying implementation of OpenDocument is non-blocking (DidOpenTextDocument).
       // Since we query the document database directly, we use a placeholder request to ensure
       // that the DidOpenTextDocument has been fully processed.
-      client.OpenDocument(documentItem);
-      return client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = documentItem.Uri }, cancellationToken);
+      return client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = documentUri }, cancellationToken);
     }
   }
 }
