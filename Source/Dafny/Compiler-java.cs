@@ -472,9 +472,7 @@ namespace Microsoft.Dafny{
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
       var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass);
       wr.Write("public {0}{1}", !createBody && !(m.EnclosingClass is TraitDecl) ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
-      if (typeArgs.Count != 0) {
-        wr.Write($"<{TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, m, lookasideBody)))}> ");
-      }
+      wr.Write(TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, m, lookasideBody)), " "));
       wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
       wr.Write("(");
       var sep = "";
@@ -518,9 +516,7 @@ namespace Microsoft.Dafny{
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(member);
       var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
       wr.Write("public {0}{1}", !createBody && !(member.EnclosingClass is TraitDecl) ? "abstract " : "", isStatic || customReceiver ? "static " : "");
-      if (typeArgs.Count != 0) {
-        wr.Write($"<{TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, member, lookasideBody)))}> ");
-      }
+      wr.Write(TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, member, lookasideBody)), " "));
       wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
       var sep = "";
       var argCount = WriteRuntimeTypeDescriptorsFormals(member, ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
@@ -565,11 +561,14 @@ namespace Microsoft.Dafny{
       wr.WriteLine("@SuppressWarnings({\"unchecked\", \"deprecation\"})");
     }
 
-    string TypeParameters(List<TypeParameter> targs) {
-      Contract.Requires(cce.NonNullElements(targs));
+    string TypeParameters(List<TypeParameter>/*?*/ targs, string suffix = "") {
+      Contract.Requires(targs == null || cce.NonNullElements(targs));
       Contract.Ensures(Contract.Result<string>() != null);
 
-      return Util.Comma(targs, tp => IdName(tp));
+      if (targs == null || targs.Count == 0) {
+        return "";
+      }
+      return $"<{Util.Comma(targs, tp => IdName(tp))}>{suffix}";
     }
 
     protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
@@ -847,11 +846,7 @@ namespace Microsoft.Dafny{
       //TODO: Fix implementations so they do not need this suppression
       EmitSuppression(w);
       var abstractness = isExtern ? "abstract " : "";
-      var typeParamString = "";
-      if (typeParameters != null && typeParameters.Count != 0) {
-        typeParamString = $"<{TypeParameters(typeParameters)}>";
-      }
-      w.Write($"public {abstractness}class {javaName}{typeParamString}");
+      w.Write($"public {abstractness}class {javaName}{TypeParameters(typeParameters)}");
       string sep;
       // Since Java does not support multiple inheritance, we are assuming a list of "superclasses" is a list of interfaces
       if (superClasses != null) {
@@ -898,11 +893,6 @@ namespace Microsoft.Dafny{
     /// "enclosingType" is allowed to be "null", in which case the target values are assumed to be references.
     /// </summary>
     private void EmitTypeMethod(TopLevelDecl/*?*/ enclosingTypeDecl, string typeName, List<TypeParameter> typeParams, List<TypeParameter> usedTypeParams, string targetTypeName, string/*?*/ initializer, TargetWriter wr) {
-      var typeParamString = "";
-      if (typeParams != null && typeParams.Count != 0) {
-        typeParamString = $"<{TypeParameters(typeParams)}> ";
-      }
-
       string typeDescriptorExpr = null;
       if (enclosingTypeDecl != null) {
         var enclosingType = UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.tok, enclosingTypeDecl);
@@ -941,7 +931,7 @@ namespace Microsoft.Dafny{
         // a static context in Java does not see the enclosing type parameters
         wr.WriteLine($"private static final {TypeClass}<{StripTypeParameters(targetTypeName)}> _TYPE = {typeDescriptorExpr};");
       }
-      wr.Write($"public static {typeParamString}{TypeClass}<{targetTypeName}> {TypeMethodName}(");
+      wr.Write($"public static {TypeParameters(typeParams, " ")}{TypeClass}<{targetTypeName}> {TypeMethodName}(");
       if (usedTypeParams != null) {
         var typeDescriptorParams = usedTypeParams.Where(tp => NeedsTypeDescriptor(tp)).ToList();
         wr.Write(Util.Comma(typeDescriptorParams, tp => $"{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
@@ -1686,7 +1676,7 @@ namespace Microsoft.Dafny{
     }
 
     IClassWriter CompileDatatypeBase(DatatypeDecl dt, TargetWriter wr) {
-      string DtT_TypeArgs = dt.TypeArgs.Count == 0 ? "" : $"<{TypeParameters(dt.TypeArgs)}>";
+      string DtT_TypeArgs = TypeParameters(dt.TypeArgs);
       string DtT_protected = IdProtect(dt.CompileName) + DtT_TypeArgs;
       var filename = $"{ModulePath}/{dt}.java";
       wr = wr.NewFile(filename);
@@ -1823,7 +1813,7 @@ namespace Microsoft.Dafny{
 
     void CompileDatatypeConstructors(DatatypeDecl dt, TargetWriter wrx) {
       Contract.Requires(dt != null);
-      string typeParams = dt.TypeArgs.Count == 0 ? "" : $"<{TypeParameters(dt.TypeArgs)}>";
+      string typeParams = TypeParameters(dt.TypeArgs);
       if (dt.IsRecordType) {
         // There is only one constructor, and it is populated by CompileDatatypeBase
         return;
@@ -1892,7 +1882,7 @@ namespace Microsoft.Dafny{
         wr.WriteLine($"public {DtCtorDeclarationName(ctor)}() {{ }}");
       }
       if (dt is CoDatatypeDecl) {
-        string typeParams = dt.TypeArgs.Count == 0 ? "" : $"<{TypeParameters(dt.TypeArgs)}>";
+        string typeParams = TypeParameters(dt.TypeArgs);
         wr.WriteLine($"public {dt.CompileName}{typeParams} Get() {{ return this; }}");
       }
       // Equals method
@@ -1902,7 +1892,7 @@ namespace Microsoft.Dafny{
         w.WriteLine("if (this == other) return true;");
         w.WriteLine("if (other == null) return false;");
         w.WriteLine("if (getClass() != other.getClass()) return false;");
-        if(ctor.Formals.Count > 0){string typeParams = dt.TypeArgs.Count == 0 ? "" : $"<{TypeParameters(dt.TypeArgs)}>";
+        if(ctor.Formals.Count > 0){string typeParams = TypeParameters(dt.TypeArgs);
           w.WriteLine("{0} o = ({0})other;", DtCtorDeclarationName(ctor, dt.TypeArgs));
           w.Write("return ");
           i = 0;
@@ -1993,11 +1983,7 @@ namespace Microsoft.Dafny{
       Contract.Requires(ctor != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      var s = DtCtorDeclarationName(ctor);
-      if (typeParams != null && typeParams.Count != 0) {
-        s += "<" + TypeParameters(typeParams) + ">";
-      }
-      return s;
+      return DtCtorDeclarationName(ctor) + TypeParameters(typeParams);
     }
     string DtCtorDeclarationName(DatatypeCtor ctor) {
       Contract.Requires(ctor != null);
@@ -2909,7 +2895,7 @@ namespace Microsoft.Dafny{
       for (var j = 0; j < i; j++) {
         typeParams.Add(new TypeParameter(Bpl.Token.NoToken, $"T{j}", TypeParameter.TPVarianceSyntax.Covariant_Permissive));
       }
-      var typeParamString = typeParams.Count == 0 ? "" : $"<{TypeParameters(typeParams)}>";
+      var typeParamString = TypeParameters(typeParams);
       var initializer = string.Format("Default({0})", Util.Comma(i, j => $"_td_T{j}"));
       EmitTypeMethod(null, $"Tuple{i}", typeParams, typeParams, $"Tuple{i}{typeParamString}", initializer, wr);
 
@@ -3116,10 +3102,7 @@ namespace Microsoft.Dafny{
       EmitImports(w, out _);
       w.WriteLine();
       EmitSuppression(w); //TODO: Fix implementations so they do not need this suppression
-      var typeParamString = "";
-      if (typeParameters != null && typeParameters.Count != 0) {
-        typeParamString = $"<{TypeParameters(typeParameters)}>";
-      }
+      var typeParamString = TypeParameters(typeParameters);
       w.Write($"public interface {IdProtect(name)}{typeParamString}");
       if (superClasses != null) {
         string sep = " extends ";
