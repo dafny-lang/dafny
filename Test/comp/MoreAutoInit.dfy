@@ -10,38 +10,38 @@ method Main() {
 
 module Methods {
   newtype Newtype = x | 0 <= x < 500 {
-    method InstanceN<B(0)>(b: B) returns (bb: B) { }
-    static method StaticN<B(0)>(b: B) returns (bb: B) { }
+    method InstanceN<Bn(0)>(b: Bn) returns (bb: Bn) { }
+    static method StaticN<Bn(0)>(b: Bn) returns (bb: Bn) { }
   }
 
-  datatype Datatype<A(0)> = Dt0 | Dt1 {
-    method InstanceD<B(0)>(a: A, b: B) returns (aa: A, bb: B) { }
-    static method StaticD<B(0)>(a: A, b: B) returns (aa: A, bb: B) { }
+  datatype Datatype<Ad(0)> = Dt0 | Dt1 {
+    method InstanceD<Bd(0)>(a: Ad, b: Bd) returns (aa: Ad, bb: Bd) { }
+    static method StaticD<Bd(0)>(a: Ad, b: Bd) returns (aa: Ad, bb: Bd) { }
   }
 
-  trait UberTrait<A(0)> {
-    method InstanceU0<B(0)>(a: A, b: B) returns (aa: A, bb: B) { }
-    method InstanceU1<B(0)>(a: A, b: B) returns (aa: A, bb: B)
-    method InstanceU2<B(0)>(a: A, b: B) returns (aa: A, bb: B)
-    method InstanceU3<B(0)>(a: A, b: B) returns (aa: A, bb: B)
+  trait UberTrait<Au(0)> {
+    method InstanceU0<Bu(0)>(a: Au, b: Bu) returns (aa: Au, bb: Bu) { }
+    method InstanceU1<Bu(0)>(a: Au, b: Bu) returns (aa: Au, bb: Bu)
+    method InstanceU2<Bu(0)>(a: Au, b: Bu) returns (aa: Au, bb: Bu)
+    method InstanceU3<Bu(0)>(a: Au, b: Bu) returns (aa: Au, bb: Bu)
   }
 
-  trait InBetween<A(0)> extends UberTrait<A> {
-    method InstanceU1<B(0)>(a: A, b: B) returns (aa: A, bb: B) { }
+  trait InBetween<Ai(0)> extends UberTrait<Ai> {
+    method InstanceU1<Bi(0)>(a: Ai, b: Bi) returns (aa: Ai, bb: Bi) { }
   }
 
-  trait Trait<A(0)> extends InBetween<A> {
-    method InstanceU2<B(0)>(a: A, b: B) returns (aa: A, bb: B) { }
-    method InstanceT<B(0)>(a: A, b: B) returns (aa: A, bb: B)
-    method InstanceTBody<B(0)>(a: A, b: B) returns (aa: A, bb: B) { }
-    static method StaticT<B(0)>(a: A, b: B) returns (aa: A, bb: B) { }
+  trait Trait<At(0)> extends InBetween<At> {
+    method InstanceU2<Bt(0)>(a: At, b: Bt) returns (aa: At, bb: Bt) { }
+    method InstanceT<Bt(0)>(a: At, b: Bt) returns (aa: At, bb: Bt)
+    method InstanceTBody<Bt(0)>(a: At, b: Bt) returns (aa: At, bb: Bt) { }
+    static method StaticT<Bt(0)>(a: At, b: Bt) returns (aa: At, bb: Bt) { }
   }
 
-  class Class<A(0)> extends Trait<A> {
-    method InstanceU3<B(0)>(a: A, b: B) returns (aa: A, bb: B) { }
-    method InstanceT<B(0)>(a: A, b: B) returns (aa: A, bb: B) { }
-    method InstanceC<B(0)>(a: A, b: B) returns (aa: A, bb: B) { }
-    static method StaticC<B(0)>(a: A, b: B) returns (aa: A, bb: B) { }
+  class Class<Ac(0)> extends Trait<Ac> {
+    method InstanceU3<Bc(0)>(a: Ac, b: Bc) returns (aa: Ac, bb: Bc) { }
+    method InstanceT<Bc(0)>(a: Ac, b: Bc) returns (aa: Ac, bb: Bc) { }
+    method InstanceC<Bc(0)>(a: Ac, b: Bc) returns (aa: Ac, bb: Bc) { }
+    static method StaticC<Bc(0)>(a: Ac, b: Bc) returns (aa: Ac, bb: Bc) { }
   }
 
   datatype Uni = Uni
@@ -124,38 +124,38 @@ module Methods {
 
 module Functions {
   newtype Newtype = x | 0 <= x < 500 {
-    function method InstanceN<B(0)>(b: B): B { b }
-    static function method StaticN<B(0)>(b: B): B { b }
+    function method InstanceN<Bn(0)>(b: Bn): Bn { b }
+    static function method StaticN<Bn(0)>(b: Bn): Bn { b }
   }
 
-  datatype Datatype<A(0)> = Dt0 | Dt1 {
-    function method InstanceD<B(0)>(a: A, b: B): (A, B) { (a, b) }
-    static function method StaticD<B(0)>(a: A, b: B): (A, B) { (a, b) }
+  datatype Datatype<Ad(0)> = Dt0 | Dt1 {
+    function method InstanceD<Bd(0)>(a: Ad, b: Bd): (Ad, Bd) { (a, b) }
+    static function method StaticD<Bd(0)>(a: Ad, b: Bd): (Ad, Bd) { (a, b) }
   }
 
-  trait UberTrait<A(0)> {
-    function method InstanceU0<B(0)>(a: A, b: B): (A, B) { (a, b) }
-    function method InstanceU1<B(0)>(a: A, b: B): (A, B)
-    function method InstanceU2<B(0)>(a: A, b: B): (A, B)
-    function method InstanceU3<B(0)>(a: A, b: B): (A, B)
+  trait UberTrait<Au(0)> {
+    function method InstanceU0<Bu(0)>(a: Au, b: Bu): (Au, Bu) { (a, b) }
+    function method InstanceU1<Bu(0)>(a: Au, b: Bu): (Au, Bu)
+    function method InstanceU2<Bu(0)>(a: Au, b: Bu): (Au, Bu)
+    function method InstanceU3<Bu(0)>(a: Au, b: Bu): (Au, Bu)
   }
 
-  trait InBetween<A(0)> extends UberTrait<A> {
-    function method InstanceU1<B(0)>(a: A, b: B): (A, B) { (a, b) }
+  trait InBetween<Ai(0)> extends UberTrait<Ai> {
+    function method InstanceU1<Bi(0)>(a: Ai, b: Bi): (Ai, Bi) { (a, b) }
   }
 
-  trait Trait<A(0)> extends InBetween<A> {
-    function method InstanceU2<B(0)>(a: A, b: B): (A, B) { (a, b) }
-    function method InstanceT<B(0)>(a: A, b: B): (A, B)
-    function method InstanceTBody<B(0)>(a: A, b: B): (A, B) { (a, b) }
-    static function method StaticT<B(0)>(a: A, b: B): (A, B) { (a, b) }
+  trait Trait<At(0)> extends InBetween<At> {
+    function method InstanceU2<Bt(0)>(a: At, b: Bt): (At, Bt) { (a, b) }
+    function method InstanceT<Bt(0)>(a: At, b: Bt): (At, Bt)
+    function method InstanceTBody<Bt(0)>(a: At, b: Bt): (At, Bt) { (a, b) }
+    static function method StaticT<Bt(0)>(a: At, b: Bt): (At, Bt) { (a, b) }
   }
 
-  class Class<A(0)> extends Trait<A> {
-    function method InstanceU3<B(0)>(a: A, b: B): (A, B) { (a, b) }
-    function method InstanceT<B(0)>(a: A, b: B): (A, B) { (a, b) }
-    function method InstanceC<B(0)>(a: A, b: B): (A, B) { (a, b) }
-    static function method StaticC<B(0)>(a: A, b: B): (A, B) { (a, b) }
+  class Class<Ac(0)> extends Trait<Ac> {
+    function method InstanceU3<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
+    function method InstanceT<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
+    function method InstanceC<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
+    static function method StaticC<Bc(0)>(a: Ac, b: Bc): (Ac, Bc) { (a, b) }
   }
 
   datatype Uni = Uni
@@ -237,34 +237,34 @@ module Functions {
 }
 
 module Consts {
-  datatype Datatype<A(0)> = Dt0(a: A) | Dt1(a: A) {
-    const InstanceD0: A
-    const InstanceD1: A := InstanceD0
-    const InstanceD2: A := InstanceD3
-    const InstanceD3: A := a
-    const InstanceD4: A := InstanceD3
-    static const StaticD0: A
-    static const StaticD1: A := StaticD0
+  datatype Datatype<Ad(0)> = Dt0(a: Ad) | Dt1(a: Ad) {
+    const InstanceD0: Ad
+    const InstanceD1: Ad := InstanceD0
+    const InstanceD2: Ad := InstanceD3
+    const InstanceD3: Ad := a
+    const InstanceD4: Ad := InstanceD3
+    static const StaticD0: Ad
+    static const StaticD1: Ad := StaticD0
   }
 
-  trait Trait<A(0)> {
-    const InstanceT0: A
-    const InstanceT1: A := InstanceT0
-    const InstanceT2: A
-    var VarT0: A
-    var VarT1: A
-    static const StaticT0: A
-    static const StaticT1: A := StaticT0
+  trait Trait<At(0)> {
+    const InstanceT0: At
+    const InstanceT1: At := InstanceT0
+    const InstanceT2: At
+    var VarT0: At
+    var VarT1: At
+    static const StaticT0: At
+    static const StaticT1: At := StaticT0
   }
 
-  class Class<A(0)> extends Trait<A> {
-    const InstanceC0: A
-    const InstanceC1: A := InstanceC0
-    const InstanceC2: A := InstanceT0
-    const InstanceC3: A
-    var VarC0: A
-    var VarC1: A
-    constructor (a: A) {
+  class Class<Ac(0)> extends Trait<Ac> {
+    const InstanceC0: Ac
+    const InstanceC1: Ac := InstanceC0
+    const InstanceC2: Ac := InstanceT0
+    const InstanceC3: Ac
+    var VarC0: Ac
+    var VarC1: Ac
+    constructor (a: Ac) {
       InstanceT0 := a;
       VarT0 := a;
       // leave InstanceT2 and VarT1 implicit
@@ -273,9 +273,9 @@ module Consts {
       // leave InstanceC3 and VarC1 implicit
     }
 
-    static const StaticC0: A
-    static const StaticC1: A := StaticC0
-    static const StaticC2: A := StaticT0
+    static const StaticC0: Ac
+    static const StaticC1: Ac := StaticC0
+    static const StaticC2: Ac := StaticT0
   }
 
   datatype Uni = Uni
