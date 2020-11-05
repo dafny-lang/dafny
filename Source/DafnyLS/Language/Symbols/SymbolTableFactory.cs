@@ -1,7 +1,6 @@
-﻿using Microsoft.Dafny.LanguageServer.Util;
-using IntervalTree;
+﻿using IntervalTree;
 using MediatR;
-using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -213,7 +212,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           fieldSymbol,
           fieldSymbol.Declaration.tok,
           fieldSymbol.Declaration.tok.GetLspRange(),
-          new Range(fieldSymbol.Declaration.tok.GetLspPosition(), fieldSymbol.Declaration.BodyEndTok.GetLspPosition())
+          fieldSymbol.Declaration.tok.GetLspRange()
+          // TODO BodyEndToken returns a token with location (0, 0)
+          //new Range(fieldSymbol.Declaration.tok.GetLspPosition(), fieldSymbol.Declaration.BodyEndTok.GetLspPosition())
         );
         VisitChildren(fieldSymbol);
         return Unit.Value;
