@@ -19,11 +19,14 @@ jobs:
           - os: ubuntu-16.04
             suffix: ubuntu-16.04
             z3: z3-4.8.4.d6df51951f4c-x64-ubuntu-16.04
+            chmod: true
           - os: windows-2019
             suffix: win
             z3: z3-4.8.4.d6df51951f4c-x64-win
+            chmod: false
     env:
       binaryPath: DafnyLS/bin/Release/netcoreapp3.1
+      testPath: DafnyLS.IntegrationTest/bin/Debug/netcoreapp3.1
       z3BaseUri: https://github.com/Z3Prover/z3/releases/download/z3-4.8.4
     outputs:
       binaries: ${{env.binaryPath}}
@@ -39,16 +42,19 @@ jobs:
       run: dotnet restore
     - name: Build
       run: dotnet build --configuration Release --no-restore
-    - name: Test
-      run: dotnet test --no-restore --verbosity normal
     - name: Load Z3
       shell: pwsh
       run: |
-        Set-Location ${{env.binaryPath}}
         Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
         Expand-Archive z3.zip .
-        Rename-Item ${{matrix.z3}} z3
         Remove-Item z3.zip
+        Copy-Item ${{matrix.z3}} ${{env.binaryPath}}/z3 -Recurse
+        Copy-Item ${{matrix.z3}} ${{env.testPath}}/z3 -Recurse
+    - name: Permissions
+      if: ${{matrix.chmod}}
+      run: chmod +x ${{env.testPath}}/z3/bin/z3
+    - name: Test
+      run: dotnet test --no-restore --verbosity normal
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
       with:
