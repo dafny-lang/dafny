@@ -48,7 +48,6 @@ jobs:
         Remove-Item z3.zip
         Copy-Item ${{matrix.z3}} ${{env.binaryPath}}/z3 -Recurse
         Copy-Item ${{matrix.z3}} ${{env.testPath}}/z3 -Recurse
-    - name: Add Z3 
     - name: Test
       run: dotnet test --no-restore --verbosity normal
     - name: Upload Artifacts
