@@ -39,10 +39,6 @@ Execution trace:
 SubsetTypes.dfy(44,15): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(45,9): Error: value does not satisfy the subset constraints of 'int ~> nat'
-Execution trace:
-    (0,0): anon0
-    SubsetTypes.dfy(45,10): anon3_Else
 SubsetTypes.dfy(50,15): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
@@ -152,15 +148,20 @@ Execution trace:
 SubsetTypes.dfy(183,11): Error: value does not satisfy the subset constraints of 'int ~> nat'
 Execution trace:
     (0,0): anon0
-    (0,0): anon29_Then
-    SubsetTypes.dfy(183,12): anon30_Else
-SubsetTypes.dfy(200,25): Error: value does not satisfy the subset constraints of 'Person' (it may be null)
+    (0,0): anon15_Then
+    SubsetTypes.dfy(183,12): anon16_Else
+SubsetTypes.dfy(199,30): Error: result of operation might violate subset type constraint for 'Person'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon16_Then
+    (0,0): anon17_Then
+SubsetTypes.dfy(200,30): Error: result of operation might violate subset type constraint for 'Person'
 Execution trace:
     (0,0): anon0
     (0,0): anon16_Then
     SubsetTypes.dfy(199,26): anon17_Else
-    SubsetTypes.dfy(200,26): anon18_Else
-SubsetTypes.dfy(205,23): Error: value does not satisfy the subset constraints of 'Person' (it may be null)
+    (0,0): anon18_Then
+SubsetTypes.dfy(205,28): Error: result of operation might violate subset type constraint for 'Person'
 Execution trace:
     (0,0): anon0
     (0,0): anon16_Then
@@ -170,7 +171,7 @@ Execution trace:
     SubsetTypes.dfy(202,25): anon19_Else
     SubsetTypes.dfy(203,25): anon20_Else
     SubsetTypes.dfy(204,24): anon21_Else
-    SubsetTypes.dfy(205,24): anon22_Else
+    (0,0): anon22_Then
 SubsetTypes.dfy(261,11): Error: value does not satisfy the subset constraints of 'array<Person?>' (possible cause: it may be null)
 Execution trace:
     (0,0): anon0

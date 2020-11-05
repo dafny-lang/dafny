@@ -73,8 +73,8 @@ method Q0(s: Six, y: int) returns (a: array<Six>)
 {
   if
   case true =>  a := new Six[10](_ => s);
-  case true =>  a := new Six[10](x => 6+x);
-  case true =>  a := new Six[10](_ => y);
+  case true =>  // a := new Six[10](x => 6+x); // type error
+  case true =>  // a := new Six[10](_ => y);   // type error
   case true =>  a := new Six[10];
   case true =>  a := new Six[0];
 }

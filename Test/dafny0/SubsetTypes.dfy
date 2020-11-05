@@ -42,7 +42,7 @@ module AssignmentToNat {
     requires f.requires(x)  // error
   {
     var y := f(x);  // error
-    g := z => z;  // error
+    // g := z => z;  // type error
   }
   method Q(x: int) {
     var f := Pf;
@@ -176,9 +176,9 @@ module SoftCasts {
   {
     if
     case true =>
-      g := z => if z < 0 then -z else z;
+      // g := z => if z < 0 then -z else z; // type error
     case true =>
-      g := z => if z <= 0 then -z else z-1;
+      // g := z => if z <= 0 then -z else z-1; // type error
     case true =>
       g := (z: int) => if z < 0 then -z else z-1;  // error: may fail to return a nat
     case true =>
