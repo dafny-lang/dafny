@@ -1523,7 +1523,7 @@ namespace Microsoft.Dafny {
           } else if (f is ConstantField) {
             var cf = (ConstantField)f;
             if (cf.IsStatic && !SupportsStaticsInGenericClasses && cf.EnclosingClass.TypeArgs.Count != 0) {
-              var wBody = classWriter.CreateFunction(IdName(cf), CombineTypeParameters(cf, true), new List<Formal>(), cf.Type, cf.tok, true, true, member, false, false);
+              var wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), new List<Formal>(), cf.Type, cf.tok, true, true, member, false, false);
               Contract.Assert(wBody != null);  // since the previous line asked for a body
               if (cf.Rhs != null) {
                 CompileReturnBody(cf.Rhs, f.Type, wBody, null);
@@ -1540,7 +1540,7 @@ namespace Microsoft.Dafny {
                 // because a newtype value is always represented as some existing type.
                 // Likewise, an instance const with a RHS in a trait needs to be modeled as a static function (in the companion class)
                 // that takes a parameter, because trait-equivalents in target languages don't allow implementations.
-                wBody = classWriter.CreateFunction(IdName(cf), CombineTypeParameters(cf, true), new List<Formal>(), cf.Type, cf.tok, true, true, cf, false, true);
+                wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), new List<Formal>(), cf.Type, cf.tok, true, true, cf, false, true);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
                 if (c is TraitDecl) {
                   // also declare a function for the field in the interface
@@ -1566,8 +1566,7 @@ namespace Microsoft.Dafny {
                   var sw = EmitReturnExpr(wBody);
                   var typeSubst = new Dictionary<TypeParameter, Type>();
                   cf.EnclosingClass.TypeArgs.ForEach(tp => typeSubst.Add(tp, (Type)new UserDefinedType(tp)));
-                  var typeArgs = CombineTypeParameters(cf);
-                  Contract.Assert(typeArgs.Count == 0);  // this means the previous line can be simplified
+                  var typeArgs = CombineAllTypeArguments(cf);
                   EmitMemberSelect(EmitThis, UserDefinedType.FromTopLevelDecl(c.tok, c), cf,
                     typeArgs, typeSubst, f.Type, internalAccess: true).EmitRead(sw);
                 } else {
@@ -1865,17 +1864,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected List<TypeArgumentInstantiation> CombineTypeParameters(MemberDecl member, bool forCompanionClass = false) {
-      Contract.Requires(member != null);
-      var classActuals = member.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
-      var memberActuals = member is ICallable ic ? ic.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)) : null;
-      if (forCompanionClass) {
-        return CombineTypeArgumentsForCompanionClass(member, classActuals, memberActuals);
-      } else {
-        return CombineTypeArguments(member, classActuals, memberActuals);
-      }
-    }
-
     protected List<TypeArgumentInstantiation> CombineAllTypeArguments(MemberDecl member) {
       Contract.Requires(member != null);
       var classActuals = member.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
@@ -1897,50 +1885,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(typeArgsMember != null);
 
       return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
-    }
-
-    protected List<TypeArgumentInstantiation> CombineTypeArgumentsForCompanionClass(MemberDecl member, List<Type> typeArgsEnclosingClass, List<Type> typeArgsMember) {
-      Contract.Requires(member != null);
-      Contract.Requires(typeArgsEnclosingClass != null);
-      Contract.Requires(typeArgsMember != null);
-
-      if (member.IsStatic || NeedsCustomReceiver(member)) {
-        return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
-      } else {
-        return TypeArgumentInstantiation.ListFromMember(member, null, typeArgsMember);
-      }
-    }
-
-    protected List<TypeArgumentInstantiation> CombineTypeArguments(MemberDecl member, List<Type> typeArgsEnclosingClass, List<Type> typeArgsMember) {
-      Contract.Requires(member != null);
-      Contract.Requires(typeArgsEnclosingClass != null);
-      Contract.Requires(typeArgsMember != null);
-
-      if (member.IsStatic || (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl))) {
-        return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
-      } else {
-        return TypeArgumentInstantiation.ListFromMember(member, null, typeArgsMember);
-      }
-    }
-
-    /// <summary>
-    /// TODO: This is a TEMPORARY method for getting the previous behavior. Its uses should be gradually elimiated.
-    /// </summary>
-    protected List<TypeParameter> ArgumentInstantiationsToTypeParameters(MemberDecl member, List<TypeArgumentInstantiation> typeParams) {
-      Contract.Requires(member != null);
-      Contract.Requires(typeParams != null);
-      var tps = new List<TypeParameter>();
-      foreach (var ta in typeParams) {
-        var tp = ta.Formal;
-        if (SupportsStaticsInGenericClasses) {
-          // type parameters of the class are already available from the class
-          if (tp.Parent is TopLevelDecl) {
-            continue;
-          }
-        }
-        tps.Add(tp);
-      }
-      return tps;
     }
 
     protected int WriteRuntimeTypeDescriptorsFormals(MemberDecl member, List<TypeArgumentInstantiation> typeParams,
@@ -2471,14 +2415,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(types));
       Contract.Ensures(Contract.Result<string>() != null);
       return Util.Comma(types, ty => TypeName(ty, wr, tok));
-    }
-
-    // TODO: move this method into CsharpCompiler
-    string/*!*/ TypeParameters(List<TypeParameter/*!*/>/*!*/ targs) {
-      Contract.Requires(cce.NonNullElements(targs));
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      return Util.Comma(targs, IdName);
     }
 
     /// <summary>
