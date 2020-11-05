@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 17 verified, 0 errors
+Dafny program verifier finished with 19 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 Methods_Compile.Uni.Uni
@@ -126,6 +126,7 @@ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Co
 [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ []
   ++ [Consts_Compile.Uni.Uni] ++ []
   ** [] ++ [] ++ []
+15
 
 Dafny program verifier did not attempt verification
 Methods_Compile.Uni.Uni
@@ -252,6 +253,7 @@ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Co
 [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ []
   ++ [Consts_Compile.Uni.Uni] ++ []
   ** [] ++ [] ++ []
+15
 
 Dafny program verifier did not attempt verification
 Methods_Compile.Uni.Uni
@@ -378,6 +380,7 @@ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Co
 [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ []
   ++ [Consts_Compile.Uni.Uni] ++ []
   ** [] ++ [] ++ []
+15
 
 Dafny program verifier did not attempt verification
 Methods_Compile.Uni.Uni
@@ -504,3 +507,4 @@ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Co
 [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ [Consts_Compile.Uni.Uni] ++ []
   ++ [Consts_Compile.Uni.Uni] ++ []
   ** [] ++ [] ++ []
+15

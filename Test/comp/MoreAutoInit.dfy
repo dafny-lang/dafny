@@ -9,6 +9,7 @@ method Main() {
   Methods.TestStart();
   Functions.TestStart();
   Consts.TestStart();
+  FunctionsAsValues.TestStart();
 }
 
 module Methods {
@@ -323,5 +324,26 @@ module Consts {
     print Class<X>.StaticC0, " ++ ";
     print Class<X>.StaticC1, " ++ ";
     print Class<X>.StaticC2, "\n";
+  }
+}
+
+module FunctionsAsValues {
+  trait Trait<G(0), H, J(0)> {
+    function method Select(g: G, h: H, j: J): G { g }
+
+    function method ApplySelect(g: G, h: H, j: J): G {
+      var f := Select;
+      f(g, h, j)
+    }
+  }
+
+  class Class extends Trait<int, int, int> {
+    constructor () { }
+  }
+
+  method TestStart() {
+    var c := new Class();
+    var x := c.ApplySelect(15, 20, 25);
+    print x, "\n";  // 15
   }
 }

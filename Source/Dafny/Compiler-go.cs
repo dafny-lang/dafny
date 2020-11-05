@@ -2410,10 +2410,7 @@ namespace Microsoft.Dafny {
           suffixWr.Write(IdName(member));
           suffixWr.Write("(");
           var suffixSep = "";
-          foreach (var ta in typeArgs) {
-            suffixWr.Write("{0}{1}", suffixSep, TypeDescriptor(ta.Actual, suffixWr, fn.tok));
-            suffixSep = ", ";
-          }
+          EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), fn.tok, suffixWr, ref suffixSep);
           if (additionalCustomParameter != null) {
             suffixWr.Write("{0}{1}", suffixSep, additionalCustomParameter);
             suffixSep = ", ";

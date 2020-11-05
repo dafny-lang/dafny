@@ -1971,7 +1971,7 @@ namespace Microsoft.Dafny
         }
       } else if (member is Function fn) {
         var wr = new TargetWriter();
-        EmitNameAndActualTypeArgs(IdName(member), typeArgs.ConvertAll(ta => ta.Actual), member.tok, wr);
+        EmitNameAndActualTypeArgs(IdName(member), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, member, false)), member.tok, wr);
         if (typeArgs.Count == 0 && additionalCustomParameter == null) {
           var nameAndTypeArgs = wr.ToString();
           return SuffixLvalue(obj, $".{nameAndTypeArgs}");
@@ -1980,12 +1980,7 @@ namespace Microsoft.Dafny
           // (T0 a0, T1 a1, ...) => obj.F(additionalCustomParameter, a0, a1, ...)
           wr.Write("(");
           var sep = "";
-          foreach (var ta in typeArgs) {
-            if (NeedsTypeDescriptor(ta.Formal)) {
-              wr.Write("{0}{1}", sep, TypeDescriptor(ta.Actual, wr, fn.tok));
-              sep = ", ";
-            }
-          }
+          EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), fn.tok, wr, ref sep);
           if (additionalCustomParameter != null) {
             wr.Write("{0}{1}", sep, additionalCustomParameter);
             sep = ", ";
