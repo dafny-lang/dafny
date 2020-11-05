@@ -24,7 +24,7 @@ jobs:
             z3: z3-4.8.4.d6df51951f4c-x64-win
     env:
       binaryPath: DafnyLS/bin/Release/netcoreapp3.1
-      testPath: DafnyLS.IntegrationTest/bin/Release/netcoreapp3.1
+      testPath: DafnyLS.IntegrationTest/bin/Debug/netcoreapp3.1
       z3BaseUri: https://github.com/Z3Prover/z3/releases/download/z3-4.8.4
     outputs:
       binaries: ${{env.binaryPath}}
