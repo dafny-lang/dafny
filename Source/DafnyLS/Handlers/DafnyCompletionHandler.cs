@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private readonly IDocumentDatabase _documents;
     private readonly ISymbolGuesser _symbolGuesser;
 
-    public DafnyCompletionHandler(ILogger<DafnyDefinitionHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) : base(CreateRegistrationOptions()) {
+    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) : base(CreateRegistrationOptions()) {
       _logger = logger;
       _documents = documents;
       _symbolGuesser = symbolGuesser;

@@ -1,6 +1,4 @@
-﻿using Microsoft.Dafny.LanguageServer.Util;
-using Microsoft.Dafny;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
@@ -28,24 +26,22 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     /// <summary>
-    /// Factory method to safely create a new instance of the parser. It may only be invoked
-    /// once per application lifetime.
+    /// Factory method to safely create a new instance of the parser. It ensures that global/static
+    /// settings are set exactly ones.
     /// </summary>
     /// <param name="logger">A logger instance that may be used by this parser instance.</param>
     /// <returns>A safely created dafny parser instance.</returns>
-    /// <exception cref="InvalidOperationException">Thrown in case of multiple invocations of this factory method.</exception>
     public static DafnyLangParser Create(ILogger<DafnyLangParser> logger) {
       lock(_initializationSyncObject) {
-        if(_initialized) {
-          throw new InvalidOperationException($"{nameof(DafnyLangParser)} may only be initialized once");
+        if(!_initialized) {
+          // TODO no error reporter is supplied at this time since it appears that there is not any usage inside dafny.
+          DafnyOptions.Install(new DafnyOptions());
+          DafnyOptions.Clo.ApplyDefaultOptions();
+          DafnyOptions.O.PrintIncludesMode = DafnyOptions.IncludesModes.None;
+          // TODO Provide a counter-example model file.
+          //DafnyOptions.O.ModelViewFile = ...;
+          _initialized = true;
         }
-        // TODO no error reporter is supplied at this time since it appears that there is not any usage inside dafny.
-        DafnyOptions.Install(new DafnyOptions());
-        DafnyOptions.Clo.ApplyDefaultOptions();
-        DafnyOptions.O.PrintIncludesMode = DafnyOptions.IncludesModes.None;
-        // TODO Provide a counter-example model file.
-        //DafnyOptions.O.ModelViewFile = ...;
-        _initialized = true;
         logger.LogTrace("initialized the dafny pipeline...");
         return new DafnyLangParser(logger);
       }

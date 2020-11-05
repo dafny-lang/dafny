@@ -1,8 +1,6 @@
 ﻿using Microsoft.Boogie;
-using Microsoft.Dafny;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -15,6 +13,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// any access is synchronized. Moreover, it ensures that exactly one instance exists over the whole
   /// application lifetime.
   /// </summary>
+  /// <remarks>
+  /// dafny-lang makes use of static members and assembly loading. Since thread-safety of this is not guaranteed,
+  /// this verifier serializes all invocations.
+  /// </remarks>
   public class DafnyProgramVerifier : IProgramVerifier {
     private static readonly object _initializationSyncObject = new object();
     private static bool _initialized;
@@ -27,20 +29,18 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     /// <summary>
-    /// Factory method to safely create a new instance of the verifier. It may only be invoked
-    /// once per application lifetime.
+    /// Factory method to safely create a new instance of the verifier. It ensures that global/static
+    /// settings are set exactly ones.
     /// </summary>
     /// <param name="logger">A logger instance that may be used by this verifier instance.</param>
     /// <returns>A safely created dafny verifier instance.</returns>
-    /// <exception cref="InvalidOperationException">Thrown in case of multiple invocations of this factory method.</exception>
     public static DafnyProgramVerifier Create(ILogger<DafnyProgramVerifier> logger) {
       lock(_initializationSyncObject) {
-        if(_initialized) {
-          throw new InvalidOperationException($"{nameof(DafnyProgramVerifier)} may only be initialized once");
+        if(!_initialized) {
+          _initialized = true;
+          ExecutionEngine.printer = new VerifierOutputPrinter(logger);
+          logger.LogTrace("initialized the boogie verifier...");
         }
-        _initialized = true;
-        ExecutionEngine.printer = new VerifierOutputPrinter(logger);
-        logger.LogTrace("initialized the boogie verifier...");
         return new DafnyProgramVerifier(logger);
       }
     }

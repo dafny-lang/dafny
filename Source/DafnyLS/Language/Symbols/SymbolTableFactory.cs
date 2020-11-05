@@ -1,7 +1,6 @@
-﻿using Microsoft.Dafny.LanguageServer.Util;
-using IntervalTree;
+﻿using IntervalTree;
 using MediatR;
-using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -22,11 +21,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public SymbolTable CreateFrom(Microsoft.Dafny.Program program, CompilationUnit compilationUnit, CancellationToken cancellationToken) {
       var declarations = CreateDeclarationDictionary(compilationUnit, cancellationToken);
       var designatorVisitor = new DesignatorVisitor(_logger, program, declarations, compilationUnit, cancellationToken);
-      var declarationVisitor = new SymbolDeclarationVisitor(cancellationToken);
+      var declarationLocationVisitor = new SymbolDeclarationLocationVisitor(cancellationToken);
       var symbolsResolved = !HasErrors(program);
       if(symbolsResolved) {
         designatorVisitor.Visit(program);
-        declarationVisitor.Visit(compilationUnit);
+        declarationLocationVisitor.Visit(compilationUnit);
       } else {
         // TODO This is an unfortunate situation. The syntax could be correct but contain some semantic errors.
         //      However, due to the contracts of the resolver we cannot pro-actively check if certain information could be resolved or not.
@@ -38,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return new SymbolTable(
         compilationUnit,
         declarations,
-        declarationVisitor.Declarations,
+        declarationLocationVisitor.Locations,
         designatorVisitor.SymbolLookup,
         symbolsResolved
       );
@@ -164,12 +163,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
     }
 
-    private class SymbolDeclarationVisitor : ISymbolVisitor<Unit> {
+    private class SymbolDeclarationLocationVisitor : ISymbolVisitor<Unit> {
       private readonly CancellationToken _cancellationToken;
 
-      public IDictionary<ISymbol, SymbolLocation> Declarations { get; } = new Dictionary<ISymbol, SymbolLocation>();
+      public IDictionary<ISymbol, SymbolLocation> Locations { get; } = new Dictionary<ISymbol, SymbolLocation>();
 
-      public SymbolDeclarationVisitor(CancellationToken cancellationToken) {
+      public SymbolDeclarationLocationVisitor(CancellationToken cancellationToken) {
         _cancellationToken = cancellationToken;
       }
 
@@ -213,7 +212,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           fieldSymbol,
           fieldSymbol.Declaration.tok,
           fieldSymbol.Declaration.tok.GetLspRange(),
-          new Range(fieldSymbol.Declaration.tok.GetLspPosition(), fieldSymbol.Declaration.BodyEndTok.GetLspPosition())
+          fieldSymbol.Declaration.tok.GetLspRange()
+          // TODO BodyEndToken returns a token with location (0, 0)
+          //new Range(fieldSymbol.Declaration.tok.GetLspPosition(), fieldSymbol.Declaration.BodyEndTok.GetLspPosition())
         );
         VisitChildren(fieldSymbol);
         return Unit.Value;
@@ -264,7 +265,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       private void RegisterLocation(ISymbol symbol, Microsoft.Boogie.IToken token, Range identifier, Range declaration) {
         if(token.filename != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
-          Declarations.Add(symbol, new SymbolLocation(DocumentUri.FromFileSystemPath(token.filename), identifier, declaration));
+          Locations.Add(symbol, new SymbolLocation(DocumentUri.FromFileSystemPath(token.filename), identifier, declaration));
         }
       }
     }
