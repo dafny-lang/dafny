@@ -237,6 +237,36 @@ class Test {
     }
 
     [TestMethod]
+    public async Task MigrationRemovesSymbolLocationsWithinTheChangedRange() {
+      var source = @"
+class Test {
+  var x: int;
+
+  function GetX(): int
+      reads this
+  {
+    this.x
+  }
+}".TrimStart();
+
+      var change = "y + ";
+      var documentItem = CreateTestDocument(source);
+      await Client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var originalDocument));
+      var lookupCountBefore = originalDocument.SymbolTable.LookupTree.Count;
+
+      await ApplyChangeAndWaitCompletionAsync(
+        documentItem,
+        new Range((6, 9), (6, 10)),
+        change
+      );
+      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      Assert.IsFalse(document.SymbolTable.Resolved);
+      Assert.IsFalse(document.SymbolTable.TryGetSymbolAt((6, 9), out var _));
+      Assert.AreEqual(lookupCountBefore - 1, document.SymbolTable.LookupTree.Count);
+    }
+
+    [TestMethod]
     public async Task MigrationMovesSymbolLocationsWhenApplyingMultipleChangesAtOnce() {
       var source = @"
 class Test {
