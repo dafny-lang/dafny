@@ -1,5 +1,4 @@
-﻿using Microsoft.Dafny;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
@@ -29,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <param name="variable">The variable to get a text representation of.</param>
     /// <returns>The text representation of the variable.</returns>
     public static string AsText(this IVariable variable) {
-      return $"{variable.Name} : {variable.Type}";
+      return $"{variable.Name}: {variable.Type}";
     }
 
     /// <summary>
