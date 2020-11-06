@@ -95,14 +95,14 @@ func SetFinalizer(x interface{}, f interface{}) {
  * Run-time type descriptors (RTDs)
  ******************************************************************************/
 
-// A Type is a run-time type descriptor, needed to carry information about types
+// A TypeDescriptor is a run-time type descriptor, needed to carry information about types
 // which gets erased by the compiler.
-type Type interface {
+type TypeDescriptor interface {
   Default() interface{}
 }
 
 // BaseType returns the RTD for a base value (bool, int, etc.)
-func BaseType(value interface{}) Type {
+func BaseType(value interface{}) TypeDescriptor {
   return baseType{refl.TypeOf(value)}
 }
 
@@ -116,7 +116,7 @@ func (typ baseType) Default() interface{} {
 
 // TypeWithDefault returns a type whose default value is the given one.  Used
 // for types of functions, since there are infinitely many of those.
-func TypeWithDefault(value interface{}) Type {
+func TypeWithDefault(value interface{}) TypeDescriptor {
   return typeWithDefault{value}
 }
 
@@ -129,7 +129,7 @@ func (typ typeWithDefault) Default() interface{} {
 }
 
 // AnyType is the RTD of interface{}.
-var AnyType Type = baseType{refl.TypeOf((*interface{})(nil)).Elem()}
+var AnyType TypeDescriptor = baseType{refl.TypeOf((*interface{})(nil)).Elem()}
 
 // BoolType is the RTD of bool.
 var BoolType = BaseType(true)
@@ -573,7 +573,7 @@ func (seq Seq) String() string {
 }
 
 // SeqType is the RTD for a sequence.
-var SeqType Type = seqType{}
+var SeqType TypeDescriptor = seqType{}
 
 type seqType struct{}
 
@@ -769,7 +769,7 @@ func (array *Array) String() string {
 }
 
 // ArrayType is the type of any array.
-var ArrayType Type = arrayType{}
+var ArrayType TypeDescriptor = arrayType{}
 
 type arrayType struct{}
 
@@ -823,14 +823,14 @@ func (tuple Tuple) IndexInt(i int) *interface{} {
 }
 
 // TupleType returns the type of a tuple with given element types.
-func TupleType(tys ...Type) Type {
-  arr := make([]Type, len(tys))
+func TupleType(tys ...TypeDescriptor) TypeDescriptor {
+  arr := make([]TypeDescriptor, len(tys))
   copy(arr, tys)
   return tupleType{arr}
 }
 
 type tupleType struct {
-  eltTys []Type
+  eltTys []TypeDescriptor
 }
 
 func (tt tupleType) Default() interface{} {
@@ -1088,7 +1088,7 @@ func (set Set) String() string {
 }
 
 // SetType is the type of any set.
-var SetType Type = setType{}
+var SetType TypeDescriptor = setType{}
 
 type setType struct{}
 
@@ -1582,7 +1582,7 @@ func (m Map) String() string {
 }
 
 // MapType is the type of any map.
-var MapType Type = mapType{}
+var MapType TypeDescriptor = mapType{}
 
 type mapType struct{}
 
@@ -2099,7 +2099,7 @@ func AllIntegers() Iterator {
 }
 
 // IntType is the RTD for integers.
-var IntType Type = intType{}
+var IntType TypeDescriptor = intType{}
 
 type intType struct{}
 
@@ -2324,7 +2324,7 @@ func (x Real) Max(y Real) Real {
 }
 
 // RealType is the RTD for reals.
-var RealType Type = realType{}
+var RealType TypeDescriptor = realType{}
 
 type realType struct{}
 

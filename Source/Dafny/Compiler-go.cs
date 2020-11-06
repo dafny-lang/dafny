@@ -59,6 +59,8 @@ namespace Microsoft.Dafny {
       ReadRuntimeSystem("DafnyRuntime.go", rt);
     }
 
+    const string DafnyTypeDescriptor = "_dafny.TypeDescriptor";
+
     void EmitModuleHeader(TargetWriter wr) {
       wr.WriteLine("// Package {0}", ModuleName);
       wr.WriteLine("// Dafny module {0} compiled into Go", ModuleName);
@@ -182,7 +184,7 @@ namespace Microsoft.Dafny {
     private GoCompiler.ClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr, bool includeRtd, bool includeEquals) {
       // See docs/Compilation/ReferenceTypes.md for a description of how instance members of classes and traits are compiled into Go.
       //
-      // func New_Class_(Type0 Dafny.Type, Type1 Dafny.Type) *Class {
+      // func New_Class_(Type0 _dafny.TypeDescriptor, Type1 _dafny.TypeDescriptor) *Class {
       //   _this := Class{}
       //
       //   // Have to do it this way because some default values (namely type
@@ -206,13 +208,13 @@ namespace Microsoft.Dafny {
       //   return "module.Class"
       // }
       //
-      // func Type_Class_(Type0 _dafny.Type, Type1 _dafny.Type) _dafny.Type {
+      // func Type_Class_(Type0 _dafny.TypeDescriptor, Type1 _dafny.TypeDescriptor) _dafny.TypeDescriptor {
       //   return type_Class_{Type0, Type1}
       // }
       //
       // type type_Class_ struct{
-      //   Type0 _dafny.Type
-      //   Type1 _dafny.Type
+      //   Type0 _dafny.TypeDescriptor
+      //   Type1 _dafny.TypeDescriptor
       // }
       //
       // func (_this type_Class_) Default() interface{} {
@@ -519,7 +521,7 @@ namespace Microsoft.Dafny {
       //   }
       // }
       //
-      // func Type_Dt_(tyArg0 Type, tyArg1 Type, ...) _dafny.Type {
+      // func Type_Dt_(tyArg0 Type, tyArg1 Type, ...) _dafny.TypeDescriptor {
       //   return type_Dt_{tyArg0, tyArg1, ...}
       // }
       //
@@ -895,7 +897,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine();
       wr.Write("func {0}(", FormatRTDName(typeName));
       WriteRuntimeTypeDescriptorsFormals(usedParams, true, wr);
-      var wTypeMethod = wr.NewBlock(") _dafny.Type");
+      var wTypeMethod = wr.NewBlock($") {DafnyTypeDescriptor}");
       wTypeMethod.WriteLine("return type_{0}_{{{1}}}", typeName, Util.Comma(usedParams, tp => FormatRTDName(tp.CompileName)));
 
       wr.WriteLine();
@@ -1060,7 +1062,7 @@ namespace Microsoft.Dafny {
       }
       wr.Write("{0}(", name);
       var prefix = "";
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(member, ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref prefix, tp => $"{FormatRTDName(tp.CompileName)} _dafny.Type");
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(member, ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref prefix, tp => $"{FormatRTDName(tp.CompileName)} {DafnyTypeDescriptor}");
       if (customReceiver) {
         wr.Write("{0}_this {1}", nTypes != 0 ? ", " : "", TypeName(UserDefinedType.FromTopLevelDecl(tok, member.EnclosingClass), wr, tok));
       }
@@ -1145,7 +1147,7 @@ namespace Microsoft.Dafny {
           var name = FormatRTDName(tp.CompileName);
 
           if (wr != null) {
-            wr.WriteLine("{0} _dafny.Type", name);
+            wr.WriteLine($"{name} {DafnyTypeDescriptor}");
           }
 
           if (wInit != null) {
@@ -1153,7 +1155,7 @@ namespace Microsoft.Dafny {
           }
 
           if (wParams != null) {
-            wParams.Write("{0}{1} _dafny.Type", sep, name);
+            wParams.Write($"{sep}{name} {DafnyTypeDescriptor}");
             sep = ", ";
           }
         }
@@ -1167,7 +1169,7 @@ namespace Microsoft.Dafny {
       var prefix = "";
       foreach (var tp in typeParams) {
         if (useAllTypeArgs || NeedsTypeDescriptor(tp)) {
-          wr.Write("{0}{1} _dafny.Type", prefix, FormatRTDName(tp.CompileName));
+          wr.Write($"{prefix}{FormatRTDName(tp.CompileName)} {DafnyTypeDescriptor}");
           prefix = ", ";
         }
       }
