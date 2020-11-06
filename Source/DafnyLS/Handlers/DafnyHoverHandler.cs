@@ -2,30 +2,29 @@
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
-  public class DafnyHoverHandler : IHoverHandler {
+  public class DafnyHoverHandler : HoverHandler {
     // TODO add the range of the identifier to the hover.
     private readonly ILogger _logger;
     private readonly IDocumentDatabase _documents;
 
-    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IDocumentDatabase documents) {
+    public DafnyHoverHandler(ILogger<DafnyHoverHandler> logger, IDocumentDatabase documents) : base(CreateRegistrationOptions()) {
       _logger = logger;
       _documents = documents;
     }
 
-    public HoverRegistrationOptions GetRegistrationOptions() {
+    private static HoverRegistrationOptions CreateRegistrationOptions() {
       return new HoverRegistrationOptions {
         DocumentSelector = DocumentSelector.ForLanguage("dafny")
       };
     }
 
-    public Task<Hover> Handle(HoverParams request, CancellationToken cancellationToken) {
+    public override Task<Hover> Handle(HoverParams request, CancellationToken cancellationToken) {
       _logger.LogTrace("received hover request for {}", request.TextDocument);
       DafnyDocument? textDocument;
       if(!_documents.TryGetDocument(request.TextDocument, out textDocument)) {
@@ -51,9 +50,6 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           }
         )
       };
-    }
-
-    public void SetCapability(HoverCapability capability) {
     }
   }
 }
