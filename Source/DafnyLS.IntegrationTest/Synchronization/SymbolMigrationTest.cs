@@ -1,11 +1,11 @@
-﻿using DafnyLS.IntegrationTest.Extensions;
+﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace DafnyLS.IntegrationTest.Synchronization {
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class SymbolMigrationTest : SynchronizationTestBase {
     [TestMethod]
