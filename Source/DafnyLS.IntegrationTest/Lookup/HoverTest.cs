@@ -78,5 +78,18 @@ method DoIt() returns (x: int) {
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
       Assert.AreEqual("```dafny\nfunction GetX(): int\n```", markup.Value);
     }
+
+    [TestMethod]
+    public async Task HoveringInvocationOfUnknownFunctionOrMethodReturnsEmptyHover() {
+      var source = @"
+method DoIt() returns (x: int) {
+  return GetX();
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var hover = await RequestHover(documentItem, (1, 12));
+      Assert.IsNotNull(hover);
+      Assert.IsNull(hover.Contents.MarkupContent);
+    }
   }
 }
