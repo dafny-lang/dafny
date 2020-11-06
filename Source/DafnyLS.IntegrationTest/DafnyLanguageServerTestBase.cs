@@ -8,6 +8,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System.IO;
 using System.IO.Pipelines;
@@ -16,7 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageServerTestBase {
     public const string LanguageId = "dafny";
 
-    public LanguageServer Server { get; private set; }
+    public ILanguageServer Server { get; private set; }
 
     public IDocumentDatabase Documents => Server.GetRequiredService<IDocumentDatabase>();
 
@@ -25,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
     protected override (Stream clientOutput, Stream serverInput) SetupServer() {
       var clientPipe = new Pipe(TestOptions.DefaultPipeOptions);
       var serverPipe = new Pipe(TestOptions.DefaultPipeOptions);
-      Server = LanguageServer.PreInit(
+      Server = OmniSharp.Extensions.LanguageServer.Server.LanguageServer.PreInit(
         options => options
           .WithInput(serverPipe.Reader)
           .WithOutput(clientPipe.Writer)
