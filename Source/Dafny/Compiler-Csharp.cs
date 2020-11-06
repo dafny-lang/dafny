@@ -194,12 +194,12 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Generate the "_TypeDescriptor" method for a generated class.
     /// </summary>
-    private void EmitTypeDescriptorMethod(TopLevelDecl enclosingTypeDecl, bool hasWitnessMember, TargetWriter wr) {
+    private void EmitTypeDescriptorMethod(TopLevelDecl enclosingTypeDecl, TargetWriter wr) {
       Contract.Requires(enclosingTypeDecl != null);
       Contract.Requires(wr != null);
 
       var type = UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.tok, enclosingTypeDecl);
-      var initializer = hasWitnessMember ? "Witness" : TypeInitializationValue(type, wr, enclosingTypeDecl.tok, false);
+      var initializer = TypeInitializationValue(type, wr, enclosingTypeDecl.tok, false);
 
       var targetTypeName = TypeName(type, wr, enclosingTypeDecl.tok);
       var typeDescriptorExpr = $"new {TypeClass}<{targetTypeName}>({initializer})";
@@ -404,7 +404,7 @@ namespace Microsoft.Dafny
       wDefault.Write(Util.Comma(nonGhostFormals, f => DefaultValue(f.Type, wDefault, f.tok)));
       wDefault.Write(")");
 
-      EmitTypeDescriptorMethod(dt, false, wr);
+      EmitTypeDescriptorMethod(dt, wr);
 
       if (dt is CoDatatypeDecl) {
         wr.WriteLine("public abstract {0} _Get();", DtT_protected);
@@ -704,31 +704,38 @@ namespace Microsoft.Dafny
         var wEnum = w.NewNamedBlock("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi)", GetNativeTypeName(nt.NativeType));
         wEnum.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", GetNativeTypeName(nt.NativeType));
       }
-      string witness = null;
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var wrWitness = new TargetWriter(w.IndentLevel, true);
         TrExpr(nt.Witness, wrWitness, false);
-        witness = wrWitness.ToString();
+        var witness = wrWitness.ToString();
+        string typeName;
         if (nt.NativeType == null) {
-          cw.DeclareField("Witness", nt, true, true, nt.BaseType, nt.tok, witness, null);
+          typeName = TypeName(nt.BaseType, cw.StaticMemberWriter, nt.tok);
         } else {
-          w.WriteLine("public static readonly {0} Witness = ({0})({1});", GetNativeTypeName(nt.NativeType), witness);
+          typeName = GetNativeTypeName(nt.NativeType);
+          witness = $"({typeName})({witness})";
         }
+        DeclareField("Witness", true, true, true, typeName, witness, cw);
       }
-      EmitTypeDescriptorMethod(nt, witness != null, w);
+      EmitTypeDescriptorMethod(nt, w);
       return cw;
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
       ClassWriter cw = CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst, wr) as ClassWriter;
-      string witness = null;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);
-        witness = sw.ToString();
-        cw.DeclareField("Witness", sst, true, true, sst.Rhs, sst.tok, witness, null);
+        var witness = sw.ToString();
+        var typeName = TypeName(sst.Rhs, cw.StaticMemberWriter, sst.tok);
+        if (sst.TypeArgs.Count == 0) {
+          DeclareField("Witness", false, true, true, typeName, witness, cw);
+        }
+        using (var w = cw.StaticMemberWriter.NewBlock($"public static {typeName} Default()")) {
+          w.WriteLine("return {0};", sst.TypeArgs.Count == 0 ? "Witness" : witness);
+        }
       }
-      EmitTypeDescriptorMethod(sst, witness != null, cw.StaticMemberWriter);
+      EmitTypeDescriptorMethod(sst, cw.StaticMemberWriter);
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
@@ -804,7 +811,8 @@ namespace Microsoft.Dafny
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic, createBody, member));
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, Field field) {
-        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, this);
+        var typeName = Compiler.TypeName(type, this.StaticMemberWriter, tok);
+        Compiler.DeclareField(name, true, isStatic, isConst, typeName, rhs, this);
       }
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
         throw new NotSupportedException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
@@ -1130,7 +1138,7 @@ namespace Microsoft.Dafny
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
+          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Default()";
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
           // WKind.Special is only used with -->, ->, and non-null types:
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
@@ -1328,24 +1336,25 @@ namespace Microsoft.Dafny
 
     // ----- Declarations -------------------------------------------------------------
 
-    protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, ClassWriter cw) {
-      var typeName = TypeName(type, cw.StaticMemberWriter, tok);
+    protected void DeclareField(string name, bool isPublic, bool isStatic, bool isConst, string typeName, string rhs, ClassWriter cw) {
+      var publik = isPublic ? "public" : "private";
+      var konst = isConst ? " readonly" : "";
       if (isStatic) {
-        cw.StaticMemberWriter.WriteLine("public static {2}{0} {1}", typeName, name, isConst ? "readonly " : "");
+        cw.StaticMemberWriter.Write($"{publik} static{konst} {typeName} {name}");
         if (rhs != null) {
-          cw.StaticMemberWriter.WriteLine(" = {0}", rhs);
+          cw.StaticMemberWriter.Write($" = {rhs}");
         }
         cw.StaticMemberWriter.WriteLine(";");
       } else if (cw.CtorBodyWriter == null) {
-        cw.InstanceMemberWriter.WriteLine("public {2}{0} {1}", typeName, name, isConst ? "readonly " : "");
+        cw.InstanceMemberWriter.Write($"{publik}{konst} {typeName} {name}");
         if (rhs != null) {
-          cw.InstanceMemberWriter.WriteLine(" = {0}", rhs);
+          cw.InstanceMemberWriter.Write($" = {rhs}");
         }
         cw.InstanceMemberWriter.WriteLine(";");
       } else {
-        cw.InstanceMemberWriter.WriteLine("public {0} {1};", TypeName(type, cw.InstanceMemberWriter, tok), name);
+        cw.InstanceMemberWriter.Write($"{publik} {typeName} {name};");
         if (rhs != null) {
-          cw.CtorBodyWriter.WriteLine("this.{0} = {1};", name, rhs);
+          cw.CtorBodyWriter.WriteLine($"this.{name} = {rhs};");
         }
       }
     }

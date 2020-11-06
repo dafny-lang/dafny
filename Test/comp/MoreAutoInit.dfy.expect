@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 19 verified, 0 errors
+Dafny program verifier finished with 38 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 Methods_Compile.Uni.Uni
@@ -127,6 +127,19 @@ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Co
   ++ [Consts_Compile.Uni.Uni] ++ []
   ** [] ++ [] ++ []
 15
+0-0 0.0-0.0 false-false D-D 0
+0-0 0-0 0-0 0-0 0-0 0-0 0-0 0-0
+0-0 0-0 0-0 0-0 1 1
+0.0-0.0 68.0
+null-null null-null null-null null-null
+0-0
+{}-{} {}-{} multiset{}-multiset{} []-[] map[]-map[] map[]-map[]
+DefaultValuedExpressions_Compile.Color.Red-DefaultValuedExpressions_Compile.Color.Red DefaultValuedExpressions_Compile.PossibleCell.Nothing-DefaultValuedExpressions_Compile.PossibleCell.Nothing DefaultValuedExpressions_Compile.Cell.LittleCell(0)-DefaultValuedExpressions_Compile.Cell.LittleCell(0)
+()-() (0, 0.0)-(0, 0.0)
+(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())-(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())
+null-null null-null
+0-0 0-0 0-0 3 4 5
+0-0 11 0-0 8
 
 Dafny program verifier did not attempt verification
 Methods_Compile.Uni.Uni
@@ -254,6 +267,19 @@ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Co
   ++ [Consts_Compile.Uni.Uni] ++ []
   ** [] ++ [] ++ []
 15
+0-0 0.0-0.0 false-false D-D 0
+0-0 0-0 0-0 0-0 0-0 0-0 0-0 0-0
+0-0 0-0 0-0 0-0 1 1
+0.0-0.0 68.0
+null-null null-null null-null null-null
+0-0
+{}-{} {}-{} multiset{}-multiset{} []-[] map[]-map[] map[]-map[]
+DefaultValuedExpressions_Compile.Color.Red-DefaultValuedExpressions_Compile.Color.Red DefaultValuedExpressions_Compile.PossibleCell.Nothing-DefaultValuedExpressions_Compile.PossibleCell.Nothing DefaultValuedExpressions_Compile.Cell.LittleCell(0)-DefaultValuedExpressions_Compile.Cell.LittleCell(0)
+()-() (0, 0.0)-(0, 0.0)
+(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())-(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())
+null-null null-null
+0-0 0-0 0-0 3 4 5
+0-0 11 0-0 8
 
 Dafny program verifier did not attempt verification
 Methods_Compile.Uni.Uni
@@ -381,6 +407,19 @@ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Co
   ++ [Consts_Compile.Uni.Uni] ++ []
   ** [] ++ [] ++ []
 15
+0-0 0.0-0.0 false-false D-D 0
+0-0 0-0 0-0 0-0 0-0 0-0 0-0 0-0
+0-0 0-0 0-0 0-0 1 1
+0.0-0.0 68.0
+null-null null-null null-null null-null
+0-0
+{}-{} {}-{} multiset{}-multiset{} []-[] map[]-map[] map[]-map[]
+DefaultValuedExpressions_Compile.Color.Red-DefaultValuedExpressions_Compile.Color.Red DefaultValuedExpressions_Compile.PossibleCell.Nothing-DefaultValuedExpressions_Compile.PossibleCell.Nothing DefaultValuedExpressions_Compile.Cell.LittleCell(0)-DefaultValuedExpressions_Compile.Cell.LittleCell(0)
+()-() (0, 0.0)-(0, 0.0)
+(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())-(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())
+null-null null-null
+0-0 0-0 0-0 3 4 5
+0-0 11 0-0 8
 
 Dafny program verifier did not attempt verification
 Methods_Compile.Uni.Uni
@@ -508,3 +547,16 @@ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Consts_Compile.Uni.Uni ++ Co
   ++ [Consts_Compile.Uni.Uni] ++ []
   ** [] ++ [] ++ []
 15
+0-0 0.0-0.0 false-false D-D 0
+0-0 0-0 0-0 0-0 0-0 0-0 0-0 0-0
+0-0 0-0 0-0 0-0 1 1
+0.0-0.0 68.0
+null-null null-null null-null null-null
+0-0
+{}-{} {}-{} multiset{}-multiset{} []-[] map[]-map[] map[]-map[]
+DefaultValuedExpressions_Compile.Color.Red-DefaultValuedExpressions_Compile.Color.Red DefaultValuedExpressions_Compile.PossibleCell.Nothing-DefaultValuedExpressions_Compile.PossibleCell.Nothing DefaultValuedExpressions_Compile.Cell.LittleCell(0)-DefaultValuedExpressions_Compile.Cell.LittleCell(0)
+()-() (0, 0.0)-(0, 0.0)
+(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())-(DefaultValuedExpressions_Compile.Color.Red, (0, 0.0), ())
+null-null null-null
+0-0 0-0 0-0 3 4 5
+0-0 11 0-0 8

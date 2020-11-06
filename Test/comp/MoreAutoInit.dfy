@@ -10,6 +10,7 @@ method Main() {
   Functions.TestStart();
   Consts.TestStart();
   FunctionsAsValues.TestStart();
+  DefaultValuedExpressions.TestStart();
 }
 
 module Methods {
@@ -346,4 +347,137 @@ module FunctionsAsValues {
     var x := c.ApplySelect(15, 20, 25);
     print x, "\n";  // 15
   }
+}
+
+module DefaultValuedExpressions {
+  method TestStart() {
+    DoIt<int>();
+  }
+
+  // Print the value constructed for x by the caller, and
+  // print the supposedly same value constructed via type parameter X.
+  method Print<X(0)>(x: X, suffix: string) {
+    var y: X;
+    print x, "-", y, suffix;
+  }
+
+  method DoIt<X(0)>() {
+    // primitive types
+    var i: int, r: real, b: bool, ch: char, ord: ORDINAL;
+    Print(i, " ");
+    Print(r, " ");
+    Print(b, " ");
+    Print(ch, " ");
+    print ord, "\n";  // ORDINAL cannot be used as type parameter
+
+    // bitvector types
+    var b0: bv0, b1: bv1, b8: bv8, b16: bv16, b32: bv32, b53: bv53, b64: bv64, b100: bv100;
+    Print(b0, " ");
+    Print(b1, " ");
+    Print(b8, " ");
+    Print(b16, " ");
+    Print(b32, " ");
+    Print(b53, " ");
+    Print(b64, " ");
+    Print(b100, "\n");
+
+    // newtypes
+    var nt0: NT0, nt1: NT1, nt2: NT2, nt3: NT3, nt4: NT4, nt5: NT5;
+    Print(nt0, " ");
+    Print(nt1, " ");
+    Print(nt2, " ");
+    Print(nt3, " ");
+    print nt4, " ";  // NT4 does not currently support (0), so it cannot be used as a type parameter
+    print nt5, "\n";  // NT5 does not currently support (0), so it cannot be used as a type parameter
+
+    var nr0: NR0, nr1: NR1;
+    Print(nr0, " ");
+    print nr1, "\n";  // NR1 does not currently support (0), so it cannot be used as a type parameter
+
+    // possibly-null reference types
+    var arr: array?<int>, mat: array3?<int>, c: Class?<int, int>, t: Trait?<int, int>;
+    Print(arr, " ");
+    Print(mat, " ");
+    Print(c, " ");
+    Print(t, "\n");
+
+    // type parameter
+    var x: X;
+    Print(x, "\n");
+
+    // collection types
+    var st0: set<int>, st1: iset<int>, ms: multiset<int>, sq: seq<int>, m0: map<int,int>, m1: imap<int,int>;
+    Print(st0, " ");
+    Print(st1, " ");
+    Print(ms, " ");
+    Print(sq, " ");
+    Print(m0, " ");
+    Print(m1, "\n");
+
+    // (co-)datatypes
+    var stream: Stream<int>, pstream: PossiblyFiniteStream<int>;
+    // print stream, " ", pstream, "\n";  // these types don't currently support initialization
+    var color: Color, pc: PossibleCell<Class<int, int>, int>, cell: Cell<int, Class<int, int>>;
+    Print(color, " ");
+    Print(pc, " ");
+    Print(cell, "\n");
+
+    var tup0: (), tup2: (int, real), tup3: (Color, (int, real), ());
+    Print(tup0, " ");
+    Print(tup2, "\n");
+    Print(tup3, "\n");
+
+    // arrow types
+    var f0: int ~> int, f1: int --> int;
+    Print(f0, " ");  // null
+    Print(f1, "\n");  // null
+
+    // subset types
+    var s0: S0, s1: S1, s2: S2, s3: S3, s4: S4, s5: S5;
+    Print(s0, " ");
+    Print(s1, " ");
+    Print(s2, " ");
+    print s3, " ";  // S3 does not currently support (0), so it cannot be used as a type parameter
+    print s4, " ";  // S4 does not currently support (0), so it cannot be used as a type parameter
+    print s5, "\n";  // S5 does not currently support (0), so it cannot be used as a type parameter
+
+    var t0: ST0<int, int>, t1: ST1<int, int>, t2: ST2<int, int>, t3: ST3<int, int>;
+    Print(t0, " ");
+    print t1, " ";  // ST1 does not currently support (0), so it cannot be used as a type parameter
+    Print(t2, " ");
+    print t3, "\n";  // ST3 does not currently support (0), so it cannot be used as a type parameter
+  }
+
+  newtype NT0 = int
+  newtype NT1 = x: int | true
+  newtype NT2 = x: int | x % 2 == 0
+  newtype NT3 = x: int | 0 <= x < 500
+  newtype NT4 = x: int | x % 2 == 1 witness 1
+  newtype NT5 = x: int | 0 <= x < 500 && x % 2 == 1 witness 1
+
+  newtype NR0 = r: real | 0.0 <= r <= 100.0
+  newtype NR1 = r: real | 32.0 <= r <= 212.0 witness 68.0
+
+  class Class<T, U(0)> { }
+  class Trait<T, U(0)> { }
+
+  codatatype Stream<T> = More(T, Stream<T>)
+  // BUG: this causes a verifier crash: codatatype PossiblyFiniteStream<T> = Stop | GoOn(T, Stream<T>)
+  codatatype PossiblyFiniteStream<T> = Stop | GoOn(T, PossiblyFiniteStream<T>)
+
+  datatype Color = Red | Green | Blue
+  datatype PossibleCell<T, U(0)> = Nothing | YesCell(T) | OrThisCell(U)
+  datatype Cell<T, U> = LittleCell(T) | BiggerCell(Cell<T, U>)
+
+  type S0 = x: int | true
+  type S1 = x: int | 0 <= x < 10
+  type S2 = x: S1 | true
+  type S3 = x: int | 2 <= x < 10 witness 3
+  type S4 = x: S3 | true witness 4
+  type S5 = x: S3 | x % 5 == 0 witness 5
+
+  type ST0<T, U(0)> = x: int | x % 5 == 0
+  type ST1<T, U(0)> = x: int | x % 5 == 1 witness 11
+  type ST2<T, U(0)> = x: int | (if var m: map<T,U> := map[]; m == map[] then 0 else 8) <= x
+  type ST3<T, U(0)> = x: int | (if var m: map<T,U> := map[]; m == map[] then 8 else 0) <= x witness 8
 }

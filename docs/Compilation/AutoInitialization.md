@@ -84,7 +84,8 @@ subset type for a base type `B` | `B`
 
 The compilation of a type may emit some fields and methods that are used at run time.
 These are emitted into a _companion class_. In some cases, the companion class is the
-same as the target type, and in other cases there is no companion class at all.
+same as the target type, in some other case the companion class is a separate class,
+and in other cases there is no companion class at all.
 
 type                            | companion class
 --------------------------------|---------------------------------------------------
@@ -104,10 +105,9 @@ datatype or co-datatype `D`     | class `D`
 `TT ~> U`                       | none
 subset type `T`                 | `T`
 
-Types can have type parameters. Each _formal_ type parameter is compiled into a corresponding
-formal type parameter in the target language, with one exception. The exception is for
-subset types, whose type parameters are expanded as part of the base type. Each _actual_
-type argument is compiled to that type's target type.
+Types can have type parameters. For a target language that supports type parameters, each
+_formal_ type parameter is compiled into a corresponding formal type parameter in the target
+language, and each _actual_ type argument is compiled to that type's target type.
 
 Because target types are not unique, the type arguments passed as required by the target
 language do not carry all information that is needed about the type at run time.
@@ -133,7 +133,7 @@ For example, `char` is an auto-init type. Therefore, the following is a legal pr
 snippet:
 
     var ch: char;
-    print ch, "\n";
+    print ch, "\n";  // this uses ch before ch has been explicitly assigned
 
 A compiler is permitted to assign _any_ value to `ch`, so long as that value is of
 type `char`. In fact, the compiler is free to emit code that chooses a different
@@ -151,10 +151,7 @@ types.
 Default-valued expressions
 --------------------------
 
-To fabricate default values, the compiler uses a combination of _default-valued expressions_
-and _type descriptors_. This section describes the former; the next section describes the
-latter.
-
+To fabricate default values, the compiler emits a _default-valued expression_.
 A default-valued expression is simply an expression that evaluates to a default value
 for the type.
 
@@ -171,31 +168,57 @@ real-based `newtype` without `witness` clause    | same as for base type, cast a
 `newtype` `NT` with `witness` clause             | `NT.Witness`
 possibly-null reference types                    | `null`
 type parameter `T`                               | `td_T.Default()`
-collection type `C`                              | `C.Empty`
-datatype or co-datatype `D`                      | `D.Default(E, ...)`
+collection type `C<TT>`                          | `C<TT>.Empty`
+datatype or co-datatype `D<TT>`                  | `D<TT>.Default(E, ...)`
 `TT ~> U`                                        | `null`
 `TT --> U`                                       | `null`
 subset type without `witness` clause             | same as for base type
-subset type `S` with `witness` clause            | `S.Witness`
+subset type `S<TT>` with `witness` clause        | `S<TT>.Default()`
 
 Other types do not have default-valued expressions.
+
 Here are some additional explanations of the table:
 
-The `witness` clause, if any, of a `newtype` or subset type gets recorded in a static field of the
-companion class:
+## Subset types
+
+In a subset type with a `witness` clause, like
+
+    type S<TT> = x: B | E witness W
+
+the witness is used as the default value. It is returned by the `Default()` method that is emitted
+in the companion class of the subset type:
 
 ```
-public static readonly B Witness = E;
+public static B Default() {
+  return W;
+}
 ```
 
-where `B` is type's target type and `E` is the expression given in the `witness` clause.
-No such `Witness` field is emitted if either there is no `witness` clause or it is given as
-a `ghost witness` clause.
+If the subset type has no type parameters, then the witness is pre-computed and reused:
 
-If a type parameter `T` is an auto-init type parameter (that is, if it has been declared
-with the `(0)` type characteristic), then the context in the target code will contain a
-parameter or field named `td_T`. This is the type descriptor associated with `T`, as described
-below, and calling `Default()` on it yields a value of the type that `T` stands for.
+```
+private static readonly B Witness = W;
+public static B Default() {
+  return Witness;
+}
+```
+
+Note that a witness is used as the default value only if the type has a `witness` clause; if
+the type has no `witness` clause or if it has a `ghost witness` clause, then the default expression
+is that of the base type.
+
+## Newtypes
+
+As for subset types, when a `newtype` has a `witness` clause, the witness expression is used as the
+default value of the type. However, since a `newtype` does not have any type parameters, the value
+is always pre-computed into a (public) `Witness` field, and that field is used as the default-valued
+valued expression of the type. That is, no `Default()` method is generated.
+
+```
+public static readonly B Witness = W;
+```
+
+## (Co-)datatypes
 
 Each datatype and co-datatype has a _root constructor_. For a `datatype`, the root constructor
 is selected when the resolver ascertains that the datatype is nonempty. For a `codatatype`,
@@ -203,28 +226,80 @@ the selection of the root constructor lacks sophistication--it is just the first
 constructors. The default value of a (co-)datatype is this root constructor, called with values
 for its parameters:
 
-    D.create_RootCtor(E, ...)
+    DT<TT>.create_RootCtor(E, ...)
 
 This value is produced by the `Default(...)` method emitted by the compiler into the type's
 companion class:
 
 ```
-public static DT Default(T e, ...) {
+public static DT<TT> Default(T e, ...) {
   return create_RootCtor(e, ...);
 }
 ```
 
-where `DT` is the target type of the (co-)datatype.
-TODO: What are the parameters to this `Default(...)` method? I think it's only a subset of the
-parameters passed to the root constructor, right? Only those parameters that can be constructed
-only through auto-init type parameters are needed. This affects the first sentence of the next paragraph.
+The parameters to this `Default` method are the same as the parameters to the root constructor.
 
+If the (co-)datatype has no type parameters and the root constructor has no parameters, then
+the default value is pre-computed and reused:
+
+```
+private readonly DT _Default = create_RootCtor();
+public static DT Default() {
+  return _Default;
+}
+```
+
+## Type parameters
+
+If a type parameter `T` is an auto-init type parameter (that is, if it has been declared
+with the `(0)` type characteristic), then the context in the target code will contain a
+parameter or field named `td_T`. This is the type descriptor associated with `T`, as described
+in the next section, and calling `Default()` on it yields a value of the type that `T` stands for.
+
+Type descriptors
+----------------
+
+To obtain default values of certain type parameters, the compiler emits _run-time type descriptors_
+(or just _type descriptors_ for short). A type descriptor has the ability to produce a
+default value for the type that the type parameter represents.
+
+```
+public class TypeDescriptor<T>
+{
+  private readonly T initValue;
+  public TypeDescriptor(T initValue) {
+    this.initValue = initValue;
+  }
+  public T Default() {
+    return initValue;
+  }
+}
+```
+
+For example, consider a Dafny program where `G` is a type parameter that represents an auto-init type.
+For an uninitialized local variable of type `G`, the compiler will assign the default value
+
+    td_G.Default()
+
+where `td_G` is type descriptor for `G`. (More on where `td_G` comes from below.)
+
+The following table shows the type descriptors for the various types:
+
+type                                             | type descriptor
+-------------------------------------------------|------------------------------------------
+`int`                                            | `Dafny.Helpers.INT`
+`real`                                           | `Dafny.Helpers.REAL`
+`bool`                                           | `Dafny.Helpers.BOOL`
+`char`                                           | `Dafny.Helpers.CHAR`
+bitvectors                                       | `Dafny.Helpers.{UINT8, UINT16, UINT32, UINT64, INT}`
+`ORDINAL`                                        | `Dafny.Helpers.INT`
+`newtype` `NT`                                   | `NT._TypeDescriptor()`
+possibly-null reference type `T`                 | `Dafny.Helpers.NULL<T>()`
 type parameter `T`                               | `td_T`
-collection type `C`                              | `C._TypeDescriptor()`
+collection type `C<TT>`                          | `C<TT>._TypeDescriptor()`
 datatype or co-datatype `D`                      | `D._TypeDescriptor(typeDescriptors, ...)`
 arrow type `T`                                   | `Dafny.Helpers.NULL<T>()`
 subset type `S`                                  | `D._TypeDescriptor(typeDescriptors, ...)`
-
 
 ## Primitive types
 
@@ -299,6 +374,9 @@ public static Dafny.TypeDescriptor<D<TT>> _TypeDescriptor(Dafny.TypeDescriptor<T
 where the list of type parameters denoted by `T, ...` are the auto-init type parameters from `TT`.
 
 TODO: What about "used type parameters"?
+TODO: What are the parameters to this `Default(...)` method? I think it's only a subset of the
+parameters passed to the root constructor, right? Only those parameters that can be constructed
+only through auto-init type parameters are needed. This affects the first sentence of the next paragraph.
 
 ## Subset types
 
@@ -474,16 +552,13 @@ TYPE                                | TP  | TD  | TP  | TD  | TP  | TD   | TP  |
 `newtype`
   instance member `<B(0)>`          | B   | B   | B   | B   |     | B    |     | B   |
   static member `<B(0)>`            | B   | B   | B   | B   |     | B    |     | B   |
-
 `datatype<A(0)>`
   instance member `<B(0)>`          | B   | A,B | B   | A,B |     | A,B  |     | A,B |
   static member `<B(0)>`            | B   | A,B | A,B | A,B |     | A,B  |     | A,B |
-
 `trait<A(0)>`
   instance member `<B(0)>`          | B   | B   | B   | B   |     | B    |     | B   |
   instance member `<B(0)>` rhs/body | B   | A,B | A,B | A,B |     | A,B  |     | A,B |
   static member `<B(0)>`            | B   | A,B | A,B | A,B |     | A,B  |     | A,B |
-
 `class<A(0)>`
   instance member `<B(0)>`          | B   | B   | B   | B   |     | B    |     | B   |
   static member `<B(0)>`            | B   | A,B | A,B | A,B |     | A,B  |     | A,B |
