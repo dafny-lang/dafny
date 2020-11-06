@@ -32,26 +32,22 @@ jobs:
         repository: boogie-org/boogie
         ref: v2.4.21
         path: boogie
-    - name: Nuget Restore Boogie
-      run: nuget restore boogie/Source/Boogie.sln
-    - name: Build Boogie
-      run: msbuild boogie/Source/Boogie.sln
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
         path: dafny
+    - name: Build Boogie
+      run: dotnet build dafny/Source/boogie/Source/Boogie.sln
     - name: Get Z3
       if: matrix.os != 'windows-latest'
       run: |
         wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-ubuntu-14.04.zip
         unzip z3*.zip && rm *.zip
         cp -r z3* dafny/Binaries/z3
-    - name: Nuget Restore Dafny
-      run: nuget restore dafny/Source/Dafny.sln
     - name: Build Dafny Parser
       run: make -C dafny/Source/Dafny -f Makefile.Linux
     - name: Build Dafny
-      run: msbuild dafny/Source/Dafny.sln
+      run: dotnet build dafny/Source/Dafny.sln
     - uses: actions/setup-python@v1
     - name: Set up JDK 1.8
       uses: actions/setup-java@v1
