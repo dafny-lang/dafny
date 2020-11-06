@@ -16,7 +16,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     DafnySequence() { }
 
     @SafeVarargs
-    public static <T> DafnySequence<T> of(Type<T> type, T ... elements) {
+    public static <T> DafnySequence<T> of(TypeDescriptor<T> type, T ... elements) {
         Array<T> array;
         if (!type.isPrimitive()) {
             array = Array.wrap(type, elements.clone());
@@ -32,38 +32,38 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     public static DafnySequence<Byte> of(byte ... elements) {
-        return DafnySequence.fromArray(Type.BYTE, Array.wrap(elements));
+        return DafnySequence.fromArray(TypeDescriptor.BYTE, Array.wrap(elements));
     }
 
     public static DafnySequence<Short> of(short ... elements) {
-        return DafnySequence.fromArray(Type.SHORT, Array.wrap(elements));
+        return DafnySequence.fromArray(TypeDescriptor.SHORT, Array.wrap(elements));
     }
 
     public static DafnySequence<Integer> of(int ... elements) {
-        return DafnySequence.fromArray(Type.INT, Array.wrap(elements));
+        return DafnySequence.fromArray(TypeDescriptor.INT, Array.wrap(elements));
     }
 
     public static DafnySequence<Long> of(long ... elements) {
-        return DafnySequence.fromArray(Type.LONG, Array.wrap(elements));
+        return DafnySequence.fromArray(TypeDescriptor.LONG, Array.wrap(elements));
     }
 
     public static DafnySequence<Boolean> of(boolean ... elements) {
-        return DafnySequence.fromArray(Type.BOOLEAN, Array.wrap(elements));
+        return DafnySequence.fromArray(TypeDescriptor.BOOLEAN, Array.wrap(elements));
     }
 
     public static DafnySequence<Character> of(char ... elements) {
-        return DafnySequence.fromArray(Type.CHAR, Array.wrap(elements));
+        return DafnySequence.fromArray(TypeDescriptor.CHAR, Array.wrap(elements));
     }
 
-    public static <T> DafnySequence<T> empty(Type<T> type) {
+    public static <T> DafnySequence<T> empty(TypeDescriptor<T> type) {
         return ArrayDafnySequence.<T> empty(type);
     }
 
-    public static <T> DafnySequence<T> fromArray(Type<T> type, Array<T> elements) {
+    public static <T> DafnySequence<T> fromArray(TypeDescriptor<T> type, Array<T> elements) {
         return fromRawArray(type, elements.unwrap());
     }
 
-    public static <T> DafnySequence<T> fromRawArray(Type<T> type, Object elements) {
+    public static <T> DafnySequence<T> fromRawArray(TypeDescriptor<T> type, Object elements) {
         return new ArrayDafnySequence<>(Array.wrap(type, elements).copy());
     }
 
@@ -75,19 +75,19 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return new ArrayDafnySequence<>(elements, true);
     }
 
-    public static <T> DafnySequence<T> unsafeWrapRawArray(Type<T> type, Object elements) {
+    public static <T> DafnySequence<T> unsafeWrapRawArray(TypeDescriptor<T> type, Object elements) {
         return new ArrayDafnySequence<>(Array.wrap(type, elements));
     }
 
-    public static <T> DafnySequence<T> fromArrayRange(Type<T> type, Array<T> elements, int lo, int hi) {
+    public static <T> DafnySequence<T> fromArrayRange(TypeDescriptor<T> type, Array<T> elements, int lo, int hi) {
         return new ArrayDafnySequence<T>(elements.copyOfRange(lo, hi));
     }
 
-    public static <T> DafnySequence<T> fromRawArrayRange(Type<T> type, Object elements, int lo, int hi) {
+    public static <T> DafnySequence<T> fromRawArrayRange(TypeDescriptor<T> type, Object elements, int lo, int hi) {
         return fromArrayRange(type, Array.wrap(type, elements), lo, hi);
     }
 
-    public static <T> DafnySequence<T> fromList(Type<T> type, List<T> l) {
+    public static <T> DafnySequence<T> fromList(TypeDescriptor<T> type, List<T> l) {
         assert l != null: "Precondition Violation";
         return new ArrayDafnySequence<T>(Array.fromList(type, l));
     }
@@ -108,7 +108,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return unsafeWrapArray(Array.wrap(bytes));
     }
 
-    public static <T> DafnySequence<T> Create(Type<T> type, BigInteger length, Function<BigInteger, T> init) {
+    public static <T> DafnySequence<T> Create(TypeDescriptor<T> type, BigInteger length, Function<BigInteger, T> init) {
         int len = length.intValueExact();
         Array<T> values = Array.newArray(type, len);
         for(int i = 0; i < len; i++) {
@@ -118,8 +118,8 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> Type<DafnySequence<? extends T>> _type(Type<T> elementType) {
-        return Type.referenceWithDefault(
+    public static <T> TypeDescriptor<DafnySequence<? extends T>> _type(TypeDescriptor<T> elementType) {
+        return TypeDescriptor.referenceWithDefault(
                 (Class<DafnySequence<? extends T>>) (Class<?>) DafnySequence.class,
                 DafnySequence.empty(elementType));
     }
@@ -136,7 +136,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return Array.unwrapBytes(seq.toArray());
     }
 
-    public abstract Type<T> elementType();
+    public abstract TypeDescriptor<T> elementType();
 
     // Determines if this DafnySequence is a prefix of other
     public <U> boolean isPrefixOf(DafnySequence<U> other) {
@@ -334,8 +334,8 @@ public abstract class DafnySequence<T> implements Iterable<T> {
             curr += i;
         }
 
-        Type<T> eexx = elementType();
-        Type<DafnySequence<? extends T>> ssxx = _type(eexx);
+        TypeDescriptor<T> eexx = elementType();
+        TypeDescriptor<DafnySequence<? extends T>> ssxx = _type(eexx);
         return fromList(ssxx, list);
     }
 
@@ -420,11 +420,11 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
     private boolean unsafe; // for debugging purposes
 
     // NOTE: Input array is *shared*; must be a copy if it comes from a public input
-    ArrayDafnySequence(Type<T> elementType, Object elements, boolean unsafe) {
+    ArrayDafnySequence(TypeDescriptor<T> elementType, Object elements, boolean unsafe) {
         this(Array.wrap(elementType, elements), unsafe);
     }
 
-    ArrayDafnySequence(Type<T> elementType, Object elements) {
+    ArrayDafnySequence(TypeDescriptor<T> elementType, Object elements) {
         this(Array.wrap(elementType, elements));
     }
 
@@ -446,12 +446,12 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
         return seq.copy();
     }
 
-    public static <T> ArrayDafnySequence<T> empty(Type<T> type) {
+    public static <T> ArrayDafnySequence<T> empty(TypeDescriptor<T> type) {
         return new ArrayDafnySequence<T>(type, type.newArray(0));
     }
 
     @Override
-    public Type<T> elementType() {
+    public TypeDescriptor<T> elementType() {
         return seq.elementType();
     }
 
@@ -568,8 +568,8 @@ final class StringDafnySequence extends NonLazyDafnySequence<Character> {
     }
 
     @Override
-    public Type<Character> elementType() {
-        return Type.CHAR;
+    public TypeDescriptor<Character> elementType() {
+        return TypeDescriptor.CHAR;
     }
 
     @Override
@@ -671,7 +671,7 @@ abstract class LazyDafnySequence<T> extends DafnySequence<T> {
     }
 
     @Override
-    public Type<T> elementType() {
+    public TypeDescriptor<T> elementType() {
         return force().elementType();
     }
 

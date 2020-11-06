@@ -136,7 +136,7 @@ namespace Microsoft.Dafny
 
     protected override string GetHelperModuleName() => DafnyHelpersClass;
 
-    const string TypeClass = "Dafny.TypeDescriptor";
+    const string DafnyTypeDescriptor = "Dafny.TypeDescriptor";
 
     string TypeParameters(List<TypeParameter>/*?*/ targs) {
       Contract.Requires(targs == null || cce.NonNullElements(targs));
@@ -175,7 +175,7 @@ namespace Microsoft.Dafny
             foreach (var ta in TypeArgumentInstantiation.ListFromFormals(typeParameters)) {
               if (NeedsTypeDescriptor(ta.Formal)) {
                 var fieldName = FormatTypeDescriptorVariable(ta.Formal.CompileName);
-                var decl = $"{TypeClass}<{TypeName(ta.Actual, wTypeFields, ta.Formal.tok)}> {fieldName}";
+                var decl = $"{DafnyTypeDescriptor}<{TypeName(ta.Actual, wTypeFields, ta.Formal.tok)}> {fieldName}";
                 wTypeFields.WriteLine($"private {decl};");
                 if (ta.Formal.Parent == cls) {
                   wCtorParams.Write($"{sep}{decl}");
@@ -202,10 +202,10 @@ namespace Microsoft.Dafny
       var initializer = TypeInitializationValue(type, wr, enclosingTypeDecl.tok, false);
 
       var targetTypeName = TypeName(type, wr, enclosingTypeDecl.tok);
-      var typeDescriptorExpr = $"new {TypeClass}<{targetTypeName}>({initializer})";
+      var typeDescriptorExpr = $"new {DafnyTypeDescriptor}<{targetTypeName}>({initializer})";
 
       if (enclosingTypeDecl.TypeArgs.Count == 0) {
-        wr.WriteLine($"private static readonly {TypeClass}<{targetTypeName}> _TYPE = {typeDescriptorExpr};");
+        wr.WriteLine($"private static readonly {DafnyTypeDescriptor}<{targetTypeName}> _TYPE = {typeDescriptorExpr};");
         typeDescriptorExpr = "_TYPE";  // use the precomputed value
       }
 
@@ -215,9 +215,9 @@ namespace Microsoft.Dafny
       } else {
         typeDescriptorParams = enclosingTypeDecl.TypeArgs.Where(tp => NeedsTypeDescriptor(tp)).ToList();
       }
-      wr.Write($"public static {TypeClass}<{targetTypeName}> {TypeDescriptorMethodName}(");
+      wr.Write($"public static {DafnyTypeDescriptor}<{targetTypeName}> {TypeDescriptorMethodName}(");
       if (typeDescriptorParams.Count != 0) {
-        wr.Write(Util.Comma(typeDescriptorParams, tp => $"{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
+        wr.Write(Util.Comma(typeDescriptorParams, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
       }
       var wTypeMethodBody = wr.NewBigBlock(")", "");
       wTypeMethodBody.WriteLine($"return {typeDescriptorExpr};");
@@ -378,7 +378,7 @@ namespace Microsoft.Dafny
         }
       } else {
         wr.Write($"public static {DtT_protected} Default(");
-        wr.Write(Util.Comma(UsedTypeParameters(dt), tp => $"{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
+        wr.Write(Util.Comma(UsedTypeParameters(dt), tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
         using (var w = wr.NewBlock(")")) {
           w.Write("return ");
           wDefault = w.Fork();
@@ -848,7 +848,7 @@ namespace Microsoft.Dafny
         IdName(m),
         TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, m, lookasideBody))));
       var sep = "";
-      var nIns = WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep, tp => $"{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
+      var nIns = WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), wr, ref sep, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
       if (customReceiver) {
         var nt = m.EnclosingClass;
         var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
@@ -889,7 +889,7 @@ namespace Microsoft.Dafny
         name,
         TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, member, lookasideBody))));
       var sep = "";
-      WriteRuntimeTypeDescriptorsFormals(member, ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
+      WriteRuntimeTypeDescriptorsFormals(member, ForTypeDescriptors(typeArgs, member, lookasideBody), wr, ref sep, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
       if (customReceiver) {
         var nt = member.EnclosingClass;
         var receiverType = UserDefinedType.FromTopLevelDecl(tok, nt);
