@@ -730,9 +730,10 @@ namespace Microsoft.Dafny
         var typeName = TypeName(sst.Rhs, cw.StaticMemberWriter, sst.tok);
         if (sst.TypeArgs.Count == 0) {
           DeclareField("Witness", false, true, true, typeName, witness, cw);
+          witness = "Witness";
         }
         using (var w = cw.StaticMemberWriter.NewBlock($"public static {typeName} Default()")) {
-          w.WriteLine("return {0};", sst.TypeArgs.Count == 0 ? "Witness" : witness);
+          w.WriteLine($"return {witness};");
         }
       }
       EmitTypeDescriptorMethod(sst, cw.StaticMemberWriter);
