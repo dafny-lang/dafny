@@ -354,10 +354,18 @@ namespace Microsoft.Dafny{
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr){
       ClassWriter cw = CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst, wr) as ClassWriter;
-      if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled){
+      if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);
-        cw.DeclareField("Witness", sst, true, true, sst.Rhs, sst.tok, sw.ToString(), null);
+        var witness = sw.ToString();
+        var typeName = TypeName(sst.Rhs, cw.StaticMemberWriter, sst.tok);
+        if (sst.TypeArgs.Count == 0) {
+          cw.DeclareField("Witness", sst, true, true, sst.Rhs, sst.tok, witness, null);
+          witness = "Witness";
+        }
+        using (var w = cw.StaticMemberWriter.NewBlock($"public static {TypeParameters(sst.TypeArgs, " ")}{typeName} defaultValue()")) {
+          w.WriteLine($"return {witness};");
+        }
       }
     }
 
@@ -883,8 +891,7 @@ namespace Microsoft.Dafny{
       var wTypeMethod = wBody;
       var wRestOfBody = wBody.ForkSection();
       var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(cls.tok, cls, null), wTypeMethod, cls.tok);
-      var initializer = cls is RedirectingTypeDecl rtd && rtd.Witness != null ? $"{javaName}.Witness" : null;
-      EmitTypeMethod(cls, javaName, typeParameters, typeParameters, targetTypeName, initializer, wTypeMethod);
+      EmitTypeMethod(cls, javaName, typeParameters, typeParameters, targetTypeName, null, wTypeMethod);
       return new ClassWriter(this, wRestOfBody, wCtorBody);
     }
 
@@ -3016,7 +3023,7 @@ namespace Microsoft.Dafny{
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.Witness != null) {
-          return FullTypeName(udt) + ".Witness";
+          return FullTypeName(udt) + ".defaultValue()";
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
           // WKind.Special is only used with -->, ->, and non-null types:
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
