@@ -18,4 +18,10 @@
     <ProjectReference Include="..\DafnyLS\DafnyLS.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Lookup\TestFiles\foreign.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

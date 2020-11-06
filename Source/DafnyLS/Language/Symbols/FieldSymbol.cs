@@ -1,5 +1,4 @@
-﻿using Microsoft.Dafny;
-using System.Threading;
+﻿using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class FieldSymbol : Symbol, ILocalizableSymbol {
@@ -11,7 +10,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
-      return $"{Declaration.Name} : {Declaration.Type}";
+      return $"var {Declaration.Name}: {Declaration.Type}";
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

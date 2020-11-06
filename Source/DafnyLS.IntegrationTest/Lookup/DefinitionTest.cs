@@ -1,0 +1,91 @@
+﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Client;
+using OmniSharp.Extensions.LanguageServer.Protocol.Document;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using OmniSharp.Extensions.LanguageServer.Protocol.Progress;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reactive.Linq;
+using System.Threading.Tasks;
+
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
+  [TestClass]
+  public class DefinitionTest : DafnyLanguageServerTestBase {
+    private ILanguageClient _client;
+
+    [TestInitialize]
+    public async Task SetUp() {
+      _client = await InitializeClient();
+    }
+
+    private IRequestProgressObservable<IEnumerable<LocationOrLocationLink>, LocationOrLocationLinks> RequestDefinition(TextDocumentItem documentItem, Position position) {
+      return _client.RequestDefinition(
+        new DefinitionParams {
+          TextDocument = documentItem.Uri,
+          Position = position
+        },
+        CancellationToken
+      );
+    }
+
+    [TestMethod]
+    public async Task DefinitionOfMethodInvocationOfMethodDeclaredInSameDocumentReturnsLocation() {
+      var source = @"
+method DoIt() returns (x: int) {
+}
+
+method CallDoIt() returns () {
+  var x := DoIt();
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var definition = (await RequestDefinition(documentItem, (4, 14)).AsTask()).Single();
+      var location = definition.Location;
+      Assert.AreEqual(documentItem.Uri, location.Uri);
+      Assert.AreEqual(new Range((0, 7), (0, 11)), location.Range);
+    }
+
+    [TestMethod]
+    public async Task DefinitionOfFieldOfSystemTypeReturnsNoLocation() {
+      var source = @"
+method DoIt() {
+  var x := new int[0];
+  var y := x.Length;
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      Assert.IsFalse((await RequestDefinition(documentItem, (2, 14)).AsTask()).Any());
+    }
+
+    [TestMethod]
+    public async Task DefinitionOfFunctionInvocationOfFunctionDeclaredInForeignDocumentReturnsLocation() {
+      var source = @"
+include ""foreign.dfy""
+
+method DoIt() returns (x: int) {
+  var a := new A();
+  return a.GetX();
+}".TrimStart();
+      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
+      _client.OpenDocument(documentItem);
+      var definition = (await RequestDefinition(documentItem, (4, 13)).AsTask()).Single();
+      var location = definition.Location;
+      Assert.AreEqual(DocumentUri.FromFileSystemPath(Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/foreign.dfy")), location.Uri);
+      Assert.AreEqual(new Range((5, 18), (5, 22)), location.Range);
+    }
+
+    [TestMethod]
+    public async Task DefinitionOfInvocationOfUnknownFunctionOrMethodReturnsNoLocation() {
+      var source = @"
+method DoIt() returns (x: int) {
+  return GetX();
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      Assert.IsFalse((await RequestDefinition(documentItem, (1, 12)).AsTask()).Any());
+    }
+  }
+}
