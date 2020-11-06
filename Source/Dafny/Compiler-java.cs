@@ -55,7 +55,7 @@ namespace Microsoft.Dafny{
     static string FormatTypeDescriptorVariable(TypeParameter tp) =>
       FormatTypeDescriptorVariable(tp.CompileName);
 
-    const string TypeMethodName = "_type";
+    const string TypeMethodName = "_typeDescriptor";
 
     private string ModuleName;
     private string ModulePath;
@@ -889,7 +889,7 @@ namespace Microsoft.Dafny{
     }
 
     /// <summary>
-    /// Generate the "_type" method for a generated class.
+    /// Generate the "_typeDescriptor" method for a generated class.
     /// "enclosingType" is allowed to be "null", in which case the target values are assumed to be references.
     /// </summary>
     private void EmitTypeMethod(TopLevelDecl/*?*/ enclosingTypeDecl, string typeName, List<TypeParameter> typeParams, List<TypeParameter> usedTypeParams, string targetTypeName, string/*?*/ initializer, TargetWriter wr) {
@@ -2411,7 +2411,7 @@ namespace Microsoft.Dafny{
         }
         return FormatTypeDescriptorVariable(type.AsTypeParameter.CompileName);
       } else if (type.IsBuiltinArrowType && type.AsArrowType.Arity == 1) {
-        // Can't go the usual route because java.util.function.Function doesn't have a _type() method
+        // Can't go the usual route because java.util.function.Function doesn't have a _typeDescriptor() method
         var arrowType = type.AsArrowType;
         return $"{DafnyTypeDescriptor}.function({TypeDescriptor(arrowType.Args[0], wr, tok)}, {TypeDescriptor(arrowType.Result, wr, tok)})";
       } else if (type is UserDefinedType udt) {

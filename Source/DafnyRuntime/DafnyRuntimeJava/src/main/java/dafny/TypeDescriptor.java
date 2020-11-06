@@ -156,7 +156,7 @@ public abstract class TypeDescriptor<T> {
             typeMethodArgTypes[i] = TypeDescriptor.class;
         }
         try {
-            Method typeMethod = cls.getMethod("_type", typeMethodArgTypes);
+            Method typeMethod = cls.getMethod("_typeDescriptor", typeMethodArgTypes);
             @SuppressWarnings("unchecked")
             TypeDescriptor<T> ans = (TypeDescriptor<T>) typeMethod.invoke(null, (Object[]) args);
             return ans;

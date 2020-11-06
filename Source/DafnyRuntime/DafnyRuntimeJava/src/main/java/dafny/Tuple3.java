@@ -11,7 +11,7 @@ public class Tuple3<T0, T1, T2> {
     this._1 = _1;
     this._2 = _2;
   }
-  public static <T0, T1, T2> dafny.TypeDescriptor<Tuple3<T0, T1, T2> > _type(dafny.TypeDescriptor<T0> _td_T0, dafny.TypeDescriptor<T1> _td_T1, dafny.TypeDescriptor<T2> _td_T2) {
+  public static <T0, T1, T2> dafny.TypeDescriptor<Tuple3<T0, T1, T2> > _typeDescriptor(dafny.TypeDescriptor<T0> _td_T0, dafny.TypeDescriptor<T1> _td_T1, dafny.TypeDescriptor<T2> _td_T2) {
     return (dafny.TypeDescriptor<Tuple3<T0, T1, T2> >) (dafny.TypeDescriptor<?>) dafny.TypeDescriptor.referenceWithInitializer(Tuple3.class, () -> Default(_td_T0, _td_T1, _td_T2));
   }
 

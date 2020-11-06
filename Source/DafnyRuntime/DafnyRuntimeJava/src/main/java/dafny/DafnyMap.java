@@ -29,7 +29,7 @@ public class DafnyMap<K, V> implements Map<K, V> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <K, V> TypeDescriptor<DafnyMap<? extends K, ? extends V>> _type(
+    public static <K, V> TypeDescriptor<DafnyMap<? extends K, ? extends V>> _typeDescriptor(
             TypeDescriptor<K> keyType, TypeDescriptor<V> valueType) {
         // Fudge the type parameters; it's not great, but it's safe because
         // (for now) type descriptors are only used for default values

@@ -118,7 +118,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> TypeDescriptor<DafnySequence<? extends T>> _type(TypeDescriptor<T> elementType) {
+    public static <T> TypeDescriptor<DafnySequence<? extends T>> _typeDescriptor(TypeDescriptor<T> elementType) {
         return TypeDescriptor.referenceWithDefault(
                 (Class<DafnySequence<? extends T>>) (Class<?>) DafnySequence.class,
                 DafnySequence.empty(elementType));
@@ -335,7 +335,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         }
 
         TypeDescriptor<T> eexx = elementType();
-        TypeDescriptor<DafnySequence<? extends T>> ssxx = _type(eexx);
+        TypeDescriptor<DafnySequence<? extends T>> ssxx = _typeDescriptor(eexx);
         return fromList(ssxx, list);
     }
 
