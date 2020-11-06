@@ -722,7 +722,7 @@ namespace Microsoft.Dafny {
       }
 
       public static List<TypeArgumentInstantiation> ListFromMember(MemberDecl member, List<Type> /*?*/ classActuals, List<Type> /*?*/ memberActuals) {
-        Contract.Requires(classActuals == null || classActuals.Count == member.EnclosingClass.TypeArgs.Count);
+        Contract.Requires(classActuals == null || classActuals.Count == (member.EnclosingClass == null ? 0 : member.EnclosingClass.TypeArgs.Count));
         Contract.Requires(memberActuals == null || memberActuals.Count == (member is ICallable ic ? ic.TypeArgs.Count : 0));
 
         var r = new List<TypeArgumentInstantiation>();
@@ -733,7 +733,7 @@ namespace Microsoft.Dafny {
           }
         };
 
-        if (classActuals != null) {
+        if (classActuals != null && classActuals.Count != 0) {
           Contract.Assert(member.EnclosingClass.TypeArgs.TrueForAll(ta => ta.Parent is TopLevelDeclWithMembers));
           add(member.EnclosingClass.TypeArgs, classActuals);
         }
