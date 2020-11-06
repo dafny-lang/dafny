@@ -1,11 +1,11 @@
-﻿using DafnyLS.IntegrationTest.Extensions;
+﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
 
-namespace DafnyLS.IntegrationTest.Synchronization {
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class SynchronizationTestBase : DafnyLanguageServerTestBase {
     protected ILanguageClient Client { get; private set; }
 

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace DafnyLS.IntegrationTest {
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   /// <summary>
   /// Utility collection to simplify the test implementation.
   /// </summary>

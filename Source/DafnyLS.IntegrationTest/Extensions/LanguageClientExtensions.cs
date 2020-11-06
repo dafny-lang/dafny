@@ -5,7 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.IntegrationTest.Extensions {
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions {
   /// <summary>
   /// Extension methods for simplified interaction with the language client.
   /// </summary>

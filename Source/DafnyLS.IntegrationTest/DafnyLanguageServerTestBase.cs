@@ -12,7 +12,7 @@ using OmniSharp.Extensions.LanguageServer.Server;
 using System.IO;
 using System.IO.Pipelines;
 
-namespace DafnyLS.IntegrationTest {
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   public class DafnyLanguageServerTestBase : LanguageServerTestBase {
     public const string LanguageId = "dafny";
 

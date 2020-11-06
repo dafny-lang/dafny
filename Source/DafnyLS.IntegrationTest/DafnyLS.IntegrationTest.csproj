@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <IsPackable>false</IsPackable>
+    <RootNamespace>Microsoft.Dafny.LanguageServer.IntegrationTest</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
