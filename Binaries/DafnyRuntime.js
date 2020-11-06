@@ -36,16 +36,13 @@ let _dafny = (function() {
     static get Default() { return false; }
   }
   $module.Rtd_char = class {
-    static get Default() { return '\0'; }
+    static get Default() { return 'D'; }
   }
   $module.Rtd_int = class {
     static get Default() { return BigNumber(0); }
   }
-  $module.Rtd_bv_Native = class {
+  $module.Rtd_number = class {
     static get Default() { return 0; }
-  }
-  $module.Rtd_bv_NonNative = class {
-    static get Default() { return BigNumber(0); }
   }
   $module.Rtd_ref = class {
     static get Default() { return null; }

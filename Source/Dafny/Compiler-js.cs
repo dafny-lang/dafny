@@ -528,17 +528,20 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      var cw = CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst, wr) as JavaScriptCompiler.ClassWriter;
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst, wr);
       var w = cw.MethodWriter;
+      var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
+      string d;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var witness = new TargetWriter(w.IndentLevel, true);
-        TrExpr(sst.Witness, witness, false);
-        DeclareField("Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w);
+        var sw = new TargetWriter(w.IndentLevel, true);
+        TrExpr(sst.Witness, sw, false);
+        DeclareField("Witness", true, true, sst.Rhs, sst.tok, sw.ToString(), w);
+        d = TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
+      } else {
+        d = TypeInitializationValue(udt, wr, sst.tok, false);
       }
       using (var wDefault = w.NewBlock("static get Default()")) {
-        var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
-        var d = TypeInitializationValue(udt, wr, sst.tok, false);
-        wDefault.WriteLine("return {0};", d);
+        wDefault.WriteLine($"return {d};");
       }
     }
 
@@ -704,9 +707,9 @@ namespace Microsoft.Dafny {
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         if (t.NativeType != null) {
-          return "_dafny.Rtd_bv_Native";
+          return "_dafny.Rtd_number";
         } else {
-          return "_dafny.Rtd_bv_NonNative";
+          return "_dafny.Rtd_int";
         }
       } else if (xType is SetType) {
         return DafnySetClass;
@@ -862,12 +865,12 @@ namespace Microsoft.Dafny {
       } else if (xType is CharType) {
         return "'D'";
       } else if (xType is IntType || xType is BigOrdinalType) {
-        return "new BigNumber(0)";
+        return IntegerLiteral(0);
       } else if (xType is RealType) {
         return "_dafny.BigRational.ZERO";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
-        return t.NativeType != null ? "0" : "new BigNumber(0)";
+        return t.NativeType != null ? "0" : IntegerLiteral(0);
       } else if (xType is SetType) {
         return $"{DafnySetClass}.Empty";
       } else if (xType is MultiSetType) {
@@ -900,7 +903,7 @@ namespace Microsoft.Dafny {
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
+          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Default";
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
           // WKind.Special is only used with -->, ->, and non-null types:
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
@@ -1219,7 +1222,7 @@ namespace Microsoft.Dafny {
         wr.Write((BigInteger)e.Value);
       } else if (e.Value is BigInteger) {
         var i = (BigInteger)e.Value;
-        EmitIntegerLiteral(i, wr);
+        wr.Write(IntegerLiteral(i));
       } else if (e.Value is Basetypes.BigDec) {
         var n = (Basetypes.BigDec)e.Value;
         if (0 <= n.Exponent) {
@@ -1229,9 +1232,7 @@ namespace Microsoft.Dafny {
           }
           wr.Write("\"))");
         } else {
-          wr.Write("new _dafny.BigRational(");
-          EmitIntegerLiteral(n.Mantissa, wr);
-          wr.Write(", new BigNumber(\"1");
+          wr.Write($"new _dafny.BigRational({IntegerLiteral(n.Mantissa)}, new BigNumber(\"1");
           for (int i = n.Exponent; i < 0; i++) {
             wr.Write("0");
           }
@@ -1241,16 +1242,15 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
     }
-    void EmitIntegerLiteral(BigInteger i, TextWriter wr) {
-      Contract.Requires(wr != null);
+    string IntegerLiteral(BigInteger i) {
       if (i.IsZero) {
-        wr.Write("_dafny.ZERO");
+        return "_dafny.ZERO";
       } else if (i.IsOne) {
-        wr.Write("_dafny.ONE");
+        return "_dafny.ONE";
       } else if (-0x20_0000_0000_0000L < i && i < 0x20_0000_0000_0000L) {  // 53 bits, plus sign
-        wr.Write("new BigNumber({0})", i);
+        return $"new BigNumber({i})";
       } else {
-        wr.Write("new BigNumber(\"{0}\")", i);
+        return $"new BigNumber(\"{i}\")";
       }
     }
 
