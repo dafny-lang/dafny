@@ -150,40 +150,7 @@ namespace Microsoft.Dafny {
       GetNativeInfo(nt.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
       return nativeName;
     }
-    protected virtual void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
-      switch (sel) {
-        case NativeType.Selection.Byte:
-          name = "byte"; literalSuffix = ""; needsCastAfterArithmetic = true;
-          break;
-        case NativeType.Selection.SByte:
-          name = "sbyte"; literalSuffix = ""; needsCastAfterArithmetic = true;
-          break;
-        case NativeType.Selection.UShort:
-          name = "ushort"; literalSuffix = ""; needsCastAfterArithmetic = true;
-          break;
-        case NativeType.Selection.Short:
-          name = "short"; literalSuffix = ""; needsCastAfterArithmetic = true;
-          break;
-        case NativeType.Selection.UInt:
-          name = "uint"; literalSuffix = "U"; needsCastAfterArithmetic = false;
-          break;
-        case NativeType.Selection.Int:
-          name = "int"; literalSuffix = ""; needsCastAfterArithmetic = false;
-          break;
-        case NativeType.Selection.Number:
-          name = "number"; literalSuffix = ""; needsCastAfterArithmetic = false;
-          break;
-        case NativeType.Selection.ULong:
-          name = "ulong"; literalSuffix = "UL"; needsCastAfterArithmetic = false;
-          break;
-        case NativeType.Selection.Long:
-          name = "long"; literalSuffix = "L"; needsCastAfterArithmetic = false;
-          break;
-        default:
-          Contract.Assert(false);  // unexpected native type
-          throw new cce.UnreachableException();  // to please the compiler
-      }
-    }
+    protected abstract void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic);
 
     protected List<TypeParameter> UsedTypeParameters(DatatypeDecl dt) {
       Contract.Requires(dt != null);
