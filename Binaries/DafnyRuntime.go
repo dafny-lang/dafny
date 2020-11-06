@@ -95,89 +95,63 @@ func SetFinalizer(x interface{}, f interface{}) {
  * Run-time type descriptors (RTDs)
  ******************************************************************************/
 
-// A TypeDescriptor is a run-time type descriptor, needed to carry information about types
-// which gets erased by the compiler.
+// A TypeDescriptor has the ability to produce a default value for an associated type.
 type TypeDescriptor interface {
   Default() interface{}
 }
 
-// BaseType returns the RTD for a base value (bool, int, etc.)
-func BaseType(value interface{}) TypeDescriptor {
-  return baseType{refl.TypeOf(value)}
+func CreateStandardTypeDescriptor(value interface{}) TypeDescriptor {
+  return standardTypeDescriptor{value}
 }
 
-type baseType struct {
-  typ refl.Type
+type standardTypeDescriptor struct {
+  defaultValue interface{}
 }
 
-func (typ baseType) Default() interface{} {
-  return refl.Zero(typ.typ).Interface()
+func (rtd standardTypeDescriptor) Default() interface{} {
+  return rtd.defaultValue
 }
 
-// TypeWithDefault returns a type whose default value is the given one.  Used
-// for types of functions, since there are infinitely many of those.
-func TypeWithDefault(value interface{}) TypeDescriptor {
-  return typeWithDefault{value}
-}
+// IntType is the RTD for int
+var IntType = CreateStandardTypeDescriptor(Zero)
 
-type typeWithDefault struct {
-  value interface{}
-}
+// BoolType is the RTD of bool
+var BoolType = CreateStandardTypeDescriptor(false)
 
-func (typ typeWithDefault) Default() interface{} {
-  return typ.value
-}
+// CharType is the RTD of char
+var CharType = CreateStandardTypeDescriptor(Char('D'))
 
-// AnyType is the RTD of interface{}.
-var AnyType TypeDescriptor = baseType{refl.TypeOf((*interface{})(nil)).Elem()}
+// RealType is the RTD for real
+var RealType = CreateStandardTypeDescriptor(ZeroReal)
 
-// BoolType is the RTD of bool.
-var BoolType = BaseType(true)
-
-// CharType is the RTD of char.
-var CharType = BaseType(Char('a'))
-
-// Float32Type is the RTD of float32.
-var Float32Type = BaseType(float32(0))
-
-// Float64Type is the RTD of float64.
-var Float64Type = BaseType(float64(0))
-
-// NativeIntType is the RTD of int.
-var NativeIntType = BaseType(int(0))
-
+/***************************** ARE THESE REALLY NEEDED?
 // Int8Type is the RTD of int8.
-var Int8Type = BaseType(int8(0))
+var Int8Type = CreateStandardTypeDescriptor(int8(0))
 
 // Int16Type is the RTD of int16.
-var Int16Type = BaseType(int16(0))
+var Int16Type = CreateStandardTypeDescriptor(int16(0))
 
 // Int32Type is the RTD of int32.
-var Int32Type = BaseType(int32(0))
+var Int32Type = CreateStandardTypeDescriptor(int32(0))
 
 // Int64Type is the RTD of int64.
-var Int64Type = BaseType(int64(0))
+var Int64Type = CreateStandardTypeDescriptor(int64(0))
+***************************** ARE THESE REALLY NEEDED? *****/
 
-// PointerType is the RTD of *interface().
-var PointerType = BaseType((*interface{})(nil))
+// PossiblyNullType is the RTD of any possibly null reference type
+var PossiblyNullType = CreateStandardTypeDescriptor((*interface{})(nil))
 
-// StringType is the RTD of string.
-var StringType = BaseType("")
+// Uint8Type is the RTD of uint8
+var Uint8Type = CreateStandardTypeDescriptor(uint8(0))
 
-// UintType is the RTD of uint.
-var UintType = BaseType(uint(0))
+// Uint16Type is the RTD of uint16
+var Uint16Type = CreateStandardTypeDescriptor(uint16(0))
 
-// Uint8Type is the RTD of uint8.
-var Uint8Type = BaseType(uint8(0))
+// Uint32Type is the RTD of uint32
+var Uint32Type = CreateStandardTypeDescriptor(uint32(0))
 
-// Uint16Type is the RTD of uint16.
-var Uint16Type = BaseType(uint16(0))
-
-// Uint32Type is the RTD of uint32.
-var Uint32Type = BaseType(uint32(0))
-
-// Uint64Type is the RTD of uint64.
-var Uint64Type = BaseType(uint64(0))
+// Uint64Type is the RTD of uint64
+var Uint64Type = CreateStandardTypeDescriptor(uint64(0))
 
 /******************************************************************************
  * Trait parent information
@@ -2098,19 +2072,6 @@ func AllIntegers() Iterator {
   }
 }
 
-// IntType is the RTD for integers.
-var IntType TypeDescriptor = intType{}
-
-type intType struct{}
-
-func (intType) Default() interface{} {
-  return Zero
-}
-
-func (intType) String() string {
-  return "dafny.Int"
-}
-
 /******************************************************************************
  * Ordinals
  ******************************************************************************/
@@ -2321,15 +2282,6 @@ func (x Real) Max(y Real) Real {
   } else {
     return y
   }
-}
-
-// RealType is the RTD for reals.
-var RealType TypeDescriptor = realType{}
-
-type realType struct{}
-
-func (realType) Default() interface{} {
-  return ZeroReal
 }
 
 /******************************************************************************

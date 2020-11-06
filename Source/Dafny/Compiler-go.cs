@@ -1242,9 +1242,9 @@ namespace Microsoft.Dafny {
       } else if (xType is MapType) {
         return "_dafny.MapType";
       } else if (xType.IsBuiltinArrowType) {
-        return string.Format("_dafny.TypeWithDefault({0})", TypeInitializationValue(xType, wr, tok, false));
+        return string.Format("_dafny.CreateStandardTypeDescriptor({0})", TypeInitializationValue(xType, wr, tok, false));
       } else if (xType.IsObjectQ || xType.IsTraitType) {
-        return "_dafny.PointerType";
+        return "_dafny.PossiblyNullType";
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;
         var tp = udt.ResolvedParam;
@@ -1255,7 +1255,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(cl != null);
         bool isHandle = true;
         if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "_dafny.PointerType";
+          return "_dafny.PossiblyNullType";
         } else if (cl is ArrayClassDecl) {
           return "_dafny.ArrayType";
         } else if (cl is ClassDecl || cl is DatatypeDecl) {
@@ -1267,7 +1267,7 @@ namespace Microsoft.Dafny {
           return w.ToString();
         } else if (xType.IsNonNullRefType) {
           // what we emit here will only be used to construct a dummy value that programmer-supplied code will overwrite later
-          return "_dafny.PointerType/*not used*/";
+          return "_dafny.PossiblyNullType/*not used*/";
         } else {
           Contract.Assert(cl is NewtypeDecl || cl is SubsetTypeDecl);
           return TypeName_RTD(xType, wr, udt.tok) + "()";
