@@ -1,23 +1,23 @@
-NativeTypeResolution.dfy(4,8): Info: {:nativeType "byte"}
+NativeTypeResolution.dfy(4,8): Info: newtype V resolves as {:nativeType "byte"} (Detected Range: 0 .. 200)
 NativeTypeResolution.dfy(5,29): Error: Dafny's heuristics failed to confirm 'byte' to be a compatible native type.  Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'
 NativeTypeResolution.dfy(6,35): Error: Dafny's heuristics failed to confirm 'byte' to be a compatible native type.  Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'
 NativeTypeResolution.dfy(8,42): Error: Dafny's heuristics failed to confirm 'byte' to be a compatible native type.  Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'
-NativeTypeResolution.dfy(10,50): Info: {:nativeType "int"}
-NativeTypeResolution.dfy(11,50): Info: {:nativeType "byte"}
-NativeTypeResolution.dfy(12,50): Info: {:nativeType "int"}
+NativeTypeResolution.dfy(10,50): Info: newtype A resolves as {:nativeType "int"} (Detected Range: 0 .. 256)
+NativeTypeResolution.dfy(11,50): Info: newtype B resolves as {:nativeType "byte"} (Detected Range: 0 .. 256)
+NativeTypeResolution.dfy(12,50): Info: newtype C resolves as {:nativeType "int"} (Detected Range: 0 .. 256)
 NativeTypeResolution.dfy(14,35): Error: :nativeType 'reallylong' not known
 NativeTypeResolution.dfy(15,41): Error: :nativeType 'reallylong' not known
 NativeTypeResolution.dfy(17,31): Error: None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.
 NativeTypeResolution.dfy(18,40): Error: None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.
 NativeTypeResolution.dfy(21,22): Error: Dafny's heuristics cannot find a compatible native type.  Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'
-NativeTypeResolution.dfy(22,22): Info: {:nativeType "sbyte"}
+NativeTypeResolution.dfy(22,22): Info: newtype I resolves as {:nativeType "sbyte"} (Detected Range: -2 .. 30)
 NativeTypeResolution.dfy(23,27): Error: Dafny's heuristics cannot find a compatible native type.  Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'
-NativeTypeResolution.dfy(24,27): Info: {:nativeType "sbyte"}
+NativeTypeResolution.dfy(24,27): Info: newtype K resolves as {:nativeType "sbyte"} (Detected Range: -2 .. 30)
 NativeTypeResolution.dfy(29,27): Error: unexpected :nativeType argument
 NativeTypeResolution.dfy(30,21): Error: unexpected :nativeType argument
 NativeTypeResolution.dfy(31,28): Error: :nativeType can only be used on integral types
 NativeTypeResolution.dfy(33,29): Error: Dafny's heuristics failed to confirm 'long' to be a compatible native type.  Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'
 NativeTypeResolution.dfy(34,29): Error: Dafny's heuristics failed to confirm 'long' to be a compatible native type.  Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'
-NativeTypeResolution.dfy(38,8): Info: {:nativeType "sbyte"}
+NativeTypeResolution.dfy(38,8): Info: newtype FF resolves as {:nativeType "sbyte"} (Detected Range: -20 .. 20)
 NativeTypeResolution.dfy(39,29): Error: Dafny's heuristics failed to confirm 'byte' to be a compatible native type.  Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'
 15 resolution/type errors detected in NativeTypeResolution.dfy
