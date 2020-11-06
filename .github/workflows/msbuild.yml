@@ -34,7 +34,7 @@ jobs:
       if: matrix.os == 'windows-latest'
       shell: pwsh
       run: |
-        Invoke-WebRequest -Outfile z3X.zip -Uri $Env:https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-win.zip
+        Invoke-WebRequest -Outfile z3X.zip -Uri https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-win.zip
         unzip z3*.zip && rm *.zip
         cp -r z3* dafny/Binaries/z3
     - name: Get Z3
