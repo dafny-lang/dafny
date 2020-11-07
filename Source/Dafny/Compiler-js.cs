@@ -501,7 +501,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      var cw = CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), nt, wr) as JavaScriptCompiler.ClassWriter;
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), nt, wr);
       var w = cw.MethodWriter;
       if (nt.NativeType != null) {
         var wIntegerRangeBody = w.NewBlock("static *IntegerRange(lo, hi)");

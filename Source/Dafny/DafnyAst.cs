@@ -1025,7 +1025,7 @@ namespace Microsoft.Dafny {
       get {
         var t = NormalizeExpand();
         var udt = UserDefinedType.DenotesClass(t);
-        return udt == null ? null : udt.ResolvedClass as ArrayClassDecl;
+        return udt?.ResolvedClass as ArrayClassDecl;
       }
     }
     /// <summary>
