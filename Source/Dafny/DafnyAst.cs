@@ -4320,6 +4320,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(module != null);
 
       Dims = dims;
+      // Resolve type parameter
+      Contract.Assert(TypeArgs.Count == 1);
+      var tp = TypeArgs[0];
+      tp.Parent = this;
+      tp.PositionalIndex = 0;
     }
   }
 
