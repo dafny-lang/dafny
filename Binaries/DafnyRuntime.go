@@ -153,6 +153,18 @@ var Uint32Type = CreateStandardTypeDescriptor(uint32(0))
 // Uint64Type is the RTD of uint64
 var Uint64Type = CreateStandardTypeDescriptor(uint64(0))
 
+// SetType is the RTD for sets
+var SetType = CreateStandardTypeDescriptor(EmptySet)
+
+// MultiSetType is the RTD for multisets
+var MultiSetType = CreateStandardTypeDescriptor(EmptyMultiSet)
+
+// SeqType is the RTD for sequences
+var SeqType = CreateStandardTypeDescriptor(EmptySeq)
+
+// MapType is the RTD for maps
+var MapType = CreateStandardTypeDescriptor(EmptyMap)
+
 /******************************************************************************
  * Trait parent information
  ******************************************************************************/
@@ -546,19 +558,6 @@ func (seq Seq) String() string {
   }
 }
 
-// SeqType is the RTD for a sequence.
-var SeqType TypeDescriptor = seqType{}
-
-type seqType struct{}
-
-func (seqType) Default() interface{} {
-  return EmptySeq
-}
-
-func (seqType) String() string {
-  return "dafny.Seq"
-}
-
 /******************************************************************************
  * Arrays
  ******************************************************************************/
@@ -740,19 +739,6 @@ func (array *Array) stringOfSubspace(d int, ixs []int) string {
 func (array *Array) String() string {
   ixs := make([]int, len(array.dims))
   return array.stringOfSubspace(0, ixs)
-}
-
-// ArrayType is the type of any array.
-var ArrayType TypeDescriptor = arrayType{}
-
-type arrayType struct{}
-
-func (arrayType) Default() interface{} {
-  return (*Array)(nil)
-}
-
-func (arrayType) String() string {
-  return "dafny.Array"
 }
 
 /******************************************************************************
@@ -1059,19 +1045,6 @@ func reverse(values []interface{}) []interface{} {
 
 func (set Set) String() string {
   return "{" + stringOfElements(set.contents) + "}"
-}
-
-// SetType is the type of any set.
-var SetType TypeDescriptor = setType{}
-
-type setType struct{}
-
-func (setType) Default() interface{} {
-  return EmptySet
-}
-
-func (st setType) String() string {
-  return "dafny.Set"
 }
 
 /******************************************************************************
@@ -1389,19 +1362,6 @@ func (mset MultiSet) String() string {
   return s
 }
 
-// MultiSetType is the type of any multiset.
-var MultiSetType = multiSetType{}
-
-type multiSetType struct{}
-
-func (multiSetType) Default() interface{} {
-  return EmptyMultiSet
-}
-
-func (mst multiSetType) String() string {
-  return "dafny.MultiSet"
-}
-
 /******************************************************************************
  * Maps
  ******************************************************************************/
@@ -1553,19 +1513,6 @@ func (m Map) String() string {
   }
   s += "]"
   return s
-}
-
-// MapType is the type of any map.
-var MapType TypeDescriptor = mapType{}
-
-type mapType struct{}
-
-func (mapType) Default() interface{} {
-  return EmptyMap
-}
-
-func (mapType) String() string {
-  return "dafny.Map"
 }
 
 /******************************************************************************

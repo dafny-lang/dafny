@@ -849,14 +849,15 @@ namespace Microsoft.Dafny {
         wIterFuncBody.WriteLine("return next.(_dafny.Int).{0}(), true", Capitalize(nativeType));
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var retType = nt.NativeType != null ? GetNativeTypeName(nt.NativeType) : TypeName(nt.BaseType, w, nt.tok);
+        var retType = nativeType ?? TypeName(nt.BaseType, w, nt.tok);
         var wWitness = w.NewNamedBlock("func (_this *{0}) Witness() {1}", FormatCompanionTypeName(IdName(nt)), retType);
         wWitness.Write("return ");
         if (nt.NativeType == null) {
           TrExpr(nt.Witness, wWitness, false);
+          wWitness.WriteLine();
         } else {
           TrParenExpr(nt.Witness, wWitness, false);
-          wWitness.Write(".{0}()", Capitalize(GetNativeTypeName(nt.NativeType)));
+          wWitness.WriteLine(".{0}()", Capitalize(GetNativeTypeName(nt.NativeType)));
         }
       }
       // RTD
@@ -1241,23 +1242,22 @@ namespace Microsoft.Dafny {
         return "_dafny.SeqType";
       } else if (xType is MapType) {
         return "_dafny.MapType";
+      } else if (xType.IsRefType) {
+        return "_dafny.PossiblyNullType";
+      } else if (xType.IsArrayType) {
+        return "_dafny.ArrayType";
+      } else if (xType.IsTypeParameter) {
+        var tp = type.AsTypeParameter;
+        Contract.Assert(tp != null);
+        return string.Format("{0}{1}", thisContext != null && tp.Parent is ClassDecl && !(tp.Parent is TraitDecl) ? "_this." : "", FormatRTDName(tp.CompileName));
       } else if (xType.IsBuiltinArrowType) {
         return string.Format("_dafny.CreateStandardTypeDescriptor({0})", TypeInitializationValue(xType, wr, tok, false));
-      } else if (xType.IsObjectQ || xType.IsTraitType) {
-        return "_dafny.PossiblyNullType";
-      } else if (xType is UserDefinedType) {
-        var udt = (UserDefinedType)xType;
-        var tp = udt.ResolvedParam;
-        if (tp != null) {
-          return string.Format("{0}{1}", thisContext != null && tp.Parent is ClassDecl && !(tp.Parent is TraitDecl) ? "_this." : "", FormatRTDName(tp.CompileName));
-        }
+      } else if (xType is UserDefinedType udt) {
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
         bool isHandle = true;
         if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return "_dafny.PossiblyNullType";
-        } else if (cl is ArrayClassDecl) {
-          return "_dafny.ArrayType";
         } else if (cl is ClassDecl || cl is DatatypeDecl) {
           var w = new TargetWriter();
           w.Write("{0}(", cl is TupleTypeDecl ? "_dafny.TupleType" : TypeName_RTD(xType, w, tok));
