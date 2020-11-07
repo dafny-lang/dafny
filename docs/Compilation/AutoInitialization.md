@@ -167,6 +167,7 @@ integer-based `newtype` without `witness` clause | same as for base type, cast a
 real-based `newtype` without `witness` clause    | same as for base type, cast appropriately
 `newtype` `NT` with `witness` clause             | `NT.Witness`
 possibly-null reference types                    | `null`
+non-null array types                             | empty array of the appropriate type
 type parameter `T`                               | `td_T.Default()`
 collection type `C<TT>`                          | `C<TT>.Empty`
 datatype or co-datatype `D<TT>`                  | `D<TT>.Default(E, ...)`

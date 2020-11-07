@@ -401,6 +401,11 @@ module DefaultValuedExpressions {
     Print(c, " ");
     Print(t, "\n");
 
+    // non-null reference types
+    var Arr: array<int>, Mat: array3<int>;
+    print Arr.Length, "\n";  // array<int> does not currently support (0), so it cannot be used as a type parameter
+    print Mat.Length0, ":", Mat.Length1, ":", Mat.Length2, "\n";  // array3 does not currently support (0), so it cannot be used as a type parameter
+
     // type parameter
     var x: X;
     Print(x, "\n");
