@@ -30,16 +30,6 @@ jobs:
     - name: Add msbuild to PATH
       if: matrix.os == 'windows-latest'
       uses: microsoft/setup-msbuild@v1.0.0
-    - name: Checkout Boogie
-      uses: actions/checkout@v2
-      with:
-        repository: boogie-org/boogie
-        ref: v2.4.21
-        path: boogie
-    - name: Nuget Restore Boogie
-      run: nuget restore boogie/Source/Boogie.sln
-    - name: Build Boogie
-      run: msbuild boogie/Source/Boogie.sln
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
@@ -54,10 +44,6 @@ jobs:
       run: |
         unzip z3*.zip && rm z3*.zip
         cp -r z3* dafny/Binaries/z3
-    - name: Nuget Restore Dafny
-      run: nuget restore dafny/Source/Dafny.sln
-    - name: Build Dafny Parser
-      run: make -C dafny/Source/Dafny -f Makefile.Linux
     - name: Build Dafny
       run: msbuild dafny/Source/Dafny.sln
     - name: Versions
@@ -97,6 +83,6 @@ jobs:
         find /usr/local -name xelatex || echo NOT FOUND
         ls /usr/local/texlive/2020/bin/x86_64-darwin/xelatex || echo NOT FOUND
     - name: Build DafnyRef.pdf
-      run: make -C dafny/docs/DafnyReferenceManual 
+      run: make -C dafny/docs/DafnyReferenceManual
     - name: Check
       run: ls -la dafny/docs/DafnyReferenceManual/DafnyRef.pdf
