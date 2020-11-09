@@ -1,5 +1,4 @@
-﻿using Microsoft.Dafny.LanguageServer;
-using Microsoft.Dafny.LanguageServer.Workspace;
+﻿using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc.Testing;
