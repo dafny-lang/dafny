@@ -1,5 +1,4 @@
-﻿using Microsoft.Dafny.LanguageServer;
-using Microsoft.Dafny.LanguageServer.Workspace;
+﻿using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.JsonRpc.Testing;
@@ -30,11 +29,18 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
         options => options
           .WithInput(serverPipe.Reader)
           .WithOutput(clientPipe.Writer)
-          .ConfigureLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Debug))
+          .ConfigureLogging(SetupTestLogging)
           .WithDafnyLanguageServer()
       );
       Server.Initialize(CancellationToken);
       return (clientPipe.Reader.AsStream(), serverPipe.Writer.AsStream());
+    }
+
+    private static void SetupTestLogging(ILoggingBuilder builder) {
+      builder
+        .AddConsole()
+        .SetMinimumLevel(LogLevel.Debug)
+        .AddFilter("OmniSharp", LogLevel.Warning);
     }
 
     protected TextDocumentItem CreateTestDocument(string source, string filePath = "test.dfy", int version = 1) {
