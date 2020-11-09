@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-16.04, macos-latest, ubuntu-latest ]
+        os: [ macos-latest, ubuntu-16.04, ubuntu-latest ]
 
 
     #- name: Install brew
