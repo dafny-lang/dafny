@@ -1,3 +1,4 @@
+// UNSUPPORTED: 'windows'
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
