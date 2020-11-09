@@ -45,7 +45,7 @@ jobs:
         unzip z3*.zip && rm z3*.zip
         cp -r z3* dafny/Binaries/z3
     - name: Build Dafny
-      run: msbuild dafny/Source/Dafny.sln
+      run: dotnet build dafny/Source/Dafny.sln
     - name: Versions
       run: |
         ls -Ra dafny/Binaries
