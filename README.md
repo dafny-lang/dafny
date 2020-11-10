@@ -17,4 +17,14 @@ dotnet build DafnyLS.sln
 
 ## Running
 
-Place the Z3 executable (`z3.exe` on Windows) in the working directory of the language server or in the path. You may grab it from one of the pre-packaged [dafny releases](https://github.com/dafny-lang/dafny/releases).
+Place the Z3 executable in the language server's root directory or within the `z3/bin` subdirectory (already present in the [release](https://github.com/DafnyVSCode/language-server-csharp/releases) packages). If not on windows, ensure that the executable has execution permissions:
+
+```sh
+chmod +x ./bin/z3
+```
+
+The language server can be started either by the executable itself (e.g., `Dafny.exe` on windows) or with the following command.
+
+```
+dotnet Dafny.dll
+```
