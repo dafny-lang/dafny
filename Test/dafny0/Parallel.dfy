@@ -1,6 +1,6 @@
+// REQUIRES: os.name!="nt"
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-// UNSUPPORTED: os.name='Windows'
 class C {
   var data: int
   var n: nat
