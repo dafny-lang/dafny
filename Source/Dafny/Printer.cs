@@ -372,7 +372,7 @@ namespace Microsoft.Dafny {
             wr.Write(" {0} ", dd.Name);
             wr.Write("= {0}", Util.Comma(".", dd.Path, id => id.val));
             if (dd.Exports.Count > 0) {
-              wr.Write("`{{{0}}}", Util.Comma(",", dd.Exports, id => id.val));
+              wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
             wr.WriteLine();
           } else if (d is ModuleFacadeDecl) {
@@ -387,7 +387,7 @@ namespace Microsoft.Dafny {
             wr.Write(" {0} ", dd.Name);
             wr.Write(": {0}", Util.Comma(".", dd.Path, id => id.val));
             if (dd.Exports.Count > 0) {
-              wr.Write("`{{{0}}}", Util.Comma(",", dd.Exports, id => id.val));
+              wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
             wr.WriteLine();
 
@@ -398,7 +398,7 @@ namespace Microsoft.Dafny {
             } else {
               wr.Write("export ");
             }
-            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(", ", e.Extends, id => id));
+            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id));
             wr.WriteLine();
             PrintModuleExportDecl(e, indent + IndentAmount, fileBeingPrinted);
             wr.WriteLine();
@@ -453,7 +453,7 @@ namespace Microsoft.Dafny {
         // print [start..i)
         Indent(indent);
         wr.Write("{0} ", bodyKind ? "provides" : "reveals");
-        wr.WriteLine(Util.Comma(", ", i - start, j => m.Exports[start + j].ToString()));
+        wr.WriteLine(Util.Comma(i - start, j => m.Exports[start + j].ToString()));
 
         if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
           Contract.Assert(!printingExportSet);
@@ -662,7 +662,7 @@ namespace Microsoft.Dafny {
       } else if (ArrowType.IsTotalArrowTypeName(name)) {
         PrintArrowType(ArrowType.TOTAL_ARROW, name, typeArgs);
       } else if (BuiltIns.IsTupleTypeName(name)) {
-        wr.Write(" /*{0}*/ ({1})", name, Util.Comma(", ", typeArgs, TypeParamString));
+        wr.Write(" /*{0}*/ ({1})", name, Util.Comma(typeArgs, TypeParamString));
       } else {
         wr.Write(" {0}", name);
         PrintTypeParams(typeArgs);
@@ -676,7 +676,7 @@ namespace Microsoft.Dafny {
         typeArgs.All(tp => !tp.Name.StartsWith("_")));
 
       if (typeArgs.Count != 0 && !typeArgs[0].Name.StartsWith("_")) {
-        wr.Write("<{0}>", Util.Comma(", ", typeArgs, TypeParamString));
+        wr.Write("<{0}>", Util.Comma(typeArgs, TypeParamString));
       }
     }
 
@@ -716,7 +716,7 @@ namespace Microsoft.Dafny {
       if (arity != 1) {
         wr.Write("(");
       }
-      wr.Write(Util.Comma(", ", arity, i => TypeParamString(typeArgs[i])));
+      wr.Write(Util.Comma(arity, i => TypeParamString(typeArgs[i])));
       if (arity != 1) {
         wr.Write(")");
       }
@@ -1501,8 +1501,8 @@ namespace Microsoft.Dafny {
         }
         wr.Write(";");
 
-      } else if (stmt is LetStmt) {
-        var s = (LetStmt)stmt;
+      } else if (stmt is VarDeclPattern) {
+        var s = (VarDeclPattern)stmt;
         wr.Write("var ");
         PrintCasePattern(s.LHS);
         wr.Write(" := ");
@@ -2577,7 +2577,7 @@ namespace Microsoft.Dafny {
         if (parensNeeded) { wr.Write("("); }
         var skipSignatureParens = e.BoundVars.Count == 1 && !ShowType(e.BoundVars[0].Type);
         if (!skipSignatureParens) { wr.Write("("); }
-        wr.Write(Util.Comma(", ", e.BoundVars, bv => bv.DisplayName + (ShowType(bv.Type) ? ": " + bv.Type : "")));
+        wr.Write(Util.Comma(e.BoundVars, bv => bv.DisplayName + (ShowType(bv.Type) ? ": " + bv.Type : "")));
         if (!skipSignatureParens) { wr.Write(")"); }
         if (e.Range != null) {
           wr.Write(" requires ");
@@ -2742,7 +2742,7 @@ namespace Microsoft.Dafny {
           } else {
             wr.Write(idPat.Id);
           }
-          if (idPat.Arguments.Count != 0) {
+          if (idPat.Arguments != null) {
             wr.Write("(");
             var sep = "";
             foreach (var arg in idPat.Arguments) {

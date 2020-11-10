@@ -254,6 +254,8 @@ namespace Microsoft.Dafny
         reporter.Error(MessageSource.RefinementTransformer, nw, "an opaque type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
       } else if (nw is DatatypeDecl) {
         reporter.Error(MessageSource.RefinementTransformer, nw, "a datatype declaration ({0}) in a refinement module can only replace an opaque type declaration", nw.Name);
+      } else if (nw is NewtypeDecl) {
+        reporter.Error(MessageSource.RefinementTransformer, nw, "a newtype declaration ({0}) in a refinement module can only replace an opaque type declaration", nw.Name);
       } else if (nw is IteratorDecl) {
         if (d is IteratorDecl) {
           m.TopLevelDecls[index] = MergeIterator((IteratorDecl)nw, (IteratorDecl)d);
@@ -261,14 +263,14 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.RefinementTransformer, nw, "an iterator declaration ({0}) is a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
         }
       } else if (nw is ClassDecl) {
-        if (d is DatatypeDecl) {
+        if (d is ClassDecl) {
+          m.TopLevelDecls[index] = MergeClass((ClassDecl) nw, (ClassDecl) d);
+        } else {
           reporter.Error(MessageSource.RefinementTransformer, nw,
             "a class declaration ({0}) in a refining module cannot replace a different kind of declaration in the refinement base",
             nw.Name);
-        } else {
-          m.TopLevelDecls[index] = MergeClass((ClassDecl) nw, (ClassDecl) d);
         }
-      } else if (nw is TypeSynonymDecl && d is TypeSynonymDecl 
+      } else if (nw is TypeSynonymDecl && d is TypeSynonymDecl
                                        && ((TypeSynonymDecl)nw).Rhs != null
                                        && ((TypeSynonymDecl)d).Rhs != null) {
         reporter.Error(MessageSource.RefinementTransformer, d,
@@ -956,7 +958,7 @@ namespace Microsoft.Dafny
                 if (subber != null && subber.SubstitutionsMade.Count < subber.Exprs.Count) {
                   foreach (var s in subber.SubstitutionsMade)
                     subber.Exprs.Remove(s);
-                  reporter.Error(MessageSource.RefinementTransformer, c.Tok, "could not find labeled expression(s): " + Util.Comma(", ", subber.Exprs.Keys, x => x));
+                  reporter.Error(MessageSource.RefinementTransformer, c.Tok, "could not find labeled expression(s): " + Util.Comma(subber.Exprs.Keys, x => x));
                 }
               }
               i++;

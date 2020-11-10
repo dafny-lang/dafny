@@ -234,7 +234,7 @@ module GhostLetExpr {
         ghost var z := bb + F();
         ghost var t0 := var y := z; z + 3;
         ghost var t1 := ghost var y := z; z + 3;
-        var t2 := ghost var y := z; aa + 3;
+        var t2; t2 := ghost var y := z; aa + 3;
     }
   }
 

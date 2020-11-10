@@ -414,10 +414,10 @@ bool IsIdentParen() {
 }
 
 /* Used to disambiguate the LHS of a VarDeclStmt. If it looks like the start of a CasePattern,
- * we consider it to be a LetStmt. But if we are looking at a simple identifier, then we
+ * we consider it to be a VarDeclPattern. But if we are looking at a simple identifier, then we
  * consider it to be a VarDeclStmt.
  */
-bool IsLetStmt() {
+bool IsPatternDecl() {
   return IsIdentParen() || la.kind == _openparen;
 }
 
@@ -552,7 +552,7 @@ bool IsTypeSequence(ref IToken pt, int endBracketKind) {
 bool IsType(ref IToken pt) {
   if (!IsNonArrowType(ref pt)) return false;
   while (pt.kind == _sarrow || pt.kind == _qarrow || pt.kind == _larrow) {
-    pt = scanner.Peek(); 
+    pt = scanner.Peek();
     if (!IsNonArrowType(ref pt)) return false;
   }
   return true;
@@ -1593,21 +1593,19 @@ MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<Attr
   .)
   SYNC
   ( "modifies" { Attribute<ref modAttrs> }
-               FrameExpression<out fe, false, false>         (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
-               { "," FrameExpression<out fe, false, false>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
-               }
-               OldSemi
-  | 
-    ( "requires"
-      { Attribute<ref reqAttrs> }
-      [ IF(IsLabel(true))
-        LabelIdent<out lbl> ":"
-      ]
-      Expression<out e, false, false> OldSemi                (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
-    | "ensures"
-      { Attribute<ref ensAttrs> }
-      Expression<out e, false, false> OldSemi                (. ens.Add(new AttributedExpression(e, ensAttrs)); .)
-    )
+    FrameExpression<out fe, false, false>         (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
+    { "," FrameExpression<out fe, false, false>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
+    }
+    OldSemi
+  | "requires"
+    { Attribute<ref reqAttrs> }
+    [ IF(IsLabel(true))
+      LabelIdent<out lbl> ":"
+    ]
+    Expression<out e, false, false> OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
+  | "ensures"
+    { Attribute<ref ensAttrs> }
+    Expression<out e, false, false> OldSemi       (. ens.Add(new AttributedExpression(e, ensAttrs)); .)
   | "decreases" { Attribute<ref decAttrs> } DecreasesList<decreases, true, false> OldSemi
   )
   .
@@ -2208,7 +2206,9 @@ UpdateStmt<out Statement/*!*/ s>
         "expect"                   (. exceptionExpect = t; .)
       ]
       Expression<out exceptionExpr, false, false>
-    )
+      { "," Rhs<out r>             (. rhss.Add(r); .)
+      }
+     )
     ";"                            (. endTok = t; .)
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
@@ -2217,16 +2217,14 @@ UpdateStmt<out Statement/*!*/ s>
      "expect"                      (. exceptionExpect = t; .)
    ]
    Expression<out exceptionExpr, false, false>
+   { "," Rhs<out r>                (. rhss.Add(r); .)
+   }
    ";"                             (. endTok = t; .)
 )
   (. if (suchThat != null) {
        s = new AssignSuchThatStmt(x, endTok, lhss, suchThat, suchThatAssume, null);
      } else if (exceptionExpr != null) {
-       if (lhss.Count > 1) {
-         SemErr(x, "':-' assignments can only have one LHS");
-         lhss = new List<Expression>() { lhss[0] };
-       }
-       s = new AssignOrReturnStmt(x, endTok, lhss, exceptionExpr, exceptionExpect);
+       s = new AssignOrReturnStmt(x, endTok, lhss, exceptionExpr, exceptionExpect, rhss);
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(x, endTok, new List<Statement>()); // error, give empty statement
@@ -2325,7 +2323,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
   [ "ghost"                                 (. isGhost = true;  x = t; .)
   ]
   "var"                                     (. if (!isGhost) { x = t; } .)
-  ( IF(!IsLetStmt())
+  ( IF(!IsPatternDecl())
     { Attribute<ref attrs> }
     LocalIdentTypeOptional<out d, isGhost>    (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
     { ","
@@ -2344,33 +2342,32 @@ VarDeclStatement<.out Statement/*!*/ s.>
       Expression<out suchThat, false, true>
     | ":-"                           (. assignTok = t; .)
       [ IF(la.kind == _expect)     /* an Expression can also begin with an "expect", so this says to resolve it to pick up any "expect" here */
-        "expect"                   (. exceptionExpect = t; .)
+        "expect"                     (. exceptionExpect = t; .)
       ]
       Expression<out exceptionExpr, false, false>
+      { "," Rhs<out r>               (. rhss.Add(r); .)
+      }
     ]
     SYNC ";"                         (. endTok = t; .)
     (. ConcreteUpdateStatement update;
        var lhsExprs = new List<Expression>();
-       foreach (var lhs in lhss) {
-         lhsExprs.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
+       if (isGhost || (rhss.Count == 0 && exceptionExpr == null && suchThat == null)) { // explicitly ghost or no init
+         foreach (var lhs in lhss) {
+           lhsExprs.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
+         }
+       } else { // not explicitly ghost, but with init - so auto-ghost
+         foreach (var lhs in lhss) {
+           lhsExprs.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name));
+         }
        }
        if (suchThat != null) {
          update = new AssignSuchThatStmt(assignTok, endTok, lhsExprs, suchThat, suchThatAssume, attrs);
        } else if (exceptionExpr != null) {
-           Contract.Assert(lhss.Count >= 1);
-           if (lhss.Count != 1) {
-             SemErr(assignTok, "':-' assignments can only have one LHS");
-             lhsExprs = new List<Expression>() { lhsExprs[0] };
-           }
-           update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr, exceptionExpect);
+         update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr, exceptionExpect, rhss);
        } else if (rhss.Count == 0) {
          update = null;
        } else {
-         var ies = new List<Expression>();
-         foreach (var lhs in lhss) {
-           ies.Add(new AutoGhostIdentifierExpr(lhs.Tok, lhs.Name));
-         }
-         update = new UpdateStmt(assignTok, endTok, ies, rhss);
+         update = new UpdateStmt(assignTok, endTok, lhsExprs, rhss);
        }
        s = new VarDeclStmt(x, endTok, lhss, update);
     .)
@@ -2386,7 +2383,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
     Expression<out e, false, true>
 
     ";"
-    (. s = new LetStmt(e.tok, e.tok, pat, e); .)
+    (. s = new VarDeclPattern(e.tok, e.tok, pat, e, !isGhost); .)
   )
   .
 IfStmt<out Statement/*!*/ ifStmt>
@@ -2589,14 +2586,13 @@ ExistentialGuard<out Expression e, bool allowLambda>
 /*------------------------------------------------------------------------*/
 ExtendedPattern<.out ExtendedPattern pat.>
 = (. IToken id; List<ExtendedPattern> arguments;
-    LiteralExpr lit; Expression te; BoundVar bv;
+    Expression lit; BoundVar bv;
     pat = null;
   .)
-  ( IF(la.kind == _openparen)
-    "("                                   (. id = t;
-                                             arguments = new List<ExtendedPattern>(); .)
-      [ ExtendedPattern<out pat>          (. arguments.Add(pat); .)
-      { "," ExtendedPattern<out pat>      (. arguments.Add(pat); .)
+  ( "("                                    (. id = t;
+                                              arguments = new List<ExtendedPattern>(); .)
+      [ ExtendedPattern<out pat>           (. arguments.Add(pat); .)
+      { "," ExtendedPattern<out pat>       (. arguments.Add(pat); .)
       }]
     ")"                                    (. if (arguments.Count == 1) {
                                                 SemErr(t, "parentheses are not allowed around a pattern");
@@ -2610,25 +2606,18 @@ ExtendedPattern<.out ExtendedPattern pat.>
   | IF(IsIdentParen())
     Ident<out id>                          (. arguments = new List<ExtendedPattern>(); .)
     "("
-      [ ExtendedPattern<out pat>            (. arguments.Add(pat); .)
+      [ ExtendedPattern<out pat>           (. arguments.Add(pat); .)
         { "," ExtendedPattern<out pat>     (. arguments.Add(pat); .)
         }
       ]
      ")"
                                            (. pat = new IdPattern(id, id.val, arguments); .)
-  | ConstAtomExpression<out te, false, false>   (. if (te is LiteralExpr){
-                                                      lit = (LiteralExpr)te;
-                                                      pat = new LitPattern(lit.tok, lit);
-                                                    } else {
-                                                      SemErr(t, "invalid AtomConst used in pattern");
-                                                      pat = null;
-                                                    }
-                                                .)
-  | IdentTypeOptional<out bv>          (. pat = new IdPattern(bv.tok, bv.Name, bv.SyntacticType, new List<ExtendedPattern>()); .)
+  | PossiblyNegatedLiteralExpr<out lit>    (. pat = new LitPattern(lit.tok, lit); .)
+  | IdentTypeOptional<out bv>              (. pat = new IdPattern(bv.tok, bv.Name, bv.SyntacticType, null); .)
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
     if (pat == null) {
-      pat = new IdPattern(t, "_ParseError", new List<ExtendedPattern>());
+      pat = new IdPattern(t, "_ParseError", null);
     }
   .)
   .
@@ -3322,19 +3311,10 @@ Lhs<out Expression e>
 /* A ConstAtomExpression is never an l-value, and does not start with an identifier. */
 ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     IToken/*!*/ x;  BigInteger n;   Basetypes.BigDec d;
+     IToken/*!*/ x;
      e = dummyExpr;
   .)
-  ( "false"                                    (. e = new LiteralExpr(t, false); .)
-  | "true"                                     (. e = new LiteralExpr(t, true); .)
-  | "null"                                     (. e = new LiteralExpr(t); .)
-  | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
-  | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
-  | charToken                                  (. e = new CharLiteralExpr(t, t.val.Substring(1, t.val.Length - 2)); .)
-  | stringToken                                (. bool isVerbatimString;
-                                                  string s = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
-                                                  e = new StringLiteralExpr(t, s, isVerbatimString);
-                                               .)
+  ( LiteralExpr<out e>
   | "this"                                     (. e = new ThisExpr(t); .)
   | "fresh"                                    (. x = t; .)
     "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Fresh, e); .)
@@ -3354,6 +3334,35 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
       Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
     "|"
   | ParensExpression<out e, allowSemi, allowLambda>
+  )
+  .
+
+LiteralExpr<out Expression e>
+= (. BigInteger n; Basetypes.BigDec d;
+     e = dummyExpr;
+  .)
+  ( "false"                                    (. e = new LiteralExpr(t, false); .)
+  | "true"                                     (. e = new LiteralExpr(t, true); .)
+  | "null"                                     (. e = new LiteralExpr(t); .)
+  | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
+  | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
+  | charToken                                  (. e = new CharLiteralExpr(t, t.val.Substring(1, t.val.Length - 2)); .)
+  | stringToken                                (. bool isVerbatimString;
+                                                  string s = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
+                                                  e = new StringLiteralExpr(t, s, isVerbatimString);
+                                               .)
+  )
+  .
+
+PossiblyNegatedLiteralExpr<out Expression e>
+= (. BigInteger n; Basetypes.BigDec d;
+     e = dummyExpr;
+  .)
+  ( "-"                                        (. var x = t; .)
+    ( Nat<out n>                               (. e = new NegationExpression(x, new LiteralExpr(t, n)); .)
+    | Dec<out d>                               (. e = new NegationExpression(x, new LiteralExpr(t, d)); .)
+    )
+  | LiteralExpr<out e>
   )
   .
 
@@ -3714,7 +3723,7 @@ CasePattern<.out CasePattern<BoundVar> pat.>
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
      if (pat == null) {
-       pat = new CasePattern<BoundVar>(t, "_ParseError", new List<CasePattern<BoundVar>>());
+       pat = new CasePattern<BoundVar>(t, "_ParseError", null);
      }
   .)
   .
@@ -3757,7 +3766,7 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
   )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
      if (pat == null) {
-       pat = new CasePattern<LocalVariable>(t, "_ParseError", new List<CasePattern<LocalVariable>>());
+       pat = new CasePattern<LocalVariable>(t, "_ParseError", null);
      }
   .)
   .

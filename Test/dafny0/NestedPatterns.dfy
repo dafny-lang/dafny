@@ -40,7 +40,7 @@ method MethodD<T>(xs: List<T>) returns (ys: List<T>)
   case Nil =>
     ys := Nil;
   case Cons(h, Nil) =>
-    var xxs: List<List<T>> := Cons(Nil, Nil);  // BUG: type inference is not doing the right thing on this lint
+    var xxs: List<List<T>> := Cons(Nil, Nil);  // bug here is now fixed
   case Cons(h, Cons(h0, tt)) =>
 }
 
@@ -55,35 +55,24 @@ method MethodF<T>(xs: List<T>) returns (ys: List<T>)
   match xs
   case Nil =>
   case Cons(h, Nil) =>
-  case Cons(h0, Cons(h1, tt)) =>  // BUG: Dafny complains that Cons appears in more than one case; it seems to be due to the
-                                  // fact that the previous case uses identifier "h" as the first argument to Cons, whereas this
-                                  // line uses "h0"
+  case Cons(h0, Cons(h1, tt)) =>  // bug here is now fixed
 }
 
 method MethodG<T>(xs: List<T>) returns (xxs: List<List<T>>)
 {
   match xs
   case Nil =>
-    xxs := Cons(Nil, Nil);  // BUG: this causes there to be an "unresolved identifier: _mc#0" error; oddly enough, the error goes away if the third case is commented out
+    xxs := Cons(Nil, Nil);  // bugx here is now fixed
   case Cons(h, t) =>
-  case Cons(h, Cons(ht, tt)) =>
+  case Cons(h, Cons(ht, tt)) =>    // ERROR: redundant
 }
-
-/* Error: parentheses are not allowed around a pattern
-method AssertionFailure(xs: List)
-{
-  match xs
-  case (Nil) =>  // BUG: this line causes an assertion in the Dafny implementation (what should happen is that "(Nil)" should not be allowed here)
-  case (Cons(h, t)) =>  // BUG: ditto
-}
-*/
 
 method DuplicateIdentifierInPattern0<T>(xs: List<T>)
 {
   match xs
   case Nil =>
   case Cons(h, Nil) =>
-  case Cons(h, Cons(_, h)) =>  // BUG:  this duplicate identifier name should give rise to an error (from the Resolver), but no error is reported
+  case Cons(h, Cons(_, h)) =>  // ERROR: duplicate identifier
 }
 
 method DuplicateIdentifierInPattern1<T>(xs: List<T>)
@@ -91,7 +80,7 @@ method DuplicateIdentifierInPattern1<T>(xs: List<T>)
   match xs
   case Nil =>
   case Cons(h, Nil) =>
-  case Cons(h, Cons(h, _)) =>  // BUG:  this duplicate identifier name should give rise to an error (from the Resolver), but no error is reported
+  case Cons(h, Cons(h, _)) =>  // ERROR: duplicate identifier
 }
 
 method DuplicateIdentifierInPattern2<T>(xs: List<T>)
@@ -99,7 +88,7 @@ method DuplicateIdentifierInPattern2<T>(xs: List<T>)
   match xs
   case Nil =>
   case Cons(h, Nil) =>
-  case Cons(h, Cons(e, e)) =>  // BUG:  here, the duplicate identifier is detected, but the error message is shown 3 times, which is less than ideal
+  case Cons(h, Cons(e, e)) =>  // ERROR: duplicate identifier
 }
 
 method Tuples0(xs: List, ys: List)
@@ -115,12 +104,12 @@ method Tuples0(xs: List, ys: List)
 method Tuples1(xs: List, ys: List)
 {
   match (xs, ys, 4)
-  case (Nil, Nil) =>  // BUG: the mismatch of 3 versus 2 arguments in the previous line and this line causes Dafny to crash with an
-                      // assertion failure "mc.CasePatterns.Count == e.Arguments.Count"
+  case (Nil, Nil) =>  // ERROR: type mismatch (used to crash)
+
 }
 
 method Tuples2(xs: List, ys: List)
 {
   match (xs, ys, ())
-  case (Nil, Nil, ()) =>  // BUG: Dafny crashes with an assertion failure "e.Arguments.Count >= 1"
+  case (Nil, Nil, ()) =>  // used to crash; now OK with unit matching
 }

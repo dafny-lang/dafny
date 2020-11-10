@@ -1,0 +1,2 @@
+OpaqueTypeWithMembersE.dfy(24,8): Error: The type of the first expression is not a failure type in :- statement
+1 resolution/type errors detected in OpaqueTypeWithMembersE.dfy

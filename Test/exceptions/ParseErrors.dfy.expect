@@ -1,4 +1,4 @@
-ParseErrors.dfy(8,20): Error: this symbol not expected in VarDeclStatement
-ParseErrors.dfy(8,15): Error: ':-' assignments can only have one LHS
-ParseErrors.dfy(14,9): Error: semicolon expected
-3 parse errors detected in ParseErrors.dfy
+ParseErrors.dfy(9,15): Error: number of lhs (2) must match number of rhs (1) for a rhs type (NatOutcome?) with member Extract
+ParseErrors.dfy(10,15): Error: The type of the first expression is not a failure type in :- statement
+ParseErrors.dfy(16,4): Error: number of lhs (0) must be one less than number of rhs (2) for a rhs type (VoidOutcome?) without member Extract
+3 resolution/type errors detected in ParseErrors.dfy
