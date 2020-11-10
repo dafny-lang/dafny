@@ -1,4 +1,4 @@
-// UNSUPPORTED: windows, macos, darwin
+// UNSUPPORTED: windows, macos, darwin, Windows
 // RUN: %dafny /out:Output/DafnyMain.cs TestAttribute.dfy /compile:0 /spillTargetCode:3 /noVerify
 // RUN: dotnet build -t:restore ../DafnyTests.sln
 // RUN: dotnet build -t:Test -v:q -noLogo > "%t".raw || true
