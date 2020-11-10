@@ -4,11 +4,7 @@ defaults:
   run:
     working-directory: ./Source
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+on: [ push, pull_request ]
 
 jobs:
   build:
