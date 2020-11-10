@@ -46,10 +46,10 @@ jobs:
         Remove-Item z3.zip
         Copy-Item ${{matrix.z3}} ${{env.binaryPath}}/z3 -Recurse
         Copy-Item ${{matrix.z3}} ${{env.testPath}}/z3 -Recurse
-    - name: Permissions
+    - name: Set Permissions
       if: ${{matrix.chmod}}
       run: chmod +x ${{env.testPath}}/z3/bin/z3
-    - name: Test
+    - name: Run Tests
       run: dotnet test --no-restore --verbosity normal
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2
