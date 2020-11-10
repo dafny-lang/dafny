@@ -5,7 +5,6 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
 // RUN: sed -e 'sx\\x/x' < "%t" > "%t"2
 // RUN: %diff "%s.expect" "%t"2
-
 // The code in this file demonstrates complications in sorting out covariance in some
 // compilation target languages. Compilation support is currently spotty, where C# and
 // Java only supports collection types (not datatypes), and
