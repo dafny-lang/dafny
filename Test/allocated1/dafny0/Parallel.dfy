@@ -1,5 +1,5 @@
 // RUN: %dafny /verifyAllModules /allocated:1 /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
-// RUN: echo %os %ver  >> "%t"
+// RUN: echo %os %ver %isWindows %isPosix >> "%t"
 // RUN: %diff "%s.expect" "%t"
 class C {
   var data: int
