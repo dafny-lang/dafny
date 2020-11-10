@@ -20,6 +20,10 @@ jobs:
             suffix: win
             z3: z3-4.8.4.d6df51951f4c-x64-win
             chmod: false
+          - os: macos-10.15
+            suffix: osx-10.14.1
+            z3: z3-4.8.4.d6df51951f4c-x64-osx-10.14.1
+            chmod: true
     env:
       binaryPath: DafnyLS/bin/Release/netcoreapp3.1
       testPath: DafnyLS.IntegrationTest/bin/Debug/netcoreapp3.1
