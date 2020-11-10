@@ -15,6 +15,9 @@ RUN cp -r z3 Source/DafnyLS/bin/Release/netcoreapp3.1/z3
 
 FROM mcr.microsoft.com/dotnet/core/aspnet:3.1-bionic AS runtime
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=build /build/Source/DafnyLS/bin/Release/netcoreapp3.1 .
 RUN chmod +x DafnyLS \
     && chmod +x z3/bin/z3
