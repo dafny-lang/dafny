@@ -9,6 +9,7 @@ on: [ push, pull_request ]
 jobs:
   build:
     runs-on: ${{matrix.os}}
+    name: ${{matrix.suffix}}
     strategy:
       matrix:
         include:
