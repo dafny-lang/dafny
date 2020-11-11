@@ -66,11 +66,12 @@ jobs:
       run: |
         dotnet test --no-restore --verbosity normal --settings DafnyLS.IntegrationTest/coverlet.runsettings
         mv DafnyLS.IntegrationTest/TestResults/*/${{env.coverageFile}} ./${{env.coverageFile}}
+        ls -al .
     - name: Upload Coverage Report
       if: ${{matrix.coverage && github.event_name != 'pull_request'}}
       uses: codecov/codecov-action@v1
       with:
-        file: ./${{env.coverageFile}}
+        file: ./Source/${{env.coverageFile}}
     - name: Upload Artifacts
       if: ${{github.ref == 'master'}}
       uses: actions/upload-artifact@v2
