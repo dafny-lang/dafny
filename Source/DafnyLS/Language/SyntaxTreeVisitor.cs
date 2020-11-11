@@ -430,6 +430,9 @@
       case NestedMatchExpr nestedMatchExpression:
         Visit(nestedMatchExpression);
         break;
+      case MultiSetDisplayExpr multiSetDisplayExpression:
+        Visit(multiSetDisplayExpression);
+        break;
       case null:
         // TODO This most-likely occured while typing. Maybe log this situation.
         break;
@@ -549,6 +552,12 @@
     public virtual void Visit(NestedMatchCaseExpr nestedMatchCaseExpression) {
       Visit(nestedMatchCaseExpression.Pat);
       Visit(nestedMatchCaseExpression.Body);
+    }
+
+    public virtual void Visit(MultiSetDisplayExpr multiSetDisplayExpression) {
+      foreach(var element in multiSetDisplayExpression.Elements) {
+        Visit(element);
+      }
     }
 
     public virtual void Visit(Specification<Expression> specification) {
