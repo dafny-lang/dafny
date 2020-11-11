@@ -5,8 +5,8 @@ method m() {
 
   var a: array<nat> := new nat[10];
   var b: array<int> := new int[10];
-  b := a;
-  a := b;
+  b := a; // type error expected
+  a := b; // type error expected
   mm(b, a);
 }
 
@@ -16,8 +16,8 @@ method q() {
 
   var a: seq<nat>;
   var b: seq<int>;
-  b := a;
-  a := b;
+  b := a; // but OK for value types
+  a := b; // but OK for value types
   qq(b, a);
 }
 

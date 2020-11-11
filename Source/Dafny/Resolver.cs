@@ -12697,9 +12697,7 @@ namespace Microsoft.Dafny
             builtIns.CreateArrowTypeDecl(rr.ArrayDimensions.Count);  // TODO: should this be done already in the parser?
             var args = new List<Type>();
             for (int ii = 0; ii < rr.ArrayDimensions.Count; ii++) {
-              UserDefinedType t = Type.Nat() as UserDefinedType;
-              t.ResolvedClass = builtIns.NatDecl;
-              args.Add(t);
+              args.Add(builtIns.Nat());
             }
             var arrowType = new ArrowType(rr.ElementInit.tok, builtIns.ArrowTypeDecls[rr.ArrayDimensions.Count], args, rr.EType);
             string underscores;
@@ -13870,8 +13868,7 @@ namespace Microsoft.Dafny
         ResolveExpression(e.N, opts);
         ConstrainToIntegerType(e.N, false, "sequence construction must use an integer-based expression for the sequence size (got {0})");
         ResolveExpression(e.Initializer, opts);
-        UserDefinedType t = Type.Nat() as UserDefinedType;
-        t.ResolvedClass = builtIns.NatDecl;
+        UserDefinedType t = builtIns.Nat() as UserDefinedType;
         var arrowType = new ArrowType(e.tok, builtIns.ArrowTypeDecls[1], new List<Type>() { t }, elementType);
         var hintString = " (perhaps write '_ =>' in front of the expression you gave in order to make it an arrow type)";
         ConstrainSubtypeRelation(arrowType, e.Initializer.Type, e.Initializer, "sequence-construction initializer expression expected to have type '{0}' (instead got '{1}'){2}",
