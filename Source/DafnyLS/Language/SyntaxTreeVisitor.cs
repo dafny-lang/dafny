@@ -101,6 +101,9 @@
 
     public virtual void Visit(Function function) {
       VisitNullableExpression(function.Body);
+      foreach(var read in function.Reads) {
+        Visit(read);
+      }
       Visit(function.Decreases);
     }
 
@@ -537,6 +540,9 @@
       foreach(var expression in specification.Expressions) {
         Visit(expression);
       }
+    }
+
+    public virtual void Visit(FrameExpression frameExpression) {
     }
   }
 }
