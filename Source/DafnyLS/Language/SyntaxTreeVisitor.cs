@@ -1,6 +1,4 @@
-﻿using Microsoft.Dafny;
-
-namespace Microsoft.Dafny.LanguageServer.Language {
+﻿namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// Base syntax tree visitor implementation that visits all nodes.
   /// </summary>
@@ -13,9 +11,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     /// <param name="node">The unknown node that is being visited.</param>
     /// <param name="token">The token asociated with the unknown node.</param>
-    public abstract void VisitUnknown(object node, Microsoft.Boogie.IToken token);
+    public abstract void VisitUnknown(object node, Boogie.IToken token);
 
-    public virtual void Visit(Microsoft.Dafny.Program program) {
+    public virtual void Visit(Dafny.Program program) {
       foreach(var module in program.Modules()) {
         Visit(module);
       }
@@ -90,6 +88,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       foreach(var ensurement in method.Ens) {
         Visit(ensurement);
       }
+      Visit(method.Decreases);
       VisitNullableBlock(method.Body);
     }
 
@@ -102,6 +101,22 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public virtual void Visit(Function function) {
       VisitNullableExpression(function.Body);
+      foreach(var typeArgument in function.TypeArgs) {
+        Visit(typeArgument);
+      }
+      foreach(var formal in function.Formals) {
+        Visit(formal);
+      }
+      foreach(var read in function.Reads) {
+        Visit(read);
+      }
+      foreach(var requirement in function.Req) {
+        Visit(requirement);
+      }
+      foreach(var ensurement in function.Ens) {
+        Visit(ensurement);
+      }
+      Visit(function.Decreases);
     }
 
     public virtual void Visit(NonglobalVariable nonGlobalVariable) {
@@ -240,6 +255,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       case ForallStmt forAllStatement:
         Visit(forAllStatement);
         break;
+      case PrintStmt printStatement:
+        Visit(printStatement);
+        break;
       default:
         VisitUnknown(statement, statement.Tok);
         break;
@@ -255,6 +273,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public virtual void Visit(AssertStmt assertStatement) {
       VisitNullableAttributes(assertStatement.Attributes);
       Visit(assertStatement.Expr);
+      VisitNullableStatement(assertStatement.Proof);
     }
 
     public virtual void Visit(ReturnStmt returnStatement) {
@@ -298,6 +317,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public virtual void Visit(ForallStmt forAllStatement) {
       VisitNullableAttributes(forAllStatement.Attributes);
       Visit(forAllStatement.Body);
+    }
+
+    public virtual void Visit(PrintStmt printStatement) {
+      VisitNullableAttributes(printStatement.Attributes);
+      foreach(var argument in printStatement.Args) {
+        Visit(argument);
+      }
     }
 
     public virtual void Visit(Expression expression) {
@@ -401,6 +427,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       case ForallExpr forAllExpression:
         Visit(forAllExpression);
         break;
+      case NestedMatchExpr nestedMatchExpression:
+        Visit(nestedMatchExpression);
+        break;
+      case MultiSetDisplayExpr multiSetDisplayExpression:
+        Visit(multiSetDisplayExpression);
+        break;
       case null:
         // TODO This most-likely occured while typing. Maybe log this situation.
         break;
@@ -420,17 +452,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public virtual void Visit(LiteralExpr literalExpression) {
-      switch(literalExpression) {
-      case StringLiteralExpr stringLiteralExpression:
-        Visit(stringLiteralExpression);
-        break;
-      default:
-        VisitUnknown(literalExpression, literalExpression.tok);
-        break;
-      }
-    }
-
-    public virtual void Visit(StringLiteralExpr stringLiteralExpression) {
     }
 
     public virtual void Visit(IdentifierExpr identifierExpression) {
@@ -519,6 +540,38 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       VisitNullableAttributes(forAllExpression.Attributes);
       Visit(forAllExpression.Range);
       Visit(forAllExpression.Term);
+    }
+
+    public virtual void Visit(NestedMatchExpr nestedMatchExpression) {
+      Visit(nestedMatchExpression.Source);
+      foreach(var nestedMatchCaseExpression in nestedMatchExpression.Cases) {
+        Visit(nestedMatchCaseExpression);
+      }
+    }
+
+    public virtual void Visit(NestedMatchCaseExpr nestedMatchCaseExpression) {
+      Visit(nestedMatchCaseExpression.Pat);
+      Visit(nestedMatchCaseExpression.Body);
+    }
+
+    public virtual void Visit(MultiSetDisplayExpr multiSetDisplayExpression) {
+      foreach(var element in multiSetDisplayExpression.Elements) {
+        Visit(element);
+      }
+    }
+
+    public virtual void Visit(Specification<Expression> specification) {
+      VisitNullableAttributes(specification.Attributes);
+      foreach(var expression in specification.Expressions) {
+        Visit(expression);
+      }
+    }
+
+    public virtual void Visit(FrameExpression frameExpression) {
+    }
+
+    public virtual void Visit(ExtendedPattern extendedPattern) {
+      // TODO Visit the various pattern types.
     }
   }
 }
