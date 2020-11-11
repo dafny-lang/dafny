@@ -2,4 +2,4 @@ bin/
 obj/
 .vs/
 *.user
-
+TestResults/
