@@ -19,7 +19,7 @@ dotnet build DafnyLS.sln
 
 ## Running
 
-Place the Z3 executable in the language server's root directory or within the `z3/bin` subdirectory (already present in the [release](https://github.com/DafnyVSCode/language-server-csharp/releases) packages). If not on windows, ensure that the executable has execution permissions:
+Place the [Z3 executable](https://github.com/Z3Prover/z3/releases/tag/z3-4.8.4) in the language server's root directory or within the `z3/bin` subdirectory (already present in the [release](https://github.com/DafnyVSCode/language-server-csharp/releases) packages). If not on windows, ensure that the executable has execution permissions:
 
 ```sh
 chmod +x ./bin/z3
