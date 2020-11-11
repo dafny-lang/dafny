@@ -1,5 +1,4 @@
-﻿using Microsoft.Dafny;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.IO;
@@ -23,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       _logger = logger;
     }
 
-    public async Task<CompilationUnit> ResolveSymbolsAsync(TextDocumentItem textDocument, Microsoft.Dafny.Program program, CancellationToken cancellationToken) {
+    public async Task<CompilationUnit> ResolveSymbolsAsync(TextDocumentItem textDocument, Dafny.Program program, CancellationToken cancellationToken) {
       int parserErrors = GetErrorCount(program);
       if(parserErrors > 0) {
         _logger.LogTrace("document {} had {} parser errors, skipping symbol resolution", textDocument.Uri, parserErrors);
@@ -46,11 +45,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return new SymbolDeclarationResolver(_logger, cancellationToken).ProcessProgram(program);
     }
 
-    private static int GetErrorCount(Microsoft.Dafny.Program program) {
+    private static int GetErrorCount(Dafny.Program program) {
       return program.reporter.AllMessages[ErrorLevel.Error].Count;
     }
 
-    private bool RunDafnyResolver(TextDocumentItem document, Microsoft.Dafny.Program program) {
+    private bool RunDafnyResolver(TextDocumentItem document, Dafny.Program program) {
       var resolver = new Resolver(program);
       resolver.ResolveProgram(program);
       int resolverErrors = GetErrorCount(program);
@@ -70,7 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         _cancellationToken = cancellationToken;
       }
 
-      public CompilationUnit ProcessProgram(Microsoft.Dafny.Program program) {
+      public CompilationUnit ProcessProgram(Dafny.Program program) {
         _cancellationToken.ThrowIfCancellationRequested();
         var compilationUnit = new CompilationUnit(program);
         // TODO program.CompileModules would probably more suitable here, since we want the symbols of the System module as well.
@@ -191,7 +190,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         _scope = scope;
       }
 
-      public override void VisitUnknown(object node, Microsoft.Boogie.IToken token) {
+      public override void VisitUnknown(object node, Boogie.IToken token) {
         _logger.LogWarning("encountered unknown syntax node of type {} in {}@({},{})", node.GetType(), Path.GetFileName(token.filename), token.line, token.col);
       }
 
