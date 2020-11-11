@@ -446,17 +446,6 @@
     }
 
     public virtual void Visit(LiteralExpr literalExpression) {
-      switch(literalExpression) {
-      case StringLiteralExpr stringLiteralExpression:
-        Visit(stringLiteralExpression);
-        break;
-      default:
-        VisitUnknown(literalExpression, literalExpression.tok);
-        break;
-      }
-    }
-
-    public virtual void Visit(StringLiteralExpr stringLiteralExpression) {
     }
 
     public virtual void Visit(IdentifierExpr identifierExpression) {
