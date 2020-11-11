@@ -61,11 +61,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       // It appears that boogie is thread-safe.
       foreach(var (_, boogieProgram) in translated) {
         cancellationToken.ThrowIfCancellationRequested();
-        VerifyWithBoogie(boogieProgram, program.reporter);
+        VerifyWithBoogie(boogieProgram, program.reporter, cancellationToken);
       }
     }
 
-    private void VerifyWithBoogie(Microsoft.Boogie.Program program, ErrorReporter reporter) {
+    private void VerifyWithBoogie(Microsoft.Boogie.Program program, ErrorReporter reporter, CancellationToken cancellationToken) {
       program.Resolve();
       program.Typecheck();
 
@@ -76,7 +76,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       // TODO Are the programId and requestId of any relevance?
       var uniqueId = Guid.NewGuid().ToString();
       // TODO any use of the verification state?
-      ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), uniqueId, error => CaptureVerificationError(reporter, error), uniqueId);
+      using(cancellationToken.Register(() => CancelVerification(uniqueId))) { 
+        ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), uniqueId, error => CaptureVerificationError(reporter, error), uniqueId);
+      }
+    }
+
+    private void CancelVerification(string requestId) {
+      _logger.LogDebug("requesting verification cancellation of {}", requestId);
+      ExecutionEngine.CancelRequest(requestId);
     }
 
     private void CaptureVerificationError(ErrorReporter reporter, ErrorInformation error) {

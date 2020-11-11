@@ -1,9 +1,9 @@
-﻿using DafnyLS.IntegrationTest.Extensions;
+﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
 
-namespace DafnyLS.IntegrationTest.Synchronization {
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class LookupMigrationTest : SynchronizationTestBase {
     // The assertion Assert.IsFalse(document.SymbolTable.Resolved) is used to ensure that

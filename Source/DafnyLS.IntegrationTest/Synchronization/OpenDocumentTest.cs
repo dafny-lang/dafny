@@ -1,10 +1,10 @@
-using DafnyLS.IntegrationTest.Extensions;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.Threading.Tasks;
 
-namespace DafnyLS.IntegrationTest {
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
   [TestClass]
   public class OpenDocumentTest : DafnyLanguageServerTestBase {
     private ILanguageClient _client;

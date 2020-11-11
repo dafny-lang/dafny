@@ -1,4 +1,4 @@
-﻿using DafnyLS.IntegrationTest.Extensions;
+﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
@@ -7,7 +7,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace DafnyLS.IntegrationTest.Synchronization {
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
   public class DeclarationLocationMigrationTest : SynchronizationTestBase {
     // The assertion Assert.IsFalse(document.SymbolTable.Resolved) is used to ensure that

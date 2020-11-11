@@ -4,6 +4,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <IsPackable>false</IsPackable>
     <RunSettingsFilePath>coverlet.runsettings</RunSettingsFilePath>
+    <RootNamespace>Microsoft.Dafny.LanguageServer.IntegrationTest</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +17,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DafnyLS\DafnyLS.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Lookup\TestFiles\foreign.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
