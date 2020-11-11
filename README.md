@@ -27,6 +27,6 @@ chmod +x ./bin/z3
 
 The language server can be started either by the executable itself (e.g., `Dafny.exe` on windows) or with the following command.
 
-```
+```sh
 dotnet Dafny.dll
 ```
