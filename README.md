@@ -1,4 +1,6 @@
-# language-server-csharp
+# DafnyLS
+
+*DafnyLS* is a [language server](https://microsoft.github.io/language-server-protocol/) for [Dafny](https://github.com/dafny-lang/dafny). It is implemented in C# on .NET Core 3.1 with OmniSharp's [C# Language Server Protocol](https://github.com/OmniSharp/csharp-language-server-protocol).
 
 ## Building
 
@@ -9,12 +11,22 @@ git clone https://github.com/DafnyVSCode/language-server-csharp
 git submodule update --init --recursive
 ```
 
-Build the dependencies before building DafnyLS itself.
+When building DafnyLS from its source, the necessary build dependencies will be automatically downloaded from NuGet or built as a project reference.
 
 ```sh
-dotnet build DafnyLS.sln
+dotnet build -c Release Source/
 ```
 
 ## Running
 
-Place the Z3 executable (`z3.exe` on Windows) in the working directory of the language server or in the path. You may grab it from one of the pre-packaged [dafny releases](https://github.com/dafny-lang/dafny/releases).
+Place the [Z3 executable](https://github.com/Z3Prover/z3/releases/tag/z3-4.8.4) in the language server's root directory or within the `z3/bin` subdirectory (already present in the [release](https://github.com/DafnyVSCode/language-server-csharp/releases) packages). If not on windows, ensure that the executable has execution permissions:
+
+```sh
+chmod +x ./bin/z3
+```
+
+The language server can be started either by the executable itself (e.g., `Dafny.exe` on windows) or with the following command.
+
+```sh
+dotnet Dafny.dll
+```
