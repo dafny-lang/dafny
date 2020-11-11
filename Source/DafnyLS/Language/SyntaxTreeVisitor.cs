@@ -427,6 +427,9 @@
       case ForallExpr forAllExpression:
         Visit(forAllExpression);
         break;
+      case NestedMatchExpr nestedMatchExpression:
+        Visit(nestedMatchExpression);
+        break;
       case null:
         // TODO This most-likely occured while typing. Maybe log this situation.
         break;
@@ -536,6 +539,18 @@
       Visit(forAllExpression.Term);
     }
 
+    public virtual void Visit(NestedMatchExpr nestedMatchExpression) {
+      Visit(nestedMatchExpression.Source);
+      foreach(var nestedMatchCaseExpression in nestedMatchExpression.Cases) {
+        Visit(nestedMatchCaseExpression);
+      }
+    }
+
+    public virtual void Visit(NestedMatchCaseExpr nestedMatchCaseExpression) {
+      Visit(nestedMatchCaseExpression.Pat);
+      Visit(nestedMatchCaseExpression.Body);
+    }
+
     public virtual void Visit(Specification<Expression> specification) {
       VisitNullableAttributes(specification.Attributes);
       foreach(var expression in specification.Expressions) {
@@ -544,6 +559,10 @@
     }
 
     public virtual void Visit(FrameExpression frameExpression) {
+    }
+
+    public virtual void Visit(ExtendedPattern extendedPattern) {
+      // TODO Visit the various pattern types.
     }
   }
 }
