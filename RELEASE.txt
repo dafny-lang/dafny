@@ -7,6 +7,7 @@ This is the procedure for generating a new Dafny release.
 2) Select a version number (descriptor) $VER
 
 3) Run "package.py $VER" (in a Linux or Mac system)
+   Warnings about missing pdb files can be ignored.
 
 4) Create a new release: On 'https://github.com/dafny-lang/dafny/releases'
    click 'Draft a new release'
