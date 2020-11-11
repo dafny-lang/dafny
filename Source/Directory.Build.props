@@ -1,0 +1,13 @@
+<Project>
+
+  <!-- Target framework -->
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <!-- Boogie dependency -->
+  <ItemGroup>
+    <PackageReference Include="Boogie.ExecutionEngine" Version="2.8.0" />
+  </ItemGroup>
+
+</Project>

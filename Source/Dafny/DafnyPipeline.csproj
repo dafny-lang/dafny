@@ -12,7 +12,6 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <AssemblyName>DafnyPipeline</AssemblyName>
-    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <DefineConstants>TRACE</DefineConstants>
@@ -27,9 +26,6 @@
   </ItemGroup>
 
   <ItemGroup>
-      <ProjectReference Include="..\boogie\Source\Basetypes\Basetypes-NetCore.csproj" />
-      <ProjectReference Include="..\boogie\Source\Core\Core-NetCore.csproj" />
-      <ProjectReference Include="..\boogie\Source\ParserHelper\ParserHelper-NetCore.csproj" />
       <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
   </ItemGroup>
 
