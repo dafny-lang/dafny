@@ -238,6 +238,9 @@
       case ForallStmt forAllStatement:
         Visit(forAllStatement);
         break;
+      case PrintStmt printStatement:
+        Visit(printStatement);
+        break;
       default:
         VisitUnknown(statement, statement.Tok);
         break;
@@ -296,6 +299,13 @@
     public virtual void Visit(ForallStmt forAllStatement) {
       VisitNullableAttributes(forAllStatement.Attributes);
       Visit(forAllStatement.Body);
+    }
+
+    public virtual void Visit(PrintStmt printStatement) {
+      VisitNullableAttributes(printStatement.Attributes);
+      foreach(var argument in printStatement.Args) {
+        Visit(argument);
+      }
     }
 
     public virtual void Visit(Expression expression) {
