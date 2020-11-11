@@ -256,6 +256,7 @@
     public virtual void Visit(AssertStmt assertStatement) {
       VisitNullableAttributes(assertStatement.Attributes);
       Visit(assertStatement.Expr);
+      VisitNullableStatement(assertStatement.Proof);
     }
 
     public virtual void Visit(ReturnStmt returnStatement) {
