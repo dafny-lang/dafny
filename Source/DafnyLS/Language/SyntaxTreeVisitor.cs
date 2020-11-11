@@ -1,6 +1,4 @@
-﻿using Microsoft.Dafny;
-
-namespace Microsoft.Dafny.LanguageServer.Language {
+﻿namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// Base syntax tree visitor implementation that visits all nodes.
   /// </summary>
@@ -13,9 +11,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     /// <param name="node">The unknown node that is being visited.</param>
     /// <param name="token">The token asociated with the unknown node.</param>
-    public abstract void VisitUnknown(object node, Microsoft.Boogie.IToken token);
+    public abstract void VisitUnknown(object node, Boogie.IToken token);
 
-    public virtual void Visit(Microsoft.Dafny.Program program) {
+    public virtual void Visit(Dafny.Program program) {
       foreach(var module in program.Modules()) {
         Visit(module);
       }
