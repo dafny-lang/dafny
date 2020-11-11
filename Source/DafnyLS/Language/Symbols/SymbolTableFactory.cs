@@ -127,6 +127,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         base.Visit(typeRhs);
       }
 
+      public override void Visit(FrameExpression frameExpression) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterDesignator(_currentScope, frameExpression, frameExpression.tok, frameExpression.FieldName);
+      }
+
       private void RegisterDesignator(ISymbol scope, AstElement node, Microsoft.Boogie.IToken token, string identifier) {
         var symbol = GetDeclaration(scope, identifier);
         if(symbol != null) {
