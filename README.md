@@ -1,4 +1,6 @@
-# language-server-csharp
+# DafnyLS
+
+*DafnyLS* is a [language server](https://microsoft.github.io/language-server-protocol/) for [Dafny](https://github.com/dafny-lang/dafny). It is implemented in C# on .NET Core 3.1 with OmniSharp's [C# Language Server Protocol](https://github.com/OmniSharp/csharp-language-server-protocol).
 
 ## Building
 
