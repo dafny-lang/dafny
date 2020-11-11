@@ -1,0 +1,6 @@
+The DafnyRef.pdf in this folder is here, and committed to git,
+for legacy reasons: it is where various links around the web
+and on the Dafny web site point. New versions of the RM must be
+copied here from where they are created (.../docs/DafnyReferenceManual/DafnyRef.pdf).
+That location is *not* in git so that there is not a new version
+stored in git every time an edit is made to the RM.
