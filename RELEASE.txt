@@ -1,0 +1,24 @@
+
+This is the procedure for generating a new Dafny release.
+
+1) In an up-to-date repository, with the master branch checked out,
+   cd to the repo root (i.e., dafny, which contains Source, Binaries, etc.)
+
+2) Select a version number (descriptor) $VER
+
+3) Run "package.py $VER" (in a Linux or Mac system)
+
+4) Create a new release: On 'https://github.com/dafny-lang/dafny/releases'
+   click 'Draft a new release'
+
+5) Fill in a tag ('v' followed by release name), the release name,
+the release notes.
+
+6) Add all the .zip files created by step 3 in the Package folder.
+
+7) Commit and push the new version of DafnyRef.pdf (this version is also
+   included in the releasae .zip files)
+
+8) Publish the release (by clicking the button at the bottom of the page)
+   and announce it to the world.
+

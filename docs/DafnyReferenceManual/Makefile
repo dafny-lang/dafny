@@ -10,5 +10,8 @@ options:
 	dafny -help | tr -d '\r' | grep -v 'Error: ' >> ../_includes/Options.txt
 	echo '```' >> ../_includes/Options.txt
 
+release: all
+	cp DafnyRef.pdf ../DafnyRef/out
+
 clean:
 	@-rm -f DafnyRef.pdf
