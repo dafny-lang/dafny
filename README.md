@@ -25,8 +25,8 @@ Place the [Z3 executable](https://github.com/Z3Prover/z3/releases/tag/z3-4.8.4) 
 chmod +x ./bin/z3
 ```
 
-The language server can be started either by the executable itself (e.g., `Dafny.exe` on windows) or with the following command.
+The language server can be started either by the executable itself (e.g., `DafnyLS.exe` on windows) or with the following command.
 
 ```sh
-dotnet Dafny.dll
+dotnet DafnyLS.dll
 ```
