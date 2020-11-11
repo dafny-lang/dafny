@@ -1,0 +1,3 @@
+ArrayElementInitERR.dfy(76,33): Error: array-allocation initialization expression expected to have type 'nat ~> Six' (instead got 'nat -> nat') (covariant type parameter 1 would require nat <: Six)
+ArrayElementInitERR.dfy(77,33): Error: array-allocation initialization expression expected to have type 'nat ~> Six' (instead got 'nat -> int') (covariant type parameter 1 would require int <: Six)
+2 resolution/type errors detected in ArrayElementInitERR.dfy

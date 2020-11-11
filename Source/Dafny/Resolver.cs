@@ -4097,7 +4097,7 @@ namespace Microsoft.Dafny
       }
       // set proxy.T right away, so that we can freely recurse without having to worry about infinite recursion
       if (DafnyOptions.O.TypeInferenceDebug) {
-        Console.WriteLine("DEBUG: setting proxy {0}.T := {1}", proxy, t, Type.Real);
+        Console.WriteLine("DEBUG: setting proxy {0}.T := {1}", proxy, t);
       }
       proxy.T = t;
 
@@ -4330,7 +4330,7 @@ namespace Microsoft.Dafny
       if (super is SetType || super is SeqType || super is MultiSetType || super is MapType) {
         return true;
       } else if (super is ArrowType) {
-        return false;
+        return true;
       } else if (super.IsObjectQ) {
         return false;
       } else {
@@ -12697,7 +12697,7 @@ namespace Microsoft.Dafny
             builtIns.CreateArrowTypeDecl(rr.ArrayDimensions.Count);  // TODO: should this be done already in the parser?
             var args = new List<Type>();
             for (int ii = 0; ii < rr.ArrayDimensions.Count; ii++) {
-              args.Add(Type.Int);
+              args.Add(builtIns.Nat());
             }
             var arrowType = new ArrowType(rr.ElementInit.tok, builtIns.ArrowTypeDecls[rr.ArrayDimensions.Count], args, rr.EType);
             string underscores;
@@ -13868,7 +13868,8 @@ namespace Microsoft.Dafny
         ResolveExpression(e.N, opts);
         ConstrainToIntegerType(e.N, false, "sequence construction must use an integer-based expression for the sequence size (got {0})");
         ResolveExpression(e.Initializer, opts);
-        var arrowType = new ArrowType(e.tok, builtIns.ArrowTypeDecls[1], new List<Type>() { Type.Int }, elementType);
+        UserDefinedType t = builtIns.Nat() as UserDefinedType;
+        var arrowType = new ArrowType(e.tok, builtIns.ArrowTypeDecls[1], new List<Type>() { t }, elementType);
         var hintString = " (perhaps write '_ =>' in front of the expression you gave in order to make it an arrow type)";
         ConstrainSubtypeRelation(arrowType, e.Initializer.Type, e.Initializer, "sequence-construction initializer expression expected to have type '{0}' (instead got '{1}'){2}",
           arrowType, e.Initializer.Type, new LazyString_OnTypeEquals(elementType, e.Initializer.Type, hintString));

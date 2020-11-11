@@ -2778,7 +2778,7 @@ namespace Microsoft.Dafny {
           return true;
         }
       } else {
-        return i.Equals(that);
+        return i.Equals(that.NormalizeExpand());
       }
     }
 
