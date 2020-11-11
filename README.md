@@ -11,10 +11,10 @@ git clone https://github.com/DafnyVSCode/language-server-csharp
 git submodule update --init --recursive
 ```
 
-Build the dependencies before building DafnyLS itself.
+When building DafnyLS from its source, the necessary build dependencies will be automatically downloaded from NuGet or built as a project reference.
 
 ```sh
-dotnet build DafnyLS.sln
+dotnet build -c Release Source/
 ```
 
 ## Running
