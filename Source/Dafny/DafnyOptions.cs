@@ -628,6 +628,9 @@ namespace Microsoft.Dafny
  included by 'include' directives are considered a single Dafny program;
  however only those files listed on the command line are verified.
 
+ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
+            3 -- compilation errors; 4 -- verification errors
+
   /dprelude:<file>
                 choose Dafny prelude file
   /dprint:<file>
@@ -751,11 +754,10 @@ namespace Microsoft.Dafny
                 implicitly static and fields declarations are not allowed at the module scope.
   /countVerificationErrors:<n>
                 [ deprecated ]
-                0 - If there are no command-line errors, set exit code to 0 regardless of the number
-                    of any other errors.
+                0 - If there are no command-line errors, set exit code to 0 regardless of
+                    the presence of any other errors.
                 1 (default) - If preprocessing succeeds, emit usual exit code
-                    (1 for command-line errors, 2 for parsing and type checking errors,
-                     3 for compilation errors, 4 for verification errors).
+                    (cf. beginning of the help message).
   /autoTriggers:<n>
                 0 - Do not generate {:trigger} annotations for user-level quantifiers.
                 1 (default) - Add a {:trigger} to each user-level quantifier. Existing
