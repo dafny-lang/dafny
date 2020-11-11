@@ -1243,7 +1243,7 @@ namespace Microsoft.Dafny {
       } else if (xType is MapType) {
         return "_dafny.MapType";
       } else if (xType.IsRefType) {
-        return "_dafny.PossiblyNullType";
+        return string.Format("_dafny.CreateStandardTypeDescriptor({0})", TypeInitializationValue(xType, wr, tok, false));
       } else if (xType.IsArrayType) {
         return "_dafny.ArrayType";
       } else if (xType.IsTypeParameter) {
@@ -1257,7 +1257,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(cl != null);
         bool isHandle = true;
         if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "_dafny.PossiblyNullType";
+          return "_dafny.Int64Type";
         } else if (cl is ClassDecl || cl is DatatypeDecl) {
           var w = new TargetWriter();
           w.Write("{0}(", cl is TupleTypeDecl ? "_dafny.TupleType" : TypeName_RTD(xType, w, tok));
@@ -1322,7 +1322,7 @@ namespace Microsoft.Dafny {
       var xType = type.NormalizeExpand();
       if (xType is TypeProxy) {
         // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
-        return "interface {}";
+        return "interface{}";
       }
 
       if (xType is SpecialNativeType snt) {
@@ -1490,7 +1490,6 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
-
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
@@ -1925,7 +1924,7 @@ namespace Microsoft.Dafny {
       if (e is StaticReceiverExpr) {
         wr.Write("{0}", TypeName_Companion(((UserDefinedType) e.Type).ResolvedClass, wr, e.tok));
       } else if (e.Value == null) {
-        wr.Write("({0})(nil)", TypeName(e.Type, wr, tok:null));
+        wr.Write("({0})(nil)", TypeName(e.Type, wr, e.tok));
       } else if (e.Value is bool) {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
@@ -2752,7 +2751,8 @@ namespace Microsoft.Dafny {
 
     private bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
-      return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || (t.NormalizeExpand() is UserDefinedType udt && !t.IsArrowType && udt.ResolvedClass is ClassDecl);
+      return t.IsBoolType || t.IsCharType || AsNativeType(t) != null ||
+             (t.NormalizeExpand() is UserDefinedType udt && !t.IsArrowType && !t.IsTraitType && udt.ResolvedClass is ClassDecl);
     }
 
     private bool IsOrderedByCmp(Type t) {

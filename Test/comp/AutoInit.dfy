@@ -64,6 +64,7 @@ method Main() {
   print m[null2], "\n";  // 17
   More();
   Arrows();
+  NilRegression.Test();
 }
 
 datatype ThisOrThat<A,B> = This(A) | Or | That(B)
@@ -81,10 +82,8 @@ method More() {
   var u: ThisOrThat<bool, real>;
   var t: OrThat<bv5>;
   print x, " ", y, " ", z, " ", w, " ", v, " ", u, " ", t, "\n"; // 1 3 9 0 0 ThisOrThat.Or ThisOrThat.Or
-  /**** TODO: Include this when this has been fixed for C#
   var p: (pos, OddByte, OddNat, bv7, bv2009, ThisOrThat<bool, real>, OrThat<bv5>); // (1, 3, 9, 0, 0, ThisOrThat.Or, ThisOrThat.Or)
   print p, "\n";
-  ****/
 }
 
 method Arrows() {
@@ -99,3 +98,60 @@ method Arrows() {
 }
 
 method DoNothing(F: int ~> pos) { }
+
+module NilRegression {
+  trait Trait { }
+  class Class extends Trait { }
+
+  method Test() {
+    NilRegression0();
+    NilRegression1();
+    var c: Class? := new Class;
+    NilRegression2(c);
+    NilRegression2(null);
+  }
+
+  method NilRegression0() {
+    var uu: Class?;
+    if uu != null {
+      uu := null;
+    }
+    assert uu == null;
+    var ww: object? := uu;
+    assert ww == null;
+    if ww == null {
+      print "ww == null  -- yes, as expected\n";
+    } else {
+      assert false;
+      print "ww != null  -- impossible!\n";
+    }
+  }
+
+  method NilRegression1() {
+    var c: Class? := null;
+    var t: Trait? := null;
+    var u: Trait? := c;
+    var w := c == c;
+    var x := t == c;
+    var y := t == t;
+    var z := t == u;
+    print w, " ", x, " ", y, " ", z, "\n";  // true true true true
+  }
+
+  method NilRegression2(cc: Class?) {
+    var tt: Trait? := cc;
+    tt := cc;
+    var oo: object? := cc;
+    oo := tt;
+
+    var a := cc == tt;
+    var b := cc == oo;
+    var c := tt == oo;
+
+    var x := cc == cc;
+    var y := tt == tt;
+    var z := oo == oo;
+
+    print a, " ", b, " ", c, "\n";  // true true true
+  }
+}

@@ -63,7 +63,9 @@ Here `big` refers to the Go built-in bignum library `"math/big"`.
 
 Note that nullable Dafny types (`object` and `array<X>`) are modelled as pointer
 types in Go so that they have the distinguished value `nil` (to which `null`
-translates).
+translates). In Go, each pointer type has its own `nil` value; that is, `nil`
+is typed to a specific pointer type (see also discussion of `nil` in the
+section on [Traits](#traits) below).
 
 Classes
 -------
@@ -206,6 +208,64 @@ Traits
 ------
 
 Instance members of traits are described in docs/Compilation/ReferenceTypes.md.
+
+### nil
+
+A class or array type is compiled into a _pointer type_ in Go. This means it
+includes the Go value `nil`. A trait is compiled into a Go _interface_. Abstractly,
+an interface value is either `nil` or a (value, type) pair. This means that
+the Dafny `null` value for a trait may be represented either as the Go
+interface value `nil` or a pair (`nil`, class pointer type).
+
+For instance, consider the following program:
+
+```dafny
+trait Trait { }
+class Class extends Trait { }
+method TestNil() {
+  var c: Class? := null;
+  var t: Trait? := null;
+  var u: Trait? := c;
+  var w := c == c;
+  var x := t == c;
+  var y := t == t;
+  var z := t == u;
+}
+```
+
+This Dafny program sets all of `c`, `t`, and `u` to `null`, and therefore
+also sets all four boolean variables to `true`. A simplified version of the target
+code in Go for this program is:
+
+```go
+type Trait interface {
+}
+type Class struct {
+  dummy byte
+}
+func TestNil() {
+  var c *MyClass
+  c = (*MyClass)(nil)  // c becomes nil of the pointer type *MyClass
+  var t MyTrait
+  t = (MyTrait)(nil)   // t becomes nil of interface type MyTrait
+  var u MyTrait
+  u = c                // u becomes (nil, *MyClass)
+
+  var w bool
+  w = c == c
+  var x bool
+  x = _dafny.AreEqual(t, c)
+  var y bool
+  y = _dafny.AreEqual(t, t)
+  var z bool
+  z = _dafny.AreEqual(t, u)
+}
+```
+
+As illustrated in this example, values of Dafny class types can be compared directly
+with `==` in Go, but values of other Dafny reference types need to be compared
+by the runtime function `_dafny.AreEqual`, which handles the two representations of
+`null`.
 
 Datatypes
 ---------
