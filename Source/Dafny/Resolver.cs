@@ -10559,7 +10559,7 @@ namespace Microsoft.Dafny
       } else if (stmt is NestedMatchStmt) {
         var s = (NestedMatchStmt)stmt;
         var opts = new ResolveOpts(codeContext, false);
-        ResolveNestedMatchStmt(s, codeContext, opts);
+        ResolveNestedMatchStmt(s, opts);
       } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;
         reporter.Error(MessageSource.Resolver, s.Tok, "skeleton statements are allowed only in refining methods");
@@ -10617,7 +10617,8 @@ namespace Microsoft.Dafny
     /// 2 - desugaring it into a decision tree of MatchStmt and IfStmt (for constant matching)
     /// 3 - resolving the generated (sub)statement.
     /// </summary>
-    void ResolveNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext, ResolveOpts opts) {
+    void ResolveNestedMatchStmt(NestedMatchStmt s, ResolveOpts opts) {
+      ICodeContext codeContext = opts.codeContext;
       Contract.Requires(s != null);
       Contract.Requires(codeContext != null);
       Contract.Requires(s.ResolvedStatement == null);
@@ -10645,7 +10646,7 @@ namespace Microsoft.Dafny
       if (reporter.Count(ErrorLevel.Error) != errorCount) return;
 
       errorCount = reporter.Count(ErrorLevel.Error);
-      CompileNestedMatchStmt(s, codeContext);
+      CompileNestedMatchStmt(s, opts);
       if (reporter.Count(ErrorLevel.Error) != errorCount) return;
 
       enclosingStatementLabels.PushMarker();
@@ -11373,14 +11374,14 @@ namespace Microsoft.Dafny
       }
     }
 
-    private void CompileNestedMatchExpr(NestedMatchExpr e, ICodeContext codeContext) {
+    private void CompileNestedMatchExpr(NestedMatchExpr e, ResolveOpts opts) {
       if (e.ResolvedExpression != null) {
         //post-resolve, skip
         return;
       }
       if (DafnyOptions.O.MatchCompilerDebug) Console.WriteLine("DEBUG: CompileNestedMatchExpr for match at line {0}", e.tok.line);
 
-      MatchTempInfo mti = new MatchTempInfo(e.tok, e.Cases.Count(), codeContext, DafnyOptions.O.MatchCompilerDebug);
+      MatchTempInfo mti = new MatchTempInfo(e.tok, e.Cases.Count(), opts.codeContext, DafnyOptions.O.MatchCompilerDebug);
 
       // create Rbranches from MatchCaseExpr and set the branch tokens in mti
       List<RBranch> branches = new List<RBranch>();
@@ -11403,6 +11404,10 @@ namespace Microsoft.Dafny
         for (int id = 0; id < mti.BranchIDCount.Length; id++) {
           if (mti.BranchIDCount[id] <= 0) {
             reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant ");
+            scope.PushMarker();
+            CheckLinearNestedMatchCase(e.Source.Type, e.Cases.ElementAt(id), opts);
+            ResolveExpression(e.Cases.ElementAt(id).Body, opts);
+            scope.PopMarker();
           }
         }
       } else {
@@ -11417,7 +11422,8 @@ namespace Microsoft.Dafny
     /// Input is an unresolved NestedMatchStmt with potentially nested, overlapping patterns
     /// On output, the NestedMatchStmt has field ResolvedStatement filled with semantically equivalent code
     /// </summary>
-    private void CompileNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
+    private void CompileNestedMatchStmt(NestedMatchStmt s, ResolveOpts opts) {
+      ICodeContext codeContext = opts.codeContext;
       if (s.ResolvedStatement != null) {
         //post-resolve, skip
         return;
@@ -11449,6 +11455,10 @@ namespace Microsoft.Dafny
         for (int id = 0; id < mti.BranchIDCount.Length; id++) {
           if (mti.BranchIDCount[id] <= 0) {
             reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant");
+            scope.PushMarker();
+            CheckLinearNestedMatchCase(s.Source.Type, s.Cases.ElementAt(id), opts);
+            s.Cases.ElementAt(id).Body.ForEach(s => ResolveStatement(s, codeContext));
+            scope.PopMarker();
           }
         }
       } else {
@@ -14644,7 +14654,7 @@ namespace Microsoft.Dafny
       if (reporter.Count(ErrorLevel.Error) != errorCount) return;
       errorCount = reporter.Count(ErrorLevel.Error);
       if (debug) Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr  2 - Compiling Nested Match", me.tok.line);
-      CompileNestedMatchExpr(me, opts.codeContext);
+      CompileNestedMatchExpr(me, opts);
       if (reporter.Count(ErrorLevel.Error) != errorCount) return;
 
       if (debug) Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr  3 - Resolving Expression", me.tok.line);
