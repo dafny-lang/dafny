@@ -68,7 +68,7 @@ jobs:
         mv DafnyLS.IntegrationTest/TestResults/*/${{env.coverageFile}} ./${{env.coverageFile}}
         ls -al .
     - name: Upload Coverage Report
-      if: ${{matrix.coverage && github.event_name != 'pull_request'}}
+      if: ${{matrix.coverage}}
       uses: codecov/codecov-action@v1
       with:
         file: ./Source/${{env.coverageFile}}
