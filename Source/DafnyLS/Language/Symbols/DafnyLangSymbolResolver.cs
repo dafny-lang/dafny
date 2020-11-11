@@ -98,6 +98,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         switch(topLevelDeclaration) {
         case ClassDecl classDeclaration:
           return ProcessClassDeclaration(moduleSymbol, classDeclaration);
+        case LiteralModuleDecl literalModuleDeclaration:
+          return ProcessModule(moduleSymbol, literalModuleDeclaration.ModuleDef);
         default:
           _logger.LogWarning("encountered unknown top level declaration {}", topLevelDeclaration.GetType());
           return null;
