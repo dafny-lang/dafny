@@ -88,6 +88,7 @@
       foreach(var ensurement in method.Ens) {
         Visit(ensurement);
       }
+      Visit(method.Decreases);
       VisitNullableBlock(method.Body);
     }
 
@@ -100,6 +101,7 @@
 
     public virtual void Visit(Function function) {
       VisitNullableExpression(function.Body);
+      Visit(function.Decreases);
     }
 
     public virtual void Visit(NonglobalVariable nonGlobalVariable) {
@@ -528,6 +530,13 @@
       VisitNullableAttributes(forAllExpression.Attributes);
       Visit(forAllExpression.Range);
       Visit(forAllExpression.Term);
+    }
+
+    public virtual void Visit(Specification<Expression> specification) {
+      VisitNullableAttributes(specification.Attributes);
+      foreach(var expression in specification.Expressions) {
+        Visit(expression);
+      }
     }
   }
 }
