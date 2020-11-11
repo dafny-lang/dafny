@@ -101,8 +101,20 @@
 
     public virtual void Visit(Function function) {
       VisitNullableExpression(function.Body);
+      foreach(var typeArgument in function.TypeArgs) {
+        Visit(typeArgument);
+      }
+      foreach(var formal in function.Formals) {
+        Visit(formal);
+      }
       foreach(var read in function.Reads) {
         Visit(read);
+      }
+      foreach(var requirement in function.Req) {
+        Visit(requirement);
+      }
+      foreach(var ensurement in function.Ens) {
+        Visit(ensurement);
       }
       Visit(function.Decreases);
     }
