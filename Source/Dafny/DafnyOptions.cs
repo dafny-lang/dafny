@@ -183,7 +183,7 @@ namespace Microsoft.Dafny
             } else if (args[ps.i].Equals("java")) {
               CompileTarget = CompilationTarget.Java;
             } else if (args[ps.i].Equals("cpp")) {
-              CompileTarget = CompilationTarget.Cpp;  
+              CompileTarget = CompilationTarget.Cpp;
             } else if (args[ps.i].Equals("php")) {
               CompileTarget = CompilationTarget.Php;
             } else {
@@ -624,8 +624,8 @@ namespace Microsoft.Dafny
     public override void Usage() {
       Console.WriteLine(@"  ---- Dafny options ---------------------------------------------------------
 
- All the .dfy files supplied on the command line along with files recursively 
- included by 'include' directives are considered a single Dafny program; 
+ All the .dfy files supplied on the command line along with files recursively
+ included by 'include' directives are considered a single Dafny program;
  however only those files listed on the command line are verified.
 
   /dprelude:<file>
@@ -683,12 +683,12 @@ namespace Microsoft.Dafny
   /spillTargetCode:<n>
                 0 (default) - don't write the compiled Dafny program (but
                     still compile it, if /compile indicates to do so)
-                1 - write the compiled Dafny program in the target language, 
+                1 - write the compiled Dafny program in the target language,
                     if it is being compiled
-                2 - write the compiled Dafny program in the target language, 
+                2 - write the compiled Dafny program in the target language,
                     provided it passes the verifier (and /noVerify is NOT used),
                     regardless of /compile setting
-                3 - write the compiled Dafny program in the target language, 
+                3 - write the compiled Dafny program in the target language,
                     regardless of verification outcome and /compile setting
                 NOTE: If there are .cs or .dll files on the command line, then
                 the compiled Dafny program will also be written. More precisely,
@@ -750,10 +750,12 @@ namespace Microsoft.Dafny
                 which point onward all functions and methods declared at the module scope are
                 implicitly static and fields declarations are not allowed at the module scope.
   /countVerificationErrors:<n>
-                0 - If preprocessing succeeds, set exit code to 0 regardless of the number
-                    of verification errors.
-                1 (default) - If preprocessing succeeds, set exit code to the number of
-                              verification errors.
+                [ deprecated ]
+                0 - If there are no command-line errors, set exit code to 0 regardless of the number
+                    of any other errors.
+                1 (default) - If preprocessing succeeds, emit usual exit code
+                    (1 for command-line errors, 2 for parsing and type checking errors,
+                     3 for compilation errors, 4 for verification errors).
   /autoTriggers:<n>
                 0 - Do not generate {:trigger} annotations for user-level quantifiers.
                 1 (default) - Add a {:trigger} to each user-level quantifier. Existing
