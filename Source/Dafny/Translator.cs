@@ -896,6 +896,14 @@ namespace Microsoft.Dafny {
         // see comment in BplBvType
         Contract.Assert(n.IsZero);
         return Bpl.Expr.Literal(0);
+      } else if (n.IsNegative) {
+        // This can only happen if some error is reported elsewhere. Nevertheless, we do need to
+        // generate a Boogie expression and Boogie would crash if we pass a negative number to
+        // Bpl.LiteralExpr for a bitvector.
+        var zero = new Bpl.LiteralExpr(tok, Basetypes.BigNum.ZERO, width);
+        var absN = new Bpl.LiteralExpr(tok, -n, width);
+        var etran = new ExpressionTranslator(this, predef, tok);
+        return etran.TrToFunctionCall(tok, "sub_bv" + width, BplBvType(width), zero, absN, false);
       } else {
         return new Bpl.LiteralExpr(tok, n, width);
       }
@@ -6544,7 +6552,7 @@ namespace Microsoft.Dafny {
             }
           case BinaryExpr.ResolvedOpcode.Mul:
             if (7 <= DafnyOptions.O.ArithMode) {
-              if (e.E0.Type.IsNumericBased(Type.NumericPersuation.Int) && !DafnyOptions.O.DisableNLarith) {
+              if (e.E0.Type.IsNumericBased(Type.NumericPersuasion.Int) && !DafnyOptions.O.DisableNLarith) {
                 // Produce a useful fact about the associativity of multiplication. It is a bit dicey to do as an axiom.
                 // Change (k*A)*B or (A*k)*B into (A*B)*k, where k is a numeric literal
                 var left = e.E0.Resolved as BinaryExpr;
@@ -6831,17 +6839,18 @@ namespace Microsoft.Dafny {
         Contract.Assert(rhsType is UserDefinedType && ((UserDefinedType)rhsType).ResolvedClass != null);
         var rhsTypeUdt = (UserDefinedType)rhsType;
         var typeSubstMap = Resolver.TypeSubstitutionMap(rhsTypeUdt.ResolvedClass.TypeArgs, rhsTypeUdt.TypeArgs);
+
+        var ctor = pat.Ctor;
+        var correctConstructor = FunctionCall(pat.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, rhs);
+        if (ctor.EnclosingDatatype.Ctors.Count == 1) {
+          // There is only one constructor, so the value must have been constructed by it; might as well assume that here.
+          builder.Add(TrAssumeCmd(pat.tok, correctConstructor));
+        } else {
+          builder.Add(Assert(pat.tok, correctConstructor, string.Format("RHS is not certain to look like the pattern '{0}'", ctor.Name)));
+        }
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];
-          var ctor = pat.Ctor;
           var dtor = ctor.Destructors[i];
-          var correctConstructor = FunctionCall(pat.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, rhs);
-          if (ctor.EnclosingDatatype.Ctors.Count == 1) {
-            // There is only one constructor, so the value must have been constructed by it; might as well assume that here.
-            builder.Add(TrAssumeCmd(pat.tok, correctConstructor));
-          } else {
-            builder.Add(Assert(pat.tok, correctConstructor, string.Format("RHS is not certain to look like the pattern '{0}'", ctor.Name)));
-          }
 
           var r = new Bpl.NAryExpr(arg.tok, new Bpl.FunctionCall(GetReadonlyField(dtor)), new List<Bpl.Expr> { rhs });
           Type argType = Resolver.SubstType(dtor.Type, typeSubstMap);
@@ -7682,7 +7691,7 @@ namespace Microsoft.Dafny {
               Bpl.Expr zero;
               if (e.E1.Type.IsBitVectorType) {
                 zero = BplBvLiteralExpr(e.tok, Basetypes.BigNum.ZERO, e.E1.Type.AsBitVectorType);
-              } else if (e.E1.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+              } else if (e.E1.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
                 zero = Bpl.Expr.Literal(Basetypes.BigDec.ZERO);
               } else {
                 zero = Bpl.Expr.Literal(0);
@@ -7736,7 +7745,7 @@ namespace Microsoft.Dafny {
         switch (e.Op) {
           case TernaryExpr.Opcode.PrefixEqOp:
           case TernaryExpr.Opcode.PrefixNeqOp:
-            if (e.E0.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+            if (e.E0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
               builder.Add(Assert(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E0)), "prefix-equality limit must be at least 0", options.AssertKv));
             }
             break;
@@ -8081,10 +8090,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(toType != null);
       toType = toType.NormalizeExpand();
       fromType = fromType.NormalizeExpand();
-      if (fromType.IsNumericBased(Type.NumericPersuation.Int)) {
-        if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
+      if (fromType.IsNumericBased(Type.NumericPersuasion.Int)) {
+        if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
           // do nothing
-        } else if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+        } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
         } else if (toType.IsCharType) {
           r = FunctionCall(tok, BuiltinFunction.CharFromInt, null, r);
@@ -8119,9 +8128,9 @@ namespace Microsoft.Dafny {
           } else {
             r = new Bpl.BvExtractExpr(tok, r, toWidth, 0);
           }
-        } else if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
+        } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
           r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
-        } else if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+        } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
           r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
         } else if (toType.IsCharType) {
@@ -8135,11 +8144,11 @@ namespace Microsoft.Dafny {
         }
         return r;
       } else if (fromType.IsCharType) {
-        if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
+        if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
           r = FunctionCall(tok, BuiltinFunction.CharToInt, null, r);
         } else if (toType.IsCharType) {
           // do nothing
-        } else if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+        } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           r = FunctionCall(tok, BuiltinFunction.CharToInt, null, r);
           r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
         } else if (toType.IsBitVectorType) {
@@ -8152,10 +8161,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
         }
         return r;
-      } else if (fromType.IsNumericBased(Type.NumericPersuation.Real)) {
-        if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // do nothing
-        } else if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
+        } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
           r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
         } else if (toType.IsBitVectorType) {
           r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
@@ -8172,9 +8181,9 @@ namespace Microsoft.Dafny {
         return r;
         // "r" now denotes an integer
       } else if (fromType.IsBigOrdinalType) {
-        if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
+        if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
           r = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, r);
-        } else if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+        } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           r = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, r);
           r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
         } else if (toType.IsCharType) {
@@ -8236,7 +8245,7 @@ namespace Microsoft.Dafny {
         }
       };
 
-      if (expr.Type.IsNumericBased(Type.NumericPersuation.Real) && !toType.IsNumericBased(Type.NumericPersuation.Real)) {
+      if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsNumericBased(Type.NumericPersuasion.Real)) {
         // this operation is well-formed only if the real-based number represents an integer
         //   assert Real(Int(o)) == o;
         PutSourceIntoLocal();
@@ -8264,12 +8273,12 @@ namespace Microsoft.Dafny {
             var bound = BplBvLiteralExpr(tok, toBound, expr.Type.AsBitVectorType);
             boundsCheck = FunctionCall(expr.tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
           }
-        } else if (expr.Type.IsNumericBased(Type.NumericPersuation.Int) || expr.Type.IsCharType) {
+        } else if (expr.Type.IsNumericBased(Type.NumericPersuasion.Int) || expr.Type.IsCharType) {
           // Check "expr < (1 << toWdith)" in type "int"
           PutSourceIntoLocal();
           var bound = Bpl.Expr.Literal(toBound);
           boundsCheck = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, bound));
-        } else if (expr.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+        } else if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
           // Check "Int(expr) < (1 << toWdith)" in type "int"
           PutSourceIntoLocal();
           var bound = Bpl.Expr.Literal(toBound);
@@ -8287,13 +8296,13 @@ namespace Microsoft.Dafny {
       }
 
       if (toType.IsCharType) {
-        if (expr.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+        if (expr.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
           PutSourceIntoLocal();
           Bpl.Expr boundsCheck =
             Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, Bpl.Expr.Literal(65536)));
           builder.Add(Assert(tok, boundsCheck,
             string.Format("{0}value to be converted might not fit in {1}", errorMsgPrefix, toType)));
-        } else if (expr.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+        } else if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
           PutSourceIntoLocal();
           var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
           var boundsCheck =
@@ -8324,22 +8333,22 @@ namespace Microsoft.Dafny {
             string.Format("{0}ordinal value to be converted might not fit in {1}", errorMsgPrefix, toType)));
         }
       } else if (toType.IsBigOrdinalType) {
-        if (expr.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+        if (expr.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
           PutSourceIntoLocal();
           Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), o);
           builder.Add(Assert(tok, boundsCheck,
             string.Format("{0}a negative integer cannot be converted to an {1}", errorMsgPrefix, toType)));
         }
-        if (expr.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+        if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
           PutSourceIntoLocal();
           var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
           Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), oi);
           builder.Add(Assert(tok, boundsCheck,
             string.Format("{0}a negative real cannot be converted to an {1}", errorMsgPrefix, toType)));
         }
-      } else if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
+      } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         // already checked that BigOrdinal or real inputs are integral
-      } else if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+      } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
         // already checked that BigOrdinal is integral
       }
 
@@ -8390,7 +8399,7 @@ namespace Microsoft.Dafny {
         substMap.Add(rdt.Var, expr);
         var typeMap = Resolver.TypeSubstitutionMap(rdt.TypeArgs, udt.TypeArgs);
         var constraint = etran.TrExpr(Substitute(rdt.Constraint, null, substMap, typeMap));
-        builder.Add(Assert(tok, constraint, string.Format("{2}result of operation might violate {1} constraint for '{0}'", rdt.Name, kind, errorMsgPrefix)));
+        builder.Add(Assert(tok, constraint, $"{errorMsgPrefix}result of operation might violate {kind} constraint for '{rdt.Name}'"));
       }
     }
 
@@ -10433,7 +10442,7 @@ namespace Microsoft.Dafny {
           // ProcessLhss has laid down framing conditions and the ProcessUpdateAssignRhss will check subranges (nats),
           // but we need to generate the distinctness condition (two LHS are equal only when the RHS is also
           // equal). We need both the LHS and the RHS to do this, which is why we need to do it here.
-          CheckLhssDistinctness(finalRhss, s.Rhss, lhss, builder, etran, lhsObjs, lhsFields, lhsNames);
+          CheckLhssDistinctness(finalRhss, s.Rhss, lhss, builder, etran, lhsObjs, lhsFields, lhsNames, s.OriginalInitialLhs);
           // Now actually perform the assignments to the LHS.
           for (int i = 0; i < lhss.Count; i++) {
             lhsBuilder[i](finalRhss[i], s.Rhss[i] is HavocRhs, builder, etran);
@@ -10710,7 +10719,7 @@ namespace Microsoft.Dafny {
                 // check the prefix-equality limit
                 var index = ((TernaryExpr) s.Steps[i]).E0;
                 TrStmt_CheckWellformed(index, b, locals, etran, false);
-                if (index.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+                if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
                   b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), "prefix-equality limit must be at least 0"));
                 }
               }
@@ -10854,8 +10863,8 @@ namespace Microsoft.Dafny {
         if (s.Update != null) {
           TrStmt(s.Update, builder, locals, etran);
         }
-      } else if (stmt is LetStmt) {
-        var s = (LetStmt)stmt;
+      } else if (stmt is VarDeclPattern) {
+        var s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
           Bpl.LocalVariable bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type)));
           locals.Add(bvar);
@@ -11108,11 +11117,11 @@ namespace Microsoft.Dafny {
         var empty = new SeqDisplayExpr(x.tok, new List<Expression>());
         empty.Type = xType;
         yield return empty;
-      } else if (xType.IsNumericBased(Type.NumericPersuation.Int)) {
+      } else if (xType.IsNumericBased(Type.NumericPersuasion.Int)) {
         var lit = new LiteralExpr(x.tok, 0);
         lit.Type = xType;  // resolve here
         yield return lit;
-      } else if (xType.IsNumericBased(Type.NumericPersuation.Real)) {
+      } else if (xType.IsNumericBased(Type.NumericPersuasion.Real)) {
         var lit = new LiteralExpr(x.tok, Basetypes.BigDec.ZERO);
         lit.Type = xType;  // resolve here
         yield return lit;
@@ -11183,9 +11192,9 @@ namespace Microsoft.Dafny {
         var z = new CharLiteralExpr(tok, "\0");
         z.Type = Type.Char;  // resolve here
         return z;
-      } else if (typ.IsNumericBased(Type.NumericPersuation.Int)) {
+      } else if (typ.IsNumericBased(Type.NumericPersuasion.Int)) {
         return Expression.CreateIntLiteral(tok, 0);
-      } else if (typ.IsNumericBased(Type.NumericPersuation.Real)) {
+      } else if (typ.IsNumericBased(Type.NumericPersuasion.Real)) {
         return Expression.CreateRealLiteral(tok, Basetypes.BigDec.ZERO);
       } else if (typ.IsBigOrdinalType) {
         return Expression.CreateNatLiteral(tok, 0, Type.BigOrdinal);
@@ -12027,7 +12036,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr[] ignore1, ignore2;
       string[] ignore3;
       var tySubst = s.MethodSelect.TypeArgumentSubstitutionsWithParents();
-      ProcessLhss(s.Lhs, true, true, builder, locals, etran, out lhsBuilders, out bLhss, out ignore1, out ignore2, out ignore3);
+      ProcessLhss(s.Lhs, true, true, builder, locals, etran, out lhsBuilders, out bLhss, out ignore1, out ignore2, out ignore3, s.OriginalInitialLhs);
       Contract.Assert(s.Lhs.Count == lhsBuilders.Count);
       Contract.Assert(s.Lhs.Count == bLhss.Count);
       var lhsTypes = new List<Type>();
@@ -12508,10 +12517,10 @@ namespace Microsoft.Dafny {
 
           Bpl.Expr zero = null;
           string zeroStr = null;
-          if (types0[k].IsNumericBased(Type.NumericPersuation.Int)) {
+          if (types0[k].IsNumericBased(Type.NumericPersuasion.Int)) {
             zero = Bpl.Expr.Literal(0);
             zeroStr = "0";
-          } else if (types0[k].IsNumericBased(Type.NumericPersuation.Real)) {
+          } else if (types0[k].IsNumericBased(Type.NumericPersuasion.Real)) {
             zero = Bpl.Expr.Literal(Basetypes.BigDec.ZERO);
             zeroStr = "0.0";
           }
@@ -12551,12 +12560,12 @@ namespace Microsoft.Dafny {
         return u is BoolType;
       } else if (t is CharType) {
         return u is CharType;
-      } else if (t.IsNumericBased(Type.NumericPersuation.Int)) {
+      } else if (t.IsNumericBased(Type.NumericPersuasion.Int)) {
         // we can allow different kinds of int-based types
-        return u.IsNumericBased(Type.NumericPersuation.Int);
-      } else if (t.IsNumericBased(Type.NumericPersuation.Real)) {
+        return u.IsNumericBased(Type.NumericPersuasion.Int);
+      } else if (t.IsNumericBased(Type.NumericPersuasion.Real)) {
         // we can allow different kinds of real-based types
-        return u.IsNumericBased(Type.NumericPersuation.Real);
+        return u.IsNumericBased(Type.NumericPersuasion.Real);
       } else if (t is SetType) {
         return u is SetType;
       } else if (t is SeqType) {
@@ -12625,9 +12634,9 @@ namespace Microsoft.Dafny {
         var operand1 = FunctionCall(e0.tok, BuiltinFunction.CharToInt, null, e1);
         less = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Lt, operand0, operand1);
         atmost = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Le, operand0, operand1);
-      } else if (ty0.IsNumericBased(Type.NumericPersuation.Int) || ty0 is SeqType || ty0.IsDatatype) {
+      } else if (ty0.IsNumericBased(Type.NumericPersuasion.Int) || ty0 is SeqType || ty0.IsDatatype) {
         Bpl.Expr b0, b1;
-        if (ty0.IsNumericBased(Type.NumericPersuation.Int)) {
+        if (ty0.IsNumericBased(Type.NumericPersuasion.Int)) {
           b0 = e0;
           b1 = e1;
         } else if (ty0 is SeqType) {
@@ -12642,12 +12651,12 @@ namespace Microsoft.Dafny {
         eq = Bpl.Expr.Eq(b0, b1);
         less = Bpl.Expr.Lt(b0, b1);
         atmost = Bpl.Expr.Le(b0, b1);
-        if (ty0.IsNumericBased(Type.NumericPersuation.Int) && includeLowerBound) {
+        if (ty0.IsNumericBased(Type.NumericPersuasion.Int) && includeLowerBound) {
           less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), less);
           atmost = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), atmost);
         }
 
-      } else if (ty0.IsNumericBased(Type.NumericPersuation.Real)) {
+      } else if (ty0.IsNumericBased(Type.NumericPersuasion.Real)) {
         eq = Bpl.Expr.Eq(e0, e1);
         less = Bpl.Expr.Le(e0, Bpl.Expr.Sub(e1, Bpl.Expr.Literal(Basetypes.BigDec.FromInt(1))));
         atmost = Bpl.Expr.Le(e0, e1);
@@ -13052,7 +13061,7 @@ namespace Microsoft.Dafny {
 
     private void CheckLhssDistinctness(List<Bpl.Expr> rhs, List<AssignmentRhs> rhsOriginal, List<Expression> lhss,
       BoogieStmtListBuilder builder, ExpressionTranslator etran,
-      Bpl.Expr[] objs, Bpl.Expr[] fields, string[] names) {
+      Bpl.Expr[] objs, Bpl.Expr[] fields, string[] names, Expression originalInitialLhs = null) {
       Contract.Requires(rhs != null);
       Contract.Requires(rhsOriginal != null);
       Contract.Requires(lhss != null);
@@ -13065,57 +13074,16 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < lhss.Count; i++) {
         var lhs = lhss[i];
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
-        if (rhsOriginal[i] is HavocRhs) {
-          continue;
+        if (originalInitialLhs != null) {
+          // TODO - check RHS values?
+          AssertDistinctness(lhs, originalInitialLhs, builder, etran);
         }
-        IToken tok = lhs.tok;
-
-        if (lhs is IdentifierExpr) {
-          for (int j = 0; j < i; j++) {
-            if (rhsOriginal[j] is HavocRhs) { continue; }
-            var prev = lhss[j] as IdentifierExpr;
-            if (prev != null && names[i] == names[j]) {
-              builder.Add(Assert(tok, Bpl.Expr.Imp(Bpl.Expr.True, Bpl.Expr.Eq(rhs[i], rhs[j])), string.Format("when left-hand sides {0} and {1} refer to the same location, they must be assigned the same value", j, i)));
-            }
+        for (int j = 0; j < i; j++) {
+          if (rhsOriginal[i] is HavocRhs || rhsOriginal[j] is HavocRhs) {
+            AssertDistinctness(lhs, lhss[j], builder, etran);
+          } else {
+            AssertDistinctness(lhs, lhss[j], rhs[i], rhs[j], builder, etran);
           }
-        } else if (lhs is MemberSelectExpr) {
-          var fse = (MemberSelectExpr)lhs;
-          // check that this LHS is not the same as any previous LHSs
-          for (int j = 0; j < i; j++) {
-            if (rhsOriginal[j] is HavocRhs) { continue; }
-            var prev = lhss[j] as MemberSelectExpr;
-            var field = fse.Member as Field;
-            Contract.Assert(field != null);
-            var prevField = prev == null ? null : prev.Member as Field;
-            if (prev != null && prevField == field) {
-              builder.Add(Assert(tok, Bpl.Expr.Imp(Bpl.Expr.Eq(objs[j], objs[i]), Bpl.Expr.Eq(rhs[i], rhs[j])), string.Format("when left-hand sides {0} and {1} refer to the same location, they must be assigned the same value", j, i)));
-            }
-          }
-        } else if (lhs is SeqSelectExpr) {
-          SeqSelectExpr sel = (SeqSelectExpr)lhs;
-          // check that this LHS is not the same as any previous LHSs
-          for (int j = 0; j < i; j++) {
-            if (rhsOriginal[j] is HavocRhs) { continue; }
-            var prev = lhss[j] as SeqSelectExpr;
-            if (prev != null) {
-              builder.Add(Assert(tok,
-                Bpl.Expr.Imp(Bpl.Expr.And(Bpl.Expr.Eq(objs[j], objs[i]), Bpl.Expr.Eq(fields[j], fields[i])), Bpl.Expr.Eq(rhs[i], rhs[j])),
-                string.Format("when left-hand sides {0} and {1} may refer to the same location, they must be assigned the same value", j, i)));
-            }
-          }
-        } else {
-          MultiSelectExpr mse = (MultiSelectExpr)lhs;
-          // check that this LHS is not the same as any previous LHSs
-          for (int j = 0; j < i; j++) {
-            if (rhsOriginal[j] is HavocRhs) { continue; }
-            var prev = lhss[j] as MultiSelectExpr;
-            if (prev != null) {
-              builder.Add(Assert(tok,
-                Bpl.Expr.Imp(Bpl.Expr.And(Bpl.Expr.Eq(objs[j], objs[i]), Bpl.Expr.Eq(fields[j], fields[i])), Bpl.Expr.Eq(rhs[i], rhs[j])),
-                string.Format("when left-hand sides {0} and {1} refer to the same location, they must be assigned the same value", j, i)));
-            }
-          }
-
         }
       }
     }
@@ -13126,6 +13094,72 @@ namespace Microsoft.Dafny {
     /// </summary>
     delegate void AssignToLhs(Bpl.Expr/*?*/ rhs, bool origRhsIsHavoc, BoogieStmtListBuilder builder, ExpressionTranslator etran);
 
+    // Returns an expression, which, if false, means that the two LHS expressions are
+    // not distinct; if null then the LHSs are trivially distinct
+    Bpl.Expr CheckDistinctness(Expression lhsa, Expression lhsb, ExpressionTranslator etran) {
+      {
+        if (lhsa is IdentifierExpr iea && lhsb is IdentifierExpr ieb) {
+          if (iea.Name != ieb.Name) return null;
+          return Bpl.Expr.False;
+        }
+      }
+      {
+        if (lhsa is MemberSelectExpr iea && lhsb is MemberSelectExpr ieb) {
+          if (iea.Member is Field fa && ieb.Member is Field fb) {
+            if (fa != fb) return null;
+            return Bpl.Expr.Neq(etran.TrExpr(iea.Obj), etran.TrExpr(ieb.Obj));
+          }
+        }
+      }
+      {
+        if (lhsa is SeqSelectExpr iea && lhsb is SeqSelectExpr ieb) {
+          Bpl.Expr ex = Bpl.Expr.Neq(etran.TrExpr(iea.Seq), etran.TrExpr(ieb.Seq));
+          if (iea.E1 == null && ieb.E1 == null) {
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Neq(etran.TrExpr(iea.E0), etran.TrExpr(ieb.E0)));
+          } else if (iea.E1 == null && ieb.E1 != null) {
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Le(etran.TrExpr(ieb.E1), etran.TrExpr(iea.E0)));
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Lt(etran.TrExpr(iea.E0), etran.TrExpr(ieb.E0)));
+          } else if (iea.E1 != null && ieb.E1 == null) {
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Le(etran.TrExpr(iea.E1), etran.TrExpr(ieb.E0)));
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Lt(etran.TrExpr(ieb.E0), etran.TrExpr(iea.E0)));
+          } else {
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Le(etran.TrExpr(iea.E1), etran.TrExpr(ieb.E0)));
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Le(etran.TrExpr(ieb.E1), etran.TrExpr(iea.E0)));
+          }
+          return ex;
+        }
+      }
+      {
+        if (lhsa is MultiSelectExpr iea && lhsb is MultiSelectExpr ieb && iea.Indices.Count == ieb.Indices.Count) {
+          Bpl.Expr ex = Bpl.Expr.Neq(etran.TrExpr(iea.Array), etran.TrExpr(ieb.Array));
+          for (int i = 0; i < iea.Indices.Count; i++) {
+            ex = Bpl.Expr.Or(ex, Bpl.Expr.Neq(etran.TrExpr(iea.Indices[i]), etran.TrExpr(ieb.Indices[i])));
+          }
+          return ex;
+        }
+      }
+
+      return null;
+    }
+
+    void AssertDistinctness(Expression lhsa, Expression lhsb, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      Bpl.Expr e = CheckDistinctness(lhsa, lhsb, etran);
+      if (e != null) {
+        string may = e == Bpl.Expr.False ? "" : "may ";
+        builder.Add(Assert(lhsa.tok, e,
+          ($"left-hand sides {Printer.ExprToString(lhsa)} and {Printer.ExprToString(lhsb)} {may}refer to the same location")));
+      }
+    }
+
+    void AssertDistinctness(Expression lhsa, Expression lhsb, Bpl.Expr rhsa, Bpl.Expr rhsb, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      Bpl.Expr e = CheckDistinctness(lhsa, lhsb, etran);
+      if (e != null) {
+        e = Bpl.Expr.Or(e, Bpl.Expr.Eq(rhsa,rhsb));
+        builder.Add(Assert(lhsa.tok, e,
+          ($"when left-hand sides {Printer.ExprToString(lhsa)} and {Printer.ExprToString(lhsb)} refer to the same location, they must be assigned the same value")));
+      }
+    }
+
     /// <summary>
     /// Creates a list of protected Boogie LHSs for the given Dafny LHSs.  Along the way,
     /// builds code that checks that the LHSs are well-defined,
@@ -13135,7 +13169,7 @@ namespace Microsoft.Dafny {
     void ProcessLhss(List<Expression> lhss, bool rhsCanAffectPreviouslyKnownExpressions, bool checkDistinctness,
       BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
       out List<AssignToLhs> lhsBuilders, out List<Bpl.IdentifierExpr/*may be null*/> bLhss,
-      out Bpl.Expr[] prevObj, out Bpl.Expr[] prevIndex, out string[] prevNames) {
+      out Bpl.Expr[] prevObj, out Bpl.Expr[] prevIndex, out string[] prevNames, Expression originalInitialLhs = null) {
 
       Contract.Requires(cce.NonNullElements(lhss));
       Contract.Requires(builder != null);
@@ -13157,22 +13191,27 @@ namespace Microsoft.Dafny {
 
       var lhsNameSet = new Dictionary<string, object>();
 
+      // Note, the resolver does not check for duplicate IdentifierExpr's in LHSs, so do it here.
       foreach (var lhs in lhss) {
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
+        if (checkDistinctness) {
+          if (originalInitialLhs != null) {
+            AssertDistinctness(lhs, originalInitialLhs.Resolved, builder, etran);
+          }
+          for (int j = 0; j < i; j++) {
+            AssertDistinctness(lhs, lhss[j], builder, etran);
+          }
+        }
+        i++;
+      }
+
+      i = 0;
+      foreach (var lhs in lhss) {
         IToken tok = lhs.tok;
         TrStmt_CheckWellformed(lhs, builder, locals, etran, true, true);
 
         if (lhs is IdentifierExpr) {
           var ie = (IdentifierExpr)lhs;
-          // Note, the resolver does not check for duplicate IdentifierExpr's in LHSs, so do it here.
-          if (checkDistinctness) {
-            for (int j = 0; j < i; j++) {
-              var prev = lhss[j] as IdentifierExpr;
-              if (prev != null && ie.Name == prev.Name) {
-                builder.Add(Assert(tok, Bpl.Expr.False, string.Format("left-hand sides {0} and {1} refer to the same location", j, i)));
-              }
-            }
-          }
           prevNames[i] = ie.Name;
           var bLhs = (Bpl.IdentifierExpr)etran.TrExpr(lhs);  // TODO: is this cast always justified?
           bLhss.Add(rhsCanAffectPreviouslyKnownExpressions ? null : bLhs);
@@ -13199,17 +13238,6 @@ namespace Microsoft.Dafny {
           if (!useSurrogateLocal) {
             // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj]);
             builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, GetField(fse)), "assignment may update an object not in the enclosing context's modifies clause"));
-          }
-
-          if (checkDistinctness) {
-            // check that this LHS is not the same as any previous LHSs
-            for (int j = 0; j < i; j++) {
-              var prev = lhss[j] as MemberSelectExpr;
-              var prevField = prev == null ? null : prev.Member as Field;
-              if (prevField != null && prevField == field) {
-                builder.Add(Assert(tok, Bpl.Expr.Neq(prevObj[j], obj), string.Format("left-hand sides {0} and {1} may refer to the same location", j, i)));
-              }
-            }
           }
 
           if (useSurrogateLocal) {
@@ -13256,17 +13284,6 @@ namespace Microsoft.Dafny {
           // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
           builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing context's modifies clause"));
 
-          if (checkDistinctness) {
-            // check that this LHS is not the same as any previous LHSs
-            for (int j = 0; j < i; j++) {
-              var prev = lhss[j] as SeqSelectExpr;
-              if (prev != null) {
-                builder.Add(Assert(tok,
-                  Bpl.Expr.Or(Bpl.Expr.Neq(prevObj[j], obj), Bpl.Expr.Neq(prevIndex[j], fieldName)),
-                  string.Format("left-hand sides {0} and {1} may refer to the same location", j, i)));
-              }
-            }
-          }
           bLhss.Add(null);
           lhsBuilders.Add(delegate(Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
             if (rhs != null) {
@@ -13290,17 +13307,6 @@ namespace Microsoft.Dafny {
           prevIndex[i] = fieldName;
           builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing context's modifies clause"));
 
-          if (checkDistinctness) {
-            // check that this LHS is not the same as any previous LHSs
-            for (int j = 0; j < i; j++) {
-              var prev = lhss[j] as MultiSelectExpr;
-              if (prev != null) {
-                builder.Add(Assert(tok,
-                  Bpl.Expr.Or(Bpl.Expr.Neq(prevObj[j], obj), Bpl.Expr.Neq(prevIndex[j], fieldName)),
-                  string.Format("left-hand sides {0} and {1} may refer to the same location", j, i)));
-              }
-            }
-          }
           bLhss.Add(null);
           lhsBuilders.Add(delegate(Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
             if (rhs != null) {
@@ -15232,7 +15238,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is BinaryExpr) {
           BinaryExpr e = (BinaryExpr)expr;
-          bool isReal = e.E0.Type.IsNumericBased(Type.NumericPersuation.Real);
+          bool isReal = e.E0.Type.IsNumericBased(Type.NumericPersuasion.Real);
           int bvWidth = e.E0.Type.IsBitVectorType ? e.E0.Type.AsBitVectorType.Width : -1;  // -1 indicates "not a bitvector type"
           Bpl.Expr e0 = TrExpr(e.E0);
           if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
@@ -18730,9 +18736,15 @@ namespace Microsoft.Dafny {
           foreach (var bv in s.BoundVars) {
             substMap.Remove(bv);
           }
+
           // Put things together
           var rr = new ForallStmt(s.Tok, s.EndTok, newBoundVars, SubstAttributes(s.Attributes), Substitute(s.Range), s.Ens.ConvertAll(SubstMayBeFreeExpr), body);
           rr.Kind = s.Kind;
+          rr.CanConvert = s.CanConvert;
+          rr.Bounds = SubstituteBoundedPoolList(s.Bounds);
+          if (s.ForallExpressions != null) {
+            rr.ForallExpressions = s.ForallExpressions.ConvertAll(Substitute);
+          }
           r = rr;
         } else if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;

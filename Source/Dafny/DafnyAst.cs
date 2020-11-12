@@ -676,7 +676,7 @@ namespace Microsoft.Dafny {
 
       if (typeArgs != null && typeArgs.Count > 0 &&
           (!parseAble || !typeArgs[0].TypeName(context, parseAble).StartsWith("_"))) {
-        return string.Format("<{0}>",Util.Comma(", ", typeArgs, ty => ty.TypeName(context, parseAble)));
+        return string.Format("<{0}>",Util.Comma(typeArgs, ty => ty.TypeName(context, parseAble)));
       }
       return "";
     }
@@ -836,16 +836,16 @@ namespace Microsoft.Dafny {
       var t = NormalizeExpand();
       return t.IsIntegerType || t.IsRealType || t.AsNewtype != null;
     }
-    public enum NumericPersuation { Int, Real }
+    public enum NumericPersuasion { Int, Real }
     [Pure]
-    public bool IsNumericBased(NumericPersuation p) {
+    public bool IsNumericBased(NumericPersuasion p) {
       Type t = this;
       while (true) {
         t = t.NormalizeExpand();
         if (t.IsIntegerType) {
-          return p == NumericPersuation.Int;
+          return p == NumericPersuasion.Int;
         } else if (t.IsRealType) {
-          return p == NumericPersuation.Real;
+          return p == NumericPersuasion.Real;
         }
         var d = t.AsNewtype;
         if (d == null) {
@@ -1698,15 +1698,15 @@ namespace Microsoft.Dafny {
       b = towerB[0];
 
       if (a is IntVarietiesSupertype) {
-        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuation.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
+        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
       } else if (b is IntVarietiesSupertype) {
-        return a.IsNumericBased(NumericPersuation.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
+        return a.IsNumericBased(NumericPersuasion.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
       } else if (a.IsBoolType || a.IsCharType || a.IsBitVectorType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
         return a.Equals(b) ? a : null;
       } else if (a is RealVarietiesSupertype) {
-        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuation.Real) ? b : null;
+        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Real) ? b : null;
       } else if (b is RealVarietiesSupertype) {
-        return a.IsNumericBased(NumericPersuation.Real) ? a : null;
+        return a.IsNumericBased(NumericPersuasion.Real) ? a : null;
       } else if (a.IsNumericBased()) {
         // Note, for meet, we choose not to step down to IntVarietiesSupertype or RealVarietiesSupertype
         return a.Equals(b) ? a : null;
@@ -1925,15 +1925,15 @@ namespace Microsoft.Dafny {
       Contract.Assert(towerA.Count == 1 && towerB.Count == 1);
 
       if (a is IntVarietiesSupertype) {
-        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuation.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
+        return b is IntVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Int) || b.IsBigOrdinalType || b.IsBitVectorType ? b : null;
       } else if (b is IntVarietiesSupertype) {
-        return a.IsNumericBased(NumericPersuation.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
+        return a.IsNumericBased(NumericPersuasion.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
       } else if (a.IsBoolType || a.IsCharType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
         return a.Equals(b) ? a : null;
       } else if (a is RealVarietiesSupertype) {
-        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuation.Real) ? b : null;
+        return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Real) ? b : null;
       } else if (b is RealVarietiesSupertype) {
-        return a.IsNumericBased(NumericPersuation.Real) ? a : null;
+        return a.IsNumericBased(NumericPersuasion.Real) ? a : null;
       } else if (a.IsNumericBased()) {
         return a.Equals(b) ? a : null;
       } else if (a is SetType) {
@@ -2374,7 +2374,7 @@ namespace Microsoft.Dafny {
       }
       string s = "";
       if (domainNeedsParens) { s += "("; }
-      s += Util.Comma(", ", typeArgs.Take(arity), arg => arg.TypeName(context, parseAble));
+      s += Util.Comma(typeArgs.Take(arity), arg => arg.TypeName(context, parseAble));
       if (domainNeedsParens) { s += ")"; }
       s += " " + arrow + " ";
       s += (result ?? typeArgs.Last()).TypeName(context, parseAble);
@@ -2813,7 +2813,7 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Ensures(Contract.Result<string>() != null);
       if (BuiltIns.IsTupleTypeName(Name)) {
-        return "(" + Util.Comma(", ", TypeArgs, ty => ty.TypeName(context, parseAble)) + ")";
+        return "(" + Util.Comma(TypeArgs, ty => ty.TypeName(context, parseAble)) + ")";
       } else if (ArrowType.IsPartialArrowTypeName(Name)) {
         return ArrowType.PrettyArrowTypeName(ArrowType.PARTIAL_ARROW, TypeArgs, null, context, parseAble);
       } else if (ArrowType.IsTotalArrowTypeName(Name)) {
@@ -3001,9 +3001,9 @@ namespace Microsoft.Dafny {
         return Family.Bool;
       } else if (t.IsCharType) {
         return Family.Char;
-      } else if (t.IsNumericBased(NumericPersuation.Int) || t is IntVarietiesSupertype) {
+      } else if (t.IsNumericBased(NumericPersuasion.Int) || t is IntVarietiesSupertype) {
         return Family.IntLike;
-      } else if (t.IsNumericBased(NumericPersuation.Real) || t is RealVarietiesSupertype) {
+      } else if (t.IsNumericBased(NumericPersuasion.Real) || t is RealVarietiesSupertype) {
         return Family.RealLike;
       } else if (t.IsBigOrdinalType) {
         return Family.Ordinal;
@@ -3297,17 +3297,13 @@ namespace Microsoft.Dafny {
 
   public class TypeParameter : Declaration {
     public interface ParentType {
-      string FullName {
-        get;
-      }
+      string FullName { get; }
     }
-    [Peer]
     ParentType parent;
     public ParentType Parent {
       get {
         return parent;
       }
-      [param: Captured]
       set {
         Contract.Requires(Parent == null);  // set it only once
         Contract.Requires(value != null);
@@ -5830,6 +5826,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public void makeGhost() {
+      IsGhost = true;
+    }
+
     public BoundVar(IToken tok, string name, Type type)
       : base(tok, name, type, false) {
       Contract.Requires(tok != null);
@@ -7111,15 +7111,17 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class LetStmt : Statement
+  public class VarDeclPattern : Statement
   {
     public readonly CasePattern<LocalVariable> LHS;
     public readonly Expression RHS;
+    public bool IsAutoGhost;
 
-    public LetStmt(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs)
+    public VarDeclPattern(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs, bool isAutoGhost = false)
       : base(tok, endTok) {
       LHS = lhs;
       RHS = rhs;
+      IsAutoGhost = isAutoGhost;
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -7201,6 +7203,7 @@ namespace Microsoft.Dafny {
   {
     public readonly List<AssignmentRhs> Rhss;
     public readonly bool CanMutateKnownState;
+    public Expression OriginalInitialLhs = null;
 
     public readonly List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
     public override IEnumerable<Statement> SubStatements {
@@ -7314,6 +7317,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhs != null);
       return LhsIsToGhost_Which(lhs) == NonGhostKind.IsGhost;
     }
+    public static bool LhsIsToGhostOrAutoGhost(Expression lhs) {
+      Contract.Requires(lhs != null);
+      return LhsIsToGhost_Which(lhs) == NonGhostKind.IsGhost || lhs.Resolved is AutoGhostIdentifierExpr;
+        ;
+    }
     public enum NonGhostKind { IsGhost, Variable, Field, ArrayElement }
     public static string NonGhostKind_To_String(NonGhostKind gk) {
       Contract.Requires(gk != NonGhostKind.IsGhost);
@@ -7332,7 +7340,13 @@ namespace Microsoft.Dafny {
     public static NonGhostKind LhsIsToGhost_Which(Expression lhs) {
       Contract.Requires(lhs != null);
       lhs = lhs.Resolved;
-      if (lhs is IdentifierExpr) {
+      if (lhs is AutoGhostIdentifierExpr) {
+        // TODO: Should we return something different for this case?
+        var x = (IdentifierExpr)lhs;
+        if (!x.Var.IsGhost) {
+          return NonGhostKind.Variable;
+        }
+      } else if (lhs is IdentifierExpr) {
         var x = (IdentifierExpr)lhs;
         if (!x.Var.IsGhost) {
           return NonGhostKind.Variable;
@@ -7473,6 +7487,7 @@ namespace Microsoft.Dafny {
     public readonly List<Expression> Lhs;
     public readonly MemberSelectExpr MethodSelect;
     public readonly List<Expression> Args;
+    public Expression OriginalInitialLhs = null;
 
     public Expression Receiver { get { return MethodSelect.Obj; } }
     public Method Method { get { return (Method)MethodSelect.Member; } }
@@ -8540,8 +8555,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Requires(
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)));
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Add, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Add;  // resolve here
@@ -8556,8 +8571,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Requires(
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)));
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Mul, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Mul;  // resolve here
@@ -8573,11 +8588,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Requires(
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)));
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
       Contract.Ensures(Contract.Result<Expression>() != null);
 
-      Type toType = e0.Type.IsNumericBased(Type.NumericPersuation.Int) ? (Type)Type.Int : Type.Real;
+      Type toType = e0.Type.IsNumericBased(Type.NumericPersuasion.Int) ? (Type)Type.Int : Type.Real;
       e0 = CastIfNeeded(e0, toType);
       e1 = CastIfNeeded(e1, toType);
       return CreateSubtract(e0, e1);
@@ -8602,8 +8617,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(e1 != null);
       Contract.Requires(e1.Type != null);
       Contract.Requires(
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)) ||
         (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
@@ -8618,7 +8633,7 @@ namespace Microsoft.Dafny {
     public static Expression CreateIncrement(Expression e, int n) {
       Contract.Requires(e != null);
       Contract.Requires(e.Type != null);
-      Contract.Requires(e.Type.IsNumericBased(Type.NumericPersuation.Int));
+      Contract.Requires(e.Type.IsNumericBased(Type.NumericPersuasion.Int));
       Contract.Requires(0 <= n);
       Contract.Ensures(Contract.Result<Expression>() != null);
       if (n == 0) {
@@ -8633,7 +8648,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static Expression CreateDecrement(Expression e, int n) {
       Contract.Requires(e != null);
-      Contract.Requires(e.Type.IsNumericBased(Type.NumericPersuation.Int));
+      Contract.Requires(e.Type.IsNumericBased(Type.NumericPersuasion.Int));
       Contract.Requires(0 <= n);
       Contract.Ensures(Contract.Result<Expression>() != null);
       if (n == 0) {
@@ -8674,7 +8689,7 @@ namespace Microsoft.Dafny {
     public static Expression CreateNatLiteral(IToken tok, int n, Type ty) {
       Contract.Requires(tok != null);
       Contract.Requires(0 <= n);
-      Contract.Requires(ty.IsNumericBased(Type.NumericPersuation.Int) || ty is BigOrdinalType);
+      Contract.Requires(ty.IsNumericBased(Type.NumericPersuasion.Int) || ty is BigOrdinalType);
       var nn = new LiteralExpr(tok, n);
       nn.Type = ty;
       return nn;
@@ -8752,7 +8767,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Requires(
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
         (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1);
@@ -8768,8 +8783,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
       Contract.Requires(
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)));
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;  // resolve here
@@ -11299,9 +11314,13 @@ namespace Microsoft.Dafny {
     // After successful resolution, exactly one of the following two fields is non-null.
     public DatatypeCtor Ctor;  // finalized by resolution (null if the pattern is a bound variable)
     public VT Var;  // finalized by resolution (null if the pattern is a constructor)  Invariant:  Var != null ==> Arguments == null
-    public readonly List<CasePattern<VT>> Arguments;
+    public List<CasePattern<VT>> Arguments;
 
     public Expression Expr;  // an r-value version of the CasePattern; filled in by resolution
+
+    public void MakeAConstructor() {
+      this.Arguments = new List<CasePattern<VT>>();
+    }
 
     public CasePattern(IToken tok, string id, [Captured] List<CasePattern<VT>> arguments) {
       Contract.Requires(tok != null);
@@ -11549,7 +11568,8 @@ namespace Microsoft.Dafny {
   /*
   ExtendedPattern is either:
   1 - A LitPattern of a LiteralExpr, representing a constant pattern
-  2 - An IdPattern of a string and a list of ExtendedPattern, representing either a bound variable or a constructor applied to n arguments
+  2 - An IdPattern of a string and a list of ExtendedPattern, representing either
+      a bound variable or a constructor applied to n arguments or a symbolic constant
   */
   public abstract class ExtendedPattern
   {
@@ -11564,15 +11584,59 @@ namespace Microsoft.Dafny {
   }
   public class LitPattern : ExtendedPattern
   {
-    public readonly LiteralExpr Lit;
+    public readonly Expression OrigLit;  // the expression as parsed; typically a LiteralExpr, but could be a NegationExpression
 
-    public LitPattern(IToken tok, LiteralExpr lit, bool isGhost = false) : base(tok, isGhost) {
-      Contract.Requires(lit != null);
-      this.Lit = lit;
+    /// <summary>
+    /// The patterns of match constructs are rewritten very early during resolution, before any type information
+    /// is available. This is unfortunate. It means we can't reliably rewrite negated expressions. In Dafny, "-" followed
+    /// by digits is a negative literal for integers and reals, but as unary minus for bitvectors and ORDINAL (and
+    /// unary minus is not allowed for ORDINAL, so that should always give an error).
+    ///
+    /// Since we don't have the necessary type information at this time, we optimistically negate all numeric literals here.
+    /// After type checking, we look to see if we negated something we should not have.
+    ///
+    /// One could imagine allowing negative bitvector literals in case patterns and treating and them as synonyms for their
+    /// positive counterparts. However, since the rewriting does not know about these synonyms, it would end up splitting
+    /// cases that should have been combined, which leads to incorrect code.
+    ///
+    /// It would be good to check for these inadvertently allowed unary expressions only in the expanded patterns. However,
+    /// the rewriting of patterns turns them into "if" statements and what not, so it's not easy to identify when a literal
+    /// comes from this rewrite. Luckily, when other NegationExpressions are resolved, they turn into unary minus for bitvectors
+    /// and into errors for ORDINALs. Therefore, any negative bitvector or ORDINAL literal discovered later can only have
+    /// come from this rewriting. So, that's where errors are generated.
+    ///
+    /// One more detail, after the syntactic "-0" has been negated, the result is not negative. Therefore, what the previous
+    /// paragraph explained as checking for negative bitvectors and ORDINALs doesn't work for "-0". So, instead of checking
+    /// for the number being negative, the later pass will check if the token associated with the literal is "-0", a condition
+    /// the assignment below ensures.
+    /// </summary>
+    public LiteralExpr OptimisticallyDesugaredLit {
+      get {
+        if (OrigLit is NegationExpression neg) {
+          var lit = (LiteralExpr)neg.E;
+          if (lit.Value is Basetypes.BigDec d) {
+            return new LiteralExpr(neg.tok, -d);
+          } else {
+            var n = (BigInteger)lit.Value;
+            var tok = new Token(neg.tok.line, neg.tok.col) {
+              filename = neg.tok.filename,
+              val = "-0"
+            };
+            return new LiteralExpr(tok, -n);
+          }
+        } else {
+          return (LiteralExpr)OrigLit;
+        }
+      }
+    }
+
+    public LitPattern(IToken tok, Expression lit, bool isGhost = false) : base(tok, isGhost) {
+      Contract.Requires(lit is LiteralExpr || lit is NegationExpression);
+      this.OrigLit = lit;
     }
 
     public override string ToString() {
-      return Printer.ExprToString(Lit);
+      return Printer.ExprToString(OrigLit);
     }
   }
 
@@ -11580,7 +11644,12 @@ namespace Microsoft.Dafny {
   {
     public readonly String Id;
     public readonly Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
-    public readonly List<ExtendedPattern> Arguments;
+    public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
+    public LiteralExpr ResolvedLit; // null if just an identifier
+
+    public void MakeAConstructor() {
+      this.Arguments = new List<ExtendedPattern>();
+    }
 
     public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments, bool isGhost = false) : base(tok, isGhost) {
       Contract.Requires(id != null);
@@ -11600,7 +11669,7 @@ namespace Microsoft.Dafny {
     }
 
     public override string ToString() {
-      if (Arguments.Count == 0) {
+      if (Arguments == null || Arguments.Count == 0) {
         return Id;
       } else {
         List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());

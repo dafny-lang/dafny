@@ -654,9 +654,9 @@ namespace Microsoft.Dafny
         var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));
         r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
 
-      } else if (stmt is LetStmt) {
-        var s = (LetStmt) stmt;
-        r = new LetStmt(Tok(s.Tok), Tok(s.EndTok), CloneCasePattern(s.LHS), CloneExpr(s.RHS));
+      } else if (stmt is VarDeclPattern) {
+        var s = (VarDeclPattern) stmt;
+        r = new VarDeclPattern(Tok(s.Tok), Tok(s.EndTok), CloneCasePattern(s.LHS), CloneExpr(s.RHS), s.IsAutoGhost);
 
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
@@ -684,10 +684,10 @@ namespace Microsoft.Dafny
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
       if(pat is LitPattern) {
         var p = (LitPattern)pat;
-        return new LitPattern(p.Tok, (LiteralExpr)CloneExpr(p.Lit));
+        return new LitPattern(p.Tok, CloneExpr(p.OrigLit));
       } else if (pat is IdPattern) {
         var p = (IdPattern)pat;
-        return new IdPattern(p.Tok, p.Id, p.Arguments.ConvertAll(CloneExtendedPattern));
+        return new IdPattern(p.Tok, p.Id, p.Arguments == null ? null : p.Arguments.ConvertAll(CloneExtendedPattern));
       } else {
         Contract.Assert(false);
         return null;

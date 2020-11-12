@@ -70,7 +70,7 @@ Basics.dfy(148,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
-Basics.dfy(167,9): Error: when left-hand sides 0 and 1 may refer to the same location, they must be assigned the same value
+Basics.dfy(167,9): Error: when left-hand sides a[b[18]] and a[4] refer to the same location, they must be assigned the same value
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
@@ -79,7 +79,7 @@ Execution trace:
     (0,0): anon6
     (0,0): anon12_Then
     (0,0): anon9
-Basics.dfy(183,9): Error: when left-hand sides 0 and 1 refer to the same location, they must be assigned the same value
+Basics.dfy(183,9): Error: when left-hand sides x.f and y.f refer to the same location, they must be assigned the same value
 Execution trace:
     (0,0): anon0
 Basics.dfy(195,18): Error: assertion violation
@@ -94,7 +94,7 @@ Basics.dfy(197,9): Error: target object may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon3
-Basics.dfy(202,11): Error: left-hand sides 0 and 1 may refer to the same location
+Basics.dfy(202,11): Error: left-hand sides m.x and m.x may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
@@ -110,7 +110,7 @@ Execution trace:
     (0,0): anon13_Then
     (0,0): anon8
     (0,0): anon14_Then
-Basics.dfy(273,9): Error: when left-hand sides 0 and 1 refer to the same location, they must be assigned the same value
+Basics.dfy(273,9): Error: when left-hand sides d.x and c.x refer to the same location, they must be assigned the same value
 Execution trace:
     (0,0): anon0
 Basics.dfy(463,11): Error: assertion violation

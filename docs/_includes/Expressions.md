@@ -653,7 +653,10 @@ CasePattern =
 
 ExtendedPattern =
   ( LiteralExpression_
-  ( Ident [ "(" ExtendedPattern { "," ExtendedPattern } ")" ]
+  | Ident
+  | Ident "(" ")"
+  | Ident "(" ExtendedPattern { "," ExtendedPattern } ")"
+  )
 ````
 
 Case bindings and extended patterns are used for (possibly nested)
@@ -665,12 +668,14 @@ in ``LetExpr``s and ``VarDeclStatement``s.
 
 When matching an inductive or coinductive value in
 a ``MatchStmt`` or ``MatchExpression``, the ``ExtendedPattern``
-must either correspond to a constructor of the type of the value,
-or a bound variable. A tuple is
-considered to have a single constructor.
+must correspond to a (1) bound variable (a simple identifier),
+(2) a constructor of the type of the value,
+(3) a literal of the correct type, or
+(4) a symbolic constant of the correct type.
+A tuple is considered to have a single constructor.
 The ``Ident`` of the ``CaseBinding_`` must either match the name
 of a constructor (or in the case of a tuple, the ``Ident`` is
-absent and the second alternative is chosen), or not be applied to a tuple of ``ExtendedPattern``.
+absent), or not be applied to a tuple of ``ExtendedPattern``.
 The ``ExtendedPattern``s inside the parentheses are then
 matched against the arguments that were given to the
 constructor when the value was constructed.
@@ -681,10 +686,19 @@ When matching a value of base type, the ``ExtendedPattern`` should
 either be a ``LiteralExpression_`` of the same type as the value,
 or a single identifier matching all values of this type.
 
-The ``CasePattern``s may be nested. The set of non-constructor-name
+A single identifier is ambiguous: it may be a variable to be bound,
+a parameterless constructor written without parentheses, or a
+symbolic constant. If the identifier matches a nullary constructor of the
+correct type, it is resolved as that constructor; otherwise if it
+is a symbolic constant of the correct type initialized to a literal value,
+it is resolved as that literal; otherwise it is considered a local
+bound variable.
+
+The ``CasePattern``s may be nested. The set of bound variable
 identifiers contained in a ``CaseBinding_`` must be distinct.
 They are bound to the corresponding values in the value being
-matched.
+matched. (Thus, for example, one cannot repeat a bound variable to
+attempt to match a constructor that has two identical arguments.)
 
 ## Match Expression
 
@@ -724,7 +738,7 @@ given then they must agree with the types of the
 corresponding parameters.
 
 A ``MatchExpression`` is evaluated by first evaluating the selector.
-The ``ExtendedPattern`` of each ``CaseClause`` are then compared in order
+The ``ExtendedPattern``s of each ``CaseClause`` are then compared in order
  with the resulting value until a matching pattern is found.
 If the constructor had
 parameters then the actual values used to construct the selector
