@@ -305,6 +305,12 @@ namespace Microsoft.Dafny {
       //   StaticField1: ...,
       // }
       //
+      // func (_static *companionStruct_Trait) CastTo_(x interface{}) Trait {
+      //   var t Trait
+      //   t, _ = x.(Trait)
+      //   return t
+      // }
+      //
       // func (_static *companionStruct_Trait) ConcreteInstanceMethod(_this Trait, ...) ... {
       //   ...
       // }
@@ -312,13 +318,17 @@ namespace Microsoft.Dafny {
       // func (_static *companionStruct_Trait) StaticMethod(...) ... {
       //   ...
       // }
-      //
       wr = CreateDescribedSection("trait {0}", wr, name);
       var abstractMethodWriter = wr.NewNamedBlock("type {0} interface", name);
       var concreteMethodWriter = wr.ForkSection();
 
       var staticFieldWriter = wr.NewNamedBlock("type {0} struct", FormatCompanionTypeName(name));
       var staticFieldInitWriter = wr.NewNamedBlock("var {0} = {1}", FormatCompanionName(name), FormatCompanionTypeName(name));
+      using (var wCastTo = wr.NewNamedBlock("func ({0}) CastTo_(x interface{{}}) {1}", FormatCompanionTypeName(name), name)) {
+        wCastTo.WriteLine("var t {0}", name);
+        wCastTo.WriteLine("t, _ = x.({0})", name);
+        wCastTo.WriteLine("return t");
+      }
 
       var cw = new ClassWriter(this, name, isExtern, abstractMethodWriter, concreteMethodWriter, null, null, null, staticFieldWriter, staticFieldInitWriter);
       staticFieldWriter.WriteLine("TraitID_ *_dafny.TraitID");
@@ -2456,6 +2466,7 @@ namespace Microsoft.Dafny {
           });
         } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
           // instance const in a newtype
+          Contract.Assert(typeArgs.Count == 0);
           lvalue = SimpleLvalue(w => {
             w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));
             obj(w);
@@ -2487,14 +2498,16 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {
+      wr = EmitCoercionIfNecessary(null, elmtType, Bpl.Token.NoToken, wr);
       wr.Write("*(");
       var w = wr.Fork();
-      wr.Write(".Index({0})).({1})", Util.Comma(indices, IntOfAny), TypeName(elmtType, wr, Bpl.Token.NoToken));
+      wr.Write(".Index({0}))", Util.Comma(indices, IntOfAny));
       return w;
     }
 
     protected override TargetWriter EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, TargetWriter wr) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
+      wr = EmitCoercionIfNecessary(null, elmtType, Bpl.Token.NoToken, wr);
       wr.Write("(*");
       var w = wr.Fork();
       wr.Write(".Index(");
@@ -2508,7 +2521,7 @@ namespace Microsoft.Dafny {
         TrParenExpr(index, wr, inLetExprBody);
         sep = ", ";
       }
-      wr.Write(")).({0})", TypeName(elmtType, wr, Bpl.Token.NoToken));
+      wr.Write("))");
       return w;
     }
 
@@ -3191,7 +3204,7 @@ namespace Microsoft.Dafny {
         }
         wCall.Write(')');
         return ans;
-      } else if (to.IsTypeParameter || from != null && EqualsUpToParameters(from, to)) {
+      } else if (to.IsTypeParameter || (from != null && EqualsUpToParameters(from, to))) {
         // do nothing
         return wr;
       } else if (from != null && Type.IsSupertype(to, from)) {
@@ -3199,9 +3212,19 @@ namespace Microsoft.Dafny {
         return wr;
       } else if (from == null || from.IsTypeParameter || Type.IsSupertype(from, to)) {
         // downcast (allowed?) or implicit cast from parameter
-        var w = wr.Fork();
-        wr.Write(".({0})", TypeName(to, wr, tok));
-        return w;
+        if (to.IsObjectQ || to.IsObject) {
+          // a cast to interface{} can be omitted
+          return wr;
+        } else if (to.IsTraitType) {
+          wr.Write("{0}.CastTo_(", TypeName_Companion(to.AsTraitType, wr, tok));
+          var w = wr.Fork();
+          wr.Write(")");
+          return w;
+        } else {
+          var w = wr.Fork();
+          wr.Write(".({0})", TypeName(to, wr, tok));
+          return w;
+        }
       } else {
         Error(tok, "Cannot convert from {0} to {1}", wr, from, to);
         return wr;

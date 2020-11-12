@@ -109,6 +109,7 @@ module NilRegression {
     var c: Class? := new Class;
     NilRegression2(c);
     NilRegression2(null);
+    NilRegression3();
   }
 
   method NilRegression0() {
@@ -153,5 +154,78 @@ module NilRegression {
     var z := oo == oo;
 
     print a, " ", b, " ", c, "\n";  // true true true
+  }
+
+  class GClass<U(0), V(0), W(0)> {
+    var u: U
+    var v: V
+    var w: W
+
+    const u': U
+    const v': V
+    const w': W
+
+    var u1: array<U>
+    var v1: array<V>
+    var w1: array<W>
+
+    var u2: array2<U>
+    var v2: array2<V>
+    var w2: array2<W>
+
+    constructor ()
+      ensures u1.Length == v1.Length == w1.Length == 1
+      ensures u2.Length0 == v2.Length0 == w2.Length0 == 1
+      ensures u2.Length1 == v2.Length1 == w2.Length1 == 1
+    {
+      u1, v1, w1 := new U[1], new V[1], new W[1];
+      u2, v2, w2 := new U[1, 1], new V[1, 1], new W[1, 1];
+    }
+  }
+
+  datatype DaTy<X> = DaTy(get: X)
+  datatype DaTy2<X> = Nothing | DaTy2(get: X)
+
+  class MyClass { }
+
+  method Gimmie<R(0)>() returns (r: R) { }
+  method Gimmie2<R(0), S(0)>() returns (r: R, s: S) { }
+
+  function method Id<X>(x: X): X { x }
+
+  method NilRegression3() {
+    // test out-parameters of methods
+    var x0: object? := Gimmie();
+    var x1: Trait? := Gimmie();
+    print x0, " ", x1, "\n";
+    x0, x1 := Gimmie2();
+    print x0, " ", x1, "\n";
+
+    // test fields
+    var c := new GClass<object?, Trait?, MyClass?>();
+    var u: object? := c.u;
+    var v: Trait? := c.v;
+    var w: MyClass? := c.w;
+    print u, " ", v, " ", w, "\n";
+    u, v, w := c.u', c.v', c.w';
+    print u, " ", v, " ", w, "\n";
+
+    // test arrays
+    u, v, w := c.u1[0], c.v1[0], c.w1[0];
+    print u, " ", v, " ", w, "\n";
+    u, v, w := c.u2[0, 0], c.v2[0, 0], c.w2[0, 0];
+    print u, " ", v, " ", w, "\n";
+
+    // make sure casts can be in the middle of an expression
+    var x: Trait? := if u == v then c.v else (((c.v)));
+    // test result of functions
+    var y: Trait? := Id(x);
+    print x, " ", y, "\n";
+
+    // test datatype destructors
+    u, v, w := DaTy(u).get, DaTy(v).get, DaTy(w).get;
+    print u, " ", v, " ", w, "\n";
+    u, v, w := DaTy2(u).get, DaTy2(v).get, DaTy2(w).get;
+    print u, " ", v, " ", w, "\n";
   }
 }
