@@ -385,6 +385,9 @@
       case MultiSetDisplayExpr multiSetDisplayExpression:
         Visit(multiSetDisplayExpression);
         break;
+      case SeqDisplayExpr sequenceDisplayExpression:
+        Visit(sequenceDisplayExpression);
+        break;
       default:
         VisitUnknown(expression, expression.tok);
         break;
@@ -511,6 +514,12 @@
 
     public virtual void Visit(MultiSetDisplayExpr multiSetDisplayExpression) {
       foreach(var element in multiSetDisplayExpression.Elements) {
+        Visit(element);
+      }
+    }
+
+    public virtual void Visit(SeqDisplayExpr sequenceDisplayExpression) {
+      foreach(var element in sequenceDisplayExpression.Elements) {
         Visit(element);
       }
     }
