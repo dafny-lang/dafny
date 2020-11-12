@@ -278,8 +278,13 @@
 
     public virtual void Visit(ReturnStmt returnStatement) {
       VisitNullableAttributes(returnStatement.Attributes);
-      foreach(var rhs in returnStatement.rhss) {
-        Visit(rhs);
+      if(returnStatement.rhss != null) {
+        // In integration test run on ubuntu showed that this might be null.
+        // https://github.com/DafnyVSCode/language-server-csharp/runs/1390714082?check_suite_focus=true#step:9:907
+        // At the time of this writing, there is no contract in dafny-lang enforcing non-null - so this should be true.
+        foreach(var rhs in returnStatement.rhss) {
+          Visit(rhs);
+        }
       }
     }
 
