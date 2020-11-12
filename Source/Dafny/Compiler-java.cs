@@ -1279,9 +1279,10 @@ namespace Microsoft.Dafny{
           return EnclosedLvalue(prefixWr.ToString(), obj, $".{wr.ToString()}");
         }
       } else {
-        Contract.Assert(member is Field);
+        var field = (Field)member;
+        ILvalue lvalue;
         if (member.IsStatic) {
-          return SimpleLvalue(w => {
+          lvalue = SimpleLvalue(w => {
             w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));
             EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w);
             w.Write(")");
@@ -1289,27 +1290,28 @@ namespace Microsoft.Dafny{
         } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
           // instance const in a newtype
           Contract.Assert(typeArgs.Count == 0);
-          return SimpleLvalue(w => {
+          lvalue = SimpleLvalue(w => {
             w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));
             obj(w);
             w.Write(")");
           });
         } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
-          return SuffixLvalue(obj, $"._{member.CompileName}");
+          lvalue = SuffixLvalue(obj, $"._{member.CompileName}");
         } else if (internalAccess) {
-          return SuffixLvalue(obj, $".{IdName(member)}");
+          lvalue = SuffixLvalue(obj, $".{IdName(member)}");
         } else if (member is ConstantField) {
-          return SimpleLvalue(w => {
+          lvalue = SimpleLvalue(w => {
             obj(w);
             w.Write(".{0}(", IdName(member));
             EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), member.tok, w);
             w.Write(")");
           });
         } else if (member.EnclosingClass is TraitDecl) {
-          return GetterSetterLvalue(obj, IdName(member), $"set_{IdName(member)}");
+          lvalue = GetterSetterLvalue(obj, IdName(member), $"set_{IdName(member)}");
         } else {
-          return SuffixLvalue(obj, $".{IdName(member)}");
+          lvalue = SuffixLvalue(obj, $".{IdName(member)}");
         }
+        return CoercedLvalue(lvalue, field.Type, expectedType);
       }
     }
 
@@ -3517,6 +3519,33 @@ namespace Microsoft.Dafny{
       TrParenExpr(function, wr, inLetExprBody);
       wr.Write(".apply");
       TrExprList(arguments, wr, inLetExprBody);
+    }
+
+    protected override bool NeedsCastFromTypeParameter => true;
+
+    protected override bool IsCoercionNecessary(Type/*?*/ from, Type/*?*/ to) {
+      if (from == null || to == null || !from.IsArrayType || !to.IsArrayType) {
+        return false;
+      }
+      var dims = from.AsArrayType.Dims;
+      Contract.Assert(dims == to.AsArrayType.Dims);
+      if (dims > 1) {
+        return false;
+      }
+      var udtFrom = (UserDefinedType)from.NormalizeExpand();
+      var udtTo = (UserDefinedType)to.NormalizeExpand();
+      if (!udtFrom.TypeArgs[0].IsTypeParameter || udtTo.TypeArgs[0].IsTypeParameter) {
+        return false;
+      }
+      return true;
+    }
+
+    protected override TargetWriter EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, Bpl.IToken tok, TargetWriter wr) {
+      if (IsCoercionNecessary(from, to)) {
+        return EmitDowncast(from, to, tok, wr);
+      } else {
+        return wr;
+      }
     }
 
     protected override TargetWriter EmitDowncast(Type from, Type to, Bpl.IToken tok, TargetWriter wr) {

@@ -2798,9 +2798,8 @@ namespace Microsoft.Dafny {
     }
 
     public static Type ArrayElementType(Type type) {
-      Contract.Requires(type.IsArrayType);
-
       Contract.Requires(type != null);
+      Contract.Requires(type.IsArrayType);
       Contract.Ensures(Contract.Result<Type>() != null);
 
       UserDefinedType udt = DenotesClass(type);

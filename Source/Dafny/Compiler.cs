@@ -302,7 +302,6 @@ namespace Microsoft.Dafny {
     protected virtual bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => false;
     protected virtual BlockTargetWriter EmitMethodReturns(Method m, BlockTargetWriter wr) { return wr; } // for languages that need explicit return statements not provided by Dafny
     protected virtual bool SupportsMultipleReturns { get => false; }
-    protected virtual bool NeedsCastFromTypeParameter { get => false; }
     protected virtual bool SupportsAmbiguousTypeDecl { get => true; }
     protected virtual bool ClassesRedeclareInheritedFields => true;
     protected virtual void AddTupleToSet(int i) { }
@@ -569,8 +568,18 @@ namespace Microsoft.Dafny {
     protected abstract void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr);
     protected abstract TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr);
     protected abstract void EmitTupleSelect(string prefix, int i, TargetWriter wr);
+
+    protected virtual bool NeedsCastFromTypeParameter => false;
+
+    protected virtual bool IsCoercionNecessary(Type /*?*/ from, Type /*?*/ to) {
+      return NeedsCastFromTypeParameter;
+    }
+
     /// <summary>
-    /// If "from" and "to" are both given, and if a "from" needs an explicit coercion in order to become a "to", emit that coercion.  Needed in languages where either (a) we need to represent upcasts as explicit operations (like Go) or (b) there's static typing but no parametric polymorphism (like Go) so that lots of things need to be boxed and unboxed.
+    /// If "from" and "to" are both given, and if a "from" needs an explicit coercion in order to become a "to", emit that coercion.
+    /// Needed in languages where either
+    ///   (a) we need to represent upcasts as explicit operations (like Go, or array types in Java), or
+    ///   (b) there's static typing but no parametric polymorphism (like Go) so that lots of things need to be boxed and unboxed.
     /// </summary>
     protected virtual TargetWriter EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, Bpl.IToken tok, TargetWriter wr) {
       return wr;
@@ -3919,10 +3928,9 @@ namespace Microsoft.Dafny {
           if (!p.IsGhost) {
             string target = idGenerator.FreshId("_out");
             outTmps.Add(target);
+            var instantiatedType = Resolver.SubstType(p.Type, s.MethodSelect.TypeArgumentSubstitutionsWithParents());
             Type type;
-            if (!NeedsCastFromTypeParameter) {
-              type = Resolver.SubstType(p.Type, s.MethodSelect.TypeArgumentSubstitutionsWithParents());
-            } else {
+            if (NeedsCastFromTypeParameter && IsCoercionNecessary(p.Type, instantiatedType)) {
               //
               // The type of the parameter will differ from the LHS type in a
               // situation like this:
@@ -3962,6 +3970,8 @@ namespace Microsoft.Dafny {
               // this comes up (JavaScript), so we only do this if
               // NeedsCastFromTypeParameter is on.
               type = p.Type;
+            } else {
+              type = instantiatedType;
             }
             if (s.Method.IsExtern(out _, out _)) {
               type = NativeForm(type);
@@ -4000,15 +4010,12 @@ namespace Microsoft.Dafny {
         } else if (!s.Method.IsStatic) {
           TrParenExpr(s.Receiver, wr, false);
           wr.Write(ClassAccessor);
+        } else if (s.Method.IsExtern(out var qual, out var compileName) && qual != null) {
+          wr.Write("{0}{1}", qual, ModuleSeparator);
+          protectedName = compileName;
         } else {
-          string qual, compileName;
-          if (s.Method.IsExtern(out qual, out compileName) && qual != null) {
-            wr.Write("{0}{1}", qual, ModuleSeparator);
-            protectedName = compileName;
-          } else {
-            wr.Write(TypeName_Companion(s.Receiver.Type, wr, s.Tok, s.Method));
-            wr.Write(ModuleSeparator);
-          }
+          wr.Write(TypeName_Companion(s.Receiver.Type, wr, s.Tok, s.Method));
+          wr.Write(ModuleSeparator);
         }
         var typeArgs = CombineAllTypeArguments(s.Method, s.MethodSelect.TypeApplication_AtEnclosingClass, s.MethodSelect.TypeApplication_JustMember);
         EmitNameAndActualTypeArgs(protectedName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, s.Method, false)), s.Tok, wr);

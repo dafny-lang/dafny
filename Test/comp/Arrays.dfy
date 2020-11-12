@@ -65,6 +65,8 @@ method Main() {
   Index();
   More();
   MoreWithDefaults();
+
+  Coercions();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -213,6 +215,7 @@ method MoreWithDefaults() {
     aa[i] := if aa[i] == '\0' then 'a' else aa[i];  // don't print ugly '\0' characters into test output
   }
   /**** TODO: Include this when this has been fixed for C#
+  // TODO: The following should NOT print "D D D", since 'D' is not a value is xlowercase!
   PrintArray(aa);  // D D D
   ****/
 
@@ -238,4 +241,78 @@ method MoreWithDefaults() {
   }
   print kitchenSink, "\n";  // (D, 0, false, 0, 0, 0, 0)
   ****/
+}
+
+method Coercions() {
+  // fields
+  var cell := new Cell(8 as short);
+  var a := cell.arr;
+  var x := a[0];
+
+  var b := new short[22];
+  var y := b[0];
+
+  print x, " ", y, "\n";  // 8 0
+
+  // different types of arrays, where coercions may not be needed
+  var c := new bool[22];
+  var d := new int[22];
+  var e := new object?[22];
+  var f := new Cell?<real>[22];
+  var c0, d0, e0, f0 := c[0], d[0], e[0], f[0];
+  print c0, " ", d0, " ", e0, " ", f0, "\n";
+
+  // function
+  a := cell.FArray();
+  // method with one out-parameter
+  b := cell.MArray();
+  x, y := a[0], b[0];
+  print x, " ", y, "\n";
+  // method with two out-parameters (which may need different compilation scheme)
+  a, b := cell.MArray2();
+  x, y := a[0], b[0];
+  print x, " ", y, "\n";
+
+  // lambda expression
+  b := (sa => sa)(b);
+  // array element
+  var barray := new array<short>[9](_ => b);
+  x, y := b[0], barray[3][0];
+  print x, " ", y, "\n";
+
+  // multi-dimensional arrays
+  var marray := new array<short>[9, 2]((_, _) => b);
+  x, y := marray[3, 1][0], cell.mat[7, 6];
+  print x, " ", y, "\n";
+}
+
+newtype short = x | -10 <= x < 12_000
+
+class Cell<T> {
+  var arr: array<T>
+  const crr: array<T>
+  var mat: array2<T>
+  constructor (t: T)
+    ensures arr.Length == 15 && arr == crr
+    ensures mat.Length0 == mat.Length1 == 15
+  {
+    arr := new T[15](_ => t);
+    crr := arr;
+    mat := new T[15, 15]((_, _) => t);
+  }
+  function method FArray(): array<T>
+    reads this
+  {
+    arr
+  }
+  method MArray() returns (x: array<T>)
+    ensures x == arr
+  {
+    x := arr;
+  }
+  method MArray2() returns (x: array<T>, y: array<T>)
+    ensures x == y == arr
+  {
+    x, y := arr, arr;
+  }
 }
