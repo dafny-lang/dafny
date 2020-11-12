@@ -2,7 +2,7 @@
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
-  public class FunctionSymbol : Symbol, ILocalizableSymbol {
+  public class FunctionSymbol : MemberSymbol, ILocalizableSymbol {
     public Function Declaration { get; }
     public object Node => Declaration;
 
@@ -10,12 +10,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     public override IEnumerable<ISymbol> Children => Parameters;
 
-    public FunctionSymbol(ISymbol? scope, Function function) : base(scope, function.Name) {
+    public FunctionSymbol(ISymbol? scope, Function function) : base(scope, function) {
       Declaration = function;
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
-      return $"{Declaration.WhatKind} {Declaration.Name}({Declaration.Formals.AsCommaSeperatedText()}): {Declaration.ResultType.AsText()}";
+      return $"{Declaration.WhatKind} {ClassPrefix}{Declaration.Name}({Declaration.Formals.AsCommaSeperatedText()}): {Declaration.ResultType.AsText()}";
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

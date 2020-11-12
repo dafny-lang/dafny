@@ -1,17 +1,17 @@
 ﻿using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
-  public class FieldSymbol : Symbol, ILocalizableSymbol {
+  public class FieldSymbol : MemberSymbol, ILocalizableSymbol {
     public Field Declaration { get; }
     public object Node => Declaration;
 
-    public FieldSymbol(ISymbol? scope, Field field) : base(scope, field.Name) {
+    public FieldSymbol(ISymbol? scope, Field field) : base(scope, field) {
       Declaration = field;
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
       var prefix = Declaration.IsMutable ? "var" : "const";
-      return $"{prefix} {Declaration.Name}: {Declaration.Type}";
+      return $"{prefix} {ClassPrefix}{Declaration.Name}: {Declaration.Type}";
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {
