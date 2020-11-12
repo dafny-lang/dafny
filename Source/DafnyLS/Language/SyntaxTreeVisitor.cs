@@ -316,7 +316,7 @@
 
     public virtual void Visit(ForallStmt forAllStatement) {
       VisitNullableAttributes(forAllStatement.Attributes);
-      Visit(forAllStatement.Body);
+      VisitNullableStatement(forAllStatement.Body);
     }
 
     public virtual void Visit(PrintStmt printStatement) {
@@ -331,39 +331,15 @@
       case LiteralExpr literalExpression:
         Visit(literalExpression);
         break;
-      //case DatatypeValue dataTypeValue:
-      //  Visit(dataTypeValue);
-      //  break;
       case ThisExpr thisExpression:
         Visit(thisExpression);
         break;
       case IdentifierExpr identifierExpression:
         Visit(identifierExpression);
         break;
-      //case DisplayExpression displayExpression:
-      //  Visit(displayExpression);
-      //  break;
-      //case MapDisplayExpr mapDisplayExpression:
-      //  Visit(mapDisplayExpression);
-      //  break;
-      //case MemberSelectExpr memberSelectExpression:
-      //  Visit(memberSelectExpression);
-      //  break;
       case SeqSelectExpr sequenceSelectExpression:
         Visit(sequenceSelectExpression);
         break;
-      //case MultiSelectExpr multiSelectExpression:
-      //  Visit(multiSelectExpression);
-      //  break;
-      //case SeqUpdateExpr sequenceUpdateExpression:
-      //  Visit(sequenceUpdateExpression);
-      //  break;
-      //case MultiSetFormingExpr multiSetFormingExpression:
-      //  Visit(multiSetFormingExpression);
-      //  break;
-      //case UnchangedExpr unchangedExpr:
-      //  Visit(unchangedExpr);
-      //  break;
       case UnaryExpr unaryExpression:
         Visit(unaryExpression);
         break;
@@ -373,33 +349,6 @@
       case TernaryExpr ternaryExpression:
         Visit(ternaryExpression);
         break;
-      //case LetExpr letExpression:
-      //  Visit(letExpression);
-      //  break;
-      //case NamedExpr namedExpression:
-      //  Visit(namedExpression);
-      //  break;
-      //case ComprehensionExpr comprehensionExpression:
-      //  Visit(comprehensionExpression);
-      //  break;
-      //case WildcardExpr wildcardExpression:
-      //  Visit(wildcardExpression);
-      //  break;
-      //case StmtExpr statementExpression:
-      //  Visit(statementExpression);
-      //  break;
-      //case MatchExpr matchExpression:
-      //  Visit(matchExpression);
-      //  break;
-      //case BoxingCastExpr boxingCastExpression:
-      //  Visit(boxingCastExpression);
-      //  break;
-      //case UnboxingCastExpr unboxingCastExpression:
-      //  Visit(unboxingCastExpression);
-      //  break;
-      //case ConcreteSyntaxExpression concreteSyntaxExpression:
-      //  Visit(concreteSyntaxExpression);
-      //  break;
       case NameSegment nameSegment:
         Visit(nameSegment);
         break;
@@ -430,11 +379,14 @@
       case NestedMatchExpr nestedMatchExpression:
         Visit(nestedMatchExpression);
         break;
+      case SetDisplayExpr setDisplayExpression:
+        Visit(setDisplayExpression);
+        break;
       case MultiSetDisplayExpr multiSetDisplayExpression:
         Visit(multiSetDisplayExpression);
         break;
-      case null:
-        // TODO This most-likely occured while typing. Maybe log this situation.
+      case SeqDisplayExpr sequenceDisplayExpression:
+        Visit(sequenceDisplayExpression);
         break;
       default:
         VisitUnknown(expression, expression.tok);
@@ -538,7 +490,7 @@
 
     public virtual void Visit(ForallExpr forAllExpression) {
       VisitNullableAttributes(forAllExpression.Attributes);
-      Visit(forAllExpression.Range);
+      VisitNullableExpression(forAllExpression.Range);
       Visit(forAllExpression.Term);
     }
 
@@ -554,8 +506,20 @@
       Visit(nestedMatchCaseExpression.Body);
     }
 
+    public virtual void Visit(SetDisplayExpr setDisplayExpression) {
+      foreach(var element in setDisplayExpression.Elements) {
+        Visit(element);
+      }
+    }
+
     public virtual void Visit(MultiSetDisplayExpr multiSetDisplayExpression) {
       foreach(var element in multiSetDisplayExpression.Elements) {
+        Visit(element);
+      }
+    }
+
+    public virtual void Visit(SeqDisplayExpr sequenceDisplayExpression) {
+      foreach(var element in sequenceDisplayExpression.Elements) {
         Visit(element);
       }
     }
