@@ -276,7 +276,7 @@ namespace Microsoft.Dafny.Triggers {
         return false;
       }
       BinaryExpr e = (BinaryExpr) expr;
-      bool isReal = e.E0.Type.IsNumericBased(Type.NumericPersuation.Real);
+      bool isReal = e.E0.Type.IsNumericBased(Type.NumericPersuasion.Real);
       switch (e.ResolvedOp) {
         case BinaryExpr.ResolvedOpcode.Lt:
         case BinaryExpr.ResolvedOpcode.Le:

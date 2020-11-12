@@ -11,7 +11,7 @@ Dafny is a programming language with a program verifier. As you type in your pro
 
 Documentation about the dafny language and tools is located 
 [here](https://dafny-lang.github.io/dafny).
-A reference manual is available both [online](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef) and as [pdf](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef.pdf). (A LaTeX version can be produced if needed.)
+A reference manual is available both [online](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef) and as [pdf](https://github.com/dafny-lang/dafny/blob/master/docs/DafnyRef/out/DafnyRef.pdf). (A LaTeX version can be produced if needed.)
 
 # Community
 
@@ -42,7 +42,7 @@ Here are some ways to get started with Dafny:
 * Dafny [Quick Reference](https://dafny-lang.github.io/dafny/QuickReference)
 * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
 * [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages
-* Dafny Reference Manual [[html](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef)] [[pdf](https://github.com/dafny-lang/dafny/blob/master/docs/DafnyReference/DafnyRef.pdf)]
+* Dafny Reference Manual [[html](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef)] [[pdf](https://github.com/dafny-lang/dafny/blob/master/docs/DafnyRef/out/DafnyRef.pdf)]
 * [Dafny Power User](http://leino.science/dafny-power-user)
 * Videos at [Verification Corner](https://www.youtube.com/channel/UCP2eLEql4tROYmIYm5mA27A)
 
