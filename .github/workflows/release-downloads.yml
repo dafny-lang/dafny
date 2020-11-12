@@ -56,10 +56,10 @@ jobs:
     - if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        Invoke-WebRequest "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | select-string 'browser_download_url' -Raw -SimpleMatch
-        Invoke-WebRequest "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | select-string 'browser_download_url' -Raw -SimpleMatch | select-string ${{matrix.osn}} -Raw -SimpleMatch
-        Invoke-WebRequest "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | select-string 'browser_download_url' -Raw -SimpleMatch | select-string ${{matrix.osn}} -Raw -SimpleMatch | % {$_.replace("browser_download_url","").replace("`"","")}
-        Invoke-WebRequest "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | select-string 'browser_download_url' -Raw -SimpleMatch | select-string ${{matrix.osn}} -Raw -SimpleMatch | % {$_.replace("browser_download_url","").replace("`"","")}
+        Invoke-WebRequest "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | %{$_.replace(",","`n,`n)} | select-string 'browser_download_url' -Raw -SimpleMatch
+        Invoke-WebRequest "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | %{$_.replace(",","`n,`n)} | select-string 'browser_download_url' -Raw -SimpleMatch | select-string ${{matrix.osn}} -Raw -SimpleMatch
+        Invoke-WebRequest "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | %{$_.replace(",","`n,`n)} | select-string 'browser_download_url' -Raw -SimpleMatch | select-string ${{matrix.osn}} -Raw -SimpleMatch | % {$_.replace("browser_download_url","").replace("`"","")}
+        Invoke-WebRequest "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | %{$_.replace(",","`n,`n)} | select-string 'browser_download_url' -Raw -SimpleMatch | select-string ${{matrix.osn}} -Raw -SimpleMatch | % {$_.replace("browser_download_url","").replace("`"","")}
         Invoke-WebRequest -Outfile dafnyX.zip -Uri $(Invoke-WebRequest "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | select-string 'browser_download_url' -Raw -SimpleMatch | select-string ${{matrix.osn}} -Raw -SimpleMatch | % {$_.replace("browser_download_url","").replace("`"","")})
         ##Invoke-WebRequest -Outfile dafnyX.zip -Uri $Env:URL1
         Invoke-WebRequest -Outfile z3X.zip -Uri $Env:URL2
