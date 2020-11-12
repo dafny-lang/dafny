@@ -271,7 +271,7 @@ namespace Microsoft.Dafny {
       if (superClasses != null) {
         // Emit a method that returns the ID of each parent trait
         var parentTraitsWriter = w.NewBlock($"func (_this *{name}) ParentTraits_() []*_dafny.TraitID");
-        parentTraitsWriter.WriteLine("return [](*_dafny.TraitID){{{0}}};", Util.Comma(", ", superClasses, parent => {
+        parentTraitsWriter.WriteLine("return [](*_dafny.TraitID){{{0}}};", Util.Comma(superClasses, parent => {
           var trait = ((UserDefinedType)parent).ResolvedClass;
           return TypeName_Companion(trait, parentTraitsWriter, tok) + ".TraitID_";
         }));
@@ -1127,7 +1127,7 @@ namespace Microsoft.Dafny {
         if (outTypes.Count > 1) {
           wr.Write('(');
         }
-        wr.Write(Util.Comma(", ", outTypes, ty => TypeName(ty, wr, tok)));
+        wr.Write(Util.Comma(outTypes, ty => TypeName(ty, wr, tok)));
         if (outTypes.Count > 1) {
           wr.Write(')');
         }
@@ -1183,11 +1183,6 @@ namespace Microsoft.Dafny {
           EmitDummyVariableUse(FormatRTDName(tp.CompileName), wr);
         }
       }
-    }
-
-    private bool NeedsTypeDescriptor(TypeParameter tp) {
-      Contract.Requires(tp != null);
-      return tp.Characteristics.MustSupportZeroInitialization;
     }
 
     protected override int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
@@ -3027,8 +3022,8 @@ namespace Microsoft.Dafny {
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
       if (e.ToType.Equals(e.E.Type)) {
         TrParenExpr(e.E, wr, inLetExprBody);
-      } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType || e.E.Type.IsBigOrdinalType) {
-        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+      } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType || e.E.Type.IsBigOrdinalType) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // (int or bv or char) -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           wr.Write("_dafny.RealOfFrac(");
@@ -3108,9 +3103,9 @@ namespace Microsoft.Dafny {
             }
           }
         }
-      } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+      } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
         Contract.Assert(AsNativeType(e.E.Type) == null);
-        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody);
