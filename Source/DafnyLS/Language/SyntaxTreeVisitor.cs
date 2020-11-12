@@ -316,7 +316,7 @@
 
     public virtual void Visit(ForallStmt forAllStatement) {
       VisitNullableAttributes(forAllStatement.Attributes);
-      Visit(forAllStatement.Body);
+      VisitNullableStatement(forAllStatement.Body);
     }
 
     public virtual void Visit(PrintStmt printStatement) {
