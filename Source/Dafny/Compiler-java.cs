@@ -666,8 +666,11 @@ namespace Microsoft.Dafny{
         }
 
         // When accessing a static member, leave off the type arguments
-        var typeArgs = member != null ? new List<Type>() : udt.TypeArgs;
-        return TypeName_UDT(s, typeArgs, wr, udt.tok);
+        if (member != null) {
+          return TypeName_UDT(s, new List<TypeParameter.TPVariance>(), new List<Type>(), wr, udt.tok);
+        } else {
+          return TypeName_UDT(s, udt, wr, udt.tok);
+        }
       } else if (xType is SetType) {
         var argType = ((SetType)xType).Arg;
         if (erased) {
@@ -770,13 +773,20 @@ namespace Microsoft.Dafny{
       return true;
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
+      Contract.Assume(variance != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
+      Contract.Assume(variance.Count == typeArgs.Count);
       string s = IdProtect(fullCompileName);
       if (typeArgs.Count != 0) {
-        if (typeArgs.Exists(ComplicatedTypeParameterForCompilation)) {
-          Error(tok, "compilation does not support trait types as a type parameter; consider introducing a ghost", wr);
+        for (var i = 0; i < typeArgs.Count; i++) {
+          var v = variance[i];
+          var ta = typeArgs[i];
+          if (ComplicatedTypeParameterForCompilation(v, ta)) {
+            Error(tok, "compilation does not support trait types as a type parameter (got '{0}'{1}); consider introducing a ghost", wr,
+              ta, typeArgs.Count == 1 ? "" : $" for type parameter {i}");
+          }
         }
         s += "<" + BoxedTypeNames(typeArgs, wr, tok) + ">";
       }
@@ -1313,7 +1323,7 @@ namespace Microsoft.Dafny{
         if (member != null && (member.IsStatic || NeedsCustomReceiver(member)) && member.EnclosingClass.TypeArgs.Count != 0) {
           return IdProtect(udt.FullCompanionCompileName);
         } else {
-          return TypeName_UDT(udt.FullCompanionCompileName, udt.TypeArgs, wr, tok);
+          return TypeName_UDT(udt.FullCompanionCompileName, udt, wr, tok);
         }
       } else {
         return TypeName(type, wr, tok, member);

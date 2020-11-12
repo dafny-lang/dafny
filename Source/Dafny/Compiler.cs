@@ -235,7 +235,21 @@ namespace Microsoft.Dafny {
       return TypeName(type, wr, tok);
     }
     public abstract string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool valueSkeletonOnly);
-    protected abstract string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok);
+
+    protected string TypeName_UDT(string fullCompileName, UserDefinedType udt, TextWriter wr, Bpl.IToken tok) {
+      Contract.Requires(fullCompileName != null);
+      Contract.Requires(udt != null);
+      Contract.Requires(wr != null);
+      Contract.Requires(tok != null);
+      Contract.Requires(udt.TypeArgs.Count == (udt.ResolvedClass == null ? 0 : udt.ResolvedClass.TypeArgs.Count));
+      if (udt.ResolvedClass == null) {
+        Contract.Assert(udt.ResolvedParam != null);
+        return TypeName_UDT(fullCompileName, new List<TypeParameter.TPVariance>(), udt.TypeArgs, wr, tok);
+      } else {
+        return TypeName_UDT(fullCompileName, udt.ResolvedClass.TypeArgs.ConvertAll(tp => tp.Variance), udt.TypeArgs, wr, tok);
+      }
+    }
+    protected abstract string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok);
     protected abstract string/*?*/ TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member);
     protected string TypeName_Companion(TopLevelDecl cls, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(cls != null);
@@ -2373,9 +2387,9 @@ namespace Microsoft.Dafny {
       return name + "]";
     }
 
-    protected bool ComplicatedTypeParameterForCompilation(Type t) {
+    protected bool ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance v, Type t) {
       Contract.Requires(t != null);
-      return t.IsTraitType;
+      return v != TypeParameter.TPVariance.Non && t.IsTraitType;
     }
 
     protected string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types, TextWriter wr, Bpl.IToken tok) {

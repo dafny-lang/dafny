@@ -903,30 +903,30 @@ namespace Microsoft.Dafny {
         if (class_name || xType.IsTypeParameter || xType.IsDatatype) {  // Don't add pointer decorations to class names or type parameters
           return IdProtect(s) + ActualTypeArgs(xType.TypeArgs);
         } else {
-          return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);
+          return TypeName_UDT(s, udt, wr, udt.tok);
         }
       } else if (xType is SetType) {
         Type argType = ((SetType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
+        if (ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance.Co, argType)) {
           Error(tok, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr);
         }
         return DafnySetClass + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is SeqType) {
         Type argType = ((SeqType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
+        if (ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance.Co, argType)) {
           Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
         }
         return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is MultiSetType) {
         Type argType = ((MultiSetType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
+        if (ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance.Co, argType)) {
           Error(tok, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr);
         }
         return DafnyMultiSetClass + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is MapType) {
         Type domType = ((MapType)xType).Domain;
         Type ranType = ((MapType)xType).Range;
-        if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) {
+        if (ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance.Co, domType) || ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance.Co, ranType)) {
           Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
         }
         return DafnyMapClass + "<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">";
@@ -1060,7 +1060,7 @@ namespace Microsoft.Dafny {
         ? String.Format(" <{0}> ", Util.Comma(typeArgs, tp => TypeName(tp, null, null))) : "";
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
       string s = IdProtect(fullCompileName);

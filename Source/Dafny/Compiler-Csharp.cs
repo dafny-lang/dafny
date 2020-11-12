@@ -1043,7 +1043,7 @@ namespace Microsoft.Dafny
             !cl.Module.IsDefaultModule) {
           s = cl.FullCompileName;
         }
-        return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);
+        return TypeName_UDT(s, udt, wr, udt.tok);
       } else if (xType is SetType) {
         Type argType = ((SetType)xType).Arg;
         return DafnyISet + "<" + TypeName(argType, wr, tok) + ">";
@@ -1130,7 +1130,7 @@ namespace Microsoft.Dafny
       if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
+          return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Witness";
         } else if (td.NativeType != null) {
           return "0";
         } else {
@@ -1139,7 +1139,7 @@ namespace Microsoft.Dafny
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Default()";
+          return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Default()";
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
           // WKind.Special is only used with -->, ->, and non-null types:
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
@@ -1193,13 +1193,20 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
+      Contract.Assume(variance != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
+      Contract.Assume(variance.Count == typeArgs.Count);
       string s = IdProtect(fullCompileName);
       if (typeArgs.Count != 0) {
-        if (typeArgs.Exists(ComplicatedTypeParameterForCompilation)) {
-          Error(tok, "compilation does not support trait types as a type parameter; consider introducing a ghost", wr);
+        for (var i = 0; i < typeArgs.Count; i++) {
+          var v = variance[i];
+          var ta = typeArgs[i];
+          if (ComplicatedTypeParameterForCompilation(v, ta)) {
+            Error(tok, "compilation does not support trait types as a type parameter (got '{0}'{1}); consider introducing a ghost", wr,
+              ta, typeArgs.Count == 1 ? "" : $" for type parameter {i}");
+          }
         }
         s += "<" + TypeNames(typeArgs, wr, tok) + ">";
       }
@@ -1209,7 +1216,7 @@ namespace Microsoft.Dafny
     protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       if (type is UserDefinedType udt && udt.ResolvedClass is TraitDecl) {
-        return TypeName_UDT(udt.FullCompanionCompileName, udt.TypeArgs, wr, tok);
+        return TypeName_UDT(udt.FullCompanionCompileName, udt, wr, tok);
       } else {
         return TypeName(type, wr, tok, member);
       }
@@ -1292,7 +1299,7 @@ namespace Microsoft.Dafny
           }
         }
 
-        return AddTypeDescriptorArgs(FullTypeName(udt), udt.TypeArgs, relevantTypeArgs, wr, tok);
+        return AddTypeDescriptorArgs(FullTypeName(udt), udt, relevantTypeArgs, wr, tok);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
@@ -1323,14 +1330,14 @@ namespace Microsoft.Dafny
       }
     }
 
-    private string AddTypeDescriptorArgs(string fullCompileName, List<Type> typeArgs, List<Type> typeDescriptors, TextWriter wr, Bpl.IToken tok) {
+    private string AddTypeDescriptorArgs(string fullCompileName, UserDefinedType udt, List<Type> typeDescriptors, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(fullCompileName != null);
-      Contract.Requires(typeArgs != null);
+      Contract.Requires(udt != null);
       Contract.Requires(typeDescriptors != null);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
 
-      var s = TypeName_UDT(fullCompileName, typeArgs, wr, tok);
+      var s = TypeName_UDT(fullCompileName, udt, wr, tok);
       s += $"._TypeDescriptor({Util.Comma(typeDescriptors, arg => TypeDescriptor(arg, wr, tok))})";
       return s;
     }
@@ -2294,7 +2301,8 @@ namespace Microsoft.Dafny
     }
 
     protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {
-      var typeArgs = TypeName_UDT(ArrowType.Arrow_FullCompileName, Util.Snoc(boundTypes, resultType), wr, tok);
+      var tas = Util.Snoc(boundTypes, resultType);
+      var typeArgs = TypeName_UDT(ArrowType.Arrow_FullCompileName, tas.ConvertAll(_ => TypeParameter.TPVariance.Non), tas, wr, tok);
       wr.Write("{0}.Id<{1}>(({2}) => ", DafnyHelpersClass, typeArgs, Util.Comma(boundVars));
       var w = wr.Fork();
       wr.Write(")");
