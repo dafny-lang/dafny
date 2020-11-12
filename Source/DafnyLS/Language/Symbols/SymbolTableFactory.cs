@@ -211,6 +211,18 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         return Unit.Value;
       }
 
+      public Unit Visit(ValueTypeSymbol valueTypeSymbol) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterLocation(
+          valueTypeSymbol,
+          valueTypeSymbol.Declaration.tok,
+          valueTypeSymbol.Declaration.tok.GetLspRange(),
+          new Range(valueTypeSymbol.Declaration.tok.GetLspPosition(), valueTypeSymbol.Declaration.BodyEndTok.GetLspPosition())
+        );
+        VisitChildren(valueTypeSymbol);
+        return Unit.Value;
+      }
+
       public Unit Visit(FieldSymbol fieldSymbol) {
         _cancellationToken.ThrowIfCancellationRequested();
         RegisterLocation(

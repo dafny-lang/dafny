@@ -1,5 +1,4 @@
-﻿using Microsoft.Dafny;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
