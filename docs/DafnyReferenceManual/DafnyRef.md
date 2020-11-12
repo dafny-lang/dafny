@@ -13,7 +13,7 @@ language and how to use the Dafny verification system.
 Parts of this manual are more tutorial in nature in order to help the
 user understand how to do proofs with Dafny.
 
-[Link to current document as pdf](https://dafny-lang.github.io/dafny/DafnyRef/out/DafnyRef.pdf)<br/>
+[Link to current document as pdf](https://github.com/dafny-lang/dafny/blob/master/docs/DafnyRef/out/DafnyRef.pdf)<br/>
 [Link to current document as html](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef)
 
 1. numbered toc
