@@ -331,39 +331,15 @@
       case LiteralExpr literalExpression:
         Visit(literalExpression);
         break;
-      //case DatatypeValue dataTypeValue:
-      //  Visit(dataTypeValue);
-      //  break;
       case ThisExpr thisExpression:
         Visit(thisExpression);
         break;
       case IdentifierExpr identifierExpression:
         Visit(identifierExpression);
         break;
-      //case DisplayExpression displayExpression:
-      //  Visit(displayExpression);
-      //  break;
-      //case MapDisplayExpr mapDisplayExpression:
-      //  Visit(mapDisplayExpression);
-      //  break;
-      //case MemberSelectExpr memberSelectExpression:
-      //  Visit(memberSelectExpression);
-      //  break;
       case SeqSelectExpr sequenceSelectExpression:
         Visit(sequenceSelectExpression);
         break;
-      //case MultiSelectExpr multiSelectExpression:
-      //  Visit(multiSelectExpression);
-      //  break;
-      //case SeqUpdateExpr sequenceUpdateExpression:
-      //  Visit(sequenceUpdateExpression);
-      //  break;
-      //case MultiSetFormingExpr multiSetFormingExpression:
-      //  Visit(multiSetFormingExpression);
-      //  break;
-      //case UnchangedExpr unchangedExpr:
-      //  Visit(unchangedExpr);
-      //  break;
       case UnaryExpr unaryExpression:
         Visit(unaryExpression);
         break;
@@ -373,33 +349,6 @@
       case TernaryExpr ternaryExpression:
         Visit(ternaryExpression);
         break;
-      //case LetExpr letExpression:
-      //  Visit(letExpression);
-      //  break;
-      //case NamedExpr namedExpression:
-      //  Visit(namedExpression);
-      //  break;
-      //case ComprehensionExpr comprehensionExpression:
-      //  Visit(comprehensionExpression);
-      //  break;
-      //case WildcardExpr wildcardExpression:
-      //  Visit(wildcardExpression);
-      //  break;
-      //case StmtExpr statementExpression:
-      //  Visit(statementExpression);
-      //  break;
-      //case MatchExpr matchExpression:
-      //  Visit(matchExpression);
-      //  break;
-      //case BoxingCastExpr boxingCastExpression:
-      //  Visit(boxingCastExpression);
-      //  break;
-      //case UnboxingCastExpr unboxingCastExpression:
-      //  Visit(unboxingCastExpression);
-      //  break;
-      //case ConcreteSyntaxExpression concreteSyntaxExpression:
-      //  Visit(concreteSyntaxExpression);
-      //  break;
       case NameSegment nameSegment:
         Visit(nameSegment);
         break;
