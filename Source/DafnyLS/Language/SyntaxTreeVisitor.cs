@@ -379,6 +379,9 @@
       case NestedMatchExpr nestedMatchExpression:
         Visit(nestedMatchExpression);
         break;
+      case SetDisplayExpr setDisplayExpression:
+        Visit(setDisplayExpression);
+        break;
       case MultiSetDisplayExpr multiSetDisplayExpression:
         Visit(multiSetDisplayExpression);
         break;
@@ -502,6 +505,12 @@
 
     public virtual void Visit(MultiSetDisplayExpr multiSetDisplayExpression) {
       foreach(var element in multiSetDisplayExpression.Elements) {
+        Visit(element);
+      }
+    }
+
+    public virtual void Visit(SetDisplayExpr setDisplayExpression) {
+      foreach(var element in setDisplayExpression.Elements) {
         Visit(element);
       }
     }
