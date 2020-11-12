@@ -783,34 +783,6 @@ namespace Microsoft.Dafny{
       return s;
     }
 
-    protected string TypeName_UDT(string fullCompileName, List<Type> inArgs, Type outArgs, TextWriter wr, Bpl.IToken tok) {
-      Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
-      Contract.Assume(inArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
-      Contract.Assume(outArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
-      string s = IdProtect(fullCompileName);
-      s += "<";
-      if (inArgs.Count > 1) {
-        if (inArgs.Exists(ComplicatedTypeParameterForCompilation)) {
-          Error(tok, "compilation does not support trait types as a type parameter; consider introducing a ghost", wr);
-        }
-        s += DafnyTupleClass(inArgs.Count) + "<" + BoxedTypeNames(inArgs, wr, tok) + ">";
-        tuples.Add(inArgs.Count);
-      } else {
-        if (inArgs.Exists(ComplicatedTypeParameterForCompilation)) {
-          Error(tok, "compilation does not support trait types as a type parameter; consider introducing a ghost", wr);
-        }
-        s += "" + BoxedTypeNames(inArgs, wr, tok) + "";
-      }
-      if (outArgs != null) {
-        if (inArgs.Count > 0){
-          s += ", ";
-        }
-        s += BoxedTypeName(outArgs, wr, tok) + "";
-      }
-      s += ">";
-      return s;
-    }
-
     // We write an extern class as a base class that the actual extern class
     // needs to extend, so the extern methods and functions need to be abstract
     // in the base class

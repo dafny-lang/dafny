@@ -1275,7 +1275,7 @@ namespace Microsoft.Dafny
         Contract.Assert(cl != null);
         bool isHandle = true;
         if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return $"Dafny.Helpers.INT64";
+          return "Dafny.Helpers.INT64";
         }
 
         List<Type> relevantTypeArgs;

@@ -133,10 +133,10 @@ var Int16Type = CreateStandardTypeDescriptor(int16(0))
 
 // Int32Type is the RTD of int32.
 var Int32Type = CreateStandardTypeDescriptor(int32(0))
+***************************** ARE THESE REALLY NEEDED? *****/
 
 // Int64Type is the RTD of int64.
 var Int64Type = CreateStandardTypeDescriptor(int64(0))
-***************************** ARE THESE REALLY NEEDED? *****/
 
 // PossiblyNullType is the RTD of any possibly null reference type
 var PossiblyNullType = CreateStandardTypeDescriptor((*interface{})(nil))

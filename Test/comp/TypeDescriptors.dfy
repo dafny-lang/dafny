@@ -78,7 +78,7 @@ method Main() {
   var cc := new TypeParameterViaClass("int", 16);
   cc.ItIsTime();
   var dd := TypeParameterViaDatatype<set<int>>.TPVD;
-//--TODO--  dd.CallMethod({14});
+  dd.CallMethod({14});
 
   var obj: object? := new object;
   MethodX("object?", obj);
@@ -115,9 +115,9 @@ class TypeParameterViaClass<B(0)> {
 }
 
 datatype TypeParameterViaDatatype<B(0)> = TPVD {
-/*--TODO--  method CallMethod(b: B) {
+  method CallMethod(b: B) {
     Method("datatype.B=", b);
-  }*/
+  }
 }
 
 type pos = x | 1 <= x witness 1

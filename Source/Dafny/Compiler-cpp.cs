@@ -789,6 +789,11 @@ namespace Microsoft.Dafny {
       return w;
     }
 
+    protected override void TypeArgDescUse(bool isStatic, bool memberHasBody, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
+      needsTypeParameter = isStatic;
+      needsTypeDescriptor = false;
+    }
+
     protected override string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(type != null);
       Contract.Requires(tok != null);

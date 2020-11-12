@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 11 verified, 0 errors
+Dafny program verifier finished with 12 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 int: 8 0
@@ -24,6 +24,7 @@ Record<int, Class<int, int>, Class<real, real>>: Record.SimpleRecord(5) Record.S
 Stream<int>: Stream.More
 A=int: 15 0
 B=int: 16 0
+datatype.B=: {14} {}
 object?: null
 Class?<pos, Stream<nat>>: null
 Trait?<seq<pos>>: null
@@ -55,6 +56,7 @@ Record<int, Class<int, int>, Class<real, real>>: Record.SimpleRecord(5) Record.S
 Stream<int>: Stream.More
 A=int: 15 0
 B=int: 16 0
+datatype.B=: {14} {}
 object?: null
 Class?<pos, Stream<nat>>: null
 Trait?<seq<pos>>: null
@@ -66,7 +68,7 @@ array?<int> ~> bool: null
 Dafny program verifier did not attempt verification
 int: 8 0
 bool: true false
-char: 'r' '\0'
+char: 'r' 'D'
 real: 1.618 0.0
 ORDINAL: 0
 bv0: 0 0
@@ -86,6 +88,7 @@ Record<int, Class<int, int>, Class<real, real>>: Record.SimpleRecord(5) Record.S
 Stream<int>: Stream.More
 A=int: 15 0
 B=int: 16 0
+datatype.B=: {14} {}
 object?: null
 Class?<pos, Stream<nat>>: null
 Trait?<seq<pos>>: null
@@ -97,7 +100,7 @@ array?<int> ~> bool: null
 Dafny program verifier did not attempt verification
 int: 8 0
 bool: true false
-char: 'r' '\0'
+char: 'r' 'D'
 real: 1.618 0.0
 ORDINAL: 0
 bv0: 0 0
@@ -117,6 +120,7 @@ Record<int, Class<int, int>, Class<real, real>>: Record.SimpleRecord(5) Record.S
 Stream<int>: Stream.More
 A=int: 15 0
 B=int: 16 0
+datatype.B=: {14} {}
 object?: null
 Class?<pos, Stream<nat>>: null
 Trait?<seq<pos>>: null
