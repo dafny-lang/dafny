@@ -11,7 +11,7 @@ Dafny is a programming language with a program verifier. As you type in your pro
 
 Documentation about the dafny language and tools is located 
 [here](https://dafny-lang.github.io/dafny).
-A reference manual is available both [online](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef) and as [pdf](https://dafny-lang.github.io/dafny/DafnyRef/out/DafnyRef.pdf). (A LaTeX version can be produced if needed.)
+A reference manual is available both [online](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef) and as [pdf](https://github.com/dafny-lang/dafny/blob/master/docs/DafnyRef/out/DafnyRef.pdf). (A LaTeX version can be produced if needed.)
 
 # Community
 
