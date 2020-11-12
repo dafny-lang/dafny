@@ -123,8 +123,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       private ValueTypeSymbol ProcessValueType(Symbol scope, ValuetypeDecl valueTypeDecarlation) {
         _cancellationToken.ThrowIfCancellationRequested();
-        var valueTypeSymbol = new ValueTypeSymbol(scope, valueTypeDecarlation);
-        return valueTypeSymbol;
+        return new ValueTypeSymbol(scope, valueTypeDecarlation);
       }
 
       private Symbol? ProcessClassMember(ClassSymbol scope, MemberDecl memberDeclaration) {

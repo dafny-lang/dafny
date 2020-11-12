@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
-  public class MethodSymbol : Symbol, ILocalizableSymbol {
+  public class MethodSymbol : MemberSymbol, ILocalizableSymbol {
     public Method Declaration { get; }
     public object Node => Declaration;
 
@@ -15,12 +15,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     // TODO We have to properly align the locals to their enclosing block to correctly handle shadowing.
     public override IEnumerable<ISymbol> Children => Locals.Concat(Parameters).Concat(Returns);
 
-    public MethodSymbol(ISymbol? scope, Method method) : base(scope, method.Name) {
+    public MethodSymbol(ISymbol? scope, Method method) : base(scope, method) {
       Declaration = method;
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
-      return $"method {Declaration.Name}({Declaration.Ins.AsCommaSeperatedText()}) returns ({Declaration.Outs.AsCommaSeperatedText()})";
+      return $"{Declaration.WhatKind} {ClassPrefix}{Declaration.Name}({Declaration.Ins.AsCommaSeperatedText()}) returns ({Declaration.Outs.AsCommaSeperatedText()})";
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

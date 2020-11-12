@@ -57,7 +57,7 @@ method DoIt() {
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nvar Length: int\n```", markup.Value);
+      Assert.AreEqual("```dafny\nconst array.Length: int\n```", markup.Value);
     }
 
     [TestMethod]
@@ -76,7 +76,7 @@ method DoIt() returns (x: int) {
       Assert.IsNotNull(hover);
       var markup = hover.Contents.MarkupContent;
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
-      Assert.AreEqual("```dafny\nfunction GetX(): int\n```", markup.Value);
+      Assert.AreEqual("```dafny\nfunction A.GetX(): int\n```", markup.Value);
     }
 
     [TestMethod]
