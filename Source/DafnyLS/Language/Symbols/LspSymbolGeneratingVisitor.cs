@@ -50,6 +50,18 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       );
     }
 
+    public DocumentSymbol Visit(ValueTypeSymbol valueTypeSymbol) {
+      return WithLocation(
+        valueTypeSymbol,
+        new DocumentSymbol {
+          Name = valueTypeSymbol.Identifier,
+          Kind = SymbolKind.Struct,
+          Detail = valueTypeSymbol.GetDetailText(_cancellationToken),
+          Children = valueTypeSymbol.Children.Select(child => child.Accept(this)).ToArray()
+        }
+      );
+    }
+
     public DocumentSymbol Visit(FieldSymbol fieldSymbol) {
       _cancellationToken.ThrowIfCancellationRequested();
       return WithLocation(

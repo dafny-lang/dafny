@@ -97,16 +97,18 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         _cancellationToken.ThrowIfCancellationRequested();
         switch(topLevelDeclaration) {
         case ClassDecl classDeclaration:
-          return ProcessClassDeclaration(moduleSymbol, classDeclaration);
+          return ProcessClass(moduleSymbol, classDeclaration);
         case LiteralModuleDecl literalModuleDeclaration:
           return ProcessModule(moduleSymbol, literalModuleDeclaration.ModuleDef);
+        case ValuetypeDecl valueTypeDeclaration:
+          return ProcessValueType(moduleSymbol, valueTypeDeclaration);
         default:
-          _logger.LogWarning("encountered unknown top level declaration {}", topLevelDeclaration.GetType());
+          _logger.LogWarning("encountered unknown top level declaration {} of type {}", topLevelDeclaration.Name, topLevelDeclaration.GetType());
           return null;
         }
       }
 
-      private ClassSymbol ProcessClassDeclaration(Symbol scope, ClassDecl classDeclaration) {
+      private ClassSymbol ProcessClass(Symbol scope, ClassDecl classDeclaration) {
         _cancellationToken.ThrowIfCancellationRequested();
         var classSymbol = new ClassSymbol(scope, classDeclaration);
         foreach(var member in classDeclaration.Members) {
@@ -117,6 +119,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           }
         }
         return classSymbol;
+      }
+
+      private ValueTypeSymbol ProcessValueType(Symbol scope, ValuetypeDecl valueTypeDecarlation) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        var valueTypeSymbol = new ValueTypeSymbol(scope, valueTypeDecarlation);
+        return valueTypeSymbol;
       }
 
       private Symbol? ProcessClassMember(ClassSymbol scope, MemberDecl memberDeclaration) {
