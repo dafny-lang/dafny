@@ -24,4 +24,13 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\..\dafny\Test\dafny3\GenericSort.dfy" Link="Various\TestFiles\GenericSort.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\dafny\Test\dafny4\GHC-MergeSort.dfy" Link="Various\TestFiles\GHC-MergeSort.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
