@@ -503,14 +503,14 @@
       Visit(nestedMatchCaseExpression.Body);
     }
 
-    public virtual void Visit(MultiSetDisplayExpr multiSetDisplayExpression) {
-      foreach(var element in multiSetDisplayExpression.Elements) {
+    public virtual void Visit(SetDisplayExpr setDisplayExpression) {
+      foreach(var element in setDisplayExpression.Elements) {
         Visit(element);
       }
     }
 
-    public virtual void Visit(SetDisplayExpr setDisplayExpression) {
-      foreach(var element in setDisplayExpression.Elements) {
+    public virtual void Visit(MultiSetDisplayExpr multiSetDisplayExpression) {
+      foreach(var element in multiSetDisplayExpression.Elements) {
         Visit(element);
       }
     }
