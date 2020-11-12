@@ -45,7 +45,7 @@ jobs:
     - name: Download ${{matrix.os}} releases ( ${{matrix.osn}} )
       if: runner.os != 'Windows'
       run: |
-        wget -q `curl --silent "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | grep 'browser_download_url' |  grep ${{matrix.osn}} | sed -e 's@"browser_download_url":@@' -e 's@"@@g'`
+        wget -q `curl --silent "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | grep 'browser_download_url' |  grep "${{matrix.osna}}" | sed -e 's@"browser_download_url":@@' -e 's@"@@g'`
         wget -q $URL2
         unzip dafny*.zip && rm dafny*.zip
         chmod +x dafny/Dafny.exe
@@ -59,7 +59,8 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        Invoke-WebRequest -Outfile dafnyX.zip -Uri $Env:(curl --silent "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | grep 'browser_download_url' |  grep ${{matrix.osn}} | sed -e 's@"browser_download_url":@@' -e 's@"@@g')
+        Invoke-WebRequest -Outfile dafnyX.zip -Uri $Env:(Invoke-WebRequest "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | select-string 'browser_download_url' -replace "" | select-string ${{matrix.osn}} )
+        ##Invoke-WebRequest -Outfile dafnyX.zip -Uri $Env:URL1
         Invoke-WebRequest -Outfile z3X.zip -Uri $Env:URL2
         Expand-Archive dafny*.zip
         mv dafnyX/dafny dafny
