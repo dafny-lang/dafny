@@ -28,7 +28,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <param name="variable">The variable to get a text representation of.</param>
     /// <returns>The text representation of the variable.</returns>
     public static string AsText(this IVariable variable) {
-      return $"{variable.Name}: {variable.Type}";
+      var ghost = variable.IsGhost ? "ghost " : "";
+      return $"{ghost}{variable.Name}: {variable.Type}";
     }
 
     /// <summary>
