@@ -382,9 +382,6 @@
       case MultiSetDisplayExpr multiSetDisplayExpression:
         Visit(multiSetDisplayExpression);
         break;
-      case null:
-        // TODO This most-likely occured while typing. Maybe log this situation.
-        break;
       default:
         VisitUnknown(expression, expression.tok);
         break;
@@ -487,7 +484,7 @@
 
     public virtual void Visit(ForallExpr forAllExpression) {
       VisitNullableAttributes(forAllExpression.Attributes);
-      Visit(forAllExpression.Range);
+      VisitNullableExpression(forAllExpression.Range);
       Visit(forAllExpression.Term);
     }
 
