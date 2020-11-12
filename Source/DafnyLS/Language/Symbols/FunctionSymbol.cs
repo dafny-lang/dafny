@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
-      return $"function {Declaration.Name}({Declaration.Formals.AsCommaSeperatedText()}): {Declaration.ResultType.AsText()}";
+      return $"{Declaration.WhatKind} {Declaration.Name}({Declaration.Formals.AsCommaSeperatedText()}): {Declaration.ResultType.AsText()}";
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {
