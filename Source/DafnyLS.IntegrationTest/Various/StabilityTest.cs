@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Stability {
   [TestClass]
   public class StabilityTest : DafnyLanguageServerTestBase {
     private ILanguageClient _client;
-    private const int MaxTestExecutionTime = 60000;
+    private const int MaxTestExecutionTimeMs = 60000;
 
     private async Task<TextDocumentItem> CreateTextDocumentFromFileAsync(string fileName) {
       var filePath = Path.Combine("Various", "TestFiles", fileName);
@@ -28,7 +28,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Stability {
     }
 
     [TestMethod]
-    [Timeout(MaxTestExecutionTime)]
+    [Timeout(MaxTestExecutionTimeMs)]
     public async Task GhcMergeSort() {
       var documentItem = await CreateTextDocumentFromFileAsync("GHC-MergeSort.dfy");
       await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -36,7 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Stability {
     }
 
     [TestMethod]
-    [Timeout(MaxTestExecutionTime)]
+    [Timeout(MaxTestExecutionTimeMs)]
     public async Task GenericSort() {
       var documentItem = await CreateTextDocumentFromFileAsync("GenericSort.dfy");
       await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
