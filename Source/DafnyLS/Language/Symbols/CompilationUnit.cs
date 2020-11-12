@@ -9,7 +9,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     public override IEnumerable<ISymbol> Children => Modules;
 
-    public CompilationUnit(Microsoft.Dafny.Program program) : base(null, program.Name) {
+    public CompilationUnit(Dafny.Program program) : base(null, program.Name) {
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

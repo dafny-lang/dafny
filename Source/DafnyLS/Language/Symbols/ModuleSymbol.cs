@@ -1,6 +1,4 @@
-﻿using Microsoft.Dafny;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {

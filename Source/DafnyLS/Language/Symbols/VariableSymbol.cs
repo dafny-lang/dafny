@@ -1,5 +1,4 @@
-﻿using Microsoft.Dafny;
-using System.Threading;
+﻿using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class VariableSymbol : Symbol, ILocalizableSymbol {
