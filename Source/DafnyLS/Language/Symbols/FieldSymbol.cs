@@ -10,7 +10,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
-      return $"var {Declaration.Name}: {Declaration.Type}";
+      var prefix = Declaration.IsMutable ? "var" : "const";
+      return $"{prefix} {Declaration.Name}: {Declaration.Type}";
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {
