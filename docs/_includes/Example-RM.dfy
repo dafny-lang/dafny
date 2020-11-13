@@ -92,7 +92,7 @@ method Search(ll: Node?) returns (r: int)
 
 method Main()
 {
-  var list: Node := null;
+  var list: Node? := null;
   list := list.Cons(0, list);
   list := list.Cons(5, list);
   list := list.Cons(0, list);
