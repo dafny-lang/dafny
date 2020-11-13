@@ -130,8 +130,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       private int _position;
       private readonly CancellationToken _cancellationToken;
 
-      private bool IsTabOrSpace => _text[_position] == ' ' || _text[_position] == '\t';
-      private bool IsAtNewStatement => _text[_position] == '\r' || _text[_position] == '\n' || _text[_position] == ';';
+      private bool IsWhitespace => char.IsWhiteSpace(_text[_position]);
+      private bool IsAtNewStatement => _text[_position] == ';' || _text[_position] == '}' || _text[_position] == '{';
       private bool IsMemberAccessOperator => _text[_position] == '.';
 
       // TODO any other characters that are allowed characters?
@@ -154,7 +154,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       public IEnumerable<string> ResolveFromBehind() {
         while(_position >= 0) {
           _cancellationToken.ThrowIfCancellationRequested();
-          SkipTabsAndSpaces();
+          SkipWhitespaces();
           if(IsAtNewStatement) {
             yield break;
           }
@@ -164,7 +164,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           } else {
             yield break;
           }
-          SkipTabsAndSpaces();
+          SkipWhitespaces();
           if(IsMemberAccessOperator) {
             _position--;
           } else {
@@ -173,8 +173,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      private void SkipTabsAndSpaces() {
-        while(_position >= 0 && IsTabOrSpace) {
+      private void SkipWhitespaces() {
+        while(_position >= 0 && IsWhitespace) {
           _cancellationToken.ThrowIfCancellationRequested();
           _position--;
         }
