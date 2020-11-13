@@ -8,7 +8,7 @@
 <!--PDF NEWPAGE-->
 
 **Abstract:**
-This is the Dafny reference manual which describes the Dafny programming
+This is the Dafny reference manual; it describes the Dafny programming
 language and how to use the Dafny verification system.
 Parts of this manual are more tutorial in nature in order to help the
 user understand how to do proofs with Dafny.
@@ -31,27 +31,13 @@ user understand how to do proofs with Dafny.
 
 {% include Types.md %}
 
-# Type Inference
-
-TO BE WRITTEN
-
 {% include Statements.md %}
 
 {% include Expressions.md %}
 
-# Variable Initialization and Definite Assignment
-
-TO BE WRITTEN -- rules for default initialization; resulting rules for constructors; definite assignment rules
-
-# Well-founded Orders {#sec-well-founded-orders}
-
-TODO: Write this section
-
-# Module Refinement {#sec-module-refinement}
-
-TODO: Write this section.
-
 {% include Attributes.md %}
+
+{% include Topics.md %}
 
 {% include UserGuide.md %}
 
