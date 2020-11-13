@@ -26,19 +26,19 @@ that use them.
 
 ````grammar
 RequiresClause_ =
-    "requires" Expression(allowLemma: false, allowLambda: false)
+  "requires" Expression(allowLemma: false, allowLambda: false)
 ````
 
-The **requires** clauses specify preconditions for methods,
+The `requires` clauses specify preconditions for methods,
 functions, lambda expressions and iterators. Dafny checks
 that the preconditions are met at all call sites. The
 callee may then assume the preconditions hold on entry.
 
-If no **requires** clause is specified it is taken to be `true`.
+If no `requires` clause is specified it is taken to be `true`.
 
-If more than one **requires** clause is given, then the
+If more than one `requires` clause is given, then the
 precondition is the conjunction of all of the expressions
-from all of the **requires** clauses. The order of conjunctions
+from all of the `requires` clauses. The order of conjunctions
 (and hence the order of `requires` clauses with respect to each other)
 can be important: earlier conjuncts can set conditions that 
 establish that later conjuncts are well-defined.
@@ -47,24 +47,24 @@ establish that later conjuncts are well-defined.
 
 ````grammar
 EnsuresClause_ =
-    "ensures" { Attribute } Expression(allowLemma: false,
-                                       allowLambda: false)
+  "ensures" { Attribute } Expression(allowLemma: false,
+                                     allowLambda: false)
 
 ForAllEnsuresClause_ =
-    "ensures" Expression(allowLemma: false, allowLambda: true)
+  "ensures" Expression(allowLemma: false, allowLambda: true)
 
 FunctionEnsuresClause_ =
-    "ensures" Expression(allowLemma: false, allowLambda: false)
+  "ensures" Expression(allowLemma: false, allowLambda: false)
 ````
 
-An **ensures** clause specifies the post condition for a
+An `ensures` clause specifies the post condition for a
 method, function or iterator.
 
-If no **ensures** clause is specified it is taken to be `true`.
+If no `ensures` clause is specified it is taken to be `true`.
 
-If more than one **ensures** clause is given, then the
+If more than one `ensures` clause is given, then the
 postcondition is the conjunction of all of the expressions
-from all of the **ensures** clauses.
+from all of the `ensures` clauses.
 The order of conjunctions
 (and hence the order of `ensures` clauses with respect to each other)
 can be important: earlier conjuncts can set conditions that 
@@ -78,15 +78,15 @@ be fixed in a future version.
 ### Decreases Clause
 ````grammar
 DecreasesClause_(allowWildcard, allowLambda) =
-    "decreases" { Attribute } DecreasesList(allowWildcard,
-                                            allowLambda)
+  "decreases" { Attribute } DecreasesList(allowWildcard,
+                                          allowLambda)
 
 FunctionDecreasesClause_(allowWildcard, allowLambda) =
-    "decreases" DecreasesList(allowWildcard, allowLambda)
+  "decreases" DecreasesList(allowWildcard, allowLambda)
 
 DecreasesList(allowWildcard, allowLambda) =
-    PossiblyWildExpression(allowLambda)
-    { "," PossiblyWildExpression(allowLambda) }
+  PossiblyWildExpression(allowLambda)
+  { "," PossiblyWildExpression(allowLambda) }
 ````
 If `allowWildcard` is false but one of the
 ``PossiblyWildExpression``s is a wild-card, an error is
@@ -95,9 +95,9 @@ reported.
 TODO: A ``FunctionDecreasesClause_`` is not allowed to specify
 ``Attribute``s. this will be fixed in a future version.
 
-**Decreases** clauses are used to prove termination in the
-presence of recursion. if more than one **decreases** clause is given
-it is as if a single **decreases** clause had been given with the
+Decreases` clauses are used to prove termination in the
+presence of recursion. if more than one `decreases` clause is given
+it is as if a single `decreases` clause had been given with the
 collected list of arguments. That is,
 
 ```dafny
@@ -114,14 +114,14 @@ Note that changing the order of multiple `decreases` clauses will change
 the order of the expressions within the equivalent single `decreases`
 clause, and will therefore havea different semantics.
 
-If any of the expressions in the **decreases** clause are wild (i.e., `*`)
+If any of the expressions in the `decreases` clause are wild (i.e., `*`)
 then the proof of termination will be skipped.
 
-Termination metrics in Dafny, which are declared by **decreases** clauses,
+Termination metrics in Dafny, which are declared by `decreases` clauses,
 are lexicographic tuples of expressions. At each recursive (or mutually
 recursive) call to a function or method, Dafny checks that the effective
-**decreases** clause of the callee is strictly smaller than the effective
-**decreases** clause of the caller.
+`decreases` clause of the callee is strictly smaller than the effective
+`decreases` clause of the caller.
 
  What does "strictly smaller" mean? Dafny provides a built-in
  well-founded order for every type and, in some cases, between types. For
@@ -206,7 +206,7 @@ lexicographic tuple `"x-1, 1"` is strictly smaller than `"x, 0"`.
  Two things to note: First, the choice of "0" and "1" as the second
  components of these lexicographic tuples is rather arbitrary. It could
  just as well have been "false" and "true", respectively, or the sets
- `{2,5}` and `{2,3,5}`. Second, the keyword **decreases** often gives rise to
+ `{2,5}` and `{2,3,5}`. Second, the keyword `decreases` often gives rise to
  an intuitive English reading of the declaration. For example, you might
  say that the recursive calls in the definition of the familiar Fibonacci
  function `Fib(n)` "decreases n". But when the lexicographic tuple contains
@@ -221,7 +221,7 @@ lexicographic tuple `"x-1, 1"` is strictly smaller than `"x, 0"`.
 
  We can simplify things a little bit by remembering that Dafny appends
  $\top$ to the user-supplied decreases clause. For the A-and-B example,
- this lets us drop the constant from the **decreases** clause of A:
+ this lets us drop the constant from the `decreases` clause of A:
 
 ```dafny
 method A(x: nat)
@@ -313,14 +313,14 @@ FrameExpression(allowLemma, allowLambda) =
 FrameField = "`" Ident
 
 PossiblyWildFrameExpression(allowLemma) =
-    ( "*" | FrameExpression(allowLemma, allowLambda: false) )
+  ( "*" | FrameExpression(allowLemma, allowLambda: false) )
 ````
 
 Frame expressions are used to denote the set of memory locations
 that a Dafny program element may read or write. A frame
 expression is a set expression. The form `{}` (that is, the empty set)
 says that no memory locations may be modified,
-which is also the default if no **modifies** clause is given explicitly.
+which is also the default if no `modifies` clause is given explicitly.
 
 Note that framing only applies to the heap, or memory accessed through
 references. Local variables are not stored on the heap, so they cannot be
@@ -357,15 +357,18 @@ FunctionReadsClause_ =
   "reads"
   PossiblyWildFrameExpression (allowLemma: false)
   { "," PossiblyWildFrameExpression(allowLemma: false) }
+
 LambdaReadsClause_ =
   "reads" PossiblyWildFrameExpression(allowLemma: true)
   { "," PossiblyWildFrameExpression(allowLemma: true) }
+
 IteratorReadsClause_ =
   "reads" { Attribute }
   FrameExpression(allowLemma: false, allowLambda: false)
   { "," FrameExpression(allowLemma: false, allowLambda: false) }
+
 PossiblyWildExpression(allowLambda) =
-    ( "*" | Expression(allowLemma: false, allowLambda) )
+  ( "*" | Expression(allowLemma: false, allowLambda) )
 ````
 
 Functions are not allowed to have side effects; they may also be restricted in
@@ -381,8 +384,8 @@ able to give invariants to preserve it in this case, it gets even more
 complex when manipulating data structures. In this case, framing is
 essential to making the verification process feasible.
 
-It is not just the body of a function that is subject to **reads**
-checks, but also its precondition and the **reads** clause itself.
+It is not just the body of a function that is subject to `reads`
+checks, but also its precondition and the `reads` clause itself.
 
 A reads clause can list a wildcard `*`, which allows the enclosing
 function to read anything. In many cases, and in particular in all cases
@@ -391,11 +394,11 @@ impossible to make any use of the function. Nevertheless, as an
 experimental feature, the language allows it (and it is sound).
 Note that a `*` makes the rest of the frame expression irrelevant.
 
-A **reads** clause specifies the set of memory locations that a function,
-lambda, or iterator may read. If more than one **reads** clause is given
+A `reads` clause specifies the set of memory locations that a function,
+lambda, or iterator may read. If more than one `reads` clause is given
 in a specification the effective read set is the union of the sets
-specified. If there are no **reads** clauses the effective read set is
-empty. If `*` is given in a **reads** clause it means any memory may be
+specified. If there are no `reads` clauses the effective read set is
+empty. If `*` is given in a `reads` clause it means any memory may be
 read.
 
 TODO: It would be nice if the different forms of read clauses could be
@@ -434,9 +437,9 @@ by means of the block form of the
 [modify statement](#sec-modify-statement) (Section [#sec-modify-statement]).
 
 A `modifies` clause specifies the set of memory locations that a
-method, iterator or loop body may modify. If more than one **modifies**
+method, iterator or loop body may modify. If more than one `modifies`
 clause is given in a specification, the effective modifies set is the
-union of the sets specified. If no **modifies** clause is given the
+union of the sets specified. If no `modifies` clause is given the
 effective modifies set is empty. A loop can also have a
 `modifies` clause. If none is given, the loop may modify anything
 the enclosing context is allowed to modify.
@@ -456,12 +459,12 @@ Ada/SPARK's dataflow contracts encode _write_ (a) semantics.
 ### Invariant Clause
 ````grammar
 InvariantClause_ =
-    "invariant" { Attribute }
-    Expression(allowLemma: false, allowLambda: true)
+  "invariant" { Attribute }
+  Expression(allowLemma: false, allowLambda: true)
 ````
 
-An **invariant** clause is used to specify an invariant
-for a loop. If more than one **invariant** clause is given for
+An `invariant` clause is used to specify an invariant
+for a loop. If more than one `invariant` clause is given for
 a loop the effective invariant is the conjunction of
 the conditions specified.
 
@@ -479,9 +482,9 @@ MethodSpec =
   }
 ````
 
-A method specification is zero or more **modifies**, **requires**,
-**ensures** or **decreases** clauses, in any order.
-A method does not have **reads** clauses because methods are allowed to
+A method specification is zero or more `modifies` `requires`
+`ensures` or `decreases` clauses, in any order.
+A method does not have `reads` clauses because methods are allowed to
 read any memory.
 
 ## Function Specification
@@ -494,9 +497,9 @@ FunctionSpec =
   }
 ````
 
-A function specification is zero or more **reads**, **requires**,
-**ensures** or **decreases** clauses, in any order. A function
-specification does not have **modifies** clauses because functions are not
+A function specification is zero or more `reads` `requires`
+`ensures` or `decreases` clauses, in any order. A function
+specification does not have `modifies` clauses because functions are not
 allowed to modify any memory.
 
 ## Lambda Specification
@@ -507,12 +510,12 @@ LambdaSpec_ =
   }
 ````
 
-A lambda specification is zero or more **reads** or **requires** clauses.
-Lambda specifications do not have **ensures** clauses because the body
+A lambda specification is zero or more `reads` or `requires` clauses.
+Lambda specifications do not have `ensures` clauses because the body
 is never opaque.
-Lambda specifications do not have **decreases**
+Lambda specifications do not have `decreases`
 clauses because they do not have names and thus cannot be recursive. A
-lambda specification does not have **modifies** clauses because lambdas
+lambda specification does not have `modifies` clauses because lambdas
 are not allowed to modify any memory.
 
 ## Iterator Specification
@@ -527,12 +530,12 @@ IteratorSpec =
 ````
 
 An iterator specification applies both to the iterator's constructor
-method and to its `MoveNext` method. The **reads** and **modifies**
-clauses apply to both of them. For the **requires** and **ensures**
+method and to its `MoveNext` method. The `reads` and `modifies`
+clauses apply to both of them. For the `requires` and `ensures`
 clauses, if `yield` is not present they apply to the constructor,
 but if `yield` is present they apply to the `MoveNext` method.
 
-TODO: What is the meaning of a **decreases** clause on an iterator?
+TODO: What is the meaning of a `decreases` clause on an iterator?
 Does it apply to `MoveNext`? Make sure our description of
 iterators explains these.
 
