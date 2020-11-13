@@ -4,7 +4,9 @@
 
 TO BE WRITTEN
 
+## Ghost Inference
 
+TO BE WRITTEN
 
 ## Well-founded Functions and Extreme Predicates
 This section is a tutorial on well-founded functions and extreme predicates.
@@ -65,31 +67,31 @@ To define a function $f \colon X \to Y$ in terms of itself, one can
 write an equation like
 ~ Equation {#eq-general}
 <p style="text-align: center;">
-$$f = \mathcal{F}(f)$$  
+$$f = \mathcal{F}(f)$$
 </p>
 ~
 
 where $\mathcal{F}$ is a non-recursive function of type
-$(X \to Y) \to X \to Y$.  
+$(X \to Y) \to X \to Y$.
 Because it takes a function as an argument,
 $\mathcal{F}$
 is referred to as a _functor_ (or _functional_, but not to be
 confused by the category-theory notion of a functor).
-Throughout, I will assume that 
+Throughout, I will assume that
 $\mathcal{F}(f)$
 by itself is well defined,
-for example that it does not divide by zero.  I will also assume that 
+for example that it does not divide by zero.  I will also assume that
 $f$
 occurs
-only in fully applied calls in 
+only in fully applied calls in
 $\mathcal{F}(f)$;
  eta expansion can be applied to
-ensure this.  If 
+ensure this.  If
 $f$
-is a `boolean` function, that is, if 
+is a `boolean` function, that is, if
 $Y$
 is
-the type of booleans, then I call 
+the type of booleans, then I call
 $f$
 a _predicate_.
 
@@ -150,7 +152,7 @@ following, for any $n$:
 <p style="text-align: center;"> $$ 2 \leq n \;\Longrightarrow\; n-2 \ll n \;\wedge\; n-1 \ll n $$
 </p>
 
-Note that we are entitled to use the antecedent 
+Note that we are entitled to use the antecedent
 $2 \leq n$ because that is the
 condition under which the else branch in [#eq-fib] is evaluated.
 
@@ -164,7 +166,7 @@ ordinals defined by the following equation:
 
 <p style="text-align: center;">
 $$
-\mathit{P}\_\downarrow = P(o) \;\wedge\; \forall p \bullet\; p \ll o \;\Longrightarrow\; \mathit{P}\_\downarrow(p) 
+\mathit{P}\_\downarrow = P(o) \;\wedge\; \forall p \bullet\; p \ll o \;\Longrightarrow\; \mathit{P}\_\downarrow(p)
 $$
 </p>
 
@@ -240,7 +242,7 @@ where $x$ ranges over the integers:
 ~ Equation {#eq-EvenNat}
 <p style="text-align: center;">
 $$
-g(x) = (x = 0 \:\vee\: g(x-2)) 
+g(x) = (x = 0 \:\vee\: g(x-2))
 $$
 </p>
 ~
@@ -256,7 +258,7 @@ $$
   g(x) \;\;\equiv\;\;{}&  x \in \{w \;|\; w\textrm{ even}\} \\
   g(x) \;\;\equiv\;\;{}&  x \in \{w \;|\; (0 \leq w \;\wedge\; w\textrm{ even}) \:\vee\: w\textrm{ odd}\} \\
   g(x) \;\;\equiv\;\;{}&  x \in \{w \;|\; \mathit{true}\}
-  \end{array} 
+  \end{array}
 $$
 </p>
 
@@ -285,7 +287,7 @@ line is used:
   \qquad\qquad
     \genfrac{}{}{1.2pt}0{g(x-2)}{g(x)}$
 
-In this case, proof trees are allowed to be infinite. 
+In this case, proof trees are allowed to be infinite.
 For example, the left-hand example below shows a finite proof tree that uses the rules of [#g-ind-rule] to establish $g(6)$.  On the right is a partial depiction of an infinite proof tree that uses the rules of [#g-coind-rule] to establish $g(1)$.
 
 <p style="text-align: center;">
@@ -331,7 +333,7 @@ where $k$ ranges over the natural numbers:
    { {}^{\flat}\!f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{false}         & \textrm{if } k = 0 \\
-      \mathcal{F}({ {}^{\flat}\!f}_{k-1})(x) & \textrm{if } k > 0 
+      \mathcal{F}({ {}^{\flat}\!f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
      \right\} $$.</p>
 ~
@@ -340,7 +342,7 @@ where $k$ ranges over the natural numbers:
    { {}^{\sharp}\!f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{true}          & \textrm{if } k = 0 \\
-      \mathcal{F}({ {}^{\sharp}\!f}_{k-1})(x) & \textrm{if } k > 0 
+      \mathcal{F}({ {}^{\sharp}\!f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
     \right\} $$.</p>
 ~

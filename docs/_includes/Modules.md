@@ -97,7 +97,7 @@ module Mod {
 
 TO BE WRITTEN - standalone declaration of nested modules
 
-Note that everything declared at the top-level 
+Note that everything declared at the top-level
 (in all the files constituting the program) is implicitly part
 of a single implicit unnamed global module.
 
@@ -117,10 +117,10 @@ keyword, which has two forms with different meanings.
 The simplest form is the concrete import, which has
 the form `import A = B`. This declaration creates a reference to the
 module `B` (which must already exist), and binds it to the new name
-`A`. This form can also be used to create a reference to a nested 
-module, as in `import A = B.C`. 
- 
-As modules in the same scope must have different names, this ability 
+`A`. This form can also be used to create a reference to a nested
+module, as in `import A = B.C`.
+
+As modules in the same scope must have different names, this ability
 to bind a module to a new name allows disambiguating separately developed
 external modules that have the same name.
 Note that the new name is only bound in the scope containing
@@ -160,9 +160,9 @@ sibling module of the importing module, or with a submodule of the
 importing module. There is no way to refer to the parent module, only
 sibling modules (and their submodules).
 
-Import statements may occur at the top-level of a program 
+Import statements may occur at the top-level of a program
 (that is, in the implicit top-level module of the program) as well.
-There they serve simply as a way to give a new name, perhaps a 
+There they serve simply as a way to give a new name, perhaps a
 shorthand name, to a module. For example,
 
 ```dafny
@@ -178,6 +178,15 @@ TO BE WRITTEN -- including provides and reveals lists
 TO BE WRITTEN -- opened imports are not exported
 TO BE WRITTEN -- module facades
 
+## Access control
+
+In some programming languages, keywords such as `public`, `private`, and `protected`
+are used to control access to (that is, visibility of) declared program entities.
+In Dafny, modules and export sets provide that capability.
+Modules combine declarations into logically related groups.
+Export sets then permit selectively exposing subsets of declarations.
+A user can define as many export sets as are needed to provide different
+kinds of access to the module's declarations.
 
 ## Opening Modules
 
@@ -239,7 +248,7 @@ import opened M = MyModule // names in MyModule are available in
 
 The Dafny style guidelines suggest using opened imports sparingly.
 They are best used when the names being imported have obvious
-and unambiguous meanings and when using qualified names would be 
+and unambiguous meanings and when using qualified names would be
 verbose enough to impede understanding.
 
 ## Module Abstraction
@@ -303,7 +312,7 @@ concrete one, the specifications must be compatible, etc.
 
 ## Module Ordering and Dependencies
 
-Dafny isn't particular about the textual order in which modules are 
+Dafny isn't particular about the textual order in which modules are
 declared, but
 they must follow some rules to be well formed. As a rule of thumb,
 there should be a way to order the modules in a program such that each
@@ -368,7 +377,7 @@ context.
 
 In terms of the grammar, sequences like the above are represented as
 a ``NameSegment`` followed by 0 or more ``Suffix``es.
-The form shown above contains three instances of 
+The form shown above contains three instances of
 ``AugmentedDotSuffix_``.
 
 The resolution is different depending on whether it is in
