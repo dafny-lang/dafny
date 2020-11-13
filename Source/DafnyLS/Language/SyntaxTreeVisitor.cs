@@ -143,14 +143,17 @@
 
     public virtual void Visit(Statement statement) {
       switch(statement) {
+      case WhileStmt whileStatement:
+        Visit(whileStatement);
+        break;
       case AlternativeLoopStmt alternativeLoopStmt:
         Visit(alternativeLoopStmt);
         break;
       case IfStmt ifStatement:
         Visit(ifStatement);
         break;
-      case WhileStmt whileStatement:
-        Visit(whileStatement);
+      case AlternativeStmt alternativeStatement:
+        Visit(alternativeStatement);
         break;
       case VarDeclStmt variableDeclarationStatement:
         Visit(variableDeclarationStatement);
@@ -178,9 +181,6 @@
         break;
       case PrintStmt printStatement:
         Visit(printStatement);
-        break;
-      case AlternativeStmt alternativeStatement:
-        Visit(alternativeStatement);
         break;
       default:
         VisitUnknown(statement, statement.Tok);
@@ -246,7 +246,8 @@
       foreach(var invariant in whileStatement.Invariants) {
         Visit(invariant);
       }
-      // TODO Visit Decreases, Mod?
+      Visit(whileStatement.Decreases);
+      Visit(whileStatement.Mod);
       VisitNullableBlock(whileStatement.Body);
     }
 
