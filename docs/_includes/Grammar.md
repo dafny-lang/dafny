@@ -3,7 +3,7 @@ Dafny uses the Coco/R lexer and parser generator for its lexer and parser
 (<http://www.ssw.uni-linz.ac.at/Research/Projects/Coco>)[@Linz:Coco].
 The Dafny input file to Coco/R is the `Dafny.atg` file in the source tree.
 A Coco/R input file consists of code written in the target language
-(e.g. C\#) intermixed with these special sections:
+(e.g., C\#) intermixed with these special sections:
 
 0. The [Characters section](#sec-character-classes)
     which defines classes of characters that are used
@@ -50,24 +50,24 @@ following transformations have been performed.
 
 
 The names of character sets and tokens start with a lower case
-letter but the names of grammar non-terminals start with
+letter; the names of grammar non-terminals start with
 an upper-case letter.
 
 The grammar uses Extended BNF notation. See the [Coco/R Referenced
 manual](http://www.ssw.uni-linz.ac.at/Research/Projects/Coco/Doc/UserManual.pdf)
-for details. But in summary:
+for details. In summary:
 
 * identifiers starting with a lower case letter denote
-terminal symbols,
+terminal symbols
 * identifiers starting with an upper case letter denote nonterminal
-symbols.
-* Strings (a sequence of characters enclosed by double quote characters)
-denote the sequence of enclosed characters.
+symbols
+* strings (a sequence of characters enclosed by double quote characters)
+denote the sequence of enclosed characters
 * `=` separates the sides of a production, e.g. `A = a b c`
-* In the Coco grammars "." terminates a production, but for readability
+* in the Coco grammars "." terminates a production, but for readability
   in this document a production starts with the defined identifier in
   the left margin and may be continued on subsequent lines if they
-  are indented.
+  are indented
 * `|` separates alternatives, e.g. `a b | c | d e` means `a b` or `c or d e`
 * `(` `)` groups alternatives, e.g. `(a | b) c` means `a c` or `b c`
 * `[ ]` option, e.g. `[a] b` means `a b` or `b`
@@ -144,9 +144,9 @@ The _special_ characters are the characters in addition to alphanumeric characte
 that are allowed to appear in a Dafny identifier. These are
 
 * `'` because mathematicians like to put primes on identifiers and some ML
-  programmers like to start names of type parameters with a "'".
-* `_` because computer scientists expect to be able to have underscores in identifiers.
-* `?` because it is useful to have "?" at the end of names of predicates,
+  programmers like to start names of type parameters with a `'`,
+* `_` because computer scientists expect to be able to have underscores in identifiers, and
+* `?` because it is useful to have `?` at the end of names of predicates,
   e.g. "Cons?".
 
 ````grammar
@@ -255,12 +255,12 @@ reservedword =
     "reveals" | "seq" | "set" | "static" | "string" | "then" | 
     "this" | "trait" | "true" | "twostate" | "type" | 
     "unchanged" | "var" | "where" | "while" | "yield" | "yields" | 
-    arrayToken
+    arraytoken
 
-arrayToken = "array" [ posdigit2 | posDigit digit { digit }]["?"] 
+arraytoken = "array" [ posdigit2 | posDigit digit { digit }]["?"] 
 ```
 
-An ``arrayToken`` is a reserved word that denotes an array type of
+An ``arraytoken`` is a reserved word that denotes an array type of
 given rank. `array` is an array type of rank 1 (aka a vector). `array2`
 is the type of two-dimensional arrays, etc. 
 `array1` and `array1?` are not reserved words; they are just ordinary identifiers.
@@ -268,7 +268,8 @@ is the type of two-dimensional arrays, etc.
 ### Identifiers
 
 ````grammar
-ident = nondigitIdChar { idchar } - arraytoken - chartoken - reservedword
+ident = nondigitIdChar { idchar } 
+        - arraytoken - chartoken - reservedword
 ````
 In general Dafny identifiers are sequences of ``idchar`` characters where
 the first character is a ``nondigitIdChar``. However tokens that fit this pattern
@@ -315,7 +316,7 @@ Unicode character with given hexadecimal representation.
 charToken = "'" ( charChar | escapedChar ) "'"
 ````
 
-A character constant is enclosed by "'" and includes either a character
+A character constant is enclosed by `'` and includes either a character
 from the ``charChar`` set, or an escaped character. Note that although Unicode
 letters are not allowed in Dafny identifiers, Dafny does support [Unicode
 in its character, string, and verbatim strings constants and in its comments](#sec-unicode). A character
@@ -416,6 +417,7 @@ zero or more ``DotSuffix``s which denote a component. Examples:
 * `Module.MyType1`
 * `MyTuple.1`
 * `MyMethod.requires`
+* `A.B.C.D`
 
 The grammar does not actually have a production for qualified names
 except in the special case of a qualified name that is known to be
@@ -444,7 +446,7 @@ LocalIdentTypeOptional = WildIdent [ ":" Type ]
 A ``LocalIdentTypeOptional`` is used when declaring local variables. 
 If a value is specified for the variable, the
 type may be omitted because it can be inferred from the initial value.
-The initial value value may also be omitted.
+An initial value is not required.
 
 ````grammar
 IdentTypeOptional = WildIdent [ ":" Type ]
@@ -453,13 +455,14 @@ A ``IdentTypeOptional`` is typically used in a context where the type of the ide
 may be inferred from the context. Examples are in pattern matching or quantifiers.
 
 ````grammar
-TypeIdentOptional = [ "ghost" ] ( NoUSIdent | digits ) ":" ] Type
+TypeIdentOptional = [ "ghost" ] [ ( NoUSIdent | digits ) ":" ] Type
 ````
 ``TypeIdentOptional``s are used in ``FormalsOptionalIds``. This represents situations
 where a type is given but there may not be an identifier.
 
 ````grammar
-FormalsOptionalIds = "(" [TypeIdentOptional  { "," TypeIdentOptional } ] ")"
+FormalsOptionalIds = "(" [ TypeIdentOptional  
+                           { "," TypeIdentOptional } ] ")"
 ````
 A ``FormalsOptionalIds`` is a formal parameter list in which the types are required
 but the names of the parameters are optional. This is used in algebraic
