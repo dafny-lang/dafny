@@ -3,7 +3,8 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: sed -e 'sx\\x/x' < "%t" > "%t"2
+// RUN: %diff "%s.expect" "%t"2
 
 datatype S = S(G: array<int>)
 datatype T = T(F: array<S>, ghost Repr: set<object>)

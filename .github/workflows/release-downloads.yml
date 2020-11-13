@@ -1,0 +1,116 @@
+name: Test Release Downloads
+
+#### For a new release: Change 'ver' and 'rel' in the strategy
+#### At some point perhaps we can eliminate the need to use Z3 4.8.4
+
+on:
+  push:
+    branches: [ master cok-834 ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, ubuntu-16.04, macos-latest, windows-latest ]
+        z3: [ 'https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c' ]
+        include:
+        - ver: 'v3.0.0-pre-release-1'
+          rel: 'dafny-3.0.0-pre-1'
+        - os:  'ubuntu-latest'
+          osn: 'ubuntu-16.04'
+        - os:  'ubuntu-16.04'
+          osn: 'ubuntu-16.04'
+        - os:  'macos-latest'
+          osn: 'osx-10.14.1'
+        - os:  'windows-latest'
+          osn: 'win'
+    # There is no hosted environment for Unbuntu 14.04 or for debian
+
+    # Mac environments need mono, but it is installed by default
+    # Java is installed by default, but we need to select 1.8
+
+    steps:
+    - name: OS
+      run: echo ${{ runner.os }} ${{ matrix.os }}
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+
+    - name: Download ${{matrix.os}} releases ( ${{matrix.osn}} )
+      if: runner.os != 'Windows'
+      run: |
+        wget -q `curl --silent "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | grep 'browser_download_url' |  grep "${{matrix.osn}}" | sed -e 's@"browser_download_url":@@' -e 's@"@@g'`
+        wget -q $URL2
+        unzip dafny*.zip && rm dafny*.zip
+        chmod +x dafny/Dafny.exe
+        unzip z3*.zip && rm z3*.zip
+        mv z3-* z3
+      env:
+        URL2: ${{matrix.z3}}-x64-${{matrix.osn}}.zip
+    - if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        ##Invoke-WebRequest -Outfile dafnyX.zip -Uri $(Invoke-WebRequest "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | select-string 'browser_download_url' -Raw -SimpleMatch | select-string ${{matrix.osn}} -Raw -SimpleMatch | % {$_.replace("browser_download_url","").replace("`"","")})
+        Invoke-WebRequest -Outfile dafnyX.zip -Uri $Env:URL1
+        Invoke-WebRequest -Outfile z3X.zip -Uri $Env:URL2
+        Expand-Archive dafny*.zip
+        mv dafnyX/dafny dafny
+        Expand-Archive z3X.zip
+        mv z3X/z3-* z3
+      env:
+        URL1: https://github.com/dafny-lang/dafny/releases/download/${{matrix.ver}}/${{matrix.rel}}-x64-${{matrix.osn}}.zip
+        URL2: ${{matrix.z3}}-x64-${{matrix.osn}}.zip
+
+    ## Create a simple smoke test program
+    - name: Make test program
+      run: |
+        echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
+        echo "method m() { assert false; }" > b.dfy
+        echo "42" > expect.txt
+    ## Check that dafny and z3 run and that a simple program verifies or fails
+    - name: Versions
+      run: |
+        ./z3/bin/z3 -version
+        dafny/dafny  -version
+    - name: Check
+      run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy
+    - name: Check - non Windows
+      if: runner.os != 'Windows'
+      run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy /z3exe:z3/bin/z3
+    - name: Check - Windows
+      if: runner.os == 'Windows'
+      run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy /z3exe:z3/bin/z3.exe
+    - name: Check bad
+      run: dafny/dafny /compile:0 b.dfy || echo "EXPECTED FAILURE" ; exit 0
+    - name: Check bad - non Windows
+      if: runner.os != 'Windows'
+      run: dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo "EXPECTED FAILURE"
+    - name: Check bad - Windows
+      if: runner.os == 'Windows'
+      run: (dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3.exe || echo "EXPECTED FAILURE") ; exit 0
+    ## Check that a simple program compiles and runs on each supported platform
+    - name: Check C# compile
+      run: |
+        dafny/dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
+    - name: Check Go compile
+      run: |
+        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
+        ##go run a-go/src/a.go a-go/src/*/*.go dafny/DafnyRuntime.go
+    - name: Check Javascript compile
+      run: |
+        npm install bignumber.js
+        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
+        node a.js dafny/DafnyRuntime.js | tail -1 > actual.txt
+        diff actual.txt expect.txt
+    - name: Check Java compile
+      run: echo NOT CHECKING JAVA
+      ##run: |
+        ##(ls dafny/DafnyRuntime.java || echo NO DafnyRuntime.java); exit 0
+        ##dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy || echo EXPECTED FAILURE UNTIL DafnyRuntime.java is restored
+

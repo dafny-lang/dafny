@@ -1,0 +1,63 @@
+name: Test Brew release on Mac
+
+on:
+  push:
+    branches: [ master cok-834 ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+      ## Does not appear to need brew installed
+      ## run: echo SKIPPING /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+    - name: Install dafny, mono, z3
+      run: brew install dafny || echo DONE
+    - name: Get Z3
+      run: |
+        wget -q https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-osx-10.14.1.zip
+        unzip z3*.zip && rm z3*.zip
+        mv z3-* z3
+    - name: Make test program
+      run: |
+        echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
+        echo "method m() { assert false; }" > b.dfy
+        echo "42" > expect.txt
+    - name: Versions
+      run: |
+        ./z3/bin/z3 -version
+        z3 -version
+        dafny -version || echo OK
+        which dafny
+        which z3
+        # -version is not supported in old dafny, 
+        # but this gives the version with an error
+    - name: Check
+      run: dafny /compile:0 a.dfy
+    - name: Check bad
+      run: dafny /compile:0 b.dfy || echo EXPECTED FAILURE
+    - name: Check
+      run: dafny /compile:0 a.dfy /z3exe:z3/bin/z3
+    - name: Check bad
+      run: dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo EXPECTED FAILURE
+    ## Check that a simple program compiles and runs on each supported platform
+    - name: Check C# compile
+      run: |
+        dafny /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
+    - name: Check Go compile
+      run: |
+        dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
+        ##go run a-go/src/a.go a-go/src/*/*.go dafny/DafnyRuntime.go
+    - name: Check Javascript compile
+      run: |
+        npm install bignumber.js
+        dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
+        node a.js dafny/DafnyRuntime.js | tail -1 | diff - expect.txt
+    - name: Check Java compile
+      run: |
+        ls dafny/DafnyRuntime.java || echo NO DafnyRuntime.java
+        dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy || echo EXPECTED FAILURE UNTIL DafnyRuntime.java is restored
+

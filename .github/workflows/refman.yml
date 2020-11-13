@@ -1,0 +1,93 @@
+name: Build DafnyRef.pdf
+
+on:
+  push:
+    branches: [ master cok-834 ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-latest, ubuntu-16.04, ubuntu-latest ]
+
+
+    #- name: Install brew
+    #  run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+    #- name: Install mono
+    #  run: brew install mono || echo OK
+    steps:
+    - name: OS
+      run: echo ${{ runner.os }} ${{ matrix.os }}
+    - uses: actions/setup-python@v1
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v1.6.0
+      with:
+        dotnet-version: '3.1.x' # SDK Version to use; x will use the latest version of the 3.1 channel
+    - name: Checkout Dafny
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+        path: dafny
+    - name: Get Z3 - windows
+      if: matrix.os == 'windows-latest'
+      shell: pwsh
+      run: |
+        Invoke-WebRequest -Outfile z3X.zip -Uri https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-win.zip
+    - name: Get Z3 - mac
+      if: matrix.os == 'macos-latest'
+      run: |
+        wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-osx-10.14.1.zip
+    - name: Get Z3a - ubuntu
+      if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-16.04'
+      run: |
+        wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-ubuntu-16.04.zip
+    - name: Install Z3
+      run: |
+        unzip z3*.zip && rm *.zip
+        cp -r z3* dafny/Binaries/z3
+    - name: Build Dafny
+      run: dotnet build dafny/Source/Dafny.sln
+    - name: Versions
+      run: |
+        file dafny/Binaries/dafny
+        dafny/Binaries/dafny -version
+        dafny/Binaries/z3/bin/z3 -version
+    - name: Install latex pandoc - Linux
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get install texlive texlive-xetex
+        wget https://github.com/jgm/pandoc/releases/download/2.10.1/pandoc-2.10.1-1-amd64.deb
+        sudo dpkg -i *.deb
+        rm -rf *.deb
+      # apt-get has pandoc, but it is outdated
+    - name: Extra linux packages
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get install texlive-science
+    - if: matrix.os != 'ubuntu-latest' && runner.os == 'Linux'
+      run: sudo apt-get install texlive-math-extra
+    - name: Install latex pandoc - MacOS
+      if: runner.os == 'MacOS'
+      run: |
+        brew install pandoc pandoc-citeproc
+        brew cask install basictex
+        eval "$(/usr/libexec/path_helper)"
+        sudo tlmgr update --self
+        sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
+    - name: Install syntax highlighting
+      run: sudo gem install rouge
+    - name: Check install
+      run: |
+        pandoc -v
+        which latex || echo NOT FOUND latex
+        which xelatex || echo NOT FOUND xelatex
+        find /usr/local -name xelatex || echo NOT FOUND
+        ls /usr/local/texlive/2020/bin/x86_64-darwin/xelatex || echo NOT FOUND
+    - name: Build DafnyRef.pdf
+      run: make -C dafny/docs/DafnyReferenceManual
+    - name: Check
+      run: ls -la dafny/docs/DafnyReferenceManual/DafnyRef.pdf
