@@ -63,6 +63,11 @@
         <DetectChar attribute="String" char="&quot;" context="#pop" />
       </context>
 
+      <context name="SingleLineComment" attribute="Comment" lineEndContext="#pop"/>
+      <context name="MultiLineComment" attribute="Comment" lineEndContext="#stay">
+        <Detect2Chars attribute="Comment" context="MultiLineComment" char="/" char1="*"/>
+        <Detect2Chars attribute="Comment" context="#pop" char="*" char1="/"/>
+      </context>
       <context name="Documentation" attribute="Comment" lineEndContext="#pop" />
     </contexts>
 
