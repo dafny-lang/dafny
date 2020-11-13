@@ -176,6 +176,9 @@
       case PrintStmt printStatement:
         Visit(printStatement);
         break;
+      case AlternativeStmt alternativeStatement:
+        Visit(alternativeStatement);
+        break;
       default:
         VisitUnknown(statement, statement.Tok);
         break;
@@ -329,6 +332,20 @@
       VisitNullableAttributes(printStatement.Attributes);
       foreach(var argument in printStatement.Args) {
         Visit(argument);
+      }
+    }
+
+    public virtual void Visit(AlternativeStmt alternativeStatement) {
+      VisitNullableAttributes(alternativeStatement.Attributes);
+      foreach(var guardedAlternative in alternativeStatement.Alternatives) {
+        Visit(guardedAlternative);
+      }
+    }
+
+    public virtual void Visit(GuardedAlternative guardedAlternative) {
+      Visit(guardedAlternative.Guard);
+      foreach(var statement in guardedAlternative.Body) {
+        Visit(statement);
       }
     }
 
