@@ -123,15 +123,27 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     //      In general, a speculative parser and semantic checker would be suitable to transition an existing semantic model.
     // TODO Instead of "parsing" when a completion was requested, it should be done when transitioning from one semantic model to another speculative one.
     //      This should simplify the completion implementation and unify other actions depending on the (speculative) semantic model.
+    // TODO A small refinement might be to ensure that the first character is a nondigit character. However, this is probably not necessary
+    //      for this use-case.
     private class MemberAccessChainResolver {
       private readonly string _text;
       private int _position;
       private readonly CancellationToken _cancellationToken;
 
-      private bool IsTabOrSpace => _text[_position] == ' ' || _text[_position] == '\t';
-      private bool IsAtNewStatement => _text[_position] == '\r' || _text[_position] == '\n' || _text[_position] == ';';
-      private bool IsIdentifierCharacter => char.IsLetterOrDigit(_text[_position]) || _text[_position] == '_'; // TODO any other characters that are allowed characters?
+      private bool IsWhitespace => char.IsWhiteSpace(_text[_position]);
+      private bool IsAtNewStatement => _text[_position] == ';' || _text[_position] == '}' || _text[_position] == '{';
       private bool IsMemberAccessOperator => _text[_position] == '.';
+
+      // TODO any other characters that are allowed characters?
+      private bool IsIdentifierCharacter {
+        get {
+          char character = _text[_position];
+          return char.IsLetterOrDigit(character)
+            || character == '_'
+            || character == '\''
+            || character == '?';
+        }
+      }
 
       public MemberAccessChainResolver(string text, int endPosition, CancellationToken cancellationToken) {
         _text = text;
@@ -142,7 +154,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       public IEnumerable<string> ResolveFromBehind() {
         while(_position >= 0) {
           _cancellationToken.ThrowIfCancellationRequested();
-          SkipTabsAndSpaces();
+          SkipWhitespaces();
           if(IsAtNewStatement) {
             yield break;
           }
@@ -152,7 +164,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           } else {
             yield break;
           }
-          SkipTabsAndSpaces();
+          SkipWhitespaces();
           if(IsMemberAccessOperator) {
             _position--;
           } else {
@@ -161,8 +173,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
 
-      private void SkipTabsAndSpaces() {
-        while(_position >= 0 && IsTabOrSpace) {
+      private void SkipWhitespaces() {
+        while(_position >= 0 && IsWhitespace) {
           _cancellationToken.ThrowIfCancellationRequested();
           _position--;
         }
