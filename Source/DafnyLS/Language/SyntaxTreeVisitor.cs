@@ -143,6 +143,9 @@
 
     public virtual void Visit(Statement statement) {
       switch(statement) {
+      case AlternativeLoopStmt alternativeLoopStmt:
+        Visit(alternativeLoopStmt);
+        break;
       case IfStmt ifStatement:
         Visit(ifStatement);
         break;
@@ -255,6 +258,13 @@
       VisitNullableStatement(ifStatement.Els);
     }
 
+    public virtual void Visit(AlternativeStmt alternativeStatement) {
+      VisitNullableAttributes(alternativeStatement.Attributes);
+      foreach(var guardedAlternative in alternativeStatement.Alternatives) {
+        Visit(guardedAlternative);
+      }
+    }
+
     public virtual void Visit(VarDeclStmt variableDeclarationStatement) {
       foreach(var localVariable in variableDeclarationStatement.Locals) {
         Visit(localVariable);
@@ -332,13 +342,6 @@
       VisitNullableAttributes(printStatement.Attributes);
       foreach(var argument in printStatement.Args) {
         Visit(argument);
-      }
-    }
-
-    public virtual void Visit(AlternativeStmt alternativeStatement) {
-      VisitNullableAttributes(alternativeStatement.Attributes);
-      foreach(var guardedAlternative in alternativeStatement.Alternatives) {
-        Visit(guardedAlternative);
       }
     }
 
