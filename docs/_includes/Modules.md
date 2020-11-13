@@ -279,7 +279,7 @@ abstract module Mod {
 }
 ```
 
-then we can be more precise if we know that `addSome` actually adds
+We can be more precise if we know that `addSome` actually adds
 exactly one. The following module has this behavior. Further, the
 postcondition is stronger, so this is actually a refinement of the
 Interface module.
