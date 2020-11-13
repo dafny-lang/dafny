@@ -247,8 +247,11 @@
       foreach(var invariant in whileStatement.Invariants) {
         Visit(invariant);
       }
-      Visit(whileStatement.Decreases);
-      Visit(whileStatement.Mod);
+      // TODO The GenericSort integration test yields the error that a designator
+      //      is registered twice. Therefore, there is a situation that the same node
+      //      is visited more than once.
+      //Visit(whileStatement.Decreases);
+      //Visit(whileStatement.Mod);
       VisitNullableBlock(whileStatement.Body);
     }
 
