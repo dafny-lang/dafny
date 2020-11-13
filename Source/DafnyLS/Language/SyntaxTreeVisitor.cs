@@ -562,15 +562,19 @@
 
     public virtual void Visit(Specification<Expression> specification) {
       VisitNullableAttributes(specification.Attributes);
-      foreach(var expression in specification.Expressions) {
-        Visit(expression);
+      if(specification.Expressions != null) {
+        foreach(var expression in specification.Expressions) {
+          Visit(expression);
+        }
       }
     }
 
     public virtual void Visit(Specification<FrameExpression> specification) {
       VisitNullableAttributes(specification.Attributes);
-      foreach(var expression in specification.Expressions) {
-        Visit(expression);
+      if(specification.Expressions != null) {
+        foreach(var expression in specification.Expressions) {
+          Visit(expression);
+        }
       }
     }
 
