@@ -17,5 +17,8 @@ options:
 	diff -q OptionsTemp.txt ../_includes/Options.txt || ( cp OptionsTemp.txt ../_includes/Options.txt && echo Updated Options.txt )
 	rm OptionsTemp.txt
 
+release: all
+	cp DafnyRef.pdf ../DafnyRef/out
+
 clean:
 	@-rm -f DafnyRef.pdf

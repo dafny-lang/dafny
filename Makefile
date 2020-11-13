@@ -21,6 +21,9 @@ runtime:
 refman:
 	make -C ${DIR}/docs/DafnyReferenceManual
 
+refman-release:
+	make -C ${DIR}/docs/DafnyReferenceManual release
+
 z3-mac:
 	wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-osx-10.14.1.zip
 	unzip z3-4.8.4.d6df51951f4c-x64-osx-10.14.1.zip
