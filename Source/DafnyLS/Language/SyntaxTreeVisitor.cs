@@ -198,7 +198,8 @@
     }
 
     public virtual void Visit(IfStmt ifStatement) {
-      Visit(ifStatement.Guard);
+      // A guard may be null when using an asterisk for non-deterministic choices.
+      VisitNullableExpression(ifStatement.Guard);
       VisitNullableAttributes(ifStatement.Attributes);
       VisitNullableBlock(ifStatement.Thn);
       VisitNullableStatement(ifStatement.Els);
