@@ -1526,9 +1526,19 @@ namespace Microsoft.Dafny {
       } else if (member is Function fn) {
         typeArgs = typeArgs.Where(ta => NeedsTypeDescriptor(ta.Formal)).ToList();
         if (typeArgs.Count == 0 && additionalCustomParameter == null) {
-          return SuffixLvalue(obj, ".{0}", IdName(member));
+          if (member.IsStatic) {
+            return SuffixLvalue(obj, ".{0}", IdName(member));
+          } else {
+            // generate: obj.F.bind(obj)
+            return SimpleLvalue(w => {
+              var objWriter = new TargetWriter();
+              obj(objWriter);
+              var objString = objWriter.ToString();
+              w.Write("{0}.{1}.bind({0})", objString, IdName(member));
+            });
+          }
         } else {
-          // we need an eta conversion for the type-descriptor parameters
+          // We need an eta conversion to adjust for the difference in arity.
           // (T0 a0, T1 a1, ...) -> obj.F(rtd0, rtd1, ..., additionalCustomParameter, a0, a1, ...)
           // Start by writing to the suffix:  F(rtd0, rtd1, ...
           var suffixWr = new TargetWriter();

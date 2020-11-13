@@ -1,12 +1,22 @@
 
-Dafny program verifier finished with 1 verified, 0 errors
-5 0 0 false 0 false 0
+Dafny program verifier finished with 3 verified, 0 errors
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier did not attempt verification
 5 0 0 false 0 false 0
+5 3 5 3 5 3 
+5 3 5 3 5 3
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier did not attempt verification
 5 0 0 false 0 false 0
+5 3 5 3 5 3 
+5 3 5 3 5 3
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier did not attempt verification
 5 0 0 false 0 false 0
+5 3 5 3 5 3 
+5 3 5 3 5 3
+
+Dafny program verifier did not attempt verification
+5 0 0 false 0 false 0
+5 3 5 3 5 3 
+5 3 5 3 5 3

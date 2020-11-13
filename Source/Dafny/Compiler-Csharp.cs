@@ -2024,7 +2024,7 @@ namespace Microsoft.Dafny
           var nameAndTypeArgs = wr.ToString();
           return SuffixLvalue(obj, $".{nameAndTypeArgs}");
         } else {
-          // we need an eta conversion for the additionalCustomParameter
+          // We need an eta conversion to adjust for the difference in arity.
           // (T0 a0, T1 a1, ...) => obj.F(additionalCustomParameter, a0, a1, ...)
           wr.Write("(");
           var sep = "";

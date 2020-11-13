@@ -2414,7 +2414,7 @@ namespace Microsoft.Dafny {
           var lvalue = SuffixLvalue(obj, ".{0}", IdName(member));
           return CoercedLvalue(lvalue, fn.GetMemberType((ArrowTypeDecl)expectedType.AsArrowType.ResolvedClass), expectedType);
         } else {
-          // we need an eta conversion for the type-descriptor parameters
+          // We need an eta conversion to adjust for the difference in arity.
           // func (a0 T0, a1 T1, ...) ResultType { return obj.F(rtd0, rtd1, ..., a0, a1, ...); }
           // Start by writing to the suffix:  F(rtd0, rtd1, ...
           var suffixWr = new TargetWriter();
@@ -3203,6 +3203,7 @@ namespace Microsoft.Dafny {
           sep = ", ";
         }
         wCall.Write(')');
+        wBody.WriteLine();
         return ans;
       } else if (to.IsTypeParameter || (from != null && EqualsUpToParameters(from, to))) {
         // do nothing

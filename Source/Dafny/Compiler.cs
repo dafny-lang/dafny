@@ -4287,24 +4287,34 @@ namespace Microsoft.Dafny {
           }
 
           wr.Write(postStr);
-        } else if (NeedsCustomReceiver(e.Member) && e.Member is Function && !(e.Member.EnclosingClass is TraitDecl)) {
-          var fn = (Function)e.Member;
-          // need to eta-expand wrap the receiver
-          var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
-          var typeMap = e.TypeArgumentSubstitutionsWithParents();
-          var receiverName = idGenerator.FreshId("_eta_this");
-          var wBody = CreateIIFE_ExprBody(receiverName, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr);
-          EmitMemberSelect(w => w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, e.Member)), e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type, receiverName).EmitRead(wBody);
-        } else if ((NeedsCustomReceiver(e.Member) && !(e.Member.EnclosingClass is TraitDecl)) || e.Member.IsStatic) {
-          var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
-          var typeMap = e.TypeArgumentSubstitutionsWithParents();
-          EmitMemberSelect(w => w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, e.Member)), e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type).EmitRead(wr);
         } else {
           var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
           var typeMap = e.TypeArgumentSubstitutionsWithParents();
-          EmitMemberSelect(w => TrExpr(e.Obj, w, inLetExprBody), e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type).EmitRead(wr);
+          var customReceiver = NeedsCustomReceiver(e.Member) && !(e.Member.EnclosingClass is TraitDecl);
+          if (!customReceiver && !e.Member.IsStatic) {
+            Action<TargetWriter> obj;
+            // The eta conversion here is to avoid capture of the receiver, because the call to EmitMemberSelect below may generate
+            // a lambda expression in the target language.
+            if (e.Member is Function && typeArgs.Count != 0) {
+              // need to eta-expand wrap the receiver
+              var etaReceiver = idGenerator.FreshId("_eta_this");
+              wr = CreateIIFE_ExprBody(etaReceiver, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr);
+              obj = w => w.Write(etaReceiver);
+            } else {
+              obj = w => TrExpr(e.Obj, w, inLetExprBody);
+            }
+            EmitMemberSelect(obj, e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type).EmitRead(wr);
+          } else {
+            string customReceiverName = null;
+            if (customReceiver && e.Member is Function) {
+              // need to eta-expand wrap the receiver
+              customReceiverName = idGenerator.FreshId("_eta_this");
+              wr = CreateIIFE_ExprBody(customReceiverName, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr);
+            }
+            Action<TargetWriter> obj = w => w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, e.Member));
+            EmitMemberSelect(obj, e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type, customReceiverName).EmitRead(wr);
+          }
         }
-
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         Contract.Assert(e.Seq.Type != null);
