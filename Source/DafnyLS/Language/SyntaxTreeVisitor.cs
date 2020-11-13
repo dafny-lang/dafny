@@ -89,6 +89,7 @@
         Visit(ensurement);
       }
       Visit(method.Decreases);
+      Visit(method.Mod);
       VisitNullableBlock(method.Body);
     }
 
@@ -100,7 +101,6 @@
     }
 
     public virtual void Visit(Function function) {
-      VisitNullableExpression(function.Body);
       foreach(var typeArgument in function.TypeArgs) {
         Visit(typeArgument);
       }
@@ -117,6 +117,7 @@
         Visit(ensurement);
       }
       Visit(function.Decreases);
+      VisitNullableExpression(function.Body);
     }
 
     public virtual void Visit(NonglobalVariable nonGlobalVariable) {
@@ -138,6 +139,59 @@
     public virtual void Visit(Attributes attributes) {
       foreach(var argument in attributes.Args) {
         Visit(argument);
+      }
+    }
+
+    public virtual void Visit(Statement statement) {
+      switch(statement) {
+      case WhileStmt whileStatement:
+        Visit(whileStatement);
+        break;
+      case AlternativeLoopStmt alternativeLoopStmt:
+        Visit(alternativeLoopStmt);
+        break;
+      case IfStmt ifStatement:
+        Visit(ifStatement);
+        break;
+      case AlternativeStmt alternativeStatement:
+        Visit(alternativeStatement);
+        break;
+      case VarDeclStmt variableDeclarationStatement:
+        Visit(variableDeclarationStatement);
+        break;
+      case UpdateStmt updateStatement:
+        Visit(updateStatement);
+        break;
+      case AssertStmt assertStatement:
+        Visit(assertStatement);
+        break;
+      case ReturnStmt returnStatement:
+        Visit(returnStatement);
+        break;
+      case BlockStmt blockStatement:
+        Visit(blockStatement);
+        break;
+      case MatchStmt matchStatement:
+        Visit(matchStatement);
+        break;
+      case NestedMatchStmt nestedMatchStatement:
+        Visit(nestedMatchStatement);
+        break;
+      case ForallStmt forAllStatement:
+        Visit(forAllStatement);
+        break;
+      case PrintStmt printStatement:
+        Visit(printStatement);
+        break;
+      default:
+        VisitUnknown(statement, statement.Tok);
+        break;
+      }
+    }
+
+    private void VisitNullableStatement(Statement? statement) {
+      if(statement != null) {
+        Visit(statement);
       }
     }
 
@@ -193,15 +247,45 @@
       foreach(var invariant in whileStatement.Invariants) {
         Visit(invariant);
       }
-      // TODO Visit Decreases, Mod?
+      // TODO Problematic GenericSort test case. Automatically generated decrease specifications
+      //      of a while-statement re-use nodes of the statement's guard. This causes the problem
+      //      that the same node is visited multiple times. It could just be skipped. Nevertheless,
+      //      it'd be more robust if we could identify such cases a-priori to prevent introducing
+      //      other programatic errors.
+      //Visit(whileStatement.Decreases);
+      Visit(whileStatement.Mod);
       VisitNullableBlock(whileStatement.Body);
     }
 
+    public virtual void Visit(AlternativeLoopStmt alternativeLoopStatement) {
+      VisitNullableAttributes(alternativeLoopStatement.Attributes);
+      Visit(alternativeLoopStatement.Decreases);
+      Visit(alternativeLoopStatement.Mod);
+      foreach(var guardedAlternative in alternativeLoopStatement.Alternatives) {
+        Visit(guardedAlternative);
+      }
+    }
+
     public virtual void Visit(IfStmt ifStatement) {
-      Visit(ifStatement.Guard);
+      // A guard may be null when using an asterisk for non-deterministic choices.
+      VisitNullableExpression(ifStatement.Guard);
       VisitNullableAttributes(ifStatement.Attributes);
       VisitNullableBlock(ifStatement.Thn);
       VisitNullableStatement(ifStatement.Els);
+    }
+
+    public virtual void Visit(AlternativeStmt alternativeStatement) {
+      VisitNullableAttributes(alternativeStatement.Attributes);
+      foreach(var guardedAlternative in alternativeStatement.Alternatives) {
+        Visit(guardedAlternative);
+      }
+    }
+
+    public virtual void Visit(GuardedAlternative guardedAlternative) {
+      Visit(guardedAlternative.Guard);
+      foreach(var statement in guardedAlternative.Body) {
+        Visit(statement);
+      }
     }
 
     public virtual void Visit(VarDeclStmt variableDeclarationStatement) {
@@ -220,53 +304,6 @@
       }
       foreach(var rightHandSide in updateStatement.Rhss) {
         Visit(rightHandSide);
-      }
-    }
-
-    public virtual void Visit(Statement statement) {
-      switch(statement) {
-      case IfStmt ifStatement:
-        Visit(ifStatement);
-        break;
-      case WhileStmt whileStatement:
-        Visit(whileStatement);
-        break;
-      case VarDeclStmt variableDeclarationStatement:
-        Visit(variableDeclarationStatement);
-        break;
-      case UpdateStmt updateStatement:
-        Visit(updateStatement);
-        break;
-      case AssertStmt assertStatement:
-        Visit(assertStatement);
-        break;
-      case ReturnStmt returnStatement:
-        Visit(returnStatement);
-        break;
-      case BlockStmt blockStatement:
-        Visit(blockStatement);
-        break;
-      case MatchStmt matchStatement:
-        Visit(matchStatement);
-        break;
-      case NestedMatchStmt nestedMatchStatement:
-        Visit(nestedMatchStatement);
-        break;
-      case ForallStmt forAllStatement:
-        Visit(forAllStatement);
-        break;
-      case PrintStmt printStatement:
-        Visit(printStatement);
-        break;
-      default:
-        VisitUnknown(statement, statement.Tok);
-        break;
-      }
-    }
-
-    private void VisitNullableStatement(Statement? statement) {
-      if(statement != null) {
-        Visit(statement);
       }
     }
 
@@ -531,8 +568,19 @@
 
     public virtual void Visit(Specification<Expression> specification) {
       VisitNullableAttributes(specification.Attributes);
-      foreach(var expression in specification.Expressions) {
-        Visit(expression);
+      if(specification.Expressions != null) {
+        foreach(var expression in specification.Expressions) {
+          Visit(expression);
+        }
+      }
+    }
+
+    public virtual void Visit(Specification<FrameExpression> specification) {
+      VisitNullableAttributes(specification.Attributes);
+      if(specification.Expressions != null) {
+        foreach(var expression in specification.Expressions) {
+          Visit(expression);
+        }
       }
     }
 
