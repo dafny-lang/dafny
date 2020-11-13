@@ -141,6 +141,53 @@
       }
     }
 
+    public virtual void Visit(Statement statement) {
+      switch(statement) {
+      case IfStmt ifStatement:
+        Visit(ifStatement);
+        break;
+      case WhileStmt whileStatement:
+        Visit(whileStatement);
+        break;
+      case VarDeclStmt variableDeclarationStatement:
+        Visit(variableDeclarationStatement);
+        break;
+      case UpdateStmt updateStatement:
+        Visit(updateStatement);
+        break;
+      case AssertStmt assertStatement:
+        Visit(assertStatement);
+        break;
+      case ReturnStmt returnStatement:
+        Visit(returnStatement);
+        break;
+      case BlockStmt blockStatement:
+        Visit(blockStatement);
+        break;
+      case MatchStmt matchStatement:
+        Visit(matchStatement);
+        break;
+      case NestedMatchStmt nestedMatchStatement:
+        Visit(nestedMatchStatement);
+        break;
+      case ForallStmt forAllStatement:
+        Visit(forAllStatement);
+        break;
+      case PrintStmt printStatement:
+        Visit(printStatement);
+        break;
+      default:
+        VisitUnknown(statement, statement.Tok);
+        break;
+      }
+    }
+
+    private void VisitNullableStatement(Statement? statement) {
+      if(statement != null) {
+        Visit(statement);
+      }
+    }
+
     public virtual void Visit(ExprRhs expressionRhs) {
       VisitNullableAttributes(expressionRhs.Attributes);
       Visit(expressionRhs.Expr);
@@ -221,53 +268,6 @@
       }
       foreach(var rightHandSide in updateStatement.Rhss) {
         Visit(rightHandSide);
-      }
-    }
-
-    public virtual void Visit(Statement statement) {
-      switch(statement) {
-      case IfStmt ifStatement:
-        Visit(ifStatement);
-        break;
-      case WhileStmt whileStatement:
-        Visit(whileStatement);
-        break;
-      case VarDeclStmt variableDeclarationStatement:
-        Visit(variableDeclarationStatement);
-        break;
-      case UpdateStmt updateStatement:
-        Visit(updateStatement);
-        break;
-      case AssertStmt assertStatement:
-        Visit(assertStatement);
-        break;
-      case ReturnStmt returnStatement:
-        Visit(returnStatement);
-        break;
-      case BlockStmt blockStatement:
-        Visit(blockStatement);
-        break;
-      case MatchStmt matchStatement:
-        Visit(matchStatement);
-        break;
-      case NestedMatchStmt nestedMatchStatement:
-        Visit(nestedMatchStatement);
-        break;
-      case ForallStmt forAllStatement:
-        Visit(forAllStatement);
-        break;
-      case PrintStmt printStatement:
-        Visit(printStatement);
-        break;
-      default:
-        VisitUnknown(statement, statement.Tok);
-        break;
-      }
-    }
-
-    private void VisitNullableStatement(Statement? statement) {
-      if(statement != null) {
-        Visit(statement);
       }
     }
 
