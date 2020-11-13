@@ -89,6 +89,7 @@
         Visit(ensurement);
       }
       Visit(method.Decreases);
+      Visit(method.Mod);
       VisitNullableBlock(method.Body);
     }
 
