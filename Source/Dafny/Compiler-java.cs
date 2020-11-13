@@ -3470,6 +3470,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override bool TargetLambdaCanUseEnclosingLocals => false;
+
     protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
       List<Type> boundTypes, Type resultType, Bpl.IToken resultTok, bool inLetExprBody, TargetWriter wr){
       if (boundTypes.Count != 1) {

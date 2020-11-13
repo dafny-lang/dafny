@@ -1,7 +1,8 @@
-// RUN: %dafny /compile:3 /compileTarget:cs "%s" > "%t"
-// RUN: %dafny /compile:3 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /compile:3 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /compile:3 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
@@ -27,6 +28,8 @@ method Main() {
   print " == ", total, "\n";
 
   AutoAccumulatorTests();
+
+  Regression.Test();
 }
 
 method {:tailrecursion} M(n: nat, a: nat) returns (r: nat) {
@@ -158,7 +161,8 @@ method AutoAccumulatorTests() {
   print "TriangleNumber_Real(10) = ", TriangleNumber_Real(10), "\n"; // 55.0
   print "TriangleNumber_ORDINAL(10) = ", TriangleNumber_ORDINAL(10), "\n"; // 55
   print "Factorial(5) = ", Factorial(5), "\n";
-  print "Union(8) = ", Union(8), "\n";
+  var u := SetToSeq(Union(8));
+  print "Union(8) = ", u, "\n";
   print "UpTo(10) = ", UpTo(10), "\n";
   print "DownFrom(10) = ", DownFrom(10), "\n";
   var xs := Cons(100, Cons(40, Cons(60, Nil)));
@@ -208,6 +212,35 @@ function method {:tailrecursion} Union(n: nat): set<nat> {
     {n} + Union(n - 1) // test left accumulator
 }
 
+method SetToSeq(S: set<nat>) returns (r: seq<nat>) {
+  if S == {} {
+    return [];
+  }
+  var x :| x in S;
+  var smaller := set y | y in S && y < x;
+  var larger := set y | y in S && x < y;
+  var s := SetToSeq(smaller);
+  var l := SetToSeq(larger);
+  return s + [x] + l;
+}
+
+method SetToSeq_Regression(S: set<nat>) returns (r: seq<nat>, g: int) {
+  // Method "SetToSeq" once had a problem, which showed up in the compilation
+  // to Java. This version of the method triggered the corresponding compilation
+  // in C#.
+  if S == {} {
+    r := [];
+    return;
+  }
+  var x :| x in S;
+  g := x;
+  var smaller := set y | y in S && y < g;
+  var larger := set y | y in S && g < y;
+  var s, _ := SetToSeq_Regression(smaller);
+  var l, _ := SetToSeq_Regression(larger);
+  r := s + [x] + l;
+}
+
 function method {:tailrecursion} UpTo(n: nat): seq<nat> {
   if n == 0 then
     ZeroSeq() // test non-recursive call
@@ -254,4 +287,64 @@ function method {:tailrecursion} TailNat(n: int): nat
   if n == 0 then 100 else
     // In this case, the accumulator's value will not be a "nat", but that's okay in the end
     (-5) + TailNat(n - 1)
+}
+
+// This module contains some regression tests for capture of "_this" and related crashes.
+module Regression {
+  method Test() {
+    var i := 0;
+    var c := new C<real>(null);
+    while i < 100 {
+      c := new C<real>(c);
+      i := i + 1;
+    }
+    var x := c.Rec(100, () => -2);  // this should return 17
+    var y := c.RecM(100, () => -2);  // this should return 17
+    var z := c.RecM'(100, () => -2);  // this should return 17
+    print x, " ", y, " ", z, "\n";
+  }
+
+  class C<U> {
+    const data: int
+    const next: C?<U>
+    constructor (nx: C?<U>) {
+      data := if nx == null then 10 else 1 + nx.data;
+      next := nx;
+    }
+
+    function method F(): int {
+      data
+    }
+
+    function method {:tailrecursion} Rec(n: nat, f: () -> int): int {
+      if n == 0 || next == null then
+        f()
+      else if data == 17 then
+        next.Rec(n - 1, F)  // this F returns 17
+      else
+        next.Rec(n - 1, f)
+    }
+
+    method {:tailrecursion} RecM(n: nat, f: () -> int) returns (r: int) {
+      if n == 0 || next == null {
+        r := f();
+      } else if data == 17 {
+        r := next.RecM(n - 1, F);  // this F returns 17
+      } else {
+        r := next.RecM(n - 1, f);
+      }
+    }
+
+    method {:tailrecursion} RecM'(n: nat, f: () -> int) returns (r: int) {
+      var th := null;
+      if n == 0 || next == null {
+        r := f();
+      } else if data == 17 {
+        th := this;
+        r := next.RecM'(n - 1, th.F);  // this F returns 17
+      } else {
+        r := next.RecM'(n - 1, f);
+      }
+    }
+  }
 }

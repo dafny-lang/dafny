@@ -4574,15 +4574,9 @@ namespace Microsoft.Dafny {
 
         // Compilation does not check whether a quantifier was split.
 
-        var logicalBody = e.LogicalBody(true);
-        Translator.Substituter su = null;
-        if (!TargetLambdaCanUseEnclosingLocals) {
-          CreateFreeVarSubstitution(expr, out var bvars, out var fexprs, out su);
-          if (bvars.Count != 0) {
-            wr = EmitBetaRedex(bvars.ConvertAll(IdName), fexprs, bvars.ConvertAll(bv => bv.Type), Type.Bool, e.tok, inLetExprBody, wr);
-            logicalBody = su.Substitute(logicalBody);
-          }
-        }
+        wr = CaptureFreeVariables(expr, true, out var su, inLetExprBody, wr);
+        var logicalBody = su.Substitute(e.LogicalBody(true));
+
         Contract.Assert(e.Bounds != null);  // for non-ghost quantifiers, the resolver would have insisted on finding bounds
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
@@ -4620,8 +4614,10 @@ namespace Microsoft.Dafny {
         //   }
         //   return Dafny.Set<G>.FromCollection(_coll);
         // }))()
+        wr = CaptureFreeVariables(e, true, out var su, inLetExprBody, wr);
+        e = (SetComprehension)su.Substitute(e);
+
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
-        var typeName = TypeName(e.Type.AsSetType.Arg, wr, e.tok);
         var collectionName = idGenerator.FreshId("_coll");
         var bwr = CreateIIFE0(e.Type.AsSetType, e.tok, wr);
         wr = bwr;
@@ -4661,6 +4657,9 @@ namespace Microsoft.Dafny {
         //   }
         //   return Dafny.Map<U, V>.FromCollection(_coll);
         // }))()
+        wr = CaptureFreeVariables(e, true, out var su, inLetExprBody, wr);
+        e = (MapComprehension)su.Substitute(e);
+
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
         var domtypeName = TypeName(e.Type.AsMapType.Domain, wr, e.tok);
         var rantypeName = TypeName(e.Type.AsMapType.Range, wr, e.tok);
@@ -4693,15 +4692,9 @@ namespace Microsoft.Dafny {
         EmitReturnExpr(s, bwr);
 
       } else if (expr is LambdaExpr) {
-        LambdaExpr e = (LambdaExpr)expr;
+        var e = (LambdaExpr)expr;
 
-        List<BoundVar> bvars;
-        List<Expression> fexprs;
-        Translator.Substituter su;
-        CreateFreeVarSubstitution(expr, out bvars, out fexprs, out su);
-
-        var boundVars = Util.Comma(bvars, IdName);
-        wr = EmitBetaRedex(bvars.ConvertAll(IdName), fexprs, bvars.ConvertAll(bv => bv.Type), expr.Type, expr.tok, inLetExprBody, wr);
+        wr = CaptureFreeVariables(e, false, out var su, inLetExprBody, wr);
         wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Bpl.Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Body.Type, wr);
         wr = EmitReturnExpr(wr);
         TrExpr(su.Substitute(e.Body), wr, inLetExprBody);
@@ -4723,6 +4716,19 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    protected TargetWriter CaptureFreeVariables(Expression expr, bool captureOnlyAsRequiredByTargetLanguage, out Translator.Substituter su, bool inLetExprBody, TargetWriter wr) {
+      if (captureOnlyAsRequiredByTargetLanguage && TargetLambdaCanUseEnclosingLocals) {
+        // nothing to do
+      } else {
+        CreateFreeVarSubstitution(expr, out var bvars, out var fexprs, out su);
+        if (bvars.Count != 0) {
+          return EmitBetaRedex(bvars.ConvertAll(IdName), fexprs, bvars.ConvertAll(bv => bv.Type), expr.Type, expr.tok, inLetExprBody, wr);
+        }
+      }
+      su = Translator.Substituter.EMPTY;
+      return wr;
     }
 
     void CreateFreeVarSubstitution(Expression expr, out List<BoundVar> bvars, out List<Expression> fexprs, out Translator.Substituter su) {
