@@ -250,6 +250,15 @@
       VisitNullableBlock(whileStatement.Body);
     }
 
+    public virtual void Visit(AlternativeLoopStmt alternativeLoopStatement) {
+      VisitNullableAttributes(alternativeLoopStatement.Attributes);
+      Visit(alternativeLoopStatement.Decreases);
+      Visit(alternativeLoopStatement.Mod);
+      foreach(var guardedAlternative in alternativeLoopStatement.Alternatives) {
+        Visit(guardedAlternative);
+      }
+    }
+
     public virtual void Visit(IfStmt ifStatement) {
       // A guard may be null when using an asterisk for non-deterministic choices.
       VisitNullableExpression(ifStatement.Guard);
@@ -262,6 +271,13 @@
       VisitNullableAttributes(alternativeStatement.Attributes);
       foreach(var guardedAlternative in alternativeStatement.Alternatives) {
         Visit(guardedAlternative);
+      }
+    }
+
+    public virtual void Visit(GuardedAlternative guardedAlternative) {
+      Visit(guardedAlternative.Guard);
+      foreach(var statement in guardedAlternative.Body) {
+        Visit(statement);
       }
     }
 
@@ -342,13 +358,6 @@
       VisitNullableAttributes(printStatement.Attributes);
       foreach(var argument in printStatement.Args) {
         Visit(argument);
-      }
-    }
-
-    public virtual void Visit(GuardedAlternative guardedAlternative) {
-      Visit(guardedAlternative.Guard);
-      foreach(var statement in guardedAlternative.Body) {
-        Visit(statement);
       }
     }
 
@@ -551,6 +560,13 @@
     }
 
     public virtual void Visit(Specification<Expression> specification) {
+      VisitNullableAttributes(specification.Attributes);
+      foreach(var expression in specification.Expressions) {
+        Visit(expression);
+      }
+    }
+
+    public virtual void Visit(Specification<FrameExpression> specification) {
       VisitNullableAttributes(specification.Attributes);
       foreach(var expression in specification.Expressions) {
         Visit(expression);
