@@ -18,8 +18,7 @@ the release notes.
 6) Add all the .zip files created by step 3 in the Package folder.
 
 7) Commit and push the new version of DafnyRef.pdf (this version is also
-   included in the releasae .zip files)
+   included in the release .zip files)
 
 8) Publish the release (by clicking the button at the bottom of the page)
    and announce it to the world.
-
