@@ -418,7 +418,7 @@ TO BE WRITTEN -- allocated predicate
 
 ## Old and Old@ Expressions {#sec-old-expression}
 
-````
+````grammar
 OldExpression_ = "old" [ "@" ident ] "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
@@ -462,6 +462,12 @@ The next example demonstrates the interaction between `old` and array elements.
 ```
 
 ## Unchanged Expressions {#sec-unchanged}
+
+TO BE WRITTEN -- including with labels
+
+TO BE WRITTEN -- Inside an old, disallow unchanged, fresh, two-state functions, two-state lemmas, and nested old
+
+## Unchanged Expressions
 
 TO BE WRITTEN -- including with labels
 
