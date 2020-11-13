@@ -1,0 +1,38 @@
+git-issue-897.dfy(10,17): Warning: /!\ No terms found to trigger on.
+git-issue-897.dfy(11,19): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon30_Then
+    (0,0): anon3
+    (0,0): anon31_Then
+    (0,0): anon6
+    (0,0): anon32_Else
+    git-issue-897.dfy(8,12): anon33_Else
+    (0,0): anon36_Then
+    (0,0): anon37_Then
+    (0,0): anon18
+    (0,0): anon38_Then
+    (0,0): anon39_Then
+    (0,0): anon40_Then
+    (0,0): anon23
+git-issue-897.dfy(16,30): Error: possible violation of postcondition of forall statement
+Execution trace:
+    (0,0): anon0
+    (0,0): anon30_Then
+    (0,0): anon3
+    (0,0): anon31_Then
+    (0,0): anon6
+    (0,0): anon32_Else
+    git-issue-897.dfy(8,12): anon33_Else
+    (0,0): anon36_Then
+    (0,0): anon37_Then
+    (0,0): anon18
+    (0,0): anon38_Then
+    (0,0): anon39_Then
+    (0,0): anon40_Then
+    (0,0): anon23
+    (0,0): anon41_Then
+    (0,0): anon25
+    (0,0): anon42_Then
+
+Dafny program verifier finished with 0 verified, 2 errors

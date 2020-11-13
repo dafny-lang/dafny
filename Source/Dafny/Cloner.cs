@@ -84,10 +84,10 @@ namespace Microsoft.Dafny
         var reads = CloneSpecFrameExpr(dd.Reads);
         var mod = CloneSpecFrameExpr(dd.Modifies);
         var decr = CloneSpecExpr(dd.Decreases);
-        var req = dd.Requires.ConvertAll(CloneMayBeFreeExpr);
-        var yreq = dd.YieldRequires.ConvertAll(CloneMayBeFreeExpr);
-        var ens = dd.Ensures.ConvertAll(CloneMayBeFreeExpr);
-        var yens = dd.YieldEnsures.ConvertAll(CloneMayBeFreeExpr);
+        var req = dd.Requires.ConvertAll(CloneAttributedExpr);
+        var yreq = dd.YieldRequires.ConvertAll(CloneAttributedExpr);
+        var ens = dd.Ensures.ConvertAll(CloneAttributedExpr);
+        var yens = dd.YieldEnsures.ConvertAll(CloneAttributedExpr);
         var body = CloneBlockStmt(dd.Body);
         var iter = new IteratorDecl(Tok(dd.tok), dd.Name, m,
           tps, ins, outs, reads, mod, decr,
@@ -256,8 +256,8 @@ namespace Microsoft.Dafny
       }
     }
 
-    public MaybeFreeExpression CloneMayBeFreeExpr(MaybeFreeExpression expr) {
-      var mfe = new MaybeFreeExpression(CloneExpr(expr.E), expr.IsFree, expr.Label == null ? null : new AssertLabel(Tok(expr.Label.Tok), expr.Label.Name), CloneAttributes(expr.Attributes));
+    public AttributedExpression CloneAttributedExpr(AttributedExpression expr) {
+      var mfe = new AttributedExpression(CloneExpr(expr.E), expr.Label == null ? null : new AssertLabel(Tok(expr.Label.Tok), expr.Label.Name), CloneAttributes(expr.Attributes));
       mfe.Attributes = CloneAttributes(expr.Attributes);
       return mfe;
     }
@@ -293,6 +293,10 @@ namespace Microsoft.Dafny
         } else {
           return new ThisExpr(Tok(expr.tok));
         }
+
+      } else if (expr is AutoGhostIdentifierExpr) {
+        var e = (AutoGhostIdentifierExpr)expr;
+        return new AutoGhostIdentifierExpr(Tok(e.tok), e.Name);
 
       } else if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
@@ -605,15 +609,15 @@ namespace Microsoft.Dafny
 
       } else if (stmt is WhileStmt) {
         var s = (WhileStmt)stmt;
-        r = new WhileStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Guard), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
+        r = new WhileStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Guard), s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        r = new AlternativeLoopStmt(Tok(s.Tok), Tok(s.EndTok), s.Invariants.ConvertAll(CloneMayBeFreeExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces);
+        r = new AlternativeLoopStmt(Tok(s.Tok), Tok(s.EndTok), s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces);
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
-        r = new ForallStmt(Tok(s.Tok), Tok(s.EndTok), s.BoundVars.ConvertAll(CloneBoundVar), null, CloneExpr(s.Range), s.Ens.ConvertAll(CloneMayBeFreeExpr), CloneStmt(s.Body));
+        r = new ForallStmt(Tok(s.Tok), Tok(s.EndTok), s.BoundVars.ConvertAll(CloneBoundVar), null, CloneExpr(s.Range), s.Ens.ConvertAll(CloneAttributedExpr), CloneStmt(s.Body));
       } else if (stmt is CalcStmt) {
         var s = (CalcStmt)stmt;
         // calc statements have the unusual property that the last line is duplicated.  If that is the case (which
@@ -643,16 +647,16 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AssignOrReturnStmt) {
         var s = (AssignOrReturnStmt)stmt;
-        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs), s.ExpectToken == null ? null : Tok(s.ExpectToken));
+        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs), s.ExpectToken == null ? null : Tok(s.ExpectToken), s.Rhss == null ? null : s.Rhss.ConvertAll(e => CloneRHS(e)));
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));
         r = new VarDeclStmt(Tok(s.Tok), Tok(s.EndTok), lhss, (ConcreteUpdateStatement)CloneStmt(s.Update));
 
-      } else if (stmt is LetStmt) {
-        var s = (LetStmt) stmt;
-        r = new LetStmt(Tok(s.Tok), Tok(s.EndTok), CloneCasePattern(s.LHS), CloneExpr(s.RHS));
+      } else if (stmt is VarDeclPattern) {
+        var s = (VarDeclPattern) stmt;
+        r = new VarDeclPattern(Tok(s.Tok), Tok(s.EndTok), CloneCasePattern(s.LHS), CloneExpr(s.RHS), s.IsAutoGhost);
 
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
@@ -680,10 +684,10 @@ namespace Microsoft.Dafny
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
       if(pat is LitPattern) {
         var p = (LitPattern)pat;
-        return new LitPattern(p.Tok, (LiteralExpr)CloneExpr(p.Lit));
+        return new LitPattern(p.Tok, CloneExpr(p.OrigLit));
       } else if (pat is IdPattern) {
         var p = (IdPattern)pat;
-        return new IdPattern(p.Tok, p.Id, p.Arguments.ConvertAll(CloneExtendedPattern));
+        return new IdPattern(p.Tok, p.Id, p.Arguments == null ? null : p.Arguments.ConvertAll(CloneExtendedPattern));
       } else {
         Contract.Assert(false);
         return null;
@@ -739,10 +743,10 @@ namespace Microsoft.Dafny
     public virtual Function CloneFunction(Function f, string newName = null) {
       var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
       var formals = f.Formals.ConvertAll(CloneFormal);
-      var req = f.Req.ConvertAll(CloneMayBeFreeExpr);
+      var req = f.Req.ConvertAll(CloneAttributedExpr);
       var reads = f.Reads.ConvertAll(CloneFrameExpr);
       var decreases = CloneSpecExpr(f.Decreases);
-      var ens = f.Ens.ConvertAll(CloneMayBeFreeExpr);
+      var ens = f.Ens.ConvertAll(CloneAttributedExpr);
       Expression body;
       body = CloneExpr(f.Body);
 
@@ -776,11 +780,11 @@ namespace Microsoft.Dafny
 
       var tps = m.TypeArgs.ConvertAll(CloneTypeParam);
       var ins = m.Ins.ConvertAll(CloneFormal);
-      var req = m.Req.ConvertAll(CloneMayBeFreeExpr);
+      var req = m.Req.ConvertAll(CloneAttributedExpr);
       var mod = CloneSpecFrameExpr(m.Mod);
       var decreases = CloneSpecExpr(m.Decreases);
 
-      var ens = m.Ens.ConvertAll(CloneMayBeFreeExpr);
+      var ens = m.Ens.ConvertAll(CloneAttributedExpr);
 
       BlockStmt body = CloneMethodBody(m);
 

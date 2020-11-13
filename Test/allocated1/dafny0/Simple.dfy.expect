@@ -106,4 +106,4 @@ module B refines A {
   }
 }
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification

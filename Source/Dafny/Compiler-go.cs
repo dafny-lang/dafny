@@ -271,7 +271,7 @@ namespace Microsoft.Dafny {
       if (superClasses != null) {
         // Emit a method that returns the ID of each parent trait
         var parentTraitsWriter = w.NewBlock($"func (_this *{name}) ParentTraits_() []*_dafny.TraitID");
-        parentTraitsWriter.WriteLine("return [](*_dafny.TraitID){{{0}}};", Util.Comma(", ", superClasses, parent => {
+        parentTraitsWriter.WriteLine("return [](*_dafny.TraitID){{{0}}};", Util.Comma(superClasses, parent => {
           var trait = ((UserDefinedType)parent).ResolvedClass;
           return TypeName_Companion(trait, parentTraitsWriter, tok) + ".TraitID_";
         }));
@@ -1127,7 +1127,7 @@ namespace Microsoft.Dafny {
         if (outTypes.Count > 1) {
           wr.Write('(');
         }
-        wr.Write(Util.Comma(", ", outTypes, ty => TypeName(ty, wr, tok)));
+        wr.Write(Util.Comma(outTypes, ty => TypeName(ty, wr, tok)));
         if (outTypes.Count > 1) {
           wr.Write(')');
         }
@@ -1183,11 +1183,6 @@ namespace Microsoft.Dafny {
           EmitDummyVariableUse(FormatRTDName(tp.CompileName), wr);
         }
       }
-    }
-
-    private bool NeedsTypeDescriptor(TypeParameter tp) {
-      Contract.Requires(tp != null);
-      return tp.Characteristics.MustSupportZeroInitialization;
     }
 
     protected override int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
@@ -2170,6 +2165,10 @@ namespace Microsoft.Dafny {
         case "real":
         case "recover":
 
+        case "String":
+        case "Equals":
+        case "EqualsGeneric":
+
         // Built-in types (can also be used as functions)
         case "bool":
         case "byte":
@@ -2492,6 +2491,9 @@ namespace Microsoft.Dafny {
       var sep = "";
       foreach (var index in indices) {
         wr.Write(sep);
+        if (!index.Type.IsIntegerType) {
+          wr.Write("_dafny.IntOfAny");
+        }
         // No need for IntOfAny; things coming from user code are presumed Ints
         TrParenExpr(index, wr, inLetExprBody);
         sep = ", ";
@@ -2549,7 +2551,7 @@ namespace Microsoft.Dafny {
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, TargetWriter wr) {
       EmitIndexCollectionUpdate(out var wSource, out var wIndex, out var wValue, wr);
       TrParenExpr(source, wSource, inLetExprBody);
-      TrExpr(index, wIndex, inLetExprBody);
+      TrExprToBigInt(index, wIndex, inLetExprBody);
       TrExpr(value, wValue, inLetExprBody);
     }
 
@@ -2693,29 +2695,14 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    private TargetWriter CreateIIFE_ExprBody(out TargetWriter sourceWriter, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      var w = wr.NewExprBlock("func ({0} {1}) {2}", bvName, TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
+    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, TargetWriter wr, out TargetWriter wrRhs, out TargetWriter wrBody) {
+      var w = wr.NewExprBlock("func ({0} {1}) {2}", bvName, TypeName(bvType, wr, bvTok), TypeName(bodyType, wr, bodyTok));
       w.Write("return ");
-      var wExpr = w.Fork();
+      wrBody = w.Fork();
       w.WriteLine();
       wr.Write('(');
-      sourceWriter = wr.Fork();
+      wrRhs = wr.Fork();
       wr.Write(')');
-      return wExpr;
-    }
-
-    protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      TargetWriter sourceWriter;
-      var w = CreateIIFE_ExprBody(out sourceWriter, sourceType, sourceTok, resultType, resultTok, bvName, wr);
-      TrExpr(source, sourceWriter, inLetExprBody);
-      return w;
-    }
-
-    protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      TargetWriter sourceWriter;
-      var w = CreateIIFE_ExprBody(out sourceWriter, sourceType, sourceTok, resultType, resultTok, bvName, wr);
-      sourceWriter.Write(source);
-      return w;
     }
 
     protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
@@ -3035,8 +3022,8 @@ namespace Microsoft.Dafny {
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
       if (e.ToType.Equals(e.E.Type)) {
         TrParenExpr(e.E, wr, inLetExprBody);
-      } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType || e.E.Type.IsBigOrdinalType) {
-        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+      } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType || e.E.Type.IsBigOrdinalType) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // (int or bv or char) -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           wr.Write("_dafny.RealOfFrac(");
@@ -3116,9 +3103,9 @@ namespace Microsoft.Dafny {
             }
           }
         }
-      } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+      } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
         Contract.Assert(AsNativeType(e.E.Type) == null);
-        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // real -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody);
@@ -3157,7 +3144,7 @@ namespace Microsoft.Dafny {
         ArrowType fat = from.AsArrowType, tat = to.AsArrowType;
         // We must wrap the whole conversion in an IIFE to avoid capturing the source expression
         var bvName = FreshId("coer");
-        wr = CreateIIFE_ExprBody(out var ans, fat, tok, tat, tok, bvName, wr);
+        CreateIIFE(bvName, fat, tok, tat, tok, wr, out var ans, out wr);
 
         wr.Write("func (");
         var sep = "";
@@ -3276,17 +3263,17 @@ namespace Microsoft.Dafny {
       wr.Write(".ToMap()");
     }
 
-    protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
-      if (ct is MapType) {
-        wr.Write("_dafny.NewMapBuilder()");
-      } else if (ct is SetType || ct is MultiSetType) {
-        wr.Write("_dafny.NewBuilder()");
-      } else {
-        Contract.Assume(false);  // unepxected collection type
-      }
+    protected override void EmitSetBuilder_New(TargetWriter wr, SetComprehension e, string collectionName) {
+      var wrVarInit = DeclareLocalVar(collectionName, null, null, wr);
+      wrVarInit.Write("_dafny.NewBuilder()");
     }
 
-    protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitMapBuilder_New(TargetWriter wr, MapComprehension e, string collectionName) {
+      var wrVarInit = DeclareLocalVar(collectionName, null, null, wr);
+      wrVarInit.Write("_dafny.NewMapBuilder()");
+    }
+
+    protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
       Contract.Assume(ct is SetType || ct is MultiSetType);  // follows from precondition
       wr.Write("{0}.Add(", collName);
       TrExpr(elmt, wr, inLetExprBody);
@@ -3305,8 +3292,6 @@ namespace Microsoft.Dafny {
     protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
       if (ct is SetType) {
         return collName + ".ToSet()";
-      } else if (ct is MultiSetType) {
-        return collName + ".ToMultiSet()";
       } else {
         Contract.Assert(ct is MapType);
         return collName + ".ToMap()";

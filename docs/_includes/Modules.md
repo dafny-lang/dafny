@@ -1,6 +1,6 @@
 # Modules
 
-````
+````grammar
 SubModuleDecl = ( ModuleDefinition_ | ModuleImport_ )
 ````
 
@@ -13,19 +13,21 @@ possible to abstract over modules to separate an implementation from an
 interface.
 
 ## Declaring New Modules
-````
+````grammar
 ModuleDefinition_ = "module" { Attribute } ModuleName
         [ [  "exclusively" ] "refines" QualifiedModuleName ]
         "{" { TopDecl } "}"
 QualifiedModuleName = Ident { "." Ident }
 ````
-A qualified name that is known to refer to a module.
+A `QualifiedModuleName` is a qualified name that is known to refer to a module;
+a _qualified name_ is a sequence of `.`-separated identifiers, which designates
+a program entity by representing increasingly-nested scopes.
 
 A new module is declared with the `module` keyword, followed by the name
 of the new module, and a pair of curly braces ({}) enclosing the body
 of the module:
 
-```
+```dafny
 module Mod {
   ...
 }
@@ -34,7 +36,7 @@ module Mod {
 A module body can consist of anything that you could put at the top
 level. This includes classes, datatypes, types, methods, functions, etc.
 
-```
+```dafny
 module Mod {
   class C {
     var f: int
@@ -49,7 +51,7 @@ module Mod {
 
 You can also put a module inside another, in a nested fashion:
 
-```
+```dafny
 module Mod {
   module Helpers {
     class C {
@@ -63,7 +65,7 @@ module Mod {
 Then you can refer to the members of the `Helpers` module within the
 `Mod` module by prefixing them with "Helpers.". For example:
 
-```
+```dafny
 module Mod {
   module Helpers { ... }
   method m() {
@@ -79,7 +81,7 @@ classes, with just the module name prefixing them. They are also
 available in the methods and functions of the classes in the same
 module.
 
-```
+```dafny
 module Mod {
   module Helpers {
     function method addOne(n: nat): nat {
@@ -93,12 +95,14 @@ module Mod {
 }
 ```
 
-Note that everything declared at the top-level 
+TO BE WRITTEN - standalone declaration of nested modules
+
+Note that everything declared at the top-level
 (in all the files constituting the program) is implicitly part
 of a single implicit unnamed global module.
 
 ## Importing Modules
-````
+````grammar
 ModuleImport_ = "import" ["opened" ] ModuleName
     [ "=" QualifiedModuleName
     | "as" QualifiedModuleName ["default" QualifiedModuleName ]
@@ -106,17 +110,17 @@ ModuleImport_ = "import" ["opened" ] ModuleName
     [ ";" ]
 ````
 
-Declaring new submodules is useful, but sometimes you want to refer to
+Sometimes you want to refer to
 things from an existing module, such as a library. In this case, you
 can _import_ one module into another. This is done via the `import`
 keyword, which has two forms with different meanings.
 The simplest form is the concrete import, which has
 the form `import A = B`. This declaration creates a reference to the
 module `B` (which must already exist), and binds it to the new name
-`A`. This form can also be used to create a reference to a nested 
-module, as in `import A = B.C`. 
- 
-As modules in the same scope must have different names, this ability 
+`A`. This form can also be used to create a reference to a nested
+module, as in `import A = B.C`.
+
+As modules in the same scope must have different names, this ability
 to bind a module to a new name allows disambiguating separately developed
 external modules that have the same name.
 Note that the new name is only bound in the scope containing
@@ -124,7 +128,7 @@ the import declaration; it does not create a global alias. For
 example, if `Helpers` was defined outside of `Mod`, then we could import
 it:
 
-```
+```dafny
 module Helpers {
   ...
 }
@@ -156,17 +160,24 @@ sibling module of the importing module, or with a submodule of the
 importing module. There is no way to refer to the parent module, only
 sibling modules (and their submodules).
 
-Import statements may occur at the top-level of a program 
+Import statements may occur at the top-level of a program
 (that is, in the implicit top-level module of the program) as well.
-There they serve simply as a way to give a new name, perhaps a 
+There they serve simply as a way to give a new name, perhaps a
 shorthand name, to a module. For example,
 
-```
+```dafny
 module MyModule { ... } // declares module MyModule
 import MyModule  // error: cannot add a moduled named MyModule
                  // because there already is one
 import M = MyModule // OK. M and MyModule are equivalent
 ```
+
+## Export Sets
+
+TO BE WRITTEN -- including provides and reveals lists
+TO BE WRITTEN -- opened imports are not exported
+TO BE WRITTEN -- module facades
+
 
 ## Opening Modules
 
@@ -177,7 +188,7 @@ which causes all of its members to be available without adding the
 module name. The `opened` keyword, if present, must immediately follow `import`.
 For example, we could write the previous example as:
 
-```
+```dafny
 module Mod {
   import opened Helpers
   method m() {
@@ -193,7 +204,7 @@ longer be available under that name. When modules are opened, the
 original name binding is still present however, so you can always use
 the name that was bound to get to anything that is hidden.
 
-```
+```dafny
 module Mod {
   import opened Helpers
   function addOne(n: nat): nat {
@@ -215,19 +226,20 @@ with common names. The `opened` keyword can be used with any kind of
 `import` declaration, including the module abstraction form.
 
 An `import opened` may occur at the top-level as well. For example,
-```
+```dafny
 module MyModule { ... } // declares MyModule
-import opened MyModule // does not declare a new module, but does make
-                       // all names in MyModule available in the current
-                       // scope, without needing qualification
-import opened M = MyModule // names in MyModule are available in the
-                       // current scope without qualification or
-                       // qualified with either M or MyModule
+import opened MyModule // does not declare a new module, but does
+                       // make all names in MyModule available in
+                       // the current scope, without needing
+                       // qualification
+import opened M = MyModule // names in MyModule are available in
+                       // the current scope without qualification
+                       // or qualified with either M or MyModule
 ```
 
 The Dafny style guidelines suggest using opened imports sparingly.
 They are best used when the names being imported have obvious
-and unambiguous meanings and when using qualified names would be 
+and unambiguous meanings and when using qualified names would be
 verbose enough to impede understanding.
 
 ## Module Abstraction
@@ -242,12 +254,14 @@ definitions, classes with bodyless methods, or otherwise be unsuitable
 to use directly.  Because of the way refinement is defined, any
 refinement of `B` can be used safely. For example, if we start with:
 
-```
+A module that includes an abstract import must be declared _abstract_.
+
+```dafny
 module Interface {
   function method addSome(n: nat): nat
     ensures addSome(n) > n
 }
-module Mod {
+abstract module Mod {
   import A : Interface
   method m() {
     assert 6 <= A.addSome(5);
@@ -255,12 +269,12 @@ module Mod {
 }
 ```
 
-then we can be more precise if we know that `addSome` actually adds
+We can be more precise if we know that `addSome` actually adds
 exactly one. The following module has this behavior. Further, the
 postcondition is stronger, so this is actually a refinement of the
 Interface module.
 
-```
+```dafny
 module Implementation {
   function method addSome(n: nat): nat
     ensures addSome(n) == n + 1
@@ -273,47 +287,15 @@ module Implementation {
 We can then substitute `Implementation` for `A` in a new module, by
 declaring a refinement of `Mod` which defines  `A` to be `Implementation`.
 
-```
+```dafny
 module Mod2 refines Mod {
   import A = Implementation
   ...
 }
 ```
 
-You can also give an implementation directly, without introducing a
-refinement, by giving a default to the abstract import:
-
-```
-module Interface {
-  function method addSome(n: nat): nat
-    ensures addSome(n) > n
-}
-module Mod {
-  import A : Interface default Implementation
-  method m() {
-    assert 6 <= A.addSome(5);
-  }
-}
-module Implementation {
-  function method addSome(n: nat): nat
-    ensures addSome(n) == n + 1
-  {
-    n + 1
-  }
-}
-module Mod2 refines Mod {
-  import A : Interface default Implementation
-  ...
-}
-```
-
-Regardless of whether there is a default, the only things known about
-`A` in this example is that it has a function `addSome` that returns a
-strictly bigger result, so even with the default we still can't prove
-that `A.addSome(5) == 6`, only that `6 <= A.addSome(5)`.
-
-When you refine an abstract import into a concrete one, or giving a
-default, Dafny checkes that the concrete module is a
+When you refine an abstract import into a concrete one
+Dafny checks that the concrete module is a
 refinement of the abstract one. This means that the methods must have
 compatible signatures, all the classes and datatypes with their
 constructors and fields in the abstract one must be present in the
@@ -321,23 +303,25 @@ concrete one, the specifications must be compatible, etc.
 
 ## Module Ordering and Dependencies
 
-Dafny isn't particular about which order the modules appear in, but
+Dafny isn't particular about the textual order in which modules are
+declared, but
 they must follow some rules to be well formed. As a rule of thumb,
 there should be a way to order the modules in a program such that each
-only refers to things defined **before** it in the source text. That
-doesn't mean the modules have to be given in that order. Dafny will
+only refers to things defined **before** it in the ordering. That
+doesn't mean the modules have to be given textually in that order in
+the source text. Dafny will
 figure out that order for you, assuming you haven't made any circular
 references. For example, this is pretty clearly meaningless:
 
-```
+```dafny
 import A = B
-import B = A
+import B = A // error: circular
 ```
 
 You can have import statements at the toplevel, and you can import
 modules defined at the same level:
 
-```
+```dafny
 import A = B
 method m() {
   A.whatever();
@@ -347,7 +331,7 @@ module B { ... }
 
 In this case, everything is well defined because we can put `B` first,
 followed by the `A` import, and then finally `m()`. If there is no
-ordering, then Dafny will give an error, complaining about a cyclic
+permitted ordering, then Dafny will give an error, complaining about a cyclic
 dependency.
 
 Note that when rearranging modules and imports, they have to be kept
@@ -356,11 +340,11 @@ module structures. Also, the imports and submodules are always
 considered to be first, even at the toplevel. This means that the
 following is not well formed:
 
-```
+```dafny
 method doIt() { }
 module M {
   method m() {
-    doIt();
+    doIt(); // error: M precedes doIt
   }
 }
 ```
@@ -370,7 +354,7 @@ as methods. To define global functions like this, you can put them in
 a module (called `Globals`, say) and open it into any module that needs
 its functionality. Finally, if you import via a path, such as `import A
 = B.C`, then this creates a dependency of `A` on `B`, as we need to know
-what `B` is (is it abstract or concrete, or a refinement?).
+what `B` is (e.g., is it abstract or concrete, or a refinement?).
 
 ## Name Resolution
 
@@ -383,9 +367,9 @@ refers to, the rest of the identifier is looked up in the appropriate
 context.
 
 In terms of the grammar, sequences like the above are represented as
-a ``NameSegment`` followed by 0 or more ``Suffix``es. A ``Suffix`` is
-more general and the form shown above would be for when the
-``Suffix`` is an ``AugmentedDotSuffix_``.
+a ``NameSegment`` followed by 0 or more ``Suffix``es.
+The form shown above contains three instances of
+``AugmentedDotSuffix_``.
 
 The resolution is different depending on whether it is in
 an expression context or a type context.
@@ -405,14 +389,14 @@ rule that succeeds.
    fields, functions, and methods of the current class (if in a static
    context, then only static methods and functions are allowed). You can
    refer to fields of the current class either as `this.f` or `f`,
-   assuming of course that `f` hasn't be hidden by one of the above. You
-   can always prefix this if needed, which cannot be hidden. (Note, a
+   assuming of course that `f` is not hidden by one of the above. You
+   can always prefix `this` if needed, which cannot be hidden. (Note, a
    field whose name is a string of digits must always have some prefix.)
 
 2. If there is no ``Suffix``, then look for a datatype constructor, if
    unambiguous. Any datatypes that don't need qualification (so the
-   datatype name itself doesn't need a prefix), and also have a uniquely
-   named constructor, can be referred to just by its name. So if
+   datatype name itself doesn't need a prefix) and also have a uniquely
+   named constructor can be referred to just by name.  So if
    `datatype List = Cons(List) | Nil` is the only datatype that declares
    `Cons` and `Nil` constructors, then you can write `Cons(Cons(Nil))`.
    If the constructor name is not unique, then you need to prefix it with
