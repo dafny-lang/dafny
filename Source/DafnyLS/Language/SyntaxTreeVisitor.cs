@@ -100,7 +100,6 @@
     }
 
     public virtual void Visit(Function function) {
-      VisitNullableExpression(function.Body);
       foreach(var typeArgument in function.TypeArgs) {
         Visit(typeArgument);
       }
@@ -117,6 +116,7 @@
         Visit(ensurement);
       }
       Visit(function.Decreases);
+      VisitNullableExpression(function.Body);
     }
 
     public virtual void Visit(NonglobalVariable nonGlobalVariable) {
