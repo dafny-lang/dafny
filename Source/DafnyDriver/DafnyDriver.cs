@@ -75,7 +75,7 @@ namespace Microsoft.Dafny
         Console.WriteLine("Press Enter to exit.");
         Console.ReadLine();
       }
-      if (!DafnyOptions.O.CountVerificationErrors && exitValue != ExitValue.PREPROCESSING_ERROR)
+      if (!DafnyOptions.O.CountVerificationErrors)
       {
         return 0;
       }
