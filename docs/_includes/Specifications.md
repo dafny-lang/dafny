@@ -40,7 +40,7 @@ If more than one `requires` clause is given, then the
 precondition is the conjunction of all of the expressions
 from all of the `requires` clauses. The order of conjunctions
 (and hence the order of `requires` clauses with respect to each other)
-can be important: earlier conjuncts can set conditions that 
+can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
 ### Ensures Clause
@@ -67,7 +67,7 @@ postcondition is the conjunction of all of the expressions
 from all of the `ensures` clauses.
 The order of conjunctions
 (and hence the order of `ensures` clauses with respect to each other)
-can be important: earlier conjuncts can set conditions that 
+can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
 TODO: In the present sources ``FunctionEnsuresClause_`` differs from
@@ -95,7 +95,7 @@ reported.
 TODO: A ``FunctionDecreasesClause_`` is not allowed to specify
 ``Attribute``s. this will be fixed in a future version.
 
-Decreases` clauses are used to prove termination in the
+Decreases clauses are used to prove termination in the
 presence of recursion. if more than one `decreases` clause is given
 it is as if a single `decreases` clause had been given with the
 collected list of arguments. That is,
@@ -112,7 +112,7 @@ decreases A, B, C, D
 ```
 Note that changing the order of multiple `decreases` clauses will change
 the order of the expressions within the equivalent single `decreases`
-clause, and will therefore havea different semantics.
+clause, and will therefore have different semantics.
 
 If any of the expressions in the `decreases` clause are wild (i.e., `*`)
 then the proof of termination will be skipped.
@@ -140,12 +140,12 @@ in a Dafny program is strictly less than $\top$. Dafny sometimes also
 prepends expressions to the lexicographic tuple given by the user. The
 effective decreases clause is any such prefix, followed by the
 user-provided decreases clause, followed by $\top$. We said "user-provided
-decreases clause", but if the user completely omits a "decreases" clause,
+decreases clause", but if the user completely omits a `decreases` clause,
 then Dafny will usually make a guess at one, in which case the effective
 decreases clause is any prefix followed by the guess followed by $\top$.
 (If you're using the Dafny IDE in Visual Studio, you can hover the mouse
 over the name of a recursive function or method, or the "while" keyword
-for a loop, to see the "decreases" clause that Dafny guessed, if any.)
+for a loop, to see the `decreases` clause that Dafny guessed, if any.)
 
 Here is a simple but interesting example: the Fibonacci function.
 
@@ -446,12 +446,12 @@ the enclosing context is allowed to modify.
 
 Note that _modifies_ here is used in the sense of _writes_. That is, a field
 that may not be modified may not be written to, even with the same value it
-already has or even if the value is restored later. The terminology and 
+already has or even if the value is restored later. The terminology and
 semantics varies among specification languages. Some define frame conditions
 in this sense (a) of _writes_ and others in the sense (b) that allows writing
-a field with the same value or changing the value so long as the original 
+a field with the same value or changing the value so long as the original
 value is restored by the end of the scope. For example, JML defines
-`assignable` and `modifies` as synonyms in the sense (a), though KeY 
+`assignable` and `modifies` as synonyms in the sense (a), though KeY
 interprets JML's `assigns/modifies` in sense (b).
 ACSL and ACSL++ use the `assigns` keyword, but with _modify_ (b) semantics.
 Ada/SPARK's dataflow contracts encode _write_ (a) semantics.
