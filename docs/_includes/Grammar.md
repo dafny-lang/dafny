@@ -94,7 +94,7 @@ will link to the definition of the entity.**
 ## Dafny Input {#sec-unicode}
 
 Dafny source code files are readable text encoded as UTF-8 Unicode
-(because this is what the Coco/R-generated scanner and parser read). 
+(because this is what the Coco/R-generated scanner and parser read).
 All program text other than the contents of comments, character, string and verbatim string literals
 are printable and white-space ASCII characters,
 that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters,
@@ -103,7 +103,7 @@ with the exception of a few allowed unicode mathematical symbols.
 However, a current limitation is that the Coco/R tool used by Dafny is not up to date,
 and consequently, only printable and white-space ASCII characters can be used.
 Use `\u` escapes in string and character literals to insert unicode characters.
-Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication. 
+Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication.
 Unicode in verbatim strings will likely not be interpreted as intended. [Outstanding issue #818].
 
 ## Character Classes {#sec-character-classes}
@@ -112,7 +112,7 @@ In this section a backslash is used to start an escape sequence; so for example
 `'\n'` denotes the single linefeed character. Also in this section, double quotes
 enclose the set of characters constituting a character class; enclosing single
 quotes are used when there is just one character in the class. `+` indicates
-the union of two character classes; `-` is the set-difference between the 
+the union of two character classes; `-` is the set-difference between the
 two classes. `ANY` designates all [unicode characters](#sec-unicode).
 
 ````grammar
@@ -182,8 +182,8 @@ The characters that can be used in an identifier.
 ````grammar
 nonidchar = ANY - idchar
 ````
-Any character except those that can be used in an identifier.  
-Here the scanner generator will interpret `ANY` as any unicode character. 
+Any character except those that can be used in an identifier.
+Here the scanner generator will interpret `ANY` as any unicode character.
 However, `nonidchar` is used only to mark the end of the `!in` token;
 in this context any character other than [whitespace or printable ASCII](#sec-unicode)
 will trigger a subsequent scanning or parsing error.
@@ -212,7 +212,7 @@ Comments are in two forms.
 * They may go from "/\*" to "\*/" and be nested.
 * They may go from "//" to the end of the line.
 
-Note that the nesting of multi-line comments is behavior that is different 
+Note that the nesting of multi-line comments is behavior that is different
 from most programming languages. In dafny,
 ```dafny
 method m() {
@@ -223,7 +223,7 @@ method m() {
   */
 }
 ```
-is permitted; this feature is convenient for commenting out blocks of 
+is permitted; this feature is convenient for commenting out blocks of
 program statements that already have multi-line comments within them.
 Other than looking for  end-of-comment delimiters,
 the contents of a comment are not interpreted.
@@ -240,36 +240,36 @@ as identifiers of user-defined entities:
 
 ```
 reservedword =
-    "abstract" | "array" | "as" | "assert" | "assume" | "bool" | 
-    "break" | "calc" | "case" | "char" | "class" | "codatatype" | 
-    "colemma" | "constructor" | "copredicate" | "datatype" | 
-    "decreases" | "default" | "else" | "ensures" | "exists" | 
-    "extends" | "false" | "forall" | "fresh" | "function" | 
-    "ghost" | "if" | "imap" | "import" | "in" | "include" | 
-    "inductive" | "int" | "invariant" | "is" | "iset" | 
-    "iterator" | "label" | "lemma" | "map" | "match" | "method" | 
-    "modifies" | "modify" | "module" | "multiset" | "nat" | 
-    "new" | "newtype" | "null" | "object" | "old" | "opened" | 
-    "predicate" | "print" | "protected" | "provides" "reads" | 
-    "real" | "refines" | "requires" | "return" | "returns" | 
-    "reveals" | "seq" | "set" | "static" | "string" | "then" | 
-    "this" | "trait" | "true" | "twostate" | "type" | 
-    "unchanged" | "var" | "where" | "while" | "yield" | "yields" | 
-    arraytoken
+    "abstract" | "array" | "as" | "assert" | "assume" | "bool" |
+    "break" | "calc" | "case" | "char" | "class" | "codatatype" |
+    "colemma" | "constructor" | "copredicate" | "datatype" |
+    "decreases" | "default" | "else" | "ensures" | "exists" |
+    "extends" | "false" | "forall" | "fresh" | "function" |
+    "ghost" | "if" | "imap" | "import" | "in" | "include" |
+    "inductive" | "int" | "invariant" | "is" | "iset" |
+    "iterator" | "label" | "lemma" | "map" | "match" | "method" |
+    "modifies" | "modify" | "module" | "multiset" | "nat" |
+    "new" | "newtype" | "null" | "object" | "old" | "opened" |
+    "predicate" | "print" | "protected" | "provides" "reads" |
+    "real" | "refines" | "requires" | "return" | "returns" |
+    "reveals" | "seq" | "set" | "static" | "string" | "then" |
+    "this" | "trait" | "true" | "twostate" | "type" |
+    "unchanged" | "var" | "where" | "while" | "yield" | "yields" |
+    arrayToken
 
-arraytoken = "array" [ posdigit2 | posDigit digit { digit }]["?"] 
+arrayToken = "array" [ posdigit2 | posDigit digit { digit }]["?"]
 ```
 
-An ``arraytoken`` is a reserved word that denotes an array type of
+An ``arrayToken`` is a reserved word that denotes an array type of
 given rank. `array` is an array type of rank 1 (aka a vector). `array2`
-is the type of two-dimensional arrays, etc. 
+is the type of two-dimensional arrays, etc.
 `array1` and `array1?` are not reserved words; they are just ordinary identifiers.
 
 ### Identifiers
 
 ````grammar
-ident = nondigitIdChar { idchar } 
-        - arraytoken - chartoken - reservedword
+ident = nondigitIdChar { idchar }
+        - arrayToken - charToken - reservedword
 ````
 In general Dafny identifiers are sequences of ``idchar`` characters where
 the first character is a ``nondigitIdChar``. However tokens that fit this pattern
@@ -443,7 +443,7 @@ If `allowGhostKeyword` is false then `ghost` is not allowed.
 ````grammar
 LocalIdentTypeOptional = WildIdent [ ":" Type ]
 ````
-A ``LocalIdentTypeOptional`` is used when declaring local variables. 
+A ``LocalIdentTypeOptional`` is used when declaring local variables.
 If a value is specified for the variable, the
 type may be omitted because it can be inferred from the initial value.
 An initial value is not required.
@@ -461,7 +461,7 @@ TypeIdentOptional = [ "ghost" ] [ ( NoUSIdent | digits ) ":" ] Type
 where a type is given but there may not be an identifier.
 
 ````grammar
-FormalsOptionalIds = "(" [ TypeIdentOptional  
+FormalsOptionalIds = "(" [ TypeIdentOptional
                            { "," TypeIdentOptional } ] ")"
 ````
 A ``FormalsOptionalIds`` is a formal parameter list in which the types are required
