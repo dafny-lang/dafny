@@ -171,7 +171,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         var rootBlock = new ScopeSymbol(methodSymbol, blockStatement);
         var localVisitor = new LocalVariableDeclarationVisitor(_logger, rootBlock);
         localVisitor.Resolve(blockStatement);
-        methodSymbol.Locals.Add(rootBlock);
+        methodSymbol.Block = rootBlock;
       }
 
       private FieldSymbol ProcessField(Symbol scope, Field field) {
