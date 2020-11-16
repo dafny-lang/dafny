@@ -280,7 +280,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public Unit Visit(ScopeSymbol scopeSymbol) {
         _cancellationToken.ThrowIfCancellationRequested();
-        VisitChildren(scopeSymbol);
+        RegisterLocation(
+          scopeSymbol,
+          scopeSymbol.Declaration.Tok,
+          scopeSymbol.Declaration.Tok.GetLspRange(),
+          new Range(scopeSymbol.Declaration.Tok.GetLspPosition(), scopeSymbol.Declaration.EndTok.GetLspPosition())
+        );
         return Unit.Value;
       }
 

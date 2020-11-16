@@ -3,12 +3,13 @@ using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public class ScopeSymbol : Symbol, ILocalizableSymbol {
+    public BlockStmt Declaration { get; }
+    public object Node => Declaration;
     public List<ISymbol> Symbols { get; } = new List<ISymbol>();
     public override IEnumerable<ISymbol> Children => Symbols;
-    public object Node { get; }
 
-    public ScopeSymbol(ISymbol? scope, object node) : base(scope, string.Empty) {
-      Node = node;
+    public ScopeSymbol(ISymbol? scope, BlockStmt declaration) : base(scope, string.Empty) {
+      Declaration = declaration;
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {
