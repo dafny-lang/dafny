@@ -6,7 +6,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// </summary>
   public interface ISymbol {
     /// <summary>
-    /// Gets the name of the symbol.
+    /// Gets the name of the symbol. The string is empty if the symbol does not have any name.
     /// </summary>
     string Name { get; }
 

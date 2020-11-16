@@ -112,6 +112,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       );
     }
 
+    public DocumentSymbol Visit(ScopeSymbol scopeSymbol) {
+      return new DocumentSymbol();
+    }
+
     private DocumentSymbol WithLocation(ISymbol symbol, DocumentSymbol documentSymbol) {
       if(_symbolTable.TryGetLocationOf(symbol, out var location)) {
         documentSymbol.Range = location.Declaration;

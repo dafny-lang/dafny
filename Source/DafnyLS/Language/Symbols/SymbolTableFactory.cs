@@ -273,6 +273,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         return Unit.Value;
       }
 
+      public Unit Visit(ScopeSymbol scopeSymbol) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        VisitChildren(scopeSymbol);
+        return Unit.Value;
+      }
+
       private void VisitChildren(ISymbol symbol) {
         foreach(var child in symbol.Children) {
           child.Accept(this);

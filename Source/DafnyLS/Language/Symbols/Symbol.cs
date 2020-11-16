@@ -7,7 +7,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// </summary>
   public abstract class Symbol : ISymbol {
     /// <summary>
-    /// Gets the name of the symbol.
+    /// Gets the name of the symbol. The string is empty if the symbol does not have any name.
     /// </summary>
     public string Name { get; }
 
