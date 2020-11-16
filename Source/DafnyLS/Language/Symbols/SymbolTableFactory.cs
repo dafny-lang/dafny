@@ -286,6 +286,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           scopeSymbol.Declaration.Tok.GetLspRange(),
           new Range(scopeSymbol.Declaration.Tok.GetLspPosition(), scopeSymbol.Declaration.EndTok.GetLspPosition())
         );
+        VisitChildren(scopeSymbol);
         return Unit.Value;
       }
 
