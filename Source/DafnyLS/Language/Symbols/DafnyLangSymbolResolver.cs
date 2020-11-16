@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -214,7 +213,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public override void Visit(LocalVariable localVariable) {
-        // TODO Adapt visitor so it supports returning values?
         _block.Symbols.Add(new VariableSymbol(_block, localVariable));
       }
     }
