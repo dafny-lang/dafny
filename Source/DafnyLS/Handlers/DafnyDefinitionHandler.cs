@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
       var location = GetLspLocation(document, symbol);
       if(!location.HasValue) {
-        _logger.LogDebug("failed to resolve the location of the symbol {} at {} in {}", symbol.Identifier, request.Position, request.TextDocument);
+        _logger.LogDebug("failed to resolve the location of the symbol {} at {} in {}", symbol.Name, request.Position, request.TextDocument);
         return Task.FromResult(new LocationOrLocationLinks());
       }
       return Task.FromResult<LocationOrLocationLinks>(new[] { location.Value });
@@ -50,7 +50,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       if(document.SymbolTable.TryGetLocationOf(symbol, out var location)) {
         return new Location {
           Uri = location.Uri,
-          Range = location.Identifier
+          Range = location.Name
         };
       }
       return null;

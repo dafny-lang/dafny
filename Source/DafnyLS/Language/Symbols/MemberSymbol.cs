@@ -6,7 +6,7 @@
     /// </summary>
     public string? EnclosingClassName {
       get {
-        var className = (Scope as ClassSymbol)?.Identifier;
+        var className = (Scope as ClassSymbol)?.Name;
         return className == "_default" ? null : className;
       }
     }

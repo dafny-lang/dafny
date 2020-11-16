@@ -54,7 +54,7 @@ class Test {
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(document.SymbolTable.TryGetSymbolAt((7, 10), out var symbol));
-      Assert.AreEqual("x", symbol.Identifier);
+      Assert.AreEqual("x", symbol.Name);
     }
 
     [TestMethod]
@@ -93,7 +93,7 @@ class Test {
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(document.SymbolTable.TryGetSymbolAt((7, 10), out var symbol));
-      Assert.AreEqual("x", symbol.Identifier);
+      Assert.AreEqual("x", symbol.Name);
     }
 
     [TestMethod]
@@ -140,7 +140,7 @@ class Test {
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(document.SymbolTable.TryGetSymbolAt((22, 10), out var symbol));
-      Assert.AreEqual("y", symbol.Identifier);
+      Assert.AreEqual("y", symbol.Name);
     }
 
     [TestMethod]
@@ -179,7 +179,7 @@ class Test {
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(document.SymbolTable.TryGetSymbolAt((16, 10), out var symbol));
-      Assert.AreEqual("y", symbol.Identifier);
+      Assert.AreEqual("y", symbol.Name);
     }
 
     [TestMethod]
@@ -206,7 +206,7 @@ class Test {
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(document.SymbolTable.TryGetSymbolAt((6, 10), out var symbol));
-      Assert.AreEqual("x", symbol.Identifier);
+      Assert.AreEqual("x", symbol.Name);
     }
 
     [TestMethod]
@@ -233,7 +233,7 @@ class Test {
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(document.SymbolTable.TryGetSymbolAt((6, 9), out var symbol));
-      Assert.AreEqual("x", symbol.Identifier);
+      Assert.AreEqual("x", symbol.Name);
     }
 
     [TestMethod]
@@ -301,7 +301,7 @@ class Test {
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(document.SymbolTable.TryGetSymbolAt((12, 7), out var symbol));
-      Assert.AreEqual("x", symbol.Identifier);
+      Assert.AreEqual("x", symbol.Name);
     }
   }
 }

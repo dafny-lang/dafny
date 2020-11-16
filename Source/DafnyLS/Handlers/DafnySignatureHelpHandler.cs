@@ -75,7 +75,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       private SignatureInformation CreateSignatureInformation(ILocalizableSymbol symbol) {
         return new SignatureInformation {
-          Label = symbol.Identifier,
+          Label = symbol.Name,
           Documentation = new MarkupContent {
             Kind = MarkupKind.Markdown,
             Value = $"```dafny\n{symbol.GetDetailText(_cancellationToken)}\n```"

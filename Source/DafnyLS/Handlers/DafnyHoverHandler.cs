@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyHoverHandler : HoverHandler {
-    // TODO add the range of the identifier to the hover.
+    // TODO add the range of the name to the hover.
     private readonly ILogger _logger;
     private readonly IDocumentDatabase _documents;
 

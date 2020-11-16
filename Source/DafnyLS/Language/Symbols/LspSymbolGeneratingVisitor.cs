@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return WithLocation(
         moduleSymbol,
         new DocumentSymbol {
-          Name = moduleSymbol.Identifier,
+          Name = moduleSymbol.Name,
           Kind = SymbolKind.Module,
           Detail = moduleSymbol.GetDetailText(_cancellationToken),
           Children = moduleSymbol.Children.Select(child => child.Accept(this)).ToArray()
@@ -42,7 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return WithLocation(
         classSymbol,
         new DocumentSymbol {
-          Name = classSymbol.Identifier,
+          Name = classSymbol.Name,
           Kind = SymbolKind.Class,
           Detail = classSymbol.GetDetailText(_cancellationToken),
           Children = classSymbol.Children.Select(child => child.Accept(this)).ToArray()
@@ -54,7 +54,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return WithLocation(
         valueTypeSymbol,
         new DocumentSymbol {
-          Name = valueTypeSymbol.Identifier,
+          Name = valueTypeSymbol.Name,
           Kind = SymbolKind.Struct,
           Detail = valueTypeSymbol.GetDetailText(_cancellationToken),
           Children = valueTypeSymbol.Children.Select(child => child.Accept(this)).ToArray()
@@ -67,7 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return WithLocation(
         fieldSymbol,
         new DocumentSymbol {
-          Name = fieldSymbol.Identifier,
+          Name = fieldSymbol.Name,
           Kind = SymbolKind.Field,
           Detail = fieldSymbol.GetDetailText(_cancellationToken)
         }
@@ -79,7 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return WithLocation(
         functionSymbol,
         new DocumentSymbol {
-          Name = functionSymbol.Identifier,
+          Name = functionSymbol.Name,
           Kind = SymbolKind.Function,
           Detail = functionSymbol.GetDetailText(_cancellationToken),
           Children = functionSymbol.Children.Select(child => child.Accept(this)).ToArray()
@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return WithLocation(
         methodSymbol,
         new DocumentSymbol {
-          Name = methodSymbol.Identifier,
+          Name = methodSymbol.Name,
           Kind = SymbolKind.Method,
           Detail = methodSymbol.GetDetailText(_cancellationToken),
           Children = methodSymbol.Children.Select(child => child.Accept(this)).ToArray()
@@ -105,7 +105,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return WithLocation(
         variableSymbol,
         new DocumentSymbol {
-          Name = variableSymbol.Identifier,
+          Name = variableSymbol.Name,
           Kind = SymbolKind.Variable,
           Detail = variableSymbol.GetDetailText(_cancellationToken)
         }
@@ -115,7 +115,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private DocumentSymbol WithLocation(ISymbol symbol, DocumentSymbol documentSymbol) {
       if(_symbolTable.TryGetLocationOf(symbol, out var location)) {
         documentSymbol.Range = location.Declaration;
-        documentSymbol.SelectionRange = location.Identifier;
+        documentSymbol.SelectionRange = location.Name;
       }
       return documentSymbol;
     }

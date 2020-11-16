@@ -150,7 +150,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private SymbolLocation? ComputeNewSymbolLocation(SymbolLocation oldLocation, Range changeRange, Position afterChangeEndOffset) {
-        var identifier = ComputeNewRange(oldLocation.Identifier, changeRange, afterChangeEndOffset);
+        var identifier = ComputeNewRange(oldLocation.Name, changeRange, afterChangeEndOffset);
         if(identifier == null) {
           return null;
         }

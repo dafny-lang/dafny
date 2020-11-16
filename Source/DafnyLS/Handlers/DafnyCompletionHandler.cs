@@ -107,12 +107,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       private bool IsConstructor(ISymbol symbol) {
         return symbol is MethodSymbol method
-          && method.Identifier == "_ctor";
+          && method.Name == "_ctor";
       }
 
       private CompletionItem CreateCompletionItem(ISymbol symbol) {
         return new CompletionItem {
-          Label = symbol.Identifier,
+          Label = symbol.Name,
           Kind = GetCompletionKind(symbol),
           InsertText = GetCompletionText(symbol),
           Detail = (symbol as ILocalizableSymbol)?.GetDetailText(_cancellationToken)
@@ -131,7 +131,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       private string GetCompletionText(ISymbol symbol) {
-        return symbol.Identifier;
+        return symbol.Name;
       }
     }
   }

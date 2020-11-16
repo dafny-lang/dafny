@@ -12,9 +12,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public DocumentUri Uri { get; }
 
     /// <summary>
-    /// Gets the range of the symbol's identifier.
+    /// Gets the range of the symbol's name.
     /// </summary>
-    public Range Identifier { get; }
+    public Range Name { get; }
 
     /// <summary>
     /// Gets the complete declaration range of a symbol. For example, a class would begin with position of c
@@ -22,9 +22,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// </summary>
     public Range Declaration { get; }
 
-    public SymbolLocation(DocumentUri uri, Range identifier, Range declaration) {
+    public SymbolLocation(DocumentUri uri, Range name, Range declaration) {
       Uri = uri;
-      Identifier = identifier;
+      Name = name;
       Declaration = declaration;
     }
   }
