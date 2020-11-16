@@ -103,6 +103,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         ProcessNestedScope(method, method.tok, () => base.Visit(method));
       }
 
+      public override void Visit(BlockStmt blockStatement) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        ProcessNestedScope(blockStatement, blockStatement.Tok, () => base.Visit(blockStatement));
+      }
+
       public override void Visit(Function function) {
         _cancellationToken.ThrowIfCancellationRequested();
         ProcessNestedScope(function, function.tok, () => base.Visit(function));

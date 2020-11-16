@@ -8,11 +8,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public object Node => Declaration;
 
     public IList<VariableSymbol> Parameters { get; } = new List<VariableSymbol>();
-    public ISet<VariableSymbol> Returns { get; } = new HashSet<VariableSymbol>();
-    public IList<VariableSymbol> Locals { get; } = new List<VariableSymbol>();
+    public IList<VariableSymbol> Returns { get; } = new List<VariableSymbol>();
+    public IList<ISymbol> Locals { get; } = new List<ISymbol>();
 
-    // TODO The resolution priority is currently given by the order of the children.
-    // TODO We have to properly align the locals to their enclosing block to correctly handle shadowing.
     public override IEnumerable<ISymbol> Children => Locals.Concat(Parameters).Concat(Returns);
 
     public MethodSymbol(ISymbol? scope, Method method) : base(scope, method) {

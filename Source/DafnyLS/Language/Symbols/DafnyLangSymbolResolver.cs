@@ -1,8 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System.Collections.Generic;
+using System;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -160,20 +159,19 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         foreach(var result in method.Outs) {
           methodSymbol.Returns.Add(ProcessFormal(scope, result));
         }
-        foreach(var local in GetLocalVariables(methodSymbol, method.Body)) {
-          methodSymbol.Locals.Add(local);
-        }
+        ProcessAndRegisterMethodBody(methodSymbol, method.Body);
         return methodSymbol;
       }
 
-      private IEnumerable<VariableSymbol> GetLocalVariables(Symbol symbol, BlockStmt? blockStatement) {
+      private void ProcessAndRegisterMethodBody(MethodSymbol methodSymbol, BlockStmt? blockStatement) {
         if(blockStatement == null) {
           // TODO capture all syntax node null possibilities in the visitor?
-          return Enumerable.Empty<VariableSymbol>();
+          return;
         }
-        var localVisitor = new LocalVariableDeclarationVisitor(_logger, symbol);
-        localVisitor.Visit(blockStatement);
-        return localVisitor.Locals;
+        var rootBlock = new ScopeSymbol(methodSymbol, blockStatement);
+        var localVisitor = new LocalVariableDeclarationVisitor(_logger, rootBlock);
+        localVisitor.Resolve(blockStatement);
+        methodSymbol.Locals.Add(rootBlock);
       }
 
       private FieldSymbol ProcessField(Symbol scope, Field field) {
@@ -189,23 +187,35 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private class LocalVariableDeclarationVisitor : SyntaxTreeVisitor {
       private readonly ILogger _logger;
-      private readonly ISymbol _scope;
 
-      public IList<VariableSymbol> Locals { get; } = new List<VariableSymbol>();
+      private ScopeSymbol _block;
 
-      public LocalVariableDeclarationVisitor(ILogger logger, ISymbol scope) {
+      public LocalVariableDeclarationVisitor(ILogger logger, ScopeSymbol rootBlock) {
         // TODO support cancellation
         _logger = logger;
-        _scope = scope;
+        _block = rootBlock;
+      }
+
+      public void Resolve(BlockStmt blockStatement) {
+        // The base is directly visited to avoid doubly nesting the root block of the method.
+        base.Visit(blockStatement);
       }
 
       public override void VisitUnknown(object node, Boogie.IToken token) {
         _logger.LogWarning("encountered unknown syntax node of type {} in {}@({},{})", node.GetType(), Path.GetFileName(token.filename), token.line, token.col);
       }
 
+      public override void Visit(BlockStmt blockStatement) {
+        var oldBlock = _block;
+        _block = new ScopeSymbol(_block, blockStatement);
+        oldBlock.Symbols.Add(_block);
+        base.Visit(blockStatement);
+        _block = oldBlock;
+      }
+
       public override void Visit(LocalVariable localVariable) {
         // TODO Adapt visitor so it supports returning values?
-        Locals.Add(new VariableSymbol(_scope, localVariable));
+        _block.Symbols.Add(new VariableSymbol(_block, localVariable));
       }
     }
   }
