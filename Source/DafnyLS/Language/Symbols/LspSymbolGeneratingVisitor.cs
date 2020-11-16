@@ -32,38 +32,38 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     public IEnumerable<DocumentSymbol> Visit(ModuleSymbol moduleSymbol) {
-      return CreateSymbols(moduleSymbol, moduleSymbol.Declaration.tok, SymbolKind.Module);
+      return CreateSymbolsOfEntryDocument(moduleSymbol, moduleSymbol.Declaration.tok, SymbolKind.Module);
     }
 
     public IEnumerable<DocumentSymbol> Visit(ClassSymbol classSymbol) {
-      return CreateSymbols(classSymbol, classSymbol.Declaration.tok, SymbolKind.Class);
+      return CreateSymbolsOfEntryDocument(classSymbol, classSymbol.Declaration.tok, SymbolKind.Class);
     }
 
     public IEnumerable<DocumentSymbol> Visit(ValueTypeSymbol valueTypeSymbol) {
-      return CreateSymbols(valueTypeSymbol, valueTypeSymbol.Declaration.tok, SymbolKind.Struct);
+      return CreateSymbolsOfEntryDocument(valueTypeSymbol, valueTypeSymbol.Declaration.tok, SymbolKind.Struct);
     }
 
     public IEnumerable<DocumentSymbol> Visit(FieldSymbol fieldSymbol) {
-      return CreateSymbols(fieldSymbol, fieldSymbol.Declaration.tok, SymbolKind.Field);
+      return CreateSymbolsOfEntryDocument(fieldSymbol, fieldSymbol.Declaration.tok, SymbolKind.Field);
     }
 
     public IEnumerable<DocumentSymbol> Visit(FunctionSymbol functionSymbol) {
-      return CreateSymbols(functionSymbol, functionSymbol.Declaration.tok, SymbolKind.Function);
+      return CreateSymbolsOfEntryDocument(functionSymbol, functionSymbol.Declaration.tok, SymbolKind.Function);
     }
 
     public IEnumerable<DocumentSymbol> Visit(MethodSymbol methodSymbol) {
-      return CreateSymbols(methodSymbol, methodSymbol.Declaration.tok, SymbolKind.Method);
+      return CreateSymbolsOfEntryDocument(methodSymbol, methodSymbol.Declaration.tok, SymbolKind.Method);
     }
 
     public IEnumerable<DocumentSymbol> Visit(VariableSymbol variableSymbol) {
-      return CreateSymbols(variableSymbol, variableSymbol.Declaration.Tok, SymbolKind.Variable);
+      return CreateSymbolsOfEntryDocument(variableSymbol, variableSymbol.Declaration.Tok, SymbolKind.Variable);
     }
 
     public IEnumerable<DocumentSymbol> Visit(ScopeSymbol scopeSymbol) {
       return scopeSymbol.Children.SelectMany(Visit);
     }
 
-    private IEnumerable<DocumentSymbol> CreateSymbols(ILocalizableSymbol symbol, Boogie.IToken token, SymbolKind kind) {
+    private IEnumerable<DocumentSymbol> CreateSymbolsOfEntryDocument(ILocalizableSymbol symbol, Boogie.IToken token, SymbolKind kind) {
       var children = symbol.Children.SelectMany(Visit);
       if(!IsPartOfEntryDocument(token)) {
         return children;
