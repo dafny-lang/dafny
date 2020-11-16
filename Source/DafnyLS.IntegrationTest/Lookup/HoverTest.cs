@@ -91,5 +91,91 @@ method DoIt() returns (x: int) {
       Assert.IsNotNull(hover);
       Assert.IsNull(hover.Contents.MarkupContent);
     }
+
+    [TestMethod]
+    public async Task HoveringVariableShadowingFieldReturnsTheVariable() {
+      var source = @"
+class Test {
+  var x: int;
+
+  method DoIt() {
+    var x := """";
+    print x;
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var hover = await RequestHover(documentItem, (5, 10));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nx: string\n```", markup.Value);
+    }
+
+    [TestMethod]
+    public async Task HoveringVariableShadowingFieldReturnsTheFieldIfThisIsUsed() {
+      var source = @"
+class Test {
+  var x: int;
+
+  method DoIt() {
+    var x := 1;
+    print this.x;
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var hover = await RequestHover(documentItem, (5, 15));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nvar Test.x: int\n```", markup.Value);
+    }
+
+    [TestMethod]
+    public async Task HoveringVariableShadowingAnotherVariableReturnsTheShadowingVariable() {
+      var source = @"
+class Test {
+  var x: int;
+
+  method DoIt() {
+    var x := 1;
+    {
+      var x := ""2"";
+      print x;
+    }
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var hover = await RequestHover(documentItem, (7, 12));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nx: string\n```", markup.Value);
+    }
+
+    [TestMethod]
+    public async Task HoveringVariableShadowedByAnotherReturnsTheOriginalVariable() {
+      var source = @"
+class Test {
+  var x: int;
+
+  method DoIt() {
+    var x := ""1"";
+    {
+      var x := 2;
+    }
+    print x;
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var hover = await RequestHover(documentItem, (8, 10));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nx: string\n```", markup.Value);
+    }
   }
 }

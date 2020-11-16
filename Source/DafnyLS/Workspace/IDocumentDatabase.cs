@@ -46,7 +46,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// <summary>
     /// Tries to resolve a document with the specified identifier.
     /// </summary>
-    /// <param name="documentId">The identifier of the document to resolve.</param>
+    /// <param name="documentId">The ID of the document to resolve.</param>
     /// <param name="document">An instance of the managed document, <c>null</c> if the specified document was not found.</param>
     /// <returns><c>true</c> if the document was resolved successfully, <c>false</c> otherwise.</returns>
     bool TryGetDocument(TextDocumentIdentifier documentId, [NotNullWhen(true)] out DafnyDocument? document);

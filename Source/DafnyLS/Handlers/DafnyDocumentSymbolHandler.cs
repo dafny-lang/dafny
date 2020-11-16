@@ -36,9 +36,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(_emptySymbols);
       }
       var visitor = new LspSymbolGeneratingVisitor(document.SymbolTable, cancellationToken);
-      var symbols = document.SymbolTable.CompilationUnit.Modules
-        .Select(module => module.Accept(visitor))
-        .ToArray();
+      var symbols = visitor.Visit(document.SymbolTable.CompilationUnit).ToArray();
       return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(symbols);
     }
   }

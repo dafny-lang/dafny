@@ -21,5 +21,7 @@
     TResult Visit(MethodSymbol methodSymbol);
 
     TResult Visit(VariableSymbol variableSymbol);
+
+    TResult Visit(ScopeSymbol scopeSymbol);
   }
 }

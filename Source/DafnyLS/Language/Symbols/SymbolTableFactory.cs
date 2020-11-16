@@ -103,6 +103,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         ProcessNestedScope(method, method.tok, () => base.Visit(method));
       }
 
+      public override void Visit(BlockStmt blockStatement) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        ProcessNestedScope(blockStatement, blockStatement.Tok, () => base.Visit(blockStatement));
+      }
+
       public override void Visit(Function function) {
         _cancellationToken.ThrowIfCancellationRequested();
         ProcessNestedScope(function, function.tok, () => base.Visit(function));
@@ -133,7 +138,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private void RegisterDesignator(ISymbol scope, AstElement node, Microsoft.Boogie.IToken token, string identifier) {
-        var symbol = GetDeclaration(scope, identifier);
+        var symbol = GetSymbolDeclarationByName(scope, identifier);
         if(symbol != null) {
           var range = token.GetLspRange();
           SymbolLookup.Add(range.Start, range.End, symbol);
@@ -153,12 +158,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         _currentScope = oldScope;
       }
 
-      private ILocalizableSymbol? GetDeclaration(ISymbol scope, string identifier) {
+      private ILocalizableSymbol? GetSymbolDeclarationByName(ISymbol scope, string name) {
         var currentScope = scope;
         while(currentScope != null) {
           foreach(var child in currentScope.Children.OfType<ILocalizableSymbol>()) {
             _cancellationToken.ThrowIfCancellationRequested();
-            if(child.Identifier == identifier) {
+            if(child.Name == name) {
               return child;
             }
           }
@@ -273,16 +278,28 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         return Unit.Value;
       }
 
+      public Unit Visit(ScopeSymbol scopeSymbol) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterLocation(
+          scopeSymbol,
+          scopeSymbol.Declaration.Tok,
+          scopeSymbol.Declaration.Tok.GetLspRange(),
+          new Range(scopeSymbol.Declaration.Tok.GetLspPosition(), scopeSymbol.Declaration.EndTok.GetLspPosition())
+        );
+        VisitChildren(scopeSymbol);
+        return Unit.Value;
+      }
+
       private void VisitChildren(ISymbol symbol) {
         foreach(var child in symbol.Children) {
           child.Accept(this);
         }
       }
 
-      private void RegisterLocation(ISymbol symbol, Microsoft.Boogie.IToken token, Range identifier, Range declaration) {
+      private void RegisterLocation(ISymbol symbol, Microsoft.Boogie.IToken token, Range name, Range declaration) {
         if(token.filename != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
-          Locations.Add(symbol, new SymbolLocation(DocumentUri.FromFileSystemPath(token.filename), identifier, declaration));
+          Locations.Add(symbol, new SymbolLocation(DocumentUri.FromFileSystemPath(token.filename), name, declaration));
         }
       }
     }

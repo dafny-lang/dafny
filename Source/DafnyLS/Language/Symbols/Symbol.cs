@@ -7,9 +7,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// </summary>
   public abstract class Symbol : ISymbol {
     /// <summary>
-    /// Gets the identifier of the symbol.
+    /// Gets the name of the symbol. The string is empty if the symbol does not have any name.
     /// </summary>
-    public string Identifier { get; }
+    public string Name { get; }
 
     /// <summary>
     /// Gets all children of the current symbol.
@@ -21,9 +21,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// </summary>
     public ISymbol? Scope { get; }
 
-    public Symbol(ISymbol? scope, string identifier) {
+    public Symbol(ISymbol? scope, string name) {
       Scope = scope;
-      Identifier = identifier;
+      Name = name;
     }
 
     public abstract TResult Accept<TResult>(ISymbolVisitor<TResult> visitor);

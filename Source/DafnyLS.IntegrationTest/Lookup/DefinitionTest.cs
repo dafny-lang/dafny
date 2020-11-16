@@ -87,5 +87,87 @@ method DoIt() returns (x: int) {
       _client.OpenDocument(documentItem);
       Assert.IsFalse((await RequestDefinition(documentItem, (1, 12)).AsTask()).Any());
     }
+
+    [TestMethod]
+    public async Task DefinitionOfVariableShadowingFieldReturnsTheVariable() {
+      var source = @"
+class Test {
+  var x: int;
+
+  method DoIt() {
+    var x := 1;
+    print x;
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var definition = (await RequestDefinition(documentItem, (5, 10)).AsTask()).Single();
+      var location = definition.Location;
+      Assert.AreEqual(documentItem.Uri, location.Uri);
+      Assert.AreEqual(new Range((4, 8), (4, 9)), location.Range);
+    }
+
+    [TestMethod]
+    public async Task DefinitionOfVariableShadowingFieldReturnsTheFieldIfThisIsUsed() {
+      var source = @"
+class Test {
+  var x: int;
+
+  method DoIt() {
+    var x := 1;
+    print this.x;
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var definition = (await RequestDefinition(documentItem, (5, 15)).AsTask()).Single();
+      var location = definition.Location;
+      Assert.AreEqual(documentItem.Uri, location.Uri);
+      Assert.AreEqual(new Range((1, 6), (1, 7)), location.Range);
+    }
+
+    [TestMethod]
+    public async Task DefinitionOfVariableShadowingAnotherVariableReturnsTheShadowingVariable() {
+      var source = @"
+class Test {
+  var x: int;
+
+  method DoIt() {
+    var x := 1;
+    {
+      var x := 2;
+      print x;
+    }
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var definition = (await RequestDefinition(documentItem, (7, 12)).AsTask()).Single();
+      var location = definition.Location;
+      Assert.AreEqual(documentItem.Uri, location.Uri);
+      Assert.AreEqual(new Range((6, 10), (6, 11)), location.Range);
+    }
+
+    [TestMethod]
+    public async Task DefinitionOfVariableShadowedByAnotherReturnsTheOriginalVariable() {
+      var source = @"
+class Test {
+  var x: int;
+
+  method DoIt() {
+    var x := 1;
+    {
+      var x := 2;
+    }
+    print x;
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var definition = (await RequestDefinition(documentItem, (8, 10)).AsTask()).Single();
+      var location = definition.Location;
+      Assert.AreEqual(documentItem.Uri, location.Uri);
+      Assert.AreEqual(new Range((4, 8), (4, 9)), location.Range);
+    }
   }
 }

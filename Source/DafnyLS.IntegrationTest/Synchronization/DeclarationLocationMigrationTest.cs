@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private bool TryFindSymbolDeclarationByName(DafnyDocument document, string symbolName, out SymbolLocation location) {
       location = document.SymbolTable.Locations
         .WithCancellation(CancellationToken)
-        .Where(entry => entry.Key.Identifier == symbolName)
+        .Where(entry => entry.Key.Name == symbolName)
         .Select(entry => entry.Value)
         .SingleOrDefault();
       return location != null;
@@ -55,7 +55,7 @@ class B {
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "A", out var location));
-      Assert.AreEqual(new Range((0, 6), (0, 7)), location.Identifier);
+      Assert.AreEqual(new Range((0, 6), (0, 7)), location.Name);
       Assert.AreEqual(new Range((0, 6), (1, 0)), location.Declaration);
     }
 
@@ -82,7 +82,7 @@ class C {
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "A", out var location));
-      Assert.AreEqual(new Range((0, 6), (0, 7)), location.Identifier);
+      Assert.AreEqual(new Range((0, 6), (0, 7)), location.Name);
       Assert.AreEqual(new Range((0, 6), (1, 0)), location.Declaration);
     }
 
@@ -114,7 +114,7 @@ class B {
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "C", out var location));
-      Assert.AreEqual(new Range((10, 6), (10, 7)), location.Identifier);
+      Assert.AreEqual(new Range((10, 6), (10, 7)), location.Name);
       Assert.AreEqual(new Range((10, 6), (11, 0)), location.Declaration);
     }
 
@@ -141,7 +141,7 @@ class C {
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "C", out var location));
-      Assert.AreEqual(new Range((5, 6), (5, 7)), location.Identifier);
+      Assert.AreEqual(new Range((5, 6), (5, 7)), location.Name);
       Assert.AreEqual(new Range((5, 6), (6, 0)), location.Declaration);
     }
 
@@ -167,7 +167,7 @@ class A {
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "GetX", out var location));
-      Assert.AreEqual(new Range((3, 11), (3, 15)), location.Identifier);
+      Assert.AreEqual(new Range((3, 11), (3, 15)), location.Name);
       Assert.AreEqual(new Range((3, 11), (5, 2)), location.Declaration);
     }
 
@@ -191,7 +191,7 @@ class A {
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "A", out var location));
-      Assert.AreEqual(new Range((0, 6), (0, 7)), location.Identifier);
+      Assert.AreEqual(new Range((0, 6), (0, 7)), location.Name);
       Assert.AreEqual(new Range((0, 6), (4, 0)), location.Declaration);
     }
 
@@ -209,7 +209,7 @@ class A {
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "A", out var location));
-      Assert.AreEqual(new Range((0, 6), (0, 7)), location.Identifier);
+      Assert.AreEqual(new Range((0, 6), (0, 7)), location.Name);
       Assert.AreEqual(new Range((0, 6), (0, 38)), location.Declaration);
     }
 
@@ -265,10 +265,10 @@ class A {
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "B", out var bLocation));
-      Assert.AreEqual(new Range((4, 6), (4, 7)), bLocation.Identifier);
+      Assert.AreEqual(new Range((4, 6), (4, 7)), bLocation.Name);
       Assert.AreEqual(new Range((4, 6), (7, 0)), bLocation.Declaration);
       Assert.IsTrue(TryFindSymbolDeclarationByName(document, "y", out var yLocation));
-      Assert.AreEqual(new Range((6, 6), (6, 7)), yLocation.Identifier);
+      Assert.AreEqual(new Range((6, 6), (6, 7)), yLocation.Name);
       Assert.AreEqual(new Range((6, 6), (6, 7)), yLocation.Declaration);
     }
   }

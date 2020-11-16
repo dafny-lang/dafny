@@ -84,11 +84,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return (currentDesignator, currentDesignatorType);
       }
 
-      private ISymbol? GetAccessedSymbolOfEnclosingScopes(ISymbol scope, string identifier) {
+      private ISymbol? GetAccessedSymbolOfEnclosingScopes(ISymbol scope, string name) {
         _cancellationToken.ThrowIfCancellationRequested();
-        var symbol = FindSymbolWithName(scope, identifier);
+        var symbol = FindSymbolWithName(scope, name);
         if(symbol == null && scope.Scope != null) {
-          return GetAccessedSymbolOfEnclosingScopes(scope.Scope, identifier);
+          return GetAccessedSymbolOfEnclosingScopes(scope.Scope, name);
         }
         return symbol;
       }
@@ -101,13 +101,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return scope.Scope == null ? null : GetEnclosingClass(scope.Scope);
       }
 
-      private ISymbol? FindSymbolWithName(ISymbol containingSymbol, string identifier) {
+      private ISymbol? FindSymbolWithName(ISymbol containingSymbol, string name) {
         // TODO Careful: The current implementation of the method/function symbols do not respect scopes fully. Therefore, there might be
         // multiple symbols with the same name (e.g. locals of nested scopes, parameters,).
         // Important: This only works as long as Dafny does not support overloading.
         return containingSymbol.Children
           .WithCancellation(_cancellationToken)
-          .Where(child => child.Identifier == identifier)
+          .Where(child => child.Name == name)
           .FirstOrDefault();
       }
 
@@ -158,7 +158,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           if(IsAtNewStatement) {
             yield break;
           }
-          // TODO method/function invocations and indexers are not supported yet. Maybe just skip to their identifier?
+          // TODO method/function invocations and indexers are not supported yet. Maybe just skip to their designator?
           if(IsIdentifierCharacter) {
             yield return ReadIdentifier();
           } else {
