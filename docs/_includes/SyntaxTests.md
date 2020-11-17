@@ -23,7 +23,7 @@ keyword:          while
 spec:             requires
 comment:          // comment
 attribute         {: name }
-error:            $ 
+error:            $
 ```
 
 Syntax color tests:
@@ -59,14 +59,14 @@ op:      a + b - c * d / e % f a+b-c*d/e%f
 op:      <= >= < > == != b&&c || ==> <==> <==
 op:      .. ==# !=# !! in !in
 op:      !in∆  !iné
-not op:  !inx 
+not op:  !inx
 punc:    . , :: | :| := ( ) [ ] { }
 types:   int real string char bool nat ORDINAL
 types:   object object?
-types:   bv1 bv10 bv0
+types:   bv1 bv10
 types:   array array2 array20 array10
 types:   array? array2? array20? array10?
-ids:     array1 array0 array02 bv02
+ids:     array1 array0 array02 bv02 bv0 bv_1
 ids:     intx natx int0 int_ int? bv1_ bv1x array2x
 types:   seq<int>  set < bool >
 types:   map<bool,bool>  imap < bool , bool >
@@ -74,8 +74,8 @@ types:   seq<Node> seq< Node >
 types:   seq<set< real> >
 types:   map<set<int>,seq<bool>>
 types:   G<A,int> G<G<A>,G<bool>>
+types:   seq map imap set iset multiset
 ids:     seqx mapx
-no <:   seq map imap set iset multiset .
 no arg:  seq < >  seq < , >  seq <bool , , bool >  seq<bool,>
 keywords: if while assert assume
 spec:    requires  reads modifies
