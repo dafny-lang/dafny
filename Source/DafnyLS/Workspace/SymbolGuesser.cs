@@ -102,9 +102,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private ISymbol? FindSymbolWithName(ISymbol containingSymbol, string name) {
-        // TODO Careful: The current implementation of the method/function symbols do not respect scopes fully. Therefore, there might be
-        // multiple symbols with the same name (e.g. locals of nested scopes, parameters,).
-        // Important: This only works as long as Dafny does not support overloading.
+        // TODO The current implementation misses the visibility scope of shadowed variables.
+        //      To be more precise, variables of nested blocks that shadow outer variables work
+        //      Correct. However, if the shadowing variable of the nested scope was declared
+        //      After the actual position, it should return the variable of the outer scope.
+        //
+        // method Example() {
+        //   var x := 1; // X1
+        //   {
+        //     print x; // Should point to X1, but will currently point to X2.
+        //     var x:= 2; // X2
+        //   }
+        // }
+        // TODO This only works as long as Dafny does not support overloading.
         return containingSymbol.Children
           .WithCancellation(_cancellationToken)
           .Where(child => child.Name == name)
@@ -134,7 +144,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       private bool IsAtNewStatement => _text[_position] == ';' || _text[_position] == '}' || _text[_position] == '{';
       private bool IsMemberAccessOperator => _text[_position] == '.';
 
-      // TODO any other characters that are allowed characters?
       private bool IsIdentifierCharacter {
         get {
           char character = _text[_position];
