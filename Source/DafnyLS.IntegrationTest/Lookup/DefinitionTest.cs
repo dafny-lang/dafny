@@ -169,5 +169,22 @@ class Test {
       Assert.AreEqual(documentItem.Uri, location.Uri);
       Assert.AreEqual(new Range((4, 8), (4, 9)), location.Range);
     }
+
+    [TestMethod]
+    public async Task DefinitionInConstructorInvocationOfUserDefinedTypeOfForeignFileReturnsLinkToForeignFile() {
+      var source = @"
+include ""foreign.dfy""
+
+method DoIt() returns (x: int) {
+  var a := new A();
+  return a.GetX();
+}".TrimStart();
+      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"));
+      _client.OpenDocument(documentItem);
+      var definition = (await RequestDefinition(documentItem, (3, 15)).AsTask()).Single();
+      var location = definition.Location;
+      Assert.AreEqual(DocumentUri.FromFileSystemPath(Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/foreign.dfy")), location.Uri);
+      Assert.AreEqual(new Range((0, 6), (0, 7)), location.Range);
+    }
   }
 }
