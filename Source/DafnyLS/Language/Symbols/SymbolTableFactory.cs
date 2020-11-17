@@ -152,7 +152,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(LocalVariable localVariable) {
         _cancellationToken.ThrowIfCancellationRequested();
-        RegisterTypeDesignator(_currentScope, localVariable.Type);
+        // TODO The type of a local variable may be visited twice when its initialized at declaration.
+        //      It is visited first for the declaration itself and then for the update (initialization).
+        // RegisterTypeDesignator(_currentScope, localVariable.Type);
         base.Visit(localVariable);
       }
 
@@ -168,6 +170,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       private void RegisterDesignator(ISymbol scope, AstElement node, Microsoft.Boogie.IToken token, string identifier) {
         var symbol = GetSymbolDeclarationByName(scope, identifier);
         if(symbol != null) {
+          // Many resolutions for automatically generated nodes (e.g. Decreases, Update when initializating a variable
+          // at declaration) cause duplicated visits. These cannot be prevented at this time as it seems there's no way
+          // to distinguish nodes from automatically created one (i.e. nodes of the original syntax tree vs. nodes of the
+          // abstract syntax tree). We could just ignore such duplicates. However, we may miss programatic errors if we
+          // do so.
           var range = token.GetLspRange();
           SymbolLookup.Add(range.Start, range.End, symbol);
           _designators.Add(node, symbol);
