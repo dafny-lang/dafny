@@ -103,17 +103,31 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         ProcessNestedScope(method, method.tok, () => base.Visit(method));
       }
 
+      public override void Visit(Function function) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterTypeDesignator(_currentScope, function.ResultType);
+        ProcessNestedScope(function, function.tok, () => base.Visit(function));
+      }
+
+      public override void Visit(Field field) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterTypeDesignator(_currentScope, field.Type);
+        base.Visit(field);
+      }
+
+      public override void Visit(Formal formal) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterTypeDesignator(_currentScope, formal.Type);
+        base.Visit(formal);
+      }
+
       public override void Visit(BlockStmt blockStatement) {
         _cancellationToken.ThrowIfCancellationRequested();
         ProcessNestedScope(blockStatement, blockStatement.Tok, () => base.Visit(blockStatement));
       }
 
-      public override void Visit(Function function) {
-        _cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(function, function.tok, () => base.Visit(function));
-      }
-
       public override void Visit(ExprDotName expressionDotName) {
+        _cancellationToken.ThrowIfCancellationRequested();
         base.Visit(expressionDotName);
         if(_typeResolver.TryGetTypeSymbol(expressionDotName.Lhs, out var leftHandSideType)) {
           RegisterDesignator(leftHandSideType, expressionDotName, expressionDotName.tok, expressionDotName.SuffixName);
@@ -126,18 +140,29 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public override void Visit(TypeRhs typeRhs) {
-        // TODO We currently rely on the resolver to locate "NamePath" (i.e. the type designator).
-        //      The "typeRhs" only points to the "new" keyword with its token.
-        //      Find an alternative to get the type designator without requiring the resolver.
-        if(typeRhs.EType is UserDefinedType userDefinedType) {
-          RegisterDesignator(_currentScope, typeRhs, userDefinedType.NamePath.tok, userDefinedType.Name);
-        }
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterTypeDesignator(_currentScope, typeRhs.EType);
         base.Visit(typeRhs);
       }
 
       public override void Visit(FrameExpression frameExpression) {
         _cancellationToken.ThrowIfCancellationRequested();
         RegisterDesignator(_currentScope, frameExpression, frameExpression.tok, frameExpression.FieldName);
+      }
+
+      public override void Visit(LocalVariable localVariable) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterTypeDesignator(_currentScope, localVariable.Type);
+        base.Visit(localVariable);
+      }
+
+      private void RegisterTypeDesignator(ISymbol scope, Type type) {
+        // TODO We currently rely on the resolver to locate "NamePath" (i.e. the type designator).
+        //      The "typeRhs" only points to the "new" keyword with its token.
+        //      Find an alternative to get the type designator without requiring the resolver.
+        if(type is UserDefinedType userDefinedType) {
+          RegisterDesignator(_currentScope, type, userDefinedType.NamePath.tok, userDefinedType.Name);
+        }
       }
 
       private void RegisterDesignator(ISymbol scope, AstElement node, Microsoft.Boogie.IToken token, string identifier) {
