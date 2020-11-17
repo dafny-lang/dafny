@@ -874,7 +874,7 @@ namespace Microsoft.Dafny {
       {
         CreateRTD(IdName(nt), null, out var wDefaultBody, wr);
         var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
-        var d = TypeInitializationValue(udt, wr, nt.tok, false);
+        var d = TypeInitializationValue(udt, wr, nt.tok, false, true);
         wDefaultBody.WriteLine("return {0}", d);
       }
       return cw;
@@ -892,7 +892,7 @@ namespace Microsoft.Dafny {
       {
         CreateRTD(IdName(sst), null, out var wDefaultBody, wr);
         var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
-        var d = TypeInitializationValue(udt, wr, sst.tok, false);
+        var d = TypeInitializationValue(udt, wr, sst.tok, false, true);
         wDefaultBody.WriteLine("return {0}", d);
       }
     }
@@ -1253,7 +1253,7 @@ namespace Microsoft.Dafny {
       } else if (xType is MapType) {
         return "_dafny.MapType";
       } else if (xType.IsRefType) {
-        return string.Format("_dafny.CreateStandardTypeDescriptor({0})", TypeInitializationValue(xType, wr, tok, false));
+        return string.Format("_dafny.CreateStandardTypeDescriptor({0})", TypeInitializationValue(xType, wr, tok, false, true));
       } else if (xType.IsArrayType) {
         return "_dafny.ArrayType";
       } else if (xType.IsTypeParameter) {
@@ -1261,7 +1261,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(tp != null);
         return string.Format("{0}{1}", thisContext != null && tp.Parent is ClassDecl && !(tp.Parent is TraitDecl) ? "_this." : "", FormatRTDName(tp.CompileName));
       } else if (xType.IsBuiltinArrowType) {
-        return string.Format("_dafny.CreateStandardTypeDescriptor({0})", TypeInitializationValue(xType, wr, tok, false));
+        return string.Format("_dafny.CreateStandardTypeDescriptor({0})", TypeInitializationValue(xType, wr, tok, false, true));
       } else if (xType is UserDefinedType udt) {
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
@@ -1408,7 +1408,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext) {
+    public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
       // When returning nil, explicitly cast the nil so that type assertions work
       string nil() {
         return string.Format("({0})(nil)", TypeName(type, wr, tok));
@@ -1457,7 +1457,7 @@ namespace Microsoft.Dafny {
         } else if (td.NativeType != null) {
           return GetNativeTypeName(td.NativeType) + "(0)";
         } else {
-          return TypeInitializationValue(td.BaseType, wr, tok, inAutoInitContext);
+          return TypeInitializationValue(td.BaseType, wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
@@ -1469,7 +1469,7 @@ namespace Microsoft.Dafny {
           if (ArrowType.IsPartialArrowTypeName(td.Name)) {
             return nil();
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
-            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, inAutoInitContext);
+            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
             return string.Format("func ({0}) {1} {{ return {2}; }}", Util.Comma(udt.TypeArgs.GetRange(0, udt.TypeArgs.Count-1), tp => TypeName(tp, wr, tok)), TypeName(udt.TypeArgs.Last(), wr, tok), rangeDefaultValue);
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl arrayClass) {
@@ -1479,7 +1479,7 @@ namespace Microsoft.Dafny {
             return nil();
           }
         } else {
-          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, inAutoInitContext);
+          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is ClassDecl) {
         bool isHandle = true;
