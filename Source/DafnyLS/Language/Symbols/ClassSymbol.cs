@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
-      return $"class {Declaration.Name}";
+      return $"{Declaration.WhatKind} {Declaration.Name}";
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

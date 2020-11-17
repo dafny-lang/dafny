@@ -95,6 +95,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(ClassDecl classDeclaration) {
         _cancellationToken.ThrowIfCancellationRequested();
+        foreach(var parentTrait in classDeclaration.ParentTraits) {
+          RegisterTypeDesignator(_currentScope, parentTrait);
+        }
         ProcessNestedScope(classDeclaration, classDeclaration.tok, () => base.Visit(classDeclaration));
       }
 

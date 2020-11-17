@@ -240,5 +240,19 @@ method DoIt(a: A) {}".TrimStart();
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
       Assert.AreEqual("```dafny\nclass A\n```", markup.Value);
     }
+
+    [TestMethod]
+    public async Task HoveringParentTraitOfUserDefinedTypeReturnsTheParentTrait() {
+      var source = @"
+trait Base {}
+class Sub extends Base {}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var hover = await RequestHover(documentItem, (1, 19));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\ntrait Base\n```", markup.Value);
+    }
   }
 }
