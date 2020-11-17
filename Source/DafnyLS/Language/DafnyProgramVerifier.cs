@@ -73,10 +73,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       ExecutionEngine.CollectModSets(program);
       ExecutionEngine.CoalesceBlocks(program);
       ExecutionEngine.Inline(program);
-      // TODO Are the programId and requestId of any relevance?
+      // TODO Is the programId of any relevance? The requestId is used to cancel a verification.
+      //      However, the cancelling a verification is currently not possible since it blocks a text document
+      //      synchronization event which are serialized. Thus, no event is processed until the pending
+      //      synchronization is completed.
       var uniqueId = Guid.NewGuid().ToString();
-      // TODO any use of the verification state?
-      using(cancellationToken.Register(() => CancelVerification(uniqueId))) { 
+      using(cancellationToken.Register(() => CancelVerification(uniqueId))) {
+        // TODO any use of the verification state?
         ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), uniqueId, error => CaptureVerificationError(reporter, error), uniqueId);
       }
     }
@@ -87,7 +90,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private void CaptureVerificationError(ErrorReporter reporter, ErrorInformation error) {
-      // TODO custom error tracking
+      // TODO denote the verifier as "verifier" rather than "other". This probably requires
+      //      a custom error tracking mechanism.
       reporter.Error(MessageSource.Other, error.Tok, error.Msg);
     }
 
