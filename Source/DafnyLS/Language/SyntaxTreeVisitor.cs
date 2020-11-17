@@ -3,7 +3,7 @@
   /// Base syntax tree visitor implementation that visits all nodes.
   /// </summary>
   public abstract class SyntaxTreeVisitor {
-    // TODO Double-dispatching would be convenient here, but requirees adaptions to the AST.
+    // Double-dispatching would be convenient here, but requirees adaptions to the AST.
     // TODO Is visiting Attributes necessary, i.e., does it belong to the AST?
 
     /// <summary>
