@@ -31,14 +31,15 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    // TODO when is this method called and for what?
     public override bool CanResolve(CompletionItem completionItem) {
-      return false;
+      // Never called since "ResolveProvider" is set to false.
+      throw new InvalidOperationException("method not implemented");
     }
 
-    // TODO when is this method called and for what?
+    // Never called since "ResolveProvider" is set to false.
     public override Task<CompletionItem> Handle(CompletionItem request, CancellationToken cancellationToken) {
-      return Task.FromResult(request);
+      // Never called since "ResolveProvider" is set to false.
+      return Task.FromException<CompletionItem>(new InvalidOperationException("method not implemented"));
     }
 
     public override Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {

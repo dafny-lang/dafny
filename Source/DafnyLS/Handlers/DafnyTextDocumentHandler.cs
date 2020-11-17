@@ -15,59 +15,45 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// LSP Synchronization handler for document based events, such as change, open, close and save.
   /// The documents are managed using an implementaiton of <see cref="IDocumentDatabase"/>.
   /// </summary>
-  public class DafnyTextDocumentHandler : ITextDocumentSyncHandler {
+  public class DafnyTextDocumentHandler : TextDocumentSyncHandler {
+    private const string LanguageId = "dafny";
+
     private readonly ILogger _logger;
     private readonly IDocumentDatabase _documents;
     private readonly IDiagnosticPublisher _diagnosticPublisher;
 
-    private const string LanguageId = "dafny";
-
-    private readonly DocumentSelector _documentSelector = new DocumentSelector(
-      new DocumentFilter { Pattern = "**/*.dfy" }
-    );
-
-    public DafnyTextDocumentHandler(ILogger<DafnyTextDocumentHandler> logger, IDocumentDatabase documents, IDiagnosticPublisher diagnosticPublisher) {
+    public DafnyTextDocumentHandler(
+        ILogger<DafnyTextDocumentHandler> logger, IDocumentDatabase documents, IDiagnosticPublisher diagnosticPublisher
+    ) : base(TextDocumentSyncKind.Incremental, CreateRegistrationOptions()) {
       _logger = logger;
       _documents = documents;
       _diagnosticPublisher = diagnosticPublisher;
     }
 
-    public TextDocumentAttributes GetTextDocumentAttributes(DocumentUri uri) {
-      return new TextDocumentAttributes(uri, LanguageId);
-    }
-
-    public void SetCapability(SynchronizationCapability capability) {
-      // TODO
-    }
-
-    TextDocumentRegistrationOptions IRegistration<TextDocumentRegistrationOptions>.GetRegistrationOptions() {
-      return new TextDocumentRegistrationOptions {
-        DocumentSelector = _documentSelector
+    private static TextDocumentSaveRegistrationOptions CreateRegistrationOptions() {
+      return new TextDocumentSaveRegistrationOptions {
+        DocumentSelector = DocumentSelector.ForLanguage(LanguageId)
       };
     }
 
-    public async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
+    public override TextDocumentAttributes GetTextDocumentAttributes(DocumentUri uri) {
+      return new TextDocumentAttributes(uri, LanguageId);
+    }
+
+    public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received open notification {}", notification.TextDocument.Uri);
       var document = await _documents.LoadDocumentAsync(notification.TextDocument, cancellationToken);
       _diagnosticPublisher.PublishDiagnostics(document, cancellationToken);
       return Unit.Value;
     }
 
-    public Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
+    public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received close notification {}", notification.TextDocument.Uri);
       _documents.CloseDocument(notification.TextDocument);
       return Unit.Task;
     }
 
-    TextDocumentChangeRegistrationOptions IRegistration<TextDocumentChangeRegistrationOptions>.GetRegistrationOptions() {
-      return new TextDocumentChangeRegistrationOptions() {
-        DocumentSelector = _documentSelector,
-        //SyncKind = TextDocumentSyncKind.Full
-        SyncKind = TextDocumentSyncKind.Incremental
-      };
-    }
-
-    public async Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
+    public override async Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received change notification {}", notification.TextDocument.Uri);
       var document = await _documents.UpdateDocumentAsync(notification, cancellationToken);
       if(document != null) {
@@ -76,14 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return Unit.Value;
     }
 
-    TextDocumentSaveRegistrationOptions IRegistration<TextDocumentSaveRegistrationOptions>.GetRegistrationOptions() {
-      return new TextDocumentSaveRegistrationOptions {
-        DocumentSelector = _documentSelector,
-        IncludeText = true
-      };
-    }
-
-    public Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
+    public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received save notification {}", notification.TextDocument.Uri);
       return Unit.Task;
     }

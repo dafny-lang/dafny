@@ -27,7 +27,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         return new CompilationUnit(program);
       }
 
-      // TODO Check if mutual exclusion of the resolution process is necessary.
+      // TODO The resolution requires mutual exclusion since it sets static variables of classes like Microsoft.Dafny.Type.
+      //      Although, the variables are marked "ThreadStatic" - thus it might not be necessary. But there might be
+      //      other classes as well.
       await _resolverMutex.WaitAsync(cancellationToken);
       try {
         if(!RunDafnyResolver(textDocument, program)) {
@@ -70,8 +72,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       public CompilationUnit ProcessProgram(Dafny.Program program) {
         _cancellationToken.ThrowIfCancellationRequested();
         var compilationUnit = new CompilationUnit(program);
-        // TODO program.CompileModules would probably more suitable here, since we want the symbols of the System module as well.
-        //      However, it appears that the AST of program.CompileModules does not hold the correct location of the nodes - at least of the declarations.
+        // program.CompileModules would probably more suitable here, since we want the symbols of the System module as well.
+        // However, it appears that the AST of program.CompileModules does not hold the correct location of the nodes - at least of the declarations.
         foreach(var module in program.Modules()) {
           compilationUnit.Modules.Add(ProcessModule(compilationUnit, module));
         }
@@ -112,7 +114,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         foreach(var member in classDeclaration.Members) {
           var memberSymbol = ProcessClassMember(classSymbol, member);
           if(memberSymbol != null) {
-            // TODO upon completion, this should never be null.
+            // TODO When respecting all possible class members, this should never be null.
             classSymbol.Members.Add(memberSymbol);
           }
         }
@@ -135,6 +137,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         case Field field:
           return ProcessField(scope, field);
         default:
+          // TODO The last missing member is AmbiguousMemberDecl which is created by the resolver.
+          //      When is this class exactly used?
           _logger.LogWarning("encountered unknown class member declaration {}", memberDeclaration.GetType());
           return null;
         }
@@ -164,7 +168,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       private void ProcessAndRegisterMethodBody(MethodSymbol methodSymbol, BlockStmt? blockStatement) {
         if(blockStatement == null) {
-          // TODO capture all syntax node null possibilities in the visitor?
           return;
         }
         var rootBlock = new ScopeSymbol(methodSymbol, blockStatement);
