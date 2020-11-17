@@ -177,5 +177,68 @@ class Test {
       Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
       Assert.AreEqual("```dafny\nx: string\n```", markup.Value);
     }
+
+    [TestMethod]
+    public async Task HoveringTypeOfFieldReturnsTheUserDefinedType() {
+      var source = @"
+class A {
+  constructor() {}
+}
+
+class B {
+  var a: A;
+
+  constructor() {
+    a := new A();
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var hover = await RequestHover(documentItem, (5, 9));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nclass A\n```", markup.Value);
+    }
+
+    [TestMethod]
+    public async Task HoveringTypeOfConstructorInvocationReturnsTheUserDefinedType() {
+      var source = @"
+class A {
+  constructor() {}
+}
+
+class B {
+  var a: A;
+
+  constructor() {
+    a := new A();
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var hover = await RequestHover(documentItem, (8, 13));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nclass A\n```", markup.Value);
+    }
+
+    [TestMethod]
+    public async Task HoveringParameterOfMethodReturnsTheUserDefinedType() {
+      var source = @"
+class A {
+  constructor() {}
+}
+
+method DoIt(a: A) {}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var hover = await RequestHover(documentItem, (4, 15));
+      Assert.IsNotNull(hover);
+      var markup = hover.Contents.MarkupContent;
+      Assert.AreEqual(MarkupKind.Markdown, markup.Kind);
+      Assert.AreEqual("```dafny\nclass A\n```", markup.Value);
+    }
   }
 }
