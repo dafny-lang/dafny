@@ -65,7 +65,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           _logger.LogDebug("encountered {} errors while parsing {}", parseErrors, document.Uri);
         }
         // TODO handle include errors
-        // TODO handle errors of an include?
         // TODO includes that are opened by the editor (i.e. managed by the DocumentDatabase) should be taken from there.
         var includeError = Main.ParseIncludes(module, builtIns, new List<string>(), new Errors(errorReporter));
         if(includeError != null) {
