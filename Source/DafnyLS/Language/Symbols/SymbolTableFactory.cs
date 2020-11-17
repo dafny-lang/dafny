@@ -95,6 +95,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(ClassDecl classDeclaration) {
         _cancellationToken.ThrowIfCancellationRequested();
+        foreach(var parentTrait in classDeclaration.ParentTraits) {
+          RegisterTypeDesignator(_currentScope, parentTrait);
+        }
         ProcessNestedScope(classDeclaration, classDeclaration.tok, () => base.Visit(classDeclaration));
       }
 
@@ -103,17 +106,31 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         ProcessNestedScope(method, method.tok, () => base.Visit(method));
       }
 
+      public override void Visit(Function function) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterTypeDesignator(_currentScope, function.ResultType);
+        ProcessNestedScope(function, function.tok, () => base.Visit(function));
+      }
+
+      public override void Visit(Field field) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterTypeDesignator(_currentScope, field.Type);
+        base.Visit(field);
+      }
+
+      public override void Visit(Formal formal) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterTypeDesignator(_currentScope, formal.Type);
+        base.Visit(formal);
+      }
+
       public override void Visit(BlockStmt blockStatement) {
         _cancellationToken.ThrowIfCancellationRequested();
         ProcessNestedScope(blockStatement, blockStatement.Tok, () => base.Visit(blockStatement));
       }
 
-      public override void Visit(Function function) {
-        _cancellationToken.ThrowIfCancellationRequested();
-        ProcessNestedScope(function, function.tok, () => base.Visit(function));
-      }
-
       public override void Visit(ExprDotName expressionDotName) {
+        _cancellationToken.ThrowIfCancellationRequested();
         base.Visit(expressionDotName);
         if(_typeResolver.TryGetTypeSymbol(expressionDotName.Lhs, out var leftHandSideType)) {
           RegisterDesignator(leftHandSideType, expressionDotName, expressionDotName.tok, expressionDotName.SuffixName);
@@ -126,9 +143,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public override void Visit(TypeRhs typeRhs) {
-        // TODO get the name of the type
-        // TODO the token is pointing to the "new" keyword.
-        //RegisterDesignator(_currentScope, typeRhs, typeRhs.Tok, typeRhs.Type.ToString());
+        _cancellationToken.ThrowIfCancellationRequested();
+        RegisterTypeDesignator(_currentScope, typeRhs.EType);
         base.Visit(typeRhs);
       }
 
@@ -137,9 +153,31 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         RegisterDesignator(_currentScope, frameExpression, frameExpression.tok, frameExpression.FieldName);
       }
 
+      public override void Visit(LocalVariable localVariable) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        // TODO The type of a local variable may be visited twice when its initialized at declaration.
+        //      It is visited first for the declaration itself and then for the update (initialization).
+        // RegisterTypeDesignator(_currentScope, localVariable.Type);
+        base.Visit(localVariable);
+      }
+
+      private void RegisterTypeDesignator(ISymbol scope, Type type) {
+        // TODO We currently rely on the resolver to locate "NamePath" (i.e. the type designator).
+        //      The "typeRhs" only points to the "new" keyword with its token.
+        //      Find an alternative to get the type designator without requiring the resolver.
+        if(type is UserDefinedType userDefinedType) {
+          RegisterDesignator(_currentScope, type, userDefinedType.NamePath.tok, userDefinedType.Name);
+        }
+      }
+
       private void RegisterDesignator(ISymbol scope, AstElement node, Microsoft.Boogie.IToken token, string identifier) {
         var symbol = GetSymbolDeclarationByName(scope, identifier);
         if(symbol != null) {
+          // Many resolutions for automatically generated nodes (e.g. Decreases, Update when initializating a variable
+          // at declaration) cause duplicated visits. These cannot be prevented at this time as it seems there's no way
+          // to distinguish nodes from automatically created one (i.e. nodes of the original syntax tree vs. nodes of the
+          // abstract syntax tree). We could just ignore such duplicates. However, we may miss programatic errors if we
+          // do so.
           var range = token.GetLspRange();
           SymbolLookup.Add(range.Start, range.End, symbol);
           _designators.Add(node, symbol);
