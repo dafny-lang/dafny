@@ -126,9 +126,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public override void Visit(TypeRhs typeRhs) {
-        // TODO get the name of the type
-        // TODO the token is pointing to the "new" keyword.
-        //RegisterDesignator(_currentScope, typeRhs, typeRhs.Tok, typeRhs.Type.ToString());
+        // TODO We currently rely on the resolver to locate "NamePath" (i.e. the type designator).
+        //      The "typeRhs" only points to the "new" keyword with its token.
+        //      Find an alternative to get the type designator without requiring the resolver.
+        if(typeRhs.EType is UserDefinedType userDefinedType) {
+          RegisterDesignator(_currentScope, typeRhs, userDefinedType.NamePath.tok, userDefinedType.Name);
+        }
         base.Visit(typeRhs);
       }
 
