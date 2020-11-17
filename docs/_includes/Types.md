@@ -610,7 +610,7 @@ A multiset can be formed using a _multiset display_ expression, which
 is a possibly empty, unordered list of expressions enclosed in curly
 braces after the keyword `multiset`.  To illustrate,
 ```dafny
-multiset{}    multiset{0, 1, 1, 2, 3, 5}    multiset{4+2, 1+5, a*b}
+multiset{}   multiset{0, 1, 1, 2, 3, 5}   multiset{4+2, 1+5, a*b}
 ```
 are three examples of multiset displays.  There is no multiset
 comprehension expression.
