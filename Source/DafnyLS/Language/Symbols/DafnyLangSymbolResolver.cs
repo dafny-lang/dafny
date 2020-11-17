@@ -168,7 +168,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       private void ProcessAndRegisterMethodBody(MethodSymbol methodSymbol, BlockStmt? blockStatement) {
         if(blockStatement == null) {
-          // TODO capture all syntax node null possibilities in the visitor?
           return;
         }
         var rootBlock = new ScopeSymbol(methodSymbol, blockStatement);
