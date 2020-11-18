@@ -1589,25 +1589,39 @@ For a given non-static method M,
 
 * A trait or class may not redeclare M if it has a transitive parent that declares M and provides a body.
 * A trait may but need not provide a body if all its transitive parents that declare M do not declare a body.
+* A trait or class may not have more than one transitive parent that declares M with a body.
 * A class that has one or more transitive parents that declare M without a body
 and no transitive parent that declares M with a body must itself redeclare M
 with a body.
-* If a class or trait CT does not redeclare M because one of CT's direct
-parents P inherits M with a body (either declaring M with a body itself or
-having a transitive parent of P that does), then each of CT's direct parents
-must either not inherit M at all or inherit the same M with body that P does.
-include a specification. In simple cases, those syntactially separate
+* Currently (and under debate), the following restriction applies:
+Consider the DAG of classes and traits ordered by the _extends_ relationship
+and ending in a given class or trait CT. For a declaration of member M in CT,
+consider each path in the DAG that begins with a class or trait other than
+CT and that declares M, ends with CT, and does not pass through any trait
+that also declares M.
+The set of that begin these paths are the
+_direct parent declarors_ of M in CT.
+The restriction is that if this set has two or more members, then there must
+be one element of the set for which all of the other elements are
+its transitive parents.
+
+The last restriction above is the current implementation. It effectively limits
+inheritance of a method M to a single "chain" of declarations and does not
+permit mixins.
+
+Each of any method declarations explicitly or implicitly
+includes a specification. In simple cases, those syntactially separate
 specifications will be copies of each other (up to renaming to take account
 of differing formal parameter names). However they need not be. The rule is
-that the specifications of M in a given class or trait must be _stronger_ than
+that the specifications of M in a given class or trait must be _no weaker than_
 M's specifications in a transitive parent.
-Here _stronger_ means that it
+Here _no weaker than_  means that it
 must be permitted to call the subtype's M in the context of the supertype's M.
 Stated differently, where P and C are a parent trait and a child class or trait,
 respectively,
 
 * C.M's `requires` clause must be implied by P.M's `requires` clause
-* C.M's `ensures` clause must imply by P.M's `ensures` clause
+* C.M's `ensures` clause must imply P.M's `ensures` clause
 * C.M's `reads` set must be a subset of P.M's `reads` set
 * C.M's `modifies` set must be a subset of P.M's `modifies` set
 * C.M's `decreases` expression must be smaller than or equal to P.M's `decreases` expression
@@ -1616,9 +1630,10 @@ Non-static const and field declarations are also inherited from parent traits.
 These may not be redeclared in extending traits and classes.
 However, a trait need not initalize a const field with a value.
 The class that extends a trait that declares such a const field without an
-initializer can initialize the field in a constructor. If the trait does give
-an initial value in the declaration, the extending class may not either
-redeclare the field or give it a value.
+initializer can initialize the field in a constructor.
+If the declaring trait does give
+an initial value in the declaration, the extending class or trait may not either
+redeclare the field or give it a value in a constructor.
 
 ## Example of traits
 As an example, the following trait represents movable geometric shapes:
