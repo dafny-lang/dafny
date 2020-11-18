@@ -1,7 +1,6 @@
 ﻿using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
@@ -49,11 +48,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public async Task VerifyAsync(Dafny.Program program, CancellationToken cancellationToken) {
+    public async Task<string?> VerifyAsync(Dafny.Program program, CancellationToken cancellationToken) {
       if(program.reporter.AllMessages[ErrorLevel.Error].Count > 0) {
         // TODO Change logic so that the loader is responsible to ensure that the previous steps were sucessful.
         _logger.LogDebug("skipping program verification since the parser or resolvers already reported errors");
-        return;
+        return null;
       }
       await _mutex.WaitAsync(cancellationToken);
       try {
@@ -65,7 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           cancellationToken.ThrowIfCancellationRequested();
           VerifyWithBoogie(boogieProgram, program.reporter, cancellationToken);
         }
-        //var counterExampleModel = printer.CounterExampleModel;
+        return printer.CounterExampleModel;
       } finally {
         _mutex.Release();
       }
@@ -103,9 +102,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private class ModelCapturingOutputPrinter : OutputPrinter {
       private readonly ILogger _logger;
-      private readonly StringBuilder _counterExampleModel = new StringBuilder();
+      private StringBuilder? _counterExampleModel;
 
-      public string CounterExampleModel => _counterExampleModel.ToString();
+      public string? CounterExampleModel => _counterExampleModel?.ToString();
 
       public ModelCapturingOutputPrinter(ILogger logger) {
         _logger = logger;
@@ -134,7 +133,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         if(errorInfo.Model is StringWriter modelString) {
           // We do not know a-priori how many errors we'll receive. Therefore we capture all models
           // in a custom stringbuilder and reset the original one to not duplicate the outputs.
-          _counterExampleModel.Append(modelString);
+          _counterExampleModel ??= new StringBuilder();
+          _counterExampleModel.Append(modelString.ToString());
           modelString.GetStringBuilder().Clear();
         }
       }
