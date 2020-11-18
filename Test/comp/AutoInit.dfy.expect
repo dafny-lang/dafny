@@ -26,6 +26,14 @@ null null null
 null null
 null null null
 null null null
+DatatypeDefaultValues_Compile.EnumDatatype.MakeZero
+  DatatypeDefaultValues_Compile.IntList.Nil
+  DatatypeDefaultValues_Compile.Cell.MakeCell(0)
+DatatypeDefaultValues_Compile.GenericTree.Leaf
+  DatatypeDefaultValues_Compile.Complicated.ComplA(0, false)
+  DatatypeDefaultValues_Compile.CellCell.MakeCellCell(DatatypeDefaultValues_Compile.Cell.MakeCell(0))
+DatatypeDefaultValues_Compile.Difficult.MakeDifficult(null)
+  DatatypeDefaultValues_Compile.GenDifficult.MakeGenDifficult(null)
 
 Dafny program verifier did not attempt verification
 3 false 0
@@ -52,6 +60,14 @@ null null null
 null null
 null null null
 null null null
+DatatypeDefaultValues_Compile.EnumDatatype.MakeZero
+  DatatypeDefaultValues_Compile.IntList.Nil
+  DatatypeDefaultValues_Compile.Cell.MakeCell(0)
+DatatypeDefaultValues_Compile.GenericTree.Leaf
+  DatatypeDefaultValues_Compile.Complicated.ComplA(0, false)
+  DatatypeDefaultValues_Compile.CellCell.MakeCellCell(DatatypeDefaultValues_Compile.Cell.MakeCell(0))
+DatatypeDefaultValues_Compile.Difficult.MakeDifficult(null)
+  DatatypeDefaultValues_Compile.GenDifficult.MakeGenDifficult(null)
 
 Dafny program verifier did not attempt verification
 3 false 0
@@ -78,6 +94,14 @@ null null null
 null null
 null null null
 null null null
+DatatypeDefaultValues_Compile.EnumDatatype.MakeZero
+  DatatypeDefaultValues_Compile.IntList.Nil
+  DatatypeDefaultValues_Compile.Cell.MakeCell(0)
+DatatypeDefaultValues_Compile.GenericTree.Leaf
+  DatatypeDefaultValues_Compile.Complicated.ComplA(0, false)
+  DatatypeDefaultValues_Compile.CellCell.MakeCellCell(DatatypeDefaultValues_Compile.Cell.MakeCell(0))
+DatatypeDefaultValues_Compile.Difficult.MakeDifficult(null)
+  DatatypeDefaultValues_Compile.GenDifficult.MakeGenDifficult(null)
 
 Dafny program verifier did not attempt verification
 3 false 0
@@ -104,3 +128,11 @@ null null null
 null null
 null null null
 null null null
+DatatypeDefaultValues_Compile.EnumDatatype.MakeZero
+  DatatypeDefaultValues_Compile.IntList.Nil
+  DatatypeDefaultValues_Compile.Cell.MakeCell(0)
+DatatypeDefaultValues_Compile.GenericTree.Leaf
+  DatatypeDefaultValues_Compile.Complicated.ComplA(0, false)
+  DatatypeDefaultValues_Compile.CellCell.MakeCellCell(DatatypeDefaultValues_Compile.Cell.MakeCell(0))
+DatatypeDefaultValues_Compile.Difficult.MakeDifficult(null)
+  DatatypeDefaultValues_Compile.GenDifficult.MakeGenDifficult(null)

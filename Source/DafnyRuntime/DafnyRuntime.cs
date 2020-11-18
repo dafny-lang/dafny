@@ -1623,11 +1623,11 @@ namespace @_System
       s += ")";
       return s;
     }
-    public static Tuple2<T0,T1> Default(Dafny.TypeDescriptor<T0> _td_T0,Dafny.TypeDescriptor<T1> _td_T1) {
-      return create(_td_T0.Default(),_td_T1.Default());
+    public static Tuple2<T0,T1> Default(T0 _default_T0, T1 _default_T1) {
+      return create(_default_T0, _default_T1);
     }
-    public static Dafny.TypeDescriptor<_System.Tuple2<T0,T1>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0,Dafny.TypeDescriptor<T1> _td_T1) {
-      return new Dafny.TypeDescriptor<_System.Tuple2<T0,T1>>(_System.Tuple2<T0,T1>.Default(_td_T0,_td_T1));
+    public static Dafny.TypeDescriptor<_System.Tuple2<T0, T1>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1) {
+      return new Dafny.TypeDescriptor<_System.Tuple2<T0, T1>>(_System.Tuple2<T0, T1>.Default(_td_T0.Default(), _td_T1.Default()));
     }
     public static Tuple2<T0,T1> create(T0 _0, T1 _1) {
       return new Tuple2<T0,T1>(_0, _1);

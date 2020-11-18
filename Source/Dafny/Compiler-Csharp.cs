@@ -41,6 +41,7 @@ namespace Microsoft.Dafny
     static string FormatTypeDescriptorVariable(string typeVarName) => $"_td_{typeVarName}";
     static string FormatTypeDescriptorVariable(TypeParameter tp) => FormatTypeDescriptorVariable(tp.CompileName);
     const string TypeDescriptorMethodName = "_TypeDescriptor";
+    static string FormatDefaultTypeParameterValue(TypeParameter tp) => $"_default_{tp.CompileName}";
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
@@ -322,11 +323,11 @@ namespace Microsoft.Dafny
       //   public Dt() { }
       //   #if TypeArgs.Count == 0
       //     private static Dt<T> theDefault = ...;
-      //     public static Dt<T> Default(typeDescriptors...) {
+      //     public static Dt<T> Default(values...) {
       //       return theDefault;
       //     }
       //   #else
-      //     public static Dt<T> Default(typeDescriptors...) {
+      //     public static Dt<T> Default(values...) {
       //       return ...;
       //     }
       //   #endif
@@ -378,7 +379,7 @@ namespace Microsoft.Dafny
         }
       } else {
         wr.Write($"public static {DtT_protected} Default(");
-        wr.Write(Util.Comma(UsedTypeParameters(dt), tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
+        wr.Write(Util.Comma(UsedTypeParameters(dt), tp => $"{tp.CompileName} {FormatDefaultTypeParameterValue(tp)}"));
         using (var w = wr.NewBlock(")")) {
           w.Write("return ");
           wDefault = w.Fork();
@@ -1122,7 +1123,11 @@ namespace Microsoft.Dafny
         if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
           return $"default({TypeName(udt, wr, udt.tok)})";
         } else {
-          return $"{FormatTypeDescriptorVariable(udt.ResolvedParam.CompileName)}.Default()";
+          if (constructTypeParameterDefaultsFromTypeDescriptors) {
+            return $"{FormatTypeDescriptorVariable(udt.ResolvedParam.CompileName)}.Default()";
+          } else {
+            return FormatDefaultTypeParameterValue(udt.ResolvedParam);
+          }
         }
       }
       var cl = udt.ResolvedClass;
@@ -1187,7 +1192,7 @@ namespace Microsoft.Dafny
           s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
         }
         var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
-        return string.Format($"{s}.Default({Util.Comma(relevantTypeArgs, arg => TypeDescriptor(arg, wr, tok))})");
+        return string.Format($"{s}.Default({Util.Comma(relevantTypeArgs, arg => DefaultValue(arg, wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors))})");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }

@@ -119,9 +119,7 @@ Type descriptors are passed only for type parameters that bear the Dafny type ch
 
 For inductive datatypes, the compiler uses one more notion of types, namely the
 _used type parameters_. This refers to those type parameters that play a role in the
-creation of a value of the datatype's "root constructor", explained below.
-TODO: These "used type parameters" were needed long ago, but things have changed in
-the language; can they now be removed?
+creation of a value of the datatype's "grounding constructor", explained below.
 
 Auto-init types
 ---------------
@@ -221,30 +219,36 @@ public static readonly B Witness = W;
 
 ## (Co-)datatypes
 
-Each datatype and co-datatype has a _root constructor_. For a `datatype`, the root constructor
-is selected when the resolver ascertains that the datatype is nonempty. For a `codatatype`,
-the selection of the root constructor lacks sophistication--it is just the first of the given
-constructors. The default value of a (co-)datatype is this root constructor, called with values
+Each datatype and co-datatype has a _grounding constructor_. For a `datatype`, the grounding
+constructor is selected when the resolver ascertains that the datatype is nonempty. For a
+`codatatype`, the selection of the grounding constructor lacks sophistication--it is just the
+first of the given constructors.
+
+If the datatype is not an auto-init type, then there's nothing more to say about its default
+value. If it is an auto-init type, then the following explanations apply.
+
+The default value of a (co-)datatype is this grounding constructor, called with values
 for its parameters:
 
-    DT<TT>.create_RootCtor(E, ...)
+    DT<TT>.create_GroundingCtor(E, ...)
 
 This value is produced by the `Default(...)` method emitted by the compiler into the type's
 companion class:
 
 ```
 public static DT<TT> Default(T e, ...) {
-  return create_RootCtor(e, ...);
+  return create_GroundingCtor(E, ...);
 }
 ```
 
-The parameters to this `Default` method are the same as the parameters to the root constructor.
+The parameters to this `Default` method are the default values for each of the type parameters
+used by the grounding constructor.
 
-If the (co-)datatype has no type parameters and the root constructor has no parameters, then
-the default value is pre-computed and reused:
+If the (co-)datatype has no type parameters (note: that is, no type parameters at all--the
+"used parameters" are not involved here), then the default value is pre-computed and reused:
 
 ```
-private readonly DT _Default = create_RootCtor();
+private readonly DT _Default = create_GroundingCtor();
 public static DT Default() {
   return _Default;
 }
@@ -376,7 +380,7 @@ where the list of type parameters denoted by `T, ...` are the auto-init type par
 
 TODO: What about "used type parameters"?
 TODO: What are the parameters to this `Default(...)` method? I think it's only a subset of the
-parameters passed to the root constructor, right? Only those parameters that can be constructed
+parameters passed to the grounding constructor, right? Only those parameters that can be constructed
 only through auto-init type parameters are needed. This affects the first sentence of the next paragraph.
 
 ## Subset types

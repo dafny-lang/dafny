@@ -65,6 +65,7 @@ method Main() {
   More();
   Arrows();
   NilRegression.Test();
+  DatatypeDefaultValues.Test();
 }
 
 datatype ThisOrThat<A,B> = This(A) | Or | That(B)
@@ -227,5 +228,34 @@ module NilRegression {
     print u, " ", v, " ", w, "\n";
     u, v, w := DaTy2(u).get, DaTy2(v).get, DaTy2(w).get;
     print u, " ", v, " ", w, "\n";
+  }
+}
+
+module DatatypeDefaultValues {
+  datatype EnumDatatype = MakeZero | MakeOne
+  datatype IntList = Nil | Cons(int, IntList)
+  datatype Cell<B> = MakeCell(B)
+  datatype GenericTree<A> = Leaf | Node(GenericTree<A>, GenericTree<A>)
+  datatype Complicated<K, L(0), M, N(0)> = ComplA(K, L) | Rest(Complicated<K, L, M, N>)
+  datatype CellCell<X, Y> = MakeCellCell(Cell<X>) | MakeMoreCellCell(CellCell<X, Y>)
+
+  datatype Difficult = MakeDifficult(Class?)
+  datatype GenDifficult<G> = MakeGenDifficult(GenClass?<G>)
+  class Class { }
+  class GenClass<H> { }
+
+  method Test() {
+    var a: EnumDatatype;
+    var b: IntList;
+    var c: Cell<int>;
+    var d: GenericTree<int>;
+    var e: Complicated<int, bool, real, bv3>;
+    var f: CellCell<int, real>;
+    print a, "\n  ", b, "\n  ", c, "\n";
+    print d, "\n  ", e, "\n  ", f, "\n";
+
+    var g: Difficult;
+    var h: GenDifficult<int>;
+    print g, "\n  ", h, "\n";
   }
 }
