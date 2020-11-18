@@ -789,7 +789,7 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override void TypeArgDescUse(bool isStatic, bool memberHasBody, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
+    protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
       needsTypeParameter = isStatic;
       needsTypeDescriptor = false;
     }

@@ -799,9 +799,9 @@ namespace Microsoft.Dafny {
     /// Answers two questions whose answers are used to filter type parameters.
     /// For a member c, F, or M:
     ///     (co-)datatype/class/trait <<cl>> {
-    ///       <<isStatic>> const c = <<memberHasBody>>
-    ///       <<isStatic>> function method F <<memberHasBody>>
-    ///       <<isStatic>> method M <<memberHasBody>>
+    ///       <<isStatic>> const c ...
+    ///       <<isStatic>> function method F ...
+    ///       <<isStatic>> method M ...
     ///     }
     /// does a type parameter of "cl"
     ///  - get compiled as a type parameter of the member (needsTypeParameter)
@@ -810,7 +810,7 @@ namespace Microsoft.Dafny {
     /// be answered for the member emitted into the companion class, not the signature that goes into
     /// the target type.
     /// </summary>
-    protected virtual void TypeArgDescUse(bool isStatic, bool memberHasBody, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
+    protected virtual void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
       Contract.Requires(cl is DatatypeDecl || cl is ClassDecl);
       throw new NotImplementedException();
     }
@@ -826,7 +826,7 @@ namespace Microsoft.Dafny {
       foreach (var ta in typeArgs) {
         var tp = ta.Formal;
         if (tp.Parent is TopLevelDeclWithMembers) {
-          TypeArgDescUse(member.IsStatic, memberHasBody, lookasideBody, (TopLevelDeclWithMembers)member.EnclosingClass, out var needsTypeParameter, out var _);
+          TypeArgDescriptorUse(member.IsStatic, lookasideBody, (TopLevelDeclWithMembers)member.EnclosingClass, out var needsTypeParameter, out var _);
           if (!needsTypeParameter) {
             continue;
           }
@@ -847,7 +847,7 @@ namespace Microsoft.Dafny {
       foreach (var ta in typeArgs) {
         var tp = ta.Formal;
         if (tp.Parent is TopLevelDeclWithMembers) {
-          TypeArgDescUse(member.IsStatic, memberHasBody, lookasideBody, (TopLevelDeclWithMembers)member.EnclosingClass, out var _, out var needsTypeDescriptor);
+          TypeArgDescriptorUse(member.IsStatic, lookasideBody, (TopLevelDeclWithMembers)member.EnclosingClass, out var _, out var needsTypeDescriptor);
           if (!needsTypeDescriptor) {
             continue;
           }
