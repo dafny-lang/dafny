@@ -124,17 +124,6 @@ var CharType = CreateStandardTypeDescriptor(Char('D'))
 // RealType is the RTD for real
 var RealType = CreateStandardTypeDescriptor(ZeroReal)
 
-/***************************** ARE THESE REALLY NEEDED?
-// Int8Type is the RTD of int8.
-var Int8Type = CreateStandardTypeDescriptor(int8(0))
-
-// Int16Type is the RTD of int16.
-var Int16Type = CreateStandardTypeDescriptor(int16(0))
-
-// Int32Type is the RTD of int32.
-var Int32Type = CreateStandardTypeDescriptor(int32(0))
-***************************** ARE THESE REALLY NEEDED? *****/
-
 // Int64Type is the RTD of int64.
 var Int64Type = CreateStandardTypeDescriptor(int64(0))
 
