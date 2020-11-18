@@ -37,6 +37,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public static DafnyProgramVerifier Create(ILogger<DafnyProgramVerifier> logger) {
       lock(_initializationSyncObject) {
         if(!_initialized) {
+          // TODO This may be subject to change. See Microsoft.Boogie.ConditionGeneration.Counterexample
+          //      A dash means write to the textwriter instead of a file.
+          // https://github.com/keyboardDrummer/boogie/blob/54b0192f54f7bac353502e2b61bab530ee722a2d/Source/VCGeneration/ConditionGeneration.cs#L213
+          DafnyOptions.O.ModelViewFile = "-";
           _initialized = true;
           ExecutionEngine.printer = new VerifierOutputPrinter(logger);
           logger.LogTrace("initialized the boogie verifier...");
