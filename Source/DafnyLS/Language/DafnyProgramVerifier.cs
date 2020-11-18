@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -42,34 +43,35 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           // https://github.com/keyboardDrummer/boogie/blob/54b0192f54f7bac353502e2b61bab530ee722a2d/Source/VCGeneration/ConditionGeneration.cs#L213
           DafnyOptions.O.ModelViewFile = "-";
           _initialized = true;
-          ExecutionEngine.printer = new VerifierOutputPrinter(logger);
           logger.LogTrace("initialized the boogie verifier...");
         }
         return new DafnyProgramVerifier(logger);
       }
     }
 
-    public async Task VerifyAsync(Microsoft.Dafny.Program program, CancellationToken cancellationToken) {
+    public async Task VerifyAsync(Dafny.Program program, CancellationToken cancellationToken) {
       if(program.reporter.AllMessages[ErrorLevel.Error].Count > 0) {
         // TODO Change logic so that the loader is responsible to ensure that the previous steps were sucessful.
         _logger.LogDebug("skipping program verification since the parser or resolvers already reported errors");
         return;
       }
-      IEnumerable<Tuple<string, Microsoft.Boogie.Program>> translated;
       await _mutex.WaitAsync(cancellationToken);
       try {
-        translated = Translator.Translate(program, program.reporter, new Translator.TranslatorFlags { InsertChecksums = true });
+        // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
+        var printer = new ModelCapturingOutputPrinter(_logger);
+        ExecutionEngine.printer = printer;
+        var translated = Translator.Translate(program, program.reporter, new Translator.TranslatorFlags { InsertChecksums = true });
+        foreach(var (_, boogieProgram) in translated) {
+          cancellationToken.ThrowIfCancellationRequested();
+          VerifyWithBoogie(boogieProgram, program.reporter, cancellationToken);
+        }
+        //var counterExampleModel = printer.CounterExampleModel;
       } finally {
         _mutex.Release();
       }
-      // It appears that boogie is thread-safe.
-      foreach(var (_, boogieProgram) in translated) {
-        cancellationToken.ThrowIfCancellationRequested();
-        VerifyWithBoogie(boogieProgram, program.reporter, cancellationToken);
-      }
     }
 
-    private void VerifyWithBoogie(Microsoft.Boogie.Program program, ErrorReporter reporter, CancellationToken cancellationToken) {
+    private void VerifyWithBoogie(Boogie.Program program, ErrorReporter reporter, CancellationToken cancellationToken) {
       program.Resolve();
       program.Typecheck();
 
@@ -99,10 +101,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       reporter.Error(MessageSource.Other, error.Tok, error.Msg);
     }
 
-    private class VerifierOutputPrinter : OutputPrinter {
+    private class ModelCapturingOutputPrinter : OutputPrinter {
       private readonly ILogger _logger;
+      private readonly StringBuilder _counterExampleModel = new StringBuilder();
 
-      public VerifierOutputPrinter(ILogger logger) {
+      public string CounterExampleModel => _counterExampleModel.ToString();
+
+      public ModelCapturingOutputPrinter(ILogger logger) {
         _logger = logger;
       }
 
@@ -126,6 +131,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {
+        if(errorInfo.Model is StringWriter modelString) {
+          // We do not know a-priori how many errors we'll receive. Therefore we capture all models
+          // in a custom stringbuilder and reset the original one to not duplicate the outputs.
+          _counterExampleModel.Append(modelString);
+          modelString.GetStringBuilder().Clear();
+        }
       }
 
       public void WriteTrailer(PipelineStatistics stats) {
