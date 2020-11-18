@@ -1961,7 +1961,7 @@ namespace Microsoft.Dafny{
                 if (IsJavaPrimitiveType(arg.Type)) {
                   w.Write($"this.{memberName}");
                 } else {
-                  w.Write($"this.{memberName} == null ? \"\" : this.{memberName}");
+                  w.Write($"{DafnyHelpersClass}.toString(this.{memberName})");
                 }
                 w.WriteLine(");");
                 i++;
