@@ -1592,8 +1592,10 @@ For a given non-static method M,
 * A class that has one or more transitive parents that declare M without a body
 and no transitive parent that declares M with a body must itself redeclare M
 with a body.
-
-Each declaration of a method M within an inheritance hierarchy will also
+* If a class or trait CT does not redeclare M because one of CT's direct
+parents P inherits M with a body (either declaring M with a body itself or
+having a transitive parent of P that does), then each of CT's direct parents
+must either not inherit M at all or inherit the same M with body that P does.
 include a specification. In simple cases, those syntactially separate
 specifications will be copies of each other (up to renaming to take account
 of differing formal parameter names). However they need not be. The rule is
@@ -1611,7 +1613,12 @@ respectively,
 * C.M's `decreases` expression must be smaller than or equal to P.M's `decreases` expression
 
 Non-static const and field declarations are also inherited from parent traits.
-At present these may not be redeclared in extending traits and classes.
+These may not be redeclared in extending traits and classes.
+However, a trait need not initalize a const field with a value.
+The class that extends a trait that declares such a const field without an
+initializer can initialize the field in a constructor. If the trait does give
+an initial value in the declaration, the extending class may not either
+redeclare the field or give it a value.
 
 ## Example of traits
 As an example, the following trait represents movable geometric shapes:
