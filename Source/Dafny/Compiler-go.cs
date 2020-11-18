@@ -824,22 +824,22 @@ namespace Microsoft.Dafny {
         WriteRuntimeTypeDescriptorsLocals(usedTypeParams, true, wDefault);
 
         wDefault.Write("return ");
-        DatatypeCtor defaultCtor;
+        DatatypeCtor groundingCtor;
         if (dt is IndDatatypeDecl idd) {
-          defaultCtor = idd.DefaultCtor;
+          groundingCtor = idd.GroundingCtor;
         } else {
-          defaultCtor = dt.Ctors[0];
+          groundingCtor = dt.Ctors[0];
         }
 
         var arguments = new TargetWriter();
         string sep = "";
-        foreach (var f in defaultCtor.Formals) {
+        foreach (var f in groundingCtor.Formals) {
           if (!f.IsGhost) {
             arguments.Write("{0}{1}", sep, DefaultValue(f.Type, wDefault, f.tok, inAutoInitContext: false));
             sep = ", ";
           }
         }
-        EmitDatatypeValue(dt, defaultCtor, dt is CoDatatypeDecl, arguments.ToString(), wDefault);
+        EmitDatatypeValue(dt, groundingCtor, dt is CoDatatypeDecl, arguments.ToString(), wDefault);
         wDefault.WriteLine();
       }
 

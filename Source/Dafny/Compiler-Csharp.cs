@@ -386,11 +386,11 @@ namespace Microsoft.Dafny
           w.WriteLine(";");
         }
       }
-      DatatypeCtor defaultCtor;
+      DatatypeCtor groundingCtor;
       if (dt is IndDatatypeDecl) {
-        defaultCtor = ((IndDatatypeDecl)dt).DefaultCtor;
+        groundingCtor = ((IndDatatypeDecl)dt).GroundingCtor;
       } else {
-        defaultCtor = ((CoDatatypeDecl)dt).Ctors[0];  // pick any one of them (but pick must be the same as in InitializerIsKnown and HasZeroInitializer)
+        groundingCtor = ((CoDatatypeDecl)dt).Ctors[0];  // pick any one of them (but pick must be the same as in InitializerIsKnown and HasZeroInitializer)
       }
       if (dt is CoDatatypeDecl) {
         var wCo = wDefault;
@@ -399,9 +399,9 @@ namespace Microsoft.Dafny
         wDefault = wCo.Fork();
         wCo.Write("; })");
       }
-      wDefault.Write(DtCreateName(defaultCtor));
+      wDefault.Write(DtCreateName(groundingCtor));
       wDefault.Write("(");
-      var nonGhostFormals = defaultCtor.Formals.Where(f => !f.IsGhost);
+      var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost);
       wDefault.Write(Util.Comma(nonGhostFormals, f => DefaultValue(f.Type, wDefault, f.tok, false, false)));
       wDefault.Write(")");
 

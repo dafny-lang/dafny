@@ -159,10 +159,10 @@ namespace Microsoft.Dafny {
       if (idt == null) {
         return dt.TypeArgs;
       } else {
-        Contract.Assert(idt.TypeArgs.Count == idt.TypeParametersUsedInConstructionByDefaultCtor.Length);
+        Contract.Assert(idt.TypeArgs.Count == idt.TypeParametersUsedInConstructionByGroundingCtor.Length);
         var tps = new List<TypeParameter>();
         for (int i = 0; i < idt.TypeArgs.Count; i++) {
-          if (idt.TypeParametersUsedInConstructionByDefaultCtor[i]) {
+          if (idt.TypeParametersUsedInConstructionByGroundingCtor[i]) {
             tps.Add(idt.TypeArgs[i]);
           }
         }
@@ -179,10 +179,10 @@ namespace Microsoft.Dafny {
       if (idt == null) {
         return TypeArgumentInstantiation.ListFromClass(dt, typeArgs);
       } else {
-        Contract.Assert(typeArgs.Count == idt.TypeParametersUsedInConstructionByDefaultCtor.Length);
+        Contract.Assert(typeArgs.Count == idt.TypeParametersUsedInConstructionByGroundingCtor.Length);
         var r = new List<TypeArgumentInstantiation>();
         for (int i = 0; i < typeArgs.Count; i++) {
-          if (idt.TypeParametersUsedInConstructionByDefaultCtor[i]) {
+          if (idt.TypeParametersUsedInConstructionByGroundingCtor[i]) {
             r.Add(new TypeArgumentInstantiation(dt.TypeArgs[i], typeArgs[i]));
           }
         }
@@ -2629,10 +2629,10 @@ namespace Microsoft.Dafny {
           // has a zero initializer.
           initializerIsKnown = hasZeroInitializer;
         } else {
-          var defaultCtor = ((IndDatatypeDecl)cl).DefaultCtor;
+          var groundingCtor = ((IndDatatypeDecl)cl).GroundingCtor;
           var subst = Resolver.TypeSubstitutionMap(cl.TypeArgs, udt.TypeArgs);
-          hasZeroInitializer = defaultCtor.Formals.TrueForAll(formal => formal.IsGhost || HasZeroInitializer(Resolver.SubstType(formal.Type, subst)));
-          initializerIsKnown = defaultCtor.Formals.TrueForAll(formal => formal.IsGhost || InitializerIsKnown(Resolver.SubstType(formal.Type, subst)));
+          hasZeroInitializer = groundingCtor.Formals.TrueForAll(formal => formal.IsGhost || HasZeroInitializer(Resolver.SubstType(formal.Type, subst)));
+          initializerIsKnown = groundingCtor.Formals.TrueForAll(formal => formal.IsGhost || InitializerIsKnown(Resolver.SubstType(formal.Type, subst)));
         }
         return;
       } else {

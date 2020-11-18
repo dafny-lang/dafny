@@ -1715,21 +1715,21 @@ namespace Microsoft.Dafny{
         wDefault = w.Fork();
         w.WriteLine(";");
       }
-      DatatypeCtor defaultCtor;
+      DatatypeCtor groundingCtor;
       if (dt is IndDatatypeDecl) {
-        defaultCtor = ((IndDatatypeDecl)dt).DefaultCtor;
+        groundingCtor = ((IndDatatypeDecl)dt).GroundingCtor;
       } else {
-        defaultCtor = ((CoDatatypeDecl) dt).Ctors[0];
+        groundingCtor = ((CoDatatypeDecl) dt).Ctors[0];
       }
       string arguments = "";
       string sep = "";
-      foreach (Formal f in defaultCtor.Formals) {
+      foreach (Formal f in groundingCtor.Formals) {
         if (!f.IsGhost) {
           arguments += sep + DefaultValue(f.Type, wDefault, f.Tok);
           sep = ", ";
         }
       }
-      EmitDatatypeValue(dt, defaultCtor, dt is CoDatatypeDecl, arguments, wDefault);
+      EmitDatatypeValue(dt, groundingCtor, dt is CoDatatypeDecl, arguments, wDefault);
       var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(dt.tok, dt, null), wr, dt.tok);
       EmitTypeMethod(dt, IdName(dt), dt.TypeArgs, usedTypeArgs, targetTypeName, $"Default({typeDescArgsStr})", wr);
       // create methods

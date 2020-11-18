@@ -4425,8 +4425,8 @@ namespace Microsoft.Dafny {
   public class IndDatatypeDecl : DatatypeDecl, RevealableTypeDecl
   {
     public override string WhatKind { get { return "datatype"; } }
-    public DatatypeCtor DefaultCtor;  // set during resolution
-    public bool[] TypeParametersUsedInConstructionByDefaultCtor;  // set during resolution; has same length as the number of type arguments
+    public DatatypeCtor GroundingCtor;  // set during resolution
+    public bool[] TypeParametersUsedInConstructionByGroundingCtor;  // set during resolution; has same length as the number of type arguments
 
     public enum ES { NotYetComputed, Never, ConsultTypeArguments }
     public ES EqualitySupport = ES.NotYetComputed;
@@ -4471,10 +4471,10 @@ namespace Microsoft.Dafny {
       Dims = typeArgs.Count;
       foreach (var ctor in Ctors) {
         ctor.EnclosingDatatype = this;  // resolve here
-        DefaultCtor = ctor;
-        TypeParametersUsedInConstructionByDefaultCtor = new bool[typeArgs.Count];
+        GroundingCtor = ctor;
+        TypeParametersUsedInConstructionByGroundingCtor = new bool[typeArgs.Count];
         for (int i = 0; i < typeArgs.Count; i++) {
-          TypeParametersUsedInConstructionByDefaultCtor[i] = true;
+          TypeParametersUsedInConstructionByGroundingCtor[i] = true;
         }
       }
       this.EqualitySupport = ES.ConsultTypeArguments;
