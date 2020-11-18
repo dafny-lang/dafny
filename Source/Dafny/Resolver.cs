@@ -8862,7 +8862,7 @@ namespace Microsoft.Dafny
       DatatypeCtor defaultCtor = null;
       List<TypeParameter> lastTypeParametersUsed = null;
       foreach (DatatypeCtor ctor in dt.Ctors) {
-        List<TypeParameter>  typeParametersUsed = new List<TypeParameter>();
+        List<TypeParameter> typeParametersUsed = new List<TypeParameter>();
         foreach (Formal p in ctor.Formals) {
           if (!CheckCanBeConstructed(p.Type, typeParametersUsed)) {
             // the argument type (has a component which) is not yet known to be constructable
@@ -8893,23 +8893,65 @@ namespace Microsoft.Dafny
       return false;
     }
 
-    bool CheckCanBeConstructed(Type tp, List<TypeParameter> typeParametersUsed) {
-      tp = tp.NormalizeExpand();
-      var dependee = tp.AsIndDatatype;
-      if (dependee == null) {
-        // the type is not an inductive datatype, which means it is always possible to construct it
-        if (tp.IsTypeParameter) {
-          typeParametersUsed.Add(((UserDefinedType)tp).ResolvedParam);
-        }
+    bool CheckCanBeConstructed(Type type, List<TypeParameter> typeParametersUsed) {
+      type = type.NormalizeExpandKeepConstraints();
+      if (type is BasicType) {
+        // values of primitive types can always be constructed
         return true;
-      } else if (dependee.DefaultCtor == null) {
+      } else if (type is CollectionType) {
+        // values of collection types can always be constructed
+        return true;
+      }
+
+      var udt = (UserDefinedType)type;
+      if (type.IsTypeParameter) {
+        // a value can be constructed, if the type parameter stands for a type that can be constructed
+        Contract.Assert(udt.ResolvedParam != null);
+        typeParametersUsed.Add(udt.ResolvedParam);
+        return true;
+      }
+
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is NewtypeDecl) {
+        // values of a newtype can be constructed
+        return true;
+      } else if (cl is SubsetTypeDecl) {
+        var td = (SubsetTypeDecl)cl;
+        if (td.Witness != null) {
+          // a witness exists, but may depend on type parameters
+          type.AddFreeTypeParameters(typeParametersUsed);
+          return true;
+        } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
+          // WKind.Special is only used with -->, ->, and non-null types:
+          Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
+          if (ArrowType.IsTotalArrowTypeName(td.Name)) {
+            return CheckCanBeConstructed(udt.TypeArgs.Last(), typeParametersUsed);
+          } else {
+            return true;
+          }
+        } else {
+          return CheckCanBeConstructed(td.RhsWithArgument(udt.TypeArgs), typeParametersUsed);
+        }
+      } else if (cl is ClassDecl) {
+        // null is a value for this possibly-null type
+        return true;
+      } else if (cl is CoDatatypeDecl) {
+        // may depend on type parameters
+        type.AddFreeTypeParameters(typeParametersUsed);
+        return true;
+      }
+
+      var dependee = type.AsIndDatatype;
+      Contract.Assert(dependee != null);
+      if (dependee.DefaultCtor == null) {
         // the type is an inductive datatype that we don't yet know how to construct
         return false;
       }
       // also check the type arguments of the inductive datatype
-      Contract.Assert(((UserDefinedType)tp).TypeArgs.Count == dependee.TypeParametersUsedInConstructionByDefaultCtor.Length);
+      Contract.Assert(udt.TypeArgs.Count == dependee.TypeParametersUsedInConstructionByDefaultCtor.Length);
       var i = 0;
-      foreach (var ta in ((UserDefinedType)tp).TypeArgs) {  // note, "tp" is known to be a UserDefinedType, because that follows from tp being an inductive datatype
+      foreach (var ta in udt.TypeArgs) {
         if (dependee.TypeParametersUsedInConstructionByDefaultCtor[i] && !CheckCanBeConstructed(ta, typeParametersUsed)) {
           return false;
         }

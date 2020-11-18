@@ -692,6 +692,22 @@ namespace Microsoft.Dafny {
     // Type arguments to the type
     public List<Type> TypeArgs = new List<Type>();
 
+    /// <summary>
+    /// Add to "tps" the free type parameters in "this".
+    /// Requires the type to be resolved.
+    /// </summary>
+    public void AddFreeTypeParameters(List<TypeParameter> tps) {
+      Contract.Requires(tps != null);
+      var ty = this.NormalizeExpandKeepConstraints();
+      var tp = ty.AsTypeParameter;
+      if (tp != null) {
+        tps.Add(tp);
+      }
+      foreach (var ta in ty.TypeArgs) {
+        ta.AddFreeTypeParameters(tps);
+      }
+    }
+
     [Pure]
     public abstract string TypeName(ModuleDefinition/*?*/ context, bool parseAble = false);
     [Pure]
