@@ -1120,14 +1120,10 @@ namespace Microsoft.Dafny
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
-          return $"default({TypeName(udt, wr, udt.tok)})";
+        if (constructTypeParameterDefaultsFromTypeDescriptors) {
+          return $"{FormatTypeDescriptorVariable(udt.ResolvedParam.CompileName)}.Default()";
         } else {
-          if (constructTypeParameterDefaultsFromTypeDescriptors) {
-            return $"{FormatTypeDescriptorVariable(udt.ResolvedParam.CompileName)}.Default()";
-          } else {
-            return FormatDefaultTypeParameterValue(udt.ResolvedParam);
-          }
+          return FormatDefaultTypeParameterValue(udt.ResolvedParam);
         }
       }
       var cl = udt.ResolvedClass;
