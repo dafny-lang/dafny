@@ -1771,18 +1771,16 @@ namespace Microsoft.Dafny {
 
       var outTmps = new List<string>();  // contains a name for each non-ghost formal out-parameter
       var outTypes = new List<Type>();  // contains a type for each non-ghost formal out-parameter
-      var outTypesOriginal = new List<Type>();  // contains a type for each non-ghost formal out-parameter
       for (int i = 0; i < method.Outs.Count; i++) {
         Formal p = method.Outs[i];
         if (!p.IsGhost) {
           var target = returnStyleOutCollector != null ? IdName(p) : idGenerator.FreshId("_out");
           outTmps.Add(target);
           outTypes.Add(p.Type);
-          outTypesOriginal.Add(method.Original.Outs[i].Type);
           DeclareLocalVar(target, p.Type, p.tok, false, null, wr);
         }
       }
-      Contract.Assert(outTmps.Count == nonGhostOutParameterCount && outTypes.Count == nonGhostOutParameterCount && outTypesOriginal.Count == nonGhostOutParameterCount);
+      Contract.Assert(outTmps.Count == nonGhostOutParameterCount && outTypes.Count == nonGhostOutParameterCount);
 
       if (returnStyleOutCollector != null) {
         DeclareSpecificOutCollector(returnStyleOutCollector, wr, outTypes, outTypes);
@@ -1845,7 +1843,7 @@ namespace Microsoft.Dafny {
           var p = method.Outs[j];
           if (!p.IsGhost) {
             wrReturn.Write(sep);
-            w = EmitCoercionIfNecessary(method.Outs[j].Type, /*TODO: I think this should also be outTypes[l]*/ method.Original.Outs[j].Type, method.tok, wrReturn);
+            w = EmitCoercionIfNecessary(method.Outs[j].Type, outTypes[l], method.tok, wrReturn);
             w.Write(outTmps[l]);
             sep = ", ";
             l++;
