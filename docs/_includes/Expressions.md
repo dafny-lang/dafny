@@ -8,10 +8,10 @@ in order of increasing binding power.
 --------------------------|------------------------------------
  `;`                      | In LemmaCall;Expression
 --------------------------|------------------------------------
- `<==>`, &hArr;           | equivalence (if and only if)
+ `<==>`                   | equivalence (if and only if)
 --------------------------|------------------------------------
- `==>`, &rArr;            | implication (implies)
- `<==`, &lArr;            | reverse implication (follows from)
+ `==>`                    | implication (implies)
+ `<==`                    | reverse implication (follows from)
 --------------------------|------------------------------------
  `&&`, `&`                | conjunction (and)
  `||`, `|`                | disjunction (or)
@@ -36,8 +36,10 @@ in order of increasing binding power.
  `%`                      | modulus (mod)
 --------------------------|------------------------------------
  `-`                      | arithmetic negation (unary minus)
- `!`, &not;               | logical negation
+ `!`                      | logical negation
  Primary Expressions      |
+
+TODO: What about unicode symbols for ! & | <==> ==> <==
 
 We are calling the ``UnaryExpression``s that are neither
 arithmetic nor logical negation the _primary expressions_.
@@ -140,12 +142,28 @@ LogicalExpression(allowLemma, allowLambda) =
            { "||" RelationalExpression(allowLemma, allowLambda) }
     )
   ]
+  | { "&&" RelationalExpression(allowLemma, allowLambda) }
+  | { "||" RelationalExpression(allowLemma, allowLambda) }
 ````
+
+Note that the Dafny grammar allows a conjunction or disjunction to be
+_prefixed_ with `&&` or `||` respectively. This form simply allows a
+parallel structure to be written:
+```dafny
+var b: bool :=
+  && x != null
+  && y != null
+  && z != null
+  ;
+```
+This is purely a syntactic convenience allowing easy edits such as reordering
+lines or commenting out lines without having to check that the infix
+operators are always where they should be.
 
 TO BE WRITTEN -- prefixed && and ||
 
 See section [#sec-conjunction-and-disjunction] for an explanation
-of the `&&` (or &and;) and `||` (or &or;) operators.
+of the `&&` and `||` operators.
 
 ## Relational Expressions
 ````grammar
@@ -154,9 +172,11 @@ RelationalExpression(allowLemma, allowLambda) =
   { RelOp Term(allowLemma, allowLambda) }
 
 RelOp =
-  ( "==" [ "#" "[" Expression(allowLemma: true, allowLambda: true) "]" ]
+  ( "=="
+    [ "#" "[" Expression(allowLemma: true, allowLambda: true) "]" ]
+  | "!="
+    [ "#" "[" Expression(allowLemma: true, allowLambda: true) "]" ]
   | "<" | ">" | "<=" | ">="
-  | "!=" [ "#" "[" Expression(allowLemma: true, allowLambda: true) "]" ]
   | "in"
   | "!in"
   | "!!"
@@ -200,17 +220,51 @@ difference for sets and multisets.
 ## Factors
 ````grammar
 Factor(allowLemma, allowLambda) =
-  UnaryExpression(allowLemma, allowLambda)
-  { MulOp UnaryExpression(allowLemma, allowLambda) }
+  AsExpression(allowLemma, allowLambda)
+  { MulOp AsExpression(allowLemma, allowLambda) }
 MulOp = ( "*" | "/" | "%" )
 ````
 
 A ``Factor`` combines ``UnaryExpression``s using multiplication,
 division, or modulus. For numeric types these are explained in
 section [#sec-numeric-types].
+As explained there, `/` and `%` on `int` values represent _Euclidean_
+integer division and modulus and not the typical C-like programming
+language operations.
 
 Only `*` has a non-numeric application. It represents set or multiset
 intersection as explained in sections [#sec-sets] and [#sec-multisets].
+
+
+## As Conversion Expressions
+````grammar
+NumericConversionExpression_ =
+    UnaryExpression(allowLemma: true, allowLambda: true) "as" Type
+````
+The `as` expression converts the given `UnaryExpression` to the stated
+`Type`, with the result being of the given type. The following combinations
+of conversions are permitted:
+
+* Any type to itself
+* Any int or real based numeric type or bit-vector type to another int or real based numeric type or bit-vector type
+* Any base type to a subset or newtype with that base
+* Any subset or newtype or to its base type or a subset or newtype of the same base
+* Any type to a subset of newtype that has the type as its base
+* Any trait to another trait
+* Any trait to a class that extends that trait
+* Any class to a trait extended by that class
+
+*Only the numeric conversions in the above list are currently implemented.*
+
+Some of the conversions above are already implicitly allowed, without the
+`as` operation, such as from a subset type to its base. In any case, it
+must be able to be proved that the value of the given expression is a
+legal value of the given type. For example, `5 as MyType` is permited (by the verifier) only if `5` is a legitimate value of`MyType` (which must be a numeric txype).
+
+The `as` operation is like a grammatical suffix or postfix operation.
+However, note that the unaray operations bind more tightly than does `as`.
+That is `- 5 as nat` is `(- 5) as nat` (which fails), whereas `a * b as nat`
+is `a * (b as nat)`. On the other hand `- a[4]` is `- (a[4])`.
 
 ## Unary Expressions
 
@@ -220,12 +274,10 @@ UnaryExpression(allowLemma, allowLambda) =
   | "!" UnaryExpression(allowLemma, allowLambda)
   | PrimaryExpression_(allowLemma, allowLambda)
   )
-
 ````
 
 A ``UnaryExpression`` applies either numeric (section [#sec-numeric-types])
 or logical (section [#sec-booleans]) negation to its operand.
-
 ## Primary Expressions
 <!-- These are introduced for explanatory purposes as are not in the grammar. -->
 ````grammar
@@ -239,7 +291,6 @@ PrimaryExpression_(allowLemma, allowLambda) =
   | EndlessExpression(allowLemma, allowLambda)
   | ConstAtomExpression { Suffix }
   )
-
 ````
 
 After descending through all the binary and unary operators we arrive at
@@ -267,13 +318,13 @@ functions.  These are called _lambda (expression)s_ (some languages
 know them as _anonymous functions_).  A lambda expression has the
 form:
 ```dafny
-(\(_params_\)) \(_specification_\) => \(_body_\)
+( _params_ ) _specification_ => _body_
 ```
-where `\(_params_\)` is a comma-delimited list of parameter
+where _params_ is a comma-delimited list of parameter
 declarations, each of which has the form `x` or `x: T`.  The type `T`
 of a parameter can be omitted when it can be inferred.  If the
-identifier `x` is not needed, it can be replaced by "`_`".  If
-`\(_params_\)` consists of a single parameter `x` (or `_`) without an
+identifier `x` is not needed, it can be replaced by `_`.  If
+_params_ consists of a single parameter `x` (or `_`) without an
 explicit type, then the parentheses can be dropped; for example, the
 function that returns the successor of a given integer can be written
 as the following lambda expression:
@@ -281,11 +332,11 @@ as the following lambda expression:
 x => x + 1
 ```
 
-The `\(_specification_\)` is a list of clauses `requires E` or
+The _specification_ is a list of clauses `requires E` or
 `reads W`, where `E` is a boolean expression and `W` is a frame
 expression.
 
-`\(_body_\)` is an expression that defines the function's return
+_body_ is an expression that defines the function's return
 value.  The body must be well-formed for all possible values of the
 parameters that satisfy the precondition (just like the bodies of
 named functions and methods).  In some cases, this means it is
@@ -317,7 +368,8 @@ Lhs =
 ````
 
 A left-hand-side expression is only used on the left hand
-side of an ``UpdateStmt``.
+side of an [``UpdateStmt``](#sec-update-and-call-statement)
+or an [Update with Failure Statement](#sec-update-failure).
 
 An example of the first (`NameSegment`) form is:
 
@@ -347,7 +399,7 @@ an expression, or a havoc right-hand-side, optionally followed
 by one or more ``Attribute``s.
 
 Right-hand-side expressions appear in the following constructs:
-``ReturnStmt``, ``YieldStmt``, ``UpdateStmt``, or ``VarDeclStatement``.
+`ReturnStmt`, `YieldStmt`, `UpdateStmt`, `UpdateFailureStmt`, or ``VarDeclStatement``.
 These are the only contexts in which arrays or objects may be
 allocated, or in which havoc may be produced.
 
@@ -369,12 +421,14 @@ ObjectAllocation_ = "new" Type [ "(" [ Expressions ] ")" ]
 This allocated a new object of a class type as explained
 in section [#sec-class-types].
 
+TODO - constructor names in the grammar
+
 ## Havoc Right-Hand-Side
 ````grammar
 HavocRhs_ = "*"
 ````
 A havoc right-hand-side produces an arbitrary value of its associated
-type. To get a more constrained arbitrary value the "assign-such-that"
+type. To obtain a more constrained arbitrary value the "assign-such-that"
 operator (`:|`) can be used. See section [#sec-update-and-call-statements].
 
 ## Constant Or Atomic Expressions
@@ -390,6 +444,7 @@ ConstAtomExpression =
 ````
 A ``ConstAtomExpression`` represent either a constant of some type, or an
 atomic expression. A ``ConstAtomExpression`` is never an l-value.
+
 ## Literal Expressions
 ````grammar
 LiteralExpression_ =
@@ -397,13 +452,14 @@ LiteralExpression_ =
    charToken | stringToken | "this")
 ````
 A literal expression is a boolean literal, a null object reference,
-an unsigned integer or real literal, a character or string literal,
-or "this" which denote the current object in the context of
+an integer or real literal, a character or string literal,
+or `this`, which denotes the current object in the context of
 an instance method or function.
 
 ## Fresh Expressions
 ````grammar
-FreshExpression_ = "fresh" "(" Expression(allowLemma: true, allowLambda: true) ")"
+FreshExpression_ =
+  "fresh" "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
 `fresh(e)` returns a boolean value that is true if
@@ -419,7 +475,9 @@ TO BE WRITTEN -- allocated predicate
 ## Old and Old@ Expressions {#sec-old-expression}
 
 ````grammar
-OldExpression_ = "old" [ "@" ident ] "(" Expression(allowLemma: true, allowLambda: true) ")"
+OldExpression_ =
+  "old" [ "@" ident ] "("
+  Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
 An _old expression_ is used in postconditions or in the body of a method
@@ -441,7 +499,7 @@ particular point in the method body is needed later on in the method body,
 the clearest means is to declare a ghost variable, initializing it to the
 expression in question.
 
-[^Old]: The semantics of `old` in dafny differs from similar
+[^Old]: The semantics of `old` in Dafny differs from similar
 constructs in other specification languages like ACSL or JML.
 
 The argument of an `old` expression may not contain nested `old`,
@@ -467,13 +525,10 @@ TO BE WRITTEN -- including with labels
 
 TO BE WRITTEN -- Inside an old, disallow unchanged, fresh, two-state functions, two-state lemmas, and nested old
 
-## Unchanged Expressions
-
-TO BE WRITTEN -- including with labels
-
 ## Cardinality Expressions
 ````grammar
-CardinalityExpression_ = "|" Expression(allowLemma: true, allowLambda: true) "|"
+CardinalityExpression_ =
+  "|" Expression(allowLemma: true, allowLambda: true) "|"
 ````
 
 For a finite-collection expression `c`, `|c|` is the cardinality of `c`. For a
@@ -482,17 +537,6 @@ a multiset, the cardinality is the sum of the multiplicities of the
 elements. For a finite map, the cardinality is the cardinality of the
 domain of the map. Cardinality is not defined for infinite sets or infinite maps.
 For more, see section [#sec-collection-types].
-
-## Numeric Conversion Expressions
-````grammar
-NumericConversionExpression_ =
-    ( "int" | "real" ) "(" Expression(allowLemma: true, allowLambda: true) ")"
-````
-Numeric conversion expressions give the name of the target type
-followed by the expression being converted in parentheses.
-This production is for `int` and `real` as the target types
-but this also applies more generally to other numeric types,
-e.g. `newtypes`. See section [#sec-numeric-conversion-operations].
 
 ## Parenthesized Expression
 ````grammar
@@ -512,7 +556,7 @@ See section [#sec-tuple-types].
 ````grammar
 SeqDisplayExpr = "[" [ Expressions ] "]"
 ````
-A sequence display expression provide a way to constructing
+A sequence display expression provides a way to construct
 a sequence with given values. For example
 
 ```dafny
@@ -529,7 +573,7 @@ SetDisplayExpr = [ "iset" ] "{" [ Expressions ] "}"
 
 A set display expression provides a way of constructing a set with given
 elements. If the keyword `iset` is present, then a potentially infinite
-set (with the finiite set of given elements) is constructed.
+set (with the finite set of given elements) is constructed.
 
 For example
 
@@ -578,6 +622,7 @@ multisets.
 ## Map Display Expression
 ````grammar
 MapDisplayExpr = ("map" | "imap" ) "[" [ MapLiteralExpressions ] "]"
+
 MapLiteralExpressions =
     Expression(allowLemma: true, allowLambda: true)
     ":=" Expression(allowLemma: true, allowLambda: true)
@@ -642,7 +687,7 @@ var m := if x != 0 then 10 / x else 1; // ok, guarded
 
 TO BE WRITTEN
 
-## Case Bindings, Patterns, and Extended Patterns
+## Case Bindings, Patterns, and Extended Patterns {#sec-case-pattern}
 ````grammar
 CaseBinding_ =
   "case"
@@ -652,10 +697,9 @@ CaseBinding_ =
 
 CasePattern =
   ( Ident "(" [ CasePattern { "," CasePattern } ] ")"
-  | "(" [ CasePattern { "," Casepattern } ] ")"
+  | "(" [ CasePattern { "," CasePattern } ] ")"
   | IdentTypeOptional
   )
-
 
 ExtendedPattern =
   ( LiteralExpression_
@@ -667,22 +711,40 @@ ExtendedPattern =
 
 Case bindings and extended patterns are used for (possibly nested)
 pattern matching on inductive, coinductive or base type values.
-The ``CaseBinding_`` construct is used in
-``CaseStatement`` and ``CaseExpression``s.
-``CasePattern``s are used
-in ``LetExpr``s and ``VarDeclStatement``s.
+The `CaseBinding_` and `ExtendedPattern` constructs are used in
+`CaseStatement` and `CaseExpression`s
+(that is, in `match`
+[statements](#sec-match-statement)
+and [expressions](#sec-match-expression).
+`CasePattern`s are used
+in `LetExpr``s and `VarDeclStatement``s.
+The `ExtendedPattern` differs from `CasePattern` is allowing literals
+and symbolic constants.
 
 When matching an inductive or coinductive value in
 a ``MatchStmt`` or ``MatchExpression``, the ``ExtendedPattern``
-must correspond to a (1) bound variable (a simple identifier),
-(2) a constructor of the type of the value,
-(3) a literal of the correct type, or
-(4) a symbolic constant of the correct type.
-A tuple is considered to have a single constructor.
-The ``Ident`` of the ``CaseBinding_`` must either match the name
-of a constructor (or in the case of a tuple, the ``Ident`` is
-absent), or not be applied to a tuple of ``ExtendedPattern``.
-The ``ExtendedPattern``s inside the parentheses are then
+must correspond to a
+
+* (1) bound variable (a simple identifier),
+* (2) a constructor of the type of the value,
+* (3) a literal of the correct type, or
+* (4) a symbolic constant.
+
+If the extended pattern is
+
+* a parentheses-enclosed possibly-empty list of patterns,
+then the pattern matches a tuple.
+* an identifier followed
+by a parentheses-enclosed possibly-empty list of patterns, then the pattern
+matches a constructor.
+* a literal, then the pattern matches exactly that literal.
+* a simple identifier, then the pattern matches
+   * a parameter-less constructor if there is one defined with the correct type and the given name, else
+   * the value of a symbolic constant, if a name lookup finds a declaration for
+a constant with the given name (if the name is delcared but with a non-matching type, a type resolution error will occur),
+   * otherwise, the identifier is a new bound variable
+
+Any ``ExtendedPattern``s inside the parentheses are then
 matched against the arguments that were given to the
 constructor when the value was constructed.
 The number of ``ExtendedPattern`` must match the number
@@ -692,21 +754,13 @@ When matching a value of base type, the ``ExtendedPattern`` should
 either be a ``LiteralExpression_`` of the same type as the value,
 or a single identifier matching all values of this type.
 
-A single identifier is ambiguous: it may be a variable to be bound,
-a parameterless constructor written without parentheses, or a
-symbolic constant. If the identifier matches a nullary constructor of the
-correct type, it is resolved as that constructor; otherwise if it
-is a symbolic constant of the correct type initialized to a literal value,
-it is resolved as that literal; otherwise it is considered a local
-bound variable.
-
 The ``CasePattern``s may be nested. The set of bound variable
 identifiers contained in a ``CaseBinding_`` must be distinct.
 They are bound to the corresponding values in the value being
 matched. (Thus, for example, one cannot repeat a bound variable to
 attempt to match a constructor that has two identical arguments.)
 
-## Match Expression
+## Match Expression {#sec-match-expression}
 
 ````grammar
 MatchExpression(allowLemma, allowLambda) =
@@ -724,18 +778,8 @@ expression depending on the value of an algebraic type, i.e. an inductive
 type, a co-inductive type, or a base type.
 
 The ``Expression`` following the `match` keyword is called the
-_selector_. The selector is evaluated and then matched against each ``CaseExpression`` in order until a matching clause is found. An ``Ident`` following the `case` keyword in a
-``CaseExpression`` is either the name of a constructor of the selector's type, or a bound variable.
-It may be absent if the expression being matched is a tuple since these
-have no constructor name.
-
-If the constructor has parameters then in the ``CaseExpression`` the
-constructor name must be followed by a parenthesized list of ``CasePattern``s
-with one ``CasePattern`` for each constructor parameter.
-
-If the constructor has no parameters then the
-``CaseExpression`` must not have a following ``CasePattern`` list (though
-optional empty parentheses are allowed).
+_selector_. The selector is evaluated and then matched against each ``CaseExpression`` in order until a matching clause is found, as described in
+the [section on `CaseBinding`s](#sec-case-pattern).
 
 All of the variables in the ``CasePattern``s must be distinct.
 If types for the identifiers are not given then types are inferred
@@ -800,7 +844,7 @@ SetComprehensionExpr(allowLemma, allowLambda) =
   [ "::" Expression(allowLemma, allowLambda) ]
 ````
 
-A set comprehension expression is an expressions that yields a set
+A set comprehension expression is an expression that yields a set
 (possibly infinite if `iset` is used) that
 satisfies specified conditions. There are two basic forms.
 
@@ -854,6 +898,24 @@ where the bound variable is of a reference type. In non-ghost contexts,
 it is not allowed, because--even though the resulting set would be
 finite--it is not pleasant or practical to compute at run time.
 
+The universe in which set comprehensions are evaluated is the set of all
+_allocated_ objects, of the appropriate type and satisfying the given predicate.
+For example, given
+
+```dafny
+class I {
+  var i: int;
+}
+
+method test() {
+  ghost var m := set x | I :: 0 <= x.i <= 10;
+}
+```
+the set `m` contains only those instances of `I` that have been allocated
+at the point in program execution that `test` is evaluated. This could be
+no instances, one per value of x.i in the stated range, multiple instances
+of `I` for each value of `x.i`, or any other combination.
+
 ## Statements in an Expression
 ````grammar
 StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt | CalcStmt )
@@ -867,7 +929,7 @@ can be evaluated without error. For example:
 assume x != 0; 10/x
 ```
 
-`Assert`, `assume` and `calc` statements can be used in this way.
+`Assert`, `assume`, `expect` and `calc` statements can be used in this way.
 
 ## Let Expression
 
@@ -912,6 +974,7 @@ MapComprehensionExpr(allowLemma, allowLambda) =
   ( "map" | "imap" ) IdentTypeOptional { Attribute }
   [ "|" Expression(allowLemma: true, allowLambda: true) ]
   "::" Expression(allowLemma, allowLambda)
+  [ ":=" Expression(allowLemma, allowLambda) ]
 ````
 
 A ``MapComprehensionExpr`` defines a finite or infinite map value
@@ -929,6 +992,16 @@ method test()
   ghost var im2 := imap x : int :: square(x);
 }
 ```
+
+If the expression includes the `:=` token, that token separates
+domain values from range values. For example, in the following code
+```dafny
+method test()
+{
+  var m := map x : int | 1 <= x <= 10 :: 2*x := 3*x;
+}
+```
+`m` maps `2` to `3`, `4` to `6`, and so on.
 
 Dafny finite maps must be finite, so the domain must be constrained to be finite.
 But imaps may be infinite as the example shows. The last example shows
@@ -1015,7 +1088,7 @@ copredicate atmost(a: Stream, b: Stream)
 colemma {:induction false} Theorem0<T>(s: T)
   ensures atmost(zeros(s), ones(s))
 {
-  // the following shows two equivalent ways to getting essentially the
+  // the following shows two equivalent ways to state the
   // co-inductive hypothesis
   if (*) {
     Theorem0#<T>[_k-1](s);
@@ -1048,7 +1121,8 @@ of suffixes which are described below.
 
 ### Augmented Dot Suffix
 ````grammar
-AugmentedDotSuffix_ = ". " DotSuffix [ GenericInstantiation | HashCall ]
+AugmentedDotSuffix_ = "." DotSuffix
+                      [ GenericInstantiation | HashCall ]
 ````
 
 An augmented dot suffix consists of a simple ``DotSuffix`` optionally
@@ -1067,7 +1141,8 @@ DatatypeUpdateSuffix_ =
   "." "(" MemberBindingUpdate { "," MemberBindingUpdate } ")"
 
 MemberBindingUpdate =
-  ( ident | digits ) ":=" Expression(allowLemma: true, allowLambda: true)
+  ( ident | digits )
+  ":=" Expression(allowLemma: true, allowLambda: true)
 ````
 
 A datatype update suffix is used to produce a new datatype value
@@ -1092,14 +1167,15 @@ datatype MyDataType = MyConstructor(myint:int, mybool:bool)
                     | MyNumericConstructor(42:int)
 
 method test(datum:MyDataType, x:int)
-    returns (abc:MyDataType, def:MyDataType, ghi:MyDataType, jkl:MyDataType)
-    requires datum.MyConstructor?;
-    ensures abc == datum.(myint := x + 2);
-    ensures def == datum.(otherbool := !datum.mybool);
-    ensures ghi == datum.(myint := 2).(mybool := false);
+    returns (abc:MyDataType, def:MyDataType,
+             ghi:MyDataType, jkl:MyDataType)
+    requires datum.MyConstructor?
+    ensures abc == datum.(myint := x + 2)
+    ensures def == datum.(otherbool := !datum.mybool)
+    ensures ghi == datum.(myint := 2).(mybool := false)
     // Resolution error: no non_destructor in MyDataType
-    //ensures jkl == datum.(non_destructor := 5);
-    ensures jkl == datum.(42 := 7);
+    //ensures jkl == datum.(non_destructor := 5)
+    ensures jkl == datum.(42 := 7)
 {
     abc := MyConstructor(x + 2, datum.mybool);
     abc := datum.(myint := x + 2);
@@ -1156,7 +1232,9 @@ For a sequence `s` and expressions `i` and `v`, the expression
 index `i` it has value `v`.
 
 If the type of `s` is `seq<T>`, then `v` must have type `T`.
-The index `i` can have any integer- and bitvector-based type.
+The index `i` can have any integer- and bitvector-based type
+(this is one situation in which Dafny implements implicit
+conversion, as if an `as int` were appended to the index expression).
 The expression `s[i := v]` has the same type as `s`.
 
 ### Selection Suffix
@@ -1177,7 +1255,9 @@ The rank of the array must be the same as the number of indices.
 
 If the ``SelectionSuffix_`` is used with an array or a sequence,
 then each index expression can have any integer- or bitvector-based
-type.
+type
+(this is one situation in which Dafny implements implicit
+conversion, as if an `as int` were appended to the index expression).
 
 ### Argument List Suffix
 ````grammar
@@ -1197,7 +1277,7 @@ Expressions =
 ````
 
 The ``Expressions`` non-terminal represents a list of
-one or more expressions separated by a comma.
+one or more expressions separated by commas.
 
 ## Compile-Time Constants {#sec-compile-time-constants}
 
@@ -1223,6 +1303,7 @@ well be used elsewhere as well) improves the self-documentation of the code.
 
 In Dafny, the following expressions are compile-time constants[^CTC], recursively
 (that is, the arguments of any operation must themselves be compile-time constants):
+
 - int, bitvector, real, boolean, char and string literals
 - int operations: `+ - * / %` and unary `-` and comparisons `< <= > >= == !=`
 - real operations: `+ - *` and unary `-` and comparisons `< <= > >= == !='
@@ -1239,6 +1320,3 @@ In Dafny, the following expressions are compile-time constants[^CTC], recursivel
 [^CTC]: This set of operations that are constant-folded may be enlarged in
 future versions of Dafny.
 
-## Map comprehensions
-
-TO BE WRITTEN

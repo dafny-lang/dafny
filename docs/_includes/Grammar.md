@@ -259,7 +259,7 @@ reservedword =
 
 arrayToken = "array" [ posdigit2 | posDigit digit { digit }]["?"]
 
-bvToken = "bv" [ posDigit] { digit}
+bvToken = "bv" [ 0 | posDigit { digit } ]
 ```
 
 An ``arrayToken`` is a reserved word that denotes an array type of
