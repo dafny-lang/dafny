@@ -255,15 +255,18 @@ reservedword =
     "reveals" | "seq" | "set" | "static" | "string" | "then" |
     "this" | "trait" | "true" | "twostate" | "type" |
     "unchanged" | "var" | "where" | "while" | "yield" | "yields" |
-    arrayToken
+    arrayToken | bvToken
 
 arrayToken = "array" [ posdigit2 | posDigit digit { digit }]["?"]
+
+bvToken = "bv" [ posDigit] { digit}
 ```
 
 An ``arrayToken`` is a reserved word that denotes an array type of
 given rank. `array` is an array type of rank 1 (aka a vector). `array2`
 is the type of two-dimensional arrays, etc.
 `array1` and `array1?` are not reserved words; they are just ordinary identifiers.
+Similarly, `bv0` is not a reserved word.
 
 ### Identifiers
 
