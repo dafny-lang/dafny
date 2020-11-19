@@ -2491,7 +2491,7 @@ namespace Microsoft.Dafny {
         initializerIsKnown = true;
         return;
       } else if (xType is CharType) {
-        hasSimpleZeroInitializer = true;
+        hasSimpleZeroInitializer = false;
         hasZeroInitializer = true;
         initializerIsKnown = true;
         return;

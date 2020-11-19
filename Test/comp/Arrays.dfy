@@ -67,6 +67,8 @@ method Main() {
   MoreWithDefaults();
 
   Coercions();
+
+  CharValues();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -169,6 +171,8 @@ method Index() {
 method More() {
   var aa := new lowercase[3];
   forall i | 0 <= i < aa.Length {
+    // aa[i] should not be '\0', but in case erroneous code causes it to get a zero-equivalent
+    // value to be produced, then the following if-then-else will give better test output
     aa[i] := if aa[i] == '\0' then 'a' else aa[i];  // don't print ugly '\0' characters into test output
   }
   PrintArray(aa);
@@ -192,16 +196,14 @@ method More() {
   var a3 := new nLong[5];
   PrintArray(a3);
 
-  /**** TODO: Include this when this has been fixed for C#
   var kitchenSink: (lowercase, BV10, Yes, nByte, nShort, nInt, nLong);
   if kitchenSink.0 == '\0' {
     kitchenSink := kitchenSink.(0 := 'a');  // don't print ugly '\0' characters into test output
   }
   print kitchenSink, "\n";  // (d, 8, true, 1, 2, 3, 4)
-  ****/
 }
 
-type xlowercase = ch | '\0' <= ch <= 'z' && ch != 'D'
+type xchar = ch | '\0' <= ch <= 'z'
 type xBV10 = x: bv10 | x != 999
 type xYes = b | !b
 newtype xnByte = x | -10 <= x < 100
@@ -210,14 +212,11 @@ newtype xnInt = x | -10 <= x < 1_000_000
 newtype xnLong = x | -10 <= x < 0x100_0000_0000_0000
 
 method MoreWithDefaults() {
-  var aa := new xlowercase[3];
+  var aa := new xchar[3];
   forall i | 0 <= i < aa.Length {
     aa[i] := if aa[i] == '\0' then 'a' else aa[i];  // don't print ugly '\0' characters into test output
   }
-  /**** TODO: Include this when this has been fixed for C#
-  // TODO: The following should NOT print "D D D", since 'D' is not a value is xlowercase!
   PrintArray(aa);  // D D D
-  ****/
 
   var vv := new xBV10[4];
   PrintArray(vv);
@@ -234,13 +233,11 @@ method MoreWithDefaults() {
   var a3 := new xnLong[5];
   PrintArray(a3);
 
-  /**** TODO: Include this when this has been fixed for C#
-  var kitchenSink: (xlowercase, xBV10, xYes, xnByte, xnShort, xnInt, xnLong);
+  var kitchenSink: (xchar, xBV10, xYes, xnByte, xnShort, xnInt, xnLong);
   if kitchenSink.0 == '\0' {
     kitchenSink := kitchenSink.(0 := 'a');  // don't print ugly '\0' characters into test output
   }
   print kitchenSink, "\n";  // (D, 0, false, 0, 0, 0, 0)
-  ****/
 }
 
 method Coercions() {
@@ -315,4 +312,35 @@ class Cell<T> {
   {
     x, y := arr, arr;
   }
+}
+
+type ychar = ch | '\0' <= ch <= 'z'
+type zchar = ch | '\0' <= ch <= 'z' witness 'r'
+
+method CharValues() {
+  var aa := new char[3];
+  forall i | 0 <= i < aa.Length {
+    aa[i] := if aa[i] == '\0' then 'a' else aa[i];  // don't print ugly '\0' characters into test output
+  }
+  PrintArray(aa);  // D D D
+
+  var bb := new ychar[3];
+  forall i | 0 <= i < bb.Length {
+    bb[i] := if bb[i] == '\0' then 'a' else bb[i];  // don't print ugly '\0' characters into test output
+  }
+  PrintArray(bb);  // D D D
+
+  var cc := new char[3];
+  forall i | 0 <= i < cc.Length {
+    cc[i] := if cc[i] == '\0' then 'a' else cc[i];  // don't print ugly '\0' characters into test output
+  }
+  PrintArray(cc);  // r r r
+
+  var e0: char, e1: ychar, e2: zchar, ee: (char, ychar, zchar);
+  print e0, " ", e1, " ", e2, " ", ee, "\n";  // D D r (D, D, r)
+
+  var mm := new char[3, 3];
+  var mx := new ychar[3, 3];
+  var my := new zchar[3, 3];
+  print mm[1, 2], " ", mx[1, 2], " ", my[1, 2], "\n";  // D D r
 }
