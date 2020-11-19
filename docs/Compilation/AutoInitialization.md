@@ -378,10 +378,6 @@ public static Dafny.TypeDescriptor<D<TT>> _TypeDescriptor(Dafny.TypeDescriptor<T
 
 where the list of type parameters denoted by `T, ...` are the auto-init type parameters from `TT`.
 
-TODO: What about "used type parameters"?
-TODO: What are the parameters to this `Default(...)` method? I think it's only a subset of the
-parameters passed to the grounding constructor, right? Only those parameters that can be constructed
-only through auto-init type parameters are needed. This affects the first sentence of the next paragraph.
 
 ## Subset types
 
@@ -455,9 +451,10 @@ class Cl<T> {
 
 ### Type parameters of a trait
 
-TODO: If `T` is used as the type of an undeclared local variable in the method of a
-trait, then does this really work? I guess this can work if the target interface
-has a `td_T` getter that's computed appropriately in the class.
+To obtain type descriptors in function and method implementations that are given
+in a trait, the function or method definition compiled into the companion class
+takes additional parameters that represent type descriptors for the type parameters
+of the trait.
 
 ### Type parameter of a class or trait used in a static method or function
 
@@ -486,52 +483,12 @@ class Class<A> {
 
 ### Type parameter of a `newtype` or (co-)datatype
 
-If `T` is a type parameter of a (co-)datatype, then...
-TODO: See the concern about traits immediately above. Should auto-init type parameters
-be disallowed in (co-)datatypes? Is that also a reasonable solution for traits?
+If `T` is a type parameter of a (co-)datatype, then the target code for any function
+or method takes additional parameters that represent type descriptors for the type
+parameters of the enclosing type.
 
-
-
----------------------------------------
-Notes
----------------------------------------
-
-* List<TypeParameter>
-  CombineTypeParameters(MemberDecl member, bool forCompanionClass = false)
-
-  Return ta.Formal for either of the calls below.
-
-  + as argument to CreateFunction (3x), for ConstantField in CompileClassMembers
-  + as argument to CreateFunction, in CompileFunction
-  + as argument to CreateMethod, in CompileMethod
-
-* List<TypeArgumentInstantiation>
-  CombineTypeArgumentsForCompanionClass(MemberDecl member, List<Type> typeArgsEnclosingClass, List<Type> typeArgsMember)
-
-  For C#, member parameters only.
-  For non-C#, class parameters whenever any of:
-  - any static member
-  - instance member in newtype
-  - instance const/function/method in trait with rhs/body/body
-
-  + used by EmitCallToInheritedConstRHS, for both TP and TD
-  + used by EmitCallToInheritedFunction, for both TP and TD
-  + used by EmitCallToInheritedMethod, for both TP and TD
-
-* List<TypeArgumentInstantiation>
-  CombineTypeArguments(MemberDecl member, List<Type> typeArgsEnclosingClass, List<Type> typeArgsMember)
-
-  For C#, member parameters only.
-  For non-C#, class parameters whenever any of:
-  - any static member
-  - instance member in newtype
-
-  + used by TrCallStmt, for both TP and TD
-  + used 4x by TrExpr (case MemberSelectExpr), which calls EmitMemberSelect
-  + used by CompileFunctionCallExpr, for both TP and TD
-
-
-------------------------------------
+Type parameters and type descriptors for each type
+--------------------------------------------------
 
 In the following table, the rows show instance and static members (`const`/`function`/`method`) of
 the types that support members. The type is shown with a type parameter `A(0)` (except `newtype`,
@@ -574,4 +531,4 @@ then const's need them, too)
 If the type parameters `A` and `B` does not have the `(0)` characteristic, then it is dropped
 from the TD column.
 
-This table is implemented in the `TypeArgDescUse` method in the compiler.
+This table is implemented in the `TypeArgDescriptorUse` method in the compiler.
