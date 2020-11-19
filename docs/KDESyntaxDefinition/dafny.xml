@@ -116,7 +116,7 @@
         <RegExpr attribute="Ident" String="(?:bool|char|int|nat|real|string)[a-zA-Z0-9_'?]+" />
         <RegExpr attribute="Ident" String="(?:object[?])[a-zA-Z0-9_'][a-zA-Z0-9_'?]*" />
         <keyword attribute="Types" String="types" context="#stay" />
-        <RegExpr attribute="Types" String="(?:bv[1-9]\d*)(?![a-zA-Z0-9_'?])"/>
+        <RegExpr attribute="Types" String="(?:bv(0|[1-9]\d*))(?![a-zA-Z0-9_'?])"/>
         <RegExpr attribute="Types" String="array(?:1\d+|[2-9]\d*)?[?]?(?![a-zA-Z0-9_'?])"/>
         <RegExpr attribute="Types" String="(?:seq|set|iset|map|imap|multiset)(?:\s*&lt;)" context="TypeParameters" />
         <RegExpr attribute="Types" String="(?:seq|set|iset|map|imap|multiset)(?![a-zA-Z_'?0-9])" context="#stay" />
