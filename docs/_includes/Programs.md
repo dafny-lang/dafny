@@ -4,7 +4,7 @@ Dafny = { IncludeDirective_ } { TopDecl } EOF
 ````
 At the top level, a Dafny program (stored as files with extension `.dfy`)
 is a set of declarations. The declarations introduce (module-level)
-methods and functions, as well as types (classes, traits, inductive and
+constants, methods, functions, lemmas, types (classes, traits, inductive and
 co-inductive datatypes, new_types, type synonyms, opaque types, and
 iterators) and modules, where the order of introduction is irrelevant. A
 class also contains a set of declarations, introducing fields, methods,
@@ -61,6 +61,13 @@ transitive closure of the original source files and all the included files,
 but will not invoke the verifier on these unless they have been listed
 explicitly on the command line.
 
+The file name may be a path using the customary `/`, `.`, and `..` specifiers.
+The interpretation of the name (e.g., case-sensitivity) will depend on the
+underlying operating system. A path not beginning with `/` is looked up in 
+the underlying file system relative to the current working directory (the
+one in which the dafny tool is invoked). Paths beginning with a device
+designator (e.g., `C:`) are only permitted on Windows systems.
+
 ## Top Level Declarations
 ````grammar
 TopDecl = { { DeclModifier }
@@ -75,8 +82,9 @@ TopDecl = { { DeclModifier }
   }
 ````
 Top-level declarations may appear either at the top level of a Dafny file,
-or within a ``SubModuleDecl``. A top-level declaration is one of the following
-types of declarations which are described later.
+or within a ``SubModuleDecl``. A top-level declaration is one of the 
+various kinds of declarations described later. Top-level declarations are
+implicitly members of a default (unnamed) top-level module.
 
 The ``ClassDecl``, ``DatatypeDecl``, ``NewtypeDecl``,
 ``SynonymTypeDecl``, ``IteratorDecl``, and ``TraitDecl`` declarations are
@@ -98,29 +106,29 @@ DeclModifier =
 Top level declarations may be preceded by zero or more declaration
 modifiers. Not all of these are allowed in all contexts.
 
-The "abstract" modifiers may only be used for module declarations.
+The `abstract` modifiers may only be used for module declarations.
 An abstract module can leave some entities underspecified.
 Abstract modules are not compiled to C\#.
 
-The ghost modifier is used to mark entities as being used for
+The `ghost` modifier is used to mark entities as being used for
 specification only, not for compilation to code.
 
-The static modifier is used for class members that that
+The `static` modifier is used for class members that that
 are associated with the class as a whole rather than with
 an instance of the class.
 
-The protected modifier is used to control the visibility of the
+The `protected` modifier is used to control the visibility of the
 body of functions.
 
-The extern modifier is used to alter the CompileName of
+The `extern` modifier is used to alter the CompileName of
 entities. The CompileName is the name for the entity
-when translating to Boogie or C\#.
+when translating to Boogie or a target programming language.
 
 The following table shows modifiers that are available
 for each of the kinds of declaration. In the table
-we use already-ghost to denote that the item is not
+we use already-ghost (already-non-ghost) to denote that the item is not
 allowed to have the ghost modifier because it is already
-implicitly ghost.
+implicitly ghost (non-ghost).
 
 
  Declaration              | allowed modifiers                     
@@ -138,9 +146,9 @@ implicitly ghost.
  inductive lemma          | already-ghost static                  
  constructor              | -                                     
  function (non-method)    | already-ghost static protected        
- function method          | already-ghost static protected extern 
+ function method          | already-non-ghost static protected extern 
  predicate (non-method)   | already-ghost static protected        
- predicate method         | already-ghost static protected extern 
+ predicate method         | already-non-ghost static protected extern 
  inductive predicate      | already-ghost static protected        
  copredicate              | already-ghost static protected        
 

@@ -7,35 +7,37 @@ function type) optionally followed by an arrow and a range type.
 
 ````grammar
 DomainType =
-  ( BoolType_ | CharType_ | NatType_ | IntType_ | RealType_ | ObjectType_
+  ( BoolType_ | CharType_ | IntType_ | RealType_
+  | OrdinalType_ | BitVectorType_ | ObjectType_
   | FiniteSetType_ | InfiniteSetType_ | MultisetType_
   | SequenceType_ | StringType_
   | FiniteMapType_ | InfiniteMapType_ | ArrayType_
-  | TupleType_ | NamedType_ )
+  | TupleType_ | NamedType_
+  )
 ````
 The domain types comprise the builtin scalar types, the builtin
 collection types, tuple types (including as a special case
 a parenthesized type) and reference types.
 
-
 Dafny types may be categorized as either value types or reference types.
-
-TO BE WRITTEN -bitvector types
-
-TO BE WRITTEN - ORDINAL type
-
 
 ## Value Types
 The value types are those whose values do not lie in the program heap.
 These are:
 
-* The basic scalar types: `bool`, `char`, `nat`, `int`, `real`
-* The built-in collection types: `set`, `multiset`, `seq`, `string`, `map`, `imap`
+* The basic scalar types: `bool`, `char`, `int`, `real`, `ORDINAL`, bitvector types
+* The built-in collection types: `set`, `iset`, `multiset`, `seq`, `string`, `map`, `imap`
 * Tuple Types
 * Inductive and co-inductive types
+* Function (arrow) types
+* Subset and newtypes that are based on value types
 
 Data items having value types are passed by value. Since they are not
 considered to occupy _memory_, framing expressions do not reference them.
+
+The `nat` type is a pre-defined [subset type](#sec-subset-types) of `int`.
+
+Dafny does not include types themselves as values, nor is there a type of types.
 
 ## Reference Types
 Dafny offers a host of _reference types_.  These represent
@@ -44,13 +46,8 @@ access the members of an object, a reference to (that is, a _pointer_
 to or _object identity_ of) the object is _dereferenced_.
 
 The reference types are class types, traits and array types.
-
-The special value `null` is part of every reference
-type.[^fn-nullable]
-
-[^fn-nullable]: This will change in a future version of Dafny that
-    will support both nullable and (by default) non-null reference
-    types.
+Dafny supports both reference types that contain the special `null` value
+(_nullable types_) and reference types that do not (_non-null types_).
 
 ## Named Types
 ````grammar
@@ -63,10 +60,10 @@ class, trait, inductive, co-inductive, synonym and opaque
 type declarations. They are also used to refer to type variables.
 
 ````grammar
-NameSegmentForTypeName = Ident  [ GenericInstantiation ]
+NameSegmentForTypeName = Ident [ GenericInstantiation ]
 ````
 A ``NameSegmentForTypeName`` is a type name optionally followed by a
-``GenericInstantiation`` which supplies type parameters to a generic
+``GenericInstantiation``, which supplies type parameters to a generic
 type, if needed. It is a special case of a ``NameSegment``
 (See Section [#sec-name-segment])
 that does not allow a ``HashCall``.
@@ -76,7 +73,8 @@ The following sections describe each of these kinds of types in more detail.
 # Basic types
 
 Dafny offers these basic types: `bool` for booleans, `char` for
-characters, `int` and `nat` for integers, and `real` for reals.
+characters, `int` and `nat` for integers, `real` for reals,
+`ORDINAL`, and bit-vector types.
 
 ## Booleans
 ````grammar
@@ -86,20 +84,22 @@ BoolType_ = "bool"
 There are two boolean values and each has a corresponding literal in
 the language:  `false` and `true`.
 
-In addition to equality (`==`) and disequality (`!=`), which are
-defined on all types, type `bool` supports the following operations:
+Type `bool` supports the following operations:
 
- operator           | description                        
+ operator           | description
 --------------------|------------------------------------
- `<==>`             | equivalence (if and only if)       
+ `<==>`             | equivalence (if and only if)
 --------------------|------------------------------------
- `==>`              | implication (implies)              
- `<==`              | reverse implication (follows from) 
+ `==>`              | implication (implies)
+ `<==`              | reverse implication (follows from)
 --------------------|------------------------------------
- `&&`               | conjunction (and)                  
- `||`               | disjunction (or)                   
+ `&&`               | conjunction (and)
+ `||`               | disjunction (or)
 --------------------|------------------------------------
- `!`                | negation (not)                     
+ `==`               | equality
+ `!=`               | disequality
+--------------------|------------------------------------
+ `!`                | negation (not)
 
 Negation is unary; the others are binary.  The table shows the operators
 in groups of increasing binding power, with equality binding stronger
@@ -121,7 +121,8 @@ depending on the intended meaning.
 
 ### Equivalence Operator
 The expressions `A <==> B` and `A == B` give the same value, but note
-that `<==>` is _associative_ whereas `==` is _chaining_.  So,
+that `<==>` is _associative_ whereas `==` is _chaining_ and they have
+different precedence.  So,
 ```dafny
 A <==> B <==> C
 ```
@@ -143,14 +144,14 @@ A == B && B == C
 ```
 
 ### Conjunction and Disjunction
-Conjunction is associative and so is disjunction.  These operators are
+Conjunction and disjunction are associative.  These operators are
 _short circuiting (from left to right)_, meaning that their second
 argument is evaluated only if the evaluation of the first operand does
 not determine the value of the expression.  Logically speaking, the
 expression `A && B` is defined when `A` is defined and either `A`
 evaluates to `false` or `B` is defined.  When `A && B` is defined, its
 meaning is the same as the ordinary, symmetric mathematical
-conjunction &and;.  The same holds for `||` and &or;.
+conjunction `&`.  The same holds for `||` and `|`.
 
 ### Implication and  Reverse Implication
 Implication is _right associative_ and is short-circuiting from left
@@ -162,19 +163,19 @@ associativity rules, each of the following four lines expresses the
 same property, for any `A`, `B`, and `C` of type `bool`:
 ```dafny
 A ==> B ==> C
-A ==> (B ==> C)  // parentheses redundant, since ==> is right associative
+A ==> (B ==> C) // parentheses redundant, ==> is right associative
 C <== B <== A
-(C <== B) <== A  // parentheses redundant, since <== is left associative
+(C <== B) <== A // parentheses redundant, <== is left associative
 ```
 To illustrate the short-circuiting rules, note that the expression
 `a.Length` is defined for an array `a` only if `a` is not `null` (see
-Section [#sec-reference-types]), which means the following two
+Section [Reference Types](#sec-reference-types)), which means the following two
 expressions are well-formed:
 ```dafny
 a != null ==> 0 <= a.Length
 0 <= a.Length <== a != null
 ```
-The contrapositive of these two expressions would be:
+The contrapositives of these two expressions would be:
 ```dafny
 a.Length < 0 ==> a == null  // not well-formed
 a == null <== a.Length < 0  // not well-formed
@@ -196,7 +197,7 @@ is well-formed, whereas
 is not.
 
 In addition, booleans support _logical quantifiers_ (forall and
-exists), described in section [#sec-quantifier-expression].
+exists), described in section [Quantifier Expressions](#sec-quantifier-expression).
 
 
 ## Numeric types
@@ -209,21 +210,23 @@ RealType_ = "real"
 Dafny supports _numeric types_ of two kinds, _integer-based_, which
 includes the basic type `int` of all integers, and _real-based_, which
 includes the basic type `real` of all real numbers.  User-defined
-numeric types based on `int` and `real`, called _newtypes_, are
-described in Section [#sec-newtypes].  Also, the _subset type_
-`nat`, representing the non-negative subrange of `int`, is described
-in Section [#sec-subset-types].
+numeric types based on `int` and `real`, either _subset types_ or _newtypes_, are
+described in Sections [#sec-subset-types] and  [#sec-newtypes].
 
-The language includes a literal for each non-negative integer, like
+There is one built-in [_subset type_](#sec-subset-types),
+`nat`, representing the non-negative subrange of `int`.
+
+The language includes a literal for each integer, like
 `0`, `13`, and `1985`.  Integers can also be written in hexadecimal
 using the prefix "`0x`", as in `0x0`, `0xD`, and `0x7c1` (always with
 a lower case `x`, but the hexadecimal digits themselves are case
-insensitive).  Leading zeros are allowed.  To form negative integers,
-use the unary minus operator.
+insensitive).  Leading zeros are allowed.  To form negative literals,
+use the unary minus operator, as in `-12`, but not -(12).
 
-There are also literals for some of the non-negative reals.  These are
+There are also literals for some of the reals.  These are
 written as a decimal point with a nonempty sequence of decimal digits
-on both sides.  For example, `1.0`, `1609.344`, and `0.5772156649`.
+on both sides, optionally prefixed by a `-` character.
+For example, `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
 
 For integers (in both decimal and hexadecimal form) and reals,
 any two digits in a literal may be separated by an underscore in order
@@ -231,19 +234,20 @@ to improve human readability of the literals.  For example:
 ```dafny
 1_000_000        // easier to read than 1000000
 0_12_345_6789    // strange but legal formatting of 123456789
-0x8000_0000      // same as 0x80000000 -- hex digits are often placed in groups of 4
-0.000_000_000_1  // same as 0.0000000001 -- 1 \([&Aring;ngstr&ouml;m]{.comment-color}\)
+0x8000_0000      // same as 0x80000000 -- hex digits are
+                 // often placed in groups of 4
+0.000_000_000_1  // same as 0.0000000001 -- 1 Angstrom
 ```
 
 In addition to equality and disequality, numeric types
 support the following relational operations:
 
- operator          | description                       
+ operator          | description
 -------------------|------------------------------------
-  `<`              | less than                          
-  `<=`             | at most                            
-  `>=`             | at least                          
-  `>`              | greater than                       
+  `<`              | less than
+  `<=`             | at most
+  `>=`             | at least
+  `>`              | greater than
 
 Like equality and disequality, these operators are chaining, as long
 as they are chained in the "same direction".  That is,
@@ -262,23 +266,27 @@ is not allowed.
 
 There are also operators on each numeric type:
 
- operator        | description                        
+ operator        | description
 -----------------|------------------------------------
-  `+`            | addition (plus)                    
-  `-`            | subtraction (minus)                
+  `+`            | addition (plus)
+  `-`            | subtraction (minus)
 -----------------|------------------------------------
-  `*`            | multiplication (times)             
-  `/`            | division (divided by)              
-  `%`            | modulus (mod)                      
-  `-`            | negation (unary minus)             
+  `*`            | multiplication (times)
+  `/`            | division (divided by)
+  `%`            | modulus (mod)  -- int only
+  -----------------|------------------------------------
+`-`            | negation (unary minus)
 
 The binary operators are left associative, and they associate with
-each other in the two groups.  The groups are listed in order of
-increasing binding power, with equality binding more strongly than the
-multiplicative operators and weaker than the unary operator.
+each other in the two groups.
+The groups are listed in order of
+increasing binding power, with equality binding less strongly than any of these operators.
+There is no implicit conversion between `int` and `real`: use `as int` or
+`as real` conversions to write an explict conversion.
+
 Modulus is supported only for integer-based numeric types.  Integer
 division and modulus are the _Euclidean division and modulus_.  This
-means that modulus always returns a non-negative, regardless of the
+means that modulus always returns a non-negative value, regardless of the
 signs of the two operands.  More precisely, for any integer `a` and
 non-zero integer `b`,
 ```dafny
@@ -288,20 +296,103 @@ a == a / b * b + a % b
 where `B` denotes the absolute value of `b`.
 
 Real-based numeric types have a member `Floor` that returns the
-_floor_ of the real value, that is, the largest integer not exceeding
+_floor_ of the real value (as an int value), that is, the largest integer not exceeding
 the real value.  For example, the following properties hold, for any
 `r` and `r'` of type `real`:
 ```dafny
 3.14.Floor == 3
 (-2.5).Floor == -3
--2.5.Floor == -2
-real(r.Floor) <= r
+-2.5.Floor == -2 // This is -(2.5.Floor)
+r.Floor as real <= r
 r <= r' ==> r.Floor <= r'.Floor
 ```
 Note in the third line that member access (like `.Floor`) binds
 stronger than unary minus.  The fourth line uses the conversion
 function `real` from `int` to `real`, as described in Section
 [#sec-numeric-conversion-operations].
+
+## Bit-vector types
+````grammar
+BitVectorType_ = bvToken
+````
+
+Dafny includes a family of bit-vector types, each type having a specific,
+constant length, the number of bits in its values.
+Each such type is
+distinct and is designated by the prefix `bv` followed (without white space) by
+a positive integer (without leading zeros) stating the number of bits. For example,
+`bv1`, `bv8`, and `bv32` are legal bit-vector type names.
+
+Constant literals of bit-vector types are given by integer literals converted automatically
+to the designated type, either by an implicit or explicit conversion operation or by initialization in a declaration.
+Dafny checks that the constant literal is in the correct range. For example,
+```dafny
+{% include Example-BV.dfy %}
+```
+
+Bit-vector values can be converted to and from `int` and other bit-vector types, as long as
+the values are in range for the target type. Bit-vector values are always considered unsigned.
+
+Bit-vector operations include bit-wise operators and arithmetic operators
+(as well as equality, disequality, and comparisons).
+The arithmetic operations
+truncate the high-order bits from the results; that is, they perform
+unsigned arithmetic modulo 2^{number of bits}, like 2's-complement machine arithmetic.
+
+ operator        | description
+ -----------------|------------------------------------
+ `<<`            | bit-limited bit-shift left
+  `>>`            | unsigned bit-shift right
+-----------------|------------------------------------
+     `+`            | bit-limited addition
+    `-`            | bit-limited subtraction
+  -----------------|------------------------------------
+  `*`            | bit-limited multiplication
+  -----------------|------------------------------------
+ `&`            | bit-wise and
+  `|`            | bit-wise or
+  `^`            | bit-wise exclusive-or
+-----------------|------------------------------------
+`-`            | bit-limited negation (unary minus)
+`!`            | bit-wise complement
+
+The groups of operators lower in the table above bind more tightly.[^binding]
+All operators bind more tightly than equality, disequality, and comparisons.
+All binary operators are left-associative, but the bit-wise `&`, `|`, and `^` do not associate together (parentheses are required to disambiguate).
+
+The right-hand operand of bit-shift operations is an `int` value,
+must be non-negative, and
+no more than the number of bits in the type.
+There is no signed right shift.
+
+Here are examples of the various operations (all the assertions are true except where indicated):
+```dafny
+{% include Example-BV2.dfy %}
+```
+The following are incorrectly formed:
+```dafny
+{% include Example-BV3.dfy %}
+```
+These produce assertion errors:
+```dafny
+{% include Example-BV4.dfy %}
+```
+
+
+TO BE CHECKED: RHS of shift is int type?
+
+
+[^binding]: The binding power of shift and bit-wise operations is different than in C-like languages.
+
+
+TO BE WRITTEN  -- are types first class?
+
+## Ordinal type
+````grammar
+OrdinalType_ = "ORDINAL"
+````
+
+TO BE WRITTEN
 
 ## Characters
 
@@ -314,50 +405,54 @@ enclosed in single quotes, as in `'D'`. Their form is described
 by the ``charToken`` nonterminal in the grammar.  To write a single quote as a
 character literal, it is necessary to use an _escape sequence_.
 Escape sequences can also be used to write other characters.  The
-supported escape sequences are as follows:
+supported escape sequences are the following:
 
- escape sequence    | meaning                                              
+ escape sequence    | meaning
 --------------------|-------------------------------------------------------
- `\'`               | the character `'`                                      
- `\"`               | the character `"`                        
- `\\`               | the character `\`                                    
- `\0`               | the null character, same as `\u0000`                
- `\n`               | line feed                                             
- `\r`               | carriage return                                      
- `\t`               | horizontal tab                                      
+ `\'`               | the character `'`
+ `\"`               | the character `"`
+ `\\`               | the character `\`
+ `\0`               | the null character, same as `\u0000`
+ `\n`               | line feed
+ `\r`               | carriage return
+ `\t`               | horizontal tab
  `\u`_xxxx_         | universal character whose hexadecimal code is _xxxx_,  where each _x_ is a hexadecimal digit
 
 The escape sequence for a double quote is redundant, because
 `'"'` and `'\"'` denote the same
 character---both forms are provided in order to support the same
-escape sequences as for string literals (Section [#sec-strings]).
-In the form `\u\(_xxxx_\)`, the `u` is always lower case, but the four
+escape sequences in string literals (Section [#sec-strings]).
+In the form `\u`_xxxx_, the `u` is always lower case, but the four
 hexadecimal digits are case insensitive.
 
 Character values are ordered and can be compared using the standard
 relational operators:
 
- operator        | description                        
+ operator        | description
 -----------------|-----------------------------------
-  `<`              | less than                        
-  `<=`             | at most                         
-  `>=`             | at least                       
-  `>`              | greater than                  
+  `<`              | less than
+  `<=`             | at most
+  `>=`             | at least
+  `>`              | greater than
 
 Sequences of characters represent _strings_, as described in Section
 [#sec-strings].
+
+Character values can be converted to and from `int` values using the
+`as int` and `as char` conversion operations. The result is what would
+be expected in other programming langauges, namely, the 'int` value of a
+`char` is the ACSII or unicode numeric value.
 
 The only other operations on characters are obtaining a character
 by indexing into a string, and the implicit conversion to string
 when used as a parameter of a `print` statement.
 
-TODO: Are there any conversions between `char` values and numeric values?
-
 # Type parameters
 
 ````grammar
-GenericParameters = "<" TypeVariableName [ "(" "==" ")" ]
-      { "," TypeVariableName [ "(" "==" ")" ] } ">"
+GenericParameters =
+  "<" TypeVariableName [ "(" "==" ")" ]
+  { "," TypeVariableName [ "(" "==" ")" ] } ">"
 ````
 Many of the types (as well as functions and methods) in Dafny can be
 parameterized by types.  These _type parameters_ are typically
@@ -366,7 +461,7 @@ declared inside angle brackets and can stand for any type.
 It is sometimes necessary to restrict these type parameters so that
 they can only be instantiated by certain families of types.  As such,
 Dafny distinguishes types that support the equality operation
-not only in ghost contexts but also in compiled contexts.  To indicate
+in compiled contexts.  To indicate
 that a type parameter is restricted to such _equality supporting_
 types, the name of the type parameter takes the suffix
 "`(==)`".[^fn-type-mode]  For example,
@@ -383,25 +478,25 @@ code.  Co-inductive datatypes, function types, as well as inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
+TO BE WRITTEN: There are now more such modes
+
 [^fn-type-mode]:  Being equality-supporting is just one of many
     _modes_ that one can imagine types in a rich type system to have.
     For example, other modes could include having a total order,
     being zero-initializable, and possibly being uninhabited.  If
-    Dafny were to support more modes in the future, the "`(\(&nbsp;\))`"-suffix
+    Dafny were to support more modes in the future, the `( )`-suffix
     syntax may be extended.  For now, the suffix can only indicate the
     equality-supporting mode.
 
 Dafny has some inference support that makes certain signatures less
-cluttered (described in a different part of the Dafny language
-reference).  In some cases, this support will
+cluttered (described in [Section Type Inference](#sec-type-inference)).
+In some cases, this support will
 infer that a type parameter must be restricted to equality-supporting
 types, in which case Dafny adds the "`(==)`" automatically.
 
 TO BE WRITTEN: Type parameter variance with + - = * ! default
 
-TO BE WRITTEN: Type parameter characteristiscs: == 0 !new
-
-TODO: Need to describe type inference somewhere.
+TO BE WRITTEN: Type parameter characteristics: == 0 !new
 
 # Generic Instantiation
 ````grammar
@@ -425,7 +520,6 @@ InfiniteSetType_ = "iset" [ GenericInstantiation ]
 For any type `T`, each value of type `set<T>` is a finite set of
 `T` values.
 
-TODO:
 Set membership is determined by equality in the type `T`,
 so `set<T>` can be used in a non-ghost context only if `T` is equality
 supporting.
@@ -446,12 +540,12 @@ section [#sec-set-comprehension-expressions].
 In addition to equality and disequality, set types
 support the following relational operations:
 
- operator        | description                        
+ operator        | description
 -----------------|------------------------------------
- `<`             | proper subset                      
- `<=`            | subset                             
- `>=`            | superset                           
- `>`             | proper superset                    
+ `<`             | proper subset
+ `<=`            | subset
+ `>=`            | superset
+ `>`             | proper superset
 
 Like the arithmetic relational operators, these operators are
 chaining.
@@ -459,14 +553,14 @@ chaining.
 Sets support the following binary operators, listed in order of
 increasing binding power:
 
- operator      | description                        
+ operator      | description
 ---------------|------------------------------------
- `!!`          | disjointness                       
+ `!!`          | disjointness
 ---------------|------------------------------------
- `+`           | set union                          
- `-`           | set difference                     
+ `+`           | set union
+ `-`           | set difference
 ---------------|------------------------------------
- `*`           | set intersection                   
+ `*`           | set intersection
 
 The associativity rules of `+`, `-`, and `*` are like those of the
 arithmetic operators with the same names.  The expression `A !! B`,
@@ -485,13 +579,15 @@ A * B == {} && (A + B) * C == {} && (A + B + C) * D == {}
 In addition, for any set `s` of type `set<T>` or `iset<T>` and any
 expression `e` of type `T`, sets support the following operations:
 
- expression          | description                        
----------------------|------------------------------------
- [\|s\|]{.monospace} | set cardinality                    
- `e in s`            | set membership                     
- `e !in s`           | set non-membership                 
+ expression          | result type |  description
+---------------------|:-:|------------------------------------
+ `|s|`               | `nat`   | set cardinality (not iset)
+ `e in s`            | `bool` | set membership
+ `e !in s`           | `bool` | set non-membership
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
+
+TODO: Or does the length operator produce an ORDINAL?
 
 ## Multisets
 ````grammar
@@ -514,7 +610,7 @@ A multiset can be formed using a _multiset display_ expression, which
 is a possibly empty, unordered list of expressions enclosed in curly
 braces after the keyword `multiset`.  To illustrate,
 ```dafny
-multiset{}    multiset{0, 1, 1, 2, 3, 5}    multiset{4+2, 1+5, a*b}
+multiset{}   multiset{0, 1, 1, 2, 3, 5}   multiset{4+2, 1+5, a*b}
 ```
 are three examples of multiset displays.  There is no multiset
 comprehension expression.
@@ -522,12 +618,12 @@ comprehension expression.
 In addition to equality and disequality, multiset types
 support the following relational operations:
 
- operator          | description                        
+ operator          | description
 -------------------|-----------------------------------
-  `<`              | proper multiset subset             
-  `<=`             | multiset subset                    
-  `>=`             | multiset superset                  
-  `>`              | proper multiset superset           
+  `<`              | proper multiset subset
+  `<=`             | multiset subset
+  `>=`             | multiset superset
+  `>`              | proper multiset superset
 
 Like the arithmetic relational operators, these operators are
 chaining.
@@ -535,14 +631,14 @@ chaining.
 Multisets support the following binary operators, listed in order of
 increasing binding power:
 
- operator      | description                        
+ operator      | description
 ---------------|------------------------------------
- `!!`          | multiset disjointness              
+ `!!`          | multiset disjointness
 ---------------|------------------------------------
- `+`           | multiset union                     
- `-`           | multiset difference                
+ `+`           | multiset union
+ `-`           | multiset difference
 ---------------|------------------------------------
- `*`           | multiset intersection              
+ `*`           | multiset intersection
 
 The associativity rules of `+`, `-`, and `*` are like those of the
 arithmetic operators with the same names. The `+` operator
@@ -563,13 +659,13 @@ In addition, for any multiset `s` of type `multiset<T>`,
 expression `e` of type `T`, and non-negative integer-based numeric
 `n`, multisets support the following operations:
 
- expression          | description                              
----------------------|------------------------------------------
- `|s|`               | multiset cardinality                     
- `e in s`            | multiset membership                      
- `e !in s`           | multiset non-membership                  
- `s[e]`              | multiplicity of `e` in `s`               
- `s[e := n]`         | multiset update (change of multiplicity) 
+ expression      | result type      | description
+-----------------|:----------------:|------------------------------------------
+ `|s|`           |   `nat`          | multiset cardinality
+ `e in s`        |   `bool`         | multiset membership
+ `e !in s`       |   `bool`         | multiset non-membership
+ `s[e]`          |   `nat`          | multiplicity of `e` in `s`
+ `s[e := n]`     | `multiset<T>`    | multiset update (change of multiplicity)
 
 The expression `e in s` returns `true` if and only if `s[e] != 0`.
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
@@ -590,8 +686,7 @@ SequenceType_ = "seq" [ GenericInstantiation ]
 
 For any type `T`, a value of type `seq<T>` denotes a _sequence_ of `T`
 elements, that is, a mapping from a finite downward-closed set of natural
-numbers (called _indices_) to `T` values.  (Thinking of it as a map,
-a sequence is therefore something of a dual of a multiset.)
+numbers (called _indices_) to `T` values.
 
 ### Sequence Displays
 A sequence can be formed using a _sequence display_ expression, which
@@ -607,10 +702,10 @@ comprehension expression.
 In addition to equality and disequality, sequence types
 support the following relational operations:
 
- operator        | description                        
+ operator        | description
 -----------------|------------------------------------
-  <              | proper prefix                      
-  <=             | prefix                             
+  <              | proper prefix
+  <=             | prefix
 
 Like the arithmetic relational operators, these operators are
 chaining.  Note the absence of `>` and `>=`.
@@ -618,9 +713,9 @@ chaining.  Note the absence of `>` and `>=`.
 ### Sequence Concatenation
 Sequences support the following binary operator:
 
- operator      | description                        
+ operator      | description
 ---------------|------------------------------------
- `+`           | concatenation                      
+ `+`           | concatenation
 
 Operator `+` is associative, like the arithmetic operator with the
 same name.
@@ -631,18 +726,18 @@ of type `T`, integer-based numeric `i` satisfying `0 <= i < |s|`, and
 integer-based numerics `lo` and `hi` satisfying
 `0 <= lo <= hi <= |s|`, sequences support the following operations:
 
- expression          | description                            
----------------------|----------------------------------------
- `|s|`               | sequence length                        
- `s[i]`              | sequence selection                     
- `s[i := e]`         | sequence update                        
- `e in s`            | sequence membership                    
- `e !in s`           | sequence non-membership                
- `s[lo..hi]`         | subsequence                            
- `s[lo..]`           | drop                                   
- `s[..hi]`           | take                                   
- `s[\(_slices_\)]`   | slice                                  
- `multiset(s)`       | sequence conversion to a `multiset<T>` 
+ expression         | result type | description
+ ---------------------|:---:|----------------------------------------
+ `|s|`               | `nat` | sequence length
+ `s[i]`              | `T` |sequence selection
+ `s[i := e]`         | `seq<T>` | sequence update
+ `e in s`            | `bool` | sequence membership
+ `e !in s`           | `bool` | sequence non-membership
+ `s[lo..hi]`         | `seq<T>`| subsequence
+ `s[lo..]`           | `seq<T>` | drop
+ `s[..hi]`           | `seq<T>` | take
+ `s[`_slices_`]`   | `seq<T>` | slice
+ `multiset(s)`       | `multiset<T>`| sequence conversion to a `multiset<T>`
 
 Expression `s[i := e]` returns a sequence like `s`, except that the
 element at index `i` is `e`.  The expression `e in s` says there
@@ -659,14 +754,14 @@ the first `lo` elements of `s`.  If the lower bound is omitted, it
 defaults to `0`, so `s[..hi]` yields the sequence formed by taking the
 first `hi` elements of `s`.
 
-In the sequence slice operation, `\(_slices_\)` is a nonempty list of
+In the sequence slice operation, _slices_ is a nonempty list of
 length designators separated and optionally terminated by a colon, and
 there is at least one colon.  Each length designator is a non-negative
 integer-based numeric, whose sum is no greater than `|s|`.  If there
 are _k_ colons, the operation produces _k + 1_ consecutive subsequences
 from `s`, each of the length indicated by the corresponding length
 designator, and returns these as a sequence of
-sequences.[^fn-slice-into-tuple] If `\(_slices_\)` is terminated by a
+sequences.[^fn-slice-into-tuple] If _slices_ is terminated by a
 colon, then the length of the last slice extends until the end of `s`,
 that is, its length is `|s|` minus the sum of the given length
 designators.  For example, the following equalities hold, for any
@@ -683,7 +778,7 @@ assert s[10:][1] == s[10..];
 
 [^fn-slice-into-tuple]:  Now that Dafny supports built-in tuples, the
     plan is to change the sequence slice operation to return not a
-    sequence of subsequences, but a tuple of subsequences.
+    sequence of subsequences, but a tuple of subsequences. TODO: But as a sequence of subsequences one can iterate over them.
 
 The operation `multiset(s)` yields the multiset of elements of
 sequence `s`.  It is allowed in non-ghost contexts only if the element
@@ -708,14 +803,14 @@ are the same as those for character literals, see Section [#sec-characters].
 For example, the Dafny expression `"say \"yes\""` represents the
 string `'say "yes"'`.
 The escape sequence for a single quote is redundant, because
-[\"\'\"]{.monospace} and [\"\\\'\"]{.monospace} denote the same
+`"\'"` and `"\'"` denote the same
 string---both forms are provided in order to support the same
-escape sequences as for character literals.
+escape sequences as do character literals.
 
 String literals of the verbatim form are bracketed by
-[@\"]{.monospace} and [\"]{.monospace}, as in `@"Dafny"`.  To include
+`@"` and `"`, as in `@"Dafny"`.  To include
 a double quote in such a string literal, it is necessary to use the
-escape sequence [\"\"]{.monospace}, that is, to write the character
+escape sequence `""`, that is, to write the character
 twice.  In the verbatim form, there are no other escape sequences.
 Even characters like newline can be written inside the string literal
 (hence spanning more than one line in the program text).
@@ -727,7 +822,7 @@ For example, the following three expressions denote the same string:
 ['C', ':', '\\', 't', 'm', 'p', '.', 't', 'x', 't']
 ```
 
-Since strings are sequences, the relational operators [<]{.monospace}
+Since strings are sequences, the relational operators `<`
 and `<=` are defined on them.  Note, however, that these operators
 still denote proper prefix and prefix, respectively, not some kind of
 alphabetic comparison as might be desirable, for example, when
@@ -758,7 +853,9 @@ form `t := u` where `t` is an expression of type `T` and `u` is an
 expression of type `U`, enclosed in square brackets after the keyword
 `map`.  To illustrate,
 ```dafny
-map[]    map[20 := true, 3 := false, 20 := false]    map[a+b := c+d]
+map[]
+map[20 := true, 3 := false, 20 := false]
+map[a+b := c+d]
 ```
 are three examples of map displays.  By using the keyword `imap`
 instead of `map`, the map produced will be of type `imap<T,U>`
@@ -766,7 +863,7 @@ instead of `map<T,U>`.  Note that an infinite map (`imap`) is allowed
 to have a finite domain, whereas a finite map (`map`) is not allowed
 to have an infinite domain.
 If the same key occurs more than
-once, only the last occurrence appears in the resulting
+once in a map display expression, only the last occurrence appears in the resulting
 map.[^fn-map-display]  There is also a _map comprehension expression_,
 explained in section [#sec-map-comprehension-expression].
 
@@ -779,19 +876,16 @@ any expression `t` of type `T`,
 any expression `u` of type `U`, and any `d` in the domain of `m` (that
 is, satisfying `d in m`), maps support the following operations:
 
- expression           | description                        
-----------------------|------------------------------------
- `|fm|`               | map cardinality                    
- `m[d]`               | map selection                      
- `m[t := u]`          | map update                         
- `t in m`             | map domain membership              
- `t !in m`            | map domain non-membership          
- `fm.Keys`            | the domain of fm, that is, the set 
-                      |  of T values used askeys           
- `fm.Values`          | the range of fm, that is, the set  
-                      |  of U values present in the map   
- `fm.Items`           | set of pairs (t,u) of key-value    
-                      |  associations in the map           
+ expression     | result type | description
+ ---------------|:-----------:|------------------------------------
+ `|fm|`         | `nat`       | map cardinality
+ `m[d]`         | `U`         | map selection
+ `m[t := u]`    | `map<T,U>`  | map update
+ `t in m`       | `bool`      | map domain membership
+ `t !in m`      | `bool`      | map domain non-membership
+ `fm.Keys`      | `set<T>`    | the domain of `fm`
+ `fm.Values`    | `set<U>`    | the range of `fm`
+ `fm.Items`     | `set<(T,U)>`| set of pairs (t,u) in `fm`
 
 `|fm|` denotes the number of mappings in `fm`, that is, the
 cardinality of the domain of `fm`.  Note that the cardinality operator
@@ -820,12 +914,10 @@ some fixed gas at a given temperature:
 if K in cache {  // check if temperature is in domain of cache
   coeff := cache[K];  // read result in cache
 } else {
-  coeff := ComputeJouleThomsonCoefficient(K);  // do expensive computation
+  coeff := ComputeJTCoefficient(K); // do expensive computation
   cache := cache[K := coeff];  // update the cache
 }
 ```
-
-TO BE WRITTEN -- .Keys, .Values, .Items
 
 # Types that stand for other types
 ````grammar
@@ -838,7 +930,8 @@ type abstractly. Synonym and opaque types serve this purpose.
 ## Type synonyms
 ````grammar
 SynonymTypeDefinition_ =
-  "type" { Attribute } SynonymTypeName [ GenericParameters ] "=" Type
+  "type" { Attribute } SynonymTypeName [ GenericParameters ]
+   "=" Type
 ````
 
 A _type synonym_ declaration:
@@ -847,7 +940,7 @@ type Y<T> = G
 ```
 declares `Y<T>` to be a synonym for the type `G`.  Here, `T` is a
 nonempty list of type parameters (each of which is optionally
-designated with the suffix "`(==)`"), which can be used as free type
+designated with the suffix `(==)`), which can be used as free type
 variables in `G`.  If the synonym has no type parameters, the "`<T>`"
 is dropped.  In all cases, a type synonym is just a synonym.  That is,
 there is never a difference, other than possibly in error messages
@@ -895,787 +988,15 @@ type Monad<T>
 ```
 can be used abstractly to represent an arbitrary parameterized monad.
 
-# Well-founded Functions and Extreme Predicates
-This section is a tutorial on well-founded functions and extreme predicates.
-We place it here in preparation for Section [#sec-class-types]
-where function and predicate definitions are described.
-
-Recursive functions are a core part of computer science and mathematics.
-Roughly speaking, when the definition of such a function spells out a
-terminating computation from given arguments, we may refer to
-it as a _well-founded function_.  For example, the common factorial and
-Fibonacci functions are well-founded functions.
-
-There are also other ways to define functions.  An important case
-regards the definition of a boolean function as an extreme solution
-(that is, a least or greatest solution) to some equation.  For
-computer scientists with interests in logic or programming languages,
-these _extreme predicates_ are important because they describe the
-judgments that can be justified by a given set of inference rules
-(see, e.g., [@CamilleriMelham:InductiveRelations;
-@Winskel:FormalSemantics;
-  @LeroyGrall:CoinductiveBigStep; @Pierce:SoftwareFoundations;
-  @NipkowKlein:ConcreteSemantics]).
-
-To benefit from machine-assisted reasoning, it is necessary not just
-to understand extreme predicates but also to have techniques for
-proving theorems about them.  A foundation for this reasoning was
-developed by Paulin-Mohring [@PaulinMohring:InductiveCoq] and is the
-basis of the constructive logic supported by Coq [@Coq:book] as well
-as other proof assistants [@BoveDybjerNorell:BriefAgda;
-@SwamyEtAl:Fstar2011].  Essentially, the idea is to represent the
-knowledge that an extreme predicate holds by the proof term by which
-this knowledge was derived.  For a predicate defined as the least
-solution, such proof terms are values of an inductive datatype (that
-is, finite proof trees), and for the greatest solution, a coinductive
-datatype (that is, possibly infinite proof trees).  This means that
-one can use induction and coinduction when reasoning about these proof
-trees.  Therefore, these extreme predicates are known as,
-respectively, _inductive predicates_ and _coinductive predicates_ (or,
-_co-predicates_ for short).  Support for extreme predicates is also
-available in the proof assistants Isabelle [@Paulson:CADE1994] and HOL
-[@Harrison:InductiveDefs].
-
-Dafny supports both well-founded functions and extreme predicates.
-This section is a tutorial that describes the difference in general
-terms, and then describes novel syntactic support in Dafny for
-defining and proving lemmas with extreme predicates.  Although Dafny's
-verifier has at its core a first-order SMT solver, Dafny's logical
-encoding makes it possible to reason about fixpoints in an automated
-way.
-
-The encoding for coinductive predicates in Dafny was described previously
-[@LeinoMoskal:Coinduction] and is here described in Section
-[#sec-co-inductive-datatypes].
-
-## Function Definitions
-
-To define a function $f \colon X \to Y$ in terms of itself, one can
-write an equation like
-~ Equation {#eq-general}
-<p style="text-align: center;">
-$$f = \mathcal{F}(f)$$  
-</p>
-~
-
-where $\mathcal{F}$ is a non-recursive function of type
-$(X \to Y) \to X \to Y$.  
-Because it takes a function as an argument,
-$\mathcal{F}$
-is referred to as a _functor_ (or _functional_, but not to be
-confused by the category-theory notion of a functor).
-Throughout, I will assume that 
-$\mathcal{F}(f)$
-by itself is well defined,
-for example that it does not divide by zero.  I will also assume that 
-$f$
-occurs
-only in fully applied calls in 
-$\mathcal{F}(f)$;
- eta expansion can be applied to
-ensure this.  If 
-$f$
-is a `boolean` function, that is, if 
-$Y$
-is
-the type of booleans, then I call 
-$f$
-a _predicate_.
-
-For example, the common Fibonacci function over the
-natural numbers can be defined by the equation
-<p style="text-align: center;">
-$$
-\mathit{fib} = \lambda n \bullet\: \mathbf{if}\:n < 2 \:\mathbf{then}\: n \:\mathbf{else}\: \mathit{fib}(n-2) + \mathit{fib}(n-1)
-$$
-</p>
-
-With the understanding that the argument $n$ is universally
-quantified, we can write this equation equivalently as
-
-~ Equation {#eq-fib}
-<p style="text-align: center;">
-$$
-\mathit{fib}(n) = \mathbf{if}\:n < 2\:\mathbf{then}\:n\:\mathbf{else}\:\mathit{fib}(n-2)%2B\mathit{fib}(n-1)
-$$
-</p>
-~
-
-
-The fact that the function being defined occurs on both sides of the equation
-causes concern that we might not be defining the function properly, leading to a
-logical inconsistency.  In general, there
-could be many solutions to an equation like [#eq-general] or there could be none.
-Let's consider two ways to make sure we're defining the function uniquely.
-
-TO BE WRITTEN - two-state functions and predicates
-
-TO BE WRITTEN - functions with named results
-
-TO BE WRITTEN - various kinds of arrow types: ~> -> -->
-
-### Well-founded Functions
-
-A standard way to ensure that equation [#eq-general] has a unique solution in $f$ is
-to make sure the recursion is well-founded, which roughly means that the
-recursion terminates.  This is done by introducing any well-founded
-relation $\ll$ on the domain of $f$ and making sure that the argument to each recursive
-call goes down in this ordering.  More precisely, if we formulate [#eq-general] as
-<p style="text-align: center;">
-$$
-f(x) = \mathcal{F}{'}(f)
-$$
-</p>
-
-then we want to check $E \ll x$ for each call $f(E)$ in $f(x) = \mathcal{F}'(f)$.
-When a function
-definition satisfies  this _decrement condition_, then the function is said to be
-_well-founded_.
-
-For example, to check the decrement condition for $\mathit{fib}$
-in [#eq-fib], we can pick $\ll$
-to be the arithmetic less-than relation on natural numbers and check the
-following, for any $n$:
-<p style="text-align: center;"> $$ 2 \leq n \;\Longrightarrow\; n-2 \ll n \;\wedge\; n-1 \ll n $$
-</p>
-
-Note that we are entitled to use the antecedent 
-$2 \leq n$ because that is the
-condition under which the else branch in [#eq-fib] is evaluated.
-
-A well-founded function is often thought of as "terminating" in the sense
-that the recursive _depth_ in evaluating $f$
-on any given argument is finite.  That is, there are no infinite descending chains
-of recursive calls.  However, the evaluation of $f$ on a given argument
-may fail to terminate, because its _width_ may be infinite.  For example, let $P$
-be some predicate defined on the ordinals and let $\mathit{P}_\downarrow$ be a predicate on the
-ordinals defined by the following equation:
-
-<p style="text-align: center;">
-$$
-\mathit{P}\_\downarrow = P(o) \;\wedge\; \forall p \bullet\; p \ll o \;\Longrightarrow\; \mathit{P}\_\downarrow(p) 
-$$
-</p>
-
-
-With $\ll$ as the usual ordering on ordinals, this equation satisfies the decrement
-condition, but evaluating $\mathit{P}\_\downarrow(\omega)$ would require evaluating
-$\mathit{P}\_\downarrow(n)$ for every natural number $n$.  However, what we are concerned
-about here is to avoid mathematical inconsistencies, and that is
-indeed a consequence of the decrement condition.
-
-#### Example with Well-founded Functions {#sec-fib-example}
-
-So that we can later see how inductive proofs are done in Dafny, let's prove that
-for any $n$, $\mathit{fib}(n)$ is even iff $n$ is a multiple of $3$.
-We split our task into
-two cases.  If $n < 2$, then the property follows directly from the definition
-of $\mathit{fib}$.  Otherwise, note that exactly one of the three numbers $n-2$, $n-1$, and $n$
-is a multiple of 3.  If $n$ is the multiple of 3, then by invoking the
-induction hypothesis on $n-2$
-and $n-1$, we obtain that $\mathit{fib}(n-2) + \mathit{fib}(n-1)$ is the sum of two odd numbers,
-which is even.  If $n-2$ or $n-1$ is a multiple of 3, then by invoking the induction
-hypothesis on $n-2$ and $n-1$, we obtain that $\mathit{fib}(n-2) + \mathit{fib}(n-1)$ is the sum of an
-even number and an odd number, which is odd.  In this proof, we invoked the induction
-hypothesis on $n-2$ and on $n-1$.  This is allowed, because both are smaller than
-$n$, and hence the invocations go down in the well-founded ordering on natural numbers.
-
-### Extreme Solutions
-
-We don't need to exclude the possibility of equation [#eq-general] having multiple
-solutions---instead, we can just be clear about which one of them we want.
-Let's explore this, after a smidgen of lattice theory.
-
-For any complete lattice $(Y,\leq)$ and any set $X$, we can by _pointwise extension_ define
-a complete lattice $(X \to Y, \dot{\Rightarrow})$, where for any $f,g \colon X \to Y$,
-
-
-Equation
-<p style="text-align: center;">
-$$
-f \dot{\Rightarrow} q  \;\;\equiv\;\; \forall x \bullet\; f(x) \leq g(x)
-$$
-</p>
-
-
-
-In particular, if $Y$ is the set of booleans ordered by implication (`false` $\leq$ `true`),
-then the set of predicates over any domain $X$ forms a complete lattice.
-Tarski's Theorem [@Tarski:theorem] tells us that any monotonic function over a
-complete lattice has a least and a greatest fixpoint.  In particular, this means that
-$\mathcal{F}$ has a least fixpoint and a greatest fixpoint, provided $\mathcal{F}$ is monotonic.
-
-Speaking about the _set of solutions_ in $f$ to [#eq-general] is the same as speaking
-about the _set of fixpoints_ of functor $\mathcal{F}$.  In particular, the least and greatest
-solutions to [#eq-general] are the same as the least and greatest fixpoints of $\mathcal{F}$.
-In casual speak, it happens that we say "fixpoint of [#eq-general]", or more
-grotesquely, "fixpoint of $f$" when we really mean "fixpoint of $\mathcal{F}$".
-
-In conclusion of our little excursion into lattice theory, we have that, under the
-proviso of $\mathcal{F}$ being monotonic, the set of solutions in $f$ to [#eq-general] is nonempty,
-and among these solutions, there is in the $\dot{\Rightarrow}$ ordering a least solution (that is,
-a function that returns `false` more often than any other) and a greatest solution (that
-is, a function that returns `true` more often than any other).
-
-When discussing extreme solutions, I will now restrict my attention to boolean functions
-(that is, with $Y$ being the type of booleans).  Functor $\mathcal{F}$ is monotonic
-if the calls to $f$ in $\mathcal{F}'(f)$ are in _positive positions_ (that is, under an even number
-of negations).  Indeed, from now on, I will restrict my attention to such monotonic
-functors $\mathcal{F}$.
-
-Let me introduce a running example.  Consider the following equation,
-where $x$ ranges over the integers:
-
-~ Equation {#eq-EvenNat}
-<p style="text-align: center;">
-$$
-g(x) = (x = 0 \:\vee\: g(x-2)) 
-$$
-</p>
-~
-
-This equation has four solutions in $g$.  With $w$ ranging over the integers, they are:
-
-
-Equation
-<p style="text-align: center;">
-$$
- \begin{array}{r@{}l}
-  g(x) \;\;\equiv\;\;{}&  x \in \{w \;|\; 0 \leq w \;\wedge\; w\textrm{ even}\} \\
-  g(x) \;\;\equiv\;\;{}&  x \in \{w \;|\; w\textrm{ even}\} \\
-  g(x) \;\;\equiv\;\;{}&  x \in \{w \;|\; (0 \leq w \;\wedge\; w\textrm{ even}) \:\vee\: w\textrm{ odd}\} \\
-  g(x) \;\;\equiv\;\;{}&  x \in \{w \;|\; \mathit{true}\}
-  \end{array} 
-$$
-</p>
-
-
-The first of these is the least solution and the last is the greatest solution.
-
-In the literature, the definition of an extreme predicate is often given as a set of
-_inference rules_.  To designate the least solution, a single line separating the
-antecedent (on top) from conclusion (on bottom) is used:
-
-Equation {#g-ind-rule}
-  $\frac{}{g(0)} \qquad\qquad \frac{g(x-2)}{g(x)}$
-
-Through repeated applications of such rules, one can show that the predicate holds for
-a particular value.  For example, the _derivation_, or _proof tree_,
-to the left in Figure [#fig-proof-trees] shows that $g(6)$ holds.
-(In this simple example, the derivation is a rather degenerate proof "tree".)
-The use of these inference rules gives rise to a least solution, because proof trees are
-accepted only if they are _finite_.
-
-When inference rules are to designate the greatest solution, a thick
-line is used:
-
-~ Equation {#g-coind-rule}
-    $\genfrac{}{}{1.2pt}0{}{g(0)}
-  \qquad\qquad
-    \genfrac{}{}{1.2pt}0{g(x-2)}{g(x)}$
-
-In this case, proof trees are allowed to be infinite. 
-For example, the left-hand example below shows a finite proof tree that uses the rules of [#g-ind-rule] to establish $g(6)$.  On the right is a partial depiction of an infinite proof tree that uses the rules of [#g-coind-rule] to establish $g(1)$.
-
-<p style="text-align: center;">
-$$\dfrac{
-  \dfrac{
-    \dfrac{
-      \dfrac{}{g(0)}
-      }{g(2)}
-    }{g(4)}
-  }{g(6)}
-\qquad\qquad
-\genfrac{}{}{1.2pt}0{
-  \genfrac{}{}{1.2pt}0{
-    \genfrac{}{}{1.2pt}0{
-      \genfrac{}{}{1.2pt}0{
-          {} {\vdots }
-        }{g(-5)}
-      }{g(-3)}
-    }{g(-1)}
-  }{g(1)}$$
-</p>
-
-
-Note that derivations may not be unique.  For example, in the case of the greatest
-solution for $g$, there are two proof trees that establish $g(0)$:  one is the finite
-proof tree that uses the left-hand rule of [#g-coind-rule] once, the other is the infinite
-proof tree that keeps on using the right-hand rule of [#g-coind-rule].
-
-### Working with Extreme Predicates
-
-In general, one cannot evaluate whether or not an extreme predicate holds for some
-input, because doing so may take an infinite number of steps.  For example, following
-the recursive calls in the definition [#eq-EvenNat] to try to evaluate $g(7)$ would never
-terminate.  However, there are useful ways to establish that an extreme predicate holds
-and there are ways to make use of one once it has been established.
-
-For any $\mathcal{F}$ as in [#eq-general], I define two infinite series of well-founded
-functions, ${ {}^{\flat}\!f}_k$ and ${ {}^{\sharp}\!f}_k$
-where $k$ ranges over the natural numbers:
-
-~ Equation {#eq-least-approx}
-<p style="text-align: center;">$$
-   { {}^{\flat}\!f}_k(x) = \left\{
-    \begin{array}{ll}
-      \mathit{false}         & \textrm{if } k = 0 \\
-      \mathcal{F}({ {}^{\flat}\!f}_{k-1})(x) & \textrm{if } k > 0 
-    \end{array}
-     \right\} $$.</p>
-~
-~ Equation {#eq-greatest-approx}
-<p style="text-align: center;">$$
-   { {}^{\sharp}\!f}_k(x) = \left\{
-    \begin{array}{ll}
-      \mathit{true}          & \textrm{if } k = 0 \\
-      \mathcal{F}({ {}^{\sharp}\!f}_{k-1})(x) & \textrm{if } k > 0 
-    \end{array}
-    \right\} $$.</p>
-~
-
-These functions are called the _iterates_ of $f$, and I will also refer to them
-as the _prefix predicates_ of $f$ (or the _prefix predicate_ of $f$, if we think
-of $k$ as being a parameter).
-Alternatively, we can define ${ {}^{\flat}\!f}_k$ and ${ {}^{\sharp}\!f}_k$ without mentioning $x$:
-Let $\bot$ denote the function that always returns `false`, let $\top$
-denote the function that always returns `true`, and let a superscript on $\mathcal{F}$ denote
-exponentiation (for example, $\mathcal{F}^0(f) = f$ and $\mathcal{F}^2(f) = \mathcal{F}(\mathcal{F}(f))$).
-Then, [#eq-least-approx] and [#eq-greatest-approx] can be stated equivalently as
-${ {}^{\flat}\!f}_k = \mathcal{F}^k(\bot)$ and ${ {}^{\sharp}\!f}_k = \mathcal{F}^k(\top)$.
-
-For any solution $f$ to equation [#eq-general], we have, for any $k$ and $\ell$
-such that $k \leq \ell$:
-
-
-Equation {#eq-prefix-postfix}
-<p style="text-align: center;">$$
- { {}^{\flat}\!f}_k    \quad\;\dot{\Rightarrow}\;\quad { {}^{\flat}\!f}_\ell \quad\;\dot{\Rightarrow}\;\quad f      \quad\;\dot{\Rightarrow}\;\quad { {}^{\sharp}\!f}_\ell \quad\;\dot{\Rightarrow}\;\quad { {}^{\sharp}\!f}_k $$</p>
-
-In other words, every ${ {}^{\flat}\!f}_k$ is a _pre-fixpoint_ of $f$ and every ${ {}^{\sharp}\!f}_k$ is a _post-fixpoint_
-of $f$.  Next, I define two functions, $f^{\downarrow}$ and $f^{\uparrow}$, in
-terms of the prefix predicates:
-
-
-Equation {#eq-least-is-exists}
-<p style="text-align: center;">$$
- f^{\downarrow}(x) \;=\;  \exists k \bullet\; { {}^{\flat}\!f}_k(x) $$</p>
-Equation {#eq-greatest-is-forall}
-<p style="text-align: center;">$$
-  f^{\uparrow}(x) \;=\;  \forall k \bullet\; { {}^{\sharp}\!f}_k(x) $$</p>
-
-
-By [#eq-prefix-postfix], we also have that $f^{\downarrow}$ is a pre-fixpoint of $\mathcal{F}$ and $f^{\uparrow}$
-is a post-fixpoint of $\mathcal{F}$.  The marvelous thing is that, if $\mathcal{F}$ is _continuous_, then
-$f^{\downarrow}$ and $f^{\uparrow}$ are the least and greatest fixpoints of $\mathcal{F}$.
-These equations let us do proofs by induction when dealing with extreme predicates.
-I will explain in Section [#sec-friendliness] how to check for continuity.
-
-Let's consider two examples, both involving function $g$ in
-[#eq-EvenNat].  As it turns out, $g$'s defining functor is continuous,
-and therefore I will write $g^{\downarrow}$ and $g^{\uparrow}$ to denote the
-least and greatest solutions for $g$ in [#eq-EvenNat].
-
-#### Example with Least Solution {#sec-example-least-solution}
-
-The main technique for establishing that $g^{\downarrow}(x)$ holds for some
-$x$, that is, proving something of the form $Q \;\Longrightarrow\; g^{\downarrow}(x)$, is to
-construct a proof tree like the one for $g(6)$ in Figure
-[#fig-proof-trees].  For a proof in this direction, since we're just
-applying the defining equation, the fact that
-we're using a least solution for $g$ never plays a role (as long as we
-limit ourselves to finite derivations).
-
-The technique for going in the other direction, proving something _from_ an established
-$g^{\downarrow}$ property, that is, showing something of the form $g^{\downarrow}(x) \;\Longrightarrow\; R$, typically
-uses induction on the structure of the proof tree.  When the antecedent of our proof
-obligation includes a predicate term $g^{\downarrow}(x)$, it is sound to
-imagine that we have been given a proof tree for $g^{\downarrow}(x)$.  Such a proof tree
-would be a data structure---to be more precise, a term in an
-_inductive datatype_.
-For this reason, least solutions like $g^{\downarrow}$ have been given the
-name _inductive predicate_.
-
-Let's prove $g^{\downarrow}(x) \;\Longrightarrow\; 0 \leq x \;\wedge\; x \textrm{ even}$.
-We split our task into two cases, corresponding to which of the two
-proof rules in [#g-ind-rule] was the
-last one applied to establish $g^{\downarrow}(x)$.  If it was the left-hand rule, then $x=0$,
-which makes it easy to establish the conclusion of our proof goal.  If it was the
-right-hand rule, then we unfold the proof tree one level and obtain $g^{\downarrow}(x-2)$.
-Since the proof tree for $g^{\downarrow}(x-2)$ is smaller than where we started, we invoke
-the _induction hypothesis_ and obtain $0 \leq (x-2) \;\wedge\; (x-2) \textrm{ even}$, from which
-it is easy to establish the conclusion of our proof goal.
-
-Here's how we do the proof formally using [#eq-least-is-exists].  We massage the
-general form of our proof goal:
-
-|   | $f^{\uparrow}(x) \;\Longrightarrow\; R$                                                    |
-| = | &nbsp;&nbsp;&nbsp;&nbsp; { [#eq-least-is-exists] }                        |
-|   | $(\\exists k \bullet\; { {}^{\flat}\!f}_k(x)) \;\Longrightarrow\; R$                              |
-| = | &nbsp;&nbsp;&nbsp;&nbsp; { distribute $\;\Longrightarrow\;$ over $\exists$ to the left } |
-|   | $\forall k \bullet\; ({ {}^{\flat}\!f}_k(x) \;\Longrightarrow\; R)$                              |
-
-The last line can be proved by induction over $k$.  So, in our case, we prove
-${ {}^{\flat}\!g}\_k(x) \Longrightarrow 0 \leq x \wedge x \textrm{ even}$ for every $k$.
-If $k = 0$, then ${ {}^{\flat}\!g}\_k(x)$ is `false`, so our goal holds trivially.
-If $k > 0$, then ${ {}^{\flat}\!g}\_k(x) = (x = 0 \:\vee\: { {}^{\flat}\!g}\_{k-1}(x-2))$.  Our goal holds easily
-for the first disjunct ($x=0$).  For the other disjunct,
-we apply the induction hypothesis (on the smaller $k-1$ and with $x-2$) and
-obtain $0 \leq (x-2)\;\wedge\; (x-2) \textrm{ even}$, from which our proof goal
-follows.
-
-#### Example with Greatest Solution {#sec-example-greatest-solution}
-
-We can think of a given predicate $g^{\uparrow}(x)$ as being represented
-by a proof tree---in this case a term in a _coinductive datatype_,
-since the proof may be infinite.
-For this reason, greatest solutions like $g^{\uparrow}$ have
-been given the name _coinductive predicate_, or _co-predicate_ for short.
-The main technique for proving something from a given proof tree, that
-is, to prove something of the form $g^{\uparrow}(x) \;\Longrightarrow\; R$, is to
-destruct the proof.  Since this is just unfolding the defining
-equation, the fact that we're using a greatest solution for $g$ never
-plays a role (as long as we limit ourselves to a finite number of
-unfoldings).
-
-To go in the other direction, to establish a predicate defined as a greatest solution,
-like $Q \;\Longrightarrow\; g^{\uparrow}(x)$, we may need an infinite number of steps.  For this purpose,
-we can use induction's dual, _coinduction_.  Were it not for one little detail, coinduction
-is as simple as continuations in programming: the next part of the proof obligation
-is delegated to the _coinduction hypothesis_.  The little detail is making sure that
-it is the "next" part we're passing on for the continuation, not the same part.  This
-detail is called _productivity_ and corresponds to the requirement in
-induction of making sure we're going down a well-founded relation when
-applying the induction hypothesis.  There are
-many sources with more information, see for example the classic account by
-Jacobs and Rutten [@JacobsRutten:IntroductionCoalgebra]
-or a new attempt by Kozen and Silva
-that aims to emphasize the simplicity, not the mystery, of
-coinduction [@KozenSilva:Coinduction].
-
-Let's prove $\mathit{true} \;\Longrightarrow\; g^{\uparrow}(x)$.  The intuitive coinductive proof goes like this:
-According to the right-hand rule of [#g-coind-rule], $g^{\uparrow}(x)$ follows if we
-establish $g^{\uparrow}(x-2)$, and that's easy to do by invoking the coinduction hypothesis.
-The "little detail", productivity, is satisfied in this proof because we applied
-a rule in [#g-coind-rule] before invoking the coinduction hypothesis.
-
-For anyone who may have felt that the intuitive proof felt too easy, here is a formal
-proof using [#eq-greatest-is-forall], which relies only on induction.  We massage the
-general form of our proof goal:
-
-<!--
-|~~~|~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
-|   | $Q \;\Longrightarrow\; f^{\uparrow}(x)$                                                      |
-| = | &nbsp;&nbsp;&nbsp;&nbsp;  { [#eq-greatest-is-forall] }                      |
-|   | $Q \;\Longrightarrow\; \forall k \bullet\; { {}^{\sharp}\!f}_k(x)$                                  |
-| = | &nbsp;&nbsp;&nbsp;&nbsp;  { distribute $\;\Longrightarrow\;$ over $\forall$ to the right } |
-|   | $\forall k \bullet\; Q \;\Longrightarrow\; { {}^{\sharp}\!f}_k(x)$                                  |
--->
-
-The last line can be proved by induction over $k$.  So, in our case, we prove
-<!--
-$\mathit{true} \;\Longrightarrow\; { {}^{\sharp}\!g}_k(x)$ for every $k$.
-If $k=0$, then ${ {}^{\sharp}\!g}_k(x)$ is $\mathit{true}$, so our goal holds trivially.
-If $k > 0$, then ${ {}^{\sharp}\!g}_k(x) = (x = 0 \:\vee\: { {}^{\sharp}\!g}_{k-1}(x-2))$.  We establish the second
-disjunct by applying the induction hypothesis (on the smaller $k-1$ and with $x-2$).
--->
-
-### Other Techniques
-
-Although in this paper I consider only well-founded functions and extreme
-predicates, it is worth mentioning that there are additional ways of making sure that
-the set of solutions to [#eq-general] is nonempty.  For example, if all calls to $f$ in
-$\mathcal{F}'(f)$ are _tail-recursive calls_, then (under the assumption that $Y$ is nonempty) the set of
-solutions is nonempty.  To see this, consider an attempted evaluation of $f(x)$ that fails
-to determine a definite result value because of an infinite chain of calls that applies $f$
-to each value of some subset $X'$ of $X$.  Then, apparently, the value of $f$ for any one
-of the values in $X'$ is not determined by the equation, but picking any particular result
-values for these makes for a consistent definition.
-This was pointed out by Manolios and Moore [@ManoliosMoore:PartialFunctions].
-Functions can be underspecified in this way in the proof assistants ACL2 [@ACL2:book]
-and HOL [@Krauss:PhD].
-
-## Functions in Dafny
-
-In this section, I explain with examples the support in
-Dafny[^fn-on-da-web] for well-founded functions, extreme predicates,
-and proofs regarding these.
-
-[^fn-on-da-web]: Dafny is open source at [dafny.codeplex.com](http://dafny.codeplex.com) and can also be used online at [rise4fun.com/dafny](http://rise4fun.com/dafny).
-
-### Well-founded Functions in Dafny
-
-Declarations of well-founded functions are unsurprising.  For example, the Fibonacci
-function is declared as follows:
-
-```dafny
-function fib(n: nat): nat
-{
-  if n < 2 then n else fib(n-2) + fib(n-1)
-}
-```
-
-Dafny verifies that the body (given as an expression in curly braces) is well defined.
-This includes decrement checks for recursive (and mutually recursive) calls.  Dafny
-predefines a well-founded relation on each type and extends it to lexicographic tuples
-of any (fixed) length.  For example, the well-founded relation $x \ll y$ for integers
-is $x < y \;\wedge\; 0 \leq y$, the one for reals is $x \leq y - 1.0 \;\wedge\; 0.0 \leq y$
-(this is the same ordering as for integers, if you read the integer
-relation as $x \leq y - 1 \;\wedge\; 0 \leq y$), the one for inductive
-datatypes is structural inclusion,
-and the one for coinductive datatypes is `false`.
-
-Using a `decreases` clause, the programmer can specify the term in this predefined
-order.  When a function definition omits a `decreases` clause, Dafny makes a simple
-guess.  This guess (which can be inspected by hovering over the function name in the
-Dafny IDE) is very often correct, so users are rarely bothered to provide explicit
-`decreases` clauses.
-
-If a function returns `bool`, one can drop the result type `: bool` and change the
-keyword `function` to `predicate`.
-
-### Proofs in Dafny
-
-Dafny has `lemma` declarations.  These are really just special cases of methods:
-they can have pre- and postcondition specifications and their body is a code block.
-Here is the lemma we stated and proved in Section [#sec-fib-example]:
-
-```dafny
-lemma FibProperty(n: nat)
-  ensures fib(n) % 2 == 0 <==> n % 3 == 0
-{
-  if n < 2 {
-  } else {
-    FibProperty(n-2); FibProperty(n-1);
-  }
-}
-```
-
-The postcondition of this lemma (keyword `ensures`) gives the proof
-goal.  As in any program-correctness logic (e.g.,
-[@Hoare:AxiomaticBasis]), the postcondition must
-be established on every control path through the lemma's body.  For
-`FibProperty`, I give the proof by
-an `if` statement, hence introducing a case split.  The then branch is empty, because
-Dafny can prove the postcondition automatically in this case.  The else branch
-performs two recursive calls to the lemma.  These are the invocations of the induction
-hypothesis and they follow the usual program-correctness rules,
-namely: the precondition must hold at the call site, the call must terminate, and then
-the caller gets to assume the postcondition upon return.  The "proof glue" needed
-to complete the proof is done automatically by Dafny.
-
-Dafny features an aggregate statement using which it is possible to make (possibly
-infinitely) many calls at once.  For example, the induction hypothesis can be called
-at once on all values `n'` smaller than `n`:
-
-```dafny
-forall n' | 0 <= n' < n {
-  FibProperty(n');
-}
-```
-
-For our purposes, this corresponds to _strong induction_.  More
-generally, the `forall` statement has the form
-
-```dafny
-forall k | P(k)
-  ensures Q(k)
-{ Statements; }
-```
-
-Logically, this statement corresponds to _universal introduction_: the body proves that
-`Q(k)` holds for an arbitrary `k` such that `P(k)`, and the conclusion of the `forall` statement
-is then $\forall k \bullet\; P(k) \;\Longrightarrow\; Q(k)$.  When the body of the `forall` statement is
-a single call (or `calc` statement), the `ensures` clause is inferred and can be omitted,
-like in our `FibProperty` example.
-
-Lemma `FibProperty` is simple enough that its whole body can be replaced by the one
-`forall` statement above.  In fact, Dafny goes one step further: it automatically
-inserts such a `forall` statement at the beginning of every lemma [@Leino:induction].
-Thus, `FibProperty` can be declared and proved simply by:
-
-```dafny
-lemma FibProperty(n: nat)
-  ensures fib(n) % 2 == 0 <==> n % 3 == 0
-{ }
-```
-
-Going in the other direction from universal introduction is existential elimination,
-also known as Skolemization.  Dafny has a statement for this, too:
-for any variable `x` and boolean expression `Q`, the
-_assign such that_ statement `x :| Q;` says to assign to `x` a value such that `Q`
-will hold.  A proof obligation when using this statement is to show that there
-exists an `x` such that `Q` holds.  For example, if the fact
-$\\exists k \bullet\; 100 \leq \mathit{fib}(k) < 200$ is known, then the statement
-`k :| 100 <= fib(k) < 200;` will assign to `k` some value (chosen arbitrarily)
-for which `fib(k)` falls in the given range.
-
-### Extreme Predicates in Dafny {#sec-friendliness}
-
-In this previous subsection, I explained that a `predicate` declaration introduces a
-well-founded predicate.  The declarations for introducing extreme predicates are
-`inductive predicate` and `copredicate`.  Here is the definition of the least and
-greatest solutions of $g$ from above, let's call them `g` and `G`:
-
-```dafny
-inductive predicate g(x: int) { x == 0 || g(x-2) }
-copredicate G(x: int) { x == 0 || G(x-2) }
-```
-
-When Dafny receives either of these definitions, it automatically declares the corresponding
-prefix predicates.  Instead of the names ${ {}^{\flat}\!g}_k$ and ${ {}^{\sharp}\!g}_k$ that I used above, Dafny
-names the prefix predicates `g#[k]` and `G#[k]`, respectively, that is, the name of
-the extreme predicate appended with `#`, and the subscript is given as an argument in
-square brackets.  The definition of the prefix predicate derives from the body of
-the extreme predicate and follows the form in [#eq-least-approx] and [#eq-greatest-approx].
-Using a faux-syntax for illustrative purposes, here are the prefix
-predicates that Dafny defines automatically from the extreme
-predicates `g` and `G`:
-
-```dafny
-predicate g#[_k: nat](x: int) { _k != 0 && (x == 0 || g#[_k-1](x-2)) }
-predicate G#[_k: nat](x: int) { _k != 0 ==> (x == 0 || G#[_k-1](x-2)) }
-```
-
-The Dafny verifier is aware of the connection between extreme predicates and their
-prefix predicates, [#eq-least-is-exists] and [#eq-greatest-is-forall].
-
-Remember that to be well defined, the defining functor of an extreme predicate
-must be monotonic, and for [#eq-least-is-exists] and [#eq-greatest-is-forall] to hold,
-the functor must be continuous.  Dafny enforces the former of these by checking that
-recursive calls of extreme predicates are in positive positions.  The continuity
-requirement comes down to checking that they are also in _continuous positions_:
-that recursive calls to inductive predicates are
-not inside unbounded universal quantifiers and that recursive calls to co-predicates
-are not inside unbounded existential quantifiers [@Milner:CCS; @LeinoMoskal:Coinduction].
-
-### Proofs about Extreme Predicates
-
-From what I have presented so far, we can do the formal proofs from Sections
-[#sec-example-least-solution] and [#sec-example-greatest-solution].  Here is the
-former:
-
-```dafny
-lemma EvenNat(x: int)
-  requires g(x)
-  ensures 0 <= x && x % 2 == 0
-{
-  var k: nat :| g#[k](x);
-  EvenNatAux(k, x);
-}
-lemma EvenNatAux(k: nat, x: int)
-  requires g#[k](x)
-  ensures 0 <= x && x % 2 == 0
-{
-  if x == 0 { } else { EvenNatAux(k-1, x-2); }
-}
-```
-
-Lemma `EvenNat` states the property we wish to prove.  From its
-precondition (keyword `requires`) and
-[#eq-least-is-exists], we know there is some `k` that will make the condition in the
-assign-such-that statement true.  Such a value is then assigned to `k` and passed to
-the auxiliary lemma, which promises to establish the proof goal.  Given the condition
-`g#[k](x)`, the definition of `g#` lets us conclude `k != 0` as well as the disjunction
-`x == 0 || g#[k-1](x-2)`.  The then branch considers the case of the first disjunct,
-from which the proof goal follows automatically.  The else branch can then assume
-`g#[k-1](x-2)` and calls the induction hypothesis with those parameters.  The proof
-glue that shows the proof goal for `x` to follow from the proof goal with `x-2` is
-done automatically.
-
-Because Dafny automatically inserts the statement
-
-```dafny
-forall k', x' | 0 <= k' < k && g#[k'](x') {
-  EvenNatAux(k', x');
-}
-```
-
-at the beginning of the body of `EvenNatAux`, the body can be left empty and Dafny
-completes the proof automatically.
-
-Here is the Dafny program that gives the proof from Section [#sec-example-greatest-solution]:
-
-```dafny
-lemma Always(x: int)
-  ensures G(x)
-{ forall k: nat { AlwaysAux(k, x); } }
-lemma AlwaysAux(k: nat, x: int)
-  ensures G#[k](x)
-{ }
-```
-
-While each of these proofs involves only basic proof rules, the setup feels a bit clumsy,
-even with the empty body of the auxiliary lemmas.  Moreover,
-the proofs do not reflect the intuitive proofs I described in
-Section [#sec-example-least-solution] and [#sec-example-greatest-solution].
-These shortcoming are addressed in the next subsection.
-
-### Nicer Proofs of Extreme Predicates
-
-The proofs we just saw follow standard forms:
-use Skolemization to convert the inductive predicate into a prefix predicate for some `k`
-and then do the proof inductively over `k`; respectively,
-by induction over `k`, prove the prefix predicate for every `k`, then use
-universal introduction to convert to the coinductive predicate.
-With the declarations `inductive lemma` and `colemma`, Dafny offers to
-set up the proofs
-in these standard forms.  What is gained is not just fewer characters in the program
-text, but also a possible intuitive reading of the proofs.  (Okay, to be fair, the
-reading is intuitive for simpler proofs; complicated proofs may or may not be intuitive.)
-
-Somewhat analogous to the creation of prefix predicates from extreme predicates, Dafny
-automatically creates a _prefix lemma_ `L#` from each "extreme lemma" `L`.  The pre-
-and postconditions of a prefix lemma are copied from those of the extreme lemma,
-except for the following replacements:
-For an inductive lemma, Dafny looks in the precondition to find calls (in positive, continuous
-positions) to inductive predicates `P(x)` and replaces these with `P#[_k](x)`.
-For a
-co-lemma, Dafny looks in the postcondition to find calls (in positive, continuous positions)
-to co-predicates `P` (including equality among coinductive datatypes, which is a built-in
-co-predicate) and replaces these with `P#[_k](x)`.
-In each case, these predicates `P` are the lemma's _focal predicates_.
-
-The body of the extreme lemma is moved to the prefix lemma, but with
-replacing each recursive
-call `L(x)` with `L#[_k-1](x)` and replacing each occurrence of a call
-to a focal predicate
-`P(x)` with `P#[_k-1](x)`.  The bodies of the extreme lemmas are then replaced as shown
-in the previous subsection.  By construction, this new body correctly leads to the
-extreme lemma's postcondition.
-
-Let us see what effect these rewrites have on how one can write proofs.  Here are the proofs
-of our running example:
-
-```dafny
-inductive lemma EvenNat(x: int)
-  requires g(x)
-  ensures 0 <= x && x % 2 == 0
-{ if x == 0 { } else { EvenNat(x-2); } }
-colemma Always(x: int)
-  ensures G(x)
-{ Always(x-2); }
-```
-
-Both of these proofs follow the intuitive proofs given in Sections
-[#sec-example-least-solution] and [#sec-example-greatest-solution].  Note that in these
-simple examples, the user is never bothered with either prefix predicates nor
-prefix lemmas---the proofs just look like "what you'd expect".
-
-Since Dafny automatically inserts calls to the induction hypothesis at the beginning of
-each lemma, the bodies of the given extreme lemmas `EvenNat` and
-`Always` can be empty and Dafny still completes the proofs.
-Folks, it doesn't get any simpler than that!
 
 # Class Types
 
 ````grammar
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
   ["extends" Type {"," Type} ]
-  "{" { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) } "}"
-````
+  "{" { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) }
+  "}"
 
-````grammar
 ClassMemberDecl(moduleLevelDecl) =
   ( FieldDecl | FunctionDecl |
     MethodDecl(isGhost: ("ghost" was present),
@@ -1692,11 +1013,11 @@ A _class_ `C` is a reference type declared as follows:
 ```dafny
 class C<T> extends J1, ..., Jn
 {
-  \(_members_\)
+  _members_
 }
 ```
-where the list of type parameters `T` is optional and so is
-"`extends J1, ..., Jn`", which says that the class extends traits `J1` ... `Jn`.
+where the list of type parameters `T` is optional. The text
+"`extends J1, ..., Jn`" is also optional and says that the class extends traits `J1` ... `Jn`.
 The members of a class are _fields_, _functions_, and
 _methods_.  These are accessed or invoked by dereferencing a reference
 to a `C` instance.
@@ -1717,13 +1038,17 @@ following example:
 ```dafny
 class C {
   var f: int
+  var x: int
   method Example() returns (b: bool)
   {
+    var x: int;
     b := f == this.f;
   }
 }
 ```
 so the method body always assigns `true` to the out-parameter `b`.
+However, in this example, `x` and `this.x` are different because
+the field `x` is shadowed by the declaration of the local variable `x`.
 There is no semantic difference between qualified and
 unqualified accesses to the same receiver and member.
 
@@ -1793,9 +1118,9 @@ Fields may not be declared static.
 ## Method Declarations
 ````grammar
 MethodDecl(isGhost, allowConstructor) =
- MethodKeyword { Attribute } [ MethodName ]
- (  MethodSignature(isGhost)  | SignatureEllipsis_ )
- MethodSpec [ BlockStmt ]
+  MethodKeyword { Attribute } [ MethodName ]
+  ( MethodSignature(isGhost)  | SignatureEllipsis_ )
+  MethodSpec [ BlockStmt ]
 ````
 The `isGhost` parameter is true iff the `ghost` keyword
 preceded the method declaration.
@@ -1813,9 +1138,8 @@ as explained below.
 
 ````grammar
 MethodSignature(isGhost) =
-    [ GenericParameters ]
-    Formals(allowGhost: !isGhost)
-    [ "returns" Formals(allowGhost: !isGhost) ]
+  [ GenericParameters ] Formals(allowGhost: !isGhost)
+  [ "returns" Formals(allowGhost: !isGhost) ]
 ````
 A method signature specifies the method generic parameters,
 input parameters and return parameters.
@@ -1826,7 +1150,7 @@ if `ghost` was already specified for the method.
 SignatureEllipsis_ = "..."
 ````
 A ``SignatureEllipsis_`` is used when a method or function is being redeclared
-in module that refines another module. In that case the signature is
+in a module that refines another module. In that case the signature is
 copied from the module that is being refined. This works because
 Dafny does not support method or function overloading, so the
 name of the class method uniquely identifies it without the
@@ -1846,7 +1170,8 @@ A method declaration adheres to the ``MethodDecl`` grammar above.
 Here is an example of a method declaration.
 
 ```dafny
-method {:att1}{:att2} M<T1, T2>(a: A, b: B, c: C) returns (x: X, y: Y, z: Z)
+method {:att1}{:att2} M<T1, T2>(a: A, b: B, c: C)
+                                        returns (x: X, y: Y, z: Z)
   requires Pre
   modifies Frame
   ensures Post
@@ -1863,7 +1188,7 @@ method’s out-parameters, `Pre` is a boolean expression denoting the
 method’s precondition, `Frame` denotes a set of objects whose fields may
 be updated by the method, `Post` is a boolean expression denoting the
 method’s postcondition, `Rank` is the method’s variant function, and
-`Body` is a statement that implements the method. `Frame` can be a list
+`Body` is a list of statements that implements the method. `Frame` can be a list
 of expressions, each of which is a set of objects or a single object, the
 latter standing for the singleton set consisting of that one object. The
 method’s frame is the union of these sets, plus the set of objects
@@ -1872,28 +1197,20 @@ of a class type `C`, then
 
 ```dafny
 modifies {c, d}
-
 modifies {c} + {d}
-
 modifies c, {d}
-
 modifies c, d
 ```
 
 all mean the same thing.
 
-A method can be declared as ghost by preceding the declaration with the
-keyword ghost. By default, a method has an implicit receiver parameter,
-this. This parameter can be removed by preceding the method declaration
-with the keyword static. A static method M in a class C can be invoked by
-C.M(…).
+### Ordinary methods
 
-In a class, a method can be declared to be a constructor method by
-replacing the keyword `method` with the keyword `constructor`. A constructor
-can only be called at the time an object is allocated (see
-object-creation examples below), and for a class that contains one or
-more constructors, object creation must be done in conjunction with a
-call to a constructor.
+A method can be declared as ghost by preceding the declaration with the
+keyword `ghost` and as static by preceding the declaration with the keyword `static`.
+The default is non-static (i.e., instance) and non-ghost.
+An instance method has an implicit receiver parameter, `this`.
+A static method M in a class C can be invoked by `C.M(…)`.
 
 An ordinary method is declared with the `method` keyword.
 Section [#sec-constructors] explains methods that instead use the
@@ -1904,7 +1221,7 @@ predicates (see [#sec-inductive-datatypes]). Methods declared with the
 `colemma` keyword are discussed later in the context of co-inductive
 types, in section [#sec-colemmas].
 
-A method without is body is _abstract_. A method is allowed to be
+A method without a body is _abstract_. A method is allowed to be
 abstract under the following circumstances:
 
 * It contains an `{:axiom}` attribute
@@ -1912,14 +1229,22 @@ abstract under the following circumstances:
 * It contains a `{:decl}` attribute
 * It is a declaration in an abstract module.
 Note that when there is no body, Dafny assumes that the *ensures*
-clauses are true without proof.
+clauses are true without proof. (TODO: `:extern` attribute?)
 
 ### Constructors
-To write structured object-oriented programs, one often relies on 
+To write structured object-oriented programs, one often relies on
 objects being constructed only in certain ways.  For this purpose, Dafny
 provides _constructor (method)s_, which are a restricted form of
-initialization methods.  A constructor is declared with the keyword
-`constructor` instead of `method`.  
+initialization methods.
+A constructor is declared with the keyword
+`constructor` instead of `method`; constructors are only permitted in classes.
+
+A constructor
+can only be called at the time an object is allocated (see
+object-creation examples below), and for a class that contains one or
+more constructors, object creation must be done in conjunction with a
+call to a constructor.
+
 When a class contains a
 constructor, every call to `new` for a class must be accompanied
 by a call to one of its constructors.  Moreover, a constructor
@@ -1930,33 +1255,33 @@ declare no constructors or one or more constructors.
 
 #### Classes with no explicit constructors
 
-A class that declares no constructors has a default constructor created 
+A class that declares no constructors has a default constructor created
 for it. This constructor is called with the syntax
 ```dafny
 c := new C;
 ```
 This constructor simply initializes the fields of the class.
-The declaration of a const field may include an initializer, that is, a right-hand side (RHS) that specifies the constant's value. 
+The declaration of a const field may include an initializer, that is, a right-hand side (RHS) that specifies the constant's value.
 The RHS of a const field may depend on other constant fields, but circular dependencies are not allowed.
 
 This constructor sets each class field to an arbitrary value
-of the field's type if the field declaration has no initializer 
-and to the value of the initializer expression if it does declare an initializer. 
+of the field's type if the field declaration has no initializer
+and to the value of the initializer expression if it does declare an initializer.
 For the purposes of proving Dafny programs
-correct, assigning an arbitrary initial value means that the program must 
+correct, assigning an arbitrary initial value means that the program must
 be correct for any initial value. Compiled, executable versions of the program
-may use a specific initial value 
-(for example, but not necessarily, a zero-equivalent value).
+may use a specific initial value
+(for example, but not necessarily, a zero-equivalent or a declared _witness_ value for the type).
 
 #### Classes with one or more constructors
- 
-When one or more constructors are explicitly declared, they are named, 
+
+When one or more constructors are explicitly declared, they are named,
 which promotes using names like `InitFromList` above.
 Constructors must have distinct names, even if their signatures are different.
 Many classes have just
 one constructor or have a typical constructor.  Therefore, Dafny
 allows one _anonymous constructor_, that is, a constructor whose name
-is essentially "".  For example:
+is essentially "" (an empty string).  For example:
 ```dafny
 class Item {
   constructor I(xy: int) // ...
@@ -1976,23 +1301,23 @@ dropping the "`.`".
 
 #### Two-phase constructors
 
-The body of a constructor contains two sections, 
+The body of a constructor contains two sections,
 an initialization phase and a post-initialization phase, separated by a `new;` statement.
-If there is no `new;` statement, the entire body is the initialization phase. 
-The initialization phase is intended to initialize field variables. 
+If there is no `new;` statement, the entire body is the initialization phase.
+The initialization phase is intended to initialize field variables.
 In this phase, uses of the object reference `this` are restricted;
 a program may use `this`
 
- - as the receiver on the LHS, 
- - as the entire RHS of an assignment to a field of `this`, 
+ - as the receiver on the LHS,
+ - as the entire RHS of an assignment to a field of `this`,
  - and as a member of a set on the RHS that is being assigned to a field of `this`.
 
-Furthermore, `const` fields may only be assigned to in an initialization phase 
+Furthermore, `const` fields may only be assigned to in an initialization phase
 (and may be assigned to more than once)
 of their enclosing class, and then only if they do not already have an initialization
 value in their declaration.
 
-There are no restrictions on expressions or statements in the post-initialization phase. 
+There are no restrictions on expressions or statements in the post-initialization phase.
 
 ### Lemmas
 Sometimes there are steps of logic required to prove a program correct,
@@ -2008,6 +1333,7 @@ Section [#sec-proofs-in-dafny].
 See [the Dafny Lemmas tutorial](http://rise4fun.com/Dafny/tutorial/Lemmas)
 for more examples and hints for using lemmas.
 
+### Two-state lemmas and functions
 TO BE WRITTEN - two-state lemmas; unchanged predicate
 
 ## Function Declarations
@@ -2016,10 +1342,12 @@ TO BE WRITTEN - two-state lemmas; unchanged predicate
 FunctionDecl =
   ( "function" [ "method" ] { Attribute }
     FunctionName
-    FunctionSignatureOrEllipsis_(allowGhostKeyword: ("method" present))
+    FunctionSignatureOrEllipsis_(allowGhostKeyword:
+                                           ("method" present))
   | "predicate" [ "method" ] { Attribute }
     PredicateName
-    PredicateSignatureOrEllipsis_(allowGhostKeyword: ("method" present))
+    PredicateSignatureOrEllipsis_(allowGhostKeyword:
+                                           ("method" present))
   | "inductive" "predicate" { Attribute }
     PredicateName
     PredicateSignatureOrEllipsis_(allowGhostKeyword: false)
@@ -2030,19 +1358,22 @@ FunctionDecl =
   FunctionSpec [ FunctionBody ]
 
 FunctionSignatureOrEllipsis_(allowGhostKeyword) =
-    FunctionSignature_ | SignatureEllipsis_
+  FunctionSignature_ | SignatureEllipsis_
+
 FunctionSignature_(allowGhostKeyword) =
-    [ GenericParameters ] Formals(allowGhostKeyword) ":" Type
+  [ GenericParameters ] Formals(allowGhostKeyword) ":" Type
 
 PredicateSignatureOrEllipsis_(allowGhostKeyword) =
-    PredicateSignature_(allowGhostKeyword) | SignatureEllipsis_
-PredicateSignature_(allowGhostKeyword) =
-    [ GenericParameters ] Formals(allowGhostKeyword)
+  PredicateSignature_(allowGhostKeyword) | SignatureEllipsis_
 
-FunctionBody = "{" Expression(allowLemma: true, allowLambda: true) "}"
+PredicateSignature_(allowGhostKeyword) =
+  [ GenericParameters ] Formals(allowGhostKeyword)
+
+FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
+               "}"
 ````
-In the above productions, allowGhostKeyword is true if the optional
-"method" keyword was specified. This allows some of the
+In the above productions, `allowGhostKeyword` is true if the optional
+`method` keyword was specified. This allows some of the
 formal parameters of a function method to be specified as ghost.
 
 See section [#sec-function-specification] for a description of ``FunctionSpec``.
@@ -2065,18 +1396,19 @@ function {:att1}{:att2} F<T1, T2>(a: A, b: B, c: C): T
 
 where `:att1` and `:att2` are attributes of the function, if any, `T1`
 and `T2` are type parameters of the function (if generic), `a, b, c` are
-the functions’s parameters, `T` is the type of the function’s result,
+the function’s parameters, `T` is the type of the function’s result,
 `Pre` is a boolean expression denoting the function’s precondition,
 `Frame` denotes a set of objects whose fields the function body may
 depend on, `Post` is a boolean expression denoting the function’s
 postcondition, `Rank` is the function’s variant function, and `Body` is
-an expression that defines the function return value. The precondition
+an expression that defines the function's return value. The precondition
 allows a function to be partial, that is, the precondition says when the
 function is defined (and Dafny will verify that every use of the function
 meets the precondition). The postcondition is usually not needed, since
 the body of the function gives the full definition. However, the
 postcondition can be a convenient place to declare properties of the
-function that may require an inductive proof to establish. For example:
+function that may require an inductive proof to establish, such as when
+the function is recursive. For example:
 
 ````grammar
 function Factorial(n: int): int
@@ -2088,33 +1420,36 @@ function Factorial(n: int): int
 ````
 
 says that the result of Factorial is always positive, which Dafny
-verifies inductively from the function body. To refer to the function’s
-result in the postcondition, use the function itself, as shown in the
-example.
+verifies inductively from the function body.
 
-By default, a function is *ghost*, and cannot be called from non-ghost
+By default, a function is ghost, and cannot be called from non-ghost
 code. To make it non-ghost, replace the keyword function with the two
-keywords "function method".
+keywords "`function method`".
 
-By default, a function has an implicit receiver parameter, `this`. This
-parameter can be removed by preceding the function declaration with the
-keyword `static`. A static function `F` in a class `C` can be invoked
-by `C.F(…)`. This can give a convenient way to declare a number of helper
+Like methods, functions can be either _instance_ (which they are be default) or
+_static_ (when the function declaration contains the keyword `static`).
+An instance function, but not a static function, has an implicit receiver parameter, `this`.  A static function `F` in a class `C` can be invoked
+by `C.F(…)`. This provides a convenient way to declare a number of helper
 functions in a separate class.
 
 As for methods, a ``SignatureEllipsis_`` is used when declaring
 a function in a module refinement. For example, if module `M0` declares
 function `F`, a module `M1` can be declared to refine `M0` and
 `M1` can then refine `F`. The refinement function, `M1.F` can have
-a ``SignatureEllipsis_`` which means to copy the signature form
+a ``SignatureEllipsis_`` which means to copy the signature from
 `M0.F`. A refinement function can furnish a body for a function
-(if `M0.F` does not provide one). It can also add **ensures**
-clauses. And if `F` is a predicate, it can add conjuncts to
-a previously given body.
+(if `M0.F` does not provide one). It can also add `ensures`
+clauses.
+
+### Predicates
+A function that returns a `bool` result is called a _predicate_. As an
+alternative syntax, a predicate can be declared by replacing the `function`
+keyword with the `predicate` keyword and omitting a declaration of the
+return type.
 
 ### Function Transparency
 A function is said to be _transparent_ in a location if the
-contents of the body of the function is visible at that point.
+body of the function is visible at that point.
 A function is said to be _opaque_ at a location if it is not
 transparent. However the ``FunctionSpec`` of a function
 is always available.
@@ -2122,6 +1457,8 @@ is always available.
 A function is usually transparent up to some unrolling level (up to
 1, or maybe 2 or 3). If its arguments are all literals it is
 transparent all the way.
+
+**The protected modifier is being deprecated**
 
 But the transparency of a function is affected by the following:
 
@@ -2133,13 +1470,11 @@ The following table summarizes where the function is transparent.
 The module referenced in the table is the module in which the
 function is defined.
 
- Protected? | `{:opaque}`? | Transparent | Transparent 
-            |              | Inside      | Outside     
-            |              | Module      | Module      
+ Protected? | `{:opaque}`? | Transparent Inside Module | Transparent Outside Module
 :----------:|:------------:|:-----------:|:-----------:
- N          | N            | Y           | Y           
- Y          | N            | Y           | N           
- N          | Y            | N           | N           
+ N          | N            | Y           | Y
+ Y          | N            | Y           | N
+ N          | Y            | N           | N
 
 When `{:opaque}` is specified for function `g`, `g` is opaque,
 however the lemma `reveal_g` is available to give the semantics
@@ -2148,23 +1483,20 @@ of `g` whether in the defining module or outside.
 It currently is not allowed to have both `protected` and
 `{:opaque}` specified for a function.
 
-### Predicates
-A function that returns a `bool` results is called a _predicate_. As an
-alternative syntax, a predicate can be declared by replacing the `function`
-keyword with the `predicate` keyword and omitting a declaration of the
-return type.
-
 ### Inductive Predicates and Lemmas
 See section [#sec-friendliness] for descriptions
 of inductive predicates and lemmas.
 
 # Trait Types
 ````grammar
-TraitDecl = "trait" { Attribute } TraitName [ GenericParameters ]
-  "{" { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) } "}"
+TraitDecl =
+  "trait" { Attribute } TraitName [ GenericParameters ]
+  "{"
+   { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) }
+  "}"
 ````
 
-A _trait_ is an "abstract superclass", or call it an "interface" or
+A _trait_ is an abstract superclass, similar to an "interface" or
 "mixin".  Traits are new to Dafny and are likely to evolve for a
 while.
 
@@ -2172,15 +1504,18 @@ The declaration of a trait is much like that of a class:
 ```dafny
 trait J
 {
-  \(_members_\)
+  _members_
 }
 ```
-where `\(_members_\)` can include fields, functions, and methods, but
+where _members_ can include fields, functions, methods and declarations of nested traits, but
 no constructor methods.  The functions and methods are allowed to be
 declared `static`.
 
-A reference type `C` that extends a trait `J` is assignable to `J`, but
-not the other way around.  The members of `J` are available as members
+A reference type `C` that extends a trait `J` is assignable to `J`;
+a value of `J` is assignable to a variable of a reference type that
+extends `J` only if the verifier can prove that the reference does
+indeed refer to an object of allocated type `C`.
+The members of `J` are available as members
 of `C`.  A member in `J` is not allowed to be redeclared in `C`,
 except if the member is a non-`static` function or method without a
 body in `J`.  By doing so, type `C` can supply a stronger
@@ -2188,7 +1523,7 @@ specification and a body for the member.
 
 `new` is not allowed to be used with traits.  Therefore, there is no
 object whose allocated type is a trait.  But there can of course be
-objects of a class `C` that implements a trait `J`, and a reference to
+objects of a class `C` that implement a trait `J`, and a reference to
 such a `C` object can be used as a value of type `J`.
 
 As an example, the following trait represents movable geometric shapes:
@@ -2206,11 +1541,11 @@ trait Shape
   }
 }
 ```
-Members `Width` and `Move` are _abstract_ (that is, body less) and can
+Members `Width` and `Move` are _abstract_ (that is, body-less) and can
 be implemented differently by different classes that extend the trait.
 The implementation of method `MoveH` is given in the trait and thus
-gets used by all classes that extend `Shape`.  Here are two classes
-that each extends `Shape`:
+is used by all classes that extend `Shape`.  Here are two classes
+that each extend `Shape`:
 ```dafny
 class UnitSquare extends Shape
 {
@@ -2258,13 +1593,18 @@ myShapes := myShapes + [tri];
 myShapes[1].MoveH(myShapes[0].Width());
 ```
 
+Traits can extend other traits, inheriting all the members of the parent
+traits. As with inheritance in a class declaration, a trait may not
+redeclare a member of a parent trait, except is the member is a
+non-static function or method without a body in the parent.
+
 # Array Types
 ````grammar
 ArrayType_ = arrayToken [ GenericInstantiation ]
 ````
 
 Dafny supports mutable fixed-length _array types_ of any positive
-dimension.  Array types are reference types.
+dimension.  Array types are (heap-based) reference types.
 
 ## One-dimensional arrays
 
@@ -2279,6 +1619,7 @@ member.  For example, the array allocated above satisfies:
 ```dafny
 a.Length == n
 ```
+Once an array is allocated, its length cannot be changed.
 
 For any integer-based numeric `i` in the range `0 <= i < a.Length`,
 the _array selection_ expression `a[i]` retrieves element `i` (that
@@ -2319,16 +1660,16 @@ consecutive elements into a sequence.  For any array `a` of type
 `0 <= lo <= hi <= a.Length`, the following operations each yields a
 `seq<T>`:
 
- expression          | description                        
+ expression          | description
 ---------------------|------------------------------------
- `a[lo..hi]`         | subarray conversion to sequence    
- `a[lo..]`           | drop                               
- `a[..hi]`           | take                               
- `a[..]`             | array conversion to sequence       
+ `a[lo..hi]`         | subarray conversion to sequence
+ `a[lo..]`           | drop
+ `a[..hi]`           | take
+ `a[..]`             | array conversion to sequence
 
 The expression `a[lo..hi]` takes the first `hi` elements of the array,
 then drops the first `lo` elements thereof and returns what remains as
-a sequence.  The resulting sequence thus has length `hi - lo`.
+a sequence, with length `hi - lo`.
 The other operations are special instances of the first.  If `lo` is
 omitted, it defaults to `0` and if `hi` is omitted, it defaults to
 `a.Length`.
@@ -2384,12 +1725,13 @@ create a 2-dimensional array whose dimensions have lengths `m` and
 The type of `matrix` is `array2<T>`, and similarly for
 higher-dimensional arrays (`array3<T>`, `array4<T>`, etc.).  Note,
 however, that there is no type `array0<T>`, and what could have been
-`array1<T>` is actually named just `array<T>`.
+`array1<T>` is actually named just `array<T>`. (Accordingly, `array0` and `array1` are just
+normal identifiers, not type names.)
 
 The `new` operation above requires `m` and `n` to be non-negative
 integer-based numerics.  These lengths can be retrieved using the
 immutable fields `Length0` and `Length1`.  For example, the following
-holds of the array created above:
+holds for the array created above:
 ```dafny
 matrix.Length0 == m && matrix.Length1 == n
 ```
@@ -2406,20 +1748,20 @@ In contrast to one-dimensional arrays, there is no operation to
 convert stretches of elements from a multi-dimensional array to a
 sequence.
 
-# Type object
+# Type `object`
 ````grammar
 ObjectType_ = "object"
 ````
 
 There is a built-in trait `object` that is like a supertype of all
-reference types.[^fn-object-trait] Every class automatically extends
+reference types.
+Every class automatically extends
 object and so does every user-defined trait. The purpose of type `object`
 is to enable a uniform treatment of _dynamic frames_. In particular, it
 is useful to keep a ghost field (typically named `Repr` for
 "representation") of type `set<object>`.
 
-[^fn-object-trait]: The current compiler restriction that `object` cannot
-    be used as a type parameter needs to be removed.
+TODO: what fields, methjods, functions does `object` have?
 
 # Iterator types
 ````grammar
@@ -2442,10 +1784,10 @@ body.
 
 An iterator is declared as follows:
 ```dafny
-iterator Iter<T>(\(_in-params_\)) yields (\(_yield-params_\))
-  \(_specification_\)
+iterator Iter<T>(_in-params_) yields (_yield-params_)
+  _specification_
 {
-  \(_body_\)
+  _body_
 }
 ```
 where `T` is a list of type parameters (as usual, if there are no type
@@ -2466,7 +1808,7 @@ The `Iter<T>` class contains an anonymous constructor whose parameters
 are the iterator's in-parameters:
 ```dafny
 predicate Valid()
-constructor (\(_in-params_\))
+constructor (_in-params_)
   modifies this
   ensures Valid()
 ```
@@ -2479,8 +1821,8 @@ iterator Gen(start: int) yields (x: int)
   var i := 0;
   while i < 10 {
     x := start + i;
-	yield;
-	i := i + 1;
+    yield;
+    i := i + 1;
   }
 }
 ```
@@ -2531,7 +1873,7 @@ These history fields are changed automatically by `MoveNext`, but are
 not assignable by user code.
 
 Finally, the iterator class contains some special fields for use in
-specifications.  In particular, the iterator specification gets
+specifications.  In particular, the iterator specification is
 recorded in the following immutable fields:
 ```dafny
 ghost var _reads: set<object>
@@ -2540,21 +1882,21 @@ ghost var _decreases0: T0
 ghost var _decreases1: T1
 // ...
 ```
-where there is a `_decreases\(_i_\): T\(_i_\)` field for each
+where there is a `_decreases(_i_): T(_i_)` field for each
 component of the iterator's `decreases`
 clause.[^fn-iterator-field-names]
 In addition, there is a field:
 ```dafny
 ghost var _new: set<object>;
 ```
-to which any objects allocated on behalf of the iterator body get
+to which any objects allocated on behalf of the iterator body are
 added.  The iterator body is allowed to remove elements from the
 `_new` set, but cannot by assignment to `_new` add any elements.
 
 [^fn-iterator-field-names]:  It would make sense to rename the special
     fields `_reads` and `_modifies` to have the same names as the
     corresponding keywords, `reads` and `modifies`, as is done for
-    function values.  Also, the various `_decreases\(_i_\)` fields can
+    function values.  Also, the various `_decreases\(_i_\)` fields can be
     combined into one field named `decreases` whose type is a
     _n_-tuple. Thse changes may be incorporated into a future version
     of Dafny.
@@ -2563,9 +1905,9 @@ Note, in the precondition of the iterator, which is to hold upon
 construction of the iterator, the in-parameters are indeed
 in-parameters, not fields of `this`.
 
-It's regrettably tricky to use iterators. The language really
+It is regrettably tricky to use iterators. The language really
 ought to have a `foreach` statement to make this easier.
-Here is an example showing definition and use of an iterator.
+Here is an example showing a definition and use of an iterator.
 
 ```dafny
 iterator Iter<T>(s: set<T>) yields (x: T)
@@ -2652,7 +1994,7 @@ function F(x: int, b: bool): real
 is `(int, bool) -> real`.  Parameters are not allowed to be ghost.
 
 To simplify the appearance of the basic case where a function's
-domain consist of a list of exactly one type, the parentheses around
+domain consists of a list of exactly one non-function, non-tuple type, the parentheses around
 the domain type can be dropped in this case, as in `T -> U`.
 This innocent simplification requires additional explanation in the
 case where that one type is a tuple type, since tuple types are also
@@ -2690,7 +2032,7 @@ whereas it would have been incorrect to have written something like:
 var f': (C, int, bool) -> real := F;  // not correct
 ```
 
-Outside its type signature, each function value has three properties,
+In addition to its type signature, each function value has three properties,
 described next.
 
 Every function implicitly takes the heap as an argument.  No function
@@ -2745,31 +2087,35 @@ DatatypeDecl = ( InductiveDatatypeDecl | CoinductiveDatatypeDecl )
 ## Inductive datatypes
 
 ````grammar
-InductiveDatatypeDecl_ = "datatype" { Attribute } DatatypeName [ GenericParameters ]
-  "=" [ "|" ] DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ]
-DatatypeMemberDecl = { Attribute } DatatypeMemberName [ FormalsOptionalIds ]
+InductiveDatatypeDecl_ =
+  "datatype" { Attribute } DatatypeName [ GenericParameters ]
+  "=" [ "|" ] DatatypeMemberDecl { "|" DatatypeMemberDecl }
+  [ ";" ]
+
+DatatypeMemberDecl =
+  { Attribute } DatatypeMemberName [ FormalsOptionalIds ]
 ````
 
 The values of inductive datatypes can be seen as finite trees where
 the leaves are values of basic types, numeric types, reference types,
 co-inductive datatypes, or function types.  Indeed, values of
 inductive datatypes can be compared using Dafny's well-founded
-[<]{.monospace} ordering.
+`<` ordering.
 
 An inductive datatype is declared as follows:
 ```dafny
-datatype D<T> = \(_Ctors_\)
+datatype D<T> = _Ctors_
 ```
-where `\(_Ctors_\)` is a nonempty `|`-separated list of
+where _Ctors_ is a nonempty `|`-separated list of
 _(datatype) constructors_ for the datatype.  Each constructor has the
 form:
 ```dafny
-C(\(_params_\))
+C(_params_)
 ```
-where `\(_params_\)` is a comma-delimited list of types, optionally
+where _params_ is a comma-delimited list of types, optionally
 preceded by a name for the parameter and a colon, and optionally
 preceded by the keyword `ghost`.  If a constructor has no parameters,
-the parentheses after the constructor name can be omitted.  If no
+the parentheses after the constructor name may be omitted.  If no
 constructor takes a parameter, the type is usually called an
 _enumeration_; for example:
 ```dafny
@@ -2849,9 +2195,11 @@ might have been declared as:
 ```dafny
 datatype Pair<T,U> = Pair(0: T, 1: U)
 ```
-Dafny provides as the type `(T, U)` and the constructor `(t, u)`, as
-if the datatype's name were "" and its type arguments are given in
-round parentheses, and as if the constructor name were "".  Note that
+Dafny provides the type `(T, U)` and the constructor `(t, u)`, as
+if the datatype's name were "" (i.e., an empty string)
+and its type arguments are given in
+round parentheses, and as if the constructor name were the empty string.
+Note that
 the destructor names are `0` and `1`, which are legal identifier names
 for members.  For example, showing the use of a tuple destructor, here
 is a property that holds of 2-tuples (that is, _pairs_):
@@ -2859,7 +2207,7 @@ is a property that holds of 2-tuples (that is, _pairs_):
 (5, true).1 == true
 ```
 
-Dafny declares _n_-tuples where _n_ is 0 or 2 or up.  There are no
+Dafny declares _n_-tuples where _n_ is 0 or 2 or more.  There are no
 1-tuples, since parentheses around a single type or a single value have
 no semantic meaning.  The 0-tuple type, `()`, is often known as the
 _unit type_ and its single value, also written `()`, is known as _unit_.
@@ -2867,14 +2215,17 @@ _unit type_ and its single value, also written `()`, is known as _unit_.
 ## Co-inductive datatypes
 
 ````grammar
-CoinductiveDatatypeDecl_ = "codatatype" { Attribute } DatatypeName [ GenericParameters ]
-  "=" DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ]
+CoinductiveDatatypeDecl_ =
+  "codatatype" { Attribute } DatatypeName
+  [ GenericParameters ] "="
+  DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ]
 ````
 
 Whereas Dafny insists that there is a way to construct every inductive
 datatype value from the ground up, Dafny also supports
-_co-inductive datatypes_, whose constructors are evaluated lazily and
-hence allows infinite structures.  A co-inductive datatype is declared
+_co-inductive datatypes_, whose constructors are evaluated lazily, and
+hence the language allows infinite structures.
+A co-inductive datatype is declared
 using the keyword `codatatype`; other than that, it is declared and
 used like an inductive datatype.
 
@@ -2893,18 +2244,18 @@ The paper [Co-induction Simply], by Leino and
 Moskal[@LEINO:Dafny:Coinduction], explains Dafny's implementation and
 verification of co-inductive types. We capture the key features from that
 paper in this section but the reader is referred to that paper for more
-complete details and to supply bibliographic references that we have
-omitted.
+complete details and to supply bibliographic references that are
+omitted here.
 
 Mathematical induction is a cornerstone of programming and program
 verification. It arises in data definitions (e.g., some algebraic data
 structures can be described using induction), it underlies program
 semantics (e.g., it explains how to reason about finite iteration and
-recursion), and it gets used in proofs (e.g., supporting lemmas about
+recursion), and it is used in proofs (e.g., supporting lemmas about
 data structures use inductive proofs). Whereas induction deals with
 finite things (data, behavior, etc.), its dual, co-induction, deals with
 possibly infinite things. Co-induction, too, is important in programming
-and program verification, where it arises in data definitions (e.g., lazy
+and program verification: it arises in data definitions (e.g., lazy
 data structures), semantics (e.g., concurrency), and proofs (e.g.,
 showing refinement in a co-inductive big-step semantics). It is thus
 desirable to have good support for both induction and co-induction in a
@@ -2925,7 +2276,7 @@ Dafny come together to give straightforward definitions of infinite
 matters.
 ```dafny
 // infinite streams
-codatatype IStream<T> = ICons(head: T, tail: IStream)
+codatatype IStream<T> = ICons(head: T, tail: IStream<T>)
 
 // pointwise product of streams
 function Mult(a: IStream<int>, b: IStream<int>): IStream<int>
@@ -2933,11 +2284,13 @@ function Mult(a: IStream<int>, b: IStream<int>): IStream<int>
 
 // lexicographic order on streams
 copredicate Below(a: IStream<int>, b: IStream<int>)
-{ a.head <= b.head && ((a.head == b.head) ==> Below(a.tail, b.tail)) }
+{ a.head <= b.head &&
+  ((a.head == b.head) ==> Below(a.tail, b.tail))
+}
 
 // a stream is Below its Square
 colemma Theorem_BelowSquare(a: IStream<int>)
-ensures Below(a, Mult(a, a))
+  ensures Below(a, Mult(a, a))
 { assert a.head <= Mult(a, a).head;
   if a.head == Mult(a, a).head {
     Theorem_BelowSquare(a.tail);
@@ -2952,7 +2305,7 @@ colemma NotATheorem_SquareBelow(a: IStream<int>)
 }
 ```
 
-It defines a type `IStream` of infinite streams, with constructor `ICons` and
+The example defines a type `IStream` of infinite streams, with constructor `ICons` and
 destructors `head` and `tail`. Function `Mult` performs pointwise
 multiplication on infinite streams of integers, defined using a
 co-recursive call (which is evaluated lazily). Co-predicate `Below` is
@@ -2978,11 +2331,11 @@ reduces the tedium in writing co-inductive proofs. For example, it
 verifies `Theorem_BelowSquare` from the program text given above— no
 additional lemmas or tactics are needed. In fact, as a consequence of the
 automatic-induction heuristic in Dafny, the verifier will
-automatically verify Theorem_BelowSquare even given an empty body.
+automatically verify `Theorem_BelowSquare` even given an empty body.
 
 Just like there are restrictions on when an _inductive hypothesis_ can be
-invoked, there are restriction on how a _co-inductive_ hypothesis can be
-_used_. These are, of course, taken into consideration by our verifier.
+invoked, there are restrictions on how a _co-inductive_ hypothesis can be
+_used_. These are, of course, taken into consideration by Dafny's verifier.
 For example, as illustrated by the second co-lemma above, invoking the
 co-inductive hypothesis in an attempt to obtain the entire proof goal is
 futile. (We explain how this works in section [#sec-colemmas]) Our initial experience
@@ -3004,25 +2357,25 @@ can mutate the state of the program. A function is defined by its given
 body, which is an expression. To ensure that function definitions
 are mathematically consistent, Dafny insists that recursive calls be well-founded,
 enforced as follows: Dafny computes the call graph of functions. The strongly connected
-components within it are _clusters_ of mutually recursive definitions arranged in
+components within it are _clusters_ of mutually recursive definitions; the clusters are arranged in
 a DAG. This stratifies the functions so that a call from one cluster in the DAG to a
 lower cluster is allowed arbitrarily. For an intra-cluster call, Dafny prescribes a proof
-obligation that gets taken through the program verifier’s reasoning engine. Semantically,
+obligation that is taken through the program verifier’s reasoning engine. Semantically,
 each function activation is labeled by a _rank_—a lexicographic tuple determined
-by evaluating the function’s **decreases** clause upon invocation of the function. The
+by evaluating the function’s `decreases` clause upon invocation of the function. The
 proof obligation for an intra-cluster call is thus that the rank of the callee is strictly less
 (in a language-defined well-founded relation) than the rank of the caller. Because
 these well-founded checks correspond to proving termination of executable code, we
 will often refer to them as “termination checks”. The same process applies to methods.
 
 Lemmas in Dafny are commonly introduced by declaring a method, stating
-the property of the lemma in the _postcondition_ (keyword **ensures**) of
+the property of the lemma in the _postcondition_ (keyword `ensures`) of
 the method, perhaps restricting the domain of the lemma by also giving a
-_precondition_ (keyword **requires**), and using the lemma by invoking
+_precondition_ (keyword `requires`), and using the lemma by invoking
 the method. Lemmas are stated, used, and proved as methods, but
 since they have no use at run time, such lemma methods are typically
 declared as _ghost_, meaning that they are not compiled into code. The
-keyword **lemma** introduces such a method. Control flow statements
+keyword `lemma` introduces such a method. Control flow statements
 correspond to proof techniques—case splits are introduced with if
 statements, recursion and loops are used for induction, and method calls
 for structuring the proof. Additionally, the statement:
@@ -3068,7 +2421,7 @@ sit in productive positions and are therefore classified as co-recursive
 calls, exempt from termination checks. The second self-call in `FivesUp` is
 not in a productive position and is therefore subject to termination
 checking; in particular, each recursive call must decrease the rank
-defined by the **decreases** clause.
+defined by the `decreases` clause.
 
 Analogous to the common finite list datatype, Stream declares two
 constructors, `SNil` and `SCons`. Values can be destructed using match
@@ -3104,13 +2457,13 @@ termination checks.
 
 A consequence of the productivity checks and termination checks is that, even in the
 absence of talking about least or greatest fix-points of self-calling functions, all functions
-in Dafny are deterministic. Since there is no issue of several possible fix-points,
+in Dafny are deterministic. Since there cannot be multiple fix-points,
 the language allows one function to be involved in both recursive and co-recursive calls,
 as we illustrate by the function `FivesUp`.
 
 ### Copredicates
 Determining properties of co-datatype values may require an infinite
-number of observations. To that avail, Dafny provides _co-predicates_
+number of observations. To that end, Dafny provides _co-predicates_
 which are function declarations that use the `copredicate` keyword.
 Self-calls to a co-predicate need not terminate. Instead, the value
 defined is the greatest fix-point of the given recurrence equations.
@@ -3412,10 +2765,10 @@ type `int8`, which it is not.  A proper way to write this expression
 would be to use a conversion operation, described next, on `c` to
 convert it to the base type:
 ```dafny
--128 <= int(c) < 128
+-128 <= c as int < 128
 ```
 
-If possible, Dafny will represent values of the newtype using
+If possible, Dafny compilers will represent values of the newtype using
 a native data type for the sake of efficiency. This action can
 be inhibited or a specific native data type selected by
 using the `{:nativeType}` attribute, as explained in
@@ -3427,7 +2780,7 @@ newtype.[^fn-newtype-zero]
 Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
-of basic operations and symbolic constants are also allowed as described 
+of basic operations and symbolic constants are also allowed as described
 in [Section: Compile-Time Constants](#sec-compile-time-constants).
 
 [^fn-newtype-zero]: The restriction is due to a current limitation in
@@ -3438,31 +2791,43 @@ in [Section: Compile-Time Constants](#sec-compile-time-constants).
 ## Numeric conversion operations
 
 For every numeric type `N`, there is a conversion function with the
-same name.  It is a partial identity function.  It is defined when the
+name `as N`.  It is a partial identity function.  It is defined when the
 given value, which can be of any numeric type, is a member of the type
 converted to.  When the conversion is from a real-based numeric type
 to an integer-based numeric type, the operation requires that the
-real-based argument has no fractional part.  (To round a real-based
+real-based argument have no fractional part.  (To round a real-based
 numeric value down to the nearest integer, use the `.Floor` member,
 see Section [#sec-numeric-types].)
 
 To illustrate using the example from above, if `lo` and `hi` have type
 `int32`, then the code fragment can legally be written as follows:
 ```dafny
-var mid := (int(lo) + int(hi)) / 2;
+var mid := (lo as int + hi as int) / 2;
 ```
 where the type of `mid` is inferred to be `int`.  Since the result
 value of the division is a member of type `int32`, one can introduce
 yet another conversion operation to make the type of `mid` be `int32`:
 ```dafny
-var mid := int32((int(lo) + int(hi)) / 2);
+var mid := int32(lo as int + hi as int) / 2);
 ```
 If the compiler does specialize the run-time representation for
 `int32`, then these statements come at the expense of two,
 respectively three, run-time conversions.
 
-# Subset types
+The `as N` conversion operation is grammatically a suffix operation like
+`.`_field and array indsexing. Thus the as operawtion binds more tightly than
+p[refix or binary operations: `- x as int` is `- (x as int)`; `a + b as int` is `a + (b as int)`.
+
+TODO: Move this section to Expressions?
+
+# Subset types {#sec-subset-types}
 TO BE WRITTEN: add `-->` (subset of `~>`), `->` (subset of `-->`), non-null types subset of nullable types
+
+````grammar
+SubsetTypeDecl = "type" { Attribute } NewtypeName OptGenericParameters "="
+  Ident [ ":" Type ] "|" Expression(allowLemma: false, allowLambda: true)
+    [ "witness" Expression(allowLemma: false, allowLambda: true) ]
+````
 
 ````grammar
 NatType_ = "nat"
@@ -3482,7 +2847,7 @@ are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
 Section [#sec-numeric-conversion-operations].)
 
-Dafny supports one subset type, namely the built-in type `nat`,
+Dafny supports a builtin subset type, namely the built-in type `nat`,
 whose base type is `int`.[^fn-more-subset-types]  Type `nat`
 designates the non-negative subrange of `int`.  A simple example that
 puts subset type `nat` to good use is the standard Fibonacci
@@ -3506,8 +2871,7 @@ function Fib(n: int): int
 }
 ```
 
-[^fn-more-subset-types]:  A future version of Dafny will support
-    user-defined subset types.
+TODO: I think the following is false, or at least should be.
 
 Type inference will never infer the type of a variable to be a
 subset type.  It will instead infer the type to be the base type
