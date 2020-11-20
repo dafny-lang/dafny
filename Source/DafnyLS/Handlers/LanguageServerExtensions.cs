@@ -1,4 +1,5 @@
-﻿using OmniSharp.Extensions.LanguageServer.Server;
+﻿using Microsoft.Dafny.LanguageServer.Handlers.Custom;
+using OmniSharp.Extensions.LanguageServer.Server;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
@@ -18,7 +19,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         .WithHandler<DafnyHoverHandler>()
         .WithHandler<DafnyDefinitionHandler>()
         .WithHandler<DafnyCompletionHandler>()
-        .WithHandler<DafnySignatureHelpHandler>();
+        .WithHandler<DafnySignatureHelpHandler>()
+        .WithHandler<DafnyCounterExampleHandler>();
     }
   }
 }
