@@ -35,12 +35,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
     }
 
     private class CounterExampleLoader {
-      private const string InitialStateLineSuffix = ":initial state";
-      private const string ReferenceValuePrefix = "(T@U!val!";
-      private const string ReferenceValuePlaceholder = "[Object Reference]";
-
+      private const string InitialStateName = "<initial>";
       private static readonly Regex StatePositionRegex = new Regex(
-        @".*\.dfy\((?<line>\d+),(?<character>\d+)\)\:initial state",
+        @".*\.dfy\((?<line>\d+),(?<character>\d+)\)",
         RegexOptions.IgnoreCase | RegexOptions.Singleline
       );
 
@@ -60,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
           return new CounterExampleList();
         }
         var counterExamples = GetLanguageSpecificModels(_document.SerializedCounterExamples)
-          .Select(GetCounterExample)
+          .SelectMany(GetCounterExamples)
           .ToArray();
         return new CounterExampleList(counterExamples);
       }
@@ -78,24 +75,23 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         return Provider.Instance.GetLanguageSpecificModel(model, new ViewOptions { DebugMode = true, ViewLevel = 3 });
       }
 
-      private CounterExampleItem GetCounterExample(ILanguageSpecificModel model) {
-        var initialState = FindInitialState(model);
-        return new CounterExampleItem(
-          GetPositionFromInitialState(initialState),
-          GetVariablesFromState(initialState)
-        );
-      }
-
-      private StateNode FindInitialState(ILanguageSpecificModel model) {
+      private IEnumerable<CounterExampleItem> GetCounterExamples(ILanguageSpecificModel model) {
         return model.States
           .WithCancellation(_cancellationToken)
           .OfType<StateNode>()
-          .Where(IsInitialState)
-          .Single();
+          .Where(state => !IsInitialState(state))
+          .Select(GetCounterExample);
       }
 
-      private bool IsInitialState(IState state) {
-        return state.Name.EndsWith(InitialStateLineSuffix);
+      private bool IsInitialState(StateNode state) {
+        return state.Name.Equals(InitialStateName);
+      }
+
+      private CounterExampleItem GetCounterExample(StateNode state) {
+        return new CounterExampleItem(
+          GetPositionFromInitialState(state),
+          GetVariablesFromState(state)
+        );
       }
 
       private Position GetPositionFromInitialState(IState state) {
