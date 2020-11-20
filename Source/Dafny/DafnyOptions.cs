@@ -754,10 +754,8 @@ namespace Microsoft.Dafny
                 implicitly static and fields declarations are not allowed at the module scope.
   /countVerificationErrors:<n>
                 [ deprecated ]
-                0 - If there are no command-line errors, set exit code to 0 regardless of
-                    the presence of any other errors.
-                1 (default) - If preprocessing succeeds, emit usual exit code
-                    (cf. beginning of the help message).
+                0 - Set exit code to 0 regardless of the presence of any other errors.
+                1 (default) - Emit usual exit code (cf. beginning of the help message).
   /autoTriggers:<n>
                 0 - Do not generate {:trigger} annotations for user-level quantifiers.
                 1 (default) - Add a {:trigger} to each user-level quantifier. Existing

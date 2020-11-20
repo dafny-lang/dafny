@@ -1268,7 +1268,7 @@ namespace Microsoft.Dafny
     public override Expression CloneExpr(Expression expr) {
       if (DafnyOptions.O.RewriteFocalPredicates) {
         if (expr is FunctionCallExpr) {
-          var e = (FunctionCallExpr)expr;
+          var e = (FunctionCallExpr) expr;
 #if DEBUG_PRINT
           if (e.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => e.Function.Name == p.Name + "#")) {
             Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(e));
@@ -1288,6 +1288,8 @@ namespace Microsoft.Dafny
             return CloneCallAndAddK(e);
 #endif
           }
+        } else if (expr is StaticReceiverExpr ee) {
+          return new StaticReceiverExpr(Tok(ee.tok), ee.Type, ee.IsImplicit);
         } else if (expr is ApplySuffix) {
           var apply = (ApplySuffix)expr;
           if (!apply.WasResolved()) {
