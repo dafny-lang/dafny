@@ -11,17 +11,28 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public DocumentUri Uri => Text.Uri;
     public long Version => Text.Version;
 
-    public Microsoft.Dafny.Program Program { get; }
+    public Dafny.Program Program { get; }
     public ErrorReporter Errors { get; }
     public SymbolTable SymbolTable { get; }
 
+    /// <summary>
+    /// Gets the counter example if the verifier reported issues. <c>null</c> if there
+    /// are no verification errors.
+    /// </summary>
+    public string? CounterExample { get; }
+
     public DafnyDocument(
-        TextDocumentItem textDocument, ErrorReporter errors, Microsoft.Dafny.Program program, SymbolTable symbolTable
+        TextDocumentItem textDocument,
+        ErrorReporter errors,
+        Dafny.Program program,
+        SymbolTable symbolTable,
+        string? counterExample
     ) {
       Text = textDocument;
       Program = program;
       Errors = errors;
       SymbolTable = symbolTable;
+      CounterExample = counterExample;
     }
 
 
