@@ -16,23 +16,23 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public SymbolTable SymbolTable { get; }
 
     /// <summary>
-    /// Gets the counter example if the verifier reported issues. <c>null</c> if there
-    /// are no verification errors.
+    /// Gets the serialized models of the counter examples if the verifier reported issues.
+    /// <c>null</c> if there are no verification errors.
     /// </summary>
-    public string? CounterExample { get; }
+    public string? SerializedCounterExamples { get; }
 
     public DafnyDocument(
         TextDocumentItem textDocument,
         ErrorReporter errors,
         Dafny.Program program,
         SymbolTable symbolTable,
-        string? counterExample
+        string? serializedCounterExamples
     ) {
       Text = textDocument;
       Program = program;
       Errors = errors;
       SymbolTable = symbolTable;
-      CounterExample = counterExample;
+      SerializedCounterExamples = serializedCounterExamples;
     }
 
 
@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     /// <param name="token">The token to check.</param>
     /// <returns><c>true</c> if the given token belongs to this document.</returns>
-    public bool IsPartOf(Microsoft.Boogie.IToken token) {
+    public bool IsPartOf(Boogie.IToken token) {
       return Program.IsPartOfEntryDocument(token);
     }
 

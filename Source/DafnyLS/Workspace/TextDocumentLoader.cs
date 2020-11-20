@@ -23,8 +23,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var program = await _parser.ParseAsync(textDocument, errorReporter, cancellationToken);
       var compilationUnit = await _symbolResolver.ResolveSymbolsAsync(textDocument, program, cancellationToken);
       var symbolTable = _symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
-      var counterExample = await _verifier.VerifyAsync(program, cancellationToken);
-      return new DafnyDocument(textDocument, errorReporter, program, symbolTable, counterExample);
+      var serializedCounterExamples = await _verifier.VerifyAsync(program, cancellationToken);
+      return new DafnyDocument(textDocument, errorReporter, program, symbolTable, serializedCounterExamples);
     }
   }
 }

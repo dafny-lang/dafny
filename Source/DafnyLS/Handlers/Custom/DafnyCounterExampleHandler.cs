@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -56,18 +55,18 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       public CounterExampleList GetCounterExamples() {
-        if(_document.CounterExample == null) {
+        if(_document.SerializedCounterExamples == null) {
           _logger.LogDebug("got no counter-examples for document {}", _document.Uri);
           return new CounterExampleList();
         }
-        var counterExamples = GetLanguageSpecificModels(_document.CounterExample)
+        var counterExamples = GetLanguageSpecificModels(_document.SerializedCounterExamples)
           .Select(GetCounterExample)
           .ToArray();
         return new CounterExampleList(counterExamples);
       }
 
-      private IEnumerable<ILanguageSpecificModel> GetLanguageSpecificModels(string counterExample) {
-        using(var counterExampleReader = new StringReader(counterExample)) {
+      private IEnumerable<ILanguageSpecificModel> GetLanguageSpecificModels(string serializedCounterExamples) {
+        using(var counterExampleReader = new StringReader(serializedCounterExamples)) {
           return Model.ParseModels(counterExampleReader)
             .WithCancellation(_cancellationToken)
             .Select(GetLanguagSpecificModel);

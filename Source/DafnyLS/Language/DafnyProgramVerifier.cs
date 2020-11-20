@@ -64,7 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           cancellationToken.ThrowIfCancellationRequested();
           VerifyWithBoogie(boogieProgram, program.reporter, cancellationToken);
         }
-        return printer.CounterExampleModel;
+        return printer.SerializedCounterExamples;
       } finally {
         _mutex.Release();
       }
@@ -102,9 +102,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private class ModelCapturingOutputPrinter : OutputPrinter {
       private readonly ILogger _logger;
-      private StringBuilder? _counterExampleModel;
+      private StringBuilder? _serializedCounterExamples;
 
-      public string? CounterExampleModel => _counterExampleModel?.ToString();
+      public string? SerializedCounterExamples => _serializedCounterExamples?.ToString();
 
       public ModelCapturingOutputPrinter(ILogger logger) {
         _logger = logger;
@@ -133,8 +133,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         if(errorInfo.Model is StringWriter modelString) {
           // We do not know a-priori how many errors we'll receive. Therefore we capture all models
           // in a custom stringbuilder and reset the original one to not duplicate the outputs.
-          _counterExampleModel ??= new StringBuilder();
-          _counterExampleModel.Append(modelString.ToString());
+          _serializedCounterExamples ??= new StringBuilder();
+          _serializedCounterExamples.Append(modelString.ToString());
           modelString.GetStringBuilder().Clear();
         }
       }
