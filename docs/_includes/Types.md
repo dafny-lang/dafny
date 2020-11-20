@@ -2840,6 +2840,11 @@ of the newtype.  For example, by scrutinizing the definition of
 `int32` above, a compiler may decide to store `int32` values using
 signed 32-bit integers in the target hardware.
 
+This incompatibility of a newtype and its basetype is intentional,
+as newtypes are meant to be used as distinct types from the basetype.
+If numeric types are desired that mix more readily with the basetype,
+the subset types described in a later section may be more appropriate.
+
 Note that the bound variable `x` in `Q` has type `M`, not `N`.
 Consequently, it may not be possible to state `Q` about the `N`
 value.  For example, consider the following type of 8-bit 2's
@@ -2933,7 +2938,11 @@ type.
 An assignment from a subset type to its base type is always
 allowed.  An assignment in the other direction, from the base type to
 a subset type, is allowed provided the value assigned does indeed
-satisfy the predicate of the subset type.
+satisfy the predicate of the subset type. This condition is checked
+by the verifier, not by the type checker. Similarly, assignments from
+one subset type to another (both with the same base type) are also
+permitted, as long as it can be established that the value being assigned
+satisfies the predicate defining the receiving subset type.
 (Note, in contrast, assignments between a newtype and its base type
 are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see

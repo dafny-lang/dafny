@@ -11,6 +11,7 @@ import sys
 import time
 import urllib.request
 import zipfile
+import shutil
 
 # Configuration
 
@@ -61,7 +62,7 @@ DLLs = ["BoogieAbsInt",
         "System.Collections.Immutable",
         "System.Runtime"]
 EXEs = ["Dafny", "DafnyServer"]
-ETCs = UNIX_EXECUTABLES + ["DafnyPrelude.bpl", "DafnyRuntime.cs", "DafnyRuntime.js", "DafnyRuntime.go"]
+ETCs = UNIX_EXECUTABLES + ["DafnyPrelude.bpl", "DafnyRuntime.cs", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.jar"]
 
 # Constants
 
@@ -78,7 +79,7 @@ EXE_PDB_EXT = ".pdb"
 ARCHIVE_FNAMES = ([dll + ".dll" for dll in DLLs] + [dll + DLL_PDB_EXT for dll in DLLs] +
                   [exe + ".exe" for exe in EXEs] + [exe + EXE_PDB_EXT for exe in EXEs] +
                   ETCs)
-
+OTHERS = ( ["docs/DafnyRef/out/DafnyRef.pdf"] )
 # Code
 
 def flush(*args, **kwargs):
@@ -155,6 +156,16 @@ class Release:
                     archive.writestr(fileinfo, contents)
                 else:
                     missing.append(fname)
+            for fpath in OTHERS:
+                if path.exists(fpath):
+                    fname = os.path.basename(fpath)
+                    fileinfo = zipfile.ZipInfo(fname, time.localtime(os.stat(fpath).st_mtime)[:6])
+                    contents = open(fpath, mode='rb').read()
+                    fileinfo.compress_type = zipfile.ZIP_DEFLATED
+                    fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, fname))
+                    archive.writestr(fileinfo, contents)
+                else:
+                    missing.append(fname)
         flush("done! (imported {} files from z3's sources)".format(z3_files_count))
         if missing:
             flush("      WARNING: Not all files were found: {} were missing".format(", ".join(missing)))
@@ -190,10 +201,12 @@ def run(cmd):
 def build():
     os.chdir(ROOT_DIRECTORY)
     flush("  - Building")
-    builder = "msbuild"
+    builder = "dotnet build"
     try:
-        run([builder, "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
-        run([builder, "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Rebuild"])
+        run(["dotnet", "build", "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
+        run(["make", "clean"])
+        run(["dotnet", "build", "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Rebuild"])
+        run(["make", "runtime", "refman-release"])
     except FileNotFoundError:
         flush("Could not find '{}'!".format(builder))
         flush("On Windows, you need to run this from the VS native tools command prompt.")

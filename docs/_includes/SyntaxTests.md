@@ -63,10 +63,10 @@ not op:  !inx
 punc:    . , :: | :| := ( ) [ ] { }
 types:   int real string char bool nat ORDINAL
 types:   object object?
-types:   bv1 bv10
+types:   bv1 bv10 bv0
 types:   array array2 array20 array10
 types:   array? array2? array20? array10?
-ids:     array1 array0 array02 bv02 bv0 bv_1
+ids:     array1 array0 array02 bv02 bv_1
 ids:     intx natx int0 int_ int? bv1_ bv1x array2x
 types:   seq<int>  set < bool >
 types:   map<bool,bool>  imap < bool , bool >
