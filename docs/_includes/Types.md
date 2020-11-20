@@ -1546,6 +1546,8 @@ an extendee in a class or trait declaration.
 
 Trait `object` contains no members.
 
+The dynamic allocation of objects is done using new C ..., where C is the name of a class. The name C is not allowed to be a trait, except that it is allowed to be `object`. The construction `new object` allocates a new object (of an unspecified class type). The construction can be used to create unique references, where no other properties of those references are needed.
+
 ## Inheritance {#sec-inheritance}
 
 The purpose of traits is to be able to express abstraction: a trait
@@ -1573,7 +1575,14 @@ This restriction does mean that traits from different sources that
 coincidentally use the same name for different purposes cannot be combined
 by being part of the set of transitive parents for some new trait or class.
 
-Static members of a trait may not be redeclared and must be declared with a body.
+A declaration of  member `C.M` in a class or trait _overrides_ any other declarations
+of the same name (and signature) in a transitive parent. `C.M` is then called an
+override; a declaration that
+does not override anything is called an _original declaration_.
+
+Static members of a trait may not be redeclared;
+thus, if there is a body it must be declared in the trait;
+the compiler will require a body, though the verifier will not.
 
 [^overload]: It is possible to conceive of a mechanism for disambiguating
 conflicting names, but this would add complexity to the language that does not
@@ -1583,7 +1592,7 @@ Where traits within an extension hierarchy do declare instance members with the 
 name (and thus the same signature), some rules apply. Recall that, for methods,
 every declaration includes a specification; if no specification is given
 explicitly, a default specification applies. Instance method declarations in traits,
-however, need not have a body.
+however, need not have a body, as a body can be declared in an override.
 
 For a given non-static method M,
 
@@ -1592,18 +1601,10 @@ For a given non-static method M,
 * A trait or class may not have more than one transitive parent that declares M with a body.
 * A class that has one or more transitive parents that declare M without a body
 and no transitive parent that declares M with a body must itself redeclare M
-with a body.
+with a body if it is compiled. (The verifier alone does not require a body.)
 * Currently (and under debate), the following restriction applies:
-Consider the DAG of classes and traits ordered by the _extends_ relationship
-and ending in a given class or trait CT. For a declaration of member M in CT,
-consider each path in the DAG that begins with a class or trait other than
-CT and that declares M, ends with CT, and does not pass through any trait
-that also declares M.
-The set of that begin these paths are the
-_direct parent declarors_ of M in CT.
-The restriction is that if this set has two or more members, then there must
-be one element of the set for which all of the other elements are
-its transitive parents.
+if `M` overrides two (or more) declarations, `P.M` and `Q.M`, then either
+`P.M` must override `Q.M` or `Q.M` must override `P.M`.
 
 The last restriction above is the current implementation. It effectively limits
 inheritance of a method M to a single "chain" of declarations and does not
@@ -1618,7 +1619,7 @@ M's specifications in a transitive parent.
 Here _no weaker than_  means that it
 must be permitted to call the subtype's M in the context of the supertype's M.
 Stated differently, where P and C are a parent trait and a child class or trait,
-respectively,
+respectively, then, under the precondition of `P.M`,
 
 * C.M's `requires` clause must be implied by P.M's `requires` clause
 * C.M's `ensures` clause must imply P.M's `ensures` clause
