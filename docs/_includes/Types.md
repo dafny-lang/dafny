@@ -1511,21 +1511,132 @@ where _members_ can include fields, functions, methods and declarations of neste
 no constructor methods.  The functions and methods are allowed to be
 declared `static`.
 
-A reference type `C` that extends a trait `J` is assignable to `J`;
-a value of `J` is assignable to a variable of a reference type that
+A reference type `C` that extends a trait `J` is assignable to a variable of
+type `J`;
+a value of `J` is assignable to a variable of a reference type `C` that
 extends `J` only if the verifier can prove that the reference does
 indeed refer to an object of allocated type `C`.
 The members of `J` are available as members
 of `C`.  A member in `J` is not allowed to be redeclared in `C`,
 except if the member is a non-`static` function or method without a
 body in `J`.  By doing so, type `C` can supply a stronger
-specification and a body for the member.
+specification and a body for the member. There is further discussion on
+this point in Section [Inheritance](#sec-inheritance).
 
 `new` is not allowed to be used with traits.  Therefore, there is no
 object whose allocated type is a trait.  But there can of course be
 objects of a class `C` that implement a trait `J`, and a reference to
 such a `C` object can be used as a value of type `J`.
 
+## Type `object`
+````grammar
+ObjectType_ = "object"
+````
+
+There is a built-in trait `object` that is a supertype of all
+reference types.
+Every class and every trait (other than `object` itself) automatically extends
+`object`. The purpose of type `object`
+is to enable a uniform treatment of _dynamic frames_. In particular, it
+is useful to keep a ghost field (typically named `Repr` for
+"representation") of type `set<object>`.
+
+It serves no purpose (but does no harm) to explicitly list `object` as
+an extendee in a class or trait declaration.
+
+Trait `object` contains no members.
+
+The dynamic allocation of objects is done using new C ..., where C is the name of a class. The name C is not allowed to be a trait, except that it is allowed to be `object`. The construction `new object` allocates a new object (of an unspecified class type). The construction can be used to create unique references, where no other properties of those references are needed.
+
+## Inheritance {#sec-inheritance}
+
+The purpose of traits is to be able to express abstraction: a trait
+encapsulates a set of behaviors; classes and traits that extend it
+_inherit_ those behaviors, perhaps specializing them.
+
+A trait or class may extend multiple other traits.
+The traits syntactically listed in a trait or class's `extends` clause
+are called its _direct parents_; the _transitive parents_ of a trait or class
+are its direct parents, the transitive parents of its direct parents, and
+the `object` trait (if it is not itself `object`).
+These are sets of traits, in that it does not matter if
+there are repetitions of a given trait in a class or trait's direct or
+transitive parents. However, if a trait with type parameters is repeated,
+it must have the same actual type parameters in each instance.
+Furthermore, a trait may not be in its own set of transitive parents; that is,
+the graph of traits connected by the directed _extends_ relationship may not
+have any cycles.
+
+A class or trait inherits (as if they are copied) all the instance members
+of its transitive parents. However, since names may not be overloaded in
+Dafny, different members (that is, members with different type signatures)
+within the set of transitive parents and the class or trait itself must have different names.[^overload]
+This restriction does mean that traits from different sources that
+coincidentally use the same name for different purposes cannot be combined
+by being part of the set of transitive parents for some new trait or class.
+
+A declaration of  member `C.M` in a class or trait _overrides_ any other declarations
+of the same name (and signature) in a transitive parent. `C.M` is then called an
+override; a declaration that
+does not override anything is called an _original declaration_.
+
+Static members of a trait may not be redeclared;
+thus, if there is a body it must be declared in the trait;
+the compiler will require a body, though the verifier will not.
+
+[^overload]: It is possible to conceive of a mechanism for disambiguating
+conflicting names, but this would add complexity to the language that does not
+appear to be needed, at least as yet.
+
+Where traits within an extension hierarchy do declare instance members with the same
+name (and thus the same signature), some rules apply. Recall that, for methods,
+every declaration includes a specification; if no specification is given
+explicitly, a default specification applies. Instance method declarations in traits,
+however, need not have a body, as a body can be declared in an override.
+
+For a given non-static method M,
+
+* A trait or class may not redeclare M if it has a transitive parent that declares M and provides a body.
+* A trait may but need not provide a body if all its transitive parents that declare M do not declare a body.
+* A trait or class may not have more than one transitive parent that declares M with a body.
+* A class that has one or more transitive parents that declare M without a body
+and no transitive parent that declares M with a body must itself redeclare M
+with a body if it is compiled. (The verifier alone does not require a body.)
+* Currently (and under debate), the following restriction applies:
+if `M` overrides two (or more) declarations, `P.M` and `Q.M`, then either
+`P.M` must override `Q.M` or `Q.M` must override `P.M`.
+
+The last restriction above is the current implementation. It effectively limits
+inheritance of a method M to a single "chain" of declarations and does not
+permit mixins.
+
+Each of any method declarations explicitly or implicitly
+includes a specification. In simple cases, those syntactially separate
+specifications will be copies of each other (up to renaming to take account
+of differing formal parameter names). However they need not be. The rule is
+that the specifications of M in a given class or trait must be _as stsrong as_
+M's specifications in a transitive parent.
+Here _as strong as_  means that it
+must be permitted to call the subtype's M in the context of the supertype's M.
+Stated differently, where P and C are a parent trait and a child class or trait,
+respectively, then, under the precondition of `P.M`,
+
+* C.M's `requires` clause must be implied by P.M's `requires` clause
+* C.M's `ensures` clause must imply P.M's `ensures` clause
+* C.M's `reads` set must be a subset of P.M's `reads` set
+* C.M's `modifies` set must be a subset of P.M's `modifies` set
+* C.M's `decreases` expression must be smaller than or equal to P.M's `decreases` expression
+
+Non-static const and field declarations are also inherited from parent traits.
+These may not be redeclared in extending traits and classes.
+However, a trait need not initalize a const field with a value.
+The class that extends a trait that declares such a const field without an
+initializer can initialize the field in a constructor.
+If the declaring trait does give
+an initial value in the declaration, the extending class or trait may not either
+redeclare the field or give it a value in a constructor.
+
+## Example of traits
 As an example, the following trait represents movable geometric shapes:
 ```dafny
 trait Shape
@@ -1592,11 +1703,6 @@ myShapes := myShapes + [tri];
 // move shape 1 to the right by the width of shape 0
 myShapes[1].MoveH(myShapes[0].Width());
 ```
-
-Traits can extend other traits, inheriting all the members of the parent
-traits. As with inheritance in a class declaration, a trait may not
-redeclare a member of a parent trait, except is the member is a
-non-static function or method without a body in the parent.
 
 # Array Types
 ````grammar
@@ -1748,20 +1854,6 @@ In contrast to one-dimensional arrays, there is no operation to
 convert stretches of elements from a multi-dimensional array to a
 sequence.
 
-# Type `object`
-````grammar
-ObjectType_ = "object"
-````
-
-There is a built-in trait `object` that is like a supertype of all
-reference types.
-Every class automatically extends
-object and so does every user-defined trait. The purpose of type `object`
-is to enable a uniform treatment of _dynamic frames_. In particular, it
-is useful to keep a ghost field (typically named `Repr` for
-"representation") of type `set<object>`.
-
-TODO: what fields, methjods, functions does `object` have?
 
 # Iterator types
 ````grammar
