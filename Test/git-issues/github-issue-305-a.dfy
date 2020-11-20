@@ -1,5 +1,5 @@
-// RUN: %baredafny /compile:0 /spillTargetCode:2 "%s"
-// This used to return exit code 3 (failure) instead of 0 (success)
+// RUN: %baredafny /compile:0 /spillTargetCode:2 "%s" > "%t"
+// RUN: %diff "%s".expect "%t"
 
 method Main() {
     print "hello\n";

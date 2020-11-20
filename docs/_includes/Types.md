@@ -26,14 +26,18 @@ The value types are those whose values do not lie in the program heap.
 These are:
 
 * The basic scalar types: `bool`, `char`, `int`, `real`, `ORDINAL`, bitvector types
-* The built-in collection types: `set`, `multiset`, `seq`, `string`, `map`, `imap`
+* The built-in collection types: `set`, `iset`, `multiset`, `seq`, `string`, `map`, `imap`
 * Tuple Types
 * Inductive and co-inductive types
+* Function (arrow) types
+* Subset and newtypes that are based on value types
 
 Data items having value types are passed by value. Since they are not
 considered to occupy _memory_, framing expressions do not reference them.
 
 The `nat` type is a pre-defined [subset type](#sec-subset-types) of `int`.
+
+Dafny does not include types themselves as values, nor is there a type of types.
 
 ## Reference Types
 Dafny offers a host of _reference types_.  These represent
@@ -56,7 +60,7 @@ class, trait, inductive, co-inductive, synonym and opaque
 type declarations. They are also used to refer to type variables.
 
 ````grammar
-NameSegmentForTypeName = Ident  [ GenericInstantiation ]
+NameSegmentForTypeName = Ident [ GenericInstantiation ]
 ````
 A ``NameSegmentForTypeName`` is a type name optionally followed by a
 ``GenericInstantiation``, which supplies type parameters to a generic
@@ -70,7 +74,7 @@ The following sections describe each of these kinds of types in more detail.
 
 Dafny offers these basic types: `bool` for booleans, `char` for
 characters, `int` and `nat` for integers, `real` for reals,
-`ORDINAL`, and bit-vector types..
+`ORDINAL`, and bit-vector types.
 
 ## Booleans
 ````grammar
@@ -117,7 +121,8 @@ depending on the intended meaning.
 
 ### Equivalence Operator
 The expressions `A <==> B` and `A == B` give the same value, but note
-that `<==>` is _associative_ whereas `==` is _chaining_.  So,
+that `<==>` is _associative_ whereas `==` is _chaining_ and they have
+different precedence.  So,
 ```dafny
 A <==> B <==> C
 ```
@@ -207,19 +212,21 @@ includes the basic type `int` of all integers, and _real-based_, which
 includes the basic type `real` of all real numbers.  User-defined
 numeric types based on `int` and `real`, either _subset types_ or _newtypes_, are
 described in Sections [#sec-subset-types] and  [#sec-newtypes].
-There is one builtin _subset type_,
+
+There is one built-in [_subset type_](#sec-subset-types),
 `nat`, representing the non-negative subrange of `int`.
 
-The language includes a literal for each non-negative integer, like
+The language includes a literal for each integer, like
 `0`, `13`, and `1985`.  Integers can also be written in hexadecimal
 using the prefix "`0x`", as in `0x0`, `0xD`, and `0x7c1` (always with
 a lower case `x`, but the hexadecimal digits themselves are case
-insensitive).  Leading zeros are allowed.  To form negative integers,
-use the unary minus operator.
+insensitive).  Leading zeros are allowed.  To form negative literals,
+use the unary minus operator, as in `-12`, but not -(12).
 
-There are also literals for some of the non-negative reals.  These are
+There are also literals for some of the reals.  These are
 written as a decimal point with a nonempty sequence of decimal digits
-on both sides.  For example, `1.0`, `1609.344`, and `0.5772156649`.
+on both sides, optionally prefixed by a `-` character.
+For example, `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
 
 For integers (in both decimal and hexadecimal form) and reals,
 any two digits in a literal may be separated by an underscore in order
@@ -271,8 +278,12 @@ There are also operators on each numeric type:
 `-`            | negation (unary minus)
 
 The binary operators are left associative, and they associate with
-each other in the two groups.  The groups are listed in order of
+each other in the two groups.
+The groups are listed in order of
 increasing binding power, with equality binding less strongly than any of these operators.
+There is no implicit conversion between `int` and `real`: use `as int` or
+`as real` conversions to write an explict conversion.
+
 Modulus is supported only for integer-based numeric types.  Integer
 division and modulus are the _Euclidean division and modulus_.  This
 means that modulus always returns a non-negative value, regardless of the
@@ -291,7 +302,7 @@ the real value.  For example, the following properties hold, for any
 ```dafny
 3.14.Floor == 3
 (-2.5).Floor == -3
--2.5.Floor == -2
+-2.5.Floor == -2 // This is -(2.5.Floor)
 r.Floor as real <= r
 r <= r' ==> r.Floor <= r'.Floor
 ```
@@ -302,17 +313,18 @@ function `real` from `int` to `real`, as described in Section
 
 ## Bit-vector types
 ````grammar
-BitVectorType_ = "bv" posdigit {digit}
+BitVectorType_ = bvToken
 ````
 
 Dafny includes a family of bit-vector types, each type having a specific,
-constant length, the number of bits in its values. Each such type is
-distinct as is designated by the prefix `bv` followed (without white space) by
-a positive intiger (without leading zeros) stating the number of bits. For example,
+constant length, the number of bits in its values.
+Each such type is
+distinct and is designated by the prefix `bv` followed (without white space) by
+a positive integer (without leading zeros) stating the number of bits. For example,
 `bv1`, `bv8`, and `bv32` are legal bit-vector type names.
 
 Constant literals of bit-vector types are given by integer literals converted automatically
-to the designated type, either by an implic it or explicit conversion operation or by initialization of a declaration.
+to the designated type, either by an implicit or explicit conversion operation or by initialization in a declaration.
 Dafny checks that the constant literal is in the correct range. For example,
 ```dafny
 {% include Example-BV.dfy %}
@@ -321,8 +333,11 @@ Dafny checks that the constant literal is in the correct range. For example,
 Bit-vector values can be converted to and from `int` and other bit-vector types, as long as
 the values are in range for the target type. Bit-vector values are always considered unsigned.
 
-Bit-vector operations include bit-wise operators and arithmetic operators. The latter
-truncate the high-order bits from the results; that is, they perform arithmetic modulo 2<sup>number of bits</sup>, like 2's-complement machine arithmetic.
+Bit-vector operations include bit-wise operators and arithmetic operators
+(as well as equality, disequality, and comparisons).
+The arithmetic operations
+truncate the high-order bits from the results; that is, they perform
+unsigned arithmetic modulo 2^{number of bits}, like 2's-complement machine arithmetic.
 
  operator        | description
  -----------------|------------------------------------
@@ -341,7 +356,16 @@ truncate the high-order bits from the results; that is, they perform arithmetic 
 `-`            | bit-limited negation (unary minus)
 `!`            | bit-wise complement
 
-The groups of operators lower in the table above bind more tightly.[^binding] All operators bind more tightly than equality and disequality. All binary operators are left-associative, but the bit-wise `&`, `|`, and `^` do not associate together (parentheses are required to disambiguate). Here are examples of the various operations (all the assertions are truei excepts where indicated):
+The groups of operators lower in the table above bind more tightly.[^binding]
+All operators bind more tightly than equality, disequality, and comparisons.
+All binary operators are left-associative, but the bit-wise `&`, `|`, and `^` do not associate together (parentheses are required to disambiguate).
+
+The right-hand operand of bit-shift operations is an `int` value,
+must be non-negative, and
+no more than the number of bits in the type.
+There is no signed right shift.
+
+Here are examples of the various operations (all the assertions are true except where indicated):
 ```dafny
 {% include Example-BV2.dfy %}
 ```
@@ -414,17 +438,21 @@ relational operators:
 Sequences of characters represent _strings_, as described in Section
 [#sec-strings].
 
+Character values can be converted to and from `int` values using the
+`as int` and `as char` conversion operations. The result is what would
+be expected in other programming langauges, namely, the 'int` value of a
+`char` is the ACSII or unicode numeric value.
+
 The only other operations on characters are obtaining a character
 by indexing into a string, and the implicit conversion to string
 when used as a parameter of a `print` statement.
 
-TODO: Are there any conversions between `char` values and numeric values?
-
 # Type parameters
 
 ````grammar
-GenericParameters = "<" TypeVariableName [ "(" "==" ")" ]
-      { "," TypeVariableName [ "(" "==" ")" ] } ">"
+GenericParameters =
+  "<" TypeVariableName [ "(" "==" ")" ]
+  { "," TypeVariableName [ "(" "==" ")" ] } ">"
 ````
 Many of the types (as well as functions and methods) in Dafny can be
 parameterized by types.  These _type parameters_ are typically
@@ -456,21 +484,19 @@ TO BE WRITTEN: There are now more such modes
     _modes_ that one can imagine types in a rich type system to have.
     For example, other modes could include having a total order,
     being zero-initializable, and possibly being uninhabited.  If
-    Dafny were to support more modes in the future, the "`(\(&nbsp;\))`"-suffix
+    Dafny were to support more modes in the future, the `( )`-suffix
     syntax may be extended.  For now, the suffix can only indicate the
     equality-supporting mode.
 
 Dafny has some inference support that makes certain signatures less
-cluttered (described in a different part of the Dafny language
-reference).  In some cases, this support will
+cluttered (described in [Section Type Inference](#sec-type-inference)).
+In some cases, this support will
 infer that a type parameter must be restricted to equality-supporting
 types, in which case Dafny adds the "`(==)`" automatically.
 
 TO BE WRITTEN: Type parameter variance with + - = * ! default
 
 TO BE WRITTEN: Type parameter characteristics: == 0 !new
-
-TODO: Need to describe type inference somewhere.
 
 # Generic Instantiation
 ````grammar
@@ -494,7 +520,6 @@ InfiniteSetType_ = "iset" [ GenericInstantiation ]
 For any type `T`, each value of type `set<T>` is a finite set of
 `T` values.
 
-TODO:
 Set membership is determined by equality in the type `T`,
 so `set<T>` can be used in a non-ghost context only if `T` is equality
 supporting.
@@ -556,7 +581,7 @@ expression `e` of type `T`, sets support the following operations:
 
  expression          | result type |  description
 ---------------------|:-:|------------------------------------
- `|s|`               | `nat`   | set cardinality
+ `|s|`               | `nat`   | set cardinality (not iset)
  `e in s`            | `bool` | set membership
  `e !in s`           | `bool` | set non-membership
 
@@ -585,7 +610,7 @@ A multiset can be formed using a _multiset display_ expression, which
 is a possibly empty, unordered list of expressions enclosed in curly
 braces after the keyword `multiset`.  To illustrate,
 ```dafny
-multiset{}    multiset{0, 1, 1, 2, 3, 5}    multiset{4+2, 1+5, a*b}
+multiset{}   multiset{0, 1, 1, 2, 3, 5}   multiset{4+2, 1+5, a*b}
 ```
 are three examples of multiset displays.  There is no multiset
 comprehension expression.
@@ -634,13 +659,13 @@ In addition, for any multiset `s` of type `multiset<T>`,
 expression `e` of type `T`, and non-negative integer-based numeric
 `n`, multisets support the following operations:
 
- expression          | description
----------------------|------------------------------------------
- `|s|`               | multiset cardinality  (result type `nat`)
- `e in s`            | multiset membership  (result type `bool`)
- `e !in s`           | multiset non-membership   (result type `bool`)
- `s[e]`              | multiplicity of `e` in `s`  (result type `nat`)
- `s[e := n]`         | multiset update (change of multiplicity)  (result type the same as `s`)
+ expression      | result type      | description
+-----------------|:----------------:|------------------------------------------
+ `|s|`           |   `nat`          | multiset cardinality
+ `e in s`        |   `bool`         | multiset membership
+ `e !in s`       |   `bool`         | multiset non-membership
+ `s[e]`          |   `nat`          | multiplicity of `e` in `s`
+ `s[e := n]`     | `multiset<T>`    | multiset update (change of multiplicity)
 
 The expression `e in s` returns `true` if and only if `s[e] != 0`.
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
@@ -661,8 +686,7 @@ SequenceType_ = "seq" [ GenericInstantiation ]
 
 For any type `T`, a value of type `seq<T>` denotes a _sequence_ of `T`
 elements, that is, a mapping from a finite downward-closed set of natural
-numbers (called _indices_) to `T` values.  (Thinking of it as a map,
-a sequence is therefore something of a dual of a multiset. TODO: REALLY?)
+numbers (called _indices_) to `T` values.
 
 ### Sequence Displays
 A sequence can be formed using a _sequence display_ expression, which
@@ -784,9 +808,9 @@ string---both forms are provided in order to support the same
 escape sequences as do character literals.
 
 String literals of the verbatim form are bracketed by
-`@"` and `"]`, as in `@"Dafny"`.  To include
+`@"` and `"`, as in `@"Dafny"`.  To include
 a double quote in such a string literal, it is necessary to use the
-escape sequence `\"\"`, that is, to write the character
+escape sequence `""`, that is, to write the character
 twice.  In the verbatim form, there are no other escape sequences.
 Even characters like newline can be written inside the string literal
 (hence spanning more than one line in the program text).
@@ -852,16 +876,16 @@ any expression `t` of type `T`,
 any expression `u` of type `U`, and any `d` in the domain of `m` (that
 is, satisfying `d in m`), maps support the following operations:
 
- expression      | result type     | description
- ---------------|:---:|------------------------------------
- `|fm|`              | `nat` | map cardinality
- `m[d]`              | `U` | map selection
- `m[t := u]`    | `(i)map<T,U>`      | map update
- `t in m`           | `bool`  | map domain membership
- `t !in m`         | `bool`   | map domain non-membership
- `fm.Keys`         | `set<T>`   | the domain of fm, that is, the set of T values used as keys
- `fm.Values`     | `set<U>`     | the range of fm, that is, the set  of U values present in the map
- `fm.Items`       | `set<(T,U)>`    | set of pairs (t,u) of key-value associations in the map
+ expression     | result type | description
+ ---------------|:-----------:|------------------------------------
+ `|fm|`         | `nat`       | map cardinality
+ `m[d]`         | `U`         | map selection
+ `m[t := u]`    | `map<T,U>`  | map update
+ `t in m`       | `bool`      | map domain membership
+ `t !in m`      | `bool`      | map domain non-membership
+ `fm.Keys`      | `set<T>`    | the domain of `fm`
+ `fm.Values`    | `set<U>`    | the range of `fm`
+ `fm.Items`     | `set<(T,U)>`| set of pairs (t,u) in `fm`
 
 `|fm|` denotes the number of mappings in `fm`, that is, the
 cardinality of the domain of `fm`.  Note that the cardinality operator
@@ -890,7 +914,7 @@ some fixed gas at a given temperature:
 if K in cache {  // check if temperature is in domain of cache
   coeff := cache[K];  // read result in cache
 } else {
-  coeff := ComputeJouleThomsonCoefficient(K);  // do expensive computation
+  coeff := ComputeJTCoefficient(K); // do expensive computation
   cache := cache[K := coeff];  // update the cache
 }
 ```
@@ -906,7 +930,8 @@ type abstractly. Synonym and opaque types serve this purpose.
 ## Type synonyms
 ````grammar
 SynonymTypeDefinition_ =
-  "type" { Attribute } SynonymTypeName [ GenericParameters ] "=" Type
+  "type" { Attribute } SynonymTypeName [ GenericParameters ]
+   "=" Type
 ````
 
 A _type synonym_ declaration:
@@ -969,7 +994,8 @@ can be used abstractly to represent an arbitrary parameterized monad.
 ````grammar
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
   ["extends" Type {"," Type} ]
-  "{" { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) } "}"
+  "{" { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) }
+  "}"
 
 ClassMemberDecl(moduleLevelDecl) =
   ( FieldDecl | FunctionDecl |
@@ -987,7 +1013,7 @@ A _class_ `C` is a reference type declared as follows:
 ```dafny
 class C<T> extends J1, ..., Jn
 {
-  \(_members_\)
+  _members_
 }
 ```
 where the list of type parameters `T` is optional. The text
@@ -1017,7 +1043,6 @@ class C {
   {
     var x: int;
     b := f == this.f;
-    b := x + this.x;
   }
 }
 ```
@@ -1093,9 +1118,9 @@ Fields may not be declared static.
 ## Method Declarations
 ````grammar
 MethodDecl(isGhost, allowConstructor) =
- MethodKeyword { Attribute } [ MethodName ]
- (  MethodSignature(isGhost)  | SignatureEllipsis_ )
- MethodSpec [ BlockStmt ]
+  MethodKeyword { Attribute } [ MethodName ]
+  ( MethodSignature(isGhost)  | SignatureEllipsis_ )
+  MethodSpec [ BlockStmt ]
 ````
 The `isGhost` parameter is true iff the `ghost` keyword
 preceded the method declaration.
@@ -1113,9 +1138,8 @@ as explained below.
 
 ````grammar
 MethodSignature(isGhost) =
-    [ GenericParameters ]
-    Formals(allowGhost: !isGhost)
-    [ "returns" Formals(allowGhost: !isGhost) ]
+  [ GenericParameters ] Formals(allowGhost: !isGhost)
+  [ "returns" Formals(allowGhost: !isGhost) ]
 ````
 A method signature specifies the method generic parameters,
 input parameters and return parameters.
@@ -1126,7 +1150,7 @@ if `ghost` was already specified for the method.
 SignatureEllipsis_ = "..."
 ````
 A ``SignatureEllipsis_`` is used when a method or function is being redeclared
-in module that refines another module. In that case the signature is
+in a module that refines another module. In that case the signature is
 copied from the module that is being refined. This works because
 Dafny does not support method or function overloading, so the
 name of the class method uniquely identifies it without the
@@ -1146,7 +1170,8 @@ A method declaration adheres to the ``MethodDecl`` grammar above.
 Here is an example of a method declaration.
 
 ```dafny
-method {:att1}{:att2} M<T1, T2>(a: A, b: B, c: C) returns (x: X, y: Y, z: Z)
+method {:att1}{:att2} M<T1, T2>(a: A, b: B, c: C)
+                                        returns (x: X, y: Y, z: Z)
   requires Pre
   modifies Frame
   ensures Post
@@ -1163,7 +1188,7 @@ method’s out-parameters, `Pre` is a boolean expression denoting the
 method’s precondition, `Frame` denotes a set of objects whose fields may
 be updated by the method, `Post` is a boolean expression denoting the
 method’s postcondition, `Rank` is the method’s variant function, and
-`Body` is a statement that implements the method. `Frame` can be a list
+`Body` is a list of statements that implements the method. `Frame` can be a list
 of expressions, each of which is a set of objects or a single object, the
 latter standing for the singleton set consisting of that one object. The
 method’s frame is the union of these sets, plus the set of objects
@@ -1172,27 +1197,20 @@ of a class type `C`, then
 
 ```dafny
 modifies {c, d}
-
 modifies {c} + {d}
-
 modifies c, {d}
-
 modifies c, d
 ```
 
 all mean the same thing.
 
-A method can be declared as ghost by preceding the declaration with the
-keyword `ghost` and as static by preceding the declaration withg the keyword `static`.
-The default is non-static (i.e., instance) and non-ghost. An instancemethod has an implicit receiver parameter, `this`.
-A static method M in a class C can be invoked by `C.M(…)`.
+### Ordinary methods
 
-In a class, a method can be declared to be a constructor method by
-replacing the keyword `method` with the keyword `constructor`. A constructor
-can only be called at the time an object is allocated (see
-object-creation examples below), and for a class that contains one or
-more constructors, object creation must be done in conjunction with a
-call to a constructor.
+A method can be declared as ghost by preceding the declaration with the
+keyword `ghost` and as static by preceding the declaration with the keyword `static`.
+The default is non-static (i.e., instance) and non-ghost.
+An instance method has an implicit receiver parameter, `this`.
+A static method M in a class C can be invoked by `C.M(…)`.
 
 An ordinary method is declared with the `method` keyword.
 Section [#sec-constructors] explains methods that instead use the
@@ -1217,8 +1235,16 @@ clauses are true without proof. (TODO: `:extern` attribute?)
 To write structured object-oriented programs, one often relies on
 objects being constructed only in certain ways.  For this purpose, Dafny
 provides _constructor (method)s_, which are a restricted form of
-initialization methods.  A constructor is declared with the keyword
-`constructor` instead of `method`.
+initialization methods.
+A constructor is declared with the keyword
+`constructor` instead of `method`; constructors are only permitted in classes.
+
+A constructor
+can only be called at the time an object is allocated (see
+object-creation examples below), and for a class that contains one or
+more constructors, object creation must be done in conjunction with a
+call to a constructor.
+
 When a class contains a
 constructor, every call to `new` for a class must be accompanied
 by a call to one of its constructors.  Moreover, a constructor
@@ -1255,7 +1281,7 @@ Constructors must have distinct names, even if their signatures are different.
 Many classes have just
 one constructor or have a typical constructor.  Therefore, Dafny
 allows one _anonymous constructor_, that is, a constructor whose name
-is essentially "".  For example:
+is essentially "" (an empty string).  For example:
 ```dafny
 class Item {
   constructor I(xy: int) // ...
@@ -1316,10 +1342,12 @@ TO BE WRITTEN - two-state lemmas; unchanged predicate
 FunctionDecl =
   ( "function" [ "method" ] { Attribute }
     FunctionName
-    FunctionSignatureOrEllipsis_(allowGhostKeyword: ("method" present))
+    FunctionSignatureOrEllipsis_(allowGhostKeyword:
+                                           ("method" present))
   | "predicate" [ "method" ] { Attribute }
     PredicateName
-    PredicateSignatureOrEllipsis_(allowGhostKeyword: ("method" present))
+    PredicateSignatureOrEllipsis_(allowGhostKeyword:
+                                           ("method" present))
   | "inductive" "predicate" { Attribute }
     PredicateName
     PredicateSignatureOrEllipsis_(allowGhostKeyword: false)
@@ -1330,16 +1358,19 @@ FunctionDecl =
   FunctionSpec [ FunctionBody ]
 
 FunctionSignatureOrEllipsis_(allowGhostKeyword) =
-    FunctionSignature_ | SignatureEllipsis_
+  FunctionSignature_ | SignatureEllipsis_
+
 FunctionSignature_(allowGhostKeyword) =
-    [ GenericParameters ] Formals(allowGhostKeyword) ":" Type
+  [ GenericParameters ] Formals(allowGhostKeyword) ":" Type
 
 PredicateSignatureOrEllipsis_(allowGhostKeyword) =
-    PredicateSignature_(allowGhostKeyword) | SignatureEllipsis_
-PredicateSignature_(allowGhostKeyword) =
-    [ GenericParameters ] Formals(allowGhostKeyword)
+  PredicateSignature_(allowGhostKeyword) | SignatureEllipsis_
 
-FunctionBody = "{" Expression(allowLemma: true, allowLambda: true) "}"
+PredicateSignature_(allowGhostKeyword) =
+  [ GenericParameters ] Formals(allowGhostKeyword)
+
+FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
+               "}"
 ````
 In the above productions, `allowGhostKeyword` is true if the optional
 `method` keyword was specified. This allows some of the
@@ -1395,25 +1426,30 @@ By default, a function is ghost, and cannot be called from non-ghost
 code. To make it non-ghost, replace the keyword function with the two
 keywords "`function method`".
 
-Like methods, functions can be either _instance_ *(which they are be default) or
+Like methods, functions can be either _instance_ (which they are be default) or
 _static_ (when the function declaration contains the keyword `static`).
 An instance function, but not a static function, has an implicit receiver parameter, `this`.  A static function `F` in a class `C` can be invoked
-by `C.F(…)`. This can give a convenient way to declare a number of helper
+by `C.F(…)`. This provides a convenient way to declare a number of helper
 functions in a separate class.
 
 As for methods, a ``SignatureEllipsis_`` is used when declaring
 a function in a module refinement. For example, if module `M0` declares
 function `F`, a module `M1` can be declared to refine `M0` and
 `M1` can then refine `F`. The refinement function, `M1.F` can have
-a ``SignatureEllipsis_`` which means to copy the signature form
+a ``SignatureEllipsis_`` which means to copy the signature from
 `M0.F`. A refinement function can furnish a body for a function
 (if `M0.F` does not provide one). It can also add `ensures`
-clauses. And if `F` is a predicate, it can add conjuncts to
-a previously given body.
+clauses.
+
+### Predicates
+A function that returns a `bool` result is called a _predicate_. As an
+alternative syntax, a predicate can be declared by replacing the `function`
+keyword with the `predicate` keyword and omitting a declaration of the
+return type.
 
 ### Function Transparency
 A function is said to be _transparent_ in a location if the
-contents of the body of the function is visible at that point.
+body of the function is visible at that point.
 A function is said to be _opaque_ at a location if it is not
 transparent. However the ``FunctionSpec`` of a function
 is always available.
@@ -1421,6 +1457,8 @@ is always available.
 A function is usually transparent up to some unrolling level (up to
 1, or maybe 2 or 3). If its arguments are all literals it is
 transparent all the way.
+
+**The protected modifier is being deprecated**
 
 But the transparency of a function is affected by the following:
 
@@ -1445,20 +1483,17 @@ of `g` whether in the defining module or outside.
 It currently is not allowed to have both `protected` and
 `{:opaque}` specified for a function.
 
-### Predicates
-A function that returns a `bool` result is called a _predicate_. As an
-alternative syntax, a predicate can be declared by replacing the `function`
-keyword with the `predicate` keyword and omitting a declaration of the
-return type.
-
 ### Inductive Predicates and Lemmas
 See section [#sec-friendliness] for descriptions
 of inductive predicates and lemmas.
 
 # Trait Types
 ````grammar
-TraitDecl = "trait" { Attribute } TraitName [ GenericParameters ]
-  "{" { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) } "}"
+TraitDecl =
+  "trait" { Attribute } TraitName [ GenericParameters ]
+  "{"
+   { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) }
+  "}"
 ````
 
 A _trait_ is an abstract superclass, similar to an "interface" or
@@ -1476,8 +1511,11 @@ where _members_ can include fields, functions, methods and declarations of neste
 no constructor methods.  The functions and methods are allowed to be
 declared `static`.
 
-A reference type `C` that extends a trait `J` is assignable to `J`, but
-not the other way around.  The members of `J` are available as members
+A reference type `C` that extends a trait `J` is assignable to `J`;
+a value of `J` is assignable to a variable of a reference type that
+extends `J` only if the verifier can prove that the reference does
+indeed refer to an object of allocated type `C`.
+The members of `J` are available as members
 of `C`.  A member in `J` is not allowed to be redeclared in `C`,
 except if the member is a non-`static` function or method without a
 body in `J`.  By doing so, type `C` can supply a stronger
@@ -1485,7 +1523,7 @@ specification and a body for the member.
 
 `new` is not allowed to be used with traits.  Therefore, there is no
 object whose allocated type is a trait.  But there can of course be
-objects of a class `C` that implements a trait `J`, and a reference to
+objects of a class `C` that implement a trait `J`, and a reference to
 such a `C` object can be used as a value of type `J`.
 
 As an example, the following trait represents movable geometric shapes:
@@ -1506,8 +1544,8 @@ trait Shape
 Members `Width` and `Move` are _abstract_ (that is, body-less) and can
 be implemented differently by different classes that extend the trait.
 The implementation of method `MoveH` is given in the trait and thus
-gets used by all classes that extend `Shape`.  Here are two classes
-that each extends `Shape`:
+is used by all classes that extend `Shape`.  Here are two classes
+that each extend `Shape`:
 ```dafny
 class UnitSquare extends Shape
 {
@@ -1554,6 +1592,11 @@ myShapes := myShapes + [tri];
 // move shape 1 to the right by the width of shape 0
 myShapes[1].MoveH(myShapes[0].Width());
 ```
+
+Traits can extend other traits, inheriting all the members of the parent
+traits. As with inheritance in a class declaration, a trait may not
+redeclare a member of a parent trait, except is the member is a
+non-static function or method without a body in the parent.
 
 # Array Types
 ````grammar
@@ -1688,7 +1731,7 @@ normal identifiers, not type names.)
 The `new` operation above requires `m` and `n` to be non-negative
 integer-based numerics.  These lengths can be retrieved using the
 immutable fields `Length0` and `Length1`.  For example, the following
-holds of the array created above:
+holds for the array created above:
 ```dafny
 matrix.Length0 == m && matrix.Length1 == n
 ```
@@ -1711,16 +1754,14 @@ ObjectType_ = "object"
 ````
 
 There is a built-in trait `object` that is like a supertype of all
-reference types.[^fn-object-trait] Every class automatically extends
+reference types.
+Every class automatically extends
 object and so does every user-defined trait. The purpose of type `object`
 is to enable a uniform treatment of _dynamic frames_. In particular, it
 is useful to keep a ghost field (typically named `Repr` for
 "representation") of type `set<object>`.
 
 TODO: what fields, methjods, functions does `object` have?
-
-[^fn-object-trait]: The current compiler restriction that `object` cannot
-    be used as a type parameter needs to be removed.
 
 # Iterator types
 ````grammar
@@ -1780,8 +1821,8 @@ iterator Gen(start: int) yields (x: int)
   var i := 0;
   while i < 10 {
     x := start + i;
-	  yield;
-	  i := i + 1;
+    yield;
+    i := i + 1;
   }
 }
 ```
@@ -1953,7 +1994,7 @@ function F(x: int, b: bool): real
 is `(int, bool) -> real`.  Parameters are not allowed to be ghost.
 
 To simplify the appearance of the basic case where a function's
-domain consist of a list of exactly one non-function, non-tuple type, the parentheses around
+domain consists of a list of exactly one non-function, non-tuple type, the parentheses around
 the domain type can be dropped in this case, as in `T -> U`.
 This innocent simplification requires additional explanation in the
 case where that one type is a tuple type, since tuple types are also
@@ -2046,9 +2087,13 @@ DatatypeDecl = ( InductiveDatatypeDecl | CoinductiveDatatypeDecl )
 ## Inductive datatypes
 
 ````grammar
-InductiveDatatypeDecl_ = "datatype" { Attribute } DatatypeName [ GenericParameters ]
-  "=" [ "|" ] DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ]
-DatatypeMemberDecl = { Attribute } DatatypeMemberName [ FormalsOptionalIds ]
+InductiveDatatypeDecl_ =
+  "datatype" { Attribute } DatatypeName [ GenericParameters ]
+  "=" [ "|" ] DatatypeMemberDecl { "|" DatatypeMemberDecl }
+  [ ";" ]
+
+DatatypeMemberDecl =
+  { Attribute } DatatypeMemberName [ FormalsOptionalIds ]
 ````
 
 The values of inductive datatypes can be seen as finite trees where
@@ -2059,7 +2104,7 @@ inductive datatypes can be compared using Dafny's well-founded
 
 An inductive datatype is declared as follows:
 ```dafny
-datatype D<T> = (_Ctors_)
+datatype D<T> = _Ctors_
 ```
 where _Ctors_ is a nonempty `|`-separated list of
 _(datatype) constructors_ for the datatype.  Each constructor has the
@@ -2150,9 +2195,11 @@ might have been declared as:
 ```dafny
 datatype Pair<T,U> = Pair(0: T, 1: U)
 ```
-Dafny provides as the type `(T, U)` and the constructor `(t, u)`, as
-if the datatype's name were "" and its type arguments are given in
-round parentheses, and as if the constructor name were "".  Note that
+Dafny provides the type `(T, U)` and the constructor `(t, u)`, as
+if the datatype's name were "" (i.e., an empty string)
+and its type arguments are given in
+round parentheses, and as if the constructor name were the empty string.
+Note that
 the destructor names are `0` and `1`, which are legal identifier names
 for members.  For example, showing the use of a tuple destructor, here
 is a property that holds of 2-tuples (that is, _pairs_):
@@ -2168,14 +2215,17 @@ _unit type_ and its single value, also written `()`, is known as _unit_.
 ## Co-inductive datatypes
 
 ````grammar
-CoinductiveDatatypeDecl_ = "codatatype" { Attribute } DatatypeName [ GenericParameters ]
-  "=" DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ]
+CoinductiveDatatypeDecl_ =
+  "codatatype" { Attribute } DatatypeName
+  [ GenericParameters ] "="
+  DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ]
 ````
 
 Whereas Dafny insists that there is a way to construct every inductive
 datatype value from the ground up, Dafny also supports
-_co-inductive datatypes_, whose constructors are evaluated lazily and
-hence allows infinite structures.  A co-inductive datatype is declared
+_co-inductive datatypes_, whose constructors are evaluated lazily, and
+hence the language allows infinite structures.
+A co-inductive datatype is declared
 using the keyword `codatatype`; other than that, it is declared and
 used like an inductive datatype.
 
@@ -2226,7 +2276,7 @@ Dafny come together to give straightforward definitions of infinite
 matters.
 ```dafny
 // infinite streams
-codatatype IStream<T> = ICons(head: T, tail: IStream)
+codatatype IStream<T> = ICons(head: T, tail: IStream<T>)
 
 // pointwise product of streams
 function Mult(a: IStream<int>, b: IStream<int>): IStream<int>
@@ -2234,11 +2284,13 @@ function Mult(a: IStream<int>, b: IStream<int>): IStream<int>
 
 // lexicographic order on streams
 copredicate Below(a: IStream<int>, b: IStream<int>)
-{ a.head <= b.head && ((a.head == b.head) ==> Below(a.tail, b.tail)) }
+{ a.head <= b.head &&
+  ((a.head == b.head) ==> Below(a.tail, b.tail))
+}
 
 // a stream is Below its Square
 colemma Theorem_BelowSquare(a: IStream<int>)
-ensures Below(a, Mult(a, a))
+  ensures Below(a, Mult(a, a))
 { assert a.head <= Mult(a, a).head;
   if a.head == Mult(a, a).head {
     Theorem_BelowSquare(a.tail);
@@ -2279,7 +2331,7 @@ reduces the tedium in writing co-inductive proofs. For example, it
 verifies `Theorem_BelowSquare` from the program text given above— no
 additional lemmas or tactics are needed. In fact, as a consequence of the
 automatic-induction heuristic in Dafny, the verifier will
-automatically verify Theorem_BelowSquare even given an empty body.
+automatically verify `Theorem_BelowSquare` even given an empty body.
 
 Just like there are restrictions on when an _inductive hypothesis_ can be
 invoked, there are restrictions on how a _co-inductive_ hypothesis can be

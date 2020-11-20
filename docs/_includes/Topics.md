@@ -1,6 +1,6 @@
 # Advanced Topics
 
-## Type Inference
+## Type Inference {#sec-type-inference}
 
 TO BE WRITTEN
 
