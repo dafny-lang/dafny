@@ -48,7 +48,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Concurrency-NetCore", "..\d
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AbsInt-NetCore", "..\dafny\Source\boogie\Source\AbsInt\AbsInt-NetCore.csproj", "{8B8A2684-5F2A-443A-92C6-A0908B2A51F2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyLS.IntegrationTest", "DafnyLS.IntegrationTest\DafnyLS.IntegrationTest.csproj", "{F7C19658-AA08-4AB9-9D72-D741DB7404BB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyLS.IntegrationTest", "DafnyLS.IntegrationTest\DafnyLS.IntegrationTest.csproj", "{F7C19658-AA08-4AB9-9D72-D741DB7404BB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModelViewer-NetCore", "ModelViewer-NetCore\ModelViewer-NetCore.csproj", "{619AE075-5F89-4528-8EAB-0FB924DE81BD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -132,6 +134,10 @@ Global
 		{F7C19658-AA08-4AB9-9D72-D741DB7404BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F7C19658-AA08-4AB9-9D72-D741DB7404BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F7C19658-AA08-4AB9-9D72-D741DB7404BB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{619AE075-5F89-4528-8EAB-0FB924DE81BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{619AE075-5F89-4528-8EAB-0FB924DE81BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{619AE075-5F89-4528-8EAB-0FB924DE81BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{619AE075-5F89-4528-8EAB-0FB924DE81BD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

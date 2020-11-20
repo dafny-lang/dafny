@@ -1,0 +1,1 @@
+﻿These files have been linked directly inside DafnyLS as a PoC. Create a seperate project for them.

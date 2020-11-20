@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>ModelViewer_NetCore</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\dafny\Source\boogie\Source\ModelViewer\DafnyProvider.cs" Link="DafnyProvider.cs" />
+    <Compile Include="..\..\dafny\Source\boogie\Source\ModelViewer\DataModel.cs" Link="DataModel.cs" />
+    <Compile Include="..\..\dafny\Source\boogie\Source\ModelViewer\Namer.cs" Link="Namer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\dafny\Source\boogie\Source\Model\Model-NetCore.csproj" />
+  </ItemGroup>
+
+</Project>
