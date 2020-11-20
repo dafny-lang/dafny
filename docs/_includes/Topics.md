@@ -4,7 +4,9 @@
 
 TO BE WRITTEN
 
+## Ghost Inference
 
+TO BE WRITTEN
 
 ## Well-founded Functions and Extreme Predicates
 This section is a tutorial on well-founded functions and extreme predicates.
