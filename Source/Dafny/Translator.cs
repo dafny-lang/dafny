@@ -8005,7 +8005,8 @@ namespace Microsoft.Dafny {
     Bpl.Expr CheckWellformedLetExprWithResult(LetExpr e, WFOptions options, Bpl.Expr result, Type resultType, List<Bpl.Variable> locals,
                                 BoogieStmtListBuilder builder, ExpressionTranslator etran, bool checkRhs) {
       if (e.Exact) {
-        var substMap = SetupBoundVarsAsLocals(e.BoundVars.ToList<BoundVar>(), builder, locals, etran);
+        var uniqueSuffix = "#Z" + defaultIdGenerator.FreshNumericId("#Z");
+        var substMap = SetupBoundVarsAsLocals(e.BoundVars.ToList<BoundVar>(), builder, locals, etran, null, "#Z");
         Contract.Assert(e.LHSs.Count == e.RHSs.Count);  // checked by resolution
         var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("let#");
         for (int i = 0; i < e.LHSs.Count; i++) {
