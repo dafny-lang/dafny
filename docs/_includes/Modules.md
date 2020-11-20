@@ -178,6 +178,16 @@ TO BE WRITTEN -- including provides and reveals lists
 TO BE WRITTEN -- opened imports are not exported
 TO BE WRITTEN -- module facades
 
+## Access control
+
+In some programming languages, keywords such as `public`, `private`, and `protected`
+are used to control access to (that is, visibility of) declared program entities.
+In Dafny, modules and export sets provide that capability.
+Modules combine declarations into logically related groups.
+Export sets then permit selectively exposing subsets of declarations;
+other modules can import the export set appropriate to its needs.
+A user can define as many export sets as are needed to provide different
+kinds of access to the module's declarations.
 
 ## Opening Modules
 

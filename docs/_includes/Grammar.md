@@ -255,21 +255,25 @@ reservedword =
     "reveals" | "seq" | "set" | "static" | "string" | "then" |
     "this" | "trait" | "true" | "twostate" | "type" |
     "unchanged" | "var" | "where" | "while" | "yield" | "yields" |
-    arrayToken
+    arrayToken | bvToken
 
 arrayToken = "array" [ posdigit2 | posDigit digit { digit }]["?"]
+
+bvToken = "bv" [ 0 | posDigit { digit } ]
 ```
 
 An ``arrayToken`` is a reserved word that denotes an array type of
 given rank. `array` is an array type of rank 1 (aka a vector). `array2`
 is the type of two-dimensional arrays, etc.
 `array1` and `array1?` are not reserved words; they are just ordinary identifiers.
+Similarly, `bv0`, `bv1`, and `bv8` are reserved words, but `bv02` is an
+ordinary identifier.
 
 ### Identifiers
 
 ````grammar
 ident = nondigitIdChar { idchar }
-        - arrayToken - charToken - reservedword
+        - arrayToken - charToken - bvToken - reservedword
 ````
 In general Dafny identifiers are sequences of ``idchar`` characters where
 the first character is a ``nondigitIdChar``. However tokens that fit this pattern

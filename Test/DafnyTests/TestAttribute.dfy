@@ -5,6 +5,8 @@
 // Remove the absolute file path before the expected error
 // RUN: sed 's/[^:]*://' "%t".raw > "%t"
 // RUN: %diff "%s.expect" "%t"
+// XFAIL: *
+
 include "../exceptions/VoidOutcomeDt.dfy"
 include "../exceptions/NatOutcomeDt.dfy"
 
