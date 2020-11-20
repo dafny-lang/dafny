@@ -28,6 +28,9 @@ in order of increasing binding power.
  `!in`                    | collection non-membership
  `!!`                     | disjointness
 --------------------------|------------------------------------
+ `<<`                     | left-shift
+ `>>`                     | right-shift
+--------------------------|------------------------------------
  `+`                      | addition (plus)
  `-`                      | subtraction (minus)
 --------------------------|------------------------------------
@@ -35,8 +38,12 @@ in order of increasing binding power.
  `/`                      | division (divided by)
  `%`                      | modulus (mod)
 --------------------------|------------------------------------
+ `|`                      | bit-wise or
+ `&`                      | bit-wise and
+ `^`                      | bit-wise exclusive-or (not equal)
+--------------------------|------------------------------------
  `-`                      | arithmetic negation (unary minus)
- `!`                      | logical negation
+ `!`                      | logical negation, bit-wise complement
  Primary Expressions      |
 
 TODO: What about unicode symbols for ! & | <==> ==> <==
@@ -160,16 +167,14 @@ This is purely a syntactic convenience allowing easy edits such as reordering
 lines or commenting out lines without having to check that the infix
 operators are always where they should be.
 
-TO BE WRITTEN -- prefixed && and ||
-
 See section [#sec-conjunction-and-disjunction] for an explanation
 of the `&&` and `||` operators.
 
 ## Relational Expressions
 ````grammar
 RelationalExpression(allowLemma, allowLambda) =
-  Term(allowLemma, allowLambda)
-  { RelOp Term(allowLemma, allowLambda) }
+  ShiftTerm(allowLemma, allowLambda)
+  { RelOp ShiftTerm(allowLemma, allowLambda) }
 
 RelOp =
   ( "=="
@@ -199,11 +204,28 @@ Note that `x ==#[k] y` is the prefix equality operator that compares
 co-inductive values for equality to a nesting level of k, as
 explained in section [#sec-co-equality].
 
+## Bit Shifts
+````grammar
+ShiftTerm(allowLemma, allowLambda) =
+  Term(allowLemma, allowLambda)
+  { ShiftOp Term(allowLemma, allowLambda) }
+
+ShiftOp = ( "<<" | ">>" )
+````
+
+These operators are the left and right shift operators for bit-vector values.
+They take a bit-vector value and an `int`, shifting the bits by the given
+amount; the result has the same bit-vector type as the LHS.
+For the expression to be well-defined, the RHS value must be in the range 0 to the number of
+bits in the bit-vector type, inclusive.
+
+The operations are left-associative: `a << i >> j` is `(a << i) >> j`.
 ## Terms
 ````grammar
 Term(allowLemma, allowLambda) =
   Factor(allowLemma, allowLambda)
   { AddOp Factor(allowLemma, allowLambda) }
+
 AddOp = ( "+" | "-" )
 ````
 
@@ -220,8 +242,9 @@ difference for sets and multisets.
 ## Factors
 ````grammar
 Factor(allowLemma, allowLambda) =
-  AsExpression(allowLemma, allowLambda)
-  { MulOp AsExpression(allowLemma, allowLambda) }
+  BitVectorOp(allowLemma, allowLambda)
+  { MulOp BitVectorOp(allowLemma, allowLambda) }
+
 MulOp = ( "*" | "/" | "%" )
 ````
 
@@ -235,11 +258,28 @@ language operations.
 Only `*` has a non-numeric application. It represents set or multiset
 intersection as explained in sections [#sec-sets] and [#sec-multisets].
 
+## Bit-vector Operations
+````grammar
+BitVectorOp(allowLemma, allowLambda) =
+  AsExpression(allowLemma, allowLambda)
+  { BVOp AsExpression(allowLemma, allowLambda) }
 
-## As Conversion Expressions
+BVOp = ( "|" | "&" | "^" )
+````
+
+These operations take two bit-vector values of the same type, returning
+a value of the same type. The operations perform bit-wise _or_ (`|`),
+_and_ (`&`), and exclusive-or (`^`). To perform bit-wise equality, use
+`^` and `!` (unary complement) together.
+
+These operations associate to the left but do not associate with each other;
+use parentheses: `a & b | c` is illegal; use `(a & b) | c` or `a & (b | c)`
+instead.
+
+## As (Conversion) and Is (type test) Expressions
 ````grammar
 NumericConversionExpression_ =
-    UnaryExpression(allowLemma: true, allowLambda: true) "as" Type
+    UnaryExpression(allowLemma: true, allowLambda: true) ( "as" | "is" ) Type
 ````
 The `as` expression converts the given `UnaryExpression` to the stated
 `Type`, with the result being of the given type. The following combinations
@@ -265,6 +305,19 @@ The `as` operation is like a grammatical suffix or postfix operation.
 However, note that the unaray operations bind more tightly than does `as`.
 That is `- 5 as nat` is `(- 5) as nat` (which fails), whereas `a * b as nat`
 is `a * (b as nat)`. On the other hand `- a[4]` is `- (a[4])`.
+
+*This `is` expression is not yet implemented. This description is proposed.*
+
+The `is` expression is grammatically similar to the `as` expression, with the
+same binding power and constraints on types. However, the `is` expression
+returns a `bool` value indicating whether the LHS expression is a legal
+value of the RHS type. Thus this expression can be used to check, for example,
+whether `int` values are permitted values of a subset type or newtype.
+It can also check the allocated type of a trait.
+
+For an expression `e` and type `t`, `e is t` is the condition determining whether
+`e as t` is well-defined.
+
 
 ## Unary Expressions
 
@@ -621,14 +674,15 @@ multisets.
 
 ## Map Display Expression
 ````grammar
-MapDisplayExpr = ("map" | "imap" ) "[" [ MapLiteralExpressions ] "]"
+MapDisplayExpr =
+  ("map" | "imap" ) "[" [ MapLiteralExpressions ] "]"
 
 MapLiteralExpressions =
-    Expression(allowLemma: true, allowLambda: true)
-    ":=" Expression(allowLemma: true, allowLambda: true)
-    { "," Expression(allowLemma: true, allowLambda: true)
-          ":=" Expression(allowLemma: true, allowLambda: true)
-    }
+  Expression(allowLemma: true, allowLambda: true)
+  ":=" Expression(allowLemma: true, allowLambda: true)
+  { "," Expression(allowLemma: true, allowLambda: true)
+        ":=" Expression(allowLemma: true, allowLambda: true)
+  }
 ````
 
 A map display expression builds a finite or potentially infinite
@@ -712,12 +766,12 @@ ExtendedPattern =
 Case bindings and extended patterns are used for (possibly nested)
 pattern matching on inductive, coinductive or base type values.
 The `CaseBinding_` and `ExtendedPattern` constructs are used in
-`CaseStatement` and `CaseExpression`s
-(that is, in `match`
+`CaseStatement` and `CaseExpression`s,
+that is, in `match`
 [statements](#sec-match-statement)
 and [expressions](#sec-match-expression).
 `CasePattern`s are used
-in `LetExpr``s and `VarDeclStatement``s.
+in `LetExpr`s and `VarDeclStatement`s.
 The `ExtendedPattern` differs from `CasePattern` is allowing literals
 and symbolic constants.
 
@@ -741,7 +795,7 @@ matches a constructor.
 * a simple identifier, then the pattern matches
    * a parameter-less constructor if there is one defined with the correct type and the given name, else
    * the value of a symbolic constant, if a name lookup finds a declaration for
-a constant with the given name (if the name is delcared but with a non-matching type, a type resolution error will occur),
+a constant with the given name (if the name is declared but with a non-matching type, a type resolution error will occur),
    * otherwise, the identifier is a new bound variable
 
 Any ``ExtendedPattern``s inside the parentheses are then
@@ -754,8 +808,8 @@ When matching a value of base type, the ``ExtendedPattern`` should
 either be a ``LiteralExpression_`` of the same type as the value,
 or a single identifier matching all values of this type.
 
-The ``CasePattern``s may be nested. The set of bound variable
-identifiers contained in a ``CaseBinding_`` must be distinct.
+The `ExtendedPattern`s and `CasePattern`s may be nested. The set of bound variable
+identifiers contained in a `CaseBinding_` or `CasePattern` must be distinct.
 They are bound to the corresponding values in the value being
 matched. (Thus, for example, one cannot repeat a bound variable to
 attempt to match a constructor that has two identical arguments.)
@@ -913,7 +967,7 @@ method test() {
 ```
 the set `m` contains only those instances of `I` that have been allocated
 at the point in program execution that `test` is evaluated. This could be
-no instances, one per value of x.i in the stated range, multiple instances
+no instances, one per value of `x.i` in the stated range, multiple instances
 of `I` for each value of `x.i`, or any other combination.
 
 ## Statements in an Expression
@@ -935,11 +989,11 @@ assume x != 0; 10/x
 
 ````grammar
 LetExpr(allowLemma, allowLambda) =
-    [ "ghost" ] "var" CasePattern { "," CasePattern }
-    ( ":=" | { Attribute } ":|" )
-    Expression(allowLemma: false, allowLambda: true)
-    { "," Expression(allowLemma: false, allowLambda: true) } ";"
-    Expression(allowLemma, allowLambda)
+  [ "ghost" ] "var" CasePattern { "," CasePattern }
+  ( ":=" | { Attribute } ":|" )
+  Expression(allowLemma: false, allowLambda: true)
+  { "," Expression(allowLemma: false, allowLambda: true) } ";"
+  Expression(allowLemma, allowLambda)
 ````
 
 A `let` expression allows binding of intermediate values to identifiers
@@ -993,6 +1047,10 @@ method test()
 }
 ```
 
+Dafny finite maps must be finite, so the domain must be constrained to be finite.
+But imaps may be infinite as the example shows. The last example shows
+creation of an infinite map that gives the same results as a function.
+
 If the expression includes the `:=` token, that token separates
 domain values from range values. For example, in the following code
 ```dafny
@@ -1002,10 +1060,6 @@ method test()
 }
 ```
 `m` maps `2` to `3`, `4` to `6`, and so on.
-
-Dafny finite maps must be finite, so the domain must be constrained to be finite.
-But imaps may be infinite as the example shows. The last example shows
-creation of an infinite map that gives the same results as a function.
 
 <!-- Experimental - do not document.
 
@@ -1059,7 +1113,8 @@ In the case where the `colemma` is generic, the generic type
 argument is given before. Here is an example:
 
 ```dafny
-codatatype Stream<T> = Nil | Cons(head: int, stuff: T, tail: Stream)
+codatatype Stream<T> = Nil | Cons(head: int, stuff: T,
+                                  tail: Stream<T>)
 
 function append(M: Stream, N: Stream): Stream
 {
@@ -1232,7 +1287,7 @@ For a sequence `s` and expressions `i` and `v`, the expression
 index `i` it has value `v`.
 
 If the type of `s` is `seq<T>`, then `v` must have type `T`.
-The index `i` can have any integer- and bitvector-based type
+The index `i` can have any integer- or bit-vector-based type
 (this is one situation in which Dafny implements implicit
 conversion, as if an `as int` were appended to the index expression).
 The expression `s[i := v]` has the same type as `s`.
@@ -1254,7 +1309,7 @@ it is a list of indices to index into a multi-dimensional array.
 The rank of the array must be the same as the number of indices.
 
 If the ``SelectionSuffix_`` is used with an array or a sequence,
-then each index expression can have any integer- or bitvector-based
+then each index expression can have any integer- or bit-vector-based
 type
 (this is one situation in which Dafny implements implicit
 conversion, as if an `as int` were appended to the index expression).
@@ -1304,14 +1359,14 @@ well be used elsewhere as well) improves the self-documentation of the code.
 In Dafny, the following expressions are compile-time constants[^CTC], recursively
 (that is, the arguments of any operation must themselves be compile-time constants):
 
-- int, bitvector, real, boolean, char and string literals
+- int, bit-vector, real, boolean, char and string literals
 - int operations: `+ - * / %` and unary `-` and comparisons `< <= > >= == !=`
 - real operations: `+ - *` and unary `-` and comparisons `< <= > >= == !='
 - bool operations: `&& || ==> <== <==> == !=` and unary '!'
-- bitvector operations: `+ - * / % << >> & | ^` and unary `! -` and comparisons `< <= > >= == !=`
+- bit-vector operations: `+ - * / % << >> & | ^` and unary `! -` and comparisons `< <= > >= == !=`
 - char operations: `< <= > >= == !=`
 - string operations: length: `|...|`, concatenation: `+`, comparisons `< <= == !=`, indexing `[]`
-- conversions between: int real char bitvector
+- conversions between: int real char bit-vector
 - newtype operations: newtype arguments, but not newtype results
 - symbolic values that are declared `const` and have an explicit initialization value that is a compile-time constant
 - conditional (if-then-else) expressions

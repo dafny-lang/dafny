@@ -519,7 +519,7 @@ assume !tmp.IsFailure();
 ```
 
 *Currently, the assert and assume alternatives are not implemented, and the
-expect alternative still requires a PropoagateFailure member.*
+expect alternative still requires a PropagateFailure member.*
 
 ### Key points
 
@@ -902,7 +902,11 @@ That is, the expression must strictly decrease in a well-founded ordering
 
 Many times, an integral value (natural or plain integer) is the quantity
 that decreases, but other values can be used as well. In the case of
-integers, the bound is assumed to be zero. For example, the following is
+integers, the bound is assumed to be zero.  The lower bound requires that
+when the `decreases` expression is evaluated just prior to the loop test,
+the value must be at least as large as the lower bound.
+
+For example, the following is
 a proper use of `decreases` on a loop:
 
 ```dafny
@@ -915,8 +919,9 @@ a proper use of `decreases` on a loop:
 ```
 
 Here Dafny has all the ingredients it needs to prove termination. The
-variable i gets smaller each loop iteration, and is bounded below by
-zero. This is fine, except the loop is backwards from most loops, which
+variable `i` becomes smaller each loop iteration, and is bounded below by
+zero.
+This is fine, except the loop is backwards from most loops, which
 tend to count up instead of down. In this case, what decreases is not the
 counter itself, but rather the distance between the counter and the upper
 bound. A simple trick for dealing with this situation is given below:
@@ -1005,7 +1010,7 @@ AssertStmt =
 expected to be true. Dafny will attempt to prove that the assertion
 is true and give an error if the assertion cannot be proven.
 Once the assertion is proved,
-its truth may aid in proving following deductions.
+its truth may aid in proving subsequent deductions.
 Thus if Dafny is having a difficult time verifying a method,
 the user may help by inserting assertions that Dafny can prove,
 and whose truth may aid in the larger verification effort,

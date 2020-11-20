@@ -1,5 +1,9 @@
 # Advanced Topics
 
+## Type Parameter Completion
+
+TO BE WRITTEN
+
 ## Type Inference {#sec-type-inference}
 
 TO BE WRITTEN
