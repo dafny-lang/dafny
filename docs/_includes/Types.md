@@ -1614,9 +1614,9 @@ Each of any method declarations explicitly or implicitly
 includes a specification. In simple cases, those syntactially separate
 specifications will be copies of each other (up to renaming to take account
 of differing formal parameter names). However they need not be. The rule is
-that the specifications of M in a given class or trait must be _no weaker than_
+that the specifications of M in a given class or trait must be _as stsrong as_
 M's specifications in a transitive parent.
-Here _no weaker than_  means that it
+Here _as strong as_  means that it
 must be permitted to call the subtype's M in the context of the supertype's M.
 Stated differently, where P and C are a parent trait and a child class or trait,
 respectively, then, under the precondition of `P.M`,
