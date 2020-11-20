@@ -113,26 +113,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       private IDictionary<string, string> GetVariablesFromState(StateNode state) {
         return state.Vars
           .WithCancellation(_cancellationToken)
-          .Where(variable => !IsUnknownValue(variable))
           .ToDictionary(
             variable => variable.ShortName,
-            variable => GetFormattedValue(variable)
+            variable => variable.Value
           );
-      }
-
-      private bool IsUnknownValue(VariableNode variable) {
-        return variable.Value.StartsWith("(**") || variable.Value.StartsWith("('");
-      }
-
-      private string GetFormattedValue(VariableNode variable) {
-        if(IsReference(variable)) {
-          return ReferenceValuePlaceholder;
-        }
-        return variable.Value;
-      }
-
-      private bool IsReference(VariableNode variable) {
-        return variable.Value.StartsWith(ReferenceValuePrefix);
       }
     }
   }
