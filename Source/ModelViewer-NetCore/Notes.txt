@@ -1,1 +1,2 @@
-﻿These files have been linked directly inside DafnyLS as a PoC. Create a seperate project for them.
+﻿The files of this project are from the ModelViewer .NET Framework project of Boogie.
+Remove this project as soon as Boogie itself exposes them in a .NET Core / Standard project.
