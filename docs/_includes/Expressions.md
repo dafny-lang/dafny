@@ -46,8 +46,6 @@ in order of increasing binding power.
  `!`                      | logical negation, bit-wise complement
  Primary Expressions      |
 
-TODO: What about unicode symbols for ! & | <==> ==> <==
-
 We are calling the ``UnaryExpression``s that are neither
 arithmetic nor logical negation the _primary expressions_.
 They are the most tightly bound.
@@ -958,11 +956,11 @@ For example, given
 
 ```dafny
 class I {
-  var i: int;
+  var i: int
 }
 
 method test() {
-  ghost var m := set x | I :: 0 <= x.i <= 10;
+  ghost var m := set x: I :: 0 <= x.i <= 10;
 }
 ```
 the set `m` contains only those instances of `I` that have been allocated

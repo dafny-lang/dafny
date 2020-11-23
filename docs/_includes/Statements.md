@@ -138,7 +138,7 @@ In fact, the yield parameters act very much like local variables,
 and can be assigned to more than once. Yield statements are
 used when one wants to return new yield parameter values
 to the caller. Yield statements can be just the
-**yield** keyword (where the current values of the yield parameters
+`yield` keyword (where the current values of the yield parameters
 are used), or they can take a list of expressions to yield.
 If a list is given, the number of expressions given must be the
 same as the number of named iterator out-parameters.
@@ -240,7 +240,7 @@ Note that the form
     Lhs ":"
 ````
 
-is diagnosed as a label in which the user forgot the **label** keyword.
+is diagnosed as a label in which the user forgot the `label` keyword.
 
 ## Update with Failure Statement (`:-`) {#sec-update-failure}
 ````grammar
@@ -251,7 +251,7 @@ UpdateFailureStmt  =
     Expression(allowLemma: false, allowLambda: false) { "," Rhs }
 ````
 
-A `:-` statement is similar to a `:=` statement, but allows for immediate return if a failure is detected.
+A `:-` statement is similar to a `:=` statement, but allows for abrupt return if a failure is detected.
 This is a language feature somewhat analogous to exceptions in other languages.
 
 An update-with-failure statement uses _failure-compatible_ types.
@@ -492,7 +492,7 @@ run-time check for success. This is equivalent to including
 `expect !r.IsFailure()` after the RHS evaluation; that is, if the status
 return is a failure, the program halts.
 
-In each of these cases, there is no immediate return from the caller. Thus
+In each of these cases, there is no abrupt return from the caller. Thus
 there is no evaluation of `PropagateFailure`. Consequently the first
 out-parameter of the caller need not match the return type of
 `PropagateFailure`; indeed, the failure-compatible type returned by the
@@ -526,7 +526,7 @@ expect alternative still requires a PropagateFailure member.*
 There are several points to note.
 
  * The first out-parameter of the callee is special.
-It has a special type and that type indicates that the value is inspected to see if an immediate return
+It has a special type and that type indicates that the value is inspected to see if an abrupt return
 from the caller is warranted.
 This type is often a datatype, as shown in the examples above, but it may be any type with the appropriate members.
  * The restriction on the type of caller's first out-parameter is
@@ -610,7 +610,7 @@ What follows the ``LocalIdentTypeOptional`` optionally combines the variable
 declarations with an update statement (cf. [Update and Call Statement](#sec-update-and-call-statement)).
 If the RHS is a call, then any variable receiving the value of a
 formal ghost out-parameter will automatically be declared as ghost, even
-if the **ghost** keyword is not part of the variable declaration statement.
+if the `ghost` keyword is not part of the variable declaration statement.
 
 The left-hand side can also contain a tuple of patterns that will be
 matched against the right-hand-side. For example:
@@ -902,9 +902,14 @@ That is, the expression must strictly decrease in a well-founded ordering
 
 Many times, an integral value (natural or plain integer) is the quantity
 that decreases, but other values can be used as well. In the case of
-integers, the bound is assumed to be zero.  The lower bound requires that
-when the `decreases` expression is evaluated just prior to the loop test,
-the value must be at least as large as the lower bound.
+integers, the bound is assumed to be zero.
+For each loop iteration the `decreases` expression at the end of the loop
+body must be strictly smaller than the value at the beginning of the loop
+body (after the loop test). For integers, the well-founded relation between
+`x` and `X` is `x < X && 0 <= X`.
+Thus if the `decreases` value (`X`) is negative at the
+loop test, it must exit the loop, since there is no permitted value for
+`x` to have at the end of the loop body.
 
 For example, the following is
 a proper use of `decreases` on a loop:
@@ -920,7 +925,9 @@ a proper use of `decreases` on a loop:
 
 Here Dafny has all the ingredients it needs to prove termination. The
 variable `i` becomes smaller each loop iteration, and is bounded below by
-zero.
+zero. When `i` becomes 0, the lower bound of the well-founded order, control
+flow exits the loop.
+
 This is fine, except the loop is backwards from most loops, which
 tend to count up instead of down. In this case, what decreases is not the
 counter itself, but rather the distance between the counter and the upper
@@ -1042,7 +1049,7 @@ the other verification can proceed. Then when that is completed the
 user would come back and replace the `assume` with `assert`.
 
 An `assume` statement cannot be compiled. In fact, the compiler
-will complain if it finds an **assume** anywhere where it has not
+will complain if it finds an `assume` anywhere where it has not
 been replaced through a refinement step.
 
 Using `...` as the argument of the statement is part of module refinement, as described [here](#sec-module-refinement).

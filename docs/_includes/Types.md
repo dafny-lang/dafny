@@ -2909,7 +2909,7 @@ If the compiler does specialize the run-time representation for
 respectively three, run-time conversions.
 
 The `as N` conversion operation is grammatically a suffix operation like
-`.`_field and array indsexing. Thus the `as` operation binds more tightly than
+`.`field and array indexing. Thus the `as` operation binds more tightly than
 prefix or binary operations: `- x as int` is `- (x as int)`; `a + b as int` is `a + (b as int)`.
 
 # Subset types {#sec-subset-types}
