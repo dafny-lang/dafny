@@ -2,7 +2,7 @@
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   [Parallel]
-  [Method("counterExample", Direction.ClientToServer)]
+  [Method(DafnyRequestNames.CounterExample, Direction.ClientToServer)]
   public interface ICounterExampleHandler : IJsonRpcRequestHandler<CounterExampleParams, CounterExampleList> {
   }
 }
