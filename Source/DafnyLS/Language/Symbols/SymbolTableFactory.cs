@@ -166,7 +166,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         //      The "typeRhs" only points to the "new" keyword with its token.
         //      Find an alternative to get the type designator without requiring the resolver.
         if(type is UserDefinedType userDefinedType) {
-          RegisterDesignator(_currentScope, type, userDefinedType.NamePath.tok, userDefinedType.Name);
+          RegisterDesignator(scope, type, userDefinedType.NamePath.tok, userDefinedType.Name);
         }
       }
 
