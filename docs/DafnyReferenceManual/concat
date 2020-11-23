@@ -1,4 +1,4 @@
-#! /bin/bash -f 
+#! /bin/bash -f
 
 ## pandoc does not process the include directive in GitHub markdown
 ## so we do a bit of (inefficient) text processing to assemble the files
@@ -7,12 +7,14 @@
 
 cat $@ > /tmp/t
 
-grep -q '{% include' /tmp/t 
+grep -q '{% include' /tmp/t
 a=$?
 
 for (( ; $a==0 ; ))
 do
 
+mv /tmp/t /tmp/tt
+grep -v 'PDFOMIT' /tmp/tt > /tmp/t
 line=`grep -n '{% include' /tmp/t | head -1 | sed -e 's/:.*//'`
 file=`grep -n '{% include' /tmp/t | head -1 | sed -e 's/.*include //' -e 's/%}//' `
 let "ln = $line - 1"
@@ -22,7 +24,7 @@ head -$ln < /tmp/t > /tmp/a
 tail +$lp < /tmp/t > /tmp/b
 cat /tmp/a ../_includes/$file /tmp/b > /tmp/t
 
-grep -q '{% include' /tmp/t 
+grep -q '{% include' /tmp/t
 a=$?
 
 done
