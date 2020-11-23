@@ -18,7 +18,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       _logger = logger;
     }
 
-    public SymbolTable CreateFrom(Microsoft.Dafny.Program program, CompilationUnit compilationUnit, CancellationToken cancellationToken) {
+    public SymbolTable CreateFrom(Dafny.Program program, CompilationUnit compilationUnit, CancellationToken cancellationToken) {
       var declarations = CreateDeclarationDictionary(compilationUnit, cancellationToken);
       var designatorVisitor = new DesignatorVisitor(_logger, program, declarations, compilationUnit, cancellationToken);
       var declarationLocationVisitor = new SymbolDeclarationLocationVisitor(cancellationToken);
@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       );
     }
 
-    private static bool HasErrors(Microsoft.Dafny.Program program) {
+    private static bool HasErrors(Dafny.Program program) {
       // TODO create extension method
       return program.reporter.AllMessages[ErrorLevel.Error].Count > 0;
     }
@@ -63,7 +63,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private class DesignatorVisitor : SyntaxTreeVisitor {
       private readonly ILogger _logger;
-      private readonly Microsoft.Dafny.Program _program;
+      private readonly Dafny.Program _program;
       private readonly IDictionary<AstElement, ILocalizableSymbol> _declarations;
       private readonly DafnyLangTypeResolver _typeResolver;
       private readonly IDictionary<AstElement, ISymbol> _designators =  new Dictionary<AstElement, ISymbol>();
@@ -74,7 +74,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       public IIntervalTree<Position, ILocalizableSymbol> SymbolLookup { get; } = new IntervalTree<Position, ILocalizableSymbol>(new PositionComparer());
 
       public DesignatorVisitor(
-          ILogger logger, Microsoft.Dafny.Program program, IDictionary<AstElement, ILocalizableSymbol> declarations, ISymbol rootScope, CancellationToken cancellationToken
+          ILogger logger, Dafny.Program program, IDictionary<AstElement, ILocalizableSymbol> declarations, ISymbol rootScope, CancellationToken cancellationToken
       ) {
         _logger = logger;
         _program = program;
@@ -84,7 +84,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         _cancellationToken = cancellationToken;
       }
 
-      public override void VisitUnknown(object node, Microsoft.Boogie.IToken token) {
+      public override void VisitUnknown(object node, Boogie.IToken token) {
         _logger.LogWarning("encountered unknown syntax node of type {} in {}@({},{})", node.GetType(), Path.GetFileName(token.filename), token.line, token.col);
       }
 
@@ -170,7 +170,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
 
-      private void RegisterDesignator(ISymbol scope, AstElement node, Microsoft.Boogie.IToken token, string identifier) {
+      private void RegisterDesignator(ISymbol scope, AstElement node, Boogie.IToken token, string identifier) {
         var symbol = GetSymbolDeclarationByName(scope, identifier);
         if(symbol != null) {
           // Many resolutions for automatically generated nodes (e.g. Decreases, Update when initializating a variable
@@ -186,7 +186,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
 
-      private void ProcessNestedScope(AstElement node, Microsoft.Boogie.IToken token, System.Action visit) {
+      private void ProcessNestedScope(AstElement node, Boogie.IToken token, System.Action visit) {
         if(!_program.IsPartOfEntryDocument(token)) {
           return;
         }
@@ -334,7 +334,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         }
       }
 
-      private void RegisterLocation(ISymbol symbol, Microsoft.Boogie.IToken token, Range name, Range declaration) {
+      private void RegisterLocation(ISymbol symbol, Boogie.IToken token, Range name, Range declaration) {
         if(token.filename != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
           Locations.Add(symbol, new SymbolLocation(DocumentUri.FromFileSystemPath(token.filename), name, declaration));
