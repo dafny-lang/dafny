@@ -147,7 +147,7 @@
         <!-- operators, error chars and punctuation -->
         <RegExpr attribute="Operators" String="!in(?![0-9a-zA-Z_'?])" />
         <RegExpr attribute="Operators" String="in(?![0-9a-zA-Z_'?])" />
-        <RegExpr attribute="Operators" String="(?:\+|-|\*|/|%|&lt;(?:=(?:=(?:&gt;)?)?)?|&gt;[=]?|==[#&gt;]?|!=[#]?|&amp;&amp;|\|\||![!]?|[~]|#|\.\.|:)" />
+        <RegExpr attribute="Operators" String="(?:\+|-|\*|/|%|&lt;(?:=(?:=(?:&gt;)?)?)?|&gt;[=]?|=&gt;|==[#&gt;]?|!=[#]?|&amp;&amp;|\|\||![!]?|[~]|#|\.\.|:)" />
         <RegExpr attribute="Error" String="(?:[`$])" />
 
         <RegExpr attribute="Punctuation" String="(?:;|\(|\)|\[|\]|\{|\}|,|\.|:[:=|]?|\|)" />

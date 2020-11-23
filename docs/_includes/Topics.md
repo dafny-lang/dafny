@@ -1,5 +1,11 @@
 # Advanced Topics
 
+## Type Parameter Completion {#sec-type-parameter-completion}
+
+[http://leino.science/papers/krml270.html](http://leino.science/papers/krml270.html)
+
+TO BE WRITTEN
+
 ## Type Inference {#sec-type-inference}
 
 TO BE WRITTEN
@@ -786,7 +792,42 @@ TO BE WRITTEN -- rules for default initialization; resulting rules for construct
 
 ## Well-founded Orders {#sec-well-founded-orders}
 
-TODO: Write this section
+The well-founded order relations for a variety of built-in types in Dafny
+are given in the following table:
+
+| type of `X` and `x`    | `x` strictly below `X`   |
+|:-----------------------|:---------------------------------------------------------------|
+| `bool`                 | `X && !x`                                                      |
+| `int`                  | `x < X && 0 <= X`                                              |
+| `real`                 | `x <= X - 1.0 && 0.0 <= X`                                     |
+| `set<T>`               | `x` is a proper subset of `X`                                  |
+| `multiset<T>`               | `x` is a proper multiset-subset of `X`                                  |
+| `seq<T>`               | `x` is a consecutive proper sub-sequence of `X`                |
+| `map<K, V>`               | `x.Keys` is a proper subset of `X.Keys`                |
+| inductive datatypes    | `x` is structurally included in `X`                            |
+| reference types | `x == null && X != null` |
+| co-inductive datatypes | `false` |
+| type parameter | `false` |
+| arrow types | `false` |
+
+Also, there are a few relations between the rows in the table above. For example, a datatype value `x` sitting inside a set that sits inside another datatype value `X` is considered to be strictly below `x`. Here's an illustration of that order, in a program that verifies:
+
+``` dafny
+datatype D = D(s: set<D>)
+
+method TestD(dd: D) {
+  var d := dd;
+  while d != D({})
+    decreases d
+  {
+    var x :| x in d.s;
+    d := x;
+  }
+}
+```
+
+
+TODO: Write this section; revise the above
 
 ## Module Refinement {#sec-module-refinement}
 

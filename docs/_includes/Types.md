@@ -322,6 +322,7 @@ Each such type is
 distinct and is designated by the prefix `bv` followed (without white space) by
 a positive integer (without leading zeros) stating the number of bits. For example,
 `bv1`, `bv8`, and `bv32` are legal bit-vector type names.
+The type `bv0` is also legal; it is a bit-vector type with no bits and just one value, `0x0`.
 
 Constant literals of bit-vector types are given by integer literals converted automatically
 to the designated type, either by an implicit or explicit conversion operation or by initialization in a declaration.
@@ -2780,7 +2781,8 @@ infinite proof on demand.
 # Newtypes
 ````grammar
 NewtypeDecl = "newtype" { Attribute } NewtypeName "="
-  ( NumericTypeName [ ":" Type ] "|" Expression(allowLemma: false, allowLambda: true)
+  ( NumericTypeName [ ":" Type ]
+   "|" Expression(allowLemma: false, allowLambda: true)
   | Type
   )
 ````
@@ -2790,7 +2792,7 @@ declaration, for example:
 ```dafny
 newtype N = x: M | Q
 ```
-where `M` is a numeric type and `Q` is a boolean expression that can
+where `M` is a type and `Q` is a boolean expression that can
 use `x` as a free variable.  If `M` is an integer-based numeric type,
 then so is `N`; if `M` is real-based, then so is `N`.  If the type `M`
 can be inferred from `Q`, the "`: M`" can be omitted.  If `Q` is just
@@ -2798,12 +2800,12 @@ can be inferred from `Q`, the "`: M`" can be omitted.  If `Q` is just
 ```dafny
 newtype N = M
 ```
-Type `M` is known as the _base type_ of `N`.
+Type `M` is known as the _base type_ of `N`. At present, Dafny only supports
+`int` and `real` as base types of newtypes.
 
-
-A newtype is a numeric type that supports the same operations as its
+A newtype is a type that supports the same operations as its
 base type.  The newtype is distinct from and incompatible with other
-numeric types; in particular, it is not assignable to its base type
+types; in particular, it is not assignable to its base type
 without an explicit conversion.  An important difference between the
 operations on a newtype and the operations on its base type is that
 the newtype operations are defined only if the result satisfies the
@@ -2871,19 +2873,14 @@ be inhibited or a specific native data type selected by
 using the `{:nativeType}` attribute, as explained in
 section [#sec-nativetype].
 
-There is a restriction that the value `0` must be part of every
-newtype.[^fn-newtype-zero]
+There is a current restriction that the value `0` must be part of every
+numeric newtype.
 
 Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
 in [Section: Compile-Time Constants](#sec-compile-time-constants).
-
-[^fn-newtype-zero]: The restriction is due to a current limitation in
-    the compiler.  This will change in the future and will also open
-    up the possibility for subset types and non-null reference
-    types.
 
 ## Numeric conversion operations
 
@@ -2905,25 +2902,25 @@ where the type of `mid` is inferred to be `int`.  Since the result
 value of the division is a member of type `int32`, one can introduce
 yet another conversion operation to make the type of `mid` be `int32`:
 ```dafny
-var mid := int32(lo as int + hi as int) / 2);
+var mid := ((lo as int + hi as int) / 2) as int32;
 ```
 If the compiler does specialize the run-time representation for
 `int32`, then these statements come at the expense of two,
 respectively three, run-time conversions.
 
 The `as N` conversion operation is grammatically a suffix operation like
-`.`_field and array indsexing. Thus the as operawtion binds more tightly than
-p[refix or binary operations: `- x as int` is `- (x as int)`; `a + b as int` is `a + (b as int)`.
-
-TODO: Move this section to Expressions?
+`.`field and array indexing. Thus the `as` operation binds more tightly than
+prefix or binary operations: `- x as int` is `- (x as int)`; `a + b as int` is `a + (b as int)`.
 
 # Subset types {#sec-subset-types}
 TO BE WRITTEN: add `-->` (subset of `~>`), `->` (subset of `-->`), non-null types subset of nullable types
 
 ````grammar
-SubsetTypeDecl = "type" { Attribute } NewtypeName OptGenericParameters "="
-  Ident [ ":" Type ] "|" Expression(allowLemma: false, allowLambda: true)
-    [ "witness" Expression(allowLemma: false, allowLambda: true) ]
+SubsetTypeDecl =
+  "type" { Attribute } NewtypeName OptGenericParameters
+  "=" Ident [ ":" Type ]
+  "|" Expression(allowLemma: false, allowLambda: true)
+  [ "witness" Expression(allowLemma: false, allowLambda: true) ]
 ````
 
 ````grammar
@@ -2948,8 +2945,8 @@ are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
 Section [#sec-numeric-conversion-operations].)
 
-Dafny supports a builtin subset type, namely the built-in type `nat`,
-whose base type is `int`.[^fn-more-subset-types]  Type `nat`
+Dafny supports a built-in subset type, namely the type `nat`,
+whose base type is `int`. Type `nat`
 designates the non-negative subrange of `int`.  A simple example that
 puts subset type `nat` to good use is the standard Fibonacci
 function:
