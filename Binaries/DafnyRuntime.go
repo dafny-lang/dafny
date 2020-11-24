@@ -119,7 +119,7 @@ var IntType = CreateStandardTypeDescriptor(Zero)
 var BoolType = CreateStandardTypeDescriptor(false)
 
 // CharType is the RTD of char
-var CharType = CreateStandardTypeDescriptor(Char('D'))
+var CharType = CreateStandardTypeDescriptor(Char('D'))  // See CharType.DefaultValue in Dafny source code
 
 // RealType is the RTD for real
 var RealType = CreateStandardTypeDescriptor(ZeroReal)

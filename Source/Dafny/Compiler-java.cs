@@ -903,7 +903,7 @@ namespace Microsoft.Dafny{
             if (enclosingType.IsBoolType) {
               typeDescriptorExpr = $"{DafnyTypeDescriptor}.booleanWithDefault({w ?? "false"})";
             } else if (enclosingType.IsCharType) {
-              typeDescriptorExpr = $"{DafnyTypeDescriptor}.charWithDefault({w ?? "'D'"})";
+              typeDescriptorExpr = $"{DafnyTypeDescriptor}.charWithDefault({w ?? CharType.DefaultValueAsString})";
             } else if (initializer == null) {
               var d = DefaultValue(enclosingType, wr, enclosingType.tok);
               typeDescriptorExpr = $"{DafnyTypeDescriptor}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {d})";
@@ -2965,7 +2965,7 @@ namespace Microsoft.Dafny{
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
-        return "'D'";
+        return CharType.DefaultValueAsString;
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "java.math.BigInteger.ZERO";
       } else if (xType is RealType) {

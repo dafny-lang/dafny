@@ -11190,7 +11190,7 @@ namespace Microsoft.Dafny {
       if (typ is BoolType) {
         return Expression.CreateBoolLiteral(tok, false);
       } else if (typ is CharType) {
-        var z = new CharLiteralExpr(tok, "D");
+        var z = new CharLiteralExpr(tok, CharType.DefaultValue.ToString());
         z.Type = Type.Char;  // resolve here
         return z;
       } else if (typ.IsNumericBased(Type.NumericPersuasion.Int)) {

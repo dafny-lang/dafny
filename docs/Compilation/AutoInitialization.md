@@ -351,7 +351,7 @@ public static TypeDescriptor<T> NULL<T>() where T : class {
 ## Collection types
 
 Type descriptors for collection types are provided by the `_TypeDescriptor()` method in
-the type's companion class. In each case, the return returned is a value computed once
+the type's companion class. In each case, the quantity returned is a value computed once
 and for all into a static field.
 
 For each collection class (for example, `set<T>`), the companion class (`Set<T>` for
@@ -390,7 +390,7 @@ public static Dafny.TypeDescriptor<B> _TypeDescriptor(TypeDescriptor<T> td_T, ..
 }
 ```
 
-where the list of type parameters denoted by `T, ...` are the auto-init type parameters from `TT`,
+where the list of type parameters denoted by `T, ...` consists of the auto-init type parameters from `TT`,
 `B` is the target type of `S<TT>`, and
 `Dve` is the default-valued expression for `S<TT>`.
 

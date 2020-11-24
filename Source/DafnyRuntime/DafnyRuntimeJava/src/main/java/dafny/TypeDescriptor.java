@@ -123,7 +123,7 @@ public abstract class TypeDescriptor<T> {
     public static final TypeDescriptor<Integer> INT = new IntType(0);
     public static final TypeDescriptor<Long> LONG = new LongType(0L);
     public static final TypeDescriptor<Boolean> BOOLEAN = new BooleanType(Boolean.FALSE);
-    public static final TypeDescriptor<Character> CHAR = new CharType('D');
+    public static final TypeDescriptor<Character> CHAR = new CharType('D');  // See CharType.DefaultValue in Dafny source code
 
     public static final TypeDescriptor<BigInteger> BIG_INTEGER =
             referenceWithDefault(BigInteger.class, BigInteger.ZERO);

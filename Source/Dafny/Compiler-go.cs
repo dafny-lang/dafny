@@ -1418,7 +1418,7 @@ namespace Microsoft.Dafny {
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
-        return "_dafny.Char('D')";
+        return $"_dafny.Char({CharType.DefaultValueAsString})";
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "_dafny.Zero";
       } else if (xType is RealType) {

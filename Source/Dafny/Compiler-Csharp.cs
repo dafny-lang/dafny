@@ -1106,7 +1106,7 @@ namespace Microsoft.Dafny
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
-        return "'D'";
+        return CharType.DefaultValueAsString;
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "BigInteger.Zero";
       } else if (xType is RealType) {

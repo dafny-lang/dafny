@@ -36,7 +36,7 @@ let _dafny = (function() {
     static get Default() { return false; }
   }
   $module.Rtd_char = class {
-    static get Default() { return 'D'; }
+    static get Default() { return 'D'; }  // See CharType.DefaultValue in Dafny source code
   }
   $module.Rtd_int = class {
     static get Default() { return BigNumber(0); }

@@ -542,9 +542,7 @@ namespace Microsoft.Dafny {
       } else {
         d = TypeInitializationValue(udt, wr, sst.tok, false, false);
       }
-      using (var wDefault = w.NewBlock("static get Default()")) {
-        wDefault.WriteLine($"return {d};");
-      }
+      w.NewBlock("static get Default()").WriteLine($"return {d};");
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
@@ -865,7 +863,7 @@ namespace Microsoft.Dafny {
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
-        return "'D'";
+        return CharType.DefaultValueAsString;
       } else if (xType is IntType || xType is BigOrdinalType) {
         return IntegerLiteral(0);
       } else if (xType is RealType) {
