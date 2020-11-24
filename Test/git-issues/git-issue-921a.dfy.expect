@@ -1,5 +1,0 @@
-git-issue-921a.dfy(8,32): Error: value does not satisfy the subset constraints of 'ShortString'
-Execution trace:
-    (0,0): anon0
-
-Dafny program verifier finished with 1 verified, 1 error
