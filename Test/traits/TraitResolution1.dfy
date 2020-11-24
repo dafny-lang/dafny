@@ -537,3 +537,10 @@ module TypeCharacteristicsDiscrepancies {
   class InnerError1 extends AnythingGoes<RequiresZero<Forever>> { }  // error: RequiresZero parameter must support (0)
   class InnerError2 extends AnythingGoes<RequiresZero?<Forever>> { }  // error: RequiresZero? parameter must support (0)
 }
+
+module ExtendObject {
+  trait A extends object { }
+  trait B extends object? { }   // error: should say, object, not object?
+  class C extends object { }
+  class D extends object? { }   // error: should say, object, not object?
+}

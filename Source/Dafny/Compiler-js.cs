@@ -89,6 +89,7 @@ namespace Microsoft.Dafny {
         }
       }
       if (superClasses != null) {
+        superClasses = superClasses.Where(trait => !trait.IsObject).ToList();
         var parentTraitsWriter = w.NewBlock("_parentTraits()");
         parentTraitsWriter.WriteLine("return [{0}];", Util.Comma(superClasses, parent => TypeName(parent, parentTraitsWriter, tok)));
       }

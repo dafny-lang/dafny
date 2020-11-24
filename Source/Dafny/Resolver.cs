@@ -8300,7 +8300,7 @@ namespace Microsoft.Dafny
           if (udt != null && udt.ResolvedClass is NonNullTypeDecl nntd && nntd.ViewAsClass is TraitDecl trait) {
             // disallowing inheritance in multi module case
             bool termination = true;
-            if (cl.Module == trait.Module || (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination)) {
+            if (cl.Module == trait.Module || trait.IsObjectTrait || (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination)) {
               // all is good (or the user takes responsibility for the lack of termination checking)
               if (!cl.ParentTraitHeads.Contains(trait)) {
                 cl.ParentTraitHeads.Add(trait);
