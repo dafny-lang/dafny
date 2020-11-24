@@ -232,7 +232,7 @@ class A {
       );
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsFalse(document.SymbolTable.Resolved);
-      Assert.IsFalse(TryFindSymbolDeclarationByName(document, "x", out var location));
+      Assert.IsFalse(TryFindSymbolDeclarationByName(document, "x", out var _));
     }
 
     [TestMethod]
