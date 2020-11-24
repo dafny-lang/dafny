@@ -2174,7 +2174,7 @@ namespace Microsoft.Dafny {
   public class CharType : BasicType
   {
     public const char DefaultValue = 'D';
-    public const string DefaultValueAsString = "\"'D'\"";
+    public const string DefaultValueAsString = "'D'";
     [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "char";
