@@ -2955,6 +2955,9 @@ namespace Microsoft.Dafny
                 var fn = (FixpointPredicate)member;
                 // Check here for the presence of any 'ensures' clauses, which are not allowed (because we're not sure
                 // of their soundness)
+                fn.Req.ForEach(e => FixpointPredicateChecks(e.E, fn, CallingPosition.Positive));
+                fn.Decreases.Expressions.ForEach(e => FixpointPredicateChecks(e, fn, CallingPosition.Positive));
+                fn.Reads.ForEach(e => FixpointPredicateChecks(e.E, fn, CallingPosition.Positive));
                 if (fn.Ens.Count != 0) {
                   reporter.Error(MessageSource.Resolver, fn.Ens[0].E.tok, "a {0} is not allowed to declare any ensures clause", member.WhatKind);
                 }
@@ -2963,6 +2966,10 @@ namespace Microsoft.Dafny
                 }
               } else if (member is FixpointLemma) {
                 var m = (FixpointLemma)member;
+                m.Req.ForEach(e => FixpointLemmaChecks(e.E, m));
+                m.Ens.ForEach(e => FixpointLemmaChecks(e.E, m));
+                m.Decreases.Expressions.ForEach(e => FixpointLemmaChecks(e, m));
+
                 if (m.Body != null) {
                   FixpointLemmaChecks(m.Body, m);
                 }
@@ -7295,6 +7302,12 @@ namespace Microsoft.Dafny
       Contract.Requires(context != null);
       var v = new FixpointLemmaChecks_Visitor(this, context);
       v.Visit(stmt);
+    }
+    void FixpointLemmaChecks(Expression expr, FixpointLemma context) {
+      Contract.Requires(context != null);
+      if (expr == null) return;
+      var v = new FixpointLemmaChecks_Visitor(this, context);
+      v.Visit(expr);
     }
 #endregion FixpointLemmaChecks
 
