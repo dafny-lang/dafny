@@ -19,7 +19,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     private Task<CounterExampleList> RequestCounterExamples(DocumentUri documentUri) {
       return _client.SendRequest(
         new CounterExampleParams {
-          DafnyFile = documentUri.GetFileSystemPath()
+          TextDocument = documentUri.GetFileSystemPath()
         },
         CancellationToken
       );
