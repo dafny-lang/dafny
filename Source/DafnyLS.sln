@@ -50,7 +50,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AbsInt-NetCore", "..\dafny\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyLS.IntegrationTest", "DafnyLS.IntegrationTest\DafnyLS.IntegrationTest.csproj", "{F7C19658-AA08-4AB9-9D72-D741DB7404BB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModelViewer-NetCore", "ModelViewer-NetCore\ModelViewer-NetCore.csproj", "{619AE075-5F89-4528-8EAB-0FB924DE81BD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ModelViewer-NetCore", "ModelViewer-NetCore\ModelViewer-NetCore.csproj", "{619AE075-5F89-4528-8EAB-0FB924DE81BD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -161,6 +161,7 @@ Global
 		{35D8FDA9-244A-41A3-B6C6-DABC57183666} = {DD2666DC-90FD-42C2-A49E-E0AEF5C2426F}
 		{3A573006-047E-4EA4-B174-C7A87D8769D9} = {DD2666DC-90FD-42C2-A49E-E0AEF5C2426F}
 		{8B8A2684-5F2A-443A-92C6-A0908B2A51F2} = {DD2666DC-90FD-42C2-A49E-E0AEF5C2426F}
+		{619AE075-5F89-4528-8EAB-0FB924DE81BD} = {DD2666DC-90FD-42C2-A49E-E0AEF5C2426F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0F06B0CB-18B7-4086-A7C0-A78CF517FBF9}
