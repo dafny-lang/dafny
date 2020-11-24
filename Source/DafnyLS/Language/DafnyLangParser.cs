@@ -38,8 +38,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           DafnyOptions.Install(new DafnyOptions());
           DafnyOptions.Clo.ApplyDefaultOptions();
           DafnyOptions.O.PrintIncludesMode = DafnyOptions.IncludesModes.None;
-          // TODO Provide a counter-example model file.
-          //DafnyOptions.O.ModelViewFile = ...;
           _initialized = true;
         }
         logger.LogTrace("initialized the dafny pipeline...");

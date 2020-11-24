@@ -21,3 +21,6 @@ csharp_style_inlined_variable_declaration = true:none
 
 # IDE0019: Use pattern matching
 csharp_style_pattern_matching_over_as_with_null_check = true:none
+
+# IDE0063: Use simple 'using' statement
+dotnet_diagnostic.IDE0063.severity = silent

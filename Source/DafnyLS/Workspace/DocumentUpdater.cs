@@ -32,7 +32,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           loadedDocument.Text,
           loadedDocument.Errors,
           loadedDocument.Program,
-          changeProcessor.MigrateSymbolTable()
+          changeProcessor.MigrateSymbolTable(),
+          // TODO migrate counter example?
+          null
         );
       }
       return loadedDocument;

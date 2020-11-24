@@ -23,10 +23,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\dafny\Source\boogie\Source\ExecutionEngine\ExecutionEngine-NetCore.csproj" />
+    <ProjectReference Include="..\..\dafny\Source\boogie\Source\Model\Model-NetCore.csproj" />
     <ProjectReference Include="..\..\dafny\Source\Dafny\DafnyPipeline.csproj" />
     
     <!-- SMTLib is implicitely required by Dafny since its loaded on-demand by boogie. -->
     <ProjectReference Include="..\..\dafny\Source\boogie\Source\Provers\SMTLib\SMTLib-NetCore.csproj" />
+    <ProjectReference Include="..\ModelViewer-NetCore\ModelViewer-NetCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>
