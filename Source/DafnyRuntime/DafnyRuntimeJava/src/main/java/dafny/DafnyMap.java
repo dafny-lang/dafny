@@ -29,11 +29,11 @@ public class DafnyMap<K, V> implements Map<K, V> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <K, V> Type<DafnyMap<? extends K, ? extends V>> _type(
-            Type<K> keyType, Type<V> valueType) {
+    public static <K, V> TypeDescriptor<DafnyMap<? extends K, ? extends V>> _typeDescriptor(
+            TypeDescriptor<K> keyType, TypeDescriptor<V> valueType) {
         // Fudge the type parameters; it's not great, but it's safe because
         // (for now) type descriptors are only used for default values
-        return Type.referenceWithDefault(
+        return TypeDescriptor.referenceWithDefault(
                 (Class<DafnyMap<? extends K, ? extends V>>) (Class<?>) DafnyMap.class,
                 DafnyMap.empty());
     }

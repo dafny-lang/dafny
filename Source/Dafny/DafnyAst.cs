@@ -692,6 +692,22 @@ namespace Microsoft.Dafny {
     // Type arguments to the type
     public List<Type> TypeArgs = new List<Type>();
 
+    /// <summary>
+    /// Add to "tps" the free type parameters in "this".
+    /// Requires the type to be resolved.
+    /// </summary>
+    public void AddFreeTypeParameters(List<TypeParameter> tps) {
+      Contract.Requires(tps != null);
+      var ty = this.NormalizeExpandKeepConstraints();
+      var tp = ty.AsTypeParameter;
+      if (tp != null) {
+        tps.Add(tp);
+      }
+      foreach (var ta in ty.TypeArgs) {
+        ta.AddFreeTypeParameters(tps);
+      }
+    }
+
     [Pure]
     public abstract string TypeName(ModuleDefinition/*?*/ context, bool parseAble = false);
     [Pure]
@@ -1025,7 +1041,7 @@ namespace Microsoft.Dafny {
       get {
         var t = NormalizeExpand();
         var udt = UserDefinedType.DenotesClass(t);
-        return udt == null ? null : udt.ResolvedClass as ArrayClassDecl;
+        return udt?.ResolvedClass as ArrayClassDecl;
       }
     }
     /// <summary>
@@ -2157,6 +2173,8 @@ namespace Microsoft.Dafny {
 
   public class CharType : BasicType
   {
+    public const char DefaultValue = 'D';
+    public const string DefaultValueAsString = "'D'";
     [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "char";
@@ -2798,9 +2816,8 @@ namespace Microsoft.Dafny {
     }
 
     public static Type ArrayElementType(Type type) {
-      Contract.Requires(type.IsArrayType);
-
       Contract.Requires(type != null);
+      Contract.Requires(type.IsArrayType);
       Contract.Ensures(Contract.Result<Type>() != null);
 
       UserDefinedType udt = DenotesClass(type);
@@ -4320,6 +4337,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(module != null);
 
       Dims = dims;
+      // Resolve type parameter
+      Contract.Assert(TypeArgs.Count == 1);
+      var tp = TypeArgs[0];
+      tp.Parent = this;
+      tp.PositionalIndex = 0;
     }
   }
 
@@ -4405,8 +4427,8 @@ namespace Microsoft.Dafny {
   public class IndDatatypeDecl : DatatypeDecl, RevealableTypeDecl
   {
     public override string WhatKind { get { return "datatype"; } }
-    public DatatypeCtor DefaultCtor;  // set during resolution
-    public bool[] TypeParametersUsedInConstructionByDefaultCtor;  // set during resolution; has same length as the number of type arguments
+    public DatatypeCtor GroundingCtor;  // set during resolution
+    public bool[] TypeParametersUsedInConstructionByGroundingCtor;  // set during resolution; has same length as the number of type arguments
 
     public enum ES { NotYetComputed, Never, ConsultTypeArguments }
     public ES EqualitySupport = ES.NotYetComputed;
@@ -4434,6 +4456,14 @@ namespace Microsoft.Dafny {
       : this(systemModule, CreateCovariantTypeParameters(dims), attributes) {
       Contract.Requires(0 <= dims);
       Contract.Requires(systemModule != null);
+
+      // Resolve the type parameters here
+      Contract.Assert(TypeArgs.Count == dims);
+      for (var i = 0; i < dims; i++) {
+        var tp = TypeArgs[i];
+        tp.Parent = this;
+        tp.PositionalIndex = i;
+      }
     }
 
     private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, Attributes attributes)
@@ -4443,10 +4473,10 @@ namespace Microsoft.Dafny {
       Dims = typeArgs.Count;
       foreach (var ctor in Ctors) {
         ctor.EnclosingDatatype = this;  // resolve here
-        DefaultCtor = ctor;
-        TypeParametersUsedInConstructionByDefaultCtor = new bool[typeArgs.Count];
+        GroundingCtor = ctor;
+        TypeParametersUsedInConstructionByGroundingCtor = new bool[typeArgs.Count];
         for (int i = 0; i < typeArgs.Count; i++) {
-          TypeParametersUsedInConstructionByDefaultCtor[i] = true;
+          TypeParametersUsedInConstructionByGroundingCtor[i] = true;
         }
       }
       this.EqualitySupport = ES.ConsultTypeArguments;
@@ -9527,10 +9557,14 @@ namespace Microsoft.Dafny {
       var subst = new Dictionary<TypeParameter, Type>();
 
       // Add the mappings from the member's own type parameters
-      if (member is ICallable icallable) {
-        Contract.Assert(typeApplicationMember.Count == icallable.TypeArgs.Count);
-        for (var i = 0; i < icallable.TypeArgs.Count; i++) {
-          subst.Add(icallable.TypeArgs[i], typeApplicationMember[i]);
+      if (member is ICallable) {
+        // Make sure to include the member's type parameters all the way up the inheritance chain
+        for (var ancestor = member; ancestor != null; ancestor = ancestor.OverriddenMember) {
+          var icallable = (ICallable)ancestor;
+          Contract.Assert(typeApplicationMember.Count == icallable.TypeArgs.Count);
+          for (var i = 0; i < icallable.TypeArgs.Count; i++) {
+            subst.Add(icallable.TypeArgs[i], typeApplicationMember[i]);
+          }
         }
       } else {
         Contract.Assert(typeApplicationMember.Count == 0);

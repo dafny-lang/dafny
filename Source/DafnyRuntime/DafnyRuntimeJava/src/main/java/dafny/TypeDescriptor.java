@@ -7,10 +7,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.function.Function;
 
-public abstract class Type<T> {
+public abstract class TypeDescriptor<T> {
     final Class<T> javaClass;
 
-    Type(Class<T> javaClass) {
+    TypeDescriptor(Class<T> javaClass) {
         this.javaClass = javaClass;
     }
 
@@ -22,7 +22,7 @@ public abstract class Type<T> {
 
     public abstract boolean isInstance(Object object);
 
-    public abstract Type<?> arrayType();
+    public abstract TypeDescriptor<?> arrayType();
 
     public final Object newArray(int length) {
         // Unlike most others, this Array operation is fast
@@ -75,41 +75,41 @@ public abstract class Type<T> {
         return javaClass.toString();
     }
 
-    public static <T> Type<T> reference(Class<T> javaClass) {
+    public static <T> TypeDescriptor<T> reference(Class<T> javaClass) {
         return referenceWithDefault(javaClass, null);
     }
 
-    public static <T> Type<T> referenceWithDefault(
+    public static <T> TypeDescriptor<T> referenceWithDefault(
             Class<T> javaClass, T defaultValue) {
         return referenceWithInitializer(javaClass, () -> defaultValue);
     }
 
-    public static <T> Type<T> referenceWithInitializer(
+    public static <T> TypeDescriptor<T> referenceWithInitializer(
             Class<T> javaClass, Initializer<T> initializer) {
         return new ReferenceType<T>(javaClass, initializer);
     }
 
-    public static Type<Byte> byteWithDefault(byte d) {
+    public static TypeDescriptor<Byte> byteWithDefault(byte d) {
         return new ByteType(d);
     }
 
-    public static Type<Short> shortWithDefault(short d) {
+    public static TypeDescriptor<Short> shortWithDefault(short d) {
         return new ShortType(d);
     }
 
-    public static Type<Integer> intWithDefault(int d) {
+    public static TypeDescriptor<Integer> intWithDefault(int d) {
         return new IntType(d);
     }
 
-    public static Type<Long> longWithDefault(long d) {
+    public static TypeDescriptor<Long> longWithDefault(long d) {
         return new LongType(d);
     }
 
-    public static Type<Boolean> booleanWithDefault(boolean d) {
+    public static TypeDescriptor<Boolean> booleanWithDefault(boolean d) {
         return new BooleanType(d);
     }
 
-    public static Type<Character> charWithDefault(char d) {
+    public static TypeDescriptor<Character> charWithDefault(char d) {
         return new CharType(d);
     }
 
@@ -118,28 +118,28 @@ public abstract class Type<T> {
         T defaultValue();
     }
 
-    public static final Type<Byte> BYTE = new ByteType((byte)0);
-    public static final Type<Short> SHORT = new ShortType((short)0);
-    public static final Type<Integer> INT = new IntType(0);
-    public static final Type<Long> LONG = new LongType(0L);
-    public static final Type<Boolean> BOOLEAN = new BooleanType(Boolean.FALSE);
-    public static final Type<Character> CHAR = new CharType('D');
+    public static final TypeDescriptor<Byte> BYTE = new ByteType((byte)0);
+    public static final TypeDescriptor<Short> SHORT = new ShortType((short)0);
+    public static final TypeDescriptor<Integer> INT = new IntType(0);
+    public static final TypeDescriptor<Long> LONG = new LongType(0L);
+    public static final TypeDescriptor<Boolean> BOOLEAN = new BooleanType(Boolean.FALSE);
+    public static final TypeDescriptor<Character> CHAR = new CharType('D');  // See CharType.DefaultValue in Dafny source code
 
-    public static final Type<BigInteger> BIG_INTEGER =
+    public static final TypeDescriptor<BigInteger> BIG_INTEGER =
             referenceWithDefault(BigInteger.class, BigInteger.ZERO);
-    public static final Type<BigRational> BIG_RATIONAL =
+    public static final TypeDescriptor<BigRational> BIG_RATIONAL =
             referenceWithDefault(BigRational.class, BigRational.ZERO);
 
-    public static final Type<Object> OBJECT = reference(Object.class);
+    public static final TypeDescriptor<Object> OBJECT = reference(Object.class);
 
-    public static final Type<byte[]> BYTE_ARRAY = reference(byte[].class);
-    public static final Type<short[]> SHORT_ARRAY = reference(short[].class);
-    public static final Type<int[]> INT_ARRAY = reference(int[].class);
-    public static final Type<long[]> LONG_ARRAY = reference(long[].class);
-    public static final Type<boolean[]> BOOLEAN_ARRAY = reference(boolean[].class);
-    public static final Type<char[]> CHAR_ARRAY = reference(char[].class);
+    public static final TypeDescriptor<byte[]> BYTE_ARRAY = reference(byte[].class);
+    public static final TypeDescriptor<short[]> SHORT_ARRAY = reference(short[].class);
+    public static final TypeDescriptor<int[]> INT_ARRAY = reference(int[].class);
+    public static final TypeDescriptor<long[]> LONG_ARRAY = reference(long[].class);
+    public static final TypeDescriptor<boolean[]> BOOLEAN_ARRAY = reference(boolean[].class);
+    public static final TypeDescriptor<char[]> CHAR_ARRAY = reference(char[].class);
 
-    public static <A, R> Type<Function<A, R>> function(Type<A> argType, Type<R> returnType) {
+    public static <A, R> TypeDescriptor<Function<A, R>> function(TypeDescriptor<A> argType, TypeDescriptor<R> returnType) {
         @SuppressWarnings("unchecked")
         Class<Function<A, R>> functionClass =
                 (Class<Function<A, R>>) (Class<?>) Function.class;
@@ -150,19 +150,19 @@ public abstract class Type<T> {
     }
 
     // TODO: Cache this somehow?
-    public static <T> Type<T> findType(Class<?> cls, Type<?> ... args) {
+    public static <T> TypeDescriptor<T> findType(Class<?> cls, TypeDescriptor<?> ... args) {
         Class<?>[] typeMethodArgTypes = new Class<?>[args.length];
         for (int i = 0; i < args.length; i++) {
-            typeMethodArgTypes[i] = Type.class;
+            typeMethodArgTypes[i] = TypeDescriptor.class;
         }
         try {
-            Method typeMethod = cls.getMethod("_type", typeMethodArgTypes);
+            Method typeMethod = cls.getMethod("_typeDescriptor", typeMethodArgTypes);
             @SuppressWarnings("unchecked")
-            Type<T> ans = (Type<T>) typeMethod.invoke(null, (Object[]) args);
+            TypeDescriptor<T> ans = (TypeDescriptor<T>) typeMethod.invoke(null, (Object[]) args);
             return ans;
         } catch (NoSuchMethodException | IllegalAccessException e) {
             @SuppressWarnings("unchecked")
-            Type<T> ans = (Type<T>) reference(cls);
+            TypeDescriptor<T> ans = (TypeDescriptor<T>) reference(cls);
             return ans;
         } catch (InvocationTargetException e) {
             Throwable cause = e.getCause();
@@ -176,9 +176,9 @@ public abstract class Type<T> {
         }
     }
 
-    private static final class ReferenceType<T> extends Type<T> {
+    private static final class ReferenceType<T> extends TypeDescriptor<T> {
         private final Initializer<T> initializer;
-        private Type<?> arrayType;
+        private TypeDescriptor<?> arrayType;
 
         public ReferenceType(Class<T> javaClass, Initializer<T> initializer) {
             super(javaClass);
@@ -199,7 +199,7 @@ public abstract class Type<T> {
         }
 
         @Override
-        public Type<?> arrayType() {
+        public TypeDescriptor<?> arrayType() {
             if (arrayType == null) {
                 arrayType = reference(newArray(0).getClass());
             }
@@ -247,7 +247,7 @@ public abstract class Type<T> {
         }
     }
 
-    private static final class ByteType extends Type<Byte> {
+    private static final class ByteType extends TypeDescriptor<Byte> {
         private final Byte DEFAULT;
 
         public ByteType(byte d) {
@@ -266,7 +266,7 @@ public abstract class Type<T> {
         }
 
         @Override
-        public Type<?> arrayType() {
+        public TypeDescriptor<?> arrayType() {
             return BYTE_ARRAY;
         }
 
@@ -297,7 +297,7 @@ public abstract class Type<T> {
         }
     }
 
-    private static final class ShortType extends Type<Short> {
+    private static final class ShortType extends TypeDescriptor<Short> {
         private final Short DEFAULT;
 
         public ShortType(short d) {
@@ -316,7 +316,7 @@ public abstract class Type<T> {
         }
 
         @Override
-        public Type<?> arrayType() {
+        public TypeDescriptor<?> arrayType() {
             return SHORT_ARRAY;
         }
 
@@ -347,7 +347,7 @@ public abstract class Type<T> {
         }
     }
 
-    private static final class IntType extends Type<Integer> {
+    private static final class IntType extends TypeDescriptor<Integer> {
         private final Integer DEFAULT;
 
         public IntType(int d) {
@@ -366,7 +366,7 @@ public abstract class Type<T> {
         }
 
         @Override
-        public Type<?> arrayType() {
+        public TypeDescriptor<?> arrayType() {
             return INT_ARRAY;
         }
 
@@ -397,7 +397,7 @@ public abstract class Type<T> {
         }
     }
 
-    private static final class LongType extends Type<Long> {
+    private static final class LongType extends TypeDescriptor<Long> {
         private final Long DEFAULT;
 
         public LongType(long d) {
@@ -416,7 +416,7 @@ public abstract class Type<T> {
         }
 
         @Override
-        public Type<?> arrayType() {
+        public TypeDescriptor<?> arrayType() {
             return LONG_ARRAY;
         }
 
@@ -447,7 +447,7 @@ public abstract class Type<T> {
         }
     }
 
-    private static final class BooleanType extends Type<Boolean> {
+    private static final class BooleanType extends TypeDescriptor<Boolean> {
         private final Boolean DEFAULT;
 
         public BooleanType(boolean d) {
@@ -466,7 +466,7 @@ public abstract class Type<T> {
         }
 
         @Override
-        public Type<?> arrayType() {
+        public TypeDescriptor<?> arrayType() {
             return BOOLEAN_ARRAY;
         }
 
@@ -497,7 +497,7 @@ public abstract class Type<T> {
         }
     }
 
-    private static final class CharType extends Type<Character> {
+    private static final class CharType extends TypeDescriptor<Character> {
         private final Character DEFAULT;
 
         public CharType(char d) {
@@ -516,7 +516,7 @@ public abstract class Type<T> {
         }
 
         @Override
-        public Type<?> arrayType() {
+        public TypeDescriptor<?> arrayType() {
             return CHAR_ARRAY;
         }
 

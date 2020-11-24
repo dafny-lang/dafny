@@ -10997,6 +10997,7 @@ namespace Microsoft.Dafny {
       var term = s.Substitute(exists.Term);
       var attrs = s.SubstAttributes(exists.Attributes);
       var ex = new ExistsExpr(exists.tok, exists.TypeArgs, bvars, range, term, attrs);
+      ex.Type = Type.Bool;
       ex.Bounds = s.SubstituteBoundedPoolList(exists.Bounds);
       return ex;
     }
@@ -11190,7 +11191,7 @@ namespace Microsoft.Dafny {
       if (typ is BoolType) {
         return Expression.CreateBoolLiteral(tok, false);
       } else if (typ is CharType) {
-        var z = new CharLiteralExpr(tok, "\0");
+        var z = new CharLiteralExpr(tok, CharType.DefaultValue.ToString());
         z.Type = Type.Char;  // resolve here
         return z;
       } else if (typ.IsNumericBased(Type.NumericPersuasion.Int)) {
@@ -18050,6 +18051,8 @@ namespace Microsoft.Dafny {
       public readonly Expression receiverReplacement;
       public readonly Dictionary<IVariable, Expression/*!*/>/*!*/ substMap;
       public readonly Dictionary<TypeParameter, Type/*!*/>/*!*/ typeMap;
+
+      public static readonly Substituter EMPTY = new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
 
       public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap) {
         Contract.Requires(substMap != null);
