@@ -8817,7 +8817,7 @@ namespace Microsoft.Dafny
     /// The algorithm used here is quadratic in the number of datatypes in the SCC.  Since that number is
     /// deemed to be rather small, this seems okay.
     ///
-    /// As a side effect of this checking, the DefaultCtor field is filled in (for every inductive datatype
+    /// As a side effect of this checking, the GroundingCtor field is filled in (for every inductive datatype
     /// that passes the check).  It may be that several constructors could be used as the default, but
     /// only the first one encountered as recorded.  This particular choice is slightly more than an
     /// implementation detail, because it affects how certain cycles among inductive datatypes (having
@@ -8837,10 +8837,10 @@ namespace Microsoft.Dafny
       while (true) {
         int clearedThisRound = 0;
         foreach (var dt in scc) {
-          if (dt.DefaultCtor != null) {
+          if (dt.GroundingCtor != null) {
             // previously cleared
-          } else if (ComputeDefaultCtor(dt)) {
-            Contract.Assert(dt.DefaultCtor != null);  // should have been set by the successful call to StratosphereCheck)
+          } else if (ComputeGroundingCtor(dt)) {
+            Contract.Assert(dt.GroundingCtor != null);  // should have been set by the successful call to StratosphereCheck)
             clearedThisRound++;
             totalCleared++;
           }
@@ -8853,7 +8853,7 @@ namespace Microsoft.Dafny
         } else {
           // whatever is in scc-cleared now failed to pass the test
           foreach (var dt in scc) {
-            if (dt.DefaultCtor == null) {
+            if (dt.GroundingCtor == null) {
               reporter.Error(MessageSource.Resolver, dt, "because of cyclic dependencies among constructor argument types, no instances of datatype '{0}' can be constructed", dt.Name);
             }
           }
@@ -8864,18 +8864,18 @@ namespace Microsoft.Dafny
 
     /// <summary>
     /// Check that the datatype has some constructor all whose argument types can be constructed.
-    /// Returns 'true' and sets dt.DefaultCtor if that is the case.
+    /// Returns 'true' and sets dt.GroundingCtor if that is the case.
     /// </summary>
-    bool ComputeDefaultCtor(IndDatatypeDecl dt) {
+    bool ComputeGroundingCtor(IndDatatypeDecl dt) {
       Contract.Requires(dt != null);
-      Contract.Requires(dt.DefaultCtor == null);  // the intention is that this method be called only when DefaultCtor hasn't already been set
-      Contract.Ensures(!Contract.Result<bool>() || dt.DefaultCtor != null);
+      Contract.Requires(dt.GroundingCtor == null);  // the intention is that this method be called only when GroundingCtor hasn't already been set
+      Contract.Ensures(!Contract.Result<bool>() || dt.GroundingCtor != null);
 
       // Stated differently, check that there is some constuctor where no argument type goes to the same stratum.
-      DatatypeCtor defaultCtor = null;
+      DatatypeCtor groundingCtor = null;
       List<TypeParameter> lastTypeParametersUsed = null;
       foreach (DatatypeCtor ctor in dt.Ctors) {
-        List<TypeParameter>  typeParametersUsed = new List<TypeParameter>();
+        List<TypeParameter> typeParametersUsed = new List<TypeParameter>();
         foreach (Formal p in ctor.Formals) {
           if (!CheckCanBeConstructed(p.Type, typeParametersUsed)) {
             // the argument type (has a component which) is not yet known to be constructable
@@ -8885,19 +8885,19 @@ namespace Microsoft.Dafny
         // this constructor satisfies the requirements, check to see if it is a better fit than the
         // one found so far. By "better" it means fewer type arguments. Between the ones with
         // the same number of the type arguments, pick the one shows first.
-        if (defaultCtor == null || typeParametersUsed.Count < lastTypeParametersUsed.Count)  {
-          defaultCtor = ctor;
+        if (groundingCtor == null || typeParametersUsed.Count < lastTypeParametersUsed.Count)  {
+          groundingCtor = ctor;
           lastTypeParametersUsed = typeParametersUsed;
         }
 
       NEXT_OUTER_ITERATION: { }
       }
 
-      if (defaultCtor != null) {
-        dt.DefaultCtor = defaultCtor;
-        dt.TypeParametersUsedInConstructionByDefaultCtor = new bool[dt.TypeArgs.Count];
+      if (groundingCtor != null) {
+        dt.GroundingCtor = groundingCtor;
+        dt.TypeParametersUsedInConstructionByGroundingCtor = new bool[dt.TypeArgs.Count];
         for (int i = 0; i < dt.TypeArgs.Count; i++) {
-          dt.TypeParametersUsedInConstructionByDefaultCtor[i] = lastTypeParametersUsed.Contains(dt.TypeArgs[i]);
+          dt.TypeParametersUsedInConstructionByGroundingCtor[i] = lastTypeParametersUsed.Contains(dt.TypeArgs[i]);
         }
         return true;
       }
@@ -8906,24 +8906,66 @@ namespace Microsoft.Dafny
       return false;
     }
 
-    bool CheckCanBeConstructed(Type tp, List<TypeParameter> typeParametersUsed) {
-      tp = tp.NormalizeExpand();
-      var dependee = tp.AsIndDatatype;
-      if (dependee == null) {
-        // the type is not an inductive datatype, which means it is always possible to construct it
-        if (tp.IsTypeParameter) {
-          typeParametersUsed.Add(((UserDefinedType)tp).ResolvedParam);
-        }
+    bool CheckCanBeConstructed(Type type, List<TypeParameter> typeParametersUsed) {
+      type = type.NormalizeExpandKeepConstraints();
+      if (type is BasicType) {
+        // values of primitive types can always be constructed
         return true;
-      } else if (dependee.DefaultCtor == null) {
+      } else if (type is CollectionType) {
+        // values of collection types can always be constructed
+        return true;
+      }
+
+      var udt = (UserDefinedType)type;
+      if (type.IsTypeParameter) {
+        // a value can be constructed, if the type parameter stands for a type that can be constructed
+        Contract.Assert(udt.ResolvedParam != null);
+        typeParametersUsed.Add(udt.ResolvedParam);
+        return true;
+      }
+
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is NewtypeDecl) {
+        // values of a newtype can be constructed
+        return true;
+      } else if (cl is SubsetTypeDecl) {
+        var td = (SubsetTypeDecl)cl;
+        if (td.Witness != null) {
+          // a witness exists, but may depend on type parameters
+          type.AddFreeTypeParameters(typeParametersUsed);
+          return true;
+        } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
+          // WKind.Special is only used with -->, ->, and non-null types:
+          Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
+          if (ArrowType.IsTotalArrowTypeName(td.Name)) {
+            return CheckCanBeConstructed(udt.TypeArgs.Last(), typeParametersUsed);
+          } else {
+            return true;
+          }
+        } else {
+          return CheckCanBeConstructed(td.RhsWithArgument(udt.TypeArgs), typeParametersUsed);
+        }
+      } else if (cl is ClassDecl) {
+        // null is a value for this possibly-null type
+        return true;
+      } else if (cl is CoDatatypeDecl) {
+        // may depend on type parameters
+        type.AddFreeTypeParameters(typeParametersUsed);
+        return true;
+      }
+
+      var dependee = type.AsIndDatatype;
+      Contract.Assert(dependee != null);
+      if (dependee.GroundingCtor == null) {
         // the type is an inductive datatype that we don't yet know how to construct
         return false;
       }
       // also check the type arguments of the inductive datatype
-      Contract.Assert(((UserDefinedType)tp).TypeArgs.Count == dependee.TypeParametersUsedInConstructionByDefaultCtor.Length);
+      Contract.Assert(udt.TypeArgs.Count == dependee.TypeParametersUsedInConstructionByGroundingCtor.Length);
       var i = 0;
-      foreach (var ta in ((UserDefinedType)tp).TypeArgs) {  // note, "tp" is known to be a UserDefinedType, because that follows from tp being an inductive datatype
-        if (dependee.TypeParametersUsedInConstructionByDefaultCtor[i] && !CheckCanBeConstructed(ta, typeParametersUsed)) {
+      foreach (var ta in udt.TypeArgs) {
+        if (dependee.TypeParametersUsedInConstructionByGroundingCtor[i] && !CheckCanBeConstructed(ta, typeParametersUsed)) {
           return false;
         }
         i++;

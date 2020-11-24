@@ -68,10 +68,10 @@ public class DafnyMultiset<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> Type<DafnyMultiset<? extends T>> _type(Type<T> elementType) {
+    public static <T> TypeDescriptor<DafnyMultiset<? extends T>> _typeDescriptor(TypeDescriptor<T> elementType) {
         // Fudge the type parameter; it's not great, but it's safe because
         // (for now) type descriptors are only used for default values
-        return Type.referenceWithDefault(
+        return TypeDescriptor.referenceWithDefault(
                 (Class<DafnyMultiset<? extends T>>) (Class<?>) DafnyMultiset.class,
                 DafnyMultiset.empty());
     }
