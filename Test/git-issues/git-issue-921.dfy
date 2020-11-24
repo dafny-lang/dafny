@@ -17,7 +17,7 @@ module StringsOfLength2 {
   type ShortString = s: string | |s| <= 2
 
   method M() {
-    var x2: ShortString := "12" + "34"; // no error!
+    var x2: ShortString := "12" + "34";
   }
 }
 
