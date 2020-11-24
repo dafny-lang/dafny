@@ -2,12 +2,12 @@
 Dafny program verifier finished with 4 verified, 0 errors
 
 Dafny program verifier did not attempt verification
-RuntimeTypeTests0.dfy(49,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
-RuntimeTypeTests0.dfy(58,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
+RuntimeTypeTests0.dfy(49,9): Error: compilation does not support trait types as a type parameter (got 'object'); consider introducing a ghost
+RuntimeTypeTests0.dfy(58,9): Error: compilation does not support trait types as a type parameter (got 'object'); consider introducing a ghost
 
 Dafny program verifier did not attempt verification
-RuntimeTypeTests0.dfy(49,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
-RuntimeTypeTests0.dfy(58,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
+RuntimeTypeTests0.dfy(49,9): Error: compilation does not support trait types as a type parameter (got 'object'); consider introducing a ghost
+RuntimeTypeTests0.dfy(58,9): Error: compilation does not support trait types as a type parameter (got 'object'); consider introducing a ghost
 File RuntimeTypeTests0/RuntimeTypeTests0.java contains the partially compiled program
 
 Dafny program verifier did not attempt verification

@@ -37,8 +37,8 @@ NonemptyCoList.CoAtom
 Color.Pink 19 -3
 null null null null
 function () { return false; }
-function () { return new BigNumber(0); }
-function () { return new BigNumber(0); }
+function () { return _dafny.ZERO; }
+function () { return _dafny.ZERO; }
 0 0
 
 Dafny program verifier finished with 21 verified, 0 errors

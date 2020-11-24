@@ -44,10 +44,10 @@ public class DafnySet<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> Type<DafnySet<? extends T>> _type(Type<T> elementType) {
+    public static <T> TypeDescriptor<DafnySet<? extends T>> _typeDescriptor(TypeDescriptor<T> elementType) {
         // Fudge the type parameter; it's not great, but it's safe because
         // (for now) type descriptors are only used for default values
-        return Type.referenceWithDefault(
+        return TypeDescriptor.referenceWithDefault(
                 (Class<DafnySet<? extends T>>) (Class<?>) DafnySet.class,
                 DafnySet.empty());
     }
