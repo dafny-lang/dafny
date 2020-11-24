@@ -3976,12 +3976,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static IEnumerable<FixpointLemma> AllFixpointLemmas(List<TopLevelDecl> declarations) {
+    public static IEnumerable<ExtremeLemma> AllExtremeLemmas(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
         var cl = d as TopLevelDeclWithMembers;
         if (cl != null) {
           foreach (var member in cl.Members) {
-            var m = member as FixpointLemma;
+            var m = member as ExtremeLemma;
             if (m != null) {
               yield return m;
             }
@@ -5951,7 +5951,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// The "AllCalls" field is used for non-FixpointPredicate, non-PrefixPredicate functions only (so its value should not be relied upon for FixpointPredicate and PrefixPredicate functions).
+    /// The "AllCalls" field is used for non-ExtremePredicate, non-PrefixPredicate functions only (so its value should not be relied upon for ExtremePredicate and PrefixPredicate functions).
     /// It records all function calls made by the Function, including calls made in the body as well as in the specification.
     /// The field is filled in during resolution (and used toward the end of resolution, to attach a helpful "decreases" prefix to functions in clusters
     /// with co-recursive calls.
@@ -6074,27 +6074,27 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// An PrefixPredicate is the inductive unrolling P# implicitly declared for every fixpoint-predicate P.
+  /// An PrefixPredicate is the inductive unrolling P# implicitly declared for every extreme predicate P.
   /// </summary>
   public class PrefixPredicate : Function
   {
     public override string WhatKind { get { return "prefix predicate"; } }
     public readonly Formal K;
-    public readonly FixpointPredicate FixpointPred;
+    public readonly ExtremePredicate ExtremePred;
     public PrefixPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
                      List<TypeParameter> typeArgs, Formal k, List<Formal> formals,
                      List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-                     Expression body, Attributes attributes, FixpointPredicate fixpointPred)
+                     Expression body, Attributes attributes, ExtremePredicate extremePred)
       : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
-      Contract.Requires(fixpointPred != null);
+      Contract.Requires(extremePred != null);
       Contract.Requires(formals != null && 1 <= formals.Count && formals[0] == k);
       K = k;
-      FixpointPred = fixpointPred;
+      ExtremePred = extremePred;
     }
   }
 
-  public abstract class FixpointPredicate : Function
+  public abstract class ExtremePredicate : Function
   {
     public enum KType { Unspecified, Nat, ORDINAL }
     public readonly KType TypeOfK;
@@ -6106,7 +6106,7 @@ namespace Microsoft.Dafny {
     public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // filled in during resolution, used by verifier
     public PrefixPredicate PrefixPredicate;  // filled in during resolution (name registration)
 
-    public FixpointPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
+    public ExtremePredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                              List<TypeParameter> typeArgs, List<Formal> formals,
                              List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
                              Expression body, Attributes attributes, IToken signatureEllipsis)
@@ -6137,7 +6137,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class InductivePredicate : FixpointPredicate
+  public class InductivePredicate : ExtremePredicate
   {
     public override string WhatKind { get { return "inductive predicate"; } }
     public InductivePredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
@@ -6149,7 +6149,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class CoPredicate : FixpointPredicate
+  public class CoPredicate : ExtremePredicate
   {
     public override string WhatKind { get { return "copredicate"; } }
     public CoPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
@@ -6454,32 +6454,32 @@ namespace Microsoft.Dafny {
   {
     public override string WhatKind { get { return "prefix lemma"; } }
     public readonly Formal K;
-    public readonly FixpointLemma FixpointLemma;
+    public readonly ExtremeLemma ExtremeLemma;
     public PrefixLemma(IToken tok, string name, bool hasStaticKeyword,
                        List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
                        List<AttributedExpression> req, Specification<FrameExpression> mod, List<AttributedExpression> ens, Specification<Expression> decreases,
-                       BlockStmt body, Attributes attributes, FixpointLemma fixpointLemma)
+                       BlockStmt body, Attributes attributes, ExtremeLemma extremeLemma)
       : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
       Contract.Requires(ins != null && 1 <= ins.Count && ins[0] == k);
-      Contract.Requires(fixpointLemma != null);
+      Contract.Requires(extremeLemma != null);
       K = k;
-      FixpointLemma = fixpointLemma;
+      ExtremeLemma = extremeLemma;
     }
   }
 
-  public abstract class FixpointLemma : Method
+  public abstract class ExtremeLemma : Method
   {
-    public readonly FixpointPredicate.KType TypeOfK;
+    public readonly ExtremePredicate.KType TypeOfK;
     public bool KNat {
       get {
-        return TypeOfK == FixpointPredicate.KType.Nat;
+        return TypeOfK == ExtremePredicate.KType.Nat;
       }
     }
     public PrefixLemma PrefixLemma;  // filled in during resolution (name registration)
 
-    public FixpointLemma(IToken tok, string name,
-                         bool hasStaticKeyword, FixpointPredicate.KType typeOfK,
+    public ExtremeLemma(IToken tok, string name,
+                         bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
                          List<TypeParameter> typeArgs,
                          List<Formal> ins, [Captured] List<Formal> outs,
                          List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
@@ -6501,12 +6501,12 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class InductiveLemma : FixpointLemma
+  public class InductiveLemma : ExtremeLemma
   {
     public override string WhatKind { get { return "inductive lemma"; } }
 
     public InductiveLemma(IToken tok, string name,
-                          bool hasStaticKeyword, FixpointPredicate.KType typeOfK,
+                          bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
                           List<TypeParameter> typeArgs,
                           List<Formal> ins, [Captured] List<Formal> outs,
                           List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
@@ -6527,12 +6527,12 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class CoLemma : FixpointLemma
+  public class CoLemma : ExtremeLemma
   {
     public override string WhatKind { get { return "colemma"; } }
 
     public CoLemma(IToken tok, string name,
-                   bool hasStaticKeyword, FixpointPredicate.KType typeOfK,
+                   bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
                    List<TypeParameter> typeArgs,
                    List<Formal> ins, [Captured] List<Formal> outs,
                    List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,

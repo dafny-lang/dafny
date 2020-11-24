@@ -516,9 +516,9 @@ namespace Microsoft.Dafny
                 fn.IsRecursive = true;
               }
             }
-            if (fn.IsRecursive && fn is FixpointPredicate) {
+            if (fn.IsRecursive && fn is ExtremePredicate) {
               // this means the corresponding prefix predicate is also recursive
-              var prefixPred = ((FixpointPredicate)fn).PrefixPredicate;
+              var prefixPred = ((ExtremePredicate)fn).PrefixPredicate;
               if (prefixPred != null) {
                 prefixPred.IsRecursive = true;
               }
@@ -571,8 +571,8 @@ namespace Microsoft.Dafny
       foreach (var module in prog.Modules()) {
         foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
           Statement body = null;
-          if (clbl is FixpointLemma) {
-            body = ((FixpointLemma)clbl).PrefixLemma.Body;
+          if (clbl is ExtremeLemma) {
+            body = ((ExtremeLemma)clbl).PrefixLemma.Body;
           } else if (clbl is Method) {
             body = ((Method)clbl).Body;
           } else if (clbl is IteratorDecl) {
@@ -623,8 +623,8 @@ namespace Microsoft.Dafny
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
           ICallable m;
           string s;
-          if (clbl is FixpointLemma) {
-            var prefixLemma = ((FixpointLemma)clbl).PrefixLemma;
+          if (clbl is ExtremeLemma) {
+            var prefixLemma = ((ExtremeLemma)clbl).PrefixLemma;
             m = prefixLemma;
             s = prefixLemma.Name + " ";
           } else {
@@ -663,8 +663,8 @@ namespace Microsoft.Dafny
     bool FillInDefaultDecreases(ICallable clbl, bool addPrefixInCoClusters) {
       Contract.Requires(clbl != null);
 
-      if (clbl is FixpointPredicate) {
-        // fixpoint-predicates don't have decreases clauses
+      if (clbl is ExtremePredicate) {
+        // extreme predicates don't have decreases clauses
         return false;
       }
       var anyChangeToDecreases = false;
@@ -1957,13 +1957,13 @@ namespace Microsoft.Dafny
             } else {
               ((ClassDecl)cl).HasConstructor = true;
             }
-          } else if (m is FixpointPredicate || m is FixpointLemma) {
+          } else if (m is ExtremePredicate || m is ExtremeLemma) {
             var extraName = m.Name + "#";
             MemberDecl extraMember;
             var cloner = new Cloner();
             var formals = new List<Formal>();
             Type typeOfK;
-            if ((m is FixpointPredicate && ((FixpointPredicate)m).KNat) || (m is FixpointLemma && ((FixpointLemma)m).KNat)) {
+            if ((m is ExtremePredicate && ((ExtremePredicate)m).KNat) || (m is ExtremeLemma && ((ExtremeLemma)m).KNat)) {
               typeOfK = new UserDefinedType(m.tok, "nat", (List<Type>)null);
             } else {
               typeOfK = new BigOrdinalType();
@@ -1971,8 +1971,8 @@ namespace Microsoft.Dafny
             var k = new ImplicitFormal(m.tok, "_k", typeOfK, true, false);
             reporter.Info(MessageSource.Resolver, m.tok, string.Format("_k: {0}", k.Type));
             formals.Add(k);
-            if (m is FixpointPredicate) {
-              var cop = (FixpointPredicate)m;
+            if (m is ExtremePredicate) {
+              var cop = (ExtremePredicate)m;
               formals.AddRange(cop.Formals.ConvertAll(cloner.CloneFormal));
 
               List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
@@ -1991,7 +1991,7 @@ namespace Microsoft.Dafny
               // In the call graph, add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
               moduleDef.CallGraph.AddEdge(cop.PrefixPredicate, cop);
             } else {
-              var com = (FixpointLemma)m;
+              var com = (ExtremeLemma)m;
               // _k has already been added to 'formals', so append the original formals
               formals.AddRange(com.Ins.ConvertAll(cloner.CloneFormal));
               // prepend _k to the given decreases clause
@@ -2538,20 +2538,20 @@ namespace Microsoft.Dafny
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // fill in the postconditions and bodies of prefix lemmas
-        foreach (var com in ModuleDefinition.AllFixpointLemmas(declarations)) {
+        foreach (var com in ModuleDefinition.AllExtremeLemmas(declarations)) {
           var prefixLemma = com.PrefixLemma;
           if (prefixLemma == null) {
-            continue;  // something went wrong during registration of the prefix lemma (probably a duplicated fixpoint-lemma name)
+            continue;  // something went wrong during registration of the prefix lemma (probably a duplicated extreme lemma name)
           }
           var k = prefixLemma.Ins[0];
-          var focalPredicates = new HashSet<FixpointPredicate>();
+          var focalPredicates = new HashSet<ExtremePredicate>();
           if (com is CoLemma) {
             // compute the postconditions of the prefix lemma
             Contract.Assume(prefixLemma.Ens.Count == 0);  // these are not supposed to have been filled in before
             foreach (var p in com.Ens) {
               var coConclusions = new HashSet<Expression>();
-              CollectFriendlyCallsInFixpointLemmaSpecification(p.E, true, coConclusions, true, com);
-              var subst = new FixpointLemmaSpecificationSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name), this.reporter, true);
+              CollectFriendlyCallsInExtremeLemmaSpecification(p.E, true, coConclusions, true, com);
+              var subst = new ExtremeLemmaSpecificationSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name), this.reporter, true);
               var post = subst.CloneExpr(p.E);
               prefixLemma.Ens.Add(new AttributedExpression(post));
               foreach (var e in coConclusions) {
@@ -2574,8 +2574,8 @@ namespace Microsoft.Dafny
             Contract.Assume(prefixLemma.Req.Count == 0);  // these are not supposed to have been filled in before
             foreach (var p in com.Req) {
               var antecedents = new HashSet<Expression>();
-              CollectFriendlyCallsInFixpointLemmaSpecification(p.E, true, antecedents, false, com);
-              var subst = new FixpointLemmaSpecificationSubstituter(antecedents, new IdentifierExpr(k.tok, k.Name), this.reporter, false);
+              CollectFriendlyCallsInExtremeLemmaSpecification(p.E, true, antecedents, false, com);
+              var subst = new ExtremeLemmaSpecificationSubstituter(antecedents, new IdentifierExpr(k.tok, k.Name), this.reporter, false);
               var pre = subst.CloneExpr(p.E);
               prefixLemma.Req.Add(new AttributedExpression(pre, p.Label, null));
               foreach (var e in antecedents) {
@@ -2598,7 +2598,7 @@ namespace Microsoft.Dafny
           Contract.Assume(prefixLemma.Body == null);  // this is not supposed to have been filled in before
           if (com.Body != null) {
             var kMinusOne = new BinaryExpr(com.tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.tok, k.Name), new LiteralExpr(com.tok, 1));
-            var subst = new FixpointLemmaBodyCloner(com, kMinusOne, focalPredicates, this.reporter);
+            var subst = new ExtremeLemmaBodyCloner(com, kMinusOne, focalPredicates, this.reporter);
             var mainBody = subst.CloneBlockStmt(com.Body);
             Expression kk;
             Statement els;
@@ -2942,8 +2942,8 @@ namespace Microsoft.Dafny
             }
           }
         }
-        // Check that fixpoint-predicates are not recursive with non-fixpoint-predicate functions (and only
-        // with fixpoint-predicates of the same polarity), and
+        // Check that extreme predicates are not recursive with non-extreme-predicate functions (and only
+        // with extreme predicates of the same polarity), and
         // check that colemmas are not recursive with non-colemma methods.
         // Also, check that the constraints of newtypes/subset-types do not depend on the type itself.
         // And check that const initializers are not cyclic.
@@ -2951,27 +2951,27 @@ namespace Microsoft.Dafny
         foreach (var d in declarations) {
           if (d is ClassDecl) {
             foreach (var member in ((ClassDecl)d).Members) {
-              if (member is FixpointPredicate) {
-                var fn = (FixpointPredicate)member;
+              if (member is ExtremePredicate) {
+                var fn = (ExtremePredicate)member;
                 // Check here for the presence of any 'ensures' clauses, which are not allowed (because we're not sure
                 // of their soundness)
-                fn.Req.ForEach(e => FixpointPredicateChecks(e.E, fn, CallingPosition.Positive));
-                fn.Decreases.Expressions.ForEach(e => FixpointPredicateChecks(e, fn, CallingPosition.Positive));
-                fn.Reads.ForEach(e => FixpointPredicateChecks(e.E, fn, CallingPosition.Positive));
+                fn.Req.ForEach(e => ExtremePredicateChecks(e.E, fn, CallingPosition.Positive));
+                fn.Decreases.Expressions.ForEach(e => ExtremePredicateChecks(e, fn, CallingPosition.Positive));
+                fn.Reads.ForEach(e => ExtremePredicateChecks(e.E, fn, CallingPosition.Positive));
                 if (fn.Ens.Count != 0) {
                   reporter.Error(MessageSource.Resolver, fn.Ens[0].E.tok, "a {0} is not allowed to declare any ensures clause", member.WhatKind);
                 }
                 if (fn.Body != null) {
-                  FixpointPredicateChecks(fn.Body, fn, CallingPosition.Positive);
+                  ExtremePredicateChecks(fn.Body, fn, CallingPosition.Positive);
                 }
-              } else if (member is FixpointLemma) {
-                var m = (FixpointLemma)member;
-                m.Req.ForEach(e => FixpointLemmaChecks(e.E, m));
-                m.Ens.ForEach(e => FixpointLemmaChecks(e.E, m));
-                m.Decreases.Expressions.ForEach(e => FixpointLemmaChecks(e, m));
+              } else if (member is ExtremeLemma) {
+                var m = (ExtremeLemma)member;
+                m.Req.ForEach(e => ExtremeLemmaChecks(e.E, m));
+                m.Ens.ForEach(e => ExtremeLemmaChecks(e.E, m));
+                m.Decreases.Expressions.ForEach(e => ExtremeLemmaChecks(e, m));
 
                 if (m.Body != null) {
-                  FixpointLemmaChecks(m.Body, m);
+                  ExtremeLemmaChecks(m.Body, m);
                 }
               } else if (member is ConstantField) {
                 var cf = (ConstantField)member;
@@ -5999,8 +5999,8 @@ namespace Microsoft.Dafny
         if (f.Body != null) {
           CheckTypeInference(f.Body, f);
         }
-        if (errorCount == reporter.Count(ErrorLevel.Error) && f is FixpointPredicate) {
-          var cop = (FixpointPredicate)f;
+        if (errorCount == reporter.Count(ErrorLevel.Error) && f is ExtremePredicate) {
+          var cop = (ExtremePredicate)f;
           CheckTypeInference_Member(cop.PrefixPredicate);
         }
       }
@@ -6134,7 +6134,7 @@ namespace Microsoft.Dafny
           foreach (var bv in e.BoundVars) {
             if (!IsDetermined(bv.Type.Normalize())) {
               resolver.reporter.Error(MessageSource.Resolver, bv.tok, "type of bound variable '{0}' could not be determined; please specify the type explicitly", bv.Name);
-            } else if (codeContext is FixpointPredicate) {
+            } else if (codeContext is ExtremePredicate) {
               CheckContainsNoOrdinal(bv.tok, bv.Type, string.Format("type of bound variable '{0}' ('{1}') is not allowed to use type ORDINAL", bv.Name, bv.Type));
             }
           }
@@ -7078,9 +7078,9 @@ namespace Microsoft.Dafny
 #endregion FuelAdjustmentChecks
 
     // ------------------------------------------------------------------------------------------------------
-    // ----- FixpointPredicateChecks ------------------------------------------------------------------------
+    // ----- ExtremePredicateChecks -------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-#region FixpointPredicateChecks
+#region ExtremePredicateChecks
     enum CallingPosition { Positive, Negative, Neither }
     static CallingPosition Invert(CallingPosition cp) {
       switch (cp) {
@@ -7161,7 +7161,7 @@ namespace Microsoft.Dafny
           if (ContinuityIsImportant) {
             if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {
               if (e.Bounds.Exists(bnd => bnd == null || (bnd.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) == 0)) {
-                // To ensure continuity of fixpoint predicates, don't allow calls under an existential (resp. universal) quantifier
+                // To ensure continuity of extreme predicates, don't allow calls under an existential (resp. universal) quantifier
                 // for co-predicates (resp. inductive predicates).
                 cp = CallingPosition.Neither;
               }
@@ -7184,19 +7184,19 @@ namespace Microsoft.Dafny
       }
     }
 
-    void KNatMismatchError(IToken tok, string contextName, FixpointPredicate.KType contextK, FixpointPredicate.KType calleeK) {
-      var hint = contextK == FixpointPredicate.KType.Unspecified ? string.Format(" (perhaps try declaring '{0}' as '{0}[nat]')", contextName) : "";
+    void KNatMismatchError(IToken tok, string contextName, ExtremePredicate.KType contextK, ExtremePredicate.KType calleeK) {
+      var hint = contextK == ExtremePredicate.KType.Unspecified ? string.Format(" (perhaps try declaring '{0}' as '{0}[nat]')", contextName) : "";
       reporter.Error(MessageSource.Resolver, tok,
         "this call does not type check, because the context uses a _k parameter of type {0} whereas the callee uses a _k parameter of type {1}{2}",
-        contextK == FixpointPredicate.KType.Nat ? "nat" : "ORDINAL",
-        calleeK == FixpointPredicate.KType.Nat ? "nat" : "ORDINAL",
+        contextK == ExtremePredicate.KType.Nat ? "nat" : "ORDINAL",
+        calleeK == ExtremePredicate.KType.Nat ? "nat" : "ORDINAL",
         hint);
     }
 
-    class FixpointPredicateChecks_Visitor : FindFriendlyCalls_Visitor
+    class ExtremePredicateChecks_Visitor : FindFriendlyCalls_Visitor
     {
-      readonly FixpointPredicate context;
-      public FixpointPredicateChecks_Visitor(Resolver resolver, FixpointPredicate context)
+      readonly ExtremePredicate context;
+      public ExtremePredicateChecks_Visitor(Resolver resolver, ExtremePredicate context)
         : base(resolver, context is CoPredicate, context.KNat) {
         Contract.Requires(resolver != null);
         Contract.Requires(context != null);
@@ -7210,8 +7210,8 @@ namespace Microsoft.Dafny
             // we're looking at a recursive call
             if (!(context is InductivePredicate ? e.Function is InductivePredicate : e.Function is CoPredicate)) {
               resolver.reporter.Error(MessageSource.Resolver, e, "a recursive call from {0} {1} can go only to other {1}s", article, context.WhatKind);
-            } else if (context.KNat != ((FixpointPredicate)e.Function).KNat) {
-              resolver.KNatMismatchError(e.tok, context.Name, context.TypeOfK, ((FixpointPredicate)e.Function).TypeOfK);
+            } else if (context.KNat != ((ExtremePredicate)e.Function).KNat) {
+              resolver.KNatMismatchError(e.tok, context.Name, context.TypeOfK, ((ExtremePredicate)e.Function).TypeOfK);
             } else if (cp != CallingPosition.Positive) {
               var msg = string.Format("{0} {1} can be called recursively only in positive positions", article, context.WhatKind);
               if (ContinuityIsImportant && cp == CallingPosition.Neither) {
@@ -7219,7 +7219,7 @@ namespace Microsoft.Dafny
                 msg += string.Format(" and cannot sit inside an unbounded {0} quantifier", context is InductivePredicate ? "universal" : "existential");
               } else {
                 // we don't care about the continuity restriction or
-                // the fixpoint-call is not inside an quantifier, so don't bother mentioning the part of existentials/universals in the error message
+                // the extreme-call is not inside an quantifier, so don't bother mentioning the part of existentials/universals in the error message
               }
               resolver.reporter.Error(MessageSource.Resolver, e, msg);
             } else {
@@ -7249,22 +7249,22 @@ namespace Microsoft.Dafny
       }
     }
 
-    void FixpointPredicateChecks(Expression expr, FixpointPredicate context, CallingPosition cp) {
+    void ExtremePredicateChecks(Expression expr, ExtremePredicate context, CallingPosition cp) {
       Contract.Requires(expr != null);
       Contract.Requires(context != null);
-      var v = new FixpointPredicateChecks_Visitor(this, context);
+      var v = new ExtremePredicateChecks_Visitor(this, context);
       v.Visit(expr, cp);
     }
-#endregion FixpointPredicateChecks
+#endregion ExtremePredicateChecks
 
     // ------------------------------------------------------------------------------------------------------
-    // ----- FixpointLemmaChecks ----------------------------------------------------------------------------
+    // ----- ExtremeLemmaChecks -----------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-#region FixpointLemmaChecks
-    class FixpointLemmaChecks_Visitor : ResolverBottomUpVisitor
+#region ExtremeLemmaChecks
+    class ExtremeLemmaChecks_Visitor : ResolverBottomUpVisitor
     {
-      FixpointLemma context;
-      public FixpointLemmaChecks_Visitor(Resolver resolver, FixpointLemma context)
+      ExtremeLemma context;
+      public ExtremeLemmaChecks_Visitor(Resolver resolver, ExtremeLemma context)
         : base(resolver) {
         Contract.Requires(resolver != null);
         Contract.Requires(context != null);
@@ -7273,12 +7273,12 @@ namespace Microsoft.Dafny
       protected override void VisitOneStmt(Statement stmt) {
         if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
-          if (s.Method is FixpointLemma || s.Method is PrefixLemma) {
+          if (s.Method is ExtremeLemma || s.Method is PrefixLemma) {
             // all is cool
           } else {
-            // the call goes from a fixpoint-lemma context to a non-fixpoint-lemma callee
+            // the call goes from an extreme lemma context to a non-extreme-lemma callee
             if (ModuleDefinition.InSameSCC(context, s.Method)) {
-              // we're looking at a recursive call (to a non-fixpoint-lemma)
+              // we're looking at a recursive call (to a non-extreme-lemma)
               var article = context is InductiveLemma ? "an" : "a";
               resolver.reporter.Error(MessageSource.Resolver, s.Tok, "a recursive call from {0} {1} can go only to other {1}s and prefix lemmas", article, context.WhatKind);
             }
@@ -7297,19 +7297,19 @@ namespace Microsoft.Dafny
         }
       }
     }
-    void FixpointLemmaChecks(Statement stmt, FixpointLemma context) {
+    void ExtremeLemmaChecks(Statement stmt, ExtremeLemma context) {
       Contract.Requires(stmt != null);
       Contract.Requires(context != null);
-      var v = new FixpointLemmaChecks_Visitor(this, context);
+      var v = new ExtremeLemmaChecks_Visitor(this, context);
       v.Visit(stmt);
     }
-    void FixpointLemmaChecks(Expression expr, FixpointLemma context) {
+    void ExtremeLemmaChecks(Expression expr, ExtremeLemma context) {
       Contract.Requires(context != null);
       if (expr == null) return;
-      var v = new FixpointLemmaChecks_Visitor(this, context);
+      var v = new ExtremeLemmaChecks_Visitor(this, context);
       v.Visit(expr);
     }
-#endregion FixpointLemmaChecks
+#endregion ExtremeLemmaChecks
 
     // ------------------------------------------------------------------------------------------------------
     // ----- CheckEqualityTypes -----------------------------------------------------------------------------
@@ -8445,8 +8445,8 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(f.TypeArgs, true, f);
           ResolveFunctionSignature(f);
           allTypeParameters.PopMarker();
-          if (f is FixpointPredicate && ec == reporter.Count(ErrorLevel.Error)) {
-            var ff = ((FixpointPredicate)f).PrefixPredicate;  // note, may be null if there was an error before the prefix predicate was generated
+          if (f is ExtremePredicate && ec == reporter.Count(ErrorLevel.Error)) {
+            var ff = ((ExtremePredicate)f).PrefixPredicate;  // note, may be null if there was an error before the prefix predicate was generated
             if (ff != null) {
               ff.EnclosingClass = cl;
               allTypeParameters.PushMarker();
@@ -8463,7 +8463,7 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(m.TypeArgs, true, m);
           ResolveMethodSignature(m);
           allTypeParameters.PopMarker();
-          var com = m as FixpointLemma;
+          var com = m as ExtremeLemma;
           if (com != null && com.PrefixLemma != null && ec == reporter.Count(ErrorLevel.Error)) {
             var mm = com.PrefixLemma;
             // resolve signature of the prefix lemma
@@ -8588,7 +8588,7 @@ namespace Microsoft.Dafny
       Contract.Requires(classTypeMap != null);
 
       var typeMap = CheckOverride_TypeParameters(nw.tok, old.TypeArgs, nw.TypeArgs, nw.Name, "function", classTypeMap);
-      if (nw is FixpointPredicate nwFix && old is FixpointPredicate oldFix && nwFix.KNat != oldFix.KNat) {
+      if (nw is ExtremePredicate nwFix && old is ExtremePredicate oldFix && nwFix.KNat != oldFix.KNat) {
         reporter.Error(MessageSource.Resolver, nw,
           "the type of special parameter '_k' of {0} '{1}' ({2}) must be the same as in the overridden {0} ({3})",
           nw.WhatKind, nw.Name, nwFix.KNat ? "nat" : "ORDINAL", oldFix.KNat ? "nat" : "ORDINAL");
@@ -8606,7 +8606,7 @@ namespace Microsoft.Dafny
       Contract.Requires(old != null);
       Contract.Requires(classTypeMap != null);
       var typeMap = CheckOverride_TypeParameters(nw.tok, old.TypeArgs, nw.TypeArgs, nw.Name, "method", classTypeMap);
-      if (nw is FixpointLemma nwFix && old is FixpointLemma oldFix && nwFix.KNat != oldFix.KNat) {
+      if (nw is ExtremeLemma nwFix && old is ExtremeLemma oldFix && nwFix.KNat != oldFix.KNat) {
         reporter.Error(MessageSource.Resolver, nw,
           "the type of special parameter '_k' of {0} '{1}' ({2}) must be the same as in the overridden {0} ({3})",
           nw.WhatKind, nw.Name, nwFix.KNat ? "nat" : "ORDINAL", oldFix.KNat ? "nat" : "ORDINAL");
@@ -8710,8 +8710,8 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(f.TypeArgs, false, f);
           ResolveFunction(f);
           allTypeParameters.PopMarker();
-          if (f is FixpointPredicate && ec == reporter.Count(ErrorLevel.Error)) {
-            var ff = ((FixpointPredicate)f).PrefixPredicate;
+          if (f is ExtremePredicate && ec == reporter.Count(ErrorLevel.Error)) {
+            var ff = ((ExtremePredicate)f).PrefixPredicate;
             if (ff != null) {
               allTypeParameters.PushMarker();
               ResolveTypeParameters(ff.TypeArgs, false, ff);
@@ -9101,7 +9101,7 @@ namespace Microsoft.Dafny
       Contract.Requires(host != null);
       switch (a.Name) {
         case "opaque":
-          return host is Function && !(host is FixpointPredicate);
+          return host is Function && !(host is ExtremePredicate);
         case "trigger":
           return host is ComprehensionExpr || host is SetComprehension || host is MapComprehension;
         case "timeLimit":
@@ -9367,7 +9367,7 @@ namespace Microsoft.Dafny
         ResolveAttributes(m.Mod.Attributes, null, new ResolveOpts(m, false));
         foreach (FrameExpression fe in m.Mod.Expressions) {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, m);
-          if (m is Lemma || m is TwoStateLemma || m is FixpointLemma) {
+          if (m is Lemma || m is TwoStateLemma || m is ExtremeLemma) {
             reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have modifies clauses", m.WhatKind);
           } else if (m.IsGhost) {
             DisallowNonGhostFieldSpecifiers(fe);
@@ -9391,7 +9391,7 @@ namespace Microsoft.Dafny
         // Add out-parameters to a new scope that will also include the outermost-level locals of the body
         // Don't care about any duplication errors among the out-parameters, since they have already been reported
         scope.PushMarker();
-        if (m is FixpointLemma && m.Outs.Count != 0) {
+        if (m is ExtremeLemma && m.Outs.Count != 0) {
           reporter.Error(MessageSource.Resolver, m.Outs[0].tok, "{0}s are not allowed to have out-parameters", m.WhatKind);
         } else {
           foreach (Formal p in m.Outs) {
@@ -9410,7 +9410,7 @@ namespace Microsoft.Dafny
 
         // Resolve body
         if (m.Body != null) {
-          var com = m as FixpointLemma;
+          var com = m as ExtremeLemma;
           if (com != null && com.PrefixLemma != null) {
             // The body may mentioned the implicitly declared parameter _k.  Throw it into the
             // scope before resolving the body.
@@ -15743,8 +15743,8 @@ namespace Microsoft.Dafny
 #endif
               rr.Type = SubstType(callee.ResultType, subst);
               // further bookkeeping
-              if (callee is FixpointPredicate) {
-                ((FixpointPredicate)callee).Uses.Add(rr);
+              if (callee is ExtremePredicate) {
+                ((ExtremePredicate)callee).Uses.Add(rr);
               }
               AddCallGraphEdge(opts.codeContext, callee, rr, IsFunctionReturnValue(callee, e.Args, opts));
               r = rr;
@@ -16035,8 +16035,8 @@ namespace Microsoft.Dafny
       } else {
         Function function = (Function)member;
         e.Function = function;
-        if (function is FixpointPredicate) {
-          ((FixpointPredicate)function).Uses.Add(e);
+        if (function is ExtremePredicate) {
+          ((ExtremePredicate)function).Uses.Add(e);
         }
         if (function is TwoStateFunction && !opts.twoState) {
           reporter.Error(MessageSource.Resolver, e.tok, "a two-state function can be used only in a two-state context");
@@ -17172,7 +17172,7 @@ namespace Microsoft.Dafny
     ///     postcondition                                     if co
     /// of the corresponding prefix lemma.
     /// </summary>
-    void CollectFriendlyCallsInFixpointLemmaSpecification(Expression expr, bool position, ISet<Expression> friendlyCalls, bool co, FixpointLemma context) {
+    void CollectFriendlyCallsInExtremeLemmaSpecification(Expression expr, bool position, ISet<Expression> friendlyCalls, bool co, ExtremeLemma context) {
       Contract.Requires(expr != null);
       Contract.Requires(friendlyCalls != null);
       var visitor = new CollectFriendlyCallsInSpec_Visitor(this, friendlyCalls, co, context);
@@ -17182,8 +17182,8 @@ namespace Microsoft.Dafny
     class CollectFriendlyCallsInSpec_Visitor : FindFriendlyCalls_Visitor
     {
       readonly ISet<Expression> friendlyCalls;
-      readonly FixpointLemma Context;
-      public CollectFriendlyCallsInSpec_Visitor(Resolver resolver, ISet<Expression> friendlyCalls, bool co, FixpointLemma context)
+      readonly ExtremeLemma Context;
+      public CollectFriendlyCallsInSpec_Visitor(Resolver resolver, ISet<Expression> friendlyCalls, bool co, ExtremeLemma context)
         : base(resolver, co, context.KNat)
       {
         Contract.Requires(resolver != null);
@@ -17201,8 +17201,8 @@ namespace Microsoft.Dafny
           if (cp == CallingPosition.Positive) {
             var fexp = (FunctionCallExpr)expr;
             if (IsCoContext ? fexp.Function is CoPredicate : fexp.Function is InductivePredicate) {
-              if (Context.KNat != ((FixpointPredicate)fexp.Function).KNat) {
-                resolver.KNatMismatchError(expr.tok, Context.Name, Context.TypeOfK, ((FixpointPredicate)fexp.Function).TypeOfK);
+              if (Context.KNat != ((ExtremePredicate)fexp.Function).KNat) {
+                resolver.KNatMismatchError(expr.tok, Context.Name, Context.TypeOfK, ((ExtremePredicate)fexp.Function).TypeOfK);
               } else {
                 friendlyCalls.Add(fexp);
               }
