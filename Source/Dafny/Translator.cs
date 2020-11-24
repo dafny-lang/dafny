@@ -4592,9 +4592,22 @@ namespace Microsoft.Dafny {
     void RemoveDefiniteAssignmentTrackers(List<Statement> ss, int prevDefAssTrackerCount) {
       Contract.Requires(ss != null);
       foreach (var s in ss) {
-        var vdecl = s as VarDeclStmt;
-        if (vdecl != null) {
-          vdecl.Locals.Iter(RemoveDefiniteAssignmentTracker);
+        if (s is VarDeclStmt vdecl) {
+          if (vdecl.Update is AssignOrReturnStmt ars) {
+            foreach (var sx in ars.ResolvedStatements) {
+              if (sx is VarDeclStmt vdecl2) {
+                vdecl2.Locals.Iter(RemoveDefiniteAssignmentTracker);
+              }
+            }
+          } else {
+            vdecl.Locals.Iter(RemoveDefiniteAssignmentTracker);
+          }
+        } else if (s is AssignOrReturnStmt ars) {
+          foreach (var sx in ars.ResolvedStatements) {
+            if (sx is VarDeclStmt vdecl2) {
+              vdecl2.Locals.Iter(RemoveDefiniteAssignmentTracker);
+            }
+          }
         }
       }
       Contract.Assert(prevDefAssTrackerCount == definiteAssignmentTrackers.Count);

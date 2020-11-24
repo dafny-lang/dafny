@@ -49,19 +49,19 @@ class ClassA<T> {
 // Methods M0 and M1 are the same, except that M0 gives the type of
 // "numbers", whereas M1 leaves that type to be inferred. In both
 // cases, it should be known that a.Read() returns a Result<seq<int>>,
-// but type inference fails to instantiate the T in ClassA<T>, so
-// a.Read() is typed as returning a Result<seq<T>>, which is bogus.
+// but type inference failed (now fixed) to instantiate the T in ClassA<T>, so
+// a.Read() is typed as returning a Result<seq<T>>.
 
 method M0() returns (res: Result<int>) {
   var a: ClassA<int> := new ClassA([57, 58, 59]);
-  var numbers: seq<int> :- a.Read();  // bogus: says expected Result<seq<int>>, but got Result<seq<T>>
+  var numbers: seq<int> :- a.Read();  // fixed: once said expected Result<seq<int>>, but got Result<seq<T>>
   return Success(numbers[0]);
 }
 
 method M1() returns (res: Result<int>)
 {
   var a: ClassA<int> := new ClassA([57, 58, 59]);
-  var numbers :- a.Read();  // bogus: says expected Result<seq<int>>, but got Result<seq<T>>
+  var numbers :- a.Read();  // fixed: once said expected Result<seq<int>>, but got Result<seq<T>>
   return Success(numbers[0]);
 }
 
@@ -99,14 +99,14 @@ method P1() returns (res: Result<int>)
 
 method N0() returns (res: Result<int>) {
   var a: ClassA<int> := new ClassA([57, 58, 59]);
-  var numbers: seq<int> :- a.ReadX(50, 50);  // bogus: says got int, but expected U
+  var numbers: seq<int> :- a.ReadX(50, 50);  // fixed: once said got int, but expected U
   return Success(numbers[0]);
 }
 
 method N1() returns (res: Result<int>)
 {
   var a: ClassA<int> := new ClassA([57, 58, 59]);
-  var numbers :- a.ReadX(50, 50);  // bogus: says got int, but expected U
+  var numbers :- a.ReadX(50, 50);  // fixed: once said got int, but expected U
   return Success(numbers[0]);
 }
 
