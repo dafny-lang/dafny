@@ -1,0 +1,5 @@
+git-issue-936.dfy(29,2): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 11 verified, 1 error
