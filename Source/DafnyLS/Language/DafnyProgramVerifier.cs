@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
         foreach(var (_, boogieProgram) in translated) {
           cancellationToken.ThrowIfCancellationRequested();
-          VerifyWithBoogie(boogieProgram, errorReporter, cancellationToken);
+          VerifyWithBoogie(boogieProgram, cancellationToken);
         }
         return printer.SerializedCounterExamples;
       } finally {
@@ -73,7 +73,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private void VerifyWithBoogie(Boogie.Program program, ErrorReporter reporter, CancellationToken cancellationToken) {
+    private void VerifyWithBoogie(Boogie.Program program, CancellationToken cancellationToken) {
       program.Resolve();
       program.Typecheck();
 
@@ -88,19 +88,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       var uniqueId = Guid.NewGuid().ToString();
       using(cancellationToken.Register(() => CancelVerification(uniqueId))) {
         // TODO any use of the verification state?
-        ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), uniqueId, error => CaptureVerificationError(reporter, error), uniqueId);
+        ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), uniqueId, error => { }, uniqueId);
       }
     }
 
     private void CancelVerification(string requestId) {
       _logger.LogDebug("requesting verification cancellation of {}", requestId);
       ExecutionEngine.CancelRequest(requestId);
-    }
-
-    private void CaptureVerificationError(ErrorReporter reporter, ErrorInformation error) {
-      // TODO denote the verifier as "verifier" rather than "other". This probably requires
-      //      a custom error tracking mechanism.
-      reporter.Error(VerifierMessageSource, error.Tok, error.Msg);
     }
 
     private class ModelCapturingOutputPrinter : OutputPrinter {
@@ -150,6 +144,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       private void CaptureViolatedPostconditions(ErrorInformation errorInfo) {
+        _errorReporter.Error(VerifierMessageSource, errorInfo.Tok, errorInfo.Msg);
         foreach(var auxiliaryErrorInfo in errorInfo.Aux) {
           if(auxiliaryErrorInfo.Tok.line > 0) {
             _errorReporter.Warning(VerifierMessageSource, auxiliaryErrorInfo.Tok, auxiliaryErrorInfo.Msg);
