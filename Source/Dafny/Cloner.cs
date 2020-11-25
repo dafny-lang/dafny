@@ -1101,15 +1101,15 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// Subclass of Cloner that collects some common functionality between FixpointLemmaSpecificationSubstituter and
-  /// FixpointLemmaBodyCloner.
+  /// Subclass of Cloner that collects some common functionality between ExtremeLemmaSpecificationSubstituter and
+  /// ExtremeLemmaBodyCloner.
   /// </summary>
-  abstract class FixpointCloner : Cloner
+  abstract class ExtremeCloner : Cloner
   {
     protected readonly Expression k;
     protected readonly ErrorReporter reporter;
     protected readonly string suffix;
-    protected FixpointCloner(Expression k, ErrorReporter reporter)
+    protected ExtremeCloner(Expression k, ErrorReporter reporter)
     {
       Contract.Requires(k != null);
       Contract.Requires(reporter != null);
@@ -1119,7 +1119,7 @@ namespace Microsoft.Dafny
     }
     protected Expression CloneCallAndAddK(ApplySuffix e) {
       Contract.Requires(e != null);
-      Contract.Requires(e.Resolved is FunctionCallExpr && ((FunctionCallExpr)e.Resolved).Function is FixpointPredicate);
+      Contract.Requires(e.Resolved is FunctionCallExpr && ((FunctionCallExpr)e.Resolved).Function is ExtremePredicate);
       Contract.Requires(e.Lhs is NameSegment || e.Lhs is ExprDotName);
       Expression lhs;
       string name;
@@ -1143,7 +1143,7 @@ namespace Microsoft.Dafny
     }
     protected Expression CloneCallAndAddK(FunctionCallExpr e) {
       Contract.Requires(e != null);
-      Contract.Requires(e.Function is FixpointPredicate);
+      Contract.Requires(e.Function is ExtremePredicate);
       var receiver = CloneExpr(e.Receiver);
       var args = new List<Expression>();
       args.Add(k);
@@ -1157,7 +1157,7 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// The FixpointLemmaSpecificationSubstituter clones the precondition (or postcondition) declared
+  /// The ExtremeLemmaSpecificationSubstituter clones the precondition (or postcondition) declared
   /// on an inductive lemma (resp. colemma), but replaces the calls and equalities in "coConclusions"
   /// with corresponding prefix versions.  The resulting expression is then appropriate to be a
   /// precondition (resp. postcondition) of the inductive lemma's (resp. colemma's) corresponding prefix lemma.
@@ -1165,11 +1165,11 @@ namespace Microsoft.Dafny
   /// is not cloned with each use; it is simply used as is.
   /// The resulting expression needs to be resolved by the caller.
   /// </summary>
-  class FixpointLemmaSpecificationSubstituter : FixpointCloner
+  class ExtremeLemmaSpecificationSubstituter : ExtremeCloner
   {
     readonly bool isCoContext;
     readonly ISet<Expression> friendlyCalls;
-    public FixpointLemmaSpecificationSubstituter(ISet<Expression> friendlyCalls, Expression k, ErrorReporter reporter, bool isCoContext)
+    public ExtremeLemmaSpecificationSubstituter(ISet<Expression> friendlyCalls, Expression k, ErrorReporter reporter, bool isCoContext)
       : base(k, reporter)
     {
       Contract.Requires(friendlyCalls != null);
@@ -1239,15 +1239,15 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// The task of the FixpointLemmaBodyCloner is to fill in the implicit _k-1 arguments in recursive inductive/co-lemma calls
+  /// The task of the ExtremeLemmaBodyCloner is to fill in the implicit _k-1 arguments in recursive inductive/co-lemma calls
   /// and in calls to the focal predicates.
   /// The source statement and the given "k" are assumed to have been resolved.
   /// </summary>
-  class FixpointLemmaBodyCloner : FixpointCloner
+  class ExtremeLemmaBodyCloner : ExtremeCloner
   {
-    readonly FixpointLemma context;
-    readonly ISet<FixpointPredicate> focalPredicates;
-    public FixpointLemmaBodyCloner(FixpointLemma context, Expression k, ISet<FixpointPredicate> focalPredicates, ErrorReporter reporter)
+    readonly ExtremeLemma context;
+    readonly ISet<ExtremePredicate> focalPredicates;
+    public ExtremeLemmaBodyCloner(ExtremeLemma context, Expression k, ISet<ExtremePredicate> focalPredicates, ErrorReporter reporter)
       : base(k, reporter)
     {
       Contract.Requires(context != null);
@@ -1278,7 +1278,7 @@ namespace Microsoft.Dafny
           // However, if something changes in the future (for example, some rewrite that changing an ApplySuffix
           // to its resolved FunctionCallExpr), then we do want this code, so with the hope of preventing
           // some error in the future, this case is included.  (Of course, it is currently completely untested!)
-          var f = e.Function as FixpointPredicate;
+          var f = e.Function as ExtremePredicate;
           if (f != null && focalPredicates.Contains(f)) {
 #if DEBUG_PRINT
             var r = CloneCallAndAddK(e);
@@ -1306,7 +1306,7 @@ namespace Microsoft.Dafny
                 Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(fce));
               }
 #endif
-              var f = fce.Function as FixpointPredicate;
+              var f = fce.Function as ExtremePredicate;
               if (f != null && focalPredicates.Contains(f)) {
 #if DEBUG_PRINT
                 var r = CloneCallAndAddK(fce);
@@ -1327,8 +1327,8 @@ namespace Microsoft.Dafny
       if (r != null && r.Expr is ApplySuffix) {
         var apply = (ApplySuffix)r.Expr;
         var mse = apply.Lhs.Resolved as MemberSelectExpr;
-        if (mse != null && mse.Member is FixpointLemma && ModuleDefinition.InSameSCC(context, (FixpointLemma)mse.Member)) {
-          // we're looking at a recursive call to a fixpoint lemma
+        if (mse != null && mse.Member is ExtremeLemma && ModuleDefinition.InSameSCC(context, (ExtremeLemma)mse.Member)) {
+          // we're looking at a recursive call to an extreme lemma
           Contract.Assert(apply.Lhs is NameSegment || apply.Lhs is ExprDotName);  // this is the only way a call statement can have been parsed
           // clone "apply.Lhs", changing the inductive/co lemma to the prefix lemma; then clone "apply", adding in the extra argument
           Expression lhsClone;
