@@ -2285,10 +2285,10 @@ namespace Microsoft.Dafny {
           AddFunctionOverrideCheckImpl(f);
         }
       }
-      var cop = f as FixpointPredicate;
+      var cop = f as ExtremePredicate;
       if (cop != null) {
         AddClassMember_Function(cop.PrefixPredicate);
-        // skip the well-formedness check, because it has already been done for the fixpoint-predicate
+        // skip the well-formedness check, because it has already been done for the extreme predicate
       }
       this.fuelContext = oldFuelContext;
       isAllocContext = null;
@@ -2316,10 +2316,10 @@ namespace Microsoft.Dafny {
       }
       // the method spec itself
       sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.Call));
-      if (m is FixpointLemma) {
+      if (m is ExtremeLemma) {
         // Let the CoCall and Impl forms to use m.PrefixLemma signature and specification (and
         // note that m.PrefixLemma.Body == m.Body.
-        m = ((FixpointLemma)m).PrefixLemma;
+        m = ((ExtremeLemma)m).PrefixLemma;
         sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CoCall));
       }
       if (m.Body != null && InVerificationScope(m)) {
@@ -2389,8 +2389,8 @@ namespace Microsoft.Dafny {
       }
 
       // supply the connection between inductive/coinductive predicates and prefix predicates
-      if (f is FixpointPredicate) {
-        AddPrefixPredicateAxioms(((FixpointPredicate)f).PrefixPredicate);
+      if (f is ExtremePredicate) {
+        AddPrefixPredicateAxioms(((ExtremePredicate)f).PrefixPredicate);
       }
 
       Reset();
@@ -2795,7 +2795,7 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(ax);
       // TODO(namin) Is checking f.Reads.Count==0 excluding Valid() of BinaryTree in the right way?
       //             I don't see how this in the decreasing clause would help there.
-      if (!(f is FixpointPredicate) && f.CoClusterTarget == Function.CoCallClusterInvolvement.None &&
+      if (!(f is ExtremePredicate) && f.CoClusterTarget == Function.CoCallClusterInvolvement.None &&
         f.Reads.Count == 0 &&
         !DafnyOptions.O.Dafnycc) {
         var FVs = new HashSet<IVariable>();
@@ -3545,7 +3545,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// For a fixpoint-predicate P, "pp" is the prefix predicate for P (such that P = pp.FixpointPred) and
+    /// For an extreme predicate P, "pp" is the prefix predicate for P (such that P = pp.ExtremePred) and
     /// "body" is the body of P.  Return what would be the body of the prefix predicate pp.
     /// In particular, return
     /// #if _k has type nat:
@@ -3563,15 +3563,15 @@ namespace Microsoft.Dafny {
     Expression PrefixSubstitution(PrefixPredicate pp, Expression body) {
       Contract.Requires(pp != null);
 
-      var typeMap = Util.Dict<TypeParameter,Type>(pp.FixpointPred.TypeArgs, Map(pp.TypeArgs, x => new UserDefinedType(x)));
+      var typeMap = Util.Dict<TypeParameter,Type>(pp.ExtremePred.TypeArgs, Map(pp.TypeArgs, x => new UserDefinedType(x)));
 
       var paramMap = new Dictionary<IVariable, Expression>();
-      for (int i = 0; i < pp.FixpointPred.Formals.Count; i++) {
+      for (int i = 0; i < pp.ExtremePred.Formals.Count; i++) {
         var replacement = pp.Formals[i + 1];  // the +1 is to skip pp's _k parameter
         var param = new IdentifierExpr(replacement.tok, replacement.Name);
         param.Var = replacement;  // resolve here
         param.Type = replacement.Type;  // resolve here
-        paramMap.Add(pp.FixpointPred.Formals[i], param);
+        paramMap.Add(pp.ExtremePred.Formals[i], param);
       }
 
       var k = new IdentifierExpr(pp.tok, pp.K.Name);
@@ -3579,7 +3579,7 @@ namespace Microsoft.Dafny {
       k.Type = pp.K.Type;  // resolve here
       Expression kMinusOne = Expression.CreateSubtract(k, Expression.CreateNatLiteral(pp.tok, 1, pp.K.Type));
 
-      var s = new PrefixCallSubstituter(null, paramMap, typeMap, pp.FixpointPred, kMinusOne);
+      var s = new PrefixCallSubstituter(null, paramMap, typeMap, pp.ExtremePred, kMinusOne);
       body = s.Substitute(body);
 
       if (pp.K.Type.IsBigOrdinalType) {
@@ -3604,7 +3604,7 @@ namespace Microsoft.Dafny {
 
         Attributes triggerAttr = new Attributes("trigger", new List<Expression> { ppCall }, null);
         Expression limitCalls;
-        if (pp.FixpointPred is CoPredicate) {
+        if (pp.ExtremePred is CoPredicate) {
           // forall k':ORDINAL | _k' LESS _k :: pp(_k', args)
           var smaller = Expression.CreateLess(kprime, k);
           limitCalls = new ForallExpr(pp.tok, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr);
@@ -3627,7 +3627,7 @@ namespace Microsoft.Dafny {
       } else {
         // 0 < k
         var kIsPositive = Expression.CreateLess(Expression.CreateIntLiteral(pp.tok, 0), k);
-        if (pp.FixpointPred is CoPredicate) {
+        if (pp.ExtremePred is CoPredicate) {
           // add antecedent "0 < _k ==>"
           return Expression.CreateImplies(kIsPositive, body);
         } else {
@@ -3819,7 +3819,7 @@ namespace Microsoft.Dafny {
     void AddPrefixPredicateAxioms(PrefixPredicate pp) {
       Contract.Requires(pp != null);
       Contract.Requires(predef != null);
-      var co = pp.FixpointPred;
+      var co = pp.ExtremePred;
       var tok = pp.tok;
       var etran = new ExpressionTranslator(this, predef, tok);
 
@@ -3920,7 +3920,7 @@ namespace Microsoft.Dafny {
 
       // forall args :: { P(args) } args-have-appropriate-values && P(args) ==> QQQ k { P#[k](args) } :: 0 ATMOST k HHH P#[k](args)
       var tr = BplTrigger(prefixAppl);
-      var qqqK = pp.FixpointPred is CoPredicate ?
+      var qqqK = pp.ExtremePred is CoPredicate ?
         (Bpl.Expr)new Bpl.ForallExpr(tok, new List<Variable> { k }, tr, kWhere == null ? prefixAppl : BplImp(kWhere, prefixAppl)) :
         (Bpl.Expr)new Bpl.ExistsExpr(tok, new List<Variable> { k }, tr, kWhere == null ? prefixAppl : BplAnd(kWhere, prefixAppl));
       tr = BplTriggerHeap(this, tok, coAppl, AlwaysUseHeap || pp.ReadsHeap ? null : h);
@@ -3942,7 +3942,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr.Literal(0));
       funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
       Bpl.Expr prefixLimitedBody = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
-      Bpl.Expr prefixLimited = pp.FixpointPred is InductivePredicate ? Bpl.Expr.Not(prefixLimitedBody) : prefixLimitedBody;
+      Bpl.Expr prefixLimited = pp.ExtremePred is InductivePredicate ? Bpl.Expr.Not(prefixLimitedBody) : prefixLimitedBody;
 
       var trigger = BplTriggerHeap(this, prefixLimitedBody.tok, prefixLimitedBody, AlwaysUseHeap || pp.ReadsHeap ? null : h);
       var trueAtZero = new Bpl.ForallExpr(tok, moreBvs, trigger, BplImp(BplAnd(ante, z), prefixLimited));
@@ -3964,7 +3964,7 @@ namespace Microsoft.Dafny {
       funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
       var prefixPred_K = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
       var prefixPred_M = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimitedM);
-      var direction = pp.FixpointPred is InductivePredicate ? BplImp(prefixPred_K, prefixPred_M) : BplImp(prefixPred_M, prefixPred_K);
+      var direction = pp.ExtremePred is InductivePredicate ? BplImp(prefixPred_K, prefixPred_M) : BplImp(prefixPred_M, prefixPred_K);
 
       var trigger2 = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { prefixPred_K, prefixPred_M });
       var monotonicity = new Bpl.ForallExpr(tok, moreBvs, trigger2, BplImp(smaller, direction));
@@ -3973,7 +3973,7 @@ namespace Microsoft.Dafny {
 #endif
       // A more targeted monotonicity axiom used to increase the power of automation for proving the limit case for
       // inductive predicates that have more than one focal-predicate term.
-      if (pp.FixpointPred is InductivePredicate && pp.Formals[0].Type.IsBigOrdinalType) {
+      if (pp.ExtremePred is InductivePredicate && pp.Formals[0].Type.IsBigOrdinalType) {
         // forall args,k,m,limit ::
         //   { P#[k](args), ORD#LessThanLimit(k,limit), ORD#LessThanLimit(m,limit) }
         //   args-have-appropriate-values && k < m && P#[k](args) ==> P#[m](args))
@@ -7555,7 +7555,7 @@ namespace Microsoft.Dafny {
           }
 
           Bpl.Expr allowance = null;
-          if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is FixpointPredicate)) {
+          if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is ExtremePredicate)) {
             // check that the decreases measure goes down
             if (ModuleDefinition.InSameSCC(e.Function, codeContext)) {
               List<Expression> contextDecreases = codeContext.Decreases.Expressions;
@@ -12169,7 +12169,7 @@ namespace Microsoft.Dafny {
         // Note, prefix lemmas are not recorded in the call graph, but their corresponding colemmas are.
         // Similarly, an iterator is not recorded in the call graph, but its MoveNext method is.
         ICallable cllr =
-          codeContext is PrefixLemma ? ((PrefixLemma)codeContext).FixpointLemma :
+          codeContext is PrefixLemma ? ((PrefixLemma)codeContext).ExtremeLemma :
           codeContext is IteratorDecl ? ((IteratorDecl)codeContext).Member_MoveNext :
           codeContext;
         if (ModuleDefinition.InSameSCC(method, cllr)) {
@@ -12179,9 +12179,9 @@ namespace Microsoft.Dafny {
 
       MethodTranslationKind kind;
       var callee = method;
-      if (method is FixpointLemma && isRecursiveCall) {
+      if (method is ExtremeLemma && isRecursiveCall) {
         kind = MethodTranslationKind.CoCall;
-        callee = ((FixpointLemma)method).PrefixLemma;
+        callee = ((ExtremeLemma)method).PrefixLemma;
       } else if (method is PrefixLemma) {
         // an explicit call to a prefix lemma is allowed only inside the SCC of the corresponding colemma,
         // so we consider this to be a co-call
@@ -12231,7 +12231,7 @@ namespace Microsoft.Dafny {
 
         var param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
         Bpl.Expr bActual;
-        if (i == 0 && method is FixpointLemma && isRecursiveCall) {
+        if (i == 0 && method is ExtremeLemma && isRecursiveCall) {
           // Treat this call to M(args) as a call to the corresponding prefix lemma M#(_k - 1, args), so insert an argument here.
           var k = ((PrefixLemma)callee).K;
           var bplK = new Bpl.IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration.IdGenerator), TrType(k.Type));
@@ -12244,7 +12244,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           Expression actual;
-          if (method is FixpointLemma && isRecursiveCall) {
+          if (method is ExtremeLemma && isRecursiveCall) {
             actual = Args[i - 1];
           } else {
             actual = Args[i];
@@ -17957,22 +17957,22 @@ namespace Microsoft.Dafny {
     }
     public class PrefixCallSubstituter : Substituter
     {
-      readonly FixpointPredicate fixpointPred;
+      readonly ExtremePredicate extremePred;
       readonly Expression unrollDepth;
       readonly ModuleDefinition module;
-      public PrefixCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> tySubstMap, FixpointPredicate fixpointpred, Expression depth)
+      public PrefixCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> tySubstMap, ExtremePredicate extremePredicate, Expression depth)
         : base(receiverReplacement, substMap, tySubstMap) {
-        Contract.Requires(fixpointpred != null);
+        Contract.Requires(extremePredicate != null);
         Contract.Requires(depth != null);
-        fixpointPred = fixpointpred;
+        extremePred = extremePredicate;
         unrollDepth = depth;
-        module = fixpointpred.EnclosingClass.Module;
+        module = extremePredicate.EnclosingClass.Module;
       }
       public override Expression Substitute(Expression expr) {
         if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
-          var cof = e.Function as FixpointPredicate;
-          if (cof != null && ModuleDefinition.InSameSCC(cof, fixpointPred)) {
+          var cof = e.Function as ExtremePredicate;
+          if (cof != null && ModuleDefinition.InSameSCC(cof, extremePred)) {
             expr = cof.CreatePrefixPredicateCall(e, unrollDepth);
           }
         }
