@@ -902,8 +902,8 @@ namespace Microsoft.Dafny {
       if (PrintModeSkipFunctionOrMethod(method.IsGhost, method.Attributes, method.Name)) { return; }
       Indent(indent);
       string k = method is Constructor ? "constructor" :
-        method is InductiveLemma ? "least lemma" :
-        method is CoLemma ? "greatest lemma" :
+        method is LeastLemma ? "least lemma" :
+        method is GreatestLemma ? "greatest lemma" :
         method is Lemma || method is PrefixLemma ? "lemma" :
         method is TwoStateLemma ? "twostate lemma" :
         "method";

@@ -3604,7 +3604,7 @@ namespace Microsoft.Dafny {
 
         Attributes triggerAttr = new Attributes("trigger", new List<Expression> { ppCall }, null);
         Expression limitCalls;
-        if (pp.ExtremePred is CoPredicate) {
+        if (pp.ExtremePred is GreatestPredicate) {
           // forall k':ORDINAL | _k' LESS _k :: pp(_k', args)
           var smaller = Expression.CreateLess(kprime, k);
           limitCalls = new ForallExpr(pp.tok, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr);
@@ -3627,7 +3627,7 @@ namespace Microsoft.Dafny {
       } else {
         // 0 < k
         var kIsPositive = Expression.CreateLess(Expression.CreateIntLiteral(pp.tok, 0), k);
-        if (pp.ExtremePred is CoPredicate) {
+        if (pp.ExtremePred is GreatestPredicate) {
           // add antecedent "0 < _k ==>"
           return Expression.CreateImplies(kIsPositive, body);
         } else {
@@ -3920,7 +3920,7 @@ namespace Microsoft.Dafny {
 
       // forall args :: { P(args) } args-have-appropriate-values && P(args) ==> QQQ k { P#[k](args) } :: 0 ATMOST k HHH P#[k](args)
       var tr = BplTrigger(prefixAppl);
-      var qqqK = pp.ExtremePred is CoPredicate ?
+      var qqqK = pp.ExtremePred is GreatestPredicate ?
         (Bpl.Expr)new Bpl.ForallExpr(tok, new List<Variable> { k }, tr, kWhere == null ? prefixAppl : BplImp(kWhere, prefixAppl)) :
         (Bpl.Expr)new Bpl.ExistsExpr(tok, new List<Variable> { k }, tr, kWhere == null ? prefixAppl : BplAnd(kWhere, prefixAppl));
       tr = BplTriggerHeap(this, tok, coAppl, AlwaysUseHeap || pp.ReadsHeap ? null : h);
@@ -3942,7 +3942,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr.Literal(0));
       funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
       Bpl.Expr prefixLimitedBody = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
-      Bpl.Expr prefixLimited = pp.ExtremePred is InductivePredicate ? Bpl.Expr.Not(prefixLimitedBody) : prefixLimitedBody;
+      Bpl.Expr prefixLimited = pp.ExtremePred is LeastPredicate ? Bpl.Expr.Not(prefixLimitedBody) : prefixLimitedBody;
 
       var trigger = BplTriggerHeap(this, prefixLimitedBody.tok, prefixLimitedBody, AlwaysUseHeap || pp.ReadsHeap ? null : h);
       var trueAtZero = new Bpl.ForallExpr(tok, moreBvs, trigger, BplImp(BplAnd(ante, z), prefixLimited));
@@ -3964,7 +3964,7 @@ namespace Microsoft.Dafny {
       funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
       var prefixPred_K = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
       var prefixPred_M = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimitedM);
-      var direction = pp.ExtremePred is InductivePredicate ? BplImp(prefixPred_K, prefixPred_M) : BplImp(prefixPred_M, prefixPred_K);
+      var direction = pp.ExtremePred is LeastPredicate ? BplImp(prefixPred_K, prefixPred_M) : BplImp(prefixPred_M, prefixPred_K);
 
       var trigger2 = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { prefixPred_K, prefixPred_M });
       var monotonicity = new Bpl.ForallExpr(tok, moreBvs, trigger2, BplImp(smaller, direction));
@@ -3973,7 +3973,7 @@ namespace Microsoft.Dafny {
 #endif
       // A more targeted monotonicity axiom used to increase the power of automation for proving the limit case for
       // least predicates that have more than one focal-predicate term.
-      if (pp.ExtremePred is InductivePredicate && pp.Formals[0].Type.IsBigOrdinalType) {
+      if (pp.ExtremePred is LeastPredicate && pp.Formals[0].Type.IsBigOrdinalType) {
         // forall args,k,m,limit ::
         //   { P#[k](args), ORD#LessThanLimit(k,limit), ORD#LessThanLimit(m,limit) }
         //   args-have-appropriate-values && k < m && P#[k](args) ==> P#[m](args))
@@ -9408,8 +9408,8 @@ namespace Microsoft.Dafny {
     ///    This means that predicates can be inlined in the usual way.
     /// CoCall
     ///    This procedure is suitable for (intra-module) co-calls.
-    ///    In these calls, some uses of copredicates may be replaced by
-    ///    proof certificates.  Note, unless the method is a colemma, there
+    ///    In these calls, some uses of greatest predicates may be replaced by
+    ///    proof certificates.  Note, unless the method is a greatest lemma, there
     ///    is no reason to include a procedure for co-calls.
     /// Implementation
     ///    This procedure is suitable for checking the implementation of the
@@ -12166,7 +12166,7 @@ namespace Microsoft.Dafny {
       // consult the call graph to figure out if this is a recursive call
       var module = method.EnclosingClass.Module;
       if (codeContext != null && module == currentModule) {
-        // Note, prefix lemmas are not recorded in the call graph, but their corresponding colemmas are.
+        // Note, prefix lemmas are not recorded in the call graph, but their corresponding greatest lemmas are.
         // Similarly, an iterator is not recorded in the call graph, but its MoveNext method is.
         ICallable cllr =
           codeContext is PrefixLemma ? ((PrefixLemma)codeContext).ExtremeLemma :
@@ -12183,7 +12183,7 @@ namespace Microsoft.Dafny {
         kind = MethodTranslationKind.CoCall;
         callee = ((ExtremeLemma)method).PrefixLemma;
       } else if (method is PrefixLemma) {
-        // an explicit call to a prefix lemma is allowed only inside the SCC of the corresponding colemma,
+        // an explicit call to a prefix lemma is allowed only inside the SCC of the corresponding greatest lemma,
         // so we consider this to be a co-call
         kind = MethodTranslationKind.CoCall;
       } else {
