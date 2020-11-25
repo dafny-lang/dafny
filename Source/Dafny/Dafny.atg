@@ -189,13 +189,17 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
   theCompileThisFile = compileThisFile;
 }
 
+bool IsIdentifier(int kind) {
+  return kind == _ident || kind == _least || kind == _greatest;
+}
+
 bool IsLabel(bool allowLabel) {
   if (!allowLabel) {
     return false;
   }
   scanner.ResetPeek();
   IToken x = scanner.Peek();
-  return (la.kind == _ident || la.kind == _digits) && x.kind == _colon;
+  return (IsIdentifier(la.kind) || la.kind == _digits) && x.kind == _colon;
 }
 
 bool IsAlternative() {
@@ -206,8 +210,9 @@ bool IsAlternative() {
 
 bool FollowedByColon() {
   IToken x = la;
-  while (x.kind == _ident || x.kind == _openparen)
-     x = scanner.Peek();
+  while (IsIdentifier(x.kind) || x.kind == _openparen) {
+    x = scanner.Peek();
+  }
   return x.kind == _colon;
 }
 
@@ -222,7 +227,7 @@ bool IsGets() {
 // * a bored smiley (if there's one bound variable and it is not given an explicit type).
 bool IsExistentialGuard() {
   scanner.ResetPeek();
-  if (la.kind == _ident) {
+  if (IsIdentifier(la.kind)) {
     Token x = scanner.Peek();
     if (x.kind == _colon || x.kind == _comma || x.kind == _boredSmiley || x.kind == _lbracecolon) {
       return true;
@@ -376,7 +381,7 @@ bool IsLambda(bool allowLambda)
   scanner.ResetPeek();
   Token x;
   // peek at what might be a signature of a lambda expression
-  if (la.kind == _ident) {
+  if (IsIdentifier(la.kind)) {
     // cool, that's the entire candidate signature
   } else if (la.kind != _openparen) {
     return false;  // this is not a lambda expression
@@ -390,7 +395,7 @@ bool IsLambda(bool allowLambda)
         }
         x = scanner.Peek();
       }
-      if (x.kind != _ident) {
+      if (!IsIdentifier(x.kind)) {
         return false;  // not a lambda expression
       }
       identCount++;
@@ -412,7 +417,7 @@ bool IsLambda(bool allowLambda)
 bool IsIdentParen() {
   scanner.ResetPeek();
   Token x = scanner.Peek();
-  return la.kind == _ident && x.kind == _openparen;
+  return IsIdentifier(la.kind) && x.kind == _openparen;
 }
 
 /* Used to disambiguate the LHS of a VarDeclStmt. If it looks like the start of a CasePattern,
@@ -425,7 +430,7 @@ bool IsPatternDecl() {
 
 bool IsIdentColonOrBar() {
   Token x = scanner.Peek();
-  return la.kind == _ident && (x.kind == _colon || x.kind == _verticalbar);
+  return IsIdentifier(la.kind) && (x.kind == _colon || x.kind == _verticalbar);
 }
 
 bool SemiFollowsCall(bool allowSemi, Expression e) {
@@ -587,8 +592,10 @@ bool IsNonArrowType(ref IToken pt) {
       pt = scanner.Peek();
       return pt.kind != _openAngleBracket || IsTypeList(ref pt);
     case _ident:
+    case _least:
+    case _greatest:
       while (true) {
-        // invariant: next token is an ident
+        // invariant: next token is an identifier (_ident, _least, or _greatest)
         pt = scanner.Peek();
         if (pt.kind == _openAngleBracket && !IsTypeList(ref pt)) {
           return false;
@@ -598,7 +605,7 @@ bool IsNonArrowType(ref IToken pt) {
           return true;
         }
         pt = scanner.Peek();  // get the _dot
-        if (pt.kind != _ident) {
+        if (!IsIdentifier(pt.kind)) {
           return false;
         }
       }
@@ -2784,7 +2791,7 @@ ForallStmt<out Statement/*!*/ s>
 
   ( IF(la.kind == _openparen)  /* disambiguation needed, because of the possibility of a body-less forall statement */
     "(" [ QuantifierDomain<out bvars, out attrs, out range> ] ")"
-  |     [ IF(la.kind == _ident)  /* disambiguation needed, because of the possibility of a body-less forall statement */
+  |     [ IF(IsIdentifier(la.kind))  /* disambiguation needed, because of the possibility of a body-less forall statement */
           QuantifierDomain<out bvars, out attrs, out range>
         ]
   )
@@ -4035,7 +4042,11 @@ Attribute<ref Attributes attrs>
 /*------------------------------------------------------------------------*/
 Ident<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
-  ident            (. x = t; .)
+  ( ident
+  | "least"      (. t.kind = _ident; .) // convert it to an ident
+  | "greatest"   (. t.kind = _ident; .) // convert it to an ident
+  )
+  (. x = t; .)
   .
 // Identifier or sequence of digits
 // Parse one of the following, which are supposed to follow a ".":
@@ -4051,7 +4062,7 @@ DotSuffix<out IToken x, out IToken y>
      x = Token.NoToken;
      y = null;
   .)
-  ( ident          (. x = t; .)
+  ( Ident<out x>
   | digits         (. x = t; .)
   | decimaldigits  (. x = t;
                       int exponent = x.val.IndexOf('e');
@@ -4078,7 +4089,7 @@ DotSuffix<out IToken x, out IToken y>
   .
 MemberBindingUpdate<out IToken id, out Expression e>
 = (. id = Token.NoToken; e = dummyExpr; .)
-  ( ident          (. id = t; .)
+  ( Ident<out id>
   | digits         (. id = t; .)
   )
   ":="
@@ -4103,7 +4114,7 @@ ExportIdent<out IToken id>
   .
 TypeNameOrCtorSuffix<out IToken id>
 = (. id = Token.NoToken; .)
-  ( ident          (. id = t; .)
+  ( Ident<out id>
   | digits         (. id = t; .)
   )
   .
@@ -4111,8 +4122,7 @@ TypeNameOrCtorSuffix<out IToken id>
 // Identifier, disallowing leading underscores
 NoUSIdent<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
-  ident            (. x = t;
-                      if (x.val.StartsWith("_")) {
+  Ident<out x>     (. if (x.val.StartsWith("_")) {
                         SemErr("cannot declare identifier beginning with underscore");
                       }
                    .)
@@ -4121,9 +4131,7 @@ NoUSIdent<out IToken/*!*/ x>
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
 WildIdent<out IToken x, bool allowWildcardId>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
-  ident            (. x = t;
-                      t.val = UnwildIdent(t.val, allowWildcardId);
-                   .)
+  Ident<out x>     (. t.val = UnwildIdent(t.val, allowWildcardId); .)
   .
 
 OldSemi  /* NOTE: Coco complains about "OldSemi deletable". That's okay. */
