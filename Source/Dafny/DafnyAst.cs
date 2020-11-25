@@ -6139,7 +6139,7 @@ namespace Microsoft.Dafny {
 
   public class InductivePredicate : ExtremePredicate
   {
-    public override string WhatKind { get { return "inductive predicate"; } }
+    public override string WhatKind { get { return "least predicate"; } }
     public InductivePredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                               List<TypeParameter> typeArgs, List<Formal> formals,
                               List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
@@ -6151,7 +6151,7 @@ namespace Microsoft.Dafny {
 
   public class CoPredicate : ExtremePredicate
   {
-    public override string WhatKind { get { return "copredicate"; } }
+    public override string WhatKind { get { return "greatest predicate"; } }
     public CoPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                        List<TypeParameter> typeArgs, List<Formal> formals,
                        List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
@@ -6503,7 +6503,7 @@ namespace Microsoft.Dafny {
 
   public class InductiveLemma : ExtremeLemma
   {
-    public override string WhatKind { get { return "inductive lemma"; } }
+    public override string WhatKind { get { return "least lemma"; } }
 
     public InductiveLemma(IToken tok, string name,
                           bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
@@ -6529,7 +6529,7 @@ namespace Microsoft.Dafny {
 
   public class CoLemma : ExtremeLemma
   {
-    public override string WhatKind { get { return "colemma"; } }
+    public override string WhatKind { get { return "greatest lemma"; } }
 
     public CoLemma(IToken tok, string name,
                    bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
