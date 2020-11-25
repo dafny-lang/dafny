@@ -3,8 +3,8 @@
 
 datatype Status = Failure(msg: string) | Success
 {
-  function method IsFailure(): bool ensures IsFailure() == Failure? { Failure? }
-  function method PropagateFailure(): Status requires Failure? ensures PropagateFailure().Failure?  { this }
+  function method IsFailure(): bool { Failure? }
+  function method PropagateFailure(): Status { this }
 }
 
 method q(i: int) returns (r: Status)
