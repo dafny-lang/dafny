@@ -258,7 +258,7 @@ An update-with-failure statement uses _failure-compatible_ types.
 A failure-compatible type is a type that has the following members (each with no in-parameters and one out-parameter):
 
  * a function method `IsFailure()` that returns a `bool`
- * a function method `PropagateFailure()` that returns a value assignable to the first out-parameter of the caller
+ * an optional function method `PropagateFailure()` that returns a value assignable to the first out-parameter of the caller
  * an optional method or function `Extract()`
 
 A failure-compatible type with an `Extract` member is called _value-carrying_.
@@ -266,7 +266,8 @@ A failure-compatible type with an `Extract` member is called _value-carrying_.
 
 To use this form of update,
 
- * the caller must have a first out-parameter whose type matches the output of `PropagateFailure` applied to the first output of the callee
+ * the caller must have a first out-parameter whose type matches the output of `PropagateFailure` applied to the first output of the callee, unless an
+`expect`, `assume`, or `assert` keyword is used after `:-`
  * if the RHS of the update-with-failure statement is a method call, the first out-parameter of the callee must be failure-compatible
  * if instead the RHS of the update-with-failure statement is one or more expressions, the first of these expressions must be a value with a failure-compatible type
  * if the failure-compatible type of the RHS does not have an `Extract` member,
@@ -477,13 +478,13 @@ s :- M();
 ```
 with the semantics as described above.
 
-### Expect alternative
+### Keyword-enahnced alternative
 
 In any of the above described uses of `:-`, the `:-` token may be followed immediately by the keyword `expect`, `assert` or `assume`.
 
 * `assert` means that the RHS evaluation is expected to be successful, but that
 the verifier should prove that this is so; that is, the verifier should prove
-`assert !r.IsFailure()` (where `r` is te status return from the callee)
+`assert !r.IsFailure()` (where `r` is the status return from the callee)
 * `assume` means that the RHS evaluation should be assumed to be successful,
 as if the statement `assume !r.IsFailure()` followed the evaluation of the RHS
 * `expect` means that the RHS evaluation should be assumed to be successful
@@ -517,9 +518,6 @@ or
 ```dafny
 assume !tmp.IsFailure();
 ```
-
-*Currently, the assert and assume alternatives are not implemented, and the
-expect alternative still requires a PropagateFailure member.*
 
 ### Key points
 
