@@ -252,6 +252,8 @@ bool IsFunctionDecl() {
     case _predicate:
     case _copredicate:
       return true;
+    case _least:
+    case _greatest:
     case _inductive:
       return scanner.Peek().kind != _lemma;
     case _twostate:
@@ -490,6 +492,8 @@ bool IsGenericInstantiation(bool inExpressionContext) {
     // (top-level declarations that can follow an expression)
     case _function:
     case _predicate:
+    case _least:
+    case _greatest:
     case _inductive:
     case _twostate:
     case _lemma:
@@ -753,6 +757,8 @@ TOKENS
   invariant = "invariant".
   function = "function".
   predicate = "predicate".
+  least = "least".
+  greatest = "greatest".
   inductive = "inductive".
   twostate = "twostate".
   copredicate = "copredicate".
@@ -1499,10 +1505,17 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   | "lemma"                         (. isLemma = true; caption = "Lemmas";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
                                          | AllowedDeclModifiers.Protected; .)
-  | "colemma"                       (. isCoLemma = true; caption = "Colemmas";
+  | ( "greatest" "lemma"
+    | "colemma"
+    )
+                                    (. isCoLemma = true; caption = "Greatest lemmas";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
                                          | AllowedDeclModifiers.Protected; .)
-  | "inductive" "lemma"             (. isIndLemma = true;  caption = "Inductive lemmas";
+  | ( "least"
+    | "inductive"
+    )
+    "lemma"
+                                    (. isIndLemma = true;  caption = "Least lemmas";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;.)
   | "twostate" "lemma"              (. isTwoStateLemma = true; caption = "Two-state lemmas";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
@@ -1529,7 +1542,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   .)
   (
     [ GenericParameters<typeArgs, false> ]
-    [ KType<ref kType>              (. if (!(isCoLemma || isIndLemma)) { SemErr(t, "type of _k can only be specified for inductive lemmas and co-lemmas"); } .)
+    [ KType<ref kType>              (. if (!(isCoLemma || isIndLemma)) { SemErr(t, "type of _k can only be specified for least and greatest lemmas"); } .)
     ]
     (. var isCompilable = (isPlainOlMethod && !dmod.IsGhost) || isConstructor; .)
     Formals<true, isCompilable, isTwoStateLemma, ins>
@@ -1917,11 +1930,15 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     | "..."                    (. signatureEllipsis = t; .)
     )
 
-  /* ----- inductive predicate ----- */
-  | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "inductive"
+  /* ----- least predicate ----- */
+  | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "least"
     .)
-    "inductive" "predicate"    (. isIndPredicate = true; .)
-    (. CheckDeclModifiers(dmod, "Inductive predicates",
+    ( "least"
+    | "inductive"
+    )
+    "predicate"
+    (. isIndPredicate = true;
+       CheckDeclModifiers(dmod, "Least predicates",
          AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected);
     .)
     { Attribute<ref attrs> }
@@ -1930,16 +1947,19 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
       [ GenericParameters<typeArgs, false> ]
       [ KType<ref kType> ]
       Formals<true, isFunctionMethod, false, formals>
-      [ ":"                    (. SemErr(t, "inductive predicates do not have an explicitly declared return type; it is always bool"); .)
+      [ ":"                    (. SemErr(t, "least predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | "..."                    (. signatureEllipsis = t; .)
     )
 
-  /* ----- copredicate ----- */
-  | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "copredicate"
+  /* ----- greatest predicate ----- */
+  | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "greatest"
     .)
-    "copredicate"              (. isCoPredicate = true; .)
-    (. CheckDeclModifiers(dmod, "Copredicates",
+    ( "greatest" "predicate"
+    | "copredicate"
+    )
+    (. isCoPredicate = true;
+       CheckDeclModifiers(dmod, "Greatest predicates",
          AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected);
     .)
     { Attribute<ref attrs> }
@@ -1948,7 +1968,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
       [ GenericParameters<typeArgs, false> ]
       [ KType<ref kType> ]
       Formals<true, isFunctionMethod, false, formals>
-      [ ":"                    (. SemErr(t, "copredicates do not have an explicitly declared return type; it is always bool"); .)
+      [ ":"                    (. SemErr(t, "greatest predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | "..."                    (. signatureEllipsis = t; .)
     )
@@ -2010,7 +2030,7 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
       { Attribute<ref ensAttrs> }
       Expression<out e, false, false> OldSemi                (. ens.Add(new AttributedExpression(e, ensAttrs)); .)
   | "decreases"                               (. if (decreases == null) {
-                                                   SemErr(t, "'decreases' clauses are meaningless for copredicates, so they are not allowed");
+                                                   SemErr(t, "'decreases' clauses are meaningless for greatest predicates, so they are not allowed");
                                                    decreases = new List<Expression/*!*/>();
                                                  }
                                               .)

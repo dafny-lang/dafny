@@ -15,8 +15,8 @@ ParseErrors.dfy(80,1): Error: this operator cannot continue this calculation
 ParseErrors.dfy(81,1): Error: this operator cannot continue this calculation
 ParseErrors.dfy(87,1): Error: this operator cannot continue this calculation
 ParseErrors.dfy(96,0): Error: Lemmas cannot be declared ghost (they are 'ghost' by default).
-ParseErrors.dfy(98,0): Error: Inductive lemmas cannot be declared ghost (they are 'ghost' by default).
-ParseErrors.dfy(100,0): Error: Colemmas cannot be declared ghost (they are 'ghost' by default).
+ParseErrors.dfy(98,0): Error: Least lemmas cannot be declared ghost (they are 'ghost' by default).
+ParseErrors.dfy(100,0): Error: Greatest lemmas cannot be declared ghost (they are 'ghost' by default).
 ParseErrors.dfy(102,0): Error: Two-state lemmas cannot be declared ghost (they are 'ghost' by default).
 ParseErrors.dfy(105,2): Error: Constructors cannot be declared 'ghost'.
 ParseErrors.dfy(113,16): Error: formal cannot be declared 'ghost' in this context
