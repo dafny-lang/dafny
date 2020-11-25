@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,6 +20,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// </remarks>
   public class DafnyProgramVerifier : IProgramVerifier {
     private static readonly object _initializationSyncObject = new object();
+    private static readonly MessageSource VerifierMessageSource = MessageSource.Other;
     private static bool _initialized;
 
     private readonly ILogger _logger;
@@ -57,12 +59,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       await _mutex.WaitAsync(cancellationToken);
       try {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
-        var printer = new ModelCapturingOutputPrinter(_logger);
+        var errorReporter = program.reporter;
+        var printer = new ModelCapturingOutputPrinter(_logger, errorReporter);
         ExecutionEngine.printer = printer;
-        var translated = Translator.Translate(program, program.reporter, new Translator.TranslatorFlags { InsertChecksums = true });
+        var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
         foreach(var (_, boogieProgram) in translated) {
           cancellationToken.ThrowIfCancellationRequested();
-          VerifyWithBoogie(boogieProgram, program.reporter, cancellationToken);
+          VerifyWithBoogie(boogieProgram, errorReporter, cancellationToken);
         }
         return printer.SerializedCounterExamples;
       } finally {
@@ -97,17 +100,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private void CaptureVerificationError(ErrorReporter reporter, ErrorInformation error) {
       // TODO denote the verifier as "verifier" rather than "other". This probably requires
       //      a custom error tracking mechanism.
-      reporter.Error(MessageSource.Other, error.Tok, error.Msg);
+      reporter.Error(VerifierMessageSource, error.Tok, error.Msg);
     }
 
     private class ModelCapturingOutputPrinter : OutputPrinter {
       private readonly ILogger _logger;
+      private readonly ErrorReporter _errorReporter;
       private StringBuilder? _serializedCounterExamples;
 
       public string? SerializedCounterExamples => _serializedCounterExamples?.ToString();
 
-      public ModelCapturingOutputPrinter(ILogger logger) {
+      public ModelCapturingOutputPrinter(ILogger logger, ErrorReporter errorReporter) {
         _logger = logger;
+        _errorReporter = errorReporter;
       }
 
       public void AdvisoryWriteLine(string format, params object[] args) {
@@ -130,12 +135,25 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {
+        CaptureCounterExamples(errorInfo);
+        CaptureViolatedPostconditions(errorInfo);
+      }
+
+      private void CaptureCounterExamples(ErrorInformation errorInfo) {
         if(errorInfo.Model is StringWriter modelString) {
           // We do not know a-priori how many errors we'll receive. Therefore we capture all models
           // in a custom stringbuilder and reset the original one to not duplicate the outputs.
           _serializedCounterExamples ??= new StringBuilder();
           _serializedCounterExamples.Append(modelString.ToString());
           modelString.GetStringBuilder().Clear();
+        }
+      }
+
+      private void CaptureViolatedPostconditions(ErrorInformation errorInfo) {
+        foreach(var auxiliaryErrorInfo in errorInfo.Aux) {
+          if(auxiliaryErrorInfo.Tok.line > 0) {
+            _errorReporter.Warning(VerifierMessageSource, auxiliaryErrorInfo.Tok, auxiliaryErrorInfo.Msg);
+          }
         }
       }
 
