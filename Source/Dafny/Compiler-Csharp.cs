@@ -155,8 +155,10 @@ namespace Microsoft.Dafny
       if (superClasses != null) {
         string sep = " : ";
         foreach (var trait in superClasses) {
-          wr.Write("{0}{1}", sep, TypeName(trait, wr, tok));
-          sep = ", ";
+          if (!trait.IsObject) {
+            wr.Write("{0}{1}", sep, TypeName(trait, wr, tok));
+            sep = ", ";
+          }
         }
       }
 
@@ -229,8 +231,10 @@ namespace Microsoft.Dafny
       if (superClasses != null) {
         string sep = " : ";
         foreach (var trait in superClasses) {
-          wr.Write("{0}{1}", sep, TypeName(trait, wr, tok));
-          sep = ", ";
+          if (!trait.IsObject) {
+            wr.Write("{0}{1}", sep, TypeName(trait, wr, tok));
+            sep = ", ";
+          }
         }
       }
       var instanceMemberWriter = wr.NewBlock("");

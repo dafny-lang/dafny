@@ -271,6 +271,8 @@ namespace Microsoft.Dafny {
       var cw = new ClassWriter(this, name, isExtern, null, w, instanceFieldWriter, instanceFieldInitWriter, traitInitWriter, staticFieldWriter, staticFieldInitWriter);
 
       if (superClasses != null) {
+        superClasses = superClasses.Where(trait => !trait.IsObject).ToList();
+
         // Emit a method that returns the ID of each parent trait
         var parentTraitsWriter = w.NewBlock($"func (_this *{name}) ParentTraits_() []*_dafny.TraitID");
         parentTraitsWriter.WriteLine("return [](*_dafny.TraitID){{{0}}};", Util.Comma(superClasses, parent => {
@@ -282,6 +284,7 @@ namespace Microsoft.Dafny {
           // Emit a compile-time sanity check that the class emitted does indeed have the methods required by the parent trait
           w.WriteLine("var _ {0} = &{1}{{}}", TypeName(typ, w, tok), name);
         }
+
         w.WriteLine("var _ _dafny.TraitOffspring = &{0}{{}}", name);
       }
       return cw;

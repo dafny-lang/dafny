@@ -181,7 +181,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
-      if (isExtern || (superClasses != null && superClasses.Count > 0)) {
+      if (isExtern || (superClasses != null && superClasses.Any(trait => !trait.IsObject))) {
         throw NotSupported(String.Format("extern and/or traits in class {0}", name), tok);
       }
 
