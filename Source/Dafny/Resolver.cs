@@ -2000,7 +2000,7 @@ namespace Microsoft.Dafny
               decr.AddRange(com.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
               // Create prefix lemma.  Note that the body is not cloned, but simply shared.
               // For a colemma, the postconditions are filled in after the colemma's postconditions have been resolved.
-              // For an inductive lemma, the preconditions are filled in after the inductive lemma's preconditions have been resolved.
+              // For a least lemma, the preconditions are filled in after the least lemma's preconditions have been resolved.
               var req = com is CoLemma ? com.Req.ConvertAll(cloner.CloneAttributedExpr) : new List<AttributedExpression>();
               var ens = com is CoLemma ? new List<AttributedExpression>() : com.Ens.ConvertAll(cloner.CloneAttributedExpr);
               com.PrefixLemma = new PrefixLemma(com.tok, extraName, com.HasStaticKeyword,
@@ -2582,7 +2582,7 @@ namespace Microsoft.Dafny
                 var fce = (FunctionCallExpr)e;  // we expect "antecedents" to contain only FunctionCallExpr's
                 InductivePredicate predicate = (InductivePredicate)fce.Function;
                 focalPredicates.Add(predicate);
-                // For every focal predicate P in S, add to S all inductive predicates in the same strongly connected
+                // For every focal predicate P in S, add to S all least predicates in the same strongly connected
                 // component (in the call graph) as P
                 foreach (var node in predicate.EnclosingClass.Module.CallGraph.GetSCC(predicate)) {
                   if (node is InductivePredicate) {
@@ -7145,7 +7145,7 @@ namespace Microsoft.Dafny
           }
           var cpBody = cp;
           if (!e.Exact) {
-            // a let-such-that expression introduces an existential that may depend on the _k in an inductive/co predicate, so we disallow recursive calls in the body of the let-such-that
+            // a let-such-that expression introduces an existential that may depend on the _k in a least/greatest predicate, so we disallow recursive calls in the body of the let-such-that
             if (IsCoContext && cp == CallingPosition.Positive) {
               cpBody = CallingPosition.Neither;
             } else if (!IsCoContext && cp == CallingPosition.Negative) {
@@ -7162,7 +7162,7 @@ namespace Microsoft.Dafny
             if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {
               if (e.Bounds.Exists(bnd => bnd == null || (bnd.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) == 0)) {
                 // To ensure continuity of extreme predicates, don't allow calls under an existential (resp. universal) quantifier
-                // for co-predicates (resp. inductive predicates).
+                // for greatest (resp. least) predicates).
                 cp = CallingPosition.Neither;
               }
             }

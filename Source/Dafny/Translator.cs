@@ -2388,7 +2388,7 @@ namespace Microsoft.Dafny {
         sink.AddTopLevelDeclaration(FunctionOverrideAxiom(f.OverriddenFunction, f));
       }
 
-      // supply the connection between inductive/coinductive predicates and prefix predicates
+      // supply the connection between least/greatest predicates and prefix predicates
       if (f is ExtremePredicate) {
         AddPrefixPredicateAxioms(((ExtremePredicate)f).PrefixPredicate);
       }
@@ -3549,12 +3549,12 @@ namespace Microsoft.Dafny {
     /// "body" is the body of P.  Return what would be the body of the prefix predicate pp.
     /// In particular, return
     /// #if _k has type nat:
-    ///   0 LESS _k  IMPLIES  body'                        // for co-inductive predicates
-    ///   0 LESS _k  AND  body'                            // for inductive predicates
+    ///   0 LESS _k  IMPLIES  body'                        // for greatest predicates
+    ///   0 LESS _k  AND  body'                            // for least predicates
     /// #elsif _k has type ORDINAL:
     ///   (0 LESS ORD#Offset(_k)  IMPLIES  body') AND
-    ///   (0 == ORD#Offset(_k) IMPLIES forall _k':ORDINAL :: _k' LESS _k ==> pp(_k', args))  // for co-inductive predicates
-    ///   (0 == ORD#Offset(_k) IMPLIES exists _k':ORDINAL :: _k' LESS _k && pp(_k', args))   // for inductive predicates
+    ///   (0 == ORD#Offset(_k) IMPLIES forall _k':ORDINAL :: _k' LESS _k ==> pp(_k', args))  // for greatest predicates
+    ///   (0 == ORD#Offset(_k) IMPLIES exists _k':ORDINAL :: _k' LESS _k && pp(_k', args))   // for least predicates
     /// #endif
     /// where body' is body with the formals of P replaced by the corresponding
     /// formals of pp and with self-calls P(s) replaced by recursive calls to
@@ -3613,7 +3613,7 @@ namespace Microsoft.Dafny {
           // exists k':ORDINAL | _k' LESS _k :: pp(_k', args)
           // Here, instead of using the usual ORD#Less, we use the semantically equivalent ORD#LessThanLimit, because this
           // allows us to write a good trigger for a targeted monotonicity axiom.  That axiom, in turn, makes the
-          // automatic verification more powerful for inductive lemmas that have more than one focal-predicate term.
+          // automatic verification more powerful for least lemmas that have more than one focal-predicate term.
           var smaller = new BinaryExpr(kprime.tok, BinaryExpr.Opcode.Lt, kprime, k) {
             ResolvedOp = BinaryExpr.ResolvedOpcode.LessThanLimit,
             Type = Type.Bool
@@ -3797,8 +3797,8 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// In the following,
-    /// if "pp" is a co-predicate, then QQQ and NNN and HHH and EEE stand for "forall" and "" and "==>" and REVERSE-IMPLIES, and
-    /// if "pp" is an inductive predicate, then QQQ and NNN and HHH and EEE stand for "exists" and "!" and "&&" and "==>".
+    /// if "pp" is a greatest predicate, then QQQ and NNN and HHH and EEE stand for "forall" and "" and "==>" and REVERSE-IMPLIES, and
+    /// if "pp" is a least predicate, then QQQ and NNN and HHH and EEE stand for "exists" and "!" and "&&" and "==>".
     /// ==========  For co-predicates:
     /// Add the axioms:
     ///   forall args :: P(args) ==> QQQ k: nat :: P#[k](args)
@@ -3814,7 +3814,7 @@ namespace Microsoft.Dafny {
     /// means:
     ///   mh LESS ModuleContextHeight ||
     ///   (mh == ModuleContextHeight && fh ATMOST FunctionContextHeight)
-    /// There is also a specialized version of (*) for inductive predicates.
+    /// There is also a specialized version of (*) for least predicates.
     /// </summary>
     void AddPrefixPredicateAxioms(PrefixPredicate pp) {
       Contract.Requires(pp != null);
@@ -3972,7 +3972,7 @@ namespace Microsoft.Dafny {
         "prefix predicate monotonicity axiom"));
 #endif
       // A more targeted monotonicity axiom used to increase the power of automation for proving the limit case for
-      // inductive predicates that have more than one focal-predicate term.
+      // least predicates that have more than one focal-predicate term.
       if (pp.ExtremePred is InductivePredicate && pp.Formals[0].Type.IsBigOrdinalType) {
         // forall args,k,m,limit ::
         //   { P#[k](args), ORD#LessThanLimit(k,limit), ORD#LessThanLimit(m,limit) }
