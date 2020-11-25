@@ -7206,14 +7206,13 @@ namespace Microsoft.Dafny
         if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
           if (ModuleDefinition.InSameSCC(context, e.Function)) {
-            var article = context is InductivePredicate ? "an" : "a";
             // we're looking at a recursive call
             if (!(context is InductivePredicate ? e.Function is InductivePredicate : e.Function is CoPredicate)) {
-              resolver.reporter.Error(MessageSource.Resolver, e, "a recursive call from {0} {1} can go only to other {1}s", article, context.WhatKind);
+              resolver.reporter.Error(MessageSource.Resolver, e, "a recursive call from a {0} can go only to other {0}s", context.WhatKind);
             } else if (context.KNat != ((ExtremePredicate)e.Function).KNat) {
               resolver.KNatMismatchError(e.tok, context.Name, context.TypeOfK, ((ExtremePredicate)e.Function).TypeOfK);
             } else if (cp != CallingPosition.Positive) {
-              var msg = string.Format("{0} {1} can be called recursively only in positive positions", article, context.WhatKind);
+              var msg = string.Format("a {0} can be called recursively only in positive positions", context.WhatKind);
               if (ContinuityIsImportant && cp == CallingPosition.Neither) {
                 // this may be inside an non-friendly quantifier
                 msg += string.Format(" and cannot sit inside an unbounded {0} quantifier", context is InductivePredicate ? "universal" : "existential");
@@ -7238,8 +7237,7 @@ namespace Microsoft.Dafny
           var s = (CallStmt)stmt;
           if (ModuleDefinition.InSameSCC(context, s.Method)) {
             // we're looking at a recursive call
-            var article = context is InductivePredicate ? "an" : "a";
-            resolver.reporter.Error(MessageSource.Resolver, stmt.Tok, "a recursive call from {0} {1} can go only to other {1}s", article, context.WhatKind);
+            resolver.reporter.Error(MessageSource.Resolver, stmt.Tok, "a recursive call from a {0} can go only to other {0}s", context.WhatKind);
           }
           // do the sub-parts with the same "cp"
           return true;
@@ -7279,8 +7277,7 @@ namespace Microsoft.Dafny
             // the call goes from an extreme lemma context to a non-extreme-lemma callee
             if (ModuleDefinition.InSameSCC(context, s.Method)) {
               // we're looking at a recursive call (to a non-extreme-lemma)
-              var article = context is InductiveLemma ? "an" : "a";
-              resolver.reporter.Error(MessageSource.Resolver, s.Tok, "a recursive call from {0} {1} can go only to other {1}s and prefix lemmas", article, context.WhatKind);
+              resolver.reporter.Error(MessageSource.Resolver, s.Tok, "a recursive call from a {0} can go only to other {0}s and prefix lemmas", context.WhatKind);
             }
           }
         }

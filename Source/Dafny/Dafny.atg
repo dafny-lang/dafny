@@ -72,32 +72,33 @@ enum AllowedDeclModifiers {
 /// <summary>
 /// Check the declaration modifiers against those that are allowed.
 ///
-/// The 'allowed' parameter specifies which declaratio modifiers are allowed.
+/// The 'allowed' parameter specifies which declaration modifiers are allowed.
 /// The 'declCaption' parameter should be a string describing the kind of declaration.
 /// It is used in error messages.
 /// Any declaration modifiers that are present but not allowed are cleared.
 ///</summary>
 void CheckDeclModifiers(DeclModifierData dmod, string declCaption, AllowedDeclModifiers allowed)
 {
+  declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
   if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
-    SemErr(dmod.AbstractToken, declCaption + " cannot be declared 'abstract'.");
+    SemErr(dmod.AbstractToken, $"{declCaption} cannot be declared 'abstract'.");
     dmod.IsAbstract = false;
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
-      SemErr(dmod.GhostToken, declCaption + " cannot be declared ghost (they are 'ghost' by default).");
+      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared ghost (they are 'ghost' by default).");
       dmod.IsGhost = false;
     } else if ((allowed & AllowedDeclModifiers.Ghost) == 0) {
-      SemErr(dmod.GhostToken, declCaption + " cannot be declared 'ghost'.");
+      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost'.");
       dmod.IsGhost = false;
     }
   }
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
-    SemErr(dmod.StaticToken, declCaption + " cannot be declared 'static'.");
+    SemErr(dmod.StaticToken, $"{declCaption} cannot be declared 'static'.");
     dmod.IsStatic = false;
   }
   if (dmod.IsProtected && ((allowed & AllowedDeclModifiers.Protected) == 0)) {
-    SemErr(dmod.ProtectedToken, declCaption + " cannot be declared 'protected'.");
+    SemErr(dmod.ProtectedToken, $"{declCaption} cannot be declared 'protected'.");
     dmod.IsProtected = false;
   }
 }
@@ -897,7 +898,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
      bool isAbstract = dmod.IsAbstract;
      bool isProtected = dmod.IsProtected;
      bool opened = false;
-     CheckDeclModifiers(dmod, "Modules", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Protected);
+     CheckDeclModifiers(dmod, "module", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Protected);
   .)
   ( "module"
     { Attribute<ref attrs> }
@@ -1016,7 +1017,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
      List<TypeParameter> typeArgs = new List<TypeParameter>();
      List<MemberDecl> members = new List<MemberDecl>();
      IToken bodyStart;
-     CheckDeclModifiers(dmodClass, "Classes", AllowedDeclModifiers.None);
+     CheckDeclModifiers(dmodClass, "class", AllowedDeclModifiers.None);
      DeclModifierData dmod;
   .)
   SYNC
@@ -1043,7 +1044,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
 TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*!*/ trait>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
-     CheckDeclModifiers(dmodIn, "Traits", AllowedDeclModifiers.None);
+     CheckDeclModifiers(dmodIn, "trait", AllowedDeclModifiers.None);
      IToken/*!*/ id;
      Type parentTrait;
      List<Type> parentTraits = new List<Type>();
@@ -1110,7 +1111,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      List<DatatypeCtor/*!*/> ctors = new List<DatatypeCtor/*!*/>();
      IToken bodyStart = Token.NoToken;  // dummy assignment
      bool co = false;
-     CheckDeclModifiers(dmod, "Datatypes or codatatypes", AllowedDeclModifiers.None);
+     CheckDeclModifiers(dmod, "datatypes or codatatype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
   .)
   SYNC
@@ -1158,7 +1159,7 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
      IToken/*!*/ id;  Type/*!*/ ty;
-     CheckDeclModifiers(dmod, "Fields", AllowedDeclModifiers.Ghost);
+     CheckDeclModifiers(dmod, "field", AllowedDeclModifiers.Ghost);
      if (isValueType) {
        // we're about to produce an error; put fields into a throw-away list, so we don't return them
        mm = new List<MemberDecl>();
@@ -1184,7 +1185,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
        errors.Warning(dmod.StaticToken, "module-level const declarations are always non-instance, so the 'static' keyword is not allowed here");
        dmod.IsStatic = false;
      }
-     CheckDeclModifiers(dmod, "Fields", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
+     CheckDeclModifiers(dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
   .)
   SYNC
   "const"
@@ -1206,7 +1207,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      Expression constraint;
      Expression witness = null;
      bool witnessIsGhost = false;
-     CheckDeclModifiers(dmod, "Newtypes", AllowedDeclModifiers.None);
+     CheckDeclModifiers(dmod, "newtype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
   .)
   "newtype"
@@ -1242,7 +1243,7 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
      Expression constraint;
      Expression witness = null;
      bool witnessIsGhost = false;
-     var kind = "Opaque type";
+     var kind = "opaque type";
      var members = new List<MemberDecl>();
   .)
   "type"
@@ -1264,11 +1265,11 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
                              (. var witnessKind = witness == null ? SubsetTypeDecl.WKind.None :
                                   witnessIsGhost ? SubsetTypeDecl.WKind.Ghost : SubsetTypeDecl.WKind.Compiled;
                                 td = new SubsetTypeDecl(id, id.val, characteristics, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, attrs);
-                                kind = "Subset type";
+                                kind = "subset type";
                              .)
     |
       Type<out ty>           (. td = new TypeSynonymDecl(id, id.val, characteristics, typeArgs, module, ty, attrs);
-                                kind = "Type synonym";
+                                kind = "type synonym";
                              .)
     )
   | TypeMembers<module, members>
@@ -1391,7 +1392,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
      IToken signatureEllipsis = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
-     CheckDeclModifiers(dmod, "Iterators", AllowedDeclModifiers.None);
+     CheckDeclModifiers(dmod, "iterator", AllowedDeclModifiers.None);
   .)
   SYNC
   "iterator"
@@ -1507,24 +1508,24 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      ExtremePredicate.KType kType = ExtremePredicate.KType.Unspecified;
   .)
   SYNC
-  ( "method"                        (. isPlainOlMethod = true; caption = "Methods";
+  ( "method"                        (. isPlainOlMethod = true; caption = "method";
                                        allowed = AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static; .)
-  | "lemma"                         (. isLemma = true; caption = "Lemmas";
+  | "lemma"                         (. isLemma = true; caption = "lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
                                          | AllowedDeclModifiers.Protected; .)
   | ( "greatest" "lemma"
     | "colemma"
     )
-                                    (. isCoLemma = true; caption = "Greatest lemmas";
+                                    (. isCoLemma = true; caption = "greatest lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
                                          | AllowedDeclModifiers.Protected; .)
   | ( "least"
     | "inductive"
     )
     "lemma"
-                                    (. isIndLemma = true;  caption = "Least lemmas";
+                                    (. isIndLemma = true;  caption = "least lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;.)
-  | "twostate" "lemma"              (. isTwoStateLemma = true; caption = "Two-state lemmas";
+  | "twostate" "lemma"              (. isTwoStateLemma = true; caption = "two-state lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
                                          | AllowedDeclModifiers.Protected; .)
   | "constructor"                   (. if (allowConstructor) {
@@ -1532,7 +1533,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
                                        } else {
                                          SemErr(t, "constructors are allowed only in classes");
                                        }
-                                       caption = "Constructors";
+                                       caption = "constructor";
                                        allowed = AllowedDeclModifiers.None;
                                     .)
   )                                 (. keywordToken = t;
@@ -1882,9 +1883,9 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     ]
     (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
        if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
-       string caption = "Functions";
+       string caption = "function";
        if (isFunctionMethod) {
-         caption = "Function methods";
+         caption = "function method";
        }
        CheckDeclModifiers(dmod, caption, allowed);
     .)
@@ -1920,9 +1921,9 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     ]
     (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
        if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
-       string caption = "Predicates";
+       string caption = "predicate";
        if (isFunctionMethod) {
-         caption = "Predicate methods";
+         caption = "predicate method";
        }
        CheckDeclModifiers(dmod, caption, allowed);
     .)
@@ -1945,7 +1946,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     )
     "predicate"
     (. isIndPredicate = true;
-       CheckDeclModifiers(dmod, "Least predicates",
+       CheckDeclModifiers(dmod, "least predicate",
          AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected);
     .)
     { Attribute<ref attrs> }
@@ -1966,7 +1967,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     | "copredicate"
     )
     (. isCoPredicate = true;
-       CheckDeclModifiers(dmod, "Greatest predicates",
+       CheckDeclModifiers(dmod, "greatest predicate",
          AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected);
     .)
     { Attribute<ref attrs> }
