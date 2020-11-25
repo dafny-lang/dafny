@@ -165,7 +165,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual("Other", diagnostics[1].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[1].Severity);
       Assert.AreEqual("Other", diagnostics[2].Source);
-      Assert.AreEqual(DiagnosticSeverity.Warning, diagnostics[2].Severity);
+      Assert.AreEqual(DiagnosticSeverity.Information, diagnostics[2].Severity);
     }
 
     [TestMethod]

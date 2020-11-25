@@ -147,7 +147,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         _errorReporter.Error(VerifierMessageSource, errorInfo.Tok, errorInfo.Msg);
         foreach(var auxiliaryErrorInfo in errorInfo.Aux) {
           if(auxiliaryErrorInfo.Tok.line > 0) {
-            _errorReporter.Warning(VerifierMessageSource, auxiliaryErrorInfo.Tok, auxiliaryErrorInfo.Msg);
+            _errorReporter.Info(VerifierMessageSource, auxiliaryErrorInfo.Tok, auxiliaryErrorInfo.Msg);
           }
         }
       }
