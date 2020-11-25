@@ -88,8 +88,8 @@ namespace Microsoft.Dafny
       var forallvisiter = new ForAllStmtVisitor(reporter);
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         forallvisiter.Visit(decl, true);
-        if (decl is FixpointLemma) {
-          var prefixLemma = ((FixpointLemma)decl).PrefixLemma;
+        if (decl is ExtremeLemma) {
+          var prefixLemma = ((ExtremeLemma)decl).PrefixLemma;
           if (prefixLemma != null) {
             forallvisiter.Visit(prefixLemma, true);
           }
@@ -217,7 +217,7 @@ namespace Microsoft.Dafny
             // Strengthen the range of the "forall" statement with the precondition of the call, suitably substituted with the actual parameters.
             if (Attributes.Contains(s.Attributes, "_autorequires")) {
               var range = s.Range;
-              foreach (var req in s0.Method.Req) { 
+              foreach (var req in s0.Method.Req) {
                 var p = substituter.Substitute(req.E);  // substitute the call's actuals for the method's formals
                 range = Expression.CreateAnd(range, p);
               }
@@ -1648,8 +1648,8 @@ namespace Microsoft.Dafny
           if (decl is TopLevelDeclWithMembers) {
             var cl = (TopLevelDeclWithMembers)decl;
             foreach (var member in cl.Members) {
-              if (member is FixpointLemma) {
-                var method = (FixpointLemma)member;
+              if (member is ExtremeLemma) {
+                var method = (ExtremeLemma)member;
                 ProcessMethodExpressions(method);
                 ComputeLemmaInduction(method.PrefixLemma);
                 ProcessMethodExpressions(method.PrefixLemma);
@@ -1657,8 +1657,8 @@ namespace Microsoft.Dafny
                 var method = (Method)member;
                 ComputeLemmaInduction(method);
                 ProcessMethodExpressions(method);
-              } else if (member is FixpointPredicate) {
-                var function = (FixpointPredicate)member;
+              } else if (member is ExtremePredicate) {
+                var function = (ExtremePredicate)member;
                 ProcessFunctionExpressions(function);
                 ProcessFunctionExpressions(function.PrefixPredicate);
               } else if (member is Function) {
@@ -1700,7 +1700,7 @@ namespace Microsoft.Dafny
 
     void ComputeLemmaInduction(Method method) {
       Contract.Requires(method != null);
-      if (method.Body != null && method.IsGhost && method.Mod.Expressions.Count == 0 && method.Outs.Count == 0 && !(method is FixpointLemma)) {
+      if (method.Body != null && method.IsGhost && method.Mod.Expressions.Count == 0 && method.Outs.Count == 0 && !(method is ExtremeLemma)) {
         var specs = new List<Expression>();
         method.Req.ForEach(mfe => specs.Add(mfe.E));
         method.Ens.ForEach(mfe => specs.Add(mfe.E));

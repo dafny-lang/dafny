@@ -842,8 +842,10 @@ namespace Microsoft.Dafny{
       if (superClasses != null) {
         sep = " implements ";
         foreach (var trait in superClasses) {
-          w.Write($"{sep}{TypeName(trait, w, tok)}");
-          sep = ", ";
+          if (!trait.IsObject) {
+            w.Write($"{sep}{TypeName(trait, w, tok)}");
+            sep = ", ";
+          }
         }
       }
       var wBody = w.NewBlock("");
@@ -3102,8 +3104,10 @@ namespace Microsoft.Dafny{
       if (superClasses != null) {
         string sep = " extends ";
         foreach (var trait in superClasses) {
-          w.Write($"{sep}{TypeName(trait, w, tok)}");
-          sep = ", ";
+          if (!trait.IsObject) {
+            w.Write($"{sep}{TypeName(trait, w, tok)}");
+            sep = ", ";
+          }
         }
       }
       var instanceMemberWriter = w.NewBlock("");

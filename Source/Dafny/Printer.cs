@@ -617,7 +617,7 @@ namespace Microsoft.Dafny {
         } else if (m is Method) {
           if (state != 0) { wr.WriteLine(); }
           PrintMethod((Method)m, indent, false);
-          var com = m as FixpointLemma;
+          var com = m as ExtremeLemma;
           if (com != null && com.PrefixLemma != null) {
             Indent(indent); wr.WriteLine("/***");
             PrintMethod(com.PrefixLemma, indent, false);
@@ -631,7 +631,7 @@ namespace Microsoft.Dafny {
         } else if (m is Function) {
           if (state != 0) { wr.WriteLine(); }
           PrintFunction((Function)m, indent, false);
-          var fixp = m as FixpointPredicate;
+          var fixp = m as ExtremePredicate;
           if (fixp != null && fixp.PrefixPredicate != null) {
             Indent(indent); wr.WriteLine("/*** (note, what is printed here does not show substitutions of calls to prefix predicates)");
             PrintFunction(fixp.PrefixPredicate, indent, false);
@@ -835,11 +835,11 @@ namespace Microsoft.Dafny {
       if (f.SignatureIsOmitted) {
         wr.WriteLine(" ...");
       } else {
-        if (f is FixpointPredicate) {
-          PrintKTypeIndication(((FixpointPredicate)f).TypeOfK);
+        if (f is ExtremePredicate) {
+          PrintKTypeIndication(((ExtremePredicate)f).TypeOfK);
         }
         PrintFormals(f.Formals, f, f.Name);
-        if (!isPredicate && !(f is FixpointPredicate) && !(f is TwoStatePredicate)) {
+        if (!isPredicate && !(f is ExtremePredicate) && !(f is TwoStatePredicate)) {
           wr.Write(": ");
           if (f.Result != null) {
             wr.Write("(");
@@ -908,7 +908,7 @@ namespace Microsoft.Dafny {
         method is TwoStateLemma ? "twostate lemma" :
         "method";
       if (method.HasStaticKeyword) { k = "static " + k; }
-      if (method.IsGhost && !(method is Lemma) && !(method is PrefixLemma) && !(method is TwoStateLemma) && !(method is FixpointLemma)) {
+      if (method.IsGhost && !(method is Lemma) && !(method is PrefixLemma) && !(method is TwoStateLemma) && !(method is ExtremeLemma)) {
         k = "ghost " + k;
       }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
@@ -916,8 +916,8 @@ namespace Microsoft.Dafny {
       if (method.SignatureIsOmitted) {
         wr.WriteLine(" ...");
       } else {
-        if (method is FixpointLemma) {
-          PrintKTypeIndication(((FixpointLemma)method).TypeOfK);
+        if (method is ExtremeLemma) {
+          PrintKTypeIndication(((ExtremeLemma)method).TypeOfK);
         }
         PrintFormals(method.Ins, method, method.Name);
         if (method.Outs.Count != 0) {
@@ -948,15 +948,15 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintKTypeIndication(FixpointPredicate.KType kType) {
+    void PrintKTypeIndication(ExtremePredicate.KType kType) {
       switch (kType) {
-        case FixpointPredicate.KType.Nat:
+        case ExtremePredicate.KType.Nat:
           wr.Write("[nat]");
           break;
-        case FixpointPredicate.KType.ORDINAL:
+        case ExtremePredicate.KType.ORDINAL:
           wr.Write("[ORDINAL]");
           break;
-        case FixpointPredicate.KType.Unspecified:
+        case ExtremePredicate.KType.Unspecified:
           break;
         default:
           Contract.Assume(false);  // unexpected KType value
