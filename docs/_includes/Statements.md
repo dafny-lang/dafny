@@ -537,6 +537,8 @@ This type is often a datatype, as shown in the examples above, but it may be any
 just that it must be possible (perhaps through generic instantiation and type inference, as in these examples) for `PropagateFailure` applied to the failure-compatible output from the callee to produce a value of the caller's first out-parameter type.
 If the caller's first out-parameter type is failure-compatible (which it need not be),
  then failures can be propagated up the call chain.
+If the keyword form of the statement is used, then no `PropagateFailure` member
+is needed and there is no restriction on the caller's first out-parameter.
  * In the statement `j, k :- Callee(i);`,
  when the callee's return value has an `Extract` member,
 the type of `j` is not the type of the first out-parameter of `Callee`.

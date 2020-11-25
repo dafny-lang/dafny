@@ -189,7 +189,7 @@ RelOp =
 
 The relation expressions that have a ``RelOp`` compare two or more terms.
 As explained in section [#sec-basic-types], `==`, `!=`, ``<``, `>`, `<=`, and `>=`
-and their corresponding Unicode equivalents are _chaining_.
+are _chaining_.
 
 The `in` and `!in` operators apply to collection types as explained in
 section [#sec-collection-types] and represent membership or non-membership
@@ -872,12 +872,6 @@ Here are some examples:
 assert forall x : nat | x <= 5 :: x * x <= 25;
 (forall n :: 2 <= n ==> (exists d :: n < d < 2*n))
 ```
-
-or using the Unicode symbols:
-<pre><code>
-assert &forall; x : nat | x <= 5 &bull; x * x <= 25;
-(&forall; n &bull; 2 <= n ==> (&exist; d &bull; n < d < 2*n))
-</code></pre>
 
 The quantifier identifiers are _bound_ within the scope of the
 expressions in the ``QuantifierExpression``.
