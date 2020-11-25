@@ -477,7 +477,7 @@ s :- M();
 ```
 with the semantics as described above.
 
-### Expect alternative
+### Keyword alternative
 
 In any of the above described uses of `:-`, the `:-` token may be followed immediately by the keyword `expect`, `assert` or `assume`.
 
@@ -518,8 +518,12 @@ or
 assume !tmp.IsFailure();
 ```
 
-*Currently, the assert and assume alternatives are not implemented, and the
-expect alternative still requires a PropagateFailure member.*
+There is a grammatical nuance that the user should be aware of.
+The keywords `assert`, `assume`, and `expect` can start an expression.
+For example, `assert P; E` can be an expression. However, in
+`e :- assert P; E;` the `assert` is parsed as the keyword associated with
+`:-`. To have the `assert` considered part of the expression use parentheses:
+`e :- (assert P; E);`.
 
 ### Key points
 
