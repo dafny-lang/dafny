@@ -229,6 +229,27 @@ Other than looking for  end-of-comment delimiters,
 the contents of a comment are not interpreted.
 Comments may contain any unicode character, but see the [discussion on unicode support](#sec-unicode) for more information.
 
+Note that the nesting is not fool-proof. In
+```dafny
+method m() {
+  /* var i: int;
+     // */ line comment
+     var j: int;
+  */
+}
+```
+and
+```dafny
+method m() {
+  /* var i: int;
+     var s: string := "a*/b";
+     var j: int;
+   */
+}
+```
+the `*/` inside the line comment and the string are seen as the end of the outer
+comment, leaving trailing text that will provoke parsing errors.
+
 ## Tokens {#sec-tokens}
 As with most languages, Dafny syntax is defined in two levels. First the stream
 of input characters is broken up into _tokens_. Then these tokens are parsed
