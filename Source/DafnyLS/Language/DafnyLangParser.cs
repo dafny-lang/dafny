@@ -85,14 +85,16 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       var dependencyMap = new DependencyMap();
       dependencyMap.AddIncludes(resolvedIncludes);
 
-      bool newlyIncluded = true;
-      while(newlyIncluded) {
-        newlyIncluded = false;
-        var moduleIncludes = ((LiteralModuleDecl)module).ModuleDef.Includes;
+      bool newIncludeParsed = true;
+      while(newIncludeParsed) {
+        newIncludeParsed = false;
+        // Parser.Parse appears to modify the include list; thus, we create a copy to avoid concurrent modifications.
+        var moduleIncludes = new List<Include>(((LiteralModuleDecl)module).ModuleDef.Includes);
         dependencyMap.AddIncludes(moduleIncludes);
         foreach(var include in moduleIncludes) {
           bool isNewInclude = resolvedIncludes.Add(include);
           if(isNewInclude) {
+            newIncludeParsed = true;
             if(!TryParseInclude(include, module, builtIns, errorReporter, errors)) {
               return false;
             }
@@ -103,30 +105,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return true;
     }
 
-    private bool TryParseInclude(Include include, ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter, Errors errors) {
-      DafnyFile file;
+    private bool TryParseInclude(Include include,  ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter, Errors errors) {
       try {
-        file = new DafnyFile(include.includedFilename);
-      } catch(IllegalDafnyFile e) {
-        errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file {include.includedFilename} failed.");
-        _logger.LogDebug(e, "encountered include of illegal dafny file {}", include.includedFilename);
-        return false;
-      }
-      if(!TryParseFile(file, include, module, builtIns, errorReporter, errors)) {
-        return false;
-      }
-      return true;
-    }
-
-    private bool TryParseFile(
-      DafnyFile dafnyFile,
-      Include include,
-      ModuleDecl module,
-      BuiltIns builtIns,
-      ErrorReporter errorReporter,
-      Errors errors
-    ) {
-      try {
+        var dafnyFile = new DafnyFile(include.includedFilename);
         int errorCount = Parser.Parse(
           dafnyFile.SourceFileName,
           include,
@@ -140,6 +121,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           errorReporter.Error(MessageSource.Parser, include.tok, $"{errorCount} parse error(s) detected in {include.includedFilename}");
           return false;
         }
+      } catch(IllegalDafnyFile e) {
+        errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file {include.includedFilename} failed.");
+        _logger.LogDebug(e, "encountered include of illegal dafny file {}", include.includedFilename);
+        return false;
       } catch(IOException e) {
         errorReporter.Error(MessageSource.Parser, include.tok, $"Unable to open the include {include.includedFilename}.");
         _logger.LogDebug(e, "could not open file {}", include.includedFilename);
