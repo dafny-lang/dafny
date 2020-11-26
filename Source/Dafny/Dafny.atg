@@ -1514,13 +1514,13 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
                                          | AllowedDeclModifiers.Protected; .)
   | ( "greatest" "lemma"
-    | "colemma"
+    | "colemma"                     (. errors.Deprecated(t, "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); .)
     )
                                     (. isGreatestLemma = true; caption = "greatest lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
                                          | AllowedDeclModifiers.Protected; .)
   | ( "least"
-    | "inductive"
+    | "inductive"                   (. errors.Deprecated(t, "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); .)
     )
     "lemma"
                                     (. isLeastLemma = true;  caption = "least lemma";
@@ -1942,7 +1942,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
   | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "least"
     .)
     ( "least"
-    | "inductive"
+    | "inductive"              (. errors.Deprecated(t, "the old keyword phrase 'inductive predicate' has been renamed to 'least predicate'"); .)
     )
     "predicate"
     (. isLeastPredicate = true;
@@ -1964,7 +1964,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
   | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "greatest"
     .)
     ( "greatest" "predicate"
-    | "copredicate"
+    | "copredicate"              (. errors.Deprecated(t, "the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'"); .)
     )
     (. isGreatestPredicate = true;
        CheckDeclModifiers(dmod, "greatest predicate",

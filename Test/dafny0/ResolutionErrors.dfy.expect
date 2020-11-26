@@ -1,5 +1,5 @@
-ResolutionErrors.dfy(322,33): Warning: Dafny's constructors no longer need 'this' to be listed in modifies clauses
-ResolutionErrors.dfy(1892,15): Warning: Dafny's constructors no longer need 'this' to be listed in modifies clauses
+ResolutionErrors.dfy(322,33): Warning: constructors no longer need 'this' to be listed in modifies clauses
+ResolutionErrors.dfy(1892,15): Warning: constructors no longer need 'this' to be listed in modifies clauses
 ResolutionErrors.dfy(51,15): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(88,16): Error: the name 'Benny' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.Benny')
 ResolutionErrors.dfy(93,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
