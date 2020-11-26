@@ -11,5 +11,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     /// <param name="document">The document whose diagnostics should be published.</param>
     void PublishDiagnostics(DafnyDocument document, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Hides the previously published diagnostics of the specified dafny document.
+    /// </summary>
+    /// <param name="document">The document whose diagnostics should be hidden.</param>
+    void HideDiagnostics(DafnyDocument document);
   }
 }

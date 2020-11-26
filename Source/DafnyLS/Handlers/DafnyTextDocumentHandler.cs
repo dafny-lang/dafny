@@ -49,7 +49,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received close notification {}", notification.TextDocument.Uri);
-      _documents.CloseDocument(notification.TextDocument);
+      var document = _documents.CloseDocument(notification.TextDocument);
+      if(document != null) {
+        _diagnosticPublisher.HideDiagnostics(document);
+      }
       return Unit.Task;
     }
 

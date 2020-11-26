@@ -35,12 +35,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return databaseDocument;
     }
 
-    public bool CloseDocument(TextDocumentIdentifier documentId) {
-      if(!_documents.TryRemove(documentId.Uri, out var _)) {
+    public DafnyDocument? CloseDocument(TextDocumentIdentifier documentId) {
+      DafnyDocument? document;
+      if(!_documents.TryRemove(documentId.Uri, out document)) {
         _logger.LogTrace("the document {} was already closed", documentId);
-        return false;
+        return null;
       }
-      return true;
+      return document;
     }
     
     // TODO refresh loaded documents that depend on this document? Maybe at least when saving?

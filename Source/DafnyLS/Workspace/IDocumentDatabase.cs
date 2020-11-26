@@ -13,8 +13,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     /// Closes the document with the specified ID.
     /// </summary>
     /// <param name="documentId">The ID of the document to close.</param>
-    /// <returns><c>true</c> if the document was closed successfully, <c>false</c> if no such document was opened.</returns>
-    bool CloseDocument(TextDocumentIdentifier documentId);
+    /// <returns>The closed dafny document, <c>null</c> if no such document was opened.</returns>
+    DafnyDocument? CloseDocument(TextDocumentIdentifier documentId);
 
     /// <summary>
     /// Loads (or updates if newer) the specified document into the database.
