@@ -1,9 +1,5 @@
 name: .NET Core
 
-defaults:
-  run:
-    working-directory: ./Source
-
 on: [ push, pull_request ]
 
 jobs:
@@ -29,8 +25,8 @@ jobs:
             chmod: true
             coverage: false
     env:
-      binaryPath: DafnyLS/bin/Release/netcoreapp3.1
-      testPath: DafnyLS.IntegrationTest/bin/Debug/netcoreapp3.1
+      binaryPath: Source/DafnyLS/bin/Release/netcoreapp3.1
+      testPath: Source/DafnyLS.IntegrationTest/bin/Debug/netcoreapp3.1
       z3BaseUri: https://github.com/Z3Prover/z3/releases/download/z3-4.8.4
       coverageFile: coverage.cobertura.xml
     outputs:
@@ -46,7 +42,7 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration Release --no-restore Source/DafnyLS.sln
     - name: Load Z3
       shell: pwsh
       run: |
@@ -64,8 +60,8 @@ jobs:
     - name: Run Test Coverage
       if: ${{matrix.coverage}}
       run: |
-        dotnet test --no-restore --verbosity normal --settings DafnyLS.IntegrationTest/coverlet.runsettings
-        mv DafnyLS.IntegrationTest/TestResults/*/${{env.coverageFile}} ./${{env.coverageFile}}
+        dotnet test --no-restore --verbosity normal --settings Source/DafnyLS.IntegrationTest/coverlet.runsettings
+        mv Source/DafnyLS.IntegrationTest/TestResults/*/${{env.coverageFile}} ./${{env.coverageFile}}
         ls -al .
     - name: Upload Coverage Report
       if: ${{matrix.coverage}}
@@ -73,7 +69,7 @@ jobs:
       with:
         file: ./Source/${{env.coverageFile}}
     - name: Upload Artifacts
-      if: ${{github.ref == 'refs/heads/master'}}
+#      if: ${{github.ref == 'refs/heads/master'}}
       uses: actions/upload-artifact@v2
       with:
         name: DafnyLS-${{matrix.suffix}}
