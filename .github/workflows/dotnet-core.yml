@@ -31,7 +31,7 @@ jobs:
       z3BaseUri: https://github.com/Z3Prover/z3/releases/download/z3-4.8.4
       coverageFile: coverage.cobertura.xml
     outputs:
-      binaries: ${{env.binaryPath}}
+      binaries: ${{env.publishPath}}
     steps:
     - uses: actions/checkout@v2
       with:
@@ -50,7 +50,6 @@ jobs:
         Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
         Expand-Archive z3.zip .
         Remove-Item z3.zip
-        Copy-Item ${{matrix.z3}} ${{env.binaryPath}}/z3 -Recurse
         Copy-Item ${{matrix.z3}} ${{env.testPath}}/z3 -Recurse
     - name: Set Permissions
       if: ${{matrix.chmod}}
@@ -68,9 +67,15 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         file: ./Source/${{env.coverageFile}}
+    - name: Prepare Artifacts
+#      if: ${{github.ref == 'refs/heads/master'}}
+      shell: pwsh
+      run: |
+        dotnet publish --configuration Release --no-restore --output ${{env.publishPath}} Source/DafnyLS/DafnyLS.csproj
+        Copy-Item ${{matrix.z3}} ${{env.publishPath}}/z3 -Recurse
     - name: Upload Artifacts
 #      if: ${{github.ref == 'refs/heads/master'}}
       uses: actions/upload-artifact@v2
       with:
         name: DafnyLS-${{matrix.suffix}}
-        path: ./Source/${{env.binaryPath}}/
+        path: ${{env.publishPath}}/
