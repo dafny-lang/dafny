@@ -262,8 +262,8 @@ ResolutionErrors.dfy(1785,19): Error: Undeclared top-level type or type paramete
 ResolutionErrors.dfy(1780,6): Error: RHS (of type object) not assignable to LHS (of type J)
 ResolutionErrors.dfy(1783,6): Error: RHS (of type J) not assignable to LHS (of type C)
 ResolutionErrors.dfy(1793,44): Error: range of comprehension must be of type bool (instead got C)
-ResolutionErrors.dfy(1800,14): Error: Duplicate member name: P
-ResolutionErrors.dfy(1802,10): Error: Duplicate member name: L
+ResolutionErrors.dfy(1800,21): Error: Duplicate member name: P
+ResolutionErrors.dfy(1802,17): Error: Duplicate member name: L
 ResolutionErrors.dfy(1810,4): Error: second argument to && must be of type bool (instead got int)
 ResolutionErrors.dfy(1808,11): Error: Function body type mismatch (expected int, got bool)
 ResolutionErrors.dfy(1814,4): Error: second argument to && must be of type bool (instead got int)
