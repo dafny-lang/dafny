@@ -1496,7 +1496,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      IToken bodyEnd = Token.NoToken;
      AllowedDeclModifiers allowed = AllowedDeclModifiers.None;
      string caption = "";
-     FixpointPredicate.KType kType = FixpointPredicate.KType.Unspecified;
+     ExtremePredicate.KType kType = ExtremePredicate.KType.Unspecified;
   .)
   SYNC
   ( "method"                        (. isPlainOlMethod = true; caption = "Methods";
@@ -1580,10 +1580,10 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      m.BodyEndTok = bodyEnd;
  .)
   .
-KType<ref FixpointPredicate.KType kType>
+KType<ref ExtremePredicate.KType kType>
 = "["
-  ( "nat"       (. kType = FixpointPredicate.KType.Nat; .)
-  | "ORDINAL"   (. kType = FixpointPredicate.KType.ORDINAL; .)
+  ( "nat"       (. kType = ExtremePredicate.KType.Nat; .)
+  | "ORDINAL"   (. kType = ExtremePredicate.KType.ORDINAL; .)
   )
   "]"
   .
@@ -1855,7 +1855,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      IToken signatureEllipsis = null;
      bool missingOpenParen;
      bool isTwoState = false;
-     FixpointPredicate.KType kType = FixpointPredicate.KType.Unspecified;
+     ExtremePredicate.KType kType = ExtremePredicate.KType.Unspecified;
   .)
   /* ----- function ----- */
   [ "twostate"               (. isTwoState = true; .)
@@ -1916,7 +1916,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     (
       [ GenericParameters<typeArgs, false> ]                 (. missingOpenParen = true; .)
       [ Formals<true, isFunctionMethod, isTwoState, formals> (. missingOpenParen = false; .)
-      ]                                                 (. if (missingOpenParen) { errors.Warning(t, "with the new support of higher-order functions in Dafny, parentheses-less predicates are no longer supported; in the new syntax, parentheses are required for the declaration and uses of predicates, even if the predicate takes no additional arguments"); } .)
+      ]
       [ ":"                    (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | "..."                    (. signatureEllipsis = t; .)

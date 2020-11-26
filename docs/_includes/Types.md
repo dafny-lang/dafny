@@ -364,7 +364,8 @@ All binary operators are left-associative, but the bit-wise `&`, `|`, and `^` do
 The right-hand operand of bit-shift operations is an `int` value,
 must be non-negative, and
 no more than the number of bits in the type.
-There is no signed right shift.
+There is no signed right shift as all bit-vector values correspond to
+non-negative integers.
 
 Here are examples of the various operations (all the assertions are true except where indicated):
 ```dafny
@@ -373,14 +374,14 @@ Here are examples of the various operations (all the assertions are true except 
 The following are incorrectly formed:
 ```dafny
 {% include Example-BV3.dfy %}
+{% include Example-BV3a.dfy %}
 ```
 These produce assertion errors:
 ```dafny
 {% include Example-BV4.dfy %}
+{% include Example-BV4a.dfy %}
 ```
 
-
-TO BE CHECKED: RHS of shift is int type?
 
 
 [^binding]: The binding power of shift and bit-wise operations is different than in C-like languages.

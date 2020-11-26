@@ -104,4 +104,6 @@ TraitResolution1.dfy(538,41): Error: type parameter (X) passed to type RequiresZ
 TraitResolution1.dfy(504,18): Error: type parameter (Y) passed to type ClassRequiresZero must support zero initialization (got Forever)
 TraitResolution1.dfy(504,14): Error: type parameter (Y) passed to type ClassRequiresZero must support zero initialization (got Forever)
 TraitResolution1.dfy(507,44): Error: type parameter (Y) passed to type ClassRequiresZero must support zero initialization (got Forever)
-106 resolution/type errors detected in TraitResolution1.dfy
+TraitResolution1.dfy(543,18): Error: a trait can only extend traits (found 'object?')
+TraitResolution1.dfy(545,18): Error: a class can only extend traits (found 'object?')
+108 resolution/type errors detected in TraitResolution1.dfy
