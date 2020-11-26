@@ -146,6 +146,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       private void CaptureViolatedPostconditions(ErrorInformation errorInfo) {
         _errorReporter.Error(VerifierMessageSource, errorInfo.Tok, errorInfo.Msg);
         foreach(var auxiliaryErrorInfo in errorInfo.Aux) {
+          // The execution trace is an additional auxiliary which identifies itself with
+          // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
+          // the execution trace message appears to not have any interesting information.
           if(auxiliaryErrorInfo.Tok.line > 0) {
             _errorReporter.Info(VerifierMessageSource, auxiliaryErrorInfo.Tok, auxiliaryErrorInfo.Msg);
           }
