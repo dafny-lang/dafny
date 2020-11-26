@@ -57,7 +57,7 @@ jobs:
       run: chmod +x ${{env.testPath}}/z3/bin/z3
     - name: Run Tests
       if: ${{!matrix.coverage}}
-      run: dotnet test --no-restore --verbosity normal
+      run: dotnet test --no-restore --verbosity normal ${{env.solutionPath}}
     - name: Run Test Coverage
       if: ${{matrix.coverage}}
       run: |
