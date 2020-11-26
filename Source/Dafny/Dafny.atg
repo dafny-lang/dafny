@@ -1911,7 +1911,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     (
       [ GenericParameters<typeArgs, false> ]                 (. missingOpenParen = true; .)
       [ Formals<true, isFunctionMethod, isTwoState, formals> (. missingOpenParen = false; .)
-      ]                                                 (. if (missingOpenParen) { errors.Warning(t, "with the new support of higher-order functions in Dafny, parentheses-less predicates are no longer supported; in the new syntax, parentheses are required for the declaration and uses of predicates, even if the predicate takes no additional arguments"); } .)
+      ]
       [ ":"                    (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | "..."                    (. signatureEllipsis = t; .)
