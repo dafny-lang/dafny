@@ -40,9 +40,9 @@ jobs:
       with:
         dotnet-version: 3.1.301
     - name: Install dependencies
-      run: dotnet restore Source/DafnyLS.sln
+      run: dotnet restore ${{env.solutionPath}}
     - name: Build
-      run: dotnet build --configuration Release --no-restore Source/DafnyLS.sln
+      run: dotnet build --configuration Release --no-restore ${{env.solutionPath}}
     - name: Load Z3
       shell: pwsh
       run: |
@@ -60,7 +60,7 @@ jobs:
     - name: Run Test Coverage
       if: ${{matrix.coverage}}
       run: |
-        dotnet test --no-restore --verbosity normal --settings Source/DafnyLS.IntegrationTest/coverlet.runsettings
+        dotnet test --no-restore --verbosity normal --settings Source/DafnyLS.IntegrationTest/coverlet.runsettings ${{env.solutionPath}}
         mv Source/DafnyLS.IntegrationTest/TestResults/*/${{env.coverageFile}} ./${{env.coverageFile}}
         ls -al .
     - name: Upload Coverage Report
