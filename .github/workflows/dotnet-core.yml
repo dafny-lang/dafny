@@ -63,7 +63,6 @@ jobs:
       run: |
         dotnet test --no-restore --verbosity normal --settings Source/DafnyLS.IntegrationTest/coverlet.runsettings ${{env.solutionPath}}
         mv Source/DafnyLS.IntegrationTest/TestResults/*/${{env.coverageFile}} ./${{env.coverageFile}}
-        ls -al .
     - name: Upload Coverage Report
       if: ${{matrix.coverage}}
       uses: codecov/codecov-action@v1
