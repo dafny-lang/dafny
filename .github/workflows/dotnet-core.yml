@@ -27,6 +27,7 @@ jobs:
     env:
       binaryPath: Source/DafnyLS/bin/Release/netcoreapp3.1
       testPath: Source/DafnyLS.IntegrationTest/bin/Debug/netcoreapp3.1
+      solutionPath: Source/DafnyLS.sln
       z3BaseUri: https://github.com/Z3Prover/z3/releases/download/z3-4.8.4
       coverageFile: coverage.cobertura.xml
     outputs:
