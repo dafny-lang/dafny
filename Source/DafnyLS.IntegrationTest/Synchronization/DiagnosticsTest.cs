@@ -258,6 +258,30 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(0, diagnostics.Length);
     }
 
+    [TestMethod]
+    public async Task ClosingDocumentWithSyntaxErrorHidesDiagnosticsBySendingEmptyDiagnostics() {
+      var source = @"
+method Multiply(x: int, y: int) returns (product: int
+  requires y >= 0 && x >= 0
+  decreases y
+  ensures product == x * y && product >= 0
+{
+  if y == 0 {
+    product := 0;
+  } else {
+    var step := Multiply(x, y - 1);
+    product := x + step;
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      _client.DidCloseTextDocument(new DidCloseTextDocumentParams { TextDocument = documentItem });
+      var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var diagnostics = report.Diagnostics.ToArray();
+      Assert.AreEqual(0, diagnostics.Length);
+    }
+
     public class TestDiagnosticReceiver {
       private readonly SemaphoreSlim _availableDiagnostics = new SemaphoreSlim(0);
       private readonly ConcurrentQueue<PublishDiagnosticsParams> _diagnostics = new ConcurrentQueue<PublishDiagnosticsParams>();
