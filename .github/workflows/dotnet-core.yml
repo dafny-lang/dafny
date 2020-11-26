@@ -1,9 +1,5 @@
 name: .NET Core
 
-defaults:
-  run:
-    working-directory: ./Source
-
 on: [ push, pull_request ]
 
 jobs:
@@ -29,12 +25,13 @@ jobs:
             chmod: true
             coverage: false
     env:
-      binaryPath: DafnyLS/bin/Release/netcoreapp3.1
-      testPath: DafnyLS.IntegrationTest/bin/Debug/netcoreapp3.1
+      publishPath: publish
+      testPath: Source/DafnyLS.IntegrationTest/bin/Debug/netcoreapp3.1
+      solutionPath: Source/DafnyLS.sln
       z3BaseUri: https://github.com/Z3Prover/z3/releases/download/z3-4.8.4
       coverageFile: coverage.cobertura.xml
     outputs:
-      binaries: ${{env.binaryPath}}
+      binaries: ${{env.publishPath}}
     steps:
     - uses: actions/checkout@v2
       with:
@@ -44,37 +41,42 @@ jobs:
       with:
         dotnet-version: 3.1.301
     - name: Install dependencies
-      run: dotnet restore
+      run: dotnet restore ${{env.solutionPath}}
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration Release --no-restore ${{env.solutionPath}}
     - name: Load Z3
       shell: pwsh
       run: |
         Invoke-WebRequest ${{env.z3BaseUri}}/${{matrix.z3}}.zip -OutFile z3.zip
         Expand-Archive z3.zip .
         Remove-Item z3.zip
-        Copy-Item ${{matrix.z3}} ${{env.binaryPath}}/z3 -Recurse
         Copy-Item ${{matrix.z3}} ${{env.testPath}}/z3 -Recurse
     - name: Set Permissions
       if: ${{matrix.chmod}}
       run: chmod +x ${{env.testPath}}/z3/bin/z3
     - name: Run Tests
       if: ${{!matrix.coverage}}
-      run: dotnet test --no-restore --verbosity normal
+      run: dotnet test --no-restore --verbosity normal ${{env.solutionPath}}
     - name: Run Test Coverage
       if: ${{matrix.coverage}}
       run: |
-        dotnet test --no-restore --verbosity normal --settings DafnyLS.IntegrationTest/coverlet.runsettings
-        mv DafnyLS.IntegrationTest/TestResults/*/${{env.coverageFile}} ./${{env.coverageFile}}
-        ls -al .
+        dotnet test --no-restore --verbosity normal --settings Source/DafnyLS.IntegrationTest/coverlet.runsettings ${{env.solutionPath}}
+        mv Source/DafnyLS.IntegrationTest/TestResults/*/${{env.coverageFile}} ./${{env.coverageFile}}
     - name: Upload Coverage Report
       if: ${{matrix.coverage}}
       uses: codecov/codecov-action@v1
       with:
-        file: ./Source/${{env.coverageFile}}
+        file: ./${{env.coverageFile}}
+    - name: Prepare Artifacts
+      if: ${{github.ref == 'refs/heads/master'}}
+      shell: pwsh
+      run: |
+        dotnet publish --configuration Release --no-restore --output ${{env.publishPath}} dafny/Source/DafnyDriver/DafnyDriver.csproj
+        dotnet publish --configuration Release --no-restore --output ${{env.publishPath}} Source/DafnyLS/DafnyLS.csproj
+        Copy-Item ${{matrix.z3}} ${{env.publishPath}}/z3 -Recurse
     - name: Upload Artifacts
       if: ${{github.ref == 'refs/heads/master'}}
       uses: actions/upload-artifact@v2
       with:
         name: DafnyLS-${{matrix.suffix}}
-        path: ./Source/${{env.binaryPath}}/
+        path: ${{env.publishPath}}/

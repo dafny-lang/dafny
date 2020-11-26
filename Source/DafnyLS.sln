@@ -52,6 +52,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyLS.IntegrationTest", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ModelViewer-NetCore", "ModelViewer-NetCore\ModelViewer-NetCore.csproj", "{619AE075-5F89-4528-8EAB-0FB924DE81BD}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyDriver", "..\dafny\Source\DafnyDriver\DafnyDriver.csproj", "{1B265434-5E37-4ECA-AF5D-3B4490EAA8B5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -138,6 +140,10 @@ Global
 		{619AE075-5F89-4528-8EAB-0FB924DE81BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{619AE075-5F89-4528-8EAB-0FB924DE81BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{619AE075-5F89-4528-8EAB-0FB924DE81BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B265434-5E37-4ECA-AF5D-3B4490EAA8B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B265434-5E37-4ECA-AF5D-3B4490EAA8B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B265434-5E37-4ECA-AF5D-3B4490EAA8B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B265434-5E37-4ECA-AF5D-3B4490EAA8B5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -162,6 +168,7 @@ Global
 		{3A573006-047E-4EA4-B174-C7A87D8769D9} = {DD2666DC-90FD-42C2-A49E-E0AEF5C2426F}
 		{8B8A2684-5F2A-443A-92C6-A0908B2A51F2} = {DD2666DC-90FD-42C2-A49E-E0AEF5C2426F}
 		{619AE075-5F89-4528-8EAB-0FB924DE81BD} = {DD2666DC-90FD-42C2-A49E-E0AEF5C2426F}
+		{1B265434-5E37-4ECA-AF5D-3B4490EAA8B5} = {E6CE9485-D1CA-403D-B476-68E3396DD364}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0F06B0CB-18B7-4086-A7C0-A78CF517FBF9}
