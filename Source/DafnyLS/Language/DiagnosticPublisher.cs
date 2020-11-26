@@ -17,6 +17,14 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       _languageServer.PublishDiagnostics(ToPublishDiagnostics(document, cancellationToken));
     }
 
+    public void HideDiagnostics(DafnyDocument document) {
+      _languageServer.PublishDiagnostics(new PublishDiagnosticsParams {
+        Uri = document.Uri,
+        Version = document.Version,
+        Diagnostics = new Container<Diagnostic>()
+      });
+    }
+
     private static PublishDiagnosticsParams ToPublishDiagnostics(DafnyDocument document, CancellationToken cancellationToken) {
       return new PublishDiagnosticsParams {
         Uri = document.Uri,

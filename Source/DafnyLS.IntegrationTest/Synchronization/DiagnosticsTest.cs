@@ -4,6 +4,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -256,6 +257,82 @@ method Multiply(x: int, y: int) returns (product: int)
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
       Assert.AreEqual(0, diagnostics.Length);
+    }
+
+    [TestMethod]
+    public async Task ClosingDocumentWithSyntaxErrorHidesDiagnosticsBySendingEmptyDiagnostics() {
+      var source = @"
+method Multiply(x: int, y: int) returns (product: int
+  requires y >= 0 && x >= 0
+  decreases y
+  ensures product == x * y && product >= 0
+{
+  if y == 0 {
+    product := 0;
+  } else {
+    var step := Multiply(x, y - 1);
+    product := x + step;
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      _client.DidCloseTextDocument(new DidCloseTextDocumentParams { TextDocument = documentItem });
+      var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var diagnostics = report.Diagnostics.ToArray();
+      Assert.AreEqual(0, diagnostics.Length);
+    }
+
+    [TestMethod]
+    public async Task OpeningDocumentThatIncludesNonExistantDocumentReportsParserErrorAtInclude() {
+      var source = "include \"doesNotExist.dfy\"";
+      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+      _client.OpenDocument(documentItem);
+      var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var diagnostics = report.Diagnostics.ToArray();
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual("Parser", diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.AreEqual(new Range((0, 8), (0, 26)), diagnostics[0].Range);
+    }
+
+    [TestMethod]
+    public async Task OpeningDocumentThatIncludesDocumentWithSyntaxErrorsReportsParserErrorAtInclude() {
+      var source = "include \"syntaxError.dfy\"";
+      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+      _client.OpenDocument(documentItem);
+      var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var diagnostics = report.Diagnostics.ToArray();
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual("Parser", diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.AreEqual(new Range((0, 8), (0, 25)), diagnostics[0].Range);
+    }
+
+    [TestMethod]
+    public async Task OpeningDocumentThatIncludesDocumentWithSemanticErrorsReportsResolverErrorAtInclude() {
+      var source = "include \"syntaxError.dfy\"";
+      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+      _client.OpenDocument(documentItem);
+      var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var diagnostics = report.Diagnostics.ToArray();
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual("Parser", diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.AreEqual(new Range((0, 8), (0, 25)), diagnostics[0].Range);
+    }
+
+    [TestMethod]
+    public async Task OpeningDocumentWithSemanticErrorsInIncludeReportsResolverErrorAtIncludeStatement() {
+      var source = "include \"semanticError.dfy\"";
+      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+      _client.OpenDocument(documentItem);
+      var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var diagnostics = report.Diagnostics.ToArray();
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual("Resolver", diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
+      Assert.AreEqual(new Range((0, 8), (0, 27)), diagnostics[0].Range);
     }
 
     public class TestDiagnosticReceiver {

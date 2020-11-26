@@ -2,6 +2,7 @@
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -62,16 +63,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         if(parseErrors != 0) {
           _logger.LogDebug("encountered {} errors while parsing {}", parseErrors, document.Uri);
         }
-        // TODO handle include errors
-        // TODO includes that are opened by the editor (i.e. managed by the DocumentDatabase) should be taken from there.
-        var includeError = Main.ParseIncludes(module, builtIns, new List<string>(), new Errors(errorReporter));
-        if(includeError != null) {
-          // TODO currently the diagnostic publisher ignores errors of foreign files. It should at least report
-          //      that there were some errors.
-          _logger.LogDebug("encountered error while parsing includes: {}", includeError);
+        if(!TryParseIncludesOfModule(module, builtIns, errorReporter)) {
+          _logger.LogDebug("encountered error while parsing the includes of {}", document.Uri);
         }
         // TODO Remove PoC workaround: the file system path is used as a program name to 
-        return new Microsoft.Dafny.Program(document.Uri.GetFileSystemPath(), module, builtIns, errorReporter);
+        return new Dafny.Program(document.Uri.GetFileSystemPath(), module, builtIns, errorReporter);
       } finally {
         _mutex.Release();
       }
@@ -79,6 +75,62 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public void Dispose() {
       _mutex.Dispose();
+    }
+
+    // TODO The following methods are based on the ones from DafnyPipeline/DafnyMain.cs.
+    //      It could be convenient to adapt them in the main-repo so location info could be extracted.
+    public bool TryParseIncludesOfModule(ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter) {
+      var errors = new Errors(errorReporter);
+      var resolvedIncludes = new HashSet<Include>();
+      var dependencyMap = new DependencyMap();
+      dependencyMap.AddIncludes(resolvedIncludes);
+
+      bool newIncludeParsed = true;
+      while(newIncludeParsed) {
+        newIncludeParsed = false;
+        // Parser.Parse appears to modify the include list; thus, we create a copy to avoid concurrent modifications.
+        var moduleIncludes = new List<Include>(((LiteralModuleDecl)module).ModuleDef.Includes);
+        dependencyMap.AddIncludes(moduleIncludes);
+        foreach(var include in moduleIncludes) {
+          bool isNewInclude = resolvedIncludes.Add(include);
+          if(isNewInclude) {
+            newIncludeParsed = true;
+            if(!TryParseInclude(include, module, builtIns, errorReporter, errors)) {
+              return false;
+            }
+          }
+        }
+      }
+
+      return true;
+    }
+
+    private bool TryParseInclude(Include include,  ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter, Errors errors) {
+      try {
+        var dafnyFile = new DafnyFile(include.includedFilename);
+        int errorCount = Parser.Parse(
+          dafnyFile.SourceFileName,
+          include,
+          module,
+          builtIns,
+          errors,
+          verifyThisFile: false,
+          compileThisFile: false
+        );
+        if(errorCount != 0) {
+          errorReporter.Error(MessageSource.Parser, include.tok, $"{errorCount} parse error(s) detected in {include.includedFilename}");
+          return false;
+        }
+      } catch(IllegalDafnyFile e) {
+        errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file {include.includedFilename} failed.");
+        _logger.LogDebug(e, "encountered include of illegal dafny file {}", include.includedFilename);
+        return false;
+      } catch(IOException e) {
+        errorReporter.Error(MessageSource.Parser, include.tok, $"Unable to open the include {include.includedFilename}.");
+        _logger.LogDebug(e, "could not open file {}", include.includedFilename);
+        return false;
+      }
+      return true;
     }
   }
 }
