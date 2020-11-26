@@ -7273,7 +7273,7 @@ namespace Microsoft.Dafny {
   {
     public readonly Expression Rhs; // this is the unresolved RHS, and thus can also be a method call
     public readonly List<AssignmentRhs> Rhss;
-    public readonly IToken ExpectToken;
+    public readonly IToken KeywordToken;
     public readonly List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
     public override IEnumerable<Statement> SubStatements {
       get { return ResolvedStatements; }
@@ -7289,7 +7289,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Rhs != null);
     }
 
-    public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs, IToken expectToken, List<AssignmentRhs> rhss = null)
+    public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs, IToken keywordToken, List<AssignmentRhs> rhss = null)
       : base(tok, endTok, lhss)
     {
       Contract.Requires(tok != null);
@@ -7299,7 +7299,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(rhs != null);
       Rhs = rhs;
       Rhss = rhss;
-      ExpectToken = expectToken;
+      KeywordToken = keywordToken;
     }
   }
 
