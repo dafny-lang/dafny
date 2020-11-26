@@ -12141,7 +12141,7 @@ namespace Microsoft.Dafny
         } else if (s.KeywordToken.val == "assert") {
           ss = new AssertStmt(s.Tok, s.Tok, notFailureExpr, null, null, null);
         } else {
-          Contract.Assert(false,"Invalid token in :- statement: {s.KeywordToken.val}");
+          Contract.Assert(false,$"Invalid token in :- statement: {s.KeywordToken.val}");
         }
         s.ResolvedStatements.Add(ss);
       } else {

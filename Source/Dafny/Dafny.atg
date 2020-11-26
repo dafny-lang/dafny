@@ -102,6 +102,10 @@ void CheckDeclModifiers(DeclModifierData dmod, string declCaption, AllowedDeclMo
   }
 }
 
+bool IsAssumeTypeKeyword(IToken la) {
+  return la.kind == _assume || la.kind == _assert || la.kind == _expect;
+}
+
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members) from "filename"
 /// and appends them in appropriate form to "module".
@@ -2203,7 +2207,7 @@ UpdateStmt<out Statement/*!*/ s>
       ]
       Expression<out suchThat, false, true>
     | ":-"                         (. x = t; .)
-      [ IF(la.kind == _expect || la.kind == _assert || la.kind == _assume)     /* an Expression can also begin with an "expect", so this says to resolve it to pick up any "expect" here */
+      [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
         ("expect"|"assert"|"assume")    (. keywordToken = t; .)
       ]
       Expression<out exceptionExpr, false, false>
@@ -2214,7 +2218,7 @@ UpdateStmt<out Statement/*!*/ s>
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
 | ":-"                             (. x = t; .)
-   [ IF(la.kind == _expect || la.kind == _assert || la.kind == _assume)     /* an Expression can also begin with an "expect", so this says to resolve it to pick up any "expect" here */
+   [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
       ("expect"|"assert"|"assume")    (. keywordToken = t; .)
    ]
    Expression<out exceptionExpr, false, false>
@@ -2342,7 +2346,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
       ]
       Expression<out suchThat, false, true>
     | ":-"                           (. assignTok = t; .)
-      [ IF(la.kind == _expect  || la.kind == _assert || la.kind == _assume)     /* an Expression can also begin with an "expect", so this says to resolve it to pick up any "expect" here */
+      [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
         ("expect"|"assert"|"assume")    (. keywordToken = t; .)
       ]
       Expression<out exceptionExpr, false, false>
