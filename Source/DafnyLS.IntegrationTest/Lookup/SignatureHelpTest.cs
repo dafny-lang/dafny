@@ -42,6 +42,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     }
 
     [TestMethod]
+    public async Task SignatureHelpForUnloadedDocumentReturnsNoSignatures() {
+      var documentItem = CreateTestDocument("");
+      var signatureHelp = await RequestSignatureHelpAsync(documentItem, (7, 11));
+      var signatures = signatureHelp.Signatures.ToArray();
+      Assert.AreEqual(0, signatures.Length);
+    }
+
+    [TestMethod]
     public async Task SignatureHelpOnOpeningParenthesesReturnsSignatureForExistingMethod() {
       var source = @"
 method Multiply(x: int, y: int) returns (p: int)
