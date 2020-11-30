@@ -1717,12 +1717,7 @@ namespace Microsoft.Dafny{
         wDefault = w.Fork();
         w.WriteLine(";");
       }
-      DatatypeCtor groundingCtor;
-      if (dt is IndDatatypeDecl) {
-        groundingCtor = ((IndDatatypeDecl)dt).GroundingCtor;
-      } else {
-        groundingCtor = ((CoDatatypeDecl) dt).Ctors[0];
-      }
+      var groundingCtor = dt.GetGroundingCtor();
       string arguments = "";
       string sep = "";
       foreach (Formal f in groundingCtor.Formals) {

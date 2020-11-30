@@ -827,13 +827,7 @@ namespace Microsoft.Dafny {
         WriteRuntimeTypeDescriptorsLocals(usedTypeParams, true, wDefault);
 
         wDefault.Write("return ");
-        DatatypeCtor groundingCtor;
-        if (dt is IndDatatypeDecl idd) {
-          groundingCtor = idd.GroundingCtor;
-        } else {
-          groundingCtor = dt.Ctors[0];
-        }
-
+        var groundingCtor = dt.GetGroundingCtor();
         var arguments = new TargetWriter();
         string sep = "";
         foreach (var f in groundingCtor.Formals) {

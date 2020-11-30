@@ -390,12 +390,7 @@ namespace Microsoft.Dafny
           w.WriteLine(";");
         }
       }
-      DatatypeCtor groundingCtor;
-      if (dt is IndDatatypeDecl) {
-        groundingCtor = ((IndDatatypeDecl)dt).GroundingCtor;
-      } else {
-        groundingCtor = ((CoDatatypeDecl)dt).Ctors[0];  // pick any one of them (but pick must be the same as in InitializerIsKnown and HasZeroInitializer)
-      }
+      var groundingCtor = dt.GetGroundingCtor();
       if (dt is CoDatatypeDecl) {
         var wCo = wDefault;
         wCo.Write("new {0}__Lazy{1}(", dt.CompileName, DtT_TypeArgs);

@@ -478,12 +478,7 @@ namespace Microsoft.Dafny {
         using (var wClass = wRtd.NewBlock("return class", ";")) {
           using (var wDefault = wClass.NewBlock("static get Default()")) {
             wDefault.Write("return ");
-            DatatypeCtor groundingCtor;
-            if (dt is IndDatatypeDecl) {
-              groundingCtor = ((IndDatatypeDecl)dt).GroundingCtor;
-            } else {
-              groundingCtor = ((CoDatatypeDecl)dt).Ctors[0];  // pick any one of them (but pick must be the same as in InitializerIsKnown and HasZeroInitializer)
-            }
+            var groundingCtor = dt.GetGroundingCtor();
             var arguments = new TargetWriter();
             string sep = "";
             foreach (var f in groundingCtor.Formals) {
