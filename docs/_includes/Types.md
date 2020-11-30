@@ -460,18 +460,21 @@ Many of the types (as well as functions and methods) in Dafny can be
 parameterized by types.  These _type parameters_ are typically
 declared inside angle brackets and can stand for any type.
 
-It is sometimes necessary to restrict these type parameters so that
+Dafny has some inference support that makes certain signatures less
+cluttered (described in Section [Type Inference](#sec-type-inference)).
+
+## Declaring restrictions on type parameters
+
+It is sometimes necessary to restrict type parameters so that
 they can only be instantiated by certain families of types, that is,
 by types that have certain properties. The following subsections
 describe the restrictions Dafny supports.
 
-Dafny has some inference support that makes certain signatures less
-cluttered (described in Section [Type Inference](#sec-type-inference)).
-In some cases, this support will infer that a type-parameter
+In some cases, type inference will infer that a type-parameter
 must be restricted in a particular way, in which case Dafny
 will add the appropriate suffix, such as `(==)`, automatically.
 
-## Equality-supporting type parameters: `T(==)`
+### Equality-supporting type parameters: `T(==)`
 
 Designating a type parameter with the `(==)` suffix indicates that
 the parameter may only be replaced with types that are known to
@@ -493,11 +496,11 @@ code.  Co-inductive datatypes, function types, as well as inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
-## Auto-initializable types: `T(0)`
+### Auto-initializable types: `T(0)`
 
 All Dafny variables of a given type hold a legal value of that type;
 if no explicit initialization is given, then an arbitrary value is
-assumed.
+assumedi, that is, the variable is _auto-innitialized_..
 During verification, this means that any subsequent uses of that
 variable must hold for any value.
 For example,
@@ -518,7 +521,7 @@ it does not; for more details see the section describing [Definite Assignment](#
 The `(0)` suffix indicates that the type must be one that the compiler knows
 how to auto-initialize.
 
-## Non-heap based: `T(!new)`
+### Non-heap based: `T(!new)`
 
 Dafny makes a distinction between types whose values are on the heap,
 i.e. references, like
@@ -547,6 +550,9 @@ Here are some examples:
 ```dafny
 {% include Example-TP.dfy %}
 ```
+
+## Type parameter variance
+
 TO BE WRITTEN: Type parameter variance
 
 # Generic Instantiation
