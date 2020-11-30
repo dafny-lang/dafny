@@ -24,7 +24,7 @@ method n3(d: D<E>) {} // error: codataypes are not (==)
 ghost method g2(d: D<int->int>) {}
 ghost method g3(d: D<E>) {}
 
-function g<T(==)>(t: T): T {
+function g<T(==)>(t: T): T { // Warning: unnecessary (==)
   t
 }
 
@@ -54,7 +54,7 @@ method mx<T>(t: T) {
   var yy := ggx(t);
 }
 
-ghost method mg<T(==)>(t: T) {
+ghost method mg<T(==)>(t: T) { // warning: unneccessary (==)
 }
 
 
