@@ -1,0 +1,3 @@
+git-issue-181.dfy(13,10): Error: type parameter (T) passed to type ResultN must support no references (got C)
+git-issue-181.dfy(15,10): Error: type parameter (T) passed to type ResultN must support no references (got array<int>)
+2 resolution/type errors detected in git-issue-181.dfy

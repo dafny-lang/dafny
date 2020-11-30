@@ -7431,6 +7431,11 @@ namespace Microsoft.Dafny
           hint = "";
           return false;
         }
+        if (formal.DisallowReferenceTypes && !actual.IsAllocFree) {
+          whatIsWrong = "no references";
+          hint = "";
+          return false;
+        }
         whatIsWrong = null;
         hint = null;
         return true;
