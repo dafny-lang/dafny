@@ -401,7 +401,7 @@ namespace Microsoft.Dafny
       wDefault.Write(DtCreateName(groundingCtor));
       wDefault.Write("(");
       var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost);
-      wDefault.Write(Util.Comma(nonGhostFormals, f => DefaultValue(f.Type, wDefault, f.tok, false, false)));
+      wDefault.Write(Util.Comma(nonGhostFormals, f => DefaultValue(f.Type, wDefault, f.tok)));
       wDefault.Write(")");
 
       EmitTypeDescriptorMethod(dt, wr);
