@@ -541,6 +541,7 @@ the instantiation `Result<int>` satisifies `(!new)`, whereas
 
 Note that this characteristic of a type parameter is operative for both
 verification and compilation.
+Also, opaque types at the topmost scope are always implicitly `(!new)`.
 
 Here are some examples:
 ```dafny
