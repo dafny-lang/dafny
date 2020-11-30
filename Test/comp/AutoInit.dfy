@@ -66,6 +66,7 @@ method Main() {
   Arrows();
   NilRegression.Test();
   DatatypeDefaultValues.Test();
+  ImportedTypes.Test();
 }
 
 datatype ThisOrThat<A,B> = This(A) | Or | That(B)
@@ -257,5 +258,32 @@ module DatatypeDefaultValues {
     var g: Difficult;
     var h: GenDifficult<int>;
     print g, "\n  ", h, "\n";
+  }
+}
+
+module ImportedTypes {
+  module Library {
+    datatype Color = Red(int) | Green(real) | Blue(bv30)
+    codatatype CoColor = Yellow(int)
+    codatatype MoColor = MoYellow(int, MoColor)
+    newtype Nt = r | -1.0 <= r <= 1.0
+  }
+
+  method Test() {
+    var c: Library.Color;
+    Try(c);
+    /** TODO: include these tests once the new (0) semantics allows them
+    var co: Library.CoColor;
+    Try(co);
+    var mo: Library.MoColor;
+    Try(mo);
+    **/
+    var nt: Library.Nt;
+    Try(nt);
+  }
+
+  method Try<A(0)>(a: A) {
+    var x: A;
+    print a, " and ", x, "\n";
   }
 }
