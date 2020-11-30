@@ -456,7 +456,7 @@ GenericParameters =
   "<" TypeVariableName [ "(" "==" ")" ]
   { "," TypeVariableName [ "(" "==" ")" ] } ">"
 ````
-Many of the types (as well as functions and methods) in Dafny can be
+Many of the types, functions and methods in Dafny can be
 parameterized by types.  These _type parameters_ are typically
 declared inside angle brackets and can stand for any type.
 
@@ -477,10 +477,11 @@ will add the appropriate suffix, such as `(==)`, automatically.
 ### Equality-supporting type parameters: `T(==)`
 
 Designating a type parameter with the `(==)` suffix indicates that
-the parameter may only be replaced with types that are known to
-support equality comparisons (`==` and `!=`).
-This restriction only applies during compilation; for verification
-the `(==)` suffix does not restrict the substituted type.
+the parameter may only be replaced in non-ghost contexts
+with types that are known to
+support run-time equality comparisons (`==` and `!=`).
+All types support equality in ghost contexts,
+as if, for some types, the equality function is ghost.
 
 For example,
 ```dafny
@@ -490,9 +491,10 @@ method Compare<T(==)>(a: T, b: T) returns (eq: bool)
 }
 ```
 is a method whose type parameter is restricted to equality-supporting
-types.  Again, note that _all_ types support equality in _ghost_
+types when used in a non-ghost context.
+Again, note that _all_ types support equality in _ghost_
 contexts; the difference is only for non-ghost (that is, compiled)
-code.  Co-inductive datatypes, function types, as well as inductive
+code.  Co-inductive datatypes, function types, and inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
@@ -500,7 +502,8 @@ equality supporting.
 
 All Dafny variables of a given type hold a legal value of that type;
 if no explicit initialization is given, then an arbitrary value is
-assumedi, that is, the variable is _auto-innitialized_..
+assumed by the verifier and supplied by the compiler,
+ that is, the variable is _auto-initialized_.
 During verification, this means that any subsequent uses of that
 variable must hold for any value.
 For example,
@@ -514,12 +517,12 @@ method m() {
 ```
 
 However, by default, non-ghost computations must follow definite-assignment
-rules, in which case local variables must be initialized.
+rules, in which case local variables must be assigned a value before use.
 For some types, the compiler can choose an initial value, but for others
 it does not; for more details see the section describing [Definite Assignment](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
 
 The `(0)` suffix indicates that the type must be one that the compiler knows
-how to auto-initialize.
+how to auto-initialize, if the type is used to declare a non-ghost variable.
 
 ### Non-heap based: `T(!new)`
 
