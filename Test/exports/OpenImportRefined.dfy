@@ -31,7 +31,7 @@ module GiveT2 {
 module Refined2 refines GiveT {
   import opened GiveT2
 
-  function f(x: T): int //error, which T?
+  function f(x: T): int // OK -- GiveT.T takes precedence over GiveT2.T
 }
 
 module GiveF{
