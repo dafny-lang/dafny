@@ -1099,7 +1099,7 @@ namespace Microsoft.Dafny
       return "object";
     }
 
-    public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
+    public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       var xType = type.NormalizeExpandKeepConstraints();
 
       if (inAutoInitContext) {

@@ -234,7 +234,7 @@ namespace Microsoft.Dafny {
     protected virtual string TypeArgumentName(Type type, TextWriter wr, Bpl.IToken tok) {
       return TypeName(type, wr, tok);
     }
-    public abstract string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool valueSkeletonOnly, bool constructTypeParameterDefaultsFromTypeDescriptors = false);
+    public abstract string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool valueSkeletonOnly, bool constructTypeParameterDefaultsFromTypeDescriptors);
 
     protected string TypeName_UDT(string fullCompileName, UserDefinedType udt, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(fullCompileName != null);
