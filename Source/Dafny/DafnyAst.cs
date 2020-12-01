@@ -839,7 +839,7 @@ namespace Microsoft.Dafny {
     /// Returns whether or not "this" and "that" denote the same type, module proxies and type synonyms and subset types.
     /// </summary>
     [Pure]
-    public abstract bool Equals(Type that);
+    public abstract bool Equals(Type that, bool keepConstraints = false);
 
     public bool IsBoolType { get { return NormalizeExpand() is BoolType; } }
     public bool IsCharType { get { return NormalizeExpand() is CharType; } }
@@ -2135,8 +2135,8 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "int";
     }
-    public override bool Equals(Type that) {
-      return that is IntVarietiesSupertype;
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      return keepConstraints ? this.GetType() == that.GetType() : that is IntVarietiesSupertype;
     }
   }
   public class RealVarietiesSupertype : ArtificialType
@@ -2145,8 +2145,8 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "real";
     }
-    public override bool Equals(Type that) {
-      return that is RealVarietiesSupertype;
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      return keepConstraints ? this.GetType() == that.GetType() : that is RealVarietiesSupertype;
     }
   }
 
@@ -2166,7 +2166,7 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "bool";
     }
-    public override bool Equals(Type that) {
+    public override bool Equals(Type that, bool keepConstraints = false) {
       return that.IsBoolType;
     }
   }
@@ -2179,7 +2179,7 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "char";
     }
-    public override bool Equals(Type that) {
+    public override bool Equals(Type that, bool keepConstraints = false) {
       return that.IsCharType;
     }
   }
@@ -2190,8 +2190,8 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "int";
     }
-    public override bool Equals(Type that) {
-      return that.IsIntegerType;
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      return keepConstraints ? this.GetType() == that.GetType() : that.IsIntegerType;
     }
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
       if (super is IntVarietiesSupertype) {
@@ -2206,8 +2206,8 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "real";
     }
-    public override bool Equals(Type that) {
-      return that.IsRealType;
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      return keepConstraints ? this.GetType() == that.GetType() : that.IsRealType;
     }
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
       if (super is RealVarietiesSupertype) {
@@ -2223,7 +2223,7 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "ORDINAL";
     }
-    public override bool Equals(Type that) {
+    public override bool Equals(Type that, bool keepConstraints = false) {
       return that.IsBigOrdinalType;
     }
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
@@ -2254,8 +2254,8 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "bv" + Width;
     }
-    public override bool Equals(Type that) {
-      var bv = that.NormalizeExpand() as BitvectorType;
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      var bv = that.NormalizeExpand(keepConstraints) as BitvectorType;
       return bv != null && bv.Width == Width;
     }
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
@@ -2278,8 +2278,8 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "selftype";
     }
-    public override bool Equals(Type that) {
-      return that.NormalizeExpand() is SelfType;
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      return that.NormalizeExpand(keepConstraints) is SelfType;
     }
   }
 
@@ -2483,9 +2483,9 @@ namespace Microsoft.Dafny {
     }
     public override string CollectionTypeName { get { return finite ? "set" : "iset"; } }
     [Pure]
-    public override bool Equals(Type that) {
-      var t = that.NormalizeExpand() as SetType;
-      return t != null && Finite == t.Finite && Arg.Equals(t.Arg);
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      var t = that.NormalizeExpand(keepConstraints) as SetType;
+      return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints);
     }
     public override bool SupportsEquality {
       get {
@@ -2500,9 +2500,9 @@ namespace Microsoft.Dafny {
     public MultiSetType(Type arg) : base(arg) {
     }
     public override string CollectionTypeName { get { return "multiset"; } }
-    public override bool Equals(Type that) {
-      var t = that.NormalizeExpand() as MultiSetType;
-      return t != null && Arg.Equals(t.Arg);
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      var t = that.NormalizeExpand(keepConstraints) as MultiSetType;
+      return t != null && Arg.Equals(t.Arg, keepConstraints);
     }
     public override bool SupportsEquality {
       get {
@@ -2516,9 +2516,9 @@ namespace Microsoft.Dafny {
     public SeqType(Type arg) : base(arg) {
     }
     public override string CollectionTypeName { get { return "seq"; } }
-    public override bool Equals(Type that) {
-      var t = that.NormalizeExpand() as SeqType;
-      return t != null && Arg.Equals(t.Arg);
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      var t = that.NormalizeExpand(keepConstraints) as SeqType;
+      return t != null && Arg.Equals(t.Arg, keepConstraints);
     }
     public override bool SupportsEquality {
       get {
@@ -2558,9 +2558,9 @@ namespace Microsoft.Dafny {
       var targs = HasTypeArg() ? this.TypeArgsToString(context, parseAble) : "";
       return CollectionTypeName + targs;
     }
-    public override bool Equals(Type that) {
-      var t = that.NormalizeExpand() as MapType;
-      return t != null && Finite == t.Finite && Arg.Equals(t.Arg) && Range.Equals(t.Range);
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      var t = that.NormalizeExpand(keepConstraints) as MapType;
+      return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints) && Range.Equals(t.Range, keepConstraints);
     }
     public override bool SupportsEquality {
       get {
@@ -2779,23 +2779,23 @@ namespace Microsoft.Dafny {
       this.NamePath = ns;
     }
 
-    public override bool Equals(Type that) {
-      var i = NormalizeExpand();
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      var i = NormalizeExpand(keepConstraints);
       if (i is UserDefinedType) {
         var ii = (UserDefinedType)i;
-        var t = that.NormalizeExpand() as UserDefinedType;
+        var t = that.NormalizeExpand(keepConstraints) as UserDefinedType;
         if (t == null || ii.ResolvedParam != t.ResolvedParam || ii.ResolvedClass != t.ResolvedClass || ii.TypeArgs.Count != t.TypeArgs.Count) {
           return false;
         } else {
           for (int j = 0; j < ii.TypeArgs.Count; j++) {
-            if (!ii.TypeArgs[j].Equals(t.TypeArgs[j])) {
+            if (!ii.TypeArgs[j].Equals(t.TypeArgs[j],keepConstraints)) {
               return false;
             }
           }
           return true;
         }
       } else {
-        return i.Equals(that);
+        return i.Equals(that,keepConstraints);
       }
     }
 
@@ -3074,13 +3074,13 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override bool Equals(Type that) {
-      var i = NormalizeExpand();
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      var i = NormalizeExpand(keepConstraints);
       if (i is TypeProxy) {
-        var u = that.NormalizeExpand() as TypeProxy;
+        var u = that.NormalizeExpand(keepConstraints) as TypeProxy;
         return u != null && object.ReferenceEquals(i, u);
       } else {
-        return i.Equals(that);
+        return i.Equals(that,keepConstraints);
       }
     }
 
@@ -4814,8 +4814,8 @@ namespace Microsoft.Dafny {
 
         return "_increasingInt";
       }
-      public override bool Equals(Type that) {
-        return that.NormalizeExpand() is EverIncreasingType;
+      public override bool Equals(Type that, bool keepConstraints = false) {
+        return that.NormalizeExpand(keepConstraints) is EverIncreasingType;
       }
     }
 
@@ -9374,8 +9374,8 @@ namespace Microsoft.Dafny {
         Contract.Assert(parseAble == false);
         return "#module";
       }
-      public override bool Equals(Type that) {
-        return that.NormalizeExpand() is ResolverType_Module;
+      public override bool Equals(Type that, bool keepConstraints = false) {
+        return that.NormalizeExpand(keepConstraints) is ResolverType_Module;
       }
     }
     public class ResolverType_Type : ResolverType {
@@ -9384,8 +9384,8 @@ namespace Microsoft.Dafny {
         Contract.Assert(parseAble == false);
         return "#type";
       }
-      public override bool Equals(Type that) {
-        return that.NormalizeExpand() is ResolverType_Type;
+      public override bool Equals(Type that, bool keepConstraints = false) {
+        return that.NormalizeExpand(keepConstraints) is ResolverType_Type;
       }
     }
 
