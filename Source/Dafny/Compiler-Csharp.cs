@@ -277,7 +277,7 @@ namespace Microsoft.Dafny
       foreach (var member in iter.Members) {
         var f = member as Field;
         if (f != null && !f.IsGhost) {
-          cw.DeclareField(IdName(f), iter, false, false, f.Type, f.tok, DefaultValue(f.Type, w, f.tok, false, true), f);
+          cw.DeclareField(IdName(f), iter, false, false, f.Type, f.tok, DefaultValue(f.Type, w, f.tok, true), f);
         } else if (member is Constructor) {
           Contract.Assert(ct == null);  // we're expecting just one constructor
           ct = (Constructor)member;
@@ -1191,7 +1191,7 @@ namespace Microsoft.Dafny
           s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
         }
         var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs);
-        return string.Format($"{s}.Default({Util.Comma(relevantTypeArgs, ta => DefaultValue(ta.Actual, wr, tok, false, constructTypeParameterDefaultsFromTypeDescriptors))})");
+        return string.Format($"{s}.Default({Util.Comma(relevantTypeArgs, ta => DefaultValue(ta.Actual, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -1593,7 +1593,7 @@ namespace Microsoft.Dafny
       } else {
         wr.Write("Dafny.ArrayHelpers.InitNewArray{0}<{1}>", dimCount, TypeName(elmtType, wr, tok));
         wr.Write("(");
-        wr.Write(DefaultValue(elmtType, wr, tok, false, true));
+        wr.Write(DefaultValue(elmtType, wr, tok, true));
         for (var d = 0; d < dimCount; d++) {
           wr.Write(", ");
           var w = wr.Fork();

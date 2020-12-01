@@ -1725,7 +1725,7 @@ namespace Microsoft.Dafny{
       EmitDatatypeValue(dt, groundingCtor, null, dt is CoDatatypeDecl, arguments, wDefault);
 
       var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(dt.tok, dt, null), wr, dt.tok);
-      arguments = Util.Comma(usedTypeArgs, tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, false, true));
+      arguments = Util.Comma(usedTypeArgs, tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, true));
       EmitTypeMethod(dt, IdName(dt), dt.TypeArgs, usedTypeArgs, targetTypeName, $"Default({arguments})", wr);
 
       // create methods
@@ -3070,7 +3070,7 @@ namespace Microsoft.Dafny{
           return $"({s}{typeargs})null";
         }
         var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs);
-        return $"{s}.{typeargs}Default({Util.Comma(relevantTypeArgs, ta => DefaultValue(ta.Actual, wr, tok, false, constructTypeParameterDefaultsFromTypeDescriptors))})";
+        return $"{s}.{typeargs}Default({Util.Comma(relevantTypeArgs, ta => DefaultValue(ta.Actual, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})";
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException(); // unexpected type
@@ -3445,7 +3445,7 @@ namespace Microsoft.Dafny{
         wBareArray = wr.Fork();
         wr.Write(")");
         if (mustInitialize) {
-          wr.Write($".fillThenReturn({DefaultValue(elmtType, wr, tok, false, true)})");
+          wr.Write($".fillThenReturn({DefaultValue(elmtType, wr, tok, true)})");
         }
       } else {
         if (!elmtType.IsTypeParameter) {
@@ -3456,7 +3456,7 @@ namespace Microsoft.Dafny{
         }
         wBareArray = wr.Fork();
         if (mustInitialize) {
-          wr.Write($", {DefaultValue(elmtType, wr, tok, false, true)})");
+          wr.Write($", {DefaultValue(elmtType, wr, tok, true)})");
         }
       }
 

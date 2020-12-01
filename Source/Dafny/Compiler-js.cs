@@ -138,7 +138,7 @@ namespace Microsoft.Dafny {
       foreach (var member in iter.Members) {
         var f = member as Field;
         if (f != null && !f.IsGhost) {
-          DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok, false, true), instanceFieldsWriter);
+          DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok, true), instanceFieldsWriter);
         } else if (member is Constructor) {
           Contract.Assert(ct == null);  // we're expecting just one constructor
           ct = (Constructor)member;
@@ -493,7 +493,7 @@ namespace Microsoft.Dafny {
       using (var wRtd = wr.NewBlock(")")) {
         using (var wClass = wRtd.NewBlock("return class", ";")) {
           using (var wDefault = wClass.NewBlock("static get Default()")) {
-            var arguments = Util.Comma(UsedTypeParameters(dt), tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, false, true));
+            var arguments = Util.Comma(UsedTypeParameters(dt), tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, true));
             wDefault.WriteLine($"return {DtT_protected}.Default({arguments});");
           }
         }
@@ -948,7 +948,7 @@ namespace Microsoft.Dafny {
         var dt = (DatatypeDecl)cl;
         var s = dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt);
         var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
-        return string.Format($"{s}.Default({Util.Comma(relevantTypeArgs, arg => DefaultValue(arg, wr, tok, false, constructTypeParameterDefaultsFromTypeDescriptors))})");
+        return string.Format($"{s}.Default({Util.Comma(relevantTypeArgs, arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -1187,7 +1187,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr) {
-      var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok, false, true) : null;
+      var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok, true) : null;
       if (dimensions.Count == 1) {
         // handle the common case of 1-dimensional arrays separately
         wr.Write("Array(");

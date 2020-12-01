@@ -2454,16 +2454,15 @@ namespace Microsoft.Dafny {
       return dv;
     }
 
-    protected string DefaultValue(Type type, TextWriter wr, Bpl.IToken tok, bool inAutoInitContext = false, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
+    protected string DefaultValue(Type type, TextWriter wr, Bpl.IToken tok, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
       Contract.Requires(type != null);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      bool valueSkeletonOnly = inAutoInitContext && !InitializerIsKnown(type);
       bool hs, hz, ik;
       string dv;
-      TypeInitialization(type, this, wr, tok, out hs, out hz, out ik, out dv, valueSkeletonOnly, constructTypeParameterDefaultsFromTypeDescriptors);
+      TypeInitialization(type, this, wr, tok, out hs, out hz, out ik, out dv, false, constructTypeParameterDefaultsFromTypeDescriptors);
       return dv;
     }
 
@@ -4136,7 +4135,7 @@ namespace Microsoft.Dafny {
         // only emit non-ghosts (we get here only for local variables introduced implicitly by call statements)
         return;
       }
-      DeclareLocalVar(IdName(v), v.Type, v.Tok, false, alwaysInitialize ? DefaultValue(v.Type, wr, v.Tok, false, true) : null, wr);
+      DeclareLocalVar(IdName(v), v.Type, v.Tok, false, alwaysInitialize ? DefaultValue(v.Type, wr, v.Tok, true) : null, wr);
     }
 
     TargetWriter MatchCasePrelude(string source, UserDefinedType sourceType, DatatypeCtor ctor, List<BoundVar> arguments, int caseIndex, int caseCount, TargetWriter wr) {
@@ -4541,7 +4540,7 @@ namespace Microsoft.Dafny {
           } else {
             var w = CreateIIFE1(0, e.Body.Type, e.Body.tok, "_let_dummy_" + GetUniqueAstNumber(e), wr);
             foreach (var bv in e.BoundVars) {
-              DeclareLocalVar(IdName(bv), bv.Type, bv.tok, false, DefaultValue(bv.Type, wr, bv.tok, false, true), w);
+              DeclareLocalVar(IdName(bv), bv.Type, bv.tok, false, DefaultValue(bv.Type, wr, bv.tok, true), w);
             }
             TrAssignSuchThat(new List<IVariable>(e.BoundVars).ConvertAll(bv => (IVariable)bv), e.RHSs[0], e.Constraint_Bounds, e.tok.line, w, inLetExprBody);
             EmitReturnExpr(e.Body, e.Body.Type, true, w);

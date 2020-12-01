@@ -409,7 +409,7 @@ namespace Microsoft.Dafny {
       Constructor ct = null;
       foreach (var member in iter.Members) {
         if (member is Field f && !f.IsGhost) {
-          cw.DeclareField(IdName(f), iter, false, false, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok, false, true), f);
+          cw.DeclareField(IdName(f), iter, false, false, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok, true), f);
         } else if (member is Constructor c) {
           Contract.Assert(ct == null);
           ct = c;
@@ -843,7 +843,7 @@ namespace Microsoft.Dafny {
 
         WriteRuntimeTypeDescriptorsLocals(usedTypeParams, true, wDefault);
 
-        var arguments = Util.Comma(UsedTypeParameters(dt), tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, false, true));
+        var arguments = Util.Comma(UsedTypeParameters(dt), tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, true));
         wDefault.WriteLine($"return {TypeName_Companion(dt, wr, dt.tok)}.Default({arguments});");
       }
 
@@ -1492,7 +1492,7 @@ namespace Microsoft.Dafny {
         }
         var n = dt is TupleTypeDecl ? "_dafny.TupleOf" : $"{TypeName_Companion(dt, wr, tok)}.Default";
         var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs);
-        return $"{n}({Util.Comma(relevantTypeArgs, ta => DefaultValue(ta.Actual, wr, tok, false, constructTypeParameterDefaultsFromTypeDescriptors))})";
+        return $"{n}({Util.Comma(relevantTypeArgs, ta => DefaultValue(ta.Actual, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -1906,7 +1906,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr) {
-      var initValue = DefaultValue(elmtType, wr, tok, false, true);
+      var initValue = DefaultValue(elmtType, wr, tok, true);
 
       string sep;
       if (!mustInitialize) {
