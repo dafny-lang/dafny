@@ -948,7 +948,7 @@ namespace Microsoft.Dafny {
         var dt = (DatatypeDecl)cl;
         var s = dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt);
         var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
-        return string.Format($"{s}.Default({Util.Comma(relevantTypeArgs, arg => DefaultValue(arg, wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors))})");
+        return string.Format($"{s}.Default({Util.Comma(relevantTypeArgs, arg => DefaultValue(arg, wr, tok, false, constructTypeParameterDefaultsFromTypeDescriptors))})");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }

@@ -1492,7 +1492,7 @@ namespace Microsoft.Dafny {
         }
         var n = dt is TupleTypeDecl ? "_dafny.TupleOf" : $"{TypeName_Companion(dt, wr, tok)}.Default";
         var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs);
-        return $"{n}({Util.Comma(relevantTypeArgs, ta => DefaultValue(ta.Actual, wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors))})";
+        return $"{n}({Util.Comma(relevantTypeArgs, ta => DefaultValue(ta.Actual, wr, tok, false, constructTypeParameterDefaultsFromTypeDescriptors))})";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }

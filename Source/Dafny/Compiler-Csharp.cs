@@ -1191,7 +1191,7 @@ namespace Microsoft.Dafny
           s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
         }
         var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs);
-        return string.Format($"{s}.Default({Util.Comma(relevantTypeArgs, ta => DefaultValue(ta.Actual, wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors))})");
+        return string.Format($"{s}.Default({Util.Comma(relevantTypeArgs, ta => DefaultValue(ta.Actual, wr, tok, false, constructTypeParameterDefaultsFromTypeDescriptors))})");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }

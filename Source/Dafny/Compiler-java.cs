@@ -3070,7 +3070,7 @@ namespace Microsoft.Dafny{
           return $"({s}{typeargs})null";
         }
         var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs);
-        return $"{s}.{typeargs}Default({Util.Comma(relevantTypeArgs, ta => DefaultValue(ta.Actual, wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors))})";
+        return $"{s}.{typeargs}Default({Util.Comma(relevantTypeArgs, ta => DefaultValue(ta.Actual, wr, tok, false, constructTypeParameterDefaultsFromTypeDescriptors))})";
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException(); // unexpected type
