@@ -1599,14 +1599,14 @@ namespace Microsoft.Dafny
                   if (d is TypeSynonymDecl && !(d is SubsetTypeDecl)) {
                     ddd = (d as TypeSynonymDecl).Rhs.NormalizeExpand(true);
                     if (ddd is UserDefinedType) {
-                      dd = (ddd as UserDefinedType).AsRedirectingType as TopLevelDecl;
+                      dd = (ddd as UserDefinedType).AsRevealableType as TopLevelDecl;
                       ddd = null;
                     }
                   }
                   if (kk is TypeSynonymDecl && !(kk is SubsetTypeDecl)) {
                     kkk = (kk as TypeSynonymDecl).Rhs.NormalizeExpand(true);
                     if (kkk is UserDefinedType) {
-                      kk = (kkk as UserDefinedType).AsRedirectingType as TopLevelDecl;
+                      kk = (kkk as UserDefinedType).AsRevealableType as TopLevelDecl;
                       kkk = null;
                     }
                   }
