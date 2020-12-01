@@ -1399,7 +1399,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext, bool constructTypeParameterDefaultsFromTypeDescriptors) {
+    public override string TypeInitializationValue(Type type, TextWriter wr /*?*/, Bpl.IToken tok /*?*/, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       // When returning nil, explicitly cast the nil so that type assertions work
       string nil() {
         return string.Format("({0})(nil)", TypeName(type, wr, tok));
@@ -1429,12 +1429,12 @@ namespace Microsoft.Dafny {
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
+        if (usePlaceboValue && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
           return nil();
         } else if (constructTypeParameterDefaultsFromTypeDescriptors) {
           var w = new TargetWriter(0, true);
           w = EmitCoercionIfNecessary(from:null, to:xType, tok:tok, wr:w);
-          w.Write(TypeDescriptor(udt, wr, udt.tok, inAutoInitContext));
+          w.Write(TypeDescriptor(udt, wr, udt.tok));
           w.Write(".Default()");
           return w.ToString();
         } else {
@@ -1450,7 +1450,7 @@ namespace Microsoft.Dafny {
         } else if (td.NativeType != null) {
           return GetNativeTypeName(td.NativeType) + "(0)";
         } else {
-          return TypeInitializationValue(td.BaseType, wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors);
+          return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
@@ -1462,7 +1462,7 @@ namespace Microsoft.Dafny {
           if (ArrowType.IsPartialArrowTypeName(td.Name)) {
             return nil();
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
-            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors);
+            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
             return string.Format("func ({0}) {1} {{ return {2}; }}", Util.Comma(udt.TypeArgs.GetRange(0, udt.TypeArgs.Count-1), tp => TypeName(tp, wr, tok)), TypeName(udt.TypeArgs.Last(), wr, tok), rangeDefaultValue);
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl arrayClass) {
@@ -1472,7 +1472,7 @@ namespace Microsoft.Dafny {
             return nil();
           }
         } else {
-          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors);
+          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is ClassDecl) {
         bool isHandle = true;
@@ -1487,7 +1487,7 @@ namespace Microsoft.Dafny {
         // access to all the type descriptors, so we can't construct the
         // default value, but then an empty structure is an acceptable default, since
         // Dafny proves the value won't be accessed.
-        if (inAutoInitContext) {
+        if (usePlaceboValue) {
           return string.Format("{0}{{}}", TypeName(udt, wr, tok));
         }
         var n = dt is TupleTypeDecl ? "_dafny.TupleOf" : $"{TypeName_Companion(dt, wr, tok)}.Default";

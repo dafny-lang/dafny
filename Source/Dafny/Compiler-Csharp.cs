@@ -1099,10 +1099,10 @@ namespace Microsoft.Dafny
       return "object";
     }
 
-    public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext, bool constructTypeParameterDefaultsFromTypeDescriptors) {
+    public override string TypeInitializationValue(Type type, TextWriter wr /*?*/, Bpl.IToken tok /*?*/, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       var xType = type.NormalizeExpandKeepConstraints();
 
-      if (inAutoInitContext) {
+      if (usePlaceboValue) {
         return $"default({TypeName(type, wr, tok)})";
       }
 
@@ -1138,7 +1138,7 @@ namespace Microsoft.Dafny
         } else if (td.NativeType != null) {
           return "0";
         } else {
-          return TypeInitializationValue(td.BaseType, wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors);
+          return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
@@ -1150,7 +1150,7 @@ namespace Microsoft.Dafny
           if (ArrowType.IsPartialArrowTypeName(td.Name)) {
             return string.Format("(({0})null)", TypeName(xType, wr, udt.tok));
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
-            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors);
+            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
             return string.Format("(({0}) => {1})",
               Util.Comma(udt.TypeArgs.Count - 1, i => string.Format("{0} x{1}", TypeName(udt.TypeArgs[i], wr, udt.tok), i)),
@@ -1168,7 +1168,7 @@ namespace Microsoft.Dafny
             return string.Format("default({0})", TypeName(xType, wr, udt.tok));
           }
         } else {
-          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors);
+          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is ClassDecl) {
         bool isHandle = true;

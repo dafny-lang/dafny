@@ -2959,7 +2959,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    public override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool inAutoInitContext, bool constructTypeParameterDefaultsFromTypeDescriptors) {
+    public override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is BoolType) {
         return "false";
@@ -2987,7 +2987,7 @@ namespace Microsoft.Dafny{
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
+        if (usePlaceboValue && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
           return "null";
         } else if (constructTypeParameterDefaultsFromTypeDescriptors) {
           return $"{FormatTypeDescriptorVariable(udt.ResolvedParam.CompileName)}.defaultValue()";
@@ -3004,7 +3004,7 @@ namespace Microsoft.Dafny{
         } else if (td.NativeType != null) {
           return GetNativeDefault(td.NativeType);
         } else {
-          return TypeInitializationValue(td.BaseType, wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors);
+          return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
@@ -3016,7 +3016,7 @@ namespace Microsoft.Dafny{
           if (ArrowType.IsPartialArrowTypeName(td.Name)) {
             return $"(({BoxedTypeName(xType, wr, udt.tok)}) null)";
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
-            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors);
+            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) -> rangeDefaultValue)
             return $"(({Util.Comma(udt.TypeArgs.Count - 1, i => $"{BoxedTypeName(udt.TypeArgs[i], wr, udt.tok)} x{i}")}) -> {rangeDefaultValue})";
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
@@ -3047,7 +3047,7 @@ namespace Microsoft.Dafny{
             return "null";
           }
         } else {
-          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors);
+          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is ClassDecl) {
         bool isHandle = true;
@@ -3066,7 +3066,7 @@ namespace Microsoft.Dafny{
         // access to all the type descriptors, so we can't construct the
         // default value, but then null is an acceptable default, since
         // Dafny proves the value won't be accessed.
-        if (inAutoInitContext) {
+        if (usePlaceboValue) {
           return $"({s}{typeargs})null";
         }
         var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs);
