@@ -1020,7 +1020,7 @@ namespace Microsoft.Dafny {
         new List<TypeArgumentInstantiation>(), enclosingClass.ParentFormalTypeParametersToActuals, instantiatedFieldType);
         var wRHS = lvalue.EmitWrite(FieldInitWriter(false));
         Compiler.EmitCoercionIfNecessary(instantiatedFieldType, field.Type, tok, wRHS);
-        wRHS.Write(Compiler.DefaultValue(instantiatedFieldType, ErrorWriter(), tok, true));
+        wRHS.Write(Compiler.PlaceboValue(instantiatedFieldType, ErrorWriter(), tok));
       }
 
       public TextWriter/*?*/ ErrorWriter() => ConcreteMethodWriter;
@@ -1630,7 +1630,7 @@ namespace Microsoft.Dafny {
         wr.WriteLine("{0} {1}", name, TypeName(type, initWriter, tok));
 
         if (isStatic) {
-          initWriter.WriteLine("{0}: {1},", name, rhs ?? DefaultValue(type, initWriter, tok, true));
+          initWriter.WriteLine("{0}: {1},", name, rhs ?? PlaceboValue(type, initWriter, tok));
         } else if (rhs != null) {
           initWriter.WriteLine("_this.{0} = {1}", name, rhs);
         }
