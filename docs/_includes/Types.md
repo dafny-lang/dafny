@@ -456,17 +456,34 @@ GenericParameters =
   "<" TypeVariableName [ "(" "==" ")" ]
   { "," TypeVariableName [ "(" "==" ")" ] } ">"
 ````
-Many of the types (as well as functions and methods) in Dafny can be
+Many of the types, functions, and methods in Dafny can be
 parameterized by types.  These _type parameters_ are typically
 declared inside angle brackets and can stand for any type.
 
-It is sometimes necessary to restrict these type parameters so that
-they can only be instantiated by certain families of types.  As such,
-Dafny distinguishes types that support the equality operation
-in compiled contexts.  To indicate
-that a type parameter is restricted to such _equality supporting_
-types, the name of the type parameter takes the suffix
-"`(==)`".[^fn-type-mode]  For example,
+Dafny has some inference support that makes certain signatures less
+cluttered (described in Section [Type Inference](#sec-type-inference)).
+
+## Declaring restrictions on type parameters
+
+It is sometimes necessary to restrict type parameters so that
+they can only be instantiated by certain families of types, that is,
+by types that have certain properties. The following subsections
+describe the restrictions Dafny supports.
+
+In some cases, type inference will infer that a type-parameter
+must be restricted in a particular way, in which case Dafny
+will add the appropriate suffix, such as `(==)`, automatically.
+
+### Equality-supporting type parameters: `T(==)`
+
+Designating a type parameter with the `(==)` suffix indicates that
+the parameter may only be replaced in non-ghost contexts
+with types that are known to
+support run-time equality comparisons (`==` and `!=`).
+All types support equality in ghost contexts,
+as if, for some types, the equality function is ghost.
+
+For example,
 ```dafny
 method Compare<T(==)>(a: T, b: T) returns (eq: bool)
 {
@@ -474,31 +491,74 @@ method Compare<T(==)>(a: T, b: T) returns (eq: bool)
 }
 ```
 is a method whose type parameter is restricted to equality-supporting
-types.  Again, note that _all_ types support equality in _ghost_
+types when used in a non-ghost context.
+Again, note that _all_ types support equality in _ghost_
 contexts; the difference is only for non-ghost (that is, compiled)
-code.  Co-inductive datatypes, function types, as well as inductive
+code.  Co-inductive datatypes, function types, and inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
-TO BE WRITTEN: There are now more such modes
+### Auto-initializable types: `T(0)`
 
-[^fn-type-mode]:  Being equality-supporting is just one of many
-    _modes_ that one can imagine types in a rich type system to have.
-    For example, other modes could include having a total order,
-    being zero-initializable, and possibly being uninhabited.  If
-    Dafny were to support more modes in the future, the `( )`-suffix
-    syntax may be extended.  For now, the suffix can only indicate the
-    equality-supporting mode.
+All Dafny variables of a given type hold a legal value of that type;
+if no explicit initialization is given, then an arbitrary value is
+assumed by the verifier and supplied by the compiler,
+ that is, the variable is _auto-initialized_.
+During verification, this means that any subsequent uses of that
+variable must hold for any value.
+For example,
+```dafny
+method m() {
+  var n: nat; // Initialized to arbitrary value
+  assert n >= 0; // true, regardless of the value of n
+  var i: int;
+  assert i >= 0; // possibly false, arbitrary ints may be negative
+}
+```
 
-Dafny has some inference support that makes certain signatures less
-cluttered (described in [Section Type Inference](#sec-type-inference)).
-In some cases, this support will
-infer that a type parameter must be restricted to equality-supporting
-types, in which case Dafny adds the "`(==)`" automatically.
+For some types, the compiler can choose an initial value, but for others
+it does not.
+Variables and fields of a type that the compiler does not auto-initialize
+are subject to _definite-assignment_ rules. These ensure that the program
+explicitly assigns a value to a variable before it is used.
+For more details see the section describing [Definite Assignment](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
 
-TO BE WRITTEN: Type parameter variance with + - = * ! default
+The `(0)` suffix indicates that the type must be one that the compiler knows
+how to auto-initialize, if the type is used to declare a non-ghost variable.
 
-TO BE WRITTEN: Type parameter characteristics: == 0 !new
+### Non-heap based: `T(!new)`
+
+Dafny makes a distinction between types whose values are on the heap,
+i.e. references, like
+classes and arrays, and those that are strictly value-based, like basic
+types and datatypes.
+The practical implication is that references depend on allocation state
+(e.g. are affected by the `old` operation) whereas non-reference values
+are not.
+Thus it can be relevant to know whether the values of a type parameter
+are heap-based or not. This is indicated by the mode suffix `(!new)`.
+
+A type parameter characterized by `(!new)` is _recursively_ independent
+of the allocation state. For example, a datatype is not a reference, but for
+a parameterized data type such as
+```dafny
+dataype Result<T> = Failure(error: string) | Success(value: T)
+```
+the instantiation `Result<int>` satisifies `(!new)`, whereas
+`Result<array<int>>` does not.
+
+Note that this characteristic of a type parameter is operative for both
+verification and compilation.
+Also, opaque types at the topmost scope are always implicitly `(!new)`.
+
+Here are some examples:
+```dafny
+{% include Example-TP.dfy %}
+```
+
+## Type parameter variance
+
+TO BE WRITTEN: Type parameter variance
 
 # Generic Instantiation
 ````grammar
