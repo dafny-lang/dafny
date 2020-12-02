@@ -456,7 +456,7 @@ GenericParameters =
   "<" TypeVariableName [ "(" "==" ")" ]
   { "," TypeVariableName [ "(" "==" ")" ] } ">"
 ````
-Many of the types, functions and methods in Dafny can be
+Many of the types, functions, and methods in Dafny can be
 parameterized by types.  These _type parameters_ are typically
 declared inside angle brackets and can stand for any type.
 
@@ -516,10 +516,12 @@ method m() {
 }
 ```
 
-However, by default, non-ghost computations must follow definite-assignment
-rules, in which case local variables must be assigned a value before use.
 For some types, the compiler can choose an initial value, but for others
-it does not; for more details see the section describing [Definite Assignment](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
+it does not.
+Variables and fields of a type that the compiler does not auto-initialize
+are subject to _definite-assignment_ rules. These ensure that the program
+explicitly assigns a value to a variable before it is used.
+For more details see the section describing [Definite Assignment](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
 
 The `(0)` suffix indicates that the type must be one that the compiler knows
 how to auto-initialize, if the type is used to declare a non-ghost variable.
@@ -537,7 +539,7 @@ Thus it can be relevant to know whether the values of a type parameter
 are heap-based or not. This is indicated by the mode suffix `(!new)`.
 
 A type parameter characterized by `(!new)` is _recursively_ independent
-of the allocation state. For example a datatype is not a reference, but for
+of the allocation state. For example, a datatype is not a reference, but for
 a parameterized data type such as
 ```dafny
 dataype Result<T> = Failure(error: string) | Success(value: T)
