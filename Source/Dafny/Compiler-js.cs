@@ -905,7 +905,7 @@ namespace Microsoft.Dafny {
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
-        if (td.Witness != null) {
+        if (td.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
           return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Default";
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
           // WKind.Special is only used with -->, ->, and non-null types:

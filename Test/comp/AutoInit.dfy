@@ -67,6 +67,7 @@ method Main() {
   NilRegression.Test();
   DatatypeDefaultValues.Test();
   ImportedTypes.Test();
+  GhostWitness.Test();
 }
 
 datatype ThisOrThat<A,B> = This(A) | Or | That(B)
@@ -285,5 +286,44 @@ module ImportedTypes {
   method Try<A(0)>(a: A) {
     var x: A;
     print a, " and ", x, "\n";
+  }
+}
+
+module GhostWitness {
+  type EffectlessArrow<!A(!new),B> = f: A ~> B
+    | forall a :: f.reads(a) == {}
+    ghost witness GhostEffectlessArrowWitness<A,B>
+
+  function GhostEffectlessArrowWitness<A,B>(a: A): B
+  {
+    var b: B :| true; b
+  }
+
+  codatatype Forever = More(Forever)
+
+  class MyClass { }
+
+  predicate Total<A(!new),B>(f: A ~> B)  // (is this (!new) really necessary?)
+    reads f.reads
+  {
+    forall a :: f.reads(a) == {} && f.requires(a)
+  }
+
+  type TotalArrow<!A,B> = f: EffectlessArrow<A,B>
+    | Total(f)
+    ghost witness TotalWitness<A,B>
+
+  function TotalWitness<A,B>(a: A): B
+  {
+    var b: B :| true; b
+  }
+
+  method Test() {
+    var g: EffectlessArrow<int, int>;
+    var f: TotalArrow<int, int>;
+    f := y => y + 2;
+    g := f;
+    var x := g(4) + f(5);
+    print x, "\n";
   }
 }
