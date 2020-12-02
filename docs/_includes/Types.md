@@ -453,8 +453,12 @@ when used as a parameter of a `print` statement.
 
 ````grammar
 GenericParameters =
-  "<" TypeVariableName [ "(" "==" ")" ]
-  { "," TypeVariableName [ "(" "==" ")" ] } ">"
+  "<" TypeVariableName [ TPChars ]
+  { "," TypeVariableName [ TPChars ] } ">"
+
+TPChars = "(" TPCharOption { "," TPCharOption } ")"
+
+TPCharOption = ( "==" | "0" | "!" "new )
 ````
 Many of the types, functions, and methods in Dafny can be
 parameterized by types.  These _type parameters_ are typically
@@ -463,7 +467,7 @@ declared inside angle brackets and can stand for any type.
 Dafny has some inference support that makes certain signatures less
 cluttered (described in Section [Type Inference](#sec-type-inference)).
 
-## Declaring restrictions on type parameters
+## Declaring restrictions on type parameters {#sec-type-parameter-restrictions}
 
 It is sometimes necessary to restrict type parameters so that
 they can only be instantiated by certain families of types, that is,
@@ -473,6 +477,9 @@ describe the restrictions Dafny supports.
 In some cases, type inference will infer that a type-parameter
 must be restricted in a particular way, in which case Dafny
 will add the appropriate suffix, such as `(==)`, automatically.
+
+If more than one restriction is needed, they are listed, comma-separated,
+inside the parentheses, like this: `T(==,0)`.
 
 ### Equality-supporting type parameters: `T(==)`
 
@@ -992,7 +999,7 @@ type abstractly. Synonym and opaque types serve this purpose.
 ## Type synonyms
 ````grammar
 SynonymTypeDefinition_ =
-  "type" { Attribute } SynonymTypeName [ GenericParameters ]
+  "type" { Attribute } SynonymTypeName [ TPChars ] [ GenericParameters ]
    "=" Type
 ````
 
@@ -1022,10 +1029,14 @@ follows:
 type string = seq<char>
 ```
 
+The optional type parameter characteristics are described in the
+section on [type parameter restrictions](#sec-type-parameter-restrictions)
+
+
 ## Opaque types
 ````grammar
 OpaqueTypeDefinition_ = "type" { Attribute } SynonymTypeName
-  [ "(" "==" ")" ] [ GenericParameters ]
+  [ TPChars ] [ GenericParameters ]
 ````
 
 A special case of a type synonym is one that is underspecified.  Such
@@ -1049,6 +1060,9 @@ arbitrary type `T`.  As another example,
 type Monad<T>
 ```
 can be used abstractly to represent an arbitrary parameterized monad.
+
+The optional type parameter characteristics are described in the
+section on [type parameter restrictions](#sec-type-parameter-restrictions)
 
 
 # Class Types
