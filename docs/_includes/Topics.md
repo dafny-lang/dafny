@@ -786,7 +786,7 @@ each lemma, the bodies of the given extreme lemmas `EvenNat` and
 `Always` can be empty and Dafny still completes the proofs.
 Folks, it doesn't get any simpler than that!
 
-## Variable Initialization and Definite Assignment
+## Variable Initialization and Definite Assignment {#sec-definite-assignment}
 
 TO BE WRITTEN -- rules for default initialization; resulting rules for constructors; definite assignment rules
 
