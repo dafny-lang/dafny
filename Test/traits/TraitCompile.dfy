@@ -92,6 +92,8 @@ method Main()
 
   NonCapturingFunctionCoercions.Test();
   TailRecursion.Test();
+
+  ObjectEquality.Test();
 }
 
 module OtherModule {
@@ -394,6 +396,8 @@ module TraitsExtendingTraits {
      \  /  /
       \ | /
         G
+
+   In addition, for further testing, M, C, and G list "object" in the "extends" clause.
    */
 
   trait A<Y0, Y1> {
@@ -417,7 +421,7 @@ module TraitsExtendingTraits {
     method Quantity() returns (x: int)
     method Twice() returns (x: int)
   }
-  trait C {
+  trait C extends object {
   }
 
   trait K<Y> extends A<Y, Odd> {
@@ -429,7 +433,7 @@ module TraitsExtendingTraits {
     }
   }
 
-  trait M extends B {
+  trait M extends B, object {
     method Quantity() returns (x: int)
       ensures 0 <= x <= 20
     {
@@ -443,7 +447,7 @@ module TraitsExtendingTraits {
     }
   }
 
-  class G<X> extends K<X>, K<X>, M, N, C {
+  class G<X> extends K<X>, K<X>, M, object, N, C {
     constructor (x: X) {
       y0 := x;
     }
@@ -456,6 +460,7 @@ module TraitsExtendingTraits {
     var m: M := g;
     var n: N := g;
     var bg: B := g;
+    var a: A := g;
     g.b := true;
     assert g.b && m.b && n.b && bg.b;
     print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // true true true true
@@ -472,6 +477,8 @@ module TraitsExtendingTraits {
     print g.GetY(), " ", g.GetY'(), "\n"; // 5.2 5.2
     g.SetY(1.2);
     print g.GetY(), " ", g.GetY'(), "\n";  // 1.2 1.2
+    var a0, a1 := a.GetY(), a.GetY'();
+    print a0, " ", a1, "\n";  // 1.2 1.2
 
     var q := g.Quantity();
     assert 0 <= q <= 20;
@@ -735,5 +742,61 @@ module TailRecursion {
     var y := c.Compute(15, 1_000_000);
     var z := c.Compute(15, 999_999);
     print x, " ", y, " ", z, "\n";  // 41 15 26
+  }
+}
+
+module ObjectEquality {
+  method Test() {
+    TestReferenceEquality();
+    NotTheSame();
+    TestSequences();
+  }
+
+  trait A { }
+
+  trait B extends A { }
+
+  class C extends B { }
+  class D extends B { }
+
+  method TestReferenceEquality() {
+    var c: C := new C;
+    var b: B := c;
+    var a0: A := c;
+    var a1: A := c;
+
+    print a0 == a1, " ", Eq(a0, a1), "\n";
+    print a0 == c, " ", Eq(a0, c), "\n";
+    print b == c, " ", Eq(b, c), "\n";
+    print b == a0, " ", Eq(b, a0), "\n";
+  }
+
+  predicate method Eq<U(==)>(u: U, v: U) {
+    u == v
+  }
+
+  method NotTheSame() {
+    var c: C, d: D := new C, new D;
+    var oc: object, od: object := c, d;
+
+    print oc != od, " ", !Eq(oc, od), " ", !Eq(c, d), "\n";
+
+    var ac: A, ad: A := c, d;
+    print ac != ad, " ", !Eq(ac, ad), " ", !Eq(ac, ad), "\n";
+  }
+
+  method TestSequences() {
+    /** TODO: Include this when all compilers support seq<TRAIT>
+    var c: C := new C;
+    var b: B := c;
+    var a: A := c;
+
+    var s: seq<A> := [a];
+    var t: seq<B> := [b];
+    var u: seq<C> := [c];
+
+    print s == t, " ", t == u, " ", u == s, "\n";
+    print s[0] == t[0], " ", t[0] == u[0], " ", u[0] == s[0], "\n";
+    **/
   }
 }

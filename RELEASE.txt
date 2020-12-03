@@ -1,0 +1,32 @@
+
+This is the procedure for generating a new Dafny release.
+
+0) Write release notes about changes since the last release.
+
+1) In an up-to-date repository, with the master branch checked out,
+   cd to the repo root (i.e., dafny, which contains Source, Binaries, etc.)
+
+2) Select a version number (descriptor) $VER (e.g., "3.0.0-alpha")
+   Edit it into Source/version.cs
+   Commit and merge this change into the master branch
+
+3) Run 'package.py "$VER"' (in a Linux or Mac system)
+   Warnings about missing pdb files can be ignored.
+
+4) Commit and push the new version of DafnyRef.pdf and possibly Options.txt
+   (.../dafny/docs/DafnyRef/out/DafnyRef.pdf .../dafny/docs/_includes/Options.txt)
+   This version of DafnyRef.pdf is also included in the release zip files.
+
+5) Create a new release: On 'https://github.com/dafny-lang/dafny/releases'
+   click 'Draft a new release'
+
+6) Fill in a tag ('v' followed by release name), the release name,
+the release notes. For example:
+   release descriptor: 3.0.0-alpha
+   release tag:        v3.0.0-alpha
+   release name:       Dafny 3.0.0 alpha
+
+7) Add all the .zip files created by step 3 in the Package folder.
+
+8) Publish the release (by clicking the button at the bottom of the page)
+   and announce it to the world.

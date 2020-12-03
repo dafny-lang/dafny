@@ -15,14 +15,14 @@ namespace Microsoft.Dafny {
     }
 
     public static string Comma<T>(IEnumerable<T> l, Func<T, string> f) {
-      return Comma(",", l, f);
+      return Comma(", ", l, f);
     }
 
-    public static string Comma<T>(string comma, IEnumerable<T> l, Func<T,string> f) {
+    public static string Comma<T>(string comma, IEnumerable<T> l, Func<T, string> f) {
       Contract.Requires(comma != null);
       string res = "";
       string c = "";
-      foreach(var t in l) {
+      foreach (var t in l) {
         res += c + f(t);
         c = comma;
       }
@@ -31,7 +31,7 @@ namespace Microsoft.Dafny {
 
     public static string Comma(int count, Func<int, string> f) {
       Contract.Requires(0 <= count);
-      return Comma(",", count, f);
+      return Comma(", ", count, f);
     }
 
     public static string Comma(string comma, int count, Func<int, string> f) {
@@ -89,7 +89,7 @@ namespace Microsoft.Dafny {
     }
 
     public static Dictionary<A,B> Dict<A,B>(IEnumerable<A> xs, IEnumerable<B> ys) {
-      return Dict<A,B>(xs.Zip(ys));
+      return Dict<A,B>(LinqExtender.Zip(xs, ys));
     }
 
     public static Dictionary<A,B> Dict<A,B>(IEnumerable<Tuple<A,B>> xys) {

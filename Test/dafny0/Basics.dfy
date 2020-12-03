@@ -611,3 +611,25 @@ module LetStmtHasMutableVariables {
     assert x == 17 && y == 16;
   }
 }
+
+// ------------- div/mod for bounded integer sizes with asymmetric ranges
+
+module DivModBounded {
+  newtype int8 = x | -0x80 <= x < 0x80
+
+  method TooBigDiv(a: int8) {
+    if
+    case true =>
+      var x := a / -1;  // error: result may not be an int8 (if a is -128)
+    case true =>
+      var y := a % -1;  // fine
+    case a != 0 =>
+      var z := -1 % a;  // fine
+  }
+
+  method Good(a: int8)
+    requires a != -127-1
+  {
+    var x := a / -1;  // fine
+  }
+}

@@ -1,0 +1,2 @@
+git-issue-324.dfy(23,16): Error: The abstract import named Impl1 (using :) may only be used in an abstract module declaration
+1 resolution/type errors detected in git-issue-324.dfy

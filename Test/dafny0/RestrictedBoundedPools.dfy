@@ -123,7 +123,7 @@ module Functions_RestrictionsApply {
     forall xs: List<H> :: R(xs)  // error: may involved allocation state
   }
 
-  predicate M5'<H(==)>(S: set<List<H>>)
+  predicate M5'<H>(S: set<List<H>>)
   {
     forall xs: List<H> :: xs in S ==> R(xs)  // fine
   }
@@ -261,5 +261,14 @@ module Allocated1 {
   twostate function TS3(c: Cell, new d: Cell): bool
   {
     fresh(d)  // this value depends on the pre-state, but it's allowed in any case because the pre-state is non-variant in the frame axiom
+  }
+}
+
+module FiniteBecauseOfType {
+  method M() {
+    ghost var s := set x: int | true :: false;  // this denotes a finite set, because the argument type is bool
+    ghost var m := map x: int | true :: true := 6;  // this denotes a finite map, because the key type is bool
+    var s'; s' := set x: int | true :: false;  // error: although this is a finite set, it's not clear it can be computed in finite time
+    var m'; m' := map x: int | true :: true := 6;  // error: ditto
   }
 }

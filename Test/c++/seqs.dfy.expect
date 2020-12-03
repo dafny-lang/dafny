@@ -1,0 +1,15 @@
+
+Dafny program verifier finished with 11 verified, 0 errors
+Head second:2
+Trunc first:2
+Head trunc: This is expected
+Combine: This is expected
+Replace1: This is expected
+Replace2: This is expected
+Immutability: This is expected
+ValueEquality: This is expected
+Membership 1: This is expected
+Membership 2: This is expected
+Membership 3: This is expected
+Membership 3 value equality: This is expected
+Hello world!

@@ -75,7 +75,7 @@ namespace Microsoft.Dafny
         Console.WriteLine("Press Enter to exit.");
         Console.ReadLine();
       }
-      if (!DafnyOptions.O.CountVerificationErrors && exitValue != ExitValue.PREPROCESSING_ERROR)
+      if (!DafnyOptions.O.CountVerificationErrors)
       {
         return 0;
       }
@@ -190,6 +190,14 @@ namespace Microsoft.Dafny
               extension == null ? "" : extension);
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
+        } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Cpp) {
+          if (extension == ".h") {
+            otherFiles.Add(file);
+          } else if (!isDafnyFile) {
+            ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or C headers (.h)", file,
+              extension == null ? "" : extension);
+            return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+          }
         } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Php) {
           if (extension == ".php") {
             otherFiles.Add(file);
@@ -255,7 +263,7 @@ namespace Microsoft.Dafny
       }
 
       Dafny.Program dafnyProgram;
-      string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the program";
+      string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the_program";
       string err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out dafnyProgram);
       if (err != null) {
         exitValue = ExitValue.DAFNY_ERROR;
@@ -363,9 +371,8 @@ namespace Microsoft.Dafny
           TimeSpan ts = watch.Elapsed;
           string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}",
             ts.Hours, ts.Minutes, ts.Seconds);
-
           ExecutionEngine.printer.AdvisoryWriteLine("Elapsed time: {0}", elapsedTime);
-          ExecutionEngine.printer.WriteTrailer(newstats);
+          WriteTrailer(newstats);
         }
 
         statss.Add(prog.Item1, newstats);
@@ -374,6 +381,30 @@ namespace Microsoft.Dafny
       watch.Stop();
 
       return isVerified;
+    }
+
+    private static void WriteTrailer(PipelineStatistics stats) {
+      if (CommandLineOptions.Clo.vcVariety != CommandLineOptions.VCVariety.Doomed && !CommandLineOptions.Clo.Verify && stats.ErrorCount == 0) {
+        Console.WriteLine();
+        Console.Write("{0} did not attempt verification", CommandLineOptions.Clo.DescriptiveToolName);
+        if (stats.InconclusiveCount != 0) {
+          Console.Write(", {0} inconclusive{1}", stats.InconclusiveCount, stats.InconclusiveCount == 1 ? "" : "s");
+        }
+        if (stats.TimeoutCount != 0) {
+          Console.Write(", {0} time out{1}", stats.TimeoutCount, stats.TimeoutCount == 1 ? "" : "s");
+        }
+        if (stats.OutOfMemoryCount != 0) {
+          Console.Write(", {0} out of memory", stats.OutOfMemoryCount);
+        }
+        if (stats.OutOfResourceCount != 0) {
+          Console.Write(", {0} out of resource", stats.OutOfResourceCount);
+        }
+        Console.WriteLine();
+        Console.Out.Flush();
+      } else {
+        // This calls a routine within Boogie
+        ExecutionEngine.printer.WriteTrailer(stats);
+      }
     }
 
     private static void WriteStatss(Dictionary<string, PipelineStatistics> statss) {
@@ -390,7 +421,7 @@ namespace Microsoft.Dafny
         statSum.CachedVerifiedCount += stats.Value.CachedVerifiedCount;
         statSum.InconclusiveCount += stats.Value.InconclusiveCount;
       }
-      ExecutionEngine.printer.WriteTrailer(statSum);
+      WriteTrailer(statSum);
     }
 
 
@@ -527,11 +558,16 @@ namespace Microsoft.Dafny
           targetExtension = "php";
           targetBaseDir = baseName;
           break;
+        case DafnyOptions.CompilationTarget.Cpp:
+          targetExtension = "cpp";
+          break;
         default:
           Contract.Assert(false);
           throw new cce.UnreachableException();
       }
-      string targetBaseName = Path.ChangeExtension(baseName, targetExtension);
+
+      // Note that using Path.ChangeExtension here does the wrong thing when dafnyProgramName has multiple periods (e.g., a.b.dfy)
+      string targetBaseName = baseName + "." + targetExtension;
       string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
       // WARNING: Make sure that Directory.Delete is only called when the compilation target is Java.
       // If called during C# or JS compilation, you will lose your entire target directory.
@@ -606,6 +642,9 @@ namespace Microsoft.Dafny
           break;
         case DafnyOptions.CompilationTarget.Java:
           compiler = new Dafny.JavaCompiler(dafnyProgram.reporter);
+          break;
+        case DafnyOptions.CompilationTarget.Cpp:
+          compiler = new Dafny.CppCompiler(dafnyProgram.reporter, otherFileNames);
           break;
       }
 
