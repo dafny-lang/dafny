@@ -59,7 +59,7 @@ lemma M(x: int)
 {
   // proof would go here
 }
-colemma M'(x': int)
+greatest lemma M'(x': int)
   ensures true;
 {
 }
@@ -69,7 +69,7 @@ colemma M'(x': int)
 class CF {
   static function F(): int
   predicate method G()
-  copredicate Co()
+  greatest predicate Co()
   protected function H(): int
   static protected function method I(): real
   protected static predicate method J()
