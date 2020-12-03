@@ -17,6 +17,7 @@ namespace Microsoft.Dafny {
 
   public class DafnyFile {
     public string FilePath { get; private set; }
+    public string CanonicalPath { get; private set; }
     public string BaseName { get; private set; }
     public bool isPrecompiled { get; private set; }
     public string SourceFileName { get; private set; }
@@ -28,13 +29,17 @@ namespace Microsoft.Dafny {
       }
       return sourceFiles;
     }
-
     public DafnyFile(string filePath) {
       FilePath = filePath;
       BaseName = Path.GetFileName(filePath);
 
       var extension = Path.GetExtension(filePath);
       if (extension != null) { extension = extension.ToLower(); }
+
+      // Normalizing casing and symbolic links appears to be not
+      // supported in .Net APIs, because it is very difficult in general
+      // So we will just use the absolute path
+      CanonicalPath = Path.GetFullPath(filePath);
 
       if (!Path.IsPathRooted(filePath))
         filePath = Path.GetFullPath(filePath);
