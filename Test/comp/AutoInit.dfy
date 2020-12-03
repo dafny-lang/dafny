@@ -290,11 +290,11 @@ module ImportedTypes {
 }
 
 module GhostWitness {
-  type EffectlessArrow<!A(!new),B> = f: A ~> B
+  type EffectlessArrow<!A(!new), B> = f: A ~> B
     | forall a :: f.reads(a) == {}
-    ghost witness GhostEffectlessArrowWitness<A,B>
+    ghost witness GhostEffectlessArrowWitness<A, B>
 
-  function GhostEffectlessArrowWitness<A,B>(a: A): B
+  function GhostEffectlessArrowWitness<A, B>(a: A): B
   {
     var b: B :| true; b
   }
@@ -303,17 +303,17 @@ module GhostWitness {
 
   class MyClass { }
 
-  predicate Total<A(!new),B>(f: A ~> B)  // (is this (!new) really necessary?)
+  predicate Total<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
     reads f.reads
   {
     forall a :: f.reads(a) == {} && f.requires(a)
   }
 
-  type TotalArrow<!A,B> = f: EffectlessArrow<A,B>
+  type TotalArrow<!A(!new), B> = f: EffectlessArrow<A, B>
     | Total(f)
-    ghost witness TotalWitness<A,B>
+    ghost witness TotalWitness<A, B>
 
-  function TotalWitness<A,B>(a: A): B
+  function TotalWitness<A, B>(a: A): B
   {
     var b: B :| true; b
   }
