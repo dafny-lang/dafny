@@ -138,19 +138,6 @@ namespace Microsoft.Dafny
         if (!declaredNames.ContainsKey(d.Name)) {
           declaredNames.Add(d.Name, i);
         }
-
-        // // TODO: This is more restrictive than is necessary,
-        // // it would be possible to disambiguate these, but it seems like
-        // // a lot of work for not much gain
-        //
-        // if (refinedSigOpened.TopLevels.ContainsKey(d.Name) &&
-        //   !RefinedSig.TopLevels.ContainsKey(d.Name)) {
-        //   var decl = Resolver.AmbiguousTopLevelDecl.Create(m, d, refinedSigOpened.TopLevels[d.Name]);
-        //
-        //   if (decl is Resolver.AmbiguousTopLevelDecl) {
-        //     reporter.Error(MessageSource.RefinementTransformer, d.tok, "Base module {0} imports {1} from an opened import, so it cannot be overridden. Give this declaration a unique name to disambiguate.", prev.Name, d.Name);
-        //   }
-        // }
       }
 
       // Merge the declarations of prev into the declarations of m
@@ -563,11 +550,6 @@ namespace Microsoft.Dafny
         if (!declaredNames.ContainsKey(member.Name)) {
           declaredNames.Add(member.Name, i);
         }
-
-        // if (prev.IsDefaultClass && refinedSigOpened.StaticMembers.ContainsKey(member.Name) &&
-        //   !RefinedSig.StaticMembers.ContainsKey(member.Name)) {
-        //     reporter.Error(MessageSource.RefinementTransformer, member.tok, "Base module {0} imports {1} from an opened import, so it cannot be overridden. Give this declaration a unique name to disambiguate.", RefinedSig.ModuleDef.Name, member.Name);
-        // }
       }
 
       // Merge the declarations of prev into the declarations of m
