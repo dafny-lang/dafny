@@ -103,6 +103,10 @@ void CheckDeclModifiers(DeclModifierData dmod, string declCaption, AllowedDeclMo
   }
 }
 
+bool IsAssumeTypeKeyword(IToken la) {
+  return la.kind == _assume || la.kind == _assert || la.kind == _expect;
+}
+
 ///<summary>
 /// Parses top-level things (modules, classes, datatypes, class members) from "filename"
 /// and appends them in appropriate form to "module".
@@ -754,6 +758,7 @@ TOKENS
   semicolon = ';'.
   darrow = "=>".
   assume = "assume".
+  assert = "assert".
   calc = "calc".
   case = "case".
   then = "then".
@@ -1472,7 +1477,7 @@ TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
   | digits     (. if (t.val == "0") {
                     characteristics.MustSupportZeroInitialization = true;
                   } else {
-                    SemErr(t, "unexpected TPCharOption");
+                    SemErr(t, "unexpected type parameter option - should be == or 0 or !new");
                   }
                .)
   | "!" "new"  (. characteristics.DisallowReferenceTypes = true; .)
@@ -2211,7 +2216,7 @@ UpdateStmt<out Statement/*!*/ s>
      Attributes attrs = null;
      IToken suchThatAssume = null;
      Expression suchThat = null;
-     IToken exceptionExpect = null;
+     IToken keywordToken = null;
      Expression exceptionExpr = null;
   .)
 ( Lhs<out e>                       (. x = e.tok; .)
@@ -2230,8 +2235,8 @@ UpdateStmt<out Statement/*!*/ s>
       ]
       Expression<out suchThat, false, true>
     | ":-"                         (. x = t; .)
-      [ IF(la.kind == _expect)     /* an Expression can also begin with an "expect", so this says to resolve it to pick up any "expect" here */
-        "expect"                   (. exceptionExpect = t; .)
+      [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
+        ("expect"|"assert"|"assume")    (. keywordToken = t; .)
       ]
       Expression<out exceptionExpr, false, false>
       { "," Rhs<out r>             (. rhss.Add(r); .)
@@ -2241,8 +2246,8 @@ UpdateStmt<out Statement/*!*/ s>
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
 | ":-"                             (. x = t; .)
-   [ IF(la.kind == _expect)        /* an Expression can also begin with an "expect", so this says to resolve it to pick up any "expect" here */
-     "expect"                      (. exceptionExpect = t; .)
+   [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
+      ("expect"|"assert"|"assume")    (. keywordToken = t; .)
    ]
    Expression<out exceptionExpr, false, false>
    { "," Rhs<out r>                (. rhss.Add(r); .)
@@ -2252,7 +2257,7 @@ UpdateStmt<out Statement/*!*/ s>
   (. if (suchThat != null) {
        s = new AssignSuchThatStmt(x, endTok, lhss, suchThat, suchThatAssume, null);
      } else if (exceptionExpr != null) {
-       s = new AssignOrReturnStmt(x, endTok, lhss, exceptionExpr, exceptionExpect, rhss);
+       s = new AssignOrReturnStmt(x, endTok, lhss, exceptionExpr, keywordToken, rhss);
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(x, endTok, new List<Statement>()); // error, give empty statement
@@ -2342,7 +2347,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
      IToken suchThatAssume = null;
      Expression suchThat = null;
-     IToken exceptionExpect = null;
+     IToken keywordToken = null;
      Expression exceptionExpr = null;
      Attributes attrs = null;
      IToken endTok;
@@ -2369,8 +2374,8 @@ VarDeclStatement<.out Statement/*!*/ s.>
       ]
       Expression<out suchThat, false, true>
     | ":-"                           (. assignTok = t; .)
-      [ IF(la.kind == _expect)     /* an Expression can also begin with an "expect", so this says to resolve it to pick up any "expect" here */
-        "expect"                     (. exceptionExpect = t; .)
+      [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
+        ("expect"|"assert"|"assume")    (. keywordToken = t; .)
       ]
       Expression<out exceptionExpr, false, false>
       { "," Rhs<out r>               (. rhss.Add(r); .)
@@ -2391,7 +2396,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
        if (suchThat != null) {
          update = new AssignSuchThatStmt(assignTok, endTok, lhsExprs, suchThat, suchThatAssume, attrs);
        } else if (exceptionExpr != null) {
-         update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr, exceptionExpect, rhss);
+         update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr, keywordToken, rhss);
        } else if (rhss.Count == 0) {
          update = null;
        } else {

@@ -123,7 +123,7 @@ module Functions_RestrictionsApply {
     forall xs: List<H> :: R(xs)  // error: may involved allocation state
   }
 
-  predicate M5'<H(==)>(S: set<List<H>>)
+  predicate M5'<H>(S: set<List<H>>)
   {
     forall xs: List<H> :: xs in S ==> R(xs)  // fine
   }

@@ -7428,6 +7428,11 @@ namespace Microsoft.Dafny
           hint = "";
           return false;
         }
+        if (formal.DisallowReferenceTypes && !actual.IsAllocFree) {
+          whatIsWrong = "no references";
+          hint = "";
+          return false;
+        }
         whatIsWrong = null;
         hint = null;
         return true;
@@ -9205,6 +9210,16 @@ namespace Microsoft.Dafny
       if (f.IsStatic) {
         scope.AllowInstance = false;
       }
+
+      if (f.IsGhost) {
+        foreach (TypeParameter p in f.TypeArgs) {
+          if (p.MustSupportEquality) {
+            reporter.Warning(MessageSource.Resolver, p.tok,
+              $"type parameter {p.Name} of ghost {f.WhatKind} {f.Name} is declared (==), which is unnecessary because the {f.WhatKind} doesn’t contain any compiled code");
+          }
+        }
+      }
+
       foreach (Formal p in f.Formals) {
         scope.Push(p.Name, p);
       }
@@ -9342,6 +9357,15 @@ namespace Microsoft.Dafny
         // take care of the warnShadowing attribute
         if (Attributes.ContainsBool(m.Attributes, "warnShadowing", ref warnShadowing)) {
           DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
+        }
+
+        if (m.IsGhost) {
+          foreach (TypeParameter p in m.TypeArgs) {
+            if (p.MustSupportEquality) {
+              reporter.Warning(MessageSource.Resolver, p.tok,
+                $"type parameter {p.Name} of ghost {m.WhatKind} {m.Name} is declared (==), which is unnecessary because the {m.WhatKind} doesn’t contain any compiled code");
+            }
+          }
         }
 
         // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
@@ -12010,7 +12034,7 @@ namespace Microsoft.Dafny
         firstType = s.Rhs.Type;
       }
 
-      if ((codeContext as Method).Outs.Count == 0 && s.ExpectToken == null) {
+      if ((codeContext as Method).Outs.Count == 0 && s.KeywordToken == null) {
         reporter.Error(MessageSource.Resolver, s.Tok, "A method containing a :- statement must have an out-parameter ({0})",
           (codeContext as Method).Name);
         return;
@@ -12059,7 +12083,7 @@ namespace Microsoft.Dafny
       Expression lhsExtract = null;
       if (expectExtract) {
         Method caller = codeContext as Method;
-        if (caller != null && caller.Outs.Count == 0 && s.ExpectToken == null) {
+        if (caller != null && caller.Outs.Count == 0 && s.KeywordToken == null) {
           reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
             caller.Name);
           return;
@@ -12127,11 +12151,20 @@ namespace Microsoft.Dafny
       }
       s.ResolvedStatements.Add(up);
 
-      if (s.ExpectToken != null) {
+      if (s.KeywordToken != null) {
         var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
-        s.ResolvedStatements.Add(
+        Statement ss = null;
+        if (s.KeywordToken.val == "expect") {
           // "expect !temp.IsFailure(), temp"
-          new ExpectStmt(s.Tok, s.Tok, notFailureExpr, new IdentifierExpr(s.Tok, temp), null));
+          ss = new ExpectStmt(s.Tok, s.Tok, notFailureExpr, new IdentifierExpr(s.Tok, temp), null);
+        } else if (s.KeywordToken.val == "assume") {
+          ss = new AssumeStmt(s.Tok, s.Tok, notFailureExpr, null);
+        } else if (s.KeywordToken.val == "assert") {
+          ss = new AssertStmt(s.Tok, s.Tok, notFailureExpr, null, null, null);
+        } else {
+          Contract.Assert(false,$"Invalid token in :- statement: {s.KeywordToken.val}");
+        }
+        s.ResolvedStatements.Add(ss);
       } else {
         s.ResolvedStatements.Add(
           // "if temp.IsFailure()"
@@ -12167,23 +12200,34 @@ namespace Microsoft.Dafny
       }
 
       s.ResolvedStatements.ForEach( a => ResolveStatement(a, codeContext) );
-      EnsureSupportsErrorHandling(s.Tok, firstType, expectExtract);
+      EnsureSupportsErrorHandling(s.Tok, firstType, expectExtract, s.KeywordToken != null);
     }
 
-    private void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract) {
+    private void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract, bool hasKeywordToken) {
       // The "method not found" errors which will be generated here were already reported while
       // resolving the statement, so we don't want them to reappear and redirect them into a sink.
       var origReporter = this.reporter;
       this.reporter = new ErrorReporterSink();
 
-      if (ResolveMember(tok, tp, "IsFailure", out _) == null ||
-          ResolveMember(tok, tp, "PropagateFailure", out _) == null ||
-          (ResolveMember(tok, tp, "Extract", out _) != null) != expectExtract) {
-        // more details regarding which methods are missing have already been reported by regular resolution
-        origReporter.Error(MessageSource.Resolver, tok,
-          "The right-hand side of ':-', which is of type '{0}', must have members 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'",
-          tp, expectExtract ? "and" : "but not");
+      if (hasKeywordToken) {
+        if (ResolveMember(tok, tp, "IsFailure", out _) == null ||
+            (ResolveMember(tok, tp, "Extract", out _) != null) != expectExtract) {
+          // more details regarding which methods are missing have already been reported by regular resolution
+          origReporter.Error(MessageSource.Resolver, tok,
+            "The right-hand side of ':-', which is of type '{0}', with a keyword token must have members 'IsFailure()', {1} 'Extract()'",
+            tp, expectExtract ? "and" : "but not");
+        }
+      } else {
+        if (ResolveMember(tok, tp, "IsFailure", out _) == null ||
+            ResolveMember(tok, tp, "PropagateFailure", out _) == null ||
+            (ResolveMember(tok, tp, "Extract", out _) != null) != expectExtract) {
+          // more details regarding which methods are missing have already been reported by regular resolution
+          origReporter.Error(MessageSource.Resolver, tok,
+            "The right-hand side of ':-', which is of type '{0}', must have members 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'",
+            tp, expectExtract ? "and" : "but not");
+        }
       }
+
 
       // The following checks are not necessary, because the ghost mismatch is caught later.
       // However the error messages here are much clearer.
@@ -12193,7 +12237,7 @@ namespace Microsoft.Dafny
           $"The IsFailure member may not be ghost (type {tp} used in :- statement)");
       }
       m = ResolveMember(tok, tp, "PropagateFailure", out _);
-      if (m != null && m.IsGhost) {
+      if (!hasKeywordToken && m != null && m.IsGhost) {
         origReporter.Error(MessageSource.Resolver, tok,
           $"The PropagateFailure member may not be ghost (type {tp} used in :- statement)");
       }
@@ -14432,7 +14476,7 @@ namespace Microsoft.Dafny
 
       ResolveExpression(expr.ResolvedExpression, opts);
       bool expectExtract = (expr.Lhs != null);
-      EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract);
+      EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract, false);
     }
 
     private Type SelectAppropriateArrowType(IToken tok, List<Type> typeArgs, Type resultType, bool hasReads, bool hasReq) {
