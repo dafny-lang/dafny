@@ -138,8 +138,7 @@ type `char`. In fact, the compiler is free to emit code that chooses a different
 initial value each time this program snippet is encountered at run time. In other words,
 the language allows the selection of the values to be nondeterministic.
 
-The purpose of this document is to describe how the compiler (in particular, the
-Dafny-to-C# compiler in `Compiler-CSharp.cs`, though the other targets are similar) implements
+The purpose of this document is to describe how the common compilers implement
 the auto-init feature. It will be convenient (and, for this particular compiler, accurate)
 to speak of each type as having a _default value_. However, please note that this
 terminology is specific to an implementation of a compiler--the Dafny _language_ itself

@@ -1,0 +1,2 @@
+git-issue-621.dfy(12,8): Error: static non-ghost const field 'MyData' of type 'M.D' (which does not have a default compiled value) must give a defining value
+1 resolution/type errors detected in git-issue-621.dfy
