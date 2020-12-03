@@ -5,7 +5,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <Nullable>enable</Nullable>
     <RootNamespace>Microsoft.Dafny.LanguageServer</RootNamespace>
-    <Version>2.2.0</Version>
+    <Version>2.3.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
