@@ -1874,7 +1874,6 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
      IToken signatureEllipsis = null;
-     bool missingOpenParen;
      bool isTwoState = false;
      ExtremePredicate.KType kType = ExtremePredicate.KType.Unspecified;
   .)
@@ -1935,8 +1934,8 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     { Attribute<ref attrs> }
     NoUSIdent<out id>
     (
-      [ GenericParameters<typeArgs, false> ]                 (. missingOpenParen = true; .)
-      [ Formals<true, isFunctionMethod, isTwoState, formals> (. missingOpenParen = false; .)
+      [ GenericParameters<typeArgs, false> ]
+      [ Formals<true, isFunctionMethod, isTwoState, formals>
       ]
       [ ":"                    (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
       ]

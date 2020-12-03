@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 14 verified, 0 errors
+Dafny program verifier finished with 22 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 3 false 0
@@ -34,6 +34,9 @@ DatatypeDefaultValues_Compile.GenericTree.Leaf
   DatatypeDefaultValues_Compile.CellCell.MakeCellCell(DatatypeDefaultValues_Compile.Cell.MakeCell(0))
 DatatypeDefaultValues_Compile.Difficult.MakeDifficult(null)
   DatatypeDefaultValues_Compile.GenDifficult.MakeGenDifficult(null)
+ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
+0.0 and 0.0
+13
 
 Dafny program verifier did not attempt verification
 3 false 0
@@ -68,6 +71,9 @@ DatatypeDefaultValues_Compile.GenericTree.Leaf
   DatatypeDefaultValues_Compile.CellCell.MakeCellCell(DatatypeDefaultValues_Compile.Cell.MakeCell(0))
 DatatypeDefaultValues_Compile.Difficult.MakeDifficult(null)
   DatatypeDefaultValues_Compile.GenDifficult.MakeGenDifficult(null)
+ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
+0.0 and 0.0
+13
 
 Dafny program verifier did not attempt verification
 3 false 0
@@ -102,6 +108,9 @@ DatatypeDefaultValues_Compile.GenericTree.Leaf
   DatatypeDefaultValues_Compile.CellCell.MakeCellCell(DatatypeDefaultValues_Compile.Cell.MakeCell(0))
 DatatypeDefaultValues_Compile.Difficult.MakeDifficult(null)
   DatatypeDefaultValues_Compile.GenDifficult.MakeGenDifficult(null)
+ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
+0.0 and 0.0
+13
 
 Dafny program verifier did not attempt verification
 3 false 0
@@ -136,3 +145,6 @@ DatatypeDefaultValues_Compile.GenericTree.Leaf
   DatatypeDefaultValues_Compile.CellCell.MakeCellCell(DatatypeDefaultValues_Compile.Cell.MakeCell(0))
 DatatypeDefaultValues_Compile.Difficult.MakeDifficult(null)
   DatatypeDefaultValues_Compile.GenDifficult.MakeGenDifficult(null)
+ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
+0.0 and 0.0
+13
