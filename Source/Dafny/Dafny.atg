@@ -1463,7 +1463,7 @@ TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
   | digits     (. if (t.val == "0") {
                     characteristics.MustSupportZeroInitialization = true;
                   } else {
-                    SemErr(t, "unexpected TPCharOption");
+                    SemErr(t, "unexpected type parameter option - should be == or 0 or !new");
                   }
                .)
   | "!" "new"  (. characteristics.DisallowReferenceTypes = true; .)

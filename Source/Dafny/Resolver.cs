@@ -7431,6 +7431,11 @@ namespace Microsoft.Dafny
           hint = "";
           return false;
         }
+        if (formal.DisallowReferenceTypes && !actual.IsAllocFree) {
+          whatIsWrong = "no references";
+          hint = "";
+          return false;
+        }
         whatIsWrong = null;
         hint = null;
         return true;
@@ -9208,6 +9213,16 @@ namespace Microsoft.Dafny
       if (f.IsStatic) {
         scope.AllowInstance = false;
       }
+
+      if (f.IsGhost) {
+        foreach (TypeParameter p in f.TypeArgs) {
+          if (p.MustSupportEquality) {
+            reporter.Warning(MessageSource.Resolver, p.tok,
+              $"type parameter {p.Name} of ghost {f.WhatKind} {f.Name} is declared (==), which is unnecessary because the {f.WhatKind} doesn’t contain any compiled code");
+          }
+        }
+      }
+
       foreach (Formal p in f.Formals) {
         scope.Push(p.Name, p);
       }
@@ -9345,6 +9360,15 @@ namespace Microsoft.Dafny
         // take care of the warnShadowing attribute
         if (Attributes.ContainsBool(m.Attributes, "warnShadowing", ref warnShadowing)) {
           DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
+        }
+
+        if (m.IsGhost) {
+          foreach (TypeParameter p in m.TypeArgs) {
+            if (p.MustSupportEquality) {
+              reporter.Warning(MessageSource.Resolver, p.tok,
+                $"type parameter {p.Name} of ghost {m.WhatKind} {m.Name} is declared (==), which is unnecessary because the {m.WhatKind} doesn’t contain any compiled code");
+            }
+          }
         }
 
         // Add in-parameters to the scope, but don't care about any duplication errors, since they have already been reported
