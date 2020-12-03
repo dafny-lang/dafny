@@ -389,7 +389,7 @@ namespace Microsoft.Dafny
     }
 
     private static void WriteTrailer(PipelineStatistics stats) {
-      if (CommandLineOptions.Clo.vcVariety != CommandLineOptions.VCVariety.Doomed && !CommandLineOptions.Clo.Verify && stats.ErrorCount == 0) {
+      if (!CommandLineOptions.Clo.Verify && stats.ErrorCount == 0) {
         Console.WriteLine();
         Console.Write("{0} did not attempt verification", CommandLineOptions.Clo.DescriptiveToolName);
         if (stats.InconclusiveCount != 0) {
@@ -474,9 +474,8 @@ namespace Microsoft.Dafny
       Contract.Ensures(0 <= Contract.ValueAtReturn(out stats).InconclusiveCount && 0 <= Contract.ValueAtReturn(out stats).TimeoutCount);
 
       stats = new PipelineStatistics();
-      LinearTypeChecker ltc;
       CivlTypeChecker ctc;
-      PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName, out ltc, out ctc);
+      PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName, out ctc);
       switch (oc) {
         case PipelineOutcome.Done:
           return oc;
@@ -493,7 +492,7 @@ namespace Microsoft.Dafny
             fileNames.Add(bplFileName);
             Bpl.Program reparsedProgram = ExecutionEngine.ParseBoogieProgram(fileNames, true);
             if (reparsedProgram != null) {
-              ExecutionEngine.ResolveAndTypecheck(reparsedProgram, bplFileName, out ltc, out ctc);
+              ExecutionEngine.ResolveAndTypecheck(reparsedProgram, bplFileName, out ctc);
             }
           }
           return oc;

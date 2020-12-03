@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
-using System.Linq.Expressions;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny
@@ -3322,7 +3321,7 @@ namespace Microsoft.Dafny
             if (nm == "Floor") {
               Object ee = GetAnyConst(m.Obj, consts);
               if (ee != null && m.Obj.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-                ((Basetypes.BigDec)ee).FloorCeiling(out var f, out _);
+                ((BaseTypes.BigDec)ee).FloorCeiling(out var f, out _);
                 return f;
               }
             }
@@ -3349,7 +3348,7 @@ namespace Microsoft.Dafny
             case BinaryExpr.ResolvedOpcode.Add:
               if (isInt) return (BigInteger) e0 + (BigInteger) e1;
               if (isBV) return ((BigInteger) e0 + (BigInteger) e1) & MaxBV(bin.Type);
-              if (isReal) return (Basetypes.BigDec) e0 + (Basetypes.BigDec) e1;
+              if (isReal) return (BaseTypes.BigDec) e0 + (BaseTypes.BigDec) e1;
               break;
             case BinaryExpr.ResolvedOpcode.Concat:
               if (isString) return (string) e0 + (string) e1;
@@ -3357,7 +3356,7 @@ namespace Microsoft.Dafny
             case BinaryExpr.ResolvedOpcode.Sub:
               if (isInt) return (BigInteger) e0 - (BigInteger) e1;
               if (isBV) return ((BigInteger) e0 - (BigInteger) e1) & MaxBV(bin.Type);
-              if (isReal) return (Basetypes.BigDec) e0 - (Basetypes.BigDec) e1;
+              if (isReal) return (BaseTypes.BigDec) e0 - (BaseTypes.BigDec) e1;
               // Allow a special case: If the result type is a newtype that is integer-based (i.e., isInt && !isInteger)
               // then we generally do not fold the operations, because we do not determine whether the
               // result of the operation satisfies the new type constraint. However, on the occasion that
@@ -3372,7 +3371,7 @@ namespace Microsoft.Dafny
             case BinaryExpr.ResolvedOpcode.Mul:
               if (isInt) return (BigInteger) e0 * (BigInteger) e1;
               if (isBV) return ((BigInteger) e0 * (BigInteger) e1) & MaxBV(bin.Type);
-              if (isReal) return (Basetypes.BigDec) e0 * (Basetypes.BigDec) e1;
+              if (isReal) return (BaseTypes.BigDec) e0 * (BaseTypes.BigDec) e1;
               break;
             case BinaryExpr.ResolvedOpcode.BitwiseAnd:
               Contract.Assert(isBV);
@@ -3402,7 +3401,7 @@ namespace Microsoft.Dafny
                 }
               }
               if (isReal) {
-                if ((Basetypes.BigDec) e1 == Basetypes.BigDec.ZERO) {
+                if ((BaseTypes.BigDec) e1 == BaseTypes.BigDec.ZERO) {
                   return null; // Divide by zero
                 } else {
                   // BigDec does not have divide and is not a representation of rationals, so we don't do constant folding
@@ -3463,7 +3462,7 @@ namespace Microsoft.Dafny
             case BinaryExpr.ResolvedOpcode.Gt:
               if (isAnyInt) return (BigInteger) e0 > (BigInteger) e1;
               if (isBV) return (BigInteger) e0 > (BigInteger) e1;
-              if (isAnyReal) return (Basetypes.BigDec) e0 > (Basetypes.BigDec) e1;
+              if (isAnyReal) return (BaseTypes.BigDec) e0 > (BaseTypes.BigDec) e1;
               break;
             case BinaryExpr.ResolvedOpcode.GtChar:
               if (bin.E0.Type.IsCharType) return ((string) e0)[0] > ((string) e1)[0];
@@ -3471,7 +3470,7 @@ namespace Microsoft.Dafny
             case BinaryExpr.ResolvedOpcode.Ge:
               if (isAnyInt) return (BigInteger) e0 >= (BigInteger) e1;
               if (isBV) return (BigInteger) e0 >= (BigInteger) e1;
-              if (isAnyReal) return (Basetypes.BigDec) e0 >= (Basetypes.BigDec) e1;
+              if (isAnyReal) return (BaseTypes.BigDec) e0 >= (BaseTypes.BigDec) e1;
               break;
             case BinaryExpr.ResolvedOpcode.GeChar:
               if (bin.E0.Type.IsCharType) return ((string) e0)[0] >= ((string) e1)[0];
@@ -3479,7 +3478,7 @@ namespace Microsoft.Dafny
             case BinaryExpr.ResolvedOpcode.Lt:
               if (isAnyInt) return (BigInteger) e0 < (BigInteger) e1;
               if (isBV) return (BigInteger) e0 < (BigInteger) e1;
-              if (isAnyReal) return (Basetypes.BigDec) e0 < (Basetypes.BigDec) e1;
+              if (isAnyReal) return (BaseTypes.BigDec) e0 < (BaseTypes.BigDec) e1;
               break;
             case BinaryExpr.ResolvedOpcode.LtChar:
               if (bin.E0.Type.IsCharType) return ((string) e0)[0] < ((string) e1)[0];
@@ -3490,7 +3489,7 @@ namespace Microsoft.Dafny
             case BinaryExpr.ResolvedOpcode.Le:
               if (isAnyInt) return (BigInteger) e0 <= (BigInteger) e1;
               if (isBV) return (BigInteger) e0 <= (BigInteger) e1;
-              if (isAnyReal) return (Basetypes.BigDec) e0 <= (Basetypes.BigDec) e1;
+              if (isAnyReal) return (BaseTypes.BigDec) e0 <= (BaseTypes.BigDec) e1;
               break;
             case BinaryExpr.ResolvedOpcode.LeChar:
               if (bin.E0.Type.IsCharType) return ((string) e0)[0] <= ((string) e1)[0];
@@ -3504,7 +3503,7 @@ namespace Microsoft.Dafny
               } else if (isAnyInt || isBV) {
                 return (BigInteger) e0 == (BigInteger) e1;
               } else if (isAnyReal) {
-                return (Basetypes.BigDec) e0 == (Basetypes.BigDec) e1;
+                return (BaseTypes.BigDec) e0 == (BaseTypes.BigDec) e1;
               } else if (bin.E0.Type.IsCharType) {
                 return ((string) e0)[0] == ((string) e1)[0];
               }
@@ -3526,7 +3525,7 @@ namespace Microsoft.Dafny
               } else if (isAnyInt || isBV) {
                 return (BigInteger) e0 != (BigInteger) e1;
               } else if (isAnyReal) {
-                return (Basetypes.BigDec) e0 != (Basetypes.BigDec) e1;
+                return (BaseTypes.BigDec) e0 != (BaseTypes.BigDec) e1;
               } else if (bin.E0.Type.IsCharType) {
                 return ((string) e0)[0] != ((string) e1)[0];
               } else if (isString) {
@@ -3540,11 +3539,11 @@ namespace Microsoft.Dafny
           if (o == null || ce.E.Type == ce.Type) return o;
           if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Real) &&
                 ce.Type.IsBitVectorType) {
-            ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
+            ((BaseTypes.BigDec) o).FloorCeiling(out var ff, out _);
             if (ff < 0 || ff > MaxBV(ce.Type)) {
               return null; // Out of range
             }
-            if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
+            if (((BaseTypes.BigDec) o) != BaseTypes.BigDec.FromBigInt(ff)) {
               return null; // Out of range
             }
             return ff;
@@ -3552,9 +3551,9 @@ namespace Microsoft.Dafny
 
           if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Real) &&
                 ce.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-            ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
+            ((BaseTypes.BigDec) o).FloorCeiling(out var ff, out _);
             if (AsUnconstrainedType(ce.Type) == null) return null;
-            if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
+            if (((BaseTypes.BigDec) o) != BaseTypes.BigDec.FromBigInt(ff)) {
               return null; // Argument not an integer
             }
             return ff;
@@ -3569,7 +3568,7 @@ namespace Microsoft.Dafny
           if (ce.E.Type.IsBitVectorType &&
                 ce.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             if (AsUnconstrainedType(ce.Type) == null) return null;
-            return Basetypes.BigDec.FromBigInt((BigInteger) o);
+            return BaseTypes.BigDec.FromBigInt((BigInteger) o);
           }
 
           if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Int) &&
@@ -3606,7 +3605,7 @@ namespace Microsoft.Dafny
           if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Int) &&
                 ce.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             if (AsUnconstrainedType(ce.Type) == null) return null;
-            return Basetypes.BigDec.FromBigInt((BigInteger) o);
+            return BaseTypes.BigDec.FromBigInt((BigInteger) o);
           }
 
           if (ce.E.Type.IsCharType && ce.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
@@ -3635,13 +3634,13 @@ namespace Microsoft.Dafny
           if (ce.E.Type.IsCharType &&
               ce.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             if (AsUnconstrainedType(ce.Type) == null) return null;
-            return Basetypes.BigDec.FromInt(((string) o)[0]);
+            return BaseTypes.BigDec.FromInt(((string) o)[0]);
           }
 
           if (ce.E.Type.IsNumericBased(Type.NumericPersuasion.Real) &&
                 ce.Type.IsCharType) {
-            ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
-            if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
+            ((BaseTypes.BigDec) o).FloorCeiling(out var ff, out _);
+            if (((BaseTypes.BigDec) o) != BaseTypes.BigDec.FromBigInt(ff)) {
               return null; // Argument not an integer
             }
             if (ff < BigInteger.Zero || ff > new BigInteger(65535)) {
@@ -6330,7 +6329,7 @@ namespace Microsoft.Dafny
             if (e.E is LiteralExpr lit) { // note, not e.E.Resolved, since we don't want to do this for double negations
               // For real-based types, integer-based types, and bi (but not bitvectors), "-" followed by a literal is just a literal expression with a negative value
               if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-                var d = (Basetypes.BigDec)lit.Value;
+                var d = (BaseTypes.BigDec)lit.Value;
                 Contract.Assert(!d.IsNegative);
                 resolved = new LiteralExpr(e.tok, -d);
               } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
@@ -6343,7 +6342,7 @@ namespace Microsoft.Dafny
               // Treat all other expressions "-e" as "0 - e"
               Expression zero;
               if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-                zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
+                zero = new LiteralExpr(e.tok, BaseTypes.BigDec.ZERO);
               } else {
                 Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType);
                 zero = new LiteralExpr(e.tok, 0);
@@ -13711,7 +13710,7 @@ namespace Microsoft.Dafny
             var proxy = new InferredTypeProxy();
             e.Type = proxy;
             ConstrainSubtypeRelation(new IntVarietiesSupertype(), e.Type, e.tok, "integer literal used as if it had type {0}", e.Type);
-          } else if (e.Value is Basetypes.BigDec) {
+          } else if (e.Value is BaseTypes.BigDec) {
             var proxy = new InferredTypeProxy();
             e.Type = proxy;
             ConstrainSubtypeRelation(new RealVarietiesSupertype(), e.Type, e.tok, "type of real literal is used as {0}", e.Type);
@@ -15734,7 +15733,7 @@ namespace Microsoft.Dafny
                 }
                 var conversionArg = 1 <= e.Args.Count ? e.Args[0] :
                   ty.IsNumericBased(Type.NumericPersuasion.Int) ? LiteralExpr.CreateIntLiteral(e.tok, 0) :
-                  LiteralExpr.CreateRealLiteral(e.tok, Basetypes.BigDec.ZERO);
+                  LiteralExpr.CreateRealLiteral(e.tok, BaseTypes.BigDec.ZERO);
                 r = new ConversionExpr(e.tok, conversionArg, ty);
                 ResolveExpression(r, opts);
                 // resolve the rest of the arguments, if any

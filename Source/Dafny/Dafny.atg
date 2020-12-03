@@ -3360,7 +3360,7 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
   .
 
 LiteralExpr<out Expression e>
-= (. BigInteger n; Basetypes.BigDec d;
+= (. BigInteger n; BaseTypes.BigDec d;
      e = dummyExpr;
   .)
   ( "false"                                    (. e = new LiteralExpr(t, false); .)
@@ -3377,7 +3377,7 @@ LiteralExpr<out Expression e>
   .
 
 PossiblyNegatedLiteralExpr<out Expression e>
-= (. BigInteger n; Basetypes.BigDec d;
+= (. BigInteger n; BaseTypes.BigDec d;
      e = dummyExpr;
   .)
   ( "-"                                        (. var x = t; .)
@@ -4161,15 +4161,15 @@ Nat<out BigInteger n>
     .)
   )
   .
-Dec<out Basetypes.BigDec d>
-= (. d = Basetypes.BigDec.ZERO; .)
+Dec<out BaseTypes.BigDec d>
+= (. d = BaseTypes.BigDec.ZERO; .)
   (decimaldigits
     (. var S = Util.RemoveUnderscores(t.val);
        try {
-         d = Basetypes.BigDec.FromString(S);
+         d = BaseTypes.BigDec.FromString(S);
        } catch (System.FormatException) {
          SemErr("incorrectly formatted number");
-         d = Basetypes.BigDec.ZERO;
+         d = BaseTypes.BigDec.ZERO;
        }
     .)
   )
