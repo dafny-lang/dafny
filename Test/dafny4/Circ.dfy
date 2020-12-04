@@ -13,7 +13,7 @@ function ones(): Stream<int> { Cons(1, ones()) }
 function blink(): Stream<int> { Cons(0, Cons(1, blink())) }
 function zip(a: Stream, b: Stream): Stream { Cons(a.head, zip(b, a.tail)) }
 
-colemma BlinkZipProperty()
+greatest lemma BlinkZipProperty()
   ensures zip(zeros(), ones()) == blink();
 {
     BlinkZipProperty();
@@ -66,7 +66,7 @@ function f(s: Stream<Bit>): Stream<Bit>
 // The insightful property about f is that it satisfies the following property, which
 // we prove by co-induction.
 
-colemma FProperty(s: Stream<Bit>)
+greatest lemma FProperty(s: Stream<Bit>)
   ensures f(s) == zip(s, not(s));
 {
   calc {

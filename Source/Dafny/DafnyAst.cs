@@ -3915,7 +3915,7 @@ namespace Microsoft.Dafny {
     /// declarations.
     /// Note, an iterator declaration is a type, in this sense.
     /// Note, if the given list are the top-level declarations of a module, the yield will include
-    /// colemmas but not their associated prefix lemmas (which are tucked into the colemma's
+    /// greatest lemmas but not their associated prefix lemmas (which are tucked into the greatest lemma's
     /// .PrefixLemma field).
     /// </summary>
     public static IEnumerable<ICallable> AllCallables(List<TopLevelDecl> declarations) {
@@ -4422,12 +4422,19 @@ namespace Microsoft.Dafny {
       get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
       set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
     }
+
+    public abstract DatatypeCtor GetGroundingCtor();
   }
 
   public class IndDatatypeDecl : DatatypeDecl, RevealableTypeDecl
   {
     public override string WhatKind { get { return "datatype"; } }
     public DatatypeCtor GroundingCtor;  // set during resolution
+
+    public override DatatypeCtor GetGroundingCtor() {
+      return GroundingCtor;
+    }
+
     public bool[] TypeParametersUsedInConstructionByGroundingCtor;  // set during resolution; has same length as the number of type arguments
 
     public enum ES { NotYetComputed, Never, ConsultTypeArguments }
@@ -4525,6 +4532,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(ctors));
       Contract.Requires(cce.NonNullElements(members));
       Contract.Requires(1 <= ctors.Count);
+    }
+
+    public override DatatypeCtor GetGroundingCtor() {
+      return Ctors[0];
     }
   }
 
@@ -5823,7 +5834,7 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// An ImplicitFormal is a parameter that is declared implicitly, in particular the "_k" depth parameter
-  /// of each colemma (for use in the comethod body only, not the specification).
+  /// of each extreme lemma (for use in the extreme-method body only, not the specification).
   /// </summary>
   public class ImplicitFormal : Formal {
     public ImplicitFormal(IToken tok, string name, Type type, bool inParam, bool isGhost)
@@ -6137,10 +6148,10 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class InductivePredicate : ExtremePredicate
+  public class LeastPredicate : ExtremePredicate
   {
-    public override string WhatKind { get { return "inductive predicate"; } }
-    public InductivePredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
+    public override string WhatKind { get { return "least predicate"; } }
+    public LeastPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                               List<TypeParameter> typeArgs, List<Formal> formals,
                               List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
                               Expression body, Attributes attributes, IToken signatureEllipsis)
@@ -6149,10 +6160,10 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class CoPredicate : ExtremePredicate
+  public class GreatestPredicate : ExtremePredicate
   {
-    public override string WhatKind { get { return "copredicate"; } }
-    public CoPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
+    public override string WhatKind { get { return "greatest predicate"; } }
+    public GreatestPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                        List<TypeParameter> typeArgs, List<Formal> formals,
                        List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
                        Expression body, Attributes attributes, IToken signatureEllipsis)
@@ -6448,7 +6459,7 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// A PrefixLemma is the inductive unrolling M# implicitly declared for every colemma M.
+  /// A PrefixLemma is the inductive unrolling M# implicitly declared for every extreme lemma M.
   /// </summary>
   public class PrefixLemma : Method
   {
@@ -6501,11 +6512,11 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class InductiveLemma : ExtremeLemma
+  public class LeastLemma : ExtremeLemma
   {
-    public override string WhatKind { get { return "inductive lemma"; } }
+    public override string WhatKind { get { return "least lemma"; } }
 
-    public InductiveLemma(IToken tok, string name,
+    public LeastLemma(IToken tok, string name,
                           bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
                           List<TypeParameter> typeArgs,
                           List<Formal> ins, [Captured] List<Formal> outs,
@@ -6527,11 +6538,11 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class CoLemma : ExtremeLemma
+  public class GreatestLemma : ExtremeLemma
   {
-    public override string WhatKind { get { return "colemma"; } }
+    public override string WhatKind { get { return "greatest lemma"; } }
 
-    public CoLemma(IToken tok, string name,
+    public GreatestLemma(IToken tok, string name,
                    bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
                    List<TypeParameter> typeArgs,
                    List<Formal> ins, [Captured] List<Formal> outs,
