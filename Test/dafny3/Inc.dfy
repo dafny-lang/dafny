@@ -6,7 +6,7 @@ type state = int
 
 // ---------- ORDINAL ----------
 
-inductive predicate BigStep(c: cmd, s: state, t: state)
+least predicate BigStep(c: cmd, s: state, t: state)
 {
   match c
   case Inc =>
@@ -21,7 +21,7 @@ inductive predicate BigStep(c: cmd, s: state, t: state)
 // ---- correct lemma
 
 // empty proof, with induction
-inductive lemma Monotonic0(c: cmd, s: state, t: state)
+least lemma Monotonic0(c: cmd, s: state, t: state)
   requires BigStep(c, s, t)
   ensures s <= t
 {
@@ -29,7 +29,7 @@ inductive lemma Monotonic0(c: cmd, s: state, t: state)
 }
 
 // manual proof, with induction
-inductive lemma Monotonic1(c: cmd, s: state, t: state)
+least lemma Monotonic1(c: cmd, s: state, t: state)
   requires BigStep(c, s, t)
   ensures s <= t
 {
@@ -49,14 +49,14 @@ inductive lemma Monotonic1(c: cmd, s: state, t: state)
 }
 
 // empty proof, without induction
-inductive lemma {:induction false} Monotonic2(c: cmd, s: state, t: state)
+least lemma {:induction false} Monotonic2(c: cmd, s: state, t: state)
   requires BigStep(c, s, t)
   ensures s <= t  // error: this is not proved automatically
 {
 }
 
 // manual proof, without induction
-inductive lemma {:induction false} Monotonic3(c: cmd, s: state, t: state)
+least lemma {:induction false} Monotonic3(c: cmd, s: state, t: state)
   requires BigStep(c, s, t)
   ensures s <= t
 {
@@ -78,14 +78,14 @@ inductive lemma {:induction false} Monotonic3(c: cmd, s: state, t: state)
 // ---- incorrect lemma
 
 // empty proof, with induction
-inductive lemma BadMonotonic0(c: cmd, s: state, t: state)
+least lemma BadMonotonic0(c: cmd, s: state, t: state)
   requires BigStep(c, s, t)
   ensures s == t  // error: does not hold
 {
 }
 
 // manual proof attempt, with induction
-inductive lemma BadMonotonic1(c: cmd, s: state, t: state)
+least lemma BadMonotonic1(c: cmd, s: state, t: state)
   requires BigStep(c, s, t)
   ensures s == t  // error: does not hold
 {
@@ -105,14 +105,14 @@ inductive lemma BadMonotonic1(c: cmd, s: state, t: state)
 }
 
 // empty proof, without induction
-inductive lemma {:induction false} BadMonotonic2(c: cmd, s: state, t: state)
+least lemma {:induction false} BadMonotonic2(c: cmd, s: state, t: state)
   requires BigStep(c, s, t)
   ensures s == t  // error: does not hold
 {
 }
 
 // manual proof attempt, without induction
-inductive lemma {:induction false} BadMonotonic3(c: cmd, s: state, t: state)
+least lemma {:induction false} BadMonotonic3(c: cmd, s: state, t: state)
   requires BigStep(c, s, t)
   ensures s == t  // error: does not hold
 {
@@ -133,7 +133,7 @@ inductive lemma {:induction false} BadMonotonic3(c: cmd, s: state, t: state)
 
 // ---------- nat ----------
 
-inductive predicate NatBigStep[nat](c: cmd, s: state, t: state)
+least predicate NatBigStep[nat](c: cmd, s: state, t: state)
 {
   match c
   case Inc =>
@@ -148,7 +148,7 @@ inductive predicate NatBigStep[nat](c: cmd, s: state, t: state)
 // ---- correct lemma
 
 // empty proof, with induction
-inductive lemma NatMonotonic0[nat](c: cmd, s: state, t: state)
+least lemma NatMonotonic0[nat](c: cmd, s: state, t: state)
   requires NatBigStep(c, s, t)
   ensures s <= t
 {
@@ -156,7 +156,7 @@ inductive lemma NatMonotonic0[nat](c: cmd, s: state, t: state)
 }
 
 // manual proof, with induction
-inductive lemma NatMonotonic1[nat](c: cmd, s: state, t: state)
+least lemma NatMonotonic1[nat](c: cmd, s: state, t: state)
   requires NatBigStep(c, s, t)
   ensures s <= t
 {
@@ -176,14 +176,14 @@ inductive lemma NatMonotonic1[nat](c: cmd, s: state, t: state)
 }
 
 // empty proof, without induction
-inductive lemma {:induction false} NatMonotonic2[nat](c: cmd, s: state, t: state)
+least lemma {:induction false} NatMonotonic2[nat](c: cmd, s: state, t: state)
   requires NatBigStep(c, s, t)
   ensures s <= t  // error: this is not proved automatically
 {
 }
 
 // manual proof, without induction
-inductive lemma {:induction false} NatMonotonic3[nat](c: cmd, s: state, t: state)
+least lemma {:induction false} NatMonotonic3[nat](c: cmd, s: state, t: state)
   requires NatBigStep(c, s, t)
   ensures s <= t
 {
@@ -205,14 +205,14 @@ inductive lemma {:induction false} NatMonotonic3[nat](c: cmd, s: state, t: state
 // ---- incorrect lemma
 
 // empty proof, with induction
-inductive lemma BadNatMonotonic0[nat](c: cmd, s: state, t: state)
+least lemma BadNatMonotonic0[nat](c: cmd, s: state, t: state)
   requires NatBigStep(c, s, t)
   ensures s == t  // error: does not hold
 {
 }
 
 // manual proof attempt, with induction
-inductive lemma BadNatMonotonic1[nat](c: cmd, s: state, t: state)
+least lemma BadNatMonotonic1[nat](c: cmd, s: state, t: state)
   requires NatBigStep(c, s, t)
   ensures s == t  // error: does not hold
 {
@@ -232,14 +232,14 @@ inductive lemma BadNatMonotonic1[nat](c: cmd, s: state, t: state)
 }
 
 // empty proof, without induction
-inductive lemma {:induction false} BadNatMonotonic2[nat](c: cmd, s: state, t: state)
+least lemma {:induction false} BadNatMonotonic2[nat](c: cmd, s: state, t: state)
   requires NatBigStep(c, s, t)
   ensures s == t  // error: does not hold
 {
 }
 
 // manual proof attempt, without induction
-inductive lemma {:induction false} BadNatMonotonic3[nat](c: cmd, s: state, t: state)
+least lemma {:induction false} BadNatMonotonic3[nat](c: cmd, s: state, t: state)
   requires NatBigStep(c, s, t)
   ensures s == t  // error: does not hold
 {
@@ -260,7 +260,7 @@ inductive lemma {:induction false} BadNatMonotonic3[nat](c: cmd, s: state, t: st
 
 // ---------- coinductive ----------
 
-copredicate CoBigStep(c: cmd, s: state, t: state)
+greatest predicate CoBigStep(c: cmd, s: state, t: state)
 {
   match c
   case Inc =>
@@ -272,7 +272,7 @@ copredicate CoBigStep(c: cmd, s: state, t: state)
     exists s' :: CoBigStep(body, s, s') && CoBigStep(c, s', t)
 }
 
-colemma FromAndToAnywhere(s: state, t: state)
+greatest lemma FromAndToAnywhere(s: state, t: state)
   ensures CoBigStep(Repeat(Seq(Inc, Inc)), s, t)
 {
   if s == t {

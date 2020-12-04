@@ -11,7 +11,7 @@ predicate In<T>(x: T, s: Stream<T>)
 {
   exists n :: 0 <= n && Tail(s, n).head == x
 }
-copredicate IsSubStream[nat](s: Stream, u: Stream)
+greatest predicate IsSubStream[nat](s: Stream, u: Stream)
 {
   In(s.head, u) && IsSubStream(s.tail, u)
 }
@@ -23,7 +23,7 @@ lemma Lemma_InTail<T>(x: T, s: Stream<T>)
   var n :| 0 <= n && Tail(s.tail, n).head == x;
   assert Tail(s, n+1).head == x;
 }
-colemma Lemma_TailSubStream[nat](s: Stream, u: Stream)
+greatest lemma Lemma_TailSubStream[nat](s: Stream, u: Stream)
   requires IsSubStream(s, u.tail)
   ensures IsSubStream(s, u)
 {
@@ -55,7 +55,7 @@ lemma Lemma_InSubStream<T>(x: T, s: Stream<T>, u: Stream<T>)
 
 type Predicate<!T> = T -> bool
 
-copredicate AllP(s: Stream, P: Predicate)
+greatest predicate AllP(s: Stream, P: Predicate)
 {
   P(s.head) && AllP(s.tail, P)
 }
@@ -78,11 +78,11 @@ predicate IsAnother(s: Stream, P: Predicate)
 {
   exists n :: 0 <= n && P(Tail(s, n).head)
 }
-copredicate AlwaysAnother(s: Stream, P: Predicate)
+greatest predicate AlwaysAnother(s: Stream, P: Predicate)
 {
   IsAnother(s, P) && AlwaysAnother(s.tail, P)
 }
-colemma Lemma_AllImpliesAlwaysAnother(s: Stream, P: Predicate)
+greatest lemma Lemma_AllImpliesAlwaysAnother(s: Stream, P: Predicate)
   requires AllP(s, P)
   ensures AlwaysAnother(s, P)
 {
@@ -128,7 +128,7 @@ function Filter(s: Stream, P: Predicate): Stream
     Filter(s.tail, P)
 }
 // properties about Filter
-colemma Filter_AlwaysAnother(s: Stream, P: Predicate)
+greatest lemma Filter_AlwaysAnother(s: Stream, P: Predicate)
   requires AlwaysAnother(s, P)
   ensures AllP(Filter(s, P), P)
   decreases Next(s, P)
@@ -140,7 +140,7 @@ colemma Filter_AlwaysAnother(s: Stream, P: Predicate)
     Filter_AlwaysAnother#[_k](s.tail, P);
   }
 }
-colemma Filter_IsSubStream[nat](s: Stream, P: Predicate)
+greatest lemma Filter_IsSubStream[nat](s: Stream, P: Predicate)
   requires AlwaysAnother(s, P)
   ensures IsSubStream(Filter(s, P), s)
   decreases Next(s, P)
@@ -229,21 +229,21 @@ lemma FS_Pong<T>(s: Stream<T>, P: Predicate, x: T, k: nat)
 
 type Ord<!T> = T -> int
 
-copredicate Increasing(s: Stream, ord: Ord)
+greatest predicate Increasing(s: Stream, ord: Ord)
 {
   ord(s.head) < ord(s.tail.head) && Increasing(s.tail, ord)
 }
-copredicate IncrFrom[nat](s: Stream, low: int, ord: Ord)
+greatest predicate IncrFrom[nat](s: Stream, low: int, ord: Ord)
 {
   low <= ord(s.head) && IncrFrom(s.tail, ord(s.head) + 1, ord)
 }
 
-colemma Lemma_Incr0(s: Stream, low: int, ord: Ord)
+greatest lemma Lemma_Incr0(s: Stream, low: int, ord: Ord)
   requires IncrFrom(s, low, ord)
   ensures Increasing(s, ord)
 {
 }
-colemma Lemma_Incr1[nat](s: Stream, ord: Ord)
+greatest lemma Lemma_Incr1[nat](s: Stream, ord: Ord)
   requires Increasing(s, ord)
   ensures IncrFrom(s, ord(s.head), ord)
 {
@@ -258,7 +258,7 @@ lemma Theorem_FilterPreservesOrdering(s: Stream, P: Predicate, ord: Ord)
   Lemma_FilterPreservesIncrFrom(s, P, ord(s.head), ord);
   Lemma_Incr0(Filter(s, P), ord(s.head), ord);
 }
-colemma Lemma_FilterPreservesIncrFrom[nat](s: Stream, P: Predicate, low: int, ord: Ord)
+greatest lemma Lemma_FilterPreservesIncrFrom[nat](s: Stream, P: Predicate, low: int, ord: Ord)
   requires IncrFrom(s, low, ord) && AlwaysAnother(s, P) && low <= ord(s.head)
   ensures IncrFrom(Filter(s, P), low, ord)
   decreases Next(s, P)

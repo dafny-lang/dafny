@@ -1796,10 +1796,10 @@ module Regression_NewType {
 // --------------------- regression
 
 module PrefixGeneratorDuplicates {
-  copredicate P()
-  copredicate P()  // error: duplicate name (this once crashed Dafny)
-  colemma L()
-  colemma L()  // error: duplicate name (this once crashed Dafny)
+  greatest predicate P()
+  greatest predicate P()  // error: duplicate name (this once crashed Dafny)
+  greatest lemma L()
+  greatest lemma L()  // error: duplicate name (this once crashed Dafny)
 }
 
 // ------------------- unary TLA+ style predicates -------------------
@@ -2458,7 +2458,7 @@ module AbstemiousCompliance {
 }
 
 module BigOrdinalRestrictionsExtremePred {
-  inductive predicate Test() {
+  least predicate Test() {
     var st: set<ORDINAL> := {};  // error: cannot use ORDINAL as type argument
     var p: (int, ORDINAL) := (0,0);  // error: cannot use ORDINAL as type argument
     var o: ORDINAL := 0;  // okay

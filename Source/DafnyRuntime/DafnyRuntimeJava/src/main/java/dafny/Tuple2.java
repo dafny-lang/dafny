@@ -9,12 +9,17 @@ public class Tuple2<T0, T1> {
     this._0 = _0;
     this._1 = _1;
   }
-  public static <T0, T1> dafny.TypeDescriptor<Tuple2<T0, T1> > _typeDescriptor(dafny.TypeDescriptor<T0> _td_T0, dafny.TypeDescriptor<T1> _td_T1) {
-    return (dafny.TypeDescriptor<Tuple2<T0, T1> >) (dafny.TypeDescriptor<?>) dafny.TypeDescriptor.referenceWithInitializer(Tuple2.class, () -> Default(_td_T0, _td_T1));
+
+  public static <T0, T1> dafny.TypeDescriptor<Tuple2<T0, T1>> _typeDescriptor(dafny.TypeDescriptor<T0> _td_T0, dafny.TypeDescriptor<T1> _td_T1) {
+    return (dafny.TypeDescriptor<Tuple2<T0, T1>>) (dafny.TypeDescriptor<?>) dafny.TypeDescriptor.referenceWithInitializer(Tuple2.class, () -> Default(_td_T0.defaultValue(), _td_T1.defaultValue()));
   }
 
-  public static <T0, T1> Tuple2<T0, T1> Default(dafny.TypeDescriptor<T0> _td_T0, dafny.TypeDescriptor<T1> _td_T1) {
-    return new Tuple2<>(_td_T0.defaultValue(), _td_T1.defaultValue());
+  public static <T0, T1> Tuple2<T0, T1> Default(T0 _default_T0, T1 _default_T1) {
+    return create(_default_T0, _default_T1);
+  }
+
+  public static <T0, T1> Tuple2<T0, T1> create(T0 _0, T1 _1) {
+    return new Tuple2(_0, _1);
   }
 
   @Override

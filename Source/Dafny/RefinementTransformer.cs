@@ -412,11 +412,11 @@ namespace Microsoft.Dafny
       if (f is Predicate) {
         return new Predicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals,
           req, reads, ens, decreases, body, bodyOrigin, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
-      } else if (f is InductivePredicate) {
-        return new InductivePredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, ((InductivePredicate)f).TypeOfK, tps, formals,
+      } else if (f is LeastPredicate) {
+        return new LeastPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, ((LeastPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
-      } else if (f is CoPredicate) {
-        return new CoPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, ((CoPredicate)f).TypeOfK, tps, formals,
+      } else if (f is GreatestPredicate) {
+        return new GreatestPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, ((GreatestPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is TwoStatePredicate) {
         return new TwoStatePredicate(tok, f.Name, f.HasStaticKeyword, tps, formals,
@@ -455,11 +455,11 @@ namespace Microsoft.Dafny
           req, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.BodyForRefinement);
-      if (m is InductiveLemma) {
-        return new InductiveLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((InductiveLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+      if (m is LeastLemma) {
+        return new LeastLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
-      } else if (m is CoLemma) {
-        return new CoLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((CoLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+      } else if (m is GreatestLemma) {
+        return new GreatestLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is Lemma) {
         return new Lemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
@@ -600,12 +600,12 @@ namespace Microsoft.Dafny
           } else if (nwMember is Function) {
             var f = (Function)nwMember;
             bool isPredicate = f is Predicate;
-            bool isIndPredicate = f is InductivePredicate;
-            bool isCoPredicate = f is CoPredicate;
+            bool isLeastPredicate = f is LeastPredicate;
+            bool isGreatestPredicate = f is GreatestPredicate;
             if (!(member is Function) ||
               isPredicate != (member is Predicate) ||
-              (f is InductivePredicate) != (member is InductivePredicate) ||
-              (f is CoPredicate) != (member is CoPredicate) ||
+              (f is LeastPredicate) != (member is LeastPredicate) ||
+              (f is GreatestPredicate) != (member is GreatestPredicate) ||
               (f is TwoStatePredicate) != (member is TwoStatePredicate) ||
               (f is TwoStateFunction) != (member is TwoStateFunction)) {
               reporter.Error(MessageSource.RefinementTransformer, nwMember, "a {0} declaration ({1}) can only refine a {0}", f.WhatKind, nwMember.Name);

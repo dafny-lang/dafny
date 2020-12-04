@@ -647,7 +647,7 @@ namespace Microsoft.Dafny
             if (showIt) {
               s += "decreases " + Util.Comma(m.Decreases.Expressions, Printer.ExprToString);
               // Note, in the following line, we use the location information for "clbl", not "m".  These
-              // are the same, except in the case where "clbl" is a CoLemma and "m" is a prefix lemma.
+              // are the same, except in the case where "clbl" is a GreatestLemma and "m" is a prefix lemma.
               reporter.Info(MessageSource.Resolver, clbl.Tok, s);
             }
           }
@@ -876,7 +876,7 @@ namespace Microsoft.Dafny
     /// resolved, a caller has to check for both a change in error count and a "false"
     /// return value.
     /// </summary>
-    private bool ResolveModuleDefinition(ModuleDefinition m, ModuleSignature sig) {
+    private bool ResolveModuleDefinition(ModuleDefinition m, ModuleSignature sig, bool isAnExport = false) {
       Contract.Requires(AllTypeConstraints.Count == 0);
       Contract.Ensures(AllTypeConstraints.Count == 0);
 
@@ -921,7 +921,7 @@ namespace Microsoft.Dafny
       ResolveAttributes(m.Attributes, m, new ResolveOpts(new NoContext(m.Module), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
       SolveAllTypeConstraints();  // solve any type constraints entailed by the attributes
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
+        ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies, isAnExport);
       }
       Type.PopScope(moduleInfo.VisibilityScope);
       moduleInfo = oldModuleInfo;
@@ -1259,7 +1259,7 @@ namespace Microsoft.Dafny
           String.Format("Raised while checking export set {0}: ", decl.Name));
         var testSig = RegisterTopLevelDecls(exportView, true);
         //testSig.Refines = refinementTransformer.RefinedSig;
-        ResolveModuleDefinition(exportView, testSig);
+        ResolveModuleDefinition(exportView, testSig, true);
         var wasError = reporter.Count(ErrorLevel.Error) > 0;
         reporter = ((ErrorReporterWrapper)reporter).WrappedReporter;
 
@@ -2002,15 +2002,15 @@ namespace Microsoft.Dafny
               decr.Add(new IdentifierExpr(com.tok, k.Name));
               decr.AddRange(com.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
               // Create prefix lemma.  Note that the body is not cloned, but simply shared.
-              // For a colemma, the postconditions are filled in after the colemma's postconditions have been resolved.
-              // For an inductive lemma, the preconditions are filled in after the inductive lemma's preconditions have been resolved.
-              var req = com is CoLemma ? com.Req.ConvertAll(cloner.CloneAttributedExpr) : new List<AttributedExpression>();
-              var ens = com is CoLemma ? new List<AttributedExpression>() : com.Ens.ConvertAll(cloner.CloneAttributedExpr);
+              // For a greatest lemma, the postconditions are filled in after the greatest lemma's postconditions have been resolved.
+              // For a least lemma, the preconditions are filled in after the least lemma's preconditions have been resolved.
+              var req = com is GreatestLemma ? com.Req.ConvertAll(cloner.CloneAttributedExpr) : new List<AttributedExpression>();
+              var ens = com is GreatestLemma ? new List<AttributedExpression>() : com.Ens.ConvertAll(cloner.CloneAttributedExpr);
               com.PrefixLemma = new PrefixLemma(com.tok, extraName, com.HasStaticKeyword,
                 com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
                 req, cloner.CloneSpecFrameExpr(com.Mod), ens,
                 new Specification<Expression>(decr, null),
-                null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the colemma is known
+                null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known
                 cloner.CloneAttributes(com.Attributes), com);
               extraMember = com.PrefixLemma;
               // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
@@ -2283,7 +2283,7 @@ namespace Microsoft.Dafny
       new NativeType("long", Int64.MinValue, 0x8000_0000_0000_0000, 0, NativeType.Selection.Long, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
     };
 
-    public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
+    public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies, bool isAnExport = false) {
       Contract.Requires(declarations != null);
       Contract.Requires(cce.NonNullElements(datatypeDependencies.GetVertices()));
       Contract.Requires(cce.NonNullElements(codatatypeDependencies.GetVertices()));
@@ -2548,7 +2548,7 @@ namespace Microsoft.Dafny
           }
           var k = prefixLemma.Ins[0];
           var focalPredicates = new HashSet<ExtremePredicate>();
-          if (com is CoLemma) {
+          if (com is GreatestLemma) {
             // compute the postconditions of the prefix lemma
             Contract.Assume(prefixLemma.Ens.Count == 0);  // these are not supposed to have been filled in before
             foreach (var p in com.Ens) {
@@ -2560,13 +2560,13 @@ namespace Microsoft.Dafny
               foreach (var e in coConclusions) {
                 var fce = e as FunctionCallExpr;
                 if (fce != null) {  // the other possibility is that "e" is a BinaryExpr
-                  CoPredicate predicate = (CoPredicate)fce.Function;
+                  GreatestPredicate predicate = (GreatestPredicate)fce.Function;
                   focalPredicates.Add(predicate);
                   // For every focal predicate P in S, add to S all co-predicates in the same strongly connected
                   // component (in the call graph) as P
                   foreach (var node in predicate.EnclosingClass.Module.CallGraph.GetSCC(predicate)) {
-                    if (node is CoPredicate) {
-                      focalPredicates.Add((CoPredicate)node);
+                    if (node is GreatestPredicate) {
+                      focalPredicates.Add((GreatestPredicate)node);
                     }
                   }
                 }
@@ -2583,13 +2583,13 @@ namespace Microsoft.Dafny
               prefixLemma.Req.Add(new AttributedExpression(pre, p.Label, null));
               foreach (var e in antecedents) {
                 var fce = (FunctionCallExpr)e;  // we expect "antecedents" to contain only FunctionCallExpr's
-                InductivePredicate predicate = (InductivePredicate)fce.Function;
+                LeastPredicate predicate = (LeastPredicate)fce.Function;
                 focalPredicates.Add(predicate);
-                // For every focal predicate P in S, add to S all inductive predicates in the same strongly connected
+                // For every focal predicate P in S, add to S all least predicates in the same strongly connected
                 // component (in the call graph) as P
                 foreach (var node in predicate.EnclosingClass.Module.CallGraph.GetSCC(predicate)) {
-                  if (node is InductivePredicate) {
-                    focalPredicates.Add((InductivePredicate)node);
+                  if (node is LeastPredicate) {
+                    focalPredicates.Add((LeastPredicate)node);
                   }
                 }
               }
@@ -2947,7 +2947,7 @@ namespace Microsoft.Dafny
         }
         // Check that extreme predicates are not recursive with non-extreme-predicate functions (and only
         // with extreme predicates of the same polarity), and
-        // check that colemmas are not recursive with non-colemma methods.
+        // check that greatest lemmas are not recursive with non-greatest-lemma methods.
         // Also, check that the constraints of newtypes/subset-types do not depend on the type itself.
         // And check that const initializers are not cyclic.
         var cycleErrorHasBeenReported = new HashSet<ICallable>();
@@ -3047,7 +3047,7 @@ namespace Microsoft.Dafny
             foreach (var member in cl.Members) {
               if (member is ConstantField && member.IsStatic && !member.IsGhost) {
                 var f = (ConstantField)member;
-                if (!cl.Module.IsAbstract && f.Rhs == null && !Compiler.InitializerIsKnown(f.Type) && !f.IsExtern(out _, out _)) {
+                if (!isAnExport && !cl.Module.IsAbstract && f.Rhs == null && !Compiler.InitializerIsKnown(f.Type) && !f.IsExtern(out _, out _)) {
                   reporter.Error(MessageSource.Resolver, f.tok, "static non-ghost const field '{0}' of type '{1}' (which does not have a default compiled value) must give a defining value",
                     f.Name, f.Type);
                 }
@@ -3066,7 +3066,7 @@ namespace Microsoft.Dafny
               }
             } else if (member is ConstantField && member.IsStatic && !member.IsGhost) {
               var f = (ConstantField)member;
-              if (!cl.Module.IsAbstract && f.Rhs == null && !Compiler.InitializerIsKnown(f.Type) && !f.IsExtern(out _, out _)) {
+              if (!isAnExport && !cl.Module.IsAbstract && f.Rhs == null && !Compiler.InitializerIsKnown(f.Type) && !f.IsExtern(out _, out _)) {
                 reporter.Error(MessageSource.Resolver, f.tok, "static non-ghost const field '{0}' of type '{1}' (which does not have a default compiled value) must give a defining value",
                   f.Name, f.Type);
               }
@@ -7148,7 +7148,7 @@ namespace Microsoft.Dafny
           }
           var cpBody = cp;
           if (!e.Exact) {
-            // a let-such-that expression introduces an existential that may depend on the _k in an inductive/co predicate, so we disallow recursive calls in the body of the let-such-that
+            // a let-such-that expression introduces an existential that may depend on the _k in a least/greatest predicate, so we disallow recursive calls in the body of the let-such-that
             if (IsCoContext && cp == CallingPosition.Positive) {
               cpBody = CallingPosition.Neither;
             } else if (!IsCoContext && cp == CallingPosition.Negative) {
@@ -7165,7 +7165,7 @@ namespace Microsoft.Dafny
             if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {
               if (e.Bounds.Exists(bnd => bnd == null || (bnd.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) == 0)) {
                 // To ensure continuity of extreme predicates, don't allow calls under an existential (resp. universal) quantifier
-                // for co-predicates (resp. inductive predicates).
+                // for greatest (resp. least) predicates).
                 cp = CallingPosition.Neither;
               }
             }
@@ -7200,7 +7200,7 @@ namespace Microsoft.Dafny
     {
       readonly ExtremePredicate context;
       public ExtremePredicateChecks_Visitor(Resolver resolver, ExtremePredicate context)
-        : base(resolver, context is CoPredicate, context.KNat) {
+        : base(resolver, context is GreatestPredicate, context.KNat) {
         Contract.Requires(resolver != null);
         Contract.Requires(context != null);
         this.context = context;
@@ -7209,17 +7209,16 @@ namespace Microsoft.Dafny
         if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
           if (ModuleDefinition.InSameSCC(context, e.Function)) {
-            var article = context is InductivePredicate ? "an" : "a";
             // we're looking at a recursive call
-            if (!(context is InductivePredicate ? e.Function is InductivePredicate : e.Function is CoPredicate)) {
-              resolver.reporter.Error(MessageSource.Resolver, e, "a recursive call from {0} {1} can go only to other {1}s", article, context.WhatKind);
+            if (!(context is LeastPredicate ? e.Function is LeastPredicate : e.Function is GreatestPredicate)) {
+              resolver.reporter.Error(MessageSource.Resolver, e, "a recursive call from a {0} can go only to other {0}s", context.WhatKind);
             } else if (context.KNat != ((ExtremePredicate)e.Function).KNat) {
               resolver.KNatMismatchError(e.tok, context.Name, context.TypeOfK, ((ExtremePredicate)e.Function).TypeOfK);
             } else if (cp != CallingPosition.Positive) {
-              var msg = string.Format("{0} {1} can be called recursively only in positive positions", article, context.WhatKind);
+              var msg = string.Format("a {0} can be called recursively only in positive positions", context.WhatKind);
               if (ContinuityIsImportant && cp == CallingPosition.Neither) {
                 // this may be inside an non-friendly quantifier
-                msg += string.Format(" and cannot sit inside an unbounded {0} quantifier", context is InductivePredicate ? "universal" : "existential");
+                msg += string.Format(" and cannot sit inside an unbounded {0} quantifier", context is LeastPredicate ? "universal" : "existential");
               } else {
                 // we don't care about the continuity restriction or
                 // the extreme-call is not inside an quantifier, so don't bother mentioning the part of existentials/universals in the error message
@@ -7241,8 +7240,7 @@ namespace Microsoft.Dafny
           var s = (CallStmt)stmt;
           if (ModuleDefinition.InSameSCC(context, s.Method)) {
             // we're looking at a recursive call
-            var article = context is InductivePredicate ? "an" : "a";
-            resolver.reporter.Error(MessageSource.Resolver, stmt.Tok, "a recursive call from {0} {1} can go only to other {1}s", article, context.WhatKind);
+            resolver.reporter.Error(MessageSource.Resolver, stmt.Tok, "a recursive call from a {0} can go only to other {0}s", context.WhatKind);
           }
           // do the sub-parts with the same "cp"
           return true;
@@ -7282,8 +7280,7 @@ namespace Microsoft.Dafny
             // the call goes from an extreme lemma context to a non-extreme-lemma callee
             if (ModuleDefinition.InSameSCC(context, s.Method)) {
               // we're looking at a recursive call (to a non-extreme-lemma)
-              var article = context is InductiveLemma ? "an" : "a";
-              resolver.reporter.Error(MessageSource.Resolver, s.Tok, "a recursive call from {0} {1} can go only to other {1}s and prefix lemmas", article, context.WhatKind);
+              resolver.reporter.Error(MessageSource.Resolver, s.Tok, "a recursive call from a {0} can go only to other {0}s and prefix lemmas", context.WhatKind);
             }
           }
         }
@@ -7292,10 +7289,10 @@ namespace Microsoft.Dafny
       {
         if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
-          // the call goes from a colemma context to a non-colemma callee
+          // the call goes from a greatest lemma context to a non-greatest-lemma callee
           if (ModuleDefinition.InSameSCC(context, e.Function)) {
-            // we're looking at a recursive call (to a non-colemma)
-            resolver.reporter.Error(MessageSource.Resolver, e.tok, "a recursive call from a colemma can go only to other colemmas and prefix lemmas");
+            // we're looking at a recursive call (to a non-greatest-lemma)
+            resolver.reporter.Error(MessageSource.Resolver, e.tok, "a recursive call from a greatest lemma can go only to other greatest lemmas and prefix lemmas");
           }
         }
       }
@@ -8543,11 +8540,11 @@ namespace Microsoft.Dafny
             traitMember.WhatKind, traitMember.Name, trait.Name);
         } else if (member is Lemma != traitMember is Lemma ||
                    member is TwoStateLemma != traitMember is TwoStateLemma ||
-                   member is InductiveLemma != traitMember is InductiveLemma ||
-                   member is CoLemma != traitMember is CoLemma ||
+                   member is LeastLemma != traitMember is LeastLemma ||
+                   member is GreatestLemma != traitMember is GreatestLemma ||
                    member is TwoStateFunction != traitMember is TwoStateFunction ||
-                   member is InductivePredicate != traitMember is InductivePredicate ||
-                   member is CoPredicate != traitMember is CoPredicate) {
+                   member is LeastPredicate != traitMember is LeastPredicate ||
+                   member is GreatestPredicate != traitMember is GreatestPredicate) {
           reporter.Error(MessageSource.Resolver, member.tok, "{0} '{1}' in '{2}' can only be overridden by a {0} (got {3})", traitMember.WhatKind, traitMember.Name, trait.Name, member.WhatKind);
         } else if (member.IsGhost != traitMember.IsGhost) {
           reporter.Error(MessageSource.Resolver, member.tok, "overridden {0} '{1}' in '{2}' has different ghost/compiled status than in trait '{3}'",
@@ -9461,7 +9458,7 @@ namespace Microsoft.Dafny
           SolveAllTypeConstraints();
         }
 
-        // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for colemmas)
+        // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for greatest lemmas)
         ResolveAttributes(m.Attributes, m, new ResolveOpts(m, false));
 
         DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
@@ -17205,18 +17202,18 @@ namespace Microsoft.Dafny
 
     /// <summary>
     /// This method adds to "friendlyCalls" all
-    ///     inductive calls                                   if !co
-    ///     copredicate calls and codatatype equalities       if co
+    ///     inductive calls                                     if !co
+    ///     greatest predicate calls and codatatype equalities  if co
     /// that occur in positive positions and not under
-    ///     universal quantification                          if !co
-    ///     existential quantification.                       if co
+    ///     universal quantification                            if !co
+    ///     existential quantification.                         if co
     /// If "expr" is the
-    ///     precondition of an inductive lemma                if !co
-    ///     postcondition of a colemma,                       if co
+    ///     precondition of a least lemma                       if !co
+    ///     postcondition of a greatest lemma,                  if co
     /// then the "friendlyCalls" are the subexpressions that need to be replaced in order
     /// to create the
-    ///     precondition                                      if !co
-    ///     postcondition                                     if co
+    ///     precondition                                        if !co
+    ///     postcondition                                       if co
     /// of the corresponding prefix lemma.
     /// </summary>
     void CollectFriendlyCallsInExtremeLemmaSpecification(Expression expr, bool position, ISet<Expression> friendlyCalls, bool co, ExtremeLemma context) {
@@ -17247,7 +17244,7 @@ namespace Microsoft.Dafny
         if (expr is FunctionCallExpr) {
           if (cp == CallingPosition.Positive) {
             var fexp = (FunctionCallExpr)expr;
-            if (IsCoContext ? fexp.Function is CoPredicate : fexp.Function is InductivePredicate) {
+            if (IsCoContext ? fexp.Function is GreatestPredicate : fexp.Function is LeastPredicate) {
               if (Context.KNat != ((ExtremePredicate)fexp.Function).KNat) {
                 resolver.KNatMismatchError(expr.tok, Context.Name, Context.TypeOfK, ((ExtremePredicate)fexp.Function).TypeOfK);
               } else {

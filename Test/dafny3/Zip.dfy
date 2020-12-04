@@ -26,11 +26,11 @@ function even(xs: Stream): Stream
 function odd(xs: Stream): Stream
   { even(xs.tl) }
 
-colemma EvenOddLemma(xs: Stream)
+greatest lemma EvenOddLemma(xs: Stream)
   ensures zip(even(xs), odd(xs)) == xs;
 { EvenOddLemma(xs.tl.tl); }
 
-colemma EvenZipLemma(xs:Stream, ys:Stream)
+greatest lemma EvenZipLemma(xs:Stream, ys:Stream)
   ensures even(zip(xs, ys)) == xs;
 { /* Automatic. */ }
 
@@ -38,7 +38,7 @@ function bzip(xs: Stream, ys: Stream, f:bool) : Stream
   { if f then Cons(xs.hd, bzip(xs.tl, ys, !f))
     else      Cons(ys.hd, bzip(xs, ys.tl, !f)) }
 
-colemma BzipZipLemma(xs:Stream, ys:Stream)
+greatest lemma BzipZipLemma(xs:Stream, ys:Stream)
   ensures zip(xs, ys) == bzip(xs, ys, true);
 { BzipZipLemma(xs.tl, ys.tl); }
 
@@ -57,7 +57,7 @@ function blink(): Stream<int>
   Cons(0, Cons(1, blink()))
 }
 
-colemma BzipBlinkLemma()
+greatest lemma BzipBlinkLemma()
   ensures zip(constr(0), constr(1)) == blink();
 {
   BzipBlinkLemma();
@@ -69,13 +69,13 @@ function zip2(xs: Stream, ys: Stream): Stream
   Cons(xs.hd, zip2(ys, xs.tl))
 }
 
-colemma Zip201Lemma()
+greatest lemma Zip201Lemma()
   ensures zip2(constr(0), constr(1)) == blink();
 {
   Zip201Lemma();
 }
 
-colemma ZipZip2Lemma(xs:Stream, ys:Stream)
+greatest lemma ZipZip2Lemma(xs:Stream, ys:Stream)
   ensures zip(xs, ys) == zip2(xs, ys);
 {
   ZipZip2Lemma(xs.tl, ys.tl);
@@ -87,13 +87,13 @@ function bswitch(xs: Stream, f:bool) : Stream
   else      Cons(xs.hd,      bswitch(xs.tl, !f))
 }
 
-colemma BswitchLemma(xs:Stream)
+greatest lemma BswitchLemma(xs:Stream)
   ensures zip(odd(xs), even(xs)) == bswitch(xs, true);
 {
   BswitchLemma(xs.tl.tl);
 }
 
-colemma Bswitch2Lemma(xs:Stream, ys:Stream)
+greatest lemma Bswitch2Lemma(xs:Stream, ys:Stream)
   ensures zip(xs, ys) == bswitch(zip(ys, xs), true);
 {
   Bswitch2Lemma(xs.tl, ys.tl);

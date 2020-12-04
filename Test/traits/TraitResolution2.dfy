@@ -234,10 +234,10 @@ module MemberMismatch {
     lemma L()
     twostate lemma K()
 
-    inductive predicate P()
-    copredicate Q()
-    inductive lemma R()
-    colemma S()
+    least predicate P()
+    greatest predicate Q()
+    least lemma R()
+    greatest lemma S()
   }
   trait A3 extends AAA {
   }
@@ -251,10 +251,10 @@ module MemberMismatch {
     lemma L()
     twostate lemma K()
 
-    inductive predicate P()
-    copredicate Q()
-    inductive lemma R()
-    colemma S()
+    least predicate P()
+    greatest predicate Q()
+    least lemma R()
+    greatest lemma S()
   }
 
   class SwitchLemma extends A3 {
@@ -267,10 +267,10 @@ module MemberMismatch {
     ghost method L()  // error: lemma vs ghost method
     twostate lemma K()
 
-    inductive predicate P()
-    copredicate Q()
-    inductive lemma R()
-    colemma S()
+    least predicate P()
+    greatest predicate Q()
+    least lemma R()
+    greatest lemma S()
   }
 
   class SwitchTwoState extends A3 {
@@ -283,10 +283,10 @@ module MemberMismatch {
     twostate lemma L()  // error: lemma vs twostate
     lemma K()  // error: lemma vs twostate
 
-    inductive predicate P()
-    copredicate Q()
-    inductive lemma R()
-    colemma S()
+    least predicate P()
+    greatest predicate Q()
+    least lemma R()
+    greatest lemma S()
   }
 
   class SwitchExtreme0 extends A3 {
@@ -299,10 +299,10 @@ module MemberMismatch {
     lemma L()
     twostate lemma K()
 
-    copredicate P()  // error: coind. vs ind.
-    inductive predicate Q()  // error: coind. vs ind.
-    colemma R()  // error: coind. vs ind.
-    inductive lemma S()  // error: coind. vs ind.
+    greatest predicate P()  // error: least vs greatest
+    least predicate Q()  // error: least vs greatest
+    greatest lemma R()  // error: least vs greatest
+    least lemma S()  // error: least vs greatest
   }
 
   class SwitchExtreme1 extends A3 {
@@ -312,7 +312,7 @@ module MemberMismatch {
 
     method M()
     ghost method N()
-    inductive lemma L()  // error: extreme lemma vs lemma
+    least lemma L()  // error: extreme lemma vs lemma
     twostate lemma K()
 
     predicate P()  // error: extreme predicate vs predicate
@@ -342,41 +342,41 @@ module PredicateFunctionBool {
 }
 module ExtremeKMismatch {
   trait A4 {
-    inductive predicate P()
-    inductive predicate Q[nat]()
-    inductive predicate R[ORDINAL]()
+    least predicate P()
+    least predicate Q[nat]()
+    least predicate R[ORDINAL]()
 
-    inductive lemma K()
-    inductive lemma L[nat]()
-    inductive lemma M[ORDINAL]()
+    least lemma K()
+    least lemma L[nat]()
+    least lemma M[ORDINAL]()
   }
   trait AAA extends A4 {
   }
   class C0 extends AAA {
-    inductive predicate P()
-    inductive predicate Q()  // error: nat vs ORDINAL
-    inductive predicate R()
+    least predicate P()
+    least predicate Q()  // error: nat vs ORDINAL
+    least predicate R()
 
-    inductive lemma K()
-    inductive lemma L()  // error: nat vs ORDINAL
-    inductive lemma M()
+    least lemma K()
+    least lemma L()  // error: nat vs ORDINAL
+    least lemma M()
   }
   class C1 extends AAA {
-    inductive predicate P[nat]()  // error: nat vs ORDINAL
-    inductive predicate Q[nat]()
-    inductive predicate R[nat]()  // error: nat vs ORDINAL
+    least predicate P[nat]()  // error: nat vs ORDINAL
+    least predicate Q[nat]()
+    least predicate R[nat]()  // error: nat vs ORDINAL
 
-    inductive lemma K[nat]()  // error: nat vs ORDINAL
-    inductive lemma L[nat]()
-    inductive lemma M[nat]()  // error: nat vs ORDINAL
+    least lemma K[nat]()  // error: nat vs ORDINAL
+    least lemma L[nat]()
+    least lemma M[nat]()  // error: nat vs ORDINAL
   }
   class C2 extends AAA {
-    inductive predicate P[ORDINAL]()
-    inductive predicate Q[ORDINAL]()  // error: nat vs ORDINAL
-    inductive predicate R[ORDINAL]()
+    least predicate P[ORDINAL]()
+    least predicate Q[ORDINAL]()  // error: nat vs ORDINAL
+    least predicate R[ORDINAL]()
 
-    inductive lemma K[ORDINAL]()
-    inductive lemma L[ORDINAL]()  // error: nat vs ORDINAL
-    inductive lemma M[ORDINAL]()
+    least lemma K[ORDINAL]()
+    least lemma L[ORDINAL]()  // error: nat vs ORDINAL
+    least lemma M[ORDINAL]()
   }
 }
