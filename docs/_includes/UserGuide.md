@@ -43,6 +43,16 @@ on the command-line or referenced, recursively, by `include` directives
 within those files. It does not matter if files are repeated either as
 includes or on the command-line.[^fn-duplicate-files]
 
+Note however that although the complete set of files, command-line plus
+included files, make up the program, by default, only those files listed on
+the command-line are verified. To do a complete verification, each file
+must be verified; it may well happen that a verification failure in one
+file (which is not on the command-line and thus not checked) may hide a
+verification failure in a file that is being checked.
+Thus it is important to eventually check all files, preferably in an order
+in which the files without dependences are checked first, then those that
+depend on them, etc., until all files are checked.
+
 [^fn-duplicate-files]: File names are considered equal if they
 have the same absolute path, reduced to lower case, even on file
 systems that support case-sensitive file names.
