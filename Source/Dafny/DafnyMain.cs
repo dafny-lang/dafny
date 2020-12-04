@@ -36,10 +36,11 @@ namespace Microsoft.Dafny {
       var extension = Path.GetExtension(filePath);
       if (extension != null) { extension = extension.ToLower(); }
 
-      // Normalizing casing and symbolic links appears to be not
+      // Normalizing symbolic links appears to be not
       // supported in .Net APIs, because it is very difficult in general
-      // So we will just use the absolute path
-      CanonicalPath = Path.GetFullPath(filePath);
+      // So we will just use the absolute path, lowercased for all file systems.
+      // cf. IncludeComparer.CompareTo
+      CanonicalPath = Path.GetFullPath(filePath).ToLower();
 
       if (!Path.IsPathRooted(filePath))
         filePath = Path.GetFullPath(filePath);
