@@ -755,9 +755,12 @@ namespace Microsoft.Dafny {
           if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
             // This can only mean "rtd" is a class/trait that is only provided, not revealed. For a provided class/trait,
             // it is the non-null type declaration that is visible, not the class/trait declaration itself.
+            // rtd can also be an OpaqueTypeDecl
             var cl = rtd as ClassDecl;
-            Contract.Assert(cl != null && cl.NonNullTypeDecl != null);
-            Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
+            if (cl != null) {
+              Contract.Assert(cl.NonNullTypeDecl != null);
+              Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
+            }
           }
 
           if (rtd.IsRevealedInScope(scope)) {
