@@ -125,7 +125,7 @@ abstract module Abstract' {
     var data: int
   }
 
-  // See comment in Abstract.M5 above. Here, X.Cell and Cell are not
+  // See comment in Abstract.M5 above. Here, X.Cell and Cell are known
   // to be different (because X.Cell and Cell' are known to be different).
   method M5(x: X.Cell, y: Cell)
     modifies x
