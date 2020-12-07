@@ -154,7 +154,9 @@ namespace Microsoft.Dafny
         bool isDafnyFile = false;
         try {
           var df = new DafnyFile(file);
-          if (!filesSeen.Add(df.CanonicalPath)) continue; // silently ignore duplicate
+          if (!filesSeen.Add(df.CanonicalPath)) {
+            continue; // silently ignore duplicate
+          }
           dafnyFiles.Add(df);
           isDafnyFile = true;
         } catch (IllegalDafnyFile) {
