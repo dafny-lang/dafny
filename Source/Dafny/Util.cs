@@ -405,9 +405,9 @@ namespace Microsoft.Dafny {
       string key = include.includerFilename == null ? "roots" : include.includerFilename;
       bool found = dependencies.TryGetValue(key, out existingDependencies);
       if (found) {
-        existingDependencies.Add(include.includedFullPath);
+        existingDependencies.Add(include.canonicalPath);
       } else {
-        dependencies[key] = new SortedSet<string>() { include.includedFullPath };
+        dependencies[key] = new SortedSet<string>() { include.canonicalPath };
       }
     }
 
