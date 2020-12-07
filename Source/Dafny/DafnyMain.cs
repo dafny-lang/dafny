@@ -26,7 +26,7 @@ namespace Microsoft.Dafny {
     // for all paths to a given file and different otherwise. The best we can do is to
     // make the path absolute -- detecting case and canoncializing symbolic and hard
     // links are difficult across file systems (which may mount parts of other filesystems,
-    // with different characterisstics) and is not supported by .Net libraries
+    // with different characteristics) and is not supported by .Net libraries
     public static string Canonicalize(String filePath) {
       return Path.GetFullPath(filePath);
     }
