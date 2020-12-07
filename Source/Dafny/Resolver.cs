@@ -1585,7 +1585,10 @@ namespace Microsoft.Dafny
           if (useImports || string.Equals(kv.Key, "_default", StringComparison.InvariantCulture)) {
             TopLevelDecl d;
             if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
-              sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
+              // ignore the import if the existing declaration belongs to the current module
+              if (d.Module != moduleDef) {
+                sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
+              }
             } else {
               sig.TopLevels.Add(kv.Key, kv.Value);
             }
