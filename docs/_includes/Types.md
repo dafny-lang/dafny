@@ -442,7 +442,7 @@ Sequences of characters represent _strings_, as described in Section
 
 Character values can be converted to and from `int` values using the
 `as int` and `as char` conversion operations. The result is what would
-be expected in other programming langauges, namely, the 'int` value of a
+be expected in other programming languages, namely, the 'int` value of a
 `char` is the ACSII or unicode numeric value.
 
 The only other operations on characters are obtaining a character
@@ -458,7 +458,7 @@ GenericParameters =
 
 TPChars = "(" TPCharOption { "," TPCharOption } ")"
 
-TPCharOption = ( "==" | "0" | "!" "new )
+TPCharOption = ( "==" | "0" | "!" "new" )
 ````
 Many of the types, functions, and methods in Dafny can be
 parameterized by types.  These _type parameters_ are typically
@@ -481,7 +481,7 @@ will add the appropriate suffix, such as `(==)`, automatically.
 If more than one restriction is needed, they are listed, comma-separated,
 inside the parentheses, like this: `T(==,0)`.
 
-### Equality-supporting type parameters: `T(==)`
+### Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
 
 Designating a type parameter with the `(==)` suffix indicates that
 the parameter may only be replaced in non-ghost contexts
@@ -590,8 +590,8 @@ For any type `T`, each value of type `set<T>` is a finite set of
 `T` values.
 
 Set membership is determined by equality in the type `T`,
-so `set<T>` can be used in a non-ghost context only if `T` is equality
-supporting.
+so `set<T>` can be used in a non-ghost context only if `T` is
+[equality supporting](#sec-equality-supporting).
 
 For any type `T`, each value of type `iset<T>` is a potentially infinite
 set of `T` values.
@@ -656,8 +656,6 @@ expression `e` of type `T`, sets support the following operations:
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
-TODO: Or does the length operator produce an ORDINAL?
-
 ## Multisets
 ````grammar
 MultisetType_ = "multiset" [ GenericInstantiation ]
@@ -673,7 +671,7 @@ number of elements to non-zero (finite) multiplicities.
 
 Like sets, multiset membership is determined by equality in the type
 `T`, so `multiset<T>` can be used in a non-ghost context only if `T`
-is equality supporting.
+is [equality supporting](#sec-equality-supporting).
 
 A multiset can be formed using a _multiset display_ expression, which
 is a possibly empty, unordered list of expressions enclosed in curly
@@ -916,7 +914,7 @@ denotes a _(possibly) infinite map_.  In most regards, `imap<T,U>` is
 like `map<T,U>`, but a map of type `imap<T,U>` is allowed to have an
 infinite domain.
 
-A map can be formed using a _map display_ expression (see ``MapDisplayExpr``),
+A map can be formed using a _map display_ expression (see [``MapDisplayExpr``](#sec-map-display-expression)),
 which is a possibly empty, ordered list of _maplets_, each maplet having the
 form `t := u` where `t` is an expression of type `T` and `u` is an
 expression of type `U`, enclosed in square brackets after the keyword

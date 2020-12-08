@@ -670,7 +670,7 @@ assert ms == ms2;
 See section [#sec-multisets] for more information on
 multisets.
 
-## Map Display Expression
+## Map Display Expression {#sec-map-display-expression}
 ````grammar
 MapDisplayExpr =
   ("map" | "imap" ) "[" [ MapLiteralExpressions ] "]"
