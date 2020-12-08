@@ -83,21 +83,21 @@ namespace Microsoft.Dafny {
     public readonly IToken tok;
     public readonly string includerFilename;
     public readonly string includedFilename;
-    public readonly string includedFullPath;
+    public readonly string canonicalPath;
     public bool ErrorReported;
 
-    public Include(IToken tok, string includer, string theFilename, string fullPath) {
+    public Include(IToken tok, string includer, string theFilename) {
       this.tok = tok;
       this.includerFilename = includer;
       this.includedFilename = theFilename;
-      this.includedFullPath = fullPath;
+      this.canonicalPath = DafnyFile.Canonicalize(theFilename);
       this.ErrorReported = false;
     }
 
     public int CompareTo(object obj) {
       var i = obj as Include;
       if (i != null) {
-        return this.includedFullPath.CompareTo(i.includedFullPath);
+        return this.canonicalPath.CompareTo(i.canonicalPath);
       } else {
         throw new NotImplementedException();
       }
