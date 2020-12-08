@@ -20,29 +20,33 @@ recursive functions, and types like sets and sequences. Specifications
 and ghost constructs are used only during verification; the compiler
 omits them from the executable code.
 
-The Dafny verifier is run as part of the compiler. As such, a programmer
+The `dafny` verifier is run as part of the compiler. As such, a programmer
 interacts with it in much the same way as with the static type
 checker—when the tool produces errors, the programmer responds by
 changing the program’s type declarations, specifications, and statements.
 
+(This document typically uses "Dafny" to refer to the programming language
+and "dafny" to refer to the software tool that verifies and compiles programs
+in the Dafny language.)
+
 The easiest way to try out [Dafny is in your web browser at
 rise4fun](http://rise4fun.com/Dafny)[@Rise4fun:dafny]. Once you get a bit
-more serious, you may prefer to [download](http://dafny.codeplex.com/) it
+more serious, you may prefer to [download](https://github.com/dafny-lang/dafny/releases) it
 to run it on your machine. Dafny can be run from the command
-line (on Windows or other platforms) or from an IDE
+line (on Linux, MacOS, Windows or other platforms) or from an IDE
 such as emacs or
-Microsoft Visual Studio 2012 (or newer), where the Dafny
+Microsoft Visual Studio 2012 (or newer), where the `dafny`
 verifier runs in the background while the programmer is editing the
 program. An editor such as VSCode can provide syntax highlighting without
 the built-in verification.
 
-The Dafny verifier is powered
+The verifier is powered
 by [Boogie](http://research.microsoft.com/boogie)
 [@Boogie:Architecture;@Leino:Boogie2-RefMan;@LeinoRuemmer:Boogie2]
 and [Z3](https://github.com/z3prover)[@deMouraBjorner:Z3:overview].
 
-From verified programs, the Dafny compiler can produce code for a number
-of different backends: 
+From verified programs, the `dafny` compiler can produce code for a number
+of different backends:
 the .NET platform via intermediate C\# files, Java, Javascript, Go, and C++.
 Each language provides a basic Foreign Function Interface (through uses of `:extern`)
 and a supporting runtime library.

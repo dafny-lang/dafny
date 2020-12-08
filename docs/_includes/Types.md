@@ -1063,7 +1063,7 @@ The optional type parameter characteristics are described in the
 section on [type parameter restrictions](#sec-type-parameter-restrictions)
 
 
-# Class Types
+# Class Types {#sec-class-types}
 
 ````grammar
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
@@ -2860,7 +2860,7 @@ NewtypeDecl = "newtype" { Attribute } NewtypeName "="
   )
 ````
 
-A new numeric type can be declared with the _newtype_
+A new type can be declared with the _newtype_
 declaration, for example:
 ```dafny
 newtype N = x: M | Q
@@ -2883,10 +2883,7 @@ without an explicit conversion.  An important difference between the
 operations on a newtype and the operations on its base type is that
 the newtype operations are defined only if the result satisfies the
 predicate `Q`, and likewise for the literals of the
-newtype.[^fn-newtype-design-question]
-
-[^fn-newtype-design-question]: Would it be useful to also
-    automatically define `predicate N?(x: M) { Q }`?
+newtype.
 
 For example, suppose `lo` and `hi` are integer-based numerics that
 satisfy `0 <= lo <= hi` and consider the following code fragment:
@@ -2915,7 +2912,7 @@ of the newtype.  For example, by scrutinizing the definition of
 `int32` above, a compiler may decide to store `int32` values using
 signed 32-bit integers in the target hardware.
 
-This incompatibility of a newtype and its basetype is intentional,
+The incompatibility of a newtype and its basetype is intentional,
 as newtypes are meant to be used as distinct types from the basetype.
 If numeric types are desired that mix more readily with the basetype,
 the subset types described in a later section may be more appropriate.
@@ -2934,7 +2931,7 @@ and consider a variable `c` of type `int8`.  The expression
 is not well-defined, because the comparisons require each operand to
 have type `int8`, which means the literal `128` is checked to be of
 type `int8`, which it is not.  A proper way to write this expression
-would be to use a conversion operation, described next, on `c` to
+would be to use a conversion operation, described [next](#sec-conversion), on `c` to
 convert it to the base type:
 ```dafny
 -128 <= c as int < 128
@@ -2955,16 +2952,17 @@ known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
 in [Section: Compile-Time Constants](#sec-compile-time-constants).
 
-## Numeric conversion operations
+## Conversion operations {#sec-conversion}
 
-For every numeric type `N`, there is a conversion function with the
-name `as N`.  It is a partial identity function.  It is defined when the
-given value, which can be of any numeric type, is a member of the type
+For every type `N`, there is a conversion operation with the
+name `as N`, described more fully in [a later section](#sec-as-expression).
+It is a partial function defined when the
+given value, which can be of any type, is a member of the type
 converted to.  When the conversion is from a real-based numeric type
 to an integer-based numeric type, the operation requires that the
 real-based argument have no fractional part.  (To round a real-based
 numeric value down to the nearest integer, use the `.Floor` member,
-see Section [#sec-numeric-types].)
+see Section [Numeric Types](#sec-numeric-types).)
 
 To illustrate using the example from above, if `lo` and `hi` have type
 `int32`, then the code fragment can legally be written as follows:
@@ -2982,8 +2980,15 @@ If the compiler does specialize the run-time representation for
 respectively three, run-time conversions.
 
 The `as N` conversion operation is grammatically a suffix operation like
-`.`field and array indexing. Thus the `as` operation binds more tightly than
-prefix or binary operations: `- x as int` is `- (x as int)`; `a + b as int` is `a + (b as int)`.
+`.`field and array indexingi, but binds less tightly than unary operations:
+`- x as int` is `(- x) as int`; `a + b as int` is `a + (b as int)`.
+
+There is also a corresponding [`is` operation](#sec-as-expression) that
+tests whether a value is valid for a given type. For example, `-5 as nat` is
+false. So `e as T` is well-defined exactly when `e is T` is true.
+For a newtype or subset type, the `is` operation is the predicate that defines
+the type.
+**The `is` operation is not yet implemented**.
 
 # Subset types {#sec-subset-types}
 TO BE WRITTEN: add `-->` (subset of `~>`), `->` (subset of `-->`), non-null types subset of nullable types
