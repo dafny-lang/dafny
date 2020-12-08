@@ -1,4 +1,4 @@
-# Introduction
+#1. Introduction
 
 Dafny [@Leino:Dafny:LPAR16] is a programming language with built-in specification constructs,
 so that verifying a program's correctness with respect to those specifications
@@ -42,7 +42,7 @@ by [Boogie](http://research.microsoft.com/boogie)
 and [Z3](https://github.com/z3prover)[@deMouraBjorner:Z3:overview].
 
 From verified programs, the Dafny compiler can produce code for a number
-of different backends: 
+of different backends:
 the .NET platform via intermediate C\# files, Java, Javascript, Go, and C++.
 Each language provides a basic Foreign Function Interface (through uses of `:extern`)
 and a supporting runtime library.
@@ -61,7 +61,7 @@ initial section that deals with the lowest level constructs.
 
 The details of using (and contributing to) the dafny tool are described in the [User Guide](#user-guide).
 
-## Dafny Example
+##1. Dafny Example
 To give a flavor of Dafny, here is the solution to a competition problem.
 
 ```dafny
