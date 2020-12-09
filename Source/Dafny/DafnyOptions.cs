@@ -631,208 +631,209 @@ namespace Microsoft.Dafny
  Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
             3 -- compilation errors; 4 -- verification errors
 
-  /dprelude:<file>
-                choose Dafny prelude file
-  /dprint:<file>
-                print Dafny program after parsing it
-                (use - as <file> to print to console)
-  /printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
-                Everything is the default.
-                DllEmbed prints the source that will be included in a compiled dll.
-                NoIncludes disables printing of {:verify false} methods incorporated via the
-                include mechanism, as well as datatypes and fields included from other files.
-                NoGhost disables printing of functions, ghost methods, and proof statements in
-                implementation methods.  It also disables anything NoIncludes disables.
-  /rprint:<file>
-                print Dafny program after resolving it
-                (use - as <file> to print to console)
-  /pmtrace      print pattern-match compiler debug info
-  /titrace      print type-inference debug info
-  /view:<view1, view2>
-                print the filtered views of a module after it is resolved (/rprint).
-                If print before the module is resolved (/dprint), then everything in the module
-                is printed.
-                If no view is specified, then everything in the module is printed.
+/dprelude:<file>
+    choose Dafny prelude file
+/dprint:<file>
+    print Dafny program after parsing it
+    (use - as <file> to print to console)
+/printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
+    Everything is the default.
+    DllEmbed prints the source that will be included in a compiled dll.
+    NoIncludes disables printing of {:verify false} methods incorporated via the
+    include mechanism, as well as datatypes and fields included from other files.
+    NoGhost disables printing of functions, ghost methods, and proof statements in
+    implementation methods.  It also disables anything NoIncludes disables.
+/rprint:<file>
+    print Dafny program after resolving it
+    (use - as <file> to print to console)
+/pmtrace      print pattern-match compiler debug info
+/titrace      print type-inference debug info
+/view:<view1, view2>
+    print the filtered views of a module after it is resolved (/rprint).
+    If print before the module is resolved (/dprint), then everything in the module
+    is printed.
+    If no view is specified, then everything in the module is printed.
 
-  /dafnyVerify:<n>
-                0 - stop after typechecking
-                1 - continue on to translation, verification, and compilation
-  /compile:<n>  0 - do not compile Dafny program
-                1 (default) - upon successful verification of the Dafny
-                    program, compile it to the designated target language
-                    (/noVerify automatically counts as failed verification)
-                2 - always attempt to compile Dafny program to the target
-                    language, regardless of verification outcome
-                3 - if there is a Main method and there are no verification
-                    errors and /noVerify is not used, compiles program in
-                    memory (i.e., does not write an output file) and runs it
-                4 - like (3), but attempts to compile and run regardless of
-                    verification outcome
-  /compileTarget:<lang>
-                cs (default) - Compilation to .NET via C#
-                go - Compilation to Go
-                js - Compilation to JavaScript
-                java - Compilation to Java
-                cpp - Compilation to C++
-                php - Compilation to PHP
+/dafnyVerify:<n>
+    0 - stop after typechecking
+    1 - continue on to translation, verification, and compilation
+/compile:<n>  0 - do not compile Dafny program
+    1 (default) - upon successful verification of the Dafny
+        program, compile it to the designated target language
+        (/noVerify automatically counts as failed verification)
+    2 - always attempt to compile Dafny program to the target
+        language, regardless of verification outcome
+    3 - if there is a Main method and there are no verification
+        errors and /noVerify is not used, compiles program in
+        memory (i.e., does not write an output file) and runs it
+    4 - like (3), but attempts to compile and run regardless of
+        verification outcome
+/compileTarget:<lang>
+    cs (default) - Compilation to .NET via C#
+    go - Compilation to Go
+    js - Compilation to JavaScript
+    java - Compilation to Java
+    cpp - Compilation to C++
+    php - Compilation to PHP
 
-                Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
-                This includes lack of support for BigIntegers (aka int), most higher order
-                functions, and advanced features like traits or co-inductive types.
-  /compileVerbose:<n>
-                0 - don't print status of compilation to the console
-                1 (default) - print information such as files being written by
-                    the compiler to the console
-  /spillTargetCode:<n>
-                0 (default) - don't write the compiled Dafny program (but
-                    still compile it, if /compile indicates to do so)
-                1 - write the compiled Dafny program in the target language,
-                    if it is being compiled
-                2 - write the compiled Dafny program in the target language,
-                    provided it passes the verifier (and /noVerify is NOT used),
-                    regardless of /compile setting
-                3 - write the compiled Dafny program in the target language,
-                    regardless of verification outcome and /compile setting
-                NOTE: If there are .cs or .dll files on the command line, then
-                the compiled Dafny program will also be written. More precisely,
-                such files on the command line implies /spillTargetCode:1 (or
-                higher, if manually specified).
-  /out:<file>
-                filename and location for the generated target language files
-  /coverage:<file>
-                The compiler emits branch-coverage calls and outputs into
-                <file> a legend that gives a description of each
-                source-location identifier used in the branch-coverage calls.
-                (use - as <file> to print to console)
-  /dafnycc      Disable features not supported by DafnyCC
-  /noCheating:<n>
-                0 (default) - allow assume statements and free invariants
-                1 - treat all assumptions as asserts, and drop free.
-  /induction:<n>
-                0 - never do induction, not even when attributes request it
-                1 - only apply induction when attributes request it
-                2 - apply induction as requested (by attributes) and also
-                    for heuristically chosen quantifiers
-                3 (default) - apply induction as requested, and for
-                    heuristically chosen quantifiers and lemmas
-  /inductionHeuristic:<n>
-                0 - least discriminating induction heuristic (that is, lean
-                    toward applying induction more often)
-                1,2,3,4,5 - levels in between, ordered as follows as far as
-                    how discriminating they are:  0 < 1 < 2 < (3,4) < 5 < 6
-                6 (default) - most discriminating
-  /noIncludes   Ignore include directives
-  /noExterns    Ignore extern and dllimport attributes
-  /noNLarith    Reduce Z3's knowledge of non-linear arithmetic (*,/,%).
-                Results in more manual work, but also produces more predictable behavior.
-                (This switch will perhaps be replaced by /arith in the future.
-                For now, it takes precedence of /arith.)
-  /arith:<n>    (Experimental switch. Its options may change.)
-                0 - Use Boogie/Z3 built-ins for all arithmetic operations.
-                1 (default) - Like 0, but introduce symbolic synonyms for *,/,%, and
-                    allow these operators to be used in triggers.
-                2 - Like 1, but introduce symbolic synonyms also for +,-.
-                3 - Turn off non-linear arithmetic in the SMT solver. Still,
-                    use Boogie/Z3 built-in symbols for all arithmetic operations.
-                4 - Like 3, but introduce symbolic synonyms for *,/,%, and allow these
-                    operators to be used in triggers.
-                5 - Like 4, but introduce symbolic synonyms also for +,-.
-                6 - Like 5, and introduce axioms that distribute + over *.
-                7 - like 6, and introduce facts that associate literals arguments of *.
-                8 - Like 7, and introduce axiom for the connection between *,/,%.
-                9 - Like 8, and introduce axioms for sign of multiplication
-                10 - Like 9, and introduce axioms for commutativity and
-                    associativity of *
-  /autoReqPrint:<file>
-                Print out requirements that were automatically generated by autoReq.
-  /noAutoReq    Ignore autoReq attributes
-  /allowGlobals Allow the implicit class '_default' to contain fields, instance functions,
-                and instance methods.  These class members are declared at the module scope,
-                outside of explicit classes.  This command-line option is provided to simplify
-                a transition from the behavior in the language prior to version 1.9.3, from
-                which point onward all functions and methods declared at the module scope are
-                implicitly static and fields declarations are not allowed at the module scope.
-  /countVerificationErrors:<n>
-                [ deprecated ]
-                0 - Set exit code to 0 regardless of the presence of any other errors.
-                1 (default) - Emit usual exit code (cf. beginning of the help message).
-  /autoTriggers:<n>
-                0 - Do not generate {:trigger} annotations for user-level quantifiers.
-                1 (default) - Add a {:trigger} to each user-level quantifier. Existing
-                              annotations are preserved.
-  /rewriteFocalPredicates:<n>
-                0 - Don't rewrite predicates in the body of prefix lemmas.
-                1 (default) - In the body of prefix lemmas, rewrite any use of a focal predicate
-                              P to P#[_k-1].
-  /optimize     Produce optimized C# code, meaning:
-                  - passes /optimize flag to csc.exe.
-  /optimizeResolution:<n>
-                0 - Resolve and translate all methods
-                1 - Translate methods only in the call graph of current verification target
-                2 (default) - As in 1, but only resolve method bodies in non-included Dafny sources
-  /stats        Print interesting statistics about the Dafny files supplied.
-  /funcCallGraph Print out the function call graph.  Format is: func,mod=callee*
-  /warnShadowing  Emits a warning if the name of a declared variable caused another variable
-                to be shadowed
-  /definiteAssignment:<n>
-                0 - ignores definite-assignment rules; this mode is for testing only--it is
-                    not sound to be used with compilation
-                1 (default) - enforces definite-assignment rules
-                2 - enforces definite-assignment for all non-ghost non-yield-parameter
-                    variables and fields, regardless of their types
-                3 - like 2, but also performs checks in the compiler that no nondeterministic
-                    statements are used; thus, a program that passes at this level 3 is one
-                    that the language guarantees that values seen during execution will be
-                    the same in every run of the program
-  /deprecation:<n>
-                0 - don't give any warnings about deprecated features
-                1 (default) - show warnings about deprecated features
-                2 - also point out where there's new simpler syntax
-  /verifyAllModules
-                Verify modules that come from an include directive
-  /separateModuleOutput
-                Output verification results for each module separately, rather than
-                aggregating them after they are all finished.
-  /useRuntimeLib
-                Refer to pre-built DafnyRuntime.dll in compiled assembly rather
-                than including DafnyRuntime.cs verbatim.
-  /allocated:<n>
-                Specify defaults for where Dafny should assert and assume
-                allocated(x) for various parameters x, local variables x,
-                bound variables x, etc.  Lower <n> may require more manual
-                allocated(x) annotations and thus may be more difficult to use.
-                Warning: this option should be chosen consistently across
-                an entire project; it would be unsound to use different
-                defaults for different files or modules within a project.
-                And even so, modes /allocated:0 and /allocated:1 let functions
-                depend on the allocation state, which is not sound in general.
-                0 - Nowhere (never assume/assert allocated(x) by default).
-                1 - Assume allocated(x) only for non-ghost variables and fields
-                    (these assumptions are free, since non-ghost variables
-                    always contain allocated values at run-time).  This option
-                    may speed up verification relative to /allocated:2.
-                2 - Assert/assume allocated(x) on all variables,
-                    even bound variables in quantifiers.  This option is
-                    the easiest to use for heapful code.
-                3 - (default) Frugal use of heap parameters.
-                4 - mode 3 but with alloc antecedents when ranges don't imply
-                    allocatedness.
-  /ironDafny    Enable experimental features needed to support Ironclad/Ironfleet. Use of
-                these features may cause your code to become incompatible with future
-                releases of Dafny.
-  /noIronDafny  Disable Ironclad/Ironfleet features, if enabled by default.
-  /printTooltips
-                Dump additional positional information (displayed as mouse-over tooltips by
-                the VS plugin) to stdout as 'Info' messages.
-  /printIncludes:<None|Immediate|Transitive>
-                None is the default.
-                Immediate prints files included by files listed on the command line
-                Transitive recurses on the files printed by Immediate
-                Immediate and Transitive will exit after printing.
-  /disableScopes
-                Treat all export sets as 'export reveal *'. i.e. don't hide function bodies
-                or type definitions during translation.
-  /version      Print the Dafny version number and exit.
+    Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
+    This includes lack of support for BigIntegers (aka int), most higher order
+    functions, and advanced features like traits or co-inductive types.
+/compileVerbose:<n>
+    0 - don't print status of compilation to the console
+    1 (default) - print information such as files being written by
+        the compiler to the console
+/spillTargetCode:<n>
+    0 (default) - don't write the compiled Dafny program (but
+        still compile it, if /compile indicates to do so)
+    1 - write the compiled Dafny program in the target language,
+        if it is being compiled
+    2 - write the compiled Dafny program in the target language,
+        provided it passes the verifier (and /noVerify is NOT used),
+        regardless of /compile setting
+    3 - write the compiled Dafny program in the target language,
+        regardless of verification outcome and /compile setting
+    NOTE: If there are .cs or .dll files on the command line, then
+    the compiled Dafny program will also be written. More precisely,
+    such files on the command line implies /spillTargetCode:1 (or
+    higher, if manually specified).
+/out:<file>
+    filename and location for the generated target language files
+/coverage:<file>
+    The compiler emits branch-coverage calls and outputs into
+    <file> a legend that gives a description of each
+    source-location identifier used in the branch-coverage calls.
+    (use - as <file> to print to console)
+/dafnycc      Disable features not supported by DafnyCC
+/noCheating:<n>
+    0 (default) - allow assume statements and free invariants
+    1 - treat all assumptions as asserts, and drop free.
+/induction:<n>
+    0 - never do induction, not even when attributes request it
+    1 - only apply induction when attributes request it
+    2 - apply induction as requested (by attributes) and also
+        for heuristically chosen quantifiers
+    3 (default) - apply induction as requested, and for
+        heuristically chosen quantifiers and lemmas
+/inductionHeuristic:<n>
+    0 - least discriminating induction heuristic (that is, lean
+        toward applying induction more often)
+    1,2,3,4,5 - levels in between, ordered as follows as far as
+        how discriminating they are:  0 < 1 < 2 < (3,4) < 5 < 6
+    6 (default) - most discriminating
+/noIncludes   Ignore include directives
+/noExterns    Ignore extern and dllimport attributes
+/noNLarith    Reduce Z3's knowledge of non-linear arithmetic (*,/,%).
+    Results in more manual work, but also produces more predictable behavior.
+    (This switch will perhaps be replaced by /arith in the future.
+    For now, it takes precedence of /arith.)
+/arith:<n>    (Experimental switch. Its options may change.)
+    0 - Use Boogie/Z3 built-ins for all arithmetic operations.
+    1 (default) - Like 0, but introduce symbolic synonyms for *,/,%, and
+        allow these operators to be used in triggers.
+    2 - Like 1, but introduce symbolic synonyms also for +,-.
+    3 - Turn off non-linear arithmetic in the SMT solver. Still,
+        use Boogie/Z3 built-in symbols for all arithmetic operations.
+    4 - Like 3, but introduce symbolic synonyms for *,/,%, and allow these
+        operators to be used in triggers.
+    5 - Like 4, but introduce symbolic synonyms also for +,-.
+    6 - Like 5, and introduce axioms that distribute + over *.
+    7 - like 6, and introduce facts that associate literals arguments of *.
+    8 - Like 7, and introduce axiom for the connection between *,/,%.
+    9 - Like 8, and introduce axioms for sign of multiplication
+    10 - Like 9, and introduce axioms for commutativity and
+        associativity of *
+/autoReqPrint:<file>
+    Print out requirements that were automatically generated by autoReq.
+/noAutoReq    Ignore autoReq attributes
+/allowGlobals Allow the implicit class '_default' to contain fields, instance functions,
+    and instance methods.  These class members are declared at the module scope,
+    outside of explicit classes.  This command-line option is provided to simplify
+    a transition from the behavior in the language prior to version 1.9.3, from
+    which point onward all functions and methods declared at the module scope are
+    implicitly static and fields declarations are not allowed at the module scope.
+/countVerificationErrors:<n>
+    [ deprecated ]
+    0 - Set exit code to 0 regardless of the presence of any other errors.
+    1 (default) - Emit usual exit code (cf. beginning of the help message).
+/autoTriggers:<n>
+    0 - Do not generate {:trigger} annotations for user-level quantifiers.
+    1 (default) - Add a {:trigger} to each user-level quantifier. Existing
+                  annotations are preserved.
+/rewriteFocalPredicates:<n>
+    0 - Don't rewrite predicates in the body of prefix lemmas.
+    1 (default) - In the body of prefix lemmas, rewrite any use of a focal predicate
+                  P to P#[_k-1].
+/optimize     Produce optimized C# code, meaning:
+      - passes /optimize flag to csc.exe.
+/optimizeResolution:<n>
+    0 - Resolve and translate all methods
+    1 - Translate methods only in the call graph of current verification target
+    2 (default) - As in 1, but only resolve method bodies in non-included Dafny sources
+/stats        Print interesting statistics about the Dafny files supplied.
+/funcCallGraph Print out the function call graph.  Format is: func,mod=callee*
+/warnShadowing  Emits a warning if the name of a declared variable caused another variable
+    to be shadowed
+/definiteAssignment:<n>
+    0 - ignores definite-assignment rules; this mode is for testing only--it is
+        not sound to be used with compilation
+    1 (default) - enforces definite-assignment rules for variables and fields
+        of types that do not support auto-initialization
+    2 - enforces definite-assignment for all non-ghost non-yield-parameter
+        variables and fields, regardless of their types
+    3 - like 2, but also performs checks in the compiler that no nondeterministic
+        statements are used; thus, a program that passes at this level 3 is one
+        that the language guarantees that values seen during execution will be
+        the same in every run of the program
+/deprecation:<n>
+    0 - don't give any warnings about deprecated features
+    1 (default) - show warnings about deprecated features
+    2 - also point out where there's new simpler syntax
+/verifyAllModules
+    Verify modules that come from an include directive
+/separateModuleOutput
+    Output verification results for each module separately, rather than
+    aggregating them after they are all finished.
+/useRuntimeLib
+    Refer to pre-built DafnyRuntime.dll in compiled assembly rather
+    than including DafnyRuntime.cs verbatim.
+/allocated:<n>
+    Specify defaults for where Dafny should assert and assume
+    allocated(x) for various parameters x, local variables x,
+    bound variables x, etc.  Lower <n> may require more manual
+    allocated(x) annotations and thus may be more difficult to use.
+    Warning: this option should be chosen consistently across
+    an entire project; it would be unsound to use different
+    defaults for different files or modules within a project.
+    And even so, modes /allocated:0 and /allocated:1 let functions
+    depend on the allocation state, which is not sound in general.
+    0 - Nowhere (never assume/assert allocated(x) by default).
+    1 - Assume allocated(x) only for non-ghost variables and fields
+        (these assumptions are free, since non-ghost variables
+        always contain allocated values at run-time).  This option
+        may speed up verification relative to /allocated:2.
+    2 - Assert/assume allocated(x) on all variables,
+        even bound variables in quantifiers.  This option is
+        the easiest to use for heapful code.
+    3 - (default) Frugal use of heap parameters.
+    4 - mode 3 but with alloc antecedents when ranges don't imply
+        allocatedness.
+/ironDafny    Enable experimental features needed to support Ironclad/Ironfleet. Use of
+    these features may cause your code to become incompatible with future
+    releases of Dafny.
+/noIronDafny  Disable Ironclad/Ironfleet features, if enabled by default.
+/printTooltips
+    Dump additional positional information (displayed as mouse-over tooltips by
+    the VS plugin) to stdout as 'Info' messages.
+/printIncludes:<None|Immediate|Transitive>
+    None is the default.
+    Immediate prints files included by files listed on the command line
+    Transitive recurses on the files printed by Immediate
+    Immediate and Transitive will exit after printing.
+/disableScopes
+    Treat all export sets as 'export reveal *'. i.e. don't hide function bodies
+    or type definitions during translation.
+/version      Print the Dafny version number and exit.
 ");
       base.Usage();  // also print the Boogie options
     }

@@ -83,21 +83,21 @@ namespace Microsoft.Dafny {
     public readonly IToken tok;
     public readonly string includerFilename;
     public readonly string includedFilename;
-    public readonly string includedFullPath;
+    public readonly string canonicalPath;
     public bool ErrorReported;
 
-    public Include(IToken tok, string includer, string theFilename, string fullPath) {
+    public Include(IToken tok, string includer, string theFilename) {
       this.tok = tok;
       this.includerFilename = includer;
       this.includedFilename = theFilename;
-      this.includedFullPath = fullPath;
+      this.canonicalPath = DafnyFile.Canonicalize(theFilename);
       this.ErrorReported = false;
     }
 
     public int CompareTo(object obj) {
       var i = obj as Include;
       if (i != null) {
-        return this.includedFullPath.CompareTo(i.includedFullPath);
+        return this.canonicalPath.CompareTo(i.canonicalPath);
       } else {
         throw new NotImplementedException();
       }
@@ -692,6 +692,22 @@ namespace Microsoft.Dafny {
     // Type arguments to the type
     public List<Type> TypeArgs = new List<Type>();
 
+    /// <summary>
+    /// Add to "tps" the free type parameters in "this".
+    /// Requires the type to be resolved.
+    /// </summary>
+    public void AddFreeTypeParameters(List<TypeParameter> tps) {
+      Contract.Requires(tps != null);
+      var ty = this.NormalizeExpandKeepConstraints();
+      var tp = ty.AsTypeParameter;
+      if (tp != null) {
+        tps.Add(tp);
+      }
+      foreach (var ta in ty.TypeArgs) {
+        ta.AddFreeTypeParameters(tps);
+      }
+    }
+
     [Pure]
     public abstract string TypeName(ModuleDefinition/*?*/ context, bool parseAble = false);
     [Pure]
@@ -1025,7 +1041,7 @@ namespace Microsoft.Dafny {
       get {
         var t = NormalizeExpand();
         var udt = UserDefinedType.DenotesClass(t);
-        return udt == null ? null : udt.ResolvedClass as ArrayClassDecl;
+        return udt?.ResolvedClass as ArrayClassDecl;
       }
     }
     /// <summary>
@@ -2157,6 +2173,8 @@ namespace Microsoft.Dafny {
 
   public class CharType : BasicType
   {
+    public const char DefaultValue = 'D';
+    public const string DefaultValueAsString = "'D'";
     [Pure]
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "char";
@@ -2798,9 +2816,8 @@ namespace Microsoft.Dafny {
     }
 
     public static Type ArrayElementType(Type type) {
-      Contract.Requires(type.IsArrayType);
-
       Contract.Requires(type != null);
+      Contract.Requires(type.IsArrayType);
       Contract.Ensures(Contract.Result<Type>() != null);
 
       UserDefinedType udt = DenotesClass(type);
@@ -3898,7 +3915,7 @@ namespace Microsoft.Dafny {
     /// declarations.
     /// Note, an iterator declaration is a type, in this sense.
     /// Note, if the given list are the top-level declarations of a module, the yield will include
-    /// colemmas but not their associated prefix lemmas (which are tucked into the colemma's
+    /// greatest lemmas but not their associated prefix lemmas (which are tucked into the greatest lemma's
     /// .PrefixLemma field).
     /// </summary>
     public static IEnumerable<ICallable> AllCallables(List<TopLevelDecl> declarations) {
@@ -3959,12 +3976,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static IEnumerable<FixpointLemma> AllFixpointLemmas(List<TopLevelDecl> declarations) {
+    public static IEnumerable<ExtremeLemma> AllExtremeLemmas(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
         var cl = d as TopLevelDeclWithMembers;
         if (cl != null) {
           foreach (var member in cl.Members) {
-            var m = member as FixpointLemma;
+            var m = member as ExtremeLemma;
             if (m != null) {
               yield return m;
             }
@@ -4320,6 +4337,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(module != null);
 
       Dims = dims;
+      // Resolve type parameter
+      Contract.Assert(TypeArgs.Count == 1);
+      var tp = TypeArgs[0];
+      tp.Parent = this;
+      tp.PositionalIndex = 0;
     }
   }
 
@@ -4400,13 +4422,20 @@ namespace Microsoft.Dafny {
       get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
       set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
     }
+
+    public abstract DatatypeCtor GetGroundingCtor();
   }
 
   public class IndDatatypeDecl : DatatypeDecl, RevealableTypeDecl
   {
     public override string WhatKind { get { return "datatype"; } }
-    public DatatypeCtor DefaultCtor;  // set during resolution
-    public bool[] TypeParametersUsedInConstructionByDefaultCtor;  // set during resolution; has same length as the number of type arguments
+    public DatatypeCtor GroundingCtor;  // set during resolution
+
+    public override DatatypeCtor GetGroundingCtor() {
+      return GroundingCtor;
+    }
+
+    public bool[] TypeParametersUsedInConstructionByGroundingCtor;  // set during resolution; has same length as the number of type arguments
 
     public enum ES { NotYetComputed, Never, ConsultTypeArguments }
     public ES EqualitySupport = ES.NotYetComputed;
@@ -4434,6 +4463,14 @@ namespace Microsoft.Dafny {
       : this(systemModule, CreateCovariantTypeParameters(dims), attributes) {
       Contract.Requires(0 <= dims);
       Contract.Requires(systemModule != null);
+
+      // Resolve the type parameters here
+      Contract.Assert(TypeArgs.Count == dims);
+      for (var i = 0; i < dims; i++) {
+        var tp = TypeArgs[i];
+        tp.Parent = this;
+        tp.PositionalIndex = i;
+      }
     }
 
     private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, Attributes attributes)
@@ -4443,10 +4480,10 @@ namespace Microsoft.Dafny {
       Dims = typeArgs.Count;
       foreach (var ctor in Ctors) {
         ctor.EnclosingDatatype = this;  // resolve here
-        DefaultCtor = ctor;
-        TypeParametersUsedInConstructionByDefaultCtor = new bool[typeArgs.Count];
+        GroundingCtor = ctor;
+        TypeParametersUsedInConstructionByGroundingCtor = new bool[typeArgs.Count];
         for (int i = 0; i < typeArgs.Count; i++) {
-          TypeParametersUsedInConstructionByDefaultCtor[i] = true;
+          TypeParametersUsedInConstructionByGroundingCtor[i] = true;
         }
       }
       this.EqualitySupport = ES.ConsultTypeArguments;
@@ -4495,6 +4532,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(ctors));
       Contract.Requires(cce.NonNullElements(members));
       Contract.Requires(1 <= ctors.Count);
+    }
+
+    public override DatatypeCtor GetGroundingCtor() {
+      return Ctors[0];
     }
   }
 
@@ -5793,7 +5834,7 @@ namespace Microsoft.Dafny {
 
   /// <summary>
   /// An ImplicitFormal is a parameter that is declared implicitly, in particular the "_k" depth parameter
-  /// of each colemma (for use in the comethod body only, not the specification).
+  /// of each extreme lemma (for use in the extreme-method body only, not the specification).
   /// </summary>
   public class ImplicitFormal : Formal {
     public ImplicitFormal(IToken tok, string name, Type type, bool inParam, bool isGhost)
@@ -5921,7 +5962,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// The "AllCalls" field is used for non-FixpointPredicate, non-PrefixPredicate functions only (so its value should not be relied upon for FixpointPredicate and PrefixPredicate functions).
+    /// The "AllCalls" field is used for non-ExtremePredicate, non-PrefixPredicate functions only (so its value should not be relied upon for ExtremePredicate and PrefixPredicate functions).
     /// It records all function calls made by the Function, including calls made in the body as well as in the specification.
     /// The field is filled in during resolution (and used toward the end of resolution, to attach a helpful "decreases" prefix to functions in clusters
     /// with co-recursive calls.
@@ -6044,27 +6085,27 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// An PrefixPredicate is the inductive unrolling P# implicitly declared for every fixpoint-predicate P.
+  /// An PrefixPredicate is the inductive unrolling P# implicitly declared for every extreme predicate P.
   /// </summary>
   public class PrefixPredicate : Function
   {
     public override string WhatKind { get { return "prefix predicate"; } }
     public readonly Formal K;
-    public readonly FixpointPredicate FixpointPred;
+    public readonly ExtremePredicate ExtremePred;
     public PrefixPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
                      List<TypeParameter> typeArgs, Formal k, List<Formal> formals,
                      List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-                     Expression body, Attributes attributes, FixpointPredicate fixpointPred)
+                     Expression body, Attributes attributes, ExtremePredicate extremePred)
       : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
-      Contract.Requires(fixpointPred != null);
+      Contract.Requires(extremePred != null);
       Contract.Requires(formals != null && 1 <= formals.Count && formals[0] == k);
       K = k;
-      FixpointPred = fixpointPred;
+      ExtremePred = extremePred;
     }
   }
 
-  public abstract class FixpointPredicate : Function
+  public abstract class ExtremePredicate : Function
   {
     public enum KType { Unspecified, Nat, ORDINAL }
     public readonly KType TypeOfK;
@@ -6076,7 +6117,7 @@ namespace Microsoft.Dafny {
     public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // filled in during resolution, used by verifier
     public PrefixPredicate PrefixPredicate;  // filled in during resolution (name registration)
 
-    public FixpointPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
+    public ExtremePredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                              List<TypeParameter> typeArgs, List<Formal> formals,
                              List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
                              Expression body, Attributes attributes, IToken signatureEllipsis)
@@ -6107,10 +6148,10 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class InductivePredicate : FixpointPredicate
+  public class LeastPredicate : ExtremePredicate
   {
-    public override string WhatKind { get { return "inductive predicate"; } }
-    public InductivePredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
+    public override string WhatKind { get { return "least predicate"; } }
+    public LeastPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                               List<TypeParameter> typeArgs, List<Formal> formals,
                               List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
                               Expression body, Attributes attributes, IToken signatureEllipsis)
@@ -6119,10 +6160,10 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class CoPredicate : FixpointPredicate
+  public class GreatestPredicate : ExtremePredicate
   {
-    public override string WhatKind { get { return "copredicate"; } }
-    public CoPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
+    public override string WhatKind { get { return "greatest predicate"; } }
+    public GreatestPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                        List<TypeParameter> typeArgs, List<Formal> formals,
                        List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
                        Expression body, Attributes attributes, IToken signatureEllipsis)
@@ -6418,38 +6459,38 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// A PrefixLemma is the inductive unrolling M# implicitly declared for every colemma M.
+  /// A PrefixLemma is the inductive unrolling M# implicitly declared for every extreme lemma M.
   /// </summary>
   public class PrefixLemma : Method
   {
     public override string WhatKind { get { return "prefix lemma"; } }
     public readonly Formal K;
-    public readonly FixpointLemma FixpointLemma;
+    public readonly ExtremeLemma ExtremeLemma;
     public PrefixLemma(IToken tok, string name, bool hasStaticKeyword,
                        List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
                        List<AttributedExpression> req, Specification<FrameExpression> mod, List<AttributedExpression> ens, Specification<Expression> decreases,
-                       BlockStmt body, Attributes attributes, FixpointLemma fixpointLemma)
+                       BlockStmt body, Attributes attributes, ExtremeLemma extremeLemma)
       : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
       Contract.Requires(ins != null && 1 <= ins.Count && ins[0] == k);
-      Contract.Requires(fixpointLemma != null);
+      Contract.Requires(extremeLemma != null);
       K = k;
-      FixpointLemma = fixpointLemma;
+      ExtremeLemma = extremeLemma;
     }
   }
 
-  public abstract class FixpointLemma : Method
+  public abstract class ExtremeLemma : Method
   {
-    public readonly FixpointPredicate.KType TypeOfK;
+    public readonly ExtremePredicate.KType TypeOfK;
     public bool KNat {
       get {
-        return TypeOfK == FixpointPredicate.KType.Nat;
+        return TypeOfK == ExtremePredicate.KType.Nat;
       }
     }
     public PrefixLemma PrefixLemma;  // filled in during resolution (name registration)
 
-    public FixpointLemma(IToken tok, string name,
-                         bool hasStaticKeyword, FixpointPredicate.KType typeOfK,
+    public ExtremeLemma(IToken tok, string name,
+                         bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
                          List<TypeParameter> typeArgs,
                          List<Formal> ins, [Captured] List<Formal> outs,
                          List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
@@ -6471,12 +6512,12 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class InductiveLemma : FixpointLemma
+  public class LeastLemma : ExtremeLemma
   {
-    public override string WhatKind { get { return "inductive lemma"; } }
+    public override string WhatKind { get { return "least lemma"; } }
 
-    public InductiveLemma(IToken tok, string name,
-                          bool hasStaticKeyword, FixpointPredicate.KType typeOfK,
+    public LeastLemma(IToken tok, string name,
+                          bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
                           List<TypeParameter> typeArgs,
                           List<Formal> ins, [Captured] List<Formal> outs,
                           List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
@@ -6497,12 +6538,12 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class CoLemma : FixpointLemma
+  public class GreatestLemma : ExtremeLemma
   {
-    public override string WhatKind { get { return "colemma"; } }
+    public override string WhatKind { get { return "greatest lemma"; } }
 
-    public CoLemma(IToken tok, string name,
-                   bool hasStaticKeyword, FixpointPredicate.KType typeOfK,
+    public GreatestLemma(IToken tok, string name,
+                   bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
                    List<TypeParameter> typeArgs,
                    List<Formal> ins, [Captured] List<Formal> outs,
                    List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
@@ -7243,7 +7284,7 @@ namespace Microsoft.Dafny {
   {
     public readonly Expression Rhs; // this is the unresolved RHS, and thus can also be a method call
     public readonly List<AssignmentRhs> Rhss;
-    public readonly IToken ExpectToken;
+    public readonly IToken KeywordToken;
     public readonly List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
     public override IEnumerable<Statement> SubStatements {
       get { return ResolvedStatements; }
@@ -7259,7 +7300,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Rhs != null);
     }
 
-    public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs, IToken expectToken, List<AssignmentRhs> rhss = null)
+    public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs, IToken keywordToken, List<AssignmentRhs> rhss = null)
       : base(tok, endTok, lhss)
     {
       Contract.Requires(tok != null);
@@ -7269,7 +7310,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(rhs != null);
       Rhs = rhs;
       Rhss = rhss;
-      ExpectToken = expectToken;
+      KeywordToken = keywordToken;
     }
   }
 
@@ -9527,10 +9568,14 @@ namespace Microsoft.Dafny {
       var subst = new Dictionary<TypeParameter, Type>();
 
       // Add the mappings from the member's own type parameters
-      if (member is ICallable icallable) {
-        Contract.Assert(typeApplicationMember.Count == icallable.TypeArgs.Count);
-        for (var i = 0; i < icallable.TypeArgs.Count; i++) {
-          subst.Add(icallable.TypeArgs[i], typeApplicationMember[i]);
+      if (member is ICallable) {
+        // Make sure to include the member's type parameters all the way up the inheritance chain
+        for (var ancestor = member; ancestor != null; ancestor = ancestor.OverriddenMember) {
+          var icallable = (ICallable)ancestor;
+          Contract.Assert(typeApplicationMember.Count == icallable.TypeArgs.Count);
+          for (var i = 0; i < icallable.TypeArgs.Count; i++) {
+            subst.Add(icallable.TypeArgs[i], typeApplicationMember[i]);
+          }
         }
       } else {
         Contract.Assert(typeApplicationMember.Count == 0);

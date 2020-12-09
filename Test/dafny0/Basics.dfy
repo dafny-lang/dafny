@@ -297,7 +297,7 @@ predicate MSFE(s: seq<int>)
   multiset(s) == multiset(s)
 }
 
-copredicate CoPredTypeCheck(n: int)
+greatest predicate CoPredTypeCheck(n: int)
   requires n != 0
 
 // -------------------- set cardinality ----------------------------------

@@ -8,7 +8,7 @@ This is the procedure for generating a new Dafny release.
 
 2) Select a version number (descriptor) $VER (e.g., "3.0.0-alpha")
    Edit it into Source/version.cs
-   Commit and merge this change into the master branch
+   Commit and push this change into the master branch
 
 3) Run 'package.py "$VER"' (in a Linux or Mac system)
    Warnings about missing pdb files can be ignored.
@@ -29,4 +29,72 @@ the release notes. For example:
 7) Add all the .zip files created by step 3 in the Package folder.
 
 8) Publish the release (by clicking the button at the bottom of the page)
-   and announce it to the world.
+
+9) Update the brew formula for dafny (see below)
+
+10) Announce the new release to the world.
+
+
+--------------------------
+
+brew is a package manager for the Mac.
+The dafny project maintains a brew "formula" that allows easy installation of dafny and
+its dependencies on a Mac. Note that brew does all installations by building from source.
+These are the instructions for updating the formula, which must be done each time
+a new release is issued.
+
+These instructions are meant to be executed on a Mac, in a Terminal shell.
+All the homebrew formulas are held in a github repo, so some familiarity with git
+commands and concepts is helpful.
+
+0) Install brew if it is not already present on your machine:
+   'which brew' will tell you if it is
+   cf. https://docs.brew.sh/Installation
+
+1) Update brew: brew update
+
+2) Find the formula: cd $(brew --repo)/Library/Taps/homebrew/homebrew-core/Formula
+
+3) Prep the repo:
+   a) git checkout master
+   b) git pull origin
+   c) git checkout -b <some new branch name>
+      The branch name is needed in various places below
+
+4) Edit it, e.g.: vi dafny.rb
+   For a normal release change, all that is needed is to change the name of the
+   release and its sha and the revision number.
+   a) Change the line near the top of the file that is like
+      url "https://github.com/dafny-lang/dafny/archive/v2.3.0.tar.gz"
+      to hold the actual release number (this is the url for the source asset; you
+      can see the actual name on the Releases page for the latest build)
+   b) Save the file
+   c) Run "brew reinstall dafny"
+   d) The command will complain that the sha does not match. Copy the correct sha,
+      reopen the file and paste the new sha into the "sha" line after the "url" line
+   e) Bump up the revision number (by one) on the succeeding line.
+   f) Save the file
+   g) Check that you have not introduced any syntax errors by running "brew reinstall dafny"
+      again. If you totally mess up the file, you can do 'git checkout dafny.rb'
+
+5) Submit the change:
+   a) git add dafny.rb (presuming you are still in the directory from step 2)
+   b) git commit -m "dafny: <some suitable comment>"
+   c) git push https://github.com/<your github username>/homebrew-core/ <the branch name>
+      you may be asked to do an 'unshallow' clone -- if so, just execute the given command
+
+6) Expect comments from the brew reviewers. In which case, do 4-6 again.
+   Eventually the reviewers will accept and merge the PR
+
+7) Then do
+   git checkout master
+   git pull origin master
+
+8) Test the installation by running
+   brew reinstall dafny
+   and then execute dafny on a sample file to see if it has the correct version number
+   Even better is to try this step on a different machine than the one on which the
+   dafny.rb file was edited
+
+9) If everything works you can, at your leisure do
+   git branch -d <the branch name>

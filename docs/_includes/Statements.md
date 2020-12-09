@@ -1,7 +1,8 @@
 # Statements
 ````grammar
-Stmt = ( BlockStmt | AssertStmt | AssumeStmt | ExpectStmt | PrintStmt
-  | UpdateStmt | UpdateFailureStmt
+Stmt =
+  ( BlockStmt | AssertStmt | AssumeStmt | ExpectStmt
+  | PrintStmt | UpdateStmt | UpdateFailureStmt
   | VarDeclStatement | IfStmt | WhileStmt | MatchStmt | ForallStmt
   | CalcStmt | ModifyStmt | LabeledStmt_ | BreakStmt_ | ReturnStmt
   | RevealStmt | YieldStmt
@@ -68,21 +69,6 @@ is equivalent to
   }
 }
 ```
-var i := 0;
-while i < 10 {
-  var j := 0;
-  while j < 10 {
-    var k := 0;
-    while k < 10 {
-      if (j + k == 15) break break;
-      k := k + 1;
-    }
-    j := j + 1;
-  }
-  // control continues here after the break
-  i := i + 1;
-}
-```
 
 If no label is specified and the statement lists `n`
 occurrences of `break`, then the statement must be enclosed in
@@ -101,7 +87,7 @@ while i < 10 {
     }
     j := j + 1;
   }
-  // control continues here after the break
+  // control continues here after the break, exiting two loops
   i := i + 1;
 }
 ```
@@ -113,7 +99,7 @@ BlockStmt = "{" { Stmt } "}"
 A block statement is just a sequence of statements enclosed by curly braces.
 Local variables declared in the block end their scope at the end of the block.
 
-## Return Statement
+## Return Statement {#sec-return-statement}
 ````grammar
 ReturnStmt = "return" [ Rhs { "," Rhs } ] ";"
 ````
@@ -127,14 +113,14 @@ and can be assigned to more than once. Return statements are
 used when one wants to return before reaching the end of the
 body block of the method.
 
-Return statements can be just the return keyword (where the current value
+Return statements can be just the `return` keyword (where the current values
 of the out-parameters are used), or they can take a list of expressions to
 return. If a list is given, the number of expressions given must be the same
 as the number of named out-parameters. These expressions are
 evaluated, then they are assigned to the out-parameters, and then the
 method terminates.
 
-## Yield Statement
+## Yield Statement {#sec-yield-statement}
 ````grammar
 YieldStmt = "yield" [ Rhs { "," Rhs } ] ";"
 ````
@@ -145,17 +131,17 @@ about iterators.
 
 The body of an iterator is a _co-routine_. It is used
 to yield control to its caller, signaling that a new
-set of values for the iterator's yield parameters (if any)
+set of values for the iterator's yield (out-)parameters (if any)
 are available. Values are assigned to the yield parameters
 at or before a yield statement.
 In fact, the yield parameters act very much like local variables,
 and can be assigned to more than once. Yield statements are
 used when one wants to return new yield parameter values
 to the caller. Yield statements can be just the
-**yield** keyword (where the current value of the yield parameters
+`yield` keyword (where the current values of the yield parameters
 are used), or they can take a list of expressions to yield.
 If a list is given, the number of expressions given must be the
-same as the number of named return yield parameters.
+same as the number of named iterator out-parameters.
 These expressions are then evaluated, then they are
 assigned to the yield parameters, and then the iterator
 yields.
@@ -165,9 +151,7 @@ yields.
 UpdateStmt =
     Lhs
     ( {Attribute} ";"
-    |If more than one
-left-hand side is used, these must denote different l-values, unless the
-corresponding right-hand sides also denote the same value.
+    |
      { "," Lhs }
      ( ":=" Rhs { "," Rhs }
      | ":|" [ "assume" ]
@@ -177,6 +161,9 @@ corresponding right-hand sides also denote the same value.
     | ":"
     )
 ````
+If more than one
+left-hand side is used, these must denote different l-values, unless the
+corresponding right-hand sides also denote the same value.
 
 ````grammar
 CallStmt_ =
@@ -241,7 +228,7 @@ method Sum(X: set<int>) returns (s: int)
 ```
 
 Dafny will report an error if it cannot prove that values
-exist which satisfy the condition.
+exist that satisfy the condition.
 
 In addition, as the choice is arbitrary,
 assignment statements using `:|` may be non-deterministic
@@ -253,25 +240,25 @@ Note that the form
     Lhs ":"
 ````
 
-is diagnosed as a label in which the user forgot the **label** keyword.
+is diagnosed as a label in which the user forgot the `label` keyword.
 
-## Update with Failure Statement (`:-`)
+## Update with Failure Statement (`:-`) {#sec-update-failure}
 ````grammar
 UpdateFailureStmt  =
     [ Lhs { "," Lhs } ]
     ":-"
-    [ "expect" ]
+    [ "expect"  | "assert" | "assume" ]
     Expression(allowLemma: false, allowLambda: false) { "," Rhs }
 ````
 
-A `:-` statement is similar to a `:=` statement, but allows for immediate return if a failure is detected.
+A `:-` statement is similar to a `:=` statement, but allows for abrupt return if a failure is detected.
 This is a language feature somewhat analogous to exceptions in other languages.
 
 An update-with-failure statement uses _failure-compatible_ types.
 A failure-compatible type is a type that has the following members (each with no in-parameters and one out-parameter):
 
  * a function method `IsFailure()` that returns a `bool`
- * a function method `PropagateFailure()` that returns a value assignable to the first out-parameter of the caller
+ * an optional function method `PropagateFailure()` that returns a value assignable to the first out-parameter of the caller
  * an optional method or function `Extract()`
 
 A failure-compatible type with an `Extract` member is called _value-carrying_.
@@ -279,7 +266,8 @@ A failure-compatible type with an `Extract` member is called _value-carrying_.
 
 To use this form of update,
 
- * the caller must have a first out-parameter whose type matches the output of `PropagateFailure` applied to the first output of the callee
+ * the caller must have a first out-parameter whose type matches the output of `PropagateFailure` applied to the first output of the callee, unless an
+`expect`, `assume`, or `assert` keyword is used after `:-`
  * if the RHS of the update-with-failure statement is a method call, the first out-parameter of the callee must be failure-compatible
  * if instead the RHS of the update-with-failure statement is one or more expressions, the first of these expressions must be a value with a failure-compatible type
  * if the failure-compatible type of the RHS does not have an `Extract` member,
@@ -327,7 +315,7 @@ If `Callee` returns `Failure`, then the caller immediately returns,
 not executing any statements following the call of `Callee`.
 The value returned by `Caller` (the value of `rr` in the code above) is the result of `PropagateFailure` applied to the value returned by `Callee`, which is often just the same value.
 If `Callee` does not return `Failure` (that is, returns a value for which `IsFailure()` is `false`)
-then that return value is forgotten and execution proceeds normally with the statements following the call of `callee` in the body of `Caller`.
+then that return value is forgotten and execution proceeds normally with the statements following the call of `Callee` in the body of `Caller`.
 
 The desugaring of the `:- Callee(i);` statement is
 ```dafny
@@ -490,12 +478,26 @@ s :- M();
 ```
 with the semantics as described above.
 
-### Expect alternative
+### Keyword alternative
 
-In any of the above described uses of `:-`, the `:-` token may be followed immediately by the keyword `expect`.
-This keyword states that the RHS evaluation is expected to be successful:
-if the failure-compatible value is a failure, then the program halts immediately (precisely as with the `expect` statement);
-if the return value is not a failure, the semantics is as described in previous sub-sections.
+In any of the above described uses of `:-`, the `:-` token may be followed immediately by the keyword `expect`, `assert` or `assume`.
+
+* `assert` means that the RHS evaluation is expected to be successful, but that
+the verifier should prove that this is so; that is, the verifier should prove
+`assert !r.IsFailure()` (where `r` is the status return from the callee)
+* `assume` means that the RHS evaluation should be assumed to be successful,
+as if the statement `assume !r.IsFailure()` followed the evaluation of the RHS
+* `expect` means that the RHS evaluation should be assumed to be successful
+(like using `assume` above), but that the compiler should include a
+run-time check for success. This is equivalent to including
+`expect !r.IsFailure()` after the RHS evaluation; that is, if the status
+return is a failure, the program halts.
+
+In each of these cases, there is no abrupt return from the caller. Thus
+there is no evaluation of `PropagateFailure`. Consequently the first
+out-parameter of the caller need not match the return type of
+`PropagateFailure`; indeed, the failure-compatible type returned by the
+callee need not have a `PropagateFailure` member.
 
 The equivalent desugaring replaces
 ```dafny
@@ -508,26 +510,43 @@ with
 ```dafny
 expect !tmp.IsFailure(), tmp;
 ```
+or
+```dafny
+assert !tmp.IsFailure();
+```
+or
+```dafny
+assume !tmp.IsFailure();
+```
+
+There is a grammatical nuance that the user should be aware of.
+The keywords `assert`, `assume`, and `expect` can start an expression.
+For example, `assert P; E` can be an expression. However, in
+`e :- assert P; E;` the `assert` is parsed as the keyword associated with
+`:-`. To have the `assert` considered part of the expression use parentheses:
+`e :- (assert P; E);`.
 
 ### Key points
 
 There are several points to note.
 
  * The first out-parameter of the callee is special.
-It has a special type and that type indicates that the value is inspected to see if an immediate return
+It has a special type and that type indicates that the value is inspected to see if an abrupt return
 from the caller is warranted.
 This type is often a datatype, as shown in the examples above, but it may be any type with the appropriate members.
  * The restriction on the type of caller's first out-parameter is
 just that it must be possible (perhaps through generic instantiation and type inference, as in these examples) for `PropagateFailure` applied to the failure-compatible output from the callee to produce a value of the caller's first out-parameter type.
 If the caller's first out-parameter type is failure-compatible (which it need not be),
  then failures can be propagated up the call chain.
- * In the statement `j, k :- callee(i);`,
+If the keyword form of the statement is used, then no `PropagateFailure` member
+is needed and there is no restriction on the caller's first out-parameter.
+ * In the statement `j, k :- Callee(i);`,
  when the callee's return value has an `Extract` member,
-the type of `j` is not the type of the first out-parameter of `callee`.
-Rather it is a type assignable from the output type of `Extract` applied to the first out-value of `callee`.
- * A method like `callee` with a special first out-parameter type can still be used in the normal way:
-`r, k := callee(i)`.
-Now `r` gets the first output value from callee, of type `Status` or `Outcome<nat>` in the examples above.
+the type of `j` is not the type of the first out-parameter of `Callee`.
+Rather it is a type assignable from the output type of `Extract` applied to the first out-value of `Callee`.
+ * A method like `Callee` with a special first out-parameter type can still be used in the normal way:
+`r, k := Callee(i)`.
+Now `r` gets the first output value from `Callee`, of type `Status` or `Outcome<nat>` in the examples above.
 No special semantics or exceptional control paths apply.
 Subsequent code can do its own testing of the value of `r`
 and whatever other computations or control flow are desired.
@@ -561,16 +580,16 @@ Not so in Dafny: a failure is passed up the call stack only if each caller has a
  * All methods that contain failure-return callees must explicitly handle those failures
 using either `:-` statements or using `:=` statements with a LHS to receive the failure value.
 
-## Variable Declaration Statement
+## Variable Declaration Statement {#sec-var-decl-statement}
 ````grammar
 VarDeclStatement = [ "ghost" ] "var" { Attribute }
   (
     LocalIdentTypeOptional
     { "," { Attribute } LocalIdentTypeOptional }
     [ ":=" Rhs { "," Rhs }
-    | { Attribute } ":|" [ "assume" ]
-                    Expression(allowLemma: false, allowLambda: true)
     | ":-" [ "expect" ] Expression { "," Rhs }
+    | { Attribute } ":|" [ "assume" ]
+                 Expression(allowLemma: false, allowLambda: true)
     ]
   |
     "(" CasePattern { "," CasePattern } ")"
@@ -596,11 +615,11 @@ inferred from uses of x.
 
 What follows the ``LocalIdentTypeOptional`` optionally combines the variable
 declarations with an update statement (cf. [Update and Call Statement](#sec-update-and-call-statement)).
-If the Rhs is a call, then any variable receiving the value of a
+If the RHS is a call, then any variable receiving the value of a
 formal ghost out-parameter will automatically be declared as ghost, even
-if the **ghost** keyword is not part of the variable declaration statement.
+if the `ghost` keyword is not part of the variable declaration statement.
 
-The left-hand side can also contain a tuple of patterns which will be
+The left-hand side can also contain a tuple of patterns that will be
 matched against the right-hand-side. For example:
 
 ```dafny
@@ -703,7 +722,7 @@ IfAlternativeBlock =
 ````
 
 The simplest form of an `if` statement uses a guard that is a boolean
-expression. It then has the same form as in C\# and other common
+expression. It has the same form as in C\# and other common
 programming languages. For example,
 
 ```dafny
@@ -739,6 +758,8 @@ _guards_. The statement is evaluated by evaluating the guards in an
 undetermined order until one is found that is `true` and the statements
 to the right of `=>` for that guard are executed. The statement requires
 at least one of the guards to evaluate to `true`.
+
+TODO: Describe the ... refinement
 
 ## While Statement
 ````grammar
@@ -814,9 +835,11 @@ Edsger W. Dijkstra. For example:
 ```
 For this form, the guards are evaluated in some undetermined order
 until one is found that is true, in which case the corresponding statements
-are executed. If none of the guards evaluates to true, then the
+are executed and the while statement is repeated.
+If none of the guards evaluates to true, then the
 loop execution is terminated.
-k
+
+TODO: Describe ... refinement
 
 ## Loop Specifications {#sec-loop-specification}
 For some simple loops, such as those mentioned previously, Dafny can figure
@@ -858,11 +881,11 @@ while i < n
 When you specify an invariant, Dafny proves two things: the invariant
 holds upon entering the loop, and it is preserved by the loop. By
 preserved, we mean that assuming that the invariant holds at the
-beginning of the loop, we must show that executing the loop body once
+beginning of the loop (just prior to the loop test), we must show that executing the loop body once
 makes the invariant hold again. Dafny can only know upon analyzing the
 loop body what the invariants say, in addition to the loop guard (the
 loop condition). Just as Dafny will not discover properties of a method
-on its own, it will not know any but the most basic properties of a loop
+on its own, it will not know that any but the most basic properties of a loop
 are preserved unless it is told via an invariant.
 
 ### Loop Termination
@@ -882,11 +905,20 @@ conditions that Dafny needs to verify when using a `decreases` expression:
 * that it is bounded.
 
 That is, the expression must strictly decrease in a well-founded ordering
-(cf. Section [Well-Founded Orders](#sec-well-founded-orders).
+(cf. Section [Well-Founded Orders](#sec-well-founded-orders)).
 
 Many times, an integral value (natural or plain integer) is the quantity
-that decreases, but other things that can be used as well. In the case of
-integers, the bound is assumed to be zero. For example, the following is
+that decreases, but other values can be used as well. In the case of
+integers, the bound is assumed to be zero.
+For each loop iteration the `decreases` expression at the end of the loop
+body must be strictly smaller than the value at the beginning of the loop
+body (after the loop test). For integers, the well-founded relation between
+`x` and `X` is `x < X && 0 <= X`.
+Thus if the `decreases` value (`X`) is negative at the
+loop test, it must exit the loop, since there is no permitted value for
+`x` to have at the end of the loop body.
+
+For example, the following is
 a proper use of `decreases` on a loop:
 
 ```dafny
@@ -899,8 +931,11 @@ a proper use of `decreases` on a loop:
 ```
 
 Here Dafny has all the ingredients it needs to prove termination. The
-variable i gets smaller each loop iteration, and is bounded below by
-zero. This is fine, except the loop is backwards from most loops, which
+variable `i` becomes smaller each loop iteration, and is bounded below by
+zero. When `i` becomes 0, the lower bound of the well-founded order, control
+flow exits the loop.
+
+This is fine, except the loop is backwards from most loops, which
 tend to count up instead of down. In this case, what decreases is not the
 counter itself, but rather the distance between the counter and the upper
 bound. A simple trick for dealing with this situation is given below:
@@ -921,7 +956,7 @@ the quantity. This also works when the bound `n` is not constant, such as
 in the binary search algorithm, where two quantities approach each other,
 and neither is fixed.
 
-If the **decreases** clause of a loop specified "*", then no
+If the `decreases` clause of a loop specifies `*`, then no
 termination check will be performed. Use of this feature is sound only with
 respect to partial correctness.
 
@@ -932,9 +967,10 @@ See the discussion of framing in methods for a fuller discussion.
 
 TO BE WRITTEN
 
-## Match Statement
+## Match Statement {#sec-match-statement}
 ````grammar
-MatchStmt = "match" Expression(allowLemma: true, allowLambda: true)
+MatchStmt =
+  "match" Expression(allowLemma: true, allowLambda: true)
   ( "{" { CaseStatement } "}"
   | { CaseStatement }
   )
@@ -942,29 +978,16 @@ MatchStmt = "match" Expression(allowLemma: true, allowLambda: true)
 CaseStatement = CaseBinding_ "=>" { Stmt }
 ````
 
-The `match` statement is used to do case analysis on a value of inductive or co-inductive datatype (which includes the built-in tuple types), a base type, or newtype. The expression after the `match` keyword is called the _selector_. The expression is evaluated and then matched against
+[ `CaseBinding_` is defined [here](#sec-case-pattern).]
+
+The `match` statement is used to do case analysis on a value of an inductive or co-inductive datatype (which includes the built-in tuple types), a base type, or newtype. The expression after the `match` keyword is called the _selector_. The expression is evaluated and then matched against
 each clause in order until a matching clause is found.
 
-The identifier after the `case` keyword in a case clause, if present,
-must be either the name of one of the datatype's constructors (when the selector is a value of a datatype), a literal (when the selector is a value of a base type or a newtype), or a
-variable, in which case the clause matches any constructors.
-If the constructor takes parameters then a parenthesis-enclosed
-list of patterns must follow the
-constructor. There must be as many patterns as the constructor
-has parameters. If the optional type is given it must be the same
-as the type of the corresponding parameter of the constructor.
-If no type is given then the type of the corresponding parameter
-is the type assigned to the identifier. If the identifier
-represents a variable, it cannot be applied to arguments.
- If the variable is not used
-in a case, it can be replaced by an underscore.
+The process of matching the selector expression against the `CaseBinding_`s is
+the same as for match expressions and is described in the section
+[defining `CaseBinding_`s](#sec-case-pattern).
 
-When an inductive value that was created using constructor
-expression `C1(v1, v2)` is matched against a case clause
-`C2(x1, x2`), there is a match provided that `C1` and `C2` are the
-same constructor. In that case `x1` is bound to value `v1` and
-`x2` is bound to `v2`. The identifiers in the case pattern
-are not mutable. Here is an example of the use of a `match` statement.
+The code below shows an example of a match statement.
 
 ```dafny
 datatype Tree = Empty | Node(left: Tree, data: int, right: Tree)
@@ -978,7 +1001,7 @@ method Sum(x: Tree) returns (r: int)
 	  var v1 := Sum(t1);
 	  var v2 := Sum(t2);
 	  r := v1 + d + v2;
- }
+  }
 }
 ```
 
@@ -999,13 +1022,15 @@ AssertStmt =
 
 `Assert` statements are used to express logical proposition that are
 expected to be true. Dafny will attempt to prove that the assertion
-is true and give an error if the assertion cannot be provenb.
+is true and give an error if the assertion cannot be proven.
 Once the assertion is proved,
-its truth is to aid in proving following deductions.
+its truth may aid in proving subsequent deductions.
 Thus if Dafny is having a difficult time verifying a method,
 the user may help by inserting assertions that Dafny can prove,
 and whose truth may aid in the larger verification effort,
 much as lemmas might be used in mathematical proofs.
+
+`Assert` statements are ignored by the compiler.
 
 Using `...` as the argument of the statement is part of module refinement, as described [here](#sec-module-refinement).
 
@@ -1031,7 +1056,7 @@ the other verification can proceed. Then when that is completed the
 user would come back and replace the `assume` with `assert`.
 
 An `assume` statement cannot be compiled. In fact, the compiler
-will complain if it finds an **assume** anywhere where it has not
+will complain if it finds an `assume` anywhere where it has not
 been replaced through a refinement step.
 
 Using `...` as the argument of the statement is part of module refinement, as described [here](#sec-module-refinement).
@@ -1099,7 +1124,7 @@ encountered during execution
 do satisfy the specification,
 as they are checked by the `expect` statement.
 
-Note, in this example, two problems are still remaining.
+Note, in this example, two problems still remain.
 One problem is that the out-parameter of the extern `Random` has type `nat`,
 but there is no check that the value returned really is non-negative.
 It would be better to declare the out-parameter of `Random` to be `int` and
@@ -1133,7 +1158,7 @@ The verifier will check that _P_ is always true at the given point in a program
 (at the `assert` statement).
 
 At run-time, the compiler will insert checks that the same predicate,
-in the `expect` statement is true.
+in the `expect` statement, is true.
 Any difference identifies a compiler bug.
 Note that the `expect` must be after the `assert`.
 If the `expect` is first,
@@ -1334,7 +1359,8 @@ class ModifyBody {
     modifies this
   {
     modify {} {
-      x := 3;  // error: violates modifies clause of the modify statement
+      x := 3;  // error: violates the modifies clause
+               // on the line above
     }
   }
 
@@ -1354,9 +1380,7 @@ class ModifyBody {
       x := 3;
     }
   }
-```
 
-```dafny
   method M3()
     modifies this
   {
@@ -1367,7 +1391,8 @@ class ModifyBody {
 ```
 
 The first `modify` statement in the example has an empty
-frame expression so it cannot modify any memory locations.
+frame expression so the statement guarded by the
+modifies clause cannot modify any heap memory locations.
 So an error is reported when it tries to modify field `x`.
 
 The second `modify` statement also has an empty frame
@@ -1384,6 +1409,8 @@ so the modification of field `x` is allowed.
 Finally, the fourth example shows that the restrictions imposed by
 the modify statement do not apply to local variables, only those
 that are heap-based.
+
+Using `...` as the argument of the statement is part of module refinement, as described [here](#sec-module-refinement).
 
 ## Calc Statement
 ````grammar
@@ -1411,7 +1438,7 @@ highlights.
 
 Calculational proofs are proofs by stepwise formula manipulation
 as is taught in elementary algebra. The typical example is to prove
-an equality by starting with a left-hand-side, and through a series of
+an equality by starting with a left-hand-side and through a series of
 transformations morph it into the desired right-hand-side.
 
 Non-syntactic rules further restrict hints to only ghost and side-effect
@@ -1475,7 +1502,7 @@ Here we started with `(x + y) * (x + y)` as the left-hand-side
 expressions and gradually transformed it using distributive,
 commutative and other laws into the desired right-hand-side.
 
-The justification for the steps are given as comments, or as
+The justification for the steps are given as comments or as
 nested `calc` statements that prove equality of some sub-parts
 of the expression.
 

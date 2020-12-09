@@ -322,6 +322,7 @@ Each such type is
 distinct and is designated by the prefix `bv` followed (without white space) by
 a positive integer (without leading zeros) stating the number of bits. For example,
 `bv1`, `bv8`, and `bv32` are legal bit-vector type names.
+The type `bv0` is also legal; it is a bit-vector type with no bits and just one value, `0x0`.
 
 Constant literals of bit-vector types are given by integer literals converted automatically
 to the designated type, either by an implicit or explicit conversion operation or by initialization in a declaration.
@@ -363,7 +364,8 @@ All binary operators are left-associative, but the bit-wise `&`, `|`, and `^` do
 The right-hand operand of bit-shift operations is an `int` value,
 must be non-negative, and
 no more than the number of bits in the type.
-There is no signed right shift.
+There is no signed right shift as all bit-vector values correspond to
+non-negative integers.
 
 Here are examples of the various operations (all the assertions are true except where indicated):
 ```dafny
@@ -372,14 +374,14 @@ Here are examples of the various operations (all the assertions are true except 
 The following are incorrectly formed:
 ```dafny
 {% include Example-BV3.dfy %}
+{% include Example-BV3a.dfy %}
 ```
 These produce assertion errors:
 ```dafny
 {% include Example-BV4.dfy %}
+{% include Example-BV4a.dfy %}
 ```
 
-
-TO BE CHECKED: RHS of shift is int type?
 
 
 [^binding]: The binding power of shift and bit-wise operations is different than in C-like languages.
@@ -440,7 +442,7 @@ Sequences of characters represent _strings_, as described in Section
 
 Character values can be converted to and from `int` values using the
 `as int` and `as char` conversion operations. The result is what would
-be expected in other programming langauges, namely, the 'int` value of a
+be expected in other programming languages, namely, the 'int` value of a
 `char` is the ACSII or unicode numeric value.
 
 The only other operations on characters are obtaining a character
@@ -451,20 +453,44 @@ when used as a parameter of a `print` statement.
 
 ````grammar
 GenericParameters =
-  "<" TypeVariableName [ "(" "==" ")" ]
-  { "," TypeVariableName [ "(" "==" ")" ] } ">"
+  "<" TypeVariableName [ TPChars ]
+  { "," TypeVariableName [ TPChars ] } ">"
+
+TPChars = "(" TPCharOption { "," TPCharOption } ")"
+
+TPCharOption = ( "==" | "0" | "!" "new" )
 ````
-Many of the types (as well as functions and methods) in Dafny can be
+Many of the types, functions, and methods in Dafny can be
 parameterized by types.  These _type parameters_ are typically
 declared inside angle brackets and can stand for any type.
 
-It is sometimes necessary to restrict these type parameters so that
-they can only be instantiated by certain families of types.  As such,
-Dafny distinguishes types that support the equality operation
-in compiled contexts.  To indicate
-that a type parameter is restricted to such _equality supporting_
-types, the name of the type parameter takes the suffix
-"`(==)`".[^fn-type-mode]  For example,
+Dafny has some inference support that makes certain signatures less
+cluttered (described in Section [Type Inference](#sec-type-inference)).
+
+## Declaring restrictions on type parameters {#sec-type-parameter-restrictions}
+
+It is sometimes necessary to restrict type parameters so that
+they can only be instantiated by certain families of types, that is,
+by types that have certain properties. The following subsections
+describe the restrictions Dafny supports.
+
+In some cases, type inference will infer that a type-parameter
+must be restricted in a particular way, in which case Dafny
+will add the appropriate suffix, such as `(==)`, automatically.
+
+If more than one restriction is needed, they are listed, comma-separated,
+inside the parentheses, like this: `T(==,0)`.
+
+### Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
+
+Designating a type parameter with the `(==)` suffix indicates that
+the parameter may only be replaced in non-ghost contexts
+with types that are known to
+support run-time equality comparisons (`==` and `!=`).
+All types support equality in ghost contexts,
+as if, for some types, the equality function is ghost.
+
+For example,
 ```dafny
 method Compare<T(==)>(a: T, b: T) returns (eq: bool)
 {
@@ -472,31 +498,74 @@ method Compare<T(==)>(a: T, b: T) returns (eq: bool)
 }
 ```
 is a method whose type parameter is restricted to equality-supporting
-types.  Again, note that _all_ types support equality in _ghost_
+types when used in a non-ghost context.
+Again, note that _all_ types support equality in _ghost_
 contexts; the difference is only for non-ghost (that is, compiled)
-code.  Co-inductive datatypes, function types, as well as inductive
+code.  Co-inductive datatypes, function types, and inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
-TO BE WRITTEN: There are now more such modes
+### Auto-initializable types: `T(0)`
 
-[^fn-type-mode]:  Being equality-supporting is just one of many
-    _modes_ that one can imagine types in a rich type system to have.
-    For example, other modes could include having a total order,
-    being zero-initializable, and possibly being uninhabited.  If
-    Dafny were to support more modes in the future, the `( )`-suffix
-    syntax may be extended.  For now, the suffix can only indicate the
-    equality-supporting mode.
+All Dafny variables of a given type hold a legal value of that type;
+if no explicit initialization is given, then an arbitrary value is
+assumed by the verifier and supplied by the compiler,
+ that is, the variable is _auto-initialized_.
+During verification, this means that any subsequent uses of that
+variable must hold for any value.
+For example,
+```dafny
+method m() {
+  var n: nat; // Initialized to arbitrary value
+  assert n >= 0; // true, regardless of the value of n
+  var i: int;
+  assert i >= 0; // possibly false, arbitrary ints may be negative
+}
+```
 
-Dafny has some inference support that makes certain signatures less
-cluttered (described in [Section Type Inference](#sec-type-inference)).
-In some cases, this support will
-infer that a type parameter must be restricted to equality-supporting
-types, in which case Dafny adds the "`(==)`" automatically.
+For some types, the compiler can choose an initial value, but for others
+it does not.
+Variables and fields of a type that the compiler does not auto-initialize
+are subject to _definite-assignment_ rules. These ensure that the program
+explicitly assigns a value to a variable before it is used.
+For more details see the section describing [Definite Assignment](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
 
-TO BE WRITTEN: Type parameter variance with + - = * ! default
+The `(0)` suffix indicates that the type must be one that the compiler knows
+how to auto-initialize, if the type is used to declare a non-ghost variable.
 
-TO BE WRITTEN: Type parameter characteristics: == 0 !new
+### Non-heap based: `T(!new)`
+
+Dafny makes a distinction between types whose values are on the heap,
+i.e. references, like
+classes and arrays, and those that are strictly value-based, like basic
+types and datatypes.
+The practical implication is that references depend on allocation state
+(e.g. are affected by the `old` operation) whereas non-reference values
+are not.
+Thus it can be relevant to know whether the values of a type parameter
+are heap-based or not. This is indicated by the mode suffix `(!new)`.
+
+A type parameter characterized by `(!new)` is _recursively_ independent
+of the allocation state. For example, a datatype is not a reference, but for
+a parameterized data type such as
+```dafny
+dataype Result<T> = Failure(error: string) | Success(value: T)
+```
+the instantiation `Result<int>` satisifies `(!new)`, whereas
+`Result<array<int>>` does not.
+
+Note that this characteristic of a type parameter is operative for both
+verification and compilation.
+Also, opaque types at the topmost scope are always implicitly `(!new)`.
+
+Here are some examples:
+```dafny
+{% include Example-TP.dfy %}
+```
+
+## Type parameter variance
+
+TO BE WRITTEN: Type parameter variance
 
 # Generic Instantiation
 ````grammar
@@ -521,8 +590,8 @@ For any type `T`, each value of type `set<T>` is a finite set of
 `T` values.
 
 Set membership is determined by equality in the type `T`,
-so `set<T>` can be used in a non-ghost context only if `T` is equality
-supporting.
+so `set<T>` can be used in a non-ghost context only if `T` is
+[equality supporting](#sec-equality-supporting).
 
 For any type `T`, each value of type `iset<T>` is a potentially infinite
 set of `T` values.
@@ -587,8 +656,6 @@ expression `e` of type `T`, sets support the following operations:
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
-TODO: Or does the length operator produce an ORDINAL?
-
 ## Multisets
 ````grammar
 MultisetType_ = "multiset" [ GenericInstantiation ]
@@ -604,7 +671,7 @@ number of elements to non-zero (finite) multiplicities.
 
 Like sets, multiset membership is determined by equality in the type
 `T`, so `multiset<T>` can be used in a non-ghost context only if `T`
-is equality supporting.
+is [equality supporting](#sec-equality-supporting).
 
 A multiset can be formed using a _multiset display_ expression, which
 is a possibly empty, unordered list of expressions enclosed in curly
@@ -847,7 +914,7 @@ denotes a _(possibly) infinite map_.  In most regards, `imap<T,U>` is
 like `map<T,U>`, but a map of type `imap<T,U>` is allowed to have an
 infinite domain.
 
-A map can be formed using a _map display_ expression (see ``MapDisplayExpr``),
+A map can be formed using a _map display_ expression (see [``MapDisplayExpr``](#sec-map-display-expression)),
 which is a possibly empty, ordered list of _maplets_, each maplet having the
 form `t := u` where `t` is an expression of type `T` and `u` is an
 expression of type `U`, enclosed in square brackets after the keyword
@@ -930,7 +997,7 @@ type abstractly. Synonym and opaque types serve this purpose.
 ## Type synonyms
 ````grammar
 SynonymTypeDefinition_ =
-  "type" { Attribute } SynonymTypeName [ GenericParameters ]
+  "type" { Attribute } SynonymTypeName [ TPChars ] [ GenericParameters ]
    "=" Type
 ````
 
@@ -960,10 +1027,14 @@ follows:
 type string = seq<char>
 ```
 
+The optional type parameter characteristics are described in the
+section on [type parameter restrictions](#sec-type-parameter-restrictions)
+
+
 ## Opaque types
 ````grammar
 OpaqueTypeDefinition_ = "type" { Attribute } SynonymTypeName
-  [ "(" "==" ")" ] [ GenericParameters ]
+  [ TPChars ] [ GenericParameters ]
 ````
 
 A special case of a type synonym is one that is underspecified.  Such
@@ -988,8 +1059,11 @@ type Monad<T>
 ```
 can be used abstractly to represent an arbitrary parameterized monad.
 
+The optional type parameter characteristics are described in the
+section on [type parameter restrictions](#sec-type-parameter-restrictions)
 
-# Class Types
+
+# Class Types {#sec-class-types}
 
 ````grammar
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
@@ -1511,21 +1585,132 @@ where _members_ can include fields, functions, methods and declarations of neste
 no constructor methods.  The functions and methods are allowed to be
 declared `static`.
 
-A reference type `C` that extends a trait `J` is assignable to `J`;
-a value of `J` is assignable to a variable of a reference type that
+A reference type `C` that extends a trait `J` is assignable to a variable of
+type `J`;
+a value of `J` is assignable to a variable of a reference type `C` that
 extends `J` only if the verifier can prove that the reference does
 indeed refer to an object of allocated type `C`.
 The members of `J` are available as members
 of `C`.  A member in `J` is not allowed to be redeclared in `C`,
 except if the member is a non-`static` function or method without a
 body in `J`.  By doing so, type `C` can supply a stronger
-specification and a body for the member.
+specification and a body for the member. There is further discussion on
+this point in Section [Inheritance](#sec-inheritance).
 
 `new` is not allowed to be used with traits.  Therefore, there is no
 object whose allocated type is a trait.  But there can of course be
 objects of a class `C` that implement a trait `J`, and a reference to
 such a `C` object can be used as a value of type `J`.
 
+## Type `object`
+````grammar
+ObjectType_ = "object"
+````
+
+There is a built-in trait `object` that is a supertype of all
+reference types.
+Every class and every trait (other than `object` itself) automatically extends
+`object`. The purpose of type `object`
+is to enable a uniform treatment of _dynamic frames_. In particular, it
+is useful to keep a ghost field (typically named `Repr` for
+"representation") of type `set<object>`.
+
+It serves no purpose (but does no harm) to explicitly list `object` as
+an extendee in a class or trait declaration.
+
+Trait `object` contains no members.
+
+The dynamic allocation of objects is done using new C ..., where C is the name of a class. The name C is not allowed to be a trait, except that it is allowed to be `object`. The construction `new object` allocates a new object (of an unspecified class type). The construction can be used to create unique references, where no other properties of those references are needed.
+
+## Inheritance {#sec-inheritance}
+
+The purpose of traits is to be able to express abstraction: a trait
+encapsulates a set of behaviors; classes and traits that extend it
+_inherit_ those behaviors, perhaps specializing them.
+
+A trait or class may extend multiple other traits.
+The traits syntactically listed in a trait or class's `extends` clause
+are called its _direct parents_; the _transitive parents_ of a trait or class
+are its direct parents, the transitive parents of its direct parents, and
+the `object` trait (if it is not itself `object`).
+These are sets of traits, in that it does not matter if
+there are repetitions of a given trait in a class or trait's direct or
+transitive parents. However, if a trait with type parameters is repeated,
+it must have the same actual type parameters in each instance.
+Furthermore, a trait may not be in its own set of transitive parents; that is,
+the graph of traits connected by the directed _extends_ relationship may not
+have any cycles.
+
+A class or trait inherits (as if they are copied) all the instance members
+of its transitive parents. However, since names may not be overloaded in
+Dafny, different members (that is, members with different type signatures)
+within the set of transitive parents and the class or trait itself must have different names.[^overload]
+This restriction does mean that traits from different sources that
+coincidentally use the same name for different purposes cannot be combined
+by being part of the set of transitive parents for some new trait or class.
+
+A declaration of  member `C.M` in a class or trait _overrides_ any other declarations
+of the same name (and signature) in a transitive parent. `C.M` is then called an
+override; a declaration that
+does not override anything is called an _original declaration_.
+
+Static members of a trait may not be redeclared;
+thus, if there is a body it must be declared in the trait;
+the compiler will require a body, though the verifier will not.
+
+[^overload]: It is possible to conceive of a mechanism for disambiguating
+conflicting names, but this would add complexity to the language that does not
+appear to be needed, at least as yet.
+
+Where traits within an extension hierarchy do declare instance members with the same
+name (and thus the same signature), some rules apply. Recall that, for methods,
+every declaration includes a specification; if no specification is given
+explicitly, a default specification applies. Instance method declarations in traits,
+however, need not have a body, as a body can be declared in an override.
+
+For a given non-static method M,
+
+* A trait or class may not redeclare M if it has a transitive parent that declares M and provides a body.
+* A trait may but need not provide a body if all its transitive parents that declare M do not declare a body.
+* A trait or class may not have more than one transitive parent that declares M with a body.
+* A class that has one or more transitive parents that declare M without a body
+and no transitive parent that declares M with a body must itself redeclare M
+with a body if it is compiled. (The verifier alone does not require a body.)
+* Currently (and under debate), the following restriction applies:
+if `M` overrides two (or more) declarations, `P.M` and `Q.M`, then either
+`P.M` must override `Q.M` or `Q.M` must override `P.M`.
+
+The last restriction above is the current implementation. It effectively limits
+inheritance of a method M to a single "chain" of declarations and does not
+permit mixins.
+
+Each of any method declarations explicitly or implicitly
+includes a specification. In simple cases, those syntactially separate
+specifications will be copies of each other (up to renaming to take account
+of differing formal parameter names). However they need not be. The rule is
+that the specifications of M in a given class or trait must be _as stsrong as_
+M's specifications in a transitive parent.
+Here _as strong as_  means that it
+must be permitted to call the subtype's M in the context of the supertype's M.
+Stated differently, where P and C are a parent trait and a child class or trait,
+respectively, then, under the precondition of `P.M`,
+
+* C.M's `requires` clause must be implied by P.M's `requires` clause
+* C.M's `ensures` clause must imply P.M's `ensures` clause
+* C.M's `reads` set must be a subset of P.M's `reads` set
+* C.M's `modifies` set must be a subset of P.M's `modifies` set
+* C.M's `decreases` expression must be smaller than or equal to P.M's `decreases` expression
+
+Non-static const and field declarations are also inherited from parent traits.
+These may not be redeclared in extending traits and classes.
+However, a trait need not initalize a const field with a value.
+The class that extends a trait that declares such a const field without an
+initializer can initialize the field in a constructor.
+If the declaring trait does give
+an initial value in the declaration, the extending class or trait may not either
+redeclare the field or give it a value in a constructor.
+
+## Example of traits
 As an example, the following trait represents movable geometric shapes:
 ```dafny
 trait Shape
@@ -1592,11 +1777,6 @@ myShapes := myShapes + [tri];
 // move shape 1 to the right by the width of shape 0
 myShapes[1].MoveH(myShapes[0].Width());
 ```
-
-Traits can extend other traits, inheriting all the members of the parent
-traits. As with inheritance in a class declaration, a trait may not
-redeclare a member of a parent trait, except is the member is a
-non-static function or method without a body in the parent.
 
 # Array Types
 ````grammar
@@ -1748,20 +1928,6 @@ In contrast to one-dimensional arrays, there is no operation to
 convert stretches of elements from a multi-dimensional array to a
 sequence.
 
-# Type `object`
-````grammar
-ObjectType_ = "object"
-````
-
-There is a built-in trait `object` that is like a supertype of all
-reference types.
-Every class automatically extends
-object and so does every user-defined trait. The purpose of type `object`
-is to enable a uniform treatment of _dynamic frames_. In particular, it
-is useful to keep a ghost field (typically named `Repr` for
-"representation") of type `set<object>`.
-
-TODO: what fields, methjods, functions does `object` have?
 
 # Iterator types
 ````grammar
@@ -2688,17 +2854,18 @@ infinite proof on demand.
 # Newtypes
 ````grammar
 NewtypeDecl = "newtype" { Attribute } NewtypeName "="
-  ( NumericTypeName [ ":" Type ] "|" Expression(allowLemma: false, allowLambda: true)
+  ( NumericTypeName [ ":" Type ]
+   "|" Expression(allowLemma: false, allowLambda: true)
   | Type
   )
 ````
 
-A new numeric type can be declared with the _newtype_
+A new type can be declared with the _newtype_
 declaration, for example:
 ```dafny
 newtype N = x: M | Q
 ```
-where `M` is a numeric type and `Q` is a boolean expression that can
+where `M` is a type and `Q` is a boolean expression that can
 use `x` as a free variable.  If `M` is an integer-based numeric type,
 then so is `N`; if `M` is real-based, then so is `N`.  If the type `M`
 can be inferred from `Q`, the "`: M`" can be omitted.  If `Q` is just
@@ -2706,20 +2873,17 @@ can be inferred from `Q`, the "`: M`" can be omitted.  If `Q` is just
 ```dafny
 newtype N = M
 ```
-Type `M` is known as the _base type_ of `N`.
+Type `M` is known as the _base type_ of `N`. At present, Dafny only supports
+`int` and `real` as base types of newtypes.
 
-
-A newtype is a numeric type that supports the same operations as its
+A newtype is a type that supports the same operations as its
 base type.  The newtype is distinct from and incompatible with other
-numeric types; in particular, it is not assignable to its base type
+types; in particular, it is not assignable to its base type
 without an explicit conversion.  An important difference between the
 operations on a newtype and the operations on its base type is that
 the newtype operations are defined only if the result satisfies the
 predicate `Q`, and likewise for the literals of the
-newtype.[^fn-newtype-design-question]
-
-[^fn-newtype-design-question]: Would it be useful to also
-    automatically define `predicate N?(x: M) { Q }`?
+newtype.
 
 For example, suppose `lo` and `hi` are integer-based numerics that
 satisfy `0 <= lo <= hi` and consider the following code fragment:
@@ -2748,7 +2912,7 @@ of the newtype.  For example, by scrutinizing the definition of
 `int32` above, a compiler may decide to store `int32` values using
 signed 32-bit integers in the target hardware.
 
-This incompatibility of a newtype and its basetype is intentional,
+The incompatibility of a newtype and its basetype is intentional,
 as newtypes are meant to be used as distinct types from the basetype.
 If numeric types are desired that mix more readily with the basetype,
 the subset types described in a later section may be more appropriate.
@@ -2767,7 +2931,7 @@ and consider a variable `c` of type `int8`.  The expression
 is not well-defined, because the comparisons require each operand to
 have type `int8`, which means the literal `128` is checked to be of
 type `int8`, which it is not.  A proper way to write this expression
-would be to use a conversion operation, described next, on `c` to
+would be to use a conversion operation, described [next](#sec-conversion), on `c` to
 convert it to the base type:
 ```dafny
 -128 <= c as int < 128
@@ -2779,8 +2943,8 @@ be inhibited or a specific native data type selected by
 using the `{:nativeType}` attribute, as explained in
 section [#sec-nativetype].
 
-There is a restriction that the value `0` must be part of every
-newtype.[^fn-newtype-zero]
+There is a current restriction that the value `0` must be part of every
+numeric newtype.
 
 Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
@@ -2788,21 +2952,17 @@ known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
 in [Section: Compile-Time Constants](#sec-compile-time-constants).
 
-[^fn-newtype-zero]: The restriction is due to a current limitation in
-    the compiler.  This will change in the future and will also open
-    up the possibility for subset types and non-null reference
-    types.
+## Conversion operations {#sec-conversion}
 
-## Numeric conversion operations
-
-For every numeric type `N`, there is a conversion function with the
-name `as N`.  It is a partial identity function.  It is defined when the
-given value, which can be of any numeric type, is a member of the type
+For every type `N`, there is a conversion operation with the
+name `as N`, described more fully in [a later section](#sec-as-expression).
+It is a partial function defined when the
+given value, which can be of any type, is a member of the type
 converted to.  When the conversion is from a real-based numeric type
 to an integer-based numeric type, the operation requires that the
 real-based argument have no fractional part.  (To round a real-based
 numeric value down to the nearest integer, use the `.Floor` member,
-see Section [#sec-numeric-types].)
+see Section [Numeric Types](#sec-numeric-types).)
 
 To illustrate using the example from above, if `lo` and `hi` have type
 `int32`, then the code fragment can legally be written as follows:
@@ -2813,25 +2973,32 @@ where the type of `mid` is inferred to be `int`.  Since the result
 value of the division is a member of type `int32`, one can introduce
 yet another conversion operation to make the type of `mid` be `int32`:
 ```dafny
-var mid := int32(lo as int + hi as int) / 2);
+var mid := ((lo as int + hi as int) / 2) as int32;
 ```
 If the compiler does specialize the run-time representation for
 `int32`, then these statements come at the expense of two,
 respectively three, run-time conversions.
 
 The `as N` conversion operation is grammatically a suffix operation like
-`.`_field and array indsexing. Thus the as operawtion binds more tightly than
-p[refix or binary operations: `- x as int` is `- (x as int)`; `a + b as int` is `a + (b as int)`.
+`.`field and array indexing, but binds less tightly than unary operations:
+`- x as int` is `(- x) as int`; `a + b as int` is `a + (b as int)`.
 
-TODO: Move this section to Expressions?
+There is also a corresponding [`is` operation](#sec-as-expression) that
+tests whether a value is valid for a given type. For example, `-5 is nat` is
+false. So `e as T` is well-defined exactly when `e is T` is true.
+For a newtype or subset type, the `is` operation is the predicate that defines
+the type.
+**The `is` operation is not yet implemented**.
 
 # Subset types {#sec-subset-types}
 TO BE WRITTEN: add `-->` (subset of `~>`), `->` (subset of `-->`), non-null types subset of nullable types
 
 ````grammar
-SubsetTypeDecl = "type" { Attribute } NewtypeName OptGenericParameters "="
-  Ident [ ":" Type ] "|" Expression(allowLemma: false, allowLambda: true)
-    [ "witness" Expression(allowLemma: false, allowLambda: true) ]
+SubsetTypeDecl =
+  "type" { Attribute } NewtypeName OptGenericParameters
+  "=" Ident [ ":" Type ]
+  "|" Expression(allowLemma: false, allowLambda: true)
+  [ "witness" Expression(allowLemma: false, allowLambda: true) ]
 ````
 
 ````grammar
@@ -2856,8 +3023,8 @@ are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
 Section [#sec-numeric-conversion-operations].)
 
-Dafny supports a builtin subset type, namely the built-in type `nat`,
-whose base type is `int`.[^fn-more-subset-types]  Type `nat`
+Dafny supports a built-in subset type, namely the type `nat`,
+whose base type is `int`. Type `nat`
 designates the non-negative subrange of `int`.  A simple example that
 puts subset type `nat` to good use is the standard Fibonacci
 function:

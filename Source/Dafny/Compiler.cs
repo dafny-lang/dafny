@@ -14,6 +14,7 @@ using Bpl = Microsoft.Boogie;
 using System.Collections.ObjectModel;
 using System.Diagnostics.SymbolStore;
 using System.Net.Security;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using Microsoft.Basetypes;
 
@@ -90,9 +91,9 @@ namespace Microsoft.Dafny {
     protected abstract TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, TargetWriter wr);
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
-      BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, bool forBodyInheritance);
-      BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody,
-        MemberDecl member, bool forBodyInheritance = false);
+      BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
+      BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody,
+        MemberDecl member, bool forBodyInheritance, bool lookasideBody);
       BlockTargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance);  // returns null iff !createBody
       BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance);  // if createBody, then result and setterWriter are non-null, else both are null
       void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, Field/*?*/ field);
@@ -149,40 +150,7 @@ namespace Microsoft.Dafny {
       GetNativeInfo(nt.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
       return nativeName;
     }
-    protected virtual void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
-      switch (sel) {
-        case NativeType.Selection.Byte:
-          name = "byte"; literalSuffix = ""; needsCastAfterArithmetic = true;
-          break;
-        case NativeType.Selection.SByte:
-          name = "sbyte"; literalSuffix = ""; needsCastAfterArithmetic = true;
-          break;
-        case NativeType.Selection.UShort:
-          name = "ushort"; literalSuffix = ""; needsCastAfterArithmetic = true;
-          break;
-        case NativeType.Selection.Short:
-          name = "short"; literalSuffix = ""; needsCastAfterArithmetic = true;
-          break;
-        case NativeType.Selection.UInt:
-          name = "uint"; literalSuffix = "U"; needsCastAfterArithmetic = false;
-          break;
-        case NativeType.Selection.Int:
-          name = "int"; literalSuffix = ""; needsCastAfterArithmetic = false;
-          break;
-        case NativeType.Selection.Number:
-          name = "number"; literalSuffix = ""; needsCastAfterArithmetic = false;
-          break;
-        case NativeType.Selection.ULong:
-          name = "ulong"; literalSuffix = "UL"; needsCastAfterArithmetic = false;
-          break;
-        case NativeType.Selection.Long:
-          name = "long"; literalSuffix = "L"; needsCastAfterArithmetic = false;
-          break;
-        default:
-          Contract.Assert(false);  // unexpected native type
-          throw new cce.UnreachableException();  // to please the compiler
-      }
-    }
+    protected abstract void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic);
 
     protected List<TypeParameter> UsedTypeParameters(DatatypeDecl dt) {
       Contract.Requires(dt != null);
@@ -191,10 +159,10 @@ namespace Microsoft.Dafny {
       if (idt == null) {
         return dt.TypeArgs;
       } else {
-        Contract.Assert(idt.TypeArgs.Count == idt.TypeParametersUsedInConstructionByDefaultCtor.Length);
+        Contract.Assert(idt.TypeArgs.Count == idt.TypeParametersUsedInConstructionByGroundingCtor.Length);
         var tps = new List<TypeParameter>();
         for (int i = 0; i < idt.TypeArgs.Count; i++) {
-          if (idt.TypeParametersUsedInConstructionByDefaultCtor[i]) {
+          if (idt.TypeParametersUsedInConstructionByGroundingCtor[i]) {
             tps.Add(idt.TypeArgs[i]);
           }
         }
@@ -211,10 +179,10 @@ namespace Microsoft.Dafny {
       if (idt == null) {
         return TypeArgumentInstantiation.ListFromClass(dt, typeArgs);
       } else {
-        Contract.Assert(typeArgs.Count == idt.TypeParametersUsedInConstructionByDefaultCtor.Length);
+        Contract.Assert(typeArgs.Count == idt.TypeParametersUsedInConstructionByGroundingCtor.Length);
         var r = new List<TypeArgumentInstantiation>();
         for (int i = 0; i < typeArgs.Count; i++) {
-          if (idt.TypeParametersUsedInConstructionByDefaultCtor[i]) {
+          if (idt.TypeParametersUsedInConstructionByGroundingCtor[i]) {
             r.Add(new TypeArgumentInstantiation(dt.TypeArgs[i], typeArgs[i]));
           }
         }
@@ -222,17 +190,37 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected bool NeedsTypeDescriptors(List<TypeArgumentInstantiation> typeArgs) {
+      Contract.Requires(typeArgs != null);
+      return typeArgs.Any(ta => NeedsTypeDescriptor(ta.Formal));
+    }
+
     protected virtual bool NeedsTypeDescriptor(TypeParameter tp) {
       Contract.Requires(tp != null);
       return tp.Characteristics.MustSupportZeroInitialization;
     }
 
-    protected virtual int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
+    protected abstract string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok);
+
+    protected void EmitTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, TargetWriter wr, bool useAllTypeArgs = false) {
+      var prefix = "";
+      EmitTypeDescriptorsActuals(typeArgs, tok, wr, ref prefix, useAllTypeArgs);
+    }
+
+    protected void EmitTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, TargetWriter wr, ref string prefix, bool useAllTypeArgs = false) {
       Contract.Requires(typeArgs != null);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
-      return 0;
+      Contract.Requires(prefix != null);
+
+      foreach (var ta in typeArgs) {
+        if (useAllTypeArgs || NeedsTypeDescriptor(ta.Formal)) {
+          wr.Write("{0}{1}", prefix, TypeDescriptor(ta.Actual, wr, tok));
+          prefix = ", ";
+        }
+      }
     }
+
     /// <summary>
     /// EmitTailCallStructure evolves "wr" into a structure that can be used as the jump target
     /// for tail calls (see EmitJumpToTailCallStart).
@@ -246,8 +234,22 @@ namespace Microsoft.Dafny {
     protected virtual string TypeArgumentName(Type type, TextWriter wr, Bpl.IToken tok) {
       return TypeName(type, wr, tok);
     }
-    public abstract string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool valueSkeletonOnly);
-    protected abstract string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok);
+    public abstract string TypeInitializationValue(Type type, TextWriter wr /*?*/, Bpl.IToken tok /*?*/, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors);
+
+    protected string TypeName_UDT(string fullCompileName, UserDefinedType udt, TextWriter wr, Bpl.IToken tok) {
+      Contract.Requires(fullCompileName != null);
+      Contract.Requires(udt != null);
+      Contract.Requires(wr != null);
+      Contract.Requires(tok != null);
+      Contract.Requires(udt.TypeArgs.Count == (udt.ResolvedClass == null ? 0 : udt.ResolvedClass.TypeArgs.Count));
+      if (udt.ResolvedClass == null) {
+        Contract.Assert(udt.ResolvedParam != null);
+        return TypeName_UDT(fullCompileName, new List<TypeParameter.TPVariance>(), udt.TypeArgs, wr, tok);
+      } else {
+        return TypeName_UDT(fullCompileName, udt.ResolvedClass.TypeArgs.ConvertAll(tp => tp.Variance), udt.TypeArgs, wr, tok);
+      }
+    }
+    protected abstract string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok);
     protected abstract string/*?*/ TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member);
     protected string TypeName_Companion(TopLevelDecl cls, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(cls != null);
@@ -300,7 +302,6 @@ namespace Microsoft.Dafny {
     protected virtual bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => false;
     protected virtual BlockTargetWriter EmitMethodReturns(Method m, BlockTargetWriter wr) { return wr; } // for languages that need explicit return statements not provided by Dafny
     protected virtual bool SupportsMultipleReturns { get => false; }
-    protected virtual bool NeedsCastFromTypeParameter { get => false; }
     protected virtual bool SupportsAmbiguousTypeDecl { get => true; }
     protected virtual bool ClassesRedeclareInheritedFields => true;
     protected virtual void AddTupleToSet(int i) { }
@@ -567,8 +568,18 @@ namespace Microsoft.Dafny {
     protected abstract void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr);
     protected abstract TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr);
     protected abstract void EmitTupleSelect(string prefix, int i, TargetWriter wr);
+
+    protected virtual bool NeedsCastFromTypeParameter => false;
+
+    protected virtual bool IsCoercionNecessary(Type /*?*/ from, Type /*?*/ to) {
+      return NeedsCastFromTypeParameter;
+    }
+
     /// <summary>
-    /// If "from" and "to" are both given, and if a "from" needs an explicit coercion in order to become a "to", emit that coercion.  Needed in languages where either (a) we need to represent upcasts as explicit operations (like Go) or (b) there's static typing but no parametric polymorphism (like Go) so that lots of things need to be boxed and unboxed.
+    /// If "from" and "to" are both given, and if a "from" needs an explicit coercion in order to become a "to", emit that coercion.
+    /// Needed in languages where either
+    ///   (a) we need to represent upcasts as explicit operations (like Go, or array types in Java), or
+    ///   (b) there's static typing but no parametric polymorphism (like Go) so that lots of things need to be boxed and unboxed.
     /// </summary>
     protected virtual TargetWriter EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, Bpl.IToken tok, TargetWriter wr) {
       return wr;
@@ -734,7 +745,7 @@ namespace Microsoft.Dafny {
       }
 
       public static List<TypeArgumentInstantiation> ListFromMember(MemberDecl member, List<Type> /*?*/ classActuals, List<Type> /*?*/ memberActuals) {
-        Contract.Requires(classActuals == null || classActuals.Count == member.EnclosingClass.TypeArgs.Count);
+        Contract.Requires(classActuals == null || classActuals.Count == (member.EnclosingClass == null ? 0 : member.EnclosingClass.TypeArgs.Count));
         Contract.Requires(memberActuals == null || memberActuals.Count == (member is ICallable ic ? ic.TypeArgs.Count : 0));
 
         var r = new List<TypeArgumentInstantiation>();
@@ -745,10 +756,12 @@ namespace Microsoft.Dafny {
           }
         };
 
-        if (classActuals != null) {
+        if (classActuals != null && classActuals.Count != 0) {
+          Contract.Assert(member.EnclosingClass.TypeArgs.TrueForAll(ta => ta.Parent is TopLevelDecl));
           add(member.EnclosingClass.TypeArgs, classActuals);
         }
         if (memberActuals != null && member is ICallable icallable) {
+          Contract.Assert(icallable.TypeArgs.TrueForAll(ta => !(ta.Parent is TopLevelDecl)));
           add(icallable.TypeArgs, memberActuals);
         }
         return r;
@@ -770,6 +783,78 @@ namespace Microsoft.Dafny {
         Contract.Requires(formals != null);
         return formals.ConvertAll(tp => new TypeArgumentInstantiation(tp, new UserDefinedType(tp)));
       }
+
+      public static List<TypeParameter> ToFormals(List<TypeArgumentInstantiation> typeArgs) {
+        Contract.Requires(typeArgs != null);
+        return typeArgs.ConvertAll(ta => ta.Formal);
+      }
+
+      public static List<Type> ToActuals(List<TypeArgumentInstantiation> typeArgs) {
+        Contract.Requires(typeArgs != null);
+        return typeArgs.ConvertAll(ta => ta.Actual);
+      }
+    }
+
+    /// <summary>
+    /// Answers two questions whose answers are used to filter type parameters.
+    /// For a member c, F, or M:
+    ///     (co-)datatype/class/trait <<cl>> {
+    ///       <<isStatic>> const c ...
+    ///       <<isStatic>> function method F ...
+    ///       <<isStatic>> method M ...
+    ///     }
+    /// does a type parameter of "cl"
+    ///  - get compiled as a type parameter of the member (needsTypeParameter)
+    ///  - get compiled as a type descriptor of the member (needsTypeDescriptor)
+    /// For a member of a trait with a rhs/body, if "lookasideBody" is "true", the questions are to
+    /// be answered for the member emitted into the companion class, not the signature that goes into
+    /// the target type.
+    /// </summary>
+    protected virtual void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
+      Contract.Requires(cl is DatatypeDecl || cl is ClassDecl);
+      throw new NotImplementedException();
+    }
+
+    protected List<TypeArgumentInstantiation> ForTypeParameters(List<TypeArgumentInstantiation> typeArgs, MemberDecl member, bool lookasideBody) {
+      Contract.Requires(member is ConstantField || member is Function || member is Method);
+      Contract.Requires(typeArgs != null);
+      var memberHasBody =
+        (member is ConstantField cf && cf.Rhs != null) ||
+        (member is Function f && f.Body != null) ||
+        (member is Method m && m.Body != null);
+      var r = new List<TypeArgumentInstantiation>();
+      foreach (var ta in typeArgs) {
+        var tp = ta.Formal;
+        if (tp.Parent is TopLevelDeclWithMembers) {
+          TypeArgDescriptorUse(member.IsStatic, lookasideBody, (TopLevelDeclWithMembers)member.EnclosingClass, out var needsTypeParameter, out var _);
+          if (!needsTypeParameter) {
+            continue;
+          }
+        }
+        r.Add(ta);
+      }
+      return r;
+    }
+
+    protected List<TypeArgumentInstantiation> ForTypeDescriptors(List<TypeArgumentInstantiation> typeArgs, MemberDecl member, bool lookasideBody) {
+      Contract.Requires(member is ConstantField || member is Function || member is Method);
+      Contract.Requires(typeArgs != null);
+      var memberHasBody =
+        (member is ConstantField cf && cf.Rhs != null) ||
+        (member is Function f && f.Body != null) ||
+        (member is Method m && m.Body != null);
+      var r = new List<TypeArgumentInstantiation>();
+      foreach (var ta in typeArgs) {
+        var tp = ta.Formal;
+        if (tp.Parent is TopLevelDeclWithMembers) {
+          TypeArgDescriptorUse(member.IsStatic, lookasideBody, (TopLevelDeclWithMembers)member.EnclosingClass, out var _, out var needsTypeDescriptor);
+          if (!needsTypeDescriptor) {
+            continue;
+          }
+        }
+        r.Add(ta);
+      }
+      return r;
     }
 
     /// <summary>
@@ -1132,10 +1217,10 @@ namespace Microsoft.Dafny {
         block = abyss.NewBlock("");
       }
 
-      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, bool forBodyInheritance) {
+      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return createBody ? block : null;
       }
-      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance) {
+      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
         return createBody ? block : null;
       }
       public BlockTargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
@@ -1360,9 +1445,9 @@ namespace Microsoft.Dafny {
             var cfType = Resolver.SubstType(cf.Type, c.ParentFormalTypeParametersToActuals);
             if (cf.Rhs == null) {
               Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
-              classWriter.DeclareField("_" + cf.CompileName, c, false, false, cfType, cf.tok, DefaultValue(cfType, errorWr, cf.tok, true), cf);
+              classWriter.DeclareField("_" + cf.CompileName, c, false, false, cfType, cf.tok, PlaceboValue(cfType, errorWr, cf.tok, true), cf);
             }
-            var w = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, true, null, true);
+            var w = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, true, classWriter);
             Contract.Assert(w != null);  // since the previous line asked for a body
             if (cf.Rhs == null) {
               var sw = EmitReturnExpr(w);
@@ -1376,7 +1461,7 @@ namespace Microsoft.Dafny {
           } else if (member is Field f) {
             var fType = Resolver.SubstType(f.Type, c.ParentFormalTypeParametersToActuals);
             // every field is inherited
-            classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, DefaultValue(fType, errorWr, f.tok, true), f);
+            classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, PlaceboValue(fType, errorWr, f.tok, true), f);
             TargetWriter wSet;
             var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet, true);
             {
@@ -1396,11 +1481,11 @@ namespace Microsoft.Dafny {
             }
           } else if (member is Function fn) {
             Contract.Assert(fn.Body != null);
-            var w = classWriter.CreateFunction(IdName(fn), fn.TypeArgs, fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, true, fn, true);
+            var w = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, true, fn, true, false);
             EmitCallToInheritedFunction(fn, w);
           } else if (member is Method method) {
             Contract.Assert(method.Body != null);
-            var w = classWriter.CreateMethod(method, method.TypeArgs, true, true);
+            var w = classWriter.CreateMethod(method, CombineAllTypeArguments(member), true, true, false);
             EmitCallToInheritedMethod(method, w);
           } else {
             Contract.Assert(false);  // unexpected member
@@ -1428,55 +1513,54 @@ namespace Microsoft.Dafny {
           } else if (f is ConstantField) {
             var cf = (ConstantField)f;
             if (cf.IsStatic && !SupportsStaticsInGenericClasses && cf.EnclosingClass.TypeArgs.Count != 0) {
-              var wBody = classWriter.CreateFunction(IdName(cf), CombineTypeParameters(cf, true), new List<Formal>(), cf.Type, cf.tok, true, true, member);
+              var wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), new List<Formal>(), cf.Type, cf.tok, true, true, member, false, false);
               Contract.Assert(wBody != null);  // since the previous line asked for a body
               if (cf.Rhs != null) {
                 CompileReturnBody(cf.Rhs, f.Type, wBody, null);
               } else {
-                EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok, true), wBody);
+                EmitReturnExpr(PlaceboValue(cf.Type, wBody, cf.tok, true), wBody);
               }
             } else {
               BlockTargetWriter wBody;
               if (cf.IsStatic) {
-                wBody = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, true, true, true, cf, false);
+                wBody = CreateFunctionOrGetter(cf, IdName(cf), c, true, true, false, classWriter);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
               } else if (NeedsCustomReceiver(cf)) {
                 // An instance field in a newtype needs to be modeled as a static function that takes a parameter,
                 // because a newtype value is always represented as some existing type.
                 // Likewise, an instance const with a RHS in a trait needs to be modeled as a static function (in the companion class)
                 // that takes a parameter, because trait-equivalents in target languages don't allow implementations.
-                wBody = classWriter.CreateFunction(IdName(cf), CombineTypeParameters(cf, true), new List<Formal>(), cf.Type, cf.tok, true, true, cf);
+                wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), new List<Formal>(), cf.Type, cf.tok, true, true, cf, false, true);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
                 if (c is TraitDecl) {
                   // also declare a function for the field in the interface
-                  var wBodyInterface = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, false, cf, false);
+                  var wBodyInterface = CreateFunctionOrGetter(cf, IdName(cf), c, false, false, false, classWriter);
                   Contract.Assert(wBodyInterface == null);  // since the previous line said not to create a body
                 }
               } else if (c is TraitDecl) {
-                wBody = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, false, cf, false);
+                wBody = CreateFunctionOrGetter(cf, IdName(cf), c, false, false, false, classWriter);
                 Contract.Assert(wBody == null);  // since the previous line said not to create a body
-              } else if (cf.Rhs == null) {
+              } else if (cf.Rhs == null && c is ClassDecl) {
                 // create a backing field, since this constant field may be assigned in constructors
-                classWriter.DeclareField("_" + f.CompileName, c, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true), f);
-                wBody = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, true, cf, false);
+                classWriter.DeclareField("_" + f.CompileName, c, false, false, f.Type, f.tok, PlaceboValue(f.Type, errorWr, f.tok, true), f);
+                wBody = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, false, classWriter);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
               } else {
-                wBody = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, true, cf, false);
+                wBody = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, false, classWriter);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
               }
               if (wBody != null) {
                 if (cf.Rhs != null) {
                   CompileReturnBody(cf.Rhs, cf.Type, wBody, null);
-                } else if (!cf.IsStatic) {
+                } else if (!cf.IsStatic && c is ClassDecl) {
                   var sw = EmitReturnExpr(wBody);
                   var typeSubst = new Dictionary<TypeParameter, Type>();
                   cf.EnclosingClass.TypeArgs.ForEach(tp => typeSubst.Add(tp, (Type)new UserDefinedType(tp)));
-                  var typeArgs = CombineTypeParameters(cf).ConvertAll(tp => new TypeArgumentInstantiation(tp));
-                  Contract.Assert(typeArgs.Count == 0);  // this means the previous line can be simplified
+                  var typeArgs = CombineAllTypeArguments(cf);
                   EmitMemberSelect(EmitThis, UserDefinedType.FromTopLevelDecl(c.tok, c), cf,
                     typeArgs, typeSubst, f.Type, internalAccess: true).EmitRead(sw);
                 } else {
-                  EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok, true), wBody);
+                  EmitReturnExpr(PlaceboValue(cf.Type, wBody, cf.tok, true), wBody);
                 }
               }
             }
@@ -1485,7 +1569,7 @@ namespace Microsoft.Dafny {
             var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, member, out wSet, false);
             Contract.Assert(wSet == null && wGet == null);  // since the previous line specified no body
           } else {
-            var rhs = c is TraitDecl ? null : DefaultValue(f.Type, errorWr, f.tok, true);
+            var rhs = c is TraitDecl ? null : PlaceboValue(f.Type, errorWr, f.tok, true);
             classWriter.DeclareField(IdName(f), c, f.IsStatic, false, f.Type, f.tok, rhs, f);
           }
           if (f is ConstantField && ((ConstantField)f).Rhs != null) {
@@ -1512,16 +1596,16 @@ namespace Microsoft.Dafny {
             }
           } else if (c is TraitDecl && !f.IsStatic) {
             if (f.OverriddenMember == null) {
-              var w = classWriter.CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, false, false, f);
+              var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok, false, false, f, false, false);
               Contract.Assert(w == null); // since we requested no body
             } else if (TraitRepeatsInheritedDeclarations) {
               RedeclareInheritedMember(f, classWriter);
             }
             if (f.Body != null) {
-              CompileFunction(f, classWriter);
+              CompileFunction(f, classWriter, true);
             }
           } else {
-            CompileFunction(f, classWriter);
+            CompileFunction(f, classWriter, false);
           }
           v.Visit(f);
         } else if (member is Method m) {
@@ -1539,16 +1623,16 @@ namespace Microsoft.Dafny {
             }
           } else if (c is TraitDecl && !m.IsStatic) {
             if (m.OverriddenMember == null) {
-              var w = classWriter.CreateMethod(m, m.TypeArgs, false, false);
+              var w = classWriter.CreateMethod(m, CombineAllTypeArguments(m), false, false, false);
               Contract.Assert(w == null);  // since we requested no body
             } else if (TraitRepeatsInheritedDeclarations) {
               RedeclareInheritedMember(m, classWriter);
             }
             if (m.Body != null) {
-              CompileMethod(m, classWriter, null);
+              CompileMethod(m, classWriter, true);
             }
           } else {
-            CompileMethod(m, classWriter, null);
+            CompileMethod(m, classWriter, false);
           }
           v.Visit(m);
         } else {
@@ -1559,12 +1643,23 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected BlockTargetWriter /*?*/ CreateFunctionOrGetter(ConstantField cf, string name, TopLevelDecl enclosingDecl, bool isStatic,
+      bool createBody, bool forBodyInheritance, IClassWriter classWriter) {
+      var typeArgs = CombineAllTypeArguments(cf);
+      var typeDescriptors = ForTypeDescriptors(typeArgs, cf, false);
+      if (NeedsTypeDescriptors(typeDescriptors)) {
+        return classWriter.CreateFunction(name, typeArgs, new List<Formal>(), cf.Type, cf.tok, isStatic, createBody, cf, forBodyInheritance, false);
+      } else {
+        return classWriter.CreateGetter(name, enclosingDecl, cf.Type, cf.tok, isStatic, true, createBody, cf, forBodyInheritance);
+      }
+    }
+
     private void RedeclareInheritedMember(MemberDecl member, IClassWriter classWriter) {
       Contract.Requires(member != null);
       Contract.Requires(classWriter != null);
 
       if (member is ConstantField cf) {
-        var wBody = classWriter.CreateGetter(IdName(cf), member.EnclosingClass, cf.Type, cf.tok, false, true, false, cf, false);
+        var wBody = CreateFunctionOrGetter(cf, IdName(cf), member.EnclosingClass, false, false, false, classWriter);
         Contract.Assert(wBody == null); // since the previous line said not to create a body
       } else if (member is Field field) {
         TargetWriter wSet;
@@ -1572,11 +1667,11 @@ namespace Microsoft.Dafny {
         Contract.Assert(wGet == null && wSet == null); // since the previous line said not to create a body
       } else if (member is Function) {
         var fn = ((Function)member).Original;
-        var wBody = classWriter.CreateFunction(IdName(fn), fn.TypeArgs, fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, false, fn, false);
+        var wBody = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, false, fn, false, false);
         Contract.Assert(wBody == null); // since the previous line said not to create a body
       } else if (member is Method) {
         var method = ((Method)member).Original;
-        var wBody = classWriter.CreateMethod(method, method.TypeArgs, false, false);
+        var wBody = classWriter.CreateMethod(method, CombineAllTypeArguments(method), false, false, false);
         Contract.Assert(wBody == null); // since the previous line said not to create a body
       } else {
         Contract.Assert(false); // unexpected member
@@ -1600,13 +1695,11 @@ namespace Microsoft.Dafny {
 
       var calleeReceiverType = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass), thisContext.ParentFormalTypeParametersToActuals);
       wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
-      var actualTypeArguments = CombineTypeArgumentsForCompanionClass(f,
-        f.EnclosingClass.TypeArgs.ConvertAll(tp => thisContext.ParentFormalTypeParametersToActuals[tp]),
-        f.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
-      EmitNameAndActualTypeArgs(IdName(f), actualTypeArguments.ConvertAll(ta => ta.Actual), f.tok, wr);
+      var typeArgs = CombineAllTypeArguments(f, thisContext);
+      EmitNameAndActualTypeArgs(IdName(f), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
       wr.Write("(");
-      var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, f.tok, false, wr);
-      string sep = nRTDs == 0 ? "" : ", ";
+      var sep = "";
+      EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f, true), f.tok, wr, ref sep);
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
@@ -1638,13 +1731,11 @@ namespace Microsoft.Dafny {
 
       var calleeReceiverType = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass), thisContext.ParentFormalTypeParametersToActuals);
       wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
-      var actualTypeArguments = CombineTypeArgumentsForCompanionClass(f,
-        f.EnclosingClass.TypeArgs.ConvertAll(tp => thisContext.ParentFormalTypeParametersToActuals[tp]),
-        f.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
-      EmitNameAndActualTypeArgs(IdName(f), actualTypeArguments.ConvertAll(ta => ta.Actual), f.tok, wr);
+      var typeArgs = CombineAllTypeArguments(f, thisContext);
+      EmitNameAndActualTypeArgs(IdName(f), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, true)), f.tok, wr);
       wr.Write("(");
-      var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, f.tok, false, wr);
-      string sep = nRTDs == 0 ? "" : ", ";
+      var sep = "";
+      EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f, true), f.tok, wr, ref sep);
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
@@ -1664,32 +1755,32 @@ namespace Microsoft.Dafny {
       wr.Write(")");
     }
 
-    protected virtual void EmitCallToInheritedMethod(Method method, BlockTargetWriter wr) {
-      // Count the number of non-ghost out-parameters
-      var nonGhostOutParameterCount = 0;
-      foreach (var p in method.Outs) {
-        if (!p.IsGhost) {
-          nonGhostOutParameterCount++;
-        }
-      }
+    protected void EmitCallToInheritedMethod(Method method, BlockTargetWriter wr) {
+      Contract.Requires(method != null);
+      Contract.Requires(!method.IsStatic);
+      Contract.Requires(method.EnclosingClass is TraitDecl);
+      Contract.Requires(method.Body != null);
+      Contract.Requires(wr != null);
+      Contract.Requires(thisContext != null);
 
+      // There are three types involved. See comment in EmitCallToInheritedFunction.
+
+      var nonGhostOutParameterCount = method.Outs.Count(p => !p.IsGhost);
       var returnStyleOuts = UseReturnStyleOuts(method, nonGhostOutParameterCount);
       var returnStyleOutCollector = nonGhostOutParameterCount > 1 && returnStyleOuts && !SupportsMultipleReturns ? idGenerator.FreshId("_outcollector") : null;
 
       var outTmps = new List<string>();  // contains a name for each non-ghost formal out-parameter
       var outTypes = new List<Type>();  // contains a type for each non-ghost formal out-parameter
-      var outTypesOriginal = new List<Type>();  // contains a type for each non-ghost formal out-parameter
       for (int i = 0; i < method.Outs.Count; i++) {
         Formal p = method.Outs[i];
         if (!p.IsGhost) {
           var target = returnStyleOutCollector != null ? IdName(p) : idGenerator.FreshId("_out");
           outTmps.Add(target);
           outTypes.Add(p.Type);
-          outTypesOriginal.Add(method.Original.Outs[i].Type);
           DeclareLocalVar(target, p.Type, p.tok, false, null, wr);
         }
       }
-      Contract.Assert(outTmps.Count == nonGhostOutParameterCount && outTypes.Count == nonGhostOutParameterCount && outTypesOriginal.Count == nonGhostOutParameterCount);
+      Contract.Assert(outTmps.Count == nonGhostOutParameterCount && outTypes.Count == nonGhostOutParameterCount);
 
       if (returnStyleOutCollector != null) {
         DeclareSpecificOutCollector(returnStyleOutCollector, wr, outTypes, outTypes);
@@ -1702,13 +1793,11 @@ namespace Microsoft.Dafny {
       wr.Write(TypeName_Companion(calleeReceiverType, wr, method.tok, method));
       wr.Write(ClassAccessor);
 
-      var actualTypeArguments = CombineTypeArgumentsForCompanionClass(method,
-        method.EnclosingClass.TypeArgs.ConvertAll(tp => thisContext.ParentFormalTypeParametersToActuals[tp]),
-        method.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
-      EmitNameAndActualTypeArgs(protectedName, actualTypeArguments.ConvertAll(ta => ta.Actual), method.tok, wr);
+      var typeArgs = CombineAllTypeArguments(method, thisContext);
+      EmitNameAndActualTypeArgs(protectedName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, method, true)), method.tok, wr);
       wr.Write("(");
-      var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, method.tok, false, wr);
-      string sep = nRTDs == 0 ? "" : ", ";
+      var sep = "";
+      EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, method, true), method.tok, wr, ref sep);
 
       wr.Write(sep);
       var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(method.tok, thisContext), calleeReceiverType, method.tok, wr);
@@ -1737,13 +1826,13 @@ namespace Microsoft.Dafny {
       EndStmt(wr);
 
       if (returnStyleOutCollector != null) {
-        EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outTypes, outTypesOriginal, method.tok);
+        EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outTypes, outTypes, method.tok);
         EmitReturn(method.Outs, wr);
       } else if (!returnStyleOuts) {
         for (int j = 0, l = 0; j < method.Outs.Count; j++) {
           var p = method.Outs[j];
           if (!p.IsGhost) {
-            EmitAssignment(IdName(p), method.Outs[j].Type, outTmps[l], method.Original.Outs[j].Type, wr);
+            EmitAssignment(IdName(p), method.Outs[j].Type, outTmps[l], outTypes[l], wr);
             l++;
           }
         }
@@ -1754,7 +1843,7 @@ namespace Microsoft.Dafny {
           var p = method.Outs[j];
           if (!p.IsGhost) {
             wrReturn.Write(sep);
-            w = EmitCoercionIfNecessary(method.Outs[j].Type, method.Original.Outs[j].Type, method.tok, wrReturn);
+            w = EmitCoercionIfNecessary(method.Outs[j].Type, outTypes[l], method.tok, wrReturn);
             w.Write(outTmps[l]);
             sep = ", ";
             l++;
@@ -1763,41 +1852,47 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected List<TypeParameter> CombineTypeParameters(MemberDecl member, bool forCompanionClass = false) {
+    protected List<TypeArgumentInstantiation> CombineAllTypeArguments(MemberDecl member) {
       Contract.Requires(member != null);
       var classActuals = member.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
       var memberActuals = member is ICallable ic ? ic.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)) : null;
-      List<TypeArgumentInstantiation> typeArgs;
-      if (forCompanionClass) {
-        typeArgs = CombineTypeArgumentsForCompanionClass(member, classActuals, memberActuals);
-      } else {
-        typeArgs = CombineTypeArguments(member, classActuals, memberActuals);
-      }
-      return typeArgs.ConvertAll(ta => ta.Formal);
+      return CombineAllTypeArguments(member, classActuals, memberActuals);
     }
 
-    protected List<TypeArgumentInstantiation> CombineTypeArgumentsForCompanionClass(MemberDecl member, List<Type> typeArgsEnclosingClass, List<Type> typeArgsMember) {
+    protected List<TypeArgumentInstantiation> CombineAllTypeArguments(MemberDecl member, TopLevelDeclWithMembers receiverContext) {
+      Contract.Requires(member is ICallable);
+      Contract.Requires(receiverContext != null);
+      var classActuals = member.EnclosingClass.TypeArgs.ConvertAll(tp => receiverContext.ParentFormalTypeParametersToActuals[tp]);
+      var memberActuals = ((ICallable)member).TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
+      return CombineAllTypeArguments(member, classActuals, memberActuals);
+    }
+
+    protected List<TypeArgumentInstantiation> CombineAllTypeArguments(MemberDecl member, List<Type> typeArgsEnclosingClass, List<Type> typeArgsMember) {
       Contract.Requires(member != null);
       Contract.Requires(typeArgsEnclosingClass != null);
       Contract.Requires(typeArgsMember != null);
 
-      if ((member.IsStatic || NeedsCustomReceiver(member)) && !SupportsStaticsInGenericClasses) {
-        return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
-      } else {
-        return TypeArgumentInstantiation.ListFromMember(member, null, typeArgsMember);
-      }
+      return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
     }
 
-    protected List<TypeArgumentInstantiation> CombineTypeArguments(MemberDecl member, List<Type> typeArgsEnclosingClass, List<Type> typeArgsMember) {
+    protected int WriteRuntimeTypeDescriptorsFormals(MemberDecl member, List<TypeArgumentInstantiation> typeParams,
+      TargetWriter wr, ref string prefix, Func<TypeParameter, string> formatter) {
       Contract.Requires(member != null);
-      Contract.Requires(typeArgsEnclosingClass != null);
-      Contract.Requires(typeArgsMember != null);
+      Contract.Requires(typeParams != null);
+      Contract.Requires(prefix != null);
+      Contract.Requires(wr != null);
+      Contract.Ensures(Contract.ValueAtReturn(out prefix) != null);
 
-      if ((member.IsStatic || (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl))) && !SupportsStaticsInGenericClasses) {
-        return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
-      } else {
-        return TypeArgumentInstantiation.ListFromMember(member, null, typeArgsMember);
+      var c = 0;
+      foreach (var ta in typeParams) {
+        var tp = ta.Formal;
+        if (NeedsTypeDescriptor(tp)) {
+          wr.Write($"{prefix}{formatter(tp)}");
+          prefix = ", ";
+          c++;
+        }
       }
+      return c;
     }
 
     void CheckHandleWellformed(ClassDecl cl, TextWriter/*?*/ errorWr) {
@@ -1895,12 +1990,12 @@ namespace Microsoft.Dafny {
 
     private static string CapitalizationConflictAttribute = "_capitalizationConflict";
 
-    private void CompileFunction(Function f, IClassWriter cw) {
+    private void CompileFunction(Function f, IClassWriter cw, bool lookasideBody) {
       Contract.Requires(f != null);
       Contract.Requires(cw != null);
       Contract.Requires(f.Body != null || Attributes.Contains(f.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")));
 
-      var w = cw.CreateFunction(IdName(f), CombineTypeParameters(f, true), f.Formals, f.ResultType, f.tok, f.IsStatic, !f.IsExtern(out _, out _), f);
+      var w = cw.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok, f.IsStatic, !f.IsExtern(out _, out _), f, false, lookasideBody);
       if (w != null) {
         IVariable accVar = null;
         if (f.IsTailRecursive) {
@@ -1945,12 +2040,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void CompileMethod(Method m, IClassWriter cw, Dictionary<TypeParameter, Type>/*?*/ parentTypeParameterTypeMap) {
+    private void CompileMethod(Method m, IClassWriter cw, bool lookasideBody) {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
       Contract.Requires(m.Body != null || Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")));
 
-      var w = cw.CreateMethod(m, CombineTypeParameters(m, true), !m.IsExtern(out _, out _), false);
+      var w = cw.CreateMethod(m, CombineAllTypeArguments(m), !m.IsExtern(out _, out _), false, lookasideBody);
       if (w != null) {
         if (m.IsTailRecursive) {
           w = EmitTailCallStructure(m, w);
@@ -1962,8 +2057,7 @@ namespace Microsoft.Dafny {
         var useReturnStyleOuts = UseReturnStyleOuts(m, nonGhostOutsCount);
         foreach (var p in m.Outs) {
           if (!p.IsGhost) {
-            var pType = parentTypeParameterTypeMap == null ? p.Type : Resolver.SubstType(p.Type, parentTypeParameterTypeMap);
-            DeclareLocalOutVar(IdName(p), pType, p.tok, DefaultValue(pType, w, p.tok, true), useReturnStyleOuts, w);
+            DeclareLocalOutVar(IdName(p), p.Type, p.tok, PlaceboValue(p.Type, w, p.tok, true), useReturnStyleOuts, w);
           }
         }
 
@@ -2300,23 +2394,15 @@ namespace Microsoft.Dafny {
       return name + "]";
     }
 
-    protected bool ComplicatedTypeParameterForCompilation(Type t) {
+    protected bool ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance v, Type t) {
       Contract.Requires(t != null);
-      return t.IsTraitType;
+      return v != TypeParameter.TPVariance.Non && t.IsTraitType;
     }
 
     protected string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(cce.NonNullElements(types));
       Contract.Ensures(Contract.Result<string>() != null);
       return Util.Comma(types, ty => TypeName(ty, wr, tok));
-    }
-
-    // TODO: move this method into CsharpCompiler
-    string/*!*/ TypeParameters(List<TypeParameter/*!*/>/*!*/ targs) {
-      Contract.Requires(cce.NonNullElements(targs));
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      return Util.Comma(targs, IdName);
     }
 
     /// <summary>
@@ -2355,16 +2441,28 @@ namespace Microsoft.Dafny {
       return ik;
     }
 
-    protected string DefaultValue(Type type, TextWriter wr, Bpl.IToken tok, bool inAutoInitContext = false) {
+    protected string PlaceboValue(Type type, TextWriter wr, Bpl.IToken tok, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
       Contract.Requires(type != null);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      bool valueSkeletonOnly = inAutoInitContext && !InitializerIsKnown(type);
+      bool usePlaceboValue = !InitializerIsKnown(type);
       bool hs, hz, ik;
       string dv;
-      TypeInitialization(type, this, wr, tok, out hs, out hz, out ik, out dv, valueSkeletonOnly);
+      TypeInitialization(type, this, wr, tok, out hs, out hz, out ik, out dv, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+      return dv;
+    }
+
+    protected string DefaultValue(Type type, TextWriter wr, Bpl.IToken tok, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
+      Contract.Requires(type != null);
+      Contract.Requires(wr != null);
+      Contract.Requires(tok != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      bool hs, hz, ik;
+      string dv;
+      TypeInitialization(type, this, wr, tok, out hs, out hz, out ik, out dv, false, constructTypeParameterDefaultsFromTypeDescriptors);
       return dv;
     }
 
@@ -2378,14 +2476,14 @@ namespace Microsoft.Dafny {
     ///   defaultValue - If "compiler" is non-null, "defaultValue" is the C# representation of one possible value of the
     ///                  type (not necessarily the same value as the zero initializer, if any, may give).
     ///                  If "compiler" is null, then "defaultValue" can return as anything.
-    ///   valueSkeletonOnly - If "true", the default value produced is one that the target language accepts as a value
+    ///   usePlaceboValue - If "true", the default value produced is one that the target language accepts as a value
     ///                  of the type, but which may not correspond to a Dafny value. This option is used when it is known
-    ///                  that the Dafny program will not use the value (for example, when a field is automatically nitialized
+    ///                  that the Dafny program will not use the value (for example, when a field is automatically initialized
     ///                  but the Dafny program will soon assign a new value)
     /// </summary>
     static void TypeInitialization(Type type, Compiler/*?*/ compiler, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok,
         out bool hasSimpleZeroInitializer, out bool hasZeroInitializer, out bool initializerIsKnown, out string defaultValue,
-        bool valueSkeletonOnly = false) {
+        bool usePlaceboValue = false, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
       Contract.Requires(type != null);
       Contract.Requires(compiler == null || (wr != null && tok != null));
       Contract.Ensures(!Contract.ValueAtReturn(out hasSimpleZeroInitializer) || Contract.ValueAtReturn(out hasZeroInitializer));  // hasSimpleZeroInitializer ==> hasZeroInitializer
@@ -2398,14 +2496,14 @@ namespace Microsoft.Dafny {
         xType = new BoolType();
       }
 
-      defaultValue = compiler?.TypeInitializationValue(xType, wr, tok, valueSkeletonOnly);
+      defaultValue = compiler?.TypeInitializationValue(xType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
       if (xType is BoolType) {
         hasSimpleZeroInitializer = true;
         hasZeroInitializer = true;
         initializerIsKnown = true;
         return;
       } else if (xType is CharType) {
-        hasSimpleZeroInitializer = true;
+        hasSimpleZeroInitializer = false;
         hasZeroInitializer = true;
         initializerIsKnown = true;
         return;
@@ -2543,10 +2641,10 @@ namespace Microsoft.Dafny {
           // has a zero initializer.
           initializerIsKnown = hasZeroInitializer;
         } else {
-          var defaultCtor = ((IndDatatypeDecl)cl).DefaultCtor;
+          var groundingCtor = ((IndDatatypeDecl)cl).GroundingCtor;
           var subst = Resolver.TypeSubstitutionMap(cl.TypeArgs, udt.TypeArgs);
-          hasZeroInitializer = defaultCtor.Formals.TrueForAll(formal => formal.IsGhost || HasZeroInitializer(Resolver.SubstType(formal.Type, subst)));
-          initializerIsKnown = defaultCtor.Formals.TrueForAll(formal => formal.IsGhost || InitializerIsKnown(Resolver.SubstType(formal.Type, subst)));
+          hasZeroInitializer = groundingCtor.Formals.TrueForAll(formal => formal.IsGhost || HasZeroInitializer(Resolver.SubstType(formal.Type, subst)));
+          initializerIsKnown = groundingCtor.Formals.TrueForAll(formal => formal.IsGhost || InitializerIsKnown(Resolver.SubstType(formal.Type, subst)));
         }
         return;
       } else {
@@ -3840,10 +3938,9 @@ namespace Microsoft.Dafny {
           if (!p.IsGhost) {
             string target = idGenerator.FreshId("_out");
             outTmps.Add(target);
+            var instantiatedType = Resolver.SubstType(p.Type, s.MethodSelect.TypeArgumentSubstitutionsWithParents());
             Type type;
-            if (!NeedsCastFromTypeParameter) {
-              type = Resolver.SubstType(p.Type, s.MethodSelect.TypeArgumentSubstitutionsWithParents());
-            } else {
+            if (NeedsCastFromTypeParameter && IsCoercionNecessary(p.Type, instantiatedType)) {
               //
               // The type of the parameter will differ from the LHS type in a
               // situation like this:
@@ -3883,6 +3980,8 @@ namespace Microsoft.Dafny {
               // this comes up (JavaScript), so we only do this if
               // NeedsCastFromTypeParameter is on.
               type = p.Type;
+            } else {
+              type = instantiatedType;
             }
             if (s.Method.IsExtern(out _, out _)) {
               type = NativeForm(type);
@@ -3921,21 +4020,18 @@ namespace Microsoft.Dafny {
         } else if (!s.Method.IsStatic) {
           TrParenExpr(s.Receiver, wr, false);
           wr.Write(ClassAccessor);
+        } else if (s.Method.IsExtern(out var qual, out var compileName) && qual != null) {
+          wr.Write("{0}{1}", qual, ModuleSeparator);
+          protectedName = compileName;
         } else {
-          string qual, compileName;
-          if (s.Method.IsExtern(out qual, out compileName) && qual != null) {
-            wr.Write("{0}{1}", qual, ModuleSeparator);
-            protectedName = compileName;
-          } else {
-            wr.Write(TypeName_Companion(s.Receiver.Type, wr, s.Tok, s.Method));
-            wr.Write(ModuleSeparator);
-          }
+          wr.Write(TypeName_Companion(s.Receiver.Type, wr, s.Tok, s.Method));
+          wr.Write(ModuleSeparator);
         }
-        var actualTypeArguments = CombineTypeArguments(s.Method, s.MethodSelect.TypeApplication_AtEnclosingClass, s.MethodSelect.TypeApplication_JustMember);
-        EmitNameAndActualTypeArgs(protectedName, actualTypeArguments.ConvertAll(ta => ta.Actual), s.Tok, wr);
+        var typeArgs = CombineAllTypeArguments(s.Method, s.MethodSelect.TypeApplication_AtEnclosingClass, s.MethodSelect.TypeApplication_JustMember);
+        EmitNameAndActualTypeArgs(protectedName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, s.Method, false)), s.Tok, wr);
         wr.Write("(");
-        var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, s.Tok, false, wr);
-        string sep = nRTDs == 0 ? "" : ", ";
+        var sep = "";
+        EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, s.Method, false), s.Tok, wr, ref sep);
         if (customReceiver) {
           wr.Write(sep);
           var w = EmitCoercionIfNecessary(s.Receiver.Type, UserDefinedType.UpcastToMemberEnclosingType(s.Receiver.Type, s.Method), s.Tok, wr);
@@ -4039,7 +4135,7 @@ namespace Microsoft.Dafny {
         // only emit non-ghosts (we get here only for local variables introduced implicitly by call statements)
         return;
       }
-      DeclareLocalVar(IdName(v), v.Type, v.Tok, false, alwaysInitialize ? DefaultValue(v.Type, wr, v.Tok) : null, wr);
+      DeclareLocalVar(IdName(v), v.Type, v.Tok, false, alwaysInitialize ? DefaultValue(v.Type, wr, v.Tok, true) : null, wr);
     }
 
     TargetWriter MatchCasePrelude(string source, UserDefinedType sourceType, DatatypeCtor ctor, List<BoundVar> arguments, int caseIndex, int caseCount, TargetWriter wr) {
@@ -4187,7 +4283,7 @@ namespace Microsoft.Dafny {
             EmitNameAndActualTypeArgs(IdName(e.Member), typeArgs, e.tok, wr);
             wr.Write("(");
             var tas = TypeArgumentInstantiation.ListFromClass(sf.EnclosingClass, typeArgs);
-            EmitRuntimeTypeDescriptorsActuals(tas, e.tok, false, wr);
+            EmitTypeDescriptorsActuals(tas, e.tok, wr);
             wr.Write(")");
           } else {
             void writeObj(TargetWriter w) {
@@ -4196,29 +4292,39 @@ namespace Microsoft.Dafny {
               TrParenExpr(e.Obj, w, inLetExprBody);
             }
 
-            var typeArgs = CombineTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
+            var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
             EmitMemberSelect(writeObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(), expr.Type).EmitRead(wr);
           }
 
           wr.Write(postStr);
-        } else if (NeedsCustomReceiver(e.Member) && e.Member is Function && !(e.Member.EnclosingClass is TraitDecl)) {
-          var fn = (Function)e.Member;
-          // need to eta-expand wrap the receiver
-          var typeArgs = CombineTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
-          var typeMap = e.TypeArgumentSubstitutionsWithParents();
-          var receiverName = idGenerator.FreshId("_eta_this");
-          var wBody = CreateIIFE_ExprBody(receiverName, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr);
-          EmitMemberSelect(w => w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, e.Member)), e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type, receiverName).EmitRead(wBody);
-        } else if ((NeedsCustomReceiver(e.Member) && !(e.Member.EnclosingClass is TraitDecl)) || e.Member.IsStatic) {
-          var typeArgs = CombineTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
-          var typeMap = e.TypeArgumentSubstitutionsWithParents();
-          EmitMemberSelect(w => w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, e.Member)), e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type).EmitRead(wr);
         } else {
-          var typeArgs = CombineTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
+          var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
           var typeMap = e.TypeArgumentSubstitutionsWithParents();
-          EmitMemberSelect(w => TrExpr(e.Obj, w, inLetExprBody), e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type).EmitRead(wr);
+          var customReceiver = NeedsCustomReceiver(e.Member) && !(e.Member.EnclosingClass is TraitDecl);
+          if (!customReceiver && !e.Member.IsStatic) {
+            Action<TargetWriter> obj;
+            // The eta conversion here is to avoid capture of the receiver, because the call to EmitMemberSelect below may generate
+            // a lambda expression in the target language.
+            if (e.Member is Function && typeArgs.Count != 0) {
+              // need to eta-expand wrap the receiver
+              var etaReceiver = idGenerator.FreshId("_eta_this");
+              wr = CreateIIFE_ExprBody(etaReceiver, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr);
+              obj = w => w.Write(etaReceiver);
+            } else {
+              obj = w => TrExpr(e.Obj, w, inLetExprBody);
+            }
+            EmitMemberSelect(obj, e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type).EmitRead(wr);
+          } else {
+            string customReceiverName = null;
+            if (customReceiver && e.Member is Function) {
+              // need to eta-expand wrap the receiver
+              customReceiverName = idGenerator.FreshId("_eta_this");
+              wr = CreateIIFE_ExprBody(customReceiverName, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr);
+            }
+            Action<TargetWriter> obj = w => w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, e.Member));
+            EmitMemberSelect(obj, e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type, customReceiverName).EmitRead(wr);
+          }
         }
-
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
         Contract.Assert(e.Seq.Type != null);
@@ -4434,7 +4540,7 @@ namespace Microsoft.Dafny {
           } else {
             var w = CreateIIFE1(0, e.Body.Type, e.Body.tok, "_let_dummy_" + GetUniqueAstNumber(e), wr);
             foreach (var bv in e.BoundVars) {
-              DeclareLocalVar(IdName(bv), bv.Type, bv.tok, false, DefaultValue(bv.Type, wr, bv.tok), w);
+              DeclareLocalVar(IdName(bv), bv.Type, bv.tok, false, DefaultValue(bv.Type, wr, bv.tok, true), w);
             }
             TrAssignSuchThat(new List<IVariable>(e.BoundVars).ConvertAll(bv => (IVariable)bv), e.RHSs[0], e.Constraint_Bounds, e.tok.line, w, inLetExprBody);
             EmitReturnExpr(e.Body, e.Body.Type, true, w);
@@ -4478,15 +4584,9 @@ namespace Microsoft.Dafny {
 
         // Compilation does not check whether a quantifier was split.
 
-        var logicalBody = e.LogicalBody(true);
-        Translator.Substituter su = null;
-        if (!TargetLambdaCanUseEnclosingLocals) {
-          CreateFreeVarSubstitution(expr, out var bvars, out var fexprs, out su);
-          if (bvars.Count != 0) {
-            wr = EmitBetaRedex(bvars.ConvertAll(IdName), fexprs, bvars.ConvertAll(bv => bv.Type), Type.Bool, e.tok, inLetExprBody, wr);
-            logicalBody = su.Substitute(logicalBody);
-          }
-        }
+        wr = CaptureFreeVariables(expr, true, out var su, inLetExprBody, wr);
+        var logicalBody = su.Substitute(e.LogicalBody(true));
+
         Contract.Assert(e.Bounds != null);  // for non-ghost quantifiers, the resolver would have insisted on finding bounds
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
@@ -4524,8 +4624,10 @@ namespace Microsoft.Dafny {
         //   }
         //   return Dafny.Set<G>.FromCollection(_coll);
         // }))()
+        wr = CaptureFreeVariables(e, true, out var su, inLetExprBody, wr);
+        e = (SetComprehension)su.Substitute(e);
+
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
-        var typeName = TypeName(e.Type.AsSetType.Arg, wr, e.tok);
         var collectionName = idGenerator.FreshId("_coll");
         var bwr = CreateIIFE0(e.Type.AsSetType, e.tok, wr);
         wr = bwr;
@@ -4565,6 +4667,9 @@ namespace Microsoft.Dafny {
         //   }
         //   return Dafny.Map<U, V>.FromCollection(_coll);
         // }))()
+        wr = CaptureFreeVariables(e, true, out var su, inLetExprBody, wr);
+        e = (MapComprehension)su.Substitute(e);
+
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
         var domtypeName = TypeName(e.Type.AsMapType.Domain, wr, e.tok);
         var rantypeName = TypeName(e.Type.AsMapType.Range, wr, e.tok);
@@ -4597,15 +4702,9 @@ namespace Microsoft.Dafny {
         EmitReturnExpr(s, bwr);
 
       } else if (expr is LambdaExpr) {
-        LambdaExpr e = (LambdaExpr)expr;
+        var e = (LambdaExpr)expr;
 
-        List<BoundVar> bvars;
-        List<Expression> fexprs;
-        Translator.Substituter su;
-        CreateFreeVarSubstitution(expr, out bvars, out fexprs, out su);
-
-        var boundVars = Util.Comma(bvars, IdName);
-        wr = EmitBetaRedex(bvars.ConvertAll(IdName), fexprs, bvars.ConvertAll(bv => bv.Type), expr.Type, expr.tok, inLetExprBody, wr);
+        wr = CaptureFreeVariables(e, false, out var su, inLetExprBody, wr);
         wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Bpl.Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Body.Type, wr);
         wr = EmitReturnExpr(wr);
         TrExpr(su.Substitute(e.Body), wr, inLetExprBody);
@@ -4627,6 +4726,19 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    protected TargetWriter CaptureFreeVariables(Expression expr, bool captureOnlyAsRequiredByTargetLanguage, out Translator.Substituter su, bool inLetExprBody, TargetWriter wr) {
+      if (captureOnlyAsRequiredByTargetLanguage && TargetLambdaCanUseEnclosingLocals) {
+        // nothing to do
+      } else {
+        CreateFreeVarSubstitution(expr, out var bvars, out var fexprs, out su);
+        if (bvars.Count != 0) {
+          return EmitBetaRedex(bvars.ConvertAll(IdName), fexprs, bvars.ConvertAll(bv => bv.Type), expr.Type, expr.tok, inLetExprBody, wr);
+        }
+      }
+      su = Translator.Substituter.EMPTY;
+      return wr;
     }
 
     void CreateFreeVarSubstitution(Expression expr, out List<BoundVar> bvars, out List<Expression> fexprs, out Translator.Substituter su) {
@@ -4799,11 +4911,11 @@ namespace Microsoft.Dafny {
         wr.Write("){0}", ClassAccessor);
         compileName = IdName(f);
       }
-      var actualTypeArguments = CombineTypeArguments(f, f.IsStatic || customReceiver ? e.TypeApplication_AtEnclosingClass : new List<Type>(), e.TypeApplication_JustFunction);
-      EmitNameAndActualTypeArgs(compileName, actualTypeArguments.ConvertAll(ta => ta.Actual), f.tok, wr);
+      var typeArgs = CombineAllTypeArguments(f, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction);
+      EmitNameAndActualTypeArgs(compileName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, false)), f.tok, wr);
       wr.Write("(");
-      var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, e.tok, false, wr);
-      string sep = nRTDs == 0 ? "" : ", ";
+      var sep = "";
+      EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, f, false), e.tok, wr, ref sep);
       if (customReceiver) {
         wr.Write(sep);
         var w = EmitCoercionIfNecessary(e.Receiver.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Receiver.Type, e.Function), e.tok, wr);

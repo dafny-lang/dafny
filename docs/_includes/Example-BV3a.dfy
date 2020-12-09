@@ -1,6 +1,6 @@
-const i: bv4 := 9
-const j: bv4 := 3
+
+const k: bv4 := 9
 
 method p() {
-  assert i as bv5 == 9 as bv6; // error: mismatched types
+  assert k as bv5 == 9 as bv6; // error: mismatched types
 }

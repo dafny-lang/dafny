@@ -5,7 +5,7 @@ lemma M(x: int)
 {
 }
 
-colemma M'(x': int)
+greatest lemma M'(x': int)
   ensures true
 {
 }
@@ -68,7 +68,7 @@ class CF {
 
   predicate method G()
 
-  copredicate Co()
+  greatest predicate Co()
 
   protected function H(): int
 

@@ -647,7 +647,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AssignOrReturnStmt) {
         var s = (AssignOrReturnStmt)stmt;
-        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs), s.ExpectToken == null ? null : Tok(s.ExpectToken), s.Rhss == null ? null : s.Rhss.ConvertAll(e => CloneRHS(e)));
+        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs), s.KeywordToken == null ? null : Tok(s.KeywordToken), s.Rhss == null ? null : s.Rhss.ConvertAll(e => CloneRHS(e)));
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
@@ -757,11 +757,11 @@ namespace Microsoft.Dafny
       if (f is Predicate) {
         return new Predicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, f.IsGhost, tps, formals,
           req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, CloneAttributes(f.Attributes), null);
-      } else if (f is InductivePredicate) {
-        return new InductivePredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, ((InductivePredicate)f).TypeOfK, tps, formals,
+      } else if (f is LeastPredicate) {
+        return new LeastPredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, ((LeastPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
-      } else if (f is CoPredicate) {
-        return new CoPredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, ((CoPredicate)f).TypeOfK, tps, formals,
+      } else if (f is GreatestPredicate) {
+        return new GreatestPredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, ((GreatestPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else if (f is TwoStatePredicate) {
         return new TwoStatePredicate(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals,
@@ -791,11 +791,11 @@ namespace Microsoft.Dafny
       if (m is Constructor) {
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
           req, mod, ens, decreases, (DividedBlockStmt)body, CloneAttributes(m.Attributes), null);
-      } else if (m is InductiveLemma) {
-        return new InductiveLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, ((InductiveLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(CloneFormal),
+      } else if (m is LeastLemma) {
+        return new LeastLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
-      } else if (m is CoLemma) {
-        return new CoLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, ((CoLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(CloneFormal),
+      } else if (m is GreatestLemma) {
+        return new GreatestLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else if (m is Lemma) {
         return new Lemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
@@ -1101,15 +1101,15 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// Subclass of Cloner that collects some common functionality between FixpointLemmaSpecificationSubstituter and
-  /// FixpointLemmaBodyCloner.
+  /// Subclass of Cloner that collects some common functionality between ExtremeLemmaSpecificationSubstituter and
+  /// ExtremeLemmaBodyCloner.
   /// </summary>
-  abstract class FixpointCloner : Cloner
+  abstract class ExtremeCloner : Cloner
   {
     protected readonly Expression k;
     protected readonly ErrorReporter reporter;
     protected readonly string suffix;
-    protected FixpointCloner(Expression k, ErrorReporter reporter)
+    protected ExtremeCloner(Expression k, ErrorReporter reporter)
     {
       Contract.Requires(k != null);
       Contract.Requires(reporter != null);
@@ -1119,7 +1119,7 @@ namespace Microsoft.Dafny
     }
     protected Expression CloneCallAndAddK(ApplySuffix e) {
       Contract.Requires(e != null);
-      Contract.Requires(e.Resolved is FunctionCallExpr && ((FunctionCallExpr)e.Resolved).Function is FixpointPredicate);
+      Contract.Requires(e.Resolved is FunctionCallExpr && ((FunctionCallExpr)e.Resolved).Function is ExtremePredicate);
       Contract.Requires(e.Lhs is NameSegment || e.Lhs is ExprDotName);
       Expression lhs;
       string name;
@@ -1143,7 +1143,7 @@ namespace Microsoft.Dafny
     }
     protected Expression CloneCallAndAddK(FunctionCallExpr e) {
       Contract.Requires(e != null);
-      Contract.Requires(e.Function is FixpointPredicate);
+      Contract.Requires(e.Function is ExtremePredicate);
       var receiver = CloneExpr(e.Receiver);
       var args = new List<Expression>();
       args.Add(k);
@@ -1157,19 +1157,19 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// The FixpointLemmaSpecificationSubstituter clones the precondition (or postcondition) declared
-  /// on an inductive lemma (resp. colemma), but replaces the calls and equalities in "coConclusions"
+  /// The ExtremeLemmaSpecificationSubstituter clones the precondition (or postcondition) declared
+  /// on a least (resp. greatest) lemma, but replaces the calls and equalities in "coConclusions"
   /// with corresponding prefix versions.  The resulting expression is then appropriate to be a
-  /// precondition (resp. postcondition) of the inductive lemma's (resp. colemma's) corresponding prefix lemma.
+  /// precondition (resp. postcondition) of the least (resp. greatest) lemma's corresponding prefix lemma.
   /// It is assumed that the source expression has been resolved.  Note, the "k" given to the constructor
   /// is not cloned with each use; it is simply used as is.
   /// The resulting expression needs to be resolved by the caller.
   /// </summary>
-  class FixpointLemmaSpecificationSubstituter : FixpointCloner
+  class ExtremeLemmaSpecificationSubstituter : ExtremeCloner
   {
     readonly bool isCoContext;
     readonly ISet<Expression> friendlyCalls;
-    public FixpointLemmaSpecificationSubstituter(ISet<Expression> friendlyCalls, Expression k, ErrorReporter reporter, bool isCoContext)
+    public ExtremeLemmaSpecificationSubstituter(ISet<Expression> friendlyCalls, Expression k, ErrorReporter reporter, bool isCoContext)
       : base(k, reporter)
     {
       Contract.Requires(friendlyCalls != null);
@@ -1193,7 +1193,7 @@ namespace Microsoft.Dafny
         return base.CloneExpr(expr);
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
-        // Note, the CoLemmaPostconditionSubstituter is an unusual cloner in that it operates on
+        // Note, the ExtremeLemmaSpecificationSubstituter is an unusual cloner in that it operates on
         // resolved expressions.  Hence, we bypass the syntactic parts here, except for the ones
         // checked above.
         return CloneExpr(e.Resolved);
@@ -1239,15 +1239,15 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// The task of the FixpointLemmaBodyCloner is to fill in the implicit _k-1 arguments in recursive inductive/co-lemma calls
+  /// The task of the ExtremeLemmaBodyCloner is to fill in the implicit _k-1 arguments in recursive least/greatest lemma calls
   /// and in calls to the focal predicates.
   /// The source statement and the given "k" are assumed to have been resolved.
   /// </summary>
-  class FixpointLemmaBodyCloner : FixpointCloner
+  class ExtremeLemmaBodyCloner : ExtremeCloner
   {
-    readonly FixpointLemma context;
-    readonly ISet<FixpointPredicate> focalPredicates;
-    public FixpointLemmaBodyCloner(FixpointLemma context, Expression k, ISet<FixpointPredicate> focalPredicates, ErrorReporter reporter)
+    readonly ExtremeLemma context;
+    readonly ISet<ExtremePredicate> focalPredicates;
+    public ExtremeLemmaBodyCloner(ExtremeLemma context, Expression k, ISet<ExtremePredicate> focalPredicates, ErrorReporter reporter)
       : base(k, reporter)
     {
       Contract.Requires(context != null);
@@ -1278,7 +1278,7 @@ namespace Microsoft.Dafny
           // However, if something changes in the future (for example, some rewrite that changing an ApplySuffix
           // to its resolved FunctionCallExpr), then we do want this code, so with the hope of preventing
           // some error in the future, this case is included.  (Of course, it is currently completely untested!)
-          var f = e.Function as FixpointPredicate;
+          var f = e.Function as ExtremePredicate;
           if (f != null && focalPredicates.Contains(f)) {
 #if DEBUG_PRINT
             var r = CloneCallAndAddK(e);
@@ -1306,7 +1306,7 @@ namespace Microsoft.Dafny
                 Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(fce));
               }
 #endif
-              var f = fce.Function as FixpointPredicate;
+              var f = fce.Function as ExtremePredicate;
               if (f != null && focalPredicates.Contains(f)) {
 #if DEBUG_PRINT
                 var r = CloneCallAndAddK(fce);
@@ -1327,10 +1327,10 @@ namespace Microsoft.Dafny
       if (r != null && r.Expr is ApplySuffix) {
         var apply = (ApplySuffix)r.Expr;
         var mse = apply.Lhs.Resolved as MemberSelectExpr;
-        if (mse != null && mse.Member is FixpointLemma && ModuleDefinition.InSameSCC(context, (FixpointLemma)mse.Member)) {
-          // we're looking at a recursive call to a fixpoint lemma
+        if (mse != null && mse.Member is ExtremeLemma && ModuleDefinition.InSameSCC(context, (ExtremeLemma)mse.Member)) {
+          // we're looking at a recursive call to an extreme lemma
           Contract.Assert(apply.Lhs is NameSegment || apply.Lhs is ExprDotName);  // this is the only way a call statement can have been parsed
-          // clone "apply.Lhs", changing the inductive/co lemma to the prefix lemma; then clone "apply", adding in the extra argument
+          // clone "apply.Lhs", changing the least/greatest lemma to the prefix lemma; then clone "apply", adding in the extra argument
           Expression lhsClone;
           if (apply.Lhs is NameSegment) {
             var lhs = (NameSegment)apply.Lhs;

@@ -1,4 +1,4 @@
-#! /bin/bash -f 
+#! /bin/bash -f
 
 ## pandoc does not process the include directive in GitHub markdown
 ## so we do a bit of (inefficient) text processing to assemble the files
@@ -8,15 +8,16 @@
 tmp=/tmp/t$pid
 cat $@ > /tmp/t
 
-grep -q '{% include' $tmp 
+grep -q '{% include' /tmp/t
 a=$?
 
 for (( ; $a==0 ; ))
 do
 
-line=`grep -n '{% include' $tmp | head -1 | sed -e 's/:.*//'`
-file=`grep -n '{% include' $tmp | head -1 | sed -e 's/.*include //' -e 's/%}//' `
-la=`wc -l < $tmp`
+mv /tmp/t /tmp/tt
+grep -v 'PDFOMIT' /tmp/tt > /tmp/t
+line=`grep -n '{% include' /tmp/t | head -1 | sed -e 's/:.*//'`
+file=`grep -n '{% include' /tmp/t | head -1 | sed -e 's/.*include //' -e 's/%}//' `
 let "ln = $line - 1"
 let "lp = $la - $line"
 #echo $line $file $la $ln $lp ../_includes/$file `wc -l $tmp`
@@ -24,11 +25,10 @@ head -n $ln < $tmp > /tmp/a$pid
 tail -n $lp < $tmp > /tmp/b$pid
 cat /tmp/a$pid ../_includes/$file /tmp/b$pid > $tmp
 
-grep -q '{% include' $tmp
+grep -q '{% include' /tmp/t
 a=$?
 
 done
 
-mv /tmp/t DafnyRefZ.md
-rm -f /tmp/a$pid /tmp/b$pid
+cat /tmp/t
 

@@ -31,7 +31,7 @@ class SequenceTest {
   DafnySequence<? extends Integer> testSequenceTake = DafnySequence.of(testSequenceTakeArr);
   DafnySequence<? extends Integer> testSequenceEmpty = DafnySequence.of(testSequenceEmptyArr);
   DafnySequence<? extends Integer> testCopy = DafnySequence.of(testSequenceArr);
-  DafnySequence<? extends Integer> testWrappedSequence = DafnySequence.unsafeWrapRawArray(Type.INT, testSequenceArr);
+  DafnySequence<? extends Integer> testWrappedSequence = DafnySequence.unsafeWrapRawArray(TypeDescriptor.INT, testSequenceArr);
 
   @Test
   void testSequencePrefix() {
@@ -142,7 +142,7 @@ class SequenceTest {
   @SuppressWarnings("all")
   void testNullFailures() {
     List<Integer> l = null;
-    assertThrows(AssertionError.class, () -> DafnySequence.fromList(Type.INT, l));
+    assertThrows(AssertionError.class, () -> DafnySequence.fromList(TypeDescriptor.INT, l));
     assertThrows(AssertionError.class, () -> testSequence.isPrefixOf(null));
     assertThrows(AssertionError.class, () -> testSequence.contains(null));
     assertThrows(AssertionError.class, () -> DafnySequence.<Integer>concatenate(testSequence, null));
@@ -176,7 +176,7 @@ class SequenceTest {
   @Test
   void testNullMembers() {
     Integer[] testNulls = new Integer[]{3, null, 2};
-    assertThrows(NullPointerException.class, () -> DafnySequence.of(Type.INT, testNulls));
+    assertThrows(NullPointerException.class, () -> DafnySequence.of(TypeDescriptor.INT, testNulls));
   }
 
   @Test

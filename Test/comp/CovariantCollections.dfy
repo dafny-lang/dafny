@@ -112,7 +112,7 @@ method PrintSet(prefix: string, S: set<Number>) {
 
 lemma ThereIsASmallest(s: set<Number>) returns (m: Number)
   requires s != {}
-  ensures m in s && forall y :: y in s ==> m.value <= y.value;
+  ensures m in s && forall y :: y in s ==> m.value <= y.value
 {
   m :| m in s;
   if y :| y in s && y.value < m.value {
@@ -178,7 +178,7 @@ method PrintMultiset(prefix: string, S: multiset<Number>) {
 
 lemma ThereIsASmallestInMultiset(s: multiset<Number>) returns (m: Number)
   requires s != multiset{}
-  ensures m in s && forall y :: y in s ==> m.value <= y.value;
+  ensures m in s && forall y :: y in s ==> m.value <= y.value
 {
   m :| m in s;
   if y :| y in s && y.value < m.value {

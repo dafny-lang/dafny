@@ -74,7 +74,7 @@ predicate Total<A(!new),B>(f: A ~> B)  // (is this (!new) really necessary?)
   forall a :: f.reads(a) == {} && f.requires(a)
 }
 
-type TotalArrow<!A,B> = f: EffectlessArrow<A,B>
+type TotalArrow<!A(!new),B> = f: EffectlessArrow<A,B>
   | Total(f)
   ghost witness TotalWitness<A,B>
 

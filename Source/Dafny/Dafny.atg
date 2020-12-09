@@ -72,34 +72,39 @@ enum AllowedDeclModifiers {
 /// <summary>
 /// Check the declaration modifiers against those that are allowed.
 ///
-/// The 'allowed' parameter specifies which declaratio modifiers are allowed.
+/// The 'allowed' parameter specifies which declaration modifiers are allowed.
 /// The 'declCaption' parameter should be a string describing the kind of declaration.
 /// It is used in error messages.
 /// Any declaration modifiers that are present but not allowed are cleared.
 ///</summary>
 void CheckDeclModifiers(DeclModifierData dmod, string declCaption, AllowedDeclModifiers allowed)
 {
+  declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
   if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
-    SemErr(dmod.AbstractToken, declCaption + " cannot be declared 'abstract'.");
+    SemErr(dmod.AbstractToken, $"{declCaption} cannot be declared 'abstract'.");
     dmod.IsAbstract = false;
   }
   if (dmod.IsGhost) {
     if ((allowed & AllowedDeclModifiers.AlreadyGhost) != 0) {
-      SemErr(dmod.GhostToken, declCaption + " cannot be declared ghost (they are 'ghost' by default).");
+      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared ghost (they are 'ghost' by default).");
       dmod.IsGhost = false;
     } else if ((allowed & AllowedDeclModifiers.Ghost) == 0) {
-      SemErr(dmod.GhostToken, declCaption + " cannot be declared 'ghost'.");
+      SemErr(dmod.GhostToken, $"{declCaption} cannot be declared 'ghost'.");
       dmod.IsGhost = false;
     }
   }
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
-    SemErr(dmod.StaticToken, declCaption + " cannot be declared 'static'.");
+    SemErr(dmod.StaticToken, $"{declCaption} cannot be declared 'static'.");
     dmod.IsStatic = false;
   }
   if (dmod.IsProtected && ((allowed & AllowedDeclModifiers.Protected) == 0)) {
-    SemErr(dmod.ProtectedToken, declCaption + " cannot be declared 'protected'.");
+    SemErr(dmod.ProtectedToken, $"{declCaption} cannot be declared 'protected'.");
     dmod.IsProtected = false;
   }
+}
+
+bool IsAssumeTypeKeyword(IToken la) {
+  return la.kind == _assume || la.kind == _assert || la.kind == _expect;
 }
 
 ///<summary>
@@ -189,13 +194,17 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
   theCompileThisFile = compileThisFile;
 }
 
+bool IsIdentifier(int kind) {
+  return kind == _ident || kind == _least || kind == _greatest;
+}
+
 bool IsLabel(bool allowLabel) {
   if (!allowLabel) {
     return false;
   }
   scanner.ResetPeek();
   IToken x = scanner.Peek();
-  return (la.kind == _ident || la.kind == _digits) && x.kind == _colon;
+  return (IsIdentifier(la.kind) || la.kind == _digits) && x.kind == _colon;
 }
 
 bool IsAlternative() {
@@ -206,8 +215,9 @@ bool IsAlternative() {
 
 bool FollowedByColon() {
   IToken x = la;
-  while (x.kind == _ident || x.kind == _openparen)
-     x = scanner.Peek();
+  while (IsIdentifier(x.kind) || x.kind == _openparen) {
+    x = scanner.Peek();
+  }
   return x.kind == _colon;
 }
 
@@ -222,7 +232,7 @@ bool IsGets() {
 // * a bored smiley (if there's one bound variable and it is not given an explicit type).
 bool IsExistentialGuard() {
   scanner.ResetPeek();
-  if (la.kind == _ident) {
+  if (IsIdentifier(la.kind)) {
     Token x = scanner.Peek();
     if (x.kind == _colon || x.kind == _comma || x.kind == _boredSmiley || x.kind == _lbracecolon) {
       return true;
@@ -252,6 +262,8 @@ bool IsFunctionDecl() {
     case _predicate:
     case _copredicate:
       return true;
+    case _least:
+    case _greatest:
     case _inductive:
       return scanner.Peek().kind != _lemma;
     case _twostate:
@@ -374,7 +386,7 @@ bool IsLambda(bool allowLambda)
   scanner.ResetPeek();
   Token x;
   // peek at what might be a signature of a lambda expression
-  if (la.kind == _ident) {
+  if (IsIdentifier(la.kind)) {
     // cool, that's the entire candidate signature
   } else if (la.kind != _openparen) {
     return false;  // this is not a lambda expression
@@ -388,7 +400,7 @@ bool IsLambda(bool allowLambda)
         }
         x = scanner.Peek();
       }
-      if (x.kind != _ident) {
+      if (!IsIdentifier(x.kind)) {
         return false;  // not a lambda expression
       }
       identCount++;
@@ -410,7 +422,7 @@ bool IsLambda(bool allowLambda)
 bool IsIdentParen() {
   scanner.ResetPeek();
   Token x = scanner.Peek();
-  return la.kind == _ident && x.kind == _openparen;
+  return IsIdentifier(la.kind) && x.kind == _openparen;
 }
 
 /* Used to disambiguate the LHS of a VarDeclStmt. If it looks like the start of a CasePattern,
@@ -423,7 +435,7 @@ bool IsPatternDecl() {
 
 bool IsIdentColonOrBar() {
   Token x = scanner.Peek();
-  return la.kind == _ident && (x.kind == _colon || x.kind == _verticalbar);
+  return IsIdentifier(la.kind) && (x.kind == _colon || x.kind == _verticalbar);
 }
 
 bool SemiFollowsCall(bool allowSemi, Expression e) {
@@ -490,6 +502,8 @@ bool IsGenericInstantiation(bool inExpressionContext) {
     // (top-level declarations that can follow an expression)
     case _function:
     case _predicate:
+    case _least:
+    case _greatest:
     case _inductive:
     case _twostate:
     case _lemma:
@@ -583,8 +597,10 @@ bool IsNonArrowType(ref IToken pt) {
       pt = scanner.Peek();
       return pt.kind != _openAngleBracket || IsTypeList(ref pt);
     case _ident:
+    case _least:
+    case _greatest:
       while (true) {
-        // invariant: next token is an ident
+        // invariant: next token is an identifier (_ident, _least, or _greatest)
         pt = scanner.Peek();
         if (pt.kind == _openAngleBracket && !IsTypeList(ref pt)) {
           return false;
@@ -594,7 +610,7 @@ bool IsNonArrowType(ref IToken pt) {
           return true;
         }
         pt = scanner.Peek();  // get the _dot
-        if (pt.kind != _ident) {
+        if (!IsIdentifier(pt.kind)) {
           return false;
         }
       }
@@ -742,6 +758,7 @@ TOKENS
   semicolon = ';'.
   darrow = "=>".
   assume = "assume".
+  assert = "assert".
   calc = "calc".
   case = "case".
   then = "then".
@@ -753,6 +770,8 @@ TOKENS
   invariant = "invariant".
   function = "function".
   predicate = "predicate".
+  least = "least".
+  greatest = "greatest".
   inductive = "inductive".
   twostate = "twostate".
   copredicate = "copredicate".
@@ -816,13 +835,11 @@ Dafny
                                              bool isVerbatimString;
                                              string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
                                              includedFile = Util.RemoveEscaping(includedFile, isVerbatimString);
-                                             string fullPath = includedFile;
                                              if (!Path.IsPathRooted(includedFile)) {
                                                string basePath = Path.GetDirectoryName(parsedFile);
                                                includedFile = Path.Combine(basePath, includedFile);
-                                               fullPath = Path.GetFullPath(includedFile);
                                              }
-                                             defaultModule.Includes.Add(new Include(t, parsedFile, includedFile, fullPath));
+                                             defaultModule.Includes.Add(new Include(t, parsedFile, includedFile));
                                            }
                                         .)
   }
@@ -884,7 +901,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
      bool isAbstract = dmod.IsAbstract;
      bool isProtected = dmod.IsProtected;
      bool opened = false;
-     CheckDeclModifiers(dmod, "Modules", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Protected);
+     CheckDeclModifiers(dmod, "module", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Protected);
   .)
   ( "module"
     { Attribute<ref attrs> }
@@ -1003,7 +1020,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
      List<TypeParameter> typeArgs = new List<TypeParameter>();
      List<MemberDecl> members = new List<MemberDecl>();
      IToken bodyStart;
-     CheckDeclModifiers(dmodClass, "Classes", AllowedDeclModifiers.None);
+     CheckDeclModifiers(dmodClass, "class", AllowedDeclModifiers.None);
      DeclModifierData dmod;
   .)
   SYNC
@@ -1030,7 +1047,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
 TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*!*/ trait>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
-     CheckDeclModifiers(dmodIn, "Traits", AllowedDeclModifiers.None);
+     CheckDeclModifiers(dmodIn, "trait", AllowedDeclModifiers.None);
      IToken/*!*/ id;
      Type parentTrait;
      List<Type> parentTraits = new List<Type>();
@@ -1097,7 +1114,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      List<DatatypeCtor/*!*/> ctors = new List<DatatypeCtor/*!*/>();
      IToken bodyStart = Token.NoToken;  // dummy assignment
      bool co = false;
-     CheckDeclModifiers(dmod, "Datatypes or codatatypes", AllowedDeclModifiers.None);
+     CheckDeclModifiers(dmod, "datatype or codatatype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
   .)
   SYNC
@@ -1145,7 +1162,7 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
      IToken/*!*/ id;  Type/*!*/ ty;
-     CheckDeclModifiers(dmod, "Fields", AllowedDeclModifiers.Ghost);
+     CheckDeclModifiers(dmod, "field", AllowedDeclModifiers.Ghost);
      if (isValueType) {
        // we're about to produce an error; put fields into a throw-away list, so we don't return them
        mm = new List<MemberDecl>();
@@ -1171,7 +1188,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
        errors.Warning(dmod.StaticToken, "module-level const declarations are always non-instance, so the 'static' keyword is not allowed here");
        dmod.IsStatic = false;
      }
-     CheckDeclModifiers(dmod, "Fields", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
+     CheckDeclModifiers(dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
   .)
   SYNC
   "const"
@@ -1193,7 +1210,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      Expression constraint;
      Expression witness = null;
      bool witnessIsGhost = false;
-     CheckDeclModifiers(dmod, "Newtypes", AllowedDeclModifiers.None);
+     CheckDeclModifiers(dmod, "newtype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
   .)
   "newtype"
@@ -1229,7 +1246,7 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
      Expression constraint;
      Expression witness = null;
      bool witnessIsGhost = false;
-     var kind = "Opaque type";
+     var kind = "opaque type";
      var members = new List<MemberDecl>();
   .)
   "type"
@@ -1251,11 +1268,11 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
                              (. var witnessKind = witness == null ? SubsetTypeDecl.WKind.None :
                                   witnessIsGhost ? SubsetTypeDecl.WKind.Ghost : SubsetTypeDecl.WKind.Compiled;
                                 td = new SubsetTypeDecl(id, id.val, characteristics, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, attrs);
-                                kind = "Subset type";
+                                kind = "subset type";
                              .)
     |
       Type<out ty>           (. td = new TypeSynonymDecl(id, id.val, characteristics, typeArgs, module, ty, attrs);
-                                kind = "Type synonym";
+                                kind = "type synonym";
                              .)
     )
   | TypeMembers<module, members>
@@ -1378,7 +1395,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
      IToken signatureEllipsis = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
-     CheckDeclModifiers(dmod, "Iterators", AllowedDeclModifiers.None);
+     CheckDeclModifiers(dmod, "iterator", AllowedDeclModifiers.None);
   .)
   SYNC
   "iterator"
@@ -1458,7 +1475,7 @@ TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
   | digits     (. if (t.val == "0") {
                     characteristics.MustSupportZeroInitialization = true;
                   } else {
-                    SemErr(t, "unexpected TPCharOption");
+                    SemErr(t, "unexpected type parameter option - should be == or 0 or !new");
                   }
                .)
   | "!" "new"  (. characteristics.DisallowReferenceTypes = true; .)
@@ -1484,27 +1501,34 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      bool isLemma = false;
      bool isTwoStateLemma = false;
      bool isConstructor = false;
-     bool isIndLemma = false;
-     bool isCoLemma = false;
+     bool isLeastLemma = false;
+     bool isGreatestLemma = false;
      IToken signatureEllipsis = null;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
      AllowedDeclModifiers allowed = AllowedDeclModifiers.None;
      string caption = "";
-     FixpointPredicate.KType kType = FixpointPredicate.KType.Unspecified;
+     ExtremePredicate.KType kType = ExtremePredicate.KType.Unspecified;
   .)
   SYNC
-  ( "method"                        (. isPlainOlMethod = true; caption = "Methods";
+  ( "method"                        (. isPlainOlMethod = true; caption = "method";
                                        allowed = AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static; .)
-  | "lemma"                         (. isLemma = true; caption = "Lemmas";
+  | "lemma"                         (. isLemma = true; caption = "lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
                                          | AllowedDeclModifiers.Protected; .)
-  | "colemma"                       (. isCoLemma = true; caption = "Colemmas";
+  | ( "greatest" "lemma"
+    | "colemma"                     (. errors.Deprecated(t, "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); .)
+    )
+                                    (. isGreatestLemma = true; caption = "greatest lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
                                          | AllowedDeclModifiers.Protected; .)
-  | "inductive" "lemma"             (. isIndLemma = true;  caption = "Inductive lemmas";
+  | ( "least"
+    | "inductive"                   (. errors.Deprecated(t, "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); .)
+    )
+    "lemma"
+                                    (. isLeastLemma = true;  caption = "least lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;.)
-  | "twostate" "lemma"              (. isTwoStateLemma = true; caption = "Two-state lemmas";
+  | "twostate" "lemma"              (. isTwoStateLemma = true; caption = "two-state lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
                                          | AllowedDeclModifiers.Protected; .)
   | "constructor"                   (. if (allowConstructor) {
@@ -1512,7 +1536,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
                                        } else {
                                          SemErr(t, "constructors are allowed only in classes");
                                        }
-                                       caption = "Constructors";
+                                       caption = "constructor";
                                        allowed = AllowedDeclModifiers.None;
                                     .)
   )                                 (. keywordToken = t;
@@ -1529,7 +1553,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   .)
   (
     [ GenericParameters<typeArgs, false> ]
-    [ KType<ref kType>              (. if (!(isCoLemma || isIndLemma)) { SemErr(t, "type of _k can only be specified for inductive lemmas and co-lemmas"); } .)
+    [ KType<ref kType>              (. if (!(isGreatestLemma || isLeastLemma)) { SemErr(t, "type of _k can only be specified for least and greatest lemmas"); } .)
     ]
     (. var isCompilable = (isPlainOlMethod && !dmod.IsGhost) || isConstructor; .)
     Formals<true, isCompilable, isTwoStateLemma, ins>
@@ -1554,12 +1578,12 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      if (isConstructor) {
        m = new Constructor(tok, hasName ? id.val : "_ctor", typeArgs, ins,
                            req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), (DividedBlockStmt)body, attrs, signatureEllipsis);
-     } else if (isIndLemma) {
-       m = new InductiveLemma(tok, id.val, dmod.IsStatic, kType, typeArgs, ins, outs,
-                              req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
-     } else if (isCoLemma) {
-       m = new CoLemma(tok, id.val, dmod.IsStatic, kType, typeArgs, ins, outs,
-                       req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+     } else if (isLeastLemma) {
+       m = new LeastLemma(tok, id.val, dmod.IsStatic, kType, typeArgs, ins, outs,
+                          req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+     } else if (isGreatestLemma) {
+       m = new GreatestLemma(tok, id.val, dmod.IsStatic, kType, typeArgs, ins, outs,
+                             req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isLemma) {
        m = new Lemma(tok, id.val, dmod.IsStatic, typeArgs, ins, outs,
                      req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
@@ -1575,10 +1599,10 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      m.BodyEndTok = bodyEnd;
  .)
   .
-KType<ref FixpointPredicate.KType kType>
+KType<ref ExtremePredicate.KType kType>
 = "["
-  ( "nat"       (. kType = FixpointPredicate.KType.Nat; .)
-  | "ORDINAL"   (. kType = FixpointPredicate.KType.ORDINAL; .)
+  ( "nat"       (. kType = ExtremePredicate.KType.Nat; .)
+  | "ORDINAL"   (. kType = ExtremePredicate.KType.ORDINAL; .)
   )
   "]"
   .
@@ -1843,14 +1867,13 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
      List<Expression/*!*/> decreases;
      Expression body = null;
-     bool isPredicate = false; bool isIndPredicate = false; bool isCoPredicate = false;
+     bool isPredicate = false; bool isLeastPredicate = false; bool isGreatestPredicate = false;
      bool isFunctionMethod = false;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
      IToken signatureEllipsis = null;
-     bool missingOpenParen;
      bool isTwoState = false;
-     FixpointPredicate.KType kType = FixpointPredicate.KType.Unspecified;
+     ExtremePredicate.KType kType = ExtremePredicate.KType.Unspecified;
   .)
   /* ----- function ----- */
   [ "twostate"               (. isTwoState = true; .)
@@ -1862,9 +1885,9 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     ]
     (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
        if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
-       string caption = "Functions";
+       string caption = "function";
        if (isFunctionMethod) {
-         caption = "Function methods";
+         caption = "function method";
        }
        CheckDeclModifiers(dmod, caption, allowed);
     .)
@@ -1900,28 +1923,32 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     ]
     (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
        if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
-       string caption = "Predicates";
+       string caption = "predicate";
        if (isFunctionMethod) {
-         caption = "Predicate methods";
+         caption = "predicate method";
        }
        CheckDeclModifiers(dmod, caption, allowed);
     .)
     { Attribute<ref attrs> }
     NoUSIdent<out id>
     (
-      [ GenericParameters<typeArgs, false> ]                 (. missingOpenParen = true; .)
-      [ Formals<true, isFunctionMethod, isTwoState, formals> (. missingOpenParen = false; .)
-      ]                                                 (. if (missingOpenParen) { errors.Warning(t, "with the new support of higher-order functions in Dafny, parentheses-less predicates are no longer supported; in the new syntax, parentheses are required for the declaration and uses of predicates, even if the predicate takes no additional arguments"); } .)
+      [ GenericParameters<typeArgs, false> ]
+      [ Formals<true, isFunctionMethod, isTwoState, formals>
+      ]
       [ ":"                    (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | "..."                    (. signatureEllipsis = t; .)
     )
 
-  /* ----- inductive predicate ----- */
-  | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "inductive"
+  /* ----- least predicate ----- */
+  | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "least"
     .)
-    "inductive" "predicate"    (. isIndPredicate = true; .)
-    (. CheckDeclModifiers(dmod, "Inductive predicates",
+    ( "least"
+    | "inductive"              (. errors.Deprecated(t, "the old keyword phrase 'inductive predicate' has been renamed to 'least predicate'"); .)
+    )
+    "predicate"
+    (. isLeastPredicate = true;
+       CheckDeclModifiers(dmod, "least predicate",
          AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected);
     .)
     { Attribute<ref attrs> }
@@ -1930,16 +1957,19 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
       [ GenericParameters<typeArgs, false> ]
       [ KType<ref kType> ]
       Formals<true, isFunctionMethod, false, formals>
-      [ ":"                    (. SemErr(t, "inductive predicates do not have an explicitly declared return type; it is always bool"); .)
+      [ ":"                    (. SemErr(t, "least predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | "..."                    (. signatureEllipsis = t; .)
     )
 
-  /* ----- copredicate ----- */
-  | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "copredicate"
+  /* ----- greatest predicate ----- */
+  | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "greatest"
     .)
-    "copredicate"              (. isCoPredicate = true; .)
-    (. CheckDeclModifiers(dmod, "Copredicates",
+    ( "greatest" "predicate"
+    | "copredicate"              (. errors.Deprecated(t, "the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'"); .)
+    )
+    (. isGreatestPredicate = true;
+       CheckDeclModifiers(dmod, "greatest predicate",
          AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected);
     .)
     { Attribute<ref attrs> }
@@ -1948,13 +1978,13 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
       [ GenericParameters<typeArgs, false> ]
       [ KType<ref kType> ]
       Formals<true, isFunctionMethod, false, formals>
-      [ ":"                    (. SemErr(t, "copredicates do not have an explicitly declared return type; it is always bool"); .)
+      [ ":"                    (. SemErr(t, "greatest predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
     | "..."                    (. signatureEllipsis = t; .)
     )
   )
 
-  (. decreases = isIndPredicate || isCoPredicate ? null : new List<Expression/*!*/>(); .)
+  (. decreases = isLeastPredicate || isGreatestPredicate ? null : new List<Expression/*!*/>(); .)
   { FunctionSpec<reqs, reads, ens, decreases> }
   [ FunctionBody<out body, out bodyStart, out bodyEnd>
   ]
@@ -1972,12 +2002,12 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      } else if (isPredicate) {
         f = new Predicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
-     } else if (isIndPredicate) {
-        f = new InductivePredicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, kType, typeArgs, formals,
-                                   reqs, reads, ens, body, attrs, signatureEllipsis);
-     } else if (isCoPredicate) {
-        f = new CoPredicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, kType, typeArgs, formals,
-                            reqs, reads, ens, body, attrs, signatureEllipsis);
+     } else if (isLeastPredicate) {
+        f = new LeastPredicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, kType, typeArgs, formals,
+                               reqs, reads, ens, body, attrs, signatureEllipsis);
+     } else if (isGreatestPredicate) {
+        f = new GreatestPredicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, kType, typeArgs, formals,
+                                  reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
         f = new Function(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals, result, returnType,
                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
@@ -1985,7 +2015,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
      theBuiltIns.CreateArrowTypeDecl(formals.Count);
-     if (isIndPredicate || isCoPredicate) {
+     if (isLeastPredicate || isGreatestPredicate) {
        // also create an arrow type for the corresponding prefix predicate
        theBuiltIns.CreateArrowTypeDecl(formals.Count + 1);
      }
@@ -2010,7 +2040,7 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
       { Attribute<ref ensAttrs> }
       Expression<out e, false, false> OldSemi                (. ens.Add(new AttributedExpression(e, ensAttrs)); .)
   | "decreases"                               (. if (decreases == null) {
-                                                   SemErr(t, "'decreases' clauses are meaningless for copredicates, so they are not allowed");
+                                                   SemErr(t, "'decreases' clauses are meaningless for greatest predicates, so they are not allowed");
                                                    decreases = new List<Expression/*!*/>();
                                                  }
                                               .)
@@ -2183,7 +2213,7 @@ UpdateStmt<out Statement/*!*/ s>
      Attributes attrs = null;
      IToken suchThatAssume = null;
      Expression suchThat = null;
-     IToken exceptionExpect = null;
+     IToken keywordToken = null;
      Expression exceptionExpr = null;
   .)
 ( Lhs<out e>                       (. x = e.tok; .)
@@ -2202,8 +2232,8 @@ UpdateStmt<out Statement/*!*/ s>
       ]
       Expression<out suchThat, false, true>
     | ":-"                         (. x = t; .)
-      [ IF(la.kind == _expect)     /* an Expression can also begin with an "expect", so this says to resolve it to pick up any "expect" here */
-        "expect"                   (. exceptionExpect = t; .)
+      [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
+        ("expect"|"assert"|"assume")    (. keywordToken = t; .)
       ]
       Expression<out exceptionExpr, false, false>
       { "," Rhs<out r>             (. rhss.Add(r); .)
@@ -2213,8 +2243,8 @@ UpdateStmt<out Statement/*!*/ s>
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
 | ":-"                             (. x = t; .)
-   [ IF(la.kind == _expect)        /* an Expression can also begin with an "expect", so this says to resolve it to pick up any "expect" here */
-     "expect"                      (. exceptionExpect = t; .)
+   [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
+      ("expect"|"assert"|"assume")    (. keywordToken = t; .)
    ]
    Expression<out exceptionExpr, false, false>
    { "," Rhs<out r>                (. rhss.Add(r); .)
@@ -2224,7 +2254,7 @@ UpdateStmt<out Statement/*!*/ s>
   (. if (suchThat != null) {
        s = new AssignSuchThatStmt(x, endTok, lhss, suchThat, suchThatAssume, null);
      } else if (exceptionExpr != null) {
-       s = new AssignOrReturnStmt(x, endTok, lhss, exceptionExpr, exceptionExpect, rhss);
+       s = new AssignOrReturnStmt(x, endTok, lhss, exceptionExpr, keywordToken, rhss);
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(x, endTok, new List<Statement>()); // error, give empty statement
@@ -2314,7 +2344,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
      IToken suchThatAssume = null;
      Expression suchThat = null;
-     IToken exceptionExpect = null;
+     IToken keywordToken = null;
      Expression exceptionExpr = null;
      Attributes attrs = null;
      IToken endTok;
@@ -2341,8 +2371,8 @@ VarDeclStatement<.out Statement/*!*/ s.>
       ]
       Expression<out suchThat, false, true>
     | ":-"                           (. assignTok = t; .)
-      [ IF(la.kind == _expect)     /* an Expression can also begin with an "expect", so this says to resolve it to pick up any "expect" here */
-        "expect"                     (. exceptionExpect = t; .)
+      [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
+        ("expect"|"assert"|"assume")    (. keywordToken = t; .)
       ]
       Expression<out exceptionExpr, false, false>
       { "," Rhs<out r>               (. rhss.Add(r); .)
@@ -2363,7 +2393,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
        if (suchThat != null) {
          update = new AssignSuchThatStmt(assignTok, endTok, lhsExprs, suchThat, suchThatAssume, attrs);
        } else if (exceptionExpr != null) {
-         update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr, exceptionExpect, rhss);
+         update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr, keywordToken, rhss);
        } else if (rhss.Count == 0) {
          update = null;
        } else {
@@ -2764,7 +2794,7 @@ ForallStmt<out Statement/*!*/ s>
 
   ( IF(la.kind == _openparen)  /* disambiguation needed, because of the possibility of a body-less forall statement */
     "(" [ QuantifierDomain<out bvars, out attrs, out range> ] ")"
-  |     [ IF(la.kind == _ident)  /* disambiguation needed, because of the possibility of a body-less forall statement */
+  |     [ IF(IsIdentifier(la.kind))  /* disambiguation needed, because of the possibility of a body-less forall statement */
           QuantifierDomain<out bvars, out attrs, out range>
         ]
   )
@@ -4015,7 +4045,11 @@ Attribute<ref Attributes attrs>
 /*------------------------------------------------------------------------*/
 Ident<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
-  ident            (. x = t; .)
+  ( ident
+  | "least"      (. t.kind = _ident; .) // convert it to an ident
+  | "greatest"   (. t.kind = _ident; .) // convert it to an ident
+  )
+  (. x = t; .)
   .
 // Identifier or sequence of digits
 // Parse one of the following, which are supposed to follow a ".":
@@ -4031,7 +4065,7 @@ DotSuffix<out IToken x, out IToken y>
      x = Token.NoToken;
      y = null;
   .)
-  ( ident          (. x = t; .)
+  ( Ident<out x>
   | digits         (. x = t; .)
   | decimaldigits  (. x = t;
                       int exponent = x.val.IndexOf('e');
@@ -4058,7 +4092,7 @@ DotSuffix<out IToken x, out IToken y>
   .
 MemberBindingUpdate<out IToken id, out Expression e>
 = (. id = Token.NoToken; e = dummyExpr; .)
-  ( ident          (. id = t; .)
+  ( Ident<out id>
   | digits         (. id = t; .)
   )
   ":="
@@ -4083,7 +4117,7 @@ ExportIdent<out IToken id>
   .
 TypeNameOrCtorSuffix<out IToken id>
 = (. id = Token.NoToken; .)
-  ( ident          (. id = t; .)
+  ( Ident<out id>
   | digits         (. id = t; .)
   )
   .
@@ -4091,8 +4125,7 @@ TypeNameOrCtorSuffix<out IToken id>
 // Identifier, disallowing leading underscores
 NoUSIdent<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
-  ident            (. x = t;
-                      if (x.val.StartsWith("_")) {
+  Ident<out x>     (. if (x.val.StartsWith("_")) {
                         SemErr("cannot declare identifier beginning with underscore");
                       }
                    .)
@@ -4101,9 +4134,7 @@ NoUSIdent<out IToken/*!*/ x>
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
 WildIdent<out IToken x, bool allowWildcardId>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
-  ident            (. x = t;
-                      t.val = UnwildIdent(t.val, allowWildcardId);
-                   .)
+  Ident<out x>     (. t.val = UnwildIdent(t.val, allowWildcardId); .)
   .
 
 OldSemi  /* NOTE: Coco complains about "OldSemi deletable". That's okay. */
