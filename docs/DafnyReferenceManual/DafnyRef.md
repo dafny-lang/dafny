@@ -55,8 +55,6 @@ user understand how to do proofs with Dafny.
 
 -- opaque types
 
--- the !new type parameter characteristic
-
 -- traits, object
 
 -- non-null types
