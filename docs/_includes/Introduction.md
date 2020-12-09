@@ -34,10 +34,7 @@ rise4fun](http://rise4fun.com/Dafny)[@Rise4fun:dafny]. Once you get a bit
 more serious, you may prefer to [download](https://github.com/dafny-lang/dafny/releases) it
 to run it on your machine. Dafny can be run from the command
 line (on Linux, MacOS, Windows or other platforms) or from an IDE
-such as emacs or
-Microsoft Visual Studio 2012 (or newer), where the `dafny`
-verifier runs in the background while the programmer is editing the
-program. An editor such as VSCode can provide syntax highlighting without
+such as emacs or an editor such as VSCode, which can provide syntax highlighting without
 the built-in verification.
 
 The verifier is powered

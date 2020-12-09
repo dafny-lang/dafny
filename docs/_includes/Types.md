@@ -2980,11 +2980,11 @@ If the compiler does specialize the run-time representation for
 respectively three, run-time conversions.
 
 The `as N` conversion operation is grammatically a suffix operation like
-`.`field and array indexingi, but binds less tightly than unary operations:
+`.`field and array indexing, but binds less tightly than unary operations:
 `- x as int` is `(- x) as int`; `a + b as int` is `a + (b as int)`.
 
 There is also a corresponding [`is` operation](#sec-as-expression) that
-tests whether a value is valid for a given type. For example, `-5 as nat` is
+tests whether a value is valid for a given type. For example, `-5 is nat` is
 false. So `e as T` is well-defined exactly when `e is T` is true.
 For a newtype or subset type, the `is` operation is the predicate that defines
 the type.

@@ -30,7 +30,7 @@ the release notes. For example:
 
 8) Publish the release (by clicking the button at the bottom of the page)
 
-9) Uodate the brew formula for dafny (see below)
+9) Update the brew formula for dafny (see below)
 
 10) Announce the new release to the world.
 
