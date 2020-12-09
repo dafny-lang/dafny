@@ -270,14 +270,14 @@ namespace Microsoft.Dafny
       // The result type of the following bitvector methods is the type of the bitvector itself. However, we're representing all bitvector types as
       // a family of types rolled up in one ValuetypeDecl. Therefore, we use the special SelfType as the result type.
       List<Formal> formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
-      var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", prog.BuiltIns.SystemModule, false, false, false, new List<TypeParameter>(), formals, new SelfType(),
+      var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", prog.BuiltIns.SystemModule, false, false, new List<TypeParameter>(), formals, new SelfType(),
         new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateLeft.EnclosingClass = valuetypeDecls[(int)ValuetypeVariety.Bitvector];
       rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       valuetypeDecls[(int)ValuetypeVariety.Bitvector].Members.Add(rotateLeft.Name, rotateLeft);
 
       formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
-      var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", prog.BuiltIns.SystemModule, false, false, false, new List<TypeParameter>(), formals, new SelfType(),
+      var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", prog.BuiltIns.SystemModule, false, false, new List<TypeParameter>(), formals, new SelfType(),
         new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateRight.EnclosingClass = valuetypeDecls[(int)ValuetypeVariety.Bitvector];
       rotateRight.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
@@ -1353,7 +1353,7 @@ namespace Microsoft.Dafny
         var name = entry.Key;
         var prefixNamedModules = entry.Value;
         var tok = prefixNamedModules.First().Item1[0];
-        var modDef = new ModuleDefinition(tok, name, new List<IToken>(), false, false, false, null, moduleDecl, null, false, true, true);
+        var modDef = new ModuleDefinition(tok, name, new List<IToken>(), false, false, null, moduleDecl, null, false, true, true);
         // Every module is expected to have a default class, so we create and add one now
         var defaultClass = new DefaultClassDecl(modDef, new List<MemberDecl>());
         modDef.TopLevelDecls.Add(defaultClass);
@@ -1780,7 +1780,7 @@ namespace Microsoft.Dafny
             new Specification<Expression>(new List<Expression>(), null),
             null, null, null);
           // --- here comes predicate Valid()
-          var valid = new Predicate(iter.tok, "Valid", false, true, true, new List<TypeParameter>(),
+          var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(),
             new List<Formal>(),
             new List<AttributedExpression>(),
             new List<FrameExpression>(),
@@ -1981,7 +1981,7 @@ namespace Microsoft.Dafny
               List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
 
               // create prefix predicate
-              cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.HasStaticKeyword, cop.IsProtected,
+              cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.HasStaticKeyword,
                 tyvars, k, formals,
                 cop.Req.ConvertAll(cloner.CloneAttributedExpr),
                 cop.Reads.ConvertAll(cloner.CloneFrameExpr),
@@ -2034,7 +2034,7 @@ namespace Microsoft.Dafny
       Contract.Requires(compilationModuleClones != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", new List<IToken>(), true, true, true, null, null, null, false,
+      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", new List<IToken>(), true, true, null, null, null, false,
                                      p.ModuleDef.IsToBeVerified, p.ModuleDef.IsToBeCompiled);
       mod.Height = Height;
       bool hasDefaultClass = false;
@@ -7036,9 +7036,6 @@ namespace Microsoft.Dafny
               Function f = selectExpr.Member as Function;
               if (f != null) {
                 f.IsFueled = true;
-                if (f.IsProtected && currentModule != f.EnclosingClass.Module) {
-                  reporter.Error(MessageSource.Resolver, tok, "cannot adjust fuel for protected function {0} from another module", f.Name);
-                }
                 if (args.Count >= 3) {
                   LiteralExpr literalLow = args[1] as LiteralExpr;
                   LiteralExpr literalHigh = args[2] as LiteralExpr;

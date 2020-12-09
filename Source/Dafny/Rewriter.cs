@@ -480,7 +480,7 @@ namespace Microsoft.Dafny
       // Add:  predicate Valid()
       // ...unless an instance function with that name is already present
       if (!cl.Members.Exists(member => member is Function && member.Name == "Valid" && !member.IsStatic)) {
-        var valid = new Predicate(cl.tok, "Valid", false, false, true, new List<TypeParameter>(), new List<Formal>(),
+        var valid = new Predicate(cl.tok, "Valid", false, true, new List<TypeParameter>(), new List<Formal>(),
           new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
           null, Predicate.BodyOriginKind.OriginalOrInherited, null, null);
         cl.Members.Add(valid);
@@ -973,8 +973,6 @@ namespace Microsoft.Dafny
 
           if (!Attributes.Contains(f.Attributes, "opaque")) {
             // Nothing to do
-          } else if (f.IsProtected) {
-            reporter.Error(MessageSource.Rewriter, f.tok, ":opaque is not allowed to be applied to protected functions (this will be allowed when the language introduces 'opaque'/'reveal' as keywords)");
           } else if (!RefinementToken.IsInherited(f.tok, c.Module)) {
             RewriteOpaqueFunctionUseFuel(f, newDecls);
           }
