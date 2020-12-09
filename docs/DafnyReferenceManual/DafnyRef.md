@@ -16,7 +16,7 @@ user understand how to do proofs with Dafny.
 [(Link to current document as pdf)](https://github.com/dafny-lang/dafny/blob/master/docs/DafnyRef/out/DafnyRef.pdf)\
 [(Link to current document as html)](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef)
 
-1. numbered toc
+- numbered toc
 {:toc}
 
 {% include Introduction.md %}

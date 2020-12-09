@@ -1,7 +1,6 @@
 all: options
 	./concat DafnyRef.md | sed -e '/numbered toc/d' -e '/:toc/d' -e '/PDFOMIT/d'  -e 's/<!--PDF NEWPAGE-->/\\newpage/' | pandoc --toc --number-sections --syntax-definition="../KDESyntaxDefinition/dafny.xml"  --highlight-style=../KDESyntaxDefinition/dafny.theme --pdf-engine=xelatex --bibliography=DafnyRef.bib --bibliography=krml250.bib --bibliography=poc.bib --bibliography=paper-full.bib --bibliography=references.bib -H head.tex -B header.tex -V colorlinks=true -t pdf -o DafnyRef.pdf
 
-
 options:
 	echo '```' > OptionsTemp.txt
 	dafny -help | tr -d '\r' | sed -e 's/[ ]+\n/\n/' | grep -v 'Error: ' >> OptionsTemp.txt
