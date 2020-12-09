@@ -18,6 +18,7 @@ gem "github-pages", "~> 209", group: :jekyll_plugins
 #  gem "jekyll-feed", "~> 0.12"
 #end
 
+gem 'jekyll-numbered-headings'
 gem "kramdown", ">= 2.3.0"
 
 # Windows and JRuby does not include zoneinfo files, so bundle the tzinfo-data gem
