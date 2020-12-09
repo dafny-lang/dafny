@@ -8,7 +8,7 @@ This is the procedure for generating a new Dafny release.
 
 2) Select a version number (descriptor) $VER (e.g., "3.0.0-alpha")
    Edit it into Source/version.cs
-   Commit and merge this change into the master branch
+   Commit and push this change into the master branch
 
 3) Run 'package.py "$VER"' (in a Linux or Mac system)
    Warnings about missing pdb files can be ignored.
