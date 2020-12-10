@@ -12007,8 +12007,8 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
                 call.Name);
             }
-          } else if (lhname.ResolvedExpression is DatatypeValue dv) {
-            firstType = dv.Type;
+          } else {
+            firstType = lhname.ResolvedExpression.Type;
           }
         } else if (asx.Lhs is ExprDotName dotname) {
           Type ty = PartiallyResolveTypeForMemberSelection(dotname.tok, dotname.Type);
