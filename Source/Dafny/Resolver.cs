@@ -15056,7 +15056,7 @@ namespace Microsoft.Dafny
             }
           }
           var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<Expression>());
-          bool ok = ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype, null, false);
+          bool ok = ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype, null, complain);
           if (!ok) {
             expr.ResolvedExpression = null;
             return null;
