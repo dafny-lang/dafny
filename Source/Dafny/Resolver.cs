@@ -10354,14 +10354,11 @@ namespace Microsoft.Dafny
             Contract.Assert(slhs.Seq.Type != null);
             CheckIsLvalue(slhs, codeContext);
           }
-
         } else if (lhs is MultiSelectExpr) {
           CheckIsLvalue(lhs, codeContext);
-
         } else {
           CheckIsLvalue(lhs, codeContext);
         }
-
         Type lhsType = s.Lhs.Type;
         if (s.Rhs is ExprRhs) {
           ExprRhs rr = (ExprRhs)s.Rhs;
@@ -12002,26 +11999,17 @@ namespace Microsoft.Dafny
       } else if (s.Rhs is ApplySuffix asx) {
         ResolveApplySuffix(asx, new ResolveOpts(codeContext, true), true);
         if (asx.Lhs is NameSegment lhname) {
-          if (codeContext is Method meth) {
-            String nm = lhname.Name;
-            MemberDecl mem = ((TopLevelDeclWithMembers) meth.EnclosingClass).Members.Find(x => x.Name == nm);
-            if (mem is Method) {
-              call = (Method)mem;
-              if (call.Outs.Count != 0) {
-                firstType = call.Outs[0].Type;
-              } else {
-                reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
-                  call.Name);
-              }
-            } else {
-              ResolveExpression(asx, new ResolveOpts(codeContext, true));
-              firstType = asx.Type;
-            }
+          call = (lhname.ResolvedExpression as MemberSelectExpr).Member as Method;
+          if (call.Outs.Count != 0) {
+            firstType = call.Outs[0].Type;
+          } else {
+            reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
+              call.Name);
           }
         } else if (asx.Lhs is ExprDotName dotname) {
-          Type ty = PartiallyResolveTypeForMemberSelection(dotname.tok, dotname.Lhs.Type);
+          Type ty = PartiallyResolveTypeForMemberSelection(dotname.tok, dotname.Type);
           String nm = dotname.SuffixName;
-          MemberDecl mem = ty.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == nm);
+          MemberDecl mem = (dotname.Resolved as MemberSelectExpr).Member;
           if (mem is Method) {
             call = (Method) mem;
             if (call.Outs.Count != 0) {
