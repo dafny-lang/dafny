@@ -132,6 +132,7 @@ module OneModule {
 
     predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
       decreases Repr + {this}
     {
       this in Repr &&
@@ -152,6 +153,7 @@ module OneModule {
 
     predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
       decreases Repr + {this}
     {
       this in Repr &&
@@ -317,6 +319,7 @@ module N0 {
 
     predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
       decreases Repr + {this}
     {
       this in Repr &&
@@ -433,6 +436,7 @@ module N1 refines N0 {
 
     predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
       decreases Repr + {this}
     {
       this in Repr &&
@@ -532,6 +536,7 @@ module N2 refines N1 {
 
     predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
       decreases Repr + {this}
     {
       this in Repr &&

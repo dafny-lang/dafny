@@ -412,6 +412,7 @@ namespace Microsoft.Dafny
   ///
   /// For function/predicate Valid(), insert:
   ///    reads this, Repr
+  ///    ensures Valid() ==> this in Repr
   /// Into body of Valid(), insert (at the beginning of the body):
   ///    this in Repr && null !in Repr
   /// and also insert, for every array-valued field A declared in the class:
@@ -505,11 +506,18 @@ namespace Microsoft.Dafny
           var r1 = new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr");
           valid.Reads.Add(new FrameExpression(tok, r0, null));
           valid.Reads.Add(new FrameExpression(tok, r1, null));
+          // ensures Valid() ==> this in Repr
+          var post = new BinaryExpr(tok, BinaryExpr.Opcode.Imp,
+            new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>()),
+            new BinaryExpr(tok, BinaryExpr.Opcode.In,
+              new ThisExpr(tok),
+               new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr")));
+          valid.Ens.Insert(0, new AttributedExpression(post));
           if (member.tok == cl.tok) {
             // We added this function above, so produce a hover text for the entire function signature
             AddHoverText(cl.tok, "{0}", Printer.FunctionSignatureToString(valid));
           } else {
-            AddHoverText(member.tok, "reads {0}, {1}", r0, r1);
+            AddHoverText(member.tok, $"reads {r0}, {r1}\nensures {post}");
           }
         } else if (member is Function && !member.IsStatic) {
           var f = (Function)member;
