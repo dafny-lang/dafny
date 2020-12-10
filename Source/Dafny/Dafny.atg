@@ -855,6 +855,14 @@ DeclModifier<ref DeclModifierData dmod>
 = ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); .)
   | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); .)
   | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); .)
+  | "protected"
+    (. errors.Deprecated(t,
+         "the 'protected' modifier is no longer supported; " +
+         "to restrict access from outside the module, use a 'provides' clause in the module's export set; " +
+         "if you're trying to add conjuncts to a predicate in a refinement module, see " +
+         "Test/dafny3/CachedContainer.dfy, Test/dafny2/StoreAndRetrieve.dfy, and Test/dafny2/MonotonicHeapstate.dfy " +
+         "in the Dafny test suite on github");
+    .)
   )
   .
 
