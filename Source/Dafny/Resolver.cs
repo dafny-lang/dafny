@@ -14967,8 +14967,7 @@ namespace Microsoft.Dafny
     ///  0. Local variable, parameter, or bound variable.
     ///     (Language design note:  If this clashes with something of interest, one can always rename the local variable locally.)
     ///  1. Member of enclosing class (an implicit "this" is inserted, if needed)
-    ///  2. If isLastNameSegment:
-    ///     Unambiguous constructor name of a datatype in the enclosing module (if two constructors have the same name, an error message is produced here)
+    ///  2. Unambiguous constructor name of a datatype in the enclosing module (if two constructors have the same name, an error message is produced here)
     ///     (Language design note:  If the constructor name is ambiguous or if one of the steps above takes priority, one can qualify the constructor name with the name of the datatype)
     ///  3. Member of the enclosing module (type name or the name of a module)
     ///  4. Static function or method in the enclosing module or its imports
@@ -15040,7 +15039,7 @@ namespace Microsoft.Dafny
           receiver.Type = GetThisType(expr.tok, currentClass);  // resolve here
         }
         r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
-      } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
+      } else if (moduleInfo.Ctors.TryGetValue(name, out pair)) {
         // ----- 2. datatype constructor
         if (pair.Item2) {
           // there is more than one constructor with this name
