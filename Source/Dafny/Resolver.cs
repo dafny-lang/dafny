@@ -1585,7 +1585,10 @@ namespace Microsoft.Dafny
           if (useImports || string.Equals(kv.Key, "_default", StringComparison.InvariantCulture)) {
             TopLevelDecl d;
             if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
-              sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
+              // ignore the import if the existing declaration belongs to the current module
+              if (d.Module != moduleDef) {
+                sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
+              }
             } else {
               sig.TopLevels.Add(kv.Key, kv.Value);
             }
@@ -10351,14 +10354,11 @@ namespace Microsoft.Dafny
             Contract.Assert(slhs.Seq.Type != null);
             CheckIsLvalue(slhs, codeContext);
           }
-
         } else if (lhs is MultiSelectExpr) {
           CheckIsLvalue(lhs, codeContext);
-
         } else {
           CheckIsLvalue(lhs, codeContext);
         }
-
         Type lhsType = s.Lhs.Type;
         if (s.Rhs is ExprRhs) {
           ExprRhs rr = (ExprRhs)s.Rhs;
@@ -11999,26 +11999,21 @@ namespace Microsoft.Dafny
       } else if (s.Rhs is ApplySuffix asx) {
         ResolveApplySuffix(asx, new ResolveOpts(codeContext, true), true);
         if (asx.Lhs is NameSegment lhname) {
-          if (codeContext is Method meth) {
-            String nm = lhname.Name;
-            MemberDecl mem = ((TopLevelDeclWithMembers) meth.EnclosingClass).Members.Find(x => x.Name == nm);
-            if (mem is Method) {
-              call = (Method)mem;
-              if (call.Outs.Count != 0) {
-                firstType = call.Outs[0].Type;
-              } else {
-                reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
-                  call.Name);
-              }
+          if (lhname.ResolvedExpression is MemberSelectExpr) {
+            call = (lhname.ResolvedExpression as MemberSelectExpr).Member as Method;
+            if (call.Outs.Count != 0) {
+              firstType = call.Outs[0].Type;
             } else {
-              ResolveExpression(asx, new ResolveOpts(codeContext, true));
-              firstType = asx.Type;
+              reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
+                call.Name);
             }
+          } else {
+            firstType = lhname.ResolvedExpression.Type;
           }
         } else if (asx.Lhs is ExprDotName dotname) {
-          Type ty = PartiallyResolveTypeForMemberSelection(dotname.tok, dotname.Lhs.Type);
+          Type ty = PartiallyResolveTypeForMemberSelection(dotname.tok, dotname.Type);
           String nm = dotname.SuffixName;
-          MemberDecl mem = ty.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == nm);
+          MemberDecl mem = (dotname.Resolved as MemberSelectExpr).Member;
           if (mem is Method) {
             call = (Method) mem;
             if (call.Outs.Count != 0) {
@@ -15065,7 +15060,7 @@ namespace Microsoft.Dafny
             }
           }
           var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<Expression>());
-          bool ok = ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype, null, false);
+          bool ok = ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype, null, complain);
           if (!ok) {
             expr.ResolvedExpression = null;
             return null;

@@ -147,6 +147,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<Field/*!*/,Bpl.Constant/*!*/>/*!*/ fields = new Dictionary<Field/*!*/,Bpl.Constant/*!*/>();
     readonly Dictionary<Field/*!*/, Bpl.Function/*!*/>/*!*/ fieldFunctions = new Dictionary<Field/*!*/, Bpl.Function/*!*/>();
     readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string,Constant>();
+    readonly Dictionary<string, Bpl.Constant> tytagConstants = new Dictionary<string,Constant>();
     readonly ISet<string> abstractTypes = new HashSet<string>();
     readonly ISet<string> opaqueTypes = new HashSet<string>();
 
@@ -276,6 +277,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type DtCtorId;
       public readonly Bpl.Type Ty;
       public readonly Bpl.Type TyTag;
+      public readonly Bpl.Type TyTagFamily;
       public readonly Bpl.Expr Null;
       public readonly Bpl.Constant AllocField;
       [ContractInvariantMethod]
@@ -311,6 +313,7 @@ namespace Microsoft.Dafny {
         Contract.Invariant(DtCtorId != null);
         Contract.Invariant(Ty != null);
         Contract.Invariant(TyTag != null);
+        Contract.Invariant(TyTagFamily != null);
         Contract.Invariant(Null != null);
         Contract.Invariant(AllocField != null);
       }
@@ -369,7 +372,7 @@ namespace Microsoft.Dafny {
                              Bpl.Function mapValues, Bpl.Function imapValues, Bpl.Function mapItems, Bpl.Function imapItems,
                              Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1,
                              Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
-                             Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType,
+                             Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType, Bpl.TypeCtorDecl tyTagFamilyType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
                              Bpl.Constant allocField) {
@@ -408,6 +411,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(allocField != null);
         Contract.Requires(tyType != null);
         Contract.Requires(tyTagType != null);
+        Contract.Requires(tyTagFamilyType != null);
         #endregion
 
         this.CharType = new Bpl.CtorType(Token.NoToken, charType, new List<Bpl.Type>());
@@ -441,6 +445,7 @@ namespace Microsoft.Dafny {
         this.HeapVarName = heap.Name;
         this.Ty = new Bpl.CtorType(Token.NoToken, tyType, new List<Bpl.Type>());
         this.TyTag = new Bpl.CtorType(Token.NoToken, tyTagType, new List<Bpl.Type>());
+        this.TyTagFamily = new Bpl.CtorType(Token.NoToken, tyTagFamilyType, new List<Bpl.Type>());
         this.ClassNameType = new Bpl.CtorType(Token.NoToken, classNameType, new List<Bpl.Type>());
         this.NameFamilyType = new Bpl.CtorType(Token.NoToken, nameFamilyType, new List<Bpl.Type>());
         this.DatatypeType = new Bpl.CtorType(Token.NoToken, datatypeType, new List<Bpl.Type>());
@@ -484,6 +489,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeSynonymDecl bv0TypeDecl = null;
       Bpl.TypeCtorDecl tyType = null;
       Bpl.TypeCtorDecl tyTagType = null;
+      Bpl.TypeCtorDecl tyTagFamilyType = null;
       Bpl.TypeCtorDecl nameFamilyType = null;
       Bpl.TypeCtorDecl datatypeType = null;
       Bpl.TypeCtorDecl handleType = null;
@@ -508,6 +514,8 @@ namespace Microsoft.Dafny {
             tyType = dt;
           } else if (dt.Name == "TyTag") {
             tyTagType = dt;
+          } else if (dt.Name == "TyTagFamily") {
+            tyTagFamilyType = dt;
           } else if (dt.Name == "DatatypeType") {
             datatypeType = dt;
           } else if (dt.Name == "HandleType") {
@@ -635,6 +643,8 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Ty");
       } else if (tyTagType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type TyTag");
+      } else if (tyTagFamilyType == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of type TyTagFamily");
       } else if (nameFamilyType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type NameFamily");
       } else if (datatypeType == null) {
@@ -667,7 +677,7 @@ namespace Microsoft.Dafny {
                                    mapValues, imapValues, mapItems, imapItems,
                                    tuple2Destructors0, tuple2Destructors1,
                                    seqTypeCtor, bv0TypeDecl,
-                                   fieldNameType, tyType, tyTagType,
+                                   fieldNameType, tyType, tyTagType, tyTagFamilyType,
                                    heap, classNameType, nameFamilyType,
                                    datatypeType, handleType, layerType, dtCtorId,
                                    allocField);
@@ -805,7 +815,9 @@ namespace Microsoft.Dafny {
         }
       }
 
-
+      foreach (var c in tytagConstants.Values) {
+        sink.AddTopLevelDeclaration(c);
+      }
       foreach (var c in fieldConstants.Values) {
         sink.AddTopLevelDeclaration(c);
       }
@@ -9108,19 +9120,34 @@ namespace Microsoft.Dafny {
         K(argExprs, args, inner);
       };
 
-      // Create the Tag and calling Tag on this type constructor
-      /*
-         const unique TagList: TyTag;
-         axiom (forall t0: Ty :: { List(t0) } Tag(List(t0)) == TagList);
-      */
+      /* Create the Tag and calling Tag on this type constructor
+       *
+       * The common case:
+       *     const unique TagList: TyTag;
+       *     const unique tytagFamily$List: TyTagFamily;  // defined once for each type named "List"
+       *     axiom (forall t0: Ty :: { List(t0) } Tag(List(t0)) == TagList && TagFamily(List(t0)) == tytagFamily$List);
+       * For types obtained via an abstract import, just do:
+       *     const unique tytagFamily$List: TyTagFamily;  // defined once for each type named "List"
+       *     axiom (forall t0: Ty :: { List(t0) } TagFamily(List(t0)) == tytagFamily$List);
+       */
       Helper((argExprs, args, inner) => {
-        Bpl.TypedIdent tag_id = new Bpl.TypedIdent(tok, "Tag" + inner_name, predef.TyTag);
-        Bpl.Constant tag = new Bpl.Constant(tok, tag_id, true);
-        Bpl.Expr tag_expr = new Bpl.IdentifierExpr(tok, tag);
-        Bpl.Expr tag_call = FunctionCall(tok, "Tag", predef.TyTag, inner);
-        Bpl.Expr qq = BplForall(args, BplTrigger(inner), Bpl.Expr.Eq(tag_call, tag_expr));
+        Bpl.Expr body = Bpl.Expr.True;
+
+        if (!td.Module.IsFacade) {
+          var tagName = "Tag" + inner_name;
+          var tag = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, tagName, predef.TyTag), true);
+          sink.AddTopLevelDeclaration(tag);
+          body = Bpl.Expr.Eq(FunctionCall(tok, "Tag", predef.TyTag, inner), new Bpl.IdentifierExpr(tok, tag));
+        }
+
+        if (!tytagConstants.TryGetValue(td.Name, out var tagFamily)) {
+          tagFamily = new Bpl.Constant(Token.NoToken, new Bpl.TypedIdent(Token.NoToken, "tytagFamily$" + td.Name, predef.TyTagFamily), true);
+          tytagConstants.Add(td.Name, tagFamily);
+        }
+        body = BplAnd(body, Bpl.Expr.Eq(FunctionCall(tok, "TagFamily", predef.TyTagFamily, inner), new Bpl.IdentifierExpr(tok, tagFamily)));
+
+        var qq = BplForall(args, BplTrigger(inner), body);
         sink.AddTopLevelDeclaration(new Axiom(tok, qq, name + " Tag"));
-        sink.AddTopLevelDeclaration(tag);
       });
 
       // Create the injectivity axiom and its function
@@ -9174,8 +9201,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Constant>() != null);
 
-      Bpl.Constant cc;
-      if (classes.TryGetValue(cl, out cc)) {
+      if (classes.TryGetValue(cl, out var cc)) {
         Contract.Assert(cc != null);
       } else {
         var name = cl.FullSanitizedName;
@@ -9192,8 +9218,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(n != null);
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Constant>() != null);
-      Bpl.Constant cc;
-      if (fieldConstants.TryGetValue(n, out cc)) {
+
+      if (fieldConstants.TryGetValue(n, out var cc)) {
         Contract.Assert(cc != null);
       } else {
         cc = new Bpl.Constant(Token.NoToken, new Bpl.TypedIdent(Token.NoToken, "field$" + n, predef.NameFamilyType), true);

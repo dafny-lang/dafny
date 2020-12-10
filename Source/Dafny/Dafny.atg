@@ -835,13 +835,11 @@ Dafny
                                              bool isVerbatimString;
                                              string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
                                              includedFile = Util.RemoveEscaping(includedFile, isVerbatimString);
-                                             string fullPath = includedFile;
                                              if (!Path.IsPathRooted(includedFile)) {
                                                string basePath = Path.GetDirectoryName(parsedFile);
                                                includedFile = Path.Combine(basePath, includedFile);
-                                               fullPath = Path.GetFullPath(includedFile);
                                              }
-                                             defaultModule.Includes.Add(new Include(t, parsedFile, includedFile, fullPath));
+                                             defaultModule.Includes.Add(new Include(t, parsedFile, includedFile));
                                            }
                                         .)
   }
@@ -1116,7 +1114,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      List<DatatypeCtor/*!*/> ctors = new List<DatatypeCtor/*!*/>();
      IToken bodyStart = Token.NoToken;  // dummy assignment
      bool co = false;
-     CheckDeclModifiers(dmod, "datatypes or codatatype", AllowedDeclModifiers.None);
+     CheckDeclModifiers(dmod, "datatype or codatatype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
   .)
   SYNC
