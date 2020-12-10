@@ -18,7 +18,7 @@ class List<T> {
   }
 
   constructor Init()
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
     ensures Contents == []
   {
     Contents, n := [], 0;

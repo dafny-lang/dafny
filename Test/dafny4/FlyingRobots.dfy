@@ -29,7 +29,7 @@ class Point {
   var x:Cell, y:Cell, z:Cell
 
   constructor (a:int, b:int, c:int)
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
     ensures Value == (a, b, c)
   {
     x := new Cell(a);
@@ -67,7 +67,7 @@ class Arm {
   var azim:Cell
 
   constructor (polar_in:int, azim_in:int)
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
     ensures Value == (polar_in, azim_in)
   {
     polar := new Cell(polar_in);
@@ -106,7 +106,7 @@ class Bot {
   var right:Arm
 
   constructor ()
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
   {
     pos := new Point(0, 0, 0);
     left := new Arm(0, 0);

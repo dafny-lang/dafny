@@ -19,7 +19,7 @@ class IntSet {
   }
 
   constructor Init()
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
     ensures Contents == {}
   {
     root := null;
@@ -131,7 +131,7 @@ class Node {
   }
 
   constructor Init(x: int)
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
     ensures Contents == {x}
   {
     data := x;

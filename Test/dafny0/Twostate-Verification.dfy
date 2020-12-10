@@ -86,14 +86,14 @@ class Node {
     (next != null ==> next in Repr && next.Repr <= Repr && this !in next.Repr && next.Valid())
   }
   constructor (y: int)
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
   {
     x, next := y, null;
     Repr := {this};
   }
   constructor Prepend(y: int, nxt: Node)
     requires nxt.Valid()
-    ensures Valid() && fresh(Repr - {this} - nxt.Repr)
+    ensures Valid() && fresh(Repr - nxt.Repr)
   {
     x, next := y, nxt;
     Repr := {this} + nxt.Repr;
@@ -194,7 +194,7 @@ class {:autocontracts} NodeAuto {
   }
   constructor {:autocontracts false} Prepend(y: int, nxt: NodeAuto)
     requires nxt.Valid()
-    ensures Valid() && fresh(Repr - {this} - nxt.Repr)
+    ensures Valid() && fresh(Repr - nxt.Repr)
   {
     x, next := y, nxt;
     Repr := {this} + nxt.Repr;

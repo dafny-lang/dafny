@@ -39,7 +39,7 @@ class ExtensibleArray<T> {
   }
 
   constructor Init()
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
     ensures Contents == []
   {
     elements := null;

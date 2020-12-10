@@ -27,7 +27,7 @@ class RingBuffer<T(0)>
   }
 
   constructor Create(n: nat)
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
     ensures Contents == [] && N == n
   {
     data := new T[n];

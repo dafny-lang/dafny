@@ -54,7 +54,7 @@ class Map<Key(==),Value> {
 
 
   constructor Init()
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
     ensures M == map[]
   {
     head, Spine := null, {};
