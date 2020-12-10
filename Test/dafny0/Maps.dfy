@@ -248,3 +248,115 @@ function UnboxTest(s: seq<seq<int>>) : map<seq<int>, seq<int>>
 {
   map i: int | 0 <= i < |s| :: s[i] := s[i] // fine, make sure unboxing doesn't unwrap the int from the nested seq<int> on the LHS
 }
+
+// ---------- test that general maps can be used in proofs ----------
+
+method GeneralMaps4(s: set<real>, twelve: real) {
+  var c0 := map n,p | n in s && p in s :: n := twelve;
+  assert 2.0 in s ==> c0[2.0] == twelve;
+}
+
+method GeneralMaps5(u: seq<int>) {
+  var c1 := map i: int | 0 <= i < |u| :: u[i] := u[i] + 100;
+  if * {
+    assert 7 < |u| && 101 < u[7] < 103 ==> c1[102] == 202;
+  } else {
+    assert 7 < |u| && 2101 < u[7] < 2103 ==> c1[2102] == 2200;  // error
+  }
+}
+
+predicate method Thirteen(x: int) { x == 13 }
+predicate method Odd(y: int) { y % 2 == 1 }
+
+method GeneralMaps6() {
+  var c2 := map x,y | 12 <= x < y < 17 && Thirteen(x) && Odd(y) :: x := y;
+  assert Thirteen(13) && Odd(15);
+  assert c2[13] == 15;
+}
+
+method GeneralMaps7() {
+  var c3 := map i: int | 0 <= i < 100 && Thirteen(i) :: 5 := i;
+  assert Thirteen(13);
+  assert c3[5] == 13;
+}
+
+predicate method P8(x: int) { true }
+
+method GeneralMaps8() {
+  ghost var c4 := map x: int | true :: P8(x) := 6;
+  assert P8(177);
+  assert c4[true] == 6;
+  assert false !in c4.Keys;
+}
+
+method GeneralMaps8'() {
+  ghost var c4 := map x: int | P8(x) :: true := 6;
+  assert P8(177);
+  assert c4[true] == 6;
+  assert false !in c4.Keys;
+}
+
+method GeneralMaps8''() {
+  ghost var c4 := map x: int | 0 <= x < 10 && Thirteen(x) :: true := 6;
+  assert c4 == map[];
+}
+
+// ---------- update tests for seq, multiset, map ----------
+
+method UpdateValiditySeq() {
+  var s: seq<nat> := [4, 4, 4, 4, 4];
+  if * {
+    s := s[10 := 4];  // error: index out of range
+  } else {
+    s := s[1 := -5];  // error: given value is not a nat
+  }
+}
+method UpdateValidityMultiset() {
+  var s: multiset<nat>;
+  if * {
+    s := s[-2 := 5];  // error: element value is not a nat
+  } else {
+    s := s[2 := -5];  // error: new number of occurrences is negative
+  }
+}
+method UpdateValidityMap(mm: map<int, int>)
+  requires forall k :: k in mm.Keys ==> 0 <= k
+  requires forall k :: k in mm.Keys ==> 0 <= mm[k]
+{
+  var m: map<nat, nat> := mm;  // conversion justified by precondition
+  if * {
+    m := m[-2 := 10];  // error: key is not a nat
+  } else {
+    m := m[10 := -2];  // error: value is not a nat
+  }
+}
+
+class Elem { }
+
+method UpdateValiditySeqNull(d: Elem?, e: Elem) {
+  var s: seq<Elem> := [e, e, e, e, e];
+  if * {
+    s := s[10 := e];  // error: index out of range
+  } else {
+    s := s[1 := d];  // error: given value is not a Elem
+  }
+}
+method UpdateValidityMultisetNull(d: Elem?, e: Elem) {
+  var s: multiset<Elem>;
+  if * {
+    s := s[d := 5];  // error: element value is not a Elem
+  } else {
+    s := s[e := -5];  // error: new number of occurrences is negative
+  }
+}
+method UpdateValidityMapNull(mm: map<Elem?, Elem?>, d: Elem?, e: Elem)
+  requires forall k :: k in mm.Keys ==> k != null
+  requires forall k :: k in mm.Keys ==> mm[k] != null
+{
+  var m: map<Elem, Elem> := mm;  // conversion justified by precondition
+  if * {
+    m := m[d := e];  // error: key is not a Elem
+  } else {
+    m := m[e := d];  // error: value is not a Elem
+  }
+}

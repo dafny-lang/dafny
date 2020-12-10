@@ -1,0 +1,5 @@
+git-issue-*-go
+git-issue-*.cs
+git-issue-*.js
+git-issue-[0-9]+/
+git-issue-*/

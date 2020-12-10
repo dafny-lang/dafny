@@ -165,9 +165,9 @@ module M1 {
   type {:axiom} Tr(==)<X(0)> = c: Tr?<X> | c != null /*special witness*/
   */
 
-  class Cl<Y> extends Tr<(Y, Y)> { }
+  class Cl<Y(0)> extends Tr<(Y, Y)> { }
   /*-- non-null type
-  type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
+  type {:axiom} Cl(==)<Y(0)> = c: Cl?<Y> | c != null /*special witness*/
   */
 
   lemma M(c: Cl<int>)
@@ -262,14 +262,14 @@ module P1 {
   type {:axiom} TrX(==)<X(0)> = c: TrX?<X> | c != null /*special witness*/
   */
 
-  trait Tr<X> extends TrX<X> { }
+  trait Tr<X(0)> extends TrX<X> { }
   /*-- non-null type
-  type {:axiom} Tr(==)<X> = c: Tr?<X> | c != null /*special witness*/
+  type {:axiom} Tr(==)<X(0)> = c: Tr?<X> | c != null /*special witness*/
   */
 
-  class Cl<Y> extends Tr<(Y, Y)> { }
+  class Cl<Y(0)> extends Tr<(Y, Y)> { }
   /*-- non-null type
-  type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
+  type {:axiom} Cl(==)<Y(0)> = c: Cl?<Y> | c != null /*special witness*/
   */
 
   lemma M(c: Cl<int>)

@@ -61,7 +61,7 @@ module VarianceChecks {
   {
   }
 
-  datatype Dt = Ctor(Dt -> Dt)  // error: this would give rise to a logical inconsistency
+  datatype Dt = Ctor(Dt -> int)  // error: this would give rise to a logical inconsistency
 
   datatype U0<!A> = U0(A -> bool)
   type U1<!A> = U0<A>

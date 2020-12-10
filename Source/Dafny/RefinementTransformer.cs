@@ -138,19 +138,6 @@ namespace Microsoft.Dafny
         if (!declaredNames.ContainsKey(d.Name)) {
           declaredNames.Add(d.Name, i);
         }
-
-        // TODO: This is more restrictive than is necessary,
-        // it would be possible to disambiguate these, but it seems like
-        // a lot of work for not much gain
-
-        if (refinedSigOpened.TopLevels.ContainsKey(d.Name) &&
-          !RefinedSig.TopLevels.ContainsKey(d.Name)) {
-          var decl = Resolver.AmbiguousTopLevelDecl.Create(m, d, refinedSigOpened.TopLevels[d.Name]);
-
-          if (decl is Resolver.AmbiguousTopLevelDecl) {
-            reporter.Error(MessageSource.RefinementTransformer, d.tok, "Base module {0} imports {1} from an opened import, so it cannot be overridden. Give this declaration a unique name to disambiguate.", prev.Name, d.Name);
-          }
-        }
       }
 
       // Merge the declarations of prev into the declarations of m
@@ -254,19 +241,30 @@ namespace Microsoft.Dafny
         reporter.Error(MessageSource.RefinementTransformer, nw, "an opaque type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
       } else if (nw is DatatypeDecl) {
         reporter.Error(MessageSource.RefinementTransformer, nw, "a datatype declaration ({0}) in a refinement module can only replace an opaque type declaration", nw.Name);
+      } else if (nw is NewtypeDecl) {
+        reporter.Error(MessageSource.RefinementTransformer, nw, "a newtype declaration ({0}) in a refinement module can only replace an opaque type declaration", nw.Name);
       } else if (nw is IteratorDecl) {
         if (d is IteratorDecl) {
           m.TopLevelDecls[index] = MergeIterator((IteratorDecl)nw, (IteratorDecl)d);
         } else {
           reporter.Error(MessageSource.RefinementTransformer, nw, "an iterator declaration ({0}) is a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
         }
-      } else {
-        Contract.Assert(nw is ClassDecl);
-        if (d is DatatypeDecl) {
-          reporter.Error(MessageSource.RefinementTransformer, nw, "a class declaration ({0}) in a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
+      } else if (nw is ClassDecl) {
+        if (d is ClassDecl) {
+          m.TopLevelDecls[index] = MergeClass((ClassDecl) nw, (ClassDecl) d);
         } else {
-          m.TopLevelDecls[index] = MergeClass((ClassDecl)nw, (ClassDecl)d);
+          reporter.Error(MessageSource.RefinementTransformer, nw,
+            "a class declaration ({0}) in a refining module cannot replace a different kind of declaration in the refinement base",
+            nw.Name);
         }
+      } else if (nw is TypeSynonymDecl && d is TypeSynonymDecl
+                                       && ((TypeSynonymDecl)nw).Rhs != null
+                                       && ((TypeSynonymDecl)d).Rhs != null) {
+        reporter.Error(MessageSource.RefinementTransformer, d,
+          "a type ({0}) in a refining module may not replace an already defined type (even with the same value)",
+          d.Name);
+      } else {
+        Contract.Assert(false);
       }
     }
 
@@ -369,14 +367,14 @@ namespace Microsoft.Dafny
       moduleUnderConstruction = null;
     }
 
-    Function CloneFunction(IToken tok, Function f, bool isGhost, List<MaybeFreeExpression> moreEnsures, Formal moreResult, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions, Attributes moreAttributes) {
+    Function CloneFunction(IToken tok, Function f, bool isGhost, List<AttributedExpression> moreEnsures, Formal moreResult, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions, Attributes moreAttributes) {
       Contract.Requires(tok != null);
       Contract.Requires(moreBody == null || f is Predicate);
       Contract.Requires(moreBody == null || replacementBody == null);
 
       var tps = f.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
       var formals = f.Formals.ConvertAll(refinementCloner.CloneFormal);
-      var req = f.Req.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
+      var req = f.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
       var reads = f.Reads.ConvertAll(refinementCloner.CloneFrameExpr);
       var decreases = refinementCloner.CloneSpecExpr(f.Decreases);
       var result = f.Result ?? moreResult;
@@ -384,11 +382,11 @@ namespace Microsoft.Dafny
         result = refinementCloner.CloneFormal(result);
       }
 
-      List<MaybeFreeExpression> ens;
+      List<AttributedExpression> ens;
       if (checkPrevPostconditions)  // note, if a postcondition includes something that changes in the module, the translator will notice this and still re-check the postcondition
-        ens = f.Ens.ConvertAll(rawCloner.CloneMayBeFreeExpr);
+        ens = f.Ens.ConvertAll(rawCloner.CloneAttributedExpr);
       else
-        ens = f.Ens.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
+        ens = f.Ens.ConvertAll(refinementCloner.CloneAttributedExpr);
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
       }
@@ -414,11 +412,11 @@ namespace Microsoft.Dafny
       if (f is Predicate) {
         return new Predicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals,
           req, reads, ens, decreases, body, bodyOrigin, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
-      } else if (f is InductivePredicate) {
-        return new InductivePredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, ((InductivePredicate)f).TypeOfK, tps, formals,
+      } else if (f is LeastPredicate) {
+        return new LeastPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, ((LeastPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
-      } else if (f is CoPredicate) {
-        return new CoPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, ((CoPredicate)f).TypeOfK, tps, formals,
+      } else if (f is GreatestPredicate) {
+        return new GreatestPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, ((GreatestPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is TwoStatePredicate) {
         return new TwoStatePredicate(tok, f.Name, f.HasStaticKeyword, tps, formals,
@@ -432,21 +430,21 @@ namespace Microsoft.Dafny
       }
     }
 
-    Method CloneMethod(Method m, List<MaybeFreeExpression> moreEnsures, Specification<Expression> decreases, BlockStmt newBody, bool checkPreviousPostconditions, Attributes moreAttributes) {
+    Method CloneMethod(Method m, List<AttributedExpression> moreEnsures, Specification<Expression> decreases, BlockStmt newBody, bool checkPreviousPostconditions, Attributes moreAttributes) {
       Contract.Requires(m != null);
       Contract.Requires(!(m is Constructor) || newBody == null || newBody is DividedBlockStmt);
       Contract.Requires(decreases != null);
 
       var tps = m.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
       var ins = m.Ins.ConvertAll(refinementCloner.CloneFormal);
-      var req = m.Req.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
+      var req = m.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
       var mod = refinementCloner.CloneSpecFrameExpr(m.Mod);
 
-      List<MaybeFreeExpression> ens;
+      List<AttributedExpression> ens;
       if (checkPreviousPostconditions)
-        ens = m.Ens.ConvertAll(rawCloner.CloneMayBeFreeExpr);
+        ens = m.Ens.ConvertAll(rawCloner.CloneAttributedExpr);
       else
-        ens = m.Ens.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
+        ens = m.Ens.ConvertAll(refinementCloner.CloneAttributedExpr);
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
       }
@@ -457,11 +455,11 @@ namespace Microsoft.Dafny
           req, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.BodyForRefinement);
-      if (m is InductiveLemma) {
-        return new InductiveLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((InductiveLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+      if (m is LeastLemma) {
+        return new LeastLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
-      } else if (m is CoLemma) {
-        return new CoLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((CoLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+      } else if (m is GreatestLemma) {
+        return new GreatestLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is Lemma) {
         return new Lemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
@@ -518,9 +516,9 @@ namespace Microsoft.Dafny
         newBody = MergeBlockStmt(nw.Body, prev.Body);
       }
 
-      var ens = prev.Ensures.ConvertAll(rawCloner.CloneMayBeFreeExpr);
+      var ens = prev.Ensures.ConvertAll(rawCloner.CloneAttributedExpr);
       ens.AddRange(nw.Ensures);
-      var yens = prev.YieldEnsures.ConvertAll(rawCloner.CloneMayBeFreeExpr);
+      var yens = prev.YieldEnsures.ConvertAll(rawCloner.CloneAttributedExpr);
       yens.AddRange(nw.YieldEnsures);
 
       return new IteratorDecl(new RefinementToken(nw.tok, moduleUnderConstruction),
@@ -531,9 +529,9 @@ namespace Microsoft.Dafny
         refinementCloner.CloneSpecFrameExpr(prev.Reads),
         refinementCloner.CloneSpecFrameExpr(prev.Modifies),
         refinementCloner.CloneSpecExpr(prev.Decreases),
-        prev.Requires.ConvertAll(refinementCloner.CloneMayBeFreeExpr),
+        prev.Requires.ConvertAll(refinementCloner.CloneAttributedExpr),
         ens,
-        prev.YieldRequires.ConvertAll(refinementCloner.CloneMayBeFreeExpr),
+        prev.YieldRequires.ConvertAll(refinementCloner.CloneAttributedExpr),
         yens,
         newBody,
         refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes),
@@ -551,11 +549,6 @@ namespace Microsoft.Dafny
         var member = nw.Members[i];
         if (!declaredNames.ContainsKey(member.Name)) {
           declaredNames.Add(member.Name, i);
-        }
-
-        if (prev.IsDefaultClass && refinedSigOpened.StaticMembers.ContainsKey(member.Name) &&
-          !RefinedSig.StaticMembers.ContainsKey(member.Name)) {
-            reporter.Error(MessageSource.RefinementTransformer, member.tok, "Base module {0} imports {1} from an opened import, so it cannot be overridden. Give this declaration a unique name to disambiguate.", RefinedSig.ModuleDef.Name, member.Name);
         }
       }
 
@@ -607,12 +600,12 @@ namespace Microsoft.Dafny
           } else if (nwMember is Function) {
             var f = (Function)nwMember;
             bool isPredicate = f is Predicate;
-            bool isIndPredicate = f is InductivePredicate;
-            bool isCoPredicate = f is CoPredicate;
+            bool isLeastPredicate = f is LeastPredicate;
+            bool isGreatestPredicate = f is GreatestPredicate;
             if (!(member is Function) ||
               isPredicate != (member is Predicate) ||
-              (f is InductivePredicate) != (member is InductivePredicate) ||
-              (f is CoPredicate) != (member is CoPredicate) ||
+              (f is LeastPredicate) != (member is LeastPredicate) ||
+              (f is GreatestPredicate) != (member is GreatestPredicate) ||
               (f is TwoStatePredicate) != (member is TwoStatePredicate) ||
               (f is TwoStateFunction) != (member is TwoStateFunction)) {
               reporter.Error(MessageSource.RefinementTransformer, nwMember, "a {0} declaration ({1}) can only refine a {0}", f.WhatKind, nwMember.Name);
@@ -947,7 +940,7 @@ namespace Microsoft.Dafny
                 if (subber != null && subber.SubstitutionsMade.Count < subber.Exprs.Count) {
                   foreach (var s in subber.SubstitutionsMade)
                     subber.Exprs.Remove(s);
-                  reporter.Error(MessageSource.RefinementTransformer, c.Tok, "could not find labeled expression(s): " + Util.Comma(", ", subber.Exprs.Keys, x => x));
+                  reporter.Error(MessageSource.RefinementTransformer, c.Tok, "could not find labeled expression(s): " + Util.Comma(subber.Exprs.Keys, x => x));
                 }
               }
               i++;
@@ -1337,7 +1330,7 @@ namespace Microsoft.Dafny
         decr = cNew.Decreases;
       }
 
-      var invs = cOld.Invariants.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
+      var invs = cOld.Invariants.ConvertAll(refinementCloner.CloneAttributedExpr);
       invs.AddRange(cNew.Invariants);
       var r = new RefinedWhileStmt(cNew.Tok, cNew.EndTok, guard, invs, decr, refinementCloner.CloneSpecFrameExpr(cOld.Mod), MergeBlockStmt(cNew.Body, cOld.Body));
       return r;

@@ -110,8 +110,8 @@ module T refines S {
   }
 }
 module A {
-   import X : T
-   import Y : T
+   import X = T
+   import Y = T
    import Z = T
    method run() {
      var x := new X.C();
@@ -138,7 +138,7 @@ module T1 refines S1 {
     var x := 3;
   }
 }
-module A1 {
+abstract module A1 {
    import X : T1
    method run() {
      X.do();
@@ -234,7 +234,7 @@ module GhostLetExpr {
         ghost var z := bb + F();
         ghost var t0 := var y := z; z + 3;
         ghost var t1 := ghost var y := z; z + 3;
-        var t2 := ghost var y := z; aa + 3;
+        var t2; t2 := ghost var y := z; aa + 3;
     }
   }
 
@@ -363,12 +363,12 @@ class DigitUnderscore_Names_Functions_and_Methods {
     p.567(100);
   }
 
-  inductive predicate 500(y: int)
+  least predicate 500(y: int)
   {
     y == 0 || this.500(y-1)
   }
 
-  inductive lemma 5_0_0(y: int)
+  least lemma 5_0_0(y: int)
     requires this.500(y)
     ensures 0 <= y
   {

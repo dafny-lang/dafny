@@ -803,7 +803,7 @@ module GhostLetExpr {
     var x;
     var g := G(x, y);
     ghost var h := ghost var ta := F(); 5;
-    var j := var tb := F(); 5;  // error: allowed only if 'tb' were ghost
+    var j; j := var tb := F(); 5;  // tb is ghost, j is not
     assert h == j;
   }
 
@@ -824,7 +824,7 @@ module GhostLetExpr {
         ghost var z := aa + F();
         ghost var t0 := var y := z; z + 3;
         ghost var t1 := ghost var y := z + bb; y + z + 3;
-        var t2 := ghost var y := z; y + 3;  // error: 'y' can only be used in ghost contexts
+        var t2; t2 := ghost var y := z; y + 3;  // t2 is not ghost - error
     }
   }
 
@@ -1160,9 +1160,9 @@ module ObjectSetComprehensions {
   function method B() : set<object> { set o : object | true :: o }  // error: a function is not allowed to depend on the allocated state
 
   // outside functions, the comprehension is permitted, but it cannot be compiled
-  lemma C() { var x := set o : object | true :: o; }
+  lemma C() { var x; x := set o : object | true :: o; }
 
-  method D() { var x := set o : object | true :: o; }  // error: not (easily) compilable
+  method D() { var x; x := set o : object | true :: o; }  // error: not (easily) compilable
 }
 
 // ------ regression test for type checking of integer division -----
@@ -1597,7 +1597,7 @@ module BadGhostTransfer {
   datatype DTD_List = DTD_Nil | DTD_Cons(Car: int, Cdr: DTD_List, ghost g: int)
 
   method DatatypeDestructors_Ghost(d: DTD_List) {
-    var g1 := d.g;  // error: cannot use ghost member in non-ghost code
+    var g1; g1 := d.g;  // error: cannot use ghost member in non-ghost code
   }
   method AssignSuchThatFromGhost()
   {
@@ -1636,7 +1636,7 @@ module MoreGhostPrintAttempts {
 module MoreLetSuchThatExpr {
   method LetSuchThat_Ghost(ghost z: int, n: nat)
   {
-    var x := var y :| y < z; y;  // error: contraint depend on ghost (z)
+    var x; x := var y :| y < z; y;  // error: contraint depend on ghost (z)
   }
 }
 
@@ -1796,10 +1796,10 @@ module Regression_NewType {
 // --------------------- regression
 
 module PrefixGeneratorDuplicates {
-  copredicate P()
-  copredicate P()  // error: duplicate name (this once crashed Dafny)
-  colemma L()
-  colemma L()  // error: duplicate name (this once crashed Dafny)
+  greatest predicate P()
+  greatest predicate P()  // error: duplicate name (this once crashed Dafny)
+  greatest lemma L()
+  greatest lemma L()  // error: duplicate name (this once crashed Dafny)
 }
 
 // ------------------- unary TLA+ style predicates -------------------
@@ -2458,7 +2458,7 @@ module AbstemiousCompliance {
 }
 
 module BigOrdinalRestrictionsExtremePred {
-  inductive predicate Test() {
+  least predicate Test() {
     var st: set<ORDINAL> := {};  // error: cannot use ORDINAL as type argument
     var p: (int, ORDINAL) := (0,0);  // error: cannot use ORDINAL as type argument
     var o: ORDINAL := 0;  // okay
@@ -2918,5 +2918,31 @@ module TypeOfFunctionMember {
     // Both of the following once crashed the type checker
     var rd := Fo<real>.reads;
     var rq := Fo<real>.requires;
+  }
+}
+
+// --------------- update operations ------------------------------
+
+module CollectionUpdates {
+  // Update operations on collections must have the right types, modulo subset types.
+  // For verification errors, see Maps.dfy.
+  trait Trait { }
+  class Elem extends Trait { }
+
+  method UpdateValiditySeq(d: Trait, e: Elem) {
+    var s: seq<Elem> := [e, e, e, e, e];
+    s := s[1 := d];  // error: d is not an Elem (and is not a subset type of it, either)
+  }
+  method UpdateValidityMultiset(d: Trait) {
+    var s: multiset<Elem>;
+    s := s[d := 5];  // error: element value is not a Elem
+  }
+  method UpdateValidityMap(d: Trait, e: Elem) {
+    var m: map<Elem, Elem>;
+    if * {
+      m := m[d := e];  // error: key is not a Elem
+    } else {
+      m := m[e := d];  // error: value is not a Elem
+    }
   }
 }

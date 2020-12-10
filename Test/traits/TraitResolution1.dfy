@@ -22,7 +22,7 @@ module M1 {
     var w: X
   }
 
-  class Cl<Y> extends Tr<(Y,Y)> {
+  class Cl<Y(0)> extends Tr<(Y,Y)> {
   }
 
   lemma M(c: Cl<int>) {
@@ -179,10 +179,10 @@ module StaticMembers {
     static method Method()
     static twostate function TwoF(): int
     static twostate lemma TwoL()
-    static inductive predicate P()
-    static copredicate Q()
-    static inductive lemma IL()
-    static colemma CL()
+    static least predicate P()
+    static greatest predicate Q()
+    static least lemma IL()
+    static greatest lemma CL()
   }
 }
 
@@ -289,10 +289,10 @@ module MemberMismatch {
     lemma L()
     twostate lemma K()
 
-    inductive predicate P()
-    copredicate Q()
-    inductive lemma R()
-    colemma S()
+    least predicate P()
+    greatest predicate Q()
+    least lemma R()
+    greatest lemma S()
   }
 
   class SwitchGhostStatus extends AAA {
@@ -305,10 +305,10 @@ module MemberMismatch {
     lemma L()
     twostate lemma K()
 
-    inductive predicate P()
-    copredicate Q()
-    inductive lemma R()
-    colemma S()
+    least predicate P()
+    greatest predicate Q()
+    least lemma R()
+    greatest lemma S()
   }
 
   class SwitchLemma extends AAA {
@@ -321,10 +321,10 @@ module MemberMismatch {
     ghost method L()  // error: lemma vs ghost method
     twostate lemma K()
 
-    inductive predicate P()
-    copredicate Q()
-    inductive lemma R()
-    colemma S()
+    least predicate P()
+    greatest predicate Q()
+    least lemma R()
+    greatest lemma S()
   }
 
   class SwitchTwoState extends AAA {
@@ -337,10 +337,10 @@ module MemberMismatch {
     twostate lemma L()  // error: lemma vs twostate
     lemma K()  // error: lemma vs twostate
 
-    inductive predicate P()
-    copredicate Q()
-    inductive lemma R()
-    colemma S()
+    least predicate P()
+    greatest predicate Q()
+    least lemma R()
+    greatest lemma S()
   }
 
   class SwitchExtreme0 extends AAA {
@@ -353,10 +353,10 @@ module MemberMismatch {
     lemma L()
     twostate lemma K()
 
-    copredicate P()  // error: coind. vs ind.
-    inductive predicate Q()  // error: coind. vs ind.
-    colemma R()  // error: coind. vs ind.
-    inductive lemma S()  // error: coind. vs ind.
+    greatest predicate P()  // error: least vs greatest
+    least predicate Q()  // error: least vs greatest
+    greatest lemma R()  // error: least vs greatest
+    least lemma S()  // error: least vs greatest
   }
 
   class SwitchExtreme1 extends AAA {
@@ -366,7 +366,7 @@ module MemberMismatch {
 
     method M()
     ghost method N()
-    inductive lemma L()  // error: extreme lemma vs lemma
+    least lemma L()  // error: extreme lemma vs lemma
     twostate lemma K()
 
     predicate P()  // error: extreme predicate vs predicate
@@ -395,40 +395,40 @@ module PredicateFunctionBool {
 
 module ExtremeKMismatch {
   trait AAA {
-    inductive predicate P()
-    inductive predicate Q[nat]()
-    inductive predicate R[ORDINAL]()
+    least predicate P()
+    least predicate Q[nat]()
+    least predicate R[ORDINAL]()
 
-    inductive lemma K()
-    inductive lemma L[nat]()
-    inductive lemma M[ORDINAL]()
+    least lemma K()
+    least lemma L[nat]()
+    least lemma M[ORDINAL]()
   }
   class C0 extends AAA {
-    inductive predicate P()
-    inductive predicate Q()  // error: nat vs ORDINAL
-    inductive predicate R()
+    least predicate P()
+    least predicate Q()  // error: nat vs ORDINAL
+    least predicate R()
 
-    inductive lemma K()
-    inductive lemma L()  // error: nat vs ORDINAL
-    inductive lemma M()
+    least lemma K()
+    least lemma L()  // error: nat vs ORDINAL
+    least lemma M()
   }
   class C1 extends AAA {
-    inductive predicate P[nat]()  // error: nat vs ORDINAL
-    inductive predicate Q[nat]()
-    inductive predicate R[nat]()  // error: nat vs ORDINAL
+    least predicate P[nat]()  // error: nat vs ORDINAL
+    least predicate Q[nat]()
+    least predicate R[nat]()  // error: nat vs ORDINAL
 
-    inductive lemma K[nat]()  // error: nat vs ORDINAL
-    inductive lemma L[nat]()
-    inductive lemma M[nat]()  // error: nat vs ORDINAL
+    least lemma K[nat]()  // error: nat vs ORDINAL
+    least lemma L[nat]()
+    least lemma M[nat]()  // error: nat vs ORDINAL
   }
   class C2 extends AAA {
-    inductive predicate P[ORDINAL]()
-    inductive predicate Q[ORDINAL]()  // error: nat vs ORDINAL
-    inductive predicate R[ORDINAL]()
+    least predicate P[ORDINAL]()
+    least predicate Q[ORDINAL]()  // error: nat vs ORDINAL
+    least predicate R[ORDINAL]()
 
-    inductive lemma K[ORDINAL]()
-    inductive lemma L[ORDINAL]()  // error: nat vs ORDINAL
-    inductive lemma M[ORDINAL]()
+    least lemma K[ORDINAL]()
+    least lemma L[ORDINAL]()  // error: nat vs ORDINAL
+    least lemma M[ORDINAL]()
   }
 }
 
@@ -466,4 +466,81 @@ module ImporterOfProvidingModule {
     ghost var b := k.N;
     ghost var c := d.N;
   }
+}
+
+module NeedForConstructors {
+  trait Tr<X> {
+    var w: X
+  }
+
+  class AAA<Y> extends Tr<(Y,Y)> {  // error: AAA must declare a constructor, since w has type (Y,Y)
+  }
+
+  codatatype Forever = More(Forever)
+
+  class BBB extends Tr<Forever> {  // error: BBB must declare a constructor, since w has type Forever
+  }
+
+  class CCC<Y(0)> extends Tr<(Y,Y)> {
+  }
+}
+
+module TypeCharacteristicsDiscrepancies {
+  trait RequiresZero<X(0)> {
+    var x: X
+  }
+
+  class ClassRequiresZero<Y(0)> {
+  }
+
+  codatatype Forever = More(Forever)
+
+  function method AlwaysMore(): Forever {
+    More(AlwaysMore())
+  }
+
+  method M0() {
+    var c0 := new ClassRequiresZero<int>;
+    var c1 := new ClassRequiresZero<Forever>;  // error: cannot instantiate Y(0) with Forever
+  }
+
+  method M1(c0: ClassRequiresZero<int>, c1: ClassRequiresZero<Forever>) {  // error: cannot instantiate Y(0) with Forever
+  }
+
+  class HasZero0 extends RequiresZero<int> { }
+  class HasZero1<Y(0)> extends RequiresZero<Y> { }
+  class HasZero2<Y(0)> extends RequiresZero<(Y,Y)> { }
+  class NoZero0 extends RequiresZero<Forever> {  // error: cannot instantiate X(0) with Forever
+    constructor () {
+      x := AlwaysMore();
+    }
+  }
+  class NoZero1<Y> extends RequiresZero<Y> {  // error: cannot instantiate X(0) with Y
+    constructor (y: Y) {
+      x := y;
+    }
+  }
+  class NoZero2<Y> extends RequiresZero<(Y,Y)> {  // error: cannot instantiate X(0) with (Y,Y)
+    constructor (y: Y) {
+      x := (y, y);
+    }
+  }
+
+  class ClassWithFields<X> {
+    var s: set<X>  // error: argument to set is required to support equality
+  }
+
+  trait AnythingGoes<X> {
+  }
+
+  class InnerError0 extends AnythingGoes<set<Forever>> { }  // error: set parameter must support (==)
+  class InnerError1 extends AnythingGoes<RequiresZero<Forever>> { }  // error: RequiresZero parameter must support (0)
+  class InnerError2 extends AnythingGoes<RequiresZero?<Forever>> { }  // error: RequiresZero? parameter must support (0)
+}
+
+module ExtendObject {
+  trait A extends object { }
+  trait B extends object? { }   // error: should say, object, not object?
+  class C extends object { }
+  class D extends object? { }   // error: should say, object, not object?
 }

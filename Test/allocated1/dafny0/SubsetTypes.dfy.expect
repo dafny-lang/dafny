@@ -391,5 +391,13 @@ Execution trace:
 SubsetTypes.dfy(455,9): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
+SubsetTypes.dfy(465,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+SubsetTypes.dfy(467,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
 
-Dafny program verifier finished with 10 verified, 103 errors
+Dafny program verifier finished with 13 verified, 105 errors
