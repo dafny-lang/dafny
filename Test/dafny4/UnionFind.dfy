@@ -8,7 +8,12 @@ abstract module M0 {
 
   class {:autocontracts} UnionFind {
     ghost var M: map<Element, Element>
-    protected predicate Valid()
+    predicate Valid() {
+      ValidM1()
+    }
+    predicate {:autocontracts false} ValidM1()
+      reads this, Repr
+      ensures M == map[] ==> ValidM1()
 
     constructor ()
       ensures M == map[]
@@ -47,7 +52,7 @@ abstract module M1 refines M0 {
   }
 
   class UnionFind {
-    protected predicate Valid...
+    predicate ValidM1()
     {
       M.Keys <= Repr &&
       (forall e :: e in M ==> M[e] in M && M[M[e]] == M[e]) &&
