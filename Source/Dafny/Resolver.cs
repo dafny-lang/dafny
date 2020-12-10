@@ -11999,12 +11999,16 @@ namespace Microsoft.Dafny
       } else if (s.Rhs is ApplySuffix asx) {
         ResolveApplySuffix(asx, new ResolveOpts(codeContext, true), true);
         if (asx.Lhs is NameSegment lhname) {
-          call = (lhname.ResolvedExpression as MemberSelectExpr).Member as Method;
-          if (call.Outs.Count != 0) {
-            firstType = call.Outs[0].Type;
-          } else {
-            reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
-              call.Name);
+          if (lhname.ResolvedExpression is MemberSelectExpr) {
+            call = (lhname.ResolvedExpression as MemberSelectExpr).Member as Method;
+            if (call.Outs.Count != 0) {
+              firstType = call.Outs[0].Type;
+            } else {
+              reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
+                call.Name);
+            }
+          } else if (lhname.ResolvedExpression is DatatypeValue dv) {
+            firstType = dv.Type;
           }
         } else if (asx.Lhs is ExprDotName dotname) {
           Type ty = PartiallyResolveTypeForMemberSelection(dotname.tok, dotname.Type);
