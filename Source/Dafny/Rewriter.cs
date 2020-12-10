@@ -422,7 +422,7 @@ namespace Microsoft.Dafny
   /// be added.
   ///
   /// For every constructor, add:
-  ///    ensures Valid() && fresh(Repr - {this})
+  ///    ensures Valid() && fresh(Repr)
   /// At the end of the body of the constructor, add:
   ///    Repr := {this};
   ///    if (A != null) { Repr := Repr + {A}; }
@@ -529,10 +529,9 @@ namespace Microsoft.Dafny
           // ensures Valid();
           var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>());
           ctor.Ens.Insert(0, new AttributedExpression(valid));
-          // ensures fresh(Repr - {this});
-          var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh, new BinaryExpr(tok, BinaryExpr.Opcode.Sub,
-            new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"),
-            new SetDisplayExpr(tok, true, new List<Expression>() { new ThisExpr(tok) })));
+          // ensures fresh(Repr);
+          var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh,
+            new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"));
           ctor.Ens.Insert(1, new AttributedExpression(freshness));
           var m0 = new ThisExpr(tok);
           AddHoverText(member.tok, "modifies {0}\nensures {1} && {2}", m0, valid, freshness);
