@@ -14972,6 +14972,8 @@ namespace Microsoft.Dafny
     ///     (Language design note:  If the constructor name is ambiguous or if one of the steps above takes priority, one can qualify the constructor name with the name of the datatype)
     ///  3. Member of the enclosing module (type name or the name of a module)
     ///  4. Static function or method in the enclosing module or its imports
+    ///  5. If !isLastNameSegment:
+    ///     Unambiguous constructor name of a datatype in the enclosing module
     ///
     /// </summary>
     /// <param name="expr"></param>
@@ -15003,7 +15005,7 @@ namespace Microsoft.Dafny
       Dictionary<string, MemberDecl> members;
       // For 1 and 4:
       MemberDecl member = null;
-      // For 2:
+      // For 2 and 5:
       Tuple<DatatypeCtor, bool> pair;
       // For 3:
       TopLevelDecl decl;
@@ -15042,35 +15044,8 @@ namespace Microsoft.Dafny
         r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
         // ----- 2. datatype constructor
-        if (pair.Item2) {
-          // there is more than one constructor with this name
-          if (complain) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", expr.Name, pair.Item1.EnclosingDatatype.Name);
-          } else {
-            expr.ResolvedExpression = null;
-            return null;
-          }
-        } else {
-          if (expr.OptTypeArguments != null) {
-            if (complain) {
-              reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
-            } else {
-              expr.ResolvedExpression = null;
-              return null;
-            }
-          }
-          var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<Expression>());
-          bool ok = ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype, null, complain);
-          if (!ok) {
-            expr.ResolvedExpression = null;
-            return null;
-          }
-          if (args == null) {
-            r = rr;
-          } else {
-            r = rr;  // this doesn't really matter, since we're returning an "rWithArgs" (but if would have been proper to have returned the ctor as a lambda)
-            rWithArgs = rr;
-          }
+        if (ResolveDatatypeConstructor(expr, args, opts, complain, pair, name, ref r, ref rWithArgs)) {
+          return null;
         }
       } else if (moduleInfo.TopLevels.TryGetValue(name, out decl)) {
         // ----- 3. Member of the enclosing module
@@ -15118,6 +15093,12 @@ namespace Microsoft.Dafny
           r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
         }
 
+      } else if (!isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
+        // ----- 5. datatype constructor
+        if (ResolveDatatypeConstructor(expr, args, opts, complain, pair, name, ref r, ref rWithArgs)) {
+          return null;
+        }
+
       } else {
         // ----- None of the above
         if (complain) {
@@ -15138,6 +15119,44 @@ namespace Microsoft.Dafny
         expr.Type = nt;
       }
       return rWithArgs;
+    }
+
+    private bool ResolveDatatypeConstructor(NameSegment expr, List<Expression>/*?*/ args, ResolveOpts opts, bool complain, Tuple<DatatypeCtor, bool> pair, string name, ref Expression r, ref Expression rWithArgs) {
+      Contract.Requires(expr != null);
+      Contract.Requires(opts != null);
+
+      if (pair.Item2) {
+        // there is more than one constructor with this name
+        if (complain) {
+          reporter.Error(MessageSource.Resolver, expr.tok, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", expr.Name,
+            pair.Item1.EnclosingDatatype.Name);
+        } else {
+          expr.ResolvedExpression = null;
+          return true;
+        }
+      } else {
+        if (expr.OptTypeArguments != null) {
+          if (complain) {
+            reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
+          } else {
+            expr.ResolvedExpression = null;
+            return true;
+          }
+        }
+        var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<Expression>());
+        bool ok = ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype, null, complain);
+        if (!ok) {
+          expr.ResolvedExpression = null;
+          return true;
+        }
+        if (args == null) {
+          r = rr;
+        } else {
+          r = rr; // this doesn't really matter, since we're returning an "rWithArgs" (but if would have been proper to have returned the ctor as a lambda)
+          rWithArgs = rr;
+        }
+      }
+      return false;
     }
 
     /// <summary>
