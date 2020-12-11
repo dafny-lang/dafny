@@ -12,6 +12,7 @@ class ExtensibleArray<T> {
 
   predicate Valid()
     reads this, Repr
+    ensures Valid() ==> this in Repr
   {
     // shape of data structure
     this in Repr && null !in Repr &&

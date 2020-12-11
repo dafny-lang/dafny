@@ -81,6 +81,7 @@ class Node {
   ghost var Repr: set<Node?>
   predicate Valid()
     reads this, Repr
+    ensures Valid() ==> this in Repr
   {
     this in Repr &&
     (next != null ==> next in Repr && next.Repr <= Repr && this !in next.Repr && next.Valid())

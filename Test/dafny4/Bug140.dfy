@@ -10,6 +10,7 @@ class Node<T> {
 
   predicate Valid()
     reads this, Repr
+    ensures Valid() ==> this in Repr
   {
     this in Repr &&
     (next == null ==> List == [data]) &&

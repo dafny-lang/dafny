@@ -9,6 +9,7 @@ class IntSet {
 
   predicate Valid()
     reads this, Repr
+    ensures Valid() ==> this in Repr
   {
     this in Repr &&
     (root == null ==> Contents == {}) &&
@@ -107,6 +108,7 @@ class Node {
 
   predicate Valid()
     reads this, Repr
+    ensures Valid() ==> this in Repr
   {
     this in Repr &&
     (left != null ==>

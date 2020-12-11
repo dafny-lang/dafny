@@ -17,6 +17,7 @@ class Map<Key(==),Value> {
 
   predicate Valid()
     reads this, Repr
+    ensures Valid() ==> this in Repr
   {
     this in Repr && Spine <= Repr &&
     SpineValid(Spine, head) &&
