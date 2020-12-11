@@ -759,7 +759,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(cl.NonNullTypeDecl != null);
               Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
             } else {
-              Contract.Assert(rtd is OpaqueTypeDecl);
+              Contract.Assert(rtd is NonNullTypeDecl | rtd is OpaqueTypeDecl);
             }
           }
 
