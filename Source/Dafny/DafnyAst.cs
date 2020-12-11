@@ -789,9 +789,14 @@ namespace Microsoft.Dafny {
             if (rc is ClassDecl cl) {
               Contract.Assert(cl.NonNullTypeDecl != null);
               Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
+            } else if (rc is NonNullTypeDecl) {
+              // OK
+            } else if (rc is OpaqueTypeDecl) {
+              // OK
+            } else {
+              Contract.Assert(false);
             }
           }
-
           if (isyn.IsRevealedInScope(scope)) {
             type = isyn.RhsWithArgument(udt.TypeArgs);
             continue;
