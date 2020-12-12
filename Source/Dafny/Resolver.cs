@@ -2134,8 +2134,7 @@ namespace Microsoft.Dafny
       // the parent module to have any names that might come in through refines.
       // However the parent refines will lready have been fully refined.
       ModuleDefinition par = parent;
-      TopLevelDecl thisImport = null;
-      thisImport = par.TopLevelDecls.FirstOrDefault(t => t.Name == Path[0].val && t != alias);
+      TopLevelDecl thisImport = par.TopLevelDecls.FirstOrDefault(t => t.Name == Path[0].val && t != alias);
       if (thisImport == null) {
         LiteralModuleDecl md = par.RefinementBaseRoot as LiteralModuleDecl;
         if (md != null) {
