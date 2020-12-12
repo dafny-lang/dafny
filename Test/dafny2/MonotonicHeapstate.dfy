@@ -14,6 +14,7 @@ module M0 {
 
     predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
     {
       Core() &&
       Valid'()
