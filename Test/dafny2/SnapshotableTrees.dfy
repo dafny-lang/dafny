@@ -287,7 +287,7 @@ module SnapTree {
     }
 
     constructor Init(x: int)
-      ensures NodeValid() && fresh(Repr - {this})
+      ensures NodeValid() && fresh(Repr)
       ensures Contents == [x]
     {
       Contents := [x];
@@ -305,10 +305,10 @@ module SnapTree {
       requires left != null && right != null ==> left.Repr !! right.Repr
       ensures NodeValid()
       ensures Contents == CombineSplit(left, x, right)
-      ensures left == null && right == null ==> fresh(Repr - {this})
-      ensures left != null && right == null ==> fresh(Repr - {this} - left.Repr)
-      ensures left == null && right != null ==> fresh(Repr - {this} - right.Repr)
-      ensures left != null && right != null ==> fresh(Repr - {this} - left.Repr - right.Repr)
+      ensures left == null && right == null ==> fresh(Repr)
+      ensures left != null && right == null ==> fresh(Repr - left.Repr)
+      ensures left == null && right != null ==> fresh(Repr - right.Repr)
+      ensures left != null && right != null ==> fresh(Repr - left.Repr - right.Repr)
     {
       Contents := [x];
       Repr := {this};
@@ -521,7 +521,7 @@ module SnapTree {
 
     constructor Init(t: Tree)
       requires t.Valid()
-      ensures Valid() && fresh(IterRepr - {this})
+      ensures Valid() && fresh(IterRepr)
       ensures T == t && Contents == t.Contents && N == -1
     {
       new;

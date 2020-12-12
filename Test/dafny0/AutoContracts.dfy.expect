@@ -132,6 +132,7 @@ module OneModule {
 
     predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
       decreases Repr + {this}
     {
       this in Repr &&
@@ -152,6 +153,7 @@ module OneModule {
 
     predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
       decreases Repr + {this}
     {
       this in Repr &&
@@ -173,7 +175,7 @@ module OneModule {
 
     constructor ()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
     {
       data := 0;
       new;
@@ -281,15 +283,15 @@ module N0 {
   class {:autocontracts} C {
     constructor X()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
 
     constructor Y()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
 
     constructor Z()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
     {
       new;
       Repr := {this};
@@ -317,6 +319,7 @@ module N0 {
 
     predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
       decreases Repr + {this}
     {
       this in Repr &&
@@ -374,17 +377,17 @@ module N1 refines N0 {
   class {:autocontracts} C {
     constructor X()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
 
     constructor Y()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
     {
     }
 
     constructor Z()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
     {
       new;
       Repr := {this};
@@ -433,6 +436,7 @@ module N1 refines N0 {
 
     predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
       decreases Repr + {this}
     {
       this in Repr &&
@@ -473,17 +477,17 @@ module N2 refines N1 {
   class {:autocontracts} C {
     constructor X()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
 
     constructor Y()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
     {
     }
 
     constructor Z()
       ensures Valid()
-      ensures fresh(Repr - {this})
+      ensures fresh(Repr)
     {
       new;
       Repr := {this};
@@ -532,6 +536,7 @@ module N2 refines N1 {
 
     predicate Valid()
       reads this, Repr
+      ensures Valid() ==> this in Repr
       decreases Repr + {this}
     {
       this in Repr &&
