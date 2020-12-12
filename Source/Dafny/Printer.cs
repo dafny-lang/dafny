@@ -483,9 +483,6 @@ namespace Microsoft.Dafny {
       if (module.IsAbstract) {
         wr.Write("abstract ");
       }
-      if (module.IsProtected) {
-        wr.Write("protected ");
-      }
       wr.Write("module");
       PrintAttributes(module.Attributes);
       wr.Write(" ");
@@ -828,7 +825,6 @@ namespace Microsoft.Dafny {
       var isPredicate = f is Predicate || f is PrefixPredicate;
       Indent(indent);
       string k = isPredicate ? "predicate" : f.WhatKind;
-      if (f.IsProtected) { k = "protected " + k; }
       if (f.HasStaticKeyword) { k = "static " + k; }
       if (!f.IsGhost) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);

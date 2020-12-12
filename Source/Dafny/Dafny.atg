@@ -41,8 +41,6 @@ struct DeclModifierData {
   public IToken GhostToken;
   public bool IsStatic;
   public IToken StaticToken;
-  public bool IsProtected;
-  public IToken ProtectedToken;
 }
 
 // Check that token has not been set, then set it.
@@ -66,7 +64,6 @@ enum AllowedDeclModifiers {
   // Means ghost not allowed because already implicitly ghost.
   AlreadyGhost = 4,
   Static = 8,
-  Protected = 16,
 };
 
 /// <summary>
@@ -96,10 +93,6 @@ void CheckDeclModifiers(DeclModifierData dmod, string declCaption, AllowedDeclMo
   if (dmod.IsStatic && ((allowed & AllowedDeclModifiers.Static) == 0)) {
     SemErr(dmod.StaticToken, $"{declCaption} cannot be declared 'static'.");
     dmod.IsStatic = false;
-  }
-  if (dmod.IsProtected && ((allowed & AllowedDeclModifiers.Protected) == 0)) {
-    SemErr(dmod.ProtectedToken, $"{declCaption} cannot be declared 'protected'.");
-    dmod.IsProtected = false;
   }
 }
 
@@ -510,7 +503,6 @@ bool IsGenericInstantiation(bool inExpressionContext) {
     case _copredicate:
     case _ghost:
     case _static:
-    case _protected:
     case _import:
     case _export:
     case _class:
@@ -777,7 +769,6 @@ TOKENS
   copredicate = "copredicate".
   lemma = "lemma".
   static = "static".
-  protected = "protected".
   import = "import".
   export = "export".
   class = "class".
@@ -864,7 +855,14 @@ DeclModifier<ref DeclModifierData dmod>
 = ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); .)
   | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); .)
   | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); .)
-  | "protected"                            (. dmod.IsProtected = true; CheckAndSetToken(ref dmod.ProtectedToken); .)
+  | "protected"
+    (. errors.Deprecated(t,
+         "the 'protected' modifier is no longer supported; " +
+         "to restrict access from outside the module, use a 'provides' clause in the module's export set; " +
+         "if you're trying to add conjuncts to a predicate in a refinement module, see " +
+         "Test/dafny3/CachedContainer.dfy, Test/dafny2/StoreAndRetrieve.dfy, and Test/dafny2/MonotonicHeapstate.dfy " +
+         "in the Dafny test suite on github");
+    .)
   )
   .
 
@@ -899,9 +897,8 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
      ModuleDefinition module;
      submodule = null; // appease compiler
      bool isAbstract = dmod.IsAbstract;
-     bool isProtected = dmod.IsProtected;
      bool opened = false;
-     CheckDeclModifiers(dmod, "module", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Protected);
+     CheckDeclModifiers(dmod, "module", AllowedDeclModifiers.Abstract);
   .)
   ( "module"
     { Attribute<ref attrs> }
@@ -910,7 +907,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       "." NoUSIdent<out id>
     }
     [ "refines" ModuleName<out idRefined> ]
-    (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, isProtected, false, idRefined, parent, attrs,
+    (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, false, idRefined, parent, attrs,
                                       false, theVerifyThisFile, theCompileThisFile);
     .)
     "{"                                 (. module.BodyStartTok = t; .)
@@ -1514,14 +1511,12 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   ( "method"                        (. isPlainOlMethod = true; caption = "method";
                                        allowed = AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static; .)
   | "lemma"                         (. isLemma = true; caption = "lemma";
-                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
-                                         | AllowedDeclModifiers.Protected; .)
+                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
   | ( "greatest" "lemma"
     | "colemma"                     (. errors.Deprecated(t, "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); .)
     )
                                     (. isGreatestLemma = true; caption = "greatest lemma";
-                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
-                                         | AllowedDeclModifiers.Protected; .)
+                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
   | ( "least"
     | "inductive"                   (. errors.Deprecated(t, "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); .)
     )
@@ -1529,8 +1524,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
                                     (. isLeastLemma = true;  caption = "least lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;.)
   | "twostate" "lemma"              (. isTwoStateLemma = true; caption = "two-state lemma";
-                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
-                                         | AllowedDeclModifiers.Protected; .)
+                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
   | "constructor"                   (. if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
@@ -1884,7 +1878,6 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
                                .)
     ]
     (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
-       if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
        string caption = "function";
        if (isFunctionMethod) {
          caption = "function method";
@@ -1922,7 +1915,6 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
                                .)
     ]
     (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
-       if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
        string caption = "predicate";
        if (isFunctionMethod) {
          caption = "predicate method";
@@ -1949,7 +1941,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     "predicate"
     (. isLeastPredicate = true;
        CheckDeclModifiers(dmod, "least predicate",
-         AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected);
+         AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static);
     .)
     { Attribute<ref attrs> }
     FuMe_Ident<out id>
@@ -1970,7 +1962,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     )
     (. isGreatestPredicate = true;
        CheckDeclModifiers(dmod, "greatest predicate",
-         AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected);
+         AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static);
     .)
     { Attribute<ref attrs> }
     NoUSIdent<out id>
@@ -2000,16 +1992,16 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
         f = new TwoStateFunction(tok, id.val, dmod.IsStatic, typeArgs, formals, result, returnType,
                                  reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
-        f = new Predicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals,
+        f = new Predicate(tok, id.val, dmod.IsStatic, !isFunctionMethod, typeArgs, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
-        f = new LeastPredicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, kType, typeArgs, formals,
+        f = new LeastPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals,
                                reqs, reads, ens, body, attrs, signatureEllipsis);
      } else if (isGreatestPredicate) {
-        f = new GreatestPredicate(tok, id.val, dmod.IsStatic, dmod.IsProtected, kType, typeArgs, formals,
+        f = new GreatestPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals,
                                   reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
-        f = new Function(tok, id.val, dmod.IsStatic, dmod.IsProtected, !isFunctionMethod, typeArgs, formals, result, returnType,
+        f = new Function(tok, id.val, dmod.IsStatic, !isFunctionMethod, typeArgs, formals, result, returnType,
                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      }
      f.BodyStartTok = bodyStart;

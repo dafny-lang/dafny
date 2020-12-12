@@ -2,9 +2,13 @@
 // RUN: %diff "%s.expect" "%t"
 
 module Library {
+  export
+    reveals F, G
+    provides H
+
   function F(): int { 5 }
   function {:opaque} G(): int { 5 }
-  protected function H(): int { 5 }
+  function H(): int { 5 }
 
   lemma L0() {
     assert F() == 5;
@@ -52,6 +56,6 @@ module Client {
     assert Lib.G() == 5;  // yes, the definition has been revealed
   }
   lemma L2() {
-    assert Lib.H() == 5;  // error: H() is protected, so its definition is not available
+    assert Lib.H() == 5;  // error: H() is only provided, so its definition is not available
   }
 }
