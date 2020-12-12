@@ -106,7 +106,7 @@ namespace Microsoft.Dafny {
 
   public class BuiltIns
   {
-    public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", new List<IToken>(), false, false, false, null, null, null, true, true, true);
+    public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", new List<IToken>(), false, false, null, null, null, true, true, true);
     readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
     public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
     public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
@@ -215,12 +215,12 @@ namespace Microsoft.Dafny {
           Type = new SetType(true, ObjectQ()),
         };
         var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
-        var req = new Function(tok, "requires", false, false, true,
+        var req = new Function(tok, "requires", false, true,
           new List<TypeParameter>(), args, null, Type.Bool,
           new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
           new Specification<Expression>(new List<Expression>(), null),
           null, null, null);
-        var reads = new Function(tok, "reads", false, false, true,
+        var reads = new Function(tok, "reads", false, true,
           new List<TypeParameter>(), args, null, new SetType(true, ObjectQ()),
           new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
           new Specification<Expression>(new List<Expression>(), null),
@@ -3727,7 +3727,6 @@ namespace Microsoft.Dafny {
     public readonly Graph<ICallable> CallGraph = new Graph<ICallable>();  // filled in during resolution
     public int Height;  // height in the topological sorting of modules; filled in during resolution
     public readonly bool IsAbstract;
-    public readonly bool IsProtected;
     public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
     private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
     public readonly bool IsToBeVerified;
@@ -3772,7 +3771,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(CallGraph != null);
     }
 
-    public ModuleDefinition(IToken tok, string name, List<IToken> prefixIds, bool isAbstract, bool isProtected, bool isFacade, IToken refinementBase, ModuleDefinition parent, Attributes attributes, bool isBuiltinName, bool isToBeVerified, bool isToBeCompiled)
+    public ModuleDefinition(IToken tok, string name, List<IToken> prefixIds, bool isAbstract, bool isFacade, IToken refinementBase, ModuleDefinition parent, Attributes attributes, bool isBuiltinName,
+      bool isToBeVerified, bool isToBeCompiled)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -3783,7 +3783,6 @@ namespace Microsoft.Dafny {
       this.Module = parent;
       RefinementBaseName = refinementBase;
       IsAbstract = isAbstract;
-      IsProtected = isProtected;
       IsFacade = isFacade;
       RefinementBaseRoot = null;
       this.refinementBase = null;
@@ -4013,7 +4012,7 @@ namespace Microsoft.Dafny {
 
   public class DefaultModuleDecl : ModuleDefinition {
     public DefaultModuleDecl()
-      : base(Token.NoToken, "_module", new List<IToken>(), false, false, false, null, null, null, true, true, true) {
+      : base(Token.NoToken, "_module", new List<IToken>(), false, false, null, null, null, true, true, true) {
     }
     public override bool IsDefaultModule {
       get {
@@ -5000,11 +4999,11 @@ namespace Microsoft.Dafny {
   public class SpecialFunction : Function, ICodeContext, ICallable
   {
     readonly ModuleDefinition Module;
-    public SpecialFunction(IToken tok, string name, ModuleDefinition module, bool hasStaticKeyword, bool isProtected, bool isGhost,
-                    List<TypeParameter> typeArgs, List<Formal> formals, Type resultType,
-                    List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-                    Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isProtected, isGhost, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, attributes, signatureEllipsis)
+    public SpecialFunction(IToken tok, string name, ModuleDefinition module, bool hasStaticKeyword, bool isGhost,
+      List<TypeParameter> typeArgs, List<Formal> formals, Type resultType,
+      List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
+      Expression body, Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, attributes, signatureEllipsis)
     {
       Module = module;
     }
@@ -5885,7 +5884,6 @@ namespace Microsoft.Dafny {
   public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     public override string WhatKind { get { return "function"; } }
     public override bool CanBeRevealed() { return true; }
-    public readonly bool IsProtected;
     public bool IsRecursive;  // filled in during resolution
     public TailStatus TailRecursion = TailStatus.NotTailRecursive;  // filled in during resolution; NotTailRecursive = no tail recursion; TriviallyTailRecursive is never used here
     public bool IsTailRecursive => TailRecursion != TailStatus.NotTailRecursive;
@@ -5992,10 +5990,10 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Note, functions are "ghost" by default; a non-ghost function is called a "function method".
     /// </summary>
-    public Function(IToken tok, string name, bool hasStaticKeyword, bool isProtected, bool isGhost,
-                    List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
-                    List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-                    Expression body, Attributes attributes, IToken signatureEllipsis)
+    public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
+      List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
+      List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
+      Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isGhost, attributes) {
 
       Contract.Requires(tok != null);
@@ -6007,7 +6005,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(reads));
       Contract.Requires(cce.NonNullElements(ens));
       Contract.Requires(decreases != null);
-      this.IsProtected = isProtected;
       this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
       this.TypeArgs = typeArgs;
       this.Formals = formals;
@@ -6077,11 +6074,11 @@ namespace Microsoft.Dafny {
       Extension  // this predicate extends the definition of a predicate with a body in a module being refined
     }
     public readonly BodyOriginKind BodyOrigin;
-    public Predicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, bool isGhost,
-                     List<TypeParameter> typeArgs, List<Formal> formals,
-                     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-                     Expression body, BodyOriginKind bodyOrigin, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isProtected, isGhost, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
+    public Predicate(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
+      List<TypeParameter> typeArgs, List<Formal> formals,
+      List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
+      Expression body, BodyOriginKind bodyOrigin, Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(bodyOrigin == Predicate.BodyOriginKind.OriginalOrInherited || body != null);
       BodyOrigin = bodyOrigin;
     }
@@ -6095,11 +6092,11 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "prefix predicate"; } }
     public readonly Formal K;
     public readonly ExtremePredicate ExtremePred;
-    public PrefixPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
-                     List<TypeParameter> typeArgs, Formal k, List<Formal> formals,
-                     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-                     Expression body, Attributes attributes, ExtremePredicate extremePred)
-      : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, null) {
+    public PrefixPredicate(IToken tok, string name, bool hasStaticKeyword,
+      List<TypeParameter> typeArgs, Formal k, List<Formal> formals,
+      List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
+      Expression body, Attributes attributes, ExtremePredicate extremePred)
+      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
       Contract.Requires(extremePred != null);
       Contract.Requires(formals != null && 1 <= formals.Count && formals[0] == k);
@@ -6120,11 +6117,11 @@ namespace Microsoft.Dafny {
     public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // filled in during resolution, used by verifier
     public PrefixPredicate PrefixPredicate;  // filled in during resolution (name registration)
 
-    public ExtremePredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
-                             List<TypeParameter> typeArgs, List<Formal> formals,
-                             List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
-                             Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, null, Type.Bool,
+    public ExtremePredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
+      List<TypeParameter> typeArgs, List<Formal> formals,
+      List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
+      Expression body, Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, null, Type.Bool,
              req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, attributes, signatureEllipsis) {
       TypeOfK = typeOfK;
     }
@@ -6154,11 +6151,11 @@ namespace Microsoft.Dafny {
   public class LeastPredicate : ExtremePredicate
   {
     public override string WhatKind { get { return "least predicate"; } }
-    public LeastPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
-                              List<TypeParameter> typeArgs, List<Formal> formals,
-                              List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
-                              Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isProtected, typeOfK, typeArgs, formals,
+    public LeastPredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
+      List<TypeParameter> typeArgs, List<Formal> formals,
+      List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
+      Expression body, Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals,
              req, reads, ens, body, attributes, signatureEllipsis) {
     }
   }
@@ -6166,11 +6163,11 @@ namespace Microsoft.Dafny {
   public class GreatestPredicate : ExtremePredicate
   {
     public override string WhatKind { get { return "greatest predicate"; } }
-    public GreatestPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
-                       List<TypeParameter> typeArgs, List<Formal> formals,
-                       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
-                       Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isProtected, typeOfK, typeArgs, formals,
+    public GreatestPredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
+      List<TypeParameter> typeArgs, List<Formal> formals,
+      List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
+      Expression body, Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, formals,
              req, reads, ens, body, attributes, signatureEllipsis) {
     }
   }
@@ -6182,7 +6179,7 @@ namespace Microsoft.Dafny {
                      List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
                      List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
                      Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, false, true, typeArgs, formals, result, resultType, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, result, resultType, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);

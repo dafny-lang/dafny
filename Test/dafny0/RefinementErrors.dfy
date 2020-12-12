@@ -97,11 +97,11 @@ module Forall1 refines Forall0 {
   }
 }
 
-protected module CannotRefine {
+module FineToRefine {
   type T
 }
 
-module TryToRefine refines CannotRefine { // error
+module TryToRefine refines FineToRefine {
   type T = int
 }
 

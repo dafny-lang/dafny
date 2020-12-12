@@ -17,13 +17,6 @@ module M0 {
       r := 8;
     }
 
-    protected predicate P(x: int)
-      ensures true;  // this postcondition will not be re-checked in refinements, because it does not mention P itself (or anything else that may change in the refinement)
-      ensures x < 60 ==> P(x);
-    {
-      true
-    }
-
     predicate Q(x: int)
       ensures Q(x) ==> x < 60;  // error: postcondition violation
     {
@@ -45,11 +38,6 @@ module M1 refines M0 {
       if ... {}
       else if (x == y) {}
       else {}
-    }
-
-    protected predicate P...  // error: inherited postcondition 'x < 60 ==> P(x)' is violated by this strengthening of P()
-    {
-      false  // with this strengthening of P(), the postcondition fails (still, note that only one of the postconditions is re-checked)
     }
 
     predicate Q...  // we don't want another error about Q's body here (because it should not be re-checked here)

@@ -63,7 +63,7 @@ explicitly on the command line.
 
 The file name may be a path using the customary `/`, `.`, and `..` specifiers.
 The interpretation of the name (e.g., case-sensitivity) will depend on the
-underlying operating system. A path not beginning with `/` is looked up in 
+underlying operating system. A path not beginning with `/` is looked up in
 the underlying file system relative to the current working directory (the
 one in which the dafny tool is invoked). Paths beginning with a device
 designator (e.g., `C:`) are only permitted on Windows systems.
@@ -82,7 +82,7 @@ TopDecl = { { DeclModifier }
   }
 ````
 Top-level declarations may appear either at the top level of a Dafny file,
-or within a ``SubModuleDecl``. A top-level declaration is one of the 
+or within a ``SubModuleDecl``. A top-level declaration is one of the
 various kinds of declarations described later. Top-level declarations are
 implicitly members of a default (unnamed) top-level module.
 
@@ -98,8 +98,7 @@ the top level cannot be a ``FieldDecl``.
 ## Declaration Modifiers
 ````grammar
 DeclModifier =
-  ( "abstract" | "ghost" | "static" | "protected"
-  | "extern" [ stringToken]
+  ( "abstract" | "ghost" | "static"
   )
 ````
 
@@ -117,13 +116,6 @@ The `static` modifier is used for class members that that
 are associated with the class as a whole rather than with
 an instance of the class.
 
-The `protected` modifier is used to control the visibility of the
-body of functions.
-
-The `extern` modifier is used to alter the CompileName of
-entities. The CompileName is the name for the entity
-when translating to Boogie or a target programming language.
-
 The following table shows modifiers that are available
 for each of the kinds of declaration. In the table
 we use already-ghost (already-non-ghost) to denote that the item is not
@@ -131,26 +123,26 @@ allowed to have the ghost modifier because it is already
 implicitly ghost (non-ghost).
 
 
- Declaration              | allowed modifiers                     
+ Declaration              | allowed modifiers
 --------------------------|---------------------------------------
- module                   | abstract                              
- class                    | extern                                
- trait                    | -                                     
- datatype or codatatype   | -                                     
- field                    | ghost                                 
- newtype                  | -                                     
- synonym types            | -                                     
- iterators                | -                                     
- method                   | ghost static extern                   
- lemma, colemma, comethod | already-ghost static protected        
- inductive lemma          | already-ghost static                  
- constructor              | -                                     
- function (non-method)    | already-ghost static protected        
- function method          | already-non-ghost static protected extern 
- predicate (non-method)   | already-ghost static protected        
- predicate method         | already-non-ghost static protected extern 
- inductive predicate      | already-ghost static protected        
- copredicate              | already-ghost static protected        
+ module                   | abstract
+ class                    | -
+ trait                    | -
+ datatype or codatatype   | -
+ field                    | ghost
+ newtype                  | -
+ synonym types            | -
+ iterators                | -
+ method                   | ghost static
+ lemma, colemma, comethod | already-ghost static
+ inductive lemma          | already-ghost static
+ constructor              | -
+ function (non-method)    | already-ghost static
+ function method          | already-non-ghost static
+ predicate (non-method)   | already-ghost static
+ predicate method         | already-non-ghost static
+ inductive predicate      | already-ghost static
+ copredicate              | already-ghost static
 
 
 
