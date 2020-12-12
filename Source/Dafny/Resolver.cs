@@ -2130,7 +2130,18 @@ namespace Microsoft.Dafny
       }
 
       // Although the module is known, we demand it be imported before we're willing to access it.
-      var thisImport = parent.TopLevelDecls.FirstOrDefault(t => t.Name == Path[0].val && t != alias);
+      // Imports are resolved before their containing module, so we cannot rely on
+      // the parent module to have any names that might come in through refines.
+      // However the parent refines will lready have been fully refined.
+      ModuleDefinition par = parent;
+      TopLevelDecl thisImport = null;
+      thisImport = par.TopLevelDecls.FirstOrDefault(t => t.Name == Path[0].val && t != alias);
+      if (thisImport == null) {
+        LiteralModuleDecl md = par.RefinementBaseRoot as LiteralModuleDecl;
+        if (md != null) {
+          thisImport = md.ModuleDef.TopLevelDecls.FirstOrDefault(t => t.Name == Path[0].val && t != alias);
+        }
+      }
 
       if (thisImport == null || !(thisImport is ModuleDecl)) {
 
