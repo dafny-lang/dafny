@@ -108,13 +108,8 @@ namespace Microsoft.Dafny
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
 
-      if (DafnyOptions.O.PrintVersionAndExit)
-      {
-        Console.WriteLine(CommandLineOptions.Clo.Version);
-        return CommandLineArgumentsResult.OK_EXIT_EARLY;
-      }
-
-      if (CommandLineOptions.Clo.HelpRequested)
+      // If requested, print version number, help, attribute help, etc. and exit.
+      if (DafnyOptions.O.ProcessInfoFlags())
       {
         return CommandLineArgumentsResult.OK_EXIT_EARLY;
       }
@@ -130,10 +125,6 @@ namespace Microsoft.Dafny
           ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: " + errMsg);
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
-      }
-      if (!CommandLineOptions.Clo.DontShowLogo)
-      {
-        Console.WriteLine(CommandLineOptions.Clo.Version);
       }
       if (CommandLineOptions.Clo.ShowEnv == CommandLineOptions.ShowEnvironment.Always)
       {
@@ -439,9 +430,9 @@ namespace Microsoft.Dafny
       {
         case PipelineOutcome.VerificationCompleted:
           WriteStatss(statss);
-          if ((DafnyOptions.O.Compile && verified && CommandLineOptions.Clo.ProcsToCheck == null) || DafnyOptions.O.ForceCompile) {
+          if ((DafnyOptions.O.Compile && verified && !CommandLineOptions.Clo.UserConstrainedProcsToCheck) || DafnyOptions.O.ForceCompile) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
-          } else if ((2 <= DafnyOptions.O.SpillTargetCode && verified && CommandLineOptions.Clo.ProcsToCheck == null) || 3 <= DafnyOptions.O.SpillTargetCode) {
+          } else if ((2 <= DafnyOptions.O.SpillTargetCode && verified && !CommandLineOptions.Clo.UserConstrainedProcsToCheck) || 3 <= DafnyOptions.O.SpillTargetCode) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, false);
           }
           break;
