@@ -1,6 +1,6 @@
 // RUN: %dafny /out:Output/DafnyMain.cs TestAttribute.dfy /compile:0 /spillTargetCode:3 /noVerify
 // RUN: msbuild -t:restore ../DafnyTests.sln
-// RUN: msbuild -t:Test -v:q -noLogo > "%t".raw
+// RUN: msbuild -t:Test -v:q > "%t".raw
 // Remove the absolute file path before the expected error
 // RUN: sed 's/[^:]*://' "%t".raw > "%t"
 // RUN: %diff "%s.expect" "%t"

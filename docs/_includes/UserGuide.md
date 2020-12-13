@@ -239,7 +239,7 @@ exit code.
 
 There are a great many options that control various aspects of verifying dafny programs. Here we mention only a few:
 
-- Control of output: `-nologo`, `-dprint`, `-rprint`, `-stats`, `-compileVerbose`
+- Control of output: `-dprint`, `-rprint`, `-stats`, `-compileVerbose`
 - Whether to print warnings: `-proverWarnings`
 - Control of time: `-timeLimit`
 - Control of the prover used: `-prover`
