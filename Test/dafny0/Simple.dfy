@@ -70,9 +70,9 @@ class CF {
   static function F(): int
   predicate method G()
   greatest predicate Co()
-  protected function H(): int
-  static protected function method I(): real
-  protected static predicate method J()
+  function H(): int
+  static function method I(): real
+  static predicate method J()
 }
 
 // test printing of various if statements, including with omitted guards

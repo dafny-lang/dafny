@@ -80,10 +80,6 @@ namespace Microsoft.Dafny
         RefinedSig = m.RefinementBaseRoot.Signature;
 
         if (RefinedSig.ModuleDef != null) {
-          if (RefinedSig.ModuleDef.IsProtected) {
-            reporter.Error(MessageSource.RefinementTransformer, m.RefinementBaseName, "module ({0}) named as a refinement base is marked protected and cannot be refined", m.RefinementBaseName.val);
-          }
-
           m.RefinementBase = RefinedSig.ModuleDef;
           // check that the openess in the imports between refinement and its base matches
           List<TopLevelDecl> declarations = m.TopLevelDecls;
@@ -410,13 +406,13 @@ namespace Microsoft.Dafny
       }
 
       if (f is Predicate) {
-        return new Predicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals,
+        return new Predicate(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals,
           req, reads, ens, decreases, body, bodyOrigin, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is LeastPredicate) {
-        return new LeastPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, ((LeastPredicate)f).TypeOfK, tps, formals,
+        return new LeastPredicate(tok, f.Name, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is GreatestPredicate) {
-        return new GreatestPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, ((GreatestPredicate)f).TypeOfK, tps, formals,
+        return new GreatestPredicate(tok, f.Name, f.HasStaticKeyword, ((GreatestPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is TwoStatePredicate) {
         return new TwoStatePredicate(tok, f.Name, f.HasStaticKeyword, tps, formals,
@@ -425,7 +421,7 @@ namespace Microsoft.Dafny
         return new TwoStateFunction(tok, f.Name, f.HasStaticKeyword, tps, formals, result, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else {
-        return new Function(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals, result, refinementCloner.CloneType(f.ResultType),
+        return new Function(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals, result, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       }
     }
@@ -609,8 +605,6 @@ namespace Microsoft.Dafny
               (f is TwoStatePredicate) != (member is TwoStatePredicate) ||
               (f is TwoStateFunction) != (member is TwoStateFunction)) {
               reporter.Error(MessageSource.RefinementTransformer, nwMember, "a {0} declaration ({1}) can only refine a {0}", f.WhatKind, nwMember.Name);
-            } else if (f.IsProtected != ((Function)member).IsProtected) {
-              reporter.Error(MessageSource.RefinementTransformer, f, "a {0} in a refinement module must be declared 'protected' if and only if the refined {0} is", f.WhatKind);
             } else {
               var prevFunction = (Function)member;
               if (f.Req.Count != 0) {
@@ -651,13 +645,7 @@ namespace Microsoft.Dafny
               if (prevFunction.Body == null) {
                 replacementBody = f.Body;
               } else if (f.Body != null) {
-                if (isPredicate && f.IsProtected) {
-                  moreBody = f.Body;
-                } else if (isPredicate) {
-                  reporter.Error(MessageSource.RefinementTransformer, nwMember, "a refining predicate is not allowed to extend/change the body unless it is declared 'protected'");
-                } else {
-                  reporter.Error(MessageSource.RefinementTransformer, nwMember, "a refining function is not allowed to extend/change the body");
-                }
+                reporter.Error(MessageSource.RefinementTransformer, nwMember, $"a refining {f.WhatKind} is not allowed to extend/change the body");
               }
               var newF = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, f.Result, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
               newF.RefinementBase = member;

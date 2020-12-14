@@ -9,6 +9,7 @@ class IntSet {
 
   predicate Valid()
     reads this, Repr
+    ensures Valid() ==> this in Repr
   {
     this in Repr &&
     (root == null ==> Contents == {}) &&
@@ -19,7 +20,7 @@ class IntSet {
   }
 
   constructor Init()
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
     ensures Contents == {}
   {
     root := null;
@@ -107,6 +108,7 @@ class Node {
 
   predicate Valid()
     reads this, Repr
+    ensures Valid() ==> this in Repr
   {
     this in Repr &&
     (left != null ==>
@@ -131,7 +133,7 @@ class Node {
   }
 
   constructor Init(x: int)
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
     ensures Contents == {x}
   {
     data := x;

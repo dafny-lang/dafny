@@ -304,7 +304,7 @@ reservedword =
     "iterator" | "label" | "lemma" | "map" | "match" | "method" |
     "modifies" | "modify" | "module" | "multiset" | "nat" |
     "new" | "newtype" | "null" | "object" | "old" | "opened" |
-    "predicate" | "print" | "protected" | "provides" "reads" |
+    "predicate" | "print" | "provides" "reads" |
     "real" | "refines" | "requires" | "return" | "returns" |
     "reveals" | "seq" | "set" | "static" | "string" | "then" |
     "this" | "trait" | "true" | "twostate" | "type" |
