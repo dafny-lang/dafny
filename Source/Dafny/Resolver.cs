@@ -2132,7 +2132,7 @@ namespace Microsoft.Dafny
       // Although the module is known, we demand it be imported before we're willing to access it.
       // Imports are resolved before their containing module, so we cannot rely on
       // the parent module to have any names that might come in through refines.
-      // However the parent refines will lready have been fully refined.
+      // However the parent refines will already have been fully refined.
       ModuleDefinition par = parent;
       TopLevelDecl thisImport = par.TopLevelDecls.FirstOrDefault(t => t.Name == Path[0].val && t != alias);
       if (thisImport == null) {
