@@ -9,7 +9,7 @@ module OneModule {
     var dd: D?
     var {:autocontracts false} ee: D?
     var arr: array?<C?>
-    protected predicate Valid()
+    predicate Valid()
     {
       0 <= data < 100
     }
