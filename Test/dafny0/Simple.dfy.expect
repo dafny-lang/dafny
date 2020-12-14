@@ -60,11 +60,11 @@ class CF {
 
   greatest predicate Co()
 
-  protected function H(): int
+  function H(): int
 
-  static protected function method I(): real
+  static function method I(): real
 
-  static protected predicate method J()
+  static predicate method J()
 }
 
 module A {

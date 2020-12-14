@@ -2351,12 +2351,11 @@ namespace Microsoft.Dafny {
     /// This happens when the following conditions all hold:
     ///   - "f" has a body
     ///   - "f" is not opaque
-    ///   - "f" is declared as protected, then "context" is the current module and parameter "revealProtectedBody" is passed in as "true".
     /// </summary>
     static bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, VisibilityScope scope, bool revealProtectedBody) {
       Contract.Requires(f != null);
       Contract.Requires(context != null);
-      return f.Body != null && !IsOpaqueFunction(f) && f.IsRevealedInScope(scope) && (!f.IsProtected || (revealProtectedBody && f.EnclosingClass.Module == context));
+      return f.Body != null && !IsOpaqueFunction(f) && f.IsRevealedInScope(scope);
     }
     static bool IsOpaqueFunction(Function f) {
       Contract.Requires(f != null);
@@ -3301,7 +3300,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Trigger tr = BplTriggerHeap(this, f.tok, funcAppl, readsHeap ? etran.HeapExpr : null);
       Bpl.Expr tastyVegetarianOption; // a.k.a. the "meat" of the operation :)
-      if (!RevealedInScope(f) || (f.IsProtected && !InVerificationScope(f))) {
+      if (!RevealedInScope(f)) {
         tastyVegetarianOption = Bpl.Expr.True;
       } else {
         var bodyWithSubst = Substitute(body, receiverReplacement, substMap);

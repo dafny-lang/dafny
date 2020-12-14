@@ -1187,8 +1187,6 @@ not in code that will be compiled into executable code.
 
 Fields may not be declared static.
 
-`protected` is not allowed for fields.
-
 ## Method Declarations
 ````grammar
 MethodDecl(isGhost, allowConstructor) =
@@ -1532,30 +1530,22 @@ A function is usually transparent up to some unrolling level (up to
 1, or maybe 2 or 3). If its arguments are all literals it is
 transparent all the way.
 
-**The protected modifier is being deprecated**
-
-But the transparency of a function is affected by the following:
-
-* whether the function was declared to be protected, and
-* whether the function was given the `{:opaque}` attribute (as explained
+But the transparency of a function is affected by
+whether the function was given the `{:opaque}` attribute (as explained
 in Section [#sec-opaque]).
 
 The following table summarizes where the function is transparent.
 The module referenced in the table is the module in which the
 function is defined.
 
- Protected? | `{:opaque}`? | Transparent Inside Module | Transparent Outside Module
-:----------:|:------------:|:-----------:|:-----------:
- N          | N            | Y           | Y
- Y          | N            | Y           | N
- N          | Y            | N           | N
+ `{:opaque}`? | Transparent Inside Module | Transparent Outside Module
+:------------:|:-----------:|:-----------:
+ N            | Y           | Y
+ Y            | N           | N
 
 When `{:opaque}` is specified for function `g`, `g` is opaque,
 however the lemma `reveal_g` is available to give the semantics
 of `g` whether in the defining module or outside.
-
-It currently is not allowed to have both `protected` and
-`{:opaque}` specified for a function.
 
 ### Inductive Predicates and Lemmas
 See section [#sec-friendliness] for descriptions

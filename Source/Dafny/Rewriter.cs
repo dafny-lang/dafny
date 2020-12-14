@@ -412,6 +412,7 @@ namespace Microsoft.Dafny
   ///
   /// For function/predicate Valid(), insert:
   ///    reads this, Repr
+  ///    ensures Valid() ==> this in Repr
   /// Into body of Valid(), insert (at the beginning of the body):
   ///    this in Repr && null !in Repr
   /// and also insert, for every array-valued field A declared in the class:
@@ -422,7 +423,7 @@ namespace Microsoft.Dafny
   /// be added.
   ///
   /// For every constructor, add:
-  ///    ensures Valid() && fresh(Repr - {this})
+  ///    ensures Valid() && fresh(Repr)
   /// At the end of the body of the constructor, add:
   ///    Repr := {this};
   ///    if (A != null) { Repr := Repr + {A}; }
@@ -480,7 +481,7 @@ namespace Microsoft.Dafny
       // Add:  predicate Valid()
       // ...unless an instance function with that name is already present
       if (!cl.Members.Exists(member => member is Function && member.Name == "Valid" && !member.IsStatic)) {
-        var valid = new Predicate(cl.tok, "Valid", false, false, true, new List<TypeParameter>(), new List<Formal>(),
+        var valid = new Predicate(cl.tok, "Valid", false, true, new List<TypeParameter>(), new List<Formal>(),
           new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
           null, Predicate.BodyOriginKind.OriginalOrInherited, null, null);
         cl.Members.Add(valid);
@@ -505,11 +506,18 @@ namespace Microsoft.Dafny
           var r1 = new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr");
           valid.Reads.Add(new FrameExpression(tok, r0, null));
           valid.Reads.Add(new FrameExpression(tok, r1, null));
+          // ensures Valid() ==> this in Repr
+          var post = new BinaryExpr(tok, BinaryExpr.Opcode.Imp,
+            new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>()),
+            new BinaryExpr(tok, BinaryExpr.Opcode.In,
+              new ThisExpr(tok),
+               new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr")));
+          valid.Ens.Insert(0, new AttributedExpression(post));
           if (member.tok == cl.tok) {
             // We added this function above, so produce a hover text for the entire function signature
             AddHoverText(cl.tok, "{0}", Printer.FunctionSignatureToString(valid));
           } else {
-            AddHoverText(member.tok, "reads {0}, {1}", r0, r1);
+            AddHoverText(member.tok, $"reads {r0}, {r1}\nensures {post}");
           }
         } else if (member is Function && !member.IsStatic) {
           var f = (Function)member;
@@ -529,10 +537,9 @@ namespace Microsoft.Dafny
           // ensures Valid();
           var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>());
           ctor.Ens.Insert(0, new AttributedExpression(valid));
-          // ensures fresh(Repr - {this});
-          var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh, new BinaryExpr(tok, BinaryExpr.Opcode.Sub,
-            new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"),
-            new SetDisplayExpr(tok, true, new List<Expression>() { new ThisExpr(tok) })));
+          // ensures fresh(Repr);
+          var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh,
+            new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"));
           ctor.Ens.Insert(1, new AttributedExpression(freshness));
           var m0 = new ThisExpr(tok);
           AddHoverText(member.tok, "modifies {0}\nensures {1} && {2}", m0, valid, freshness);
@@ -973,8 +980,6 @@ namespace Microsoft.Dafny
 
           if (!Attributes.Contains(f.Attributes, "opaque")) {
             // Nothing to do
-          } else if (f.IsProtected) {
-            reporter.Error(MessageSource.Rewriter, f.tok, ":opaque is not allowed to be applied to protected functions (this will be allowed when the language introduces 'opaque'/'reveal' as keywords)");
           } else if (!RefinementToken.IsInherited(f.tok, c.Module)) {
             RewriteOpaqueFunctionUseFuel(f, newDecls);
           }
