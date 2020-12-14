@@ -270,14 +270,14 @@ namespace Microsoft.Dafny
       // The result type of the following bitvector methods is the type of the bitvector itself. However, we're representing all bitvector types as
       // a family of types rolled up in one ValuetypeDecl. Therefore, we use the special SelfType as the result type.
       List<Formal> formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
-      var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", prog.BuiltIns.SystemModule, false, false, false, new List<TypeParameter>(), formals, new SelfType(),
+      var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", prog.BuiltIns.SystemModule, false, false, new List<TypeParameter>(), formals, new SelfType(),
         new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateLeft.EnclosingClass = valuetypeDecls[(int)ValuetypeVariety.Bitvector];
       rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       valuetypeDecls[(int)ValuetypeVariety.Bitvector].Members.Add(rotateLeft.Name, rotateLeft);
 
       formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
-      var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", prog.BuiltIns.SystemModule, false, false, false, new List<TypeParameter>(), formals, new SelfType(),
+      var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", prog.BuiltIns.SystemModule, false, false, new List<TypeParameter>(), formals, new SelfType(),
         new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateRight.EnclosingClass = valuetypeDecls[(int)ValuetypeVariety.Bitvector];
       rotateRight.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
@@ -1353,7 +1353,7 @@ namespace Microsoft.Dafny
         var name = entry.Key;
         var prefixNamedModules = entry.Value;
         var tok = prefixNamedModules.First().Item1[0];
-        var modDef = new ModuleDefinition(tok, name, new List<IToken>(), false, false, false, null, moduleDecl, null, false, true, true);
+        var modDef = new ModuleDefinition(tok, name, new List<IToken>(), false, false, null, moduleDecl, null, false, true, true);
         // Every module is expected to have a default class, so we create and add one now
         var defaultClass = new DefaultClassDecl(modDef, new List<MemberDecl>());
         modDef.TopLevelDecls.Add(defaultClass);
@@ -1780,7 +1780,7 @@ namespace Microsoft.Dafny
             new Specification<Expression>(new List<Expression>(), null),
             null, null, null);
           // --- here comes predicate Valid()
-          var valid = new Predicate(iter.tok, "Valid", false, true, true, new List<TypeParameter>(),
+          var valid = new Predicate(iter.tok, "Valid", false, true, new List<TypeParameter>(),
             new List<Formal>(),
             new List<AttributedExpression>(),
             new List<FrameExpression>(),
@@ -1981,7 +1981,7 @@ namespace Microsoft.Dafny
               List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
 
               // create prefix predicate
-              cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.HasStaticKeyword, cop.IsProtected,
+              cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.HasStaticKeyword,
                 tyvars, k, formals,
                 cop.Req.ConvertAll(cloner.CloneAttributedExpr),
                 cop.Reads.ConvertAll(cloner.CloneFrameExpr),
@@ -2034,7 +2034,7 @@ namespace Microsoft.Dafny
       Contract.Requires(compilationModuleClones != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", new List<IToken>(), true, true, true, null, null, null, false,
+      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", new List<IToken>(), true, true, null, null, null, false,
                                      p.ModuleDef.IsToBeVerified, p.ModuleDef.IsToBeCompiled);
       mod.Height = Height;
       bool hasDefaultClass = false;
@@ -7036,9 +7036,6 @@ namespace Microsoft.Dafny
               Function f = selectExpr.Member as Function;
               if (f != null) {
                 f.IsFueled = true;
-                if (f.IsProtected && currentModule != f.EnclosingClass.Module) {
-                  reporter.Error(MessageSource.Resolver, tok, "cannot adjust fuel for protected function {0} from another module", f.Name);
-                }
                 if (args.Count >= 3) {
                   LiteralExpr literalLow = args[1] as LiteralExpr;
                   LiteralExpr literalHigh = args[2] as LiteralExpr;
@@ -14972,6 +14969,8 @@ namespace Microsoft.Dafny
     ///     (Language design note:  If the constructor name is ambiguous or if one of the steps above takes priority, one can qualify the constructor name with the name of the datatype)
     ///  3. Member of the enclosing module (type name or the name of a module)
     ///  4. Static function or method in the enclosing module or its imports
+    ///  5. If !isLastNameSegment:
+    ///     Unambiguous constructor name of a datatype in the enclosing module
     ///
     /// </summary>
     /// <param name="expr"></param>
@@ -15003,7 +15002,7 @@ namespace Microsoft.Dafny
       Dictionary<string, MemberDecl> members;
       // For 1 and 4:
       MemberDecl member = null;
-      // For 2:
+      // For 2 and 5:
       Tuple<DatatypeCtor, bool> pair;
       // For 3:
       TopLevelDecl decl;
@@ -15042,35 +15041,8 @@ namespace Microsoft.Dafny
         r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
         // ----- 2. datatype constructor
-        if (pair.Item2) {
-          // there is more than one constructor with this name
-          if (complain) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", expr.Name, pair.Item1.EnclosingDatatype.Name);
-          } else {
-            expr.ResolvedExpression = null;
-            return null;
-          }
-        } else {
-          if (expr.OptTypeArguments != null) {
-            if (complain) {
-              reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
-            } else {
-              expr.ResolvedExpression = null;
-              return null;
-            }
-          }
-          var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<Expression>());
-          bool ok = ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype, null, complain);
-          if (!ok) {
-            expr.ResolvedExpression = null;
-            return null;
-          }
-          if (args == null) {
-            r = rr;
-          } else {
-            r = rr;  // this doesn't really matter, since we're returning an "rWithArgs" (but if would have been proper to have returned the ctor as a lambda)
-            rWithArgs = rr;
-          }
+        if (ResolveDatatypeConstructor(expr, args, opts, complain, pair, name, ref r, ref rWithArgs)) {
+          return null;
         }
       } else if (moduleInfo.TopLevels.TryGetValue(name, out decl)) {
         // ----- 3. Member of the enclosing module
@@ -15118,6 +15090,12 @@ namespace Microsoft.Dafny
           r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
         }
 
+      } else if (!isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
+        // ----- 5. datatype constructor
+        if (ResolveDatatypeConstructor(expr, args, opts, complain, pair, name, ref r, ref rWithArgs)) {
+          return null;
+        }
+
       } else {
         // ----- None of the above
         if (complain) {
@@ -15138,6 +15116,44 @@ namespace Microsoft.Dafny
         expr.Type = nt;
       }
       return rWithArgs;
+    }
+
+    private bool ResolveDatatypeConstructor(NameSegment expr, List<Expression>/*?*/ args, ResolveOpts opts, bool complain, Tuple<DatatypeCtor, bool> pair, string name, ref Expression r, ref Expression rWithArgs) {
+      Contract.Requires(expr != null);
+      Contract.Requires(opts != null);
+
+      if (pair.Item2) {
+        // there is more than one constructor with this name
+        if (complain) {
+          reporter.Error(MessageSource.Resolver, expr.tok, "the name '{0}' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", expr.Name,
+            pair.Item1.EnclosingDatatype.Name);
+        } else {
+          expr.ResolvedExpression = null;
+          return true;
+        }
+      } else {
+        if (expr.OptTypeArguments != null) {
+          if (complain) {
+            reporter.Error(MessageSource.Resolver, expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
+          } else {
+            expr.ResolvedExpression = null;
+            return true;
+          }
+        }
+        var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<Expression>());
+        bool ok = ResolveDatatypeValue(opts, rr, pair.Item1.EnclosingDatatype, null, complain);
+        if (!ok) {
+          expr.ResolvedExpression = null;
+          return true;
+        }
+        if (args == null) {
+          r = rr;
+        } else {
+          r = rr; // this doesn't really matter, since we're returning an "rWithArgs" (but if would have been proper to have returned the ctor as a lambda)
+          rWithArgs = rr;
+        }
+      }
+      return false;
     }
 
     /// <summary>
