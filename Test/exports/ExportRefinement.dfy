@@ -21,7 +21,7 @@ module B refines A {
   function f(): T { 0 }
   method m() { print "B\n"; }
 
-  class C {
+  class C ... {
      method m() { print "B.C.m\n"; }
      method n() { print "B.C.n\n"; }
   }
@@ -64,14 +64,14 @@ module F {
 //Extending existing exports
 
 module A2 refines A {
-  export Spec provides m reveals T
-  export Body extends Spec provides C, C.m, C.Init
+  export Spec ... provides m reveals T
+  export Body ... extends Spec provides C, C.m, C.Init
 
   type T = int
   function f(): T { 0 }
   method m() { print "A2\n"; }
 
-  class C {
+  class C ... {
     method m() { print "A2.C.m\n"; }
     method n() { print "A2.C.n\n"; }
     constructor Init() { }

@@ -398,6 +398,10 @@ namespace Microsoft.Dafny {
             } else {
               wr.Write("export ");
             }
+
+            if (e.IsRefining) {
+              wr.Write(" ... ");
+            }
             if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id));
             wr.WriteLine();
             PrintModuleExportDecl(e, indent + IndentAmount, fileBeingPrinted);
@@ -530,8 +534,8 @@ namespace Microsoft.Dafny {
     void PrintIteratorSignature(IteratorDecl iter, int indent) {
       Indent(indent);
       PrintClassMethodHelper("iterator", iter.Attributes, iter.Name, iter.TypeArgs);
-      if (iter.SignatureIsOmitted) {
-        wr.WriteLine(" ...");
+      if (iter.IsRefining) {
+        wr.WriteLine(" ... ");
       } else {
         PrintFormals(iter.Ins, iter);
         if (iter.Outs.Count != 0) {
@@ -576,12 +580,17 @@ namespace Microsoft.Dafny {
 
       Indent(indent);
       PrintClassMethodHelper((c is TraitDecl) ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
-      string sep = " extends ";
-      foreach (var trait in c.ParentTraits) {
-        wr.Write(sep);
-        PrintType(trait);
-        sep = ", ";
+      if (c.IsRefining) {
+        wr.Write(" ... ");
+      } else {
+        string sep = " extends ";
+        foreach (var trait in c.ParentTraits) {
+          wr.Write(sep);
+          PrintType(trait);
+          sep = ", ";
+        }
       }
+
       if (c.Members.Count == 0) {
         wr.WriteLine(" { }");
       } else {

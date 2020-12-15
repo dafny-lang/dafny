@@ -499,7 +499,6 @@ namespace Microsoft.Dafny
       }
 
       if (nw.SignatureIsOmitted) {
-        Contract.Assert(nw.TypeArgs.Count == 0);
         Contract.Assert(nw.Ins.Count == 0);
         Contract.Assert(nw.Outs.Count == 0);
         reporter.Info(MessageSource.RefinementTransformer, nw.SignatureEllipsis, Printer.IteratorSignatureToString(prev));

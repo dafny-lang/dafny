@@ -937,10 +937,13 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       bool provideAll = false;
       bool revealAll = false;
       bool isDefault = false;
+      bool isRefining = false;
       ExportSignature exsig;
     .)
     "export" (. exportId = t; .)
     [ ExportIdent<out exportId> ]
+    [ "..."  (. isRefining = true; .)
+    ]
     {
       "provides"
       (
@@ -963,7 +966,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     (. if (exportId.val == "export" || exportId.val == parent.Name) {
          isDefault = true;
        }
-       submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault);
+       submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault, isRefining);
     .)
   )
 .

@@ -3504,8 +3504,8 @@ namespace Microsoft.Dafny {
 
     public readonly bool Opened;
 
-    public ModuleDecl(IToken tok, string name, ModuleDefinition parent, bool opened)
-      : base(tok, name, parent, new List<TypeParameter>(), null, false) {
+    public ModuleDecl(IToken tok, string name, ModuleDefinition parent, bool opened, bool isRefining)
+      : base(tok, name, parent, new List<TypeParameter>(), null, isRefining) {
         Height = -1;
       Signature = null;
       Opened = opened;
@@ -3538,7 +3538,7 @@ namespace Microsoft.Dafny {
     }
 
     public LiteralModuleDecl(ModuleDefinition module, ModuleDefinition parent)
-      : base(module.tok, module.Name, parent, false) {
+      : base(module.tok, module.Name, parent, false, false) {
       ModuleDef = module;
     }
     public override object Dereference() { return ModuleDef; }
@@ -3552,7 +3552,7 @@ namespace Microsoft.Dafny {
     public bool ShadowsLiteralModule;  // initialized early during Resolution (and used not long after that); true for "import opened A = A" where "A" is a literal module in the same scope
 
     public AliasModuleDecl(List<IToken> path, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
-      : base(name, name.val, parent, opened) {
+      : base(name, name.val, parent, opened, false) {
        Contract.Requires(path != null && path.Count > 0);
        Contract.Requires(exports != null);
        Contract.Requires(exports.Count == 0 || path.Count == 1);
@@ -3572,7 +3572,7 @@ namespace Microsoft.Dafny {
     public ModuleSignature OriginalSignature;
 
     public ModuleFacadeDecl(List<IToken> path, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
-      : base(name, name.val, parent, opened) {
+      : base(name, name.val, parent, opened, false) {
       Contract.Requires(path != null && path.Count > 0);
       Contract.Requires(exports != null);
       Contract.Requires(exports.Count == 0 || path.Count == 1);
@@ -3597,8 +3597,8 @@ namespace Microsoft.Dafny {
 
     public readonly VisibilityScope ThisScope;
     public ModuleExportDecl(IToken tok, ModuleDefinition parent,
-      List<ExportSignature> exports, List<string> extends, bool provideAll, bool revealAll, bool isDefault)
-      : base(tok, isDefault ? parent.Name : tok.val, parent, false) {
+      List<ExportSignature> exports, List<string> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
+      : base(tok, isDefault ? parent.Name : tok.val, parent, false, isRefining) {
       Contract.Requires(exports != null);
       IsDefault = isDefault;
       Exports = exports;
@@ -4727,7 +4727,7 @@ namespace Microsoft.Dafny {
                         List<AttributedExpression> yieldRequires,
                         List<AttributedExpression> yieldEnsures,
                         BlockStmt body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, module, MutateIntoRequiringZeroInitBit(typeArgs), new List<MemberDecl>(), attributes, false, null)
+      : base(tok, name, module, MutateIntoRequiringZeroInitBit(typeArgs), new List<MemberDecl>(), attributes, signatureEllipsis != null, null)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
