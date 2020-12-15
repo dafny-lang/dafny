@@ -1,4 +1,4 @@
-Bug114.dfy(9,9): Error: assertion violation
+Bug114.dfy(9,9): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then

@@ -1,4 +1,4 @@
-Bug168.dfy(10,14): Error: RHS is not certain to look like the pattern 'Nil'
+Bug168.dfy(10,14): Error BP5001: RHS is not certain to look like the pattern 'Nil'
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

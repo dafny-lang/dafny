@@ -1,4 +1,4 @@
-Bug101.dfy(10,11): Error: assertion violation
+Bug101.dfy(10,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else

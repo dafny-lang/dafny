@@ -1,14 +1,14 @@
-Array.dfy(13,7): Error: assignment may update an array element not in the enclosing context's modifies clause
+Array.dfy(13,7): Error BP5001: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Array.dfy(20,15): Error: target object may be null
+Array.dfy(20,15): Error BP5001: target object may be null
 Execution trace:
     (0,0): anon0
-Array.dfy(26,5): Error: index out of range
+Array.dfy(26,5): Error BP5001: index out of range
 Execution trace:
     (0,0): anon0
-Array.dfy(50,19): Error: assertion violation
+Array.dfy(50,19): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
@@ -17,15 +17,15 @@ Execution trace:
     (0,0): anon10_Then
     (0,0): anon5
     (0,0): anon7
-Array.dfy(58,7): Error: assignment may update an array element not in the enclosing context's modifies clause
+Array.dfy(58,7): Error BP5001: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Array.dfy(65,7): Error: assignment may update an array element not in the enclosing context's modifies clause
+Array.dfy(65,7): Error BP5001: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Array.dfy(108,20): Error: upper bound below lower bound or above length of array
+Array.dfy(108,20): Error BP5001: upper bound below lower bound or above length of array
 Execution trace:
     (0,0): anon0
     (0,0): anon14_Else
@@ -33,7 +33,7 @@ Execution trace:
     (0,0): anon19_Then
     (0,0): anon20_Then
     (0,0): anon11
-Array.dfy(118,7): Error: insufficient reads clause to read the indicated range of array elements
+Array.dfy(118,7): Error BP5001: insufficient reads clause to read the indicated range of array elements
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
@@ -41,7 +41,7 @@ Execution trace:
     (0,0): anon12_Then
     (0,0): anon13_Then
     (0,0): anon9
-Array.dfy(120,7): Error: insufficient reads clause to read the indicated range of array elements
+Array.dfy(120,7): Error BP5001: insufficient reads clause to read the indicated range of array elements
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
@@ -49,7 +49,7 @@ Execution trace:
     (0,0): anon12_Then
     (0,0): anon13_Else
     (0,0): anon9
-Array.dfy(121,7): Error: insufficient reads clause to read the indicated range of array elements
+Array.dfy(121,7): Error BP5001: insufficient reads clause to read the indicated range of array elements
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
@@ -57,7 +57,7 @@ Execution trace:
     (0,0): anon12_Then
     (0,0): anon13_Else
     (0,0): anon9
-Array.dfy(122,7): Error: insufficient reads clause to read the indicated range of array elements
+Array.dfy(122,7): Error BP5001: insufficient reads clause to read the indicated range of array elements
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
@@ -65,23 +65,23 @@ Execution trace:
     (0,0): anon12_Then
     (0,0): anon13_Else
     (0,0): anon9
-Array.dfy(160,5): Error: insufficient reads clause to read array element
+Array.dfy(160,5): Error BP5001: insufficient reads clause to read array element
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Else
     (0,0): anon9_Then
     (0,0): anon10_Then
     (0,0): anon7
-Array.dfy(168,5): Error: insufficient reads clause to read array element
+Array.dfy(168,5): Error BP5001: insufficient reads clause to read array element
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Then
     (0,0): anon5
-Array.dfy(184,5): Error: assignment may update an array element not in the enclosing context's modifies clause
+Array.dfy(184,5): Error BP5001: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
-Array.dfy(191,5): Error: assignment may update an array element not in the enclosing context's modifies clause
+Array.dfy(191,5): Error BP5001: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
 Array.dfy(216,0): Error BP5003: A postcondition might not hold on this return path.
@@ -96,31 +96,31 @@ Array.dfy(246,0): Error BP5003: A postcondition might not hold on this return pa
 Array.dfy(245,10): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-Array.dfy(255,12): Error: value does not satisfy the subset constraints of 'nat'
+Array.dfy(255,12): Error BP5001: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon2
     (0,0): anon6_Then
-Array.dfy(256,5): Error: value does not satisfy the subset constraints of 'nat'
+Array.dfy(256,5): Error BP5001: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon2
     (0,0): anon6_Then
-Array.dfy(257,12): Error: value does not satisfy the subset constraints of 'nat'
+Array.dfy(257,12): Error BP5001: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon2
     (0,0): anon6_Then
-Array.dfy(258,6): Error: value does not satisfy the subset constraints of 'nat'
+Array.dfy(258,6): Error BP5001: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon2
     (0,0): anon6_Then
-Array.dfy(260,4): Error: value does not satisfy the subset constraints of 'nat'
+Array.dfy(260,4): Error BP5001: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then

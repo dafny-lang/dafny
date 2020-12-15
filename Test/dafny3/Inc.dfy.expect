@@ -52,7 +52,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
     (0,0): anon14_Then
-Inc.dfy(318,17): Error: cannot prove termination; try supplying a decreases clause
+Inc.dfy(318,17): Error BP5001: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Else
@@ -61,7 +61,7 @@ Execution trace:
     (0,0): anon15_Else
     (0,0): anon16_Then
     (0,0): anon9
-Inc.dfy(318,17): Error: decreases expression (component 1) must be bounded below by 0
+Inc.dfy(318,17): Error BP5001: decreases expression (component 1) must be bounded below by 0
 Inc.dfy(303,26): Related location
 Execution trace:
     (0,0): anon0

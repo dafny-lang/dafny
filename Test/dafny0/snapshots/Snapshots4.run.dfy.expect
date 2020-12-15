@@ -8,11 +8,11 @@ Processing command (at Snapshots4.v1.dfy(9,14)) assert LitInt(0) == LitInt(0);
   >>> MarkAsFullyVerified
 Processing command (at Snapshots4.v1.dfy(10,14)) assert 2 != 2;
   >>> DoNothingToAssert
-Snapshots4.v1.dfy(5,13): Error: assertion violation
+Snapshots4.v1.dfy(5,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Snapshots4.v1.dfy(10,13): Error: assertion violation
+Snapshots4.v1.dfy(10,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else

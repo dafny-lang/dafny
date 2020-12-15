@@ -1,4 +1,4 @@
-git-issue-405.dfy(19,22): Error: insufficient reads clause to read field
+git-issue-405.dfy(19,22): Error BP5001: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then

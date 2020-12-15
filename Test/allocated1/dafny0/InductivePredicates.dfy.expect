@@ -1,8 +1,8 @@
-InductivePredicates.dfy(80,9): Error: assertion violation
+InductivePredicates.dfy(80,9): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-InductivePredicates.dfy(92,10): Error: assertion violation
+InductivePredicates.dfy(92,10): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 

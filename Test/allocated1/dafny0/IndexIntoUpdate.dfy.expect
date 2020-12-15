@@ -1,4 +1,4 @@
-IndexIntoUpdate.dfy(7,18): Error: assertion violation
+IndexIntoUpdate.dfy(7,18): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then

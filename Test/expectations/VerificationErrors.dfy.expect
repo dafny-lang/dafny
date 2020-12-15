@@ -1,4 +1,4 @@
-VerificationErrors.dfy(8,22): Error: destructor 'get' can only be applied to datatype values constructed by 'Some'
+VerificationErrors.dfy(8,22): Error BP5001: destructor 'get' can only be applied to datatype values constructed by 'Some'
 Execution trace:
     (0,0): anon0
     VerificationErrors.dfy(7,5): anon4_Else

@@ -1,8 +1,8 @@
 Matrix-OOB.dfy(11,10): Info: Selected triggers: {m[i, j]}
-Matrix-OOB.dfy(11,26): Error: index 0 out of range
+Matrix-OOB.dfy(11,26): Error BP5001: index 0 out of range
 Execution trace:
     (0,0): anon0
-Matrix-OOB.dfy(11,26): Error: index 1 out of range
+Matrix-OOB.dfy(11,26): Error BP5001: index 1 out of range
 Execution trace:
     (0,0): anon0
 Matrix-OOB.dfy(12,0): Error BP5003: A postcondition might not hold on this return path.

@@ -1,4 +1,4 @@
-git-issue-863.dfy(8,24): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-863.dfy(8,24): Error BP5001: to be compilable, the value of a let-such-that expression must be uniquely determined
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

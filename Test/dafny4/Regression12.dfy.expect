@@ -2,15 +2,15 @@ Regression12.dfy(82,14): Warning: the type of the other operand is a map to a no
 Regression12.dfy(83,14): Warning: the type of the other operand is a set of non-null elements, so the non-inclusion test of 'null' will always return 'true'
 Regression12.dfy(84,14): Warning: the type of the other operand is a set of non-null elements, so the non-inclusion test of 'null' will always return 'true'
 Regression12.dfy(85,14): Warning: the type of the other operand is a set of non-null elements, so the non-inclusion test of 'null' will always return 'true'
-Regression12.dfy(14,25): Error: value does not satisfy the subset constraints of 'int -> char' (possible cause: it may be partial or have read effects)
+Regression12.dfy(14,25): Error BP5001: value does not satisfy the subset constraints of 'int -> char' (possible cause: it may be partial or have read effects)
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Regression12.dfy(16,25): Error: value does not satisfy the subset constraints of 'int -> char' (possible cause: it may be partial or have read effects)
+Regression12.dfy(16,25): Error BP5001: value does not satisfy the subset constraints of 'int -> char' (possible cause: it may be partial or have read effects)
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Regression12.dfy(65,7): Error: value does not satisfy the subset constraints of 'set<Node>'
+Regression12.dfy(65,7): Error BP5001: value does not satisfy the subset constraints of 'set<Node>'
 Execution trace:
     (0,0): anon0
 

@@ -1,26 +1,26 @@
-Simple.dfy(14,9): Error: possible division by zero
+Simple.dfy(14,9): Error BP5001: possible division by zero
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Then
-Simple.dfy(27,9): Error: possible division by zero
+Simple.dfy(27,9): Error BP5001: possible division by zero
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Then
-Simple.dfy(37,8): Error: possible violation of function precondition
+Simple.dfy(37,8): Error BP5001: possible violation of function precondition
 Execution trace:
     (0,0): anon0
     Simple.dfy(35,13): anon5_Else
-Simple.dfy(49,8): Error: possible violation of function precondition
+Simple.dfy(49,8): Error BP5001: possible violation of function precondition
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
     (0,0): anon2
-Simple.dfy(61,9): Error: possible violation of function precondition
+Simple.dfy(61,9): Error BP5001: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-Simple.dfy(73,9): Error: assertion violation
+Simple.dfy(73,9): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     Simple.dfy(72,38): anon5_Else

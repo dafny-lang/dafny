@@ -1,33 +1,33 @@
-ReadsReads.dfy(31,6): Error: insufficient reads clause to invoke function
+ReadsReads.dfy(31,6): Error BP5001: insufficient reads clause to invoke function
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-ReadsReads.dfy(36,4): Error: insufficient reads clause to invoke function
+ReadsReads.dfy(36,4): Error BP5001: insufficient reads clause to invoke function
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-ReadsReads.dfy(47,11): Error: insufficient reads clause to invoke function
+ReadsReads.dfy(47,11): Error BP5001: insufficient reads clause to invoke function
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-ReadsReads.dfy(58,6): Error: insufficient reads clause to invoke function
+ReadsReads.dfy(58,6): Error BP5001: insufficient reads clause to invoke function
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-ReadsReads.dfy(87,49): Error: assertion violation
+ReadsReads.dfy(87,49): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon16_Then
-ReadsReads.dfy(89,28): Error: assertion violation
+ReadsReads.dfy(89,28): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Then
-ReadsReads.dfy(99,36): Error: assertion violation
+ReadsReads.dfy(99,36): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     ReadsReads.dfy(96,14): anon15_Else
     (0,0): anon19_Then
-ReadsReads.dfy(101,28): Error: assertion violation
+ReadsReads.dfy(101,28): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     ReadsReads.dfy(96,14): anon15_Else

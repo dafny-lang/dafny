@@ -1,4 +1,4 @@
-Bug125more.dfy(59,15): Error: assertion violation
+Bug125more.dfy(59,15): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 

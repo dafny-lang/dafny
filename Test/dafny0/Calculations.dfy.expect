@@ -1,24 +1,24 @@
-Calculations.dfy(7,5): Error: index out of range
+Calculations.dfy(7,5): Error BP5001: index out of range
 Execution trace:
     (0,0): anon0
     (0,0): anon28_Then
-Calculations.dfy(12,14): Error: index out of range
+Calculations.dfy(12,14): Error BP5001: index out of range
 Execution trace:
     (0,0): anon0
     (0,0): anon30_Then
-Calculations.dfy(12,18): Error: assertion violation
+Calculations.dfy(12,18): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon30_Then
-Calculations.dfy(56,11): Error: assertion violation
+Calculations.dfy(56,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     Calculations.dfy(51,3): anon5_Else
-Calculations.dfy(79,14): Error: index out of range
+Calculations.dfy(79,14): Error BP5001: index out of range
 Execution trace:
     (0,0): anon0
     (0,0): anon14_Then
-Calculations.dfy(79,18): Error: assertion violation
+Calculations.dfy(79,18): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon14_Then

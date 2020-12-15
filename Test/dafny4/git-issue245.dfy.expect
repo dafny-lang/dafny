@@ -1,13 +1,13 @@
-git-issue245.dfy(43,18): Error: the function must provide an equal or more detailed postcondition than in its parent trait
+git-issue245.dfy(43,18): Error BP5001: the function must provide an equal or more detailed postcondition than in its parent trait
 Execution trace:
     (0,0): anon0
-git-issue245.dfy(47,18): Error: the function must provide an equal or more detailed postcondition than in its parent trait
+git-issue245.dfy(47,18): Error BP5001: the function must provide an equal or more detailed postcondition than in its parent trait
 Execution trace:
     (0,0): anon0
-git-issue245.dfy(51,18): Error: the function must provide an equal or more detailed postcondition than in its parent trait
+git-issue245.dfy(51,18): Error BP5001: the function must provide an equal or more detailed postcondition than in its parent trait
 Execution trace:
     (0,0): anon0
-git-issue245.dfy(55,18): Error: the function must provide an equal or more detailed postcondition than in its parent trait
+git-issue245.dfy(55,18): Error BP5001: the function must provide an equal or more detailed postcondition than in its parent trait
 Execution trace:
     (0,0): anon0
 git-issue245.dfy(84,18): Error BP5003: A postcondition might not hold on this return path.

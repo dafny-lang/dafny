@@ -1,4 +1,4 @@
-git-issue135.dfy(11,15): Error: assertion violation
+git-issue135.dfy(11,15): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then

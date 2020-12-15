@@ -1,7 +1,7 @@
-Predicates.dfy(62,15): Error: assertion violation
+Predicates.dfy(62,15): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-Predicates.dfy(66,13): Error: assertion violation
+Predicates.dfy(66,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 Predicates.dfy(105,4): Error BP5003: A postcondition might not hold on this return path.

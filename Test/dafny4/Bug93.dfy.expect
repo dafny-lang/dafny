@@ -1,7 +1,7 @@
-Bug93.dfy(17,28): Error: assertion violation
+Bug93.dfy(17,28): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-Bug93.dfy(34,28): Error: assertion violation
+Bug93.dfy(34,28): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 

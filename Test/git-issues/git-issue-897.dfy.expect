@@ -1,5 +1,5 @@
 git-issue-897.dfy(10,17): Warning: /!\ No terms found to trigger on.
-git-issue-897.dfy(11,19): Error: assertion violation
+git-issue-897.dfy(11,19): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon30_Then
@@ -15,7 +15,7 @@ Execution trace:
     (0,0): anon39_Then
     (0,0): anon40_Then
     (0,0): anon23
-git-issue-897.dfy(16,30): Error: possible violation of postcondition of forall statement
+git-issue-897.dfy(16,30): Error BP5001: possible violation of postcondition of forall statement
 Execution trace:
     (0,0): anon0
     (0,0): anon30_Then
