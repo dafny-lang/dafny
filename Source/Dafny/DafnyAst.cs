@@ -3683,13 +3683,13 @@ namespace Microsoft.Dafny {
     public int? ResolvedHash { get; set; }
 
     // Qualified accesses follow module imports
-    public bool FindImport(string name, out ModuleSignature pp) {
+    public bool FindImport(string name, out ModuleDecl decl) {
       TopLevelDecl top;
       if (TopLevels.TryGetValue(name, out top) && top is ModuleDecl) {
-          pp = ((ModuleDecl)top).AccessibleSignature();
+          decl = (ModuleDecl)top;
         return true;
       } else {
-        pp = null;
+        decl = null;
         return false;
       }
     }

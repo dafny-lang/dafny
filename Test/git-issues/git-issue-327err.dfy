@@ -4,10 +4,8 @@
 module A {
   module AA {
     module AAA {
-      const aaa := 50;
     }
   }
-  const a := 51;
 }
 
 module B {
@@ -27,12 +25,11 @@ module D refines CC {
 }
 
 module E {
-  import S = A.AA
+  import S = A.X // error
 }
 
 module F {
   import DD = D.A
-  method m() { assert DD.a == 51; }
 }
 
 module G {
@@ -44,17 +41,12 @@ module G {
 
   module I {
     module J {
-      import E.S.AAA
-      import HH = H.Z
-      import D.A
-      import D.A.AA
-      import F
-      method m0() { assert AAA.aaa == 50; }
-      method m1() { assert HH.z == 52; }
-      method m2() { assert A.a == 51; }
-      method m3() { assert AA.AAA.aaa == 50; }
+      import E.S.AAA // S is an error
     }
     module K {
+      import H.Y  // error
+    }
+    module L {
     }
   }
 }

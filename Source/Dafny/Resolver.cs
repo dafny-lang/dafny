@@ -1470,11 +1470,11 @@ namespace Microsoft.Dafny
       }
     }
 
-    private static string ModuleNotFoundErrorMessage(int i, List<IToken> path) {
+    private static string ModuleNotFoundErrorMessage(int i, List<IToken> path, string tail = "") {
       Contract.Requires(path != null);
       Contract.Requires(0 <= i && i < path.Count);
       return "module " + path[i].val + " does not exist" +
-        (1 < path.Count ? " (position " + i.ToString() + " in path " + Util.Comma(".", path, x => x.val) + ")" : "");
+             (1 < path.Count ? " (position " + i.ToString() + " in path " + Util.Comma(".", path, x => x.val) + ")" + tail: "");
     }
 
     [Pure]
@@ -2080,89 +2080,83 @@ namespace Microsoft.Dafny
       }
     }
 
-    public bool ResolveExport(ModuleDecl alias, ModuleDecl root, ModuleDefinition parent, List<IToken> Path, List<IToken> Exports, out ModuleSignature p, ErrorReporter reporter) {
+    public bool ResolveExport(ModuleDecl alias, ModuleDecl root, ModuleDefinition parent, List<IToken> Path,
+      List<IToken> Exports, out ModuleSignature p, ErrorReporter reporter) {
       Contract.Requires(Path != null);
       Contract.Requires(Path.Count > 0);
       Contract.Requires(Exports != null);
-      Contract.Requires(Exports.Count == 0 || Path.Count == 1); // Path.Count > 1 ==> Exports.Count == 0
-      Contract.Requires(Exports.Count == 0 || root is LiteralModuleDecl); // only literal modules may have exports
-      if (Path.Count == 1 && root is LiteralModuleDecl) {
-        // use the default export set when importing the root
-        LiteralModuleDecl decl = (LiteralModuleDecl)root;
-        if (Exports.Count == 0) {
-          p = decl.DefaultExport;
-          if (p == null) {
+
+      ModuleDecl decl = root;
+      for (int k = 1; k < Path.Count; k++) {
+        var tld = decl.Signature.TopLevels.GetValueOrDefault(Path[k].val, null);
+        if (!(tld is ModuleDecl dd)) {
+          if (decl.Signature.ModuleDef == null) {
+            reporter.Error(MessageSource.Resolver, Path[k],
+              ModuleNotFoundErrorMessage(k, Path, " because of previous error"));
+          } else {
+            reporter.Error(MessageSource.Resolver, Path[k], ModuleNotFoundErrorMessage(k, Path));
+          }
+
+          p = null;
+          return false;
+        }
+
+        // Any aliases along the qualified path ought to be already resolved,
+        // else the modules are not being resolved in the right order
+        if (dd is AliasModuleDecl amd) {
+          Contract.Assert(amd.Signature != null);
+        }
+
+        decl = dd;
+      }
+
+      p = decl.Signature;
+      if (Exports.Count == 0) {
+        if (p.ExportSets.Count == 0) {
+          if (decl is LiteralModuleDecl) {
+            p = ((LiteralModuleDecl) decl).DefaultExport;
+          } else {
+            // p is OK
+          }
+        } else {
+          var m = p.ExportSets.GetValueOrDefault(decl.Name, null);
+          if (m == null) {
             // no default view is specified.
             reporter.Error(MessageSource.Resolver, Path[0], "no default export set declared in module: {0}", decl.Name);
             return false;
           }
-          return true;
+          p = m.AccessibleSignature();
+        }
+      } else {
+        ModuleExportDecl pp;
+        if (decl.Signature.ExportSets.TryGetValue(Exports[0].val, out pp)) {
+          p = pp.AccessibleSignature();
         } else {
-          ModuleExportDecl pp;
-          if (root.Signature.ExportSets.TryGetValue(Exports[0].val, out pp)) {
-            p = pp.Signature;
+          reporter.Error(MessageSource.Resolver, Exports[0], "no export set '{0}' in module '{1}'", Exports[0].val, decl.Name);
+          p = null;
+          return false;
+        }
+
+        foreach (IToken export in Exports.Skip(1)) {
+          if (decl.Signature.ExportSets.TryGetValue(export.val, out pp)) {
+            Contract.Assert(Object.ReferenceEquals(p.ModuleDef, pp.Signature.ModuleDef));
+            ModuleSignature merged = MergeSignature(p, pp.Signature);
+            merged.ModuleDef = pp.Signature.ModuleDef;
+            if (p.CompileSignature != null) {
+              Contract.Assert(pp.Signature.CompileSignature != null);
+              merged.CompileSignature = MergeSignature(p.CompileSignature, pp.Signature.CompileSignature);
+            } else {
+              Contract.Assert(pp.Signature.CompileSignature == null);
+            }
+            p = merged;
           } else {
-            reporter.Error(MessageSource.Resolver, Exports[0], "no export set '{0}' in module '{1}'", Exports[0].val, decl.Name);
+            reporter.Error(MessageSource.Resolver, export, "no export set {0} in module {1}", export.val, decl.Name);
             p = null;
             return false;
           }
-
-          foreach (IToken export in Exports.Skip(1)) {
-            if (root.Signature.ExportSets.TryGetValue(export.val, out pp)) {
-              Contract.Assert(Object.ReferenceEquals(p.ModuleDef, pp.Signature.ModuleDef));
-              ModuleSignature merged = MergeSignature(p, pp.Signature);
-              merged.ModuleDef = pp.Signature.ModuleDef;
-              if (p.CompileSignature != null) {
-                Contract.Assert(pp.Signature.CompileSignature != null);
-                merged.CompileSignature = MergeSignature(p.CompileSignature, pp.Signature.CompileSignature);
-              } else {
-                Contract.Assert(pp.Signature.CompileSignature == null);
-              }
-              p = merged;
-            } else {
-              reporter.Error(MessageSource.Resolver, export, "no export set {0} in module {1}", export.val, decl.Name);
-              p = null;
-              return false;
-            }
-          }
-          return true;
         }
       }
-
-      // Although the module is known, we demand it be imported before we're willing to access it.
-      // Imports are resolved before their containing module, so we cannot rely on
-      // the parent module to have any names that might come in through refines.
-      // However the parent refines will already have been fully refined.
-      ModuleDefinition par = parent;
-      TopLevelDecl thisImport = par.TopLevelDecls.FirstOrDefault(t => t.Name == Path[0].val && t != alias);
-      if (thisImport == null) {
-        LiteralModuleDecl md = par.RefinementBaseRoot as LiteralModuleDecl;
-        if (md != null) {
-          thisImport = md.ModuleDef.TopLevelDecls.FirstOrDefault(t => t.Name == Path[0].val && t != alias);
-        }
-      }
-
-      if (thisImport == null || !(thisImport is ModuleDecl)) {
-
-        reporter.Error(MessageSource.Resolver, Path[0], ModuleNotFoundErrorMessage(0, Path));
-        p = null;
-        return false;
-      }
-
-      var psig = ((ModuleDecl)thisImport).AccessibleSignature();
-      int i = 1;
-      while (i < Path.Count) {
-        ModuleSignature pp;
-        if (psig.FindImport(Path[i].val, out pp)) {
-          psig = pp;
-          i++;
-        } else {
-          reporter.Error(MessageSource.Resolver, Path[i], ModuleNotFoundErrorMessage(i, Path));
-          break;
-        }
-      }
-      p = psig;
-      return i == Path.Count;
+      return true;
     }
 
     public void RevealAllInScope(List<TopLevelDecl> declarations, VisibilityScope scope) {
