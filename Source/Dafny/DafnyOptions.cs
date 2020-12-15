@@ -424,14 +424,20 @@ namespace Microsoft.Dafny
     public override void ApplyDefaultOptions() {
       base.ApplyDefaultOptions();
 
-      SetZ3ExecutablePath();
-
       // expand macros in filenames, now that LogPrefix is fully determined
       ExpandFilename(ref DafnyPrelude, LogPrefix, FileTimestamp);
       ExpandFilename(ref DafnyPrintFile, LogPrefix, FileTimestamp);
+
+      SetZ3ExecutablePath();
+      SetZ3DefaultOptions();
+
       if (DisableNLarith || 3 <= ArithMode) {
         SetZ3Option("smt.arith.nl", "false");
       }
+
+      // Ask Boogie to perform abstract interpretation
+      UseAbstractInterpretation = true;
+      Ai.J_Intervals = true;
     }
 
     public override string AttributeHelp =>
@@ -614,6 +620,28 @@ namespace Microsoft.Dafny
       {
         ProverOptions.Add($"O:{name}={value}");
       }
+    }
+
+    private void SetZ3DefaultOptions()
+    {
+      // Boogie sets the following Z3 options by default:
+      // smt.mbqi = false
+      // model.compact = false
+      // model.v2 = true
+      // pp.bv_literals = false
+
+      // Boogie also used to set the following options, but does not anymore.
+      // TODO: Are all of these needed for Dafny?
+      SetZ3Option("auto_config", "false");
+      SetZ3Option("type_check", "true");
+      SetZ3Option("smt.phase_selection", "0");
+      SetZ3Option("smt.restart_strategy", "0");
+      SetZ3Option("smt.restart_factor", "|1.5|");
+      SetZ3Option("smt.arith.random_initial_value", "true");
+      SetZ3Option("smt.case_split", "3");
+      SetZ3Option("smt.qi.eager_threshold", "100");
+      SetZ3Option("smt.delay_units", "true");
+      SetZ3Option("nnf.sk_hack", "true");
     }
 
     public override string Help =>
