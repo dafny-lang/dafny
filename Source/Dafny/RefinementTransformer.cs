@@ -89,7 +89,8 @@ namespace Microsoft.Dafny
             foreach (var bim in baseDeclarations) {
               if (bim.Name.Equals(im.Name)) {
                 if (!im.Name.Equals("_default") && !im.IsRefining
-                      && !(bim is OpaqueTypeDecl)) {
+                      && !(bim is OpaqueTypeDecl)
+                      && !(bim is ModuleFacadeDecl && im is AliasModuleDecl)) {
                   string message =
                     $"{im.Name} in {m.Name} redeclares a name in the refinement base {m.RefinementBase.Name}";
                   reporter.Error(MessageSource.RefinementTransformer, im.tok, message);
