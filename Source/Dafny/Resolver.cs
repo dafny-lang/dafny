@@ -141,7 +141,7 @@ namespace Microsoft.Dafny
       readonly ISet<TopLevelDecl> Pool = new HashSet<TopLevelDecl>();
       ISet<TopLevelDecl> IAmbiguousThing<TopLevelDecl>.Pool { get { return Pool; } }
       private AmbiguousTopLevelDecl(ModuleDefinition m, string name, ISet<TopLevelDecl> pool)
-        : base(pool.First().tok, name, m, new List<TypeParameter>(), null) {
+        : base(pool.First().tok, name, m, new List<TypeParameter>(), null, false) {
         Contract.Requires(name != null);
         Contract.Requires(pool != null && 2 <= pool.Count);
         Pool = pool;
@@ -172,7 +172,7 @@ namespace Microsoft.Dafny
       readonly ISet<MemberDecl> Pool = new HashSet<MemberDecl>();
       ISet<MemberDecl> IAmbiguousThing<MemberDecl>.Pool { get { return Pool; } }
       private AmbiguousMemberDecl(ModuleDefinition m, string name, ISet<MemberDecl> pool)
-        : base(pool.First().tok, name, true, pool.First().IsGhost, null) {
+        : base(pool.First().tok, name, true, pool.First().IsGhost, null, false) {
         Contract.Requires(name != null);
         Contract.Requires(pool != null && 2 <= pool.Count);
         Pool = pool;
@@ -377,7 +377,7 @@ namespace Microsoft.Dafny
 
       rewriters.Add(new InductionRewriter(reporter));
 
-      systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false, null);
+      systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
       RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
       ResolveValuetypeDecls();
@@ -412,7 +412,8 @@ namespace Microsoft.Dafny
             r.PreResolve(m);
           }
 
-          literalDecl.Signature = RegisterTopLevelDecls(m, true, refinementTransformer.RefinedSig);
+          literalDecl.Signature = RegisterTopLevelDecls(m, true);
+          literalDecl.Signature.Refines = refinementTransformer.RefinedSig;
 
           var sig = literalDecl.Signature;
           // set up environment
@@ -455,7 +456,8 @@ namespace Microsoft.Dafny
             Contract.Assert(!useCompileSignatures);
             useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
             Type.DisableScopes();
-            var compileSig = RegisterTopLevelDecls(nw, true, refinementTransformer.RefinedSig);
+            var compileSig = RegisterTopLevelDecls(nw, true);
+            compileSig.Refines = refinementTransformer.RefinedSig;
             sig.CompileSignature = compileSig;
             foreach (var exportDecl in sig.ExportSets.Values) {
               exportDecl.Signature.CompileSignature = cloner.CloneModuleSignature(exportDecl.Signature, compileSig);
@@ -1255,7 +1257,7 @@ namespace Microsoft.Dafny
 
         reporter = new ErrorReporterWrapper(reporter,
           String.Format("Raised while checking export set {0}: ", decl.Name));
-        var testSig = RegisterTopLevelDecls(exportView, true, null);
+        var testSig = RegisterTopLevelDecls(exportView, true);
         //testSig.Refines = refinementTransformer.RefinedSig;
         ResolveModuleDefinition(exportView, testSig, true);
         var wasError = reporter.Count(ErrorLevel.Error) > 0;
@@ -1630,7 +1632,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef, bool useImports, ModuleSignature refinementSig = null) {
+    ModuleSignature RegisterTopLevelDecls(ModuleDefinition moduleDef, bool useImports) {
       Contract.Requires(moduleDef != null);
       var sig = new ModuleSignature();
       sig.ModuleDef = moduleDef;
@@ -1668,8 +1670,6 @@ namespace Microsoft.Dafny
             anonymousImportCount++;
           } else if (toplevels.ContainsKey(d.Name)) {
             reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
-          } else if (d.Name != "_default" && refinementSig != null && refinementSig.TopLevels.ContainsKey(d.Name)) {
-            reporter.Error(MessageSource.Resolver, d, "name of top-level declaration duplicates a declaration in a refinement parent: {0}", d.Name);
           } else if (d is ClassDecl cl && cl.NonNullTypeDecl != null) {
             registerThisDecl = cl.NonNullTypeDecl;
             registerUnderThisName = d.Name;
@@ -1942,8 +1942,6 @@ namespace Microsoft.Dafny
           }
         }
       }
-
-      sig.Refines = refinementSig;
       return sig;
     }
 
@@ -2051,7 +2049,8 @@ namespace Microsoft.Dafny
         DefaultClassDecl cl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
         mod.TopLevelDecls.Add(CloneDeclaration(p.VisibilityScope, cl, mod, mods, Name, compilationModuleClones));
       }
-      var sig = RegisterTopLevelDecls(mod, true, p.Refines);
+      var sig = RegisterTopLevelDecls(mod, true);
+      sig.Refines = p.Refines;
       sig.CompileSignature = p;
       sig.IsAbstract = p.IsAbstract;
       mods.Add(mod, sig);
@@ -8310,7 +8309,7 @@ namespace Microsoft.Dafny
                 parentRelation.AddEdge(cl, trait);
               }
             } else {
-              reporter.Error(MessageSource.Resolver, udt.tok, "{0} '{1}' is in a different module than trait '{2}'. A {0} may only extend a trait in the same module, unless that trait is annotated with {{:termination false}}.", cl.WhatKind, cl.Name, trait.FullName);
+              reporter.Error(MessageSource.Resolver, udt.tok, "{0} '{1}' is in a different module than trait '{2}'. A {0} may only extend a trait in the same module, unless the parent trait is annotated with {{:termination false}}.", cl.WhatKind, cl.Name, trait.FullName);
             }
           } else {
             reporter.Error(MessageSource.Resolver, udt != null ? udt.tok : cl.tok, "a {0} can only extend traits (found '{1}')", cl.WhatKind, tt);

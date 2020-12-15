@@ -19,7 +19,7 @@ abstract module A {
 }
 
 module B refines A {
-  class Foo {
+  class Foo ... {
     twostate function F(): int { old(x) + x }
     twostate predicate G() { old(x) <= x }
     function H(): int { x + 4 }

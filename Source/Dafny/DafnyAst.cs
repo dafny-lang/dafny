@@ -135,7 +135,7 @@ namespace Microsoft.Dafny {
       NatDecl = new SubsetTypeDecl(Token.NoToken, "nat", new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, false, false), new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.None, null, ax);
       SystemModule.TopLevelDecls.Add(NatDecl);
       // create trait 'object'
-      ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), null);
+      ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
       SystemModule.TopLevelDecls.Add(ObjectDecl);
       // add one-dimensional arrays, since they may arise during type checking
       // Arrays of other dimensions may be added during parsing as the parser detects the need for these
@@ -3197,6 +3197,7 @@ namespace Microsoft.Dafny {
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
     public readonly string Name;
+    public bool IsRefining;
     IToken INamedRegion.BodyStartTok { get { return BodyStartTok; } }
     IToken INamedRegion.BodyEndTok { get { return BodyEndTok; } }
     string INamedRegion.Name { get { return Name; } }
@@ -3287,12 +3288,13 @@ namespace Microsoft.Dafny {
     }
     public Attributes Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
 
-    public Declaration(IToken tok, string name, Attributes attributes) {
+    public Declaration(IToken tok, string name, Attributes attributes, bool isRefining) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       this.tok = tok;
       this.Name = name;
       this.Attributes = attributes;
+      this.IsRefining = isRefining;
     }
 
     [Pure]
@@ -3442,7 +3444,7 @@ namespace Microsoft.Dafny {
     public int PositionalIndex; // which type parameter this is (ie. in C<S, T, U>, S is 0, T is 1 and U is 2).
 
     public TypeParameter(IToken tok, string name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics)
-      : base(tok, name, null) {
+      : base(tok, name, null, false) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Characteristics = characteristics;
@@ -3503,7 +3505,7 @@ namespace Microsoft.Dafny {
     public readonly bool Opened;
 
     public ModuleDecl(IToken tok, string name, ModuleDefinition parent, bool opened)
-      : base(tok, name, parent, new List<TypeParameter>(), null) {
+      : base(tok, name, parent, new List<TypeParameter>(), null, false) {
         Height = -1;
       Signature = null;
       Opened = opened;
@@ -4030,8 +4032,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(TypeArgs));
     }
 
-    public TopLevelDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, Attributes attributes)
-      : base(tok, name, attributes) {
+    public TopLevelDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
+      : base(tok, name, attributes, isRefining) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -4171,8 +4173,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public TopLevelDeclWithMembers(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, List<Type>/*?*/ traits = null)
-      : base(tok, name, module, typeArgs, attributes) {
+    public TopLevelDeclWithMembers(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits = null)
+      : base(tok, name, module, typeArgs, attributes, isRefining) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -4225,8 +4227,8 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "trait"; } }
     public bool IsParent { set; get; }
     public TraitDecl(IToken tok, string name, ModuleDefinition module,
-      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<Type>/*?*/ traits)
-      : base(tok, name, module, typeArgs, members, attributes, traits) { }
+      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
+      : base(tok, name, module, typeArgs, members, attributes, isRefining, traits) { }
   }
 
   public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
@@ -4241,8 +4243,8 @@ namespace Microsoft.Dafny {
     }
 
     public ClassDecl(IToken tok, string name, ModuleDefinition module,
-      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<Type>/*?*/ traits)
-      : base(tok, name, module, typeArgs, members, attributes, traits) {
+      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
+      : base(tok, name, module, typeArgs, members, attributes, isRefining, traits) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -4261,8 +4263,8 @@ namespace Microsoft.Dafny {
     /// constructor will do that call.
     /// </summary>
     protected ClassDecl(IToken tok, string name, ModuleDefinition module,
-      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes)
-      : base(tok, name, module, typeArgs, members, attributes, null) {
+      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining)
+      : base(tok, name, module, typeArgs, members, attributes, isRefining, null) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -4316,7 +4318,7 @@ namespace Microsoft.Dafny {
 
   public class DefaultClassDecl : ClassDecl {
     public DefaultClassDecl(ModuleDefinition module, [Captured] List<MemberDecl> members)
-      : base(Token.NoToken, "_default", module, new List<TypeParameter>(), members, null, null) {
+      : base(Token.NoToken, "_default", module, new List<TypeParameter>(), members, null, false, null) {
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(members));
     }
@@ -4333,7 +4335,7 @@ namespace Microsoft.Dafny {
     public ArrayClassDecl(int dims, ModuleDefinition module, Attributes attrs)
     : base(Token.NoToken, BuiltIns.ArrayClassName(dims), module,
       new List<TypeParameter>(new TypeParameter[]{ new TypeParameter(Token.NoToken, "arg", TypeParameter.TPVarianceSyntax.NonVariant_Strict) }),
-      new List<MemberDecl>(), attrs, null)
+      new List<MemberDecl>(), attrs, false, null)
     {
       Contract.Requires(1 <= dims);
       Contract.Requires(module != null);
@@ -4356,7 +4358,7 @@ namespace Microsoft.Dafny {
 
     public ArrowTypeDecl(List<TypeParameter> tps, Function req, Function reads, ModuleDefinition module, Attributes attributes)
       : base(Token.NoToken, ArrowType.ArrowTypeName(tps.Count - 1), module, tps,
-             new List<MemberDecl> { req, reads }, attributes) {
+             new List<MemberDecl> { req, reads }, attributes, false) {
       Contract.Requires(tps != null && 1 <= tps.Count);
       Contract.Requires(req != null);
       Contract.Requires(reads != null);
@@ -4381,8 +4383,8 @@ namespace Microsoft.Dafny {
     }
 
     public DatatypeDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
-      [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes)
-      : base(tok, name, module, typeArgs, members, attributes) {
+      [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
+      : base(tok, name, module, typeArgs, members, attributes, isRefining) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -4443,8 +4445,8 @@ namespace Microsoft.Dafny {
     public ES EqualitySupport = ES.NotYetComputed;
 
     public IndDatatypeDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
-      [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes)
-      : base(tok, name, module, typeArgs, ctors, members, attributes) {
+      [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
+      : base(tok, name, module, typeArgs, ctors, members, attributes, isRefining) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -4476,7 +4478,7 @@ namespace Microsoft.Dafny {
     }
 
     private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, Attributes attributes)
-      : base(Token.NoToken, BuiltIns.TupleTypeName(typeArgs.Count), systemModule, typeArgs, CreateConstructors(typeArgs), new List<MemberDecl>(), attributes) {
+      : base(Token.NoToken, BuiltIns.TupleTypeName(typeArgs.Count), systemModule, typeArgs, CreateConstructors(typeArgs), new List<MemberDecl>(), attributes, false) {
       Contract.Requires(systemModule != null);
       Contract.Requires(typeArgs != null);
       Dims = typeArgs.Count;
@@ -4525,8 +4527,8 @@ namespace Microsoft.Dafny {
     public CoDatatypeDecl SscRepr;  // filled in during resolution
 
     public CoDatatypeDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
-      [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes)
-      : base(tok, name, module, typeArgs, ctors, members, attributes) {
+      [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
+      : base(tok, name, module, typeArgs, ctors, members, attributes, isRefining) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -4553,7 +4555,7 @@ namespace Microsoft.Dafny {
     readonly Func<List<Type>, Type>/*?*/ typeCreator;
 
     public ValuetypeDecl(string name, ModuleDefinition module, int typeParameterCount, Func<Type, bool> typeTester, Func<List<Type>, Type>/*?*/ typeCreator)
-      : base(Token.NoToken, name, module, new List<TypeParameter>(), null) {
+      : base(Token.NoToken, name, module, new List<TypeParameter>(), null, false) {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(0 <= typeParameterCount);
@@ -4597,7 +4599,7 @@ namespace Microsoft.Dafny {
     public List<DatatypeDestructor> Destructors = new List<DatatypeDestructor>();  // contents filled in during resolution; includes both implicit (not mentionable in source) and explicit destructors
 
     public DatatypeCtor(IToken tok, string name, [Captured] List<Formal> formals, Attributes attributes)
-      : base(tok, name, attributes) {
+      : base(tok, name, attributes, false) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(formals));
@@ -4725,7 +4727,7 @@ namespace Microsoft.Dafny {
                         List<AttributedExpression> yieldRequires,
                         List<AttributedExpression> yieldEnsures,
                         BlockStmt body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, module, MutateIntoRequiringZeroInitBit(typeArgs), new List<MemberDecl>(), attributes, null)
+      : base(tok, name, module, MutateIntoRequiringZeroInitBit(typeArgs), new List<MemberDecl>(), attributes, false, null)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -4890,8 +4892,8 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    public MemberDecl(IToken tok, string name, bool hasStaticKeyword, bool isGhost, Attributes attributes)
-      : base(tok, name, attributes) {
+    public MemberDecl(IToken tok, string name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
+      : base(tok, name, attributes, isRefining) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       HasStaticKeyword = hasStaticKeyword;
@@ -4985,7 +4987,7 @@ namespace Microsoft.Dafny {
     }
 
     public Field(IToken tok, string name, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-      : base(tok, name, hasStaticKeyword, isGhost, attributes) {
+      : base(tok, name, hasStaticKeyword, isGhost, attributes, false) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
@@ -5209,7 +5211,7 @@ namespace Microsoft.Dafny {
     }
 
     public OpaqueTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes)
-      : base(tok, name, module, typeArgs, members, attributes) {
+      : base(tok, name, module, typeArgs, members, attributes, false) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -5328,8 +5330,8 @@ namespace Microsoft.Dafny {
     public readonly SubsetTypeDecl.WKind WitnessKind = SubsetTypeDecl.WKind.None;
     public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
     public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
-    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, List<MemberDecl> members, Attributes attributes)
-      : base(tok, name, module, new List<TypeParameter>(), members, attributes) {
+    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, List<MemberDecl> members, Attributes attributes, bool isRefining)
+      : base(tok, name, module, new List<TypeParameter>(), members, attributes, isRefining) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -5337,8 +5339,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(members != null);
       BaseType = baseType;
     }
-    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, SubsetTypeDecl.WKind witnessKind, Expression witness, List<MemberDecl> members, Attributes attributes)
-      : base(tok, name, module, new List<TypeParameter>(), members, attributes) {
+    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, SubsetTypeDecl.WKind witnessKind, Expression witness, List<MemberDecl> members, Attributes attributes, bool isRefining)
+      : base(tok, name, module, new List<TypeParameter>(), members, attributes, isRefining) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -5404,7 +5406,7 @@ namespace Microsoft.Dafny {
     }
     public readonly Type Rhs;
     public TypeSynonymDeclBase(IToken tok, string name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
-      : base(tok, name, module, typeArgs, attributes) {
+      : base(tok, name, module, typeArgs, attributes, false) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);
@@ -5994,7 +5996,7 @@ namespace Microsoft.Dafny {
       List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
       Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isGhost, attributes) {
+      : base(tok, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
 
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -6271,7 +6273,7 @@ namespace Microsoft.Dafny {
                   [Captured] Specification<Expression> decreases,
                   [Captured] BlockStmt body,
                   Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isGhost, attributes) {
+      : base(tok, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));

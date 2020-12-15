@@ -57,9 +57,9 @@ namespace Microsoft.Dafny
       } else if (d is NewtypeDecl) {
         var dd = (NewtypeDecl)d;
           if (dd.Var == null) {
-            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes));
+            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
           } else {
-            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes));
+            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
           }
       } else if (d is TupleTypeDecl) {
         var dd = (TupleTypeDecl)d;
@@ -68,13 +68,13 @@ namespace Microsoft.Dafny
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new IndDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes));
+        var dt = new IndDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
         return dt;
       } else if (d is CoDatatypeDecl) {
         var dd = (CoDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new CoDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes));
+        var dt = new CoDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
         return dt;
       } else if (d is IteratorDecl) {
         var dd = (IteratorDecl)d;
@@ -98,7 +98,7 @@ namespace Microsoft.Dafny
         var dd = (TraitDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(CloneMember);
-        var cl = new TraitDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.ParentTraits.ConvertAll(CloneType));
+        var cl = new TraitDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
         return cl;
       } else if (d is ClassDecl) {
         var dd = (ClassDecl)d;
@@ -107,7 +107,7 @@ namespace Microsoft.Dafny
         if (d is DefaultClassDecl) {
           return new DefaultClassDecl(m, mm);
         } else {
-          return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.ParentTraits.ConvertAll(CloneType));
+          return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
         }
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl) {
@@ -771,7 +771,7 @@ namespace Microsoft.Dafny
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       } else {
         return new Function(Tok(f.tok), newName, f.HasStaticKeyword, f.IsGhost, tps, formals, f.Result == null ? null : CloneFormal(f.Result), CloneType(f.ResultType),
-          req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
+          req, reads, ens, decreases, body, CloneAttributes(f.Attributes),null);
       }
     }
 
