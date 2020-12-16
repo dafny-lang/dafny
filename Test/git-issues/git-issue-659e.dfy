@@ -14,7 +14,7 @@ module M {
 module X {
   import I = M.Inner`Q
   method m() {
-    assert I.a == 10;
+    assert I.a == 10; // error -- no a in Q
     assert I.c == 30;
   }
 }
