@@ -71,8 +71,8 @@ jobs:
       if: ${{github.ref == 'refs/heads/master'}}
       shell: pwsh
       run: |
-        dotnet publish --configuration Release --no-restore --output ${{env.publishPath}} dafny/Source/DafnyDriver/DafnyDriver.csproj
-        dotnet publish --configuration Release --no-restore --output ${{env.publishPath}} Source/DafnyLS/DafnyLS.csproj
+        dotnet publish --configuration Release --no-restore -p:SatelliteResourceLanguages=en --output ${{env.publishPath}} dafny/Source/DafnyDriver/DafnyDriver.csproj
+        dotnet publish --configuration Release --no-restore -p:SatelliteResourceLanguages=en --output ${{env.publishPath}} Source/DafnyLS/DafnyLS.csproj
         Copy-Item ${{matrix.z3}} ${{env.publishPath}}/z3 -Recurse
     - name: Upload Artifacts
       if: ${{github.ref == 'refs/heads/master'}}
