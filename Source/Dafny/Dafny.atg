@@ -927,7 +927,6 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       (. submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports); .)
     | ":" QualifiedModuleExport<out idPath, out idExports>
         (. submodule = new ModuleFacadeDecl(idPath, id, parent, opened, idExports); .)
-
     )
 
   | (.
