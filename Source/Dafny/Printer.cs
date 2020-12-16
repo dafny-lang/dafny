@@ -396,11 +396,11 @@ namespace Microsoft.Dafny {
             if (!e.IsDefault) {
               wr.Write("export {0}", e.Name);
             } else {
-              wr.Write("export ");
+              wr.Write("export");
             }
 
             if (e.IsRefining) {
-              wr.Write(" ... ");
+              wr.Write(" ...");
             }
             if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id));
             wr.WriteLine();

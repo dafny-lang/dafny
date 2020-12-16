@@ -454,7 +454,7 @@ namespace Microsoft.Dafny
       if (m is Constructor) {
         var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)m.BodyForRefinement);
         return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, tps, ins,
-          req, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(m.Attributes, moreAttributes),null);
+          req, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.BodyForRefinement);
       if (m is LeastLemma) {
@@ -542,7 +542,7 @@ namespace Microsoft.Dafny
     ClassDecl MergeClass(ClassDecl nw, ClassDecl prev) {
       CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, "class");
 
-      prev.ParentTraits.ForEach( item => nw.ParentTraits.Add(item));
+      prev.ParentTraits.ForEach(item => nw.ParentTraits.Add(item));
       nw.Attributes = refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes);
 
       // Create a simple name-to-member dictionary.  Ignore any duplicates at this time.

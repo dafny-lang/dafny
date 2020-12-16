@@ -771,7 +771,7 @@ namespace Microsoft.Dafny
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       } else {
         return new Function(Tok(f.tok), newName, f.HasStaticKeyword, f.IsGhost, tps, formals, f.Result == null ? null : CloneFormal(f.Result), CloneType(f.ResultType),
-          req, reads, ens, decreases, body, CloneAttributes(f.Attributes),null);
+          req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       }
     }
 
