@@ -31,7 +31,7 @@ module B {
 }
 
 module C {
-  import CAO = B.BAO // error
+  import CAO = B.BAO // OK now
 }
 
 module CC {
