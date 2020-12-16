@@ -29,3 +29,17 @@ module Z {
 module T {
   import Z.A  // error -- Z has no default export
 }
+
+module Y {
+  module A {}
+  module B {
+    const b := 10;
+  }
+  export A provides A
+  export Y provides B
+}
+
+module TY {
+  import YB = Y.B  // OK - Y has a default export set
+  const b := YB.b;
+}
