@@ -2088,7 +2088,17 @@ namespace Microsoft.Dafny
 
       ModuleDecl decl = root;
       for (int k = 1; k < Path.Count; k++) {
-        var tld = decl.Signature.TopLevels.GetValueOrDefault(Path[k].val, null);
+        if (decl is LiteralModuleDecl) {
+          p = ((LiteralModuleDecl) decl).DefaultExport;
+          if (p == null) {
+            reporter.Error(MessageSource.Resolver, Path[k],
+              ModuleNotFoundErrorMessage(k, Path, $" because {decl.Name} does not have a default export"));
+            return false;
+          }
+        } else {
+          p = decl.Signature;
+        }
+        var tld = p.TopLevels.GetValueOrDefault(Path[k].val, null);
         if (!(tld is ModuleDecl dd)) {
           if (decl.Signature.ModuleDef == null) {
             reporter.Error(MessageSource.Resolver, Path[k],
