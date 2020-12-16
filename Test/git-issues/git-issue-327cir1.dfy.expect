@@ -1,0 +1,2 @@
+git-issue-327cir1.dfy(11,9): Error: Import declaration uses same name as a module in the same scope: B
+1 resolution/type errors detected in git-issue-327cir1.dfy
