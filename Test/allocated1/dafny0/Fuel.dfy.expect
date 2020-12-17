@@ -60,6 +60,21 @@ Execution trace:
     (0,0): anon7_Then
 Fuel.dfy(335,26): Error: possible violation of function precondition
 Fuel.dfy(324,21): Related location
+Fuel.dfy(312,43): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Else
+    (0,0): anon8_Then
+Fuel.dfy(335,26): Error: possible violation of function precondition
+Fuel.dfy(324,21): Related location
+Fuel.dfy(312,58): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Else
+    (0,0): anon8_Then
+Fuel.dfy(335,26): Error: possible violation of function precondition
+Fuel.dfy(324,21): Related location
+Fuel.dfy(313,41): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
@@ -70,16 +85,6 @@ Execution trace:
     (0,0): anon7_Else
     (0,0): anon8_Then
 Fuel.dfy(335,50): Error: index out of range
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Then
-Fuel.dfy(336,38): Error: index out of range
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Then
-Fuel.dfy(336,42): Error: destructor 'u' can only be applied to datatype values constructed by 'VUint64'
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
