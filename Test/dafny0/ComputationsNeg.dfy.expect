@@ -8,6 +8,8 @@ Execution trace:
     (0,0): anon0
 ComputationsNeg.dfy(23,0): Error BP5003: A postcondition might not hold on this return path.
 ComputationsNeg.dfy(22,10): Related location: This is the postcondition that might not hold.
+ComputationsNeg.dfy(19,28): Related location
+ComputationsNeg.dfy(19,65): Related location
 Execution trace:
     (0,0): anon0
 ComputationsNeg.dfy(36,12): Error: assertion violation

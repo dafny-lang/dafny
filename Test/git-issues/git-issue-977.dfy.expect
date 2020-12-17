@@ -1,0 +1,20 @@
+git-issue-977.dfy(39,11): Error: assertion violation
+git-issue-977.dfy(14,20): Related location
+git-issue-977.dfy(9,7): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+git-issue-977.dfy(41,11): Error: assertion violation
+git-issue-977.dfy(22,4): Related location
+git-issue-977.dfy(9,7): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
+git-issue-977.dfy(43,11): Error: assertion violation
+git-issue-977.dfy(30,20): Related location
+git-issue-977.dfy(9,7): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+
+Dafny program verifier finished with 3 verified, 3 errors

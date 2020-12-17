@@ -332,8 +332,8 @@ module TestModule8 {
             requires ValInGrammar(val, CRequest_grammar());
         {
             if val.c == 0 then
-                var ep := parse_EndPoint(val.val.t[0]); // With default fuel, error: function precondition, destructor, index
-                CRequest(ep, val.val.t[1].u, parse_AppMessage(val.val.t[2]))    // error: index out of range, destructor
+                var ep := parse_EndPoint(val.val.t[0]); // With default fuel, error: function precondition (3x), destructor, index
+                CRequest(ep, val.val.t[1].u, parse_AppMessage(val.val.t[2]))    // (there are errors here, too, but only 5 are reported per method)
             else
                 CRequestNoOp()
         }

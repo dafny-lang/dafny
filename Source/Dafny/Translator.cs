@@ -17311,6 +17311,12 @@ namespace Microsoft.Dafny {
         }
 
         return true;
+
+      } else if (expr is MatchExpr) {
+        var e = (MatchExpr)expr;
+        var ite = etran.DesugarMatchExpr(e);
+        return TrSplitExpr(ite, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         // For an expression S;E in split position, the conclusion of S can be used as an assumption.  Unfortunately,
@@ -17346,7 +17352,7 @@ namespace Microsoft.Dafny {
         var module = f.EnclosingClass.Module;
         var functionHeight = module.CallGraph.GetSCCRepresentativeId(f);
 
-        if (functionHeight < heightLimit && f.Body != null && RevealedInScope(f) && !(f.Body.Resolved is MatchExpr)) {
+        if (functionHeight < heightLimit && f.Body != null && RevealedInScope(f)) {
           if (RefinementToken.IsInherited(fexp.tok, currentModule) &&
               f is Predicate && ((Predicate)f).BodyOrigin == Predicate.BodyOriginKind.DelayedDefinition &&
               (codeContext == null || !codeContext.MustReverify)) {
