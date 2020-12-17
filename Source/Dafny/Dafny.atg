@@ -890,10 +890,10 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
   ) .
 
 SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
-= (. Attributes attrs = null;  IToken/*!*/ id; var prefixIds = new List<IToken>();
+= (. Attributes attrs = null;  IToken/*!*/ id, iderr; var prefixIds = new List<IToken>();
      List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
      List<IToken> idPath, idExports;
-     IToken idRefined = null;
+     List<IToken> idRefined = null;
      ModuleDefinition module;
      submodule = null; // appease compiler
      bool isAbstract = dmod.IsAbstract;
@@ -906,10 +906,13 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     { (. prefixIds.Add(id); .)
       "." NoUSIdent<out id>
     }
-    [ "refines" ModuleName<out idRefined> ]
+    [ "refines" QualifiedModuleId<out idRefined>
+    |  Ident<out iderr> (. SemErr(la, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
+    ]
     (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, false, idRefined, parent, attrs,
                                       false, theVerifyThisFile, theCompileThisFile);
     .)
+    SYNC
     "{"                                 (. module.BodyStartTok = t; .)
       { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
     "}"                                 (. module.BodyEndTok = t;
@@ -963,7 +966,8 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     (. if (exportId.val == "export" || exportId.val == parent.Name) {
          isDefault = true;
        }
-       submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault);
+       submodule = new ModuleExportDecl(exportId, parent, isDefault ? parent.Name : exportId.val,
+            exports, extends, provideAll, revealAll, isDefault);
     .)
   )
 .
@@ -983,6 +987,13 @@ ModuleExportSignature<bool opaque, out ExportSignature exsig>
 /* The only modules in any given scope are siblings, so we no longer need qualified lookups */
 ModuleName<out IToken id>
 = Ident<out id>
+  .
+
+QualifiedModuleId<.out List<IToken> ids.>
+= (. IToken id; ids = new List<IToken>();
+  .)
+  ModuleName<out id> (. ids.Add(id); .)
+  { "." ModuleName<out id> (. ids.Add(id); .) }
   .
 
 /* This production is for referring to module exports for imports (both normal and facades) */

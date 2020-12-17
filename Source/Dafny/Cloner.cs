@@ -120,7 +120,7 @@ namespace Microsoft.Dafny
           return new ModuleFacadeDecl(a.Path, a.tok, m, a.Opened, a.Exports);
         } else if (d is ModuleExportDecl) {
           var a = (ModuleExportDecl)d;
-          return new ModuleExportDecl(a.tok, m, a.Exports, a.Extends, a.ProvideAll, a.RevealAll, a.IsDefault);
+          return new ModuleExportDecl(a.tok, m, a.Name, a.Exports, a.Extends, a.ProvideAll, a.RevealAll, a.IsDefault);
         } else {
           Contract.Assert(false);  // unexpected declaration
           return null;  // to please compiler

@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using IToken = Microsoft.Boogie.IToken;
 
 namespace Microsoft.Dafny
@@ -85,7 +86,7 @@ namespace Microsoft.Dafny
           List<TopLevelDecl> declarations = m.TopLevelDecls;
           List<TopLevelDecl> baseDeclarations = m.RefinementBase.TopLevelDecls;
           foreach (var im in declarations) {
-            if (im is ModuleDecl) {
+            if (im is ModuleDecl && !(im is ModuleExportDecl)) {
               ModuleDecl mdecl = (ModuleDecl)im;
               //find the matching import from the base
               // TODO: this is a terribly slow algorithm; use the symbol table instead
@@ -143,9 +144,11 @@ namespace Microsoft.Dafny
         processedDecl.Add(d.Name);
         if (!declaredNames.TryGetValue(d.Name, out index)) {
           m.TopLevelDecls.Add(refinementCloner.CloneDeclaration(d, m));
-        } else {
+        } else if (d.Name == "_default") { //m.TopLevelDecls[index].IsRefining) {
           var nw = m.TopLevelDecls[index];
           MergeTopLevelDecls(m, nw, d, index);
+        } else {
+          reporter.Error(MessageSource.RefinementTransformer, m.RefinementBaseName, $"module {m.Name} redeclares a name {d.Name} from module {m.RefinementBaseName.val} without specifying refinement (...)");
         }
       }
 
@@ -1484,8 +1487,15 @@ namespace Microsoft.Dafny
     }
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       var dd = base.CloneDeclaration(d, m);
-      if (dd is ModuleExportDecl) {
-        ((ModuleExportDecl)dd).SetupDefaultSignature();
+      if (dd is ModuleExportDecl ddex) {
+        // In refinement cloning, a default export set from the parent should, in the
+        // refining module, retain its name but not be default, unless the refining module has the same name
+        ModuleExportDecl dex = d as ModuleExportDecl;
+        if (dex.IsDefault && d.Name != m.Name) {
+          ddex = new ModuleExportDecl(dex.tok, m, dex.Name, dex.Exports, dex.Extends, dex.ProvideAll, dex.RevealAll, false);
+        }
+        ddex.SetupDefaultSignature();
+        dd = ddex;
       } else if (d is ModuleDecl) {
         ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
         if (d is ModuleFacadeDecl) {

@@ -3594,9 +3594,9 @@ namespace Microsoft.Dafny {
     public bool ProvideAll;
 
     public readonly VisibilityScope ThisScope;
-    public ModuleExportDecl(IToken tok, ModuleDefinition parent,
+    public ModuleExportDecl(IToken tok, ModuleDefinition parent, string name,
       List<ExportSignature> exports, List<string> extends, bool provideAll, bool revealAll, bool isDefault)
-      : base(tok, isDefault ? parent.Name : tok.val, parent, false) {
+      : base(tok, isDefault ? parent.Name : name, parent, false) {
       Contract.Requires(exports != null);
       IsDefault = isDefault;
       Exports = exports;
@@ -3771,17 +3771,17 @@ namespace Microsoft.Dafny {
       Contract.Invariant(CallGraph != null);
     }
 
-    public ModuleDefinition(IToken tok, string name, List<IToken> prefixIds, bool isAbstract, bool isFacade, IToken refinementBase, ModuleDefinition parent, Attributes attributes, bool isBuiltinName,
+    public ModuleDefinition(IToken tok, string name, List<IToken> prefixIds, bool isAbstract, bool isFacade, List<IToken> refinementQId, ModuleDefinition parent, Attributes attributes, bool isBuiltinName,
       bool isToBeVerified, bool isToBeCompiled)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       this.tok = tok;
       this.Name = name;
-      this.PrefixIds = prefixIds;
+      this.PrefixIds = refinementQId;
       this.Attributes = attributes;
       this.Module = parent;
-      RefinementBaseName = refinementBase;
+      RefinementBaseName = refinementQId[0];
       IsAbstract = isAbstract;
       IsFacade = isFacade;
       RefinementBaseRoot = null;
