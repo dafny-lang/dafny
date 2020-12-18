@@ -1,4 +1,4 @@
-git-issue20.dfy(21,11): Error: assertion violation
+git-issue20.dfy(21,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 

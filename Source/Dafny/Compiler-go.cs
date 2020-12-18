@@ -1945,7 +1945,7 @@ namespace Microsoft.Dafny {
         wr.Write("{0}({1})", GetNativeTypeName(nt), (BigInteger)e.Value);
       } else if (e.Value is BigInteger i) {
         EmitIntegerLiteral(i, wr);
-      } else if (e.Value is Basetypes.BigDec n) {
+      } else if (e.Value is BaseTypes.BigDec n) {
         var zeros = Util.Repeat("0", Math.Abs(n.Exponent));
         string str;
         if (n.Exponent >= 0) {

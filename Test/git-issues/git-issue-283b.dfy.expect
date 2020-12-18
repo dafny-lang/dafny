@@ -1,10 +1,10 @@
-git-issue-283b.dfy(14,6): Error: missing case in match expression: Success(C2(_))
+git-issue-283b.dfy(14,6): Error BP5001: missing case in match expression: Success(C2(_))
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
     (0,0): anon9_Else
     (0,0): anon10_Then
-git-issue-283b.dfy(22,6): Error: missing case in match expression: Success(C2(_))
+git-issue-283b.dfy(22,6): Error BP5001: missing case in match expression: Success(C2(_))
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then

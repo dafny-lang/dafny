@@ -1,7 +1,7 @@
 
 Verifying Impl$$_module.__default.foo ...
   [1 proof obligation]  error
-git-issue59.dfy(7,17): Error: value does not satisfy the subset constraints of 'byte'
+git-issue59.dfy(7,17): Error BP5001: value does not satisfy the subset constraints of 'byte'
 Execution trace:
     (0,0): anon0
 

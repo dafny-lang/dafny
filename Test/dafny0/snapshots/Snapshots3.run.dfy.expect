@@ -1,6 +1,6 @@
 Processing command (at Snapshots3.v0.dfy(9,14)) assert 0 != 0;
   >>> DoNothingToAssert
-Snapshots3.v0.dfy(9,13): Error: assertion violation
+Snapshots3.v0.dfy(9,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
@@ -10,7 +10,7 @@ Processing command (at Snapshots3.v1.dfy(5,12)) assert true;
   >>> DoNothingToAssert
 Processing command (at Snapshots3.v1.dfy(9,14)) assert 0 != 0;
   >>> RecycleError
-Snapshots3.v0.dfy(9,13): Error: assertion violation
+Snapshots3.v0.dfy(9,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else

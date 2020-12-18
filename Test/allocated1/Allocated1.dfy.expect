@@ -1,99 +1,99 @@
-AllocatedCommon.dfyi(23,26): Error: assertion violation
-AllocatedCommon.dfyi(24,26): Error: assertion violation
-AllocatedCommon.dfyi(25,26): Error: assertion violation
-AllocatedCommon.dfyi(26,30): Error: target object may not be allocated
-AllocatedCommon.dfyi(27,26): Error: assertion violation
-AllocatedCommon.dfyi(28,26): Error: assertion violation
-AllocatedCommon.dfyi(29,55): Error: assertion violation
-AllocatedCommon.dfyi(30,53): Error: assertion violation
-AllocatedCommon.dfyi(31,53): Error: assertion violation
-AllocatedCommon.dfyi(32,59): Error: assertion violation
-AllocatedCommon.dfyi(33,9): Error: assertion violation
-AllocatedCommon.dfyi(34,9): Error: assertion violation
-AllocatedCommon.dfyi(35,9): Error: assertion violation
-AllocatedCommon.dfyi(36,26): Error: assertion violation
-AllocatedCommon.dfyi(45,26): Error: assertion violation
-AllocatedCommon.dfyi(46,26): Error: assertion violation
-AllocatedCommon.dfyi(47,26): Error: assertion violation
-AllocatedCommon.dfyi(48,30): Error: target object may not be allocated
-AllocatedCommon.dfyi(49,26): Error: assertion violation
-AllocatedCommon.dfyi(50,26): Error: assertion violation
-AllocatedCommon.dfyi(51,55): Error: assertion violation
-AllocatedCommon.dfyi(52,53): Error: assertion violation
-AllocatedCommon.dfyi(53,53): Error: assertion violation
-AllocatedCommon.dfyi(54,59): Error: assertion violation
-AllocatedCommon.dfyi(55,9): Error: assertion violation
-AllocatedCommon.dfyi(56,9): Error: assertion violation
-AllocatedCommon.dfyi(57,9): Error: assertion violation
-AllocatedCommon.dfyi(58,26): Error: assertion violation
-AllocatedCommon.dfyi(80,26): Error: assertion violation
-AllocatedCommon.dfyi(81,26): Error: assertion violation
-AllocatedCommon.dfyi(82,26): Error: assertion violation
-AllocatedCommon.dfyi(83,30): Error: target object may not be allocated
-AllocatedCommon.dfyi(84,26): Error: assertion violation
-AllocatedCommon.dfyi(85,26): Error: assertion violation
-AllocatedCommon.dfyi(86,55): Error: assertion violation
-AllocatedCommon.dfyi(87,53): Error: assertion violation
-AllocatedCommon.dfyi(88,53): Error: assertion violation
-AllocatedCommon.dfyi(89,59): Error: assertion violation
-AllocatedCommon.dfyi(90,26): Error: assertion violation
-AllocatedCommon.dfyi(91,44): Error: assertion violation
-AllocatedCommon.dfyi(92,35): Error: assertion violation
-AllocatedCommon.dfyi(93,9): Error: assertion violation
-AllocatedCommon.dfyi(94,9): Error: assertion violation
-AllocatedCommon.dfyi(95,9): Error: assertion violation
-AllocatedCommon.dfyi(96,9): Error: assertion violation
-AllocatedCommon.dfyi(97,9): Error: assertion violation
-AllocatedCommon.dfyi(98,23): Error: assertion violation
-AllocatedCommon.dfyi(116,26): Error: assertion violation
-AllocatedCommon.dfyi(117,26): Error: assertion violation
-AllocatedCommon.dfyi(118,26): Error: assertion violation
-AllocatedCommon.dfyi(119,30): Error: target object may not be allocated
-AllocatedCommon.dfyi(120,26): Error: assertion violation
-AllocatedCommon.dfyi(121,26): Error: assertion violation
-AllocatedCommon.dfyi(122,55): Error: assertion violation
-AllocatedCommon.dfyi(123,53): Error: assertion violation
-AllocatedCommon.dfyi(124,53): Error: assertion violation
-AllocatedCommon.dfyi(125,59): Error: assertion violation
-AllocatedCommon.dfyi(126,26): Error: assertion violation
-AllocatedCommon.dfyi(127,44): Error: assertion violation
-AllocatedCommon.dfyi(128,35): Error: assertion violation
-AllocatedCommon.dfyi(129,9): Error: assertion violation
-AllocatedCommon.dfyi(130,9): Error: assertion violation
-AllocatedCommon.dfyi(131,9): Error: assertion violation
-AllocatedCommon.dfyi(132,9): Error: assertion violation
-AllocatedCommon.dfyi(133,9): Error: assertion violation
-AllocatedCommon.dfyi(134,23): Error: assertion violation
-AllocatedCommon.dfyi(177,26): Error: assertion violation
-AllocatedCommon.dfyi(178,26): Error: assertion violation
-AllocatedCommon.dfyi(179,26): Error: assertion violation
-AllocatedCommon.dfyi(180,31): Error: target object may not be allocated
-AllocatedCommon.dfyi(181,26): Error: assertion violation
-AllocatedCommon.dfyi(182,26): Error: assertion violation
-AllocatedCommon.dfyi(183,26): Error: assertion violation
-AllocatedCommon.dfyi(184,26): Error: assertion violation
-AllocatedCommon.dfyi(185,26): Error: assertion violation
-AllocatedCommon.dfyi(186,60): Error: assertion violation
-AllocatedCommon.dfyi(187,26): Error: assertion violation
-AllocatedCommon.dfyi(188,26): Error: assertion violation
-AllocatedCommon.dfyi(189,44): Error: assertion violation
-AllocatedCommon.dfyi(190,45): Error: assertion violation
-AllocatedCommon.dfyi(191,41): Error: assertion violation
-AllocatedCommon.dfyi(192,37): Error: assertion violation
-AllocatedCommon.dfyi(193,57): Error: assertion violation
-AllocatedCommon.dfyi(194,9): Error: assertion violation
-AllocatedCommon.dfyi(195,9): Error: assertion violation
-AllocatedCommon.dfyi(196,9): Error: assertion violation
-AllocatedCommon.dfyi(197,9): Error: assertion violation
-AllocatedCommon.dfyi(198,9): Error: assertion violation
-AllocatedCommon.dfyi(199,24): Error: assertion violation
-AllocatedCommon.dfyi(200,27): Error: assertion violation
-AllocatedCommon.dfyi(216,5): Error: insufficient reads clause to read field
-AllocatedCommon.dfyi(223,5): Error: insufficient reads clause to read field
-AllocatedCommon.dfyi(282,9): Error: possible violation of function precondition
-AllocatedCommon.dfyi(282,15): Error: assertion violation
-AllocatedCommon.dfyi(299,26): Error: assertion violation
-AllocatedCommon.dfyi(300,26): Error: assertion violation
-AllocatedCommon.dfyi(308,9): Error: assertion violation
+AllocatedCommon.dfyi(23,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(24,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(25,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(26,30): Error BP5001: target object may not be allocated
+AllocatedCommon.dfyi(27,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(28,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(29,55): Error BP5001: assertion violation
+AllocatedCommon.dfyi(30,53): Error BP5001: assertion violation
+AllocatedCommon.dfyi(31,53): Error BP5001: assertion violation
+AllocatedCommon.dfyi(32,59): Error BP5001: assertion violation
+AllocatedCommon.dfyi(33,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(34,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(35,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(36,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(45,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(46,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(47,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(48,30): Error BP5001: target object may not be allocated
+AllocatedCommon.dfyi(49,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(50,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(51,55): Error BP5001: assertion violation
+AllocatedCommon.dfyi(52,53): Error BP5001: assertion violation
+AllocatedCommon.dfyi(53,53): Error BP5001: assertion violation
+AllocatedCommon.dfyi(54,59): Error BP5001: assertion violation
+AllocatedCommon.dfyi(55,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(56,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(57,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(58,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(80,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(81,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(82,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(83,30): Error BP5001: target object may not be allocated
+AllocatedCommon.dfyi(84,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(85,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(86,55): Error BP5001: assertion violation
+AllocatedCommon.dfyi(87,53): Error BP5001: assertion violation
+AllocatedCommon.dfyi(88,53): Error BP5001: assertion violation
+AllocatedCommon.dfyi(89,59): Error BP5001: assertion violation
+AllocatedCommon.dfyi(90,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(91,44): Error BP5001: assertion violation
+AllocatedCommon.dfyi(92,35): Error BP5001: assertion violation
+AllocatedCommon.dfyi(93,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(94,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(95,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(96,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(97,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(98,23): Error BP5001: assertion violation
+AllocatedCommon.dfyi(116,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(117,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(118,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(119,30): Error BP5001: target object may not be allocated
+AllocatedCommon.dfyi(120,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(121,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(122,55): Error BP5001: assertion violation
+AllocatedCommon.dfyi(123,53): Error BP5001: assertion violation
+AllocatedCommon.dfyi(124,53): Error BP5001: assertion violation
+AllocatedCommon.dfyi(125,59): Error BP5001: assertion violation
+AllocatedCommon.dfyi(126,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(127,44): Error BP5001: assertion violation
+AllocatedCommon.dfyi(128,35): Error BP5001: assertion violation
+AllocatedCommon.dfyi(129,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(130,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(131,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(132,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(133,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(134,23): Error BP5001: assertion violation
+AllocatedCommon.dfyi(177,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(178,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(179,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(180,31): Error BP5001: target object may not be allocated
+AllocatedCommon.dfyi(181,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(182,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(183,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(184,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(185,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(186,60): Error BP5001: assertion violation
+AllocatedCommon.dfyi(187,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(188,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(189,44): Error BP5001: assertion violation
+AllocatedCommon.dfyi(190,45): Error BP5001: assertion violation
+AllocatedCommon.dfyi(191,41): Error BP5001: assertion violation
+AllocatedCommon.dfyi(192,37): Error BP5001: assertion violation
+AllocatedCommon.dfyi(193,57): Error BP5001: assertion violation
+AllocatedCommon.dfyi(194,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(195,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(196,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(197,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(198,9): Error BP5001: assertion violation
+AllocatedCommon.dfyi(199,24): Error BP5001: assertion violation
+AllocatedCommon.dfyi(200,27): Error BP5001: assertion violation
+AllocatedCommon.dfyi(216,5): Error BP5001: insufficient reads clause to read field
+AllocatedCommon.dfyi(223,5): Error BP5001: insufficient reads clause to read field
+AllocatedCommon.dfyi(282,9): Error BP5001: possible violation of function precondition
+AllocatedCommon.dfyi(282,15): Error BP5001: assertion violation
+AllocatedCommon.dfyi(299,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(300,26): Error BP5001: assertion violation
+AllocatedCommon.dfyi(308,9): Error BP5001: assertion violation
 
 Dafny program verifier finished with 15 verified, 97 errors

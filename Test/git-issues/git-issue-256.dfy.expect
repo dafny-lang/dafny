@@ -1,10 +1,10 @@
-git-issue-256.dfy(11,5): Error: missing case in match statement: _#Make2(Cons(_,_),_)
+git-issue-256.dfy(11,5): Error BP5001: missing case in match statement: _#Make2(Cons(_,_),_)
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
     (0,0): anon10_Else
     (0,0): anon13_Then
-git-issue-256.dfy(11,5): Error: missing case in match statement: _#Make2(Nil,Nil)
+git-issue-256.dfy(11,5): Error BP5001: missing case in match statement: _#Make2(Nil,Nil)
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then

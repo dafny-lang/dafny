@@ -1,7 +1,7 @@
-exists-b-exists-not-b.dfy(8,9): Error: assertion violation
+exists-b-exists-not-b.dfy(8,9): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-exists-b-exists-not-b.dfy(9,9): Error: assertion violation
+exists-b-exists-not-b.dfy(9,9): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 

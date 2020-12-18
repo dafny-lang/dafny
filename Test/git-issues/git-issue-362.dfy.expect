@@ -1,4 +1,4 @@
-git-issue-362.dfy(9,2): Error: value does not satisfy the subset constraints of 'Letter'
+git-issue-362.dfy(9,2): Error BP5001: value does not satisfy the subset constraints of 'Letter'
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

@@ -1,6 +1,6 @@
 naked-function-in-recursive-setting.dfy(4,9): Info: auto-accumulator tail recursive
 naked-function-in-recursive-setting.dfy(4,9): Info: decreases n
-naked-function-in-recursive-setting.dfy(10,11): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+naked-function-in-recursive-setting.dfy(10,11): Error BP5001: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else

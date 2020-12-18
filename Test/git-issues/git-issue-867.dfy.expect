@@ -1,22 +1,22 @@
-git-issue-867.dfy(49,6): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-867.dfy(49,6): Error BP5001: to be compilable, the value of a let-such-that expression must be uniquely determined
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Else
-git-issue-867.dfy(90,6): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-867.dfy(90,6): Error BP5001: to be compilable, the value of a let-such-that expression must be uniquely determined
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Else
-git-issue-867.dfy(9,2): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-867.dfy(9,2): Error BP5001: to be compilable, the value of a let-such-that expression must be uniquely determined
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-git-issue-867.dfy(21,2): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-867.dfy(21,2): Error BP5001: to be compilable, the value of a let-such-that expression must be uniquely determined
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-git-issue-867.dfy(29,2): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-867.dfy(29,2): Error BP5001: to be compilable, the value of a let-such-that expression must be uniquely determined
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

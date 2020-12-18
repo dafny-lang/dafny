@@ -1,4 +1,4 @@
-PatternMatchingErrors.dfy(13,2): Error: missing case in match expression: Cons(_,Nil)
+PatternMatchingErrors.dfy(13,2): Error BP5001: missing case in match expression: Cons(_,Nil)
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
@@ -6,35 +6,35 @@ Execution trace:
     (0,0): anon12_Then
     (0,0): anon13_Else
     (0,0): anon14_Then
-PatternMatchingErrors.dfy(22,2): Error: missing case in match statement: Cons(_,Nil)
+PatternMatchingErrors.dfy(22,2): Error BP5001: missing case in match statement: Cons(_,Nil)
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Then
     (0,0): anon9_Else
     (0,0): anon10_Then
-PatternMatchingErrors.dfy(31,2): Error: missing case in match statement: c:real (not all possibilities for constant 'c' have been covered)
+PatternMatchingErrors.dfy(31,2): Error BP5001: missing case in match statement: c:real (not all possibilities for constant 'c' have been covered)
 Execution trace:
     (0,0): anon0
-PatternMatchingErrors.dfy(40,2): Error: missing case in match statement: Leaf
+PatternMatchingErrors.dfy(40,2): Error BP5001: missing case in match statement: Leaf
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
     (0,0): anon15_Then
-PatternMatchingErrors.dfy(40,2): Error: missing case in match statement: Branch(Branch(_,c:bool,_),_,_) (not all possibilities for constant 'c' have been covered)
+PatternMatchingErrors.dfy(40,2): Error BP5001: missing case in match statement: Branch(Branch(_,c:bool,_),_,_) (not all possibilities for constant 'c' have been covered)
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
     (0,0): anon11_Else
     (0,0): anon14_Then
-PatternMatchingErrors.dfy(40,2): Error: missing case in match statement: Branch(Leaf,_,Branch(_,_,_))
+PatternMatchingErrors.dfy(40,2): Error BP5001: missing case in match statement: Branch(Leaf,_,Branch(_,_,_))
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
     (0,0): anon11_Then
     (0,0): anon12_Else
     (0,0): anon13_Then
-PatternMatchingErrors.dfy(53,12): Error: value does not satisfy the subset constraints of 'nat'
+PatternMatchingErrors.dfy(53,12): Error BP5001: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else

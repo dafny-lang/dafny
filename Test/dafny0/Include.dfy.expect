@@ -3,7 +3,7 @@ Includee.dfy(17,19): Related location: This is the postcondition that might not 
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-Includee.dfy[Concrete](22,15): Error: assertion violation
+Includee.dfy[Concrete](22,15): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 Include.dfy(27,6): Error BP5003: A postcondition might not hold on this return path.

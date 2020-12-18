@@ -1,4 +1,4 @@
-BinarySearch.dfy(43,19): Error: result of operation might violate newtype constraint for 'int32'
+BinarySearch.dfy(43,19): Error BP5001: result of operation might violate newtype constraint for 'int32'
 Execution trace:
     (0,0): anon0
     BinarySearch.dfy(39,3): anon18_LoopHead

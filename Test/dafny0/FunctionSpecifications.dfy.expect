@@ -15,7 +15,7 @@ Execution trace:
     (0,0): anon18_Else
     (0,0): anon19_Then
     (0,0): anon14
-FunctionSpecifications.dfy(53,10): Error: cannot prove termination; try supplying a decreases clause
+FunctionSpecifications.dfy(53,10): Error BP5001: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
@@ -25,17 +25,17 @@ FunctionSpecifications.dfy(60,21): Related location: This is the postcondition t
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
-FunctionSpecifications.dfy(108,22): Error: assertion violation
+FunctionSpecifications.dfy(108,22): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-FunctionSpecifications.dfy(111,22): Error: assertion violation
+FunctionSpecifications.dfy(111,22): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-FunctionSpecifications.dfy(126,26): Error: assertion violation
+FunctionSpecifications.dfy(126,26): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-FunctionSpecifications.dfy(130,26): Error: assertion violation
+FunctionSpecifications.dfy(130,26): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
@@ -44,15 +44,15 @@ FunctionSpecifications.dfy(137,28): Related location: This is the postcondition 
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-FunctionSpecifications.dfy(146,2): Error: failure to decrease termination measure
+FunctionSpecifications.dfy(146,2): Error BP5001: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-FunctionSpecifications.dfy(153,2): Error: failure to decrease termination measure
+FunctionSpecifications.dfy(153,2): Error BP5001: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-FunctionSpecifications.dfy(158,2): Error: cannot prove termination; try supplying a decreases clause
+FunctionSpecifications.dfy(158,2): Error BP5001: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

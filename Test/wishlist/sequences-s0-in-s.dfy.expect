@@ -1,4 +1,4 @@
-sequences-s0-in-s.dfy(13,18): Error: assertion violation
+sequences-s0-in-s.dfy(13,18): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then

@@ -1,7 +1,7 @@
-Tuples.dfy(22,18): Error: assertion violation
+Tuples.dfy(22,18): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-Tuples.dfy(24,20): Error: possible division by zero
+Tuples.dfy(24,20): Error BP5001: possible division by zero
 Execution trace:
     (0,0): anon0
 

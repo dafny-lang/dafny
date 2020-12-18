@@ -1,11 +1,11 @@
 columns.dfy(8,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-columns.dfy(9,9): Error: assertion violation
+columns.dfy(9,9): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-columns.dfy(10,11): Error: assertion violation
+columns.dfy(10,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-columns.dfy(11,11): Error: assertion violation
+columns.dfy(11,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 

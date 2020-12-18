@@ -1,4 +1,4 @@
-SeqSlice.dfy(70,22): Error: index out of range
+SeqSlice.dfy(70,22): Error BP5001: index out of range
 Execution trace:
     (0,0): anon0
 

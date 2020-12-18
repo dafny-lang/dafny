@@ -1,6 +1,6 @@
-//RUN: %dafny /dafnyVerify:0 /compile:0 /env:0 /dprint:"%t.dfy" "%s"
-//RUN: %dafny /dafnyVerify:0 /compile:0 /env:0 "%t.dfy" > "%t.output"
-//RUN: %diff "%s.expect" "%t.output"
+// RUN: %dafny /dafnyVerify:0 /compile:0 /env:0 /dprint:"%t.dprint.dfy" "%s"
+// RUN: %dafny /dafnyVerify:0 /compile:0 /env:0 "%t.dprint.dfy" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 method M() {
   ghost var h := var ta := F(); 5;

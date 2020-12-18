@@ -5,7 +5,7 @@ Execution trace:
     (0,0): anon12_Then
     (0,0): anon9
     (0,0): anon16_Then
-BindingGuards.dfy(134,9): Error: assertion violation
+BindingGuards.dfy(134,9): Error BP5001: assertion violation
 BindingGuards.dfy(6,8): Related location
 Execution trace:
     (0,0): anon0
@@ -13,15 +13,15 @@ Execution trace:
     (0,0): anon21_Then
     (0,0): anon5
     (0,0): anon17
-BindingGuards.dfy(139,2): Error: alternative cases fail to cover all possibilties
+BindingGuards.dfy(139,2): Error BP5001: alternative cases fail to cover all possibilties
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
-BindingGuards.dfy(147,2): Error: alternative cases fail to cover all possibilties
+BindingGuards.dfy(147,2): Error BP5001: alternative cases fail to cover all possibilties
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
-BindingGuards.dfy(272,2): Error: missing case in match statement: Blue
+BindingGuards.dfy(272,2): Error BP5001: missing case in match statement: Blue
 Execution trace:
     (0,0): anon0
     BindingGuards.dfy(268,3): anon19_LoopHead
@@ -32,7 +32,7 @@ Execution trace:
     (0,0): anon12
     (0,0): anon23_Else
     (0,0): anon24_Then
-BindingGuards.dfy(272,2): Error: missing case in match statement: Green
+BindingGuards.dfy(272,2): Error BP5001: missing case in match statement: Green
 Execution trace:
     (0,0): anon0
     BindingGuards.dfy(268,3): anon19_LoopHead

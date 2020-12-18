@@ -1,9 +1,9 @@
-MultiDimArray.dfy(53,20): Error: assertion violation
+MultiDimArray.dfy(53,20): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
     (0,0): anon12_Then
-MultiDimArray.dfy(79,24): Error: assertion violation
+MultiDimArray.dfy(79,24): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then

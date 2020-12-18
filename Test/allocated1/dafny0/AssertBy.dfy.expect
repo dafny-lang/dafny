@@ -14,13 +14,13 @@ method M1(x: int, y: int)
   }
   assert y == 8;
 }
-AssertBy.dfy(6,11): Error: assertion violation
+AssertBy.dfy(6,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-AssertBy.dfy(7,11): Error: assertion violation
+AssertBy.dfy(7,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-AssertBy.dfy(16,11): Error: assertion violation
+AssertBy.dfy(16,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     AssertBy.dfy(12,3): anon3_Else

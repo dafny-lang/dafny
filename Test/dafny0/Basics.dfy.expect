@@ -1,16 +1,16 @@
-Basics.dfy(623,17): Error: result of operation might violate newtype constraint for 'int8'
+Basics.dfy(623,17): Error BP5001: result of operation might violate newtype constraint for 'int8'
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
-Basics.dfy(13,13): Error: variable 'g', which is subject to definite-assignment rules, might be used before it has been assigned
+Basics.dfy(13,13): Error BP5001: variable 'g', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
-Basics.dfy(45,13): Error: assertion violation
+Basics.dfy(45,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Basics.dfy(69,41): Error: assertion violation
+Basics.dfy(69,41): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
@@ -20,7 +20,7 @@ Execution trace:
     Basics.dfy(69,82): anon17_Else
     Basics.dfy(69,95): anon18_Else
     (0,0): anon12
-Basics.dfy(93,13): Error: assertion violation
+Basics.dfy(93,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     Basics.dfy(83,14): anon27_Else
@@ -35,7 +35,7 @@ Execution trace:
     Basics.dfy(91,13): anon34_Else
     (0,0): anon35_Then
     (0,0): anon15
-Basics.dfy(99,13): Error: assertion violation
+Basics.dfy(99,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     Basics.dfy(83,14): anon27_Else
@@ -50,7 +50,7 @@ Execution trace:
     Basics.dfy(97,19): anon40_Else
     (0,0): anon41_Then
     (0,0): anon26
-Basics.dfy(112,27): Error: target object may be null
+Basics.dfy(112,27): Error BP5001: target object may be null
 Execution trace:
     (0,0): anon0
     Basics.dfy(105,20): anon13_Else
@@ -60,7 +60,7 @@ Execution trace:
     Basics.dfy(107,24): anon15_Else
     (0,0): anon6
     (0,0): anon16_Then
-Basics.dfy(114,13): Error: target object may be null
+Basics.dfy(114,13): Error BP5001: target object may be null
 Execution trace:
     (0,0): anon0
     Basics.dfy(105,20): anon13_Else
@@ -70,11 +70,11 @@ Execution trace:
     Basics.dfy(107,24): anon15_Else
     (0,0): anon6
     (0,0): anon16_Else
-Basics.dfy(148,15): Error: assertion violation
+Basics.dfy(148,15): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
-Basics.dfy(167,9): Error: when left-hand sides a[b[18]] and a[4] refer to the same location, they must be assigned the same value
+Basics.dfy(167,9): Error BP5001: when left-hand sides a[b[18]] and a[4] refer to the same location, they must be assigned the same value
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
@@ -83,28 +83,28 @@ Execution trace:
     (0,0): anon6
     (0,0): anon12_Then
     (0,0): anon9
-Basics.dfy(183,9): Error: when left-hand sides x.f and y.f refer to the same location, they must be assigned the same value
+Basics.dfy(183,9): Error BP5001: when left-hand sides x.f and y.f refer to the same location, they must be assigned the same value
 Execution trace:
     (0,0): anon0
-Basics.dfy(195,18): Error: assertion violation
+Basics.dfy(195,18): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
-Basics.dfy(197,9): Error: assignment may update an object not in the enclosing context's modifies clause
+Basics.dfy(197,9): Error BP5001: assignment may update an object not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
     (0,0): anon3
-Basics.dfy(197,9): Error: target object may be null
+Basics.dfy(197,9): Error BP5001: target object may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon3
-Basics.dfy(202,11): Error: left-hand sides m.x and m.x may refer to the same location
+Basics.dfy(202,11): Error BP5001: left-hand sides m.x and m.x may refer to the same location
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
     (0,0): anon3
     (0,0): anon12_Then
-Basics.dfy(213,14): Error: assertion violation
+Basics.dfy(213,14): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
@@ -114,19 +114,19 @@ Execution trace:
     (0,0): anon13_Then
     (0,0): anon8
     (0,0): anon14_Then
-Basics.dfy(273,9): Error: when left-hand sides d.x and c.x refer to the same location, they must be assigned the same value
+Basics.dfy(273,9): Error BP5001: when left-hand sides d.x and c.x refer to the same location, they must be assigned the same value
 Execution trace:
     (0,0): anon0
-Basics.dfy(463,11): Error: assertion violation
+Basics.dfy(463,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
     (0,0): anon3
-Basics.dfy(474,18): Error: assertion violation
+Basics.dfy(474,18): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-Basics.dfy(476,11): Error: assertion violation
+Basics.dfy(476,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then

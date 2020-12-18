@@ -9,7 +9,7 @@ Processing command (at <unknown location>) a##cached##0 := a##cached##0 && ##ext
   >>> AssumeNegationOfAssumptionVariable
 Processing command (at Snapshots7.v1.dfy(19,14)) assert false;
   >>> MarkAsPartiallyVerified
-Snapshots7.v1.dfy(19,13): Error: assertion violation
+Snapshots7.v1.dfy(19,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 

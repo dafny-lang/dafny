@@ -1,55 +1,55 @@
-Iterators.dfy(251,9): Error: failure to decrease termination measure
+Iterators.dfy(251,9): Error BP5001: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Else
-Iterators.dfy(274,9): Error: failure to decrease termination measure
+Iterators.dfy(274,9): Error BP5001: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Else
-Iterators.dfy(284,31): Error: failure to decrease termination measure
+Iterators.dfy(284,31): Error BP5001: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
-Iterators.dfy(296,9): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Else
-    (0,0): anon6_Else
-Iterators.dfy(317,9): Error: cannot prove termination; try supplying a decreases clause
+Iterators.dfy(296,9): Error BP5001: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Else
-Iterators.dfy(326,31): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-Iterators.dfy(343,9): Error: failure to decrease termination measure
+Iterators.dfy(317,9): Error BP5001: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Else
-Iterators.dfy(353,31): Error: cannot prove termination; try supplying a decreases clause
+Iterators.dfy(326,31): Error BP5001: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
-Iterators.dfy(370,9): Error: failure to decrease termination measure
+Iterators.dfy(343,9): Error BP5001: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Else
-Iterators.dfy(103,21): Error: assertion violation
+Iterators.dfy(353,31): Error BP5001: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
-Iterators.dfy(106,13): Error: assertion violation
+Iterators.dfy(370,9): Error BP5001: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Else
+    (0,0): anon6_Else
+Iterators.dfy(103,21): Error BP5001: assertion violation
+Execution trace:
+    (0,0): anon0
+Iterators.dfy(106,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
     (0,0): anon3
-Iterators.dfy(177,27): Error: assertion violation
+Iterators.dfy(177,27): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon15_Then
-Iterators.dfy(208,6): Error: an assignment to _new is only allowed to shrink the set
+Iterators.dfy(208,6): Error BP5001: an assignment to _new is only allowed to shrink the set
 Execution trace:
     (0,0): anon0
     Iterators.dfy(197,3): anon16_LoopHead
@@ -57,7 +57,7 @@ Execution trace:
     Iterators.dfy(197,3): anon17_Else
     Iterators.dfy(197,3): anon19_Else
     (0,0): anon20_Then
-Iterators.dfy(212,20): Error: assertion violation
+Iterators.dfy(212,20): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     Iterators.dfy(197,3): anon16_LoopHead
@@ -119,7 +119,7 @@ Execution trace:
     Iterators.dfy(458,3): anon11_Else
     (0,0): anon12_Then
     (0,0): anon8
-Iterators.dfy(470,4): Error: possible violation of yield-ensures condition
+Iterators.dfy(470,4): Error BP5001: possible violation of yield-ensures condition
 Iterators.dfy(451,21): Related location
 Execution trace:
     (0,0): anon0
@@ -138,14 +138,14 @@ Execution trace:
     (0,0): anon36_Then
     (0,0): anon5
     (0,0): anon37_Then
-Iterators.dfy(89,13): Error: assertion violation
+Iterators.dfy(89,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-Iterators.dfy(119,15): Error: assertion violation
+Iterators.dfy(119,15): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Iterators.dfy(150,15): Error: assertion violation
+Iterators.dfy(150,15): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
@@ -155,7 +155,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
     (0,0): anon3
-Iterators.dfy(234,20): Error: assertion violation
+Iterators.dfy(234,20): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     Iterators.dfy(225,3): anon14_LoopHead

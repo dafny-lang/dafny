@@ -1,44 +1,44 @@
-BigOrdinals.dfy(18,11): Error: a negative integer cannot be converted to an ORDINAL
+BigOrdinals.dfy(18,11): Error BP5001: a negative integer cannot be converted to an ORDINAL
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
-BigOrdinals.dfy(20,11): Error: value to be converted might be bigger than every natural number
+BigOrdinals.dfy(20,11): Error BP5001: value to be converted might be bigger than every natural number
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
-BigOrdinals.dfy(35,13): Error: assertion violation
+BigOrdinals.dfy(35,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon19_Then
-BigOrdinals.dfy(53,13): Error: assertion violation
+BigOrdinals.dfy(53,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon26_Then
-BigOrdinals.dfy(64,15): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
+BigOrdinals.dfy(64,15): Error BP5001: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
-BigOrdinals.dfy(66,15): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
+BigOrdinals.dfy(66,15): Error BP5001: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
 Execution trace:
     (0,0): anon0
     (0,0): anon14_Then
-BigOrdinals.dfy(68,15): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
+BigOrdinals.dfy(68,15): Error BP5001: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
 Execution trace:
     (0,0): anon0
     (0,0): anon15_Then
-BigOrdinals.dfy(73,15): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
+BigOrdinals.dfy(73,15): Error BP5001: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
 Execution trace:
     (0,0): anon0
     (0,0): anon17_Then
-BigOrdinals.dfy(88,13): Error: assertion violation
+BigOrdinals.dfy(88,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon20_Then
-BigOrdinals.dfy(113,9): Error: value does not satisfy the subset constraints of 'ConstrainedOrdinal'
+BigOrdinals.dfy(113,9): Error BP5001: value does not satisfy the subset constraints of 'ConstrainedOrdinal'
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
-BigOrdinals.dfy(120,9): Error: value does not satisfy the subset constraints of 'ConstrainedOrdinal'
+BigOrdinals.dfy(120,9): Error BP5001: value does not satisfy the subset constraints of 'ConstrainedOrdinal'
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then

@@ -1,4 +1,4 @@
-Bug146.dfy(6,75): Error: insufficient reads clause to read array element
+Bug146.dfy(6,75): Error BP5001: insufficient reads clause to read array element
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Else
@@ -7,7 +7,7 @@ Execution trace:
     (0,0): anon14_Then
     (0,0): anon15_Then
     (0,0): anon10
-Bug146.dfy(37,15): Error: assertion violation
+Bug146.dfy(37,15): Error BP5001: assertion violation
 Bug146.dfy(26,4): Related location
 Bug146.dfy(26,75): Related location
 Execution trace:

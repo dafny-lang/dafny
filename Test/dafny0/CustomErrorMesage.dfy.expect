@@ -1,11 +1,11 @@
-CustomErrorMesage.dfy(6,45): Error: m: x must be positive
+CustomErrorMesage.dfy(6,45): Error BP5001: m: x must be positive
 Execution trace:
     (0,0): anon0
-CustomErrorMesage.dfy(10,45): Error: f: x must be positive
+CustomErrorMesage.dfy(10,45): Error BP5001: f: x must be positive
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-CustomErrorMesage.dfy(15,2): Error: when calling foo, you must supply a positive x
+CustomErrorMesage.dfy(15,2): Error BP5001: when calling foo, you must supply a positive x
 CustomErrorMesage.dfy(19,71): Related location
 Execution trace:
     (0,0): anon0

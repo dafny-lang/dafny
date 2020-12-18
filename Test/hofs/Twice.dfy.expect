@@ -1,8 +1,8 @@
-Twice.dfy(26,21): Error: assertion violation
+Twice.dfy(26,21): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     Twice.dfy(22,12): anon3_Else
-Twice.dfy(34,31): Error: possible violation of function precondition
+Twice.dfy(34,31): Error BP5001: possible violation of function precondition
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
