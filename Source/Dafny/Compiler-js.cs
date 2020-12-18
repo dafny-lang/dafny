@@ -130,7 +130,7 @@ namespace Microsoft.Dafny {
       //     }
       //   }
 
-      var cw = CreateClass(IdProtect(iter.Module.CompileName), IdName(iter), iter, wr) as JavaScriptCompiler.ClassWriter;
+      var cw = CreateClass(IdProtect(iter.EnclosingModuleDefinition.CompileName), IdName(iter), iter, wr) as JavaScriptCompiler.ClassWriter;
       var w = cw.MethodWriter;
       var instanceFieldsWriter = cw.FieldWriter;
       // here come the fields
@@ -396,13 +396,13 @@ namespace Microsoft.Dafny {
         i = 0;
         foreach (var ctor in dt.Ctors) {
           using (var thn = EmitIf(string.Format("this.$tag === {0}", i), true, w)) {
-            var nm = (dt.Module.IsDefaultModule ? "" : dt.Module.Name + ".") + dt.Name + "." + ctor.Name;
+            var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
             thn.WriteLine("return \"{0}\";", nm);
           }
           i++;
         }
         using (var els = w.NewBlock("")) {
-          els.WriteLine("return \"{0}.{1}.unexpected\";", dt.Module.CompileName, DtT);
+          els.WriteLine("return \"{0}.{1}.unexpected\";", dt.EnclosingModuleDefinition.CompileName, DtT);
         }
 
       } else if (dt is IndDatatypeDecl && !(dt is TupleTypeDecl)) {
@@ -411,7 +411,7 @@ namespace Microsoft.Dafny {
           i = 0;
           foreach (var ctor in dt.Ctors) {
             var cw = EmitIf(string.Format("this.$tag === {0}", i), true, w);
-            var nm = (dt.Module.IsDefaultModule ? "" : dt.Module.Name + ".") + dt.Name + "." + ctor.Name;
+            var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
             cw.Write("return \"{0}\"", nm);
             var sep = " + \"(\" + ";
             var anyFormals = false;
@@ -503,7 +503,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.CompileName), IdName(nt), nt, wr);
       var w = cw.MethodWriter;
       if (nt.NativeType != null) {
         var wIntegerRangeBody = w.NewBlock("static *IntegerRange(lo, hi)");
@@ -532,7 +532,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
       var w = cw.MethodWriter;
       var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
       string d;
@@ -1402,13 +1402,13 @@ namespace Microsoft.Dafny {
       var cl = udt.ResolvedClass;
       if (cl == null) {
         return IdProtect(udt.CompileName);
-      } else if (cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cl.Module.Attributes, "extern") &&
+      } else if (cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
         member != null && Attributes.Contains(member.Attributes, "extern")) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
-        Contract.Assert(!cl.Module.IsDefaultModule);  // default module is not marked ":extern"
-        return IdProtect(cl.Module.CompileName);
+        Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
+        return IdProtect(cl.EnclosingModuleDefinition.CompileName);
       } else {
-        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
+        return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
       }
     }
 
