@@ -77,8 +77,8 @@ namespace Microsoft.Dafny
     private ModuleSignature refinedSigOpened;
 
     internal override void PreResolve(ModuleDefinition m) {
-      if (m.RefinementBaseRoot != null) {
-        RefinedSig = m.RefinementBaseRoot.Signature;
+      if (m.RefinementQId != null) {
+        RefinedSig = m.RefinementQId.Sig;
 
         if (RefinedSig.ModuleDef != null) {
           m.RefinementBase = RefinedSig.ModuleDef;
@@ -114,7 +114,7 @@ namespace Microsoft.Dafny
           PreResolveWorker(m);
 
         } else {
-          reporter.Error(MessageSource.RefinementTransformer, m.RefinementBaseName, "module ({0}) named as refinement base does not exist", m.RefinementBaseName.val);
+          reporter.Error(MessageSource.RefinementTransformer, m.RefinementQId.rootToken(), "module ({0}) named as refinement base does not exist", m.RefinementQId.rootName());
         }
       }
     }
@@ -157,9 +157,9 @@ namespace Microsoft.Dafny
                                    || d is OpaqueTypeDecl) {
             MergeTopLevelDecls(m, nw, d, index);
           } else if (d is TypeSynonymDecl) {
-            reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} may not redeclare a non-opaque type name {d.Name} from module {m.RefinementBaseName.val}, even with the same type, unless refining (...)");
+            reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} may not redeclare a non-opaque type name {d.Name} from module {m.RefinementQId.ToString()}, even with the same type, unless refining (...)");
           } else if (!(d is ModuleFacadeDecl)) {
-            reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} redeclares a name {d.Name} from module {m.RefinementBaseName.val} without specifying refinement (...)");
+            reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} redeclares a name {d.Name} from module {m.RefinementQId.ToString()}");
           }
         }
       }

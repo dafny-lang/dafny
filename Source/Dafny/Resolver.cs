@@ -481,8 +481,8 @@ namespace Microsoft.Dafny
 
           var errorCount = reporter.Count(ErrorLevel.Error);
           if (m.RefinementQId != null) {
-            ModuleDecl md = ResolveModuleQualifiedId(m.RefinementBaseRoot, m.RefinementQId, reporter);
-            m.RefinementBaseRoot = md;
+            ModuleDecl md = ResolveModuleQualifiedId(m.RefinementQId.Root, m.RefinementQId.Path, reporter);
+            m.RefinementQId.Set(md);
           }
 
           foreach (var r in rewriters) {
@@ -555,7 +555,7 @@ namespace Microsoft.Dafny
           var alias = (AliasModuleDecl) decl;
           // resolve the path
           ModuleSignature p;
-          if (ResolveExport(alias, alias.Root, alias.Module, alias.Path, alias.Exports, out p, reporter)) {
+          if (ResolveExport(alias, alias.Root, alias.Module, alias.TargetQId.Path, alias.Exports, out p, reporter)) {
             if (alias.Signature == null) {
               alias.Signature = p;
             }
@@ -565,7 +565,7 @@ namespace Microsoft.Dafny
         } else if (decl is ModuleFacadeDecl) {
           var abs = (ModuleFacadeDecl) decl;
           ModuleSignature p;
-          if (ResolveExport(abs, abs.Root, abs.Module, abs.Path, abs.Exports, out p, reporter)) {
+          if (ResolveExport(abs, abs.Root, abs.Module, abs.Path.Path, abs.Exports, out p, reporter)) {
             abs.OriginalSignature = p;
             abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.ModuleSigs,
               compilationModuleClones);
@@ -1547,8 +1547,8 @@ namespace Microsoft.Dafny
             Contract.Assert(yes);
             if (prevDecl is ModuleFacadeDecl || prevDecl is AliasModuleDecl) {
               reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
-            } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.Path.Count == 1 &&
-                       importDecl.Name == importDecl.Path[0].val) {
+            } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.TargetQId.Path.Count == 1 &&
+                       importDecl.Name == importDecl.TargetQId.rootName()) {
               importDecl.ShadowsLiteralModule = true;
             } else {
               reporter.Error(MessageSource.Resolver, subdecl.tok,
@@ -1611,19 +1611,19 @@ namespace Microsoft.Dafny
 
     private void ProcessDependenciesDefinition(ModuleDecl decl, ModuleDefinition m, ModuleBindings bindings,
       Graph<ModuleDecl> dependencies) {
-      if (m.RefinementBaseName != null) {
+      if (m.RefinementQId != null) {
         ModuleDecl other;
-        bool res = ResolveQualifiedModuleIdRoot(decl, bindings, m.RefinementQId, out other);
+        bool res = ResolveQualifiedModuleIdRoot(decl, bindings, m.RefinementQId.Path, out other);
         if (!res) {
-          reporter.Error(MessageSource.Resolver, m.RefinementQId[0],
-            "module {0} named as refinement base does not exist", ModuleDefinition.toString(m.RefinementQId));
+          reporter.Error(MessageSource.Resolver, m.RefinementQId.rootToken(),
+            $"module {m.RefinementQId.ToString()} named as refinement base does not exist");
         } else if (other is LiteralModuleDecl && ((LiteralModuleDecl) other).ModuleDef == m) {
-          reporter.Error(MessageSource.Resolver, m.RefinementQId[0], "module cannot refine itself: {0}",
-            ModuleDefinition.toString(m.RefinementQId));
+          reporter.Error(MessageSource.Resolver, m.RefinementQId.rootToken(), "module cannot refine itself: {0}",
+            m.RefinementQId.ToString());
         } else {
           Contract.Assert(other != null); // follows from postcondition of TryGetValue
           dependencies.AddEdge(decl, other);
-          m.RefinementBaseRoot = other;
+          m.RefinementQId.SetRoot(other);
         }
       }
 
@@ -1649,9 +1649,9 @@ namespace Microsoft.Dafny
       } else if (moduleDecl is AliasModuleDecl) {
         var alias = moduleDecl as AliasModuleDecl;
         ModuleDecl root;
-        if (!bindings.TryLookupFilter(alias.Path[0], out root,
+        if (!bindings.TryLookupFilter(alias.TargetQId.rootToken(), out root,
           m => alias != m && (((alias.Module == m.Module) && (alias.Exports.Count == 0)) || m is LiteralModuleDecl)))
-          reporter.Error(MessageSource.Resolver, alias.tok, ModuleNotFoundErrorMessage(0, alias.Path));
+          reporter.Error(MessageSource.Resolver, alias.tok, ModuleNotFoundErrorMessage(0, alias.TargetQId.Path));
         else {
           dependencies.AddEdge(moduleDecl, root);
           alias.Root = root;
@@ -1659,9 +1659,9 @@ namespace Microsoft.Dafny
       } else if (moduleDecl is ModuleFacadeDecl) {
         var abs = moduleDecl as ModuleFacadeDecl;
         ModuleDecl root;
-        if (!bindings.TryLookupFilter(abs.Path[0], out root,
+        if (!bindings.TryLookupFilter(abs.Path.rootToken(), out root,
           m => abs != m && (((abs.Module == m.Module) && (abs.Exports.Count == 0)) || m is LiteralModuleDecl)))
-          reporter.Error(MessageSource.Resolver, abs.tok, ModuleNotFoundErrorMessage(0, abs.Path));
+          reporter.Error(MessageSource.Resolver, abs.tok, ModuleNotFoundErrorMessage(0, abs.Path.Path));
         else {
           dependencies.AddEdge(moduleDecl, root);
           abs.Root = root;
@@ -2522,7 +2522,7 @@ namespace Microsoft.Dafny
         } else if (d is ModuleDecl) {
           var decl = (ModuleDecl)d;
           if (!def.IsAbstract && decl is AliasModuleDecl am && decl.Signature.IsAbstract) {
-            reporter.Error(MessageSource.Resolver, am.Path.Last(), "a compiled module ({0}) is not allowed to import an abstract module ({1})", def.Name, Util.Comma(".", am.Path, tok => tok.val));
+            reporter.Error(MessageSource.Resolver, am.TargetQId.rootToken(), "a compiled module ({0}) is not allowed to import an abstract module ({1})", def.Name, am.TargetQId.ToString());
           }
         } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;

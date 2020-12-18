@@ -370,7 +370,7 @@ namespace Microsoft.Dafny {
               wr.Write("*/");
             }
             wr.Write(" {0} ", dd.Name);
-            wr.Write("= {0}", Util.Comma(".", dd.Path, id => id.val));
+            wr.Write("= {0}", dd.TargetQId.ToString());
             if (dd.Exports.Count > 0) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
@@ -385,7 +385,7 @@ namespace Microsoft.Dafny {
               wr.Write("*/");
             }
             wr.Write(" {0} ", dd.Name);
-            wr.Write(": {0}", Util.Comma(".", dd.Path, id => id.val));
+            wr.Write(": {0}", dd.Path.ToString());
             if (dd.Exports.Count > 0) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
@@ -496,8 +496,8 @@ namespace Microsoft.Dafny {
         }
       }
       wr.Write("{0} ", module.Name);
-      if (module.RefinementBaseName != null) {
-        wr.Write("refines {0} ", module.RefinementBaseName.val);
+      if (module.RefinementQId != null) {
+        wr.Write("refines {0} ", module.RefinementQId.ToString());
       }
       if (module.TopLevelDecls.Count == 0) {
         wr.WriteLine("{ }");

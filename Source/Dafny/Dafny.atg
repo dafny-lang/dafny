@@ -910,7 +910,8 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     [ "refines" QualifiedModuleId<out idRefined>
     |  Ident<out iderr> (. SemErr(la, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
     ]
-    (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, false, idRefined, parent, attrs,
+    (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, false,
+                                      idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
                                       false, theVerifyThisFile, theCompileThisFile);
     .)
     SYNC
@@ -925,12 +926,15 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     (
       OptQualifiedModuleExportSuffix<idPath, out idExports>
       (. idPath.Insert(0, id);
-         submodule = new AliasModuleDecl(idPath, idPath[idPath.Count-1], parent, opened, idExports);
+         submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
+                                         idPath[idPath.Count-1], parent, opened, idExports);
       .)
     | "=" QualifiedModuleExport<out idPath, out idExports>
-      (. submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports); .)
+      (. submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
+                                         id, parent, opened, idExports); .)
     | ":" QualifiedModuleExport<out idPath, out idExports>
-        (. submodule = new ModuleFacadeDecl(idPath, id, parent, opened, idExports); .)
+        (. submodule = new ModuleFacadeDecl(new ModuleQualifiedId(idPath),
+                                         id, parent, opened, idExports); .)
     )
 
   | (.
