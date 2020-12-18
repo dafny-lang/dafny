@@ -17359,7 +17359,7 @@ namespace Microsoft.Dafny {
             // The function was inherited as body-less but is now given a body. Don't inline the body (since, apparently, everything
             // that needed to be proved about the function was proved already in the previous module, even without the body definition).
           } else if (!FunctionBodyIsAvailable(f, currentModule, currentScope, inlineProtectedFunctions)) {
-            // Don't inline opaque functions or foreign protected functions
+            // Don't inline opaque functions
           } else if (Attributes.Contains(f.Attributes, "no_inline")) {
             // User manually prevented inlining
           } else {
@@ -17596,6 +17596,12 @@ namespace Microsoft.Dafny {
     }
 
     private bool CanSafelyInline(FunctionCallExpr fexp, Function f) {
+      if (f is PrefixPredicate prefixPred && !prefixPred.ExtremePred.KNat) {
+        // A prefix predicate indexed by an ORDINAL has an implicit quantifier in its body, so don't inline it,
+        // because then we may end up with arbitrary expressions in triggers
+        return false;
+      }
+
       var visitor = new TriggersExplorer();
       visitor.Visit(f);
       return LinqExtender.Zip(f.Formals, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
