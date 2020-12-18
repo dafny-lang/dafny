@@ -56,7 +56,7 @@ abstract module M0 {
 
 // provide bodies for the methods
 abstract module M1 refines M0 {
-  class Container<T(==)> {
+  class Container<T(==)> ... {
     constructor... {
       Contents := {};
       Repr := {this};
@@ -83,7 +83,7 @@ abstract module M1 refines M0 {
 
 // implement the set in terms of a sequence
 abstract module M2 refines M1 {
-  class Container<T(==)> {
+  class Container<T(==)> ... {
     var elems: seq<T>
     predicate Valid'...
     {
@@ -147,7 +147,7 @@ abstract module M2 refines M1 {
 
 module M3 refines M2 {
   datatype Cache<T> = None | Some(index: nat, value: T)
-  class Container<T(==)> {
+  class Container<T(==)> ... {
     var cache: Cache<T>
     predicate Valid''... {
       cache.Some? ==> cache.index < |elems| && elems[cache.index] == cache.value

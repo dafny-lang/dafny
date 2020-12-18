@@ -86,19 +86,25 @@ namespace Microsoft.Dafny
           List<TopLevelDecl> declarations = m.TopLevelDecls;
           List<TopLevelDecl> baseDeclarations = m.RefinementBase.TopLevelDecls;
           foreach (var im in declarations) {
-            if (im is ModuleDecl && !(im is ModuleExportDecl)) {
-              ModuleDecl mdecl = (ModuleDecl)im;
-              //find the matching import from the base
-              // TODO: this is a terribly slow algorithm; use the symbol table instead
-              foreach (var bim in baseDeclarations) {
-                if (bim is ModuleDecl && ((ModuleDecl)bim).Name.Equals(mdecl.Name)) {
-                  if (mdecl.Opened != ((ModuleDecl)bim).Opened) {
-                    string message = mdecl.Opened ?
-                      "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2} " :
-                      "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.";
-                    reporter.Error(MessageSource.RefinementTransformer, m.tok, message, im.Name, m.Name, m.RefinementBase.Name);
+            // TODO: this is a terribly slow algorithm; use the symbol table instead
+            foreach (var bim in baseDeclarations) {
+              if (bim.Name.Equals(im.Name)) {
+                if (!im.Name.Equals("_default") && !im.IsRefining
+                      && !(bim is OpaqueTypeDecl)
+                      && !(bim is ModuleFacadeDecl && im is AliasModuleDecl)) {
+                  string message =
+                    $"{im.Name} in {m.Name} redeclares a name in the refinement base {m.RefinementBase.Name}";
+                  reporter.Error(MessageSource.RefinementTransformer, im.tok, message);
+                } else if (im is ModuleDecl mdecl) {
+                  if (bim is ModuleDecl mbim) {
+                    if (mdecl.Opened != mbim.Opened) {
+                      string message = mdecl.Opened
+                        ? "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}."
+                        : "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.";
+                      reporter.Error(MessageSource.RefinementTransformer, m.tok, message, im.Name, m.Name,
+                        m.RefinementBase.Name);
+                    }
                   }
-                  break;
                 }
                 break;
               }
@@ -496,7 +502,6 @@ namespace Microsoft.Dafny
       }
 
       if (nw.SignatureIsOmitted) {
-        Contract.Assert(nw.TypeArgs.Count == 0);
         Contract.Assert(nw.Ins.Count == 0);
         Contract.Assert(nw.Outs.Count == 0);
         reporter.Info(MessageSource.RefinementTransformer, nw.SignatureEllipsis, Printer.IteratorSignatureToString(prev));
@@ -540,6 +545,7 @@ namespace Microsoft.Dafny
     ClassDecl MergeClass(ClassDecl nw, ClassDecl prev) {
       CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, "class");
 
+      prev.ParentTraits.ForEach(item => nw.ParentTraits.Add(item));
       nw.Attributes = refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes);
 
       // Create a simple name-to-member dictionary.  Ignore any duplicates at this time.

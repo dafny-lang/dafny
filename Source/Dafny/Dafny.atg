@@ -939,10 +939,13 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       bool provideAll = false;
       bool revealAll = false;
       bool isDefault = false;
+      bool isRefining = false;
       ExportSignature exsig;
     .)
     "export" (. exportId = t; .)
     [ ExportIdent<out exportId> ]
+    [ "..."  (. isRefining = true; .)
+    ]
     {
       "provides"
       (
@@ -965,8 +968,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     (. if (exportId.val == "export" || exportId.val == parent.Name) {
          isDefault = true;
        }
-       submodule = new ModuleExportDecl(exportId, parent, isDefault ? parent.Name : exportId.val,
-            exports, extends, provideAll, revealAll, isDefault);
+       submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault, isRefining);
     .)
   )
 .
@@ -1024,6 +1026,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
      Type parentTrait;
      List<Type> parentTraits = new List<Type>();
      Attributes attrs = null;
+     bool isRefining = false;
      List<TypeParameter> typeArgs = new List<TypeParameter>();
      List<MemberDecl> members = new List<MemberDecl>();
      IToken bodyStart;
@@ -1038,6 +1041,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
   [ "extends"
     Type<out parentTrait>       (. parentTraits.Add(parentTrait); .)
     {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); .) }
+  | "..."                       (. isRefining = true; .)
   ]
   "{"                                            (. bodyStart = t;  .)
     { (. dmod = new DeclModifierData(); .)
@@ -1045,7 +1049,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
       ClassMemberDecl<dmod, members, true, false, false, false>
     }
   "}"
-  (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, parentTraits);
+  (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, isRefining, parentTraits);
      c.BodyStartTok = bodyStart;
      c.BodyEndTok = t;
   .)
@@ -1059,6 +1063,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
      Type parentTrait;
      List<Type> parentTraits = new List<Type>();
      Attributes attrs = null;
+     bool isRefining = false;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>(); //traits should not support type parameters at the moment
      List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
      IToken bodyStart;
@@ -1072,6 +1077,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   [ "extends"
     Type<out parentTrait>       (. parentTraits.Add(parentTrait); .)
     {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); .) }
+  | "..."                       (. isRefining = true; .)
   ]
   "{"                                            (. bodyStart = t; .)
     { (. dmod  = new DeclModifierData(); .)
@@ -1079,7 +1085,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
       ClassMemberDecl<dmod, members, true, false, false, false>
     }
   "}"
-  (. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs, parentTraits);
+  (. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs, isRefining, parentTraits);
      trait.BodyStartTok = bodyStart;
      trait.BodyEndTok = t;
     .)
@@ -1120,6 +1126,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<DatatypeCtor/*!*/> ctors = new List<DatatypeCtor/*!*/>();
      IToken bodyStart = Token.NoToken;  // dummy assignment
+     bool isRefining = false;
      bool co = false;
      CheckDeclModifiers(dmod, "datatype or codatatype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
@@ -1132,13 +1139,15 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   NoUSIdent<out id>
   [ GenericParameters<typeArgs, true> ]
   "="                                      (. bodyStart = t; .)
+  [ "..."                                  (. isRefining = true; .)
+  ]
   [ "|" ] DatatypeMemberDecl<ctors>
   { "|" DatatypeMemberDecl<ctors> }
   [ TypeMembers<module, members> ]
   (. if (co) {
-       dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, members, attrs);
+       dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, members, attrs, isRefining);
      } else {
-       dt = new IndDatatypeDecl(id, id.val, module, typeArgs, ctors, members, attrs);
+       dt = new IndDatatypeDecl(id, id.val, module, typeArgs, ctors, members, attrs, isRefining);
      }
      dt.BodyStartTok = bodyStart;
      dt.BodyEndTok = t;
@@ -1216,6 +1225,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      Type baseType = null;
      Expression constraint;
      Expression witness = null;
+     bool isRefining = false;
      bool witnessIsGhost = false;
      CheckDeclModifiers(dmod, "newtype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
@@ -1224,6 +1234,8 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   { Attribute<ref attrs> }
   NoUSIdent<out id>
   "="
+  [ "..."                                    (. isRefining = true; .)
+  ]
   ( IF(IsIdentColonOrBar())
     NoUSIdent<out bvId>
     [ ":" Type<out baseType> ]       (. if (baseType == null) { baseType = new InferredTypeProxy(); } .)
@@ -1237,10 +1249,11 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     [ TypeMembers<module, members> ]
     (. var witnessKind = witness == null ? SubsetTypeDecl.WKind.None :
        witnessIsGhost ? SubsetTypeDecl.WKind.Ghost : SubsetTypeDecl.WKind.Compiled;
-       td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, members, attrs); .)
+       td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, members, attrs, isRefining);
+    .)
   | Type<out baseType>
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(id, id.val, module, baseType, members, attrs); .)
+    (. td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining); .)
   )
   .
 OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>

@@ -30,7 +30,7 @@ abstract module AbstractInterface {
 }
 
 abstract module A refines AbstractInterface {
-  class StoreAndRetrieve<Thing(==)> {
+  class StoreAndRetrieve<Thing(==)> ... {
     constructor Init...
     {
       Contents := {};
@@ -52,7 +52,7 @@ abstract module A refines AbstractInterface {
 }
 
 abstract module B refines A {
-  class StoreAndRetrieve<Thing(==)> {
+  class StoreAndRetrieve<Thing(==)> ... {
     var arr: seq<Thing>
     predicate Valid'...
     {
@@ -91,7 +91,7 @@ abstract module B refines A {
 }
 
 module C refines B {
-  class StoreAndRetrieve<Thing(==)> {
+  class StoreAndRetrieve<Thing(==)> ... {
     method Retrieve...
     {
       ...;
