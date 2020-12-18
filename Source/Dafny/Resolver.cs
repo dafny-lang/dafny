@@ -14,8 +14,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny
 {
-  public class Resolver
-  {
+  public class Resolver {
     readonly BuiltIns builtIns;
 
     ErrorReporter reporter;
@@ -38,38 +37,42 @@ namespace Microsoft.Dafny
     }
 
     FreshIdGenerator defaultTempVarIdGenerator;
+
     string FreshTempVarName(string prefix, ICodeContext context) {
       var decl = context as Declaration;
       if (decl != null) {
         return decl.IdGenerator.FreshId(prefix);
       }
+
       // TODO(wuestholz): Is the following code ever needed?
       if (defaultTempVarIdGenerator == null) {
         defaultTempVarIdGenerator = new FreshIdGenerator();
       }
+
       return defaultTempVarIdGenerator.FreshId(prefix);
     }
 
-    interface IAmbiguousThing<Thing>
-    {
+    interface IAmbiguousThing<Thing> {
       /// <summary>
       /// Returns a plural number of non-null Thing's
       /// </summary>
       ISet<Thing> Pool { get; }
     }
-    class AmbiguousThingHelper<Thing> where Thing : class
-    {
+
+    class AmbiguousThingHelper<Thing> where Thing : class {
       public static Thing Create(ModuleDefinition m, Thing a, Thing b, IEqualityComparer<Thing> eq, out ISet<Thing> s) {
         Contract.Requires(a != null);
         Contract.Requires(b != null);
         Contract.Requires(eq != null);
-        Contract.Ensures(Contract.Result<Thing>() != null || (Contract.ValueAtReturn(out s) != null || 2 <= Contract.ValueAtReturn(out s).Count));
+        Contract.Ensures(Contract.Result<Thing>() != null ||
+                         (Contract.ValueAtReturn(out s) != null || 2 <= Contract.ValueAtReturn(out s).Count));
         s = null;
         if (eq.Equals(a, b)) {
           return a;
         }
-        ISet<Thing> sa = a is IAmbiguousThing<Thing> ? ((IAmbiguousThing<Thing>)a).Pool : new HashSet<Thing>() { a };
-        ISet<Thing> sb = b is IAmbiguousThing<Thing> ? ((IAmbiguousThing<Thing>)b).Pool : new HashSet<Thing>() { b };
+
+        ISet<Thing> sa = a is IAmbiguousThing<Thing> ? ((IAmbiguousThing<Thing>) a).Pool : new HashSet<Thing>() {a};
+        ISet<Thing> sb = b is IAmbiguousThing<Thing> ? ((IAmbiguousThing<Thing>) b).Pool : new HashSet<Thing>() {b};
         var union = new HashSet<Thing>(sa.Union(sb, eq));
         if (sa.Count == union.Count) {
           // sb is a subset of sa
@@ -83,6 +86,7 @@ namespace Microsoft.Dafny
           return null;
         }
       }
+
       public static string Name(ISet<Thing> s, Func<Thing, string> name) {
         Contract.Requires(s != null);
         Contract.Requires(s.Count != 0);
@@ -95,8 +99,10 @@ namespace Microsoft.Dafny
             nm += "/" + n;
           }
         }
+
         return nm;
       }
+
       public static string ModuleNames(IAmbiguousThing<Thing> amb, Func<Thing, string> moduleName) {
         Contract.Requires(amb != null);
         Contract.Ensures(Contract.Result<string>() != null);
@@ -108,75 +114,94 @@ namespace Microsoft.Dafny
             nm += ", " + moduleName(d);
           }
         }
+
         return nm;
       }
     }
 
-    public class AmbiguousTopLevelDecl : TopLevelDecl, IAmbiguousThing<TopLevelDecl>  // only used with "classes"
+    public class AmbiguousTopLevelDecl : TopLevelDecl, IAmbiguousThing<TopLevelDecl> // only used with "classes"
     {
       public static TopLevelDecl Create(ModuleDefinition m, TopLevelDecl a, TopLevelDecl b) {
         ISet<TopLevelDecl> s;
         var t = AmbiguousThingHelper<TopLevelDecl>.Create(m, a, b, new Eq(), out s);
         return t ?? new AmbiguousTopLevelDecl(m, AmbiguousThingHelper<TopLevelDecl>.Name(s, tld => tld.Name), s);
       }
-      class Eq : IEqualityComparer<TopLevelDecl>
-      {
+
+      class Eq : IEqualityComparer<TopLevelDecl> {
         public bool Equals(TopLevelDecl d0, TopLevelDecl d1) {
           // We'd like to resolve any AliasModuleDecl to whatever module they refer to.
           // It seems that the only way to do that is to look at alias.Signature.ModuleDef,
           // but that is a ModuleDefinition, which is not a TopLevelDecl.  Therefore, we
           // convert to a ModuleDefinition anything that might refer to something that an
           // AliasModuleDecl can refer to; this is AliasModuleDecl and LiteralModuleDecl.
-          object a = d0 is ModuleDecl ? ((ModuleDecl)d0).Dereference() : d0;
-          object b = d1 is ModuleDecl ? ((ModuleDecl)d1).Dereference() : d1;
+          object a = d0 is ModuleDecl ? ((ModuleDecl) d0).Dereference() : d0;
+          object b = d1 is ModuleDecl ? ((ModuleDecl) d1).Dereference() : d1;
           return a == b;
         }
+
         public int GetHashCode(TopLevelDecl d) {
-          object a = d is ModuleDecl ? ((ModuleDecl)d).Dereference() : d;
+          object a = d is ModuleDecl ? ((ModuleDecl) d).Dereference() : d;
           return a.GetHashCode();
         }
       }
 
-      public override string WhatKind { get { return Pool.First().WhatKind; } }
+      public override string WhatKind {
+        get { return Pool.First().WhatKind; }
+      }
+
       readonly ISet<TopLevelDecl> Pool = new HashSet<TopLevelDecl>();
-      ISet<TopLevelDecl> IAmbiguousThing<TopLevelDecl>.Pool { get { return Pool; } }
+
+      ISet<TopLevelDecl> IAmbiguousThing<TopLevelDecl>.Pool {
+        get { return Pool; }
+      }
+
       private AmbiguousTopLevelDecl(ModuleDefinition m, string name, ISet<TopLevelDecl> pool)
         : base(pool.First().tok, name, m, new List<TypeParameter>(), null, false) {
         Contract.Requires(name != null);
         Contract.Requires(pool != null && 2 <= pool.Count);
         Pool = pool;
       }
+
       public string ModuleNames() {
         return AmbiguousThingHelper<TopLevelDecl>.ModuleNames(this, d => d.Module.Name);
       }
     }
 
-    class AmbiguousMemberDecl : MemberDecl, IAmbiguousThing<MemberDecl>  // only used with "classes"
+    class AmbiguousMemberDecl : MemberDecl, IAmbiguousThing<MemberDecl> // only used with "classes"
     {
       public static MemberDecl Create(ModuleDefinition m, MemberDecl a, MemberDecl b) {
         ISet<MemberDecl> s;
         var t = AmbiguousThingHelper<MemberDecl>.Create(m, a, b, new Eq(), out s);
         return t ?? new AmbiguousMemberDecl(m, AmbiguousThingHelper<MemberDecl>.Name(s, member => member.Name), s);
       }
-      class Eq : IEqualityComparer<MemberDecl>
-      {
+
+      class Eq : IEqualityComparer<MemberDecl> {
         public bool Equals(MemberDecl d0, MemberDecl d1) {
           return d0 == d1;
         }
+
         public int GetHashCode(MemberDecl d) {
           return d.GetHashCode();
         }
       }
 
-      public override string WhatKind { get { return Pool.First().WhatKind; } }
+      public override string WhatKind {
+        get { return Pool.First().WhatKind; }
+      }
+
       readonly ISet<MemberDecl> Pool = new HashSet<MemberDecl>();
-      ISet<MemberDecl> IAmbiguousThing<MemberDecl>.Pool { get { return Pool; } }
+
+      ISet<MemberDecl> IAmbiguousThing<MemberDecl>.Pool {
+        get { return Pool; }
+      }
+
       private AmbiguousMemberDecl(ModuleDefinition m, string name, ISet<MemberDecl> pool)
         : base(pool.First().tok, name, true, pool.First().IsGhost, null, false) {
         Contract.Requires(name != null);
         Contract.Requires(pool != null && 2 <= pool.Count);
         Pool = pool;
       }
+
       public string ModuleNames() {
         return AmbiguousThingHelper<MemberDecl>.ModuleNames(this, d => d.EnclosingClass.Module.Name);
       }
@@ -185,9 +210,23 @@ namespace Microsoft.Dafny
     readonly HashSet<RevealableTypeDecl> revealableTypes = new HashSet<RevealableTypeDecl>();
     //types that have been seen by the resolver - used for constraining type inference during exports
 
-    readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers = new Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>>();
-    readonly Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>> datatypeCtors = new Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>>();
-    enum ValuetypeVariety { Bool = 0, Int, Real, BigOrdinal, Bitvector, Map, IMap, None }  // note, these are ordered, so they can be used as indices into valuetypeDecls
+    readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers =
+      new Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>>();
+
+    readonly Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>> datatypeCtors =
+      new Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>>();
+
+    enum ValuetypeVariety {
+      Bool = 0,
+      Int,
+      Real,
+      BigOrdinal,
+      Bitvector,
+      Map,
+      IMap,
+      None
+    } // note, these are ordered, so they can be used as indices into valuetypeDecls
+
     readonly ValuetypeDecl[] valuetypeDecls;
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
@@ -210,57 +249,68 @@ namespace Microsoft.Dafny
 
       valuetypeDecls = new ValuetypeDecl[] {
         new ValuetypeDecl("bool", builtIns.SystemModule, 0, t => t.IsBoolType, typeArgs => Type.Bool),
-        new ValuetypeDecl("int", builtIns.SystemModule, 0, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
-        new ValuetypeDecl("real", builtIns.SystemModule, 0, t => t.IsNumericBased(Type.NumericPersuasion.Real), typeArgs => Type.Real),
+        new ValuetypeDecl("int", builtIns.SystemModule, 0, t => t.IsNumericBased(Type.NumericPersuasion.Int),
+          typeArgs => Type.Int),
+        new ValuetypeDecl("real", builtIns.SystemModule, 0, t => t.IsNumericBased(Type.NumericPersuasion.Real),
+          typeArgs => Type.Real),
         new ValuetypeDecl("ORDINAL", builtIns.SystemModule, 0, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
-        new ValuetypeDecl("_bv", builtIns.SystemModule, 0, t => t.IsBitVectorType, null),  // "_bv" represents a family of classes, so no typeTester or type creator is supplied
-        new ValuetypeDecl("map", builtIns.SystemModule, 2, t => t.IsMapType, typeArgs => new MapType(true, typeArgs[0], typeArgs[1])),
-        new ValuetypeDecl("imap", builtIns.SystemModule, 2, t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
+        new ValuetypeDecl("_bv", builtIns.SystemModule, 0, t => t.IsBitVectorType,
+          null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied
+        new ValuetypeDecl("map", builtIns.SystemModule, 2, t => t.IsMapType,
+          typeArgs => new MapType(true, typeArgs[0], typeArgs[1])),
+        new ValuetypeDecl("imap", builtIns.SystemModule, 2, t => t.IsIMapType,
+          typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
       };
       builtIns.SystemModule.TopLevelDecls.AddRange(valuetypeDecls);
       // Resolution error handling relies on being able to get to the 0-tuple declaration
       builtIns.TupleType(Token.NoToken, 0, true);
 
       // Populate the members of the basic types
-      var floor = new SpecialField(Token.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int, null);
+      var floor = new SpecialField(Token.NoToken, "Floor", SpecialField.ID.Floor, null, false, false, false, Type.Int,
+        null);
       floor.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.Real].Members.Add(floor.Name, floor);
+      valuetypeDecls[(int) ValuetypeVariety.Real].Members.Add(floor.Name, floor);
 
-      var isLimit = new SpecialField(Token.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false, Type.Bool, null);
+      var isLimit = new SpecialField(Token.NoToken, "IsLimit", SpecialField.ID.IsLimit, null, false, false, false,
+        Type.Bool, null);
       isLimit.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(isLimit.Name, isLimit);
+      valuetypeDecls[(int) ValuetypeVariety.BigOrdinal].Members.Add(isLimit.Name, isLimit);
 
-      var isSucc = new SpecialField(Token.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false, Type.Bool, null);
+      var isSucc = new SpecialField(Token.NoToken, "IsSucc", SpecialField.ID.IsSucc, null, false, false, false,
+        Type.Bool, null);
       isSucc.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(isSucc.Name, isSucc);
+      valuetypeDecls[(int) ValuetypeVariety.BigOrdinal].Members.Add(isSucc.Name, isSucc);
 
-      var limitOffset = new SpecialField(Token.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false, Type.Int, null);
+      var limitOffset = new SpecialField(Token.NoToken, "Offset", SpecialField.ID.Offset, null, false, false, false,
+        Type.Int, null);
       limitOffset.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(limitOffset.Name, limitOffset);
+      valuetypeDecls[(int) ValuetypeVariety.BigOrdinal].Members.Add(limitOffset.Name, limitOffset);
       builtIns.ORDINAL_Offset = limitOffset;
 
-      var isNat = new SpecialField(Token.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
+      var isNat = new SpecialField(Token.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool,
+        null);
       isNat.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(isNat.Name, isNat);
+      valuetypeDecls[(int) ValuetypeVariety.BigOrdinal].Members.Add(isNat.Name, isNat);
 
       // Add "Keys", "Values", and "Items" to map, imap
-      foreach (var typeVariety in new [] { ValuetypeVariety.Map, ValuetypeVariety.IMap }) {
-        var vtd = valuetypeDecls[(int)typeVariety];
+      foreach (var typeVariety in new[] {ValuetypeVariety.Map, ValuetypeVariety.IMap}) {
+        var vtd = valuetypeDecls[(int) typeVariety];
         var isFinite = typeVariety == ValuetypeVariety.Map;
 
         var r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[0]));
         var keys = new SpecialField(Token.NoToken, "Keys", SpecialField.ID.Keys, null, false, false, false, r, null);
 
         r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[1]));
-        var values = new SpecialField(Token.NoToken, "Values", SpecialField.ID.Values, null, false, false, false, r, null);
+        var values = new SpecialField(Token.NoToken, "Values", SpecialField.ID.Values, null, false, false, false, r,
+          null);
 
-        var gt = vtd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
+        var gt = vtd.TypeArgs.ConvertAll(tp => (Type) new UserDefinedType(tp));
         var dt = builtIns.TupleType(Token.NoToken, 2, true);
         var tupleType = new UserDefinedType(Token.NoToken, dt.Name, dt, gt);
         r = new SetType(isFinite, tupleType);
         var items = new SpecialField(Token.NoToken, "Items", SpecialField.ID.Items, null, false, false, false, r, null);
 
-        foreach (var memb in new[] { keys, values, items }) {
+        foreach (var memb in new[] {keys, values, items}) {
           memb.EnclosingClass = vtd;
           memb.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
           vtd.Members.Add(memb.Name, memb);
@@ -269,27 +319,33 @@ namespace Microsoft.Dafny
 
       // The result type of the following bitvector methods is the type of the bitvector itself. However, we're representing all bitvector types as
       // a family of types rolled up in one ValuetypeDecl. Therefore, we use the special SelfType as the result type.
-      List<Formal> formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
-      var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", prog.BuiltIns.SystemModule, false, false, new List<TypeParameter>(), formals, new SelfType(),
-        new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
-      rotateLeft.EnclosingClass = valuetypeDecls[(int)ValuetypeVariety.Bitvector];
+      List<Formal> formals = new List<Formal> {new Formal(Token.NoToken, "w", Type.Nat(), true, false, false)};
+      var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", prog.BuiltIns.SystemModule, false, false,
+        new List<TypeParameter>(), formals, new SelfType(),
+        new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
+        new Specification<Expression>(new List<Expression>(), null), null, null, null);
+      rotateLeft.EnclosingClass = valuetypeDecls[(int) ValuetypeVariety.Bitvector];
       rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.Bitvector].Members.Add(rotateLeft.Name, rotateLeft);
+      valuetypeDecls[(int) ValuetypeVariety.Bitvector].Members.Add(rotateLeft.Name, rotateLeft);
 
-      formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
-      var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", prog.BuiltIns.SystemModule, false, false, new List<TypeParameter>(), formals, new SelfType(),
-        new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
-      rotateRight.EnclosingClass = valuetypeDecls[(int)ValuetypeVariety.Bitvector];
+      formals = new List<Formal> {new Formal(Token.NoToken, "w", Type.Nat(), true, false, false)};
+      var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", prog.BuiltIns.SystemModule, false, false,
+        new List<TypeParameter>(), formals, new SelfType(),
+        new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
+        new Specification<Expression>(new List<Expression>(), null), null, null, null);
+      rotateRight.EnclosingClass = valuetypeDecls[(int) ValuetypeVariety.Bitvector];
       rotateRight.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      valuetypeDecls[(int)ValuetypeVariety.Bitvector].Members.Add(rotateRight.Name, rotateRight);
+      valuetypeDecls[(int) ValuetypeVariety.Bitvector].Members.Add(rotateRight.Name, rotateRight);
     }
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(builtIns != null);
       Contract.Invariant(cce.NonNullElements(dependencies.GetVertices()));
-      Contract.Invariant(cce.NonNullDictionaryAndValues(classMembers) && Contract.ForAll(classMembers.Values, v => cce.NonNullDictionaryAndValues(v)));
-      Contract.Invariant(cce.NonNullDictionaryAndValues(datatypeCtors) && Contract.ForAll(datatypeCtors.Values, v => cce.NonNullDictionaryAndValues(v)));
+      Contract.Invariant(cce.NonNullDictionaryAndValues(classMembers) &&
+                         Contract.ForAll(classMembers.Values, v => cce.NonNullDictionaryAndValues(v)));
+      Contract.Invariant(cce.NonNullDictionaryAndValues(datatypeCtors) &&
+                         Contract.ForAll(datatypeCtors.Values, v => cce.NonNullDictionaryAndValues(v)));
       Contract.Invariant(!inBodyInitContext || currentMethod is Constructor);
     }
 
@@ -300,6 +356,7 @@ namespace Microsoft.Dafny
           return vtd;
         }
       }
+
       return null;
     }
 
@@ -317,6 +374,7 @@ namespace Microsoft.Dafny
           // the purpose of an abstract module is to skip compilation
           continue;
         }
+
         string compileName = m.CompileName;
         ModuleDefinition priorModDef;
         if (compileNameMap.TryGetValue(compileName, out priorModDef)) {
@@ -328,24 +386,34 @@ namespace Microsoft.Dafny
         }
       }
     }
+
     public void ResolveProgram(Program prog) {
       Contract.Requires(prog != null);
       Type.ResetScopes();
 
       Type.EnableScopes();
-      var origErrorCount = reporter.Count(ErrorLevel.Error); //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
+      var origErrorCount =
+        reporter.Count(ErrorLevel
+          .Error); //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
       var bindings = new ModuleBindings(null);
       var b = BindModuleNames(prog.DefaultModuleDef, bindings);
       bindings.BindName(prog.DefaultModule.Name, prog.DefaultModule, b);
-      if (reporter.Count(ErrorLevel.Error) > 0) { return; } // if there were errors, then the implict ModuleBindings data structure invariant
+      if (reporter.Count(ErrorLevel.Error) > 0) {
+        return;
+      } // if there were errors, then the implict ModuleBindings data structure invariant
+
       // is violated, so Processing dependencies will not succeed.
       ProcessDependencies(prog.DefaultModule, b, dependencies);
       // check for cycles in the import graph
       foreach (var cycle in dependencies.AllCycles()) {
         var cy = Util.Comma(" -> ", cycle, m => m.Name);
-        reporter.Error(MessageSource.Resolver, cycle[0], "module definition contains a cycle (note: parent modules implicitly depend on submodules): {0}", cy);
+        reporter.Error(MessageSource.Resolver, cycle[0],
+          "module definition contains a cycle (note: parent modules implicitly depend on submodules): {0}", cy);
       }
-      if (reporter.Count(ErrorLevel.Error) > 0) { return; } // give up on trying to resolve anything else
+
+      if (reporter.Count(ErrorLevel.Error) > 0) {
+        return;
+      } // give up on trying to resolve anything else
 
       // fill in module heights
       List<ModuleDecl> sortedDecls = dependencies.TopologicallySortedComponents();
@@ -353,10 +421,11 @@ namespace Microsoft.Dafny
       foreach (ModuleDecl md in sortedDecls) {
         md.Height = h;
         if (md is LiteralModuleDecl) {
-          var mdef = ((LiteralModuleDecl)md).ModuleDef;
+          var mdef = ((LiteralModuleDecl) md).ModuleDef;
           mdef.Height = h;
           prog.ModuleSigs.Add(mdef, null);
         }
+
         h++;
       }
 
@@ -383,15 +452,18 @@ namespace Microsoft.Dafny
       ResolveValuetypeDecls();
       // The SystemModule is constructed with all its members already being resolved. Except for
       // the non-null type corresponding to class types.  They are resolved here:
-      var systemModuleClassesWithNonNullTypes = new List<TopLevelDecl>(prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => d is ClassDecl && ((ClassDecl)d).NonNullTypeDecl != null));
+      var systemModuleClassesWithNonNullTypes = new List<TopLevelDecl>(
+        prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => d is ClassDecl && ((ClassDecl) d).NonNullTypeDecl != null));
       foreach (var cl in systemModuleClassesWithNonNullTypes) {
-        var d = ((ClassDecl)cl).NonNullTypeDecl;
+        var d = ((ClassDecl) cl).NonNullTypeDecl;
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
         ResolveType(d.tok, d.Rhs, d, ResolveTypeOptionEnum.AllowPrefix, d.TypeArgs);
         allTypeParameters.PopMarker();
       }
-      ResolveTopLevelDecls_Core(systemModuleClassesWithNonNullTypes, new Graph<IndDatatypeDecl>(), new Graph<CoDatatypeDecl>());
+
+      ResolveTopLevelDecls_Core(systemModuleClassesWithNonNullTypes, new Graph<IndDatatypeDecl>(),
+        new Graph<CoDatatypeDecl>());
 
       var compilationModuleClones = new Dictionary<ModuleDefinition, ModuleDefinition>();
       foreach (var decl in sortedDecls) {
@@ -404,10 +476,15 @@ namespace Microsoft.Dafny
           // which is only used while resolving the members of the module is stored in the (basically)
           // global variable moduleInfo. Then the signatures of the module members are resolved, followed
           // by the bodies.
-          var literalDecl = (LiteralModuleDecl)decl;
+          var literalDecl = (LiteralModuleDecl) decl;
           var m = literalDecl.ModuleDef;
 
           var errorCount = reporter.Count(ErrorLevel.Error);
+          if (m.RefinementQId != null) {
+            ModuleDecl md = ResolveModuleQualifiedId(m.RefinementBaseRoot, m.RefinementQId, reporter);
+            m.RefinementBaseRoot = md;
+          }
+
           foreach (var r in rewriters) {
             r.PreResolve(m);
           }
@@ -438,11 +515,14 @@ namespace Microsoft.Dafny
             if (!good || reporter.Count(ErrorLevel.Error) != preResolveErrorCount) {
               break;
             }
+
             r.PostResolve(m);
           }
+
           if (good && reporter.Count(ErrorLevel.Error) == errorCount) {
             m.SuccessfullyResolved = true;
           }
+
           Type.PopScope(tempVis);
 
           if (reporter.Count(ErrorLevel.Error) == errorCount && !m.IsAbstract) {
@@ -454,7 +534,8 @@ namespace Microsoft.Dafny
             reporter.ErrorsOnly = true; // turn off warning reporting for the clone
             // Next, compute the compile signature
             Contract.Assert(!useCompileSignatures);
-            useCompileSignatures = true;  // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
+            useCompileSignatures =
+              true; // set Resolver-global flag to indicate that Signatures should be followed to their CompiledSignature
             Type.DisableScopes();
             var compileSig = RegisterTopLevelDecls(nw, true);
             compileSig.Refines = refinementTransformer.RefinedSig;
@@ -466,12 +547,12 @@ namespace Microsoft.Dafny
 
             ResolveModuleDefinition(nw, compileSig);
             prog.CompileModules.Add(nw);
-            useCompileSignatures = false;  // reset the flag
+            useCompileSignatures = false; // reset the flag
             Type.EnableScopes();
             reporter.ErrorsOnly = oldErrorsOnly;
           }
         } else if (decl is AliasModuleDecl) {
-          var alias = (AliasModuleDecl)decl;
+          var alias = (AliasModuleDecl) decl;
           // resolve the path
           ModuleSignature p;
           if (ResolveExport(alias, alias.Root, alias.Module, alias.Path, alias.Exports, out p, reporter)) {
@@ -482,23 +563,28 @@ namespace Microsoft.Dafny
             alias.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
           }
         } else if (decl is ModuleFacadeDecl) {
-          var abs = (ModuleFacadeDecl)decl;
+          var abs = (ModuleFacadeDecl) decl;
           ModuleSignature p;
           if (ResolveExport(abs, abs.Root, abs.Module, abs.Path, abs.Exports, out p, reporter)) {
             abs.OriginalSignature = p;
-            abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.ModuleSigs, compilationModuleClones);
+            abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.ModuleSigs,
+              compilationModuleClones);
           } else {
             abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
           }
         } else if (decl is ModuleExportDecl) {
-          ((ModuleExportDecl)decl).SetupDefaultSignature();
+          ((ModuleExportDecl) decl).SetupDefaultSignature();
 
           Contract.Assert(decl.Signature != null);
           Contract.Assert(decl.Signature.VisibilityScope != null);
 
-        } else { Contract.Assert(false); }
+        } else {
+          Contract.Assert(false);
+        }
+
         Contract.Assert(decl.Signature != null);
       }
+
       if (reporter.Count(ErrorLevel.Error) != origErrorCount) {
         // do nothing else
         return;
@@ -508,24 +594,27 @@ namespace Microsoft.Dafny
       foreach (var module in prog.Modules()) {
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls)) {
           if (clbl is Function) {
-            var fn = (Function)clbl;
-            if (!fn.IsRecursive) {  // note, self-recursion has already been determined
+            var fn = (Function) clbl;
+            if (!fn.IsRecursive) {
+              // note, self-recursion has already been determined
               int n = module.CallGraph.GetSCCSize(fn);
               if (2 <= n) {
                 // the function is mutually recursive (note, the SCC does not determine self recursion)
                 fn.IsRecursive = true;
               }
             }
+
             if (fn.IsRecursive && fn is ExtremePredicate) {
               // this means the corresponding prefix predicate is also recursive
-              var prefixPred = ((ExtremePredicate)fn).PrefixPredicate;
+              var prefixPred = ((ExtremePredicate) fn).PrefixPredicate;
               if (prefixPred != null) {
                 prefixPred.IsRecursive = true;
               }
             }
           } else {
-            var m = (Method)clbl;
-            if (!m.IsRecursive) {  // note, self-recursion has already been determined
+            var m = (Method) clbl;
+            if (!m.IsRecursive) {
+              // note, self-recursion has already been determined
               int n = module.CallGraph.GetSCCSize(m);
               if (2 <= n) {
                 // the function is mutually recursive (note, the SCC does not determine self recursion)
@@ -534,6 +623,7 @@ namespace Microsoft.Dafny
             }
           }
         }
+
         foreach (var r in rewriters) {
           r.PostCyclicityResolve(module);
         }
@@ -545,16 +635,18 @@ namespace Microsoft.Dafny
         foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
           Statement body = null;
           if (clbl is Method) {
-            body = ((Method)clbl).Body;
+            body = ((Method) clbl).Body;
           } else if (clbl is IteratorDecl) {
-            body = ((IteratorDecl)clbl).Body;
+            body = ((IteratorDecl) clbl).Body;
           }
+
           if (body != null) {
             var c = new FillInDefaultLoopDecreases_Visitor(this, clbl);
             c.Visit(body);
           }
         }
       }
+
       foreach (var module in prog.Modules()) {
         foreach (var iter in ModuleDefinition.AllIteratorDecls(module.TopLevelDecls)) {
           reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(iter));
@@ -572,12 +664,13 @@ namespace Microsoft.Dafny
         foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
           Statement body = null;
           if (clbl is ExtremeLemma) {
-            body = ((ExtremeLemma)clbl).PrefixLemma.Body;
+            body = ((ExtremeLemma) clbl).PrefixLemma.Body;
           } else if (clbl is Method) {
-            body = ((Method)clbl).Body;
+            body = ((Method) clbl).Body;
           } else if (clbl is IteratorDecl) {
-            body = ((IteratorDecl)clbl).Body;
+            body = ((IteratorDecl) clbl).Body;
           }
+
           if (body != null) {
             var c = new ReportOtherAdditionalInformation_Visitor(this);
             c.Visit(body);
@@ -591,19 +684,20 @@ namespace Microsoft.Dafny
         foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
           Statement body = null;
           if (clbl is Method) {
-            body = ((Method)clbl).Body;
-            CheckForFuelAdjustments(clbl.Tok, ((Method)clbl).Attributes, module);
+            body = ((Method) clbl).Body;
+            CheckForFuelAdjustments(clbl.Tok, ((Method) clbl).Attributes, module);
           } else if (clbl is IteratorDecl) {
-            body = ((IteratorDecl)clbl).Body;
-            CheckForFuelAdjustments(clbl.Tok, ((IteratorDecl)clbl).Attributes, module);
+            body = ((IteratorDecl) clbl).Body;
+            CheckForFuelAdjustments(clbl.Tok, ((IteratorDecl) clbl).Attributes, module);
           } else if (clbl is Function) {
-            CheckForFuelAdjustments(clbl.Tok, ((Function)clbl).Attributes, module);
+            CheckForFuelAdjustments(clbl.Tok, ((Function) clbl).Attributes, module);
             var c = new FuelAdjustment_Visitor(this);
-            var bodyExpr = ((Function)clbl).Body;
+            var bodyExpr = ((Function) clbl).Body;
             if (bodyExpr != null) {
               c.Visit(bodyExpr, new FuelAdjustment_Context(module));
             }
           }
+
           if (body != null) {
             var c = new FuelAdjustment_Visitor(this);
             c.Visit(body, new FuelAdjustment_Context(module));
@@ -624,26 +718,28 @@ namespace Microsoft.Dafny
           ICallable m;
           string s;
           if (clbl is ExtremeLemma) {
-            var prefixLemma = ((ExtremeLemma)clbl).PrefixLemma;
+            var prefixLemma = ((ExtremeLemma) clbl).PrefixLemma;
             m = prefixLemma;
             s = prefixLemma.Name + " ";
           } else {
             m = clbl;
             s = "";
           }
+
           var anyChangeToDecreases = FillInDefaultDecreases(m, true);
 
           if (anyChangeToDecreases || m.InferredDecreases || m is PrefixLemma) {
             bool showIt = false;
             if (m is Function) {
               // show the inferred decreases clause only if it will ever matter, i.e., if the function is recursive
-              showIt = ((Function)m).IsRecursive;
+              showIt = ((Function) m).IsRecursive;
             } else if (m is PrefixLemma) {
               // always show the decrease clause, since at the very least it will start with "_k", which the programmer did not write explicitly
               showIt = true;
             } else {
-              showIt = ((Method)m).IsRecursive;
+              showIt = ((Method) m).IsRecursive;
             }
+
             if (showIt) {
               s += "decreases " + Util.Comma(m.Decreases.Expressions, Printer.ExprToString);
               // Note, in the following line, we use the location information for "clbl", not "m".  These
@@ -667,28 +763,34 @@ namespace Microsoft.Dafny
         // extreme predicates don't have decreases clauses
         return false;
       }
+
       var anyChangeToDecreases = false;
       var decr = clbl.Decreases.Expressions;
       if (DafnyOptions.O.Dafnycc) {
         if (decr.Count > 1) {
-          reporter.Error(MessageSource.Resolver, decr[1].tok, "In dafnycc mode, only one decreases expression is allowed");
+          reporter.Error(MessageSource.Resolver, decr[1].tok,
+            "In dafnycc mode, only one decreases expression is allowed");
         }
+
         // In dafnycc mode, only consider first argument
         if (decr.Count == 0 && clbl.Ins.Count > 0) {
           var p = clbl.Ins[0];
           if (!(p is ImplicitFormal) && p.Type.IsOrdered) {
             var ie = new IdentifierExpr(p.tok, p.Name);
-            ie.Var = p; ie.Type = p.Type;  // resolve it here
+            ie.Var = p;
+            ie.Type = p.Type; // resolve it here
             decr.Add(ie);
             return true;
           }
         }
+
         return false;
       }
+
       if (decr.Count == 0 || (clbl is PrefixLemma && decr.Count == 1)) {
         // The default for a function starts with the function's reads clause, if any
         if (clbl is Function) {
-          var fn = (Function)clbl;
+          var fn = (Function) clbl;
           if (fn.Reads.Count != 0) {
             // start the default lexicographic tuple with the reads clause
             var r = FrameToObjectSet(fn.Reads);
@@ -702,34 +804,38 @@ namespace Microsoft.Dafny
         if (clbl is Function || clbl is Method) {
           TopLevelDeclWithMembers enclosingType;
           if (clbl is Function fc && !fc.IsStatic) {
-            enclosingType = (TopLevelDeclWithMembers)fc.EnclosingClass;
+            enclosingType = (TopLevelDeclWithMembers) fc.EnclosingClass;
           } else if (clbl is Method mc && !mc.IsStatic) {
-            enclosingType = (TopLevelDeclWithMembers)mc.EnclosingClass;
+            enclosingType = (TopLevelDeclWithMembers) mc.EnclosingClass;
           } else {
             enclosingType = null;
           }
+
           if (enclosingType != null) {
             var receiverType = GetThisType(clbl.Tok, enclosingType);
             if (receiverType.IsOrdered && !receiverType.IsRefType) {
-              var th = new ThisExpr(clbl.Tok) {Type = receiverType};  // resolve here
+              var th = new ThisExpr(clbl.Tok) {Type = receiverType}; // resolve here
               decr.Add(AutoGeneratedExpression.Create(th));
               anyChangeToDecreases = true;
             }
           }
         }
+
         foreach (var p in clbl.Ins) {
           if (!(p is ImplicitFormal) && p.Type.IsOrdered) {
             var ie = new IdentifierExpr(p.tok, p.Name);
-            ie.Var = p; ie.Type = p.Type;  // resolve it here
+            ie.Var = p;
+            ie.Type = p.Type; // resolve it here
             decr.Add(AutoGeneratedExpression.Create(ie));
             anyChangeToDecreases = true;
           }
         }
 
-        clbl.InferredDecreases = true;  // this indicates that finding a default decreases clause was attempted
+        clbl.InferredDecreases = true; // this indicates that finding a default decreases clause was attempted
       }
+
       if (addPrefixInCoClusters && clbl is Function) {
-        var fn = (Function)clbl;
+        var fn = (Function) clbl;
         switch (fn.CoClusterTarget) {
           case Function.CoCallClusterInvolvement.None:
             break;
@@ -744,10 +850,11 @@ namespace Microsoft.Dafny
             anyChangeToDecreases = true;
             break;
           default:
-            Contract.Assume(false);  // unexpected case
+            Contract.Assume(false); // unexpected case
             break;
         }
       }
+
       return anyChangeToDecreases;
     }
 
@@ -768,10 +875,11 @@ namespace Microsoft.Dafny
         foreach (var t in arrTy.Args) {
           var bv = new BoundVar(e.tok, idGen.FreshId("_x"), t);
           bvars.Add(bv);
-          bexprs.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
+          bexprs.Add(new IdentifierExpr(e.tok, bv.Name) {Type = bv.Type, Var = bv});
         }
+
         var oVar = new BoundVar(e.tok, idGen.FreshId("_o"), builtIns.ObjectQ());
-        var obj = new IdentifierExpr(e.tok, oVar.Name) { Type = oVar.Type, Var = oVar };
+        var obj = new IdentifierExpr(e.tok, oVar.Name) {Type = oVar.Type, Var = oVar};
         bvars.Add(oVar);
 
         return
@@ -802,31 +910,33 @@ namespace Microsoft.Dafny
         if (fe.E is WildcardExpr) {
           // drop wildcards altogether
         } else {
-          Expression e = FrameArrowToObjectSet(fe.E, idGen);  // keep only fe.E, drop any fe.Field designation
-          Contract.Assert(e.Type != null);  // should have been resolved already
+          Expression e = FrameArrowToObjectSet(fe.E, idGen); // keep only fe.E, drop any fe.Field designation
+          Contract.Assert(e.Type != null); // should have been resolved already
           var eType = e.Type.NormalizeExpand();
           if (eType.IsRefType) {
             // e represents a singleton set
             if (singletons == null) {
               singletons = new List<Expression>();
             }
+
             singletons.Add(e);
           } else if (eType is SeqType || eType is MultiSetType) {
             // e represents a sequence or multiset
             // Add:  set x :: x in e
-            var bv = new BoundVar(e.tok, idGen.FreshId("_s2s_"), ((CollectionType)eType).Arg);
+            var bv = new BoundVar(e.tok, idGen.FreshId("_s2s_"), ((CollectionType) eType).Arg);
             var bvIE = new IdentifierExpr(e.tok, bv.Name);
-            bvIE.Var = bv;  // resolve here
-            bvIE.Type = bv.Type;  // resolve here
+            bvIE.Var = bv; // resolve here
+            bvIE.Type = bv.Type; // resolve here
             var sInE = new BinaryExpr(e.tok, BinaryExpr.Opcode.In, bvIE, e);
             if (eType is SeqType) {
-              sInE.ResolvedOp = BinaryExpr.ResolvedOpcode.InSeq;  // resolve here
+              sInE.ResolvedOp = BinaryExpr.ResolvedOpcode.InSeq; // resolve here
             } else {
               sInE.ResolvedOp = BinaryExpr.ResolvedOpcode.InMultiSet; // resolve here
             }
-            sInE.Type = Type.Bool;  // resolve here
-            var s = new SetComprehension(e.tok, true, new List<BoundVar>() { bv }, sInE, bvIE, null);
-            s.Type = new SetType(true, builtIns.ObjectQ());  // resolve here
+
+            sInE.Type = Type.Bool; // resolve here
+            var s = new SetComprehension(e.tok, true, new List<BoundVar>() {bv}, sInE, bvIE, null);
+            s.Type = new SetType(true, builtIns.ObjectQ()); // resolve here
             sets.Add(s);
           } else {
             // e is already a set
@@ -835,23 +945,26 @@ namespace Microsoft.Dafny
           }
         }
       }
+
       if (singletons != null) {
         Expression display = new SetDisplayExpr(singletons[0].tok, true, singletons);
-        display.Type = new SetType(true, builtIns.ObjectQ());  // resolve here
+        display.Type = new SetType(true, builtIns.ObjectQ()); // resolve here
         sets.Add(display);
       }
+
       if (sets.Count == 0) {
         Expression emptyset = new SetDisplayExpr(Token.NoToken, true, new List<Expression>());
-        emptyset.Type = new SetType(true, builtIns.ObjectQ());  // resolve here
+        emptyset.Type = new SetType(true, builtIns.ObjectQ()); // resolve here
         return emptyset;
       } else {
         Expression s = sets[0];
         for (int i = 1; i < sets.Count; i++) {
           BinaryExpr union = new BinaryExpr(s.tok, BinaryExpr.Opcode.Add, s, sets[i]);
-          union.ResolvedOp = BinaryExpr.ResolvedOpcode.Union;  // resolve here
-          union.Type = new SetType(true, builtIns.ObjectQ());  // resolve here
+          union.ResolvedOp = BinaryExpr.ResolvedOpcode.Union; // resolve here
+          union.Type = new SetType(true, builtIns.ObjectQ()); // resolve here
           s = union;
         }
+
         return s;
       }
     }
@@ -861,9 +974,9 @@ namespace Microsoft.Dafny
       foreach (var valueTypeDecl in valuetypeDecls) {
         foreach (var kv in valueTypeDecl.Members) {
           if (kv.Value is Function) {
-            ResolveFunctionSignature((Function)kv.Value);
+            ResolveFunctionSignature((Function) kv.Value);
           } else if (kv.Value is Method) {
-            ResolveMethodSignature((Method)kv.Value);
+            ResolveMethodSignature((Method) kv.Value);
           }
         }
       }
@@ -886,23 +999,31 @@ namespace Microsoft.Dafny
         if (d is AliasModuleDecl || d is ModuleFacadeDecl) {
           ModuleSignature importSig;
           if (d is AliasModuleDecl) {
-            var alias = (AliasModuleDecl)d;
+            var alias = (AliasModuleDecl) d;
             importSig = alias.Root != null ? alias.Root.Signature : alias.Signature;
           } else {
-            importSig = ((ModuleFacadeDecl)d).OriginalSignature;
+            importSig = ((ModuleFacadeDecl) d).OriginalSignature;
           }
+
           if (importSig.ModuleDef == null || !importSig.ModuleDef.SuccessfullyResolved) {
-            if (!m.IsEssentiallyEmptyModuleBody()) {  // say something only if this will cause any testing to be omitted
-              reporter.Error(MessageSource.Resolver, d, "not resolving module '{0}' because there were errors in resolving its import '{1}'", m.Name, d.Name);
+            if (!m.IsEssentiallyEmptyModuleBody()) {
+              // say something only if this will cause any testing to be omitted
+              reporter.Error(MessageSource.Resolver, d,
+                "not resolving module '{0}' because there were errors in resolving its import '{1}'", m.Name, d.Name);
             }
+
             return false;
           }
         } else if (d is LiteralModuleDecl) {
-          var nested = (LiteralModuleDecl)d;
+          var nested = (LiteralModuleDecl) d;
           if (!nested.ModuleDef.SuccessfullyResolved) {
-            if (!m.IsEssentiallyEmptyModuleBody()) {  // say something only if this will cause any testing to be omitted
-              reporter.Error(MessageSource.Resolver, nested, "not resolving module '{0}' because there were errors in resolving its nested module '{1}'", m.Name, nested.Name);
+            if (!m.IsEssentiallyEmptyModuleBody()) {
+              // say something only if this will cause any testing to be omitted
+              reporter.Error(MessageSource.Resolver, nested,
+                "not resolving module '{0}' because there were errors in resolving its nested module '{1}'", m.Name,
+                nested.Name);
             }
+
             return false;
           }
         }
@@ -917,12 +1038,15 @@ namespace Microsoft.Dafny
       var codatatypeDependencies = new Graph<CoDatatypeDecl>();
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
       ResolveTopLevelDecls_Signatures(m, sig, m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
-      Contract.Assert(AllTypeConstraints.Count == 0);  // signature resolution does not add any type constraints
-      ResolveAttributes(m.Attributes, m, new ResolveOpts(new NoContext(m.Module), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
-      SolveAllTypeConstraints();  // solve any type constraints entailed by the attributes
+      Contract.Assert(AllTypeConstraints.Count == 0); // signature resolution does not add any type constraints
+      ResolveAttributes(m.Attributes, m,
+        new ResolveOpts(new NoContext(m.Module),
+          false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
+      SolveAllTypeConstraints(); // solve any type constraints entailed by the attributes
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies, isAnExport);
       }
+
       Type.PopScope(moduleInfo.VisibilityScope);
       moduleInfo = oldModuleInfo;
       return true;
@@ -935,15 +1059,15 @@ namespace Microsoft.Dafny
       Graph<ModuleExportDecl> exportDependencies = new Graph<ModuleExportDecl>();
       foreach (TopLevelDecl toplevel in m.TopLevelDecls) {
         if (toplevel is ModuleExportDecl) {
-          ModuleExportDecl d = (ModuleExportDecl)toplevel;
+          ModuleExportDecl d = (ModuleExportDecl) toplevel;
           exportDependencies.AddVertex(d);
-          foreach (string s in d.Extends) {
+          foreach (IToken s in d.Extends) {
             ModuleExportDecl extend;
-            if (sig.ExportSets.TryGetValue(s, out extend)) {
+            if (sig.ExportSets.TryGetValue(s.val, out extend)) {
               d.ExtendDecls.Add(extend);
               exportDependencies.AddEdge(d, extend);
             } else {
-              reporter.Error(MessageSource.Resolver, m.tok, s + " must be an export of " + m.Name + " to be extended");
+              reporter.Error(MessageSource.Resolver, s, s.val + " must be an export of " + m.Name + " to be extended");
             }
           }
         }
@@ -956,7 +1080,10 @@ namespace Microsoft.Dafny
         reporter.Error(MessageSource.Resolver, cycle[0], "module export contains a cycle: {0}", cy);
         cycleError = true;
       }
-      if (cycleError) { return; } // give up on trying to resolve anything else
+
+      if (cycleError) {
+        return;
+      } // give up on trying to resolve anything else
 
       // fill in the exports for the extends.
       List<ModuleExportDecl> sortedExportDecls = exportDependencies.TopologicallySortedComponents();
@@ -965,7 +1092,7 @@ namespace Microsoft.Dafny
 
       sig.TopLevels.TryGetValue("_default", out defaultClass);
       Contract.Assert(defaultClass is ClassDecl);
-      Contract.Assert(((ClassDecl)defaultClass).IsDefaultClass);
+      Contract.Assert(((ClassDecl) defaultClass).IsDefaultClass);
       defaultClass.AddVisibilityScope(m.VisibilityScope, true);
 
       foreach (var d in sortedExportDecls) {
@@ -987,8 +1114,10 @@ namespace Microsoft.Dafny
           // Top-level functions and methods are actually recorded as members of the _default class.  We look up the
           // export-set name there.  If the export-set name happens to coincide with some other top-level declaration,
           // then an error will already have been produced ("duplicate name of top-level declaration").
-          if (classMembers.TryGetValue((ClassDecl)defaultClass, out members) && members.TryGetValue(d.Name, out member)) {
-            reporter.Warning(MessageSource.Resolver, d.tok, "note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
+          if (classMembers.TryGetValue((ClassDecl) defaultClass, out members) &&
+              members.TryGetValue(d.Name, out member)) {
+            reporter.Warning(MessageSource.Resolver, d.tok,
+              "note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
           }
         }
 
@@ -1005,48 +1134,63 @@ namespace Microsoft.Dafny
 
           if (export.ClassId != null) {
             if (!sig.TopLevels.TryGetValue(export.ClassId, out cldecl)) {
-              reporter.Error(MessageSource.Resolver, export.ClassIdTok, "'{0}' is not a top-level type declaration", export.ClassId);
+              reporter.Error(MessageSource.Resolver, export.ClassIdTok, "'{0}' is not a top-level type declaration",
+                export.ClassId);
               continue;
             }
-            if (cldecl is ClassDecl && ((ClassDecl)cldecl).NonNullTypeDecl != null) {
+
+            if (cldecl is ClassDecl && ((ClassDecl) cldecl).NonNullTypeDecl != null) {
               // cldecl is a possibly-null type (syntactically given with a question mark at the end)
-              reporter.Error(MessageSource.Resolver, export.ClassIdTok, "'{0}' is not a type that can declare members", export.ClassId);
+              reporter.Error(MessageSource.Resolver, export.ClassIdTok, "'{0}' is not a type that can declare members",
+                export.ClassId);
               continue;
             }
+
             if (cldecl is NonNullTypeDecl) {
               // cldecl was given syntactically like the name of a class, but here it's referring to the corresponding non-null subset type
               cldecl = cldecl.ViewAsClass;
             }
+
             var mt = cldecl as TopLevelDeclWithMembers;
             if (mt == null) {
-              reporter.Error(MessageSource.Resolver, export.ClassIdTok, "'{0}' is not a type that can declare members", export.ClassId);
+              reporter.Error(MessageSource.Resolver, export.ClassIdTok, "'{0}' is not a type that can declare members",
+                export.ClassId);
               continue;
             }
+
             var lmem = mt.Members.FirstOrDefault(l => l.Name == export.Id);
             if (lmem == null) {
-              reporter.Error(MessageSource.Resolver, export.Tok, "No member '{0}' found in type '{1}'", export.Id, export.ClassId);
+              reporter.Error(MessageSource.Resolver, export.Tok, "No member '{0}' found in type '{1}'", export.Id,
+                export.ClassId);
               continue;
             }
+
             decl = lmem;
           } else if (sig.TopLevels.TryGetValue(name, out tdecl)) {
-            if (tdecl is ClassDecl && ((ClassDecl)tdecl).NonNullTypeDecl != null) {
+            if (tdecl is ClassDecl && ((ClassDecl) tdecl).NonNullTypeDecl != null) {
               // cldecl is a possibly-null type (syntactically given with a question mark at the end)
-              var nn = ((ClassDecl)tdecl).NonNullTypeDecl;
+              var nn = ((ClassDecl) tdecl).NonNullTypeDecl;
               Contract.Assert(nn != null);
               reporter.Error(MessageSource.Resolver, export.Tok,
-                export.Opaque ? "Type '{1}' can only be revealed, not provided" : "Types '{0}' and '{1}' are exported together, which is accomplished by revealing the name '{0}'",
+                export.Opaque
+                  ? "Type '{1}' can only be revealed, not provided"
+                  : "Types '{0}' and '{1}' are exported together, which is accomplished by revealing the name '{0}'",
                 nn.Name, name);
               continue;
             }
+
             // Member of the enclosing module
             decl = tdecl;
           } else if (sig.StaticMembers.TryGetValue(name, out member)) {
             decl = member;
           } else if (sig.ExportSets.ContainsKey(name)) {
-            reporter.Error(MessageSource.Resolver, export.Tok, "'{0}' is an export set and cannot be provided/revealed by another export set (did you intend to list it in an \"extends\"?)", name);
+            reporter.Error(MessageSource.Resolver, export.Tok,
+              "'{0}' is an export set and cannot be provided/revealed by another export set (did you intend to list it in an \"extends\"?)",
+              name);
             continue;
           } else {
-            reporter.Error(MessageSource.Resolver, export.Tok, "'{0}' must be a member of '{1}' to be exported", name, m.Name);
+            reporter.Error(MessageSource.Resolver, export.Tok, "'{0}' must be a member of '{1}' to be exported", name,
+              m.Name);
             continue;
           }
 
@@ -1056,7 +1200,8 @@ namespace Microsoft.Dafny
           }
 
           if (!export.Opaque && !decl.CanBeRevealed()) {
-            reporter.Error(MessageSource.Resolver, export.Tok, "'{0}' cannot be revealed in an export. Use \"provides\" instead.", name);
+            reporter.Error(MessageSource.Resolver, export.Tok,
+              "'{0}' cannot be revealed in an export. Use \"provides\" instead.", name);
             continue;
           }
 
@@ -1082,9 +1227,11 @@ namespace Microsoft.Dafny
           if (defaultExport == null) {
             defaultExport = decl;
           } else {
-            reporter.Error(MessageSource.Resolver, m.tok, "more than one default export set declared in module {0}", m.Name);
+            reporter.Error(MessageSource.Resolver, m.tok, "more than one default export set declared in module {0}",
+              m.Name);
           }
         }
+
         // fill in export signature
         ModuleSignature signature = decl.Signature;
         signature.ModuleDef = m;
@@ -1093,20 +1240,24 @@ namespace Microsoft.Dafny
           if (!top.Value.CanBeExported() || !top.Value.IsVisibleInScope(signature.VisibilityScope)) {
             continue;
           }
+
           if (!signature.TopLevels.ContainsKey(top.Key)) {
             signature.TopLevels.Add(top.Key, top.Value);
           }
+
           if (top.Value is DatatypeDecl && top.Value.IsRevealedInScope(signature.VisibilityScope)) {
-            foreach (var ctor in ((DatatypeDecl)top.Value).Ctors) {
+            foreach (var ctor in ((DatatypeDecl) top.Value).Ctors) {
               if (!signature.Ctors.ContainsKey(ctor.Name)) {
                 signature.Ctors.Add(ctor.Name, new Tuple<DatatypeCtor, bool>(ctor, false));
               }
             }
           }
         }
-        foreach (var mem in sig.StaticMembers.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
+
+        foreach (var mem in sig.StaticMembers.Where(t =>
+          t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
           if (!signature.StaticMembers.ContainsKey(mem.Key)) {
-            signature.StaticMembers.Add(mem.Key, (MemberDecl)mem.Value);
+            signature.StaticMembers.Add(mem.Key, (MemberDecl) mem.Value);
           }
         }
       }
@@ -1124,7 +1275,7 @@ namespace Microsoft.Dafny
       foreach (var s in sigs) {
         foreach (var decl in s.TopLevels) {
           if (decl.Value is ModuleDecl && !(decl.Value is ModuleExportDecl)) {
-            var modDecl = (ModuleDecl)decl.Value;
+            var modDecl = (ModuleDecl) decl.Value;
             s.VisibilityScope.Augment(modDecl.AccessibleSignature().VisibilityScope);
           }
         }
@@ -1201,6 +1352,7 @@ namespace Microsoft.Dafny
                 }
               }
             }
+
             modifies.Clear();
           }
         }
@@ -1224,19 +1376,29 @@ namespace Microsoft.Dafny
         if (!(top is ModuleExportDecl))
           continue;
 
-        ModuleExportDecl decl = (ModuleExportDecl)top;
+        ModuleExportDecl decl = (ModuleExportDecl) top;
         var prevErrors = reporter.Count(ErrorLevel.Error);
 
         foreach (var export in decl.Exports) {
           if (export.Decl is MemberDecl member) {
             // For classes and traits, the visibility test is performed on the corresponding non-null type
-            var enclosingType = member.EnclosingClass is ClassDecl cl && cl.NonNullTypeDecl != null ? cl.NonNullTypeDecl : member.EnclosingClass;
+            var enclosingType = member.EnclosingClass is ClassDecl cl && cl.NonNullTypeDecl != null
+              ? cl.NonNullTypeDecl
+              : member.EnclosingClass;
             if (!enclosingType.IsVisibleInScope(decl.Signature.VisibilityScope)) {
-              reporter.Error(MessageSource.Resolver, export.Tok, "Cannot export type member '{0}' without providing its enclosing {1} '{2}'", member.Name, member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
-            } else if (member is Constructor && !member.EnclosingClass.IsRevealedInScope(decl.Signature.VisibilityScope)) {
-              reporter.Error(MessageSource.Resolver, export.Tok, "Cannot export constructor '{0}' without revealing its enclosing {1} '{2}'", member.Name, member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
-            } else if (member is Field && !(member is ConstantField) && !member.EnclosingClass.IsRevealedInScope(decl.Signature.VisibilityScope)) {
-              reporter.Error(MessageSource.Resolver, export.Tok, "Cannot export mutable field '{0}' without revealing its enclosing {1} '{2}'", member.Name, member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
+              reporter.Error(MessageSource.Resolver, export.Tok,
+                "Cannot export type member '{0}' without providing its enclosing {1} '{2}'", member.Name,
+                member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
+            } else if (member is Constructor &&
+                       !member.EnclosingClass.IsRevealedInScope(decl.Signature.VisibilityScope)) {
+              reporter.Error(MessageSource.Resolver, export.Tok,
+                "Cannot export constructor '{0}' without revealing its enclosing {1} '{2}'", member.Name,
+                member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
+            } else if (member is Field && !(member is ConstantField) &&
+                       !member.EnclosingClass.IsRevealedInScope(decl.Signature.VisibilityScope)) {
+              reporter.Error(MessageSource.Resolver, export.Tok,
+                "Cannot export mutable field '{0}' without revealing its enclosing {1} '{2}'", member.Name,
+                member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
             }
           }
         }
@@ -1251,6 +1413,7 @@ namespace Microsoft.Dafny
           pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);
           wr.WriteLine("*/");
         }
+
         if (reporter.Count(ErrorLevel.Error) != prevErrors) {
           continue;
         }
@@ -1261,7 +1424,7 @@ namespace Microsoft.Dafny
         //testSig.Refines = refinementTransformer.RefinedSig;
         ResolveModuleDefinition(exportView, testSig, true);
         var wasError = reporter.Count(ErrorLevel.Error) > 0;
-        reporter = ((ErrorReporterWrapper)reporter).WrappedReporter;
+        reporter = ((ErrorReporterWrapper) reporter).WrappedReporter;
 
         if (wasError) {
           reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent: {0}", decl.Name);
@@ -1271,8 +1434,7 @@ namespace Microsoft.Dafny
       moduleInfo = oldModuleInfo;
     }
 
-    public class ModuleBindings
-    {
+    public class ModuleBindings {
       private ModuleBindings parent;
       private Dictionary<string, ModuleDecl> modules;
       private Dictionary<string, ModuleBindings> bindings;
@@ -1282,6 +1444,7 @@ namespace Microsoft.Dafny
         modules = new Dictionary<string, ModuleDecl>();
         bindings = new Dictionary<string, ModuleBindings>();
       }
+
       public bool BindName(string name, ModuleDecl subModule, ModuleBindings b) {
         if (modules.ContainsKey(name)) {
           return false;
@@ -1305,15 +1468,18 @@ namespace Microsoft.Dafny
           return parent.TryLookupFilter(name, out m, filter);
         } else return false;
       }
+
       public IEnumerable<ModuleDecl> ModuleList {
         get { return modules.Values; }
       }
+
       public ModuleBindings SubBindings(string name) {
         ModuleBindings v = null;
         bindings.TryGetValue(name, out v);
         return v;
       }
     }
+
     private ModuleBindings BindModuleNames(ModuleDefinition moduleDecl, ModuleBindings parentBindings) {
       var bindings = new ModuleBindings(parentBindings);
 
@@ -1328,15 +1494,17 @@ namespace Microsoft.Dafny
         if (!prefixNames.TryGetValue(id, out prev)) {
           prev = new List<Tuple<List<IToken>, LiteralModuleDecl>>();
         }
+
         prev.Add(tup);
         prefixNames[id] = prev;
       }
+
       moduleDecl.PrefixNamedModules.Clear();
 
       // First, register all literal modules, and transferring their prefix-named modules downwards
       foreach (var tld in moduleDecl.TopLevelDecls) {
         if (tld is LiteralModuleDecl) {
-          var subdecl = (LiteralModuleDecl)tld;
+          var subdecl = (LiteralModuleDecl) tld;
           // Transfer prefix-named modules downwards into the sub-module
           List<Tuple<List<IToken>, LiteralModuleDecl>> prefixModules;
           if (prefixNames.TryGetValue(subdecl.Name, out prefixModules)) {
@@ -1345,15 +1513,18 @@ namespace Microsoft.Dafny
           } else {
             prefixModules = null;
           }
+
           BindModuleName_LiteralModuleDecl(subdecl, prefixModules, bindings);
         }
       }
+
       // Next, add new modules for any remaining entries in "prefixNames".
       foreach (var entry in prefixNames) {
         var name = entry.Key;
         var prefixNamedModules = entry.Value;
         var tok = prefixNamedModules.First().Item1[0];
-        var modDef = new ModuleDefinition(tok, name, new List<IToken>(), false, false, null, moduleDecl, null, false, true, true);
+        var modDef = new ModuleDefinition(tok, name, new List<IToken>(), false, false, null, moduleDecl, null, false,
+          true, true);
         // Every module is expected to have a default class, so we create and add one now
         var defaultClass = new DefaultClassDecl(modDef, new List<MemberDecl>());
         modDef.TopLevelDecls.Add(defaultClass);
@@ -1362,10 +1533,11 @@ namespace Microsoft.Dafny
         moduleDecl.TopLevelDecls.Add(subdecl);
         BindModuleName_LiteralModuleDecl(subdecl, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
       }
+
       // Finally, go through import declarations (that is, ModuleFacadeDecl's and AliasModuleDecl's).
       foreach (var tld in moduleDecl.TopLevelDecls) {
         if (tld is ModuleFacadeDecl || tld is AliasModuleDecl) {
-          var subdecl = (ModuleDecl)tld;
+          var subdecl = (ModuleDecl) tld;
           if (bindings.BindName(subdecl.Name, subdecl, null)) {
             // the add was successful
           } else {
@@ -1375,25 +1547,28 @@ namespace Microsoft.Dafny
             Contract.Assert(yes);
             if (prevDecl is ModuleFacadeDecl || prevDecl is AliasModuleDecl) {
               reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
-            } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.Path.Count == 1 && importDecl.Name == importDecl.Path[0].val) {
+            } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.Path.Count == 1 &&
+                       importDecl.Name == importDecl.Path[0].val) {
               importDecl.ShadowsLiteralModule = true;
             } else {
-              reporter.Error(MessageSource.Resolver, subdecl.tok, "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
+              reporter.Error(MessageSource.Resolver, subdecl.tok,
+                "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
             }
           }
         }
       }
+
       return bindings;
     }
 
-    private Tuple<List<IToken>, LiteralModuleDecl> ShortenPrefix(Tuple<List<IToken>, LiteralModuleDecl> tup)
-    {
+    private Tuple<List<IToken>, LiteralModuleDecl> ShortenPrefix(Tuple<List<IToken>, LiteralModuleDecl> tup) {
       Contract.Requires(tup.Item1.Count != 0);
       var rest = tup.Item1.GetRange(1, tup.Item1.Count - 1);
       return new Tuple<List<IToken>, LiteralModuleDecl>(rest, tup.Item2);
     }
 
-    private void BindModuleName_LiteralModuleDecl(LiteralModuleDecl litmod, List<Tuple<List<IToken>, LiteralModuleDecl>>/*?*/ prefixModules, ModuleBindings parentBindings) {
+    private void BindModuleName_LiteralModuleDecl(LiteralModuleDecl litmod,
+      List<Tuple<List<IToken>, LiteralModuleDecl>> /*?*/ prefixModules, ModuleBindings parentBindings) {
       Contract.Requires(litmod != null);
       Contract.Requires(parentBindings != null);
 
@@ -1401,8 +1576,10 @@ namespace Microsoft.Dafny
       if (prefixModules != null) {
         foreach (var tup in prefixModules) {
           if (tup.Item1.Count == 0) {
-            tup.Item2.ModuleDef.Module = litmod.ModuleDef;  // change the parent, now that we have found the right parent module for the prefix-named module
-            var sm = new LiteralModuleDecl(tup.Item2.ModuleDef, litmod.ModuleDef);  // this will create a ModuleDecl with the right parent
+            tup.Item2.ModuleDef.Module =
+              litmod.ModuleDef; // change the parent, now that we have found the right parent module for the prefix-named module
+            var sm = new LiteralModuleDecl(tup.Item2.ModuleDef,
+              litmod.ModuleDef); // this will create a ModuleDecl with the right parent
             litmod.ModuleDef.TopLevelDecls.Add(sm);
           } else {
             litmod.ModuleDef.PrefixNamedModules.Add(tup);
@@ -1416,22 +1593,43 @@ namespace Microsoft.Dafny
       }
     }
 
-    private void ProcessDependenciesDefinition(ModuleDecl decl, ModuleDefinition m, ModuleBindings bindings, Graph<ModuleDecl> dependencies) {
+    private bool ResolveQualifiedModuleId(ModuleDecl context, ModuleBindings bindings, List<IToken> qid,
+      out ModuleDecl result) {
+      bool res = ResolveQualifiedModuleIdRoot(context, bindings, qid, out result);
+      return res;
+    }
+
+    private bool ResolveQualifiedModuleIdRoot(ModuleDecl context, ModuleBindings bindings, List<IToken> qid,
+      out ModuleDecl result) {
+      Contract.Assert(qid != null && qid.Count > 0);
+      IToken root = qid[0];
+      result = null;
+      bool res = bindings.TryLookup(root, out result);
+      return res;
+    }
+
+
+    private void ProcessDependenciesDefinition(ModuleDecl decl, ModuleDefinition m, ModuleBindings bindings,
+      Graph<ModuleDecl> dependencies) {
       if (m.RefinementBaseName != null) {
         ModuleDecl other;
-        if (!bindings.TryLookup(m.RefinementBaseName, out other)) {
-          reporter.Error(MessageSource.Resolver, m.RefinementBaseName, "module {0} named as refinement base does not exist", m.RefinementBaseName.val);
-        } else if (other is LiteralModuleDecl && ((LiteralModuleDecl)other).ModuleDef == m) {
-          reporter.Error(MessageSource.Resolver, m.RefinementBaseName, "module cannot refine itself: {0}", m.RefinementBaseName.val);
+        bool res = ResolveQualifiedModuleIdRoot(decl, bindings, m.RefinementQId, out other);
+        if (!res) {
+          reporter.Error(MessageSource.Resolver, m.RefinementQId[0],
+            "module {0} named as refinement base does not exist", ModuleDefinition.toString(m.RefinementQId));
+        } else if (other is LiteralModuleDecl && ((LiteralModuleDecl) other).ModuleDef == m) {
+          reporter.Error(MessageSource.Resolver, m.RefinementQId[0], "module cannot refine itself: {0}",
+            ModuleDefinition.toString(m.RefinementQId));
         } else {
-          Contract.Assert(other != null);  // follows from postcondition of TryGetValue
+          Contract.Assert(other != null); // follows from postcondition of TryGetValue
           dependencies.AddEdge(decl, other);
           m.RefinementBaseRoot = other;
         }
       }
+
       foreach (var toplevel in m.TopLevelDecls) {
         if (toplevel is ModuleDecl) {
-          var d = (ModuleDecl)toplevel;
+          var d = (ModuleDecl) toplevel;
           dependencies.AddEdge(decl, d);
           var subbindings = bindings.SubBindings(d.Name);
           ProcessDependencies(d, subbindings ?? bindings, dependencies);
@@ -1443,10 +1641,11 @@ namespace Microsoft.Dafny
         }
       }
     }
+
     private void ProcessDependencies(ModuleDecl moduleDecl, ModuleBindings bindings, Graph<ModuleDecl> dependencies) {
       dependencies.AddVertex(moduleDecl);
       if (moduleDecl is LiteralModuleDecl) {
-        ProcessDependenciesDefinition(moduleDecl, ((LiteralModuleDecl)moduleDecl).ModuleDef, bindings, dependencies);
+        ProcessDependenciesDefinition(moduleDecl, ((LiteralModuleDecl) moduleDecl).ModuleDef, bindings, dependencies);
       } else if (moduleDecl is AliasModuleDecl) {
         var alias = moduleDecl as AliasModuleDecl;
         ModuleDecl root;
@@ -1474,16 +1673,19 @@ namespace Microsoft.Dafny
       Contract.Requires(path != null);
       Contract.Requires(0 <= i && i < path.Count);
       return "module " + path[i].val + " does not exist" +
-             (1 < path.Count ? " (position " + i.ToString() + " in path " + Util.Comma(".", path, x => x.val) + ")" + tail: "");
+             (1 < path.Count
+               ? " (position " + i.ToString() + " in path " + Util.Comma(".", path, x => x.val) + ")" + tail
+               : "");
     }
 
     [Pure]
     private static bool EquivIfPresent<T1, T2>(Dictionary<T1, T2> dic, T1 key, T2 val)
-    where T2 : class {
+      where T2 : class {
       T2 val2;
       if (dic.TryGetValue(key, out val2)) {
         return val.Equals(val2);
       }
+
       return true;
     }
 
@@ -1495,12 +1697,15 @@ namespace Microsoft.Dafny
       foreach (var kv in system.TopLevels) {
         info.TopLevels.Add(kv.Key, kv.Value);
       }
+
       foreach (var kv in system.Ctors) {
         info.Ctors.Add(kv.Key, kv.Value);
       }
+
       foreach (var kv in system.StaticMembers) {
         info.StaticMembers.Add(kv.Key, kv.Value);
       }
+
       // add for the module itself
       foreach (var kv in m.TopLevels) {
         if (info.TopLevels.TryGetValue(kv.Key, out var infoValue)) {
@@ -1511,29 +1716,34 @@ namespace Microsoft.Dafny
             // for the key (and we expect the mapping "C? -> class C" to be placed in the
             // merge output as well, by the end of this loop).
             if (infoValue is ClassDecl) {
-              var cd = (ClassDecl)infoValue;
+              var cd = (ClassDecl) infoValue;
               Contract.Assert(cd.NonNullTypeDecl == kv.Value);
               info.TopLevels[kv.Key] = kv.Value;
             } else if (kv.Value is ClassDecl) {
-              var cd = (ClassDecl)kv.Value;
+              var cd = (ClassDecl) kv.Value;
               Contract.Assert(cd.NonNullTypeDecl == infoValue);
               // info.TopLevel[kv.Key] already has the right value
             } else {
-              Contract.Assert(false);  // unexpected
+              Contract.Assert(false); // unexpected
             }
+
             continue;
           }
         }
+
         info.TopLevels[kv.Key] = kv.Value;
       }
+
       foreach (var kv in m.Ctors) {
         Contract.Assert(EquivIfPresent(info.Ctors, kv.Key, kv.Value));
         info.Ctors[kv.Key] = kv.Value;
       }
+
       foreach (var kv in m.StaticMembers) {
         Contract.Assert(EquivIfPresent(info.StaticMembers, kv.Key, kv.Value));
         info.StaticMembers[kv.Key] = kv.Value;
       }
+
       info.IsAbstract = m.IsAbstract;
       info.VisibilityScope = new VisibilityScope();
       info.VisibilityScope.Augment(m.VisibilityScope);
@@ -1541,17 +1751,19 @@ namespace Microsoft.Dafny
       return info;
     }
 
-    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, bool useCompileSignatures, Resolver resolver) {
+    public static void ResolveOpenedImports(ModuleSignature sig, ModuleDefinition moduleDef, bool useCompileSignatures,
+      Resolver resolver) {
       var declarations = sig.TopLevels.Values.ToList<TopLevelDecl>();
-      var importedSigs = new HashSet<ModuleSignature>() { sig };
+      var importedSigs = new HashSet<ModuleSignature>() {sig};
 
       foreach (var top in declarations) {
-        if (top is ModuleDecl && ((ModuleDecl)top).Opened) {
-          ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)top, importedSigs, useCompileSignatures);
+        if (top is ModuleDecl && ((ModuleDecl) top).Opened) {
+          ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl) top, importedSigs, useCompileSignatures);
         }
       }
 
-      if (resolver != null) { //needed because ResolveOpenedImports is used statically for a refinement check
+      if (resolver != null) {
+        //needed because ResolveOpenedImports is used statically for a refinement check
         if (sig.TopLevels["_default"] is AmbiguousTopLevelDecl) {
           Contract.Assert(sig.TopLevels["_default"].WhatKind == "class");
           var cl = new DefaultClassDecl(moduleDef, sig.StaticMembers.Values.ToList());
@@ -1561,7 +1773,8 @@ namespace Microsoft.Dafny
       }
     }
 
-    static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs, bool useCompileSignatures) {
+    static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im,
+      HashSet<ModuleSignature> importedSigs, bool useCompileSignatures) {
       bool useImports = true;
       var s = GetSignatureExt(im.AccessibleSignature(useCompileSignatures), useCompileSignatures);
 
@@ -1577,8 +1790,8 @@ namespace Microsoft.Dafny
           if (!kv.Value.CanBeExported())
             continue;
 
-          if (kv.Value is ModuleDecl && ((ModuleDecl)kv.Value).Opened && DafnyOptions.O.IronDafny) {
-            ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)kv.Value, importedSigs, useCompileSignatures);
+          if (kv.Value is ModuleDecl && ((ModuleDecl) kv.Value).Opened && DafnyOptions.O.IronDafny) {
+            ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl) kv.Value, importedSigs, useCompileSignatures);
           }
 
           // IronDafny: we need to pull the members of the opened module's _default class in so that they can be merged.
@@ -1650,7 +1863,7 @@ namespace Microsoft.Dafny
         Contract.Assert(d != null);
 
         if (d is RevealableTypeDecl) {
-          revealableTypes.Add((RevealableTypeDecl)d);
+          revealableTypes.Add((RevealableTypeDecl) d);
         }
 
         // register the class/datatype/module name
@@ -1677,6 +1890,7 @@ namespace Microsoft.Dafny
             registerThisDecl = d;
             registerUnderThisName = d.Name;
           }
+
           if (registerThisDecl != null) {
             toplevels[registerUnderThisName] = registerThisDecl;
             sig.TopLevels[registerUnderThisName] = registerThisDecl;
@@ -1687,13 +1901,13 @@ namespace Microsoft.Dafny
         } else if (d is TypeSynonymDecl) {
           // nothing more to register
         } else if (d is NewtypeDecl || d is OpaqueTypeDecl) {
-          var cl = (TopLevelDeclWithMembers)d;
+          var cl = (TopLevelDeclWithMembers) d;
           // register the names of the type members
           var members = new Dictionary<string, MemberDecl>();
           classMembers.Add(cl, members);
           RegisterMembers(moduleDef, cl, members);
         } else if (d is IteratorDecl) {
-          var iter = (IteratorDecl)d;
+          var iter = (IteratorDecl) d;
 
           // register the names of the implicit members
           var members = new Dictionary<string, MemberDecl>();
@@ -1702,66 +1916,84 @@ namespace Microsoft.Dafny
           // First, register the iterator's in- and out-parameters as readonly fields
           foreach (var p in iter.Ins) {
             if (members.ContainsKey(p.Name)) {
-              reporter.Error(MessageSource.Resolver, p, "Name of in-parameter is used by another member of the iterator: {0}", p.Name);
+              reporter.Error(MessageSource.Resolver, p,
+                "Name of in-parameter is used by another member of the iterator: {0}", p.Name);
             } else {
-              var field = new SpecialField(p.tok, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, false, false, p.Type, null);
-              field.EnclosingClass = iter;  // resolve here
+              var field = new SpecialField(p.tok, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, false,
+                false, p.Type, null);
+              field.EnclosingClass = iter; // resolve here
               field.InheritVisibility(iter);
               members.Add(p.Name, field);
               iter.Members.Add(field);
             }
           }
+
           var nonDuplicateOuts = new List<Formal>();
           foreach (var p in iter.Outs) {
             if (members.ContainsKey(p.Name)) {
-              reporter.Error(MessageSource.Resolver, p, "Name of yield-parameter is used by another member of the iterator: {0}", p.Name);
+              reporter.Error(MessageSource.Resolver, p,
+                "Name of yield-parameter is used by another member of the iterator: {0}", p.Name);
             } else {
               nonDuplicateOuts.Add(p);
-              var field = new SpecialField(p.tok, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, true, true, p.Type, null);
-              field.EnclosingClass = iter;  // resolve here
+              var field = new SpecialField(p.tok, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, true,
+                true, p.Type, null);
+              field.EnclosingClass = iter; // resolve here
               field.InheritVisibility(iter);
               iter.OutsFields.Add(field);
               members.Add(p.Name, field);
               iter.Members.Add(field);
             }
           }
+
           foreach (var p in nonDuplicateOuts) {
             var nm = p.Name + "s";
             if (members.ContainsKey(nm)) {
-              reporter.Error(MessageSource.Resolver, p.tok, "Name of implicit yield-history variable '{0}' is already used by another member of the iterator", p.Name);
-              nm = p.Name + "*";  // bogus name, but at least it'll be unique
+              reporter.Error(MessageSource.Resolver, p.tok,
+                "Name of implicit yield-history variable '{0}' is already used by another member of the iterator",
+                p.Name);
+              nm = p.Name + "*"; // bogus name, but at least it'll be unique
             }
+
             // we add some field to OutsHistoryFields, even if there was an error; the name of the field, in case of error, is not so important
             var tp = new SeqType(p.Type.NormalizeExpand());
             var field = new SpecialField(p.tok, nm, SpecialField.ID.UseIdParam, nm, true, true, false, tp, null);
-            field.EnclosingClass = iter;  // resolve here
+            field.EnclosingClass = iter; // resolve here
             field.InheritVisibility(iter);
-            iter.OutsHistoryFields.Add(field);  // for now, just record this field (until all parameters have been added as members)
+            iter.OutsHistoryFields
+              .Add(field); // for now, just record this field (until all parameters have been added as members)
           }
-          Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);  // the code above makes sure this holds, even in the face of errors
+
+          Contract.Assert(iter.OutsFields.Count ==
+                          iter.OutsHistoryFields
+                            .Count); // the code above makes sure this holds, even in the face of errors
           // now that already-used 'ys' names have been checked for, add these yield-history variables
           iter.OutsHistoryFields.ForEach(f => {
             members.Add(f.Name, f);
             iter.Members.Add(f);
           });
           // add the additional special variables as fields
-          iter.Member_Reads = new SpecialField(iter.tok, "_reads", SpecialField.ID.Reads, null, true, false, false, new SetType(true, builtIns.ObjectQ()), null);
-          iter.Member_Modifies = new SpecialField(iter.tok, "_modifies", SpecialField.ID.Modifies, null, true, false, false, new SetType(true, builtIns.ObjectQ()), null);
-          iter.Member_New = new SpecialField(iter.tok, "_new", SpecialField.ID.New, null, true, true, true, new SetType(true, builtIns.ObjectQ()), null);
-          foreach (var field in new List<Field>() { iter.Member_Reads, iter.Member_Modifies, iter.Member_New }) {
-            field.EnclosingClass = iter;  // resolve here
+          iter.Member_Reads = new SpecialField(iter.tok, "_reads", SpecialField.ID.Reads, null, true, false, false,
+            new SetType(true, builtIns.ObjectQ()), null);
+          iter.Member_Modifies = new SpecialField(iter.tok, "_modifies", SpecialField.ID.Modifies, null, true, false,
+            false, new SetType(true, builtIns.ObjectQ()), null);
+          iter.Member_New = new SpecialField(iter.tok, "_new", SpecialField.ID.New, null, true, true, true,
+            new SetType(true, builtIns.ObjectQ()), null);
+          foreach (var field in new List<Field>() {iter.Member_Reads, iter.Member_Modifies, iter.Member_New}) {
+            field.EnclosingClass = iter; // resolve here
             field.InheritVisibility(iter);
             members.Add(field.Name, field);
             iter.Members.Add(field);
           }
+
           // finally, add special variables to hold the components of the (explicit or implicit) decreases clause
           FillInDefaultDecreases(iter, false);
           // create the fields; unfortunately, we don't know their types yet, so we'll just insert type proxies for now
           var i = 0;
           foreach (var p in iter.Decreases.Expressions) {
             var nm = "_decreases" + i;
-            var field = new SpecialField(p.tok, nm, SpecialField.ID.UseIdParam, nm, true, false, false, new InferredTypeProxy(), null);
-            field.EnclosingClass = iter;  // resolve here
+            var field = new SpecialField(p.tok, nm, SpecialField.ID.UseIdParam, nm, true, false, false,
+              new InferredTypeProxy(), null);
+            field.EnclosingClass = iter; // resolve here
             field.InheritVisibility(iter);
             iter.DecreasesFields.Add(field);
             members.Add(field.Name, field);
@@ -1789,7 +2021,7 @@ namespace Microsoft.Dafny
             null, Predicate.BodyOriginKind.OriginalOrInherited, null, null);
           // --- here comes method MoveNext
           var moveNext = new Method(iter.tok, "MoveNext", false, false, new List<TypeParameter>(),
-            new List<Formal>(), new List<Formal>() { new Formal(iter.tok, "more", Type.Bool, false, false) },
+            new List<Formal>(), new List<Formal>() {new Formal(iter.tok, "more", Type.Bool, false, false)},
             new List<AttributedExpression>(),
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
             new List<AttributedExpression>(),
@@ -1808,28 +2040,33 @@ namespace Microsoft.Dafny
           iter.Member_MoveNext = moveNext;
           MemberDecl member;
           if (members.TryGetValue(init.Name, out member)) {
-            reporter.Error(MessageSource.Resolver, member.tok, "member name '{0}' is already predefined for this iterator", init.Name);
+            reporter.Error(MessageSource.Resolver, member.tok,
+              "member name '{0}' is already predefined for this iterator", init.Name);
           } else {
             members.Add(init.Name, init);
             iter.Members.Add(init);
           }
+
           // If the name of the iterator is "Valid" or "MoveNext", one of the following will produce an error message.  That
           // error message may not be as clear as it could be, but the situation also seems unlikely to ever occur in practice.
           if (members.TryGetValue("Valid", out member)) {
-            reporter.Error(MessageSource.Resolver, member.tok, "member name 'Valid' is already predefined for iterators");
+            reporter.Error(MessageSource.Resolver, member.tok,
+              "member name 'Valid' is already predefined for iterators");
           } else {
             members.Add(valid.Name, valid);
             iter.Members.Add(valid);
           }
+
           if (members.TryGetValue("MoveNext", out member)) {
-            reporter.Error(MessageSource.Resolver, member.tok, "member name 'MoveNext' is already predefined for iterators");
+            reporter.Error(MessageSource.Resolver, member.tok,
+              "member name 'MoveNext' is already predefined for iterators");
           } else {
             members.Add(moveNext.Name, moveNext);
             iter.Members.Add(moveNext);
           }
 
         } else if (d is ClassDecl) {
-          var cl = (ClassDecl)d;
+          var cl = (ClassDecl) d;
           var preMemberErrs = reporter.Count(ErrorLevel.Error);
 
           // register the names of the class members
@@ -1837,11 +2074,14 @@ namespace Microsoft.Dafny
           classMembers.Add(cl, members);
           RegisterMembers(moduleDef, cl, members);
 
-          Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) || !cl.Members.Except(members.Values).Any());
+          Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) ||
+                          !cl.Members.Except(members.Values).Any());
 
           if (cl.IsDefaultClass) {
             foreach (MemberDecl m in members.Values) {
-              Contract.Assert(!m.HasStaticKeyword || m is ConstantField || DafnyOptions.O.AllowGlobals);  // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
+              Contract.Assert(!m.HasStaticKeyword || m is ConstantField ||
+                              DafnyOptions.O
+                                .AllowGlobals); // note, the IsStatic value isn't available yet; when it becomes available, we expect it will have the value 'true'
               if (m is Function || m is Method || m is ConstantField) {
                 sig.StaticMembers[m.Name] = m;
               }
@@ -1849,7 +2089,7 @@ namespace Microsoft.Dafny
           }
 
         } else if (d is DatatypeDecl) {
-          var dt = (DatatypeDecl)d;
+          var dt = (DatatypeDecl) d;
 
           // register the names of the constructors
           var ctors = new Dictionary<string, DatatypeCtor>();
@@ -1860,7 +2100,8 @@ namespace Microsoft.Dafny
 
           foreach (DatatypeCtor ctor in dt.Ctors) {
             if (ctor.Name.EndsWith("?")) {
-              reporter.Error(MessageSource.Resolver, ctor, "a datatype constructor name is not allowed to end with '?'");
+              reporter.Error(MessageSource.Resolver, ctor,
+                "a datatype constructor name is not allowed to end with '?'");
             } else if (ctors.ContainsKey(ctor.Name)) {
               reporter.Error(MessageSource.Resolver, ctor, "Duplicate datatype constructor name: {0}", ctor.Name);
             } else {
@@ -1869,9 +2110,10 @@ namespace Microsoft.Dafny
 
               // create and add the query "method" (field, really)
               string queryName = ctor.Name + "?";
-              var query = new SpecialField(ctor.tok, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.CompileName, false, false, false, Type.Bool, null);
+              var query = new SpecialField(ctor.tok, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.CompileName,
+                false, false, false, Type.Bool, null);
               query.InheritVisibility(dt);
-              query.EnclosingClass = dt;  // resolve here
+              query.EnclosingClass = dt; // resolve here
               members.Add(queryName, query);
               ctor.QueryField = query;
 
@@ -1886,6 +2128,7 @@ namespace Microsoft.Dafny
               }
             }
           }
+
           // add deconstructors now (that is, after the query methods have been added)
           foreach (DatatypeCtor ctor in dt.Ctors) {
             var formalsUsedInThisCtor = new HashSet<string>();
@@ -1896,56 +2139,68 @@ namespace Microsoft.Dafny
                 if (members.TryGetValue(formal.Name, out previousMember)) {
                   localDuplicate = formalsUsedInThisCtor.Contains(formal.Name);
                   if (localDuplicate) {
-                    reporter.Error(MessageSource.Resolver, ctor, "Duplicate use of deconstructor name in the same constructor: {0}", formal.Name);
+                    reporter.Error(MessageSource.Resolver, ctor,
+                      "Duplicate use of deconstructor name in the same constructor: {0}", formal.Name);
                   } else if (previousMember is DatatypeDestructor) {
                     // this is okay, if the destructor has the appropriate type; this will be checked later, after type checking
                   } else {
-                    reporter.Error(MessageSource.Resolver, ctor, "Name of deconstructor is used by another member of the datatype: {0}", formal.Name);
+                    reporter.Error(MessageSource.Resolver, ctor,
+                      "Name of deconstructor is used by another member of the datatype: {0}", formal.Name);
                   }
                 }
+
                 formalsUsedInThisCtor.Add(formal.Name);
               }
+
               DatatypeDestructor dtor;
               if (!localDuplicate && previousMember is DatatypeDestructor) {
                 // a destructor with this name already existed in (a different constructor in) the datatype
-                dtor = (DatatypeDestructor)previousMember;
+                dtor = (DatatypeDestructor) previousMember;
                 dtor.AddAnotherEnclosingCtor(ctor, formal);
               } else {
                 // either the destructor has no explicit name, or this constructor declared another destructor with this name, or no previous destructor had this name
-                dtor = new DatatypeDestructor(formal.tok, ctor, formal, formal.Name, "dtor_" + formal.CompileName, formal.IsGhost, formal.Type, null);
+                dtor = new DatatypeDestructor(formal.tok, ctor, formal, formal.Name, "dtor_" + formal.CompileName,
+                  formal.IsGhost, formal.Type, null);
                 dtor.InheritVisibility(dt);
-                dtor.EnclosingClass = dt;  // resolve here
+                dtor.EnclosingClass = dt; // resolve here
                 if (formal.HasName && !localDuplicate && previousMember == null) {
                   // the destructor has an explict name and there was no member at all with this name before
                   members.Add(formal.Name, dtor);
                 }
               }
+
               ctor.Destructors.Add(dtor);
             }
           }
+
           // finally, add any additional user-defined members
           RegisterMembers(moduleDef, dt, members);
         } else {
           Contract.Assert(d is ValuetypeDecl);
         }
       }
+
       // Now, for each class, register its possibly-null type
       foreach (TopLevelDecl d in declarations) {
         if ((d as ClassDecl)?.NonNullTypeDecl != null) {
           var name = d.Name + "?";
           TopLevelDecl prev;
           if (toplevels.TryGetValue(name, out prev)) {
-            reporter.Error(MessageSource.Resolver, d, "a module that already contains a top-level declaration '{0}' is not allowed to declare a {1} '{2}'", name, d.WhatKind, d.Name);
+            reporter.Error(MessageSource.Resolver, d,
+              "a module that already contains a top-level declaration '{0}' is not allowed to declare a {1} '{2}'",
+              name, d.WhatKind, d.Name);
           } else {
             toplevels[name] = d;
             sig.TopLevels[name] = d;
           }
         }
       }
+
       return sig;
     }
 
-    void RegisterMembers(ModuleDefinition moduleDef, TopLevelDeclWithMembers cl, Dictionary<string, MemberDecl> members) {
+    void RegisterMembers(ModuleDefinition moduleDef, TopLevelDeclWithMembers cl,
+      Dictionary<string, MemberDecl> members) {
       Contract.Requires(moduleDef != null);
       Contract.Requires(cl != null);
       Contract.Requires(members != null);
@@ -1954,11 +2209,11 @@ namespace Microsoft.Dafny
         if (!members.ContainsKey(m.Name)) {
           members.Add(m.Name, m);
           if (m is Constructor) {
-            Contract.Assert(cl is ClassDecl);  // the parser ensures this condition
+            Contract.Assert(cl is ClassDecl); // the parser ensures this condition
             if (cl is TraitDecl) {
               reporter.Error(MessageSource.Resolver, m.tok, "a trait is not allowed to declare a constructor");
             } else {
-              ((ClassDecl)cl).HasConstructor = true;
+              ((ClassDecl) cl).HasConstructor = true;
             }
           } else if (m is ExtremePredicate || m is ExtremeLemma) {
             var extraName = m.Name + "#";
@@ -1966,16 +2221,18 @@ namespace Microsoft.Dafny
             var cloner = new Cloner();
             var formals = new List<Formal>();
             Type typeOfK;
-            if ((m is ExtremePredicate && ((ExtremePredicate)m).KNat) || (m is ExtremeLemma && ((ExtremeLemma)m).KNat)) {
-              typeOfK = new UserDefinedType(m.tok, "nat", (List<Type>)null);
+            if ((m is ExtremePredicate && ((ExtremePredicate) m).KNat) ||
+                (m is ExtremeLemma && ((ExtremeLemma) m).KNat)) {
+              typeOfK = new UserDefinedType(m.tok, "nat", (List<Type>) null);
             } else {
               typeOfK = new BigOrdinalType();
             }
+
             var k = new ImplicitFormal(m.tok, "_k", typeOfK, true, false);
             reporter.Info(MessageSource.Resolver, m.tok, string.Format("_k: {0}", k.Type));
             formals.Add(k);
             if (m is ExtremePredicate) {
-              var cop = (ExtremePredicate)m;
+              var cop = (ExtremePredicate) m;
               formals.AddRange(cop.Formals.ConvertAll(cloner.CloneFormal));
 
               List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
@@ -1986,7 +2243,7 @@ namespace Microsoft.Dafny
                 cop.Req.ConvertAll(cloner.CloneAttributedExpr),
                 cop.Reads.ConvertAll(cloner.CloneFrameExpr),
                 cop.Ens.ConvertAll(cloner.CloneAttributedExpr),
-                new Specification<Expression>(new List<Expression>() { new IdentifierExpr(cop.tok, k.Name) }, null),
+                new Specification<Expression>(new List<Expression>() {new IdentifierExpr(cop.tok, k.Name)}, null),
                 cop.Body,
                 null,
                 cop);
@@ -1994,7 +2251,7 @@ namespace Microsoft.Dafny
               // In the call graph, add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
               moduleDef.CallGraph.AddEdge(cop.PrefixPredicate, cop);
             } else {
-              var com = (ExtremeLemma)m;
+              var com = (ExtremeLemma) m;
               // _k has already been added to 'formals', so append the original formals
               formals.AddRange(com.Ins.ConvertAll(cloner.CloneFormal));
               // prepend _k to the given decreases clause
@@ -2004,8 +2261,12 @@ namespace Microsoft.Dafny
               // Create prefix lemma.  Note that the body is not cloned, but simply shared.
               // For a greatest lemma, the postconditions are filled in after the greatest lemma's postconditions have been resolved.
               // For a least lemma, the preconditions are filled in after the least lemma's preconditions have been resolved.
-              var req = com is GreatestLemma ? com.Req.ConvertAll(cloner.CloneAttributedExpr) : new List<AttributedExpression>();
-              var ens = com is GreatestLemma ? new List<AttributedExpression>() : com.Ens.ConvertAll(cloner.CloneAttributedExpr);
+              var req = com is GreatestLemma
+                ? com.Req.ConvertAll(cloner.CloneAttributedExpr)
+                : new List<AttributedExpression>();
+              var ens = com is GreatestLemma
+                ? new List<AttributedExpression>()
+                : com.Ens.ConvertAll(cloner.CloneAttributedExpr);
               com.PrefixLemma = new PrefixLemma(com.tok, extraName, com.HasStaticKeyword,
                 com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
                 req, cloner.CloneSpecFrameExpr(com.Mod), ens,
@@ -2016,10 +2277,11 @@ namespace Microsoft.Dafny
               // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
               moduleDef.CallGraph.AddEdge(com.PrefixLemma, com);
             }
+
             extraMember.InheritVisibility(m, false);
             members.Add(extraName, extraMember);
           }
-        } else if (m is Constructor && !((Constructor)m).HasName) {
+        } else if (m is Constructor && !((Constructor) m).HasName) {
           reporter.Error(MessageSource.Resolver, m, "More than one anonymous constructor");
         } else {
           reporter.Error(MessageSource.Resolver, m, "Duplicate member name: {0}", m.Name);
@@ -2027,15 +2289,18 @@ namespace Microsoft.Dafny
       }
     }
 
-    private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height, Dictionary<ModuleDefinition, ModuleSignature> mods, Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones) {
+    private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height,
+      Dictionary<ModuleDefinition, ModuleSignature> mods,
+      Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones) {
       Contract.Requires(p != null);
       Contract.Requires(Name != null);
       Contract.Requires(mods != null);
       Contract.Requires(compilationModuleClones != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", new List<IToken>(), true, true, null, null, null, false,
-                                     p.ModuleDef.IsToBeVerified, p.ModuleDef.IsToBeCompiled);
+      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", new List<IToken>(), true, true, null, null, null,
+        false,
+        p.ModuleDef.IsToBeVerified, p.ModuleDef.IsToBeCompiled);
       mod.Height = Height;
       bool hasDefaultClass = false;
       foreach (var kv in p.TopLevels) {
@@ -2045,10 +2310,12 @@ namespace Microsoft.Dafny
           mod.TopLevelDecls.Add(clone);
         }
       }
+
       if (!hasDefaultClass) {
         DefaultClassDecl cl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
         mod.TopLevelDecls.Add(CloneDeclaration(p.VisibilityScope, cl, mod, mods, Name, compilationModuleClones));
       }
+
       var sig = RegisterTopLevelDecls(mod, true);
       sig.Refines = p.Refines;
       sig.CompileSignature = p;
@@ -2058,10 +2325,13 @@ namespace Microsoft.Dafny
       if (good && reporter.Count(ErrorLevel.Error) == errCount) {
         mod.SuccessfullyResolved = true;
       }
+
       return sig;
     }
 
-    TopLevelDecl CloneDeclaration(VisibilityScope scope, TopLevelDecl d, ModuleDefinition m, Dictionary<ModuleDefinition, ModuleSignature> mods, string Name, Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones) {
+    TopLevelDecl CloneDeclaration(VisibilityScope scope, TopLevelDecl d, ModuleDefinition m,
+      Dictionary<ModuleDefinition, ModuleSignature> mods, string Name,
+      Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones) {
       Contract.Requires(d != null);
       Contract.Requires(m != null);
       Contract.Requires(mods != null);
@@ -2069,8 +2339,9 @@ namespace Microsoft.Dafny
       Contract.Requires(compilationModuleClones != null);
 
       if (d is ModuleFacadeDecl) {
-        var abs = (ModuleFacadeDecl)d;
-        var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods, compilationModuleClones);
+        var abs = (ModuleFacadeDecl) d;
+        var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods,
+          compilationModuleClones);
         var a = new ModuleFacadeDecl(abs.Path, abs.tok, m, abs.Opened, abs.Exports);
         a.Signature = sig;
         a.OriginalSignature = abs.OriginalSignature;
@@ -2080,24 +2351,28 @@ namespace Microsoft.Dafny
       }
     }
 
-    public bool ResolveExport(ModuleDecl alias, ModuleDecl root, ModuleDefinition parent, List<IToken> Path,
-      List<IToken> Exports, out ModuleSignature p, ErrorReporter reporter) {
+    // Returns the resolved Module declaration corresponding to the qualified module id
+    // Requires the root to have been resolved
+    // Issues an error and returns null if the path is not valid
+    public ModuleDecl ResolveModuleQualifiedId(ModuleDecl root, List<IToken> Path, ErrorReporter reporter) {
+
       Contract.Requires(Path != null);
       Contract.Requires(Path.Count > 0);
-      Contract.Requires(Exports != null);
 
       ModuleDecl decl = root;
+      ModuleSignature p;
       for (int k = 1; k < Path.Count; k++) {
         if (decl is LiteralModuleDecl) {
           p = ((LiteralModuleDecl) decl).DefaultExport;
           if (p == null) {
             reporter.Error(MessageSource.Resolver, Path[k],
               ModuleNotFoundErrorMessage(k, Path, $" because {decl.Name} does not have a default export"));
-            return false;
+            return null;
           }
         } else {
           p = decl.Signature;
         }
+
         var tld = p.TopLevels.GetValueOrDefault(Path[k].val, null);
         if (!(tld is ModuleDecl dd)) {
           if (decl.Signature.ModuleDef == null) {
@@ -2106,9 +2381,7 @@ namespace Microsoft.Dafny
           } else {
             reporter.Error(MessageSource.Resolver, Path[k], ModuleNotFoundErrorMessage(k, Path));
           }
-
-          p = null;
-          return false;
+          return null;
         }
 
         // Any aliases along the qualified path ought to be already resolved,
@@ -2116,10 +2389,24 @@ namespace Microsoft.Dafny
         if (dd is AliasModuleDecl amd) {
           Contract.Assert(amd.Signature != null);
         }
-
         decl = dd;
       }
 
+      return decl;
+    }
+
+
+    public bool ResolveExport(ModuleDecl alias, ModuleDecl root, ModuleDefinition parent, List<IToken> Path,
+      List<IToken> Exports, out ModuleSignature p, ErrorReporter reporter) {
+      Contract.Requires(Path != null);
+      Contract.Requires(Path.Count > 0);
+      Contract.Requires(Exports != null);
+
+      ModuleDecl decl = ResolveModuleQualifiedId(root, Path, reporter);
+      if (decl == null) {
+        p = null;
+        return false;
+      }
       p = decl.Signature;
       if (Exports.Count == 0) {
         if (p.ExportSets.Count == 0) {

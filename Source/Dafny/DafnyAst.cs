@@ -3589,7 +3589,7 @@ namespace Microsoft.Dafny {
   {
     public readonly bool IsDefault;
     public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
-    public List<string> Extends; // list of exports that are extended
+    public List<IToken> Extends; // list of exports that are extended
     public readonly List<ModuleExportDecl> ExtendDecls = new List<ModuleExportDecl>(); // fill in by the resolver
     public readonly HashSet<Tuple<Declaration, bool>> ExportDecls = new HashSet<Tuple<Declaration, bool>>(); // fill in by the resolver
     public bool RevealAll; // only kept for initial rewriting, then discarded
@@ -3597,7 +3597,7 @@ namespace Microsoft.Dafny {
 
     public readonly VisibilityScope ThisScope;
     public ModuleExportDecl(IToken tok, ModuleDefinition parent,
-      List<ExportSignature> exports, List<string> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
+      List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
       : base(tok, isDefault ? parent.Name : tok.val, parent, false, isRefining) {
       Contract.Requires(exports != null);
       IsDefault = isDefault;
@@ -3702,7 +3702,7 @@ namespace Microsoft.Dafny {
     public readonly IToken tok;
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
-    public readonly string Name;
+    public readonly string Name; // (Last segment of the) module name
     public string FullName {
       get {
         if (Module == null || Module.IsDefaultModule) {
@@ -3712,12 +3712,14 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public readonly List<IToken> PrefixIds;
+    public readonly List<IToken> PrefixIds; // The qualified module name, except the last segment when a
+                                            // nested module declaration is outside its enclosing module
     IToken INamedRegion.BodyStartTok { get { return BodyStartTok; } }
     IToken INamedRegion.BodyEndTok { get { return BodyEndTok; } }
     string INamedRegion.Name { get { return Name; } }
     public ModuleDefinition Module;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
     public readonly Attributes Attributes;
+    public List<IToken> RefinementQId; // full qualified ID of the refinement parent, null if no refinement base
     public readonly IToken RefinementBaseName;  // null if no refinement base
     public ModuleDecl RefinementBaseRoot; // filled in early during resolution, corresponds to RefinementBaseName[0]
     public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
@@ -3773,25 +3775,27 @@ namespace Microsoft.Dafny {
       Contract.Invariant(CallGraph != null);
     }
 
-    public ModuleDefinition(IToken tok, string name, List<IToken> prefixIds, bool isAbstract, bool isFacade, List<IToken> refinementQId, ModuleDefinition parent, Attributes attributes, bool isBuiltinName,
+    public ModuleDefinition(IToken tok, string name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
+      List<IToken> refinementQId, ModuleDefinition parent, Attributes attributes, bool isBuiltinName,
       bool isToBeVerified, bool isToBeCompiled)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       this.tok = tok;
       this.Name = name;
-      this.PrefixIds = refinementQId;
+      this.PrefixIds = prefixIds;
       this.Attributes = attributes;
       this.Module = parent;
-      RefinementBaseName = refinementQId[0];
-      IsAbstract = isAbstract;
-      IsFacade = isFacade;
-      RefinementBaseRoot = null;
+      this.RefinementQId = refinementQId;
+      this.RefinementBaseName = refinementQId == null ? null : refinementQId[0];
+      this.RefinementBaseRoot = null;
       this.refinementBase = null;
-      Includes = new List<Include>();
-      IsBuiltinName = isBuiltinName;
-      IsToBeVerified = isToBeVerified;
-      IsToBeCompiled = isToBeCompiled;
+      this.IsAbstract = isAbstract;
+      this.IsFacade = isFacade;
+      this.Includes = new List<Include>();
+      this.IsBuiltinName = isBuiltinName;
+      this.IsToBeVerified = isToBeVerified;
+      this.IsToBeCompiled = isToBeCompiled;
     }
 
     VisibilityScope visibilityScope;
@@ -3803,6 +3807,15 @@ namespace Microsoft.Dafny {
         }
         return visibilityScope;
       }
+    }
+
+    public static string toString(List<IToken> qid) {
+      Contract.Assert(qid != null && qid.Count > 0);
+      string s = qid[0].val;
+      for (int i = 1; i<qid.Count; i++) {
+        s = s + "." + qid[i].val;
+      }
+      return s;
     }
 
     public virtual bool IsDefaultModule {

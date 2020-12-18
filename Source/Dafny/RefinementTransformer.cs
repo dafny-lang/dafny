@@ -89,13 +89,14 @@ namespace Microsoft.Dafny
             // TODO: this is a terribly slow algorithm; use the symbol table instead
             foreach (var bim in baseDeclarations) {
               if (bim.Name.Equals(im.Name)) {
-                if (!im.Name.Equals("_default") && !im.IsRefining
-                      && !(bim is OpaqueTypeDecl)
-                      && !(bim is ModuleFacadeDecl && im is AliasModuleDecl)) {
-                  string message =
-                    $"{im.Name} in {m.Name} redeclares a name in the refinement base {m.RefinementBase.Name}";
-                  reporter.Error(MessageSource.RefinementTransformer, im.tok, message);
-                } else if (im is ModuleDecl mdecl) {
+                // if (!im.Name.Equals("_default") && !im.IsRefining
+                //       && !(bim is OpaqueTypeDecl)
+                //       && !(bim is ModuleFacadeDecl && im is AliasModuleDecl)) {
+                //   string message =
+                //     $"{im.Name} in {m.Name} redeclares a name in the refinement base {m.RefinementBase.Name}";
+                //   reporter.Error(MessageSource.RefinementTransformer, im.tok, message);
+                // } else
+                if (im is ModuleDecl mdecl) {
                   if (bim is ModuleDecl mbim) {
                     if (mdecl.Opened != mbim.Opened) {
                       string message = mdecl.Opened
@@ -150,11 +151,16 @@ namespace Microsoft.Dafny
         processedDecl.Add(d.Name);
         if (!declaredNames.TryGetValue(d.Name, out index)) {
           m.TopLevelDecls.Add(refinementCloner.CloneDeclaration(d, m));
-        } else if (d.Name == "_default") { //m.TopLevelDecls[index].IsRefining) {
-          var nw = m.TopLevelDecls[index];
-          MergeTopLevelDecls(m, nw, d, index);
         } else {
-          reporter.Error(MessageSource.RefinementTransformer, m.RefinementBaseName, $"module {m.Name} redeclares a name {d.Name} from module {m.RefinementBaseName.val} without specifying refinement (...)");
+          var nw = m.TopLevelDecls[index];
+          if (d.Name == "_default" || m.TopLevelDecls[index].IsRefining
+                                   || d is OpaqueTypeDecl) {
+            MergeTopLevelDecls(m, nw, d, index);
+          } else if (d is TypeSynonymDecl) {
+            reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} may not redeclare a non-opaque type name {d.Name} from module {m.RefinementBaseName.val}, even with the same type, unless refining (...)");
+          } else if (!(d is ModuleFacadeDecl)) {
+            reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} redeclares a name {d.Name} from module {m.RefinementBaseName.val} without specifying refinement (...)");
+          }
         }
       }
 
@@ -1498,7 +1504,7 @@ namespace Microsoft.Dafny
         // refining module, retain its name but not be default, unless the refining module has the same name
         ModuleExportDecl dex = d as ModuleExportDecl;
         if (dex.IsDefault && d.Name != m.Name) {
-          ddex = new ModuleExportDecl(dex.tok, m, dex.Name, dex.Exports, dex.Extends, dex.ProvideAll, dex.RevealAll, false);
+          ddex = new ModuleExportDecl(dex.tok, m, dex.Exports, dex.Extends, dex.ProvideAll, dex.RevealAll, false, true);
         }
         ddex.SetupDefaultSignature();
         dd = ddex;

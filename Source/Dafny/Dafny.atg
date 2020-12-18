@@ -892,7 +892,8 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
 SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
 = (. Attributes attrs = null;  IToken/*!*/ id, iderr; var prefixIds = new List<IToken>();
      List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
-     List<IToken> idPath, idExports;
+     List<IToken> idPath = new List<IToken>();
+     List<IToken> idExports = null;
      List<IToken> idRefined = null;
      ModuleDefinition module;
      submodule = null; // appease compiler
@@ -921,8 +922,8 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
   |
     "import" ["opened" (.opened = true;.)]
     ModuleName<out id>
-    ( (. idPath = new List<IToken>(); idExports = new List<IToken>(); .)
-      OptQualifiedModuleExportSuffix<idPath, idExports>
+    (
+      OptQualifiedModuleExportSuffix<idPath, out idExports>
       (. idPath.Insert(0, id);
          submodule = new AliasModuleDecl(idPath, idPath[idPath.Count-1], parent, opened, idExports);
       .)
@@ -935,7 +936,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
   | (.
       IToken exportId;
       List<ExportSignature> exports = new List<ExportSignature>();;
-      List<string> extends = new List<string>();
+      List<IToken> extends = new List<IToken>();
       bool provideAll = false;
       bool revealAll = false;
       bool isDefault = false;
@@ -944,8 +945,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     .)
     "export" (. exportId = t; .)
     [ ExportIdent<out exportId> ]
-    [ "..."  (. isRefining = true; .)
-    ]
+    [ "..."  (. isRefining = true; .) ]
     {
       "provides"
       (
@@ -962,8 +962,8 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       | "*" (. revealAll = true; .)
       )
     | "extends"
-      ExportIdent<out id>       (. extends.Add(id.val); .)
-      {"," ExportIdent<out id>  (. extends.Add(id.val); .) }
+      ExportIdent<out id>       (. extends.Add(id); .)
+      {"," ExportIdent<out id>  (. extends.Add(id); .) }
     }
     (. if (exportId.val == "export" || exportId.val == parent.Name) {
          isDefault = true;
@@ -997,11 +997,23 @@ QualifiedModuleId<.out List<IToken> ids.>
   { "." ModuleName<out id> (. ids.Add(id); .) }
   .
 
-/* This production is for referring to module exports for imports (both normal and facades) */
-OptQualifiedModuleExportSuffix<.List<IToken> ids, List<IToken> exports.>
-= (. IToken id; .)
-  { "." ModuleName<out id> (. ids.Add(id); .) }
-  [ "`"
+/* This production is needed to factor out an initial id, before it is known
+   whether a = or : follows, or the rest of a qualified id and export list */
+OptQualifiedModuleExportSuffix<.List<IToken> idPath, out List<IToken> exports.>
+= (. IToken id; exports = new List<IToken>(); .)
+  { "." ModuleName<out id> (. idPath.Add(id); .) }
+  OptModuleExportSuffix<.exports.>
+  .
+
+QualifiedModuleExport<.out List<IToken> idPath, out List<IToken> exports.>
+= (. exports = new List<IToken>();
+  .)
+  QualifiedModuleId<out idPath>
+  OptModuleExportSuffix<exports>
+  .
+
+OptModuleExportSuffix<. List<IToken> exports.>
+= [ "`"                         (. IToken id; .)
     ( ExportIdent<out id>       (. exports.Add(id); .)
     | "{" ExportIdent<out id>   (. exports.Add(id); .)
        { "," ExportIdent<out id> (. exports.Add(id); .) }
@@ -1010,14 +1022,6 @@ OptQualifiedModuleExportSuffix<.List<IToken> ids, List<IToken> exports.>
   ]
   .
 
-QualifiedModuleExport<.out List<IToken> ids, out List<IToken> exports.>
-= (. IToken id; ids = new List<IToken>();
-     List<IToken> sids = new List<IToken>(); exports = new List<IToken>();
-  .)
-  ModuleName<out id> (. ids.Add(id); .)
-  OptQualifiedModuleExportSuffix<sids, exports>
-  (. ids.AddRange(sids); .)
-  .
 
 ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
 = (. Contract.Requires(module != null);
@@ -1043,6 +1047,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
     {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); .) }
   | "..."                       (. isRefining = true; .)
   ]
+  SYNC
   "{"                                            (. bodyStart = t;  .)
     { (. dmod = new DeclModifierData(); .)
       { DeclModifier<ref dmod> }
