@@ -74,7 +74,7 @@ module N0 {
   }
 }
 module N1 refines N0 {
-  class C {
+  class C ... {
     constructor X...
     constructor Y... { }
     constructor Z... { }
@@ -87,7 +87,7 @@ module N1 refines N0 {
   }
 }
 module N2 refines N1 {
-  class C {
+  class C ... {
     constructor X...
     constructor Y... { }
     constructor Z... { }

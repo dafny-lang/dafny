@@ -32,7 +32,7 @@ module M0 {
 }
 
 module M1 refines M0 {
-  class C {
+  class C ... {
     method M...  // no further proof obligations for M, which is just making M0.M more deterministic
     {
       if ... {}
