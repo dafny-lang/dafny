@@ -119,7 +119,7 @@ namespace Microsoft.Dafny
           return new AliasModuleDecl(a.TargetQId ?? a.TargetQId.clone(false), a.tok, m, a.Opened, a.Exports);
         } else if (d is AbstractModuleDecl) {
           var a = (AbstractModuleDecl)d;
-          return new AbstractModuleDecl(a.Path ?? a.Path.clone(false), a.tok, m, a.Opened, a.Exports);
+          return new AbstractModuleDecl(a.QId ?? a.QId.clone(false), a.tok, m, a.Opened, a.Exports);
         } else if (d is ModuleExportDecl) {
           var a = (ModuleExportDecl)d;
           return new ModuleExportDecl(a.tok, m, a.Exports, a.Extends, a.ProvideAll, a.RevealAll, a.IsDefault, a.IsRefining);
@@ -838,8 +838,8 @@ namespace Microsoft.Dafny
           var sourcefacade = (AbstractModuleDecl)d;
 
           ((AbstractModuleDecl)dd).OriginalSignature = sourcefacade.OriginalSignature;
-          if (sourcefacade.Root != null) {
-            ((AbstractModuleDecl)dd).Root = (ModuleDecl)CloneDeclaration(sourcefacade.Root, m);
+          if (sourcefacade.QId.Root != null) {
+            ((AbstractModuleDecl)dd).QId.Root = (ModuleDecl)CloneDeclaration(sourcefacade.QId.Root, m);
           }
         } else if (d is AliasModuleDecl) {
           var sourcealias = (AliasModuleDecl)d;

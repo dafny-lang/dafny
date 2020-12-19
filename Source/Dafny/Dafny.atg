@@ -868,7 +868,7 @@ DeclModifier<ref DeclModifierData dmod>
 
 TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bool isTopLevel, bool isAbstract .>
 = (. DeclModifierData dmod = new DeclModifierData(); ModuleDecl submodule;
-     ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
+     DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
      TraitDecl/*!*/ trait;
   .)
   { DeclModifier<ref dmod> }
@@ -879,7 +879,7 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
                                                   } else {
                                                     module.TopLevelDecls.Add(submodule);
                                                   } .)
-  | ClassDecl<dmod, module, out c>             (. module.TopLevelDecls.Add(c); .)
+  | ClassDecl<dmod, module, out td>             (. module.TopLevelDecls.Add(td); .)
   | DatatypeDecl<dmod, module, out dt>         (. module.TopLevelDecls.Add(dt); .)
   | NewtypeDecl<dmod, module, out td>          (. module.TopLevelDecls.Add(td); .)
   | OtherTypeDecl<dmod, module, out td>        (. module.TopLevelDecls.Add(td); .)
@@ -917,9 +917,17 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     SYNC
     "{"                                 (. module.BodyStartTok = t; .)
       { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
-    "}"                                 (. module.BodyEndTok = t;
-                                           module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
-                                           submodule = new LiteralModuleDecl(module, parent); .)
+    "}"
+    (.
+       //if (!module.TopLevelDecls.Exists(d => (d is ModuleExportDecl))) {
+       //  ModuleExportDecl ed = new ModuleExportDecl(id, module, new List<ExportSignature>(),
+       //     new List<IToken>(), false, true, true, false);
+       //   module.TopLevelDecls.Add(ed);
+       //}
+       module.BodyEndTok = t;
+       module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
+       submodule = new LiteralModuleDecl(module, parent);
+    .)
   |
     "import" ["opened" (.opened = true;.)]
     ModuleName<out id>
@@ -933,7 +941,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       (. submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
                                          id, parent, opened, idExports); .)
     | ":" QualifiedModuleExport<out idPath, out idExports>
-        (. submodule = new ModuleFacadeDecl(new ModuleQualifiedId(idPath),
+        (. submodule = new AbstractModuleDecl(new ModuleQualifiedId(idPath),
                                          id, parent, opened, idExports); .)
     )
 
@@ -1027,7 +1035,7 @@ OptModuleExportSuffix<. List<IToken> exports.>
   .
 
 
-ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
+ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevelDecl/*!*/ c>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ id;

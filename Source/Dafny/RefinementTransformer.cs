@@ -159,7 +159,7 @@ namespace Microsoft.Dafny
           } else if (d is TypeSynonymDecl) {
             reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} may not redeclare a non-opaque type name {d.Name} from module {m.RefinementQId.ToString()}, even with the same type, unless refining (...)");
           } else if (!(d is AbstractModuleDecl)) {
-            reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} redeclares a name {d.Name} from module {m.RefinementQId.ToString()}");
+            reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} redeclares a name {d.Name} from module {m.RefinementQId.ToString()} without indicating refining");
           }
         }
       }

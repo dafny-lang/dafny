@@ -3565,20 +3565,18 @@ namespace Microsoft.Dafny {
   // Used to be called ModuleFacadeDecl -- renamed to be like LiteralModuleDecl, AliasModuleDecl
   public class AbstractModuleDecl : ModuleDecl
   {
-    public ModuleDecl Root; // TODO: THis duplicates Path.Decl
-    public readonly ModuleQualifiedId Path;
+    public readonly ModuleQualifiedId QId;
     public readonly List<IToken> Exports; // list of exports sets
     public ModuleDecl CompileRoot;
     public ModuleSignature OriginalSignature;
 
-    public AbstractModuleDecl(ModuleQualifiedId path, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
+    public AbstractModuleDecl(ModuleQualifiedId qid, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
       : base(name, name.val, parent, opened, false) {
-      Contract.Requires(path != null && path.Path.Count > 0);
+      Contract.Requires(qid != null && qid.Path.Count > 0);
       Contract.Requires(exports != null);
 
-      Path = path;
+      QId = qid;
       Exports = exports;
-      Root = null;
     }
     public override object Dereference() { return this; }
   }
