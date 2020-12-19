@@ -12,6 +12,7 @@ import time
 import urllib.request
 import zipfile
 import shutil
+import ntpath
 
 # Configuration
 
@@ -41,29 +42,7 @@ Z3_INTERESTING_FILES = ["LICENSE.txt", "bin/*"]
 ## On unix systems, which Dafny files should be marked as executable? (Glob syntax; Z3's permissions are preserved)
 UNIX_EXECUTABLES = ["dafny", "dafny-server"]
 
-## What do we take from Dafny's Binaries folder?
-DLLs = ["BoogieAbsInt",
-        "BoogieBasetypes",
-        "BoogieCodeContractsExtender",
-        "BoogieConcurrency",
-        "BoogieCore",
-        "DafnyPipeline",
-        "Dafny",
-        "BoogieDoomed",
-        "BoogieExecutionEngine",
-        "BoogieGraph",
-        "BoogieHoudini",
-        "BoogieModel",
-        "BoogieModelViewer",
-        "BoogieParserHelper",
-        "Provers.SMTLib",
-        "BoogieVCExpr",
-        "BoogieVCGeneration",
-        "Mono.Cecil",
-        "System.Collections.Immutable",
-        "System.Runtime"]
-EXEs = ["Dafny", "DafnyServer"]
-ETCs = UNIX_EXECUTABLES + ["DafnyPrelude.bpl", "DafnyRuntime.cs", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.jar", "libhostpolicy.dylib"]
+ETCs = ["DafnyPrelude.bpl", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.jar"]
 
 # Constants
 
@@ -74,14 +53,15 @@ BINARIES_DIRECTORY = path.join(ROOT_DIRECTORY, BINARIES_DIRECTORY)
 DESTINATION_DIRECTORY = path.join(ROOT_DIRECTORY, DESTINATION_DIRECTORY)
 CACHE_DIRECTORY = path.join(DESTINATION_DIRECTORY, "cache")
 
-MONO = sys.platform not in ("win32", "cygwin")
-DLL_PDB_EXT = ".pdb"
-EXE_PDB_EXT = ".pdb"
-ARCHIVE_FNAMES = ([dll + ".dll" for dll in DLLs] + [dll + DLL_PDB_EXT for dll in DLLs] +
-                  [exe + ".exe" for exe in EXEs] + [exe + EXE_PDB_EXT for exe in EXEs] +
-                  ETCs)
 OTHERS = ( ["docs/DafnyRef/out/DafnyRef.pdf"] )
-# Code
+
+z3ToDotNetOSMapping = {
+    "ubuntu": "linux",
+    "debian": "linux",
+    "osx": "osx",
+    "win": "win"
+}
+
 
 def flush(*args, **kwargs):
     print(*args, **kwargs)
@@ -102,7 +82,10 @@ class Release:
         self.platform, self.os, self.directory = Release.parse_zip_name(js["name"])
         self.z3_zip = path.join(CACHE_DIRECTORY, self.z3_name)
         self.dafny_name = "dafny-{}-{}-{}.zip".format(version, self.platform, self.os)
+        osname = self.os.split("-")[0]
+        self.target = "{}-{}".format(z3ToDotNetOSMapping[osname], self.platform)
         self.dafny_zip = path.join(DESTINATION_DIRECTORY, self.dafny_name)
+        self.buildDirectory = path.join(BINARIES_DIRECTORY, self.target)
 
     @property
     def cached(self):
@@ -127,6 +110,21 @@ class Release:
         """Zip entries always use '/' as the path separator."""
         return fpath.replace(os.path.sep, '/')
 
+    def build(self):
+        os.chdir(ROOT_DIRECTORY)
+        flush("  - Building")
+
+        run(["dotnet", "build", "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
+        run(["make", "clean"])
+        if path.exists(self.buildDirectory):
+            shutil.rmtree(self.buildDirectory)
+        run(["dotnet", "publish", "Source/Dafny.sln", 
+            "-f", "netcoreapp3.1", 
+            "-r", self.target, 
+            "-c", "Checked"])
+        run(["make", "runtime"])
+        # run(["make", "refman-release"])
+
     def pack(self):
         try:
             os.remove(self.dafny_zip)
@@ -143,24 +141,17 @@ class Release:
                         contents = Z3_archive.read(fileinfo)
                         fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, Z3_PACKAGE_PREFIX, fname))
                         archive.writestr(fileinfo, contents)
-            for fname in ARCHIVE_FNAMES:
-                fpath = path.join(BINARIES_DIRECTORY, fname)
+            paths = pathsInDirectory(self.buildDirectory) + list(map(lambda etc: path.join(BINARIES_DIRECTORY, etc), ETCs)) + OTHERS
+            for fpath in paths:
+                if os.path.isdir(fpath):  
+                    continue
+                fname = ntpath.basename(fpath)
                 if path.exists(fpath):
                     fileinfo = zipfile.ZipInfo(fname, time.localtime(os.stat(fpath).st_mtime)[:6])
                     if any(fnmatch(fname, pattern) for pattern in UNIX_EXECUTABLES):
                         # http://stackoverflow.com/questions/434641/
                         fileinfo.external_attr = 0o100755 << 16
                         fileinfo.create_system = 3  # lie about this zip file's source OS to preserve permissions
-                    contents = open(fpath, mode='rb').read()
-                    fileinfo.compress_type = zipfile.ZIP_DEFLATED
-                    fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, fname))
-                    archive.writestr(fileinfo, contents)
-                else:
-                    missing.append(fname)
-            for fpath in OTHERS:
-                if path.exists(fpath):
-                    fname = os.path.basename(fpath)
-                    fileinfo = zipfile.ZipInfo(fname, time.localtime(os.stat(fpath).st_mtime)[:6])
                     contents = open(fpath, mode='rb').read()
                     fileinfo.compress_type = zipfile.ZIP_DEFLATED
                     fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, fname))
@@ -184,6 +175,13 @@ def discover(version):
             else:
                 flush("    + Rejecting {}".format(release.z3_name))
 
+def path_leaf(path):
+    head, tail = ntpath.split(path)
+    return tail or ntpath.basename(head)
+
+def pathsInDirectory(directory):
+    return list(map(lambda file: path.join(directory, file), os.listdir(directory)))
+
 def download(releases):
     flush("  - Downloading {} z3 archives".format(len(releases)))
     for release in releases:
@@ -192,32 +190,18 @@ def download(releases):
 
 def run(cmd):
     flush("    + {}...".format(" ".join(cmd)), end=' ')
-    retv = subprocess.call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    retv = subprocess.call(cmd)
     if retv != 0:
         flush("failed! (Is Dafny or the Dafny server running?)")
         sys.exit(1)
     else:
         flush("done!")
 
-def build():
-    os.chdir(ROOT_DIRECTORY)
-    flush("  - Building")
-    builder = "dotnet build"
-    try:
-        run(["dotnet", "build", "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
-        run(["make", "clean"])
-        run(["dotnet", "build", "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Rebuild"])
-        run(["make", "runtime", "refman-release"])
-    except FileNotFoundError:
-        flush("Could not find '{}'!".format(builder))
-        flush("On Windows, you need to run this from the VS native tools command prompt.")
-        flush("On Mac/Linux, you might need a more recent version of Mono.")
-        sys.exit(1)
-
 def pack(releases):
     flush("  - Packaging {} Dafny archives".format(len(releases)))
     for release in releases:
         flush("    + {}:".format(release.dafny_name), end=' ')
+        release.build()
         release.pack()
 
 def parse_arguments():
@@ -235,7 +219,6 @@ def main():
     download(releases)
 
     flush("* Building and packaging Dafny")
-    build()
     pack(releases)
 
 if __name__ == '__main__':
