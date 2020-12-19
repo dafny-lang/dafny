@@ -94,6 +94,9 @@ namespace Microsoft.Dafny {
     }
 
     public void Unmarshal(string[] command) {
+      Console.WriteLine($"# args: {Util.Comma(args)}");
+      Console.WriteLine($"# filename: {filename}");
+      Console.WriteLine($"# sourceIsFile: {sourceIsFile}");
       Console.WriteLine(ProgramSource);
     }
   }
