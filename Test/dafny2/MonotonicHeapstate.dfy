@@ -72,7 +72,7 @@ module M0 {
 
 // Introduce the idea of resolved
 module M1 refines M0 {
-  class Expr {
+  class Expr ... {
     ghost var resolved: bool
 
     predicate Valid'...
@@ -129,7 +129,7 @@ module M2 refines M1 {
   class VarDecl {
   }
 
-  class Expr {
+  class Expr ... {
     var decl: VarDecl?  // if kind==Ident, filled in during resolution
 
     predicate Valid''...
@@ -151,11 +151,11 @@ module M2 refines M1 {
 
 // Finally, supposing each VarDecl has a value, evaluate a resolved expression
 module M3 refines M2 {
-  class VarDecl {
+  class VarDecl ... {
     var val: int
   }
 
-  class Expr {
+  class Expr ... {
     method Eval() returns (r: int)
       requires Valid()
       requires resolved

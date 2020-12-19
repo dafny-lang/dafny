@@ -4,7 +4,4 @@ method A(a:int) returns (b: int) {
   assert false;
 }
 
-Verification completed successfully!
-[SUCCESS] [[DAFNY-SERVER: EOM]]
-Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]

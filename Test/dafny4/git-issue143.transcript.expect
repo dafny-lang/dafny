@@ -12,5 +12,3 @@ Verifying Impl$$B.__default.Bar ...
   [1 proof obligation]  verified
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
-Verification completed successfully!
-[SUCCESS] [[DAFNY-SERVER: EOM]]

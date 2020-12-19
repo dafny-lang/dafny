@@ -41,7 +41,7 @@ module A {
 }
 
 module A' refines A {
-  class C {
+  class C ... {
     // provide bodies for Valid, RevealedValid, and M
     predicate Valid...
     {
