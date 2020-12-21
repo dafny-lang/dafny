@@ -14384,7 +14384,7 @@ namespace Microsoft.Dafny {
         var module = decl.EnclosingModuleDefinition;
         while (module != null) {
           FindFuelAttributes(module.Attributes, context);
-          module = module.Module;
+          module = module.EnclosingModule;
         }
       }
 

@@ -429,7 +429,7 @@ namespace Microsoft.Dafny {
         if (Attributes.ContainsBool(mod.Attributes, attribName, ref setting)) {
           return setting;
         }
-        mod = mod.Module;
+        mod = mod.EnclosingModule;
       }
 
       return false;
@@ -3705,10 +3705,10 @@ namespace Microsoft.Dafny {
     public readonly string Name;
     public string FullName {
       get {
-        if (Module == null || Module.IsDefaultModule) {
+        if (EnclosingModule == null || EnclosingModule.IsDefaultModule) {
           return Name;
         } else {
-          return Module.FullName + "." + Name;
+          return EnclosingModule.FullName + "." + Name;
         }
       }
     }
@@ -3716,7 +3716,7 @@ namespace Microsoft.Dafny {
     IToken INamedRegion.BodyStartTok { get { return BodyStartTok; } }
     IToken INamedRegion.BodyEndTok { get { return BodyEndTok; } }
     string INamedRegion.Name { get { return Name; } }
-    public ModuleDefinition Module;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
+    public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
     public readonly Attributes Attributes;
     public readonly IToken RefinementBaseName;  // null if no refinement base
     public ModuleDecl RefinementBaseRoot; // filled in early during resolution, corresponds to RefinementBaseName[0]
@@ -3782,7 +3782,7 @@ namespace Microsoft.Dafny {
       this.Name = name;
       this.PrefixIds = prefixIds;
       this.Attributes = attributes;
-      this.Module = parent;
+      this.EnclosingModule = parent;
       RefinementBaseName = refinementBase;
       IsAbstract = isAbstract;
       IsFacade = isFacade;
@@ -3820,12 +3820,12 @@ namespace Microsoft.Dafny {
           } else if (IsBuiltinName || externArgs != null) {
             compileName = Name;
           } else {
-            if (Module != null && Module.Name != "_module") {
+            if (EnclosingModule != null && EnclosingModule.Name != "_module") {
               // Include all names in the module tree path, to disambiguate when compiling
               // a flat list of modules.
               // Use an "underscore-escaped" character as a module name separator, since
               // underscores are already used as escape characters in CompilerizeName()
-              compileName = Module.CompileName + "_m" + NonglobalVariable.CompilerizeName(Name);
+              compileName = EnclosingModule.CompileName + "_m" + NonglobalVariable.CompilerizeName(Name);
             } else {
               compileName = NonglobalVariable.CompilerizeName(Name);
             }

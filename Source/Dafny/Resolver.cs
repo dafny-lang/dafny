@@ -918,7 +918,7 @@ namespace Microsoft.Dafny
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
       ResolveTopLevelDecls_Signatures(m, sig, m.TopLevelDecls, datatypeDependencies, codatatypeDependencies);
       Contract.Assert(AllTypeConstraints.Count == 0);  // signature resolution does not add any type constraints
-      ResolveAttributes(m.Attributes, m, new ResolveOpts(new NoContext(m.Module), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
+      ResolveAttributes(m.Attributes, m, new ResolveOpts(new NoContext(m.EnclosingModule), false)); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
       SolveAllTypeConstraints();  // solve any type constraints entailed by the attributes
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         ResolveTopLevelDecls_Core(m.TopLevelDecls, datatypeDependencies, codatatypeDependencies, isAnExport);
@@ -1401,7 +1401,7 @@ namespace Microsoft.Dafny
       if (prefixModules != null) {
         foreach (var tup in prefixModules) {
           if (tup.Item1.Count == 0) {
-            tup.Item2.ModuleDef.Module = litmod.ModuleDef;  // change the parent, now that we have found the right parent module for the prefix-named module
+            tup.Item2.ModuleDef.EnclosingModule = litmod.ModuleDef;  // change the parent, now that we have found the right parent module for the prefix-named module
             var sm = new LiteralModuleDecl(tup.Item2.ModuleDef, litmod.ModuleDef);  // this will create a ModuleDecl with the right parent
             litmod.ModuleDef.TopLevelDecls.Add(sm);
           } else {
