@@ -9,23 +9,23 @@ Execution trace:
     (0,0): anon0
     (0,0): anon22_Then
     (0,0): anon3
-    (0,0): anon23_Then
+    some-proofs-only-work-without-autoTriggers.dfy(20,38): anon23_Else
     (0,0): anon5
 some-proofs-only-work-without-autoTriggers.dfy(28,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon25_Then
+    some-proofs-only-work-without-autoTriggers.dfy(27,31): anon25_Else
     (0,0): anon9
     (0,0): anon26_Then
-    (0,0): anon27_Then
+    some-proofs-only-work-without-autoTriggers.dfy(28,12): anon27_Else
     (0,0): anon13
 some-proofs-only-work-without-autoTriggers.dfy(33,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon28_Then
-    (0,0): anon29_Then
+    some-proofs-only-work-without-autoTriggers.dfy(31,12): anon29_Else
     (0,0): anon17
-    (0,0): anon30_Then
+    some-proofs-only-work-without-autoTriggers.dfy(33,12): anon30_Else
     (0,0): anon19
 
 Dafny program verifier finished with 0 verified, 3 errors

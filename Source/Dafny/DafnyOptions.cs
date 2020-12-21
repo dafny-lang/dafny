@@ -642,6 +642,7 @@ namespace Microsoft.Dafny
       SetZ3Option("smt.qi.eager_threshold", "100");
       SetZ3Option("smt.delay_units", "true");
       SetZ3Option("nnf.sk_hack", "true");
+      SetZ3Option("smt.arith.solver", "2");
     }
 
     public override string Help =>

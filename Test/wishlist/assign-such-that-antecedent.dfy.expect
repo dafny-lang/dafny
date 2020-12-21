@@ -6,8 +6,7 @@ Execution trace:
 assign-such-that-antecedent.dfy(13,9): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon4_Then
-    (0,0): anon5_Then
+    assign-such-that-antecedent.dfy(13,30): anon4_Else
     (0,0): anon3
 
 Dafny program verifier finished with 2 verified, 2 errors

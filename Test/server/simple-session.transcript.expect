@@ -2,7 +2,7 @@
 
 Verifying Impl$$_module.__default.A ...
   [1 proof obligation]  error
-transcript(3,9): Error: assertion violation
+transcript(3,9): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 Verification completed successfully!
@@ -11,7 +11,7 @@ Verification completed successfully!
 Verifying Impl$$_module.__default.A ...
 Retrieving cached verification result for implementation Impl$$_module.__default.A...
   [0 proof obligations]  error
-transcript(3,9): Error: assertion violation
+transcript(3,9): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 Verification completed successfully!
@@ -20,7 +20,7 @@ Verification completed successfully!
 Verifying Impl$$_module.__default.A ...
 Retrieving cached verification result for implementation Impl$$_module.__default.A...
   [0 proof obligations]  error
-transcript(3,9): Error: assertion violation
+transcript(3,9): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 Verification completed successfully!
@@ -29,7 +29,7 @@ Verification completed successfully!
 Verifying Impl$$_module.__default.A ...
 Retrieving cached verification result for implementation Impl$$_module.__default.A...
   [0 proof obligations]  error
-transcript(3,9): Error: assertion violation
+transcript(3,9): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 Verification completed successfully!
@@ -131,7 +131,7 @@ transcript(10,9): Info: Selected triggers: {x' * x'}
 
 Verifying Impl$$_module.__default.M_k ...
   [1 proof obligation]  error
-transcript(10,9): Error: assertion violation
+transcript(10,9): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 Verification completed successfully!
@@ -295,7 +295,7 @@ Retrieving cached verification result for implementation Impl$$_module.__default
 
 Verifying Impl$$_module.__default.M2 ...
   [2 proof obligations]  error
-transcript(38,9): Error: assertion violation
+transcript(38,9): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 Verification completed successfully!
@@ -330,7 +330,7 @@ Retrieving cached verification result for implementation Impl$$_module.__default
 
 Verifying Impl$$_module.__default.M2 ...
   [2 proof obligations]  error
-transcript(38,9): Error: assertion violation
+transcript(38,9): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
 Verification completed successfully!
