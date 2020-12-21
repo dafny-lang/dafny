@@ -1,0 +1,7 @@
+git-issue-981.dfy(28,9): Error: module BBB redeclares a name E from module AAA
+git-issue-981.dfy(30,9): Error: module BBB redeclares a name M from module AAA
+git-issue-981.dfy(50,19): Error: K must be an export of B to be extended
+git-issue-981.dfy(51,19): Error: D must be an export of B to be extended
+git-issue-981.dfy(55,7): Error: module C redeclares a name C from module A
+git-issue-981.dfy(66,9): Error: Duplicate member name: F
+6 resolution/type errors detected in git-issue-981.dfy
