@@ -932,7 +932,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
   | (.
       IToken exportId;
       List<ExportSignature> exports = new List<ExportSignature>();;
-      List<string> extends = new List<string>();
+      List<IToken> extends = new List<IToken>();
       bool provideAll = false;
       bool revealAll = false;
       bool isDefault = false;
@@ -959,8 +959,8 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       | "*" (. revealAll = true; .)
       )
     | "extends"
-      ExportIdent<out id>       (. extends.Add(id.val); .)
-      {"," ExportIdent<out id>  (. extends.Add(id.val); .) }
+      ExportIdent<out id>       (. extends.Add(id); .)
+      {"," ExportIdent<out id>  (. extends.Add(id); .) }
     }
     (. if (exportId.val == "export" || exportId.val == parent.Name) {
          isDefault = true;

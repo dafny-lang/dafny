@@ -937,13 +937,13 @@ namespace Microsoft.Dafny
         if (toplevel is ModuleExportDecl) {
           ModuleExportDecl d = (ModuleExportDecl)toplevel;
           exportDependencies.AddVertex(d);
-          foreach (string s in d.Extends) {
+          foreach (IToken s in d.Extends) {
             ModuleExportDecl extend;
-            if (sig.ExportSets.TryGetValue(s, out extend)) {
+            if (sig.ExportSets.TryGetValue(s.val, out extend)) {
               d.ExtendDecls.Add(extend);
               exportDependencies.AddEdge(d, extend);
             } else {
-              reporter.Error(MessageSource.Resolver, m.tok, s + " must be an export of " + m.Name + " to be extended");
+              reporter.Error(MessageSource.Resolver, s, s.val + " must be an export of " + m.Name + " to be extended");
             }
           }
         }
