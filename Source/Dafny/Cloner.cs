@@ -16,7 +16,7 @@ namespace Microsoft.Dafny
         nw = new DefaultModuleDecl();
       } else {
         nw = new ModuleDefinition(Tok(m.tok), name, m.PrefixIds, m.IsAbstract, m.IsFacade,
-                                  m.RefinementQId, m.Module, CloneAttributes(m.Attributes),
+                                  m.RefinementQId, m.EnclosingModule, CloneAttributes(m.Attributes),
                                   true, m.IsToBeVerified, m.IsToBeCompiled);
       }
       foreach (var d in m.TopLevelDecls) {
