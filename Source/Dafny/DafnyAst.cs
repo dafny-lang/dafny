@@ -424,12 +424,12 @@ namespace Microsoft.Dafny {
       }
 
       // Check the entire stack of modules
-      var mod = decl.EnclosingClass.Module;
+      var mod = decl.EnclosingClass.EnclosingModuleDefinition;
       while (mod != null) {
         if (Attributes.ContainsBool(mod.Attributes, attribName, ref setting)) {
           return setting;
         }
-        mod = mod.Module;
+        mod = mod.EnclosingModule;
       }
 
       return false;
@@ -2597,8 +2597,8 @@ namespace Microsoft.Dafny {
 
     public string FullName {
       get {
-        if (ResolvedClass != null && !ResolvedClass.Module.IsDefaultModule) {
-          return ResolvedClass.Module.Name + "." + Name;
+        if (ResolvedClass != null && !ResolvedClass.EnclosingModuleDefinition.IsDefaultModule) {
+          return ResolvedClass.EnclosingModuleDefinition.Name + "." + Name;
         } else {
           return Name;
         }
@@ -2617,7 +2617,7 @@ namespace Microsoft.Dafny {
     public string FullCompanionCompileName {
       get {
         Contract.Requires(ResolvedClass is TraitDecl || (ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl));
-        var m = ResolvedClass.Module;
+        var m = ResolvedClass.EnclosingModuleDefinition;
         var s = m.IsDefaultModule ? "" : m.CompileName + ".";
         return s + "_Companion_" + ResolvedClass.CompileName;
       }
@@ -3563,7 +3563,7 @@ namespace Microsoft.Dafny {
   }
 
   // Represents "module name as path [ = compilePath];", where name is a identifier and path is a possibly qualified name.
-  public class ModuleFacadeDecl : ModuleDecl
+  public class AbstractModuleDecl : ModuleDecl
   {
     public ModuleDecl Root;
     public readonly List<IToken> Path;
@@ -3571,7 +3571,7 @@ namespace Microsoft.Dafny {
     public ModuleDecl CompileRoot;
     public ModuleSignature OriginalSignature;
 
-    public ModuleFacadeDecl(List<IToken> path, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
+    public AbstractModuleDecl(List<IToken> path, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
       : base(name, name.val, parent, opened, false) {
       Contract.Requires(path != null && path.Count > 0);
       Contract.Requires(exports != null);
@@ -3589,7 +3589,7 @@ namespace Microsoft.Dafny {
   {
     public readonly bool IsDefault;
     public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
-    public List<string> Extends; // list of exports that are extended
+    public List<IToken> Extends; // list of exports that are extended
     public readonly List<ModuleExportDecl> ExtendDecls = new List<ModuleExportDecl>(); // fill in by the resolver
     public readonly HashSet<Tuple<Declaration, bool>> ExportDecls = new HashSet<Tuple<Declaration, bool>>(); // fill in by the resolver
     public bool RevealAll; // only kept for initial rewriting, then discarded
@@ -3597,7 +3597,7 @@ namespace Microsoft.Dafny {
 
     public readonly VisibilityScope ThisScope;
     public ModuleExportDecl(IToken tok, ModuleDefinition parent,
-      List<ExportSignature> exports, List<string> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
+      List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
       : base(tok, isDefault ? parent.Name : tok.val, parent, false, isRefining) {
       Contract.Requires(exports != null);
       IsDefault = isDefault;
@@ -3611,8 +3611,8 @@ namespace Microsoft.Dafny {
     public void SetupDefaultSignature() {
       Contract.Requires(this.Signature == null);
       var sig = new ModuleSignature();
-      sig.ModuleDef = this.Module;
-      sig.IsAbstract = this.Module.IsAbstract;
+      sig.ModuleDef = this.EnclosingModuleDefinition;
+      sig.IsAbstract = this.EnclosingModuleDefinition.IsAbstract;
       sig.VisibilityScope = new VisibilityScope();
       sig.VisibilityScope.Augment(ThisScope);
       this.Signature = sig;
@@ -3705,10 +3705,10 @@ namespace Microsoft.Dafny {
     public readonly string Name;
     public string FullName {
       get {
-        if (Module == null || Module.IsDefaultModule) {
+        if (EnclosingModule == null || EnclosingModule.IsDefaultModule) {
           return Name;
         } else {
-          return Module.FullName + "." + Name;
+          return EnclosingModule.FullName + "." + Name;
         }
       }
     }
@@ -3716,7 +3716,7 @@ namespace Microsoft.Dafny {
     IToken INamedRegion.BodyStartTok { get { return BodyStartTok; } }
     IToken INamedRegion.BodyEndTok { get { return BodyEndTok; } }
     string INamedRegion.Name { get { return Name; } }
-    public ModuleDefinition Module;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
+    public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
     public readonly Attributes Attributes;
     public readonly IToken RefinementBaseName;  // null if no refinement base
     public ModuleDecl RefinementBaseRoot; // filled in early during resolution, corresponds to RefinementBaseName[0]
@@ -3782,7 +3782,7 @@ namespace Microsoft.Dafny {
       this.Name = name;
       this.PrefixIds = prefixIds;
       this.Attributes = attributes;
-      this.Module = parent;
+      this.EnclosingModule = parent;
       RefinementBaseName = refinementBase;
       IsAbstract = isAbstract;
       IsFacade = isFacade;
@@ -3820,12 +3820,12 @@ namespace Microsoft.Dafny {
           } else if (IsBuiltinName || externArgs != null) {
             compileName = Name;
           } else {
-            if (Module != null && Module.Name != "_module") {
+            if (EnclosingModule != null && EnclosingModule.Name != "_module") {
               // Include all names in the module tree path, to disambiguate when compiling
               // a flat list of modules.
               // Use an "underscore-escaped" character as a module name separator, since
               // underscores are already used as escape characters in CompilerizeName()
-              compileName = Module.CompileName + "_m" + NonglobalVariable.CompilerizeName(Name);
+              compileName = EnclosingModule.CompileName + "_m" + NonglobalVariable.CompilerizeName(Name);
             } else {
               compileName = NonglobalVariable.CompilerizeName(Name);
             }
@@ -3864,7 +3864,7 @@ namespace Microsoft.Dafny {
       foreach (var d in declarations) {
         var cl = d as TopLevelDeclWithMembers;
         if (cl != null) {
-          var module = cl.Module;
+          var module = cl.EnclosingModuleDefinition;
           foreach (var member in cl.Members) {
             var fn = member as Function;
             if (fn != null) {
@@ -4025,7 +4025,7 @@ namespace Microsoft.Dafny {
 
   public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
     public abstract string WhatKind { get; }
-    public readonly ModuleDefinition Module;
+    public readonly ModuleDefinition EnclosingModuleDefinition;
     public readonly List<TypeParameter> TypeArgs;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -4037,32 +4037,32 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
-      Module = module;
+      EnclosingModuleDefinition = module;
       TypeArgs = typeArgs;
     }
 
     public string FullName {
       get {
-        return Module.FullName + "." + Name;
+        return EnclosingModuleDefinition.FullName + "." + Name;
       }
     }
     public string FullSanitizedName {
       get {
-        return Module.CompileName + "." + CompileName;
+        return EnclosingModuleDefinition.CompileName + "." + CompileName;
       }
     }
 
     public string FullSanitizedRefinementName {
       get {
-        return Module.RefinementCompileName + "." + CompileName;
+        return EnclosingModuleDefinition.RefinementCompileName + "." + CompileName;
       }
     }
 
     public string FullNameInContext(ModuleDefinition context) {
-      if (Module == context) {
+      if (EnclosingModuleDefinition == context) {
         return Name;
       } else {
-        return Module.Name + "." + Name;
+        return EnclosingModuleDefinition.Name + "." + Name;
       }
     }
     public string FullCompileName {
@@ -4073,10 +4073,10 @@ namespace Microsoft.Dafny {
             return externArgs[0].AsStringLiteral() + "." + externArgs[1].AsStringLiteral();
           }
         }
-        if (Module.IsDefaultModule && DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Csharp) {
+        if (EnclosingModuleDefinition.IsDefaultModule && DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Csharp) {
           return Declaration.IdProtect(CompileName);
         } else {
-          return Declaration.IdProtect(Module.CompileName) + "." + Declaration.IdProtect(CompileName);
+          return Declaration.IdProtect(EnclosingModuleDefinition.CompileName) + "." + Declaration.IdProtect(CompileName);
         }
       }
     }
@@ -4410,7 +4410,7 @@ namespace Microsoft.Dafny {
     bool ICodeContext.IsGhost { get { return true; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-    ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
     bool ICodeContext.MustReverify { get { return false; } }
     bool ICodeContext.AllowsNontermination { get { return false; } }
     IToken ICallable.Tok { get { return tok; } }
@@ -4848,7 +4848,7 @@ namespace Microsoft.Dafny {
       get { return _inferredDecr; }
     }
 
-    ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingModuleDefinition; } }
     bool ICodeContext.MustReverify { get { return false; } }
     public bool AllowsNontermination {
       get {
@@ -5173,7 +5173,7 @@ namespace Microsoft.Dafny {
     public new bool IsGhost { get { return this.isGhost; } }
     public List<TypeParameter> TypeArgs { get { return new List<TypeParameter>(); } }
     public List<Formal> Ins { get { return new List<Formal>(); } }
-    public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.Module; } }
+    public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
     public bool MustReverify { get { return false; } }
     public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
     public IToken Tok { get { return tok; } }
@@ -5278,7 +5278,7 @@ namespace Microsoft.Dafny {
         thisType.ResolvedParam = ((OpaqueTypeDecl)d).TheType;
       }
 
-      var tsd = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.GetExplicitCharacteristics(d), d.TypeArgs, d.Module, thisType, d.Attributes);
+      var tsd = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.GetExplicitCharacteristics(d), d.TypeArgs, d.EnclosingModuleDefinition, thisType, d.Attributes);
       tsd.InheritVisibility(d, false);
 
       tsdMap.Add(d, tsd);
@@ -5369,7 +5369,7 @@ namespace Microsoft.Dafny {
     string RedirectingTypeDecl.Name { get { return Name; } }
     IToken RedirectingTypeDecl.tok { get { return tok; } }
     Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
-    ModuleDefinition RedirectingTypeDecl.Module { get { return Module; } }
+    ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
     BoundVar RedirectingTypeDecl.Var { get { return Var; } }
     Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
     SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return WitnessKind; } }
@@ -5379,7 +5379,7 @@ namespace Microsoft.Dafny {
     bool ICodeContext.IsGhost { get { return true; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-    ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
     bool ICodeContext.MustReverify { get { return false; } }
     bool ICodeContext.AllowsNontermination { get { return false; } }
     IToken ICallable.Tok { get { return tok; } }
@@ -5451,7 +5451,7 @@ namespace Microsoft.Dafny {
     string RedirectingTypeDecl.Name { get { return Name; } }
     IToken RedirectingTypeDecl.tok { get { return tok; } }
     Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
-    ModuleDefinition RedirectingTypeDecl.Module { get { return Module; } }
+    ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
     BoundVar RedirectingTypeDecl.Var { get { return null; } }
     Expression RedirectingTypeDecl.Constraint { get { return null; } }
     SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return SubsetTypeDecl.WKind.None; } }
@@ -5461,7 +5461,7 @@ namespace Microsoft.Dafny {
     bool ICodeContext.IsGhost { get { return false; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-    ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
     bool ICodeContext.MustReverify {get { return false; } }
     bool ICodeContext.AllowsNontermination { get { return false; } }
     IToken ICallable.Tok { get { return tok; } }
@@ -5553,7 +5553,7 @@ namespace Microsoft.Dafny {
     }
 
     private NonNullTypeDecl(ClassDecl cl, List<TypeParameter> tps, BoundVar id)
-      : base(cl.tok, cl.Name, new TypeParameter.TypeParameterCharacteristics(), tps, cl.Module, id,
+      : base(cl.tok, cl.Name, new TypeParameter.TypeParameterCharacteristics(), tps, cl.EnclosingModuleDefinition, id,
       new BinaryExpr(cl.tok, BinaryExpr.Opcode.Neq, new IdentifierExpr(cl.tok, id), new LiteralExpr(cl.tok)),
       SubsetTypeDecl.WKind.Special, null, BuiltIns.AxiomAttribute())
     {
@@ -6058,7 +6058,7 @@ namespace Microsoft.Dafny {
       set { _inferredDecr = value; }
       get { return _inferredDecr; }
     }
-    ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingClass.Module; } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
     bool ICodeContext.MustReverify { get { return false; } }
 
     [Pure]
@@ -6320,7 +6320,7 @@ namespace Microsoft.Dafny {
     ModuleDefinition ICodeContext.EnclosingModule {
       get {
         Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete
-        return this.EnclosingClass.Module;
+        return this.EnclosingClass.EnclosingModuleDefinition;
       }
     }
     bool ICodeContext.MustReverify { get { return this.MustReverify; } }

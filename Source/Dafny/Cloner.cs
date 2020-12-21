@@ -15,7 +15,7 @@ namespace Microsoft.Dafny
       if (m is DefaultModuleDecl) {
         nw = new DefaultModuleDecl();
       } else {
-        nw = new ModuleDefinition(Tok(m.tok), name, m.PrefixIds, m.IsAbstract, m.IsFacade, m.RefinementBaseName, m.Module, CloneAttributes(m.Attributes),
+        nw = new ModuleDefinition(Tok(m.tok), name, m.PrefixIds, m.IsAbstract, m.IsFacade, m.RefinementBaseName, m.EnclosingModule, CloneAttributes(m.Attributes),
                                   true, m.IsToBeVerified, m.IsToBeCompiled);
       }
       foreach (var d in m.TopLevelDecls) {
@@ -63,7 +63,7 @@ namespace Microsoft.Dafny
           }
       } else if (d is TupleTypeDecl) {
         var dd = (TupleTypeDecl)d;
-        return new TupleTypeDecl(dd.Dims, dd.Module, dd.Attributes);
+        return new TupleTypeDecl(dd.Dims, dd.EnclosingModuleDefinition, dd.Attributes);
       } else if (d is IndDatatypeDecl) {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
@@ -115,9 +115,9 @@ namespace Microsoft.Dafny
         } else if (d is AliasModuleDecl) {
           var a = (AliasModuleDecl)d;
           return new AliasModuleDecl(a.Path, a.tok, m, a.Opened, a.Exports);
-        } else if (d is ModuleFacadeDecl) {
-          var a = (ModuleFacadeDecl)d;
-          return new ModuleFacadeDecl(a.Path, a.tok, m, a.Opened, a.Exports);
+        } else if (d is AbstractModuleDecl) {
+          var a = (AbstractModuleDecl)d;
+          return new AbstractModuleDecl(a.Path, a.tok, m, a.Opened, a.Exports);
         } else if (d is ModuleExportDecl) {
           var a = (ModuleExportDecl)d;
           return new ModuleExportDecl(a.tok, m, a.Exports, a.Extends, a.ProvideAll, a.RevealAll, a.IsDefault, a.IsRefining);
@@ -832,12 +832,12 @@ namespace Microsoft.Dafny
       var dd = base.CloneDeclaration(d, m);
       if (d is ModuleDecl) {
         ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
-        if (d is ModuleFacadeDecl) {
-          var sourcefacade = (ModuleFacadeDecl)d;
+        if (d is AbstractModuleDecl) {
+          var sourcefacade = (AbstractModuleDecl)d;
 
-          ((ModuleFacadeDecl)dd).OriginalSignature = sourcefacade.OriginalSignature;
+          ((AbstractModuleDecl)dd).OriginalSignature = sourcefacade.OriginalSignature;
           if (sourcefacade.Root != null) {
-            ((ModuleFacadeDecl)dd).Root = (ModuleDecl)CloneDeclaration(sourcefacade.Root, m);
+            ((AbstractModuleDecl)dd).Root = (ModuleDecl)CloneDeclaration(sourcefacade.Root, m);
           }
         } else if (d is AliasModuleDecl) {
           var sourcealias = (AliasModuleDecl)d;

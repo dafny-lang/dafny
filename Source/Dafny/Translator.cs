@@ -1250,7 +1250,7 @@ namespace Microsoft.Dafny {
 
       if (dd.Var != null) {
         AddWellformednessCheck(dd);
-        currentModule = dd.Module;
+        currentModule = dd.EnclosingModuleDefinition;
         // Add $Is and $IsAlloc axioms for the newtype
         AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
         AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);
@@ -1269,7 +1269,7 @@ namespace Microsoft.Dafny {
       if (!Attributes.Contains(dd.Attributes, "axiom")) {
         AddWellformednessCheck(dd);
       }
-      currentModule = dd.Module;
+      currentModule = dd.EnclosingModuleDefinition;
       // Add $Is and $IsAlloc axioms for the subset type
       AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
       AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);
@@ -2253,7 +2253,7 @@ namespace Microsoft.Dafny {
           if (f is ConstantField) {
             // The following call has the side effect of idempotently creating and adding the function to the sink's top-level declarations
             Contract.Assert(currentModule == null);
-            currentModule = f.EnclosingClass.Module;
+            currentModule = f.EnclosingClass.EnclosingModuleDefinition;
             var oldFuelContext = fuelContext;
             fuelContext = FuelSetting.NewFuelContext(f);
             var boogieFunction = GetReadonlyField(f);
@@ -2370,7 +2370,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
 
-      currentModule = f.EnclosingClass.Module;
+      currentModule = f.EnclosingClass.EnclosingModuleDefinition;
       codeContext = f;
 
       // declare function
@@ -2440,7 +2440,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(currentModule == null && codeContext == null);
       Contract.Ensures(Contract.Result<Bpl.Procedure>() != null);
 
-      currentModule = iter.Module;
+      currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
       var etran = new ExpressionTranslator(this, predef, iter.tok);
@@ -2516,7 +2516,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
 
-      currentModule = iter.Module;
+      currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
       List<Variable> inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
@@ -2648,7 +2648,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
       Contract.Ensures(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
 
-      currentModule = iter.Module;
+      currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
       List<Variable> inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
@@ -2990,7 +2990,7 @@ namespace Microsoft.Dafny {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, null, substMap)));
       }
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
-      var mod = f.EnclosingClass.Module;
+      var mod = f.EnclosingClass.EnclosingModuleDefinition;
       Bpl.Expr useViaContext = !InVerificationScope(f) ? Bpl.Expr.True :
         (Bpl.Expr)Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
@@ -3036,7 +3036,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
       Contract.Requires(etran != null);
       Contract.Requires(VisibleInScope(f));
-      var module = f.EnclosingClass.Module;
+      var module = f.EnclosingClass.EnclosingModuleDefinition;
 
       if (InVerificationScope(f)) {
         return
@@ -3268,7 +3268,7 @@ namespace Microsoft.Dafny {
       }
 
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
-      ModuleDefinition mod = f.EnclosingClass.Module;
+      ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
       Bpl.Expr useViaContext = !InVerificationScope(f) ? (Bpl.Expr)Bpl.Expr.True :
         Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
       // ante := (useViaContext && typeAnte && pre)
@@ -3447,7 +3447,7 @@ namespace Microsoft.Dafny {
       }
 
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
-      ModuleDefinition mod = f.EnclosingClass.Module;
+      ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
       Bpl.Expr useViaContext = !InVerificationScope(overridingFunction) ? (Bpl.Expr)Bpl.Expr.True :
         Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(overridingFunction)), etran.FunctionContextHeight());
 
@@ -4366,7 +4366,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
 
-      currentModule = m.EnclosingClass.Module;
+      currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       isAllocContext = new IsAllocContext(m.IsGhost);
 
@@ -4770,7 +4770,7 @@ namespace Microsoft.Dafny {
 #region first procedure, no impl yet
         //Function nf = new Function(f.tok, "OverrideCheck_" + f.Name, f.IsStatic, f.IsGhost, f.TypeArgs, f.OpenParen, f.Formals, f.ResultType, f.Req, f.Reads, f.Ens, f.Decreases, f.Body, f.Attributes, f.SignatureEllipsis);
         //AddFunction(f);
-        currentModule = f.EnclosingClass.Module;
+        currentModule = f.EnclosingClass.EnclosingModuleDefinition;
         codeContext = f;
 
         Bpl.Expr prevHeap = null;
@@ -5183,7 +5183,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
         Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
 
-        currentModule = m.EnclosingClass.Module;
+        currentModule = m.EnclosingClass.EnclosingModuleDefinition;
         codeContext = m;
         isAllocContext = new IsAllocContext(m.IsGhost);
 
@@ -5912,7 +5912,7 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(InVerificationScope(f));
 
-      currentModule = f.EnclosingClass.Module;
+      currentModule = f.EnclosingClass.EnclosingModuleDefinition;
       codeContext = f;
 
       Bpl.Expr prevHeap = null;
@@ -6140,7 +6140,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      Contract.Assert(currentModule == f.EnclosingClass.Module);
+      Contract.Assert(currentModule == f.EnclosingClass.EnclosingModuleDefinition);
       Contract.Assert(codeContext == f);
       Reset();
     }
@@ -9132,7 +9132,7 @@ namespace Microsoft.Dafny {
       Helper((argExprs, args, inner) => {
         Bpl.Expr body = Bpl.Expr.True;
 
-        if (!td.Module.IsFacade) {
+        if (!td.EnclosingModuleDefinition.IsFacade) {
           var tagName = "Tag" + inner_name;
           var tag = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, tagName, predef.TyTag), true);
           sink.AddTopLevelDeclaration(tag);
@@ -9207,7 +9207,7 @@ namespace Microsoft.Dafny {
         if (cl is ClassDecl && ((ClassDecl)cl).NonNullTypeDecl != null) {
           name = name + "?";  // TODO: this doesn't seem like the best place to do this name transformation
         }
-        cc = new Bpl.Constant(cl.tok, new Bpl.TypedIdent(cl.tok, "class." + name, predef.ClassNameType), !cl.Module.IsFacade);
+        cc = new Bpl.Constant(cl.tok, new Bpl.TypedIdent(cl.tok, "class." + name, predef.ClassNameType), !cl.EnclosingModuleDefinition.IsFacade);
         classes.Add(cl, cc);
       }
       return cc;
@@ -9461,7 +9461,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Procedure>() != null);
       Contract.Assert(VisibleInScope(m));
 
-      currentModule = m.EnclosingClass.Module;
+      currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       isAllocContext = new IsAllocContext(m.IsGhost);
 
@@ -12189,7 +12189,7 @@ namespace Microsoft.Dafny {
       // termination check and the need to include an implicit _k-1 argument.
       bool isRecursiveCall = false;
       // consult the call graph to figure out if this is a recursive call
-      var module = method.EnclosingClass.Module;
+      var module = method.EnclosingClass.EnclosingModuleDefinition;
       if (codeContext != null && module == currentModule) {
         // Note, prefix lemmas are not recorded in the call graph, but their corresponding greatest lemmas are.
         // Similarly, an iterator is not recorded in the call graph, but its MoveNext method is.
@@ -14381,10 +14381,10 @@ namespace Microsoft.Dafny {
       private static void AddFuelContext(FuelContext context, TopLevelDecl decl) {
         FindFuelAttributes(decl.Attributes, context);
 
-        var module = decl.Module;
+        var module = decl.EnclosingModuleDefinition;
         while (module != null) {
           FindFuelAttributes(module.Attributes, context);
-          module = module.Module;
+          module = module.EnclosingModule;
         }
       }
 
@@ -15119,7 +15119,7 @@ namespace Microsoft.Dafny {
             }
             if (e.Function.IsFuelAware()) {
               Statistics_CustomLayerFunctionCount++;
-              ModuleDefinition module = e.Function.EnclosingClass.Module;
+              ModuleDefinition module = e.Function.EnclosingClass.EnclosingModuleDefinition;
               if (etran.applyLimited_CurrentFunction != null &&
                 etran.layerIntraCluster != null &&
                 ModuleDefinition.InSameSCC(e.Function, applyLimited_CurrentFunction)) {
@@ -17343,7 +17343,7 @@ namespace Microsoft.Dafny {
         var fexp = (FunctionCallExpr)expr;
         var f = fexp.Function;
         Contract.Assert(f != null);  // filled in during resolution
-        var module = f.EnclosingClass.Module;
+        var module = f.EnclosingClass.EnclosingModuleDefinition;
         var functionHeight = module.CallGraph.GetSCCRepresentativeId(f);
 
         if (functionHeight < heightLimit && f.Body != null && RevealedInScope(f) && !(f.Body.Resolved is MatchExpr)) {
@@ -17991,7 +17991,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(depth != null);
         extremePred = extremePredicate;
         unrollDepth = depth;
-        module = extremePredicate.EnclosingClass.Module;
+        module = extremePredicate.EnclosingClass.EnclosingModuleDefinition;
       }
       public override Expression Substitute(Expression expr) {
         if (expr is FunctionCallExpr) {

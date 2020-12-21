@@ -90,7 +90,7 @@ namespace Microsoft.Dafny
               if (bim.Name.Equals(im.Name)) {
                 if (!im.Name.Equals("_default") && !im.IsRefining
                       && !(bim is OpaqueTypeDecl)
-                      && !(bim is ModuleFacadeDecl && im is AliasModuleDecl)) {
+                      && !(bim is AbstractModuleDecl && im is AliasModuleDecl)) {
                   string message =
                     $"{im.Name} in {m.Name} redeclares a name in the refinement base {m.RefinementBase.Name}";
                   reporter.Error(MessageSource.RefinementTransformer, im.tok, message);
@@ -189,11 +189,11 @@ namespace Microsoft.Dafny
           } else {
             MergeModuleExports((ModuleExportDecl)nw,(ModuleExportDecl)d);
           }
-        } else if (!(d is ModuleFacadeDecl)) {
+        } else if (!(d is AbstractModuleDecl)) {
           reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only refine a module facade", nw.Name);
         } else {
           // check that the new module refines the previous declaration
-          if (!CheckIsRefinement((ModuleDecl)nw, (ModuleFacadeDecl)d))
+          if (!CheckIsRefinement((ModuleDecl)nw, (AbstractModuleDecl)d))
             reporter.Error(MessageSource.RefinementTransformer, nw.tok, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
         }
       } else if (d is OpaqueTypeDecl) {
@@ -270,7 +270,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    public bool CheckIsRefinement(ModuleDecl derived, ModuleFacadeDecl original) {
+    public bool CheckIsRefinement(ModuleDecl derived, AbstractModuleDecl original) {
 
 
       // Check explicit refinement
@@ -281,8 +281,8 @@ namespace Microsoft.Dafny
           HashSet<string> exports;
           if (derived is AliasModuleDecl) {
             exports = new HashSet<string>(((AliasModuleDecl)derived).Exports.ConvertAll(t => t.val));
-          } else if (derived is ModuleFacadeDecl) {
-            exports = new HashSet<string>(((ModuleFacadeDecl)derived).Exports.ConvertAll(t => t.val));
+          } else if (derived is AbstractModuleDecl) {
+            exports = new HashSet<string>(((AbstractModuleDecl)derived).Exports.ConvertAll(t => t.val));
           } else {
             reporter.Error(MessageSource.RefinementTransformer, derived, "a module ({0}) can only be refined by an alias module or a module facade", original.Name);
             return false;
@@ -1456,7 +1456,7 @@ namespace Microsoft.Dafny
 
       if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        if (e.Function.EnclosingClass.Module == m) {
+        if (e.Function.EnclosingClass.EnclosingModuleDefinition == m) {
           var p = e.Function as Predicate;
           if (p != null && p.BodyOrigin == Predicate.BodyOriginKind.Extension) {
             return true;
@@ -1494,8 +1494,8 @@ namespace Microsoft.Dafny
         ((ModuleExportDecl)dd).SetupDefaultSignature();
       } else if (d is ModuleDecl) {
         ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
-        if (d is ModuleFacadeDecl) {
-          ((ModuleFacadeDecl)dd).OriginalSignature = ((ModuleFacadeDecl)d).OriginalSignature;
+        if (d is AbstractModuleDecl) {
+          ((AbstractModuleDecl)dd).OriginalSignature = ((AbstractModuleDecl)d).OriginalSignature;
         }
       }
       return dd;
