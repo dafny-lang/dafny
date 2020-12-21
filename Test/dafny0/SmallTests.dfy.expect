@@ -115,7 +115,7 @@ SmallTests.dfy(303,23): Error BP5002: A precondition for this call might not hol
 SmallTests.dfy(281,16): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(298,19): anon3_Else
+    (0,0): anon3_Then
     (0,0): anon2
 SmallTests.dfy(408,11): Error BP5001: assertion violation
 Execution trace:
@@ -146,7 +146,7 @@ SmallTests.dfy(332,40): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Else
-    SmallTests.dfy(338,25): anon23_Else
+    (0,0): anon23_Then
     SmallTests.dfy(338,7): anon24_Else
     (0,0): anon15
     (0,0): anon25_Else
@@ -154,7 +154,8 @@ SmallTests.dfy(379,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
-    SmallTests.dfy(377,31): anon8_Else
+    (0,0): anon8_Then
+    (0,0): anon9_Then
     (0,0): anon5
     (0,0): anon6
 SmallTests.dfy(386,9): Error BP5001: assertion violation

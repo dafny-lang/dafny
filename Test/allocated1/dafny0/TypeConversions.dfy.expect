@@ -21,42 +21,46 @@ Execution trace:
 TypeConversions.dfy(57,26): Error BP5001: value to be converted might not fit in bv32
 Execution trace:
     (0,0): anon0
-    (0,0): anon22_Then
+    (0,0): anon18_Then
 TypeConversions.dfy(61,30): Error BP5001: value to be converted might not fit in bv7
 Execution trace:
     (0,0): anon0
-    (0,0): anon26_Then
+    (0,0): anon22_Then
 TypeConversions.dfy(62,28): Error BP5001: value to be converted might not fit in bv7
 Execution trace:
     (0,0): anon0
-    (0,0): anon27_Then
-TypeConversions.dfy(65,29): Error BP5001: value to be converted might not fit in bv0
+    (0,0): anon23_Then
+TypeConversions.dfy(72,29): Error BP5001: value to be converted might not fit in bv0
 Execution trace:
     (0,0): anon0
-    (0,0): anon30_Then
-TypeConversions.dfy(66,27): Error BP5001: value to be converted might not fit in bv0
+    (0,0): anon6_Then
+TypeConversions.dfy(73,27): Error BP5001: value to be converted might not fit in bv0
 Execution trace:
     (0,0): anon0
-    (0,0): anon31_Then
-TypeConversions.dfy(94,20): Error BP5001: result of operation might violate newtype constraint for 'EvenInt'
+    (0,0): anon7_Then
+TypeConversions.dfy(74,31): Error BP5001: value to be converted might not fit in bv0
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+TypeConversions.dfy(100,20): Error BP5001: result of operation might violate newtype constraint for 'EvenInt'
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
-TypeConversions.dfy(94,20): Error BP5001: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
+TypeConversions.dfy(100,20): Error BP5001: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
-TypeConversions.dfy(96,20): Error BP5001: result of operation might violate newtype constraint for 'EvenInt'
+TypeConversions.dfy(102,20): Error BP5001: result of operation might violate newtype constraint for 'EvenInt'
 Execution trace:
     (0,0): anon0
     (0,0): anon14_Then
-TypeConversions.dfy(109,28): Error BP5001: value to be converted might not fit in bv7
+TypeConversions.dfy(115,28): Error BP5001: value to be converted might not fit in bv7
 Execution trace:
     (0,0): anon0
     (0,0): anon20_Then
-TypeConversions.dfy(110,27): Error BP5001: value to be converted might not fit in bv0
+TypeConversions.dfy(116,27): Error BP5001: value to be converted might not fit in bv0
 Execution trace:
     (0,0): anon0
     (0,0): anon21_Then
 
-Dafny program verifier finished with 3 verified, 15 errors
+Dafny program verifier finished with 3 verified, 16 errors
