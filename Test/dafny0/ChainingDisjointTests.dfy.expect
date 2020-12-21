@@ -12,14 +12,14 @@ Execution trace:
 ChainingDisjointTests.dfy(58,18): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Then
+    ChainingDisjointTests.dfy(58,19): anon5_Else
     ChainingDisjointTests.dfy(58,24): anon6_Else
     (0,0): anon4
 ChainingDisjointTests.dfy(58,23): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon6_Then
+    ChainingDisjointTests.dfy(58,19): anon5_Else
+    ChainingDisjointTests.dfy(58,24): anon6_Else
     (0,0): anon4
 
 Dafny program verifier finished with 4 verified, 4 errors

@@ -25,12 +25,12 @@ Execution trace:
 MiscTypeInferenceTests.dfy(109,18): Error BP5001: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Then
+    MiscTypeInferenceTests.dfy(106,33): anon3_Else
     (0,0): anon2
 MiscTypeInferenceTests.dfy(110,18): Error BP5001: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Then
+    MiscTypeInferenceTests.dfy(106,33): anon3_Else
     (0,0): anon2
 MiscTypeInferenceTests.dfy(143,15): Error BP5001: value does not satisfy the subset constraints of 'nat'
 Execution trace:

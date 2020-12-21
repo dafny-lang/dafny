@@ -7,11 +7,11 @@ Comprehensions.dfy(54,11): Warning: /!\ No terms found to trigger on.
 Comprehensions.dfy(12,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon9_Then
-    (0,0): anon10_Then
+    Comprehensions.dfy(6,33): anon9_Else
+    Comprehensions.dfy(6,18): anon10_Else
     (0,0): anon4
-    (0,0): anon11_Then
-    (0,0): anon12_Then
+    Comprehensions.dfy(7,33): anon11_Else
+    Comprehensions.dfy(7,18): anon12_Else
     (0,0): anon8
 Comprehensions.dfy(78,22): Error BP5001: assertion violation
 Execution trace:

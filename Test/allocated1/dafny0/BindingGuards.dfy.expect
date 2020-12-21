@@ -1,16 +1,17 @@
-BindingGuards.dfy(85,10): Error BP5003: A postcondition might not hold on this return path.
+BindingGuards.dfy(85,2): Error BP5003: A postcondition might not hold on this return path.
 BindingGuards.dfy(71,12): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Then
+    (0,0): anon12_Else
+    (0,0): anon13_Then
     (0,0): anon9
-    (0,0): anon16_Then
+    (0,0): anon16_Else
 BindingGuards.dfy(134,9): Error BP5001: assertion violation
 BindingGuards.dfy(6,8): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon20_Then
-    (0,0): anon21_Then
+    BindingGuards.dfy(123,23): anon21_Else
     (0,0): anon5
     (0,0): anon17
 BindingGuards.dfy(139,2): Error BP5001: alternative cases fail to cover all possibilties

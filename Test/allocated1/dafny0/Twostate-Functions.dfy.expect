@@ -15,14 +15,14 @@ Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
     (0,0): anon2
-    (0,0): anon8_Then
+    Twostate-Functions.dfy(68,24): anon8_Else
     (0,0): anon4
     (0,0): anon9_Then
 Twostate-Functions.dfy(72,15): Error BP5001: assertion violation
 Twostate-Functions.dfy(57,14): Related location
 Execution trace:
     (0,0): anon0
-    (0,0): anon7_Then
+    Twostate-Functions.dfy(67,21): anon7_Else
     (0,0): anon2
     (0,0): anon8_Then
     (0,0): anon4
@@ -53,9 +53,9 @@ Execution trace:
 Twostate-Functions.dfy(134,42): Error BP5001: target object may not be allocated
 Execution trace:
     (0,0): anon0
-    (0,0): anon16_Then
+    (0,0): anon16_Else
     (0,0): anon4
-    (0,0): anon18_Then
+    (0,0): anon18_Else
     (0,0): anon19_Then
 Twostate-Functions.dfy(136,33): Error BP5001: target object may not be allocated
 Execution trace:

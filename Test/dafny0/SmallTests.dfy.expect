@@ -115,7 +115,7 @@ SmallTests.dfy(303,23): Error BP5002: A precondition for this call might not hol
 SmallTests.dfy(281,16): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Then
+    SmallTests.dfy(298,19): anon3_Else
     (0,0): anon2
 SmallTests.dfy(408,11): Error BP5001: assertion violation
 Execution trace:
@@ -138,7 +138,7 @@ SmallTests.dfy(754,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
-    (0,0): anon8_Then
+    SmallTests.dfy(754,53): anon8_Else
     (0,0): anon3
 SmallTests.dfy(338,2): Error BP5003: A postcondition might not hold on this return path.
 SmallTests.dfy(332,10): Related location: This is the postcondition that might not hold.
@@ -146,14 +146,16 @@ SmallTests.dfy(332,40): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Else
-    (0,0): anon23_Then
-    (0,0): anon24_Then
+    SmallTests.dfy(338,25): anon23_Else
+    SmallTests.dfy(338,7): anon24_Else
     (0,0): anon15
     (0,0): anon25_Else
 SmallTests.dfy(379,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon7_Then
+    (0,0): anon7_Else
+    SmallTests.dfy(377,31): anon8_Else
+    (0,0): anon5
     (0,0): anon6
 SmallTests.dfy(386,9): Error BP5001: assertion violation
 Execution trace:
@@ -209,10 +211,10 @@ Execution trace:
 SmallTests.dfy(687,22): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon8_Then
-    (0,0): anon9_Then
+    SmallTests.dfy(683,37): anon8_Else
+    SmallTests.dfy(683,7): anon9_Else
     (0,0): anon4
-    (0,0): anon10_Then
+    (0,0): anon10_Else
     (0,0): anon7
 SmallTests.dfy(701,9): Error BP5001: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:

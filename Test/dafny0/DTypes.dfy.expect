@@ -33,7 +33,7 @@ DTypes.dfy(156,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
-    (0,0): anon6_Then
+    DTypes.dfy(156,42): anon6_Else
     (0,0): anon4
 
 Dafny program verifier finished with 22 verified, 7 errors

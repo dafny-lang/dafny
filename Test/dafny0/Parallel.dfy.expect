@@ -30,7 +30,7 @@ Execution trace:
     (0,0): anon33_Else
     (0,0): anon36_Else
     (0,0): anon39_Then
-    (0,0): anon40_Then
+    (0,0): anon40_Else
     (0,0): anon26
 Parallel.dfy(46,18): Error BP5001: assertion violation
 Execution trace:

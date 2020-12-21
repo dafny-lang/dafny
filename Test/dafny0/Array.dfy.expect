@@ -11,11 +11,9 @@ Execution trace:
 Array.dfy(50,19): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon8_Then
+    Array.dfy(45,24): anon8_Else
     (0,0): anon2
-    (0,0): anon9_Then
-    (0,0): anon10_Then
-    (0,0): anon5
+    (0,0): anon9_Else
     (0,0): anon7
 Array.dfy(58,7): Error BP5001: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:

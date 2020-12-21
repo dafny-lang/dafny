@@ -163,9 +163,7 @@ Execution trace:
 SubsetTypes.dfy(205,23): Error BP5001: value does not satisfy the subset constraints of 'Person' (it may be null)
 Execution trace:
     (0,0): anon0
-    (0,0): anon16_Then
-    SubsetTypes.dfy(199,26): anon17_Else
-    SubsetTypes.dfy(200,26): anon18_Else
+    (0,0): anon16_Else
     (0,0): anon7
     SubsetTypes.dfy(202,25): anon19_Else
     SubsetTypes.dfy(203,25): anon20_Else
