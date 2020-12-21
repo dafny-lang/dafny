@@ -980,7 +980,7 @@ namespace Microsoft.Dafny
 
           if (!Attributes.Contains(f.Attributes, "opaque")) {
             // Nothing to do
-          } else if (!RefinementToken.IsInherited(f.tok, c.Module)) {
+          } else if (!RefinementToken.IsInherited(f.tok, c.EnclosingModuleDefinition)) {
             RewriteOpaqueFunctionUseFuel(f, newDecls);
           }
         }

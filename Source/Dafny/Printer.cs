@@ -375,8 +375,8 @@ namespace Microsoft.Dafny {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
             wr.WriteLine();
-          } else if (d is ModuleFacadeDecl) {
-            var dd = (ModuleFacadeDecl)d;
+          } else if (d is AbstractModuleDecl) {
+            var dd = (AbstractModuleDecl)d;
 
             wr.Write("import"); if (dd.Opened) wr.Write(" opened");
             if (dd.ResolvedHash.HasValue && this.printMode == DafnyOptions.PrintModes.DllEmbed) {
@@ -402,7 +402,7 @@ namespace Microsoft.Dafny {
             if (e.IsRefining) {
               wr.Write(" ...");
             }
-            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id));
+            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id.val));
             wr.WriteLine();
             PrintModuleExportDecl(e, indent + IndentAmount, fileBeingPrinted);
             wr.WriteLine();
