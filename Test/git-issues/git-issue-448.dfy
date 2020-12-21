@@ -26,11 +26,16 @@ method Main() {
   } else if * {
     var u := c.u;  // error: "c" hasn't been initialized yet
   } else {
-    // Regression test:
-    (if 3 / 0 < 7 then c else c).M();  // error: division by zero
+    RegressionTest();
   }
 }
 
 method P(w: C) {
   w.M();
+}
+
+method RegressionTest() {
+  var c: C;
+  // Regression test:
+  (if 3 / 0 < 7 then c else c).M();  // error: division by zero
 }

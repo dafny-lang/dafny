@@ -100,9 +100,9 @@ method test11(a: array<int>, n: int, c: int)
    modifies a;
    ensures multiset(a[c..n-1]) == multiset(a[c..n]) - multiset{a[n-1]};
 {
-
+  assert a[c..n-1] + [a[n-1]] == a[c..n];
+  assert multiset(a[c..n-1]) + multiset([a[n-1]]) == multiset(a[c..n]);
 }
-
 // ----------- the following tests mostly have to do with sets -------------
 
 class BoxTests<G> {
