@@ -24,9 +24,9 @@ module C {
 module D {
   import B`A
   method m() {
-    assert B.c == 30;
+    assert B.c == 30; // error
     assert B.a == 10;
-    assert B.b == 20;
+    assert B.b == 20; // error
   }
 }
 

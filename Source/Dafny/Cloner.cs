@@ -26,18 +26,9 @@ namespace Microsoft.Dafny
         var newTup = new Tuple<List<IToken>, LiteralModuleDecl>(tup.Item1, (LiteralModuleDecl)CloneDeclaration(tup.Item2, nw));
         nw.PrefixNamedModules.Add(newTup);
       }
-      // if (null != m.RefinementQId.Def) {
-      //   nw.RefinementQId.Def = GetRefinementBase(m);
-      // }
       nw.Height = m.Height;
       return nw;
     }
-
-
-    // public virtual ModuleDefinition GetRefinementBase(ModuleDefinition m) {
-    //   Contract.Requires(m != null);
-    //   return m.RefinementBase;
-    // }
 
     public virtual TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       Contract.Requires(d != null);
@@ -122,7 +113,7 @@ namespace Microsoft.Dafny
           return new AbstractModuleDecl(a.QId ?? a.QId.clone(false), a.tok, m, a.Opened, a.Exports);
         } else if (d is ModuleExportDecl) {
           var a = (ModuleExportDecl)d;
-          return new ModuleExportDecl(a.tok, m, a.Exports, a.Extends, a.ProvideAll, a.RevealAll, a.IsDefault, a.IsRefining);
+          return new ModuleExportDecl(a.tok, a.Name, m, a.Exports, a.Extends, a.ProvideAll, a.RevealAll, a.IsDefault, a.IsRefining);
         } else {
           Contract.Assert(false);  // unexpected declaration
           return null;  // to please compiler
@@ -1053,16 +1044,6 @@ namespace Microsoft.Dafny
       }
       return base.CloneStmt(stmt);
     }
-
-    // public ModuleDefinition GetRefinementBase(ModuleDefinition m) {
-    //   var rbase = m.RefinementQId.Def;
-    //   ModuleDefinition r;
-    //   if (compilationModuleClones.TryGetValue(rbase, out r)) {
-    //     return r;
-    //   } else {
-    //     return rbase;
-    //   }
-    // }
 
     public ModuleSignature CloneModuleSignature(ModuleSignature org, ModuleSignature newSig) {
       var sig = new ModuleSignature();
