@@ -848,6 +848,7 @@ Dafny
        defaultClass = new DefaultClassDecl(defaultModule, membersDefaultClass);
        defaultModule.TopLevelDecls.Add(defaultClass);
      } .)
+  SYNC
   EOF
   .
 
@@ -919,11 +920,6 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
     "}"
     (.
-//       if (!module.TopLevelDecls.Exists(d => (d is ModuleExportDecl))) {
-//         ModuleExportDecl ed = new ModuleExportDecl(id, id.val, module, new List<ExportSignature>(),
-//            new List<IToken>(), false, true, true, false);
-//          module.TopLevelDecls.Add(ed);
-//       }
        module.BodyEndTok = t;
        module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
        submodule = new LiteralModuleDecl(module, parent);

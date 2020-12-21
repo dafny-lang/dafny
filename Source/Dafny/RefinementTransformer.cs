@@ -89,13 +89,6 @@ namespace Microsoft.Dafny
             // TODO: this is a terribly slow algorithm; use the symbol table instead
             foreach (var bim in baseDeclarations) {
               if (bim.Name.Equals(im.Name)) {
-                // if (!im.Name.Equals("_default") && !im.IsRefining
-                //       && !(bim is OpaqueTypeDecl)
-                //       && !(bim is AbstractModuleDecl && im is AliasModuleDecl)) {
-                //   string message =
-                //     $"{im.Name} in {m.Name} redeclares a name in the refinement base {m.RefinementBase.Name}";
-                //   reporter.Error(MessageSource.RefinementTransformer, im.tok, message);
-                // } else
                 if (im is ModuleDecl mdecl) {
                   if (bim is ModuleDecl mbim) {
                     if (mdecl.Opened != mbim.Opened) {

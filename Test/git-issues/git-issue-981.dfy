@@ -1,6 +1,6 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-/*
+
 module K {
   module KK {
     module KKK {
@@ -23,7 +23,7 @@ module L2 refines K.KK.KKK {
   import opened AAA`E
   method m() { assert k == 10; }
 }
-*/
+
 // Checks for name conflicts/redeclarations during
 // refining
 module AAA {
@@ -39,10 +39,13 @@ module BBB refines AAA {
   module M{} // error: duplicate declaration
 }
 
-// OK to extend the default export set
+
 module AA {}
+module CC {
+  import AA`AA  // error: No explicit export set AA
+}
 module BB refines AA {
-  export BB extends AA
+  export BB extends AA // error: No explicit export set AA
 }
 
 // Testing some exports and extension errors
@@ -56,13 +59,25 @@ module A {
 module B refines A {
   export reveals *
   export Q extends C
-  export R extends K // Error
-  export S extends D // Error
+  export R extends K // Error: no export set K
+  export S extends D // Error: no export set D
 }
 
 
 module C refines A {
-  // error: forbidden refinement because A has a non-default C
+  // OK
+  const b := 30
+}
+
+module C' {
+  import Z = C     // same as C`C
+  import Y = C`C
+  method m() {
+    assert Z.b == 30; // error
+    assert Y.a == 10;
+    assert Z.a == 30;
+    assert Y.b == 20; // error
+  }
 }
 
 module D refines A {
@@ -73,6 +88,6 @@ module E {
   export E reveals *
   const F := 40;
   method F() {} // error: reuse of name F
-  const E := 30; // export sets in different namespace
+  const E := 30; // OK: export sets are in a different namespace
 }
 
