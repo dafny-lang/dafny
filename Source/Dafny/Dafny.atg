@@ -187,12 +187,6 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
   theCompileThisFile = compileThisFile;
 }
 
-int Peek(int n) {
-  scanner.ResetPeek();
-  while (--n > 0) scanner.Peek();
-  return la.kind;
-}
-
 bool IsIdentifier(int kind) {
   return kind == _ident || kind == _least || kind == _greatest;
 }
