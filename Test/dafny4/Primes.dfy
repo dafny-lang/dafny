@@ -8,12 +8,12 @@ predicate IsPrime(n: int)
 
 // The following theorem shows that there is an infinite number of primes
 lemma AlwaysMorePrimes(k: int)
-  ensures exists p :: k <= p && IsPrime(p);
+  ensures exists p :: k <= p && IsPrime(p)
 {
   var j, s := 0, {};
   while true
-    invariant AllPrimes(s, j);
-    decreases k - j;
+    invariant AllPrimes(s, j)
+    decreases k - j
   {
     var p := GetLargerPrime(s, j);
     if k <= p { return; }
@@ -23,7 +23,7 @@ lemma AlwaysMorePrimes(k: int)
 
 // Here is an alternative formulation of the theorem
 lemma NoFiniteSetContainsAllPrimes(s: set<int>)
-  ensures exists p :: IsPrime(p) && p !in s;
+  ensures exists p :: IsPrime(p) && p !in s
 {
   AlwaysMorePrimes(if s == {} then 0 else PickLargest(s) + 1);
 }
@@ -39,8 +39,8 @@ predicate AllPrimes(s: set<int>, bound: int)
 }
 
 lemma GetLargerPrime(s: set<int>, bound: int) returns (p: int)
-  requires AllPrimes(s, bound);
-  ensures bound < p && IsPrime(p);
+  requires AllPrimes(s, bound)
+  ensures bound < p && IsPrime(p)
 {
   var q := product(s);
   if exists p :: bound < p <= q && IsPrime(p) {
@@ -63,14 +63,21 @@ function product(s: set<int>): int
 }
 
 lemma product_property(s: set<int>)
-  requires forall x :: x in s ==> 1 <= x;
-  ensures 1 <= product(s) && forall x :: x in s ==> x <= product(s);
+  requires forall x :: x in s ==> 1 <= x
+  ensures 1 <= product(s) && forall x :: x in s ==> x <= product(s)
 {
+  if s != {} {
+    var a := PickLargest(s);
+    var s' := s - {a};
+    assert s == s' + {a};
+    product_property(s');
+    MulPos(a, product(s'));
+  }
 }
 
 lemma ProductPlusOneIsPrime(s: set<int>, q: int)
-  requires AllPrimes(s, q) && q == product(s);
-  ensures IsPrime(q+1);
+  requires AllPrimes(s, q) && q == product(s)
+  ensures IsPrime(q+1)
 {
   var p := q+1;
   calc {
@@ -97,8 +104,8 @@ lemma ProductPlusOneIsPrime(s: set<int>, q: int)
 // also y==Pick...(s - {x}).  It is for this reason that we use PickLargest, instead of
 // picking an arbitrary element from s.
 lemma RemoveFactor(x: int, s: set<int>)
-  requires x in s;
-  ensures product(s) == x * product(s - {x});
+  requires x in s
+  ensures product(s) == x * product(s - {x})
 {
   var y := PickLargest(s);
   if x != y {
@@ -131,11 +138,11 @@ predicate IsPrime_Alt(n: int)
 
 // To show that n is prime, it suffices to prove that it satisfies the alternate definition
 lemma AltPrimeDefinition(n: int)
-  requires IsPrime_Alt(n);
-  ensures IsPrime(n);
+  requires IsPrime_Alt(n)
+  ensures IsPrime(n)
 {
   forall m | 2 <= m < n
-    ensures n % m != 0;
+    ensures n % m != 0
   {
     if !IsPrime(m) {
       var a, b := Composite(m);
@@ -160,9 +167,9 @@ lemma AltPrimeDefinition(n: int)
 }
 
 lemma Composite(c: int) returns (a: int, b: int)
-  requires 2 <= c && !IsPrime(c);
-  ensures 2 <= a < c && 2 <= b && a * b == c;
-  ensures IsPrime(a);
+  requires 2 <= c && !IsPrime(c)
+  ensures 2 <= a < c && 2 <= b && a * b == c
+  ensures IsPrime(a)
 {
   calc {
     true;
@@ -180,7 +187,7 @@ lemma Composite(c: int) returns (a: int, b: int)
 }
 
 function PickLargest(s: set<int>): int
-  requires s != {};
+  requires s != {}
 {
   LargestElementExists(s);
   var x :| x in s && forall y :: y in s ==> y <= x;
@@ -188,14 +195,14 @@ function PickLargest(s: set<int>): int
 }
 
 lemma LargestElementExists(s: set<int>)
-  requires s != {};
-  ensures exists x :: x in s && forall y :: y in s ==> y <= x;
+  requires s != {}
+  ensures exists x :: x in s && forall y :: y in s ==> y <= x
 {
   var s' := s;
   while true
-    invariant s' != {} && s' <= s;
-    invariant forall x,y {:nowarn} :: x in s' && y in s - s' ==> y <= x;
-    decreases s';
+    invariant s' != {} && s' <= s
+    invariant forall x,y {:nowarn} :: x in s' && y in s - s' ==> y <= x
+    decreases s'
   {
     var x :| x in s';  // pick something
     if forall y :: y in s' ==> y <= x {
@@ -210,7 +217,19 @@ lemma LargestElementExists(s: set<int>)
   }
 }
 
+lemma MulPos(a: int, b: int)
+  requires 1 <= a && 1 <= b
+  ensures a <= a * b
+{
+  if b == 1 {
+    assert a * b == a;
+  } else {
+    assert a * b == a * (b - 1) + a;
+    MulPos(a, b - 1);
+  }
+}
+
 // This axiom about % is needed.  Unfortunately, Z3 seems incapable of proving it.
 lemma MulDivMod(a: nat, b: nat, c: nat, j: nat)
-  requires a * b == c && j < a;
-  ensures (c+j) % a == j;
+  requires a * b == c && j < a
+  ensures (c+j) % a == j
