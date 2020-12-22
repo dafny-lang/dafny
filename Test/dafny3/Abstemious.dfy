@@ -139,12 +139,12 @@ lemma Ones_Correct(n: nat)
 {
 }
 
-colemma OhOnesTail_Correct()
+greatest lemma OhOnesTail_Correct()
   ensures OhOnes().tail == ones()
 {
 }
 
-colemma OhOnes_Correct()
+greatest lemma OhOnes_Correct()
   ensures OhOnes() == Cons(0, ones())
 {
 }
@@ -163,7 +163,7 @@ lemma C_Correct(n: nat, k: int)
 {
 }
 
-colemma CombinePlus_Correct(a: Stream<int>, b: Stream<int>)
+greatest lemma CombinePlus_Correct(a: Stream<int>, b: Stream<int>)
   ensures Combine(plus, a, b) == add(a, b)
 {
 }

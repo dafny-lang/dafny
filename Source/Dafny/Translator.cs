@@ -147,6 +147,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<Field/*!*/,Bpl.Constant/*!*/>/*!*/ fields = new Dictionary<Field/*!*/,Bpl.Constant/*!*/>();
     readonly Dictionary<Field/*!*/, Bpl.Function/*!*/>/*!*/ fieldFunctions = new Dictionary<Field/*!*/, Bpl.Function/*!*/>();
     readonly Dictionary<string, Bpl.Constant> fieldConstants = new Dictionary<string,Constant>();
+    readonly Dictionary<string, Bpl.Constant> tytagConstants = new Dictionary<string,Constant>();
     readonly ISet<string> abstractTypes = new HashSet<string>();
     readonly ISet<string> opaqueTypes = new HashSet<string>();
 
@@ -276,6 +277,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type DtCtorId;
       public readonly Bpl.Type Ty;
       public readonly Bpl.Type TyTag;
+      public readonly Bpl.Type TyTagFamily;
       public readonly Bpl.Expr Null;
       public readonly Bpl.Constant AllocField;
       [ContractInvariantMethod]
@@ -311,6 +313,7 @@ namespace Microsoft.Dafny {
         Contract.Invariant(DtCtorId != null);
         Contract.Invariant(Ty != null);
         Contract.Invariant(TyTag != null);
+        Contract.Invariant(TyTagFamily != null);
         Contract.Invariant(Null != null);
         Contract.Invariant(AllocField != null);
       }
@@ -369,7 +372,7 @@ namespace Microsoft.Dafny {
                              Bpl.Function mapValues, Bpl.Function imapValues, Bpl.Function mapItems, Bpl.Function imapItems,
                              Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1,
                              Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
-                             Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType,
+                             Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType, Bpl.TypeCtorDecl tyTagFamilyType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
                              Bpl.Constant allocField) {
@@ -408,6 +411,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(allocField != null);
         Contract.Requires(tyType != null);
         Contract.Requires(tyTagType != null);
+        Contract.Requires(tyTagFamilyType != null);
         #endregion
 
         this.CharType = new Bpl.CtorType(Token.NoToken, charType, new List<Bpl.Type>());
@@ -441,6 +445,7 @@ namespace Microsoft.Dafny {
         this.HeapVarName = heap.Name;
         this.Ty = new Bpl.CtorType(Token.NoToken, tyType, new List<Bpl.Type>());
         this.TyTag = new Bpl.CtorType(Token.NoToken, tyTagType, new List<Bpl.Type>());
+        this.TyTagFamily = new Bpl.CtorType(Token.NoToken, tyTagFamilyType, new List<Bpl.Type>());
         this.ClassNameType = new Bpl.CtorType(Token.NoToken, classNameType, new List<Bpl.Type>());
         this.NameFamilyType = new Bpl.CtorType(Token.NoToken, nameFamilyType, new List<Bpl.Type>());
         this.DatatypeType = new Bpl.CtorType(Token.NoToken, datatypeType, new List<Bpl.Type>());
@@ -484,6 +489,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeSynonymDecl bv0TypeDecl = null;
       Bpl.TypeCtorDecl tyType = null;
       Bpl.TypeCtorDecl tyTagType = null;
+      Bpl.TypeCtorDecl tyTagFamilyType = null;
       Bpl.TypeCtorDecl nameFamilyType = null;
       Bpl.TypeCtorDecl datatypeType = null;
       Bpl.TypeCtorDecl handleType = null;
@@ -508,6 +514,8 @@ namespace Microsoft.Dafny {
             tyType = dt;
           } else if (dt.Name == "TyTag") {
             tyTagType = dt;
+          } else if (dt.Name == "TyTagFamily") {
+            tyTagFamilyType = dt;
           } else if (dt.Name == "DatatypeType") {
             datatypeType = dt;
           } else if (dt.Name == "HandleType") {
@@ -635,6 +643,8 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Ty");
       } else if (tyTagType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type TyTag");
+      } else if (tyTagFamilyType == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of type TyTagFamily");
       } else if (nameFamilyType == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type NameFamily");
       } else if (datatypeType == null) {
@@ -667,7 +677,7 @@ namespace Microsoft.Dafny {
                                    mapValues, imapValues, mapItems, imapItems,
                                    tuple2Destructors0, tuple2Destructors1,
                                    seqTypeCtor, bv0TypeDecl,
-                                   fieldNameType, tyType, tyTagType,
+                                   fieldNameType, tyType, tyTagType, tyTagFamilyType,
                                    heap, classNameType, nameFamilyType,
                                    datatypeType, handleType, layerType, dtCtorId,
                                    allocField);
@@ -805,7 +815,9 @@ namespace Microsoft.Dafny {
         }
       }
 
-
+      foreach (var c in tytagConstants.Values) {
+        sink.AddTopLevelDeclaration(c);
+      }
       foreach (var c in fieldConstants.Values) {
         sink.AddTopLevelDeclaration(c);
       }
@@ -1238,7 +1250,7 @@ namespace Microsoft.Dafny {
 
       if (dd.Var != null) {
         AddWellformednessCheck(dd);
-        currentModule = dd.Module;
+        currentModule = dd.EnclosingModuleDefinition;
         // Add $Is and $IsAlloc axioms for the newtype
         AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
         AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);
@@ -1257,7 +1269,7 @@ namespace Microsoft.Dafny {
       if (!Attributes.Contains(dd.Attributes, "axiom")) {
         AddWellformednessCheck(dd);
       }
-      currentModule = dd.Module;
+      currentModule = dd.EnclosingModuleDefinition;
       // Add $Is and $IsAlloc axioms for the subset type
       AddRedirectingTypeDeclAxioms(false, dd, dd.FullName);
       AddRedirectingTypeDeclAxioms(true, dd, dd.FullName);
@@ -2241,7 +2253,7 @@ namespace Microsoft.Dafny {
           if (f is ConstantField) {
             // The following call has the side effect of idempotently creating and adding the function to the sink's top-level declarations
             Contract.Assert(currentModule == null);
-            currentModule = f.EnclosingClass.Module;
+            currentModule = f.EnclosingClass.EnclosingModuleDefinition;
             var oldFuelContext = fuelContext;
             fuelContext = FuelSetting.NewFuelContext(f);
             var boogieFunction = GetReadonlyField(f);
@@ -2339,12 +2351,11 @@ namespace Microsoft.Dafny {
     /// This happens when the following conditions all hold:
     ///   - "f" has a body
     ///   - "f" is not opaque
-    ///   - "f" is declared as protected, then "context" is the current module and parameter "revealProtectedBody" is passed in as "true".
     /// </summary>
     static bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, VisibilityScope scope, bool revealProtectedBody) {
       Contract.Requires(f != null);
       Contract.Requires(context != null);
-      return f.Body != null && !IsOpaqueFunction(f) && f.IsRevealedInScope(scope) && (!f.IsProtected || (revealProtectedBody && f.EnclosingClass.Module == context));
+      return f.Body != null && !IsOpaqueFunction(f) && f.IsRevealedInScope(scope);
     }
     static bool IsOpaqueFunction(Function f) {
       Contract.Requires(f != null);
@@ -2359,7 +2370,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
 
-      currentModule = f.EnclosingClass.Module;
+      currentModule = f.EnclosingClass.EnclosingModuleDefinition;
       codeContext = f;
 
       // declare function
@@ -2388,7 +2399,7 @@ namespace Microsoft.Dafny {
         sink.AddTopLevelDeclaration(FunctionOverrideAxiom(f.OverriddenFunction, f));
       }
 
-      // supply the connection between inductive/coinductive predicates and prefix predicates
+      // supply the connection between least/greatest predicates and prefix predicates
       if (f is ExtremePredicate) {
         AddPrefixPredicateAxioms(((ExtremePredicate)f).PrefixPredicate);
       }
@@ -2429,7 +2440,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(currentModule == null && codeContext == null);
       Contract.Ensures(Contract.Result<Bpl.Procedure>() != null);
 
-      currentModule = iter.Module;
+      currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
       var etran = new ExpressionTranslator(this, predef, iter.tok);
@@ -2505,7 +2516,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
 
-      currentModule = iter.Module;
+      currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
       List<Variable> inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
@@ -2637,7 +2648,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
       Contract.Ensures(currentModule == null && codeContext == null && yieldCountVariable == null && _tmpIEs.Count == 0);
 
-      currentModule = iter.Module;
+      currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
       List<Variable> inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
@@ -2979,7 +2990,7 @@ namespace Microsoft.Dafny {
         pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, null, substMap)));
       }
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
-      var mod = f.EnclosingClass.Module;
+      var mod = f.EnclosingClass.EnclosingModuleDefinition;
       Bpl.Expr useViaContext = !InVerificationScope(f) ? Bpl.Expr.True :
         (Bpl.Expr)Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
@@ -3025,7 +3036,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
       Contract.Requires(etran != null);
       Contract.Requires(VisibleInScope(f));
-      var module = f.EnclosingClass.Module;
+      var module = f.EnclosingClass.EnclosingModuleDefinition;
 
       if (InVerificationScope(f)) {
         return
@@ -3257,7 +3268,7 @@ namespace Microsoft.Dafny {
       }
 
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
-      ModuleDefinition mod = f.EnclosingClass.Module;
+      ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
       Bpl.Expr useViaContext = !InVerificationScope(f) ? (Bpl.Expr)Bpl.Expr.True :
         Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
       // ante := (useViaContext && typeAnte && pre)
@@ -3289,7 +3300,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Trigger tr = BplTriggerHeap(this, f.tok, funcAppl, readsHeap ? etran.HeapExpr : null);
       Bpl.Expr tastyVegetarianOption; // a.k.a. the "meat" of the operation :)
-      if (!RevealedInScope(f) || (f.IsProtected && !InVerificationScope(f))) {
+      if (!RevealedInScope(f)) {
         tastyVegetarianOption = Bpl.Expr.True;
       } else {
         var bodyWithSubst = Substitute(body, receiverReplacement, substMap);
@@ -3436,7 +3447,7 @@ namespace Microsoft.Dafny {
       }
 
       // useViaContext: (mh != ModuleContextHeight || fh != FunctionContextHeight)
-      ModuleDefinition mod = f.EnclosingClass.Module;
+      ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
       Bpl.Expr useViaContext = !InVerificationScope(overridingFunction) ? (Bpl.Expr)Bpl.Expr.True :
         Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(overridingFunction)), etran.FunctionContextHeight());
 
@@ -3549,12 +3560,12 @@ namespace Microsoft.Dafny {
     /// "body" is the body of P.  Return what would be the body of the prefix predicate pp.
     /// In particular, return
     /// #if _k has type nat:
-    ///   0 LESS _k  IMPLIES  body'                        // for co-inductive predicates
-    ///   0 LESS _k  AND  body'                            // for inductive predicates
+    ///   0 LESS _k  IMPLIES  body'                        // for greatest predicates
+    ///   0 LESS _k  AND  body'                            // for least predicates
     /// #elsif _k has type ORDINAL:
     ///   (0 LESS ORD#Offset(_k)  IMPLIES  body') AND
-    ///   (0 == ORD#Offset(_k) IMPLIES forall _k':ORDINAL :: _k' LESS _k ==> pp(_k', args))  // for co-inductive predicates
-    ///   (0 == ORD#Offset(_k) IMPLIES exists _k':ORDINAL :: _k' LESS _k && pp(_k', args))   // for inductive predicates
+    ///   (0 == ORD#Offset(_k) IMPLIES forall _k':ORDINAL :: _k' LESS _k ==> pp(_k', args))  // for greatest predicates
+    ///   (0 == ORD#Offset(_k) IMPLIES exists _k':ORDINAL :: _k' LESS _k && pp(_k', args))   // for least predicates
     /// #endif
     /// where body' is body with the formals of P replaced by the corresponding
     /// formals of pp and with self-calls P(s) replaced by recursive calls to
@@ -3604,7 +3615,7 @@ namespace Microsoft.Dafny {
 
         Attributes triggerAttr = new Attributes("trigger", new List<Expression> { ppCall }, null);
         Expression limitCalls;
-        if (pp.ExtremePred is CoPredicate) {
+        if (pp.ExtremePred is GreatestPredicate) {
           // forall k':ORDINAL | _k' LESS _k :: pp(_k', args)
           var smaller = Expression.CreateLess(kprime, k);
           limitCalls = new ForallExpr(pp.tok, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr);
@@ -3613,7 +3624,7 @@ namespace Microsoft.Dafny {
           // exists k':ORDINAL | _k' LESS _k :: pp(_k', args)
           // Here, instead of using the usual ORD#Less, we use the semantically equivalent ORD#LessThanLimit, because this
           // allows us to write a good trigger for a targeted monotonicity axiom.  That axiom, in turn, makes the
-          // automatic verification more powerful for inductive lemmas that have more than one focal-predicate term.
+          // automatic verification more powerful for least lemmas that have more than one focal-predicate term.
           var smaller = new BinaryExpr(kprime.tok, BinaryExpr.Opcode.Lt, kprime, k) {
             ResolvedOp = BinaryExpr.ResolvedOpcode.LessThanLimit,
             Type = Type.Bool
@@ -3627,7 +3638,7 @@ namespace Microsoft.Dafny {
       } else {
         // 0 < k
         var kIsPositive = Expression.CreateLess(Expression.CreateIntLiteral(pp.tok, 0), k);
-        if (pp.ExtremePred is CoPredicate) {
+        if (pp.ExtremePred is GreatestPredicate) {
           // add antecedent "0 < _k ==>"
           return Expression.CreateImplies(kIsPositive, body);
         } else {
@@ -3797,8 +3808,8 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// In the following,
-    /// if "pp" is a co-predicate, then QQQ and NNN and HHH and EEE stand for "forall" and "" and "==>" and REVERSE-IMPLIES, and
-    /// if "pp" is an inductive predicate, then QQQ and NNN and HHH and EEE stand for "exists" and "!" and "&&" and "==>".
+    /// if "pp" is a greatest predicate, then QQQ and NNN and HHH and EEE stand for "forall" and "" and "==>" and REVERSE-IMPLIES, and
+    /// if "pp" is a least predicate, then QQQ and NNN and HHH and EEE stand for "exists" and "!" and "&&" and "==>".
     /// ==========  For co-predicates:
     /// Add the axioms:
     ///   forall args :: P(args) ==> QQQ k: nat :: P#[k](args)
@@ -3814,7 +3825,7 @@ namespace Microsoft.Dafny {
     /// means:
     ///   mh LESS ModuleContextHeight ||
     ///   (mh == ModuleContextHeight && fh ATMOST FunctionContextHeight)
-    /// There is also a specialized version of (*) for inductive predicates.
+    /// There is also a specialized version of (*) for least predicates.
     /// </summary>
     void AddPrefixPredicateAxioms(PrefixPredicate pp) {
       Contract.Requires(pp != null);
@@ -3920,7 +3931,7 @@ namespace Microsoft.Dafny {
 
       // forall args :: { P(args) } args-have-appropriate-values && P(args) ==> QQQ k { P#[k](args) } :: 0 ATMOST k HHH P#[k](args)
       var tr = BplTrigger(prefixAppl);
-      var qqqK = pp.ExtremePred is CoPredicate ?
+      var qqqK = pp.ExtremePred is GreatestPredicate ?
         (Bpl.Expr)new Bpl.ForallExpr(tok, new List<Variable> { k }, tr, kWhere == null ? prefixAppl : BplImp(kWhere, prefixAppl)) :
         (Bpl.Expr)new Bpl.ExistsExpr(tok, new List<Variable> { k }, tr, kWhere == null ? prefixAppl : BplAnd(kWhere, prefixAppl));
       tr = BplTriggerHeap(this, tok, coAppl, AlwaysUseHeap || pp.ReadsHeap ? null : h);
@@ -3942,7 +3953,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr.Literal(0));
       funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
       Bpl.Expr prefixLimitedBody = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
-      Bpl.Expr prefixLimited = pp.ExtremePred is InductivePredicate ? Bpl.Expr.Not(prefixLimitedBody) : prefixLimitedBody;
+      Bpl.Expr prefixLimited = pp.ExtremePred is LeastPredicate ? Bpl.Expr.Not(prefixLimitedBody) : prefixLimitedBody;
 
       var trigger = BplTriggerHeap(this, prefixLimitedBody.tok, prefixLimitedBody, AlwaysUseHeap || pp.ReadsHeap ? null : h);
       var trueAtZero = new Bpl.ForallExpr(tok, moreBvs, trigger, BplImp(BplAnd(ante, z), prefixLimited));
@@ -3964,7 +3975,7 @@ namespace Microsoft.Dafny {
       funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
       var prefixPred_K = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
       var prefixPred_M = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimitedM);
-      var direction = pp.ExtremePred is InductivePredicate ? BplImp(prefixPred_K, prefixPred_M) : BplImp(prefixPred_M, prefixPred_K);
+      var direction = pp.ExtremePred is LeastPredicate ? BplImp(prefixPred_K, prefixPred_M) : BplImp(prefixPred_M, prefixPred_K);
 
       var trigger2 = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { prefixPred_K, prefixPred_M });
       var monotonicity = new Bpl.ForallExpr(tok, moreBvs, trigger2, BplImp(smaller, direction));
@@ -3972,8 +3983,8 @@ namespace Microsoft.Dafny {
         "prefix predicate monotonicity axiom"));
 #endif
       // A more targeted monotonicity axiom used to increase the power of automation for proving the limit case for
-      // inductive predicates that have more than one focal-predicate term.
-      if (pp.ExtremePred is InductivePredicate && pp.Formals[0].Type.IsBigOrdinalType) {
+      // least predicates that have more than one focal-predicate term.
+      if (pp.ExtremePred is LeastPredicate && pp.Formals[0].Type.IsBigOrdinalType) {
         // forall args,k,m,limit ::
         //   { P#[k](args), ORD#LessThanLimit(k,limit), ORD#LessThanLimit(m,limit) }
         //   args-have-appropriate-values && k < m && P#[k](args) ==> P#[m](args))
@@ -4355,7 +4366,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
 
-      currentModule = m.EnclosingClass.Module;
+      currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       isAllocContext = new IsAllocContext(m.IsGhost);
 
@@ -4759,7 +4770,7 @@ namespace Microsoft.Dafny {
 #region first procedure, no impl yet
         //Function nf = new Function(f.tok, "OverrideCheck_" + f.Name, f.IsStatic, f.IsGhost, f.TypeArgs, f.OpenParen, f.Formals, f.ResultType, f.Req, f.Reads, f.Ens, f.Decreases, f.Body, f.Attributes, f.SignatureEllipsis);
         //AddFunction(f);
-        currentModule = f.EnclosingClass.Module;
+        currentModule = f.EnclosingClass.EnclosingModuleDefinition;
         codeContext = f;
 
         Bpl.Expr prevHeap = null;
@@ -5172,7 +5183,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
         Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
 
-        currentModule = m.EnclosingClass.Module;
+        currentModule = m.EnclosingClass.EnclosingModuleDefinition;
         codeContext = m;
         isAllocContext = new IsAllocContext(m.IsGhost);
 
@@ -5901,7 +5912,7 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(InVerificationScope(f));
 
-      currentModule = f.EnclosingClass.Module;
+      currentModule = f.EnclosingClass.EnclosingModuleDefinition;
       codeContext = f;
 
       Bpl.Expr prevHeap = null;
@@ -6129,7 +6140,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      Contract.Assert(currentModule == f.EnclosingClass.Module);
+      Contract.Assert(currentModule == f.EnclosingClass.EnclosingModuleDefinition);
       Contract.Assert(codeContext == f);
       Reset();
     }
@@ -9108,19 +9119,34 @@ namespace Microsoft.Dafny {
         K(argExprs, args, inner);
       };
 
-      // Create the Tag and calling Tag on this type constructor
-      /*
-         const unique TagList: TyTag;
-         axiom (forall t0: Ty :: { List(t0) } Tag(List(t0)) == TagList);
-      */
+      /* Create the Tag and calling Tag on this type constructor
+       *
+       * The common case:
+       *     const unique TagList: TyTag;
+       *     const unique tytagFamily$List: TyTagFamily;  // defined once for each type named "List"
+       *     axiom (forall t0: Ty :: { List(t0) } Tag(List(t0)) == TagList && TagFamily(List(t0)) == tytagFamily$List);
+       * For types obtained via an abstract import, just do:
+       *     const unique tytagFamily$List: TyTagFamily;  // defined once for each type named "List"
+       *     axiom (forall t0: Ty :: { List(t0) } TagFamily(List(t0)) == tytagFamily$List);
+       */
       Helper((argExprs, args, inner) => {
-        Bpl.TypedIdent tag_id = new Bpl.TypedIdent(tok, "Tag" + inner_name, predef.TyTag);
-        Bpl.Constant tag = new Bpl.Constant(tok, tag_id, true);
-        Bpl.Expr tag_expr = new Bpl.IdentifierExpr(tok, tag);
-        Bpl.Expr tag_call = FunctionCall(tok, "Tag", predef.TyTag, inner);
-        Bpl.Expr qq = BplForall(args, BplTrigger(inner), Bpl.Expr.Eq(tag_call, tag_expr));
+        Bpl.Expr body = Bpl.Expr.True;
+
+        if (!td.EnclosingModuleDefinition.IsFacade) {
+          var tagName = "Tag" + inner_name;
+          var tag = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, tagName, predef.TyTag), true);
+          sink.AddTopLevelDeclaration(tag);
+          body = Bpl.Expr.Eq(FunctionCall(tok, "Tag", predef.TyTag, inner), new Bpl.IdentifierExpr(tok, tag));
+        }
+
+        if (!tytagConstants.TryGetValue(td.Name, out var tagFamily)) {
+          tagFamily = new Bpl.Constant(Token.NoToken, new Bpl.TypedIdent(Token.NoToken, "tytagFamily$" + td.Name, predef.TyTagFamily), true);
+          tytagConstants.Add(td.Name, tagFamily);
+        }
+        body = BplAnd(body, Bpl.Expr.Eq(FunctionCall(tok, "TagFamily", predef.TyTagFamily, inner), new Bpl.IdentifierExpr(tok, tagFamily)));
+
+        var qq = BplForall(args, BplTrigger(inner), body);
         sink.AddTopLevelDeclaration(new Axiom(tok, qq, name + " Tag"));
-        sink.AddTopLevelDeclaration(tag);
       });
 
       // Create the injectivity axiom and its function
@@ -9174,15 +9200,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Constant>() != null);
 
-      Bpl.Constant cc;
-      if (classes.TryGetValue(cl, out cc)) {
+      if (classes.TryGetValue(cl, out var cc)) {
         Contract.Assert(cc != null);
       } else {
         var name = cl.FullSanitizedName;
         if (cl is ClassDecl && ((ClassDecl)cl).NonNullTypeDecl != null) {
           name = name + "?";  // TODO: this doesn't seem like the best place to do this name transformation
         }
-        cc = new Bpl.Constant(cl.tok, new Bpl.TypedIdent(cl.tok, "class." + name, predef.ClassNameType), !cl.Module.IsFacade);
+        cc = new Bpl.Constant(cl.tok, new Bpl.TypedIdent(cl.tok, "class." + name, predef.ClassNameType), !cl.EnclosingModuleDefinition.IsFacade);
         classes.Add(cl, cc);
       }
       return cc;
@@ -9192,8 +9217,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(n != null);
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Constant>() != null);
-      Bpl.Constant cc;
-      if (fieldConstants.TryGetValue(n, out cc)) {
+
+      if (fieldConstants.TryGetValue(n, out var cc)) {
         Contract.Assert(cc != null);
       } else {
         cc = new Bpl.Constant(Token.NoToken, new Bpl.TypedIdent(Token.NoToken, "field$" + n, predef.NameFamilyType), true);
@@ -9408,8 +9433,8 @@ namespace Microsoft.Dafny {
     ///    This means that predicates can be inlined in the usual way.
     /// CoCall
     ///    This procedure is suitable for (intra-module) co-calls.
-    ///    In these calls, some uses of copredicates may be replaced by
-    ///    proof certificates.  Note, unless the method is a colemma, there
+    ///    In these calls, some uses of greatest predicates may be replaced by
+    ///    proof certificates.  Note, unless the method is a greatest lemma, there
     ///    is no reason to include a procedure for co-calls.
     /// Implementation
     ///    This procedure is suitable for checking the implementation of the
@@ -9436,7 +9461,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Procedure>() != null);
       Contract.Assert(VisibleInScope(m));
 
-      currentModule = m.EnclosingClass.Module;
+      currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       isAllocContext = new IsAllocContext(m.IsGhost);
 
@@ -12164,9 +12189,9 @@ namespace Microsoft.Dafny {
       // termination check and the need to include an implicit _k-1 argument.
       bool isRecursiveCall = false;
       // consult the call graph to figure out if this is a recursive call
-      var module = method.EnclosingClass.Module;
+      var module = method.EnclosingClass.EnclosingModuleDefinition;
       if (codeContext != null && module == currentModule) {
-        // Note, prefix lemmas are not recorded in the call graph, but their corresponding colemmas are.
+        // Note, prefix lemmas are not recorded in the call graph, but their corresponding greatest lemmas are.
         // Similarly, an iterator is not recorded in the call graph, but its MoveNext method is.
         ICallable cllr =
           codeContext is PrefixLemma ? ((PrefixLemma)codeContext).ExtremeLemma :
@@ -12183,7 +12208,7 @@ namespace Microsoft.Dafny {
         kind = MethodTranslationKind.CoCall;
         callee = ((ExtremeLemma)method).PrefixLemma;
       } else if (method is PrefixLemma) {
-        // an explicit call to a prefix lemma is allowed only inside the SCC of the corresponding colemma,
+        // an explicit call to a prefix lemma is allowed only inside the SCC of the corresponding greatest lemma,
         // so we consider this to be a co-call
         kind = MethodTranslationKind.CoCall;
       } else {
@@ -14356,10 +14381,10 @@ namespace Microsoft.Dafny {
       private static void AddFuelContext(FuelContext context, TopLevelDecl decl) {
         FindFuelAttributes(decl.Attributes, context);
 
-        var module = decl.Module;
+        var module = decl.EnclosingModuleDefinition;
         while (module != null) {
           FindFuelAttributes(module.Attributes, context);
-          module = module.Module;
+          module = module.EnclosingModule;
         }
       }
 
@@ -15094,7 +15119,7 @@ namespace Microsoft.Dafny {
             }
             if (e.Function.IsFuelAware()) {
               Statistics_CustomLayerFunctionCount++;
-              ModuleDefinition module = e.Function.EnclosingClass.Module;
+              ModuleDefinition module = e.Function.EnclosingClass.EnclosingModuleDefinition;
               if (etran.applyLimited_CurrentFunction != null &&
                 etran.layerIntraCluster != null &&
                 ModuleDefinition.InSameSCC(e.Function, applyLimited_CurrentFunction)) {
@@ -17318,7 +17343,7 @@ namespace Microsoft.Dafny {
         var fexp = (FunctionCallExpr)expr;
         var f = fexp.Function;
         Contract.Assert(f != null);  // filled in during resolution
-        var module = f.EnclosingClass.Module;
+        var module = f.EnclosingClass.EnclosingModuleDefinition;
         var functionHeight = module.CallGraph.GetSCCRepresentativeId(f);
 
         if (functionHeight < heightLimit && f.Body != null && RevealedInScope(f) && !(f.Body.Resolved is MatchExpr)) {
@@ -17966,7 +17991,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(depth != null);
         extremePred = extremePredicate;
         unrollDepth = depth;
-        module = extremePredicate.EnclosingClass.Module;
+        module = extremePredicate.EnclosingClass.EnclosingModuleDefinition;
       }
       public override Expression Substitute(Expression expr) {
         if (expr is FunctionCallExpr) {

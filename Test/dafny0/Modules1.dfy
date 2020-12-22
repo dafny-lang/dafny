@@ -65,8 +65,11 @@ method Botch1(x: int)
 // ------ modules ------------------------------------------------
 
 module A_Visibility {
+  export
+    provides C, C.P
+
   class C {
-    protected static predicate P(x: int)
+    static predicate P(x: int)
       ensures P(x) ==> -10 <= x;
     {
       0 <= x

@@ -442,7 +442,7 @@ Sequences of characters represent _strings_, as described in Section
 
 Character values can be converted to and from `int` values using the
 `as int` and `as char` conversion operations. The result is what would
-be expected in other programming langauges, namely, the 'int` value of a
+be expected in other programming languages, namely, the 'int` value of a
 `char` is the ACSII or unicode numeric value.
 
 The only other operations on characters are obtaining a character
@@ -458,7 +458,7 @@ GenericParameters =
 
 TPChars = "(" TPCharOption { "," TPCharOption } ")"
 
-TPCharOption = ( "==" | "0" | "!" "new )
+TPCharOption = ( "==" | "0" | "!" "new" )
 ````
 Many of the types, functions, and methods in Dafny can be
 parameterized by types.  These _type parameters_ are typically
@@ -481,7 +481,7 @@ will add the appropriate suffix, such as `(==)`, automatically.
 If more than one restriction is needed, they are listed, comma-separated,
 inside the parentheses, like this: `T(==,0)`.
 
-### Equality-supporting type parameters: `T(==)`
+### Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
 
 Designating a type parameter with the `(==)` suffix indicates that
 the parameter may only be replaced in non-ghost contexts
@@ -590,8 +590,8 @@ For any type `T`, each value of type `set<T>` is a finite set of
 `T` values.
 
 Set membership is determined by equality in the type `T`,
-so `set<T>` can be used in a non-ghost context only if `T` is equality
-supporting.
+so `set<T>` can be used in a non-ghost context only if `T` is
+[equality supporting](#sec-equality-supporting).
 
 For any type `T`, each value of type `iset<T>` is a potentially infinite
 set of `T` values.
@@ -656,8 +656,6 @@ expression `e` of type `T`, sets support the following operations:
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
-TODO: Or does the length operator produce an ORDINAL?
-
 ## Multisets
 ````grammar
 MultisetType_ = "multiset" [ GenericInstantiation ]
@@ -673,7 +671,7 @@ number of elements to non-zero (finite) multiplicities.
 
 Like sets, multiset membership is determined by equality in the type
 `T`, so `multiset<T>` can be used in a non-ghost context only if `T`
-is equality supporting.
+is [equality supporting](#sec-equality-supporting).
 
 A multiset can be formed using a _multiset display_ expression, which
 is a possibly empty, unordered list of expressions enclosed in curly
@@ -916,7 +914,7 @@ denotes a _(possibly) infinite map_.  In most regards, `imap<T,U>` is
 like `map<T,U>`, but a map of type `imap<T,U>` is allowed to have an
 infinite domain.
 
-A map can be formed using a _map display_ expression (see ``MapDisplayExpr``),
+A map can be formed using a _map display_ expression (see [``MapDisplayExpr``](#sec-map-display-expression)),
 which is a possibly empty, ordered list of _maplets_, each maplet having the
 form `t := u` where `t` is an expression of type `T` and `u` is an
 expression of type `U`, enclosed in square brackets after the keyword
@@ -1065,7 +1063,7 @@ The optional type parameter characteristics are described in the
 section on [type parameter restrictions](#sec-type-parameter-restrictions)
 
 
-# Class Types
+# Class Types {#sec-class-types}
 
 ````grammar
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
@@ -1188,8 +1186,6 @@ Fields that are declared as `ghost` can only be used in specifications,
 not in code that will be compiled into executable code.
 
 Fields may not be declared static.
-
-`protected` is not allowed for fields.
 
 ## Method Declarations
 ````grammar
@@ -1534,30 +1530,22 @@ A function is usually transparent up to some unrolling level (up to
 1, or maybe 2 or 3). If its arguments are all literals it is
 transparent all the way.
 
-**The protected modifier is being deprecated**
-
-But the transparency of a function is affected by the following:
-
-* whether the function was declared to be protected, and
-* whether the function was given the `{:opaque}` attribute (as explained
+But the transparency of a function is affected by
+whether the function was given the `{:opaque}` attribute (as explained
 in Section [#sec-opaque]).
 
 The following table summarizes where the function is transparent.
 The module referenced in the table is the module in which the
 function is defined.
 
- Protected? | `{:opaque}`? | Transparent Inside Module | Transparent Outside Module
-:----------:|:------------:|:-----------:|:-----------:
- N          | N            | Y           | Y
- Y          | N            | Y           | N
- N          | Y            | N           | N
+ `{:opaque}`? | Transparent Inside Module | Transparent Outside Module
+:------------:|:-----------:|:-----------:
+ N            | Y           | Y
+ Y            | N           | N
 
 When `{:opaque}` is specified for function `g`, `g` is opaque,
 however the lemma `reveal_g` is available to give the semantics
 of `g` whether in the defining module or outside.
-
-It currently is not allowed to have both `protected` and
-`{:opaque}` specified for a function.
 
 ### Inductive Predicates and Lemmas
 See section [#sec-friendliness] for descriptions
@@ -2862,7 +2850,7 @@ NewtypeDecl = "newtype" { Attribute } NewtypeName "="
   )
 ````
 
-A new numeric type can be declared with the _newtype_
+A new type can be declared with the _newtype_
 declaration, for example:
 ```dafny
 newtype N = x: M | Q
@@ -2885,10 +2873,7 @@ without an explicit conversion.  An important difference between the
 operations on a newtype and the operations on its base type is that
 the newtype operations are defined only if the result satisfies the
 predicate `Q`, and likewise for the literals of the
-newtype.[^fn-newtype-design-question]
-
-[^fn-newtype-design-question]: Would it be useful to also
-    automatically define `predicate N?(x: M) { Q }`?
+newtype.
 
 For example, suppose `lo` and `hi` are integer-based numerics that
 satisfy `0 <= lo <= hi` and consider the following code fragment:
@@ -2917,7 +2902,7 @@ of the newtype.  For example, by scrutinizing the definition of
 `int32` above, a compiler may decide to store `int32` values using
 signed 32-bit integers in the target hardware.
 
-This incompatibility of a newtype and its basetype is intentional,
+The incompatibility of a newtype and its basetype is intentional,
 as newtypes are meant to be used as distinct types from the basetype.
 If numeric types are desired that mix more readily with the basetype,
 the subset types described in a later section may be more appropriate.
@@ -2936,7 +2921,7 @@ and consider a variable `c` of type `int8`.  The expression
 is not well-defined, because the comparisons require each operand to
 have type `int8`, which means the literal `128` is checked to be of
 type `int8`, which it is not.  A proper way to write this expression
-would be to use a conversion operation, described next, on `c` to
+would be to use a conversion operation, described [next](#sec-conversion), on `c` to
 convert it to the base type:
 ```dafny
 -128 <= c as int < 128
@@ -2957,16 +2942,17 @@ known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
 in [Section: Compile-Time Constants](#sec-compile-time-constants).
 
-## Numeric conversion operations
+## Conversion operations {#sec-conversion}
 
-For every numeric type `N`, there is a conversion function with the
-name `as N`.  It is a partial identity function.  It is defined when the
-given value, which can be of any numeric type, is a member of the type
+For every type `N`, there is a conversion operation with the
+name `as N`, described more fully in [a later section](#sec-as-expression).
+It is a partial function defined when the
+given value, which can be of any type, is a member of the type
 converted to.  When the conversion is from a real-based numeric type
 to an integer-based numeric type, the operation requires that the
 real-based argument have no fractional part.  (To round a real-based
 numeric value down to the nearest integer, use the `.Floor` member,
-see Section [#sec-numeric-types].)
+see Section [Numeric Types](#sec-numeric-types).)
 
 To illustrate using the example from above, if `lo` and `hi` have type
 `int32`, then the code fragment can legally be written as follows:
@@ -2984,8 +2970,15 @@ If the compiler does specialize the run-time representation for
 respectively three, run-time conversions.
 
 The `as N` conversion operation is grammatically a suffix operation like
-`.`field and array indexing. Thus the `as` operation binds more tightly than
-prefix or binary operations: `- x as int` is `- (x as int)`; `a + b as int` is `a + (b as int)`.
+`.`field and array indexing, but binds less tightly than unary operations:
+`- x as int` is `(- x) as int`; `a + b as int` is `a + (b as int)`.
+
+There is also a corresponding [`is` operation](#sec-as-expression) that
+tests whether a value is valid for a given type. For example, `-5 is nat` is
+false. So `e as T` is well-defined exactly when `e is T` is true.
+For a newtype or subset type, the `is` operation is the predicate that defines
+the type.
+**The `is` operation is not yet implemented**.
 
 # Subset types {#sec-subset-types}
 TO BE WRITTEN: add `-->` (subset of `~>`), `->` (subset of `-->`), non-null types subset of nullable types

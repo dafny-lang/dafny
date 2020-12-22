@@ -37,6 +37,8 @@ namespace Microsoft.Dafny{
     const string DafnyEuclideanClass = "dafny.DafnyEuclidean";
     const string DafnyHelpersClass = "dafny.Helpers";
     const string DafnyTypeDescriptor = "dafny.TypeDescriptor";
+    static string FormatDefaultTypeParameterValue(TypeParameter tp) => FormatDefaultTypeParameterValueName(tp.CompileName);
+    static string FormatDefaultTypeParameterValueName(string tpName) => $"_default_{tpName}";
 
     const string DafnyFunctionIfacePrefix = "dafny.Function";
     const string DafnyMultiArrayClassPrefix = "dafny.Array";
@@ -303,7 +305,7 @@ namespace Microsoft.Dafny{
     public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
-      var modName = mainMethod.EnclosingClass.Module.CompileName == "_module" ? "_System." : "";
+      var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_System." : "";
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
       wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling({companion}::{IdName(mainMethod)});");
@@ -353,7 +355,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr){
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);
@@ -556,7 +558,7 @@ namespace Microsoft.Dafny{
       } else {
         Contract.Assert(cw.CtorBodyWriter != null, "Unexpected instance field");
         cw.InstanceMemberWriter.WriteLine("public {0} {1};", TypeName(type, cw.InstanceMemberWriter, tok), name);
-        cw.CtorBodyWriter.WriteLine("this.{0} = {1};", name, rhs ?? DefaultValue(type, cw.CtorBodyWriter, tok, inAutoInitContext: true));
+        cw.CtorBodyWriter.WriteLine("this.{0} = {1};", name, rhs ?? PlaceboValue(type, cw.CtorBodyWriter, tok));
       }
     }
 
@@ -574,9 +576,9 @@ namespace Microsoft.Dafny{
       Contract.Ensures(Contract.Result<string>() != null);
 
       if (targs == null || targs.Count == 0) {
-        return "";
+        return "";  // ignore suffix
       }
-      return $"<{Util.Comma(targs, tp => IdName(tp))}>{suffix}";
+      return $"<{Util.Comma(targs, IdName)}>{suffix}";
     }
 
     protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
@@ -751,10 +753,10 @@ namespace Microsoft.Dafny{
         return DafnyTupleClass(tupleDecl.TypeArgs.Count);
       } else if (cl is TraitDecl && useCompanionName) {
         return IdProtect(udt.FullCompanionCompileName);
-      } else if (cl.Module.CompileName == ModuleName || cl.Module.IsDefaultModule) {
+      } else if (cl.EnclosingModuleDefinition.CompileName == ModuleName || cl.EnclosingModuleDefinition.IsDefaultModule) {
         return IdProtect(cl.CompileName);
       } else {
-        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
+        return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
       }
     }
 
@@ -1673,10 +1675,11 @@ namespace Microsoft.Dafny{
     }
 
     IClassWriter CompileDatatypeBase(DatatypeDecl dt, TargetWriter wr) {
-      string DtT_TypeArgs = TypeParameters(dt.TypeArgs);
-      string DtT_protected = IdProtect(dt.CompileName) + DtT_TypeArgs;
-      var filename = $"{ModulePath}/{dt}.java";
-      wr = wr.NewFile(filename);
+      var DtT_TypeArgs = TypeParameters(dt.TypeArgs);
+      var justTypeArgs = dt.TypeArgs.Count == 0 ? "" : " " + DtT_TypeArgs;
+      var DtT_protected = IdName(dt) + DtT_TypeArgs;
+      var filename = $"{ModulePath}/{IdName(dt)}.java";
+       wr = wr.NewFile(filename);
       FileCount += 1;
       wr.WriteLine($"// Class {DtT_protected}");
       wr.WriteLine($"// Dafny class {DtT_protected} compiled into Java");
@@ -1684,75 +1687,65 @@ namespace Microsoft.Dafny{
       wr.WriteLine();
       EmitImports(wr, out _);
       wr.WriteLine();
-      // from here on, write everything into the new block created here:
       //TODO: Figure out how to resolve type checking warnings
+      // from here on, write everything into the new block created here:
       EmitSuppression(wr);
       var btw = wr.NewNamedBlock("public{0} class {1}", dt.IsRecordType ? "" : " abstract", DtT_protected);
       wr = btw;
+
       // constructor
       if (dt.IsRecordType) {
         DatatypeFieldsAndConstructor(dt.Ctors[0], 0, wr);
       } else {
         wr.WriteLine($"public {IdName(dt)}() {{ }}");
       }
-      var typeArgsStr = Util.Comma(dt.TypeArgs, IdName);
+
       var usedTypeArgs = UsedTypeParameters(dt);
-      var usedTypeArgsStr = Util.Comma(usedTypeArgs, IdName);
-      var typeDescArgsStr = Util.Comma(usedTypeArgs, FormatTypeDescriptorVariable);
       TargetWriter wDefault;
       wr.WriteLine();
       if (dt.TypeArgs.Count == 0) {
-        wr.Write($"private static final {IdName(dt)} theDefault = ");
+        wr.Write($"private static final {DtT_protected} theDefault = ");
         wDefault = wr.Fork();
         wr.WriteLine(";");
-
-        using (var w = wr.NewNamedBlock($"public static {IdName(dt)} Default()")) {
+        using (var w = wr.NewBlock($"public static {DtT_protected} Default()")) {
           w.WriteLine("return theDefault;");
         }
       } else {
-        wr.Write($"public static <{typeArgsStr}> {dt}<{typeArgsStr}> Default(");
-        wr.Write(Util.Comma(usedTypeArgs, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}"));
-        var w = wr.NewBigBlock(")", "");
-        w.Write("return ");
-        wDefault = w.Fork();
-        w.WriteLine(";");
-      }
-      DatatypeCtor groundingCtor;
-      if (dt is IndDatatypeDecl) {
-        groundingCtor = ((IndDatatypeDecl)dt).GroundingCtor;
-      } else {
-        groundingCtor = ((CoDatatypeDecl) dt).Ctors[0];
-      }
-      string arguments = "";
-      string sep = "";
-      foreach (Formal f in groundingCtor.Formals) {
-        if (!f.IsGhost) {
-          arguments += sep + DefaultValue(f.Type, wDefault, f.Tok);
-          sep = ", ";
+        wr.Write($"public static{justTypeArgs} {DtT_protected} Default(");
+        wr.Write(Util.Comma(usedTypeArgs, tp => $"{tp.CompileName} {FormatDefaultTypeParameterValue(tp)}"));
+        using (var w = wr.NewBlock(")")) {
+          w.Write("return ");
+          wDefault = w.Fork();
+          w.WriteLine(";");
         }
       }
-      EmitDatatypeValue(dt, groundingCtor, dt is CoDatatypeDecl, arguments, wDefault);
+      var groundingCtor = dt.GetGroundingCtor();
+      var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
+      var arguments = Util.Comma(nonGhostFormals, f => DefaultValue(f.Type, wDefault, f.tok));
+      EmitDatatypeValue(dt, groundingCtor, null, dt is CoDatatypeDecl, arguments, wDefault);
+
       var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(dt.tok, dt, null), wr, dt.tok);
-      EmitTypeMethod(dt, IdName(dt), dt.TypeArgs, usedTypeArgs, targetTypeName, $"Default({typeDescArgsStr})", wr);
+      arguments = Util.Comma(usedTypeArgs, tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, true));
+      EmitTypeMethod(dt, IdName(dt), dt.TypeArgs, usedTypeArgs, targetTypeName, $"Default({arguments})", wr);
+
       // create methods
-      // TODO:  Need to revisit this. Java cannot reference generic types in a static context, so this wont work.
-      // (Yes, it can: public static <T1, T2> Foo create_Bar(T1 arg1, T2 arg2) { ... })
-//      foreach (var ctor in dt.Ctors) {
-//        wr.Write("public static {0} {1}(", DtT_protected, DtCreateName(ctor));
-//        WriteFormals("", ctor.Formals, wr);
-//        var w = wr.NewBlock(")");
-//        w.Write("return new {0}(", DtCtorDeclarationName(ctor, dt.TypeArgs));
-//        var sep = "";
-//        var i = 0;
-//        foreach (var arg in ctor.Formals) {
-//          if (!arg.IsGhost) {
-//            w.Write("{0}{1}", sep, FormalName(arg, i));
-//            sep = ", ";
-//            i++;
-//          }
-//        }
-//        w.WriteLine(");");
-//      }
+      foreach (var ctor in dt.Ctors) {
+        wr.Write("public static{0} {1} {2}(", justTypeArgs, DtT_protected, DtCreateName(ctor));
+        WriteFormals("", ctor.Formals, wr);
+        var w = wr.NewBlock(")");
+        w.Write("return new {0}(", DtCtorDeclarationName(ctor, dt.TypeArgs));
+        var sep = "";
+        var i = 0;
+        foreach (var arg in ctor.Formals) {
+          if (!arg.IsGhost) {
+            w.Write("{0}{1}", sep, FormalName(arg, i));
+            sep = ", ";
+            i++;
+          }
+        }
+        w.WriteLine(");");
+      }
+
       // query properties
       foreach (var ctor in dt.Ctors) {
         if (dt.IsRecordType) {
@@ -1939,7 +1932,7 @@ namespace Microsoft.Dafny{
         if (dt is TupleTypeDecl) {
           nm = "";
         } else {
-          nm = (dt.Module.IsDefaultModule ? "" : dt.Module.Name + ".") + dt.Name + "." + ctor.Name;
+          nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
         }
         if (dt is TupleTypeDecl && ctor.Formals.Count == 0) {
           // here we want parentheses and no name
@@ -1976,7 +1969,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    string DtCtorDeclarationName(DatatypeCtor ctor, List<TypeParameter> typeParams) {
+    string DtCtorDeclarationName(DatatypeCtor ctor, List<TypeParameter>/*?*/ typeParams) {
       Contract.Requires(ctor != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
@@ -2523,26 +2516,16 @@ namespace Microsoft.Dafny{
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
-      EmitDatatypeValue(dt, dtv.Ctor, dtv.IsCoCall, arguments, wr);
+      EmitDatatypeValue(dt, dtv.Ctor, dtv.InferredTypeArgs, dtv.IsCoCall, arguments, wr);
     }
 
-    void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, bool isCoCall, string arguments, TargetWriter wr) {
-      var dtName = dt is TupleTypeDecl tupleDecl ? DafnyTupleClass(tupleDecl.TypeArgs.Count) : dt.CompileName;
-      var ctorName = ctor.CompileName;
-      var typeParams = dt.TypeArgs.Count == 0 ? "" : "<>";
-      //TODO: Determine if this implementation is ever needed
-//      var typeDecl = dtv.InferredTypeArgs.Count == 0
-//        ? ""
-//        : string.Format("new {0}", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
+    void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, List<Type>/*?*/ typeArgs, bool isCoCall, string arguments, TargetWriter wr) {
+      var dtName = dt is TupleTypeDecl tupleDecl ? DafnyTupleClass(tupleDecl.TypeArgs.Count) : dt.FullCompileName;
+      var typeParams = typeArgs == null || typeArgs.Count == 0 ? "" : $"<{BoxedTypeNames(typeArgs, wr, dt.tok)}>";
       if (!isCoCall) {
-        wr.Write("new {0}{1}{2}", dtName, dt.IsRecordType ? "" : "_" + ctorName, typeParams);
         // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
-        //   new Dt_Cons<T>( args )
-        if (arguments != null && !arguments.Equals("")){
-          wr.Write($"({arguments})");
-        } else {
-          wr.Write("()");
-        }
+        //   Dt.<T>create_Cons( args )
+        wr.Write($"{dtName}.{typeParams}{DtCreateName(ctor)}({arguments})");
       } else {
         wr.Write($"new {dt.CompileName}__Lazy(");
         wr.Write("() -> { return ");
@@ -2858,8 +2841,10 @@ namespace Microsoft.Dafny{
     }
 
     public void CompileTuples(string path){
-      foreach(int i in tuples) {
-        if (i == 2 || i == 3) continue; // Tuple2 and Tuple3 already exist in DafnyRuntime.jar, so don't remake these files.
+      foreach (int i in tuples) {
+        if (i == 2 || i == 3) {
+          continue; // Tuple2 and Tuple3 already exist in DafnyRuntime.jar, so don't remake these files.
+        }
         CreateTuple(i, path);
       }
     }
@@ -2869,8 +2854,7 @@ namespace Microsoft.Dafny{
       wrTop.WriteLine("package dafny;");
       wrTop.WriteLine();
       EmitSuppression(wrTop);
-      wrTop.Write("public class Tuple");
-      wrTop.Write(i);
+      wrTop.Write($"public class Tuple{i}");
       if (i != 0) {
         wrTop.Write("<{0}>", Util.Comma(i, j => $"T{j}"));
       }
@@ -2888,12 +2872,13 @@ namespace Microsoft.Dafny{
         }
       }
 
+      wr.WriteLine();
       var typeParams = new List<TypeParameter>();
       for (var j = 0; j < i; j++) {
         typeParams.Add(new TypeParameter(Bpl.Token.NoToken, $"T{j}", TypeParameter.TPVarianceSyntax.Covariant_Permissive));
       }
       var typeParamString = TypeParameters(typeParams);
-      var initializer = string.Format("Default({0})", Util.Comma(i, j => $"_td_T{j}"));
+      var initializer = string.Format("Default({0})", Util.Comma(i, j => $"_td_T{j}.defaultValue()"));
       EmitTypeMethod(null, $"Tuple{i}", typeParams, typeParams, $"Tuple{i}{typeParamString}", initializer, wr);
 
       // public static Tuple4<T0, T1, T2, T3> Default(dafny.TypeDescriptor<T0> _td_T0, dafny.TypeDescriptor<T1> _td_T1, dafny.TypeDescriptor<T2> _td_T2, dafny.TypeDescriptor<T3> _td_T3) {
@@ -2905,9 +2890,21 @@ namespace Microsoft.Dafny{
       } else {
         wr.Write("public static <{1}> Tuple{0}<{1}>", i, Util.Comma(i, j => $"T{j}"));
       }
-      wr.Write(" Default({0})", Util.Comma(i, j => $"{DafnyTypeDescriptor}<T{j}> _td_T{j}"));
+      wr.Write(" Default({0})", Util.Comma(i, j => $"T{j} {FormatDefaultTypeParameterValueName($"T{j}")}"));
       using (var w = wr.NewBlock("")) {
-        w.WriteLine("return new Tuple{0}{1}({2});", i, i == 0 ? "" : "<>", Util.Comma(i, j => $"_td_T{j}.defaultValue()"));
+        w.WriteLine("return create({0});", Util.Comma(i, j => $"{FormatDefaultTypeParameterValueName($"T{j}")}"));
+      }
+
+      // create method
+      wr.WriteLine();
+      if (i == 0) {
+        wr.Write("public static Tuple0");
+      } else {
+        wr.Write("public static <{1}> Tuple{0}<{1}>", i, Util.Comma(i, j => $"T{j}"));
+      }
+      wr.Write(" create({0})", Util.Comma(i, j => $"T{j} _{j}"));
+      using (var w = wr.NewBlock("")) {
+        w.WriteLine("return new Tuple{0}({1});", i, Util.Comma(i, j => $"_{j}"));
       }
 
       wr.WriteLine();
@@ -2962,7 +2959,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    public override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool inAutoInitContext, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
+    public override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is BoolType) {
         return "false";
@@ -2987,12 +2984,15 @@ namespace Microsoft.Dafny{
         }
         return $"{collName}.<{argNames}> empty({td})";
       }
+
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
+        if (usePlaceboValue && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
           return "null";
-        } else {
+        } else if (constructTypeParameterDefaultsFromTypeDescriptors) {
           return $"{FormatTypeDescriptorVariable(udt.ResolvedParam.CompileName)}.defaultValue()";
+        } else {
+          return FormatDefaultTypeParameterValue(udt.ResolvedParam);
         }
       }
       var cl = udt.ResolvedClass;
@@ -3004,11 +3004,11 @@ namespace Microsoft.Dafny{
         } else if (td.NativeType != null) {
           return GetNativeDefault(td.NativeType);
         } else {
-          return TypeInitializationValue(td.BaseType, wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors);
+          return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
-        if (td.Witness != null) {
+        if (td.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
           return FullTypeName(udt) + ".defaultValue()";
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
           // WKind.Special is only used with -->, ->, and non-null types:
@@ -3016,7 +3016,7 @@ namespace Microsoft.Dafny{
           if (ArrowType.IsPartialArrowTypeName(td.Name)) {
             return $"(({BoxedTypeName(xType, wr, udt.tok)}) null)";
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
-            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors);
+            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) -> rangeDefaultValue)
             return $"(({Util.Comma(udt.TypeArgs.Count - 1, i => $"{BoxedTypeName(udt.TypeArgs[i], wr, udt.tok)} x{i}")}) -> {rangeDefaultValue})";
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
@@ -3047,7 +3047,7 @@ namespace Microsoft.Dafny{
             return "null";
           }
         } else {
-          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, inAutoInitContext, constructTypeParameterDefaultsFromTypeDescriptors);
+          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is ClassDecl) {
         bool isHandle = true;
@@ -3066,11 +3066,11 @@ namespace Microsoft.Dafny{
         // access to all the type descriptors, so we can't construct the
         // default value, but then null is an acceptable default, since
         // Dafny proves the value won't be accessed.
-        if (inAutoInitContext) {
+        if (usePlaceboValue) {
           return $"({s}{typeargs})null";
         }
-        var usedTypeArgs = UsedTypeParameters(dt, udt.TypeArgs);
-        return $"{s}.{typeargs}Default({Util.Comma(usedTypeArgs, ta => TypeDescriptor(ta.Actual, wr, tok))})";
+        var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs);
+        return $"{s}.{typeargs}Default({Util.Comma(relevantTypeArgs, ta => DefaultValue(ta.Actual, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})";
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException(); // unexpected type
@@ -3089,7 +3089,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type> superClasses, Bpl.IToken tok, TargetWriter wr) {
-      var filename = $"{ModulePath}/{name}.java";
+      var filename = $"{ModulePath}/{IdProtect(name)}.java";
       var w = wr.NewFile(filename);
       FileCount += 1;
       w.WriteLine($"// Interface {name}");
@@ -3360,7 +3360,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr){
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.CompileName), IdName(nt), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var nativeType = GetBoxedNativeTypeName(nt.NativeType);
@@ -3445,7 +3445,7 @@ namespace Microsoft.Dafny{
         wBareArray = wr.Fork();
         wr.Write(")");
         if (mustInitialize) {
-          wr.Write($".fillThenReturn({DefaultValue(elmtType, wr, tok)})");
+          wr.Write($".fillThenReturn({DefaultValue(elmtType, wr, tok, true)})");
         }
       } else {
         if (!elmtType.IsTypeParameter) {
@@ -3456,7 +3456,7 @@ namespace Microsoft.Dafny{
         }
         wBareArray = wr.Fork();
         if (mustInitialize) {
-          wr.Write($", {DefaultValue(elmtType, wr, tok)})");
+          wr.Write($", {DefaultValue(elmtType, wr, tok, true)})");
         }
       }
 

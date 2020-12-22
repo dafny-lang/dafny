@@ -1,0 +1,2 @@
+git-issue-864.dfy(13,8): Error: T1 in M2 redeclares a name in the refinement base M1
+1 resolution/type errors detected in git-issue-864.dfy

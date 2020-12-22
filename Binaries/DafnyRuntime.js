@@ -71,6 +71,9 @@ let _dafny = (function() {
       }
       return true;
     }
+    static Default(...values) {
+      return Tuple.of(...values);
+    }
     static Rtd(...rtdArgs) {
       return {
         Default: Tuple.from(rtdArgs, rtd => rtd.Default)

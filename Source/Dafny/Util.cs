@@ -224,14 +224,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(errors != null);
       if (performThisDeprecationCheck) {
         if (fe.E is ThisExpr) {
-          errors.Deprecated(fe.E.tok, "Dafny's constructors no longer need 'this' to be listed in modifies clauses");
+          errors.Deprecated(fe.E.tok, "constructors no longer need 'this' to be listed in modifies clauses");
           return;
         } else if (fe.E is SetDisplayExpr) {
           var s = (SetDisplayExpr)fe.E;
           var deprecated = s.Elements.FindAll(e => e is ThisExpr);
           if (deprecated.Count != 0) {
             foreach (var e in deprecated) {
-              errors.Deprecated(e.tok, "Dafny's constructors no longer need 'this' to be listed in modifies clauses");
+              errors.Deprecated(e.tok, "constructors no longer need 'this' to be listed in modifies clauses");
             }
             s.Elements.RemoveAll(e => e is ThisExpr);
             if (s.Elements.Count == 0) {
@@ -295,7 +295,7 @@ namespace Microsoft.Dafny {
 
       foreach (var vertex in functionCallGraph.GetVertices()) {
         var func = vertex.N;
-        Console.Write("{0},{1}=", func.CompileName, func.EnclosingClass.Module.CompileName);
+        Console.Write("{0},{1}=", func.CompileName, func.EnclosingClass.EnclosingModuleDefinition.CompileName);
         foreach (var callee in vertex.Successors) {
           Console.Write("{0} ", callee.N.CompileName);
         }
@@ -405,9 +405,9 @@ namespace Microsoft.Dafny {
       string key = include.includerFilename == null ? "roots" : include.includerFilename;
       bool found = dependencies.TryGetValue(key, out existingDependencies);
       if (found) {
-        existingDependencies.Add(include.includedFullPath);
+        existingDependencies.Add(include.canonicalPath);
       } else {
-        dependencies[key] = new SortedSet<string>() { include.includedFullPath };
+        dependencies[key] = new SortedSet<string>() { include.canonicalPath };
       }
     }
 

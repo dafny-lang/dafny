@@ -17,14 +17,14 @@ codatatype Stream<A> = Cons(hd: A, tl: Stream)
 // --------------------------------------------------------------------------
 
 // A co-predicate is defined as a largest fix-point.
-copredicate LexLess[nat](s: Stream<int>, t: Stream<int>)
+greatest predicate LexLess[nat](s: Stream<int>, t: Stream<int>)
 {
   s.hd <= t.hd &&
   (s.hd == t.hd ==> LexLess(s.tl, t.tl))
 }
 
 // A co-lemma is used to establish the truth of a co-predicate.
-colemma Theorem1_LexLess_Is_Transitive[nat](s: Stream<int>, t: Stream<int>, u: Stream<int>)
+greatest lemma Theorem1_LexLess_Is_Transitive[nat](s: Stream<int>, t: Stream<int>, u: Stream<int>)
   requires LexLess(s, t) && LexLess(t, u)
   ensures LexLess(s, u)
 {
@@ -39,7 +39,7 @@ colemma Theorem1_LexLess_Is_Transitive[nat](s: Stream<int>, t: Stream<int>, u: S
 }
 
 // Actually, Dafny can do the proof of the previous lemma completely automatically.  Here it is:
-colemma Theorem1_LexLess_Is_Transitive_Automatic[nat](s: Stream<int>, t: Stream<int>, u: Stream<int>)
+greatest lemma Theorem1_LexLess_Is_Transitive_Automatic[nat](s: Stream<int>, t: Stream<int>, u: Stream<int>)
   requires LexLess(s, t) && LexLess(t, u)
   ensures LexLess(s, u)
 {
@@ -68,7 +68,7 @@ lemma EquivalenceTheorem(s: Stream<int>, t: Stream<int>)
     EquivalenceTheorem1(s, t);
   }
 }
-colemma EquivalenceTheorem0[nat](s: Stream<int>, t: Stream<int>)
+greatest lemma EquivalenceTheorem0[nat](s: Stream<int>, t: Stream<int>)
   requires !NotLexLess(s, t)
   ensures LexLess(s, t)
 {
@@ -78,8 +78,8 @@ colemma EquivalenceTheorem0[nat](s: Stream<int>, t: Stream<int>)
   // depth is specified using an implicit parameter _k to the co-lemma.
   EquivalenceTheorem0_Lemma(_k, s, t);
 }
-// The following lemma is an ordinary inductive lemma.  The syntax ...#[...]
-// indicates a finite unrolling of a co-inductive predicate.  In particular,
+// The following lemma is an ordinary least lemma.  The syntax ...#[...]
+// indicates a finite unrolling of a co-least predicate.  In particular,
 // LexLess#[k] refers to k unrollings of LexLess.
 lemma EquivalenceTheorem0_Lemma(k: nat, s: Stream<int>, t: Stream<int>)
   requires !NotLexLess'(k, s, t)
@@ -123,11 +123,11 @@ function PointwiseAdd(s: Stream<int>, t: Stream<int>): Stream<int>
   Cons(s.hd + t.hd, PointwiseAdd(s.tl, t.tl))
 }
 
-colemma Theorem2_Pointwise_Addition_Is_Monotone[nat](s: Stream<int>, t: Stream<int>, u: Stream<int>, v: Stream<int>)
+greatest lemma Theorem2_Pointwise_Addition_Is_Monotone[nat](s: Stream<int>, t: Stream<int>, u: Stream<int>, v: Stream<int>)
   requires LexLess(s, t) && LexLess(u, v)
   ensures LexLess(PointwiseAdd(s, u), PointwiseAdd(t, v))
 {
-  // The co-lemma will establish the co-inductive predicate by establishing
+  // The co-lemma will establish the co-least predicate by establishing
   // all finite unrollings thereof.  Each finite unrolling is proved by
   // induction, and this induction is performed automatically by Dafny.  Thus,
   // the proof of this co-lemma is trivial (that is, the body of the co-lemma
@@ -148,14 +148,14 @@ colemma Theorem2_Pointwise_Addition_Is_Monotone[nat](s: Stream<int>, t: Stream<i
 // discriminator like r.Bottom? is equivalent to r == Bottom.
 codatatype RecType = Bottom | Top | Arrow(dom: RecType, ran: RecType)
 
-copredicate Subtype(a: RecType, b: RecType)
+greatest predicate Subtype(a: RecType, b: RecType)
 {
   a == Bottom ||
   b == Top ||
   (a.Arrow? && b.Arrow? && Subtype(b.dom, a.dom) && Subtype(a.ran, b.ran))
 }
 
-colemma Theorem3_Subtype_Is_Transitive(a: RecType, b: RecType, c: RecType)
+greatest lemma Theorem3_Subtype_Is_Transitive(a: RecType, b: RecType, c: RecType)
   requires Subtype(a, b) && Subtype(b, c)
   ensures Subtype(a, c)
 {
@@ -173,19 +173,19 @@ codatatype Val = ValConst(Const) | ValCl(cl: Cl)
 codatatype Cl = Closure(abs: LambdaAbs, env: ClEnv)
 codatatype ClEnv = ClEnvironment(m: map<Var, Val>)  // The built-in Dafny "map" type denotes finite maps
 
-copredicate ClEnvBelow[nat](c: ClEnv, d: ClEnv)
+greatest predicate ClEnvBelow[nat](c: ClEnv, d: ClEnv)
 {
   // The expression "y in c.m" says that y is in the domain of the finite map
   // c.m.
   forall y :: y in c.m ==> y in d.m && ValBelow(c.m[y], d.m[y])
 }
-copredicate ValBelow[nat](u: Val, v: Val)
+greatest predicate ValBelow[nat](u: Val, v: Val)
 {
   (u.ValConst? && v.ValConst? && u == v) ||
   (u.ValCl? && v.ValCl? && u.cl.abs == v.cl.abs && ClEnvBelow(u.cl.env, v.cl.env))
 }
 
-colemma Theorem4a_ClEnvBelow_Is_Transitive[nat](c: ClEnv, d: ClEnv, e: ClEnv)
+greatest lemma Theorem4a_ClEnvBelow_Is_Transitive[nat](c: ClEnv, d: ClEnv, e: ClEnv)
   requires ClEnvBelow(c, d) && ClEnvBelow(d, e)
   ensures ClEnvBelow(c, e)
 {
@@ -193,7 +193,7 @@ colemma Theorem4a_ClEnvBelow_Is_Transitive[nat](c: ClEnv, d: ClEnv, e: ClEnv)
     Theorem4b_ValBelow_Is_Transitive#[_k-1](c.m[y], d.m[y], e.m[y]);
   }
 }
-colemma Theorem4b_ValBelow_Is_Transitive[nat](u: Val, v: Val, w: Val)
+greatest lemma Theorem4b_ValBelow_Is_Transitive[nat](u: Val, v: Val, w: Val)
   requires ValBelow(u, v) && ValBelow(v, w)
   ensures ValBelow(u, w)
 {
@@ -230,7 +230,7 @@ predicate CapsuleEnvironmentBelow(s: map<Var, ConstOrAbs>, t: map<Var, ConstOrAb
   forall y :: y in s ==> y in t && s[y] == t[y]
 }
 
-colemma Theorem5_ClosureConversion_Is_Monotone[nat](s: map<Var, ConstOrAbs>, t: map<Var, ConstOrAbs>)
+greatest lemma Theorem5_ClosureConversion_Is_Monotone[nat](s: map<Var, ConstOrAbs>, t: map<Var, ConstOrAbs>)
   requires CapsuleEnvironmentBelow(s, t)
   ensures ClEnvBelow(ClosureConvertedMap(s), ClosureConvertedMap(t))
 {
@@ -242,17 +242,17 @@ colemma Theorem5_ClosureConversion_Is_Monotone[nat](s: map<Var, ConstOrAbs>, t: 
 // shorthand in Dafny lets us omit the type parameter to Bisim and the (same)
 // type arguments in the types of s and t.  If we want to write this explicitly,
 // we would write:
-//    copredicate Bisim<A>(s: Stream<A>, t: Stream<A>)
+//    greatest predicate Bisim<A>(s: Stream<A>, t: Stream<A>)
 // which is equivalent.  (Being able to omit the arguments reduces clutter.  Note,
 // in a similar way, if one tells a colleague about Theorem 6, one can either
 // say the explicit "Bisim on A-streams is a symmetric relation" or, since the
 // A in that sentence is not used, "Bisim on streams is a symmetric relation".)
-copredicate Bisim(s: Stream, t: Stream)
+greatest predicate Bisim(s: Stream, t: Stream)
 {
   s.hd == t.hd && Bisim(s.tl, t.tl)
 }
 
-colemma Theorem6_Bisim_Is_Symmetric(s: Stream, t: Stream)
+greatest lemma Theorem6_Bisim_Is_Symmetric(s: Stream, t: Stream)
   requires Bisim(s, t)
   ensures Bisim(t, s)
 {
@@ -285,7 +285,7 @@ function SplitRight(s: Stream): Stream
   SplitLeft(s.tl)
 }
 
-colemma Theorem7_Merge_Is_Left_Inverse_Of_Split_Bisim(s: Stream)
+greatest lemma Theorem7_Merge_Is_Left_Inverse_Of_Split_Bisim(s: Stream)
   ensures Bisim(merge(SplitLeft(s), SplitRight(s)), s)
 {
   var LHS := merge(SplitLeft(s), SplitRight(s));
@@ -319,7 +319,7 @@ colemma Theorem7_Merge_Is_Left_Inverse_Of_Split_Bisim(s: Stream)
   }
 }
 
-colemma Theorem7_Merge_Is_Left_Inverse_Of_Split_Equal(s: Stream)
+greatest lemma Theorem7_Merge_Is_Left_Inverse_Of_Split_Equal(s: Stream)
   ensures merge(SplitLeft(s), SplitRight(s)) == s
 {
   // The proof of this co-lemma is actually done completely automatically (so the

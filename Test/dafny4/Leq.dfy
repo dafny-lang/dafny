@@ -18,7 +18,7 @@ predicate IsFinite(a: Nat)
   exists m:nat :: a == Num(m)
 }
 
-copredicate IsInfinity(a: Nat)
+greatest predicate IsInfinity(a: Nat)
 {
   a.S? && IsInfinity(a.pred)
 }
@@ -31,7 +31,7 @@ lemma NatCases(a: Nat)
     NatCasesAux(a);
   }
 }
-colemma NatCasesAux(a: Nat)
+greatest lemma NatCasesAux(a: Nat)
   requires !IsFinite(a)
   ensures IsInfinity(a)
 {
@@ -47,7 +47,7 @@ colemma NatCasesAux(a: Nat)
 
 // ----------- inductive semantics (more precisely, a least-fixpoint definition of Leq)
 
-inductive predicate Leq(a: Nat, b: Nat)
+least predicate Leq(a: Nat, b: Nat)
 {
   a == Z ||
   (a.S? && b.S? && Leq(a.pred, b.pred))
@@ -109,7 +109,7 @@ lemma Leq1(k: ORDINAL, a: Nat, b: Nat) returns (m: nat, n: nat)
 
 // ----------- co-inductive semantics (more precisely, a greatest-fixpoint definition of Leq)
 
-copredicate CoLeq(a: Nat, b: Nat)
+greatest predicate CoLeq(a: Nat, b: Nat)
 {
   a == Z ||
   (a.S? && b.S? && CoLeq(a.pred, b.pred))
@@ -139,7 +139,7 @@ lemma CoLeq0_finite(m: nat, n: nat)
   // proof is automatic
 }
 
-colemma CoLeq0_infinite(a: Nat, b: Nat)
+greatest lemma CoLeq0_infinite(a: Nat, b: Nat)
   requires IsInfinity(b)
   ensures CoLeq(a, b)
 {
