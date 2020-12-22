@@ -187,6 +187,12 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
   theCompileThisFile = compileThisFile;
 }
 
+int Peek(int n) {
+  scanner.ResetPeek();
+  while (--n > 0) scanner.Peek();
+  return la.kind;
+}
+
 bool IsIdentifier(int kind) {
   return kind == _ident || kind == _least || kind == _greatest;
 }
@@ -927,18 +933,28 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
   |
     "import" ["opened" (.opened = true;.)]
     ModuleName<out id>
+    (. idExports = new List<IToken>(); .)
     (
-      OptQualifiedModuleExportSuffix<idPath, out idExports>
+      "."
+      QualifiedModuleExport<out idPath, out idExports>
       (. idPath.Insert(0, id);
          submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
                                          idPath[idPath.Count-1], parent, opened, idExports);
       .)
+
     | "=" QualifiedModuleExport<out idPath, out idExports>
-      (. submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
+          (. submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
                                          id, parent, opened, idExports); .)
+
     | ":" QualifiedModuleExport<out idPath, out idExports>
-        (. submodule = new AbstractModuleDecl(new ModuleQualifiedId(idPath),
+          (. submodule = new AbstractModuleDecl(new ModuleQualifiedId(idPath),
                                          id, parent, opened, idExports); .)
+
+    | [ "`" ModuleExportSuffix<idExports> ]
+          (. idPath.Add(id);
+             submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
+                                         id, parent, opened, idExports);
+          .)
     )
 
   | (.
@@ -1005,29 +1021,20 @@ QualifiedModuleId<.out List<IToken> ids.>
   { "." ModuleName<out id> (. ids.Add(id); .) }
   .
 
-/* This production is needed to factor out an initial id, before it is known
-   whether a = or : follows, or the rest of a qualified id and export list */
-OptQualifiedModuleExportSuffix<.List<IToken> idPath, out List<IToken> exports.>
-= (. IToken id; exports = new List<IToken>(); .)
-  { "." ModuleName<out id> (. idPath.Add(id); .) }
-  OptModuleExportSuffix<.exports.>
-  .
-
 QualifiedModuleExport<.out List<IToken> idPath, out List<IToken> exports.>
 = (. exports = new List<IToken>();
   .)
   QualifiedModuleId<out idPath>
-  OptModuleExportSuffix<exports>
+  [ "`" ModuleExportSuffix<exports> ]
   .
 
-OptModuleExportSuffix<. List<IToken> exports.>
-= [ "`"                         (. IToken id; .)
+ModuleExportSuffix<. List<IToken> exports.>
+=                              (. IToken id; .)
     ( ExportIdent<out id>       (. exports.Add(id); .)
     | "{" ExportIdent<out id>   (. exports.Add(id); .)
        { "," ExportIdent<out id> (. exports.Add(id); .) }
       "}"
     )
-  ]
   .
 
 
