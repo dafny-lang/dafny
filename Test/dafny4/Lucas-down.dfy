@@ -47,7 +47,7 @@ predicate EVEN(n: nat)
 }
 
 // The binomial function is defined like in the Pascal triangle.
-// "binom(a, b)" is also knows as "a choose b".
+// "binom(a, b)" is also known as "a choose b".
 function binom(a: nat, b: nat): nat
 {
   if b == 0 then 1
