@@ -84,11 +84,11 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(6,2): Error: EOF expected
+transcript(6,2): Error: this symbol not expected in Dafny
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(6,2): Error: EOF expected
+transcript(6,2): Error: this symbol not expected in Dafny
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
