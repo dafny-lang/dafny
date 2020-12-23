@@ -1,2 +1,3 @@
-
-Dafny program verifier finished with 3 verified, 0 errors
+OpenImportRefined.dfy(15,7): Error: Base module Base imports T from an opened import, so it cannot be overridden. Give this declaration a unique name to disambiguate.
+OpenImportRefined.dfy(51,11): Error: Base module BaseF imports f from an opened import, so it cannot be overridden. Give this declaration a unique name to disambiguate.
+2 resolution/type errors detected in OpenImportRefined.dfy
