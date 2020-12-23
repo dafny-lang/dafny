@@ -1,6 +1,6 @@
 #! /bin/bash
 
-## Installationg and setup for Dafny sources on Mac
+## Installation and setup for Dafny sources on Mac
 ## Requires brew is used for package installations
 
 if [ "$1" == "" ]; then
@@ -14,7 +14,7 @@ fi
 
 brew cask install dotnet
 ## For compilation
-brew cask install oracle-jdk-javadoc
+brew install --cask oracle-jdk-javadoc
 brew install gradle
 brew install golang
 brew install node
