@@ -1769,8 +1769,14 @@ namespace Microsoft.Dafny
       }
     }
 
-    static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im,
-      HashSet<ModuleSignature> importedSigs, bool useCompileSignatures) {
+    static TopLevelDecl ResolveAlias(TopLevelDecl dd) {
+      while (dd is AliasModuleDecl amd) {
+        dd = amd.TargetQId.Root;
+      }
+      return dd;
+    }
+
+    static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs, bool useCompileSignatures) {
       bool useImports = true;
       var s = GetSignatureExt(im.AccessibleSignature(useCompileSignatures), useCompileSignatures);
 
@@ -1796,7 +1802,22 @@ namespace Microsoft.Dafny
             if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
               // ignore the import if the existing declaration belongs to the current module
               if (d.EnclosingModuleDefinition != moduleDef) {
-                sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
+                bool ok = false;
+                // keep just one if they normalize to the same entity
+                if (d == kv.Value) {
+                  ok = true;
+                } else if (d is ModuleDecl || kv.Value is ModuleDecl) {
+                  var dd = ResolveAlias(d);
+                  var dk = ResolveAlias(kv.Value);
+                  ok = dd == dk;
+                } else {
+                  var dType = UserDefinedType.FromTopLevelDecl(d.tok, d);
+                  var vType = UserDefinedType.FromTopLevelDecl(kv.Value.tok, kv.Value);
+                  ok = dType.Equals(vType, true);
+                }
+                if (!ok) {
+                  sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
+                }
               }
             } else {
               sig.TopLevels.Add(kv.Key, kv.Value);
