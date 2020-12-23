@@ -2194,7 +2194,7 @@ namespace Microsoft.Dafny {
       return "int";
     }
     public override bool Equals(Type that, bool keepConstraints = false) {
-      return keepConstraints ? this.GetType() == that.GetType() : that.IsIntegerType;
+      return that.NormalizeExpand(keepConstraints) is IntType;
     }
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
       if (super is IntVarietiesSupertype) {
@@ -2210,7 +2210,7 @@ namespace Microsoft.Dafny {
       return "real";
     }
     public override bool Equals(Type that, bool keepConstraints = false) {
-      return keepConstraints ? this.GetType() == that.GetType() : that.IsRealType;
+      return that.NormalizeExpand(keepConstraints) is RealType;
     }
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
       if (super is RealVarietiesSupertype) {
@@ -2227,7 +2227,7 @@ namespace Microsoft.Dafny {
       return "ORDINAL";
     }
     public override bool Equals(Type that, bool keepConstraints = false) {
-      return that.IsBigOrdinalType;
+      return that.NormalizeExpand(keepConstraints) is BigOrdinalType;
     }
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
       if (super is IntVarietiesSupertype) {
@@ -2787,7 +2787,15 @@ namespace Microsoft.Dafny {
       if (i is UserDefinedType) {
         var ii = (UserDefinedType)i;
         var t = that.NormalizeExpand(keepConstraints) as UserDefinedType;
-        if (t == null || ii.ResolvedParam != t.ResolvedParam || ii.ResolvedClass != t.ResolvedClass || ii.TypeArgs.Count != t.TypeArgs.Count) {
+        if (t == null || ii.ResolvedClass != t.ResolvedClass || ii.TypeArgs.Count != t.TypeArgs.Count) {
+          return false;
+        } else if (ii.TypeArgs.Count == 0 && ii.ResolvedClass is OpaqueTypeDecl) {
+          // Check for the special case in which ResolvedParam holds a (non-unique) copy of
+          // the type, for OpaqueTypeDecl, likely a hold over from prior to adding ResolvedClass
+          if (ii.ResolvedParam == t.ResolvedParam) return true;
+          if (ii.ResolvedParam == null || ii.ResolvedParam == ((OpaqueTypeDecl)ii.ResolvedClass).TheType) {
+            if (t.ResolvedParam == null || t.ResolvedParam == ((OpaqueTypeDecl)t.ResolvedClass).TheType) return true;
+          }
           return false;
         } else {
           for (int j = 0; j < ii.TypeArgs.Count; j++) {
@@ -5272,15 +5280,12 @@ namespace Microsoft.Dafny {
     public static void NewSelfSynonym(this RevealableTypeDecl rtd) {
       var d = rtd.AsTopLevelDecl;
       Contract.Assert(!tsdMap.ContainsKey(d));
-
       var thisType = UserDefinedType.FromTopLevelDecl(d.tok, d);
       if (d is OpaqueTypeDecl) {
         thisType.ResolvedParam = ((OpaqueTypeDecl)d).TheType;
       }
-
       var tsd = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.GetExplicitCharacteristics(d), d.TypeArgs, d.EnclosingModuleDefinition, thisType, d.Attributes);
       tsd.InheritVisibility(d, false);
-
       tsdMap.Add(d, tsd);
     }
 

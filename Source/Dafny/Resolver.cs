@@ -1561,6 +1561,13 @@ namespace Microsoft.Dafny
       }
     }
 
+    static TopLevelDecl ResolveAlias(TopLevelDecl dd) {
+      while (dd is AliasModuleDecl amd) {
+        dd = amd.Root;
+      }
+      return dd;
+    }
+
     static void ResolveOpenedImportsWorker(ModuleSignature sig, ModuleDefinition moduleDef, ModuleDecl im, HashSet<ModuleSignature> importedSigs, bool useCompileSignatures) {
       bool useImports = true;
       var s = GetSignatureExt(im.AccessibleSignature(useCompileSignatures), useCompileSignatures);
@@ -1588,33 +1595,17 @@ namespace Microsoft.Dafny
               // ignore the import if the existing declaration belongs to the current module
               if (d.EnclosingModuleDefinition != moduleDef) {
                 bool ok = false;
-                // keep just one if they normalize to the same type
+                // keep just one if they normalize to the same entity
                 if (d == kv.Value) {
                   ok = true;
+                } else if (d is ModuleDecl || kv.Value is ModuleDecl) {
+                  var dd = ResolveAlias(d);
+                  var dk = ResolveAlias(kv.Value);
+                  ok = dd == dk;
                 } else {
-                  TopLevelDecl dd = d;
-                  Type ddd = null;
-                  TopLevelDecl kk = kv.Value;
-                  Type kkk = null;
-                  if (d is TypeSynonymDecl && !(d is SubsetTypeDecl)) {
-                    ddd = (d as TypeSynonymDecl).Rhs.NormalizeExpand(true);
-                    if (ddd is UserDefinedType) {
-                      dd = (ddd as UserDefinedType).AsRevealableType as TopLevelDecl;
-                      ddd = null;
-                    }
-                  }
-                  if (kk is TypeSynonymDecl && !(kk is SubsetTypeDecl)) {
-                    kkk = (kk as TypeSynonymDecl).Rhs.NormalizeExpand(true);
-                    if (kkk is UserDefinedType) {
-                      kk = (kkk as UserDefinedType).AsRevealableType as TopLevelDecl;
-                      kkk = null;
-                    }
-                  }
-                  if (ddd == null || kkk == null) {
-                    ok = dd == kk;
-                  } else {
-                    ok = ddd.Equals(kkk, true);
-                  }
+                  var dType = UserDefinedType.FromTopLevelDecl(d.tok, d);
+                  var vType = UserDefinedType.FromTopLevelDecl(kv.Value.tok, kv.Value);
+                  ok = dType.Equals(vType, true);
                 }
                 if (!ok) {
                   sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
