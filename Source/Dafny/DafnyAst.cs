@@ -2797,6 +2797,8 @@ namespace Microsoft.Dafny {
             if (t.ResolvedParam == null || t.ResolvedParam == ((OpaqueTypeDecl)t.ResolvedClass).TheType) return true;
           }
           return false;
+        } else if (ii.ResolvedParam != t.ResolvedParam) {
+          return false;
         } else {
           for (int j = 0; j < ii.TypeArgs.Count; j++) {
             if (!ii.TypeArgs[j].Equals(t.TypeArgs[j], keepConstraints)) {
