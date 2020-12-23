@@ -429,11 +429,7 @@ namespace Microsoft.Dafny
       ExpandFilename(ref DafnyPrintFile, LogPrefix, FileTimestamp);
 
       SetZ3ExecutablePath();
-      SetZ3DefaultOptions();
-
-      if (DisableNLarith || 3 <= ArithMode) {
-        SetZ3Option("smt.arith.nl", "false");
-      }
+      SetZ3Options();
 
       // Ask Boogie to perform abstract interpretation
       UseAbstractInterpretation = true;
@@ -597,19 +593,30 @@ namespace Microsoft.Dafny
     /// Developers (and people getting Dafny from source) need to install an appropriate version of Z3 themselves.
     /// </summary>
     private void SetZ3ExecutablePath() {
-      var platform = (int)System.Environment.OSVersion.Platform;
+      var pp = "PROVER_PATH=";
+      var proverPathOption = ProverOptions.Find(o => o.StartsWith(pp));
+      if (proverPathOption != null) {
+        var proverPath = proverPathOption.Substring(pp.Length);
+        // Boogie will perform the ultimate test to see if "proverPath" is real--it will attempt to run it.
+        // However, by at least checking if the file exists, we can produce a better error message in common scenarios.
+        if (!File.Exists(proverPath)) {
+          throw new Bpl.ProverException($"Requested prover not found: '{proverPath}'");
+        }
+      } else {
+        var platform = (int)System.Environment.OSVersion.Platform;
 
-      // http://www.mono-project.com/docs/faq/technical/
-      var isUnix = platform == 4 || platform == 6 || platform == 128;
+        // http://www.mono-project.com/docs/faq/technical/
+        var isUnix = platform == 4 || platform == 6 || platform == 128;
 
-      var z3binName = isUnix ? "z3" : "z3.exe";
-      var dafnyBinDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-      var z3BinDir = System.IO.Path.Combine(dafnyBinDir, "z3", "bin");
-      var z3BinPath = System.IO.Path.Combine(z3BinDir, z3binName);
+        var z3binName = isUnix ? "z3" : "z3.exe";
+        var dafnyBinDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+        var z3BinDir = System.IO.Path.Combine(dafnyBinDir, "z3", "bin");
+        var z3BinPath = System.IO.Path.Combine(z3BinDir, z3binName);
 
-      if (System.IO.File.Exists(z3BinPath) && !ProverOptions.Any(o => o.StartsWith("PROVER_PATH="))) {
-        // We are (most likely) running a release shipped with a copy of Z3.
-        ProverOptions.Add($"PROVER_PATH={z3BinPath}");
+        if (System.IO.File.Exists(z3BinPath)) {
+          // Let's use z3BinPath
+          ProverOptions.Add($"{pp}{z3BinPath}");
+        }
       }
     }
 
@@ -622,7 +629,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    private void SetZ3DefaultOptions()
+    private void SetZ3Options()
     {
       // Boogie sets the following Z3 options by default:
       // smt.mbqi = false
@@ -643,6 +650,10 @@ namespace Microsoft.Dafny
       SetZ3Option("smt.delay_units", "true");
       SetZ3Option("nnf.sk_hack", "true");
       SetZ3Option("smt.arith.solver", "2");
+      
+      if (DisableNLarith || 3 <= ArithMode) {
+        SetZ3Option("smt.arith.nl", "false");
+      }
     }
 
     public override string Help =>
