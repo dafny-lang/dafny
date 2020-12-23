@@ -14,13 +14,13 @@ lemma P1(x: int)
   assert x == 17;  // this verifies, because X has been revealed
 }
 
-least lemma Q(x: int)
+inductive lemma Q(x: int)
   requires X: x == 17
 {
   assert x == 17;  // error: because X has not been revealed
 }
 
-greatest lemma R(x: int)
+colemma R(x: int)
   requires X: x == 17
 {
   assert x == 17;  // error: because X hasn't been revealed

@@ -53,7 +53,7 @@ Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
-transcript(7,0): Error: invalid Ident
+transcript(7,0): Error: ident expected
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 Verification completed successfully!
@@ -107,11 +107,13 @@ transcript(11,0): Error: invalid LogicalExpression
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,22): Error: invalid LogicalExpression
+transcript(10,22): Warning: the syntax "int(expr)" for type conversions has been deprecated; the new syntax is "expr as int"
+transcript(10,25): Error: openparen expected
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,22): Error: invalid LogicalExpression
+transcript(10,22): Warning: the syntax "int(expr)" for type conversions has been deprecated; the new syntax is "expr as int"
+transcript(10,25): Error: openparen expected
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
@@ -502,5 +504,7 @@ Retrieving cached verification result for implementation Impl$$_module.__default
 Verifying Impl$$_module.__default.M2 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M2...
   [1 proof obligation]  verified
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]

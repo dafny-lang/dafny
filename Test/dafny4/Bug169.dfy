@@ -3,7 +3,7 @@
 
 predicate R(x: int)
 
-least lemma P(x: int)
+inductive lemma P(x: int)
 {
   forall x | R(x)
   {

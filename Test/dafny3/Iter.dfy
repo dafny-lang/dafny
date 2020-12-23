@@ -10,7 +10,6 @@ class List<T> {
 
   predicate Valid()
     reads this, Repr
-    ensures Valid() ==> this in Repr
   {
     this in Repr &&
     a in Repr &&
@@ -19,7 +18,7 @@ class List<T> {
   }
 
   constructor Init()
-    ensures Valid() && fresh(Repr)
+    ensures Valid() && fresh(Repr - {this})
     ensures Contents == []
   {
     Contents, n := [], 0;

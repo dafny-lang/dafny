@@ -179,10 +179,10 @@ module StaticMembers {
     static method Method()
     static twostate function TwoF(): int
     static twostate lemma TwoL()
-    static least predicate P()
-    static greatest predicate Q()
-    static least lemma IL()
-    static greatest lemma CL()
+    static inductive predicate P()
+    static copredicate Q()
+    static inductive lemma IL()
+    static colemma CL()
   }
 }
 
@@ -289,10 +289,10 @@ module MemberMismatch {
     lemma L()
     twostate lemma K()
 
-    least predicate P()
-    greatest predicate Q()
-    least lemma R()
-    greatest lemma S()
+    inductive predicate P()
+    copredicate Q()
+    inductive lemma R()
+    colemma S()
   }
 
   class SwitchGhostStatus extends AAA {
@@ -305,10 +305,10 @@ module MemberMismatch {
     lemma L()
     twostate lemma K()
 
-    least predicate P()
-    greatest predicate Q()
-    least lemma R()
-    greatest lemma S()
+    inductive predicate P()
+    copredicate Q()
+    inductive lemma R()
+    colemma S()
   }
 
   class SwitchLemma extends AAA {
@@ -321,10 +321,10 @@ module MemberMismatch {
     ghost method L()  // error: lemma vs ghost method
     twostate lemma K()
 
-    least predicate P()
-    greatest predicate Q()
-    least lemma R()
-    greatest lemma S()
+    inductive predicate P()
+    copredicate Q()
+    inductive lemma R()
+    colemma S()
   }
 
   class SwitchTwoState extends AAA {
@@ -337,10 +337,10 @@ module MemberMismatch {
     twostate lemma L()  // error: lemma vs twostate
     lemma K()  // error: lemma vs twostate
 
-    least predicate P()
-    greatest predicate Q()
-    least lemma R()
-    greatest lemma S()
+    inductive predicate P()
+    copredicate Q()
+    inductive lemma R()
+    colemma S()
   }
 
   class SwitchExtreme0 extends AAA {
@@ -353,10 +353,10 @@ module MemberMismatch {
     lemma L()
     twostate lemma K()
 
-    greatest predicate P()  // error: least vs greatest
-    least predicate Q()  // error: least vs greatest
-    greatest lemma R()  // error: least vs greatest
-    least lemma S()  // error: least vs greatest
+    copredicate P()  // error: coind. vs ind.
+    inductive predicate Q()  // error: coind. vs ind.
+    colemma R()  // error: coind. vs ind.
+    inductive lemma S()  // error: coind. vs ind.
   }
 
   class SwitchExtreme1 extends AAA {
@@ -366,7 +366,7 @@ module MemberMismatch {
 
     method M()
     ghost method N()
-    least lemma L()  // error: extreme lemma vs lemma
+    inductive lemma L()  // error: extreme lemma vs lemma
     twostate lemma K()
 
     predicate P()  // error: extreme predicate vs predicate
@@ -395,40 +395,40 @@ module PredicateFunctionBool {
 
 module ExtremeKMismatch {
   trait AAA {
-    least predicate P()
-    least predicate Q[nat]()
-    least predicate R[ORDINAL]()
+    inductive predicate P()
+    inductive predicate Q[nat]()
+    inductive predicate R[ORDINAL]()
 
-    least lemma K()
-    least lemma L[nat]()
-    least lemma M[ORDINAL]()
+    inductive lemma K()
+    inductive lemma L[nat]()
+    inductive lemma M[ORDINAL]()
   }
   class C0 extends AAA {
-    least predicate P()
-    least predicate Q()  // error: nat vs ORDINAL
-    least predicate R()
+    inductive predicate P()
+    inductive predicate Q()  // error: nat vs ORDINAL
+    inductive predicate R()
 
-    least lemma K()
-    least lemma L()  // error: nat vs ORDINAL
-    least lemma M()
+    inductive lemma K()
+    inductive lemma L()  // error: nat vs ORDINAL
+    inductive lemma M()
   }
   class C1 extends AAA {
-    least predicate P[nat]()  // error: nat vs ORDINAL
-    least predicate Q[nat]()
-    least predicate R[nat]()  // error: nat vs ORDINAL
+    inductive predicate P[nat]()  // error: nat vs ORDINAL
+    inductive predicate Q[nat]()
+    inductive predicate R[nat]()  // error: nat vs ORDINAL
 
-    least lemma K[nat]()  // error: nat vs ORDINAL
-    least lemma L[nat]()
-    least lemma M[nat]()  // error: nat vs ORDINAL
+    inductive lemma K[nat]()  // error: nat vs ORDINAL
+    inductive lemma L[nat]()
+    inductive lemma M[nat]()  // error: nat vs ORDINAL
   }
   class C2 extends AAA {
-    least predicate P[ORDINAL]()
-    least predicate Q[ORDINAL]()  // error: nat vs ORDINAL
-    least predicate R[ORDINAL]()
+    inductive predicate P[ORDINAL]()
+    inductive predicate Q[ORDINAL]()  // error: nat vs ORDINAL
+    inductive predicate R[ORDINAL]()
 
-    least lemma K[ORDINAL]()
-    least lemma L[ORDINAL]()  // error: nat vs ORDINAL
-    least lemma M[ORDINAL]()
+    inductive lemma K[ORDINAL]()
+    inductive lemma L[ORDINAL]()  // error: nat vs ORDINAL
+    inductive lemma M[ORDINAL]()
   }
 }
 

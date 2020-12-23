@@ -54,7 +54,7 @@ method ExpressionsInCompiledMethod() {
     ghost var g := 5;
     assume false;  // error
     5;
-
+    
   ghost var x :=
     assume false;  // error
     5;
@@ -96,7 +96,7 @@ ghost method ExpressionsInGhostMethod() {
     ghost var g := 5;
     assume false;  // error
     5;
-
+    
   ghost var x :=
     assume false;  // error
     5;
@@ -209,15 +209,15 @@ function SpecificationOfGhostFunctionWithoutBody(): int  // error: has no body
   decreases assume false; 5  // error
 
 // --------------------------------------------------
-
-least predicate ExtremePredicate()
+  
+inductive predicate ExtremePredicate()
   requires assume false; true  // error
 {
   assume false;  // error
   true
 }
 
-least lemma ExtremeLemma()
+inductive lemma ExtremeLemma()
   requires assume false; true  // error
   ensures assume false; true  // error
   decreases assume false; 5  // error
@@ -225,30 +225,30 @@ least lemma ExtremeLemma()
   assume false;  // error
 }
 
-least predicate ExtremePredicateWithoutBody()  // error: has no body
+inductive predicate ExtremePredicateWithoutBody()  // error: has no body
   requires assume false; true  // error
 
-least lemma ExtremeLemmaWithoutBody()  // error: has no body
+inductive lemma ExtremeLemmaWithoutBody()  // error: has no body
   requires assume false; true  // error
   ensures assume false; true  // error
   decreases assume false; 5  // error
 
 // --------------------------------------------------
-
+  
 newtype NewType = x | x % 2 == 1
   witness assume false; 5  // error
-
+  
 type SubsetType = x | x % 2 == 1
   witness assume false; 5  // error
 
 newtype NewTypeGhostWitness = x | x % 2 == 1
   ghost witness assume false; 5  // error
-
+  
 type SubsetTypeGhostWitness = x | x % 2 == 1
   ghost witness assume false; 5  // error
 
 const CompiledConst := assume false; 5  // error
-
+ 
 ghost const GhostConst := assume false; 5  // error
 
 class C {
@@ -267,7 +267,7 @@ newtype T = int {
 }
 
 // --------------------------------------------------
-
+  
 function method F(x: int, ghost y: int): int { 5 }
 function G(x: int): int { 5 }
 method M(x: int, ghost y: int) { }
@@ -344,5 +344,5 @@ class A {
       assume false;  // error
     }
   }
-
+ 
 }

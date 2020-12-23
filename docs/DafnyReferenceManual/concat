@@ -29,5 +29,5 @@ a=$?
 
 done
 
-cat /tmp/t
+mv /tmp/t DafnyRefZ.md
 

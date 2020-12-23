@@ -12,7 +12,7 @@ module Base {
 }
 
 module Refined refines Base {
-  type T = int // OK -- local names take precedence over imported names
+  type T = int //causes error, can't define a T given that it's imported as opened
 
 }
 
@@ -31,7 +31,7 @@ module GiveT2 {
 module Refined2 refines GiveT {
   import opened GiveT2
 
-  function f(x: T): int // OK: T is GiveT.T (refinement is preferred to import)
+  function f(x: T): int // OK -- GiveT.T takes precedence over GiveT2.T
 }
 
 module GiveF{
@@ -48,8 +48,7 @@ module BaseF{
 }
 
 module RefinedF refines BaseF {
-  function f(): bool { false } // OK. Local f preferred over imported f
-                               // even if imported into refinement parent
+  function f(): bool { false } // error
 
   lemma False()
     ensures false

@@ -22,43 +22,6 @@ and checking those with Boogie and an SMT solver, typically Z3;
 Using various command-line flags, the tool can perform various combinations of the last three actions (the first
 action is always performed).
 
-## Dafny Programs and Files
-
-A Dafny program is a set of modules.
-Modules can refer to other modules, such as through `import` declarations
-or `refines` clauses.
-A Dafny program consists of all the modules needed so that all module
-references are resolved.
-
-Dafny files (`.dfy`) in the operating system each hold
-the declarations of some number of modules. Thus a full program may be
-distributed among multiple files.
-To apply the `dafny` tool to a Dafny program, the `dafny` tool must be
-given all the files making up a complete program (or, possibly, more than
-one program at a time). This can be effected either by listing all of the files
-by name on the command-line or by using `include` directives within a file
-to stipulate what other files contain modules that the given file needs.
-Thus the complete set of modules are all the modules in all the files listed
-on the command-line or referenced, recursively, by `include` directives
-within those files. It does not matter if files are repeated either as
-includes or on the command-line.[^fn-duplicate-files]
-
-Note however that although the complete set of files, command-line plus
-included files, make up the program, by default, only those files listed on
-the command-line are verified. To do a complete verification, each file
-must be verified; it may well happen that a verification failure in one
-file (which is not on the command-line and thus not checked) may hide a
-verification failure in a file that is being checked.
-Thus it is important to eventually check all files, preferably in an order
-in which the files without dependences are checked first, then those that
-depend on them, etc., until all files are checked.
-
-[^fn-duplicate-files]: File names are considered equal if they
-have the same absolute path, reduced to lower case, even on file
-systems that support case-sensitive file names.
-Use of symbolic links
-may make the same file have a different absolute path; this will generally
-cause duplicate declaration errors.
 
 ## Installing Dafny From Binaries
 

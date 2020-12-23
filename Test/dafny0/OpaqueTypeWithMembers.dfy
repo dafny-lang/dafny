@@ -28,10 +28,10 @@ type Opaque {
     var f' := F();
   }
 
-  least predicate Q(u: int) {
+  inductive predicate Q(u: int) {
     y + z < 20 || Q(u + 1)
   }
-  least lemma QL(u: int)
+  inductive lemma QL(u: int)
     requires Q(u)
     ensures y + z < 20
   {
@@ -66,10 +66,10 @@ type StaticOpaque {
     var f' := F();
   }
 
-  static least predicate Q(u: int) {
+  static inductive predicate Q(u: int) {
     y + z < 20 || Q(u + 1)
   }
-  static least lemma QL(u: int)
+  static inductive lemma QL(u: int)
     requires Q(u)
     ensures y + z < 20
   {
@@ -96,10 +96,10 @@ type OpaqueErrors {
     var f' := F();
   }
 
-  least predicate Q(u: int) {
+  inductive predicate Q(u: int) {
     100 / y + z < 20 || Q(u + 1)  // error: division by zero
   }
-  least lemma QL(u: int)
+  inductive lemma QL(u: int)
     requires Q(u) && y != 0
     ensures 100 / y + z < 20
   {

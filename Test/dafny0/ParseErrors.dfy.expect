@@ -14,25 +14,25 @@ ParseErrors.dfy(75,1): Error: this operator cannot continue this calculation
 ParseErrors.dfy(80,1): Error: this operator cannot continue this calculation
 ParseErrors.dfy(81,1): Error: this operator cannot continue this calculation
 ParseErrors.dfy(87,1): Error: this operator cannot continue this calculation
-ParseErrors.dfy(96,0): Error: a lemma cannot be declared ghost (they are 'ghost' by default).
-ParseErrors.dfy(98,0): Error: a least lemma cannot be declared ghost (they are 'ghost' by default).
-ParseErrors.dfy(100,0): Error: a greatest lemma cannot be declared ghost (they are 'ghost' by default).
-ParseErrors.dfy(102,0): Error: a two-state lemma cannot be declared ghost (they are 'ghost' by default).
-ParseErrors.dfy(105,2): Error: a constructor cannot be declared 'ghost'.
+ParseErrors.dfy(96,0): Error: Lemmas cannot be declared ghost (they are 'ghost' by default).
+ParseErrors.dfy(98,0): Error: Inductive lemmas cannot be declared ghost (they are 'ghost' by default).
+ParseErrors.dfy(100,0): Error: Colemmas cannot be declared ghost (they are 'ghost' by default).
+ParseErrors.dfy(102,0): Error: Two-state lemmas cannot be declared ghost (they are 'ghost' by default).
+ParseErrors.dfy(105,2): Error: Constructors cannot be declared 'ghost'.
 ParseErrors.dfy(113,16): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(114,11): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(116,8): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(117,11): Error: formal cannot be declared 'ghost' in this context
-ParseErrors.dfy(119,15): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(119,19): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(120,11): Error: formal cannot be declared 'ghost' in this context
-ParseErrors.dfy(122,19): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(122,12): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(123,11): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(125,18): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(126,11): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(133,11): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(135,12): Error: formal cannot be declared 'ghost' in this context
-ParseErrors.dfy(137,19): Error: formal cannot be declared 'ghost' in this context
-ParseErrors.dfy(139,23): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(137,23): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(139,16): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(142,21): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(143,22): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(155,19): Error: verticalbar expected

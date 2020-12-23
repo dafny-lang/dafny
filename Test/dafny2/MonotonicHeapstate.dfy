@@ -12,17 +12,8 @@ module M0 {
 
     ghost var Repr: set<object>
 
-    predicate Valid()
+    protected predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
-    {
-      Core() &&
-      Valid'()
-    }
-
-    predicate Core()
-      reads this, Repr
-      decreases Repr, 0
     {
       this in Repr &&
       (left != null ==> left in Repr && this !in left.Repr && right !in left.Repr && left.Repr <= Repr && left.Valid()) &&
@@ -30,80 +21,59 @@ module M0 {
       (kind == Binary ==> left != null && right != null && left.Repr !! right.Repr)
     }
 
-    predicate Valid'()
-      requires Core()
-      reads this, Repr
-      decreases Repr, 1
-
     constructor CreateConstant(x: int)
-      ensures Valid() && fresh(Repr)
+      ensures Valid() && fresh(Repr - {this})
     {
       kind, value := Constant, x;
       left, right := null, null;
       Repr := {this};
-      new;
-      assume Valid'();  // to be proved in refinement modules
     }
 
     constructor CreateIdent(name: int)
-      ensures Valid() && fresh(Repr)
+      ensures Valid() && fresh(Repr - {this})
     {
       kind, value := Ident, name;
       left, right := null, null;
       Repr := {this};
-      new;
-      assume Valid'();  // to be proved in refinement modules
     }
 
     constructor CreateBinary(op: int, left: Expr, right: Expr)
       requires left.Valid()
       requires right.Valid()
       requires left.Repr !! right.Repr
-      ensures Valid() && fresh(Repr - left.Repr - right.Repr)
+      ensures Valid() && fresh(Repr - {this} - left.Repr - right.Repr)
     {
       kind, value := Binary, op;
       this.left, this.right := left, right;
       Repr := {this} + left.Repr + right.Repr;
-      new;
-      assume Valid'();  // to be proved in refinement modules
     }
   }
 }
 
 // Introduce the idea of resolved
 module M1 refines M0 {
-  class Expr ... {
+  class Expr {
     ghost var resolved: bool
 
-    predicate Valid'...
+    protected predicate Valid()
     {
-      (resolved ==>
-        (kind == Binary ==> left.resolved && right.resolved)) &&
-      Valid''()
+      resolved ==>
+        (kind == Binary ==> left.resolved && right.resolved)
     }
-    predicate Valid''()
-      reads this, Repr
-      ensures !resolved ==> Valid''()
 
     constructor CreateConstant...
     {
       resolved := false;
-      new;
-      assert ...;
     }
 
     constructor CreateIdent...
     {
       resolved := false;
-      new;
-      assert ...;
     }
 
     constructor CreateBinary...
     {
       resolved := false;
-      new;
-      assert ...;
     }
 
     method Resolve()
@@ -113,13 +83,12 @@ module M1 refines M0 {
       ensures resolved
       decreases Repr
     {
-      if kind == Binary {
+      if (kind == Binary) {
         left.Resolve();
         right.Resolve();
       }
       Repr := Repr + (if left != null then left.Repr else {}) + (if right != null then right.Repr else {});
       resolved := true;
-      assume Valid'();  // to be checked in refinement modules
     }
   }
 }
@@ -129,10 +98,10 @@ module M2 refines M1 {
   class VarDecl {
   }
 
-  class Expr ... {
+  class Expr {
     var decl: VarDecl?  // if kind==Ident, filled in during resolution
 
-    predicate Valid''...
+    protected predicate Valid()
     {
       resolved ==>
         (kind == Ident ==> decl != null)
@@ -140,22 +109,20 @@ module M2 refines M1 {
 
     method Resolve...
     {
-      if kind == Ident {
+      if (kind == Ident) {
         decl := new VarDecl;
       }
-      ...;
-      assert ...;
     }
   }
 }
 
 // Finally, supposing each VarDecl has a value, evaluate a resolved expression
 module M3 refines M2 {
-  class VarDecl ... {
+  class VarDecl {
     var val: int
   }
 
-  class Expr ... {
+  class Expr {
     method Eval() returns (r: int)
       requires Valid()
       requires resolved

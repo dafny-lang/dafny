@@ -375,8 +375,8 @@ namespace Microsoft.Dafny {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
             wr.WriteLine();
-          } else if (d is AbstractModuleDecl) {
-            var dd = (AbstractModuleDecl)d;
+          } else if (d is ModuleFacadeDecl) {
+            var dd = (ModuleFacadeDecl)d;
 
             wr.Write("import"); if (dd.Opened) wr.Write(" opened");
             if (dd.ResolvedHash.HasValue && this.printMode == DafnyOptions.PrintModes.DllEmbed) {
@@ -396,13 +396,9 @@ namespace Microsoft.Dafny {
             if (!e.IsDefault) {
               wr.Write("export {0}", e.Name);
             } else {
-              wr.Write("export");
+              wr.Write("export ");
             }
-
-            if (e.IsRefining) {
-              wr.Write(" ...");
-            }
-            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id.val));
+            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id));
             wr.WriteLine();
             PrintModuleExportDecl(e, indent + IndentAmount, fileBeingPrinted);
             wr.WriteLine();
@@ -487,6 +483,9 @@ namespace Microsoft.Dafny {
       if (module.IsAbstract) {
         wr.Write("abstract ");
       }
+      if (module.IsProtected) {
+        wr.Write("protected ");
+      }
       wr.Write("module");
       PrintAttributes(module.Attributes);
       wr.Write(" ");
@@ -534,8 +533,8 @@ namespace Microsoft.Dafny {
     void PrintIteratorSignature(IteratorDecl iter, int indent) {
       Indent(indent);
       PrintClassMethodHelper("iterator", iter.Attributes, iter.Name, iter.TypeArgs);
-      if (iter.IsRefining) {
-        wr.WriteLine(" ... ");
+      if (iter.SignatureIsOmitted) {
+        wr.WriteLine(" ...");
       } else {
         PrintFormals(iter.Ins, iter);
         if (iter.Outs.Count != 0) {
@@ -580,17 +579,12 @@ namespace Microsoft.Dafny {
 
       Indent(indent);
       PrintClassMethodHelper((c is TraitDecl) ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
-      if (c.IsRefining) {
-        wr.Write(" ... ");
-      } else {
-        string sep = " extends ";
-        foreach (var trait in c.ParentTraits) {
-          wr.Write(sep);
-          PrintType(trait);
-          sep = ", ";
-        }
+      string sep = " extends ";
+      foreach (var trait in c.ParentTraits) {
+        wr.Write(sep);
+        PrintType(trait);
+        sep = ", ";
       }
-
       if (c.Members.Count == 0) {
         wr.WriteLine(" { }");
       } else {
@@ -834,6 +828,7 @@ namespace Microsoft.Dafny {
       var isPredicate = f is Predicate || f is PrefixPredicate;
       Indent(indent);
       string k = isPredicate ? "predicate" : f.WhatKind;
+      if (f.IsProtected) { k = "protected " + k; }
       if (f.HasStaticKeyword) { k = "static " + k; }
       if (!f.IsGhost) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
@@ -907,8 +902,8 @@ namespace Microsoft.Dafny {
       if (PrintModeSkipFunctionOrMethod(method.IsGhost, method.Attributes, method.Name)) { return; }
       Indent(indent);
       string k = method is Constructor ? "constructor" :
-        method is LeastLemma ? "least lemma" :
-        method is GreatestLemma ? "greatest lemma" :
+        method is InductiveLemma ? "inductive lemma" :
+        method is CoLemma ? "colemma" :
         method is Lemma || method is PrefixLemma ? "lemma" :
         method is TwoStateLemma ? "twostate lemma" :
         "method";

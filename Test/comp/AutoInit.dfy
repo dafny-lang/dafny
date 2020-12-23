@@ -66,8 +66,6 @@ method Main() {
   Arrows();
   NilRegression.Test();
   DatatypeDefaultValues.Test();
-  ImportedTypes.Test();
-  GhostWitness.Test();
 }
 
 datatype ThisOrThat<A,B> = This(A) | Or | That(B)
@@ -259,71 +257,5 @@ module DatatypeDefaultValues {
     var g: Difficult;
     var h: GenDifficult<int>;
     print g, "\n  ", h, "\n";
-  }
-}
-
-module ImportedTypes {
-  module Library {
-    datatype Color = Red(int) | Green(real) | Blue(bv30)
-    codatatype CoColor = Yellow(int)
-    codatatype MoColor = MoYellow(int, MoColor)
-    newtype Nt = r | -1.0 <= r <= 1.0
-  }
-
-  method Test() {
-    var c: Library.Color;
-    Try(c);
-    /** TODO: include these tests once the new (0) semantics allows them
-    var co: Library.CoColor;
-    Try(co);
-    var mo: Library.MoColor;
-    Try(mo);
-    **/
-    var nt: Library.Nt;
-    Try(nt);
-  }
-
-  method Try<A(0)>(a: A) {
-    var x: A;
-    print a, " and ", x, "\n";
-  }
-}
-
-module GhostWitness {
-  type EffectlessArrow<!A(!new), B> = f: A ~> B
-    | forall a :: f.reads(a) == {}
-    ghost witness GhostEffectlessArrowWitness<A, B>
-
-  function GhostEffectlessArrowWitness<A, B>(a: A): B
-  {
-    var b: B :| true; b
-  }
-
-  codatatype Forever = More(Forever)
-
-  class MyClass { }
-
-  predicate Total<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
-    reads f.reads
-  {
-    forall a :: f.reads(a) == {} && f.requires(a)
-  }
-
-  type TotalArrow<!A(!new), B> = f: EffectlessArrow<A, B>
-    | Total(f)
-    ghost witness TotalWitness<A, B>
-
-  function TotalWitness<A, B>(a: A): B
-  {
-    var b: B :| true; b
-  }
-
-  method Test() {
-    var g: EffectlessArrow<int, int>;
-    var f: TotalArrow<int, int>;
-    f := y => y + 2;
-    g := f;
-    var x := g(4) + f(5);
-    print x, "\n";
   }
 }

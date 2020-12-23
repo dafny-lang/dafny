@@ -346,7 +346,7 @@ module AA refines Library {
 }
 
 module B refines AA {
-  datatype T = ... MakeT(int)  // illegal
+  datatype T = MakeT(int)  // illegal
 }
 
 // ---------------------- some modules from above without errors

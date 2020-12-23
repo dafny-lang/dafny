@@ -20,7 +20,7 @@ predicate HasBoundedHeight(t: Tree)
 {
   exists n :: 0 <= n && LowerThan(t.children, n)
 }
-greatest predicate LowerThan(s: Stream<Tree>, n: nat)
+copredicate LowerThan(s: Stream<Tree>, n: nat)
 {
   match s
   case SNil => true
@@ -44,7 +44,7 @@ lemma Theorem(n: nat)
 {
   Lemma(n);
 }
-greatest lemma Lemma(n: nat)
+colemma Lemma(n: nat)
   ensures LowerThan(SmallTrees(n), n);
 {
   if 0 < n {

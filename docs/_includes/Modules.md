@@ -105,8 +105,9 @@ of a single implicit unnamed global module.
 ````grammar
 ModuleImport_ = "import" ["opened" ] ModuleName
     [ "=" QualifiedModuleName
-    | ":" QualifiedModuleName
+    | "as" QualifiedModuleName ["default" QualifiedModuleName ]
     ]
+    [ ";" ]
 ````
 
 Sometimes you want to refer to

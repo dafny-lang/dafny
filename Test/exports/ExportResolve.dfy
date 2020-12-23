@@ -76,8 +76,8 @@ module NamesThatDontExist {
   // The following two declarations also declare P# and L#, but the parser does not allow
   // such names in export declarations. (They are exported whenever P and L, respectively,
   // are.)
-  least predicate P(r: real)
-  least lemma L(r: real)
+  inductive predicate P(r: real)
+  inductive lemma L(r: real)
 
   method G()
 
@@ -235,8 +235,8 @@ module GoodExports {
     provides L
     reveals OpaqueFunction
 
-  least predicate P(r: real)
-  least lemma L(r: real)
+  inductive predicate P(r: real)
+  inductive lemma L(r: real)
   function {:opaque} OpaqueFunction(r: real): int { 10 }
 }
 

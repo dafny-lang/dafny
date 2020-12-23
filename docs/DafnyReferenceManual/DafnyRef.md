@@ -13,10 +13,10 @@ language and how to use the Dafny verification system.
 Parts of this manual are more tutorial in nature in order to help the
 user understand how to do proofs with Dafny.
 
-[(Link to current document as pdf)](https://github.com/dafny-lang/dafny/blob/master/docs/DafnyRef/out/DafnyRef.pdf)\
-[(Link to current document as html)](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef)
+[Link to current document as pdf](https://github.com/dafny-lang/dafny/blob/master/docs/DafnyRef/out/DafnyRef.pdf)<br/>
+[Link to current document as html](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef)
 
-- numbered toc
+1. numbered toc
 {:toc}
 
 {% include Introduction.md %}
@@ -55,6 +55,8 @@ user understand how to do proofs with Dafny.
 
 -- opaque types
 
+-- the !new type parameter characteristic
+
 -- traits, object
 
 -- non-null types
@@ -67,6 +69,7 @@ user understand how to do proofs with Dafny.
 
 -- labelled assertion statements, labelled preconditions
 
-{% include SyntaxTests.md %}
-
 # References
+[BIB]
+
+{% include SyntaxTests.md %}

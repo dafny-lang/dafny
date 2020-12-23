@@ -21,7 +21,6 @@ class AmortizedQueue<T(0)> {
 
   predicate Valid()
     reads this, Repr
-    ensures Valid() ==> this in Repr
   {
     this in Repr &&
     front in Repr && front.Repr <= Repr && front.Valid() &&
@@ -93,7 +92,6 @@ class LinkedList<T(0)> {
 
   predicate Valid()
     reads this, Repr
-    ensures Valid() ==> this in Repr
   {
     this in Repr &&
     0 <= length && length == |List| &&

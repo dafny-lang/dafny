@@ -8,7 +8,7 @@
 # For technical reasons, this file is *NOT* reloaded automatically when you use
 # 'bundle exec jekyll serve'. If you change this file, please restart the server process.
 #
-# If you need help with YAML syntax, here are some quick references for you:
+# If you need help with YAML syntax, here are some quick references for you: 
 # https://learn-the-web.algonquindesign.ca/topics/markdown-yaml-cheat-sheet/#yaml
 # https://learnxinyminutes.com/docs/yaml/
 #
@@ -18,7 +18,7 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: Dafny Documentation
+title: Dafny Documentation 
 #email: your-email@example.com
 description: >- # this means to ignore newlines until "baseurl:"
   This site contains links to Dafny documentation.
@@ -40,9 +40,6 @@ kramdown:
 
 header_pages:
     - about.md
-
-gems:
-    - jekyll-numbered-headings
 
 plugins:
 

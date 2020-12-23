@@ -8,9 +8,9 @@ module StaticMembers {
     static method Method()
     static twostate function TwoF(): int
     static twostate lemma TwoL()
-    static least predicate P()
-    static greatest predicate Q()
-    static least lemma IL()
-    static greatest lemma CL()
+    static inductive predicate P()
+    static copredicate Q()
+    static inductive lemma IL()
+    static colemma CL()
   }
 }

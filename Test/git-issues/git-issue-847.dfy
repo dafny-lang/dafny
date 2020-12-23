@@ -7,7 +7,7 @@ trait O {
     set o,o1 | o in s && o1 in o :: o1
   }
 
-  least predicate ag()
+  inductive predicate ag()
     reads *
   {
     rep=={} || (forall o:O | o in rep :: o.ag())
@@ -35,7 +35,7 @@ trait O {
     var n:ORDINAL :| ag#[n](); ld(n)
   }
 
-  least lemma l1()
+  inductive lemma l1()
     requires ag()
     ensures forall o:O | o in rep :: o.level() < level()
     decreases level()

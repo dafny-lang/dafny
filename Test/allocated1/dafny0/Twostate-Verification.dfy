@@ -85,20 +85,19 @@ class Node {
   ghost var Repr: set<Node>
   predicate Valid()
     reads this, Repr
-    ensures Valid() ==> this in Repr
   {
     this in Repr && (forall o :: o in Repr ==> allocated(o)) &&
     (next != null ==> next in Repr && next.Repr <= Repr && this !in next.Repr && next.Valid())
   }
   constructor (y: int)
-    ensures Valid() && fresh(Repr)
+    ensures Valid() && fresh(Repr - {this})
   {
     x, next := y, null;
     Repr := {this};
   }
   constructor Prepend(y: int, nxt: Node)
     requires nxt.Valid()
-    ensures Valid() && fresh(Repr - nxt.Repr)
+    ensures Valid() && fresh(Repr - {this} - nxt.Repr)
   {
     x, next := y, nxt;
     Repr := {this} + nxt.Repr;
@@ -199,7 +198,7 @@ class {:autocontracts} NodeAuto {
   }
   constructor {:autocontracts false} Prepend(y: int, nxt: NodeAuto)
     requires nxt.Valid() && allocated(nxt.Repr);
-    ensures Valid() && fresh(Repr - nxt.Repr)
+    ensures Valid() && fresh(Repr - {this} - nxt.Repr)
   {
     x, next := y, nxt;
     Repr := {this} + nxt.Repr;

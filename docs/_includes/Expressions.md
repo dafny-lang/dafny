@@ -6,11 +6,11 @@ in order of increasing binding power.
 
  operator                 | description
 --------------------------|------------------------------------
- `;`                      | That is [LemmaCall; Expression](#sec-top-level-expression)
+ `;`                      | In LemmaCall;Expression
 --------------------------|------------------------------------
- `<==>`                   | [equivalence (if and only if)](#sec-equivalence)
+ `<==>`                   | equivalence (if and only if)
 --------------------------|------------------------------------
- `==>`                    | [implication (implies)](#sec-implication)
+ `==>`                    | implication (implies)
  `<==`                    | reverse implication (follows from)
 --------------------------|------------------------------------
  `&&`, `&`                | conjunction (and)
@@ -42,12 +42,8 @@ in order of increasing binding power.
  `&`                      | bit-wise and
  `^`                      | bit-wise exclusive-or (not equal)
 --------------------------|------------------------------------
- `as` operation           | [type conversion](#sec-as-expression)
- `is` operation           | [type conversion](#sec-as-expression)
---------------------------|------------------------------------
  `-`                      | arithmetic negation (unary minus)
  `!`                      | logical negation, bit-wise complement
---------------------------|------------------------------------
  Primary Expressions      |
 
 We are calling the ``UnaryExpression``s that are neither
@@ -59,7 +55,7 @@ operator for that precedence level is present. If the
 operator is not present then we just descend to the
 next precedence level.
 
-## Top-level expressions {#sec-top-level-expression}
+## Top-level expressions
 ````grammar
 Expression(allowLemma, allowLambda) =
     EquivExpression(allowLemma, allowLambda)
@@ -107,7 +103,7 @@ function F_Succeeds(n: nat): int
 }
 ```
 
-## Equivalence Expressions {#sec-equivalence}
+## Equivalence Expressions
 ````grammar
 EquivExpression(allowLemma, allowLambda) =
   ImpliesExpliesExpression(allowLemma, allowLambda)
@@ -122,7 +118,7 @@ ordinary equality.
 See section [#sec-equivalence-operator] for an explanation of the
 `<==>` operator as compared with the `==` operator.
 
-## Implies or Explies Expressions {#sec-implication}
+## Implies or Explies Expressions
 ````grammar
 ImpliesExpliesExpression(allowLemma, allowLambda) =
   LogicalExpression(allowLemma, allowLambda)
@@ -278,11 +274,10 @@ These operations associate to the left but do not associate with each other;
 use parentheses: `a & b | c` is illegal; use `(a & b) | c` or `a & (b | c)`
 instead.
 
-## As (Conversion) and Is (type test) Expressions {#sec-as-expression}
+## As (Conversion) and Is (type test) Expressions
 ````grammar
 NumericConversionExpression_ =
-    UnaryExpression(allowLemma: true, allowLambda: true)
-    ( "as" | "is" ) Type
+    UnaryExpression(allowLemma: true, allowLambda: true) ( "as" | "is" ) Type
 ````
 The `as` expression converts the given `UnaryExpression` to the stated
 `Type`, with the result being of the given type. The following combinations
@@ -455,11 +450,7 @@ an expression, or a havoc right-hand-side, optionally followed
 by one or more ``Attribute``s.
 
 Right-hand-side expressions appear in the following constructs:
-[`ReturnStmt`](#sec-return-statement),
-[`YieldStmt`](#sec-yield-statement),
-[`UpdateStmt`](#sec-update-and-call-statement),
-[`UpdateFailureStmt`](#sec-update-failure), or
-[`VarDeclStatement`](#sec-var-decl-statement).
+`ReturnStmt`, `YieldStmt`, `UpdateStmt`, `UpdateFailureStmt`, or ``VarDeclStatement``.
 These are the only contexts in which arrays or objects may be
 allocated, or in which havoc may be produced.
 
@@ -475,12 +466,13 @@ TO BE WRITTEN - argument that describes how to initialize the array
 
 ## Object Allocation
 ````grammar
-ObjectAllocation_ = "new" Type [ "." ( Ident | digits ) ]
-                               [ "(" [ Expressions ] ")" ]
+ObjectAllocation_ = "new" Type [ "(" [ Expressions ] ")" ]
 ````
 
 This allocated a new object of a class type as explained
-in section [Class Types](#sec-class-types)].
+in section [#sec-class-types].
+
+TODO - constructor names in the grammar
 
 ## Havoc Right-Hand-Side
 ````grammar
@@ -488,7 +480,7 @@ HavocRhs_ = "*"
 ````
 A havoc right-hand-side produces an arbitrary value of its associated
 type. To obtain a more constrained arbitrary value the "assign-such-that"
-operator (`:|`) can be used. See section [Update and Call Statements](#sec-update-and-call-statement).
+operator (`:|`) can be used. See section [#sec-update-and-call-statements].
 
 ## Constant Or Atomic Expressions
 ````grammar
@@ -678,7 +670,7 @@ assert ms == ms2;
 See section [#sec-multisets] for more information on
 multisets.
 
-## Map Display Expression {#sec-map-display-expression}
+## Map Display Expression
 ````grammar
 MapDisplayExpr =
   ("map" | "imap" ) "[" [ MapLiteralExpressions ] "]"

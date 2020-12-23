@@ -15,7 +15,7 @@ abstract module S {
 }
 
 module T refines S {
-  class C ... {
+  class C {
     ghost var h: int  // change from non-ghost to ghost
     ghost var j: int
     var k: int

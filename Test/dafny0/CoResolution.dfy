@@ -3,17 +3,17 @@
 
 module TestModule {
   class TestClass {
-    greatest predicate P(b: bool)
+    copredicate P(b: bool)
     {
       !b && Q(null)
     }
 
-    greatest predicate Q(a: array<int>)
+    copredicate Q(a: array<int>)
     {
       a == null && P(true)
     }
 
-    greatest predicate S(d: set<int>)
+    copredicate S(d: set<int>)
     {
       this.Undeclared#[5](d) &&  // error: 'Undeclared#' is undeclared
       Undeclared#[5](d) &&  // error: 'Undeclared#' is undeclared
@@ -22,7 +22,7 @@ module TestModule {
       S#[_k](d)  // error: _k is not an identifier in scope
     }
 
-    greatest lemma CM(d: set<int>)
+    colemma CM(d: set<int>)
     {
       var b;
       b := this.S#[5](d);
@@ -66,89 +66,89 @@ module GhostCheck2 {
 
 module Mojul0 {
   class MyClass {
-    greatest predicate D()
-      reads this  // yes, greatest predicates can have reads clauses
+    copredicate D()
+      reads this  // yes, copredicates can have reads clauses
     {
       true
     }
 
-    greatest predicate NoEnsuresPlease(m: nat)
-      ensures NoEnsuresPlease(m) ==> m < 100;  // error: a greatest predicate is not allowed to have an 'ensures' clause
+    copredicate NoEnsuresPlease(m: nat)
+      ensures NoEnsuresPlease(m) ==> m < 100;  // error: a copredicate is not allowed to have an 'ensures' clause
     {
       m < 75
     }
 
-    // Note, 'decreases' clauses are also disallowed on greatest predicates, but the parser takes care of that
+    // Note, 'decreases' clauses are also disallowed on copredicates, but the parser takes care of that
   }
 }
 
 module Mojul1 {
-  greatest predicate A() { B() }  // error: SCC of a greatest predicate must include only greatest predicates
+  copredicate A() { B() }  // error: SCC of a copredicate must include only copredicates
   predicate B() { A() }
 
-  greatest predicate X() { Y() }
-  greatest predicate Y() { X#[10]() }  // error: X is not allowed to depend on X#
+  copredicate X() { Y() }
+  copredicate Y() { X#[10]() }  // error: X is not allowed to depend on X#
 
-  greatest lemma M()
+  colemma M()
   {
     N();
   }
-  greatest lemma N()
+  colemma N()
   {
     Z();
-    W();  // error: not allowed to make co-recursive call to non-greatest lemma
+    W();  // error: not allowed to make co-recursive call to non-colemma
   }
   ghost method Z() { }
   ghost method W() { M(); }
 
-  greatest lemma G() { H(); }
-  greatest lemma H() { G#[10](); }  // fine for greatest lemma/prefix-lemma
+  colemma G() { H(); }
+  colemma H() { G#[10](); }  // fine for colemma/prefix-lemma
 }
 
 module CallGraph {
-  // greatest lemma -> greatest predicate -> greatest lemma
-  // greatest lemma -> greatest predicate -> prefix lemma
-  greatest lemma CoLemma(n: ORDINAL)
+  // colemma -> copredicate -> colemma
+  // colemma -> copredicate -> prefix lemma
+  colemma CoLemma(n: ORDINAL)
   {
     var q := Q(n);  // error
     var r := R(n);  // error
   }
 
-  greatest predicate Q(n: ORDINAL)
+  copredicate Q(n: ORDINAL)
   {
     calc { 87; { CoLemma(n); } }  // error: this recursive call not allowed
     false
   }
 
-  greatest predicate R(n: ORDINAL)
+  copredicate R(n: ORDINAL)
   {
     calc { 87; { CoLemma#[n](n); } }  // error: this recursive call not allowed
     false
   }
 
-  // greatest lemma -> prefix predicate -> greatest lemma
-  // greatest lemma -> prefix predicate -> prefix lemma
-  greatest lemma CoLemma_D(n: ORDINAL)
+  // colemma -> prefix predicate -> colemma
+  // colemma -> prefix predicate -> prefix lemma
+  colemma CoLemma_D(n: ORDINAL)
   {
     var q := Q_D#[n](n);  // error
     var r := R_D#[n](n);  // error
   }
 
-  greatest predicate Q_D(n: ORDINAL)
+  copredicate Q_D(n: ORDINAL)
   {
     calc { 88; { CoLemma_D(n); } }  // error: this recursive call not allowed
     false
   }
 
-  greatest predicate R_D(n: ORDINAL)
+  copredicate R_D(n: ORDINAL)
   {
     calc { 89; { CoLemma_D#[n](n); } }  // error: this recursive call not allowed
     false
   }
 
-  // greatest predicate -> function -> greatest predicate
-  // greatest predicate -> function -> prefix predicate
-  greatest predicate P(n: ORDINAL)
+  // copredicate -> function -> copredicate
+  // copredicate -> function -> prefix predicate
+  copredicate P(n: ORDINAL)
   {
     G0(n)  // error
     <
@@ -166,9 +166,9 @@ module CallGraph {
     101
   }
 
-  greatest lemma J()
+  colemma J()
   {
-    var f := JF();  // error: cannot call non-greatest lemma recursively from greatest lemma
+    var f := JF();  // error: cannot call non-colemma recursively from colemma
   }
   function JF(): int
   {

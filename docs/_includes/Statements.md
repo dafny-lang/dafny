@@ -99,7 +99,7 @@ BlockStmt = "{" { Stmt } "}"
 A block statement is just a sequence of statements enclosed by curly braces.
 Local variables declared in the block end their scope at the end of the block.
 
-## Return Statement {#sec-return-statement}
+## Return Statement
 ````grammar
 ReturnStmt = "return" [ Rhs { "," Rhs } ] ";"
 ````
@@ -120,7 +120,7 @@ as the number of named out-parameters. These expressions are
 evaluated, then they are assigned to the out-parameters, and then the
 method terminates.
 
-## Yield Statement {#sec-yield-statement}
+## Yield Statement
 ````grammar
 YieldStmt = "yield" [ Rhs { "," Rhs } ] ";"
 ````
@@ -580,7 +580,7 @@ Not so in Dafny: a failure is passed up the call stack only if each caller has a
  * All methods that contain failure-return callees must explicitly handle those failures
 using either `:-` statements or using `:=` statements with a LHS to receive the failure value.
 
-## Variable Declaration Statement {#sec-var-decl-statement}
+## Variable Declaration Statement
 ````grammar
 VarDeclStatement = [ "ghost" ] "var" { Attribute }
   (

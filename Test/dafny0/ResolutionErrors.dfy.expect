@@ -1,5 +1,5 @@
-ResolutionErrors.dfy(322,33): Warning: constructors no longer need 'this' to be listed in modifies clauses
-ResolutionErrors.dfy(1892,15): Warning: constructors no longer need 'this' to be listed in modifies clauses
+ResolutionErrors.dfy(322,33): Warning: Dafny's constructors no longer need 'this' to be listed in modifies clauses
+ResolutionErrors.dfy(1892,15): Warning: Dafny's constructors no longer need 'this' to be listed in modifies clauses
 ResolutionErrors.dfy(51,15): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(88,16): Error: the name 'Benny' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.Benny')
 ResolutionErrors.dfy(93,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
@@ -262,8 +262,8 @@ ResolutionErrors.dfy(1785,19): Error: Undeclared top-level type or type paramete
 ResolutionErrors.dfy(1780,6): Error: RHS (of type object) not assignable to LHS (of type J)
 ResolutionErrors.dfy(1783,6): Error: RHS (of type J) not assignable to LHS (of type C)
 ResolutionErrors.dfy(1793,44): Error: range of comprehension must be of type bool (instead got C)
-ResolutionErrors.dfy(1800,21): Error: Duplicate member name: P
-ResolutionErrors.dfy(1802,17): Error: Duplicate member name: L
+ResolutionErrors.dfy(1800,14): Error: Duplicate member name: P
+ResolutionErrors.dfy(1802,10): Error: Duplicate member name: L
 ResolutionErrors.dfy(1810,4): Error: second argument to && must be of type bool (instead got int)
 ResolutionErrors.dfy(1808,11): Error: Function body type mismatch (expected int, got bool)
 ResolutionErrors.dfy(1814,4): Error: second argument to && must be of type bool (instead got int)

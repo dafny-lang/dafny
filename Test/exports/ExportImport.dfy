@@ -31,7 +31,7 @@ module B {
 }
 
 module C {
-  import CAO = B.BAO // error - BAO not in B`B
+  import CAO = B.BAO // error
 }
 
 module CC {

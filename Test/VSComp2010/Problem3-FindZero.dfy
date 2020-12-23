@@ -28,9 +28,8 @@ class Node {
   var head: int
   var next: Node?
 
-  predicate Valid()
+  function Valid(): bool
     reads this, Repr
-    ensures Valid() ==> this in Repr
   {
     this in Repr &&
     1 <= |List| && List[0] == head &&

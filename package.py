@@ -48,7 +48,6 @@ DLLs = ["BoogieAbsInt",
         "BoogieConcurrency",
         "BoogieCore",
         "DafnyPipeline",
-        "Dafny",
         "BoogieDoomed",
         "BoogieExecutionEngine",
         "BoogieGraph",
@@ -63,7 +62,7 @@ DLLs = ["BoogieAbsInt",
         "System.Collections.Immutable",
         "System.Runtime"]
 EXEs = ["Dafny", "DafnyServer"]
-ETCs = UNIX_EXECUTABLES + ["DafnyPrelude.bpl", "DafnyRuntime.cs", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.jar", "libhostpolicy.dylib"]
+ETCs = UNIX_EXECUTABLES + ["DafnyPrelude.bpl", "DafnyRuntime.cs", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.jar"]
 
 # Constants
 

@@ -21,7 +21,7 @@ class Node<T> {
   }
 
   constructor (d: T)
-    ensures Valid() && fresh(Repr)
+    ensures Valid() && fresh(Repr - {this})
     ensures List == [d]
   {
     data, next := d, null;
@@ -30,7 +30,7 @@ class Node<T> {
 
   constructor InitAsPredecessor(d: T, succ: Node<T>)
     requires succ.Valid()
-    ensures Valid() && fresh(Repr - succ.Repr)
+    ensures Valid() && fresh(Repr - {this} - succ.Repr)
     ensures List == [d] + succ.List
   {
     data, next := d, succ;

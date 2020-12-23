@@ -9,7 +9,7 @@ module OneModule {
     var dd: D?
     var {:autocontracts false} ee: D?
     var arr: array?<C?>
-    predicate Valid()
+    protected predicate Valid()
     {
       0 <= data < 100
     }
@@ -74,7 +74,7 @@ module N0 {
   }
 }
 module N1 refines N0 {
-  class C ... {
+  class C {
     constructor X...
     constructor Y... { }
     constructor Z... { }
@@ -87,7 +87,7 @@ module N1 refines N0 {
   }
 }
 module N2 refines N1 {
-  class C ... {
+  class C {
     constructor X...
     constructor Y... { }
     constructor Z... { }

@@ -1,3 +1,2 @@
-git-issue-288.dfy(9,7): Error: T in B redeclares a name in the refinement base A
 git-issue-288.dfy(5,7): Error: a type (T) in a refining module may not replace an already defined type (even with the same value)
-2 resolution/type errors detected in git-issue-288.dfy
+1 resolution/type errors detected in git-issue-288.dfy

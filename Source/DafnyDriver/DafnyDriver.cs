@@ -145,7 +145,6 @@ namespace Microsoft.Dafny
         Console.WriteLine("--------------------");
       }
 
-      ISet<String> filesSeen = new HashSet<string>();
       foreach (string file in CommandLineOptions.Clo.Files)
       { Contract.Assert(file != null);
         string extension = Path.GetExtension(file);
@@ -153,11 +152,7 @@ namespace Microsoft.Dafny
 
         bool isDafnyFile = false;
         try {
-          var df = new DafnyFile(file);
-          if (!filesSeen.Add(df.CanonicalPath)) {
-            continue; // silently ignore duplicate
-          }
-          dafnyFiles.Add(df);
+          dafnyFiles.Add(new DafnyFile(file));
           isDafnyFile = true;
         } catch (IllegalDafnyFile) {
           // Fall through and try to handle the file as an "other file"

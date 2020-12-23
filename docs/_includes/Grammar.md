@@ -106,39 +106,6 @@ Use `\u` escapes in string and character literals to insert unicode characters.
 Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication.
 Unicode in verbatim strings will likely not be interpreted as intended. [Outstanding issue #818].
 
-## Tokens and whitespace
-The characters used in a Dafny program fall into four groups:
-
-* White space characters
-* alphanumerics: letters, digits, underscore (`_`), apostrophe (`'`), and question mark (`?`)
-* punctuation: `(){}[],`
-* operator characters (the other printable characters)
-
-Each Dafny token consists of a sequence of consecutive characters from just one of these
-groups, excluding white-space. White-space is ignored except that it
-separates tokens.
-
-A sequence of alphanumeric characters (with no preceding or following additional
-alphanumeric characters) is a _single_ token. This is true even if the token
-is syntactially or semantically invalid and the sequence could be separated into
-more than one valid token. For example, `assert56` is one identifier token,
-not a keyword `assert` followed by a number; `ifb!=0` begins with the token
-`ifb` and not with the keyword `if` and token `b`; `0xFFFFZZ` is an illegal
-token, not a valid hex number `0xFFFF` followed by an identifier `ZZ`.
-White-space must be used to separate two such tokens in a program.
-
-Somewhat differently, operator tokens need not be separated.
-Only specific sequences of operator characters are recognized and these
-are somewhat context-sensitive. For example, in `seq<set<int>>`, the grammar
-knows that `>>` is two individual `>` tokens terminating the nested
-type parameter lists; `>>` would never be valid here. Similarly, the
-sequence `==>` is always one token; even if it were invalid in its context,
-separating it into `==` and `>` would always still be invalid.
-
-In summary, except for required white space between alphanumeric tokens,
-removing white space can never result in changing the meaning of a Dafny program.
-For the rest of this document, we consider Dafny programs as sequences of tokens.
-
 ## Character Classes {#sec-character-classes}
 This section defines character classes used later in the token definitions.
 In this section a backslash is used to start an escape sequence; so for example
@@ -304,7 +271,7 @@ reservedword =
     "iterator" | "label" | "lemma" | "map" | "match" | "method" |
     "modifies" | "modify" | "module" | "multiset" | "nat" |
     "new" | "newtype" | "null" | "object" | "old" | "opened" |
-    "predicate" | "print" | "provides" "reads" |
+    "predicate" | "print" | "protected" | "provides" "reads" |
     "real" | "refines" | "requires" | "return" | "returns" |
     "reveals" | "seq" | "set" | "static" | "string" | "then" |
     "this" | "trait" | "true" | "twostate" | "type" |

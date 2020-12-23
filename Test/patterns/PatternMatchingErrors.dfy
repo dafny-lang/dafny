@@ -53,12 +53,12 @@ function method GetNat(dt: Dt): nat {
   case Make(y: nat) => y
 }
 
-// postcondition might not hold on this return path (in least lemma)
+// postcondition might not hold on this return path (in inductive lemma)
 
 datatype cmd = Inc | Seq(cmd, cmd) | Repeat(cmd)
 type state = int
 
-least predicate BigStep(c: cmd, s: state, t: state)
+inductive predicate BigStep(c: cmd, s: state, t: state)
 {
   match c
   case Inc =>
@@ -70,7 +70,7 @@ least predicate BigStep(c: cmd, s: state, t: state)
     exists s' :: BigStep(body, s, s') && BigStep(c, s', t)
 }
 
-least lemma BadMonotonic1(c: cmd, s: state, t: state)
+inductive lemma BadMonotonic1(c: cmd, s: state, t: state)
   requires BigStep(c, s, t)
   ensures s == t  // error: does not hold
 {

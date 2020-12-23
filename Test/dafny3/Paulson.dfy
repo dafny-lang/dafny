@@ -32,7 +32,7 @@ function Lappend(a: LList, b: LList): LList
 
 // ---------- Section 8.3 ----------
 
-greatest lemma Example6(f: FunctionHandle, g: FunctionHandle, M: LList)
+colemma Example6(f: FunctionHandle, g: FunctionHandle, M: LList)
   ensures Lmap(After(f, g), M) == Lmap(f, Lmap(g, M));
 {
   match M {
@@ -64,7 +64,7 @@ function Iterates<A>(f: FunctionHandle<LList<A>>, M: LList<A>): LList<LList<A>>
   Cons(M, Iterates(f, Apply(f, M)))
 }
 
-greatest lemma Eq24<A>(f: FunctionHandle<LList<A>>, M: LList<A>)
+colemma Eq24<A>(f: FunctionHandle<LList<A>>, M: LList<A>)
   ensures Lmap(f, Iterates(f, M)) == Iterates(f, Apply(f, M));
 {
   calc {
@@ -122,7 +122,7 @@ lemma Lemma26<A>(n: nat, f: FunctionHandle, x: LList)  // (26) in the paper, but
   // proof is by (automatic) induction
 }
 
-greatest lemma BisimulationLemma<A>(n: nat, f: FunctionHandle<LList<A>>, u: LList<A>)
+colemma BisimulationLemma<A>(n: nat, f: FunctionHandle<LList<A>>, u: LList<A>)
   ensures LmapIter(n, f, h(f, u)) == LmapIter(n, f, Iterates(f, u));
 {
   calc {
@@ -160,13 +160,13 @@ lemma Example7<A>(f: FunctionHandle<LList<A>>)
 
 // ---------- Section 8.5 ----------
 
-greatest lemma Example8<A>(f: FunctionHandle<A>, M: LList<A>, N: LList<A>)
+colemma Example8<A>(f: FunctionHandle<A>, M: LList<A>, N: LList<A>)
   ensures Lmap(f, Lappend(M, N)) == Lappend(Lmap(f, M), Lmap(f, N));
 {
   // A proof doesn't get any simpler than this
 }
 
-greatest lemma Associativity(a: LList, b: LList, c: LList)
+colemma Associativity(a: LList, b: LList, c: LList)
   ensures Lappend(Lappend(a, b), c) == Lappend(a, Lappend(b, c));
 {
   // Again, Dafny does this proof completely automatically

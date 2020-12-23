@@ -10,7 +10,7 @@ module A {
     s' == s + 1
   }
 
-  least predicate Reachable(s: int)
+  inductive predicate Reachable(s: int)
   {
     Init(s) || (exists s0 :: Reachable(s0) && Next(s0, s))
   }
@@ -19,7 +19,7 @@ module A {
 module B {
   import A
 
-  least lemma ReachableImpliesNonneg(s: int)
+  inductive lemma ReachableImpliesNonneg(s: int)
   requires A.Reachable(s)
   ensures s >= 0
   {

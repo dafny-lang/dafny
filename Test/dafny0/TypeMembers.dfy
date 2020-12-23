@@ -114,8 +114,8 @@ datatype Dt<A> = Blue | Bucket(diameter: real) | Business(trendy: bool, a: A)
   }
   twostate predicate Toop() { old(this) == this }
   twostate lemma Tool() { }
-  least predicate IndP() { true }
-  greatest predicate CoP() { true }
+  inductive predicate IndP() { true }
+  copredicate CoP() { true }
   method RecursiveZero(x: int) returns (z: int) ensures z == 0 decreases x != 0 {
     if x == 0 { return 0; } else { z := RecursiveZero(0); }
   }

@@ -58,13 +58,13 @@ class CF {
 
   predicate method G()
 
-  greatest predicate Co()
+  copredicate Co()
 
-  function H(): int
+  protected function H(): int
 
-  static function method I(): real
+  static protected function method I(): real
 
-  static predicate method J()
+  static protected predicate method J()
 }
 
 module A {
@@ -101,7 +101,7 @@ lemma M(x: int)
 {
 }
 
-greatest lemma M'(x': int)
+colemma M'(x': int)
   ensures true
 {
 }

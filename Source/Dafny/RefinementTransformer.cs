@@ -80,30 +80,28 @@ namespace Microsoft.Dafny
         RefinedSig = m.RefinementBaseRoot.Signature;
 
         if (RefinedSig.ModuleDef != null) {
+          if (RefinedSig.ModuleDef.IsProtected) {
+            reporter.Error(MessageSource.RefinementTransformer, m.RefinementBaseName, "module ({0}) named as a refinement base is marked protected and cannot be refined", m.RefinementBaseName.val);
+          }
+
           m.RefinementBase = RefinedSig.ModuleDef;
           // check that the openess in the imports between refinement and its base matches
           List<TopLevelDecl> declarations = m.TopLevelDecls;
           List<TopLevelDecl> baseDeclarations = m.RefinementBase.TopLevelDecls;
           foreach (var im in declarations) {
-            // TODO: this is a terribly slow algorithm; use the symbol table instead
-            foreach (var bim in baseDeclarations) {
-              if (bim.Name.Equals(im.Name)) {
-                if (!im.Name.Equals("_default") && !im.IsRefining
-                      && !(bim is OpaqueTypeDecl)
-                      && !(bim is AbstractModuleDecl && im is AliasModuleDecl)) {
-                  string message =
-                    $"{im.Name} in {m.Name} redeclares a name in the refinement base {m.RefinementBase.Name}";
-                  reporter.Error(MessageSource.RefinementTransformer, im.tok, message);
-                } else if (im is ModuleDecl mdecl) {
-                  if (bim is ModuleDecl mbim) {
-                    if (mdecl.Opened != mbim.Opened) {
-                      string message = mdecl.Opened
-                        ? "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}."
-                        : "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.";
-                      reporter.Error(MessageSource.RefinementTransformer, m.tok, message, im.Name, m.Name,
-                        m.RefinementBase.Name);
-                    }
+            if (im is ModuleDecl) {
+              ModuleDecl mdecl = (ModuleDecl)im;
+              //find the matching import from the base
+              // TODO: this is a terribly slow algorithm; use the symbol table instead
+              foreach (var bim in baseDeclarations) {
+                if (bim is ModuleDecl && ((ModuleDecl)bim).Name.Equals(mdecl.Name)) {
+                  if (mdecl.Opened != ((ModuleDecl)bim).Opened) {
+                    string message = mdecl.Opened ?
+                      "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2} " :
+                      "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.";
+                    reporter.Error(MessageSource.RefinementTransformer, m.tok, message, im.Name, m.Name, m.RefinementBase.Name);
                   }
+                  break;
                 }
                 break;
               }
@@ -139,6 +137,19 @@ namespace Microsoft.Dafny
         var d = m.TopLevelDecls[i];
         if (!declaredNames.ContainsKey(d.Name)) {
           declaredNames.Add(d.Name, i);
+        }
+
+        // TODO: This is more restrictive than is necessary,
+        // it would be possible to disambiguate these, but it seems like
+        // a lot of work for not much gain
+
+        if (refinedSigOpened.TopLevels.ContainsKey(d.Name) &&
+          !RefinedSig.TopLevels.ContainsKey(d.Name)) {
+          var decl = Resolver.AmbiguousTopLevelDecl.Create(m, d, refinedSigOpened.TopLevels[d.Name]);
+
+          if (decl is Resolver.AmbiguousTopLevelDecl) {
+            reporter.Error(MessageSource.RefinementTransformer, d.tok, "Base module {0} imports {1} from an opened import, so it cannot be overridden. Give this declaration a unique name to disambiguate.", prev.Name, d.Name);
+          }
         }
       }
 
@@ -189,11 +200,11 @@ namespace Microsoft.Dafny
           } else {
             MergeModuleExports((ModuleExportDecl)nw,(ModuleExportDecl)d);
           }
-        } else if (!(d is AbstractModuleDecl)) {
+        } else if (!(d is ModuleFacadeDecl)) {
           reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only refine a module facade", nw.Name);
         } else {
           // check that the new module refines the previous declaration
-          if (!CheckIsRefinement((ModuleDecl)nw, (AbstractModuleDecl)d))
+          if (!CheckIsRefinement((ModuleDecl)nw, (ModuleFacadeDecl)d))
             reporter.Error(MessageSource.RefinementTransformer, nw.tok, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
         }
       } else if (d is OpaqueTypeDecl) {
@@ -270,7 +281,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    public bool CheckIsRefinement(ModuleDecl derived, AbstractModuleDecl original) {
+    public bool CheckIsRefinement(ModuleDecl derived, ModuleFacadeDecl original) {
 
 
       // Check explicit refinement
@@ -281,8 +292,8 @@ namespace Microsoft.Dafny
           HashSet<string> exports;
           if (derived is AliasModuleDecl) {
             exports = new HashSet<string>(((AliasModuleDecl)derived).Exports.ConvertAll(t => t.val));
-          } else if (derived is AbstractModuleDecl) {
-            exports = new HashSet<string>(((AbstractModuleDecl)derived).Exports.ConvertAll(t => t.val));
+          } else if (derived is ModuleFacadeDecl) {
+            exports = new HashSet<string>(((ModuleFacadeDecl)derived).Exports.ConvertAll(t => t.val));
           } else {
             reporter.Error(MessageSource.RefinementTransformer, derived, "a module ({0}) can only be refined by an alias module or a module facade", original.Name);
             return false;
@@ -412,13 +423,13 @@ namespace Microsoft.Dafny
       }
 
       if (f is Predicate) {
-        return new Predicate(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals,
+        return new Predicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals,
           req, reads, ens, decreases, body, bodyOrigin, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
-      } else if (f is LeastPredicate) {
-        return new LeastPredicate(tok, f.Name, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals,
+      } else if (f is InductivePredicate) {
+        return new InductivePredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, ((InductivePredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
-      } else if (f is GreatestPredicate) {
-        return new GreatestPredicate(tok, f.Name, f.HasStaticKeyword, ((GreatestPredicate)f).TypeOfK, tps, formals,
+      } else if (f is CoPredicate) {
+        return new CoPredicate(tok, f.Name, f.HasStaticKeyword, f.IsProtected, ((CoPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is TwoStatePredicate) {
         return new TwoStatePredicate(tok, f.Name, f.HasStaticKeyword, tps, formals,
@@ -427,7 +438,7 @@ namespace Microsoft.Dafny
         return new TwoStateFunction(tok, f.Name, f.HasStaticKeyword, tps, formals, result, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else {
-        return new Function(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals, result, refinementCloner.CloneType(f.ResultType),
+        return new Function(tok, f.Name, f.HasStaticKeyword, f.IsProtected, isGhost, tps, formals, result, refinementCloner.CloneType(f.ResultType),
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       }
     }
@@ -457,11 +468,11 @@ namespace Microsoft.Dafny
           req, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.BodyForRefinement);
-      if (m is LeastLemma) {
-        return new LeastLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+      if (m is InductiveLemma) {
+        return new InductiveLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((InductiveLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
-      } else if (m is GreatestLemma) {
-        return new GreatestLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
+      } else if (m is CoLemma) {
+        return new CoLemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, ((CoLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else if (m is Lemma) {
         return new Lemma(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
@@ -499,6 +510,7 @@ namespace Microsoft.Dafny
       }
 
       if (nw.SignatureIsOmitted) {
+        Contract.Assert(nw.TypeArgs.Count == 0);
         Contract.Assert(nw.Ins.Count == 0);
         Contract.Assert(nw.Outs.Count == 0);
         reporter.Info(MessageSource.RefinementTransformer, nw.SignatureEllipsis, Printer.IteratorSignatureToString(prev));
@@ -542,7 +554,6 @@ namespace Microsoft.Dafny
     ClassDecl MergeClass(ClassDecl nw, ClassDecl prev) {
       CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, "class");
 
-      prev.ParentTraits.ForEach(item => nw.ParentTraits.Add(item));
       nw.Attributes = refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes);
 
       // Create a simple name-to-member dictionary.  Ignore any duplicates at this time.
@@ -551,6 +562,11 @@ namespace Microsoft.Dafny
         var member = nw.Members[i];
         if (!declaredNames.ContainsKey(member.Name)) {
           declaredNames.Add(member.Name, i);
+        }
+
+        if (prev.IsDefaultClass && refinedSigOpened.StaticMembers.ContainsKey(member.Name) &&
+          !RefinedSig.StaticMembers.ContainsKey(member.Name)) {
+            reporter.Error(MessageSource.RefinementTransformer, member.tok, "Base module {0} imports {1} from an opened import, so it cannot be overridden. Give this declaration a unique name to disambiguate.", RefinedSig.ModuleDef.Name, member.Name);
         }
       }
 
@@ -602,15 +618,17 @@ namespace Microsoft.Dafny
           } else if (nwMember is Function) {
             var f = (Function)nwMember;
             bool isPredicate = f is Predicate;
-            bool isLeastPredicate = f is LeastPredicate;
-            bool isGreatestPredicate = f is GreatestPredicate;
+            bool isIndPredicate = f is InductivePredicate;
+            bool isCoPredicate = f is CoPredicate;
             if (!(member is Function) ||
               isPredicate != (member is Predicate) ||
-              (f is LeastPredicate) != (member is LeastPredicate) ||
-              (f is GreatestPredicate) != (member is GreatestPredicate) ||
+              (f is InductivePredicate) != (member is InductivePredicate) ||
+              (f is CoPredicate) != (member is CoPredicate) ||
               (f is TwoStatePredicate) != (member is TwoStatePredicate) ||
               (f is TwoStateFunction) != (member is TwoStateFunction)) {
               reporter.Error(MessageSource.RefinementTransformer, nwMember, "a {0} declaration ({1}) can only refine a {0}", f.WhatKind, nwMember.Name);
+            } else if (f.IsProtected != ((Function)member).IsProtected) {
+              reporter.Error(MessageSource.RefinementTransformer, f, "a {0} in a refinement module must be declared 'protected' if and only if the refined {0} is", f.WhatKind);
             } else {
               var prevFunction = (Function)member;
               if (f.Req.Count != 0) {
@@ -651,7 +669,13 @@ namespace Microsoft.Dafny
               if (prevFunction.Body == null) {
                 replacementBody = f.Body;
               } else if (f.Body != null) {
-                reporter.Error(MessageSource.RefinementTransformer, nwMember, $"a refining {f.WhatKind} is not allowed to extend/change the body");
+                if (isPredicate && f.IsProtected) {
+                  moreBody = f.Body;
+                } else if (isPredicate) {
+                  reporter.Error(MessageSource.RefinementTransformer, nwMember, "a refining predicate is not allowed to extend/change the body unless it is declared 'protected'");
+                } else {
+                  reporter.Error(MessageSource.RefinementTransformer, nwMember, "a refining function is not allowed to extend/change the body");
+                }
               }
               var newF = CloneFunction(f.tok, prevFunction, f.IsGhost, f.Ens, f.Result, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
               newF.RefinementBase = member;
@@ -1456,7 +1480,7 @@ namespace Microsoft.Dafny
 
       if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        if (e.Function.EnclosingClass.EnclosingModuleDefinition == m) {
+        if (e.Function.EnclosingClass.Module == m) {
           var p = e.Function as Predicate;
           if (p != null && p.BodyOrigin == Predicate.BodyOriginKind.Extension) {
             return true;
@@ -1494,8 +1518,8 @@ namespace Microsoft.Dafny
         ((ModuleExportDecl)dd).SetupDefaultSignature();
       } else if (d is ModuleDecl) {
         ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
-        if (d is AbstractModuleDecl) {
-          ((AbstractModuleDecl)dd).OriginalSignature = ((AbstractModuleDecl)d).OriginalSignature;
+        if (d is ModuleFacadeDecl) {
+          ((ModuleFacadeDecl)dd).OriginalSignature = ((ModuleFacadeDecl)d).OriginalSignature;
         }
       }
       return dd;

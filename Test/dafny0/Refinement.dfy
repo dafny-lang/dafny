@@ -21,7 +21,7 @@ module A {
 module B refines A {
   class C { }
   datatype Dt = Ax | Bx
-  class T ... {
+  class T {
     method P() returns (p: int)
     {
       p := 18;
@@ -49,14 +49,14 @@ module A_AnonymousClass {
 }
 
 module B_AnonymousClass refines A_AnonymousClass {
-  class XX ... {
+  class XX {
     method Increment...
       ensures x <= old(x) + d;
   }
 }
 
 module C_AnonymousClass refines B_AnonymousClass {
-  class XX ... {
+  class XX {
     method Increment(d: int)
       ensures old(x) + d <= x;
     method Main()
@@ -108,31 +108,30 @@ module FullBodied refines BodyFree {
 
 module Abstract {
   class MyNumber {
-    ghost var N: int
-    ghost var Repr: set<object>
-    predicate Valid()
-      reads this, Repr
-      ensures Valid() ==> this in Repr
+    ghost var N: int;
+    ghost var Repr: set<object>;
+    protected predicate Valid()
+      reads this, Repr;
+    {
+      this in Repr
+    }
     constructor Init()
-      ensures N == 0
-      ensures Valid() && fresh(Repr)
+      ensures N == 0;
+      ensures Valid() && fresh(Repr - {this});
     {
       N, Repr := 0, {this};
-      new;
-      assume Valid();
     }
     method Inc()
-      requires Valid()
-      modifies Repr
-      ensures N == old(N) + 1
-      ensures Valid() && fresh(Repr - old(Repr))
+      requires Valid();
+      modifies Repr;
+      ensures N == old(N) + 1;
+      ensures Valid() && fresh(Repr - old(Repr));
     {
       N := N + 1;
-      assume Valid();
     }
     method Get() returns (n: int)
-      requires Valid()
-      ensures n == N
+      requires Valid();
+      ensures n == N;
     {
       var k;  assume k == N;
       n := k;
@@ -141,27 +140,23 @@ module Abstract {
 }
 
 module Concrete refines Abstract {
-  class MyNumber ... {
-    var a: int
-    var b: int
-    predicate Valid...
+  class MyNumber {
+    var a: int;
+    var b: int;
+    protected predicate Valid()
     {
-      this in Repr &&
       N == a - b
     }
-    constructor Init...
+    constructor Init()
     {
       new;
       a := b;
-      assert ...;
     }
-    method Inc...
+    method Inc()
     {
-      if * { a := a + 1; } else { b := b - 1; }
-      ...;
-      assert ...;
+      if (*) { a := a + 1; } else { b := b - 1; }
     }
-    method Get...
+    method Get() returns (n: int)
     {
       var k := a - b;
       assert ...;
@@ -183,30 +178,28 @@ module Client {
 }
 
 module IncorrectConcrete refines Abstract {
-  class MyNumber ... {
-    var a: int
-    var b: int
-    predicate Valid...
+  class MyNumber {
+    var a: int;
+    var b: int;
+    protected predicate Valid()
     {
-      this in Repr &&
       N == 2*a - b
     }
-    constructor Init...
-    {
+    constructor Init()
+    {  // error: postcondition violation
       new;
       a := b;
-      assert ...;  // error: Valid does not hold
     }
-    method Inc...
-    {
-      if * { a := a + 1; } else { b := b - 1; }
-      ...;
-      assert ...;  // error: Valid does not hold
+    method Inc()
+    {  // error: postcondition violation
+      if (*) { a := a + 1; } else { b := b - 1; }
     }
-    method Get...
+    method Get() returns (n: int)
     {
       var k := a - b;
       assert ...;  // error: assertion violation
     }
   }
 }
+
+

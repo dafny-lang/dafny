@@ -78,9 +78,6 @@ axiom (forall t: Ty    :: { TSeq(t) }      Tag(TSeq(t))      == TagSeq);
 axiom (forall t, u: Ty :: { TMap(t,u) }    Tag(TMap(t,u))    == TagMap);
 axiom (forall t, u: Ty :: { TIMap(t,u) }   Tag(TIMap(t,u))   == TagIMap);
 
-type TyTagFamily;
-function TagFamily(Ty): TyTagFamily;
-
 // ---------------------------------------------------------------
 // -- Literals ---------------------------------------------------
 // ---------------------------------------------------------------

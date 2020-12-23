@@ -25,7 +25,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
 ExtremeReads.dfy(127,11): Error: assertion violation
-ExtremeReads.dfy(9,19): Related location
+ExtremeReads.dfy(9,12): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
@@ -37,7 +37,7 @@ Execution trace:
     (0,0): anon11_Then
     (0,0): anon5
 ExtremeReads.dfy(130,11): Error: assertion violation
-ExtremeReads.dfy(9,19): Related location
+ExtremeReads.dfy(9,12): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon12_Then
@@ -47,7 +47,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon12_Then
 ExtremeReads.dfy(149,11): Error: assertion violation
-ExtremeReads.dfy(16,19): Related location
+ExtremeReads.dfy(16,12): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon12_Then
@@ -57,7 +57,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon12_Then
 ExtremeReads.dfy(168,11): Error: assertion violation
-ExtremeReads.dfy(23,19): Related location
+ExtremeReads.dfy(23,12): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
@@ -67,7 +67,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
 ExtremeReads.dfy(171,11): Error: assertion violation
-ExtremeReads.dfy(23,19): Related location
+ExtremeReads.dfy(23,12): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
@@ -77,7 +77,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
 ExtremeReads.dfy(181,11): Error: assertion violation
-ExtremeReads.dfy(86,16): Related location
+ExtremeReads.dfy(86,20): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then

@@ -1,2 +1,0 @@
-git-issue-958.dfy(8,7): Error: wrong number of arguments to datatype constructor MakeAtom (found 0, expected 1)
-1 resolution/type errors detected in git-issue-958.dfy

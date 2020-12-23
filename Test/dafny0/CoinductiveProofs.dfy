@@ -8,20 +8,20 @@ function Upward(n: int): Stream<int>
   Cons(n, Upward(n + 1))
 }
 
-greatest predicate Pos(s: Stream<int>)
+copredicate Pos(s: Stream<int>)
 {
   0 < s.head && Pos(s.tail)
 }
 predicate FullPos(s: Stream<int>) { Pos(s) }  // a way in the test file to sidestep focal-predicate rewrites
 
-greatest lemma {:induction false} PosLemma0(n: int)
+colemma {:induction false} PosLemma0(n: int)
   requires 1 <= n;
   ensures Pos(Upward(n));
 {
   PosLemma0(n + 1);  // this completes the proof
 }
 
-greatest lemma {:induction false} PosLemma1(n: int)
+colemma {:induction false} PosLemma1(n: int)
   requires 1 <= n;
   ensures Pos(Upward(n));
 {
@@ -31,7 +31,7 @@ greatest lemma {:induction false} PosLemma1(n: int)
   }
 }
 
-greatest lemma {:induction false} PosLemma2(n: int)
+colemma {:induction false} PosLemma2(n: int)
   requires 1 <= n;
   ensures Pos(Upward(n));
 {
@@ -49,7 +49,7 @@ greatest lemma {:induction false} PosLemma2(n: int)
   }
 }
 
-greatest lemma {:induction false} Outside_CoLemma_Caller_PosLemma(n: int)
+colemma {:induction false} Outside_CoLemma_Caller_PosLemma(n: int)
   requires 1 <= n;
   ensures Pos(Upward(n));
 {
@@ -68,25 +68,25 @@ method Outside_Method_Caller_PosLemma(n: int)
   assert Pos(Upward(n+1));  // this follows directly from the previous line, because it isn't a recursive call
 }
 
-greatest predicate X(s: Stream)  // this is equivalent to always returning 'true'
+copredicate X(s: Stream)  // this is equivalent to always returning 'true'
 {
   X(s)
 }
 
-greatest lemma {:induction false} AlwaysLemma_X0(s: Stream)
+colemma {:induction false} AlwaysLemma_X0(s: Stream)
   ensures X(s);  // prove that X(s) really is always 'true'
 {  // error: this is not the right proof
   AlwaysLemma_X0(s.tail);
 }
 
-greatest lemma {:induction false} AlwaysLemma_X1(s: Stream)
+colemma {:induction false} AlwaysLemma_X1(s: Stream)
   ensures X(s);  // prove that X(s) really is always 'true'
 {
   AlwaysLemma_X1(s);  // this is the right proof
 }
 predicate FullX(s: Stream) { X(s) }  // a way in the test file to sidestep focal-predicate rewrites
 
-greatest lemma {:induction false} AlwaysLemma_X2(s: Stream)
+colemma {:induction false} AlwaysLemma_X2(s: Stream)
   ensures X(s);
 {
   AlwaysLemma_X2(s);
@@ -95,7 +95,7 @@ greatest lemma {:induction false} AlwaysLemma_X2(s: Stream)
   }
 }
 
-greatest lemma {:induction false} AlwaysLemma_X3(s: Stream)
+colemma {:induction false} AlwaysLemma_X3(s: Stream)
   ensures X(s);
 {
   AlwaysLemma_X3(s);
@@ -110,25 +110,25 @@ greatest lemma {:induction false} AlwaysLemma_X3(s: Stream)
   }
 }
 
-greatest predicate Y(s: Stream)  // this is equivalent to always returning 'true'
+copredicate Y(s: Stream)  // this is equivalent to always returning 'true'
 {
   Y(s.tail)
 }
 predicate FullY(s: Stream) { Y(s) }  // a way in the test file to sidestep focal-predicate rewrites
 
-greatest lemma {:induction false} AlwaysLemma_Y0(s: Stream)
+colemma {:induction false} AlwaysLemma_Y0(s: Stream)
   ensures Y(s);  // prove that Y(s) really is always 'true'
 {
   AlwaysLemma_Y0(s.tail);  // this is a correct proof
 }
 
-greatest lemma {:induction false} AlwaysLemma_Y1(s: Stream)
+colemma {:induction false} AlwaysLemma_Y1(s: Stream)
   ensures Y(s);
 {  // error: this is not the right proof
   AlwaysLemma_Y1(s);
 }
 
-greatest lemma {:induction false} AlwaysLemma_Y2(s: Stream)
+colemma {:induction false} AlwaysLemma_Y2(s: Stream)
   ensures Y(s);
 {
   AlwaysLemma_Y2(s.tail);
@@ -137,7 +137,7 @@ greatest lemma {:induction false} AlwaysLemma_Y2(s: Stream)
   }
 }
 
-greatest lemma {:induction false} AlwaysLemma_Y3(s: Stream)
+colemma {:induction false} AlwaysLemma_Y3(s: Stream)
   ensures Y(s);
 {
   AlwaysLemma_Y3(s.tail);
@@ -154,12 +154,12 @@ greatest lemma {:induction false} AlwaysLemma_Y3(s: Stream)
   }
 }
 
-greatest predicate Z(s: Stream)
+copredicate Z(s: Stream)
 {
   false
 }
 
-greatest lemma {:induction false} AlwaysLemma_Z(s: Stream)
+colemma {:induction false} AlwaysLemma_Z(s: Stream)
   ensures Z(s);  // says, perversely, that Z(s) is always 'true'
 {  // error: this had better not lead to a proof
   AlwaysLemma_Z(s);
@@ -170,12 +170,12 @@ function Doubles(n: int): Stream<int>
   Cons(2*n, Doubles(n + 1))
 }
 
-greatest predicate Even(s: Stream<int>)
+copredicate Even(s: Stream<int>)
 {
   s.head % 2 == 0 && Even(s.tail)
 }
 
-greatest lemma {:induction false} Lemma0(n: int)
+colemma {:induction false} Lemma0(n: int)
   ensures Even(Doubles(n));
 {
   Lemma0(n+1);
@@ -186,25 +186,25 @@ function UpwardBy2(n: int): Stream<int>
   Cons(n, UpwardBy2(n + 2))
 }
 
-greatest lemma {:induction false} Lemma1(n: int)
+colemma {:induction false} Lemma1(n: int)
   ensures Even(UpwardBy2(2*n));
 {
   Lemma1(n+1);
 }
 
-greatest lemma {:induction false} ProveEquality(n: int)
+colemma {:induction false} ProveEquality(n: int)
   ensures Doubles(n) == UpwardBy2(2*n);
 {
   ProveEquality(n+1);
 }
 
-greatest lemma {:induction false} BadEquality0(n: int)
+colemma {:induction false} BadEquality0(n: int)
   ensures Doubles(n) == UpwardBy2(n);
 {  // error: postcondition does not hold
   BadEquality0(n+1);
 }
 
-greatest lemma {:induction false} BadEquality1(n: int)
+colemma {:induction false} BadEquality1(n: int)
   ensures Doubles(n) == UpwardBy2(n+1);
 {  // error: postcondition does not hold
   BadEquality1(n+1);
@@ -235,14 +235,14 @@ function G(s: IList): int
     0
 }
 
-// ---- least predicate, automatic least lemma and the corresponding manually stated and proved lemmas
+// ---- inductive predicate, automatic inductive lemma and the corresponding manually stated and proved lemmas
 
-least predicate AllNeg(x: int)
+inductive predicate AllNeg(x: int)
 {
   x == 0 || AllNeg(x+1)
 }
 
-least lemma AllNeg_Correct(x: int)
+inductive lemma AllNeg_Correct(x: int)
   requires AllNeg(x)
   ensures x <= 0
 {
@@ -275,14 +275,14 @@ lemma AllNeg_JustTesting(x: int)
   assert exists k: ORDINAL :: AllNeg#[k](x);
 }
 
-// ---- coleast predicate, automatic greatest lemma and the corresponding manually stated and proved lemmas
+// ---- coinductive predicate, automatic colemma and the corresponding manually stated and proved lemmas
 
-greatest predicate OnlyOddNegs(x: int)
+copredicate OnlyOddNegs(x: int)
 {
   x != -2 && OnlyOddNegs(x+2)
 }
 
-greatest lemma OnlyOddNegs_Correct(x: int)
+colemma OnlyOddNegs_Correct(x: int)
   requires 0 <= x || x % 2 == 1
   ensures OnlyOddNegs(x)
 {

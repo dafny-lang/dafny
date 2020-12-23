@@ -38,7 +38,7 @@ lemma Tail_Lemma2(s: Stream, n: nat)
 
 // Co-predicate IsNeverEndingStream(s) answers whether or not s ever contains Nil.
 
-greatest predicate IsNeverEndingStream<S>(s: Stream<S>)
+copredicate IsNeverEndingStream<S>(s: Stream<S>)
 {
   match s
   case Nil => false
@@ -51,7 +51,7 @@ function AnInfiniteStream(): Stream<int>
 {
   Cons(0, AnInfiniteStream())
 }
-greatest lemma Proposition0()
+colemma Proposition0()
   ensures IsNeverEndingStream(AnInfiniteStream());
 {
 }
@@ -68,7 +68,7 @@ predicate HasBoundedHeight(t: Tree)
 {
   exists n :: 0 <= n && LowerThan(t.children, n)
 }
-greatest predicate LowerThan(s: Stream<Tree>, n: nat)
+copredicate LowerThan(s: Stream<Tree>, n: nat)
 {
   match s
   case Nil => true
@@ -102,7 +102,7 @@ predicate IsFiniteSomewhere(t: Tree)
 {
   !InfiniteEverywhere(t.children)
 }
-greatest predicate InfiniteEverywhere(s: Stream<Tree>)
+copredicate InfiniteEverywhere(s: Stream<Tree>)
 {
   match s
   case Nil => false
@@ -156,7 +156,7 @@ predicate HasFiniteHeightEverywhere_Bad(t: Tree)
 {
   !InfiniteHeightSomewhere_Bad(t.children)
 }
-greatest predicate InfiniteHeightSomewhere_Bad(s: Stream<Tree>)
+copredicate InfiniteHeightSomewhere_Bad(s: Stream<Tree>)
 {
   match s
   case Nil => false
@@ -184,11 +184,11 @@ lemma Proposition2()
   Proposition2_Lemma0();
   Proposition2_Lemma1(ATreeChildren());
 }
-greatest lemma Proposition2_Lemma0()
+colemma Proposition2_Lemma0()
   ensures IsNeverEndingStream(ATreeChildren());
 {
 }
-greatest lemma Proposition2_Lemma1(s: Stream<Tree>)
+colemma Proposition2_Lemma1(s: Stream<Tree>)
   requires IsNeverEndingStream(s);
   ensures InfiniteHeightSomewhere_Bad(s);
 {
@@ -209,7 +209,7 @@ predicate HasFiniteHeightEverywhere_Attempt(t: Tree)
 {
   !InfiniteHeightSomewhere_Attempt(t.children)
 }
-greatest predicate InfiniteHeightSomewhere_Attempt(s: Stream<Tree>)
+copredicate InfiniteHeightSomewhere_Attempt(s: Stream<Tree>)
 {
   exists n ::
     0 <= n &&
@@ -231,7 +231,7 @@ greatest predicate InfiniteHeightSomewhere_Attempt(s: Stream<Tree>)
 // A path is a possibly infinite list of indices, each selecting the next child tree to navigate to.  A path
 // is valid when it uses valid indices and does not stop at a node with children.
 
-greatest predicate ValidPath(t: Tree, p: Stream<int>)
+copredicate ValidPath(t: Tree, p: Stream<int>)
 {
   match p
   case Nil => t == Node(Nil)
@@ -431,13 +431,13 @@ codatatype FinPath = Right(FinPath) | Down(FinPath) | Stop
 // CoOption to be some Number.  As it is, we want to allow both finite and infinite paths, but we
 // want to be able to distinguish them, so we define a co-predicate that does so:
 
-greatest predicate InfinitePath(r: CoOption<Number>)
+copredicate InfinitePath(r: CoOption<Number>)
 {
   match r
   case None => false
   case Some(num) => InfinitePath'(num)
 }
-greatest predicate InfinitePath'(num: Number)
+copredicate InfinitePath'(num: Number)
 {
   match num
   case Succ(next) => InfinitePath'(next)
@@ -447,13 +447,13 @@ greatest predicate InfinitePath'(num: Number)
 // As before, a path is valid for a tree when it navigates to existing nodes and does not stop
 // in a node with more children.
 
-greatest predicate ValidPath_Alt(t: Tree, r: CoOption<Number>)
+copredicate ValidPath_Alt(t: Tree, r: CoOption<Number>)
 {
   match r
   case None => t == Node(Nil)
   case Some(num) => ValidPath_Alt'(t.children, num)
 }
-greatest predicate ValidPath_Alt'(s: Stream<Tree>, num: Number)
+copredicate ValidPath_Alt'(s: Stream<Tree>, num: Number)
 {
   match num
   case Succ(next) => s.Cons? && ValidPath_Alt'(s.tail, next)
@@ -507,7 +507,7 @@ lemma Path_Lemma0(t: Tree, p: Stream<int>)
     Path_Lemma0'(t, p);
   }
 }
-greatest lemma Path_Lemma0'(t: Tree, p: Stream<int>)
+colemma Path_Lemma0'(t: Tree, p: Stream<int>)
   requires ValidPath(t, p);
   ensures ValidPath_Alt(t, S2N(p));
 {
@@ -530,7 +530,7 @@ greatest lemma Path_Lemma0'(t: Tree, p: Stream<int>)
       }
   }
 }
-greatest lemma Path_Lemma0''(tChildren: Stream<Tree>, n: nat, tail: Stream<int>)
+colemma Path_Lemma0''(tChildren: Stream<Tree>, n: nat, tail: Stream<int>)
   requires var ch := Tail(tChildren, n); ch.Cons? && ValidPath(ch.head, tail);
   ensures ValidPath_Alt'(tChildren, S2N'(n, tail));
 {
@@ -557,7 +557,7 @@ lemma Path_Lemma1(t: Tree, r: CoOption<Number>)
     Path_Lemma1'(t, r);
   }
 }
-greatest lemma Path_Lemma1'(t: Tree, r: CoOption<Number>)
+colemma Path_Lemma1'(t: Tree, r: CoOption<Number>)
   requires ValidPath_Alt(t, r);
   ensures ValidPath(t, N2S(r));
   decreases 1;
@@ -580,7 +580,7 @@ greatest lemma Path_Lemma1'(t: Tree, r: CoOption<Number>)
       }
   }
 }
-greatest lemma Path_Lemma1''(s: Stream<Tree>, n: nat, num: Number)
+colemma Path_Lemma1''(s: Stream<Tree>, n: nat, num: Number)
   requires ValidPath_Alt'(Tail(s, n), num);
   ensures ValidPath(Node(s), N2S'(n, num));
   decreases 0, num;
@@ -607,7 +607,7 @@ lemma Path_Lemma2(p: Stream<int>)
     Path_Lemma2'(p);
   }
 }
-greatest lemma Path_Lemma2'(p: Stream<int>)
+colemma Path_Lemma2'(p: Stream<int>)
   requires IsNeverEndingStream(p);
   ensures InfinitePath(S2N(p));
 {
@@ -626,7 +626,7 @@ greatest lemma Path_Lemma2'(p: Stream<int>)
     }
   }
 }
-greatest lemma Path_Lemma2''(p: Stream<int>, n: nat, tail: Stream<int>)
+colemma Path_Lemma2''(p: Stream<int>, n: nat, tail: Stream<int>)
   requires IsNeverEndingStream(p) && p.tail == tail
   ensures InfinitePath'(S2N'(n, tail))
 {
@@ -641,7 +641,7 @@ lemma Path_Lemma3(r: CoOption<Number>)
     }
   }
 }
-greatest lemma Path_Lemma3'(n: nat, num: Number)
+colemma Path_Lemma3'(n: nat, num: Number)
   requires InfinitePath'(num);
   ensures IsNeverEndingStream(N2S'(n, num));
   decreases num;

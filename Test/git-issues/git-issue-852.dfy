@@ -8,7 +8,7 @@ abstract module M0 {
 }
 
 module Q refines M0 {
-  newtype T = ... n:nat | true {
+  newtype T = n:nat | true {
     predicate p() {true}
   }
 }

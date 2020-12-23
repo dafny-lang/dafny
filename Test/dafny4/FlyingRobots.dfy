@@ -19,7 +19,6 @@ class Point {
   ghost var Repr: set<object>
   predicate Valid()
     reads this, Repr
-    ensures Valid() ==> this in Repr
   {
     this in Repr &&
     {x,y,z} <= Repr &&
@@ -30,7 +29,7 @@ class Point {
   var x:Cell, y:Cell, z:Cell
 
   constructor (a:int, b:int, c:int)
-    ensures Valid() && fresh(Repr)
+    ensures Valid() && fresh(Repr - {this})
     ensures Value == (a, b, c)
   {
     x := new Cell(a);
@@ -57,7 +56,6 @@ class Arm {
   ghost var Repr: set<object>
   predicate Valid()
     reads this, Repr
-    ensures Valid() ==> this in Repr
   {
     this in Repr &&
     {polar, azim} <= Repr &&
@@ -69,7 +67,7 @@ class Arm {
   var azim:Cell
 
   constructor (polar_in:int, azim_in:int)
-    ensures Valid() && fresh(Repr)
+    ensures Valid() && fresh(Repr - {this})
     ensures Value == (polar_in, azim_in)
   {
     polar := new Cell(polar_in);
@@ -108,7 +106,7 @@ class Bot {
   var right:Arm
 
   constructor ()
-    ensures Valid() && fresh(Repr)
+    ensures Valid() && fresh(Repr - {this})
   {
     pos := new Point(0, 0, 0);
     left := new Arm(0, 0);

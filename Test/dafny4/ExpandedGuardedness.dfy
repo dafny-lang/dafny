@@ -109,7 +109,7 @@ function method CUp3(n: int, c: Color): Stream<int>
   ICons(n, if c == Red then CUp3(n+1, c) else CUp3(n+2, c))
 }
 
-greatest lemma CUps(n: int, c: Color)
+colemma CUps(n: int, c: Color)
   ensures CUp0(n, c) == CUp1(n, c) == CUp2(n, c) == CUp3(n, c)
 {
 }
@@ -139,39 +139,39 @@ function method OnlyDs(): Lang<char>
   L(true, ch => if ch == 'd' || ch == 'D' then OnlyDs() else Nothing())
 }
 
-greatest predicate TotalLang<S(!new)>(l: Lang<S>)
+copredicate TotalLang<S(!new)>(l: Lang<S>)
   reads *
 {
   forall s: S :: l.deriv.reads(s) == {} && l.deriv.requires(s) && TotalLang(l.deriv(s))
 }
 
-greatest lemma NothingTotal<S>()
+colemma NothingTotal<S>()
   ensures TotalLang(Nothing<S>())
 {
 }
 
-greatest lemma OnlyDsTotal()
+colemma OnlyDsTotal()
   ensures TotalLang(OnlyDs())
 {
   NothingTotal<char>();  // Note, to demonstrate the point made below in OnlyDsTotal_Nat, replace this line with "assume 0 < _k.Offset;", which shows that's the only case where "NothingTotal<char>();" is needed
   OnlyDsTotal();
 }
 
-greatest predicate TotalLang_Nat<S(!new)>[nat](l: Lang<S>)
+copredicate TotalLang_Nat<S(!new)>[nat](l: Lang<S>)
   reads *
 {
   forall s: S :: l.deriv.reads(s) == {} && l.deriv.requires(s) && TotalLang_Nat(l.deriv(s))
 }
 
-greatest lemma NothingTotal_Nat<S>[nat]()
+colemma NothingTotal_Nat<S>[nat]()
   ensures TotalLang_Nat(Nothing<S>())
 {
 }
 
-greatest lemma OnlyDsTotal_Nat[nat]()
+colemma OnlyDsTotal_Nat[nat]()
   ensures TotalLang_Nat(OnlyDs())
 {
-  // Unlike the [ORDINAL] version of this greatest lemma above, this version does not
+  // Unlike the [ORDINAL] version of this colemma above, this version does not
   // need the following call:
   //    NothingTotal_Nat<char>();
   // The reason is that, here, two levels of unrolling will get to a .deriv function

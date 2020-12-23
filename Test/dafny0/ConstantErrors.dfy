@@ -252,7 +252,7 @@ module S {
 }
 
 module T refines S {
-  class MyClass ... {
+  class MyClass {
     const a: int  // error: cannot change a "var" to a "const"
     var b: int  // error: cannot change a "const" to a "var"
     const u: real  // error: cannot change from static to non-static

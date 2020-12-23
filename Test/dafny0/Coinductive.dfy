@@ -81,21 +81,21 @@ module CoPredicateResolutionErrors {
     StreamCons(2*n, Doubles(n + 1))
   }
 
-  greatest predicate Pos(s: Stream<int>)
+  copredicate Pos(s: Stream<int>)
   {
     0 < s.head && Pos(s.tail) && Even(s)
   }
 
-  greatest predicate Even(s: Stream<int>)
+  copredicate Even(s: Stream<int>)
   {
     s.head % 2 == 0 && Even(s.tail)
     && (s.head == 17 ==> Pos(s))
-    && (Pos(s) ==> s.head == 17)  // error: cannot make recursive greatest predicate call in negative position
-    && !Even(s)  // error: cannot make recursive greatest predicate call in negative position
-    && (Even(s) <==> Even(s))  // error (x2): recursive greatest predicate calls allowed only in positive positions
+    && (Pos(s) ==> s.head == 17)  // error: cannot make recursive copredicate call in negative position
+    && !Even(s)  // error: cannot make recursive copredicate call in negative position
+    && (Even(s) <==> Even(s))  // error (x2): recursive copredicate calls allowed only in positive positions
   }
 
-  greatest predicate CP[nat](i: int)
+  copredicate CP[nat](i: int)
   {
     CP(i) &&
     !CP(i) &&  // error: not in a positive position
@@ -106,24 +106,24 @@ module CoPredicateResolutionErrors {
     (exists l :: CP(l))  // error: unbounded range
   }
 
-  greatest predicate CQ(i: int, j: int)
+  copredicate CQ(i: int, j: int)
   {
     exists i :: i == 6 && if j % 2 == 0 then CQ(i, i) else CQ(j, j)
   }
 
-  greatest predicate CR(i: int, j: int)
+  copredicate CR(i: int, j: int)
   {
     exists i :: i == if CR(i, j) then 6 else j  // error: not allowed to call CR recursively here
   }
 
-  greatest predicate CS(i: int, j: int)
+  copredicate CS(i: int, j: int)
   {
     exists i ::
       i <= (if CS(i, j) then 6 else j) &&  // error: not allowed to call CS recursively here
       (if CS(i, j) then 6 else j) <= i     // error: not allowed to call CS recursively here
   }
 
-  greatest predicate Another(s: Stream<int>)
+  copredicate Another(s: Stream<int>)
   {
     !Even(s)  // here, negation is fine
   }
@@ -133,7 +133,7 @@ module CoPredicateResolutionErrors {
   {
   }
 
-  greatest predicate CoStmtExpr_Good(s: Stream<int>)
+  copredicate CoStmtExpr_Good(s: Stream<int>)
   {
     s.head > 0 && (MyLemma(s.head); CoStmtExpr_Good(s.tail))
   }
@@ -142,10 +142,10 @@ module CoPredicateResolutionErrors {
   {
   }
 
-  greatest predicate CoStmtExpr_Bad(s: Stream<int>)
+  copredicate CoStmtExpr_Bad(s: Stream<int>)
   {
     s.head > 0 &&
-    (MyRecursiveLemma(s.head);  // error: cannot call method recursively from greatest predicate
+    (MyRecursiveLemma(s.head);  // error: cannot call method recursively from copredicate
      CoStmtExpr_Bad(s.tail))
   }
 
@@ -157,21 +157,21 @@ module CoPredicateResolutionErrors {
 
 // --------------------------------------------------
 
-module UnfruitfulGreatestLemmaConclusions {
+module UnfruitfulCoLemmaConclusions {
   codatatype Stream<T> = Cons(head: T, tail: Stream)
 
-  greatest predicate Positive(s: Stream<int>)
+  copredicate Positive(s: Stream<int>)
   {
     s.head > 0 && Positive(s.tail)
   }
 
-  greatest lemma BadTheorem(s: Stream)
+  colemma BadTheorem(s: Stream)
     ensures false;
   {
     BadTheorem(s.tail);
   }
 
-  greatest lemma CM(s: Stream<int>)
+  colemma CM(s: Stream<int>)
     ensures true && !false;
     ensures s.head == 8 ==> Positive(s);
     ensures s.tail == s;
@@ -192,12 +192,12 @@ module InductivePredicateResolutionErrors {
   datatype List<T> = Nil | Cons(head: T, tail: List)
   codatatype IList<T> = INil | ICons(head: T, tail: IList)
 
-  least predicate Pos(s: List<int>)
+  inductive predicate Pos(s: List<int>)
   {
     s.Cons? && 0 < s.head && Pos(s.tail) && Even(s)
   }
 
-  least predicate Even(s: List<int>)
+  inductive predicate Even(s: List<int>)
   {
     s.Cons? && s.head % 2 == 0 && Even(s.tail)
     && (s.head == 17 ==> Pos(s))
@@ -206,33 +206,33 @@ module InductivePredicateResolutionErrors {
     && (Even(s) <==> Even(s))  // error (x2): recursive inductive-predicate calls allowed only in positive positions
   }
 
-  least predicate LetSuchThat(s: List<int>)
+  inductive predicate LetSuchThat(s: List<int>)
   {
     if s != Nil then true else
       var h :| h == s.head;
-      h < 0 && LetSuchThat(s.tail)  // this is fine for a least predicate
+      h < 0 && LetSuchThat(s.tail)  // this is fine for an inductive predicate
   }
-  greatest predicate CoLetSuchThat(s: IList<int>)
+  copredicate CoLetSuchThat(s: IList<int>)
   {
     if s != INil then true else
       var h :| h == s.head;
-      h < 0 && CoLetSuchThat(s.tail)  // error: recursive call to greatest predicate in body of let-such-that
+      h < 0 && CoLetSuchThat(s.tail)  // error: recursive call to copredicate in body of let-such-that
   }
 
-  least predicate NegatedLetSuchThat(s: List<int>)
+  inductive predicate NegatedLetSuchThat(s: List<int>)
   {
     if s != Nil then true else
       !var h :| h == s.head;
-      h < 0 && !NegatedLetSuchThat(s.tail)  // error: recursive call to least predicate in body of let-such-that
+      h < 0 && !NegatedLetSuchThat(s.tail)  // error: recursive call to inductive predicate in body of let-such-that
   }
-  greatest predicate NegatedCoLetSuchThat(s: IList<int>)
+  copredicate NegatedCoLetSuchThat(s: IList<int>)
   {
     if s != INil then true else
       !var h :| h == s.head;
-      h < 0 && !NegatedCoLetSuchThat(s.tail)  // this is fine for a coleast predicate
+      h < 0 && !NegatedCoLetSuchThat(s.tail)  // this is fine for a coinductive predicate
   }
 
-  least predicate CP[nat](i: int)
+  inductive predicate CP[nat](i: int)
   {
     CP(i) &&
     !CP(i) &&  // error: not in a positive position
@@ -243,29 +243,29 @@ module InductivePredicateResolutionErrors {
     (forall l :: CP(l))  // error: unbounded range
   }
 
-  least predicate CQ(i: int, j: int)
+  inductive predicate CQ(i: int, j: int)
   {
     forall i :: i == 6 ==> if j % 2 == 0 then CQ(i, i) else CQ(j, j)
   }
 
-  least predicate CR(i: int, j: int)
+  inductive predicate CR(i: int, j: int)
   {
     i == if CR(i, j) then 6 else j  // error: not allowed to call CR recursively here
   }
 
-  least predicate CS(i: int, j: int)
+  inductive predicate CS(i: int, j: int)
   {
     forall i ::
       i <= (if CS(i, j) then 6 else j) &&  // error: not allowed to call CS recursively here
       (if CS(i, j) then 6 else j) <= i     // error: not allowed to call CS recursively here
   }
 
-  least predicate Another(s: List<int>)
+  inductive predicate Another(s: List<int>)
   {
     !Even(s)  // here, negation is fine
   }
 
-  least predicate IndStmtExpr_Good(s: List<int>)
+  inductive predicate IndStmtExpr_Good(s: List<int>)
   {
     s.head > 0 && (MyLemma(s.head); IndStmtExpr_Good(s.tail))
   }
@@ -274,10 +274,10 @@ module InductivePredicateResolutionErrors {
   {
   }
 
-  least predicate IndStmtExpr_Bad(s: List<int>)
+  inductive predicate IndStmtExpr_Bad(s: List<int>)
   {
     s.Cons? && s.head > 0 &&
-    (MyRecursiveLemma(s.head);  // error: cannot call method recursively from least predicate
+    (MyRecursiveLemma(s.head);  // error: cannot call method recursively from inductive predicate
      IndStmtExpr_Bad(s.tail))
   }
 
@@ -292,24 +292,24 @@ module InductivePredicateResolutionErrors {
 
 // predicate-to-predicate call
 module TypeOfK_Pred_to_Pred {
-  least predicate A[ORDINAL](x: int) {
+  inductive predicate A[ORDINAL](x: int) {
     B(x)  // error: cannot call from [ORDINAL] to [nat]
   }
-  least predicate B[nat](x: int) {
+  inductive predicate B[nat](x: int) {
     A(x)  // error: cannot call from [nat] to [ORDINAL]
   }
 }
 
 // lemma-to-predicate call
 module TypeOfK_Lemma_to_Pred {
-  least predicate E[ORDINAL](x: int)
-  least lemma LE[nat](x: int)
+  inductive predicate E[ORDINAL](x: int)
+  inductive lemma LE[nat](x: int)
     requires E(x)  // error: cannot call from [nat] to [ORDINAL]
   {
   }
 
-  least predicate F[nat](x: int)
-  least lemma LF[ORDINAL](x: int)
+  inductive predicate F[nat](x: int)
+  inductive lemma LF[ORDINAL](x: int)
     requires F(x)  // error: cannot call from [ORDINAL] to [nat]
   {
   }
@@ -317,13 +317,13 @@ module TypeOfK_Lemma_to_Pred {
 
 // lemma-to-lemma call
 module TypeOfK_Lemma_to_Lemma {
-  least lemma G[ORDINAL](x: int)
+  inductive lemma G[ORDINAL](x: int)
     ensures x == 8
   {
     H(x);  // error: cannot call from [ORDINAL] to [nat]
   }
 
-  least lemma H[nat](x: int)
+  inductive lemma H[nat](x: int)
     ensures x == 8
   {
     G(x);  // error: cannot call from [nat] to [ORDINAL]
@@ -334,7 +334,7 @@ module Continuity {
   datatype cmd = Inc | Seq(cmd, cmd) | Repeat(cmd)
   type state = int
 
-  greatest predicate BigStep(c: cmd, s: state, t: state)
+  copredicate BigStep(c: cmd, s: state, t: state)
   {
     match c
     case Inc =>
@@ -346,7 +346,7 @@ module Continuity {
       exists s' :: BigStep(body, s, s') && BigStep(c, s', t)  // fine
   }
 
-  greatest predicate NatBigStep[nat](c: cmd, s: state, t: state)
+  copredicate NatBigStep[nat](c: cmd, s: state, t: state)
   {
     match c
     case Inc =>
