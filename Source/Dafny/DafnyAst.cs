@@ -2791,14 +2791,14 @@ namespace Microsoft.Dafny {
           return false;
         } else {
           for (int j = 0; j < ii.TypeArgs.Count; j++) {
-            if (!ii.TypeArgs[j].Equals(t.TypeArgs[j], keepConstraints)) {
+            if (!ii.TypeArgs[j].Equals(t.TypeArgs[j],keepConstraints)) {
               return false;
             }
           }
           return true;
         }
       } else {
-        return i.Equals(that, keepConstraints);
+        return i.Equals(that,keepConstraints);
       }
     }
 
