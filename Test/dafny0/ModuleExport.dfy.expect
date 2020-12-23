@@ -14,7 +14,8 @@ ModuleExport.dfy(126,19): Error: member 'Init' has not been imported in this sco
 ModuleExport.dfy(126,8): Error: when allocating an object of type 'C', one of its constructor methods must be called
 ModuleExport.dfy(127,12): Error: when allocating an object of imported type 'D', one of its constructor methods must be called
 ModuleExport.dfy(224,11): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened'?)
+ModuleExport.dfy(252,8): Error: duplicate declaration for name X
 ModuleExport.dfy(259,13): Error: no default export set declared in module: ModuleName4
 ModuleExport.dfy(262,25): Error: no export set 'Y' in module 'ModuleName4'
 ModuleExport.dfy(266,9): Error: duplicate name of export set: X
-18 resolution/type errors detected in ModuleExport.dfy
+19 resolution/type errors detected in ModuleExport.dfy

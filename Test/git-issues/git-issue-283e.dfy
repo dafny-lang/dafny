@@ -3,8 +3,8 @@
 
 datatype Foo = R(v: int)
 
-const ZERO := 0;
-const ONE := ZERO+1;
+const ZERO := 0
+const ONE := ZERO+1
 
 method m2(f: Foo) {
   var x: int := 0;
