@@ -1568,23 +1568,48 @@ namespace Microsoft.Dafny
       }
     }
 
-    private bool ResolveQualifiedModuleIdRoot(ModuleDefinition context, ModuleBindings bindings, ModuleQualifiedId qid,
-      out ModuleDecl result, bool allowLocal) {
+    private bool ResolveQualifiedModuleIdRootRefines(ModuleDefinition context, ModuleBindings bindings, ModuleQualifiedId qid,
+      out ModuleDecl result) {
       Contract.Assert(qid != null);
       IToken root = qid.Path[0];
       result = null;
-      bool res = bindings.TryLookupFilter(root, out result, m => (allowLocal || m.EnclosingModuleDefinition != context));
+      bool res = bindings.TryLookupFilter(root, out result, m => m.EnclosingModuleDefinition != context);
       qid.Root = result;
       return res;
     }
 
+    // Find a matching module for the root of the QualifiedId, ignoring
+    // (a) the module (context) itself and (b) any local imports
+    // The latter is so that if one writes 'import A`E  import F = A`F' the second A does not
+    // resolve to the alias produced by the first import
+    private bool ResolveQualifiedModuleIdRootImport(AliasModuleDecl context, ModuleBindings bindings, ModuleQualifiedId qid,
+      out ModuleDecl result) {
+      Contract.Assert(qid != null);
+      IToken root = qid.Path[0];
+      result = null;
+      bool res = bindings.TryLookupFilter(root, out result,
+        m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
+      qid.Root = result;
+      return res;
+    }
+
+    private bool ResolveQualifiedModuleIdRootAbstract(AbstractModuleDecl context, ModuleBindings bindings, ModuleQualifiedId qid,
+      out ModuleDecl result) {
+      Contract.Assert(qid != null);
+      IToken root = qid.Path[0];
+      result = null;
+      bool res = bindings.TryLookupFilter(root, out result,
+        m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
+      qid.Root = result;
+      return res;
+    }
 
     private void ProcessDependenciesDefinition(ModuleDecl decl, ModuleDefinition m, ModuleBindings bindings,
       Graph<ModuleDecl> dependencies) {
       Contract.Assert(decl is LiteralModuleDecl);
       if (m.RefinementQId != null) {
         ModuleDecl other;
-        bool res = ResolveQualifiedModuleIdRoot(((LiteralModuleDecl)decl).ModuleDef, bindings, m.RefinementQId, out other, false);
+        bool res = ResolveQualifiedModuleIdRootRefines(((LiteralModuleDecl)decl).ModuleDef, bindings, m.RefinementQId, out other);
         if (!res) {
           reporter.Error(MessageSource.Resolver, m.RefinementQId.rootToken(),
             $"module {m.RefinementQId.ToString()} named as refinement base does not exist");
@@ -1619,25 +1644,23 @@ namespace Microsoft.Dafny
       } else if (moduleDecl is AliasModuleDecl) {
         var alias = moduleDecl as AliasModuleDecl;
         ModuleDecl root;
-        // Find a match for the root of the alias target that (a) is not the alias itself
-        // and (b) either (b1) is a LiteralModuleDecl or (b2) has the same parent as the alias
-        // I think the intent is to omit non-local aliases -- but why?  TODO
-        if (!bindings.TryLookupFilter(alias.TargetQId.rootToken(), out root,
-          m => alias != m && (((alias.EnclosingModuleDefinition == m.EnclosingModuleDefinition) && (alias.Exports.Count == 0)) || m is LiteralModuleDecl)))
+        // TryLookupFilter works outward, looking for a match to the filter for
+        // each enclosing module.
+        if (!ResolveQualifiedModuleIdRootImport(alias, bindings, alias.TargetQId, out root)) {
+//        if (!bindings.TryLookupFilter(alias.TargetQId.rootToken(), out root, m => alias != m)
           reporter.Error(MessageSource.Resolver, alias.tok, ModuleNotFoundErrorMessage(0, alias.TargetQId.Path));
-        else {
+        }  else {
           dependencies.AddEdge(moduleDecl, root);
-          alias.TargetQId.SetRoot(root);
         }
       } else if (moduleDecl is AbstractModuleDecl) {
         var abs = moduleDecl as AbstractModuleDecl;
         ModuleDecl root;
-        if (!bindings.TryLookupFilter(abs.QId.rootToken(), out root,
-          m => abs != m && (((abs.EnclosingModuleDefinition == m.EnclosingModuleDefinition) && (abs.Exports.Count == 0)) || m is LiteralModuleDecl)))
+        if (!ResolveQualifiedModuleIdRootAbstract(abs, bindings, abs.QId, out root)) {
+          //if (!bindings.TryLookupFilter(abs.QId.rootToken(), out root,
+          //  m => abs != m && (((abs.EnclosingModuleDefinition == m.EnclosingModuleDefinition) && (abs.Exports.Count == 0)) || m is LiteralModuleDecl)))
           reporter.Error(MessageSource.Resolver, abs.tok, ModuleNotFoundErrorMessage(0, abs.QId.Path));
-        else {
+        }  else {
           dependencies.AddEdge(moduleDecl, root);
-          abs.QId.SetRoot(root);
         }
       }
     }

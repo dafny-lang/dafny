@@ -3716,7 +3716,7 @@ namespace Microsoft.Dafny {
 
     // Creates a clone, including a copy of the list;
     // if the argument is true, resolution information is included
-    public ModuleQualifiedId clone(bool includeResInfo) {
+    public ModuleQualifiedId Clone(bool includeResInfo) {
       List<IToken> newlist = new List<IToken>(Path);
       ModuleQualifiedId cl = new ModuleQualifiedId(newlist);
       if (includeResInfo) {
@@ -3737,8 +3737,7 @@ namespace Microsoft.Dafny {
       return Path[0];
     }
 
-    override
-    public string ToString() {
+    override public string ToString() {
       string s = Path[0].val;
       for (int i = 1; i < Path.Count; ++i) {
         s = s + "." + Path[i].val;

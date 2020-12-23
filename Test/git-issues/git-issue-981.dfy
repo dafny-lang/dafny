@@ -4,7 +4,7 @@
 module K {
   module KK {
     module KKK {
-      const k := 10;
+      const k := 10
     }
   }
 }
@@ -52,8 +52,8 @@ module BB refines AA {
 module A {
   export reveals a
   export C reveals a
-  const a := 10;
-  const D := 20;
+  const a := 10
+  const D := 20
 }
 
 module B refines A {
@@ -86,8 +86,8 @@ module D refines A {
 
 module E {
   export E reveals *
-  const F := 40;
+  const F := 40
   method F() {} // error: reuse of name F
-  const E := 30; // OK: export sets are in a different namespace
+  const E := 30 // OK: export sets are in a different namespace
 }
 

@@ -18,7 +18,7 @@ class VoidSuccess extends VoidOutcome {
 }
 
 class VoidFailure extends VoidOutcome {
-    const error: string;
+    const error: string
     constructor(error: string) {
         this.error := error;
     }

@@ -12,7 +12,7 @@ module A {
   module E1 {}
   import E2 = Z
   type T3
-  const E4 := 0;
+  const E4 := 0
   method E5() {}
   class E6 {}
 }

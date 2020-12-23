@@ -14,7 +14,7 @@ module A {
   module E1 {}
   import E2 = Z
   type T3
-  const E4 := 0;
+  const E4 := 0
   method E5() {}
   class E6 {}
 }
@@ -26,7 +26,7 @@ module B1 {
   module E5 {}
   module E6 {}
   type T3
-  const E4 := 0; // error
+  const E4 := 0  // error
   method E5() {} // error
   class E6 {} // error
 }
@@ -37,19 +37,19 @@ module C {
   type T3
   type T4 = int
   type T1 // error
-  const T2 := 0; // error
+  const T2 := 0 // error
   method T3() {} // error
   class T4 {} // error
 }
 
 module D {
-  const T2 := 0;
-  const T3 := 0;
+  const T2 := 0
+  const T3 := 0
   class T4 {}
-  const T2 := 0; // error
+  const T2 := 0 // error
   method T3() {} // error
   method T3() {} // error
-  const T4 := 0; // error
+  const T4 := 0 // error
   method T4() {} // error
   class T4 {} // error
 }
