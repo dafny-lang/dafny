@@ -611,7 +611,7 @@ Local names take precedence over imported names. If a name is used more than
 once among imported names (coming from different imports), then it is
 ambiguous to _use_ the name without qualification.
 
-### Qualified Module Id resolution
+### Module Id Context Name Resolution
 
 A qualified name may be used to refer to a module in an import statement or a refines clause of a module declaration.
 Such a qualified name is resolved as follows, with respect to its syntactic
