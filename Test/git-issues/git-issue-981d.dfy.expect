@@ -1,0 +1,15 @@
+git-issue-981d.dfy(31,8): Error: duplicate name of top-level declaration: E6
+git-issue-981d.dfy(29,8): Error: duplicate declaration for name E4
+git-issue-981d.dfy(30,9): Error: duplicate declaration for name E5
+git-issue-981d.dfy(39,7): Error: duplicate name of top-level declaration: T1
+git-issue-981d.dfy(42,8): Error: duplicate name of top-level declaration: T4
+git-issue-981d.dfy(40,8): Error: duplicate declaration for name T2
+git-issue-981d.dfy(41,9): Error: duplicate declaration for name T3
+git-issue-981d.dfy(54,8): Error: duplicate name of top-level declaration: T4
+git-issue-981d.dfy(49,8): Error: Duplicate member name: T2
+git-issue-981d.dfy(50,9): Error: Duplicate member name: T3
+git-issue-981d.dfy(51,9): Error: Duplicate member name: T3
+git-issue-981d.dfy(53,9): Error: Duplicate member name: T4
+git-issue-981d.dfy(52,8): Error: duplicate declaration for name T4
+git-issue-981d.dfy(54,8): Error: a module that already contains a top-level declaration 'T4?' is not allowed to declare a class 'T4'
+14 resolution/type errors detected in git-issue-981d.dfy

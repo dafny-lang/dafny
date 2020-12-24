@@ -17,9 +17,9 @@ module M {
   }
 
   type bv = bv8
-  const mx: int := 256; // limit for the chosen bit-vector type
-  const mxch: int := 0x1_0000;
-  
+  const mx: int := 256 // limit for the chosen bit-vector type
+  const mxch: int := 0x1_0000
+
   method Test(b: bv32, n: nat, c: char)
     requires b < mxch as bv32  // in range of char
     requires n < mxch
@@ -27,13 +27,13 @@ module M {
     var r: real := 42.0;
     var o: ORDINAL := 42 as ORDINAL;
     var ch: char;
-    
+
     ch := c as char;
     ch := n as char;
     ch := b as char;
     ch := r as char;
     ch := o as char;
-  
+
     var nn: int;
     var nnn: int;
     nn := c as int;
@@ -41,32 +41,32 @@ module M {
     nn := b as int;
     nn := nnn as int;
     nn := o as int;
-  
+
     var rr: real;
     rr := c as real;
     rr := n as real;
     rr := b as real;
     rr := r as real;
     rr := o as real;
-  
+
     var bb: bv32;
     bb := c as bv32;
     bb := n as bv32;
     bb := r as bv32;
     bb := b as bv32;
     bb := o as bv32;
-  
+
     var oo: ORDINAL;
     oo := c as ORDINAL;
     oo := n as ORDINAL;
     oo := r as ORDINAL;
     oo := b as ORDINAL;
     oo := o as ORDINAL;
-    
+
   }
 
   method Test2(b: bv, n: int, c: char, r: real, o: ORDINAL, x: Tx, h: Tr) {
-  
+
     assert c == c as char;
     expect c == c as char;
     assert c == c as int as char;
@@ -78,7 +78,7 @@ module M {
     assert c == c as ORDINAL as char;
     expect c == c as ORDINAL as char;
     if c as int < mx { print c as char, " ", c as int, " ", c as real, " ", c as bv, " ", c as ORDINAL, "\n"; }
-  
+
     // assert b == b as bv; // in Test3
     // expect b == b as bv; // in Test3
     // assert b == b as char as bv; // in Test3
@@ -89,7 +89,7 @@ module M {
     // expect b == b as real as bv; // in Test3
     // assert b == b as ORDINAL as bv; // in Test3
     // expect b == b as ORDINAL as bv; // in Test3
-    
+
     assert n == n as int;
     expect n == n as int;
     assert 0 <= n < mxch ==> n == n as char as int;
@@ -101,7 +101,7 @@ module M {
     assert 0 <= n ==> n == n as ORDINAL as int;
     expect 0 <= n ==> n == n as ORDINAL as int;
     if 0 <= n < mx && n < mxch { print n as char, " ", n as int, " ", n as real, " ", n as bv, " ", n as ORDINAL, "\n"; }
-    
+
     assert r == r as real;
     expect r == r as real;
     assert r == r.Floor as real  ==> 0.0 <= r < (mxch as real) ==> r == r as char as real;
@@ -113,7 +113,7 @@ module M {
     assert r == r.Floor as real  ==> 0.0 <= r ==> r == r as ORDINAL as real;
     expect r == r.Floor as real  ==> 0.0 <= r ==> r == r as ORDINAL as real;
     if r == r.Floor as real && 0.0 <= r < (mx as real) && r < (mxch as real) { print r as char, " ", r as int, " ", r as real, " ", r as bv, " ", r as ORDINAL, "\n"; }
- 
+
     assert o == o as ORDINAL;
     expect o == o as ORDINAL;
     assert o.IsNat && o as int < mxch ==> o == o as char as ORDINAL;
@@ -179,14 +179,14 @@ module M {
     expect o.IsNat && o as int <= 100 ==> o == o as Tr as ORDINAL;
 
   }
-  
+
   // These take a while depending on the width of the bit-vector type
   // About 25 sec on my machine for bv8; longer than I wanted to wait (>10s min) for bv16
   method Test3(b: bv, n: int, c: char, r: real, o: ORDINAL) {
-  
+
     assert c as int < mx ==> c == c as bv as char;
     expect c as int < mx ==> c == c as bv as char;
-      
+
     assert b == b as bv;
     expect b == b as bv;
     assert b == b as bv32 as bv; // assumes bv32 is at least as wide as bv
@@ -199,10 +199,10 @@ module M {
     expect b == b as real as bv;
     assert b == b as ORDINAL as bv;
     expect b == b as ORDINAL as bv;
-    
+
     assert 0 <= n < mx ==> n == n as bv as int;
     expect 0 <= n < mx ==> n == n as bv as int;
-    
+
     assert r == r.Floor as real ==> 0.0 <= r < (mx as real) ==> r == r as bv as real;
     expect r == r.Floor as real ==> 0.0 <= r < (mx as real) ==> r == r as bv as real;
 

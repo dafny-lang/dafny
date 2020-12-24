@@ -424,12 +424,12 @@ namespace Microsoft.Dafny {
       }
 
       // Check the entire stack of modules
-      var mod = decl.EnclosingClass.Module;
+      var mod = decl.EnclosingClass.EnclosingModuleDefinition;
       while (mod != null) {
         if (Attributes.ContainsBool(mod.Attributes, attribName, ref setting)) {
           return setting;
         }
-        mod = mod.Module;
+        mod = mod.EnclosingModule;
       }
 
       return false;
@@ -842,7 +842,7 @@ namespace Microsoft.Dafny {
     /// Returns whether or not "this" and "that" denote the same type, module proxies and type synonyms and subset types.
     /// </summary>
     [Pure]
-    public abstract bool Equals(Type that);
+    public abstract bool Equals(Type that, bool keepConstraints = false);
 
     public bool IsBoolType { get { return NormalizeExpand() is BoolType; } }
     public bool IsCharType { get { return NormalizeExpand() is CharType; } }
@@ -2138,8 +2138,8 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "int";
     }
-    public override bool Equals(Type that) {
-      return that is IntVarietiesSupertype;
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      return keepConstraints ? this.GetType() == that.GetType() : that is IntVarietiesSupertype;
     }
   }
   public class RealVarietiesSupertype : ArtificialType
@@ -2148,8 +2148,8 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "real";
     }
-    public override bool Equals(Type that) {
-      return that is RealVarietiesSupertype;
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      return keepConstraints ? this.GetType() == that.GetType() : that is RealVarietiesSupertype;
     }
   }
 
@@ -2169,7 +2169,7 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "bool";
     }
-    public override bool Equals(Type that) {
+    public override bool Equals(Type that, bool keepConstraints = false) {
       return that.IsBoolType;
     }
   }
@@ -2182,7 +2182,7 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "char";
     }
-    public override bool Equals(Type that) {
+    public override bool Equals(Type that, bool keepConstraints = false) {
       return that.IsCharType;
     }
   }
@@ -2193,8 +2193,8 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "int";
     }
-    public override bool Equals(Type that) {
-      return that.IsIntegerType;
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      return that.NormalizeExpand(keepConstraints) is IntType;
     }
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
       if (super is IntVarietiesSupertype) {
@@ -2209,8 +2209,8 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "real";
     }
-    public override bool Equals(Type that) {
-      return that.IsRealType;
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      return that.NormalizeExpand(keepConstraints) is RealType;
     }
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
       if (super is RealVarietiesSupertype) {
@@ -2226,8 +2226,8 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "ORDINAL";
     }
-    public override bool Equals(Type that) {
-      return that.IsBigOrdinalType;
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      return that.NormalizeExpand(keepConstraints) is BigOrdinalType;
     }
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
       if (super is IntVarietiesSupertype) {
@@ -2257,8 +2257,8 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "bv" + Width;
     }
-    public override bool Equals(Type that) {
-      var bv = that.NormalizeExpand() as BitvectorType;
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      var bv = that.NormalizeExpand(keepConstraints) as BitvectorType;
       return bv != null && bv.Width == Width;
     }
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
@@ -2281,8 +2281,8 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       return "selftype";
     }
-    public override bool Equals(Type that) {
-      return that.NormalizeExpand() is SelfType;
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      return that.NormalizeExpand(keepConstraints) is SelfType;
     }
   }
 
@@ -2486,9 +2486,9 @@ namespace Microsoft.Dafny {
     }
     public override string CollectionTypeName { get { return finite ? "set" : "iset"; } }
     [Pure]
-    public override bool Equals(Type that) {
-      var t = that.NormalizeExpand() as SetType;
-      return t != null && Finite == t.Finite && Arg.Equals(t.Arg);
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      var t = that.NormalizeExpand(keepConstraints) as SetType;
+      return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints);
     }
     public override bool SupportsEquality {
       get {
@@ -2503,9 +2503,9 @@ namespace Microsoft.Dafny {
     public MultiSetType(Type arg) : base(arg) {
     }
     public override string CollectionTypeName { get { return "multiset"; } }
-    public override bool Equals(Type that) {
-      var t = that.NormalizeExpand() as MultiSetType;
-      return t != null && Arg.Equals(t.Arg);
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      var t = that.NormalizeExpand(keepConstraints) as MultiSetType;
+      return t != null && Arg.Equals(t.Arg, keepConstraints);
     }
     public override bool SupportsEquality {
       get {
@@ -2519,9 +2519,9 @@ namespace Microsoft.Dafny {
     public SeqType(Type arg) : base(arg) {
     }
     public override string CollectionTypeName { get { return "seq"; } }
-    public override bool Equals(Type that) {
-      var t = that.NormalizeExpand() as SeqType;
-      return t != null && Arg.Equals(t.Arg);
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      var t = that.NormalizeExpand(keepConstraints) as SeqType;
+      return t != null && Arg.Equals(t.Arg, keepConstraints);
     }
     public override bool SupportsEquality {
       get {
@@ -2561,9 +2561,9 @@ namespace Microsoft.Dafny {
       var targs = HasTypeArg() ? this.TypeArgsToString(context, parseAble) : "";
       return CollectionTypeName + targs;
     }
-    public override bool Equals(Type that) {
-      var t = that.NormalizeExpand() as MapType;
-      return t != null && Finite == t.Finite && Arg.Equals(t.Arg) && Range.Equals(t.Range);
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      var t = that.NormalizeExpand(keepConstraints) as MapType;
+      return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints) && Range.Equals(t.Range, keepConstraints);
     }
     public override bool SupportsEquality {
       get {
@@ -2597,8 +2597,8 @@ namespace Microsoft.Dafny {
 
     public string FullName {
       get {
-        if (ResolvedClass != null && !ResolvedClass.Module.IsDefaultModule) {
-          return ResolvedClass.Module.Name + "." + Name;
+        if (ResolvedClass != null && !ResolvedClass.EnclosingModuleDefinition.IsDefaultModule) {
+          return ResolvedClass.EnclosingModuleDefinition.Name + "." + Name;
         } else {
           return Name;
         }
@@ -2617,7 +2617,7 @@ namespace Microsoft.Dafny {
     public string FullCompanionCompileName {
       get {
         Contract.Requires(ResolvedClass is TraitDecl || (ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl));
-        var m = ResolvedClass.Module;
+        var m = ResolvedClass.EnclosingModuleDefinition;
         var s = m.IsDefaultModule ? "" : m.CompileName + ".";
         return s + "_Companion_" + ResolvedClass.CompileName;
       }
@@ -2782,23 +2782,33 @@ namespace Microsoft.Dafny {
       this.NamePath = ns;
     }
 
-    public override bool Equals(Type that) {
-      var i = NormalizeExpand();
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      var i = NormalizeExpand(keepConstraints);
       if (i is UserDefinedType) {
         var ii = (UserDefinedType)i;
-        var t = that.NormalizeExpand() as UserDefinedType;
-        if (t == null || ii.ResolvedParam != t.ResolvedParam || ii.ResolvedClass != t.ResolvedClass || ii.TypeArgs.Count != t.TypeArgs.Count) {
+        var t = that.NormalizeExpand(keepConstraints) as UserDefinedType;
+        if (t == null || ii.ResolvedClass != t.ResolvedClass || ii.TypeArgs.Count != t.TypeArgs.Count) {
+          return false;
+        } else if (ii.TypeArgs.Count == 0 && ii.ResolvedClass is OpaqueTypeDecl) {
+          // Check for the special case in which ResolvedParam holds a (non-unique) copy of
+          // the type, for OpaqueTypeDecl, likely a hold over from prior to adding ResolvedClass
+          if (ii.ResolvedParam == t.ResolvedParam) return true;
+          if (ii.ResolvedParam == null || ii.ResolvedParam == ((OpaqueTypeDecl)ii.ResolvedClass).TheType) {
+            if (t.ResolvedParam == null || t.ResolvedParam == ((OpaqueTypeDecl)t.ResolvedClass).TheType) return true;
+          }
+          return false;
+        } else if (ii.ResolvedParam != t.ResolvedParam) {
           return false;
         } else {
           for (int j = 0; j < ii.TypeArgs.Count; j++) {
-            if (!ii.TypeArgs[j].Equals(t.TypeArgs[j])) {
+            if (!ii.TypeArgs[j].Equals(t.TypeArgs[j], keepConstraints)) {
               return false;
             }
           }
           return true;
         }
       } else {
-        return i.Equals(that);
+        return i.Equals(that, keepConstraints);
       }
     }
 
@@ -3077,13 +3087,13 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override bool Equals(Type that) {
-      var i = NormalizeExpand();
+    public override bool Equals(Type that, bool keepConstraints = false) {
+      var i = NormalizeExpand(keepConstraints);
       if (i is TypeProxy) {
-        var u = that.NormalizeExpand() as TypeProxy;
+        var u = that.NormalizeExpand(keepConstraints) as TypeProxy;
         return u != null && object.ReferenceEquals(i, u);
       } else {
-        return i.Equals(that);
+        return i.Equals(that,keepConstraints);
       }
     }
 
@@ -3546,40 +3556,37 @@ namespace Microsoft.Dafny {
   // Represents "module name = path;", where name is an identifier and path is a possibly qualified name.
   public class AliasModuleDecl : ModuleDecl
   {
-    public readonly List<IToken> Path; // generated by the parser, this is looked up
+    public readonly ModuleQualifiedId TargetQId; // generated by the parser, this is looked up
     public readonly List<IToken> Exports; // list of exports sets
-    public ModuleDecl Root; // the moduleDecl that Path[0] refers to.
     public bool ShadowsLiteralModule;  // initialized early during Resolution (and used not long after that); true for "import opened A = A" where "A" is a literal module in the same scope
 
-    public AliasModuleDecl(List<IToken> path, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
+    public AliasModuleDecl(ModuleQualifiedId path, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
       : base(name, name.val, parent, opened, false) {
-       Contract.Requires(path != null && path.Count > 0);
+       Contract.Requires(path != null && path.Path.Count > 0);
        Contract.Requires(exports != null);
-       Contract.Requires(exports.Count == 0 || path.Count == 1);
-       Path = path;
+       Contract.Requires(exports.Count == 0 || path.Path.Count == 1);
+       TargetQId = path;
        Exports = exports;
     }
     public override object Dereference() { return Signature.ModuleDef; }
   }
 
   // Represents "module name as path [ = compilePath];", where name is a identifier and path is a possibly qualified name.
-  public class ModuleFacadeDecl : ModuleDecl
+  // Used to be called ModuleFacadeDecl -- renamed to be like LiteralModuleDecl, AliasModuleDecl
+  public class AbstractModuleDecl : ModuleDecl
   {
-    public ModuleDecl Root;
-    public readonly List<IToken> Path;
+    public readonly ModuleQualifiedId QId;
     public readonly List<IToken> Exports; // list of exports sets
     public ModuleDecl CompileRoot;
     public ModuleSignature OriginalSignature;
 
-    public ModuleFacadeDecl(List<IToken> path, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
+    public AbstractModuleDecl(ModuleQualifiedId qid, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
       : base(name, name.val, parent, opened, false) {
-      Contract.Requires(path != null && path.Count > 0);
+      Contract.Requires(qid != null && qid.Path.Count > 0);
       Contract.Requires(exports != null);
-      Contract.Requires(exports.Count == 0 || path.Count == 1);
 
-      Path = path;
+      QId = qid;
       Exports = exports;
-      Root = null;
     }
     public override object Dereference() { return this; }
   }
@@ -3589,7 +3596,7 @@ namespace Microsoft.Dafny {
   {
     public readonly bool IsDefault;
     public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
-    public List<string> Extends; // list of exports that are extended
+    public List<IToken> Extends; // list of exports that are extended
     public readonly List<ModuleExportDecl> ExtendDecls = new List<ModuleExportDecl>(); // fill in by the resolver
     public readonly HashSet<Tuple<Declaration, bool>> ExportDecls = new HashSet<Tuple<Declaration, bool>>(); // fill in by the resolver
     public bool RevealAll; // only kept for initial rewriting, then discarded
@@ -3597,8 +3604,20 @@ namespace Microsoft.Dafny {
 
     public readonly VisibilityScope ThisScope;
     public ModuleExportDecl(IToken tok, ModuleDefinition parent,
-      List<ExportSignature> exports, List<string> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
-      : base(tok, isDefault ? parent.Name : tok.val, parent, false, isRefining) {
+      List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
+      : base(tok, (isDefault || tok.val == "export") ? parent.Name : tok.val, parent, false, isRefining) {
+      Contract.Requires(exports != null);
+      IsDefault = isDefault;
+      Exports = exports;
+      Extends = extends;
+      ProvideAll = provideAll;
+      RevealAll = revealAll;
+      ThisScope = new VisibilityScope(this.FullCompileName);
+    }
+
+    public ModuleExportDecl(IToken tok, string name, ModuleDefinition parent,
+      List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
+      : base(tok, name, parent, false, isRefining) {
       Contract.Requires(exports != null);
       IsDefault = isDefault;
       Exports = exports;
@@ -3611,8 +3630,8 @@ namespace Microsoft.Dafny {
     public void SetupDefaultSignature() {
       Contract.Requires(this.Signature == null);
       var sig = new ModuleSignature();
-      sig.ModuleDef = this.Module;
-      sig.IsAbstract = this.Module.IsAbstract;
+      sig.ModuleDef = this.EnclosingModuleDefinition;
+      sig.IsAbstract = this.EnclosingModuleDefinition.IsAbstract;
       sig.VisibilityScope = new VisibilityScope();
       sig.VisibilityScope.Augment(ThisScope);
       this.Signature = sig;
@@ -3697,29 +3716,99 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class ModuleQualifiedId {
+    public readonly List<IToken> Path; // Path != null && Path.Count > 0
+
+    public ModuleQualifiedId(List<IToken> path) {
+      Contract.Assert(path != null && path.Count > 0);
+      this.Path = path; // note that the list is aliased -- not to be modified after construction
+    }
+
+    // Creates a clone, including a copy of the list;
+    // if the argument is true, resolution information is included
+    public ModuleQualifiedId Clone(bool includeResInfo) {
+      List<IToken> newlist = new List<IToken>(Path);
+      ModuleQualifiedId cl = new ModuleQualifiedId(newlist);
+      if (includeResInfo) {
+        cl.Root = this.Root;
+        cl.Decl = this.Decl;
+        cl.Def = this.Def;
+        cl.Sig = this.Sig;
+        Contract.Assert(this.Def == this.Sig.ModuleDef);
+      }
+      return cl;
+    }
+
+    public string rootName() {
+      return Path[0].val;
+    }
+
+    public IToken rootToken() {
+      return Path[0];
+    }
+
+    override public string ToString() {
+      string s = Path[0].val;
+      for (int i = 1; i < Path.Count; ++i) {
+        s = s + "." + Path[i].val;
+      }
+
+      return s;
+    }
+
+    public void SetRoot(ModuleDecl m) {
+      this.Root = m;
+    }
+
+    public void Set(ModuleDecl m) {
+      if (m == null) {
+        this.Decl = null;
+        this.Def = null;
+        this.Sig = null;
+      } else {
+        this.Decl = m;
+        this.Def = ((LiteralModuleDecl)m).ModuleDef;
+        this.Sig = m.Signature;
+      }
+    }
+
+    // The following are filled in during resolution
+    // Note that the root (first path segment) is resolved initially,
+    // as it is needed to determine dependency relationships.
+    // Then later the rest of the path is resolved, at which point all of the
+    // ids in the path have been fully resolved
+    // Note also that the resolution of the root depends on the syntactice location
+    // of the qualified id; the resolution of subsequent ids depends on the
+    // default export set of the previous id.
+    public ModuleDecl Root; // the module corresponding to Path[0].val
+    public ModuleDecl Decl; // the module corresponding to the full path
+    public ModuleDefinition Def; // the module definition corresponding to the full path
+    public ModuleSignature Sig; // the module signature corresponding to the full path
+  }
+
   public class ModuleDefinition : INamedRegion, IAttributeBearingDeclaration
   {
     public readonly IToken tok;
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
-    public readonly string Name;
+    public readonly string Name; // (Last segment of the) module name
     public string FullName {
       get {
-        if (Module == null || Module.IsDefaultModule) {
+        if (EnclosingModule == null || EnclosingModule.IsDefaultModule) {
           return Name;
         } else {
-          return Module.FullName + "." + Name;
+          return EnclosingModule.FullName + "." + Name;
         }
       }
     }
-    public readonly List<IToken> PrefixIds;
+    public readonly List<IToken> PrefixIds; // The qualified module name, except the last segment when a
+                                            // nested module declaration is outside its enclosing module
     IToken INamedRegion.BodyStartTok { get { return BodyStartTok; } }
     IToken INamedRegion.BodyEndTok { get { return BodyEndTok; } }
     string INamedRegion.Name { get { return Name; } }
-    public ModuleDefinition Module;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
+    public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
     public readonly Attributes Attributes;
-    public readonly IToken RefinementBaseName;  // null if no refinement base
-    public ModuleDecl RefinementBaseRoot; // filled in early during resolution, corresponds to RefinementBaseName[0]
+    public ModuleQualifiedId RefinementQId; // full qualified ID of the refinement parent, null if no refinement base
     public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
 
     public List<Include> Includes;
@@ -3734,37 +3823,6 @@ namespace Microsoft.Dafny {
     public readonly bool IsToBeVerified;
     public readonly bool IsToBeCompiled;
 
-    private ModuleSignature refinementBaseSig; // module signature of the refinementBase.
-    public ModuleSignature RefinementBaseSig {
-      get {
-        return refinementBaseSig;
-      }
-
-      set {
-        // the refinementBase member may only be changed once.
-        if (null != refinementBaseSig) {
-          throw new InvalidOperationException(string.Format("This module ({0}) already has a refinement base ({1}).", Name, refinementBase.Name));
-        }
-        refinementBaseSig = value;
-      }
-    }
-
-    private ModuleDefinition refinementBase; // filled in during resolution via RefinementBase property (null if no refinement base yet or at all).
-
-    public ModuleDefinition RefinementBase {
-        get {
-           return refinementBase;
-        }
-
-        set {
-          // the refinementBase member may only be changed once.
-          if (null != refinementBase) {
-              throw new InvalidOperationException(string.Format("This module ({0}) already has a refinement base ({1}).", Name, refinementBase.Name));
-          }
-          refinementBase = value;
-        }
-    }
-
     public int? ResolvedHash { get; set; }
 
     [ContractInvariantMethod]
@@ -3773,7 +3831,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(CallGraph != null);
     }
 
-    public ModuleDefinition(IToken tok, string name, List<IToken> prefixIds, bool isAbstract, bool isFacade, IToken refinementBase, ModuleDefinition parent, Attributes attributes, bool isBuiltinName,
+    public ModuleDefinition(IToken tok, string name, List<IToken> prefixIds, bool isAbstract, bool isFacade,
+      ModuleQualifiedId refinementQId, ModuleDefinition parent, Attributes attributes, bool isBuiltinName,
       bool isToBeVerified, bool isToBeCompiled)
     {
       Contract.Requires(tok != null);
@@ -3782,16 +3841,14 @@ namespace Microsoft.Dafny {
       this.Name = name;
       this.PrefixIds = prefixIds;
       this.Attributes = attributes;
-      this.Module = parent;
-      RefinementBaseName = refinementBase;
-      IsAbstract = isAbstract;
-      IsFacade = isFacade;
-      RefinementBaseRoot = null;
-      this.refinementBase = null;
-      Includes = new List<Include>();
-      IsBuiltinName = isBuiltinName;
-      IsToBeVerified = isToBeVerified;
-      IsToBeCompiled = isToBeCompiled;
+      this.EnclosingModule = parent;
+      this.RefinementQId = refinementQId;
+      this.IsAbstract = isAbstract;
+      this.IsFacade = isFacade;
+      this.Includes = new List<Include>();
+      this.IsBuiltinName = isBuiltinName;
+      this.IsToBeVerified = isToBeVerified;
+      this.IsToBeCompiled = isToBeCompiled;
     }
 
     VisibilityScope visibilityScope;
@@ -3820,12 +3877,12 @@ namespace Microsoft.Dafny {
           } else if (IsBuiltinName || externArgs != null) {
             compileName = Name;
           } else {
-            if (Module != null && Module.Name != "_module") {
+            if (EnclosingModule != null && EnclosingModule.Name != "_module") {
               // Include all names in the module tree path, to disambiguate when compiling
               // a flat list of modules.
               // Use an "underscore-escaped" character as a module name separator, since
               // underscores are already used as escape characters in CompilerizeName()
-              compileName = Module.CompileName + "_m" + NonglobalVariable.CompilerizeName(Name);
+              compileName = EnclosingModule.CompileName + "_m" + NonglobalVariable.CompilerizeName(Name);
             } else {
               compileName = NonglobalVariable.CompilerizeName(Name);
             }
@@ -3864,7 +3921,7 @@ namespace Microsoft.Dafny {
       foreach (var d in declarations) {
         var cl = d as TopLevelDeclWithMembers;
         if (cl != null) {
-          var module = cl.Module;
+          var module = cl.EnclosingModuleDefinition;
           foreach (var member in cl.Members) {
             var fn = member as Function;
             if (fn != null) {
@@ -4025,44 +4082,44 @@ namespace Microsoft.Dafny {
 
   public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
     public abstract string WhatKind { get; }
-    public readonly ModuleDefinition Module;
+    public readonly ModuleDefinition EnclosingModuleDefinition;
     public readonly List<TypeParameter> TypeArgs;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(TypeArgs));
     }
 
-    public TopLevelDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
+    public TopLevelDecl(IToken tok, string name, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs, Attributes attributes, bool isRefining)
       : base(tok, name, attributes, isRefining) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
-      Module = module;
+      EnclosingModuleDefinition = enclosingModule;
       TypeArgs = typeArgs;
     }
 
     public string FullName {
       get {
-        return Module.FullName + "." + Name;
+        return EnclosingModuleDefinition.FullName + "." + Name;
       }
     }
     public string FullSanitizedName {
       get {
-        return Module.CompileName + "." + CompileName;
+        return EnclosingModuleDefinition.CompileName + "." + CompileName;
       }
     }
 
     public string FullSanitizedRefinementName {
       get {
-        return Module.RefinementCompileName + "." + CompileName;
+        return EnclosingModuleDefinition.RefinementCompileName + "." + CompileName;
       }
     }
 
     public string FullNameInContext(ModuleDefinition context) {
-      if (Module == context) {
+      if (EnclosingModuleDefinition == context) {
         return Name;
       } else {
-        return Module.Name + "." + Name;
+        return EnclosingModuleDefinition.Name + "." + Name;
       }
     }
     public string FullCompileName {
@@ -4073,10 +4130,10 @@ namespace Microsoft.Dafny {
             return externArgs[0].AsStringLiteral() + "." + externArgs[1].AsStringLiteral();
           }
         }
-        if (Module.IsDefaultModule && DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Csharp) {
+        if (EnclosingModuleDefinition.IsDefaultModule && DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Csharp) {
           return Declaration.IdProtect(CompileName);
         } else {
-          return Declaration.IdProtect(Module.CompileName) + "." + Declaration.IdProtect(CompileName);
+          return Declaration.IdProtect(EnclosingModuleDefinition.CompileName) + "." + Declaration.IdProtect(CompileName);
         }
       }
     }
@@ -4410,7 +4467,7 @@ namespace Microsoft.Dafny {
     bool ICodeContext.IsGhost { get { return true; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-    ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
     bool ICodeContext.MustReverify { get { return false; } }
     bool ICodeContext.AllowsNontermination { get { return false; } }
     IToken ICallable.Tok { get { return tok; } }
@@ -4829,8 +4886,8 @@ namespace Microsoft.Dafny {
 
         return "_increasingInt";
       }
-      public override bool Equals(Type that) {
-        return that.NormalizeExpand() is EverIncreasingType;
+      public override bool Equals(Type that, bool keepConstraints = false) {
+        return that.NormalizeExpand(keepConstraints) is EverIncreasingType;
       }
     }
 
@@ -4848,7 +4905,7 @@ namespace Microsoft.Dafny {
       get { return _inferredDecr; }
     }
 
-    ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingModuleDefinition; } }
     bool ICodeContext.MustReverify { get { return false; } }
     public bool AllowsNontermination {
       get {
@@ -5173,7 +5230,7 @@ namespace Microsoft.Dafny {
     public new bool IsGhost { get { return this.isGhost; } }
     public List<TypeParameter> TypeArgs { get { return new List<TypeParameter>(); } }
     public List<Formal> Ins { get { return new List<Formal>(); } }
-    public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.Module; } }
+    public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
     public bool MustReverify { get { return false; } }
     public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
     public IToken Tok { get { return tok; } }
@@ -5272,15 +5329,12 @@ namespace Microsoft.Dafny {
     public static void NewSelfSynonym(this RevealableTypeDecl rtd) {
       var d = rtd.AsTopLevelDecl;
       Contract.Assert(!tsdMap.ContainsKey(d));
-
       var thisType = UserDefinedType.FromTopLevelDecl(d.tok, d);
       if (d is OpaqueTypeDecl) {
         thisType.ResolvedParam = ((OpaqueTypeDecl)d).TheType;
       }
-
-      var tsd = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.GetExplicitCharacteristics(d), d.TypeArgs, d.Module, thisType, d.Attributes);
+      var tsd = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.GetExplicitCharacteristics(d), d.TypeArgs, d.EnclosingModuleDefinition, thisType, d.Attributes);
       tsd.InheritVisibility(d, false);
-
       tsdMap.Add(d, tsd);
     }
 
@@ -5369,7 +5423,7 @@ namespace Microsoft.Dafny {
     string RedirectingTypeDecl.Name { get { return Name; } }
     IToken RedirectingTypeDecl.tok { get { return tok; } }
     Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
-    ModuleDefinition RedirectingTypeDecl.Module { get { return Module; } }
+    ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
     BoundVar RedirectingTypeDecl.Var { get { return Var; } }
     Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
     SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return WitnessKind; } }
@@ -5379,7 +5433,7 @@ namespace Microsoft.Dafny {
     bool ICodeContext.IsGhost { get { return true; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-    ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
     bool ICodeContext.MustReverify { get { return false; } }
     bool ICodeContext.AllowsNontermination { get { return false; } }
     IToken ICallable.Tok { get { return tok; } }
@@ -5451,7 +5505,7 @@ namespace Microsoft.Dafny {
     string RedirectingTypeDecl.Name { get { return Name; } }
     IToken RedirectingTypeDecl.tok { get { return tok; } }
     Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
-    ModuleDefinition RedirectingTypeDecl.Module { get { return Module; } }
+    ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
     BoundVar RedirectingTypeDecl.Var { get { return null; } }
     Expression RedirectingTypeDecl.Constraint { get { return null; } }
     SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return SubsetTypeDecl.WKind.None; } }
@@ -5461,7 +5515,7 @@ namespace Microsoft.Dafny {
     bool ICodeContext.IsGhost { get { return false; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
-    ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
     bool ICodeContext.MustReverify {get { return false; } }
     bool ICodeContext.AllowsNontermination { get { return false; } }
     IToken ICallable.Tok { get { return tok; } }
@@ -5553,7 +5607,7 @@ namespace Microsoft.Dafny {
     }
 
     private NonNullTypeDecl(ClassDecl cl, List<TypeParameter> tps, BoundVar id)
-      : base(cl.tok, cl.Name, new TypeParameter.TypeParameterCharacteristics(), tps, cl.Module, id,
+      : base(cl.tok, cl.Name, new TypeParameter.TypeParameterCharacteristics(), tps, cl.EnclosingModuleDefinition, id,
       new BinaryExpr(cl.tok, BinaryExpr.Opcode.Neq, new IdentifierExpr(cl.tok, id), new LiteralExpr(cl.tok)),
       SubsetTypeDecl.WKind.Special, null, BuiltIns.AxiomAttribute())
     {
@@ -6058,7 +6112,7 @@ namespace Microsoft.Dafny {
       set { _inferredDecr = value; }
       get { return _inferredDecr; }
     }
-    ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingClass.Module; } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
     bool ICodeContext.MustReverify { get { return false; } }
 
     [Pure]
@@ -6320,7 +6374,7 @@ namespace Microsoft.Dafny {
     ModuleDefinition ICodeContext.EnclosingModule {
       get {
         Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete
-        return this.EnclosingClass.Module;
+        return this.EnclosingClass.EnclosingModuleDefinition;
       }
     }
     bool ICodeContext.MustReverify { get { return this.MustReverify; } }
@@ -9387,8 +9441,8 @@ namespace Microsoft.Dafny {
         Contract.Assert(parseAble == false);
         return "#module";
       }
-      public override bool Equals(Type that) {
-        return that.NormalizeExpand() is ResolverType_Module;
+      public override bool Equals(Type that, bool keepConstraints = false) {
+        return that.NormalizeExpand(keepConstraints) is ResolverType_Module;
       }
     }
     public class ResolverType_Type : ResolverType {
@@ -9397,8 +9451,8 @@ namespace Microsoft.Dafny {
         Contract.Assert(parseAble == false);
         return "#type";
       }
-      public override bool Equals(Type that) {
-        return that.NormalizeExpand() is ResolverType_Type;
+      public override bool Equals(Type that, bool keepConstraints = false) {
+        return that.NormalizeExpand(keepConstraints) is ResolverType_Type;
       }
     }
 

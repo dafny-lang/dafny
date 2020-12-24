@@ -24,7 +24,7 @@ module M3 refines M1 {
 module M4 {
   import opened M1
 
-  trait T1 {  // OK - a local declarationa takes precedence over an imported one
+  trait T1 {  // OK - a local declaration takes precedence over an imported one
   }
 }
 

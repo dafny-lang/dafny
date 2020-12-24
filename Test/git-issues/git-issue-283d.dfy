@@ -19,8 +19,8 @@ method m(f: Foo) returns (x: int) {
   assert f.v != 0 && f.v != 1 ==> x == -f.v;
 }
 
-const ZERO := 0;
-const ONE := 1;
+const ZERO := 0
+const ONE := 1
 
 method m2(f: Foo) returns (x: int) {
   x := 0;

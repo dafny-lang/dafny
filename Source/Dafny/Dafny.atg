@@ -848,6 +848,7 @@ Dafny
        defaultClass = new DefaultClassDecl(defaultModule, membersDefaultClass);
        defaultModule.TopLevelDecls.Add(defaultClass);
      } .)
+  SYNC
   EOF
   .
 
@@ -868,7 +869,7 @@ DeclModifier<ref DeclModifierData dmod>
 
 TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bool isTopLevel, bool isAbstract .>
 = (. DeclModifierData dmod = new DeclModifierData(); ModuleDecl submodule;
-     ClassDecl/*!*/ c; DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
+     DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
      TraitDecl/*!*/ trait;
   .)
   { DeclModifier<ref dmod> }
@@ -879,7 +880,7 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
                                                   } else {
                                                     module.TopLevelDecls.Add(submodule);
                                                   } .)
-  | ClassDecl<dmod, module, out c>             (. module.TopLevelDecls.Add(c); .)
+  | ClassDecl<dmod, module, out td>             (. module.TopLevelDecls.Add(td); .)
   | DatatypeDecl<dmod, module, out dt>         (. module.TopLevelDecls.Add(dt); .)
   | NewtypeDecl<dmod, module, out td>          (. module.TopLevelDecls.Add(td); .)
   | OtherTypeDecl<dmod, module, out td>        (. module.TopLevelDecls.Add(td); .)
@@ -890,10 +891,11 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
   ) .
 
 SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
-= (. Attributes attrs = null;  IToken/*!*/ id; var prefixIds = new List<IToken>();
+= (. Attributes attrs = null;  IToken/*!*/ id, iderr; var prefixIds = new List<IToken>();
      List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
-     List<IToken> idPath, idExports;
-     IToken idRefined = null;
+     List<IToken> idPath = new List<IToken>();
+     List<IToken> idExports = null;
+     List<IToken> idRefined = null;
      ModuleDefinition module;
      submodule = null; // appease compiler
      bool isAbstract = dmod.IsAbstract;
@@ -906,33 +908,53 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     { (. prefixIds.Add(id); .)
       "." NoUSIdent<out id>
     }
-    [ "refines" ModuleName<out idRefined> ]
-    (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, false, idRefined, parent, attrs,
+    [ "refines" QualifiedModuleId<out idRefined>
+    |  Ident<out iderr> (. SemErr(la, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
+    ]
+    (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, false,
+                                      idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
                                       false, theVerifyThisFile, theCompileThisFile);
     .)
+    SYNC
     "{"                                 (. module.BodyStartTok = t; .)
       { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
-    "}"                                 (. module.BodyEndTok = t;
-                                           module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
-                                           submodule = new LiteralModuleDecl(module, parent); .)
+    "}"
+    (.
+       module.BodyEndTok = t;
+       module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
+       submodule = new LiteralModuleDecl(module, parent);
+    .)
   |
     "import" ["opened" (.opened = true;.)]
     ModuleName<out id>
-    ( (. idPath = new List<IToken>(); idExports = new List<IToken>(); .)
-      OptQualifiedModuleExportSuffix<idPath, idExports>
+    (. idExports = new List<IToken>(); .)
+    (
+      "."
+      QualifiedModuleExport<out idPath, out idExports>
       (. idPath.Insert(0, id);
-         submodule = new AliasModuleDecl(idPath, idPath[idPath.Count-1], parent, opened, idExports);
+         submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
+                                         idPath[idPath.Count-1], parent, opened, idExports);
       .)
+
     | "=" QualifiedModuleExport<out idPath, out idExports>
-      (. submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports); .)
+          (. submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
+                                         id, parent, opened, idExports); .)
+
     | ":" QualifiedModuleExport<out idPath, out idExports>
-        (. submodule = new ModuleFacadeDecl(idPath, id, parent, opened, idExports); .)
+          (. submodule = new AbstractModuleDecl(new ModuleQualifiedId(idPath),
+                                         id, parent, opened, idExports); .)
+
+    | [ "`" ModuleExportSuffix<idExports> ]
+          (. idPath.Add(id);
+             submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
+                                         id, parent, opened, idExports);
+          .)
     )
 
   | (.
       IToken exportId;
       List<ExportSignature> exports = new List<ExportSignature>();;
-      List<string> extends = new List<string>();
+      List<IToken> extends = new List<IToken>();
       bool provideAll = false;
       bool revealAll = false;
       bool isDefault = false;
@@ -941,8 +963,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     .)
     "export" (. exportId = t; .)
     [ ExportIdent<out exportId> ]
-    [ "..."  (. isRefining = true; .)
-    ]
+    [ "..."  (. isRefining = true; .) ]
     {
       "provides"
       (
@@ -959,8 +980,8 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       | "*" (. revealAll = true; .)
       )
     | "extends"
-      ExportIdent<out id>       (. extends.Add(id.val); .)
-      {"," ExportIdent<out id>  (. extends.Add(id.val); .) }
+      ExportIdent<out id>       (. extends.Add(id); .)
+      {"," ExportIdent<out id>  (. extends.Add(id); .) }
     }
     (. if (exportId.val == "export" || exportId.val == parent.Name) {
          isDefault = true;
@@ -987,29 +1008,31 @@ ModuleName<out IToken id>
 = Ident<out id>
   .
 
-/* This production is for referring to module exports for imports (both normal and facades) */
-OptQualifiedModuleExportSuffix<.List<IToken> ids, List<IToken> exports.>
-= (. IToken id; .)
+QualifiedModuleId<.out List<IToken> ids.>
+= (. IToken id; ids = new List<IToken>();
+  .)
+  ModuleName<out id> (. ids.Add(id); .)
   { "." ModuleName<out id> (. ids.Add(id); .) }
-  [ "`"
+  .
+
+QualifiedModuleExport<.out List<IToken> idPath, out List<IToken> exports.>
+= (. exports = new List<IToken>();
+  .)
+  QualifiedModuleId<out idPath>
+  [ "`" ModuleExportSuffix<exports> ]
+  .
+
+ModuleExportSuffix<. List<IToken> exports.>
+=                              (. IToken id; .)
     ( ExportIdent<out id>       (. exports.Add(id); .)
     | "{" ExportIdent<out id>   (. exports.Add(id); .)
        { "," ExportIdent<out id> (. exports.Add(id); .) }
       "}"
     )
-  ]
   .
 
-QualifiedModuleExport<.out List<IToken> ids, out List<IToken> exports.>
-= (. IToken id; ids = new List<IToken>();
-     List<IToken> sids = new List<IToken>(); exports = new List<IToken>();
-  .)
-  ModuleName<out id> (. ids.Add(id); .)
-  OptQualifiedModuleExportSuffix<sids, exports>
-  (. ids.AddRange(sids); .)
-  .
 
-ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDecl/*!*/ c>
+ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevelDecl/*!*/ c>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ id;
@@ -1033,6 +1056,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
     {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); .) }
   | "..."                       (. isRefining = true; .)
   ]
+  SYNC
   "{"                                            (. bodyStart = t;  .)
     { (. dmod = new DeclModifierData(); .)
       { DeclModifier<ref dmod> }

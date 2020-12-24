@@ -1,10 +1,10 @@
 # Reading from unmarshal.transcript
+# args: /compile:0, /nologo, /printTooltips, /timeLimit:20
+# filename: transcript
+# sourceIsFile: False
 method A(a:int) returns (b: int) {
   b := a;
   assert false;
 }
 
-Verification completed successfully!
-[SUCCESS] [[DAFNY-SERVER: EOM]]
-Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
