@@ -24,7 +24,7 @@ module A {
 }
 
 module B refines A {
-  class C {
+  class C ... {
     var k: int;
     method M(y: int) returns (x: int)
       requires 0 <= y;  // error: cannot add a precondition
@@ -53,7 +53,7 @@ module B refines A {
 }
 
 module BB refines B {
-  class C {
+  class C ... {
     function method G(): int  // error: allowed to make a function into a function method
     function method H(): int  // ...unless this is where the function body is given
     { 10 }
@@ -73,7 +73,7 @@ module Forall0 {
   }
 }
 module Forall1 refines Forall0 {
-  class C {
+  class C ... {
     var b: int
     method M...
     {
@@ -151,7 +151,7 @@ module OrigF {
 }
 module TpF refines OrigF {
   class T<!A,-B,+C,!D,-E,+F,W(==),X,Y(0),Z>  // error (x9): various changes
-  {
+  ... {
   }
 }
 
@@ -183,10 +183,10 @@ module OrigJ {
   }
 }
 module TpJ refines OrigJ {
-  iterator S<A,B>()
-  // Note, type parameters of iterators are implicitly (0), so
-  // the following line generates 7, not 9, errors
-  iterator T<!A,-B,+C,!D,-E,+F,W(==),X,Y(0),Z>()  // error (x7): various changes
-  {
+  iterator S ...
+
+
+  iterator T
+  ... {
   }
 }

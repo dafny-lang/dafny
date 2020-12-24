@@ -43,7 +43,7 @@ abstract module Loose {
 }
 
 module Tight refines Loose {
-  class MyNumber {
+  class MyNumber ... {
     predicate CustomValid...
     {
       N % 2 == 0
@@ -111,13 +111,13 @@ module Q0 {
 }
 
 module Q1 refines Q0 {
-  class C {
+  class C ... {
     predicate R...  // no body yet
   }
 }
 
 module Q2 refines Q1 {
-  class C {
+  class C ... {
     predicate R... { x % 3 == 2 }  // finally, give it a body
   }
 }

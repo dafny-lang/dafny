@@ -13,7 +13,7 @@ abstract module R1 {
 }
 
 module R2 refines R1 {
-  class HappyBay {
+  class HappyBay ... {
     var g: nat;
     method m ...
     {
@@ -44,7 +44,7 @@ abstract module M0 {
 }
 
 module M1 refines M0 {
-  class C {
+  class C ... {
     method mmm... {
       var a := new C;  // fine
       var b := new C.Init();  // fine

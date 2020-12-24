@@ -102,7 +102,7 @@ abstract module S {
 }
 
 module T refines S {
-  class C {
+  class C ... {
     constructor () { }
     method m() {
       print "in T.C.m()";

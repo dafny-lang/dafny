@@ -41,7 +41,7 @@ abstract module M0 {
 // the Union method.
 abstract module M1 refines M0 {
   datatype Contents = Root(depth: nat) | Link(next: Element)
-  class Element {
+  class Element ... {
     var c: Contents
   }
 
@@ -51,7 +51,7 @@ abstract module M1 refines M0 {
     forall f :: f in C && C[f].Link? ==> C[f].next in C
   }
 
-  class UnionFind {
+  class UnionFind ... {
     predicate ValidM1()
     {
       M.Keys <= Repr &&
@@ -124,7 +124,7 @@ abstract module M1 refines M0 {
 
 // Module M2 adds the implementation of Find, together with the proofs needed for the verification.
 abstract module M2 refines M1 {
-  class UnionFind {
+  class UnionFind ... {
     method Find...
     {
       r := FindAux(M[e].c.depth, e);
@@ -203,7 +203,7 @@ abstract module M2 refines M1 {
 // Finally, module M3 adds the implementation of Join, along with what's required to
 // verify its correctness.
 module M3 refines M2 {
-  class UnionFind {
+  class UnionFind ... {
     method Join...
     {
       if r0 == r1 {

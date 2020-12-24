@@ -763,7 +763,7 @@ namespace Microsoft.Dafny {
         w.WriteLine("case nil: return \"null\"");
         foreach (var ctor in dt.Ctors) {
           var wCase = w.NewNamedBlock("case {0}:", structOfCtor(ctor));
-          var nm = (dt.Module.IsDefaultModule ? "" : dt.Module.Name + ".") + dt.Name + "." + ctor.Name;
+          var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
           if (dt is CoDatatypeDecl) {
             wCase.WriteLine("return \"{0}\"", nm);
           } else {
@@ -787,7 +787,7 @@ namespace Microsoft.Dafny {
         }
         var wDefault = w.NewBlock("default:");
         if (dt is CoDatatypeDecl) {
-          wDefault.WriteLine("return \"{0}.{1}.unexpected\"", dt.Module.CompileName, dt.CompileName);
+          wDefault.WriteLine("return \"{0}.{1}.unexpected\"", dt.EnclosingModuleDefinition.CompileName, dt.CompileName);
         } else {
           wDefault.WriteLine("return \"<unexpected>\"");
         }
@@ -1360,8 +1360,8 @@ namespace Microsoft.Dafny {
         } else if (DafnyOptions.O.IronDafny &&
             !(xType is ArrowType) &&
             cl != null &&
-            cl.Module != null &&
-            !cl.Module.IsDefaultModule) {
+            cl.EnclosingModuleDefinition != null &&
+            !cl.EnclosingModuleDefinition.IsDefaultModule) {
           s = cl.FullCompileName;
         } else if (xType is ArrowType at) {
           return string.Format("func ({0}) {1}", Util.Comma(at.Args, arg => TypeName(arg, wr, tok)), TypeName(at.Result, wr, tok));
@@ -1563,8 +1563,8 @@ namespace Microsoft.Dafny {
       // FormatCompanionName, which doesn't help anyone
       if (type is UserDefinedType udt && udt.ResolvedClass != null && IsExternMemberOfExternModule(member, udt.ResolvedClass)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
-        Contract.Assert(!udt.ResolvedClass.Module.IsDefaultModule);  // default module is not marked ":extern"
-        return IdProtect(udt.ResolvedClass.Module.CompileName);
+        Contract.Assert(!udt.ResolvedClass.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
+        return IdProtect(udt.ResolvedClass.EnclosingModuleDefinition.CompileName);
       }
       return TypeName_Related(FormatCompanionName, type, wr, tok, member);
     }
@@ -2240,28 +2240,28 @@ namespace Microsoft.Dafny {
     private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
       if (IsExternMemberOfExternModule(member, cl)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
-        Contract.Assert(!cl.Module.IsDefaultModule);  // default module is not marked ":extern"
-        return IdProtect(cl.Module.CompileName);
+        Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
+        return IdProtect(cl.EnclosingModuleDefinition.CompileName);
       } else {
         if (cl.IsExtern(out var qual, out _)) {
           // No need to take into account the second argument to extern, since
           // it'll already be cl.CompileName
           if (qual == null) {
-            qual = cl.Module.CompileName;
+            qual = cl.EnclosingModuleDefinition.CompileName;
           }
           // Don't use IdName since that'll capitalize, which is unhelpful for
           // built-in types
           return qual + (qual == "" ? "" : ".") + cl.CompileName;
-        } else if (!full || cl.Module.IsDefaultModule || this.ModuleName == cl.Module.CompileName) {
+        } else if (!full || cl.EnclosingModuleDefinition.IsDefaultModule || this.ModuleName == cl.EnclosingModuleDefinition.CompileName) {
           return IdName(cl);
         } else {
-          return cl.Module.CompileName + "." + IdName(cl);
+          return cl.EnclosingModuleDefinition.CompileName + "." + IdName(cl);
         }
       }
     }
 
     private bool IsExternMemberOfExternModule(MemberDecl/*?*/ member, TopLevelDecl cl) {
-      return member != null && cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cdecl.Module.Attributes, "extern") && member.IsExtern(out _, out _);
+      return member != null && cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cdecl.EnclosingModuleDefinition.Attributes, "extern") && member.IsExtern(out _, out _);
     }
 
     protected override void EmitThis(TargetWriter wr) {

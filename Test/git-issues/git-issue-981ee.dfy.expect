@@ -1,0 +1,2 @@
+git-issue-981ee.dfy(6,9): Error: Import declaration uses same name as a module in the same scope: E2
+1 resolution/type errors detected in git-issue-981ee.dfy

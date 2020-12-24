@@ -7,7 +7,7 @@ datatype Result<T> =
 
 datatype Bar = C1() | C2(bl: string)
 
-const X: int := 42;
+const X: int := 42
 const SS: string := "asd"
 
 trait Foo
