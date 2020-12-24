@@ -85,7 +85,7 @@ class Release:
         osname = self.os.split("-")[0]
         self.target = "{}-{}".format(z3ToDotNetOSMapping[osname], self.platform)
         self.dafny_zip = path.join(DESTINATION_DIRECTORY, self.dafny_name)
-        self.buildDirectory = path.join(BINARIES_DIRECTORY, self.target)
+        self.buildDirectory = path.join(BINARIES_DIRECTORY, self.target, "publish")
 
     @property
     def cached(self):
