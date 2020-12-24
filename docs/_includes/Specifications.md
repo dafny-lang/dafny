@@ -1,4 +1,4 @@
-# Specifications
+# 6. Specifications
 Specifications describe logical properties of Dafny methods, functions,
 lambdas, iterators and loops. They specify preconditions, postconditions,
 invariants, what memory locations may be read or modified, and
@@ -20,9 +20,9 @@ This section documents the first two of these in a bottom-up manner.
 We first document the clauses and then the specifications
 that use them.
 
-## Specification Clauses
+## 6.1. Specification Clauses
 
-### Requires Clause
+### 6.1.1. Requires Clause
 
 ````grammar
 RequiresClause_ =
@@ -43,7 +43,7 @@ from all of the `requires` clauses. The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-### Ensures Clause
+### 6.1.2. Ensures Clause
 
 ````grammar
 EnsuresClause_ =
@@ -75,7 +75,7 @@ TODO: In the present sources ``FunctionEnsuresClause_`` differs from
 ``Attribute``s. This seems like a bug and will likely
 be fixed in a future version.
 
-### Decreases Clause
+### 6.1.3. Decreases Clause
 ````grammar
 DecreasesClause_(allowWildcard, allowLambda) =
   "decreases" { Attribute } DecreasesList(allowWildcard,
@@ -304,7 +304,7 @@ method Inner(x: nat, y: nat)
 The ingredients are simple, but the end result may seem like magic. For many users, however, there may be no magic at all -- the end result may be so natural that the user never even has to be bothered to think about that there was a need to prove termination in the first place.
 
 
-### Framing
+### 6.1.4. Framing
 ````grammar
 FrameExpression(allowLemma, allowLambda) =
   ( Expression(allowLemma, allowLambda) [ FrameField ]
@@ -351,7 +351,7 @@ elements---one could imagine
 Also, ``FrameField`` is not taken into consideration for
 lambda expressions.
 
-### Reads Clause
+### 6.1.5. Reads Clause
 ````grammar
 FunctionReadsClause_ =
   "reads"
@@ -407,7 +407,7 @@ a list and attributes.
 
 TO BE WRITTEN: multiset of objects allowed in reads clauses
 
-### Modifies Clause
+### 6.1.6. Modifies Clause
 
 ````grammar
 ModifiesClause_ =
@@ -434,7 +434,7 @@ or within the scope of a modifies statement or a loop's modifies clause,
 
 It is also possible to frame what can be modified by a block statement
 by means of the block form of the
-[modify statement](#sec-modify-statement) (Section [#sec-modify-statement]).
+modify statement (cf. [Section 23.9](#sec-modify-statement)).
 
 A `modifies` clause specifies the set of memory locations that a
 method, iterator or loop body may modify. If more than one `modifies`
@@ -456,7 +456,7 @@ interprets JML's `assigns/modifies` in sense (b).
 ACSL and ACSL++ use the `assigns` keyword, but with _modify_ (b) semantics.
 Ada/SPARK's dataflow contracts encode _write_ (a) semantics.
 
-### Invariant Clause
+### 6.1.7. Invariant Clause
 ````grammar
 InvariantClause_ =
   "invariant" { Attribute }
@@ -472,7 +472,7 @@ The invariant must hold on entry to the loop. And assuming it
 is valid on entry, Dafny must be able to prove that it then
 holds at the end of the loop.
 
-## Method Specification
+## 6.2. Method Specification
 ````grammar
 MethodSpec =
   { ModifiesClause_
@@ -487,7 +487,7 @@ A method specification is zero or more `modifies` `requires`
 A method does not have `reads` clauses because methods are allowed to
 read any memory.
 
-## Function Specification
+## 6.3. Function Specification
 ````grammar
 FunctionSpec =
   { RequiresClause_
@@ -502,7 +502,7 @@ A function specification is zero or more `reads` `requires`
 specification does not have `modifies` clauses because functions are not
 allowed to modify any memory.
 
-## Lambda Specification
+## 6.4. Lambda Specification
 ````grammar
 LambdaSpec_ =
   { LambdaReadsClause_
@@ -518,7 +518,7 @@ clauses because they do not have names and thus cannot be recursive. A
 lambda specification does not have `modifies` clauses because lambdas
 are not allowed to modify any memory.
 
-## Iterator Specification
+## 6.5. Iterator Specification
 ````grammar
 IteratorSpec =
   { IteratorReadsClause_
@@ -542,7 +542,7 @@ iterators explains these.
 TODO: What is the relationship between the post condition and
 the `Valid()` predicate?
 
-## Loop Specification
+## 6.6. Loop Specification
 ````grammar
 LoopSpec =
   { InvariantClause_
@@ -557,6 +557,6 @@ is effectively a precondition and it along with the
 negation of the loop test condition provides the postcondition.
 The ``DecreasesClause_`` clause is used to prove termination.
 
-## Auto-generated boilerplate specifications
+## 6.7. Auto-generated boilerplate specifications
 
 TO BE WRITTEN - {:autocontracts}

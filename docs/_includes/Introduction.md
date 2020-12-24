@@ -1,4 +1,4 @@
-# Introduction
+# 1. Introduction
 
 Dafny [@Leino:Dafny:LPAR16] is a programming language with built-in specification constructs,
 so that verifying a program's correctness with respect to those specifications
@@ -62,7 +62,7 @@ initial section that deals with the lowest level constructs.
 
 The details of using (and contributing to) the dafny tool are described in the [User Guide](#user-guide).
 
-## Dafny Example
+## 1.1. Dafny Example
 To give a flavor of Dafny, here is the solution to a competition problem.
 
 ```dafny
