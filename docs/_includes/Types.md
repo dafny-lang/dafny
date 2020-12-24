@@ -1072,10 +1072,15 @@ ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
   "}"
 
 ClassMemberDecl(moduleLevelDecl) =
-  ( FieldDecl | FunctionDecl |
-    MethodDecl(isGhost: ("ghost" was present),
+  { DeclModifier }
+  ( FieldDecl 
+  | ConstantFieldDecl
+  | FunctionDecl
+  | MethodDecl(isGhost: ("ghost" was present),
                allowConstructor: !moduleLevelDecl)
   )
+
+DeclModifier = "abstract" | "ghost" | "static" | "protected"
 ````
 The ``ClassMemberDecl`` parameter `moduleLevelDecl` will be true if
 the member declaration is at the top level or directly within a
@@ -1151,7 +1156,7 @@ these methods can be invoked at any time, not just as part of a `new`,
 and that `new` does not require that an initialization method be
 invoked at creation.
 
-A clas can declare special initializing methods called _constructor methods_.
+A class can declare special initializing methods called _constructor methods_.
 See Section [#sec-method-declarations].
 
 ## Field Declarations
@@ -1186,6 +1191,27 @@ Fields that are declared as `ghost` can only be used in specifications,
 not in code that will be compiled into executable code.
 
 Fields may not be declared static.
+
+## Const Declarations
+```grammar
+ConstantFieldDecl = "const" { Attribute } CIdentType [ "..." ]
+                    [ ":=" Expression ]
+```
+
+A `const` declaration declares a name designating a constant expression,
+that is, an expression whose value does not change in the program.
+
+The declaration must either have a type or an initializing expression (or both).
+If the type is omitted, it is inferred from the initializing expression.
+
+* A const declaration may include the `ghost` and `static` modifiers, but no 
+others. 
+* A const declaration may appear within a module, class or trait.
+* If it is in a module, itx is implicitly `static`, and may not also be declared
+`static`.
+* If the declaration has an initializing expression that is a ghost
+expression, then the ghost-ness of the declaration is inferred; the "ghost"
+modifier may be omitted.
 
 ## Method Declarations
 ````grammar

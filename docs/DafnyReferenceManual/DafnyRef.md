@@ -35,6 +35,8 @@ user understand how to do proofs with Dafny.
 
 {% include Expressions.md %}
 
+{% include Refinement.md %}
+
 {% include Attributes.md %}
 
 {% include Topics.md %}
