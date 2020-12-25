@@ -69,7 +69,7 @@ jobs:
       if: runner.os == 'MacOS'
       run: |
         brew install pandoc
-        brew cask install basictex
+        brew install --cask basictex
         eval "$(/usr/libexec/path_helper)"
         sudo tlmgr update --self
         sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
