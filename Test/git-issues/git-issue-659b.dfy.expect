@@ -1,0 +1,3 @@
+git-issue-659b.dfy(19,13): Error: unresolved identifier: b
+git-issue-659b.dfy(36,13): Error: unresolved identifier: b
+2 resolution/type errors detected in git-issue-659b.dfy

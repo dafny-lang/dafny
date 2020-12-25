@@ -353,59 +353,69 @@ namespace Microsoft.Dafny {
         } else if (d is ModuleDecl) {
           wr.WriteLine();
           Indent(indent);
-          if (d is LiteralModuleDecl) {
-            LiteralModuleDecl modDecl = ((LiteralModuleDecl)d);
+          if (d is LiteralModuleDecl modDecl) {
             VisibilityScope scope = null;
-            if (modDecl.Signature != null){
+            if (modDecl.Signature != null) {
               scope = modDecl.Signature.VisibilityScope;
             }
             PrintModuleDefinition(modDecl.ModuleDef, scope, indent, prefixIds, fileBeingPrinted);
           } else if (d is AliasModuleDecl) {
             var dd = (AliasModuleDecl)d;
 
-            wr.Write("import"); if (dd.Opened) wr.Write(" opened");
+            wr.Write("import");
+            if (dd.Opened) {
+              wr.Write(" opened");
+            }
             if (dd.ResolvedHash.HasValue && this.printMode == DafnyOptions.PrintModes.DllEmbed) {
               wr.Write(" /*");
               wr.Write(dd.ResolvedHash);
               wr.Write("*/");
             }
             wr.Write(" {0} ", dd.Name);
-            wr.Write("= {0}", Util.Comma(".", dd.Path, id => id.val));
+            wr.Write("= {0}", dd.TargetQId.ToString());
             if (dd.Exports.Count > 0) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
             wr.WriteLine();
-          } else if (d is ModuleFacadeDecl) {
-            var dd = (ModuleFacadeDecl)d;
+          } else if (d is AbstractModuleDecl) {
+            var dd = (AbstractModuleDecl)d;
 
-            wr.Write("import"); if (dd.Opened) wr.Write(" opened");
+            wr.Write("import");
+            if (dd.Opened) {
+              wr.Write(" opened");
+            }
             if (dd.ResolvedHash.HasValue && this.printMode == DafnyOptions.PrintModes.DllEmbed) {
               wr.Write(" /*");
               wr.Write(dd.ResolvedHash);
               wr.Write("*/");
             }
             wr.Write(" {0} ", dd.Name);
-            wr.Write(": {0}", Util.Comma(".", dd.Path, id => id.val));
+            wr.Write(": {0}", dd.QId.ToString());
             if (dd.Exports.Count > 0) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
             wr.WriteLine();
 
           } else if (d is ModuleExportDecl) {
-            ModuleExportDecl e = (ModuleExportDecl)d;
+            ModuleExportDecl e = (ModuleExportDecl) d;
             if (!e.IsDefault) {
               wr.Write("export {0}", e.Name);
             } else {
-              wr.Write("export ");
+              wr.Write("export");
             }
-            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id));
+
+            if (e.IsRefining) {
+              wr.Write(" ...");
+            }
+            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id.val));
             wr.WriteLine();
             PrintModuleExportDecl(e, indent + IndentAmount, fileBeingPrinted);
             wr.WriteLine();
+          } else {
+            Contract.Assert(false); // unexpected ModuleDecl
           }
-
         } else {
-          Contract.Assert(false);  // unexpected TopLevelDecl
+          Contract.Assert(false); // unexpected TopLevelDecl
         }
       }
     }
@@ -483,9 +493,6 @@ namespace Microsoft.Dafny {
       if (module.IsAbstract) {
         wr.Write("abstract ");
       }
-      if (module.IsProtected) {
-        wr.Write("protected ");
-      }
       wr.Write("module");
       PrintAttributes(module.Attributes);
       wr.Write(" ");
@@ -495,8 +502,8 @@ namespace Microsoft.Dafny {
         }
       }
       wr.Write("{0} ", module.Name);
-      if (module.RefinementBaseName != null) {
-        wr.Write("refines {0} ", module.RefinementBaseName.val);
+      if (module.RefinementQId != null) {
+        wr.Write("refines {0} ", module.RefinementQId.ToString());
       }
       if (module.TopLevelDecls.Count == 0) {
         wr.WriteLine("{ }");
@@ -533,8 +540,8 @@ namespace Microsoft.Dafny {
     void PrintIteratorSignature(IteratorDecl iter, int indent) {
       Indent(indent);
       PrintClassMethodHelper("iterator", iter.Attributes, iter.Name, iter.TypeArgs);
-      if (iter.SignatureIsOmitted) {
-        wr.WriteLine(" ...");
+      if (iter.IsRefining) {
+        wr.WriteLine(" ... ");
       } else {
         PrintFormals(iter.Ins, iter);
         if (iter.Outs.Count != 0) {
@@ -579,12 +586,17 @@ namespace Microsoft.Dafny {
 
       Indent(indent);
       PrintClassMethodHelper((c is TraitDecl) ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
-      string sep = " extends ";
-      foreach (var trait in c.ParentTraits) {
-        wr.Write(sep);
-        PrintType(trait);
-        sep = ", ";
+      if (c.IsRefining) {
+        wr.Write(" ... ");
+      } else {
+        string sep = " extends ";
+        foreach (var trait in c.ParentTraits) {
+          wr.Write(sep);
+          PrintType(trait);
+          sep = ", ";
+        }
       }
+
       if (c.Members.Count == 0) {
         wr.WriteLine(" { }");
       } else {
@@ -828,7 +840,6 @@ namespace Microsoft.Dafny {
       var isPredicate = f is Predicate || f is PrefixPredicate;
       Indent(indent);
       string k = isPredicate ? "predicate" : f.WhatKind;
-      if (f.IsProtected) { k = "protected " + k; }
       if (f.HasStaticKeyword) { k = "static " + k; }
       if (!f.IsGhost) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);

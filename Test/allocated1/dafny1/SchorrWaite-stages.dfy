@@ -191,7 +191,7 @@ abstract module M2 refines M1 {
   // maintained in a local ghost variable; the latter is most easily represented as a ghost
   // field in each node (an alternative would be to have a local variable that is a map from
   // nodes to paths).  So, we add a field declaration to the Node class:
-  class Node {
+  class Node ... {
     ghost var pathFromRoot: Path
   }
 

@@ -16,6 +16,7 @@ class RingBuffer<T(0)>
   // Valid encodes the consistency of RingBuffer objects (think, invariant)
   predicate Valid()
     reads this, Repr
+    ensures Valid() ==> this in Repr
   {
     this in Repr && null !in Repr &&
     data in Repr &&
@@ -27,7 +28,7 @@ class RingBuffer<T(0)>
   }
 
   constructor Create(n: nat)
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
     ensures Contents == [] && N == n
   {
     data := new T[n];

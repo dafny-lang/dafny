@@ -50,7 +50,7 @@ module M0 {
 }
 
 module M1 refines M0 {
-  class MyClass {
+  class MyClass ... {
     const d := 'D';
     var e: char;
 
