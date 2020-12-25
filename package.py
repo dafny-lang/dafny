@@ -80,12 +80,12 @@ class Release:
         self.size = js["size"]
         self.url = js["browser_download_url"]
         self.platform, self.os, self.directory = Release.parse_zip_name(js["name"])
+        self.os_name = self.os.split("-")[0]
         self.z3_zip = path.join(CACHE_DIRECTORY, self.z3_name)
         self.dafny_name = "dafny-{}-{}-{}.zip".format(version, self.platform, self.os)
-        osname = self.os.split("-")[0]
-        self.target = "{}-{}".format(z3ToDotNetOSMapping[osname], self.platform)
+        self.target = "{}-{}".format(z3ToDotNetOSMapping[self.os_name], self.platform)
         self.dafny_zip = path.join(DESTINATION_DIRECTORY, self.dafny_name)
-        self.buildDirectory = path.join(BINARIES_DIRECTORY, self.target, "publish")
+        self.buildDirectory = path.join(BINARIES_DIRECTORY, self.target)
 
     @property
     def cached(self):
@@ -120,7 +120,8 @@ class Release:
             shutil.rmtree(self.buildDirectory)
         run(["dotnet", "publish", "Source/Dafny.sln", 
             "-f", "netcoreapp3.1", 
-            "-r", self.target, 
+            "-r", self.target,
+            "-o", self.buildDirectory,
             "-c", "Checked"])
         run(["make", "runtime"])
         # run(["make", "refman-release"])
@@ -148,7 +149,7 @@ class Release:
                 fname = ntpath.basename(fpath)
                 if path.exists(fpath):
                     fileinfo = zipfile.ZipInfo(fname, time.localtime(os.stat(fpath).st_mtime)[:6])
-                    if any(fnmatch(fname, pattern) for pattern in UNIX_EXECUTABLES):
+                    if self.os_name != 'win':
                         # http://stackoverflow.com/questions/434641/
                         fileinfo.external_attr = 0o100755 << 16
                         fileinfo.create_system = 3  # lie about this zip file's source OS to preserve permissions
@@ -207,6 +208,7 @@ def pack(releases):
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Prepare a Dafny release. Configuration is hardcoded; edit the `# Configuration' section of this script to change it.")
     parser.add_argument("version", help="Version number for this release")
+    parser.add_argument("--os", help="operating system name for which to make a release")
     return parser.parse_args()
 
 def main():
@@ -216,6 +218,8 @@ def main():
     # Z3
     flush("* Finding and downloading Z3 releases")
     releases = list(discover(args.version))
+    if args.os:
+        releases = list(filter(lambda release: release.os_name == args.os, releases))
     download(releases)
 
     flush("* Building and packaging Dafny")
