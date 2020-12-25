@@ -52,11 +52,6 @@ jobs:
         cp -r z3* dafny/Binaries/z3
     - name: Build Dafny
       run: dotnet build dafny/Source/Dafny.sln
-    - name: Versions
-      run: |
-        file dafny/Binaries/dafny
-        dafny/Binaries/dafny -version
-        dafny/Binaries/z3/bin/z3 -version
     - name: Install latex pandoc - Linux
       if: runner.os == 'Linux'
       run: |
