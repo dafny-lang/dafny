@@ -1072,15 +1072,12 @@ ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
   "}"
 
 ClassMemberDecl(moduleLevelDecl) =
-  { DeclModifier }
   ( FieldDecl 
   | ConstantFieldDecl
   | FunctionDecl
   | MethodDecl(isGhost: ("ghost" was present),
                allowConstructor: !moduleLevelDecl)
   )
-
-DeclModifier = "abstract" | "ghost" | "static" | "protected"
 ````
 The ``ClassMemberDecl`` parameter `moduleLevelDecl` will be true if
 the member declaration is at the top level or directly within a
