@@ -33,7 +33,7 @@ module T {
 module Y {
   module A {}
   module B {
-    const b := 10;
+    const b := 10
   }
   export A provides A
   export Y provides B
@@ -41,5 +41,5 @@ module Y {
 
 module TY {
   import YB = Y.B  // OK - Y has a default export set
-  const b := YB.b;
+  const b := YB.b
 }

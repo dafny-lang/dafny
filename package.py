@@ -119,7 +119,7 @@ class Release:
         if path.exists(self.buildDirectory):
             shutil.rmtree(self.buildDirectory)
         run(["dotnet", "publish", "Source/Dafny.sln", 
-            "-f", "netcoreapp3.1", 
+            "-f", "netcoreapp3.1",
             "-r", self.target,
             "-o", self.buildDirectory,
             "-c", "Checked"])

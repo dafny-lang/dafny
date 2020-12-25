@@ -1,14 +1,14 @@
+// UNSUPPORTED: windows
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
-
+// RUN: sed -e 'sx\\x/x' < "%t" > "%t"2
+// RUN: %diff "%s.expect" "%t"2
 // The code in this file demonstrates complications in sorting out covariance in some
 // compilation target languages. Compilation support is currently spotty, where C# and
-// Java only supports collection types (not datatypes), and
-// only in the "upcast" direction.
+// Java only supports collection types (not datatypes), and only in the "upcast" direction.
 //
 // The solution in C# is to ensure the Dafny type is mapped to a C# interface with the "out"
 // type parameter modifier, which allows covariance under the condition that the type parameter

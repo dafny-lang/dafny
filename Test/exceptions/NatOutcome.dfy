@@ -35,7 +35,7 @@ class NatSuccess extends NatOutcome {
 }
 
 class NatFailure extends NatOutcome {
-    const error: string;
+    const error: string
     constructor(error: string) {
         this.error := error;
     }

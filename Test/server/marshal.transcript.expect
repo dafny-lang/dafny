@@ -1,0 +1,12 @@
+# Reading from marshal.transcript
+# program source
+method Abs(x: int) returns (y: int)
+  ensures 0 <= y
+{
+  return x;  // error: may be negative
+}
+# JSON encoding
+{"args":[],"filename":"transcript","source":"method Abs(x: int) returns (y: int)\n  ensures 0 <= y\n{\n  return x;  \/\/ error: may be negative\n}\n","sourceIsFile":false}
+# base64 encoding of JSON object
+eyJhcmdzIjpbXSwiZmlsZW5hbWUiOiJ0cmFuc2NyaXB0Iiwic291cmNlIjoibWV0aG9kIEFicyh4OiBpbnQpIHJldHVybnMgKHk6IGludClcbiAgZW5zdXJlcyAwIDw9IHlcbntcbiAgcmV0dXJuIHg7ICBcL1wvIGVycm9yOiBtYXkgYmUgbmVnYXRpdmVcbn1cbiIsInNvdXJjZUlzRmlsZSI6ZmFsc2V9
+[SUCCESS] [[DAFNY-SERVER: EOM]]

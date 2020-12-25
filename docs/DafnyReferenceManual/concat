@@ -5,6 +5,7 @@
 ## NOTE: this script is finickhy about the white space in the include directive
 ## NOTE: All included files must be in the _includes folder
 
+tmp=/tmp/t$pid
 cat $@ > /tmp/t
 
 grep -q '{% include' /tmp/t
@@ -18,11 +19,11 @@ grep -v 'PDFOMIT' /tmp/tt > /tmp/t
 line=`grep -n '{% include' /tmp/t | head -1 | sed -e 's/:.*//'`
 file=`grep -n '{% include' /tmp/t | head -1 | sed -e 's/.*include //' -e 's/%}//' `
 let "ln = $line - 1"
-let "lp = $line + 1"
-#echo $line $file $ln $lp ../_includes/$file
-head -$ln < /tmp/t > /tmp/a
-tail +$lp < /tmp/t > /tmp/b
-cat /tmp/a ../_includes/$file /tmp/b > /tmp/t
+let "lp = $la - $line"
+#echo $line $file $la $ln $lp ../_includes/$file `wc -l $tmp`
+head -n $ln < $tmp > /tmp/a$pid
+tail -n $lp < $tmp > /tmp/b$pid
+cat /tmp/a$pid ../_includes/$file /tmp/b$pid > $tmp
 
 grep -q '{% include' /tmp/t
 a=$?
