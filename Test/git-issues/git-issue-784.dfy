@@ -3,7 +3,8 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: sed -e 'sx\\x/x' < "%t" > "%t"2
+// RUN: %diff "%s.expect" "%t"2
 
 datatype List<T> = Nil | Cons(T, List<T>) {
   function method App(ys: List<T>): List<T> {
@@ -11,7 +12,7 @@ datatype List<T> = Nil | Cons(T, List<T>) {
       case Nil => ys
       case Cons(x, xs) => Cons(x, xs.App(ys))
   }
-  
+
   static function method Concat<T>(l: List<List<T>>): List<T> {
     match l
       case Nil => Nil
