@@ -1,6 +1,8 @@
 name: Test Brew release on Mac
 
 on:
+  workflow_dispatch:
+    branches: [ master ]
   push:
     branches: [ master cok-834 ]
   pull_request:
@@ -33,7 +35,7 @@ jobs:
         dafny -version || echo OK
         which dafny
         which z3
-        # -version is not supported in old dafny, 
+        # -version is not supported in old dafny,
         # but this gives the version with an error
     - name: Check
       run: dafny /compile:0 a.dfy
