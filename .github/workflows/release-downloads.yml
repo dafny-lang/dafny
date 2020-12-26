@@ -5,7 +5,7 @@ name: Test Release Downloads
 
 on:
   workflow_dispatch
-    branches: [ master cok-834 ]
+    branches: [ master ]
   push:
     branches: [ master cok-834 ]
   pull_request:
