@@ -11,7 +11,7 @@ A Coco/R input file consists of code written in the target language
 1. The [Tokens section](#sec-tokens) which defines the lexical tokens.
 2. The [Productions section](#sec-grammar)
  which defines the grammar. The grammar productions
-are distributed in the later parts of this document in the parts where
+are distributed in the later parts of this document in the places where
 those constructs are explained.
 
 The grammar presented in this document was derived from the `Dafny.atg`
@@ -98,9 +98,8 @@ Dafny source code files are readable text encoded as UTF-8 Unicode
 All program text other than the contents of comments, character, string and verbatim string literals
 are printable and white-space ASCII characters,
 that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters,
-with the exception of a few allowed unicode mathematical symbols.
 
-However, a current limitation is that the Coco/R tool used by Dafny is not up to date,
+However, a current limitation is that the Coco/R tool used by `dafny`
 and consequently, only printable and white-space ASCII characters can be used.
 Use `\u` escapes in string and character literals to insert unicode characters.
 Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication.
@@ -111,7 +110,7 @@ The characters used in a Dafny program fall into four groups:
 
 * White space characters
 * alphanumerics: letters, digits, underscore (`_`), apostrophe (`'`), and question mark (`?`)
-* punctuation: `(){}[],`
+* punctuation: ``(){}[],.`;``
 * operator characters (the other printable characters)
 
 Each Dafny token consists of a sequence of consecutive characters from just one of these
@@ -131,12 +130,12 @@ Somewhat differently, operator tokens need not be separated.
 Only specific sequences of operator characters are recognized and these
 are somewhat context-sensitive. For example, in `seq<set<int>>`, the grammar
 knows that `>>` is two individual `>` tokens terminating the nested
-type parameter lists; `>>` would never be valid here. Similarly, the
+type parameter lists; the right shift operator `>>` would never be valid here. Similarly, the
 sequence `==>` is always one token; even if it were invalid in its context,
 separating it into `==` and `>` would always still be invalid.
 
 In summary, except for required white space between alphanumeric tokens,
-removing white space can never result in changing the meaning of a Dafny program.
+adding white space between tokens or removing white space can never result in changing the meaning of a Dafny program.
 For the rest of this document, we consider Dafny programs as sequences of tokens.
 
 ## Character Classes {#sec-character-classes}
@@ -180,7 +179,7 @@ that are allowed to appear in a Dafny identifier. These are
   programmers like to start names of type parameters with a `'`,
 * `_` because computer scientists expect to be able to have underscores in identifiers, and
 * `?` because it is useful to have `?` at the end of names of predicates,
-  e.g. "Cons?".
+  e.g., "Cons?".
 
 ````grammar
 cr        = '\r'
@@ -239,14 +238,15 @@ verbatimStringChar = ANY - '"'
 Characters that can appear in a verbatim string.
 See the [discussion on unicode support](#sec-unicode).
 
-### Comments
+## Comments
 Comments are in two forms.
 
-* They may go from "/\*" to "\*/" and be nested.
-* They may go from "//" to the end of the line.
+* They may go from `/*` to `*/` .
+* They may go from `//` to the end of the line.
 
-Note that the nesting of multi-line comments is behavior that is different
-from most programming languages. In dafny,
+Comments may be nested,
+but note that the nesting of multi-line comments is behavior that is different
+from most programming languages. In Dafny,
 ```dafny
 method m() {
   /* comment
@@ -294,26 +294,31 @@ as identifiers of user-defined entities:
 
 ```
 reservedword =
-    "abstract" | "array" | "as" | "assert" | "assume" | "bool" |
-    "break" | "calc" | "case" | "char" | "class" | "codatatype" |
-    "colemma" | "constructor" | "copredicate" | "datatype" |
-    "decreases" | "default" | "else" | "ensures" | "exists" |
-    "extends" | "false" | "forall" | "fresh" | "function" |
-    "ghost" | "if" | "imap" | "import" | "in" | "include" |
-    "inductive" | "int" | "invariant" | "is" | "iset" |
-    "iterator" | "label" | "lemma" | "map" | "match" | "method" |
-    "modifies" | "modify" | "module" | "multiset" | "nat" |
-    "new" | "newtype" | "null" | "object" | "old" | "opened" |
-    "predicate" | "print" | "provides" "reads" |
-    "real" | "refines" | "requires" | "return" | "returns" |
-    "reveals" | "seq" | "set" | "static" | "string" | "then" |
-    "this" | "trait" | "true" | "twostate" | "type" |
-    "unchanged" | "var" | "where" | "while" | "yield" | "yields" |
+    "abstract" | "allocated" | "as" | "assert" | "assume" |
+    "bool" | "break" | "by" |
+    "calc" | "case" | "char" | "class" | "codatatype" |
+    "colemma" | "const" | "constructor" | "copredicate" |
+    "datatype" | "decreases" | "default" |
+    "else" | "ensures" | "exists" | "export" | "extends" |
+    "false" | "forall" | "fresh" | "function" | "ghost" |
+    "if" | "imap" | "import" | "in" | "include" | "inductive" |
+    "int" | "invariant" | "is" | "iset" | "iterator" |
+    "label" | "lemma" | "map" | "match" | "method" |
+    "modifies" | "modify" | "module" | "multiset" |
+    "nat" | "new" | "newtype" | "null" |
+    "object" | "object?" | "old" | "opened" | "ORDINAL"
+    "predicate" | "print" | "provides" |
+    "reads" | "real" | "refines" | "requires" | "return" |
+    "returns" | "reveal" | "reveals" |
+    "seq" | "set" | "static" | "string" |
+    "then" | "this" | "trait" | "true" | "twostate" | "type" |
+    "unchanged" | "var" | "where" | "while" | "witness" |
+    "yield" | "yields" |
     arrayToken | bvToken
 
 arrayToken = "array" [ posdigit2 | posDigit digit { digit }]["?"]
 
-bvToken = "bv" [ 0 | posDigit { digit } ]
+bvToken = "bv" ( 0 | posDigit { digit } )
 ```
 
 An ``arrayToken`` is a reserved word that denotes an array type of
@@ -326,13 +331,12 @@ ordinary identifier.
 ### Identifiers
 
 ````grammar
-ident = nondigitIdChar { idchar }
-        - arrayToken - charToken - bvToken - reservedword
+ident = nondigitIdChar { idchar } - charToken - reservedword
 ````
 In general Dafny identifiers are sequences of ``idchar`` characters where
 the first character is a ``nondigitIdChar``. However tokens that fit this pattern
-are not identifiers if they look like an array type token, a character literal,
-or a reserved word.
+are not identifiers if they look like a character literal,
+or a reserved word (including array or bit-vvector type tokens).
 Also, `ident` tokens that begin with an `_` are not permitted as user identifiers.
 
 ### Digits
@@ -375,7 +379,7 @@ charToken = "'" ( charChar | escapedChar ) "'"
 ````
 
 A character constant is enclosed by `'` and includes either a character
-from the ``charChar`` set, or an escaped character. Note that although Unicode
+from the ``charChar`` set or an escaped character. Note that although Unicode
 letters are not allowed in Dafny identifiers, Dafny does support [Unicode
 in its character, string, and verbatim strings constants and in its comments](#sec-unicode). A character
 constant has type `char`.
@@ -420,9 +424,9 @@ the token following the "." may be an identifier,
   datatypes. For example, the built-in tuple datatypes have destructors
   named 0, 1, 2, etc. Note that as a field or destructor name a digit sequence
   is treated as a string, not a number: internal
-  underscores matter, so 10 is different from 1_0 and from 010.
-* `m.requires` is used to denote the precondition for method m.
-* `m.reads` is used to denote the things that method m may read.
+  underscores matter, so `10` is different from `1_0` and from `010`.
+* `m.requires` is used to denote the precondition for method `m`.
+* `m.reads` is used to denote the things that method `m` may read.
 
 ````grammar
 NoUSIdent = ident - "_" { idchar }
@@ -460,7 +464,6 @@ TypeVariableName = NoUSIdent
 MethodName = NoUSIdent
 FunctionName = NoUSIdent
 PredicateName = NoUSIdent
-CopredicateName = NoUSIdent
 LabelName = NoUSIdent
 AttributeName = NoUSIdent
 FieldIdent = NoUSIdent
@@ -469,6 +472,9 @@ A ``FieldIdent`` is one of the ways to identify a field. The other is
 using digits.
 
 ### Qualified Names
+```grammar
+QualifiedModuleName = ModuleName { "." ModuleName }
+```
 A qualified name starts with the name of the top-level entity and then is followed by
 zero or more ``DotSuffix``s which denote a component. Examples:
 

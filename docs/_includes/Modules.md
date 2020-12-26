@@ -15,10 +15,10 @@ interface.
 ## Declaring New Modules
 ````grammar
 ModuleDefinition_ = "module" { Attribute } ModuleName
-        [ [  "exclusively" ] "refines" ModuleQualifiedId ]
+        [ [ "exclusively" ] "refines" QualifiedModuleName ]
         "{" { TopDecl } "}"
 
-ModuleQualifiedId = Ident { "." Ident }
+QualifiedModuleName = ModuleName { "." ModuleName }
 ````
 A `ModuleQualifiedId` is a qualified name that is expected to refer to a module;
 a _qualified name_ is a sequence of `.`-separated identifiers, which designates
@@ -122,7 +122,7 @@ The second module is completely separate; for example, it can be in
 a different file. 
 This feature provides flexibility in writing and maintenance;
 for example, it can reduce the size of module `A` by extracting module `A.B`
-into a separate set of text.
+into a separate body of text.
 
 However, it can also lead to confusion and program authors need to take care.
 It may not be apparent to a reader of module `A` that module `A.B` exists;

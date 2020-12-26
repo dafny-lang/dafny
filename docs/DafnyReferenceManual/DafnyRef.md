@@ -21,24 +21,37 @@ user understand how to do proofs with Dafny.
 
 {% include Introduction.md %}
 
+<!--PDF NEWPAGE-->
 {% include Grammar.md %}
 
+<!--PDF NEWPAGE-->
 {% include Programs.md %}
 
+<!--PDF NEWPAGE-->
 {% include Modules.md %}
 
+<!--PDF NEWPAGE-->
 {% include Specifications.md %}
 
+<!--PDF NEWPAGE-->
 {% include Types.md %}
 
+<!--PDF NEWPAGE-->
 {% include Statements.md %}
 
+<!--PDF NEWPAGE-->
 {% include Expressions.md %}
 
+<!--PDF NEWPAGE-->
+{% include Refinement.md %}
+
+<!--PDF NEWPAGE-->
 {% include Attributes.md %}
 
+<!--PDF NEWPAGE-->
 {% include Topics.md %}
 
+<!--PDF NEWPAGE-->
 {% include UserGuide.md %}
 
 # TODO
