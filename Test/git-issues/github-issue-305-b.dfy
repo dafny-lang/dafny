@@ -1,6 +1,7 @@
-// RUN: %baredafny /nologo /countVerificationErrors:0 /compile:0 /spillTargetCode:2 "%s" > "%t"
-// RUN: sed -e "s:%S:...:" -e 'sx\\x/x' < "%t" > "%t".2
-// RUN: %diff "%s".expect "%t".2
+// UNSUPPORTED: windows
+// RUN: %baredafny /nologo /countVerificationErrors:0 /compile:0 /spillTargetCode:2 "%s" > "%t.2"
+// RUN: sed -e "s:%S:...:" -e 'sx\\x/x' < "%t.2" > "%t"
+// RUN: %diff "%s".expect "%t"
 
 method hasNoBody()
 
