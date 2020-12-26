@@ -517,8 +517,8 @@ A module that includes an abstract import must be declared `abstract`.
 
 Dafny isn't particular about the textual order in which modules are
 declared, but
-they must follow some rules to be well formed. As a rule of thumb,
-there should be a way to order the modules in a program such that each
+they must follow some rules to be well formed. In particular,
+there must be a way to order the modules in a program such that each
 only refers to things defined **before** it in the ordering. That
 doesn't mean the modules have to be given textually in that order in
 the source text. Dafny will
@@ -530,7 +530,7 @@ import A = B
 import B = A // error: circular
 ```
 
-You can have import statements at the toplevel, and you can import
+You can have import statements at the toplevel and you can import
 modules defined at the same level:
 
 ```dafny
@@ -549,7 +549,7 @@ dependency.
 Note that when rearranging modules and imports, they have to be kept
 in the same containing module, which disallows some pathological
 module structures. Also, the imports and submodules are always
-considered to be first, even at the toplevel. This means that the
+considered to be before their containing module, even at the toplevel. This means that the
 following is not well formed:
 
 ```dafny
@@ -565,8 +565,8 @@ because the module `M` must come before any other kind of members, such
 as methods. To define global functions like this, you can put them in
 a module (called `Globals`, say) and open it into any module that needs
 its functionality. Finally, if you import via a path, such as `import A
-= B.C`, then this creates a dependency of `A` on `B`, as we need to know
-what `B` is (e.g., is it abstract or concrete, or a refinement?).
+= B.C`, then this creates a dependency of `A` on `B`, and `B` itself
+depends on its own nested module `B.C`.
 
 ## Name Resolution
 
@@ -649,12 +649,12 @@ Ordinarily a module must be _imported_ in order for its constitutent
 declarations to be visible inside a given module `M`. However, for the
 resolution of qualified names this is not the case.
 
-Ths example shows that the resolution of the refinement parent does not
+This example shows that the resolution of the refinement parent does not
 use any local names:
 ```dafny
 {% include Example-Refines1.dfy %}
 ```
-The `A` in `refines A` refers to the submodule `A`, not the global `A`.
+In the example, the `A` in `refines A` refers to the global `A`, not the submodule `A`.
 
 
 ### Expression Context Name Resolution
