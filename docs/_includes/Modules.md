@@ -347,7 +347,7 @@ locally declared names and can be listed in export set declarations.
 However, names brought into a module by `import opened` (either into a module
 or a refinement parent of a module) may
 not be further exported. For example,
-```
+```dafny
 module A {
   const a := 10;
   const z := 10;
@@ -442,7 +442,7 @@ one or more export set names from the same module containing the declaration
 The effect is to include in the declaration the union of all the names in
 the export sets in the extends list, along with any other names explicitly
 included in the declaration. So for example in
-```
+```dafny
 module M {
   const a := 10;
   const b := 10;
