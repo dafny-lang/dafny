@@ -20,7 +20,7 @@ ModuleDefinition_ = "module" { Attribute } ModuleName
 
 QualifiedModuleName = ModuleName { "." ModuleName }
 ````
-A `ModuleQualifiedId` is a qualified name that is expected to refer to a module;
+A `ModuleQualifiedNamed` is a qualified name that is expected to refer to a module;
 a _qualified name_ is a sequence of `.`-separated identifiers, which designates
 a program entity by representing increasingly-nested scopes.
 
@@ -133,11 +133,11 @@ present or absent.
 ## Importing Modules
 ````grammar
 ModuleImport_ = "import" ["opened" ]
-    [ ModuleQualifiedId
+    [ ModuleQualifiedName
           [ "`" ( ExportId | "{" ExportId { "," ExportId } "}" ) ]
-    | ModuleName "=" ModuleQualifiedId
+    | ModuleName "=" ModuleQualifiedName
           [ "`" ( ExportId | "{" ExportId { "," ExportId } "}" ) ]
-    | ModuleName ":" ModuleQualifiedId
+    | ModuleName ":" ModuleQualifiedName
     ]
 ````
 
@@ -176,7 +176,7 @@ it to a different name. The name `Helpers` is not available inside `m()`,
 as only names that have been bound inside `Mod` are available. In order
 to use the members from another module, that other module either has to be declared
 there with `module` or imported with `import`. (As described below, the
-resolution of the ModuleQualifiedId that follows the `=` in the `import`
+resolution of the `ModuleQualifiedName` that follows the `=` in the `import`
 statement or the `refines` in a module declaration uses slightly 
 different rules.)
 
@@ -187,9 +187,9 @@ even provides the shorthand `import Helpers` for this behavior. You
 can't bind two modules with the same name at the same time, so
 sometimes you have to use the = version to ensure the names do not
 clash. When importing nested modules, `import B.C` means `import C = B.C`;
-the new name is always the last name segment of the module designation.
+the implicit name is always the last name segment of the module designation.
 
-The ``ModuleQualifiedId`` in the ``ModuleImport_`` starts with a
+The ``ModuleQualifiedName`` in the ``ModuleImport_`` starts with a
 sibling module of the importing module, or with a submodule of the
 importing module. There is no way to refer to the parent module, only
 sibling modules (and their submodules).
@@ -224,8 +224,8 @@ module Mod {
 }
 ```
 
-When opening modules, the newly bound members will have low priority,
-so they will be hidden by local definitions. This means if you define
+When opening modules, the newly bound members have lower priority
+than local definitions. This means if you define
 a local function called `addOne`, the function from `Helpers` will no
 longer be available under that name. When modules are opened, the
 original name binding is still present however, so you can always use
@@ -249,7 +249,9 @@ If you open two modules that both declare members with the same name,
 then neither member can be referred to without a module prefix, as it
 would be ambiguous which one was meant. Just opening the two modules
 is not an error, however, as long as you don't attempt to use members
-with common names. The `opened` keyword can be used with any kind of
+with common names. However, if the ambiguous references actually 
+refer to the same declaration, then they are permitted. 
+The `opened` keyword may be used with any kind of
 `import` declaration, including the module abstraction form.
 
 An `import opened` may occur at the top-level as well. For example,
@@ -304,7 +306,7 @@ If a module `M` has export sets
 `E1` and `E2`, we can write ``import A = M`E1`` to create a module alias
 `A` that contains only the 
 names in `E1`. Or we can write ``import A = M`{E1,E2}`` to import the union
-of names in `E1` and `E2` as module alioas A.
+of names in `E1` and `E2` as module alias `A`.
 As before, ``import M`E1`` is an
 abbreviation of ``import M = M`E1``. 
 
@@ -313,35 +315,35 @@ statement, the default export set of the module is used.
 
  There are various
 defaults that apply differently in different cases.
-The following description is with respect to an example module M:
+The following description is with respect to an example module `M`:
 
-_M has no export sets declared_. Then another module may simply `import Z = M`
+_`M` has no export sets declared_. Then another module may simply `import Z = M`
 to obtain access to all of M's declarations.
 
-_M has one or more named export sets (e.g., E, F). Then another module can
-write ``import Z = M`E`` or ``import Z = M`{E,F}`` a to obtain access to the
-names that are listed in export set E or to the union of those in export sets
-E and F, respectively. If no export set has the same name as the module,
+_`M` has one or more named export sets (e.g., `E`, `F`)_. Then another module can
+write ``import Z = M`E`` or ``import Z = M`{E,F}`` to obtain access to the
+names that are listed in export set `E` or to the union of those in export sets
+`E` and `F`, respectively. If no export set has the same name as the module,
 then an export set designator must be used: in that case you cannot write
 simply ``import Z = M``.
 
-_M has an unnamed export set, along with other export sets (e.g, E)_. The unnamed
+_`M` has an unnamed export set, along with other export sets (e.g., `E`)_. The unnamed
 export set is the default export set and implicitly has the same name as 
 the module. Because there is a default export set, another module may write
 either ``import Z = M`` or ``import Z = M`M`` to import the names in that
 default export set. You can also still use the other export sets with the
 explicit designator: ``import Z = M`E``
 
-_M declares an export set with the same name as the module_. This is equivalent
+_`M` declares an export set with the same name as the module_. This is equivalent
 to declaring an export set without a name. ``import M`` and ``import M`M``
-perform the same function in either case; thre export set with or without
+perform the same function in either case; the export set with or without
 the name of the module is the default export set for the module.
 
-Note that names of module aliases (created by import statements) are
+Note that names of module aliases (declared by import statements) are
 just like other names in a module; they can be included or omitted from
 export sets. 
 Names brought into a module by [_refinement_](#TBD) are treated the same as 
-locally declared names and can be lsited in export set declarations.
+locally declared names and can be listed in export set declarations.
 However, names brought into a module by `import opened` (either into a module
 or a refinement parent of a module) may
 not be further exported. For example,
@@ -366,9 +368,9 @@ module C {
 However, in the above example, 
 
 * if `A` has one export set `export Y reveals a`
-then both the import in module `B` is invalid because `A` has no default
+then the import in module `B` is invalid because `A` has no default
 export set;
-* if `A` has one export set `export Y reveals a` `B` has ``import Z = A`Y``
+* if `A` has one export set `export Y reveals a` and `B` has ``import Z = A`Y``
 then B's import is OK. So is the use of `Z.a` in the assert because `B`
 declares `Z` and `C` brings in `Z` through the `import opened` and
 `Z` contains `a` by virtue of its declaration. (The alias `Z` is not able to
@@ -393,7 +395,7 @@ For example, in the following code the constant `a` is exported as provided.
 ```dafny
 {% include Example-ExportSet1.dfy %}
 ```
-Since `a` is imported into module `B` through the default export set `A``A`,
+Since `a` is imported into module `B` through the default export set ``A`A``,
 it can be referenced in the assert statement. The constant `b` is not 
 exported, so it is not available. But the assert about `a` is not provable
 because the value of `a` is not known in module `B`.
@@ -404,7 +406,7 @@ its value is known and the assertion can be proved.
 {% include Example-ExportSet2.dfy %}
 ```
 
-The following list shows the difference between _provides_ and _reveals_ for each kind of declaration.
+The following list presents the difference between _provides_ and _reveals_ for each kind of declaration.
 
 * const: type always known, but value not known when only provided
 * function, predicate: signature always known, but body not known when not revealed
@@ -420,10 +422,11 @@ The following list shows the difference between _provides_ and _reveals_ for eac
 reveals lists in export set declarations.
 
 A few other notes:
+
 * Using a `*` instead of a list of names means that all local names
 (except export set names) in the
 module are exported.
-* If no export sets are declared, then the implicitly declared 
+* If no export sets are declared, then the implicit 
 export set is `export reveals *`
 * A module acquires all the export sets from its refinement parent.
 * Names acquired by a module from its refinement parent are also subject to
@@ -431,8 +434,6 @@ export lists. (These are local names just like those declared directly.)
 * Names acquired by a module via an `import opened` declaration are not
 re-exportable, though the new module alias name (such as the `C` in `import C = A.B`)
 is a local name.
-
-TODO: DOes a module get a default export set if it inherits ESs from its parent?
 
 ### Extends list
 An export set declaration may include an _extends_ list, which is a list of
@@ -451,7 +452,7 @@ module M {
   export C reveals c extends A, B
 }
 ```
-export set C will contain the names `a`, `b`, abnd `c`.
+export set C will contain the names `a`, `b`, and `c`.
  
 ## Module Abstraction
 
@@ -510,7 +511,7 @@ compatible signatures, all the classes and datatypes with their
 constructors and fields in the abstract one must be present in the
 concrete one, the specifications must be compatible, etc.
 
-A module that includes an abstract import must be declared _abstract_.
+A module that includes an abstract import must be declared `abstract`.
 
 ## Module Ordering and Dependencies
 
