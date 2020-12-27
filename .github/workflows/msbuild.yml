@@ -62,4 +62,4 @@ jobs:
     - name: Run lit tests
       run: |
         sudo chmod +x $PWD/unzippedRelease/dafny/Dafny
-        lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} --param executable=$PWD/unzippedRelease/dafny/Dafny dafny/Test
+        lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} --param executable=$PWD/unzippedRelease/dafny/Dafny --param serverExecutable=$PWD/unzippedRelease/dafny/DafnyServer dafny/Test
