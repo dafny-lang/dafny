@@ -20,8 +20,8 @@ jobs:
         ##os: [ubuntu-latest, windows-latest, ubuntu-16.04]
         ##os: [ubuntu-latest, macos-latest, windows-latest, ubuntu-16.04]
         ## Size of the following array must match --num-shards in lit command
-        ##shard: [1, 2, 3, 4, 5]
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4, 5]
+        ##shard: [1, 2, 3]
       fail-fast: false
     steps:
     - name: Manually sync certs
@@ -77,4 +77,4 @@ jobs:
     - uses: actions/setup-node@v1
     - run: npm install bignumber.js
     - name: Run lit tests
-      run: lit --time-tests -v --num-shards=3 --run-shard=${{ matrix.shard }} dafny/Test
+      run: lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} dafny/Test
