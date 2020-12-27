@@ -13,7 +13,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ macos-latest, ubuntu-16.04, ubuntu-latest ]
+        os: [ macos-latest ]
+        ##os: [ macos-latest, ubuntu-16.04, ubuntu-latest ]
 
 
     #- name: Install brew
@@ -70,6 +71,8 @@ jobs:
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
         sudo gem install rouge
+      if: matrix.os == 'ubuntu-latest'
+      run: |
         make -C dafny/docs/DafnyReferenceManual
     - if: matrix.os != 'ubuntu-latest' && runner.os == 'Linux'
       run: |
@@ -80,6 +83,8 @@ jobs:
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
         sudo gem install rouge
+    - if: matrix.os != 'ubuntu-latest' && runner.os == 'Linux'
+      run: |
         make -C dafny/docs/DafnyReferenceManual
     - name: Install latex pandoc - MacOS
       if: runner.os == 'MacOS'
