@@ -4,7 +4,7 @@ name: Test Release Downloads
 #### At some point perhaps we can eliminate the need to use Z3 4.8.4
 
 on:
-  workflow_dispatch
+  workflow_dispatch:
     branches: [ master ]
   push:
     branches: [ master cok-834 ]
