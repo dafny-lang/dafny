@@ -64,7 +64,7 @@ Execution trace:
     (0,0): anon21_Then
     (0,0): anon22_Then
     (0,0): anon23_Then
-    Maps.dfy(260,13): anon24_Else
+    (0,0): anon24_Then
     (0,0): anon8
     (0,0): anon29_Then
     (0,0): anon30_Then

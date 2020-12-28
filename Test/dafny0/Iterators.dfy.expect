@@ -153,7 +153,7 @@ Iterators.dfy(155,23): Error BP5002: A precondition for this call might not hold
 Iterators.dfy(125,9): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon4_Else
+    (0,0): anon4_Then
     (0,0): anon3
 Iterators.dfy(234,20): Error BP5001: assertion violation
 Execution trace:

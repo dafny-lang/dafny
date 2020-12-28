@@ -18,7 +18,7 @@ Execution trace:
 FunctionSpecifications.dfy(53,10): Error BP5001: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
-    (0,0): anon11_Else
+    (0,0): anon11_Then
     (0,0): anon5
 FunctionSpecifications.dfy(59,9): Error BP5003: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(60,21): Related location: This is the postcondition that might not hold.

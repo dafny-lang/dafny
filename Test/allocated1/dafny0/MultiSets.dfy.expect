@@ -6,9 +6,9 @@ Execution trace:
 MultiSets.dfy(268,23): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon11_Else
+    (0,0): anon11_Then
     (0,0): anon3
-    (0,0): anon12_Else
+    (0,0): anon12_Then
     (0,0): anon14_Else
 MultiSets.dfy(291,15): Error BP5001: assertion violation
 Execution trace:

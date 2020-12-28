@@ -15,14 +15,14 @@ Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
     (0,0): anon2
-    Twostate-Functions.dfy(64,24): anon8_Else
+    (0,0): anon8_Then
     (0,0): anon4
     (0,0): anon9_Then
 Twostate-Functions.dfy(68,15): Error BP5001: assertion violation
 Twostate-Functions.dfy(54,14): Related location
 Execution trace:
     (0,0): anon0
-    Twostate-Functions.dfy(63,21): anon7_Else
+    (0,0): anon7_Then
     (0,0): anon2
     (0,0): anon8_Then
     (0,0): anon4
@@ -38,9 +38,9 @@ Execution trace:
 Twostate-Functions.dfy(129,25): Error BP5001: receiver must be allocated in the state in which its fields are accessed
 Execution trace:
     (0,0): anon0
-    (0,0): anon13_Else
+    (0,0): anon13_Then
     (0,0): anon4
-    (0,0): anon15_Else
+    (0,0): anon15_Then
     (0,0): anon8
 Twostate-Functions.dfy(147,12): Error BP5001: receiver must be allocated in the state in which its fields are accessed
 Execution trace:

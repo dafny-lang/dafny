@@ -7,7 +7,7 @@ Execution trace:
 sequences-literals.dfy(61,9): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-    sequences-literals.dfy(61,29): anon3_Else
+    (0,0): anon3_Then
     (0,0): anon2
 sequences-literals.dfy(76,9): Error BP5001: assertion violation
 Execution trace:

@@ -139,15 +139,13 @@ Execution trace:
     (0,0): anon0
     (0,0): anon18_Else
     (0,0): anon23_Then
-    SmallTests.dfy(338,7): anon24_Else
+    (0,0): anon24_Then
     (0,0): anon15
     (0,0): anon25_Else
 SmallTests.dfy(379,11): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon7_Else
-    SmallTests.dfy(377,31): anon8_Else
-    (0,0): anon5
+    (0,0): anon7_Then
     (0,0): anon6
 SmallTests.dfy(386,9): Error BP5001: assertion violation
 Execution trace:
@@ -169,10 +167,10 @@ Execution trace:
 SmallTests.dfy(618,19): Error BP5001: left-hand sides n.next and n.next.next may refer to the same location
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(613,14): anon23_Else
-    SmallTests.dfy(613,18): anon24_Else
+    (0,0): anon23_Then
+    (0,0): anon24_Then
     (0,0): anon4
-    (0,0): anon25_Else
+    (0,0): anon25_Then
     (0,0): anon7
     (0,0): anon26_Then
     (0,0): anon27_Then
@@ -206,8 +204,8 @@ Execution trace:
 SmallTests.dfy(687,22): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-    SmallTests.dfy(683,37): anon8_Else
-    SmallTests.dfy(683,7): anon9_Else
+    (0,0): anon8_Then
+    (0,0): anon9_Then
     (0,0): anon4
     (0,0): anon10_Then
     (0,0): anon7

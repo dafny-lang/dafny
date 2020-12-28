@@ -13,9 +13,9 @@ Execution trace:
 LabelsOldAt.dfy(78,13): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon16_Else
-    (0,0): anon18_Then
-    (0,0): anon6
+    (0,0): anon16_Then
+    (0,0): anon17_Then
+    (0,0): anon3
     (0,0): anon7
     (0,0): anon22_Then
 

@@ -61,10 +61,10 @@ Execution trace:
 Maps.dfy(264,54): Error BP5001: assertion violation
 Execution trace:
     (0,0): anon0
-    Maps.dfy(260,33): anon21_Else
-    Maps.dfy(260,13): anon22_Else
-    Maps.dfy(260,13): anon23_Else
-    Maps.dfy(260,13): anon24_Else
+    (0,0): anon21_Then
+    (0,0): anon22_Then
+    (0,0): anon23_Then
+    (0,0): anon24_Then
     (0,0): anon8
     (0,0): anon29_Then
     (0,0): anon30_Then
