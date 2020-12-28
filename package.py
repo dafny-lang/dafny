@@ -148,9 +148,11 @@ class Release:
                         contents = Z3_archive.read(fileinfo)
                         fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, Z3_PACKAGE_PREFIX, fname))
                         archive.writestr(fileinfo, contents)
-            if os.path.exists(self.buildDirectory + "/Dafny"):
-                shutil.move(self.buildDirectory + "/Dafny", self.buildDirectory + "/dafny")
-                os.chmod(self.buildDirectory + "/dafny", stat.S_IEXEC| os.lstat(self.buildDirectory + "/dafny").st_mode)
+            uppercaseDafny = path.join(self.buildDirectory, "Dafny")
+            if os.path.exists(uppercaseDafny):
+                shutil.move(uppercaseDafny, lowercaseDafny)
+                lowercaseDafny = path.join(self.buildDirectory, "dafny")
+                os.chmod(lowercaseDafny, stat.S_IEXEC| os.lstat(lowercaseDafny).st_mode)
             paths = pathsInDirectory(self.buildDirectory) + list(map(lambda etc: path.join(BINARIES_DIRECTORY, etc), ETCs)) + OTHERS
             for fpath in paths:
                 if os.path.isdir(fpath):
