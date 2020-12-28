@@ -17,12 +17,15 @@ import ntpath
 # Configuration
 
 ## Where do we fetch the list of releases from?
-## Get the latest release like this:
-## RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/latest"
-## Get a specific release like this:
-RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/tags/z3-4.8.4"
-## How do we extract info from the name of a release file?
-RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
+## Get the latest Z3 release like this:
+## Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/latest"
+## Get a specific Z3 release like this:
+Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/tags/z3-4.8.4"
+## How do we extract info from the name of a Z3 release file?
+Z3_RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
+
+## Allowed Dafny release names
+DAFNY_RELEASE_REGEX = re.compile("\\d\\.\\d\\.\\d(-[\w\d_-]+)?$")
 
 ## Where are the sources?
 SOURCE_DIRECTORY = "Source"
@@ -53,7 +56,8 @@ BINARIES_DIRECTORY = path.join(ROOT_DIRECTORY, BINARIES_DIRECTORY)
 DESTINATION_DIRECTORY = path.join(ROOT_DIRECTORY, DESTINATION_DIRECTORY)
 CACHE_DIRECTORY = path.join(DESTINATION_DIRECTORY, "cache")
 
-OTHERS = ( ["docs/DafnyRef/out/DafnyRef.pdf"] )
+OTHERS = ( [ ] ) ## Other files to include in zip
+OTHER_UPLOADS = ( ["docs/DafnyRef/out/DafnyRef.pdf"] )
 
 z3ToDotNetOSMapping = {
     "ubuntu": "linux",
@@ -70,9 +74,9 @@ def flush(*args, **kwargs):
 class Release:
     @staticmethod
     def parse_zip_name(name):
-        m = RELEASE_REGEXP.match(name)
+        m = Z3_RELEASE_REGEXP.match(name)
         if not m:
-            raise Exception("{} does not match RELEASE_REGEXP".format(name))
+            raise Exception("{} does not match Z3_RELEASE_REGEXP".format(name))
         return m.group('platform'), m.group('os'), m.group("directory")
 
     def __init__(self, js, version):
@@ -114,16 +118,15 @@ class Release:
         os.chdir(ROOT_DIRECTORY)
         flush("  - Building")
 
-        run(["dotnet", "build", "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
-        run(["make", "clean"])
+        run(["dotnet", "build", "Source/Dafny.sln", "/v:q", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
+        run(["make", "runtime"])
         if path.exists(self.buildDirectory):
             shutil.rmtree(self.buildDirectory)
-        run(["dotnet", "publish", "Source/Dafny.sln", 
-            "-f", "netcoreapp3.1", 
-            "-r", self.target, 
+        run(["dotnet", "publish", "Source/Dafny.sln",
+            "/v:q",
+            "-f", "netcoreapp3.1",
+            "-r", self.target,
             "-c", "Checked"])
-        run(["make", "runtime"])
-        # run(["make", "refman-release"])
 
     def pack(self):
         try:
@@ -143,7 +146,7 @@ class Release:
                         archive.writestr(fileinfo, contents)
             paths = pathsInDirectory(self.buildDirectory) + list(map(lambda etc: path.join(BINARIES_DIRECTORY, etc), ETCs)) + OTHERS
             for fpath in paths:
-                if os.path.isdir(fpath):  
+                if os.path.isdir(fpath):
                     continue
                 fname = ntpath.basename(fpath)
                 if path.exists(fpath):
@@ -158,13 +161,15 @@ class Release:
                     archive.writestr(fileinfo, contents)
                 else:
                     missing.append(fname)
+        for fpath in OTHER_UPLOADS:
+            shutil.copy(fpath, DESTINATION_DIRECTORY)
         flush("done! (imported {} files from z3's sources)".format(z3_files_count))
         if missing:
             flush("      WARNING: Not all files were found: {} were missing".format(", ".join(missing)))
 
 def discover(version):
     flush("  - Getting information about latest release")
-    with urllib.request.urlopen(RELEASES_URL) as reader:
+    with urllib.request.urlopen(Z3_RELEASES_URL) as reader:
         js = json.loads(reader.read().decode("utf-8"))
 
         for release_js in js["assets"]:
@@ -199,10 +204,12 @@ def run(cmd):
 
 def pack(releases):
     flush("  - Packaging {} Dafny archives".format(len(releases)))
+    run(["make", "clean"])
     for release in releases:
         flush("    + {}:".format(release.dafny_name), end=' ')
         release.build()
         release.pack()
+    run(["make", "refman-release"])
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Prepare a Dafny release. Configuration is hardcoded; edit the `# Configuration' section of this script to change it.")
@@ -211,6 +218,9 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
+    if not DAFNY_RELEASE_REGEX.match(args.version):
+        flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
+        return
     os.makedirs(CACHE_DIRECTORY, exist_ok=True)
 
     # Z3
