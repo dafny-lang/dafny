@@ -52,10 +52,10 @@ jobs:
     - if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        ##Invoke-WebRequest -Outfile dafnyX.zip -Uri $(Invoke-WebRequest "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | select-string 'browser_download_url' -Raw -SimpleMatch | select-string ${{matrix.osn}} -Raw -SimpleMatch | % {$_.replace("browser_download_url","").replace("`"","")})
         Invoke-WebRequest -Outfile dafnyX.zip -Uri $Env:URL1
+        Expand-Archive dafny*.zip
         ls
-        mv dafnyX dafny
+        mv dafnyX/dafny dafny
       env:
         URL1: https://github.com/dafny-lang/dafny/releases/download/${{matrix.ver}}/${{matrix.rel}}-x64-${{matrix.osn}}.zip
 
