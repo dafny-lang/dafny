@@ -118,12 +118,14 @@ class Release:
         os.chdir(ROOT_DIRECTORY)
         flush("  - Building")
 
-        run(["dotnet", "build", "Source/Dafny.sln", "/v:q", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
-        run(["make", "runtime"])
         if path.exists(self.buildDirectory):
             shutil.rmtree(self.buildDirectory)
+        run(["dotnet", "build", "Source/Dafny.sln", "/v:q", "--nologo", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
+        run(["make", "--quiet", "clean"])
+        run(["make", "--quiet", "runtime"])
         run(["dotnet", "publish", "Source/Dafny.sln",
-            "/v:q",
+            "--nologo",
+            "-v:q",
             "-f", "netcoreapp3.1",
             "-r", self.target,
             "-c", "Checked"])
@@ -144,7 +146,7 @@ class Release:
                         contents = Z3_archive.read(fileinfo)
                         fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, Z3_PACKAGE_PREFIX, fname))
                         archive.writestr(fileinfo, contents)
-            paths = pathsInDirectory(self.buildDirectory) + list(map(lambda etc: path.join(BINARIES_DIRECTORY, etc), ETCs)) + OTHERS
+            paths = pathsInDirectory(self.buildDirectory + "/publish") + list(map(lambda etc: path.join(BINARIES_DIRECTORY, etc), ETCs)) + OTHERS
             for fpath in paths:
                 if os.path.isdir(fpath):
                     continue
@@ -204,12 +206,11 @@ def run(cmd):
 
 def pack(releases):
     flush("  - Packaging {} Dafny archives".format(len(releases)))
-    run(["make", "clean"])
     for release in releases:
         flush("    + {}:".format(release.dafny_name), end=' ')
         release.build()
         release.pack()
-    run(["make", "refman-release"])
+    run(["make", "--quiet", "refman-release"])
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Prepare a Dafny release. Configuration is hardcoded; edit the `# Configuration' section of this script to change it.")

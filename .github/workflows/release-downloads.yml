@@ -48,9 +48,7 @@ jobs:
       if: runner.os != 'Windows'
       run: |
         wget -q `curl --silent "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | grep 'browser_download_url' |  grep "${{matrix.osn}}" | sed -e 's@"browser_download_url":@@' -e 's@"@@g'`
-        wget -q $URL2
         unzip dafny*.zip && rm dafny*.zip
-        chmod +x dafny/Dafny.exe
         unzip z3*.zip && rm z3*.zip
         mv z3-* z3
       env:
