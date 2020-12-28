@@ -48,26 +48,16 @@ jobs:
       if: runner.os != 'Windows'
       run: |
         wget -q `curl --silent "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | grep 'browser_download_url' |  grep "${{matrix.osn}}" | sed -e 's@"browser_download_url":@@' -e 's@"@@g'`
-        wget -q $URL2
         unzip dafny*.zip && rm dafny*.zip
-        chmod +x dafny/Dafny.exe
-        unzip z3*.zip && rm z3*.zip
-        mv z3-* z3
-      env:
-        URL2: ${{matrix.z3}}-x64-${{matrix.osn}}.zip
     - if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        ##Invoke-WebRequest -Outfile dafnyX.zip -Uri $(Invoke-WebRequest "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | select-string 'browser_download_url' -Raw -SimpleMatch | select-string ${{matrix.osn}} -Raw -SimpleMatch | % {$_.replace("browser_download_url","").replace("`"","")})
         Invoke-WebRequest -Outfile dafnyX.zip -Uri $Env:URL1
-        Invoke-WebRequest -Outfile z3X.zip -Uri $Env:URL2
         Expand-Archive dafny*.zip
+        ls
         mv dafnyX/dafny dafny
-        Expand-Archive z3X.zip
-        mv z3X/z3-* z3
       env:
         URL1: https://github.com/dafny-lang/dafny/releases/download/${{matrix.ver}}/${{matrix.rel}}-x64-${{matrix.osn}}.zip
-        URL2: ${{matrix.z3}}-x64-${{matrix.osn}}.zip
 
     ## Create a simple smoke test program
     - name: Make test program
@@ -78,24 +68,25 @@ jobs:
     ## Check that dafny and z3 run and that a simple program verifies or fails
     - name: Versions
       run: |
-        ./z3/bin/z3 -version
-        dafny/dafny  -version
+        dafny/z3/bin/z3 -version
+        dafny/dafny -version
     - name: Check
       run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy
     - name: Check - non Windows
       if: runner.os != 'Windows'
-      run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy /z3exe:z3/bin/z3
+      run: |
+        dafny/dafny /compileVerbose:0 /compile:0 a.dfy /z3exe:dafny/z3/bin/z3
     - name: Check - Windows
       if: runner.os == 'Windows'
-      run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy /z3exe:z3/bin/z3.exe
+      run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy /z3exe:dafny/z3/bin/z3.exe
     - name: Check bad
       run: dafny/dafny /compile:0 b.dfy || echo "EXPECTED FAILURE" ; exit 0
     - name: Check bad - non Windows
       if: runner.os != 'Windows'
-      run: dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo "EXPECTED FAILURE"
+      run: dafny/dafny /compile:0 b.dfy /z3exe:dafny/z3/bin/z3 || echo "EXPECTED FAILURE"
     - name: Check bad - Windows
       if: runner.os == 'Windows'
-      run: (dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3.exe || echo "EXPECTED FAILURE") ; exit 0
+      run: (dafny/Dafny.exe /compile:0 b.dfy /z3exe:dafny/z3/bin/z3.exe || echo "EXPECTED FAILURE") ; exit 0
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |
