@@ -69,12 +69,13 @@ jobs:
     - name: Versions
       run: |
         ./z3/bin/z3 -version
-        dotnet dafny/Dafny.dll  -version
+        dafny/dafny -version
     - name: Check
       run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy
     - name: Check - non Windows
       if: runner.os != 'Windows'
-      run: dotnet dafny/Dafny.dll /compileVerbose:0 /compile:0 a.dfy /z3exe:z3/bin/z3
+      run: |
+        dafny/dafny /compileVerbose:0 /compile:0 a.dfy /z3exe:z3/bin/z3
     - name: Check - Windows
       if: runner.os == 'Windows'
       run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy /z3exe:z3/bin/z3.exe
@@ -85,7 +86,7 @@ jobs:
       run: dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo "EXPECTED FAILURE"
     - name: Check bad - Windows
       if: runner.os == 'Windows'
-      run: (dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3.exe || echo "EXPECTED FAILURE") ; exit 0
+      run: (dafny/Dafny.exe /compile:0 b.dfy /z3exe:z3/bin/z3.exe || echo "EXPECTED FAILURE") ; exit 0
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |
