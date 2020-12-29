@@ -1,5 +1,6 @@
 // RUN: %dafny /compile:0  "%s" > "%t"
 // RUN: %dafny /compile:0 /z3exe:%baredafny/../z3 "%s" >> "%t"
+// RUN: mkdir -p Output/binx
 // RUN: cp -r $(dirname %baredafny) Output/binx
 // RUN: %dafny /compile:0 /z3exe:Output/binx/z3 "%s" >> "%t"
 // RUN: rm -rf Output/binx
