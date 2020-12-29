@@ -16034,6 +16034,10 @@ namespace Microsoft.Dafny
       } else {
         ResolveExpression(e.Lhs, opts);
       }
+      if (e.Lhs.Type == null) {
+        // some error had been detected during the attempted resolution of e.Lhs
+        e.Lhs.Type = new InferredTypeProxy();
+      }
       if (r == null) {
         foreach (var arg in e.Args) {
           ResolveExpression(arg, opts);
