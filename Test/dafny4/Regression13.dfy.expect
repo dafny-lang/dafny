@@ -1,4 +1,4 @@
-Regression13.dfy(11,5): Error BP5001: cannot prove termination; try supplying a decreases clause
+Regression13.dfy(11,5): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
 

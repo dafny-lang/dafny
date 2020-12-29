@@ -2,7 +2,7 @@
 
 Verifying Impl$$_module.__default.A ...
   [1 proof obligation]  error
-transcript(3,9): Error BP5001: assertion violation
+transcript(3,9): Error: assertion violation
 Execution trace:
     (0,0): anon0
 Verification completed successfully!

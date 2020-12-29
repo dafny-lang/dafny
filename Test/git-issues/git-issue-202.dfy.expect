@@ -1,4 +1,4 @@
-git-issue-202.dfy(5,34): Error BP5001: upper bound below lower bound or above length of sequence
+git-issue-202.dfy(5,34): Error: upper bound below lower bound or above length of sequence
 Execution trace:
     (0,0): anon0
 

@@ -1,60 +1,60 @@
-NatTypes.dfy(10,4): Error BP5001: value does not satisfy the subset constraints of 'nat'
+NatTypes.dfy(10,4): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-NatTypes.dfy(44,31): Error BP5001: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
-    (0,0): anon10_Then
-NatTypes.dfy(51,15): Error BP5001: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
-    (0,0): anon12_Then
-NatTypes.dfy(54,15): Error BP5001: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
-    (0,0): anon13_Then
-NatTypes.dfy(64,26): Error BP5001: value does not satisfy the subset constraints of 'nat'
+NatTypes.dfy(44,31): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
     (0,0): anon10_Then
-NatTypes.dfy(71,15): Error BP5001: assertion violation
+NatTypes.dfy(51,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
     (0,0): anon12_Then
-NatTypes.dfy(74,15): Error BP5001: assertion violation
+NatTypes.dfy(54,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
     (0,0): anon13_Then
-NatTypes.dfy(91,15): Error BP5001: assertion violation
+NatTypes.dfy(64,26): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+NatTypes.dfy(71,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon12_Then
+NatTypes.dfy(74,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon13_Then
+NatTypes.dfy(91,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-NatTypes.dfy(105,15): Error BP5001: assertion violation
+NatTypes.dfy(105,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
     (0,0): anon6_Then
-NatTypes.dfy(141,44): Error BP5001: value does not satisfy the subset constraints of 'nat'
+NatTypes.dfy(141,44): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Else
     (0,0): anon9_Else
     (0,0): anon10_Then
-NatTypes.dfy(164,34): Error BP5001: value does not satisfy the subset constraints of 'nat'
+NatTypes.dfy(164,34): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
-NatTypes.dfy(184,16): Error BP5001: value does not satisfy the subset constraints of 'nat'
+NatTypes.dfy(184,16): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-NatTypes.dfy(35,11): Error BP5001: value does not satisfy the subset constraints of 'nat'
+NatTypes.dfy(35,11): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     NatTypes.dfy(23,5): anon10_LoopHead

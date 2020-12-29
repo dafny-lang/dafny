@@ -1,4 +1,4 @@
-NestedMatch.dfy(173,14): Error BP5001: the calculation step between the previous line and this line might not hold
+NestedMatch.dfy(173,14): Error: the calculation step between the previous line and this line might not hold
 Execution trace:
     (0,0): anon0
     (0,0): anon142_Then

@@ -1,33 +1,33 @@
-CustomErrorMesage.dfy(6,45): Error BP5001: m: x must be positive
+CustomErrorMesage.dfy(6,45): Error: m: x must be positive
 Execution trace:
     (0,0): anon0
-CustomErrorMesage.dfy(10,45): Error BP5001: f: x must be positive
+CustomErrorMesage.dfy(10,45): Error: f: x must be positive
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-CustomErrorMesage.dfy(15,2): Error BP5001: when calling foo, you must supply a positive x
+CustomErrorMesage.dfy(15,2): Error: when calling foo, you must supply a positive x
 CustomErrorMesage.dfy(19,71): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-CustomErrorMesage.dfy(18,9): Error BP5003: A postcondition might not hold on this return path.
+CustomErrorMesage.dfy(18,9): Error: A postcondition might not hold on this return path.
 CustomErrorMesage.dfy(20,85): Related location: cannot establish that return value of foo is always negative
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-CustomErrorMesage.dfy(26,14): Error BP5002: A precondition for this call might not hold.
+CustomErrorMesage.dfy(26,14): Error: A precondition for this call might not hold.
 CustomErrorMesage.dfy(30,71): Related location: when calling bar, you must supply a positive x
 Execution trace:
     (0,0): anon0
-CustomErrorMesage.dfy(32,0): Error BP5003: A postcondition might not hold on this return path.
+CustomErrorMesage.dfy(32,0): Error: A postcondition might not hold on this return path.
 CustomErrorMesage.dfy(31,85): Related location: cannot establish that return value of bar is always negative
 Execution trace:
     (0,0): anon0
-CustomErrorMesage.dfy(42,63): Error BP5004: This loop invariant might not hold on entry.
+CustomErrorMesage.dfy(42,63): Error: This loop invariant might not hold on entry.
 CustomErrorMesage.dfy(42,63): Related message: position variable out of range
 Execution trace:
     (0,0): anon0
-CustomErrorMesage.dfy(42,63): Error BP5005: This loop invariant might not be maintained by the loop.
+CustomErrorMesage.dfy(42,63): Error: This loop invariant might not be maintained by the loop.
 CustomErrorMesage.dfy(42,63): Related message: position variable out of range
 Execution trace:
     (0,0): anon0
@@ -35,7 +35,7 @@ Execution trace:
     (0,0): anon12_LoopBody
     CustomErrorMesage.dfy(41,3): anon13_Else
     CustomErrorMesage.dfy(41,3): anon17_Else
-CustomErrorMesage.dfy(43,63): Error BP5005: This loop invariant might not be maintained by the loop.
+CustomErrorMesage.dfy(43,63): Error: This loop invariant might not be maintained by the loop.
 CustomErrorMesage.dfy(43,63): Related message: output array doesn't match input arry
 Execution trace:
     (0,0): anon0

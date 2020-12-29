@@ -1,7 +1,7 @@
-VerificationErrors.dfy(8,38): Error BP5001: assertion violation
+VerificationErrors.dfy(8,38): Error: assertion violation
 Execution trace:
     (0,0): anon0
-VerificationErrors.dfy(15,18): Error BP5001: assertion violation
+VerificationErrors.dfy(15,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
 

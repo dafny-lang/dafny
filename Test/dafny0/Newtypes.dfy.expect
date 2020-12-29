@@ -1,29 +1,29 @@
-Newtypes.dfy(74,10): Error BP5001: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
+Newtypes.dfy(74,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-Newtypes.dfy(76,44): Error BP5001: possible division by zero
+Newtypes.dfy(76,44): Error: possible division by zero
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
-Newtypes.dfy(87,13): Error BP5001: result of operation might violate newtype constraint for 'char8'
+Newtypes.dfy(87,13): Error: result of operation might violate newtype constraint for 'char8'
 Execution trace:
     (0,0): anon0
-Newtypes.dfy(95,11): Error BP5001: result of operation might violate newtype constraint for 'char8'
+Newtypes.dfy(95,11): Error: result of operation might violate newtype constraint for 'char8'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Newtypes.dfy(97,13): Error BP5001: result of operation might violate newtype constraint for 'char8'
+Newtypes.dfy(97,13): Error: result of operation might violate newtype constraint for 'char8'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Newtypes.dfy(104,15): Error BP5001: result of operation might violate newtype constraint for 'char8'
+Newtypes.dfy(104,15): Error: result of operation might violate newtype constraint for 'char8'
 Execution trace:
     (0,0): anon0
-Newtypes.dfy(177,13): Error BP5001: result of operation might violate newtype constraint for 'Even'
+Newtypes.dfy(177,13): Error: result of operation might violate newtype constraint for 'Even'
 Execution trace:
     (0,0): anon0
-Newtypes.dfy(193,67): Error BP5001: index 0 out of range
+Newtypes.dfy(193,67): Error: index 0 out of range
 Execution trace:
     (0,0): anon0
     Newtypes.dfy(182,23): anon29_Else
@@ -32,7 +32,7 @@ Execution trace:
     (0,0): anon42_Then
     (0,0): anon43_Then
     (0,0): anon22
-Newtypes.dfy(194,70): Error BP5001: index 1 out of range
+Newtypes.dfy(194,70): Error: index 1 out of range
 Execution trace:
     (0,0): anon0
     Newtypes.dfy(182,23): anon29_Else
@@ -41,21 +41,21 @@ Execution trace:
     (0,0): anon44_Then
     (0,0): anon45_Then
     (0,0): anon25
-Newtypes.dfy(223,21): Error BP5001: new number of occurrences might be negative
+Newtypes.dfy(223,21): Error: new number of occurrences might be negative
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then
-Newtypes.dfy(226,39): Error BP5001: result of operation might violate newtype constraint for 'Even'
+Newtypes.dfy(226,39): Error: result of operation might violate newtype constraint for 'Even'
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
-Newtypes.dfy(238,18): Error BP5001: result of operation might violate newtype constraint for 'N'
+Newtypes.dfy(238,18): Error: result of operation might violate newtype constraint for 'N'
 Execution trace:
     (0,0): anon0
     Newtypes.dfy(237,5): anon9_LoopHead
     (0,0): anon9_LoopBody
     (0,0): anon10_Then
-Newtypes.dfy(278,18): Error BP5001: result of operation might violate newtype constraint for 'R'
+Newtypes.dfy(278,18): Error: result of operation might violate newtype constraint for 'R'
 Execution trace:
     (0,0): anon0
     Newtypes.dfy(277,5): anon9_LoopHead

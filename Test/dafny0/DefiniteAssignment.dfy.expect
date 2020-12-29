@@ -1,43 +1,43 @@
-DefiniteAssignment.dfy(11,9): Error BP5001: field 'y', which is subject to definite-assignment rules, might be used before it has been assigned
+DefiniteAssignment.dfy(11,9): Error: field 'y', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
-DefiniteAssignment.dfy(18,4): Error BP5001: field 'y', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+DefiniteAssignment.dfy(18,4): Error: field 'y', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
 Execution trace:
     (0,0): anon0
-DefiniteAssignment.dfy(23,2): Error BP5001: field 'y', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+DefiniteAssignment.dfy(23,2): Error: field 'y', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
 Execution trace:
     (0,0): anon0
-DefiniteAssignment.dfy(27,2): Error BP5001: field 'x', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+DefiniteAssignment.dfy(27,2): Error: field 'x', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
 Execution trace:
     (0,0): anon0
-DefiniteAssignment.dfy(276,13): Error BP5001: variable 'f', which is subject to definite-assignment rules, might be used before it has been assigned
+DefiniteAssignment.dfy(276,13): Error: variable 'f', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
-DefiniteAssignment.dfy(281,13): Error BP5001: variable 'f', which is subject to definite-assignment rules, might be used before it has been assigned
+DefiniteAssignment.dfy(281,13): Error: variable 'f', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
-DefiniteAssignment.dfy(289,13): Error BP5001: variable 'f', which is subject to definite-assignment rules, might be used before it has been assigned
+DefiniteAssignment.dfy(289,13): Error: variable 'f', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
-DefiniteAssignment.dfy(40,0): Error BP5001: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
+DefiniteAssignment.dfy(40,0): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Else
     (0,0): anon5
-DefiniteAssignment.dfy(48,9): Error BP5001: variable 'z', which is subject to definite-assignment rules, might be used before it has been assigned
+DefiniteAssignment.dfy(48,9): Error: variable 'z', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
     (0,0): anon12_Else
     (0,0): anon13_Then
-DefiniteAssignment.dfy(56,15): Error BP5001: variable 'j', which is subject to definite-assignment rules, might be used before it has been assigned
+DefiniteAssignment.dfy(56,15): Error: variable 'j', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
     (0,0): anon12_Else
     (0,0): anon13_Else
     (0,0): anon14_Else
     (0,0): anon15_Then
-DefiniteAssignment.dfy(59,4): Error BP5001: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
+DefiniteAssignment.dfy(59,4): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
 Execution trace:
     (0,0): anon0
     (0,0): anon12_Else
@@ -45,7 +45,7 @@ Execution trace:
     (0,0): anon14_Else
     (0,0): anon15_Else
     (0,0): anon16_Then
-DefiniteAssignment.dfy(63,0): Error BP5001: out-parameter 'z', which is subject to definite-assignment rules, might not have been defined at this return point
+DefiniteAssignment.dfy(63,0): Error: out-parameter 'z', which is subject to definite-assignment rules, might not have been defined at this return point
 Execution trace:
     (0,0): anon0
     (0,0): anon12_Else
@@ -54,23 +54,23 @@ Execution trace:
     (0,0): anon15_Else
     (0,0): anon16_Else
     (0,0): anon11
-DefiniteAssignment.dfy(85,9): Error BP5001: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
+DefiniteAssignment.dfy(85,9): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Then
-DefiniteAssignment.dfy(94,14): Error BP5001: variable 'e1', which is subject to definite-assignment rules, might be used before it has been assigned
+DefiniteAssignment.dfy(94,14): Error: variable 'e1', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
-DefiniteAssignment.dfy(143,8): Error BP5001: variable 'w', which is subject to definite-assignment rules, might be used before it has been assigned
+DefiniteAssignment.dfy(143,8): Error: variable 'w', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
     (0,0): anon3
-DefiniteAssignment.dfy(237,12): Error BP5001: variable 'a', which is subject to definite-assignment rules, might be used before it has been assigned
+DefiniteAssignment.dfy(237,12): Error: variable 'a', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
-DefiniteAssignment.dfy(238,12): Error BP5001: variable 'b', which is subject to definite-assignment rules, might be used before it has been assigned
+DefiniteAssignment.dfy(238,12): Error: variable 'b', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
 

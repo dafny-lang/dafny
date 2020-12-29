@@ -1,11 +1,11 @@
 Maps.dfy(200,11): Warning: /!\ No terms found to trigger on.
-Maps.dfy(78,7): Error BP5001: element may not be in domain
+Maps.dfy(78,7): Error: element may not be in domain
 Execution trace:
     (0,0): anon0
-Maps.dfy(128,17): Error BP5001: assertion violation
+Maps.dfy(128,17): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Maps.dfy(220,36): Error BP5001: key expressions may be referring to the same value
+Maps.dfy(220,36): Error: key expressions may be referring to the same value
 Execution trace:
     (0,0): anon0
     (0,0): anon41_Then
@@ -13,7 +13,7 @@ Execution trace:
     (0,0): anon43_Then
     (0,0): anon44_Then
     (0,0): anon45_Then
-Maps.dfy(226,36): Error BP5001: key expressions may be referring to the same value
+Maps.dfy(226,36): Error: key expressions may be referring to the same value
 Execution trace:
     (0,0): anon0
     (0,0): anon56_Then
@@ -21,7 +21,7 @@ Execution trace:
     (0,0): anon58_Then
     (0,0): anon59_Then
     (0,0): anon60_Then
-Maps.dfy(232,37): Error BP5001: key expressions may be referring to the same value
+Maps.dfy(232,37): Error: key expressions may be referring to the same value
 Execution trace:
     (0,0): anon0
     (0,0): anon17_Then
@@ -29,28 +29,28 @@ Execution trace:
     (0,0): anon19_Then
     (0,0): anon20_Then
     (0,0): anon21_Then
-Maps.dfy(234,24): Error BP5001: key expressions may be referring to the same value
+Maps.dfy(234,24): Error: key expressions may be referring to the same value
 Execution trace:
     (0,0): anon0
     (0,0): anon17_Else
     (0,0): anon22_Then
     (0,0): anon23_Then
     (0,0): anon24_Then
-Maps.dfy(241,41): Error BP5001: possible violation of function precondition
+Maps.dfy(241,41): Error: possible violation of function precondition
 Maps.dfy(215,13): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon17_Then
     (0,0): anon18_Then
     (0,0): anon19_Then
-Maps.dfy(243,36): Error BP5001: possible violation of function precondition
+Maps.dfy(243,36): Error: possible violation of function precondition
 Maps.dfy(215,13): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon20_Then
     (0,0): anon21_Then
     (0,0): anon22_Then
-Maps.dfy(243,37): Error BP5001: key expressions may be referring to the same value
+Maps.dfy(243,37): Error: key expressions may be referring to the same value
 Execution trace:
     (0,0): anon0
     (0,0): anon20_Then
@@ -58,7 +58,7 @@ Execution trace:
     (0,0): anon22_Then
     (0,0): anon23_Then
     (0,0): anon24_Then
-Maps.dfy(264,54): Error BP5001: assertion violation
+Maps.dfy(264,54): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon21_Then
@@ -70,51 +70,51 @@ Execution trace:
     (0,0): anon30_Then
     (0,0): anon31_Then
     (0,0): anon20
-Maps.dfy(309,11): Error BP5001: index out of range
+Maps.dfy(309,11): Error: index out of range
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Maps.dfy(311,16): Error BP5001: value does not satisfy the subset constraints of 'nat'
+Maps.dfy(311,16): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Maps.dfy(317,11): Error BP5001: value does not satisfy the subset constraints of 'nat'
+Maps.dfy(317,11): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Maps.dfy(319,16): Error BP5001: new number of occurrences might be negative
+Maps.dfy(319,16): Error: new number of occurrences might be negative
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Maps.dfy(328,11): Error BP5001: value does not satisfy the subset constraints of 'nat'
+Maps.dfy(328,11): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Maps.dfy(330,17): Error BP5001: value does not satisfy the subset constraints of 'nat'
+Maps.dfy(330,17): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Maps.dfy(339,11): Error BP5001: index out of range
+Maps.dfy(339,11): Error: index out of range
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Maps.dfy(341,16): Error BP5001: value does not satisfy the subset constraints of 'Elem' (it may be null)
+Maps.dfy(341,16): Error: value does not satisfy the subset constraints of 'Elem' (it may be null)
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Maps.dfy(347,11): Error BP5001: value does not satisfy the subset constraints of 'Elem' (it may be null)
+Maps.dfy(347,11): Error: value does not satisfy the subset constraints of 'Elem' (it may be null)
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Maps.dfy(349,16): Error BP5001: new number of occurrences might be negative
+Maps.dfy(349,16): Error: new number of occurrences might be negative
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Maps.dfy(358,11): Error BP5001: value does not satisfy the subset constraints of 'Elem' (it may be null)
+Maps.dfy(358,11): Error: value does not satisfy the subset constraints of 'Elem' (it may be null)
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Maps.dfy(360,16): Error BP5001: value does not satisfy the subset constraints of 'Elem' (it may be null)
+Maps.dfy(360,16): Error: value does not satisfy the subset constraints of 'Elem' (it may be null)
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else

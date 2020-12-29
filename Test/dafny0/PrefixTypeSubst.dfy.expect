@@ -619,31 +619,31 @@ lemma /*{:_induction _k}*/ RstRst10#<alpha, beta, gamma>[_k: nat]()
   }
 }
 ***/
-PrefixTypeSubst.dfy(52,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(52,0): Error: A postcondition might not hold on this return path.
 PrefixTypeSubst.dfy(51,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-PrefixTypeSubst.dfy(58,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(58,0): Error: A postcondition might not hold on this return path.
 PrefixTypeSubst.dfy(57,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-PrefixTypeSubst.dfy(64,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(64,0): Error: A postcondition might not hold on this return path.
 PrefixTypeSubst.dfy(63,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-PrefixTypeSubst.dfy(70,0): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(70,0): Error: A postcondition might not hold on this return path.
 PrefixTypeSubst.dfy(69,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-PrefixTypeSubst.dfy(85,9): Error BP5003: A postcondition might not hold on this return path.
+PrefixTypeSubst.dfy(85,9): Error: A postcondition might not hold on this return path.
 PrefixTypeSubst.dfy(81,30): Related location: This is the postcondition that might not hold.
 PrefixTypeSubst.dfy(19,17): Related location
 Execution trace:

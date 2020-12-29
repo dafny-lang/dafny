@@ -1,52 +1,52 @@
-ArrayElementInit.dfy(13,31): Error BP5001: possible division by zero
+ArrayElementInit.dfy(13,31): Error: possible division by zero
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-ArrayElementInit.dfy(19,11): Error BP5001: all array indices must be in the domain of the initialization function
+ArrayElementInit.dfy(19,11): Error: all array indices must be in the domain of the initialization function
 Execution trace:
     (0,0): anon0
-ArrayElementInit.dfy(39,11): Error BP5001: all array indices must be in the domain of the initialization function
+ArrayElementInit.dfy(39,11): Error: all array indices must be in the domain of the initialization function
 Execution trace:
     (0,0): anon0
     ArrayElementInit.dfy(39,25): anon7_Else
-ArrayElementInit.dfy(66,22): Error BP5001: assertion violation
+ArrayElementInit.dfy(66,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
     ArrayElementInit.dfy(64,30): anon3_Else
-ArrayElementInit.dfy(86,21): Error BP5001: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
+ArrayElementInit.dfy(86,21): Error: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
-ArrayElementInit.dfy(88,23): Error BP5001: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
+ArrayElementInit.dfy(88,23): Error: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
 Execution trace:
     (0,0): anon0
     (0,0): anon12_Then
-ArrayElementInit.dfy(102,24): Error BP5001: value does not satisfy the subset constraints of 'nat'
+ArrayElementInit.dfy(102,24): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-ArrayElementInit.dfy(110,32): Error BP5001: value does not satisfy the subset constraints of 'nat'
+ArrayElementInit.dfy(110,32): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-ArrayElementInit.dfy(113,20): Error BP5001: given array size must agree with the number of expressions in the initializing display (4)
+ArrayElementInit.dfy(113,20): Error: given array size must agree with the number of expressions in the initializing display (4)
 Execution trace:
     (0,0): anon0
-ArrayElementInit.dfy(139,14): Error BP5001: assertion violation
+ArrayElementInit.dfy(139,14): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
     (0,0): anon2
-ArrayElementInit.dfy(144,22): Error BP5001: possible violation of function precondition
+ArrayElementInit.dfy(144,22): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
-ArrayElementInit.dfy(152,21): Error BP5001: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
+ArrayElementInit.dfy(152,21): Error: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Then
-ArrayElementInit.dfy(154,21): Error BP5001: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
+ArrayElementInit.dfy(154,21): Error: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
 Execution trace:
     (0,0): anon0
     (0,0): anon20_Then
-ArrayElementInit.dfy(158,21): Error BP5001: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
+ArrayElementInit.dfy(158,21): Error: unless an initializer is provided for the array elements, a new array of 'D' must have empty size
 Execution trace:
     (0,0): anon0
     (0,0): anon24_Then

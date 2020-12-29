@@ -1,35 +1,35 @@
-Frame.dfy(23,15): Error BP5001: assertion violation
+Frame.dfy(23,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
     Frame.dfy(19,12): anon5_Else
     (0,0): anon6_Then
-Frame.dfy(37,13): Error BP5001: assertion violation
+Frame.dfy(37,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
     Frame.dfy(33,12): anon3_Else
-Frame.dfy(63,22): Error BP5001: assertion violation
+Frame.dfy(63,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
     Frame.dfy(55,12): anon14_Else
     (0,0): anon15_Then
     (0,0): anon5
-Frame.dfy(66,18): Error BP5001: insufficient reads clause to read array element
+Frame.dfy(66,18): Error: insufficient reads clause to read array element
 Execution trace:
     (0,0): anon0
     (0,0): anon16_Then
     (0,0): anon17_Then
-Frame.dfy(68,27): Error BP5001: insufficient reads clause to read array element
+Frame.dfy(68,27): Error: insufficient reads clause to read array element
 Execution trace:
     (0,0): anon0
     (0,0): anon16_Else
     (0,0): anon18_Then
-Frame.dfy(123,13): Error BP5001: possible violation of function precondition
+Frame.dfy(123,13): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon6_Else
-Frame.dfy(123,18): Error BP5001: assertion violation
+Frame.dfy(123,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then

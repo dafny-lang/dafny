@@ -1,14 +1,14 @@
-Termination.dfy[TerminationRefinement1](441,5): Error BP5001: failure to decrease termination measure
+Termination.dfy[TerminationRefinement1](441,5): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
-Termination.dfy(108,2): Error BP5001: cannot prove termination; try supplying a decreases clause for the loop
+Termination.dfy(108,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
     (0,0): anon0
     Termination.dfy(108,3): anon6_LoopHead
     (0,0): anon6_LoopBody
     Termination.dfy(108,3): anon7_Else
     Termination.dfy(108,3): anon8_Else
-Termination.dfy(116,2): Error BP5001: cannot prove termination; try supplying a decreases clause for the loop
+Termination.dfy(116,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
     (0,0): anon0
     Termination.dfy(116,3): anon8_LoopHead
@@ -17,7 +17,7 @@ Execution trace:
     (0,0): anon10_Then
     (0,0): anon5
     Termination.dfy(116,3): anon11_Else
-Termination.dfy(125,2): Error BP5001: decreases expression might not decrease
+Termination.dfy(125,2): Error: decreases expression might not decrease
 Execution trace:
     (0,0): anon0
     Termination.dfy(125,3): anon8_LoopHead
@@ -26,7 +26,7 @@ Execution trace:
     (0,0): anon10_Then
     (0,0): anon5
     Termination.dfy(125,3): anon11_Else
-Termination.dfy(126,16): Error BP5001: decreases expression must be bounded below by 0 at end of loop iteration
+Termination.dfy(126,16): Error: decreases expression must be bounded below by 0 at end of loop iteration
 Execution trace:
     (0,0): anon0
     Termination.dfy(125,3): anon8_LoopHead
@@ -35,20 +35,20 @@ Execution trace:
     (0,0): anon10_Then
     (0,0): anon5
     Termination.dfy(125,3): anon11_Else
-Termination.dfy(255,34): Error BP5001: cannot prove termination; try supplying a decreases clause
+Termination.dfy(255,34): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Else
     (0,0): anon9_Else
     (0,0): anon10_Then
-Termination.dfy(296,2): Error BP5001: decreases expression might not decrease
+Termination.dfy(296,2): Error: decreases expression might not decrease
 Execution trace:
     Termination.dfy(296,3): anon9_LoopHead
     (0,0): anon9_LoopBody
     Termination.dfy(296,3): anon10_Else
     Termination.dfy(296,3): anon11_Else
     (0,0): anon12_Else
-Termination.dfy(361,46): Error BP5001: failure to decrease termination measure
+Termination.dfy(361,46): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Else

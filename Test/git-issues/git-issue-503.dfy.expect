@@ -1,4 +1,4 @@
-git-issue-503.dfy(18,4): Error BP5001: missing case in match expression: Input(None)
+git-issue-503.dfy(18,4): Error: missing case in match expression: Input(None)
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then

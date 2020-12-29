@@ -1,29 +1,29 @@
-ControlStructures.dfy(8,2): Error BP5001: missing case in match statement: Purple
+ControlStructures.dfy(8,2): Error: missing case in match statement: Purple
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Else
     (0,0): anon8_Then
-ControlStructures.dfy(8,2): Error BP5001: missing case in match statement: Blue
+ControlStructures.dfy(8,2): Error: missing case in match statement: Blue
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Else
     (0,0): anon8_Else
     (0,0): anon9_Then
-ControlStructures.dfy(17,2): Error BP5001: missing case in match statement: Purple
+ControlStructures.dfy(17,2): Error: missing case in match statement: Purple
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Else
     (0,0): anon8_Then
-ControlStructures.dfy(46,4): Error BP5001: missing case in match statement: Red
+ControlStructures.dfy(46,4): Error: missing case in match statement: Red
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
     (0,0): anon9_Else
     (0,0): anon10_Then
-ControlStructures.dfy(54,2): Error BP5001: missing case in match expression: Red
+ControlStructures.dfy(54,2): Error: missing case in match expression: Red
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Else
@@ -31,11 +31,11 @@ Execution trace:
     (0,0): anon11_Else
     (0,0): anon12_Else
     (0,0): anon13_Then
-ControlStructures.dfy(75,2): Error BP5001: alternative cases fail to cover all possibilties
+ControlStructures.dfy(75,2): Error: alternative cases fail to cover all possibilties
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Else
-ControlStructures.dfy(218,17): Error BP5001: assertion violation
+ControlStructures.dfy(218,17): Error: assertion violation
 Execution trace:
     (0,0): anon0
     ControlStructures.dfy(197,3): anon59_LoopHead
@@ -51,7 +51,7 @@ Execution trace:
     (0,0): anon69_LoopBody
     ControlStructures.dfy(213,9): anon70_Else
     (0,0): anon71_Then
-ControlStructures.dfy(235,20): Error BP5001: assertion violation
+ControlStructures.dfy(235,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
     ControlStructures.dfy(197,3): anon59_LoopHead
@@ -77,7 +77,7 @@ Execution trace:
     (0,0): anon38
     (0,0): anon83_Then
     (0,0): anon52
-ControlStructures.dfy(238,29): Error BP5001: assertion violation
+ControlStructures.dfy(238,29): Error: assertion violation
 Execution trace:
     (0,0): anon0
     ControlStructures.dfy(197,3): anon59_LoopHead
@@ -92,7 +92,7 @@ Execution trace:
     (0,0): anon84_Then
     (0,0): anon85_Then
     (0,0): anon56
-ControlStructures.dfy(241,16): Error BP5001: assertion violation
+ControlStructures.dfy(241,16): Error: assertion violation
 Execution trace:
     (0,0): anon0
     ControlStructures.dfy(197,3): anon59_LoopHead

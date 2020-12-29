@@ -4,14 +4,14 @@ some-proofs-only-work-without-autoTriggers.dfy(27,11): Info: Selected triggers: 
 some-proofs-only-work-without-autoTriggers.dfy(28,11): Info: Selected triggers: {a[i]}
 some-proofs-only-work-without-autoTriggers.dfy(31,11): Info: Selected triggers: {x in a[..3]}
 some-proofs-only-work-without-autoTriggers.dfy(33,11): Info: Selected triggers: {x in a[..2]}
-some-proofs-only-work-without-autoTriggers.dfy(20,11): Error BP5001: assertion violation
+some-proofs-only-work-without-autoTriggers.dfy(20,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon22_Then
     (0,0): anon3
     (0,0): anon23_Then
     (0,0): anon5
-some-proofs-only-work-without-autoTriggers.dfy(28,11): Error BP5001: assertion violation
+some-proofs-only-work-without-autoTriggers.dfy(28,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon25_Then
@@ -19,7 +19,7 @@ Execution trace:
     (0,0): anon26_Then
     (0,0): anon27_Then
     (0,0): anon13
-some-proofs-only-work-without-autoTriggers.dfy(33,11): Error BP5001: assertion violation
+some-proofs-only-work-without-autoTriggers.dfy(33,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon28_Then

@@ -1,4 +1,4 @@
-Regression18.dfy(20,10): Error BP5001: value does not satisfy the subset constraints of 'NewT'
+Regression18.dfy(20,10): Error: value does not satisfy the subset constraints of 'NewT'
 Execution trace:
     (0,0): anon0
 

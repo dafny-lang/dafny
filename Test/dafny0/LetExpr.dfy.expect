@@ -1,49 +1,49 @@
 LetExpr.dfy(206,4): Warning: /!\ No terms found to trigger on.
 LetExpr.dfy(45,2): Warning: /!\ No terms found to trigger on.
-LetExpr.dfy(340,18): Error BP5001: value does not satisfy the subset constraints of 'nat'
+LetExpr.dfy(340,18): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-LetExpr.dfy(344,13): Error BP5001: value does not satisfy the subset constraints of 'nat'
+LetExpr.dfy(344,13): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-LetExpr.dfy(390,33): Error BP5001: assertion violation
+LetExpr.dfy(390,33): Error: assertion violation
 Execution trace:
     (0,0): anon0
-LetExpr.dfy(403,24): Error BP5001: assertion violation
+LetExpr.dfy(403,24): Error: assertion violation
 Execution trace:
     (0,0): anon0
-LetExpr.dfy(109,22): Error BP5001: assertion violation
+LetExpr.dfy(109,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
-LetExpr.dfy(9,11): Error BP5001: assertion violation
+LetExpr.dfy(9,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
-LetExpr.dfy(260,18): Error BP5001: value does not satisfy the subset constraints of 'nat'
+LetExpr.dfy(260,18): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
-LetExpr.dfy(263,18): Error BP5001: value does not satisfy the subset constraints of 'nat'
+LetExpr.dfy(263,18): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then
-LetExpr.dfy(265,23): Error BP5001: value does not satisfy the subset constraints of 'nat'
+LetExpr.dfy(265,23): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
-LetExpr.dfy(294,13): Error BP5001: RHS is not certain to look like the pattern 'Agnes'
+LetExpr.dfy(294,13): Error: RHS is not certain to look like the pattern 'Agnes'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-LetExpr.dfy(311,41): Error BP5001: value does not satisfy the subset constraints of 'nat'
+LetExpr.dfy(311,41): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
-LetExpr.dfy(313,11): Error BP5001: assertion violation
+LetExpr.dfy(313,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
-LetExpr.dfy(323,11): Error BP5001: to be compilable, the value of a let-such-that expression must be uniquely determined
+LetExpr.dfy(323,11): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then

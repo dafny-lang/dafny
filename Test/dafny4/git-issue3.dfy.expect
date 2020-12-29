@@ -1,4 +1,4 @@
-git-issue3.dfy(4,8): Error BP5001: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
+git-issue3.dfy(4,8): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

@@ -1,4 +1,4 @@
-Regression10.dfy(11,20): Error BP5001: value does not satisfy the subset constraints of 'EvenSet<int>'
+Regression10.dfy(11,20): Error: value does not satisfy the subset constraints of 'EvenSet<int>'
 Execution trace:
     (0,0): anon0
 

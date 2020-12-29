@@ -1,4 +1,4 @@
-BadFunction.dfy(9,2): Error BP5001: failure to decrease termination measure
+BadFunction.dfy(9,2): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

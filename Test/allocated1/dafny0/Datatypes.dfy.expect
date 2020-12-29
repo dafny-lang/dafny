@@ -1,4 +1,4 @@
-Datatypes.dfy(297,9): Error BP5003: A postcondition might not hold on this return path.
+Datatypes.dfy(297,9): Error: A postcondition might not hold on this return path.
 Datatypes.dfy(295,14): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -6,32 +6,32 @@ Execution trace:
     (0,0): anon14_Else
     (0,0): anon15_Then
     (0,0): anon6
-Datatypes.dfy(298,11): Error BP5001: missing case in match expression: Appendix(_)
+Datatypes.dfy(298,11): Error: missing case in match expression: Appendix(_)
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
     (0,0): anon14_Else
     (0,0): anon15_Else
     (0,0): anon16_Then
-Datatypes.dfy(349,4): Error BP5001: missing case in match expression: Cons(_,_)
+Datatypes.dfy(349,4): Error: missing case in match expression: Cons(_,_)
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Then
-Datatypes.dfy(349,4): Error BP5001: missing case in match expression: Nil
+Datatypes.dfy(349,4): Error: missing case in match expression: Nil
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Else
     (0,0): anon9_Then
-Datatypes.dfy(356,7): Error BP5001: missing case in match expression: Cons(_,_)
+Datatypes.dfy(356,7): Error: missing case in match expression: Cons(_,_)
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
     (0,0): anon11_Else
     (0,0): anon12_Then
     (0,0): anon13_Then
-Datatypes.dfy(356,7): Error BP5001: missing case in match expression: Nil
+Datatypes.dfy(356,7): Error: missing case in match expression: Nil
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
@@ -39,10 +39,10 @@ Execution trace:
     (0,0): anon12_Then
     (0,0): anon13_Else
     (0,0): anon14_Then
-Datatypes.dfy(377,21): Error BP5001: RHS is not certain to look like the pattern 'AAA'
+Datatypes.dfy(377,21): Error: RHS is not certain to look like the pattern 'AAA'
 Execution trace:
     (0,0): anon0
-Datatypes.dfy(82,19): Error BP5001: assertion violation
+Datatypes.dfy(82,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon20_Else
@@ -52,27 +52,27 @@ Execution trace:
     (0,0): anon23_Then
     (0,0): anon24_Else
     (0,0): anon25_Then
-Datatypes.dfy(170,15): Error BP5001: assertion violation
+Datatypes.dfy(170,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
-Datatypes.dfy(172,15): Error BP5001: assertion violation
+Datatypes.dfy(172,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
     (0,0): anon5_Then
-Datatypes.dfy(201,12): Error BP5001: destructor 'Car' can only be applied to datatype values constructed by 'XCons'
+Datatypes.dfy(201,12): Error: destructor 'Car' can only be applied to datatype values constructed by 'XCons'
 Execution trace:
     (0,0): anon0
-Datatypes.dfy(204,16): Error BP5001: destructor 'Car' can only be applied to datatype values constructed by 'XCons'
+Datatypes.dfy(204,16): Error: destructor 'Car' can only be applied to datatype values constructed by 'XCons'
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then
-Datatypes.dfy(225,16): Error BP5001: destructor 'c' can only be applied to datatype values constructed by 'T''
+Datatypes.dfy(225,16): Error: destructor 'c' can only be applied to datatype values constructed by 'T''
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
-Datatypes.dfy(48,21): Error BP5001: target object may not be allocated
+Datatypes.dfy(48,21): Error: target object may not be allocated
 Execution trace:
     (0,0): anon0
     (0,0): anon12_Else

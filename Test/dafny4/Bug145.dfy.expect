@@ -1,7 +1,7 @@
-Bug145.dfy(11,24): Error BP5001: array size (dimension 0) might be negative
+Bug145.dfy(11,24): Error: array size (dimension 0) might be negative
 Execution trace:
     (0,0): anon0
-Bug145.dfy(24,11): Error BP5001: assertion violation
+Bug145.dfy(24,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon21_Else

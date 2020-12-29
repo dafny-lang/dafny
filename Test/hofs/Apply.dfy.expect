@@ -1,10 +1,10 @@
-Apply.dfy(46,23): Error BP5001: function must be allocated in the state in which the function is invoked
+Apply.dfy(46,23): Error: function must be allocated in the state in which the function is invoked
 Execution trace:
     (0,0): anon0
     Apply.dfy(38,12): anon32_Else
     Apply.dfy(42,12): anon33_Else
     (0,0): anon35_Then
-Apply.dfy(57,31): Error BP5001: argument must be allocated in the state in which the function is invoked
+Apply.dfy(57,31): Error: argument must be allocated in the state in which the function is invoked
 Execution trace:
     (0,0): anon0
     Apply.dfy(38,12): anon32_Else
@@ -14,7 +14,7 @@ Execution trace:
     Apply.dfy(52,12): anon36_Else
     Apply.dfy(53,12): anon38_Else
     (0,0): anon43_Then
-Apply.dfy(58,31): Error BP5001: argument must be allocated in the state in which the function is invoked
+Apply.dfy(58,31): Error: argument must be allocated in the state in which the function is invoked
 Execution trace:
     (0,0): anon0
     Apply.dfy(38,12): anon32_Else
@@ -24,7 +24,7 @@ Execution trace:
     Apply.dfy(52,12): anon36_Else
     Apply.dfy(53,12): anon38_Else
     (0,0): anon44_Then
-Apply.dfy(61,31): Error BP5001: argument must be allocated in the state in which the function is invoked
+Apply.dfy(61,31): Error: argument must be allocated in the state in which the function is invoked
 Execution trace:
     (0,0): anon0
     Apply.dfy(38,12): anon32_Else

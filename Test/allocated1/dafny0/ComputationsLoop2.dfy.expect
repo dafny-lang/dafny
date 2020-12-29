@@ -1,12 +1,12 @@
-ComputationsLoop2.dfy(6,2): Error BP5001: cannot prove termination; try supplying a decreases clause
+ComputationsLoop2.dfy(6,2): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-ComputationsLoop2.dfy(11,2): Error BP5001: cannot prove termination; try supplying a decreases clause
+ComputationsLoop2.dfy(11,2): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-ComputationsLoop2.dfy(16,25): Error BP5001: assertion violation
+ComputationsLoop2.dfy(16,25): Error: assertion violation
 Execution trace:
     (0,0): anon0
 

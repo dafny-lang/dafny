@@ -1,8 +1,8 @@
-RollYourOwnArrowType.dfy(6,5): Error BP5001: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause
+RollYourOwnArrowType.dfy(6,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-RollYourOwnArrowType.dfy(141,16): Error BP5001: the given witness expression might not satisfy constraint
+RollYourOwnArrowType.dfy(141,16): Error: the given witness expression might not satisfy constraint
 RollYourOwnArrowType.dfy(139,21): Related location
 RollYourOwnArrowType.dfy(123,2): Related location
 RollYourOwnArrowType.dfy(123,16): Related location

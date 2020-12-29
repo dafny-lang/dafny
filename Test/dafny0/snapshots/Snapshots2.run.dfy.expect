@@ -22,7 +22,7 @@ Processing command (at Snapshots2.v1.dfy(3,4)) assert (forall<alpha> $o: ref, $f
   >>> MarkAsFullyVerified
 Processing command (at Snapshots2.v1.dfy(4,10)) assert false;
   >>> DoNothingToAssert
-Snapshots2.v1.dfy(4,9): Error BP5001: assertion violation
+Snapshots2.v1.dfy(4,9): Error: assertion violation
 Execution trace:
     (0,0): anon0
 Processing command (at Snapshots2.v1.dfy(11,11)) assert true;

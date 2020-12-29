@@ -1,4 +1,4 @@
-git-issue-334.dfy(6,17): Error BP5001: index out of range
+git-issue-334.dfy(6,17): Error: index out of range
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else

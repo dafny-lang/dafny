@@ -1,4 +1,4 @@
-git-issue-936.dfy(29,2): Error BP5001: assertion violation
+git-issue-936.dfy(29,2): Error: assertion violation
 Execution trace:
     (0,0): anon0
 

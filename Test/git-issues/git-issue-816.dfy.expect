@@ -1,11 +1,11 @@
-git-issue-816.dfy(7,11): Error BP5001: assertion violation
+git-issue-816.dfy(7,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
-git-issue-816.dfy(20,11): Error BP5001: assertion violation
+git-issue-816.dfy(20,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-git-issue-816.dfy(26,11): Error BP5001: assertion violation
+git-issue-816.dfy(26,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then

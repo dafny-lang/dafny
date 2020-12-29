@@ -1,4 +1,4 @@
-Lambda.dfy(24,11): Error BP5001: assertion violation
+Lambda.dfy(24,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
     Lambda.dfy(6,24): anon31_Else
