@@ -56,7 +56,7 @@ jobs:
     - uses: actions/setup-node@v1
     - run: npm install bignumber.js
     - name: Create release
-      run: python dafny/package.py 1.0.0 --os ubuntu --skip_manual=true
+      run: python dafny/Scripts/package.py 1.0.0 --os ubuntu --skip_manual=true
     - name: Unpack release
       uses: TonyBogdanov/zip@1.0
       with:

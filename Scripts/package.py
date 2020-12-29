@@ -30,6 +30,7 @@ DAFNY_RELEASE_REGEX = re.compile("\\d\\.\\d\\.\\d(-[\w\d_-]+)?$")
 
 ## Where are the sources?
 SOURCE_DIRECTORY = "Source"
+
 ## Where do the binaries get put?
 BINARIES_DIRECTORY = "Binaries"
 ## Where do we store the built packages and cache files?
@@ -51,7 +52,7 @@ ETCs = ["DafnyPrelude.bpl", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.
 # Constants
 
 THIS_FILE = path.realpath(__file__)
-ROOT_DIRECTORY = path.dirname(THIS_FILE)
+ROOT_DIRECTORY = path.dirname(path.dirname(THIS_FILE))
 SOURCE_DIRECTORY = path.join(ROOT_DIRECTORY, SOURCE_DIRECTORY)
 BINARIES_DIRECTORY = path.join(ROOT_DIRECTORY, BINARIES_DIRECTORY)
 DESTINATION_DIRECTORY = path.join(ROOT_DIRECTORY, DESTINATION_DIRECTORY)
@@ -121,10 +122,10 @@ class Release:
 
         if path.exists(self.buildDirectory):
             shutil.rmtree(self.buildDirectory)
-        run(["dotnet", "build", "Source/Dafny.sln", "/v:q", "--nologo", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
+        run(["dotnet", "build", path.join(SOURCE_DIRECTORY, "Dafny.sln"), "/v:q", "--nologo", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
         run(["make", "--quiet", "clean"])
         run(["make", "--quiet", "runtime"])
-        run(["dotnet", "publish", "Source/Dafny.sln",
+        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "Dafny.sln"),
             "--nologo",
             "-v:q",
             "-f", "netcoreapp3.1",
