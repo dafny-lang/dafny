@@ -150,8 +150,8 @@ class Release:
                         archive.writestr(fileinfo, contents)
             uppercaseDafny = path.join(self.buildDirectory, "Dafny")
             if os.path.exists(uppercaseDafny):
-                shutil.move(uppercaseDafny, lowercaseDafny)
                 lowercaseDafny = path.join(self.buildDirectory, "dafny")
+                shutil.move(uppercaseDafny, lowercaseDafny)
                 os.chmod(lowercaseDafny, stat.S_IEXEC| os.lstat(lowercaseDafny).st_mode)
             paths = pathsInDirectory(self.buildDirectory) + list(map(lambda etc: path.join(BINARIES_DIRECTORY, etc), ETCs)) + OTHERS
             for fpath in paths:
