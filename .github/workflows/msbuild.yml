@@ -56,11 +56,11 @@ jobs:
     - uses: actions/setup-node@v1
     - run: npm install bignumber.js
     - name: Create release
-      run: python dafny/Scripts/package.py 1.0.0 --os ubuntu --skip_manual=true
+      run: python dafny/Scripts/package.py 0.0.0-CI --os ubuntu --skip_manual=true
     - name: Unpack release
       uses: TonyBogdanov/zip@1.0
       with:
-        args: unzip -qq dafny/Package/dafny-1.0.0-x64-ubuntu-16.04.zip -d unzippedRelease
+        args: unzip -qq dafny/Package/dafny-0.0.0-CI-x64-ubuntu-16.04.zip -d unzippedRelease
     - name: Run lit tests
       run: |
         sudo chmod +x $PWD/unzippedRelease/dafny/dafny
