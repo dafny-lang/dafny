@@ -63,5 +63,5 @@ jobs:
         args: unzip -qq dafny/Package/dafny-1.0.0-x64-ubuntu-16.04.zip -d unzippedRelease
     - name: Run lit tests
       run: |
-        sudo chmod +x $PWD/unzippedRelease/dafny/Dafny
-        lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} --param executable=$PWD/unzippedRelease/dafny/Dafny --param serverExecutable=$PWD/unzippedRelease/dafny/DafnyServer dafny/Test
+        sudo chmod +x $PWD/unzippedRelease/dafny/dafny
+        lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} --param executable=$PWD/unzippedRelease/dafny/dafny --param serverExecutable=$PWD/unzippedRelease/dafny/DafnyServer dafny/Test
