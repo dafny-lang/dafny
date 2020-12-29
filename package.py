@@ -211,18 +211,20 @@ def run(cmd):
     else:
         flush("done!")
 
-def pack(releases):
+def pack(args, releases):
     flush("  - Packaging {} Dafny archives".format(len(releases)))
     for release in releases:
         flush("    + {}:".format(release.dafny_name), end=' ')
         release.build()
         release.pack()
-    run(["make", "--quiet", "refman-release"])
+    if not args.skip_manual:
+        run(["make", "--quiet", "refman-release"])
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Prepare a Dafny release. Configuration is hardcoded; edit the `# Configuration' section of this script to change it.")
     parser.add_argument("version", help="Version number for this release")
     parser.add_argument("--os", help="operating system name for which to make a release")
+    parser.add_argument("--skip_manual", help="do not create the reference manual")
     return parser.parse_args()
 
 def main():
@@ -240,7 +242,7 @@ def main():
     download(releases)
 
     flush("* Building and packaging Dafny")
-    pack(releases)
+    pack(args, releases)
 
 if __name__ == '__main__':
     main()
