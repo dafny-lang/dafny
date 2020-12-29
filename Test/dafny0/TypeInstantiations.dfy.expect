@@ -1,5 +1,4 @@
-TypeInstantiations.dfy(33,7): Error: B in M1 redeclares a name in the refinement base M0
-TypeInstantiations.dfy(33,7): Error: an opaque type declaration (B) in a refining module cannot replace a more specific type declaration in the refinement base
+TypeInstantiations.dfy(33,7): Error: module M1 may not redeclare a non-opaque type name B from module M0, even with the same type, unless refining (...)
 TypeInstantiations.dfy(36,13): Error: a type declaration that requires equality support cannot be replaced by a codatatype
 TypeInstantiations.dfy(40,7): Error: type 'G' is declared with a different number of type parameters (1 instead of 0) than the corresponding type in the module it refines
 TypeInstantiations.dfy(41,7): Error: type 'H' is declared with a different number of type parameters (1 instead of 2) than the corresponding type in the module it refines
@@ -25,4 +24,4 @@ TypeInstantiations.dfy(127,27): Error: RHS (of type int) not assignable to LHS (
 TypeInstantiations.dfy(137,8): Error: the type of this variable is underspecified
 TypeInstantiations.dfy(137,23): Error: type parameter 'A' (inferred to be '?') in the function call to 'F' could not be determined
 TypeInstantiations.dfy(137,24): Error: the type of this expression is underspecified
-27 resolution/type errors detected in TypeInstantiations.dfy
+26 resolution/type errors detected in TypeInstantiations.dfy
