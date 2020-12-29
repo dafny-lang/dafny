@@ -122,7 +122,6 @@ class Release:
 
         if path.exists(self.buildDirectory):
             shutil.rmtree(self.buildDirectory)
-        run(["dotnet", "build", path.join(SOURCE_DIRECTORY, "Dafny.sln"), "/v:q", "--nologo", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
         run(["make", "--quiet", "clean"])
         run(["make", "--quiet", "runtime"])
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "Dafny.sln"),
