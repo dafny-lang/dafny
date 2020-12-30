@@ -225,6 +225,7 @@ def parse_arguments():
     parser.add_argument("version", help="Version number for this release")
     parser.add_argument("--os", help="operating system name for which to make a release")
     parser.add_argument("--skip_manual", help="do not create the reference manual")
+    parser.add_argument("--trial", help="ignore version.cs discrepancies")
     return parser.parse_args()
 
 def main():
@@ -233,6 +234,32 @@ def main():
         flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
         return
     os.makedirs(CACHE_DIRECTORY, exist_ok=True)
+
+    # Checking version.cs
+    fp = open(path.join(SOURCE_DIRECTORY,"version.cs"))
+    lines = fp.readlines()
+    qstart = lines[2].index('"')
+    qend = lines[2].index('"', qstart+1)
+    lastdot = lines[2].rindex('.',qstart)
+    v1 = lines[2][qstart+1:lastdot]
+    v2 = lines[2][lastdot+1:qend]
+    now = time.localtime()
+    year = now[0]
+    month = now[1]
+    day = now[2]
+    v3 = str(year-2018) + str(month).zfill(2) + str(day).zfill(2)
+    if v2 != v3:
+        flush("The date in version.cs does not agree with today's date: " + v3 + " vs. " + v2)
+    if "-" in args.version:
+        hy = args.version.index('-')
+    else:
+        hy = args.version
+    if hy != v1:
+        flush("The version number in version.cs does not agree with the given version: " + hy + " vs. " + v1)
+    if (v2 != v3 or hy != v1) and not args.trial:
+        return
+    fp.close()
+    flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ lines[2][qstart+1:qend])
 
     # Z3
     flush("* Finding and downloading Z3 releases")

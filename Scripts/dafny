@@ -8,7 +8,7 @@ while [ -h "$SOURCE" ]; do
     SOURCE="$(readlink "$SOURCE")"
     [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
 done
-DAFNY_ROOT="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+DAFNY_ROOT="$( cd -P "$( dirname $( dirname "$SOURCE" ))" && pwd )"
 
 MY_OS=$(uname -s)
 if [ "${MY_OS:0:5}" == "MINGW" ] || [ "${MY_OS:0:6}" == "CYGWIN" ]; then
@@ -16,7 +16,7 @@ if [ "${MY_OS:0:5}" == "MINGW" ] || [ "${MY_OS:0:6}" == "CYGWIN" ]; then
 else
     DAFNY_EXE_NAME="Dafny.dll"
 fi
-DAFNY="$DAFNY_ROOT/$DAFNY_EXE_NAME"
+DAFNY="$DAFNY_ROOT/Binaries/$DAFNY_EXE_NAME"
 if [[ ! -e "$DAFNY" ]]; then
     echo "Error: $DAFNY_EXE_NAME not found at $DAFNY_ROOT."
     exit 1
