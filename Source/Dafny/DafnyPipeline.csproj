@@ -34,6 +34,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\version.cs" />
+      <Compile Include="..\version.cs" />
+
+      <Content Include="GoBackend\DafnyRuntime.go" Link="%(Filename)%(Extension)">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="CPPBackend\DafnyRuntime.h" Link="%(Filename)%(Extension)">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="JavaScriptBackend\DafnyRuntime.js" Link="%(Filename)%(Extension)">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="DafnyPrelude.bpl">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
   </ItemGroup>
 </Project>
