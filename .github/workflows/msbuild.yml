@@ -24,12 +24,16 @@ jobs:
         include:
         - os:  'ubuntu-latest'
           osb: 'ubuntu'
+          rel: 'ubuntu-16.04'
         - os:  'ubuntu-16.04'
           osb: 'ubuntu'
+          rel: 'ubuntu-16.04'
         - os:  'macos-latest'
           osb: 'osx'
+          rel: 'osx-10.14.1'
         - os:  'windows-latest'
           osb: 'win'
+          rel: 'win'
 
       fail-fast: false
     steps:
@@ -66,7 +70,7 @@ jobs:
     - name: Unpack release
       uses: TonyBogdanov/zip@1.0
       with:
-        args: unzip -qq dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.os }}.zip -d unzippedRelease
+        args: unzip -qq dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.rel }}.zip -d unzippedRelease
     - name: Run lit tests
       run: |
         sudo chmod +x $PWD/unzippedRelease/dafny/dafny
