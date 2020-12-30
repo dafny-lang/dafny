@@ -30,7 +30,7 @@ task copyJarToBinaries {
     doLast {
       copy {
         from 'build/libs/DafnyRuntime.jar'
-        into '../../../Binaries'
+        into '../../../../Binaries'
       }
     }
 }
