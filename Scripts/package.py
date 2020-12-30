@@ -30,6 +30,7 @@ DAFNY_RELEASE_REGEX = re.compile("\\d\\.\\d\\.\\d(-[\w\d_-]+)?$")
 
 ## Where are the sources?
 SOURCE_DIRECTORY = "Source"
+
 ## Where do the binaries get put?
 BINARIES_DIRECTORY = "Binaries"
 ## Where do we store the built packages and cache files?
@@ -51,7 +52,7 @@ ETCs = ["DafnyPrelude.bpl", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.
 # Constants
 
 THIS_FILE = path.realpath(__file__)
-ROOT_DIRECTORY = path.dirname(THIS_FILE)
+ROOT_DIRECTORY = path.dirname(path.dirname(THIS_FILE))
 SOURCE_DIRECTORY = path.join(ROOT_DIRECTORY, SOURCE_DIRECTORY)
 BINARIES_DIRECTORY = path.join(ROOT_DIRECTORY, BINARIES_DIRECTORY)
 DESTINATION_DIRECTORY = path.join(ROOT_DIRECTORY, DESTINATION_DIRECTORY)
@@ -85,12 +86,12 @@ class Release:
         self.size = js["size"]
         self.url = js["browser_download_url"]
         self.platform, self.os, self.directory = Release.parse_zip_name(js["name"])
+        self.os_name = self.os.split("-")[0]
         self.z3_zip = path.join(CACHE_DIRECTORY, self.z3_name)
         self.dafny_name = "dafny-{}-{}-{}.zip".format(version, self.platform, self.os)
-        osname = self.os.split("-")[0]
-        self.target = "{}-{}".format(z3ToDotNetOSMapping[osname], self.platform)
+        self.target = "{}-{}".format(z3ToDotNetOSMapping[self.os_name], self.platform)
         self.dafny_zip = path.join(DESTINATION_DIRECTORY, self.dafny_name)
-        self.buildDirectory = path.join(BINARIES_DIRECTORY, self.target)
+        self.buildDirectory = path.join(BINARIES_DIRECTORY, self.target, "publish")
 
     @property
     def cached(self):
@@ -121,13 +122,13 @@ class Release:
 
         if path.exists(self.buildDirectory):
             shutil.rmtree(self.buildDirectory)
-        run(["dotnet", "build", "Source/Dafny.sln", "/v:q", "--nologo", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
         run(["make", "--quiet", "clean"])
         run(["make", "--quiet", "runtime"])
-        run(["dotnet", "publish", "Source/Dafny.sln",
+        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "Dafny.sln"),
             "--nologo",
             "-v:q",
             "-f", "netcoreapp3.1",
+            "-o", self.buildDirectory,
             "-r", self.target,
             "-c", "Checked"])
 
@@ -147,17 +148,19 @@ class Release:
                         contents = Z3_archive.read(fileinfo)
                         fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, Z3_PACKAGE_PREFIX, fname))
                         archive.writestr(fileinfo, contents)
-            if os.path.exists(self.buildDirectory + "/publish/Dafny"):
-                shutil.move(self.buildDirectory + "/publish/Dafny", self.buildDirectory + "/publish/dafny");
-                os.chmod(self.buildDirectory + "/publish/dafny", stat.S_IEXEC| os.lstat(self.buildDirectory + "/publish/dafny").st_mode)
-            paths = pathsInDirectory(self.buildDirectory + "/publish") + list(map(lambda etc: path.join(BINARIES_DIRECTORY, etc), ETCs)) + OTHERS
+            uppercaseDafny = path.join(self.buildDirectory, "Dafny")
+            if os.path.exists(uppercaseDafny):
+                lowercaseDafny = path.join(self.buildDirectory, "dafny")
+                shutil.move(uppercaseDafny, lowercaseDafny)
+                os.chmod(lowercaseDafny, stat.S_IEXEC| os.lstat(lowercaseDafny).st_mode)
+            paths = pathsInDirectory(self.buildDirectory) + list(map(lambda etc: path.join(BINARIES_DIRECTORY, etc), ETCs)) + OTHERS
             for fpath in paths:
                 if os.path.isdir(fpath):
                     continue
                 fname = ntpath.basename(fpath)
                 if path.exists(fpath):
                     fileinfo = zipfile.ZipInfo(fname, time.localtime(os.stat(fpath).st_mtime)[:6])
-                    if any(fnmatch(fname, pattern) for pattern in UNIX_EXECUTABLES):
+                    if self.os_name != 'win':
                         # http://stackoverflow.com/questions/434641/
                         fileinfo.external_attr = 0o100755 << 16
                         fileinfo.create_system = 3  # lie about this zip file's source OS to preserve permissions
@@ -208,17 +211,20 @@ def run(cmd):
     else:
         flush("done!")
 
-def pack(releases):
+def pack(args, releases):
     flush("  - Packaging {} Dafny archives".format(len(releases)))
     for release in releases:
         flush("    + {}:".format(release.dafny_name), end=' ')
         release.build()
         release.pack()
-    run(["make", "--quiet", "refman-release"])
+    if not args.skip_manual:
+        run(["make", "--quiet", "refman-release"])
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Prepare a Dafny release. Configuration is hardcoded; edit the `# Configuration' section of this script to change it.")
     parser.add_argument("version", help="Version number for this release")
+    parser.add_argument("--os", help="operating system name for which to make a release")
+    parser.add_argument("--skip_manual", help="do not create the reference manual")
     return parser.parse_args()
 
 def main():
@@ -231,10 +237,12 @@ def main():
     # Z3
     flush("* Finding and downloading Z3 releases")
     releases = list(discover(args.version))
+    if args.os:
+        releases = list(filter(lambda release: release.os_name == args.os, releases))
     download(releases)
 
     flush("* Building and packaging Dafny")
-    pack(releases)
+    pack(args, releases)
 
 if __name__ == '__main__':
     main()
