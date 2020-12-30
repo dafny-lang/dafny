@@ -26,7 +26,7 @@ Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/tags/z3-4.8
 Z3_RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
 
 ## Allowed Dafny release names
-DAFNY_RELEASE_REGEX = re.compile("\\d\\.\\d\\.\\d(-[\w\d_-]+)?$")
+DAFNY_RELEASE_REGEX = re.compile("\\d+\\.\\d+\\.\\d+(-[\w\d_-]+)?$")
 
 ## Where are the sources?
 SOURCE_DIRECTORY = "Source"
