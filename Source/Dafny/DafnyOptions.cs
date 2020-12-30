@@ -638,19 +638,18 @@ namespace Microsoft.Dafny
       // pp.bv_literals = false
 
       // Boogie also used to set the following options, but does not anymore.
-      // TODO: Are all of these needed for Dafny?
       SetZ3Option("auto_config", "false");
       SetZ3Option("type_check", "true");
-      SetZ3Option("smt.phase_selection", "0");
-      SetZ3Option("smt.restart_strategy", "0");
-      SetZ3Option("smt.restart_factor", "|1.5|");
-      SetZ3Option("smt.arith.random_initial_value", "true");
+      SetZ3Option("smt.phase_selection", "0");  // TODO: this seems not to be needed
+      SetZ3Option("smt.restart_strategy", "0");  // TODO: this seems not to be needed
+      SetZ3Option("smt.restart_factor", "|1.5|");  // TODO: this seems not to be needed
+      SetZ3Option("smt.arith.random_initial_value", "true");  // TODO: this seems not to be needed
       SetZ3Option("smt.case_split", "3");
       SetZ3Option("smt.qi.eager_threshold", "100");
       SetZ3Option("smt.delay_units", "true");
-      SetZ3Option("nnf.sk_hack", "true");
+      SetZ3Option("nnf.sk_hack", "true");  // TODO: this seems not to be needed
       SetZ3Option("smt.arith.solver", "2");
-      
+
       if (DisableNLarith || 3 <= ArithMode) {
         SetZ3Option("smt.arith.nl", "false");
       }
