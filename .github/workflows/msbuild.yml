@@ -72,10 +72,9 @@ jobs:
       run: |
         Expand-Archive dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.rel }}.zip unzippedRelease
     - if: runner.os != 'Windows'
-      uses: TonyBogdanov/zip@1.0
-      with:
-        args: unzip -qq dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.rel }}.zip -d unzippedRelease
+      run: |
+        unzip dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.rel }}.zip -d unzippedRelease
+        sudo chmod +x $PWD/unzippedRelease/dafny/dafny
     - name: Run lit tests
       run: |
-        sudo chmod +x $PWD/unzippedRelease/dafny/dafny
         lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} --param executable=$PWD/unzippedRelease/dafny/dafny --param serverExecutable=$PWD/unzippedRelease/dafny/DafnyServer dafny/Test
