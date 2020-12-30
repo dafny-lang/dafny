@@ -21,6 +21,16 @@ jobs:
         ## Size of the following array must match --num-shards in lit command
         shard: [1, 2, 3, 4, 5]
         ##shard: [1, 2, 3]
+        include:
+        - os:  'ubuntu-latest'
+          osb: 'ubuntu'
+        - os:  'ubuntu-16.04'
+          osb: 'ubuntu'
+        - os:  'macos-latest'
+          osb: 'osx'
+        - os:  'windows-latest'
+          osb: 'win'
+
       fail-fast: false
     steps:
     - name: Manually sync certs
@@ -52,11 +62,11 @@ jobs:
         submodules: recursive
         path: dafny
     - name: Create release
-      run: python dafny/Scripts/package.py 0.0.0-CI --os ubuntu --skip_manual=true --trial=true
+      run: python dafny/Scripts/package.py 0.0.0-CI --os ${{ matrix.osb }} --skip_manual=true --trial=true
     - name: Unpack release
       uses: TonyBogdanov/zip@1.0
       with:
-        args: unzip -qq dafny/Package/dafny-0.0.0-CI-x64-ubuntu-16.04.zip -d unzippedRelease
+        args: unzip -qq dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.os }}.zip -d unzippedRelease
     - name: Run lit tests
       run: |
         sudo chmod +x $PWD/unzippedRelease/dafny/dafny
