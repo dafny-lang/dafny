@@ -2,7 +2,7 @@ name: Build DafnyRef.pdf
 
 on:
   push:
-    branches: [ master cok-834 ]
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 
@@ -17,10 +17,6 @@ jobs:
         ##os: [ macos-latest, ubuntu-16.04, ubuntu-latest ]
 
 
-    #- name: Install brew
-    #  run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-    #- name: Install mono
-    #  run: brew install mono || echo OK
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
