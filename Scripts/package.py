@@ -220,21 +220,7 @@ def pack(args, releases):
     if not args.skip_manual:
         run(["make", "--quiet", "refman-release"])
 
-def parse_arguments():
-    parser = argparse.ArgumentParser(description="Prepare a Dafny release. Configuration is hardcoded; edit the `# Configuration' section of this script to change it.")
-    parser.add_argument("version", help="Version number for this release")
-    parser.add_argument("--os", help="operating system name for which to make a release")
-    parser.add_argument("--skip_manual", help="do not create the reference manual")
-    parser.add_argument("--trial", help="ignore version.cs discrepancies")
-    return parser.parse_args()
-
-def main():
-    args = parse_arguments()
-    if not DAFNY_RELEASE_REGEX.match(args.version):
-        flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
-        return
-    os.makedirs(CACHE_DIRECTORY, exist_ok=True)
-
+def check_version_cs(args):
     # Checking version.cs
     fp = open(path.join(SOURCE_DIRECTORY,"version.cs"))
     lines = fp.readlines()
@@ -257,9 +243,28 @@ def main():
     if hy != v1:
         flush("The version number in version.cs does not agree with the given version: " + hy + " vs. " + v1)
     if (v2 != v3 or hy != v1) and not args.trial:
-        return
+        return False
     fp.close()
     flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ lines[2][qstart+1:qend])
+    return True
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Prepare a Dafny release. Configuration is hardcoded; edit the `# Configuration' section of this script to change it.")
+    parser.add_argument("version", help="Version number for this release")
+    parser.add_argument("--os", help="operating system name for which to make a release")
+    parser.add_argument("--skip_manual", help="do not create the reference manual")
+    parser.add_argument("--trial", help="ignore version.cs discrepancies")
+    return parser.parse_args()
+
+def main():
+    args = parse_arguments()
+    if not DAFNY_RELEASE_REGEX.match(args.version):
+        flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
+        return
+    os.makedirs(CACHE_DIRECTORY, exist_ok=True)
+
+    if not check_version_cs(args):
+        return
 
     # Z3
     flush("* Finding and downloading Z3 releases")
