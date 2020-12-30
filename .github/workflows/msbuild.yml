@@ -60,13 +60,18 @@ jobs:
       run: pip install lit OutputCheck pyyaml
     - uses: actions/setup-node@v1
     - run: npm install bignumber.js
+    - name: Make separate workspace
+      run: |
+        mkdir tmp-${{matrix.shard}}-${{matrix.os}}
+        cd tmp-${{matrix.shard}}-${{matrix.os}}
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
         submodules: recursive
         path: dafny
     - name: Create release
-      run: python dafny/Scripts/package.py 0.0.0-CI --os ${{ matrix.osb }} --skip_manual=true --trial=true
+      run: |
+        python dafny/Scripts/package.py 0.0.0-CI --os ${{ matrix.osb }} --skip_manual=true --trial=true
     - if: runner.os == 'Windows'
       shell: pwsh
       run: |
