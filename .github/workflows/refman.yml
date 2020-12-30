@@ -50,6 +50,7 @@ jobs:
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
         sudo gem install rouge
+        make -C dafny/docs/DafnyReferenceManual
     - if: matrix.os != 'ubuntu-latest' && runner.os == 'Linux'
       run: |
         sudo apt-get install texlive-math-extra
@@ -59,6 +60,7 @@ jobs:
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
         sudo gem install rouge
+        make -C dafny/docs/DafnyReferenceManual
     - name: Install latex pandoc - MacOS
       if: runner.os == 'MacOS'
       run: |
@@ -71,8 +73,6 @@ jobs:
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
         sudo gem install rouge
-    - name: Make reference manual
-      run: |
         make -C dafny/docs/DafnyReferenceManual
     - name: Check
       run: ls -la dafny/docs/DafnyReferenceManual/DafnyRef.pdf
