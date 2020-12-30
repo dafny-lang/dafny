@@ -15,9 +15,9 @@ jobs:
         ## Macos jobs tend to stall -- not including them for now
         ## Windows jobs fail on some lit tests and sometimes fail even to
         ## setup a work environment (e.g. dotnet installation)
-        os: [ubuntu-latest, ubuntu-16.04]
+        ##os: [ubuntu-latest, ubuntu-16.04]
         ##os: [ubuntu-latest, windows-latest, ubuntu-16.04]
-        ##os: [ubuntu-latest, macos-latest, windows-latest, ubuntu-16.04]
+        os: [ubuntu-latest, macos-latest, windows-latest, ubuntu-16.04]
         ## Size of the following array must match --num-shards in lit command
         shard: [1, 2, 3, 4, 5]
         ##shard: [1, 2, 3]
@@ -68,6 +68,11 @@ jobs:
     - name: Create release
       run: python dafny/Scripts/package.py 0.0.0-CI --os ${{ matrix.osb }} --skip_manual=true --trial=true
     - name: Unpack release
+    - if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        Expand-Archive dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.rel }}.zip unzippedRelease
+    - if: runner.os != 'Windows'
       uses: TonyBogdanov/zip@1.0
       with:
         args: unzip -qq dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.rel }}.zip -d unzippedRelease
