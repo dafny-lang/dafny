@@ -43,7 +43,7 @@ jobs:
     - name: Extra linux packages
       if: matrix.os == 'ubuntu-latest'
       run: |
-        sudo apt-get install texlive-science
+        ##sudo apt-get install texlive-science
         sudo tlmgr update --self
         sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
         pandoc -v
