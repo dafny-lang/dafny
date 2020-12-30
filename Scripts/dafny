@@ -18,7 +18,7 @@ else
 fi
 DAFNY="$DAFNY_ROOT/Binaries/$DAFNY_EXE_NAME"
 if [[ ! -e "$DAFNY" ]]; then
-    echo "Error: $DAFNY_EXE_NAME not found at $DAFNY_ROOT."
+    echo "Error: $DAFNY_EXE_NAME not found at $DAFNY."
     exit 1
 fi
 
