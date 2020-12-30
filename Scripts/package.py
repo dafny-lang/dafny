@@ -251,7 +251,7 @@ def main():
     if v2 != v3:
         flush("The date in version.cs does not agree with today's date: " + v3 + " vs. " + v2)
     if "-" in args.version:
-        hy = args.version.index('-')
+        hy = args.version[:args.version.index('-')]
     else:
         hy = args.version
     if hy != v1:
