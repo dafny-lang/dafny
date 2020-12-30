@@ -16,7 +16,7 @@ parser:
 	make -C ${DIR}/Source/Dafny -f Makefile.linux all
 
 runtime:
-	(cd ${DIR}/Source/DafnyRuntime/DafnyRuntimeJava; ./gradlew -q clean copyJarToBinaries)
+	(cd ${DIR}/Source/Dafny/JavaBackend/DafnyRuntimeJava; ./gradlew -q clean copyJarToBinaries)
 
 refman:
 	make -C ${DIR}/docs/DafnyReferenceManual
@@ -37,5 +37,5 @@ z3-ubuntu:
 clean:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln -v:q --nologo -target:clean )
 	make -C ${DIR}/Source/Dafny -f Makefile.Linux clean
-	(cd ${DIR}/Source/DafnyRuntime/DafnyRuntimeJava; ./gradlew clean)
+	(cd ${DIR}/Source/Dafny/JavaBackend/DafnyRuntimeJava; ./gradlew clean)
 	make -C ${DIR}/docs/DafnyReferenceManual clean

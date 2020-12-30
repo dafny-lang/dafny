@@ -19,4 +19,4 @@ jobs:
         with:
           java-version: 1.8
       - name: Build and Test DafnyRuntime.jar
-        run: ./Source/DafnyRuntime/DafnyRuntimeJava/gradlew -p ./Source/DafnyRuntime/DafnyRuntimeJava test
+        run: ./Source/Dafny/JavaBackend/DafnyRuntimeJava/gradlew -p ./Source/Dafny/JavaBackend/DafnyRuntimeJava test
