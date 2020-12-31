@@ -23,18 +23,18 @@ jobs:
         shard: [1, 2, 3, 4, 5]
         ##shard: [1, 2, 3]
         include:
-        - os:  'ubuntu-latest'
-          osb: 'ubuntu'
-          rel: 'ubuntu-16.04'
-        ##- os:  'ubuntu-16.04'
-        ##  osb: 'ubuntu'
-        ##  rel: 'ubuntu-16.04'
-        ##- os:  'macos-latest'
-        ##  osb: 'osx'
-        ##  rel: 'osx-10.14.1'
-        ##- os:  'windows-latest'
-        ##  osb: 'win'
-        ##  rel: 'win'
+        - os:                  'ubuntu-latest'
+          os_for_build:        'ubuntu'
+          os_for_release_zip:  'ubuntu-16.04'
+        ##- os:                  'ubuntu-16.04'
+        ##  os_for_build:        'ubuntu'
+        ##  os_for_release_zip:  'ubuntu-16.04'
+        ##- os:                  'macos-latest'
+        ##  os_for_build:        'osx'
+        ##  os_for_release_zip:  'osx-10.14.1'
+        ##- os:                  'windows-latest'
+        ##  os_for_build:        'win'
+        ##  os_for_release_zip:  'win'
 
       fail-fast: false
     steps:
@@ -68,14 +68,14 @@ jobs:
         path: dafny
     - name: Create release
       run: |
-        python dafny/Scripts/package.py 0.0.0-CI --os ${{ matrix.osb }} --skip_manual=true --trial=true
+        python dafny/Scripts/package.py 0.0.0-CI --os ${{ matrix.os_for_build }} --skip_manual=true --trial=true
     - if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        Expand-Archive dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.rel }}.zip unzippedRelease
+        Expand-Archive dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.os_for_release_zip }}.zip unzippedRelease
     - if: runner.os != 'Windows'
       run: |
-        unzip dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.rel }}.zip -d unzippedRelease
+        unzip dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.os_for_build }}*.zip -d unzippedRelease
         sudo chmod +x $PWD/unzippedRelease/dafny/dafny
     - name: Run lit tests
       run: |
