@@ -26,15 +26,15 @@ jobs:
         - os:  'ubuntu-latest'
           osb: 'ubuntu'
           rel: 'ubuntu-16.04'
-        - os:  'ubuntu-16.04'
-          osb: 'ubuntu'
-          rel: 'ubuntu-16.04'
+        ##- os:  'ubuntu-16.04'
+        ##  osb: 'ubuntu'
+        ##  rel: 'ubuntu-16.04'
         - os:  'macos-latest'
           osb: 'osx'
           rel: 'osx-10.14.1'
-        - os:  'windows-latest'
-          osb: 'win'
-          rel: 'win'
+        ##- os:  'windows-latest'
+        ##  osb: 'win'
+        ##  rel: 'win'
 
       fail-fast: false
     steps:
