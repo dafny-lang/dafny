@@ -17,8 +17,8 @@ jobs:
         ## setup a work environment (e.g. dotnet installation)
         ##os: [ubuntu-latest, ubuntu-16.04]
         ##os: [ubuntu-latest, windows-latest, ubuntu-16.04]
-        os: [ubuntu-latest, macos-latest]
-        ##os: [ubuntu-latest, macos-latest, windows-latest, ubuntu-16.04]
+        ##os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest, ubuntu-16.04]
         ## Size of the following array must match --num-shards in lit command
         shard: [1, 2, 3, 4, 5]
         ##shard: [1, 2, 3]
@@ -26,18 +26,25 @@ jobs:
         - os:  'ubuntu-latest'
           osb: 'ubuntu'
           rel: 'ubuntu-16.04'
-        ##- os:  'ubuntu-16.04'
-        ##  osb: 'ubuntu'
-        ##  rel: 'ubuntu-16.04'
+        - os:  'ubuntu-16.04'
+          osb: 'ubuntu'
+          rel: 'ubuntu-16.04'
         - os:  'macos-latest'
           osb: 'osx'
           rel: 'osx-10.14.1'
-        ##- os:  'windows-latest'
-        ##  osb: 'win'
-        ##  rel: 'win'
+        - os:  'windows-latest'
+          osb: 'win'
+          rel: 'win'
 
       fail-fast: false
     steps:
+    - name: Exit if not running
+      if: matrix.os == 'macos-latest'
+        run: exit
+      if: matrix.os == 'windows-latest'
+        run: exit
+      if: matrix.os == 'ubuntu-16.04'
+        run: exit
     - name: Manually sync certs
       if: runner.os == 'Linux'
       run: cert-sync /etc/ssl/certs/ca-certificates.crt
