@@ -75,7 +75,7 @@ jobs:
         Expand-Archive dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.os_for_release_zip }}.zip unzippedRelease
     - if: runner.os != 'Windows'
       run: |
-        unzip dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.os_for_build }}*.zip -d unzippedRelease
+        unzip dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.os_for_release_zip }}.zip -d unzippedRelease
         sudo chmod +x $PWD/unzippedRelease/dafny/dafny
     - name: Run lit tests
       run: |
