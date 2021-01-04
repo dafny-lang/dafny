@@ -15,7 +15,7 @@ Main() method. If a legal Main() method is found, the compiler will emit
 a `.EXE`; otherwise, it will emit a `.DLL`.
 
  (If there is more than one Main(), Dafny will try to emit an .EXE, but
-# 4. compiler to complain. One could imagine improving
+ the compiler may complain. One could imagine improving
  this functionality so that Dafny will produce a polite error message in
  this case.)
 
@@ -47,7 +47,7 @@ Each Dafny file follows the grammar of the ``Dafny`` non-terminal.
 It consists of a sequence of optional _include_ directives followed by top
 level declarations followed by the end of the file.
 
-## 4.1. Include Directives
+## 3.1. Include Directives
 ````grammar
 IncludeDirective_ = "include" stringToken
 ````
@@ -68,7 +68,7 @@ the underlying file system relative to the current working directory (the
 one in which the dafny tool is invoked). Paths beginning with a device
 designator (e.g., `C:`) are only permitted on Windows systems.
 
-## 4.2. Top Level Declarations
+## 3.2. Top Level Declarations
 ````grammar
 TopDecl = { { DeclModifier }
   ( SubModuleDecl
@@ -95,7 +95,7 @@ implicit top-level class and are implicitly `static` (but cannot be
 declared as static). In addition a ``ClassMemberDecl`` that appears at
 the top level cannot be a ``FieldDecl``.
 
-## 4.3. Declaration Modifiers
+## 3.3. Declaration Modifiers
 ````grammar
 DeclModifier =
   ( "abstract" | "ghost" | "static"

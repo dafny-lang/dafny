@@ -1,4 +1,4 @@
-# 5. Modules
+# 4. Modules
 
 ````grammar
 SubModuleDecl = ( ModuleDefinition_ | ModuleImport_ )
@@ -12,7 +12,7 @@ declarations. Modules may import each other for code reuse, and it is
 possible to abstract over modules to separate an implementation from an
 interface.
 
-## 5.1. Declaring New Modules
+## 4.1. Declaring New Modules
 ````grammar
 ModuleDefinition_ = "module" { Attribute } ModuleName
         [ [  "exclusively" ] "refines" ModuleQualifiedId ]
@@ -100,7 +100,7 @@ Note that everything declared at the top-level
 (in all the files constituting the program) is implicitly part
 of a single implicit unnamed global module.
 
-## 5.2. Declaring nested modules standalone
+## 4.2. Declaring nested modules standalone
 
 As described in the previous section, module declarations can be nested.
 It is also permitted to declare a nested module _outside_ of its 
@@ -130,7 +130,7 @@ the existence of `A.B` might cause names to be resolved differently and
 the semantics of the program might be (silently) different if `A.B` is
 present or absent.
 
-## 5.3. Importing Modules
+## 4.3. Importing Modules
 ````grammar
 ModuleImport_ = "import" ["opened" ]
     [ ModuleQualifiedId
@@ -206,7 +206,7 @@ import MyModule  // error: cannot add a moduled named MyModule
 import M = MyModule // OK. M and MyModule are equivalent
 ```
 
-## 5.4. Opening Modules
+## 4.4. Opening Modules
 
 Sometimes, prefixing the members of the module you imported with the
 name is tedious and ugly, even if you select a short name when
@@ -271,7 +271,7 @@ verbose enough to impede understanding.
 
 
 
-## 5.5. Export Sets and Access Control
+## 4.5. Export Sets and Access Control
 ```grammar
 "export" [ ExportId ] [ "..." ]
   {
@@ -380,7 +380,7 @@ in `B` nor as `Z.a` in C would be valid, because `a` is not in `Z`.
 The default export set is important in the resolution of qualified
 names, as described in Section [TODO}(#TODO).
 
-### 5.5.1. Provided and revealed names
+### 4.5.1. Provided and revealed names
 
 Names can be exported from modules in two ways, designated by `provides`
 and `reveals` in the export set declaration.
@@ -434,7 +434,7 @@ is a local name.
 
 TODO: DOes a module get a default export set if it inherits ESs from its parent?
 
-### 5.5.2. Extends list
+### 4.5.2. Extends list
 An export set declaration may include an _extends_ list, which is a list of
 one or more export set names from the same module containing the declaration
 (including export set names obtained from a refinement parent).
@@ -453,7 +453,7 @@ module M {
 ```
 export set C will contain the names `a`, `b`, abnd `c`.
  
-## 5.6. Module Abstraction
+## 4.6. Module Abstraction
 
 Sometimes, using a specific implementation is unnecessary; instead,
 all that is needed is a module that implements some interface.  In
@@ -512,7 +512,7 @@ concrete one, the specifications must be compatible, etc.
 
 A module that includes an abstract import must be declared _abstract_.
 
-## 5.7. Module Ordering and Dependencies
+## 4.7. Module Ordering and Dependencies
 
 Dafny isn't particular about the textual order in which modules are
 declared, but
@@ -567,7 +567,7 @@ its functionality. Finally, if you import via a path, such as `import A
 = B.C`, then this creates a dependency of `A` on `B`, as we need to know
 what `B` is (e.g., is it abstract or concrete, or a refinement?).
 
-## 5.8. Name Resolution
+## 4.8. Name Resolution
 
 When Dafny sees something like `A<T>.B<U>.C<V>`, how does it know what each part
 refers to? The process Dafny uses to determine what identifier
@@ -585,7 +585,7 @@ The form shown above contains three instances of
 The resolution is different depending on whether it is in
 a module context, an expression context or a type context.
 
-### 5.8.1. Modules and name spaces
+### 4.8.1. Modules and name spaces
 
 A module is a collection of declarations, each of which has a name.
 These names are held in two namespaces.
@@ -611,7 +611,7 @@ Local names take precedence over imported names. If a name is used more than
 once among imported names (coming from different imports), then it is
 ambiguous to _use_ the name without qualification.
 
-### 5.8.2. Module Id Context Name Resolution
+### 4.8.2. Module Id Context Name Resolution
 
 A qualified name may be used to refer to a module in an import statement or a refines clause of a module declaration.
 Such a qualified name is resolved as follows, with respect to its syntactic
@@ -656,7 +656,7 @@ use any local names:
 The `A` in `refines A` refers to the submodule `A`, not the global `A`.
 
 
-### 5.8.3. Expression Context Name Resolution
+### 4.8.3. Expression Context Name Resolution
 
 The leading ``NameSegment`` is resolved using the first following
 rule that succeeds.
@@ -718,7 +718,7 @@ First resolve expression E and any type arguments.
 * If `E` denotes an expression:
   4. Let T be the type of E. Look up id in T.
 
-### 5.8.4. Type Context Name Resolution
+### 4.8.4. Type Context Name Resolution
 
 In a type context the priority of ``NameSegment`` resolution is:
 

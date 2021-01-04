@@ -1,4 +1,4 @@
-# 25. Attributes
+# 24. Attributes
 ````grammar
 Attribute = "{" ":" AttributeName [ Expressions ] "}"
 ````
@@ -15,7 +15,7 @@ In general an attribute may have any name the user chooses. It may be
 followed by a comma separated list of expressions. These expressions will
 be resolved and type-checked in the context where the attribute appears.
 
-## 25.1. Dafny Attribute Implementation Details
+## 24.1. Dafny Attribute Implementation Details
 In the Dafny implementation the `Attributes` type holds the name of
 the attribute, a list of ``Expression`` arguments and a link to the
 previous Attributes object for that Dafny entity. So for each
@@ -29,7 +29,7 @@ MaybeFreeExpression, Specification.
 TODO: Dafny internals information should go into a separate
 document on Dafny internals.
 
-## 25.2. Dafny Attributes
+## 24.2. Dafny Attributes
 All entities that Dafny translates to Boogie have their attributes
 passed on to Boogie except for the `{:axiom}` attribute (which
 conflicts with Boogie usage) and the `{:trigger}` attribute which is
@@ -49,7 +49,7 @@ with no argument is interpreted as if it were true.
 The attributes that are processed specially by Dafny are described in the
 following sections.
 
-### 25.2.1. assumption
+### 24.2.1. assumption
 This attribute can only be placed on a local ghost bool
 variable of a method. Its declaration cannot have a rhs, but it is
 allowed to participate as the lhs of exactly one assignment of the
@@ -58,7 +58,7 @@ Boogie output to a declaration followed by an `assume b` command.
 See [@LeinoWuestholz2015], Section 3, for example uses of the `{:assumption}`
 attribute in Boogie.
 
-### 25.2.2. autoReq boolExpr
+### 24.2.2. autoReq boolExpr
 For a function declaration, if this attribute is set true at the nearest
 level, then its `requires` clause is strengthed sufficiently so that
 it may call the functions that it calls.
@@ -88,7 +88,7 @@ function g(y:int, b:bool) : bool
 }
 ```
 
-### 25.2.3. autocontracts
+### 24.2.3. autocontracts
 Dynamic frames [@Kassios:FM2006;@SmansEtAl:VeriCool;@SmansEtAl:ImplicitDynamicFrames;
 @LEINO:Dafny:DynamicFrames]
 are frame expressions that can vary dynamically during
@@ -150,7 +150,7 @@ be added.
    if (F != null) { Repr := Repr + {F} + F.Repr; }
 ```
 
-### 25.2.4. axiom
+### 24.2.4. axiom
 The `{:axiom}` attribute may be placed on a function or method.
 It means that the post-condition may be assumed to be true
 without proof. In that case also the body of the function or
@@ -159,19 +159,19 @@ method may be omitted.
 The `{:axiom}` attribute is also used for generated `reveal_*`
 lemmas as shown in Section [#sec-opaque].
 
-### 25.2.5. compile
+### 24.2.5. compile
 The `{:compile}` attribute takes a boolean argument. It may be applied to
 any top-level declaration. If that argument is false, then that declaration
 will not be compiled into .Net code.
 
-### 25.2.6. decl
+### 24.2.6. decl
 The `{:decl}` attribute may be placed on a method declaration. It
 inhibits the error message that has would be given when the method has an
 `ensures` clauses but no body. It has been used to declare Dafny interfaces
 in the MSR IronClad and IronFleet projects. Instead the `extern` keyword
 should be used (but that is soon to be replaced by the `{:extern}` attribute).
 
-### 25.2.7. fuel
+### 24.2.7. fuel
 The fuel attributes is used to specify how much "fuel" a function should have,
 i.e., how many times Z3 is permitted to unfold it's definition.  The
 new {:fuel} annotation can be added to the function itself, it which
@@ -193,7 +193,7 @@ fewer assert statements), but it may also increase verification time,
 so use it with care.  Setting the fuel to 0,0 is similar to making the
 definition opaque, except when used with all literal arguments.
 
-### 25.2.8. heapQuantifier
+### 24.2.8. heapQuantifier
 The `{:heapQuantifier}` attribute may be used on a ``QuantifierExpression``.
 When it appears in a quantifier expression, it is as if a new heap-valued
 quantifier variable was added to the quantification. Consider this code
@@ -216,7 +216,7 @@ What this is saying is that the quantified expression, `f(u) == u + r`,
 which may depend on the heap, is also valid for any good heap that is either the
 same as the current heap, or that is derived from it by heap update operations.
 
-### 25.2.9. imported
+### 24.2.9. imported
 If a ``MethodDecl`` or ``FunctionDecl`` has an `{:imported}` attribute,
 then it is allowed to have a empty body even though it has an **ensures**
 clause. Ordinarily a body would be required in order to provide the
@@ -229,7 +229,7 @@ does not have a body.
 This seems to duplicate what `extern` and `{:decl}` do and would be a good candidate for
 deprecation.
 
-### 25.2.10. induction
+### 24.2.10. induction
 The `{:induction}` attribute controls the application of
 proof by induction to two contexts. Given a list of
 variables on which induction might be applied, the
@@ -267,7 +267,7 @@ lemma Fill_J(s: seq<int>)
 }
 ```
 
-### 25.2.11. layerQuantifier
+### 24.2.11. layerQuantifier
 When Dafny is translating a quantified expression, if it has
 a `{:layerQuantifier}` attribute an additional quantifier
 variable is added to the quantifier bound variables.
@@ -288,7 +288,7 @@ TODO: Need more complete explanation of this attribute.
 Dafny issue [35](https://github.com/Microsoft/dafny/issues/35) tracks
 further effort for this attribute.
 
-### 25.2.12. nativeType {#sec-nativetype}
+### 24.2.12. nativeType {#sec-nativetype}
 The `{:nativeType}` attribute may only be used on a ``NewtypeDecl``
 where the base type is an integral type. It can take one of the following
 forms:
@@ -307,7 +307,7 @@ An error is reported if the given datatype cannot hold all the
 values that satisfy the constraint.
 
 
-### 25.2.13. opaque {#sec-opaque}
+### 24.2.13. opaque {#sec-opaque}
 Ordinarily the body of a function is transparent to its users but
 sometimes it is useful to hide it. If a function `f` is given the
 `{:opaque}` attribute then Dafny hides the body of the function,
@@ -338,14 +338,14 @@ hidden. In addition `foo_FULL` is given the
 `{:opaque_full}` and `{:auto_generated}` attributes in addition
 to the `{:opaque}` attribute (which it got because it is a copy of `foo`).
 
-### 25.2.14. opaque_full
+### 24.2.14. opaque_full
 The `{:opaque_full}` attribute is used to mark the _full_ version
 of an opaque function. See Section [#sec-opaque].
 
 <!--
 Describe this where refinement is described, as appropriate.
 
-### 25.2.15. prependAssertToken
+### 24.2.15. prependAssertToken
 This is used internally in Dafny as part of module refinement.
 It is an attribute on an assert statement.
 The Dafny code has the following comment:
@@ -362,7 +362,7 @@ the functionality is already adequately described where
 refinement is described.
 -->
 
-### 25.2.16. tailrecursion
+### 24.2.16. tailrecursion
 This attribute is used on method declarations. It has a boolean argument.
 
 If specified with a false value, it means the user specifically
@@ -378,7 +378,7 @@ recursion was explicitly requested.
 * If `{:tailrecursion true}` was specified but the code does not allow it,
 an error message is given.
 
-### 25.2.17. timeLimitMultiplier
+### 24.2.17. timeLimitMultiplier
 This attribute may be placed on a method or function declaration
 and has an integer argument. If `{:timeLimitMultiplier X}` was
 specified a `{:timelimit Y}` attributed is passed on to Boogie
@@ -386,16 +386,16 @@ where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
 Boogie `timelimit` command-line option.
 
-### 25.2.18. trigger
+### 24.2.18. trigger
 Trigger attributes are used on quantifiers and comprehensions.
 They are translated into Boogie triggers.
 
-### 25.2.19. typeQuantifier
+### 24.2.19. typeQuantifier
 The `{:typeQuantifier}` attribute must be used on a quantifier if it
 quantifies over types.
 
 
-## 25.3. Boogie Attributes
+## 24.3. Boogie Attributes
 Use the Boogie "/attrHelp" option to get the list of attributes
 that Boogie recognizes and their meaning. Here is the output at
 the time of this writing. Dafny passes attributes that have

@@ -28,6 +28,7 @@ public class Numbers {
 
   public static void main(String[] args) {
     int i = 0;
+    if (i < args.length && args[i].equals("-v")) { verbose = true; i++; }
     if (i < args.length && args[i].equals("-r")) { replace = true; i++; }
     process(args[i], false);
     if (replace) {
@@ -87,7 +88,9 @@ public static void process(String file, boolean replace) {
           labels.put(refname,n);
         }
         out = (hashes + " " + n + line.substring(textpos));
-        if (verbose) System.out.println(out);
+        if (verbose) {
+          System.out.println(out);
+        }
       }
       if (!replace) {
         m = cite.matcher(out);
