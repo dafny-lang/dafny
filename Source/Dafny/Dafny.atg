@@ -1689,7 +1689,7 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
                OldSemi
   | [ "yield"                                                (. isYield = true; .)
     ]
-    ( "requires"
+    ( "requires"                                             (. attrs = null; .)
       { Attribute<ref attrs> }
       [ IF(IsLabel(!isYield))
         LabelIdent<out lbl> ":"
@@ -1701,7 +1701,7 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
                                                                   req.Add(new AttributedExpression(e, al, null));
                                                                 }
                                                              .)
-    | "ensures"
+    | "ensures"                                              (. attrs = null; .)
       { Attribute<ref attrs> }
       Expression<out e, false, false> OldSemi                (. if (isYield) {
                                                                   yieldEns.Add(new AttributedExpression(e, attrs));
@@ -2068,16 +2068,16 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
      Attributes attrs = null;
   .)
   SYNC
-  ( "requires"                                          (. attrs = null; .)
+  ( "requires"
     { Attribute<ref attrs> }
     Expression<out e, false, false> OldSemi             (. reqs.Add(new AttributedExpression(e, attrs)); .)
-  | "reads"                                             (. attrs = null; .)
+  | "reads"
     { Attribute<ref attrs> }
     PossiblyWildFrameExpression<out fe, false>          (. reads.Add(fe); .)
     { "," PossiblyWildFrameExpression<out fe, false>    (. reads.Add(fe); .)
     }
     OldSemi
-  | "ensures"                                           (. attrs = null; .)
+  | "ensures"
     { Attribute<ref attrs> }
     Expression<out e, false, false>
     OldSemi                                   (. ens.Add(new AttributedExpression(e, attrs)); .)
@@ -2085,7 +2085,6 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
                                                    SemErr(t, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
                                                    decreases = new List<Expression/*!*/>();
                                                  }
-                                                 attrs = null;
                                               .)
     { Attribute<ref attrs> }
     DecreasesList<decreases, false, false>
@@ -2829,6 +2828,7 @@ ForallStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken/*!*/ x = Token.NoToken;
      List<BoundVar> bvars = null;
+     Attributes qattrs = null;
      Attributes attrs = null;
      Expression range = null;
      var ens = new List<AttributedExpression/*!*/>();
@@ -2840,9 +2840,9 @@ ForallStmt<out Statement/*!*/ s>
   "forall"                                  (. x = t; tok = x; .)
 
   ( IF(la.kind == _openparen)  /* disambiguation needed, because of the possibility of a body-less forall statement */
-    "(" [ QuantifierDomain<out bvars, out attrs, out range> ] ")"
+    "(" [ QuantifierDomain<out bvars, out qattrs, out range> ] ")"
   |     [ IF(IsIdentifier(la.kind))  /* disambiguation needed, because of the possibility of a body-less forall statement */
-          QuantifierDomain<out bvars, out attrs, out range>
+          QuantifierDomain<out bvars, out qattrs, out range>
         ]
   )
   (. if (bvars == null) { bvars = new List<BoundVar>(); }
@@ -2852,7 +2852,7 @@ ForallStmt<out Statement/*!*/ s>
   {
     "ensures"
     { Attribute<ref attrs> }
-    Expression<out e, false, true>  (. ens.Add(new AttributedExpression(e, attrs)); .)
+    Expression<out e, false, true>  (. ens.Add(new AttributedExpression(e)); .)
     OldSemi                         (. tok = t; .)
   }
   [ IF(la.kind == _lbrace)  /* if the input continues like a block statement, take it to be the body of the forall statement; a body-less forall statement must continue in some other way */
@@ -2865,7 +2865,7 @@ ForallStmt<out Statement/*!*/ s>
      if (block != null) {
         tok = block.EndTok;
      }
-     s = new ForallStmt(x, tok, bvars, attrs, range, ens, block);
+     s = new ForallStmt(x, tok, bvars, qattrs, range, ens, block);
   .)
   .
 
@@ -3466,13 +3466,13 @@ LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
       ]
     ")"
   )
-  { "reads"
+  { "reads"                                           (. attrs = null; .)
     { Attribute<ref attrs> }
     PossiblyWildFrameExpression<out fe, true>         (. reads.Add(fe); .)
     { ","
       PossiblyWildFrameExpression<out fe, true>       (. reads.Add(fe); .)
     }
-  | "requires"
+  | "requires"                                        (. attrs = null; .)
     { Attribute<ref attrs> }
     Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); .)
   }
