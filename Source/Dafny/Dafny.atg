@@ -1657,11 +1657,16 @@ MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<Attr
     [ IF(IsLabel(true))
       LabelIdent<out lbl> ":"
     ]
-    Expression<out e, false, false> OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
+    Expression<out e, false, false>
+    OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
   | "ensures"
     { Attribute<ref ensAttrs> }
-    Expression<out e, false, false> OldSemi       (. ens.Add(new AttributedExpression(e, ensAttrs)); .)
-  | "decreases" { Attribute<ref decAttrs> } DecreasesList<decreases, true, false> OldSemi
+    Expression<out e, false, false>
+    OldSemi       (. ens.Add(new AttributedExpression(e, ensAttrs)); .)
+  | "decreases"
+    { Attribute<ref decAttrs> }
+    DecreasesList<decreases, true, false>
+    OldSemi
   )
   .
 IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/*!*/ mod, List<Expression/*!*/> decreases,
@@ -1695,7 +1700,8 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
                                                                   req.Add(new AttributedExpression(e, al, null));
                                                                 }
                                                              .)
-    | "ensures" { Attribute<ref ensAttrs> }
+    | "ensures"
+      { Attribute<ref ensAttrs> }
       Expression<out e, false, false> OldSemi                (. if (isYield) {
                                                                   yieldEns.Add(new AttributedExpression(e, ensAttrs));
                                                                 } else {
@@ -1703,7 +1709,10 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
                                                                 }
                                                              .)
     )
-  | "decreases" { Attribute<ref decrAttrs> } DecreasesList<decreases, false, false> OldSemi
+  | "decreases"
+    { Attribute<ref decrAttrs> }
+    DecreasesList<decreases, false, false>
+    OldSemi
   )
   .
 Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, List<Formal> formals.>
@@ -2055,25 +2064,30 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));
      Expression/*!*/ e;  FrameExpression/*!*/ fe;
-     Attributes ensAttrs = null; Attributes reqAttrs = null; .)
+     Attributes ensAttrs = null; Attributes reqAttrs = null;
+  .)
   SYNC
   ( "requires"
     { Attribute<ref reqAttrs> }
-    Expression<out e, false, false> OldSemi                (. reqs.Add(new AttributedExpression(e, reqAttrs)); .)
-  | "reads"
+    Expression<out e, false, false> OldSemi             (. reqs.Add(new AttributedExpression(e, reqAttrs)); .)
+  | "reads"                                             (. Attributes readsAttrs = null; .)
+    { Attribute<ref readsAttrs> }
     PossiblyWildFrameExpression<out fe, false>          (. reads.Add(fe); .)
     { "," PossiblyWildFrameExpression<out fe, false>    (. reads.Add(fe); .)
     }
     OldSemi
   | "ensures"
-      { Attribute<ref ensAttrs> }
-      Expression<out e, false, false> OldSemi                (. ens.Add(new AttributedExpression(e, ensAttrs)); .)
+    { Attribute<ref ensAttrs> }
+    Expression<out e, false, false> OldSemi             (. ens.Add(new AttributedExpression(e, ensAttrs)); .)
   | "decreases"                               (. if (decreases == null) {
                                                    SemErr(t, "'decreases' clauses are meaningless for greatest predicates, so they are not allowed");
                                                    decreases = new List<Expression/*!*/>();
                                                  }
+                                                 Attributes decrAttrs = null;
                                               .)
-    DecreasesList<decreases, false, false> OldSemi
+    { Attribute<ref decrAttrs> }
+    DecreasesList<decreases, false, false>
+    OldSemi
   )
   .
 
@@ -2589,11 +2603,13 @@ LoopSpec<.List<AttributedExpression> invariants, List<Expression> decreases, ref
     { Attribute<ref attrs> }
     Expression<out e, false, true>                (. invariants.Add(new AttributedExpression(e, attrs)); .)
     OldSemi
-  | SYNC "decreases"
+  | SYNC
+    "decreases"
     { Attribute<ref decAttrs> }
     DecreasesList<decreases, true, true>
     OldSemi
-  | SYNC "modifies"                               (. mod = mod ?? new List<FrameExpression>(); .)
+  | SYNC
+    "modifies"                                    (. mod = mod ?? new List<FrameExpression>(); .)
     { Attribute<ref modAttrs> }
     FrameExpression<out fe, false, true>          (. mod.Add(fe); .)
     { "," FrameExpression<out fe, false, true>    (. mod.Add(fe); .)
@@ -2832,7 +2848,9 @@ ForallStmt<out Statement/*!*/ s>
   .)
 
   {
-    "ensures" Expression<out e, false, true>  (. ens.Add(new AttributedExpression(e)); .)
+    "ensures"                       (. Attributes ensAttrs = null; .)
+    { Attribute<ref ensAttrs> }
+    Expression<out e, false, true>  (. ens.Add(new AttributedExpression(e, ensAttrs)); .)
     OldSemi                                   (. tok = t; .)
   }
   [ IF(la.kind == _lbrace)  /* if the input continues like a block statement, take it to be the body of the forall statement; a body-less forall statement must continue in some other way */
@@ -3445,7 +3463,8 @@ LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
       ]
     ")"
   )
-  { "reads"
+  { "reads"                                           (. Attributes readsAttrs = null; .)
+    { Attribute<ref readsAttrs> }
     PossiblyWildFrameExpression<out fe, true>         (. reads.Add(fe); .)
     { ","
       PossiblyWildFrameExpression<out fe, true>       (. reads.Add(fe); .)
