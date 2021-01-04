@@ -12,7 +12,8 @@ We document specifications at these levels:
 - At the lowest level are the various kinds of specification clauses,
   e.g., a ``RequiresClause_``.
 - Next are the specifications for entities that need them,
-  e.g., a ``MethodSpec``.
+  e.g., a ``MethodSpec``, which typically consist of a sequence of 
+  specification clauses.
 - At the top level are the entity declarations that include
   the specifications, e.g., ``MethodDecl``.
 
@@ -49,12 +50,6 @@ establish that later conjuncts are well-defined.
 EnsuresClause_ =
   "ensures" { Attribute } Expression(allowLemma: false,
                                      allowLambda: false)
-
-ForAllEnsuresClause_ =
-  "ensures" Expression(allowLemma: false, allowLambda: true)
-
-FunctionEnsuresClause_ =
-  "ensures" Expression(allowLemma: false, allowLambda: false)
 ````
 
 An `ensures` clause specifies the post condition for a
@@ -70,19 +65,11 @@ The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-TODO: In the present sources ``FunctionEnsuresClause_`` differs from
-``EnsuresClause_`` only in that it is not allowed to specify
-``Attribute``s. This seems like a bug and will likely
-be fixed in a future version.
-
 ### 6.1.3. Decreases Clause
 ````grammar
 DecreasesClause_(allowWildcard, allowLambda) =
   "decreases" { Attribute } DecreasesList(allowWildcard,
                                           allowLambda)
-
-FunctionDecreasesClause_(allowWildcard, allowLambda) =
-  "decreases" DecreasesList(allowWildcard, allowLambda)
 
 DecreasesList(allowWildcard, allowLambda) =
   PossiblyWildExpression(allowLambda)
@@ -91,9 +78,6 @@ DecreasesList(allowWildcard, allowLambda) =
 If `allowWildcard` is false but one of the
 ``PossiblyWildExpression``s is a wild-card, an error is
 reported.
-
-TODO: A ``FunctionDecreasesClause_`` is not allowed to specify
-``Attribute``s. this will be fixed in a future version.
 
 Decreases clauses are used to prove termination in the
 presence of recursion. if more than one `decreases` clause is given
@@ -143,9 +127,6 @@ user-provided decreases clause, followed by $\top$. We said "user-provided
 decreases clause", but if the user completely omits a `decreases` clause,
 then Dafny will usually make a guess at one, in which case the effective
 decreases clause is any prefix followed by the guess followed by $\top$.
-(If you're using the Dafny IDE in Visual Studio, you can hover the mouse
-over the name of a recursive function or method, or the "while" keyword
-for a loop, to see the `decreases` clause that Dafny guessed, if any.)
 
 Here is a simple but interesting example: the Fibonacci function.
 
@@ -157,8 +138,7 @@ function Fib(n: nat) : nat
 
 ```
 
-In this example, if you hover your mouse over the function name
-you will see that Dafny has supplied a `decreases n` clause.
+In this example, Dafny supplies a `decreases n` clause.
 
 Let's take a look at the kind of example where a mysterious-looking
 decreases clause like "Rank, 0" is useful.
@@ -284,7 +264,7 @@ Moreover, remember that if a function or method has no user-declared
 `decreases` clause, Dafny will make a guess. The guess is (usually)
 the list of arguments of the function/method, in the order given. This is
 exactly the decreases clauses needed here. Thus, Dafny successfully
-verifies the program without any explicit decreases clauses:
+verifies the program without any explicit `decreases` clauses:
 ```dafny
 method Outer(x: nat)
 {
@@ -353,14 +333,10 @@ lambda expressions.
 
 ### 6.1.5. Reads Clause
 ````grammar
-FunctionReadsClause_ =
-  "reads"
-  PossiblyWildFrameExpression (allowLemma: false)
-  { "," PossiblyWildFrameExpression(allowLemma: false) }
-
-LambdaReadsClause_ =
-  "reads" PossiblyWildFrameExpression(allowLemma: true)
-  { "," PossiblyWildFrameExpression(allowLemma: true) }
+ReadsClause_(allowLemma) =
+  "reads" { Attribute }
+  PossiblyWildFrameExpression(allowLemma)
+  { "," PossiblyWildFrameExpression(allowLemma) }
 
 IteratorReadsClause_ =
   "reads" { Attribute }
@@ -387,7 +363,7 @@ essential to making the verification process feasible.
 It is not just the body of a function that is subject to `reads`
 checks, but also its precondition and the `reads` clause itself.
 
-A reads clause can list a wildcard `*`, which allows the enclosing
+A `reads` clause can list a wildcard `*`, which allows the enclosing
 function to read anything. In many cases, and in particular in all cases
 where the function is defined recursively, this makes it next to
 impossible to make any use of the function. Nevertheless, as an
@@ -400,10 +376,6 @@ in a specification the effective read set is the union of the sets
 specified. If there are no `reads` clauses the effective read set is
 empty. If `*` is given in a `reads` clause it means any memory may be
 read.
-
-TODO: It would be nice if the different forms of read clauses could be
-combined. In a future version the single form of read clause will allow
-a list and attributes.
 
 TO BE WRITTEN: multiset of objects allowed in reads clauses
 
@@ -420,7 +392,7 @@ Frames also affect methods. Methods are not
 required to list the things they read. Methods are allowed to read
 whatever memory they like, but they are required to list which parts of
 memory they modify, with a `modifies` annotation. These are almost identical
-to their reads cousins, except they say what can be changed, rather than
+to their `reads` cousins, except they say what can be changed, rather than
 what the value of the function depends on. In combination with reads,
 modification restrictions allow Dafny to prove properties of code that
 would otherwise be very difficult or impossible. Reads and modifies are
@@ -429,7 +401,7 @@ because they restrict what would otherwise be arbitrary modifications of
 memory to something that Dafny can reason about.
 
 If an object is newly allocated within the body of a method
-or within the scope of a modifies statement or a loop's modifies clause,
+or within the scope of a `modifies` statement or a loop's `modifies` clause,
  then the fields of that object may always be modified.
 
 It is also possible to frame what can be modified by a block statement
@@ -491,9 +463,9 @@ read any memory.
 ````grammar
 FunctionSpec =
   { RequiresClause_
-  | FunctionReadsClause_
-  | FunctionEnsuresClause_
-  | FunctionDecreasesClause_(allowWildcard: false, allowLambda: false)
+  | ReadsClause_(allowLemma: false)
+  | EnsuresClause_
+  | DecreasesClause_(allowWildcard: false, allowLambda: false)
   }
 ````
 
@@ -505,7 +477,7 @@ allowed to modify any memory.
 ## 6.4. Lambda Specification
 ````grammar
 LambdaSpec_ =
-  { LambdaReadsClause_
+  { ReadsClause_(allowLemma: true)
   | RequiresClause_
   }
 ````

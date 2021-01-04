@@ -1215,7 +1215,7 @@ ForallStmt = "forall"
   ( "(" [ QuantifierDomain ] ")"
   | [ QuantifierDomain ]
   )
-  { ForAllEnsuresClause_ }
+  { EnsuresClause_ }
   [ BlockStmt ]
 ````
 
