@@ -2065,7 +2065,7 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));
      Expression/*!*/ e;  FrameExpression/*!*/ fe;
-     Attributes attrs = null
+     Attributes attrs = null;
   .)
   SYNC
   ( "requires"
