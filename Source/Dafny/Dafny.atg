@@ -2068,15 +2068,16 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
      Attributes attrs = null;
   .)
   SYNC
-  ( "requires"
+  ( "requires"                                          (. attrs = null; .)
     { Attribute<ref attrs> }
     Expression<out e, false, false> OldSemi             (. reqs.Add(new AttributedExpression(e, attrs)); .)
-  | "reads"
+  | "reads"                                             (. attrs = null; .)
     { Attribute<ref attrs> }
     PossiblyWildFrameExpression<out fe, false>          (. reads.Add(fe); .)
-    { "," PossiblyWildFrameExpression<out fe, false> }  (. reads.Add(fe); .)
+    { "," PossiblyWildFrameExpression<out fe, false>    (. reads.Add(fe); .)
+    }
     OldSemi
-  | "ensures"
+  | "ensures"                                           (. attrs = null; .)
     { Attribute<ref attrs> }
     Expression<out e, false, false>
     OldSemi                                   (. ens.Add(new AttributedExpression(e, attrs)); .)
@@ -2084,6 +2085,7 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
                                                    SemErr(t, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
                                                    decreases = new List<Expression/*!*/>();
                                                  }
+                                                 attrs = null;
                                               .)
     { Attribute<ref attrs> }
     DecreasesList<decreases, false, false>
