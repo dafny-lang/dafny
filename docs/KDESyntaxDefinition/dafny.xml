@@ -110,7 +110,7 @@
 
         <!-- Either an entire attribute if it has no expressions, or just the opening and attribute name,
              so that the expressions get their own coloring -->
-        <RegExpr attribute="Attribute" String="{:\s*[a-zA-Z0-9_'?]+(?:\s+\})?" />
+        <RegExpr attribute="Attribute" String="\{:\s*[a-zA-Z0-9_'?]+(?:\s+\})?" />
 
         <!-- Complicated set of rules to distinguish builtin types and identifiers -->
         <RegExpr attribute="Ident" String="(?:bool|char|int|nat|real|string)[a-zA-Z0-9_'?]+" />
@@ -147,10 +147,10 @@
         <!-- operators, error chars and punctuation -->
         <RegExpr attribute="Operators" String="!in(?![0-9a-zA-Z_'?])" />
         <RegExpr attribute="Operators" String="in(?![0-9a-zA-Z_'?])" />
-        <RegExpr attribute="Operators" String="(?:\+|-|\*|/|%|&lt;(?:=(?:=(?:&gt;)?)?)?|&gt;[=]?|=&gt;|==[#&gt;]?|!=[#]?|&amp;&amp;|\|\||![!]?|[~]|#|\.\.|:)" />
-        <RegExpr attribute="Error" String="(?:[`$])" />
+        <RegExpr attribute="Operators" String="(?:\+|-|\*|/|%|&lt;(?:=(?:=(?:&gt;)?)?)?|&gt;(?:=)?|=&gt;|==[&gt;#]|!=[#]?|&amp;&amp;|\|\||![!]?|[~]|#|\.\.|:)" />
+        <RegExpr attribute="Error" String="(?:\$)" />
 
-        <RegExpr attribute="Punctuation" String="(?:;|\(|\)|\[|\]|\{|\}|,|\.|:[:=|]?|\|)" />
+        <RegExpr attribute="Punctuation" String="(?:;|\(|\)|\[|\]|\{|\}|,|\.|:[=|]|`|\|)" />
 
         <!-- Openings for quoted and verbatim strings -->
         <DetectChar attribute="String" char="&quot;" context="Quoted String" />
