@@ -5,6 +5,7 @@ from os import path
 import argparse
 import json
 import os
+import stat
 import re
 import subprocess
 import sys
@@ -12,19 +13,24 @@ import time
 import urllib.request
 import zipfile
 import shutil
+import ntpath
 
 # Configuration
 
 ## Where do we fetch the list of releases from?
-## Get the latest release like this:
-## RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/latest"
-## Get a specific release like this:
-RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/tags/z3-4.8.4"
-## How do we extract info from the name of a release file?
-RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
+## Get the latest Z3 release like this:
+## Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/latest"
+## Get a specific Z3 release like this:
+Z3_RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/tags/z3-4.8.4"
+## How do we extract info from the name of a Z3 release file?
+Z3_RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9a-z\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
+
+## Allowed Dafny release names
+DAFNY_RELEASE_REGEX = re.compile("\\d+\\.\\d+\\.\\d+(-[\w\d_-]+)?$")
 
 ## Where are the sources?
 SOURCE_DIRECTORY = "Source"
+
 ## Where do the binaries get put?
 BINARIES_DIRECTORY = "Binaries"
 ## Where do we store the built packages and cache files?
@@ -41,47 +47,27 @@ Z3_INTERESTING_FILES = ["LICENSE.txt", "bin/*"]
 ## On unix systems, which Dafny files should be marked as executable? (Glob syntax; Z3's permissions are preserved)
 UNIX_EXECUTABLES = ["dafny", "dafny-server"]
 
-## What do we take from Dafny's Binaries folder?
-DLLs = ["BoogieAbsInt",
-        "BoogieBasetypes",
-        "BoogieCodeContractsExtender",
-        "BoogieConcurrency",
-        "BoogieCore",
-        "DafnyPipeline",
-        "Dafny",
-        "BoogieDoomed",
-        "BoogieExecutionEngine",
-        "BoogieGraph",
-        "BoogieHoudini",
-        "BoogieModel",
-        "BoogieModelViewer",
-        "BoogieParserHelper",
-        "Provers.SMTLib",
-        "BoogieVCExpr",
-        "BoogieVCGeneration",
-        "Mono.Cecil",
-        "System.Collections.Immutable",
-        "System.Runtime"]
-EXEs = ["Dafny", "DafnyServer"]
-ETCs = UNIX_EXECUTABLES + ["DafnyPrelude.bpl", "DafnyRuntime.cs", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.jar", "libhostpolicy.dylib"]
+ETCs = ["DafnyPrelude.bpl", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.jar"]
 
 # Constants
 
 THIS_FILE = path.realpath(__file__)
-ROOT_DIRECTORY = path.dirname(THIS_FILE)
+ROOT_DIRECTORY = path.dirname(path.dirname(THIS_FILE))
 SOURCE_DIRECTORY = path.join(ROOT_DIRECTORY, SOURCE_DIRECTORY)
 BINARIES_DIRECTORY = path.join(ROOT_DIRECTORY, BINARIES_DIRECTORY)
 DESTINATION_DIRECTORY = path.join(ROOT_DIRECTORY, DESTINATION_DIRECTORY)
 CACHE_DIRECTORY = path.join(DESTINATION_DIRECTORY, "cache")
 
-MONO = sys.platform not in ("win32", "cygwin")
-DLL_PDB_EXT = ".pdb"
-EXE_PDB_EXT = ".pdb"
-ARCHIVE_FNAMES = ([dll + ".dll" for dll in DLLs] + [dll + DLL_PDB_EXT for dll in DLLs] +
-                  [exe + ".exe" for exe in EXEs] + [exe + EXE_PDB_EXT for exe in EXEs] +
-                  ETCs)
-OTHERS = ( ["docs/DafnyRef/out/DafnyRef.pdf"] )
-# Code
+OTHERS = ( [ ] ) ## Other files to include in zip
+OTHER_UPLOADS = ( ["docs/DafnyRef/out/DafnyRef.pdf"] )
+
+z3ToDotNetOSMapping = {
+    "ubuntu": "linux",
+    "debian": "linux",
+    "osx": "osx",
+    "win": "win"
+}
+
 
 def flush(*args, **kwargs):
     print(*args, **kwargs)
@@ -90,9 +76,9 @@ def flush(*args, **kwargs):
 class Release:
     @staticmethod
     def parse_zip_name(name):
-        m = RELEASE_REGEXP.match(name)
+        m = Z3_RELEASE_REGEXP.match(name)
         if not m:
-            raise Exception("{} does not match RELEASE_REGEXP".format(name))
+            raise Exception("{} does not match Z3_RELEASE_REGEXP".format(name))
         return m.group('platform'), m.group('os'), m.group("directory")
 
     def __init__(self, js, version):
@@ -100,9 +86,12 @@ class Release:
         self.size = js["size"]
         self.url = js["browser_download_url"]
         self.platform, self.os, self.directory = Release.parse_zip_name(js["name"])
+        self.os_name = self.os.split("-")[0]
         self.z3_zip = path.join(CACHE_DIRECTORY, self.z3_name)
         self.dafny_name = "dafny-{}-{}-{}.zip".format(version, self.platform, self.os)
+        self.target = "{}-{}".format(z3ToDotNetOSMapping[self.os_name], self.platform)
         self.dafny_zip = path.join(DESTINATION_DIRECTORY, self.dafny_name)
+        self.buildDirectory = path.join(BINARIES_DIRECTORY, self.target, "publish")
 
     @property
     def cached(self):
@@ -127,6 +116,22 @@ class Release:
         """Zip entries always use '/' as the path separator."""
         return fpath.replace(os.path.sep, '/')
 
+    def build(self):
+        os.chdir(ROOT_DIRECTORY)
+        flush("  - Building")
+
+        if path.exists(self.buildDirectory):
+            shutil.rmtree(self.buildDirectory)
+        run(["make", "--quiet", "clean"])
+        run(["make", "--quiet", "runtime"])
+        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "Dafny.sln"),
+            "--nologo",
+            "-v:q",
+            "-f", "netcoreapp3.1",
+            "-o", self.buildDirectory,
+            "-r", self.target,
+            "-c", "Checked"])
+
     def pack(self):
         try:
             os.remove(self.dafny_zip)
@@ -143,11 +148,19 @@ class Release:
                         contents = Z3_archive.read(fileinfo)
                         fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, Z3_PACKAGE_PREFIX, fname))
                         archive.writestr(fileinfo, contents)
-            for fname in ARCHIVE_FNAMES:
-                fpath = path.join(BINARIES_DIRECTORY, fname)
+            uppercaseDafny = path.join(self.buildDirectory, "Dafny")
+            if os.path.exists(uppercaseDafny):
+                lowercaseDafny = path.join(self.buildDirectory, "dafny")
+                shutil.move(uppercaseDafny, lowercaseDafny)
+                os.chmod(lowercaseDafny, stat.S_IEXEC| os.lstat(lowercaseDafny).st_mode)
+            paths = pathsInDirectory(self.buildDirectory) + list(map(lambda etc: path.join(BINARIES_DIRECTORY, etc), ETCs)) + OTHERS
+            for fpath in paths:
+                if os.path.isdir(fpath):
+                    continue
+                fname = ntpath.basename(fpath)
                 if path.exists(fpath):
                     fileinfo = zipfile.ZipInfo(fname, time.localtime(os.stat(fpath).st_mtime)[:6])
-                    if any(fnmatch(fname, pattern) for pattern in UNIX_EXECUTABLES):
+                    if self.os_name != 'win':
                         # http://stackoverflow.com/questions/434641/
                         fileinfo.external_attr = 0o100755 << 16
                         fileinfo.create_system = 3  # lie about this zip file's source OS to preserve permissions
@@ -157,23 +170,15 @@ class Release:
                     archive.writestr(fileinfo, contents)
                 else:
                     missing.append(fname)
-            for fpath in OTHERS:
-                if path.exists(fpath):
-                    fname = os.path.basename(fpath)
-                    fileinfo = zipfile.ZipInfo(fname, time.localtime(os.stat(fpath).st_mtime)[:6])
-                    contents = open(fpath, mode='rb').read()
-                    fileinfo.compress_type = zipfile.ZIP_DEFLATED
-                    fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, fname))
-                    archive.writestr(fileinfo, contents)
-                else:
-                    missing.append(fname)
+        for fpath in OTHER_UPLOADS:
+            shutil.copy(fpath, DESTINATION_DIRECTORY)
         flush("done! (imported {} files from z3's sources)".format(z3_files_count))
         if missing:
             flush("      WARNING: Not all files were found: {} were missing".format(", ".join(missing)))
 
 def discover(version):
     flush("  - Getting information about latest release")
-    with urllib.request.urlopen(RELEASES_URL) as reader:
+    with urllib.request.urlopen(Z3_RELEASES_URL) as reader:
         js = json.loads(reader.read().decode("utf-8"))
 
         for release_js in js["assets"]:
@@ -184,6 +189,13 @@ def discover(version):
             else:
                 flush("    + Rejecting {}".format(release.z3_name))
 
+def path_leaf(path):
+    head, tail = ntpath.split(path)
+    return tail or ntpath.basename(head)
+
+def pathsInDirectory(directory):
+    return list(map(lambda file: path.join(directory, file), os.listdir(directory)))
+
 def download(releases):
     flush("  - Downloading {} z3 archives".format(len(releases)))
     for release in releases:
@@ -192,51 +204,77 @@ def download(releases):
 
 def run(cmd):
     flush("    + {}...".format(" ".join(cmd)), end=' ')
-    retv = subprocess.call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    retv = subprocess.call(cmd)
     if retv != 0:
         flush("failed! (Is Dafny or the Dafny server running?)")
         sys.exit(1)
     else:
         flush("done!")
 
-def build():
-    os.chdir(ROOT_DIRECTORY)
-    flush("  - Building")
-    builder = "dotnet build"
-    try:
-        run(["dotnet", "build", "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
-        run(["make", "clean"])
-        run(["dotnet", "build", "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Rebuild"])
-        run(["make", "runtime", "refman-release"])
-    except FileNotFoundError:
-        flush("Could not find '{}'!".format(builder))
-        flush("On Windows, you need to run this from the VS native tools command prompt.")
-        flush("On Mac/Linux, you might need a more recent version of Mono.")
-        sys.exit(1)
-
-def pack(releases):
+def pack(args, releases):
     flush("  - Packaging {} Dafny archives".format(len(releases)))
     for release in releases:
         flush("    + {}:".format(release.dafny_name), end=' ')
+        release.build()
         release.pack()
+    if not args.skip_manual:
+        run(["make", "--quiet", "refman-release"])
+
+def check_version_cs(args):
+    # Checking version.cs
+    fp = open(path.join(SOURCE_DIRECTORY,"version.cs"))
+    lines = fp.readlines()
+    qstart = lines[2].index('"')
+    qend = lines[2].index('"', qstart+1)
+    lastdot = lines[2].rindex('.',qstart)
+    v1 = lines[2][qstart+1:lastdot]
+    v2 = lines[2][lastdot+1:qend]
+    now = time.localtime()
+    year = now[0]
+    month = now[1]
+    day = now[2]
+    v3 = str(year-2018) + str(month).zfill(2) + str(day).zfill(2)
+    if v2 != v3:
+        flush("The date in version.cs does not agree with today's date: " + v3 + " vs. " + v2)
+    if "-" in args.version:
+        hy = args.version[:args.version.index('-')]
+    else:
+        hy = args.version
+    if hy != v1:
+        flush("The version number in version.cs does not agree with the given version: " + hy + " vs. " + v1)
+    if (v2 != v3 or hy != v1) and not args.trial:
+        return False
+    fp.close()
+    flush("Creating release files for release \"" + args.version + "\" and internal version information: "+ lines[2][qstart+1:qend])
+    return True
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Prepare a Dafny release. Configuration is hardcoded; edit the `# Configuration' section of this script to change it.")
     parser.add_argument("version", help="Version number for this release")
+    parser.add_argument("--os", help="operating system name for which to make a release")
+    parser.add_argument("--skip_manual", help="do not create the reference manual")
+    parser.add_argument("--trial", help="ignore version.cs discrepancies")
     return parser.parse_args()
 
 def main():
     args = parse_arguments()
+    if not DAFNY_RELEASE_REGEX.match(args.version):
+        flush("Release number is in wrong format: should be d.d.d or d.d.d-text without spaces")
+        return
     os.makedirs(CACHE_DIRECTORY, exist_ok=True)
+
+    if not check_version_cs(args):
+        return
 
     # Z3
     flush("* Finding and downloading Z3 releases")
     releases = list(discover(args.version))
+    if args.os:
+        releases = list(filter(lambda release: release.os_name == args.os, releases))
     download(releases)
 
     flush("* Building and packaging Dafny")
-    build()
-    pack(releases)
+    pack(args, releases)
 
 if __name__ == '__main__':
     main()
