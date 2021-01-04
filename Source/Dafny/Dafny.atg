@@ -2848,7 +2848,7 @@ ForallStmt<out Statement/*!*/ s>
   .)
 
   {
-    "ensures"                       (. Attributes attrs = null; .)
+    "ensures"
     { Attribute<ref attrs> }
     Expression<out e, false, true>  (. ens.Add(new AttributedExpression(e, attrs)); .)
     OldSemi                         (. tok = t; .)
