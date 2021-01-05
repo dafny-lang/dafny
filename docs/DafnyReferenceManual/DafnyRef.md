@@ -54,7 +54,7 @@ user understand how to do proofs with Dafny.
 <!--PDF NEWPAGE-->
 {% include UserGuide.md %}
 
-# TODO
+# 27. TODO
 
 -- const, static const
 
@@ -82,4 +82,4 @@ user understand how to do proofs with Dafny.
 
 {% include SyntaxTests.md %}
 
-# References
+# 29. References

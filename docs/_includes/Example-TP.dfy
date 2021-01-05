@@ -1,6 +1,3 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
-
 datatype Result<T> = Failure(error: string) | Success(v: T)
 datatype ResultN<T(!new)> = Failure(error: string) | Success(v: T)
 

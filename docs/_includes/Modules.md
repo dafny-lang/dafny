@@ -1,4 +1,4 @@
-# Modules
+# 4. Modules
 
 ````grammar
 SubModuleDecl = ( ModuleDefinition_ | ModuleImport_ )
@@ -12,7 +12,7 @@ declarations. Modules may import each other for code reuse, and it is
 possible to abstract over modules to separate an implementation from an
 interface.
 
-## Declaring New Modules
+## 4.1. Declaring New Modules
 ````grammar
 ModuleDefinition_ = "module" { Attribute } ModuleName
         [ [ "exclusively" ] "refines" QualifiedModuleName ]
@@ -568,7 +568,7 @@ its functionality. Finally, if you import via a path, such as `import A
 = B.C`, then this creates a dependency of `A` on `B`, and `B` itself
 depends on its own nested module `B.C`.
 
-## Name Resolution
+## 4.8. Name Resolution
 
 When Dafny sees something like `A<T>.B<U>.C<V>`, how does it know what each part
 refers to? The process Dafny uses to determine what identifier
@@ -657,7 +657,76 @@ use any local names:
 In the example, the `A` in `refines A` refers to the global `A`, not the submodule `A`.
 
 
-### Expression Context Name Resolution
+A module is a collection of declarations, each of which has a name.
+These names are held in two namespaces.
+
+* The names of export sets
+* The names of all other declarations, including submodules and aliased modules
+
+In addition names can be classified as _local_ or _imported_.
+
+* Local declarations of a module are the declarations
+ that are explicit in the module and the
+local declarations of the refinement parent. This includes, for
+example, the `N` of `import N = ` in the refinement parent, recursively.
+* Imported names of a module are those brought in by `import opened` plus
+the imported names in the refinement parent.
+
+Within each namespace, the local names are unique. Thus a module may
+not reuse a name that a refinement parent has declared (unless it is a
+refining declaration, which replaces both declarations, as described
+[here](#TODO)).
+
+Local names take precedence over imported names. If a name is used more than
+once among imported names (coming from different imports), then it is
+ambiguous to _use_ the name without qualification.
+
+### 4.8.2. Module Id Context Name Resolution
+
+A qualified name may be used to refer to a module in an import statement or a refines clause of a module declaration.
+Such a qualified name is resolved as follows, with respect to its syntactic
+location within a module `Z`:
+
+0. The leading ``NameSegment`` is resolved as a local or imported module name of `Z`, if there
+is one with a matching name. The target of a `refines` clause does not 
+consider local names, that is, in `module Z refines A.B.C`, any contents of `Z`
+are not considered in finding `A`.
+
+1. Otherwise, it is resolved as a local or imported module name of the most enclosing module of `Z`,
+   iterating outward to each successive enclosing module until a match is
+found or the default toplevel module is reached without a match.
+No consideration of export sets, default or otherwise, is used in this step.
+Howecver, if at any stage a matching name is found that is not a module
+declaration, the resolution fails. See the examples below.
+
+2a. Once the leading ``NameSegment`` is resolved as say module `M`, the next ``NameSegment``
+   is resolved as a local or imported  module name within `M`
+   The resolution is restricted to the default export set of `M`.
+
+2b. If the resolved module name is a module alias (from an `import` statement)
+   then the target of the alias is resolved as a new qualified name
+   with respect to its syntactic context (independent of any resolutions or
+modules so far). Since `Z` depends on `M`, any such alias target will 
+already have been resolved, beccause modules are resolved in order of
+dependency.
+
+3. Step 2 is iterated for each ``NameSegment`` in the qualified module id,
+   resulting in a module that is the final resolution of the complete
+   qualified id.
+
+Ordinarily a module must be _imported_ in order for its constitutent
+declarations to be visible inside a given module `M`. However, for the
+resolution of qualified names this is not the case.
+
+Ths example shows that the resolution of the refinement parent does not
+use any local names:
+```dafny
+{% include Example-Refines1.dfy %}
+```
+The `A` in `refines A` refers to the submodule `A`, not the global `A`.
+
+
+### 4.8.3. Expression Context Name Resolution
 
 The leading ``NameSegment`` is resolved using the first following
 rule that succeeds.
@@ -719,7 +788,7 @@ First resolve expression E and any type arguments.
 * If `E` denotes an expression:
   4. Let T be the type of E. Look up id in T.
 
-### Type Context Name Resolution
+### 4.8.4. Type Context Name Resolution
 
 In a type context the priority of ``NameSegment`` resolution is:
 
