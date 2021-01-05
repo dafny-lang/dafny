@@ -1,4 +1,4 @@
-# Lexical and Low Level Grammar
+# 2. Lexical and Low Level Grammar
 Dafny uses the Coco/R lexer and parser generator for its lexer and parser
 (<http://www.ssw.uni-linz.ac.at/Research/Projects/Coco>)[@Linz:Coco].
 The Dafny input file to Coco/R is the `Dafny.atg` file in the source tree.
@@ -91,7 +91,7 @@ will link to the definition of the entity.**
 
 <!-- TODO: Those grammar hyperlinks are not implemented -->
 
-## Dafny Input {#sec-unicode}
+## 2.1. Dafny Input {#sec-unicode}
 
 Dafny source code files are readable text encoded as UTF-8 Unicode
 (because this is what the Coco/R-generated scanner and parser read).
@@ -106,7 +106,7 @@ Use `\u` escapes in string and character literals to insert unicode characters.
 Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication.
 Unicode in verbatim strings will likely not be interpreted as intended. [Outstanding issue #818].
 
-## Tokens and whitespace
+## 2.2. Tokens and whitespace
 The characters used in a Dafny program fall into four groups:
 
 * White space characters
@@ -139,7 +139,7 @@ In summary, except for required white space between alphanumeric tokens,
 removing white space can never result in changing the meaning of a Dafny program.
 For the rest of this document, we consider Dafny programs as sequences of tokens.
 
-## Character Classes {#sec-character-classes}
+## 2.3. Character Classes {#sec-character-classes}
 This section defines character classes used later in the token definitions.
 In this section a backslash is used to start an escape sequence; so for example
 `'\n'` denotes the single linefeed character. Also in this section, double quotes
@@ -239,7 +239,7 @@ verbatimStringChar = ANY - '"'
 Characters that can appear in a verbatim string.
 See the [discussion on unicode support](#sec-unicode).
 
-### Comments
+### 2.3.1. Comments
 Comments are in two forms.
 
 * They may go from "/\*" to "\*/" and be nested.
@@ -283,12 +283,12 @@ method m() {
 the `*/` inside the line comment and the string are seen as the end of the outer
 comment, leaving trailing text that will provoke parsing errors.
 
-## Tokens {#sec-tokens}
+## 2.4. Tokens {#sec-tokens}
 As with most languages, Dafny syntax is defined in two levels. First the stream
 of input characters is broken up into _tokens_. Then these tokens are parsed
 using the Dafny grammar. The Dafny tokens are defined in this section.
 
-### Reserved Words
+### 2.4.1. Reserved Words
 The following reserved words appear in the Dafny grammar and may not be used
 as identifiers of user-defined entities:
 
@@ -325,7 +325,7 @@ is the type of two-dimensional arrays, etc.
 Similarly, `bv0`, `bv1`, and `bv8` are reserved words, but `bv02` is an
 ordinary identifier.
 
-### Identifiers
+### 2.4.2. Identifiers
 
 ````grammar
 ident = nondigitIdChar { idchar }
@@ -337,7 +337,7 @@ are not identifiers if they look like an array type token, a character literal,
 or a reserved word.
 Also, `ident` tokens that begin with an `_` are not permitted as user identifiers.
 
-### Digits
+### 2.4.3. Digits
 ````grammar
 digits = digit {['_'] digit}
 ````
@@ -357,7 +357,7 @@ decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}
 A decimal fraction constant, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
 Example: `123_456.789_123`.
 
-### Escaped Character
+### 2.4.4. Escaped Character
 In this section the "\\" characters are literal.
 ````grammar
 escapedChar =
@@ -371,7 +371,7 @@ to specify the presence of a single- or double-quote character, backslash,
 null, new line, carriage return, tab, or a
 Unicode character with given hexadecimal representation.
 
-### Character Constant Token
+### 2.4.5. Character Constant Token
 ````grammar
 charToken = "'" ( charChar | escapedChar ) "'"
 ````
@@ -383,7 +383,7 @@ in its character, string, and verbatim strings constants and in its comments](#s
 constant has type `char`.
 
 
-### String Constant Token
+### 2.4.6. String Constant Token
 ````grammar
 stringToken =
     '"' { stringChar | escapedChar }  '"'
@@ -400,9 +400,9 @@ successive double quotes represent one quote character inside
 the string. This is the mechanism for escaping a double quote character,
 which is the only character needing escaping in a verbatim string.
 
-## Low Level Grammar Productions {#sec-grammar}
+## 2.5. Low Level Grammar Productions {#sec-grammar}
 
-### Identifier Variations
+### 2.5.1. Identifier Variations
 
 ````grammar
 Ident = ident
@@ -442,7 +442,7 @@ identifier `_`. When `_` appears it is replaced by a unique generated
 identifier distinct from user identifiers. This wildcard has several uses
 in the language, but it is not used as part of expressions.
 
-### NoUSIdent Synonyms
+### 2.5.2. NoUSIdent Synonyms
 In the productions for the declaration of user-defined entities the name of the
 user-defined entity is required to be an identifier that does not start
 with an underscore, i.e., a ``NoUSIdent``. To make the productions more
@@ -470,7 +470,7 @@ FieldIdent = NoUSIdent
 A ``FieldIdent`` is one of the ways to identify a field. The other is
 using digits.
 
-### Qualified Names
+### 2.5.3. Qualified Names
 A qualified name starts with the name of the top-level entity and then is followed by
 zero or more ``DotSuffix``s which denote a component. Examples:
 
@@ -483,7 +483,7 @@ The grammar does not actually have a production for qualified names
 except in the special case of a qualified name that is known to be
 a module name, i.e. a ``QualifiedModuleName``.
 
-### Identifier-Type Combinations
+### 2.5.4. Identifier-Type Combinations
 In this section, we describe some nonterminals that combine an identifier and a type.
 
 ````grammar
@@ -528,7 +528,7 @@ A ``FormalsOptionalIds`` is a formal parameter list in which the types are requi
 but the names of the parameters are optional. This is used in algebraic
 datatype definitions.
 
-### Numeric Literals
+### 2.5.5. Numeric Literals
 ````grammar
 Nat = ( digits | hexdigits )
 ````
