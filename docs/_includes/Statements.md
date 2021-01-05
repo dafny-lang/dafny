@@ -1209,7 +1209,7 @@ Note that Dafny does not have method overriding and there is no mechanism to
 override the built-in value->string conversion.  Nor is there a way to
 explicitly invoke this conversion.
 
-## 22.8. Forall Statement
+## 22.8. Forall Statement {#sec-forall-statement}
 ````grammar
 ForallStmt = "forall"
   ( "(" [ QuantifierDomain ] ")"

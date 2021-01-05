@@ -209,7 +209,7 @@ RealType_ = "real"
 Dafny supports _numeric types_ of two kinds, _integer-based_, which
 includes the basic type `int` of all integers, and _real-based_, which
 includes the basic type `real` of all real numbers.  User-defined
-numeric types based on `int` and `real`, either _subset types_ or _newtypes_, 
+numeric types based on `int` and `real`, either _subset types_ or _newtypes_,
 are described in [Section 20](#sec-subset-types) and [Section 0](#sec-newtypes).
 
 There is one built-in [_subset type_](#sec-subset-types),
@@ -391,7 +391,7 @@ OrdinalType_ = "ORDINAL"
 
 TO BE WRITTEN
 
-## 7.5. Characters
+## 7.5. Characters {#sec-characters}
 
 ````grammar
 CharType_ = "char"
@@ -432,7 +432,7 @@ relational operators:
   `>=`             | at least
   `>`              | greater than
 
-Sequences of characters represent _strings_, as described in 
+Sequences of characters represent _strings_, as described in
 [Section 10.3.5](#sec-strings).
 
 Character values can be converted to and from `int` values using the
@@ -462,7 +462,7 @@ declared inside angle brackets and can stand for any type.
 Dafny has some inference support that makes certain signatures less
 cluttered (described in [Section 25.2](#sec-type-inference)).
 
-## 8.1. Declaring restrictions on type parameters {#sec-type-parameter-restrictions}
+## 8.1. Declaring restrictions on type parameters {#sec-type-characteristics}
 
 It is sometimes necessary to restrict type parameters so that
 they can only be instantiated by certain families of types, that is,
@@ -804,7 +804,7 @@ integer-based numerics `lo` and `hi` satisfying
 Expression `s[i := e]` returns a sequence like `s`, except that the
 element at index `i` is `e`.  The expression `e in s` says there
 exists an index `i` such that `s[i] == e`.  It is allowed in non-ghost
-contexts only if the element type `T` is 
+contexts only if the element type `T` is
 [equality supporting](#sec-equality-supporting).
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
@@ -853,7 +853,7 @@ String literals of the standard form are enclosed in double quotes, as
 in `"Dafny"`.  To include a double quote in such a string literal,
 it is necessary to use an escape sequence.  Escape sequences can also
 be used to include other characters.  The supported escape sequences
-are the same as those for character literals ([Section 0](#sec-characters)).
+are the same as those for character literals ([Section 7.5](#sec-characters)).
 For example, the Dafny expression `"say \"yes\""` represents the
 string `'say "yes"'`.
 The escape sequence for a single quote is redundant, because
@@ -894,7 +894,7 @@ from `T` to `U`.  In other words, it is a look-up table indexed by
 `T`.  The _domain_ of the map is a finite set of `T` values that have
 associated `U` values.  Since the keys in the domain are compared
 using equality in the type `T`, type `map<T,U>` can be used in a
-non-ghost context only if `T` is 
+non-ghost context only if `T` is
 [equality supporting](#sec-equality-supporting).
 
 Similarly, for any types `T` and `U`, a value of type `imap<T,U>`
@@ -920,7 +920,7 @@ to have an infinite domain.
 If the same key occurs more than
 once in a map display expression, only the last occurrence appears in the resulting
 map.[^fn-map-display]  There is also a _map comprehension expression_,
-explained in [Section 0](#sec-map-comprehension-expression).
+explained in [Section 23.40](#sec-map-comprehension-expression).
 
 [^fn-map-display]: This is likely to change in the future to disallow
     multiple occurrences of the same key.
@@ -938,9 +938,9 @@ is, satisfying `d in m`), maps support the following operations:
  `m[t := u]`    | `map<T,U>`  | map update
  `t in m`       | `bool`      | map domain membership
  `t !in m`      | `bool`      | map domain non-membership
- `fm.Keys`      | `set<T>`    | the domain of `fm`
- `fm.Values`    | `set<U>`    | the range of `fm`
- `fm.Items`     | `set<(T,U)>`| set of pairs (t,u) in `fm`
+ `m.Keys`      | (i)`set<T>`    | the domain of `m`
+ `m.Values`    | (i)`set<U>`    | the range of `m`
+ `m.Items`     | (i)`set<(T,U)>`| set of pairs (t,u) in `m`
 
 `|fm|` denotes the number of mappings in `fm`, that is, the
 cardinality of the domain of `fm`.  Note that the cardinality operator
@@ -955,7 +955,8 @@ The expressions `m.Keys`, `m.Values`, and `m.Items` return, as sets,
 the domain, the range, and the 2-tuples holding the key-value
 associations in the map. Note that `m.Values` will have a different
 cardinality than `m.Keys` and `m.Items` if different keys are
-associated with the same value.
+associated with the same value. If `m` is an `imap`, then these
+expressions return `iset` values.
 
 [^fn-map-membership]: This is likely to change in the future as
     follows:  The `in` and `!in` operations will no longer be
@@ -973,6 +974,100 @@ if K in cache {  // check if temperature is in domain of cache
   cache := cache[K := coeff];  // update the cache
 }
 ```
+
+TODO: Should `Keys`, `Values`, `Items` be able to be applied to an `imap`, producing `iset` results?
+
+## 10.5. Iterating over collections
+
+Collections are very commonly used in programming and one frequently
+needs to iterate over the elements of a collection. Dafny does not have
+built-in iterator methods, but the idioms by which to do so are straightforward.
+
+TODO: Add examples of forall statement;
+TODO: Add examples of using a iterator class
+TODO: Should a foreach statment be added to Dafny
+
+### 10.5.1. Sequences and arrays
+
+Sequences and arrays are indexable and have a length. So the idiom to
+iterate over the contents is well-known. For an array:
+```dafny
+  var i: int := 0;
+  var sum: int := 0;
+  while i < s.Length
+    decreases s.Length - i
+  {
+    sum := sum + s[i];
+    i := i + 1;
+  }
+}
+```
+For a sequence, the only difference is the length operator:
+```dafny
+  var i: int := 0;
+  var sum: int := 0;
+  while i < |s|
+    decreases |s| - i
+  {
+    sum := sum + s[i];
+    i := i + 1;
+  }
+```
+
+The Forall statement ([Section 22.8](#sec-forall-statement)) can also be used
+with arrays where parallel assigment is needed:
+```dafny
+  var rev := new int[s.Length];
+  forall i | 0 <= i < s.Length {
+    rev[i] := s[s.Length-i-1];
+  }
+```
+
+### 10.5.2. Sets
+There is no intrinsic order to the elements of a set. Nevertheless, we can
+extract an arbitrary element of a non-empty set, performing an iteration
+as follows:
+```dafny
+// s is a set<int>
+  var ss := s;
+  while ss != {}
+    decreases |ss|
+  {
+    var i: int :| i in ss;
+    ss := ss - {i};
+    print i, "\n";
+  }
+```
+
+A comparable loop can be written for an `iset`, though it may not terminate:
+```dafny
+  var ss: iset<int> := s;
+  while (ss != iset{})
+    decreases *
+  {
+    var i: int :| i in ss;
+    ss := ss - iset{i};
+    print i, "\n";
+  }
+```
+
+### 10.5.3. Maps
+
+Iterating over the contents of a `map` uses the component sets: `Keys`, `Values`, and `Items`. The iteration loop follows the same patterns as for sets:
+
+```dafny
+  var items := m.Items;
+  while items != {}
+    decreases |items|
+  {
+    var item :| item in items;
+    items := items - { item };
+    print item.0, " ", item.1, "\n";
+  }
+```
+
+There are no mechanisms currently defined in Dafny for iterating over `imap`s.
+
 
 # 11. Types that stand for other types
 ````grammar
@@ -1016,7 +1111,7 @@ type string = seq<char>
 ```
 
 The optional type parameter characteristics are described in
-[Section 8.1](#sec-type-parameter-restrictions)
+[Section 8.1](#sec-type-characteristics)
 
 
 ## 11.2. Opaque types
@@ -1047,7 +1142,7 @@ type Monad<T>
 can be used abstractly to represent an arbitrary parameterized monad.
 
 The optional type parameter characteristics are described in
-[Section 8.1](#sec-type-parameter-restrictions)
+[Section 8.1](#sec-type-characteristics)
 
 
 # 12. Class Types {#sec-class-types}

@@ -1022,7 +1022,7 @@ function GhostF(z: Stuff): int
 }
 ```
 
-## 23.40. Map Comprehension Expression
+## 23.40. Map Comprehension Expression {#sec-map-comprehension-expression}
 ````grammar
 MapComprehensionExpr(allowLemma, allowLambda) =
   ( "map" | "imap" ) IdentTypeOptional { Attribute }
