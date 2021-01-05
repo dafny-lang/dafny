@@ -1,5 +1,5 @@
 <!--PDF NEWPAGE-->
-# Dafny User's Guide {#sec-user-guide}
+# 26. Dafny User's Guide {#sec-user-guide}
 
 Most of this document decribes the Dafny programming langauge.
 This section describes the `dafny` tool, a combined verifier and compiler
