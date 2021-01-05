@@ -798,7 +798,7 @@ integer-based numerics `lo` and `hi` satisfying
  `s[lo..hi]`         | `seq<T>`| subsequence
  `s[lo..]`           | `seq<T>` | drop
  `s[..hi]`           | `seq<T>` | take
- `s[`_slices_`]`   | `seq<T>` | slice
+ `s[`_slices_`]`   | `seq<seq<T>>` | slice
  `multiset(s)`       | `multiset<T>`| sequence conversion to a `multiset<T>`
 
 Expression `s[i := e]` returns a sequence like `s`, except that the
@@ -824,7 +824,8 @@ integer-based numeric, whose sum is no greater than `|s|`.  If there
 are _k_ colons, the operation produces _k + 1_ consecutive subsequences
 from `s`, each of the length indicated by the corresponding length
 designator, and returns these as a sequence of
-sequences.[^fn-slice-into-tuple] If _slices_ is terminated by a
+sequences.
+If _slices_ is terminated by a
 colon, then the length of the last slice extends until the end of `s`,
 that is, its length is `|s|` minus the sum of the given length
 designators.  For example, the following equalities hold, for any
@@ -832,10 +833,6 @@ sequence `s` of length at least `10`:
 ```dafny
 {% include Example-Seq.dfy %}
 ```
-
-[^fn-slice-into-tuple]:  Now that Dafny supports built-in tuples, the
-    plan is to change the sequence slice operation to return not a
-    sequence of subsequences, but a tuple of subsequences. TODO: But as a sequence of subsequences one can iterate over them.
 
 The operation `multiset(s)` yields the multiset of elements of
 sequence `s`.  It is allowed in non-ghost contexts only if the element
