@@ -94,6 +94,7 @@ jobs:
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
     - name: Running Go artifacts
       if: runner.os != 'Windows'
+      run: |
         GOPATH=$PWD/a-go go run a-go/src/a.go | tee actual.txt
         diff expect.txt actual.txt
     - name: Check Javascript compile
