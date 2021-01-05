@@ -357,7 +357,7 @@ to select a component of the value.
 If the `allowLambda` is false then ``LambdaExpression``s are not
 recognized in this context.
 
-## 23.13. Lambda expressions
+## 23.13. Lambda expressions {#sec-lambda-expressions}
 ````grammar
 LambdaExpression(allowLemma) =
   ( WildIdent
