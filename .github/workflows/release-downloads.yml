@@ -92,7 +92,8 @@ jobs:
     - name: Check Go compile
       run: |
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
-        ##go run a-go/src/a.go a-go/src/*/*.go dafny/DafnyRuntime.go
+        GOPATH=$PWD/a-go go run a-go/src/a.go | tee actual.txt
+        diff expect.txt actual.txt
     - name: Check Javascript compile
       run: |
         npm install bignumber.js
@@ -103,4 +104,5 @@ jobs:
       run: |
         (ls dafny/DafnyRuntime.jar || echo NO DafnyRuntime.jar )
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
-        (cd a; java -cp .:../dafny/DafnyRuntime.jar a )
+        (cd a; java -cp .:../dafny/DafnyRuntime.jar a | tee ../actual.txt )
+        diff expect.txt actual.txt
