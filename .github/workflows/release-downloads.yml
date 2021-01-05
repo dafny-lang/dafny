@@ -19,10 +19,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, ubuntu-16.04, macos-latest, windows-latest ]
-        z3: [ 'https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c' ]
         include:
-        - ver: 'v3.0.0-pre-release-1'
-          rel: 'dafny-3.0.0-pre-1'
+        - ver: 'v3.0.0-test4'
+          rel: 'dafny-3.0.0-test4'
         - os:  'ubuntu-latest'
           osn: 'ubuntu-16.04'
         - os:  'ubuntu-16.04'
@@ -54,7 +53,6 @@ jobs:
       run: |
         Invoke-WebRequest -Outfile dafnyX.zip -Uri $Env:URL1
         Expand-Archive dafny*.zip
-        ls
         mv dafnyX/dafny dafny
       env:
         URL1: https://github.com/dafny-lang/dafny/releases/download/${{matrix.ver}}/${{matrix.rel}}-x64-${{matrix.osn}}.zip
@@ -102,8 +100,7 @@ jobs:
         node a.js dafny/DafnyRuntime.js | tail -1 > actual.txt
         diff actual.txt expect.txt
     - name: Check Java compile
-      run: echo NOT CHECKING JAVA
-      ##run: |
-        ##(ls dafny/DafnyRuntime.java || echo NO DafnyRuntime.java); exit 0
-        ##dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy || echo EXPECTED FAILURE UNTIL DafnyRuntime.java is restored
+      run: |
+        (ls dafny/DafnyRuntime.java || echo NO DafnyRuntime.java)
+        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
 
