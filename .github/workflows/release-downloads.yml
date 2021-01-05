@@ -62,7 +62,7 @@ jobs:
       run: |
         echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
         echo "method m() { assert false; }" > b.dfy
-        echo "42" > expect.txt
+        echo "43" > expect.txt
     ## Check that dafny and z3 run and that a simple program verifies or fails
     - name: Versions
       run: |
@@ -101,7 +101,7 @@ jobs:
       run: |
         npm install bignumber.js
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node a.js dafny/DafnyRuntime.js | tee actual.txt
+        node a.js dafny/DafnyRuntime.js > actual.txt
         diff expect.txt actual.txt
     - name: Check Java compile
       run: |
