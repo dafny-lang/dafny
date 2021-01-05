@@ -97,10 +97,10 @@ jobs:
       run: |
         npm install bignumber.js
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node a.js dafny/DafnyRuntime.js | tail -1 > actual.txt
-        diff actual.txt expect.txt
+        ##node a.js dafny/DafnyRuntime.js | tail -1 > actual.txt
+        ##diff actual.txt expect.txt
     - name: Check Java compile
       run: |
-        (ls dafny/DafnyRuntime.java || echo NO DafnyRuntime.java)
+        (ls dafny/DafnyRuntime.jar || echo NO DafnyRuntime.jar )
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
-
+        (cd a; java -cp .:../dafny/DafnyRuntime.jar a )
