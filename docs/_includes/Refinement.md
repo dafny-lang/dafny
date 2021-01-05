@@ -1,4 +1,4 @@
-# Refinement {#sec-module-refinement}
+# 24. Refinement {#sec-module-refinement}
 
 Refinement is the process of replacing something somewhat abstract with somethiong somewhat more concrete.
 For example, in one module one might declare a type name, with no definition,
@@ -53,7 +53,7 @@ So that it is clear that refinment is taking place, refining declarations
 have some syntactic indicator that they are refining some parent declaration.
 Typically this is the presence of a `...` token.
 
-## Export set declarations
+## 24.1. Export set declarations
 
 A refining export set declaration begins with the syntax
 ```grammar
@@ -70,17 +70,17 @@ module with the name of the parent module. The result module has a default
 export set according to the general rules for export sets, after all of 
 the result module's export set declarations have been assembled.
 
-## Import declarations
+## 24.2. Import declarations
 
 Import declarations are not refined. The result module contains the union
 of the import declarations from the two input modules.
 There must be no names in common among them.
 
-## Sub-module declarations
+## 24.3. Sub-module declarations
 
 TODO
 
-## Const declarations
+## 24.4. Const declarations
 
 A parent `const` declaration may be refined by a refining `const` declaration
 if
@@ -97,27 +97,27 @@ contains an ellipsis in this syntax:
 "const" { Attribute } CIdentType "..." [ ":=" Expression ]
 ```
 
-## Method declarations
+## 24.5. Method declarations
 
 TODO
 
-## Lemma declarations
+## 24.6. Lemma declarations
 
 TODO
 
-## Function and predicate declarations
+## 24.7. Function and predicate declarations
 
 TODO
 
-## Iterator declarations
+## 24.8. Iterator declarations
 
 TODO
 
-## Class and trait declarations
+## 24.9. Class and trait declarations
 
 TODO
 
-## Type declarations
+## 24.10. Type declarations
 -- opaque, type synonym, subset, newtype, datatype
 
 TODO

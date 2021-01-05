@@ -43,7 +43,7 @@ user understand how to do proofs with Dafny.
 
 {% include UserGuide.md %}
 
-# 27. TODO
+# 28. TODO
 
 -- const, static const
 
@@ -71,4 +71,4 @@ user understand how to do proofs with Dafny.
 
 {% include SyntaxTests.md %}
 
-# 29. References
+# 30. References
