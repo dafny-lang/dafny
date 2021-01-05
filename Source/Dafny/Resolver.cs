@@ -12320,31 +12320,17 @@ namespace Microsoft.Dafny
         firstType = s.Rhs.Type;
       } else if (s.Rhs is ApplySuffix asx) {
         ResolveApplySuffix(asx, new ResolveOpts(codeContext, true), true);
-        if (asx.Lhs is NameSegment lhname) {
-          if (lhname.ResolvedExpression is MemberSelectExpr) {
-            call = (lhname.ResolvedExpression as MemberSelectExpr).Member as Method;
-            if (call.Outs.Count != 0) {
-              firstType = call.Outs[0].Type;
-            } else {
-              reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
-                call.Name);
-            }
+        call = (asx.Lhs.Resolved as MemberSelectExpr)?.Member as Method;
+        if (call != null) {
+          // We're looking at a method call
+          if (call.Outs.Count != 0) {
+            firstType = call.Outs[0].Type;
           } else {
-            firstType = lhname.ResolvedExpression.Type;
+            reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value", call.Name);
           }
-        } else if (asx.Lhs is ExprDotName dotname) {
-          Type ty = PartiallyResolveTypeForMemberSelection(dotname.tok, dotname.Type);
-          String nm = dotname.SuffixName;
-          MemberDecl mem = (dotname.Resolved as MemberSelectExpr).Member;
-          if (mem is Method) {
-            call = (Method)mem;
-            if (call.Outs.Count != 0) {
-              firstType = call.Outs[0].Type;
-            } else {
-              reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
-                call.Name);
-            }
-          }
+        } else {
+          // We're looking at a call to a function. Treat it like any other expression.
+          firstType = asx.Type;
         }
       } else {
         ResolveExpression(s.Rhs, new ResolveOpts(codeContext, true));
