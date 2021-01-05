@@ -1,4 +1,4 @@
-# Specifications
+# 5. Specifications
 Specifications describe logical properties of Dafny methods, functions,
 lambdas, iterators and loops. They specify preconditions, postconditions,
 invariants, what memory locations may be read or modified, and
@@ -12,7 +12,8 @@ We document specifications at these levels:
 - At the lowest level are the various kinds of specification clauses,
   e.g., a ``RequiresClause_``.
 - Next are the specifications for entities that need them,
-  e.g., a ``MethodSpec``.
+  e.g., a ``MethodSpec``, which typically consist of a sequence of 
+  specification clauses.
 - At the top level are the entity declarations that include
   the specifications, e.g., ``MethodDecl``.
 
@@ -20,9 +21,9 @@ This section documents the first two of these in a bottom-up manner.
 We first document the clauses and then the specifications
 that use them.
 
-## Specification Clauses
+## 5.1. Specification Clauses
 
-### Requires Clause
+### 5.1.1. Requires Clause
 
 ````grammar
 RequiresClause_ =
@@ -43,18 +44,12 @@ from all of the `requires` clauses. The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-### Ensures Clause
+### 5.1.2. Ensures Clause
 
 ````grammar
 EnsuresClause_ =
   "ensures" { Attribute } Expression(allowLemma: false,
                                      allowLambda: false)
-
-ForAllEnsuresClause_ =
-  "ensures" Expression(allowLemma: false, allowLambda: true)
-
-FunctionEnsuresClause_ =
-  "ensures" Expression(allowLemma: false, allowLambda: false)
 ````
 
 An `ensures` clause specifies the post condition for a
@@ -70,19 +65,11 @@ The order of conjunctions
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
 
-TODO: In the present sources ``FunctionEnsuresClause_`` differs from
-``EnsuresClause_`` only in that it is not allowed to specify
-``Attribute``s. This seems like a bug and will likely
-be fixed in a future version.
-
-### Decreases Clause
+### 5.1.3. Decreases Clause
 ````grammar
 DecreasesClause_(allowWildcard, allowLambda) =
   "decreases" { Attribute } DecreasesList(allowWildcard,
                                           allowLambda)
-
-FunctionDecreasesClause_(allowWildcard, allowLambda) =
-  "decreases" DecreasesList(allowWildcard, allowLambda)
 
 DecreasesList(allowWildcard, allowLambda) =
   PossiblyWildExpression(allowLambda)
@@ -91,9 +78,6 @@ DecreasesList(allowWildcard, allowLambda) =
 If `allowWildcard` is false but one of the
 ``PossiblyWildExpression``s is a wild-card, an error is
 reported.
-
-TODO: A ``FunctionDecreasesClause_`` is not allowed to specify
-``Attribute``s. this will be fixed in a future version.
 
 Decreases clauses are used to prove termination in the
 presence of recursion. if more than one `decreases` clause is given
@@ -143,9 +127,6 @@ user-provided decreases clause, followed by $\top$. We said "user-provided
 decreases clause", but if the user completely omits a `decreases` clause,
 then Dafny will usually make a guess at one, in which case the effective
 decreases clause is any prefix followed by the guess followed by $\top$.
-(If you're using the Dafny IDE in Visual Studio, you can hover the mouse
-over the name of a recursive function or method, or the "while" keyword
-for a loop, to see the `decreases` clause that Dafny guessed, if any.)
 
 Here is a simple but interesting example: the Fibonacci function.
 
@@ -157,8 +138,7 @@ function Fib(n: nat) : nat
 
 ```
 
-In this example, if you hover your mouse over the function name
-you will see that Dafny has supplied a `decreases n` clause.
+In this example, Dafny supplies a `decreases n` clause.
 
 Let's take a look at the kind of example where a mysterious-looking
 decreases clause like "Rank, 0" is useful.
@@ -284,7 +264,7 @@ Moreover, remember that if a function or method has no user-declared
 `decreases` clause, Dafny will make a guess. The guess is (usually)
 the list of arguments of the function/method, in the order given. This is
 exactly the decreases clauses needed here. Thus, Dafny successfully
-verifies the program without any explicit decreases clauses:
+verifies the program without any explicit `decreases` clauses:
 ```dafny
 method Outer(x: nat)
 {
@@ -304,7 +284,7 @@ method Inner(x: nat, y: nat)
 The ingredients are simple, but the end result may seem like magic. For many users, however, there may be no magic at all -- the end result may be so natural that the user never even has to be bothered to think about that there was a need to prove termination in the first place.
 
 
-### Framing
+### 5.1.4. Framing
 ````grammar
 FrameExpression(allowLemma, allowLambda) =
   ( Expression(allowLemma, allowLambda) [ FrameField ]
@@ -351,16 +331,12 @@ elements---one could imagine
 Also, ``FrameField`` is not taken into consideration for
 lambda expressions.
 
-### Reads Clause
+### 5.1.5. Reads Clause
 ````grammar
-FunctionReadsClause_ =
-  "reads"
-  PossiblyWildFrameExpression (allowLemma: false)
-  { "," PossiblyWildFrameExpression(allowLemma: false) }
-
-LambdaReadsClause_ =
-  "reads" PossiblyWildFrameExpression(allowLemma: true)
-  { "," PossiblyWildFrameExpression(allowLemma: true) }
+ReadsClause_(allowLemma) =
+  "reads" { Attribute }
+  PossiblyWildFrameExpression(allowLemma)
+  { "," PossiblyWildFrameExpression(allowLemma) }
 
 IteratorReadsClause_ =
   "reads" { Attribute }
@@ -387,7 +363,7 @@ essential to making the verification process feasible.
 It is not just the body of a function that is subject to `reads`
 checks, but also its precondition and the `reads` clause itself.
 
-A reads clause can list a wildcard `*`, which allows the enclosing
+A `reads` clause can list a wildcard `*`, which allows the enclosing
 function to read anything. In many cases, and in particular in all cases
 where the function is defined recursively, this makes it next to
 impossible to make any use of the function. Nevertheless, as an
@@ -401,13 +377,9 @@ specified. If there are no `reads` clauses the effective read set is
 empty. If `*` is given in a `reads` clause it means any memory may be
 read.
 
-TODO: It would be nice if the different forms of read clauses could be
-combined. In a future version the single form of read clause will allow
-a list and attributes.
-
 TO BE WRITTEN: multiset of objects allowed in reads clauses
 
-### Modifies Clause
+### 5.1.6. Modifies Clause
 
 ````grammar
 ModifiesClause_ =
@@ -420,7 +392,7 @@ Frames also affect methods. Methods are not
 required to list the things they read. Methods are allowed to read
 whatever memory they like, but they are required to list which parts of
 memory they modify, with a `modifies` annotation. These are almost identical
-to their reads cousins, except they say what can be changed, rather than
+to their `reads` cousins, except they say what can be changed, rather than
 what the value of the function depends on. In combination with reads,
 modification restrictions allow Dafny to prove properties of code that
 would otherwise be very difficult or impossible. Reads and modifies are
@@ -429,12 +401,12 @@ because they restrict what would otherwise be arbitrary modifications of
 memory to something that Dafny can reason about.
 
 If an object is newly allocated within the body of a method
-or within the scope of a modifies statement or a loop's modifies clause,
+or within the scope of a `modifies` statement or a loop's `modifies` clause,
  then the fields of that object may always be modified.
 
 It is also possible to frame what can be modified by a block statement
 by means of the block form of the
-[modify statement](#sec-modify-statement) (Section [#sec-modify-statement]).
+modify statement (cf. [Section 22.9](#sec-modify-statement)).
 
 A `modifies` clause specifies the set of memory locations that a
 method, iterator or loop body may modify. If more than one `modifies`
@@ -456,7 +428,7 @@ interprets JML's `assigns/modifies` in sense (b).
 ACSL and ACSL++ use the `assigns` keyword, but with _modify_ (b) semantics.
 Ada/SPARK's dataflow contracts encode _write_ (a) semantics.
 
-### Invariant Clause
+### 5.1.7. Invariant Clause
 ````grammar
 InvariantClause_ =
   "invariant" { Attribute }
@@ -472,7 +444,7 @@ The invariant must hold on entry to the loop. And assuming it
 is valid on entry, Dafny must be able to prove that it then
 holds at the end of the loop.
 
-## Method Specification
+## 5.2. Method Specification
 ````grammar
 MethodSpec =
   { ModifiesClause_
@@ -487,13 +459,13 @@ A method specification is zero or more `modifies` `requires`
 A method does not have `reads` clauses because methods are allowed to
 read any memory.
 
-## Function Specification
+## 5.3. Function Specification
 ````grammar
 FunctionSpec =
   { RequiresClause_
-  | FunctionReadsClause_
-  | FunctionEnsuresClause_
-  | FunctionDecreasesClause_(allowWildcard: false, allowLambda: false)
+  | ReadsClause_(allowLemma: false)
+  | EnsuresClause_
+  | DecreasesClause_(allowWildcard: false, allowLambda: false)
   }
 ````
 
@@ -502,10 +474,10 @@ A function specification is zero or more `reads` `requires`
 specification does not have `modifies` clauses because functions are not
 allowed to modify any memory.
 
-## Lambda Specification
+## 5.4. Lambda Specification
 ````grammar
 LambdaSpec_ =
-  { LambdaReadsClause_
+  { ReadsClause_(allowLemma: true)
   | RequiresClause_
   }
 ````
@@ -518,7 +490,7 @@ clauses because they do not have names and thus cannot be recursive. A
 lambda specification does not have `modifies` clauses because lambdas
 are not allowed to modify any memory.
 
-## Iterator Specification
+## 5.5. Iterator Specification
 ````grammar
 IteratorSpec =
   { IteratorReadsClause_
@@ -542,7 +514,7 @@ iterators explains these.
 TODO: What is the relationship between the post condition and
 the `Valid()` predicate?
 
-## Loop Specification
+## 5.6. Loop Specification
 ````grammar
 LoopSpec =
   { InvariantClause_
@@ -557,6 +529,6 @@ is effectively a precondition and it along with the
 negation of the loop test condition provides the postcondition.
 The ``DecreasesClause_`` clause is used to prove termination.
 
-## Auto-generated boilerplate specifications
+## 5.7. Auto-generated boilerplate specifications
 
 TO BE WRITTEN - {:autocontracts}
