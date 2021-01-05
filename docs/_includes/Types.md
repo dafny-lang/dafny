@@ -975,15 +975,14 @@ if K in cache {  // check if temperature is in domain of cache
 }
 ```
 
-TODO: Should `Keys`, `Values`, `Items` be able to be applied to an `imap`, producing `iset` results?
-
 ## 10.5. Iterating over collections
 
 Collections are very commonly used in programming and one frequently
 needs to iterate over the elements of a collection. Dafny does not have
 built-in iterator methods, but the idioms by which to do so are straightforward.
+The subsections below give some introductory examples; more
+detail can be found in this [power user note](http://leino.science/papers/krml275.html).
 
-TODO: Add examples of forall statement;
 TODO: Add examples of using a iterator class
 TODO: Should a foreach statment be added to Dafny
 
