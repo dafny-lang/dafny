@@ -20,7 +20,7 @@ jobs:
       run: brew install dafny || echo DONE
     - name: Get Z3
       run: |
-        wget -q https://github.com/Z3Prover/z3/releases/download/z3-4.8.5/z3-4.8.5-x64-osx-10.14.1.zip
+        wget -q https://github.com/Z3Prover/z3/releases/download/z3-4.8.5/z3-4.8.5-x64-osx-10.14.2.zip
         unzip z3*.zip && rm z3*.zip
         mv z3-* z3
     - name: Make test program

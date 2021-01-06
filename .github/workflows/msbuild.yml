@@ -49,7 +49,7 @@ jobs:
     - name: Get Z3 - mac
       if: matrix.os == 'macos-latest'
       run: |
-        wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.5/z3-4.8.5-x64-osx-10.14.1.zip
+        wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.5/z3-4.8.5-x64-osx-10.14.2.zip
     - name: Get Z3a - ubuntu
       if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-16.04'
       run: |
