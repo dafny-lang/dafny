@@ -1,0 +1,9 @@
+git-issue-151.dfy(37,25): Error: The name U ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
+git-issue-151.dfy(37,29): Error: The name U ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
+git-issue-151.dfy(39,25): Error: The name W ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
+git-issue-151.dfy(39,29): Error: The name W ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
+git-issue-151.dfy(40,25): Error: The name X ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
+git-issue-151.dfy(40,29): Error: The name X ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
+git-issue-151.dfy(42,25): Error: The name Z ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
+git-issue-151.dfy(42,29): Error: The name Z ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
+8 resolution/type errors detected in git-issue-151.dfy

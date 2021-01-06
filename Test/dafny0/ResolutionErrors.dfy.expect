@@ -1,5 +1,5 @@
-ResolutionErrors.dfy(322,33): Warning: Dafny's constructors no longer need 'this' to be listed in modifies clauses
-ResolutionErrors.dfy(1892,15): Warning: Dafny's constructors no longer need 'this' to be listed in modifies clauses
+ResolutionErrors.dfy(322,33): Warning: constructors no longer need 'this' to be listed in modifies clauses
+ResolutionErrors.dfy(1892,15): Warning: constructors no longer need 'this' to be listed in modifies clauses
 ResolutionErrors.dfy(51,15): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(88,16): Error: the name 'Benny' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.Benny')
 ResolutionErrors.dfy(93,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
@@ -43,8 +43,7 @@ ResolutionErrors.dfy(356,27): Error: arguments must have comparable types (got b
 ResolutionErrors.dfy(354,18): Error: arguments must have comparable types (got int and DTD_List)
 ResolutionErrors.dfy(355,18): Error: arguments must have comparable types (got DTD_List and int)
 ResolutionErrors.dfy(369,17): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(395,11): Error: RHS (of type int) not assignable to LHS (of type bool)
-ResolutionErrors.dfy(396,18): Error: arguments must have comparable types (got bool and int)
+ResolutionErrors.dfy(393,7): Error: incorrect type of method in-parameter 1 (expected GenericClass<int>, got GenericClass<bool>) (non-variant type parameter would require int = bool)
 ResolutionErrors.dfy(407,19): Error: incorrect type of datatype constructor argument (found int, expected _T0)
 ResolutionErrors.dfy(408,15): Error: incorrect type of datatype constructor argument (found int, expected _T0)
 ResolutionErrors.dfy(417,8): Error: all lines in a calculation must have the same type (got int after bool)
@@ -98,9 +97,9 @@ ResolutionErrors.dfy(729,22): Error: a possibly infinite loop is allowed only if
 ResolutionErrors.dfy(762,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(793,19): Error: calls to methods with side-effects are not allowed inside a statement expression
 ResolutionErrors.dfy(794,20): Error: wrong number of method result arguments (got 0, expected 1)
-ResolutionErrors.dfy(806,23): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(806,26): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(816,4): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(827,36): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(827,40): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(836,17): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(850,6): Error: RHS (of type B) not assignable to LHS (of type object)
 ResolutionErrors.dfy(852,6): Error: RHS (of type B) not assignable to LHS (of type object)
@@ -164,7 +163,7 @@ ResolutionErrors.dfy(1139,13): Error: arguments must have comparable types (got 
 ResolutionErrors.dfy(1150,10): Error: new can be applied only to class types (got JJ)
 ResolutionErrors.dfy(1158,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
 ResolutionErrors.dfy(1160,38): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
-ResolutionErrors.dfy(1165,24): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
+ResolutionErrors.dfy(1165,27): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
 ResolutionErrors.dfy(1173,15): Error: arguments to / must be numeric or bitvector types (got set<bool>)
 ResolutionErrors.dfy(1180,20): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1195,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
@@ -181,15 +180,12 @@ ResolutionErrors.dfy(1266,8): Error: the type of this local variable is underspe
 ResolutionErrors.dfy(1267,8): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1268,8): Error: the type of this local variable is underspecified
 ResolutionErrors.dfy(1272,26): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(1272,43): Error: the type of this expression is underspecified
 ResolutionErrors.dfy(1272,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(1273,31): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(1273,48): Error: the type of this expression is underspecified
 ResolutionErrors.dfy(1273,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(1274,30): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1274,21): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(1281,8): Error: the type of this local variable is underspecified
-ResolutionErrors.dfy(1284,38): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1284,29): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(1295,21): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened'?)
 ResolutionErrors.dfy(1296,24): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened'?)
@@ -236,11 +232,11 @@ ResolutionErrors.dfy(1452,29): Error: only ghost methods can be called from this
 ResolutionErrors.dfy(1454,17): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(1570,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1588,12): Error: trying to break out of more loop levels than there are enclosing loops
-ResolutionErrors.dfy(1600,16): Error: ghost fields are allowed only in specification contexts
+ResolutionErrors.dfy(1600,20): Error: ghost fields are allowed only in specification contexts
 ResolutionErrors.dfy(1607,9): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(1613,4): Error: non-ghost variable cannot be assigned a value that depends on a ghost
 ResolutionErrors.dfy(1630,8): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ResolutionErrors.dfy(1639,26): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(1639,29): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
@@ -266,8 +262,8 @@ ResolutionErrors.dfy(1785,19): Error: Undeclared top-level type or type paramete
 ResolutionErrors.dfy(1780,6): Error: RHS (of type object) not assignable to LHS (of type J)
 ResolutionErrors.dfy(1783,6): Error: RHS (of type J) not assignable to LHS (of type C)
 ResolutionErrors.dfy(1793,44): Error: range of comprehension must be of type bool (instead got C)
-ResolutionErrors.dfy(1800,14): Error: Duplicate member name: P
-ResolutionErrors.dfy(1802,10): Error: Duplicate member name: L
+ResolutionErrors.dfy(1800,21): Error: Duplicate member name: P
+ResolutionErrors.dfy(1802,17): Error: Duplicate member name: L
 ResolutionErrors.dfy(1810,4): Error: second argument to && must be of type bool (instead got int)
 ResolutionErrors.dfy(1808,11): Error: Function body type mismatch (expected int, got bool)
 ResolutionErrors.dfy(1814,4): Error: second argument to && must be of type bool (instead got int)
@@ -449,4 +445,8 @@ ResolutionErrors.dfy(2890,11): Error: quantifiers in non-ghost contexts must be 
 ResolutionErrors.dfy(2891,21): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(2902,15): Error: RHS (of type X) not assignable to LHS (of type X)
 ResolutionErrors.dfy(2906,10): Error: type of corresponding source/RHS (X) does not match type of bound variable (X)
+ResolutionErrors.dfy(2934,16): Error: sequence update requires the value to have the element type of the sequence (got Trait)
+ResolutionErrors.dfy(2938,11): Error: multiset update requires domain element to be of type Elem (got Trait)
+ResolutionErrors.dfy(2943,13): Error: map update requires domain element to be of type Elem (got Trait)
+ResolutionErrors.dfy(2945,18): Error: map update requires the value to have the range type Elem (got Trait)
 446 resolution/type errors detected in ResolutionErrors.dfy

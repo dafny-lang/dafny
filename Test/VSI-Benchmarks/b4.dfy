@@ -17,6 +17,7 @@ class Map<Key(==),Value> {
 
   predicate Valid()
     reads this, Repr
+    ensures Valid() ==> this in Repr
   {
     this in Repr && Spine <= Repr &&
     SpineValid(Spine, head) &&
@@ -54,7 +55,7 @@ class Map<Key(==),Value> {
 
 
   constructor Init()
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
     ensures M == map[]
   {
     head, Spine := null, {};

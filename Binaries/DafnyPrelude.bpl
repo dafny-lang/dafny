@@ -78,6 +78,9 @@ axiom (forall t: Ty    :: { TSeq(t) }      Tag(TSeq(t))      == TagSeq);
 axiom (forall t, u: Ty :: { TMap(t,u) }    Tag(TMap(t,u))    == TagMap);
 axiom (forall t, u: Ty :: { TIMap(t,u) }   Tag(TIMap(t,u))   == TagIMap);
 
+type TyTagFamily;
+function TagFamily(Ty): TyTagFamily;
+
 // ---------------------------------------------------------------
 // -- Literals ---------------------------------------------------
 // ---------------------------------------------------------------
@@ -951,10 +954,6 @@ axiom (forall ty: Ty, heap: Heap, len: int, init: HandleType, i: int ::
 function Seq#Append<T>(Seq T, Seq T): Seq T;
 axiom (forall<T> s0: Seq T, s1: Seq T :: { Seq#Length(Seq#Append(s0,s1)) }
   Seq#Length(Seq#Append(s0,s1)) == Seq#Length(s0) + Seq#Length(s1));
-
-// Append preserves $Is
-axiom (forall s0 : Seq Box, s1 : Seq Box, t : Ty :: { $Is(Seq#Append(s0,s1),t) }
-    $Is(s0,t) && $Is(s1,t) ==> $Is(Seq#Append(s0,s1),t));
 
 function Seq#Index<T>(Seq T, int): T;
 axiom (forall<T> t: T :: { Seq#Index(Seq#Singleton(t), 0) } Seq#Index(Seq#Singleton(t), 0) == t);

@@ -8,7 +8,12 @@ abstract module M0 {
 
   class {:autocontracts} UnionFind {
     ghost var M: map<Element, Element>
-    protected predicate Valid()
+    predicate Valid() {
+      ValidM1()
+    }
+    predicate {:autocontracts false} ValidM1()
+      reads this, Repr
+      ensures M == map[] ==> ValidM1()
 
     constructor ()
       ensures M == map[]
@@ -36,7 +41,7 @@ abstract module M0 {
 // the Union method.
 abstract module M1 refines M0 {
   datatype Contents = Root(depth: nat) | Link(next: Element)
-  class Element {
+  class Element ... {
     var c: Contents
   }
 
@@ -46,8 +51,8 @@ abstract module M1 refines M0 {
     forall f :: f in C && C[f].Link? ==> C[f].next in C
   }
 
-  class UnionFind {
-    protected predicate Valid...
+  class UnionFind ... {
+    predicate ValidM1()
     {
       M.Keys <= Repr &&
       (forall e :: e in M ==> M[e] in M && M[M[e]] == M[e]) &&
@@ -119,7 +124,7 @@ abstract module M1 refines M0 {
 
 // Module M2 adds the implementation of Find, together with the proofs needed for the verification.
 abstract module M2 refines M1 {
-  class UnionFind {
+  class UnionFind ... {
     method Find...
     {
       r := FindAux(M[e].c.depth, e);
@@ -198,7 +203,7 @@ abstract module M2 refines M1 {
 // Finally, module M3 adds the implementation of Join, along with what's required to
 // verify its correctness.
 module M3 refines M2 {
-  class UnionFind {
+  class UnionFind ... {
     method Join...
     {
       if r0 == r1 {

@@ -12,7 +12,7 @@ module A {
 }
 
 module B refines A {
-  class C {
+  class C ... {
     method M<T>(x: Explicit<T>)
     method N<T(==)>(x: Inferred<T>)
   }

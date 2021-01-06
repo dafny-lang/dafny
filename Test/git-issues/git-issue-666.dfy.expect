@@ -1,0 +1,2 @@
+git-issue-666.dfy(67,13): Error: member 'F' does not exist in trait 'object'
+1 resolution/type errors detected in git-issue-666.dfy

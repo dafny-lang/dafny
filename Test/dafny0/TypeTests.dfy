@@ -190,7 +190,7 @@ module MoreGhostTests {
 // ------------------ cycles that could arise from proxy assignments ---------
 
 module ProxyCycles {
-  datatype Dt<X> = Ctor(X -> Dt<X>)
+  datatype Dt<X> = Ctor(X -> Dt<X>) | SomethingElse
   method M0()
   {
     var dt: Dt<int>;
@@ -221,4 +221,32 @@ module ArrayTests {
   {
     a[7] := 13;  // error: array elements are not ghost locations
   }
+}
+
+// ---------------------
+
+module OtherCycles0 {
+  datatype A = Ctor(A -> A)  // error: cannot be constructed
+  datatype B = Ctor(int -> B)  // error: cannot be constructed
+
+  datatype Cycle = Cycle(Cyc)  // error: cannot be constructed
+  type Cyc = c: Cycle | true
+}
+
+module OtherCycles1 {
+  datatype A = Ctor(A --> A)  // error: violation of strict positivity
+  datatype B = Ctor(B ~> B)  // error: violation of strict positivity
+
+  datatype C = Ctor(int --> C)
+  datatype D = Ctor(int ~> D)
+
+  datatype E = Ctor(E -> int)  // error: violation of strict positivity
+  datatype F = Ctor(F --> int)  // error: violation of strict positivity
+  datatype G = Ctor(G ~> int)  // error: violation of strict positivity
+}
+
+module OtherCycles2 {
+  datatype CycleW = CycleW(CycW)
+  type CycW = c: CycleW | true witness W()  // error: dependency cycle W -> CycW -> CycleW
+  function method W(): CycleW
 }

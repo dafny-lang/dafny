@@ -1,9 +1,7 @@
 
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
-p=(13, 14)
-q=(13, 14, yes)
 true false
 true false
 map[12 := 6, 13 := 6, 14 := 7]
@@ -20,12 +18,33 @@ XM returned: 16
 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 [0, 1, 4, 9, 16, 25, 36, 49]
 [0, 1, 2, 3, 4, 5, 6, 7]
+4 4 2 2 0 4 2 true
+5 4 2 2 0 4 2 true
+5 5 3 3 1 5 3 true
+2 2 1 1 0 2 false true
+3 3
+451
+671
+221
+281
+1
+true false 1
+451
+671
+221
+281
+2
+true true false 2
+the intersection is {null}
+there are 3 elements in the union
+true true true
+false false false
+true true true
+false false false
 
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
-p=(13, 14)
-q=(13, 14, yes)
 true false
 true false
 map[12 := 6, 13 := 6, 14 := 7]
@@ -42,12 +61,33 @@ XM returned: 16
 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 [0, 1, 4, 9, 16, 25, 36, 49]
 [0, 1, 2, 3, 4, 5, 6, 7]
+4 4 2 2 0 4 2 true
+5 4 2 2 0 4 2 true
+5 5 3 3 1 5 3 true
+2 2 1 1 0 2 false true
+3 3
+451
+671
+221
+281
+1
+true false 1
+451
+671
+221
+281
+2
+true true false 2
+the intersection is {null}
+there are 3 elements in the union
+true true true
+false false false
+true true true
+false false false
 
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
-p=(13, 14)
-q=(13, 14, yes)
 true false
 true false
 map[12 := 6, 13 := 6, 14 := 7]
@@ -64,12 +104,33 @@ XM returned: 16
 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 [0, 1, 4, 9, 16, 25, 36, 49]
 [0, 1, 2, 3, 4, 5, 6, 7]
+4 4 2 2 0 4 2 true
+5 4 2 2 0 4 2 true
+5 5 3 3 1 5 3 true
+2 2 1 1 0 2 false true
+3 3
+451
+671
+221
+281
+1
+true false 1
+451
+671
+221
+281
+2
+true true false 2
+the intersection is {null}
+there are 3 elements in the union
+true true true
+false false false
+true true true
+false false false
 
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
-x=13 y=14 b=[y, e, s]
-p=(13, 14)
-q=(13, 14, [y, e, s])
+x=13 y=14 b=yes
 true false
 true false
 map[12 := 6, 13 := 6, 14 := 7]
@@ -86,3 +147,26 @@ XM returned: 16
 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 [0, 1, 4, 9, 16, 25, 36, 49]
 [0, 1, 2, 3, 4, 5, 6, 7]
+4 4 2 2 0 4 2 true
+5 4 2 2 0 4 2 true
+5 5 3 3 1 5 3 true
+2 2 1 1 0 2 false true
+3 3
+451
+671
+221
+281
+1
+true false 1
+451
+671
+221
+281
+2
+true true false 2
+the intersection is {null}
+there are 3 elements in the union
+true true true
+false false false
+true true true
+false false false
