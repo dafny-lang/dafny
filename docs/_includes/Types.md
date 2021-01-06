@@ -991,11 +991,9 @@ TODO: Should a foreach statment be added to Dafny
 Sequences and arrays are indexable and have a length. So the idiom to
 iterate over the contents is well-known. For an array:
 ```dafny
-  var i: int := 0;
-  var sum: int := 0;
-  while i < s.Length
-    decreases s.Length - i
-  {
+  var i := 0;
+  var sum := 0;
+  while i < s.Length {
     sum := sum + s[i];
     i := i + 1;
   }
@@ -1003,17 +1001,15 @@ iterate over the contents is well-known. For an array:
 ```
 For a sequence, the only difference is the length operator:
 ```dafny
-  var i: int := 0;
-  var sum: int := 0;
-  while i < |s|
-    decreases |s| - i
-  {
+  var i := 0;
+  var sum := 0;
+  while i < |s| {
     sum := sum + s[i];
     i := i + 1;
   }
 ```
 
-The Forall statement ([Section 22.8](#sec-forall-statement)) can also be used
+The `forall` statement ([Section 22.8](#sec-forall-statement)) can also be used
 with arrays where parallel assigment is needed:
 ```dafny
   var rev := new int[s.Length];
@@ -1038,17 +1034,7 @@ as follows:
   }
 ```
 
-A comparable loop can be written for an `iset`, though it may not terminate:
-```dafny
-  var ss: iset<int> := s;
-  while (ss != iset{})
-    decreases *
-  {
-    var i: int :| i in ss;
-    ss := ss - iset{i};
-    print i, "\n";
-  }
-```
+Because `iset`s may be infinite, Dafny doesnot permit iteration over an `iset`.
 
 ### 10.5.3. Maps
 
