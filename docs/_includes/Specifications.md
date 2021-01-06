@@ -406,7 +406,7 @@ or within the scope of a `modifies` statement or a loop's `modifies` clause,
 
 It is also possible to frame what can be modified by a block statement
 by means of the block form of the
-modify statement (cf. [Section 22.9](#sec-modify-statement)).
+modify statement (cf. [Section 21.9](#sec-modify-statement)).
 
 A `modifies` clause specifies the set of memory locations that a
 method, iterator or loop body may modify. If more than one `modifies`
@@ -490,7 +490,7 @@ clauses because they do not have names and thus cannot be recursive. A
 lambda specification does not have `modifies` clauses because lambdas
 are not allowed to modify any memory.
 
-## 5.5. Iterator Specification
+## 5.5. Iterator Specification {#sec-iterator-specification}
 ````grammar
 IteratorSpec =
   { IteratorReadsClause_

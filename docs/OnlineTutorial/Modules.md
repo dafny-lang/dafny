@@ -444,7 +444,7 @@ the two modules is not an error, however, as long as you don't attempt to use me
 The `opened` keyword can be used with any kind of `import` declaration, including the *module abstraction* form.
 
 
-## Module Abstraction
+## Module Abstraction {#sec-module-abstraction}
 
 Sometimes, using a specific implementation is unnecessary; instead, all that is needed is a module that implements some interface.
 In that case, you can use an *abstract* module import. In Dafny, this is written `import A : B`. This means bind the name
