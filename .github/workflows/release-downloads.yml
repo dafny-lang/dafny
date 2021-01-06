@@ -1,7 +1,7 @@
 name: Test Release Downloads
 
 #### For a new release: Change 'ver' and 'rel' in the strategy
-#### At some point perhaps we can eliminate the need to use Z3 4.8.4
+#### At some point perhaps we can eliminate the need to use Z3 4.8.5
 
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, ubuntu-16.04, macos-latest, windows-latest ]
-        z3: [ 'https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c' ]
+        z3: [ 'https://github.com/Z3Prover/z3/releases/download/z3-4.8.5/z3-4.8.5' ]
         include:
         - ver: 'v3.0.0-pre-release-1'
           rel: 'dafny-3.0.0-pre-1'
