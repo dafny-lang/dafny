@@ -1,4 +1,4 @@
-# 24. Refinement {#sec-module-refinement}
+X# 23. Refinement {#sec-module-refinement}
 
 Refinement is the process of replacing something somewhat abstract with something somewhat more concrete.
 For example, in one module one might declare a type name, with no definition,
@@ -53,7 +53,7 @@ So that it is clear that refinment is taking place, refining declarations
 have some syntactic indicator that they are refining some parent declaration.
 Typically this is the presence of a `...` token.
 
-## 24.1. Export set declarations
+## 22.47. Export set declarations
 
 A refining export set declaration begins with the syntax
 ```grammar
@@ -70,7 +70,7 @@ module with the name of the parent module. The result module has a default
 export set according to the general rules for export sets, after all of 
 the result module's export set declarations have been assembled.
 
-## 24.2. Import declarations
+## 22.48. Import declarations
 
 Aliasing import declarations are not refined. The result module contains the union
 of the import declarations from the two input modules.
@@ -82,11 +82,11 @@ import for the same name. Dafny checks that the refining import _adheres_ to
 the abstract import.
 
 TODO: Add example?
-## 24.3. Sub-module declarations
+## 22.49. Sub-module declarations
 
 TODO
 
-## 24.4. Const declarations
+## 22.50. Const declarations
 
 A parent `const` declaration may be refined by a refining `const` declaration
 if
@@ -103,27 +103,27 @@ contains an ellipsis in this syntax:
 "const" { Attribute } CIdentType "..." [ ":=" Expression ]
 ```
 
-## 24.5. Method declarations
+## 22.51. Method declarations
 
 TODO
 
-## 24.6. Lemma declarations
+## 22.52. Lemma declarations
 
 TODO
 
-## 24.7. Function and predicate declarations
+## 22.53. Function and predicate declarations
 
 TODO
 
-## 24.8. Iterator declarations
+## 22.54. Iterator declarations
 
 TODO
 
-## 24.9. Class and trait declarations
+## 22.55. Class and trait declarations
 
 TODO
 
-## 24.10. Type declarations
+## 22.56. Type declarations
 -- opaque, type synonym, subset, newtype, datatype
 
 TODO

@@ -197,7 +197,7 @@ is well-formed, whereas
 is not.
 
 In addition, booleans support _logical quantifiers_ (forall and
-exists), described in [Section 23.36](#sec-quantifier-expression).
+exists), described in [Section 22.36](#sec-quantifier-expression).
 
 ## 7.2. Numeric types {#sec-numeric-types}
 
@@ -210,7 +210,7 @@ Dafny supports _numeric types_ of two kinds, _integer-based_, which
 includes the basic type `int` of all integers, and _real-based_, which
 includes the basic type `real` of all real numbers.  User-defined
 numeric types based on `int` and `real`, either _subset types_ or _newtypes_, 
-are described in [Section 20](#sec-subset-types) and [Section 0](#sec-newtypes).
+are described in [Section 19](#sec-subset-types) and [Section 0](#sec-newtypes).
 
 There is one built-in [_subset type_](#sec-subset-types),
 `nat`, representing the non-negative subrange of `int`.
@@ -282,7 +282,7 @@ each other in the two groups.
 The groups are listed in order of
 increasing binding power, with equality binding less strongly than any of these operators.
 There is no implicit conversion between `int` and `real`: use `as int` or
-`as real` conversions to write an explict conversion (cf. [Section 23.10](#sec-as-expression)).
+`as real` conversions to write an explict conversion (cf. [Section 22.10](#sec-as-expression)).
 
 Modulus is supported only for integer-based numeric types.  Integer
 division and modulus are the _Euclidean division and modulus_.  This
@@ -460,7 +460,7 @@ parameterized by types.  These _type parameters_ are typically
 declared inside angle brackets and can stand for any type.
 
 Dafny has some inference support that makes certain signatures less
-cluttered (described in [Section 26.2](#sec-type-inference)).
+cluttered (described in [Section 24.2](#sec-type-inference)).
 
 ## 8.1. Declaring restrictions on type parameters {#sec-type-parameter-restrictions}
 
@@ -523,7 +523,7 @@ it does not.
 Variables and fields of a type that the compiler does not auto-initialize
 are subject to _definite-assignment_ rules. These ensure that the program
 explicitly assigns a value to a variable before it is used.
-For more details see [Section 26.6](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
+For more details see [Section 24.6](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
 
 The `(0)` suffix indicates that the type must be one that the compiler knows
 how to auto-initialize, if the type is used to declare a non-ghost variable.
@@ -569,7 +569,7 @@ GenericInstantiation = "<" Type { "," Type } ">"
 When a generic entity is used, actual types must be specified for each
 generic parameter. This is done using a ``GenericInstantiation``.
 If the `GenericInstantiation` is omitted, type inference will try
-to fill these in (cf. [Section 26.2](#sec-type-inference)).
+to fill these in (cf. [Section 24.2](#sec-type-inference)).
 
 # 10. Collection types
 
@@ -599,7 +599,7 @@ enclosed in curly braces.  To illustrate,
 ```
 are three examples of set displays. There is also a _set comprehension_
 expression (with a binder, like in logical quantifications), described in
-[Section 23.37](#sec-set-comprehension-expression).
+[Section 22.37](#sec-set-comprehension-expression).
 
 In addition to equality and disequality, set types
 support the following relational operations:
@@ -1176,7 +1176,7 @@ not in code that will be compiled into executable code.
 
 Fields may not be declared static.
 
-## 12.2. Const Declarations
+X## 12.2. Const Declarations
 ```grammar
 ConstantFieldDecl = "const" { Attribute } CIdentType [ "..." ]
                     [ ":=" Expression ]
@@ -1197,7 +1197,7 @@ others.
 expression, then the ghost-ness of the declaration is inferred; the "ghost"
 modifier may be omitted.
 
-## 12.3. Method Declarations
+## 12.2. Method Declarations
 ````grammar
 MethodDecl(isGhost, allowConstructor) =
   MethodKeyword { Attribute } [ MethodName ]
@@ -1286,7 +1286,7 @@ modifies c, d
 
 all mean the same thing.
 
-### 12.3.1. Ordinary methods
+### 12.2.1. Ordinary methods
 
 A method can be declared as ghost by preceding the declaration with the
 keyword `ghost` and as static by preceding the declaration with the keyword `static`.
@@ -1313,7 +1313,7 @@ abstract under the following circumstances:
 Note that when there is no body, Dafny assumes that the *ensures*
 clauses are true without proof. (TODO: `:extern` attribute?)
 
-### 12.3.2. Constructors
+### 12.2.2. Constructors
 To write structured object-oriented programs, one often relies on
 objects being constructed only in certain ways.  For this purpose, Dafny
 provides _constructor (method)s_, which are a restricted form of
@@ -1335,7 +1335,7 @@ than these restrictions, there is no semantic difference between using
 ordinary initialization methods and using constructors. Classes may
 declare no constructors or one or more constructors.
 
-#### 12.3.2.1. Classes with no explicit constructors
+#### 12.2.2.1. Classes with no explicit constructors
 
 A class that declares no constructors has a default constructor created
 for it. This constructor is called with the syntax
@@ -1355,7 +1355,7 @@ be correct for any initial value. Compiled, executable versions of the program
 may use a specific initial value
 (for example, but not necessarily, a zero-equivalent or a declared _witness_ value for the type).
 
-#### 12.3.2.2. Classes with one or more constructors
+#### 12.2.2.2. Classes with one or more constructors
 
 When one or more constructors are explicitly declared, they are named,
 which promotes using names like `InitFromList` above.
@@ -1381,7 +1381,7 @@ The anonymous constructor is invoked as
 ```
 dropping the "`.`".
 
-#### 12.3.2.3. Two-phase constructors
+#### 12.2.2.3. Two-phase constructors
 
 The body of a constructor contains two sections,
 an initialization phase and a post-initialization phase, separated by a `new;` statement.
@@ -1401,7 +1401,7 @@ value in their declaration.
 
 There are no restrictions on expressions or statements in the post-initialization phase.
 
-### 12.3.3. Lemmas
+### 12.2.3. Lemmas
 Sometimes there are steps of logic required to prove a program correct,
 but they are too complex for Dafny to discover and use on its own. When
 this happens, we can often give Dafny assistance by providing a lemma.
@@ -1415,10 +1415,10 @@ Section [#sec-proofs-in-dafny].
 See [the Dafny Lemmas tutorial](http://rise4fun.com/Dafny/tutorial/Lemmas)
 for more examples and hints for using lemmas.
 
-### 12.3.4. Two-state lemmas and functions
+### 12.2.4. Two-state lemmas and functions
 TO BE WRITTEN - two-state lemmas; unchanged predicate
 
-## 12.4. Function Declarations
+## 12.3. Function Declarations
 
 ````grammar
 FunctionDecl =
@@ -1523,13 +1523,13 @@ a ``SignatureEllipsis_`` which means to copy the signature from
 (if `M0.F` does not provide one). It can also add `ensures`
 clauses.
 
-### 12.4.1. Predicates
+### 12.3.1. Predicates
 A function that returns a `bool` result is called a _predicate_. As an
 alternative syntax, a predicate can be declared by replacing the `function`
 keyword with the `predicate` keyword and omitting a declaration of the
 return type.
 
-### 12.4.2. Function Transparency
+### 12.3.2. Function Transparency
 A function is said to be _transparent_ in a location if the
 body of the function is visible at that point.
 A function is said to be _opaque_ at a location if it is not
@@ -1557,7 +1557,7 @@ When `{:opaque}` is specified for function `g`, `g` is opaque,
 however the lemma `reveal_g` is available to give the semantics
 of `g` whether in the defining module or outside.
 
-### 12.4.3. Inductive Predicates and Lemmas
+### 12.3.3. Inductive Predicates and Lemmas
 See section [#sec-friendliness] for descriptions
 of inductive predicates and lemmas.
 
@@ -2110,7 +2110,7 @@ method UseIterToCopy<T>(s: set<T>) returns (t: set<T>)
 ```
 
 <!--
-# 16. Async-task types
+X# 16. Async-task types
 
 Another experimental feature in Dafny that is likely to undergo some
 evolution is _asynchronous methods_.  When an asynchronous method is
@@ -2144,7 +2144,7 @@ design of asynchronous methods evolves.
 
 -->
 
-# 17. Function types
+# 16. Function types
 
 ````grammar
 Type = DomainType "->" Type
@@ -2238,7 +2238,7 @@ f.requires.requires(t) == true
 Dafny also support anonymous functions by means of
 _lambda expressions_. See section [#sec-lambda-expressions].
 
-# 18. Algebraic Datatypes
+# 17. Algebraic Datatypes
 
 Dafny offers two kinds of algebraic datatypes, those defined
 inductively and those defined co-inductively.  The salient property of
@@ -2250,7 +2250,7 @@ its parameters.
 DatatypeDecl = ( InductiveDatatypeDecl | CoinductiveDatatypeDecl )
 ````
 
-## 18.1. Inductive datatypes
+## 17.1. Inductive datatypes
 
 ````grammar
 InductiveDatatypeDecl_ =
@@ -2350,7 +2350,7 @@ inductive datatype for trees may be updated as follows:
 node.(left := L, right := R)
 ```
 
-## 18.2. Tuple types
+## 17.2. Tuple types
 ````grammar
 TupleType_ = "(" [ Type { "," Type } ] ")"
 ````
@@ -2378,7 +2378,7 @@ Dafny declares _n_-tuples where _n_ is 0 or 2 or more.  There are no
 no semantic meaning.  The 0-tuple type, `()`, is often known as the
 _unit type_ and its single value, also written `()`, is known as _unit_.
 
-## 18.3. Co-inductive datatypes
+## 17.3. Co-inductive datatypes
 
 ````grammar
 CoinductiveDatatypeDecl_ =
@@ -2412,6 +2412,8 @@ verification of co-inductive types. We capture the key features from that
 paper in this section but the reader is referred to that paper for more
 complete details and to supply bibliographic references that are
 omitted here.
+
+## 17.4. Co-induction
 
 Mathematical induction is a cornerstone of programming and program
 verification. It arises in data definitions (e.g., some algebraic data
@@ -2515,7 +2517,7 @@ shown to be useful in defining language semantics, as needed to verify
 the correctness of a compiler, so this opens the possibility that
 such verifications can benefit from SMT automation.
 
-### 18.3.1. Well-Founded Function/Method Definitions
+### 17.4.1. Well-Founded Function/Method Definitions
 The Dafny programming language supports functions and methods. A _function_
 in Dafny is a mathematical function (i.e., it is well-defined,
 deterministic, and pure), whereas a _method_ is a body of statements that
@@ -2554,7 +2556,7 @@ is used to invoke `Lemma(x)` on all `x` for which `P(x)` holds. If
 forall x :: P(x) ==> Q(x).
 ```
 
-### 18.3.2. Defining Co-inductive Datatypes
+### 17.4.2. Defining Co-inductive Datatypes
 Each value of an inductive datatype is finite, in the sense that it can
 be constructed by a finite number of calls to datatype constructors. In
 contrast, values of a co-inductive datatype, or co-datatype for short,
@@ -2600,7 +2602,7 @@ to datatype declarations, there is no grounding check for
 co-datatypes—since a codatatype admits infinite values, the type is
 nevertheless inhabited.
 
-### 18.3.3. Creating Values of Co-datatypes
+### 17.4.3. Creating Values of Co-datatypes
 To define values of co-datatypes, one could imagine a “co-function”
 language feature: the body of a “co-function” could include possibly
 never-ending self-calls that are interpreted by a greatest fix-point
@@ -2627,7 +2629,7 @@ in Dafny are deterministic. Since there cannot be multiple fix-points,
 the language allows one function to be involved in both recursive and co-recursive calls,
 as we illustrate by the function `FivesUp`.
 
-### 18.3.4. Copredicates
+### 17.4.4. Copredicates
 Determining properties of co-datatype values may require an infinite
 number of observations. To that end, Dafny provides _co-predicates_
 which are function declarations that use the `copredicate` keyword.
@@ -2704,20 +2706,20 @@ In the Dafny grammar this is called a ``HashCall``. The definition of
 that is, `Pos` and `Pos#` must not be in the same cluster. In other
 words, the definition of `Pos` cannot depend on `Pos#`.
 
-#### 18.3.4.1. Co-Equality
+#### 17.4.4.1. Co-Equality
 Equality between two values of a co-datatype is a built-in co-predicate.
 It has the usual equality syntax `s == t`, and the corresponding prefix
 equality is written `s ==#[k] t`. And similarly for `s != t`
 and `s !=#[k] t`.
 
-### 18.3.5. Co-inductive Proofs
+### 17.4.5. Co-inductive Proofs
 From what we have said so far, a program can make use of properties of
 co-datatypes. For example, a method that declares `Pos(s)` as a
 precondition can rely on the stream `s` containing only positive integers.
 In this section, we consider how such properties are established in the
 first place.
 
-#### 18.3.5.1. Properties About Prefix Predicates
+#### 17.4.5.1. Properties About Prefix Predicates
 Among other possible strategies for establishing co-inductive properties
 we take the time-honored approach of reducing co-induction to
 induction. More precisely, Dafny passes to the SMT solver an
@@ -2761,7 +2763,7 @@ the forall statement to show `? k • Pos#[k](Up(n))`. Finally, the axiom
 `D(Pos)` is used (automatically) to establish the co-predicate.
 
 
-#### 18.3.5.2. Colemmas
+#### 17.4.5.2. Colemmas
 As we just showed, with help of the `D` axiom we can now prove a
 co-predicate by inductively proving that the corresponding prefix
 predicate holds for all prefix lengths `k` . In this section, we introduce
@@ -2784,7 +2786,7 @@ co-recursively to obtain the proof for `Pos(Up(n).tail)` (since `Up(n).tail`
 equals `Up(n+1)`). The proof glue needed to then conclude `Pos(Up(n))` is
 provided automatically, thanks to the power of the SMT-based verifier.
 
-#### 18.3.5.3. Prefix Lemmas
+#### 17.4.5.3. Prefix Lemmas
 To understand why the above `UpPosLemma` co-lemma code is a sound proof,
 let us now describe the details of the desugaring of co-lemmas. In
 analogy to how a **copredicate** declaration defines both a co-predicate and
@@ -2851,7 +2853,7 @@ the lemma. Whereas the inductive proof is performing proofs for deeper
 and deeper equalities, the co-lemma can be understood as producing the
 infinite proof on demand.
 
-# 19. Newtypes
+# 18. Newtypes
 ````grammar
 NewtypeDecl = "newtype" { Attribute } NewtypeName "="
   ( NumericTypeName [ ":" Type ]
@@ -2950,12 +2952,12 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 23.46](#sec-compile-time-constants).
+in [Section 22.46](#sec-compile-time-constants).
 
-## 19.1. Conversion operations {#sec-conversion}
+## 18.1. Conversion operations {#sec-conversion}
 
 For every type `N`, there is a conversion operation with the
-name `as N`, described more fully in [Section 23.10](#sec-as-expression).
+name `as N`, described more fully in [Section 22.10](#sec-as-expression).
 It is a partial function defined when the
 given value, which can be of any type, is a member of the type
 converted to.  When the conversion is from a real-based numeric type
@@ -2990,7 +2992,7 @@ For a newtype or subset type, the `is` operation is the predicate that defines
 the type.
 **The `is` operation is not yet implemented**.
 
-# 20. Subset types {#sec-subset-types}
+# 19. Subset types {#sec-subset-types}
 TO BE WRITTEN: add `-->` (subset of `~>`), `->` (subset of `-->`), non-null types subset of nullable types
 
 ````grammar
