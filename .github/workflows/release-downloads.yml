@@ -26,7 +26,7 @@ jobs:
         - os:  'ubuntu-16.04'
           osn: 'ubuntu-16.04'
         - os:  'macos-latest'
-          osn: 'osx-10.14.2'
+          osn: 'osx-10.14.1'
         - os:  'windows-latest'
           osn: 'win'
     # There is no hosted environment for Unbuntu 14.04 or for debian
