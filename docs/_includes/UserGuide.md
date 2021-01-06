@@ -1,5 +1,5 @@
 <!--PDF NEWPAGE-->
-# 26. Dafny User's Guide {#sec-user-guide}
+# 25. Dafny User's Guide {#sec-user-guide}
 
 Most of this document decribes the Dafny programming langauge.
 This section describes the `dafny` tool, a combined verifier and compiler
@@ -9,7 +9,7 @@ The development of the dafny language and tool is a GitHub project at [https://g
 The project is open source, with collaborators from various organizations and additional contributors welcome.
 The software itself is licensed under the [MIT license](https://github.com/dafny-lang/dafny/blob/master/LICENSE.txt).
 
-## 26.1. Introduction
+## 25.1. Introduction
 
 The dafny tool implements the following capabilities:
 
@@ -22,7 +22,7 @@ and checking those with Boogie and an SMT solver, typically Z3;
 Using various command-line flags, the tool can perform various combinations of the last three actions (the first
 action is always performed).
 
-## 26.2. Dafny Programs and Files
+## 25.2. Dafny Programs and Files
 
 A Dafny program is a set of modules.
 Modules can refer to other modules, such as through `import` declarations
@@ -60,7 +60,7 @@ Use of symbolic links
 may make the same file have a different absolute path; this will generally
 cause duplicate declaration errors.
 
-## 26.3. Installing Dafny From Binaries
+## 25.3. Installing Dafny From Binaries
 
 Current and past Dafny binary releases can be found at
 [https://github.com/dafny-lang/dafny/releases](https://github.com/dafny-lang/dafny/releases) for each supported platform.
@@ -68,7 +68,7 @@ Each release is a .zip file with a name combining the release name and the
 platform. For convenience we will call that zip file `Dafny.zip`, though the
 names generally are something like `dafny-3.0.0-pre-1-x64-ubuntu-16.04.zip`.
 
-### 26.3.1. Windows
+### 25.3.1. Windows
 To install Dafny on your own machine, download Dafny.zip and
 **save** it to your disk. Then, before you open or unzip it, right-click
 on it and select Properties; at the bottom of the dialog, click the
@@ -80,28 +80,28 @@ Dafny.zip file.)
 Then: To run Dafny from the command line, simply run dafny.exe from the
     `$DAFNY/dafny/Binaries` directory.
 
-### 26.3.2. Linux and Mac
+### 25.3.2. Linux and Mac
 Make sure you have Mono version 4. Then save the
 contents of the Dafny.zip for the appropriate version of your platform.
 You can now run Dafny from the command line by invoking the script file
 `$DAFNY/dafny/Binaries/dafny`.
 
-### 26.3.3. Mac using brew
+### 25.3.3. Mac using brew
  On a Mac, you can install dafny, along with its dependencies, mono and z3,  using the `brew` package manager.
 If `brew` is installed, simply issue the command `brew install dafny`.
 The tool is executed as `$DAFNY/dafny/Binaries/dafny`.
 (Monno is needed; it is also available from `brew`
 
 
-## 26.4. Building Dafny from Source
+## 25.4. Building Dafny from Source
 
-### 26.4.1. Dependencies
+### 25.4.1. Dependencies
 
 TO BE WRITTEN
 
 The current version of the Dafny executable builds and runs with Visual Studio 2012 or later.
 
-### 26.4.2. Installing the source code
+### 25.4.2. Installing the source code
 
 The source code is available from github, by cloning the repository:
 
@@ -109,18 +109,18 @@ The source code is available from github, by cloning the repository:
 * make it the current working directory (i.e., `cd` to it)
 * Issue the command `git clone https://github.com/dafny-lang/dafny.git`
 
-### 26.4.3. Building the source code
+### 25.4.3. Building the source code
 
 TO BE WRITTEN
 
-### 26.4.4. Running the executable
+### 25.4.4. Running the executable
 
 After a successful build, the executable to run is
 
 * `$DAFNY/dafny/Binaries/dafny.exe` on windows and
 * `$DAFNY/dafny/Binaries/dafny` on linux-like and mac platforms.
 
-### 26.4.5. Running tests
+### 25.4.5. Running tests
 
 To install lit (for test run):
     -   first, install [python](https://www.python.org/downloads/)
@@ -135,7 +135,7 @@ The argument to the `lit` command can be any number of .dfy files or folders
 containing .dfy files (all of which must be under the `Test` directory).
 
 
-## 26.5. IDEs for Dafny
+## 25.5. IDEs for Dafny
 
 Dafny source files are text files and can of course be edited with any
 text editor. However, some tools provide syntax-aware features:
@@ -145,48 +145,16 @@ text editor. However, some tools provide syntax-aware features:
 
 - VSCode, a cross-platform editor for many programming languages has an extension for dafny, installed from within VSCode. VSCode is available [her](http://code.visualstudio.com). The extension provides syntax highlighting, in-line parser, type and verification errors, and code navigation.
 
-## 26.6. Dafny Code Style
+## 25.6. Dafny Code Style
 
 There are code style conventions for Dafny code, recorded [here](https://dafny-lang.github.io/dafny/StyleGuide/Style-Guide).
 Most significantly, code is written without tabs and with a 2 space indentation.
-## 26.7. Using Dafny From Visual Studio
 
-1. Open dafny/Source/Dafny.sln in Visual Studio
-2. Click BUILD > Build Solution.
-
-To test your installation, you can open Dafny test files
-from the dafny/Test subdirectory in Visual Studio 2012.
-You will want to use "VIEW/Error List" to ensure that
-you see any errors that Dafny detects, and
-"VIEW/Output" to see the result of any compilation.
-
-An example of a valid Dafny test is
-
-```
-dafny\Test\vstte2012\Tree.dfy
-```
-
-You can choose "Dafny/Compile" to compile the Dafny
-program to C\#. Doing that for the above test
-produces `Tree.cs` and `Tree.dll` (since this test does
-not have a main program).
-
-The following file in the Dafny repository:
-
-```
-dafny\Test\dafny0\Array.dfy
-```
-
-is an example of a Dafny file with verification errors.
-The source will show red squiggles or dots where there
-are errors, and the Error List window will describe the
-errors.
-
-## 26.8. The Dafny Server
+## 25.7. The Dafny Server
 
 TO BE WRITTEN
 
-## 26.9. Using Dafny From the Command Line
+## 25.8. Using Dafny From the Command Line
 
 `dafny` is a conventional command-line tool, operating just like other
 command-line tools in Windows and Unix-like systems.
@@ -235,7 +203,7 @@ not be attempted.
 The option `-countVerificationErrors:0` forces the tool to always end with a 0
 exit code.
 
-## 26.10. Verification
+## 25.9. Verification
 
 There are a great many options that control various aspects of verifying dafny programs. Here we mention only a few:
 
@@ -246,7 +214,7 @@ There are a great many options that control various aspects of verifying dafny p
 
 TO BE WRITTEN - advice on use of verifier, debugging verification problems
 
-## 26.11. Compilation
+## 25.10. Compilation
 
 The dafny tool can compile a Dafny program to one of several target languages. Details and idiosyncracies of each
 of these are described in the following subsections. In general note that,
@@ -262,7 +230,7 @@ that are not legal identifiers in X or that conflict with reserved words in X.
 
 TODO - location of DafnyRuntime files
 
-### 26.11.1. Main method
+### 25.10.1. Main method
 
 To generate a stand-alone executable from a Dafny program, the
 Dafny program must contain exactly one method named `Main`, with no input arguments.
@@ -275,34 +243,34 @@ TO BE WRITTEN
 
 TODO - non-static main in a class.
 
-### 26.11.2. extern declarations
+### 25.10.2. extern declarations
 
 TO BE WRITTEN
 
-### 26.11.3. C\#
+### 25.10.3. C\#
 
 TO BE WRITTEN
 
-### 26.11.4. Java
+### 25.10.4. Java
 
 TO BE WRITTEN
 
-### 26.11.5. Javascript
+### 25.10.5. Javascript
 
 TO BE WRITTEN
 
-### 26.11.6. Go
+### 25.10.6. Go
 
 TO BE WRITTEN
 
-### 26.11.7. C++
+### 25.10.7. C++
 
 The C++ back-end is still very preliminary and is available for experimentation only.
 
 TO BE WRITTEN
 
 
-## 26.12. Dafny Command Line Options {#options}
+## 25.11. Dafny Command Line Options {#options}
 
 There are many command-line options to the `dafny` tool.
 The most current documentation of the options is within the tool itself,
@@ -311,18 +279,18 @@ Here we give an expanded description of the most important options.
 
 Remember that options can be stated with either a leading `/` or a leading `-`.
 
-### 26.12.1. Help and version information
+### 25.11.1. Help and version information
 
 * `-?` or `-help` : prints out the current list of command-line options and terminates
 * `-version` : prints the version of the executable being invoked and terminates
 
-### 26.12.2. Controlling errors and exit codes
+### 25.11.2. Controlling errors and exit codes
 
 * `-countVerificationErrors:<n>` - if 0 then always exit with a 0 exit code; if 1 (the default) then use the usual exit code
 
 TO BE WRITTEN
 
-### 26.12.3. Controlling output
+### 25.11.3. Controlling output
 
 * `-dprint:<file>` - print the Dafny program after parsing (use `-` for `<file> to print to the console)
 
@@ -330,7 +298,7 @@ TO BE WRITTEN
 
 TO BE WRITTEN
 
-### 26.12.4. Controlling aspects of the tool being run
+### 25.11.4. Controlling aspects of the tool being run
 
 * `-deprecation:<n>` - controls warnings about deprecated features
 
@@ -342,20 +310,20 @@ TO BE WRITTEN
 
 TO BE WRITTEN
 
-### 26.12.5. Controlling verification
+### 25.11.5. Controlling verification
 
 * `-verifyAllModules` - verify modules that come from include directives (default is to not verify included modules)
 TO BE WRITTEN
 
-### 26.12.6. Controlling boogie
+### 25.11.6. Controlling boogie
 
 TO BE WRITTEN
 
-### 26.12.7. Controlling the prover
+### 25.11.7. Controlling the prover
 
 TO BE WRITTEN
 
-### 26.12.8. Controlling compilation
+### 25.11.8. Controlling compilation
 
 * `-compile:<n>` - controls whether compilation happens
 
@@ -390,7 +358,7 @@ TO BE WRITTEN
 
 TO BE WRITTEN
 
-### 26.12.9. Options intended for debugging
+### 25.11.9. Options intended for debugging
 
 * `-dprelude:<file>` - choose an alternate prelude file
 * `-pmtrace` - print pattern-match compiler debugging information
@@ -398,6 +366,6 @@ TO BE WRITTEN
 
 TO BE WRITTEN
 
-## 26.13. Full list of -command-line options <!-- PDFOMIT -->
+## 25.12. Full list of -command-line options <!-- PDFOMIT -->
 For the on-line version only, the output of `dafny /?` follows: <!--PDFOMIT-->
 {% include Options.txt %} <!-- PDFOMIT -->
