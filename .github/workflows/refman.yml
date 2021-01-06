@@ -2,7 +2,7 @@ name: Build DafnyRef.pdf
 
 on:
   push:
-    branches: [ master cok-834 ]
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 
@@ -17,10 +17,6 @@ jobs:
         ##os: [ macos-latest, ubuntu-16.04, ubuntu-latest ]
 
 
-    #- name: Install brew
-    #  run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-    #- name: Install mono
-    #  run: brew install mono || echo OK
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
@@ -34,23 +30,6 @@ jobs:
       with:
         submodules: recursive
         path: dafny
-    - name: Get Z3 - windows
-      if: matrix.os == 'windows-latest'
-      shell: pwsh
-      run: |
-        Invoke-WebRequest -Outfile z3X.zip -Uri https://github.com/Z3Prover/z3/releases/download/z3-4.8.5/z3-4.8.5-x64-win.zip
-    - name: Get Z3 - mac
-      if: matrix.os == 'macos-latest'
-      run: |
-        wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.5/z3-4.8.5-x64-osx-10.14.1.zip
-    - name: Get Z3a - ubuntu
-      if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-16.04'
-      run: |
-        wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.5/z3-4.8.5-x64-ubuntu-16.04.zip
-    - name: Install Z3
-      run: |
-        unzip z3*.zip && rm *.zip
-        cp -r z3* dafny/Binaries/z3
     - name: Build Dafny
       run: dotnet build dafny/Source/Dafny.sln
     - name: Install latex pandoc - Linux
@@ -65,27 +44,23 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get install texlive-science
+        sudo tlmgr init-usertree
         sudo tlmgr update --self
         sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
         pandoc -v
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
         sudo gem install rouge
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        make -C dafny/docs/DafnyReferenceManual
     - if: matrix.os != 'ubuntu-latest' && runner.os == 'Linux'
       run: |
         sudo apt-get install texlive-math-extra
+        sudo tlmgr init-usertree
         sudo tlmgr update --self
         sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
         pandoc -v
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
         sudo gem install rouge
-    - if: matrix.os != 'ubuntu-latest' && runner.os == 'Linux'
-      run: |
-        make -C dafny/docs/DafnyReferenceManual
     - name: Install latex pandoc - MacOS
       if: runner.os == 'MacOS'
       run: |
@@ -98,6 +73,9 @@ jobs:
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
         sudo gem install rouge
+    - name: Build reference manual
+      run: |
+        eval "$(/usr/libexec/path_helper)"
         make -C dafny/docs/DafnyReferenceManual
     - name: Check
       run: ls -la dafny/docs/DafnyReferenceManual/DafnyRef.pdf

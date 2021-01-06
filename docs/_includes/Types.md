@@ -1,8 +1,8 @@
-# Types
+# 6. Types
 ````grammar
 Type = DomainType [ "->" Type ]
 ````
-A Dafny type is a domain type (i.e. a type that can be the domain of a
+A Dafny type is a domain type (i.e., a type that can be the domain of a
 function type) optionally followed by an arrow and a range type.
 
 ````grammar
@@ -21,7 +21,7 @@ a parenthesized type) and reference types.
 
 Dafny types may be categorized as either value types or reference types.
 
-## Value Types
+## 6.1. Value Types
 The value types are those whose values do not lie in the program heap.
 These are:
 
@@ -39,7 +39,7 @@ The `nat` type is a pre-defined [subset type](#sec-subset-types) of `int`.
 
 Dafny does not include types themselves as values, nor is there a type of types.
 
-## Reference Types
+## 6.2. Reference Types {#sec-reference-types}
 Dafny offers a host of _reference types_.  These represent
 _references_ to objects allocated dynamically in the program heap.  To
 access the members of an object, a reference to (that is, a _pointer_
@@ -49,7 +49,7 @@ The reference types are class types, traits and array types.
 Dafny supports both reference types that contain the special `null` value
 (_nullable types_) and reference types that do not (_non-null types_).
 
-## Named Types
+## 6.3. Named Types
 ````grammar
 NamedType_ = NameSegmentForTypeName { "." NameSegmentForTypeName }
 ````
@@ -65,18 +65,19 @@ NameSegmentForTypeName = Ident [ GenericInstantiation ]
 A ``NameSegmentForTypeName`` is a type name optionally followed by a
 ``GenericInstantiation``, which supplies type parameters to a generic
 type, if needed. It is a special case of a ``NameSegment``
-(See Section [#sec-name-segment])
+([Section 0](#sec-name-segment))
 that does not allow a ``HashCall``.
 
 The following sections describe each of these kinds of types in more detail.
 
-# Basic types
+<!--PDF NEWPAGE-->
+# 7. Basic types
 
 Dafny offers these basic types: `bool` for booleans, `char` for
 characters, `int` and `nat` for integers, `real` for reals,
 `ORDINAL`, and bit-vector types.
 
-## Booleans
+## 7.1. Booleans
 ````grammar
 BoolType_ = "bool"
 ````
@@ -119,7 +120,7 @@ A && (B || C)
 ```
 depending on the intended meaning.
 
-### Equivalence Operator
+### 7.1.1. Equivalence Operator {#sec-equivalence-operator}
 The expressions `A <==> B` and `A == B` give the same value, but note
 that `<==>` is _associative_ whereas `==` is _chaining_ and they have
 different precedence.  So,
@@ -143,7 +144,7 @@ is simply a shorthand for
 A == B && B == C
 ```
 
-### Conjunction and Disjunction
+### 7.1.2. Conjunction and Disjunction {#sec-conjunction-and-disjunction}
 Conjunction and disjunction are associative.  These operators are
 _short circuiting (from left to right)_, meaning that their second
 argument is evaluated only if the evaluation of the first operand does
@@ -153,7 +154,7 @@ evaluates to `false` or `B` is defined.  When `A && B` is defined, its
 meaning is the same as the ordinary, symmetric mathematical
 conjunction `&`.  The same holds for `||` and `|`.
 
-### Implication and  Reverse Implication
+### 7.1.3. Implication and  Reverse Implication {#sec-implication-and-reverse-implication}
 Implication is _right associative_ and is short-circuiting from left
 to right.  Reverse implication `B <== A` is exactly the same as
 `A ==> B`, but gives the ability to write the operands in the opposite
@@ -169,7 +170,7 @@ C <== B <== A
 ```
 To illustrate the short-circuiting rules, note that the expression
 `a.Length` is defined for an array `a` only if `a` is not `null` (see
-Section [Reference Types](#sec-reference-types)), which means the following two
+[Section 6.2](#sec-reference-types)), which means the following two
 expressions are well-formed:
 ```dafny
 a != null ==> 0 <= a.Length
@@ -197,10 +198,9 @@ is well-formed, whereas
 is not.
 
 In addition, booleans support _logical quantifiers_ (forall and
-exists), described in section [Quantifier Expressions](#sec-quantifier-expression).
+exists), described in [Section 22.36](#sec-quantifier-expression).
 
-
-## Numeric types
+## 7.2. Numeric types {#sec-numeric-types}
 
 ````grammar
 IntType_ = "int"
@@ -210,8 +210,8 @@ RealType_ = "real"
 Dafny supports _numeric types_ of two kinds, _integer-based_, which
 includes the basic type `int` of all integers, and _real-based_, which
 includes the basic type `real` of all real numbers.  User-defined
-numeric types based on `int` and `real`, either _subset types_ or _newtypes_, are
-described in Sections [#sec-subset-types] and  [#sec-newtypes].
+numeric types based on `int` and `real`, either _subset types_ or _newtypes_,
+are described in [Section 19](#sec-subset-types) and [Section 0](#sec-newtypes).
 
 There is one built-in [_subset type_](#sec-subset-types),
 `nat`, representing the non-negative subrange of `int`.
@@ -240,7 +240,8 @@ to improve human readability of the literals.  For example:
 ```
 
 In addition to equality and disequality, numeric types
-support the following relational operations:
+support the following relational operations, which have the
+same precedence as equality:
 
  operator          | description
 -------------------|------------------------------------
@@ -282,7 +283,7 @@ each other in the two groups.
 The groups are listed in order of
 increasing binding power, with equality binding less strongly than any of these operators.
 There is no implicit conversion between `int` and `real`: use `as int` or
-`as real` conversions to write an explict conversion.
+`as real` conversions to write an explict conversion (cf. [Section 22.10](#sec-as-expression)).
 
 Modulus is supported only for integer-based numeric types.  Integer
 division and modulus are the _Euclidean division and modulus_.  This
@@ -308,10 +309,14 @@ r <= r' ==> r.Floor <= r'.Floor
 ```
 Note in the third line that member access (like `.Floor`) binds
 stronger than unary minus.  The fourth line uses the conversion
-function `real` from `int` to `real`, as described in Section
-[#sec-numeric-conversion-operations].
+function `as real` from `int` to `real`, as described in
+[Section 0](#sec-numeric-conversion-operations].
 
-## Bit-vector types
+TODO: Need syntax for real literals with exponents
+
+TODO: Need double and flot machine-precision types, with literals and operations (including NaN, infinities and signed zero).
+
+## 7.3. Bit-vector types
 ````grammar
 BitVectorType_ = bvToken
 ````
@@ -382,21 +387,16 @@ These produce assertion errors:
 {% include Example-BV4a.dfy %}
 ```
 
-
-
 [^binding]: The binding power of shift and bit-wise operations is different than in C-like languages.
 
-
-TO BE WRITTEN  -- are types first class?
-
-## Ordinal type
+## 7.4. Ordinal type
 ````grammar
 OrdinalType_ = "ORDINAL"
 ````
 
 TO BE WRITTEN
 
-## Characters
+## 7.5. Characters {#sec-characters}
 
 ````grammar
 CharType_ = "char"
@@ -423,7 +423,7 @@ supported escape sequences are the following:
 The escape sequence for a double quote is redundant, because
 `'"'` and `'\"'` denote the same
 character---both forms are provided in order to support the same
-escape sequences in string literals (Section [#sec-strings]).
+escape sequences in string literals ([Section 10.3.5](#sec-strings)).
 In the form `\u`_xxxx_, the `u` is always lower case, but the four
 hexadecimal digits are case insensitive.
 
@@ -437,19 +437,20 @@ relational operators:
   `>=`             | at least
   `>`              | greater than
 
-Sequences of characters represent _strings_, as described in Section
-[#sec-strings].
+Sequences of characters represent _strings_, as described in
+[Section 10.3.5](#sec-strings).
 
 Character values can be converted to and from `int` values using the
 `as int` and `as char` conversion operations. The result is what would
-be expected in other programming languages, namely, the 'int` value of a
+be expected in other programming languages, namely, the `int` value of a
 `char` is the ACSII or unicode numeric value.
 
 The only other operations on characters are obtaining a character
 by indexing into a string, and the implicit conversion to string
 when used as a parameter of a `print` statement.
 
-# Type parameters
+<!--PDF NEWPAGE-->
+# 8. Type parameters
 
 ````grammar
 GenericParameters =
@@ -465,9 +466,9 @@ parameterized by types.  These _type parameters_ are typically
 declared inside angle brackets and can stand for any type.
 
 Dafny has some inference support that makes certain signatures less
-cluttered (described in Section [Type Inference](#sec-type-inference)).
+cluttered (described in [Section 24.2](#sec-type-inference)).
 
-## Declaring restrictions on type parameters {#sec-type-parameter-restrictions}
+## 8.1. Declaring restrictions on type parameters {#sec-type-characteristics}
 
 It is sometimes necessary to restrict type parameters so that
 they can only be instantiated by certain families of types, that is,
@@ -481,7 +482,7 @@ will add the appropriate suffix, such as `(==)`, automatically.
 If more than one restriction is needed, they are listed, comma-separated,
 inside the parentheses, like this: `T(==,0)`.
 
-### Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
+### 8.1.1. Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
 
 Designating a type parameter with the `(==)` suffix indicates that
 the parameter may only be replaced in non-ghost contexts
@@ -505,7 +506,7 @@ code.  Co-inductive datatypes, function types, and inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
 
-### Auto-initializable types: `T(0)`
+### 8.1.2. Auto-initializable types: `T(0)`
 
 All Dafny variables of a given type hold a legal value of that type;
 if no explicit initialization is given, then an arbitrary value is
@@ -528,19 +529,19 @@ it does not.
 Variables and fields of a type that the compiler does not auto-initialize
 are subject to _definite-assignment_ rules. These ensure that the program
 explicitly assigns a value to a variable before it is used.
-For more details see the section describing [Definite Assignment](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
+For more details see [Section 24.6](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
 
 The `(0)` suffix indicates that the type must be one that the compiler knows
 how to auto-initialize, if the type is used to declare a non-ghost variable.
 
-### Non-heap based: `T(!new)`
+### 8.1.3. Non-heap based: `T(!new)`
 
 Dafny makes a distinction between types whose values are on the heap,
 i.e. references, like
 classes and arrays, and those that are strictly value-based, like basic
 types and datatypes.
 The practical implication is that references depend on allocation state
-(e.g. are affected by the `old` operation) whereas non-reference values
+(e.g., are affected by the `old` operation) whereas non-reference values
 are not.
 Thus it can be relevant to know whether the values of a type parameter
 are heap-based or not. This is indicated by the mode suffix `(!new)`.
@@ -551,7 +552,7 @@ a parameterized data type such as
 ```dafny
 dataype Result<T> = Failure(error: string) | Success(value: T)
 ```
-the instantiation `Result<int>` satisifies `(!new)`, whereas
+the instantiation `Result<int>` satisfies `(!new)`, whereas
 `Result<array<int>>` does not.
 
 Note that this characteristic of a type parameter is operative for both
@@ -563,24 +564,26 @@ Here are some examples:
 {% include Example-TP.dfy %}
 ```
 
-## Type parameter variance
+## 8.2. Type parameter variance
 
 TO BE WRITTEN: Type parameter variance
 
-# Generic Instantiation
+<!--PDF NEWPAGE-->
+# 9. Generic Instantiation
 ````grammar
 GenericInstantiation = "<" Type { "," Type } ">"
 ````
 When a generic entity is used, actual types must be specified for each
 generic parameter. This is done using a ``GenericInstantiation``.
 If the `GenericInstantiation` is omitted, type inference will try
-to fill these in.
+to fill these in (cf. [Section 24.2](#sec-type-inference)).
 
-# Collection types
+<!--PDF NEWPAGE-->
+# 10. Collection types {#sec-collection-types}
 
 Dafny offers several built-in collection types.
 
-## Sets
+## 10.1. Sets {#sec-sets}
 ````grammar
 FiniteSetType_ = "set" [ GenericInstantiation ]
 InfiniteSetType_ = "iset" [ GenericInstantiation ]
@@ -604,7 +607,7 @@ enclosed in curly braces.  To illustrate,
 ```
 are three examples of set displays. There is also a _set comprehension_
 expression (with a binder, like in logical quantifications), described in
-section [#sec-set-comprehension-expressions].
+[Section 22.37](#sec-set-comprehension-expression).
 
 In addition to equality and disequality, set types
 support the following relational operations:
@@ -650,13 +653,13 @@ expression `e` of type `T`, sets support the following operations:
 
  expression          | result type |  description
 ---------------------|:-:|------------------------------------
- `|s|`               | `nat`   | set cardinality (not iset)
+ `|s|`               | `nat`  | set cardinality (not for iset)
  `e in s`            | `bool` | set membership
  `e !in s`           | `bool` | set non-membership
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
-## Multisets
+## 10.2. Multisets {#sec-multisets}
 ````grammar
 MultisetType_ = "multiset" [ GenericInstantiation ]
 ````
@@ -746,7 +749,7 @@ without any occurrences of `e` (whether or not `s` has occurrences of
 if e in s then s[e := s[e] - 1] else s
 ```
 
-## Sequences
+## 10.3. Sequences {#sec-sequences}
 ````grammar
 SequenceType_ = "seq" [ GenericInstantiation ]
 ````
@@ -755,7 +758,7 @@ For any type `T`, a value of type `seq<T>` denotes a _sequence_ of `T`
 elements, that is, a mapping from a finite downward-closed set of natural
 numbers (called _indices_) to `T` values.
 
-### Sequence Displays
+### 10.3.1. Sequence Displays
 A sequence can be formed using a _sequence display_ expression, which
 is a possibly empty, ordered list of expressions enclosed in square
 brackets.  To illustrate,
@@ -765,7 +768,7 @@ brackets.  To illustrate,
 are three examples of sequence displays.  There is no sequence
 comprehension expression.
 
-### Sequence Relational Operators
+### 10.3.2. Sequence Relational Operators
 In addition to equality and disequality, sequence types
 support the following relational operations:
 
@@ -777,7 +780,7 @@ support the following relational operations:
 Like the arithmetic relational operators, these operators are
 chaining.  Note the absence of `>` and `>=`.
 
-### Sequence Concatenation
+### 10.3.3. Sequence Concatenation
 Sequences support the following binary operator:
 
  operator      | description
@@ -787,7 +790,7 @@ Sequences support the following binary operator:
 Operator `+` is associative, like the arithmetic operator with the
 same name.
 
-### Other Sequence Expressions
+### 10.3.4. Other Sequence Expressions
 In addition, for any sequence `s` of type `seq<T>`, expression `e`
 of type `T`, integer-based numeric `i` satisfying `0 <= i < |s|`, and
 integer-based numerics `lo` and `hi` satisfying
@@ -803,13 +806,14 @@ integer-based numerics `lo` and `hi` satisfying
  `s[lo..hi]`         | `seq<T>`| subsequence
  `s[lo..]`           | `seq<T>` | drop
  `s[..hi]`           | `seq<T>` | take
- `s[`_slices_`]`   | `seq<T>` | slice
+ `s[`_slices_`]`   | `seq<seq<T>>` | slice
  `multiset(s)`       | `multiset<T>`| sequence conversion to a `multiset<T>`
 
 Expression `s[i := e]` returns a sequence like `s`, except that the
 element at index `i` is `e`.  The expression `e in s` says there
 exists an index `i` such that `s[i] == e`.  It is allowed in non-ghost
-contexts only if the element type `T` is equality supporting.
+contexts only if the element type `T` is
+[equality supporting](#sec-equality-supporting).
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
 Expression `s[lo..hi]` yields a sequence formed by taking the first
@@ -828,30 +832,21 @@ integer-based numeric, whose sum is no greater than `|s|`.  If there
 are _k_ colons, the operation produces _k + 1_ consecutive subsequences
 from `s`, each of the length indicated by the corresponding length
 designator, and returns these as a sequence of
-sequences.[^fn-slice-into-tuple] If _slices_ is terminated by a
+sequences.
+If _slices_ is terminated by a
 colon, then the length of the last slice extends until the end of `s`,
 that is, its length is `|s|` minus the sum of the given length
 designators.  For example, the following equalities hold, for any
 sequence `s` of length at least `10`:
 ```dafny
-var t := [3.14, 2.7, 1.41, 1985.44, 100.0, 37.2][1:0:3];
-assert |t| == 3 && t[0] == [3.14] && t[1] == [];
-assert t[2] == [2.7, 1.41, 1985.44];
-var u := [true, false, false, true][1:1:];
-assert |u| == 3 && u[0][0] && !u[1][0] && u[2] == [false, true];
-assert s[10:][0] == s[..10];
-assert s[10:][1] == s[10..];
+{% include Example-Seq.dfy %}
 ```
-
-[^fn-slice-into-tuple]:  Now that Dafny supports built-in tuples, the
-    plan is to change the sequence slice operation to return not a
-    sequence of subsequences, but a tuple of subsequences. TODO: But as a sequence of subsequences one can iterate over them.
 
 The operation `multiset(s)` yields the multiset of elements of
 sequence `s`.  It is allowed in non-ghost contexts only if the element
-type `T` is equality supporting.
+type `T` is [equality supporting](#sec-equality-supporting).
 
-### Strings
+### 10.3.5. Strings {#sec-strings}
 ````grammar
 StringType_ = "string"
 ````
@@ -866,7 +861,7 @@ String literals of the standard form are enclosed in double quotes, as
 in `"Dafny"`.  To include a double quote in such a string literal,
 it is necessary to use an escape sequence.  Escape sequences can also
 be used to include other characters.  The supported escape sequences
-are the same as those for character literals, see Section [#sec-characters].
+are the same as those for character literals ([Section 7.5](#sec-characters)).
 For example, the Dafny expression `"say \"yes\""` represents the
 string `'say "yes"'`.
 The escape sequence for a single quote is redundant, because
@@ -895,7 +890,7 @@ still denote proper prefix and prefix, respectively, not some kind of
 alphabetic comparison as might be desirable, for example, when
 sorting strings.
 
-## Finite and Infinite Maps
+## 10.4. Finite and Infinite Maps {#sec-maps}
 ````grammar
 FiniteMapType_ = "map" [ GenericInstantiation ]
 InfiniteMapType_ = "imap" [ GenericInstantiation ]
@@ -907,7 +902,8 @@ from `T` to `U`.  In other words, it is a look-up table indexed by
 `T`.  The _domain_ of the map is a finite set of `T` values that have
 associated `U` values.  Since the keys in the domain are compared
 using equality in the type `T`, type `map<T,U>` can be used in a
-non-ghost context only if `T` is equality supporting.
+non-ghost context only if `T` is
+[equality supporting](#sec-equality-supporting).
 
 Similarly, for any types `T` and `U`, a value of type `imap<T,U>`
 denotes a _(possibly) infinite map_.  In most regards, `imap<T,U>` is
@@ -932,7 +928,7 @@ to have an infinite domain.
 If the same key occurs more than
 once in a map display expression, only the last occurrence appears in the resulting
 map.[^fn-map-display]  There is also a _map comprehension expression_,
-explained in section [#sec-map-comprehension-expression].
+explained in [Section 22.40](#sec-map-comprehension-expression).
 
 [^fn-map-display]: This is likely to change in the future to disallow
     multiple occurrences of the same key.
@@ -950,9 +946,9 @@ is, satisfying `d in m`), maps support the following operations:
  `m[t := u]`    | `map<T,U>`  | map update
  `t in m`       | `bool`      | map domain membership
  `t !in m`      | `bool`      | map domain non-membership
- `fm.Keys`      | `set<T>`    | the domain of `fm`
- `fm.Values`    | `set<U>`    | the range of `fm`
- `fm.Items`     | `set<(T,U)>`| set of pairs (t,u) in `fm`
+ `m.Keys`      | (i)`set<T>`    | the domain of `m`
+ `m.Values`    | (i)`set<U>`    | the range of `m`
+ `m.Items`     | (i)`set<(T,U)>`| set of pairs (t,u) in `m`
 
 `|fm|` denotes the number of mappings in `fm`, that is, the
 cardinality of the domain of `fm`.  Note that the cardinality operator
@@ -967,7 +963,8 @@ The expressions `m.Keys`, `m.Values`, and `m.Items` return, as sets,
 the domain, the range, and the 2-tuples holding the key-value
 associations in the map. Note that `m.Values` will have a different
 cardinality than `m.Keys` and `m.Items` if different keys are
-associated with the same value.
+associated with the same value. If `m` is an `imap`, then these
+expressions return `iset` values.
 
 [^fn-map-membership]: This is likely to change in the future as
     follows:  The `in` and `!in` operations will no longer be
@@ -986,15 +983,95 @@ if K in cache {  // check if temperature is in domain of cache
 }
 ```
 
-# Types that stand for other types
+## 10.5. Iterating over collections
+
+Collections are very commonly used in programming and one frequently
+needs to iterate over the elements of a collection. Dafny does not have
+built-in iterator methods, but the idioms by which to do so are straightforward.
+The subsections below give some introductory examples; more
+detail can be found in this [power user note](http://leino.science/papers/krml275.html).
+
+TODO: Add examples of using a iterator class
+TODO: Should a foreach statment be added to Dafny
+
+### 10.5.1. Sequences and arrays
+
+Sequences and arrays are indexable and have a length. So the idiom to
+iterate over the contents is well-known. For an array:
+```dafny
+  var i := 0;
+  var sum := 0;
+  while i < s.Length {
+    sum := sum + s[i];
+    i := i + 1;
+  }
+}
+```
+For a sequence, the only difference is the length operator:
+```dafny
+  var i := 0;
+  var sum := 0;
+  while i < |s| {
+    sum := sum + s[i];
+    i := i + 1;
+  }
+```
+
+The `forall` statement ([Section 22.8](#sec-forall-statement)) can also be used
+with arrays where parallel assigment is needed:
+```dafny
+  var rev := new int[s.Length];
+  forall i | 0 <= i < s.Length {
+    rev[i] := s[s.Length-i-1];
+  }
+```
+
+### 10.5.2. Sets
+There is no intrinsic order to the elements of a set. Nevertheless, we can
+extract an arbitrary element of a non-empty set, performing an iteration
+as follows:
+```dafny
+// s is a set<int>
+  var ss := s;
+  while ss != {}
+    decreases |ss|
+  {
+    var i: int :| i in ss;
+    ss := ss - {i};
+    print i, "\n";
+  }
+```
+
+Because `iset`s may be infinite, Dafny doesnot permit iteration over an `iset`.
+
+### 10.5.3. Maps
+
+Iterating over the contents of a `map` uses the component sets: `Keys`, `Values`, and `Items`. The iteration loop follows the same patterns as for sets:
+
+```dafny
+  var items := m.Items;
+  while items != {}
+    decreases |items|
+  {
+    var item :| item in items;
+    items := items - { item };
+    print item.0, " ", item.1, "\n";
+  }
+```
+
+There are no mechanisms currently defined in Dafny for iterating over `imap`s.
+
+
+<!--PDF NEWPAGE-->
+# 11. Types that stand for other types
 ````grammar
 SynonymTypeDecl =
-  ( SynonymTypeDefinition_ | OpaqueTypeDefinition_ ) [ ";" ]
+  ( SynonymTypeDefinition_ | OpaqueTypeDefinition_ )
 ````
 It is sometimes useful to know a type by several names or to treat a
 type abstractly. Synonym and opaque types serve this purpose.
 
-## Type synonyms
+## 11.1. Type synonyms
 ````grammar
 SynonymTypeDefinition_ =
   "type" { Attribute } SynonymTypeName [ TPChars ] [ GenericParameters ]
@@ -1006,8 +1083,8 @@ A _type synonym_ declaration:
 type Y<T> = G
 ```
 declares `Y<T>` to be a synonym for the type `G`.  Here, `T` is a
-nonempty list of type parameters (each of which is optionally
-designated with the suffix `(==)`), which can be used as free type
+nonempty list of type parameters (each of which optionally
+has a [type characteristics suffix](#sec-type-characteristics)), which can be used as free type
 variables in `G`.  If the synonym has no type parameters, the "`<T>`"
 is dropped.  In all cases, a type synonym is just a synonym.  That is,
 there is never a difference, other than possibly in error messages
@@ -1020,18 +1097,18 @@ type Replacements<T> = map<T,T>
 type Vertex = int
 ```
 
-As already described in Section [#sec-strings], `string` is a built-in
+As already described in [Section 10.3.5](#sec-strings), `string` is a built-in
 type synonym for `seq<char>`, as if it would have been declared as
 follows:
 ```dafny
 type string = seq<char>
 ```
 
-The optional type parameter characteristics are described in the
-section on [type parameter restrictions](#sec-type-parameter-restrictions)
+The optional type parameter characteristics are described in
+[Section 8.1](#sec-type-characteristics)
 
 
-## Opaque types
+## 11.2. Opaque types
 ````grammar
 OpaqueTypeDefinition_ = "type" { Attribute } SynonymTypeName
   [ TPChars ] [ GenericParameters ]
@@ -1043,9 +1120,8 @@ a type is declared simply by:
 type Y<T>
 ```
 It is known as an _opaque type_.  Its definition can be revealed in a
-refining module.  To indicate that `Y` designates an
-equality-supporting type, "`(==)`" can be written immediately
-following the name "`Y`".
+refining module.  The name `Y` can be immediately followed by
+a [type characteristics suffix](#sec-type-characteristics).
 
 For example, the declarations
 ```dafny
@@ -1059,11 +1135,12 @@ type Monad<T>
 ```
 can be used abstractly to represent an arbitrary parameterized monad.
 
-The optional type parameter characteristics are described in the
-section on [type parameter restrictions](#sec-type-parameter-restrictions)
+The optional type parameter characteristics are described in
+[Section 8.1](#sec-type-characteristics)
 
 
-# Class Types {#sec-class-types}
+<!--PDF NEWPAGE-->
+# 12. Class Types {#sec-class-types}
 
 ````grammar
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
@@ -1151,10 +1228,10 @@ these methods can be invoked at any time, not just as part of a `new`,
 and that `new` does not require that an initialization method be
 invoked at creation.
 
-A clas can declare special initializing methods called _constructor methods_.
-See Section [#sec-method-declarations].
+A class can declare special initializing methods called _constructor methods_.
+See [Section 0](#sec-method-declarations).
 
-## Field Declarations
+## 12.1. Field Declarations
 ````grammar
 FieldDecl = "var" { Attribute } FIdentType { "," FIdentType }
 ````
@@ -1187,7 +1264,7 @@ not in code that will be compiled into executable code.
 
 Fields may not be declared static.
 
-## Method Declarations
+## 12.2. Method Declarations
 ````grammar
 MethodDecl(isGhost, allowConstructor) =
   MethodKeyword { Attribute } [ MethodName ]
@@ -1276,7 +1353,7 @@ modifies c, d
 
 all mean the same thing.
 
-### Ordinary methods
+### 12.2.1. Ordinary methods
 
 A method can be declared as ghost by preceding the declaration with the
 keyword `ghost` and as static by preceding the declaration with the keyword `static`.
@@ -1303,7 +1380,7 @@ abstract under the following circumstances:
 Note that when there is no body, Dafny assumes that the *ensures*
 clauses are true without proof. (TODO: `:extern` attribute?)
 
-### Constructors
+### 12.2.2. Constructors
 To write structured object-oriented programs, one often relies on
 objects being constructed only in certain ways.  For this purpose, Dafny
 provides _constructor (method)s_, which are a restricted form of
@@ -1325,7 +1402,7 @@ than these restrictions, there is no semantic difference between using
 ordinary initialization methods and using constructors. Classes may
 declare no constructors or one or more constructors.
 
-#### Classes with no explicit constructors
+#### 12.2.2.1. Classes with no explicit constructors
 
 A class that declares no constructors has a default constructor created
 for it. This constructor is called with the syntax
@@ -1345,7 +1422,7 @@ be correct for any initial value. Compiled, executable versions of the program
 may use a specific initial value
 (for example, but not necessarily, a zero-equivalent or a declared _witness_ value for the type).
 
-#### Classes with one or more constructors
+#### 12.2.2.2. Classes with one or more constructors
 
 When one or more constructors are explicitly declared, they are named,
 which promotes using names like `InitFromList` above.
@@ -1371,7 +1448,7 @@ The anonymous constructor is invoked as
 ```
 dropping the "`.`".
 
-#### Two-phase constructors
+#### 12.2.2.3. Two-phase constructors
 
 The body of a constructor contains two sections,
 an initialization phase and a post-initialization phase, separated by a `new;` statement.
@@ -1391,7 +1468,7 @@ value in their declaration.
 
 There are no restrictions on expressions or statements in the post-initialization phase.
 
-### Lemmas
+### 12.2.3. Lemmas
 Sometimes there are steps of logic required to prove a program correct,
 but they are too complex for Dafny to discover and use on its own. When
 this happens, we can often give Dafny assistance by providing a lemma.
@@ -1405,10 +1482,10 @@ Section [#sec-proofs-in-dafny].
 See [the Dafny Lemmas tutorial](http://rise4fun.com/Dafny/tutorial/Lemmas)
 for more examples and hints for using lemmas.
 
-### Two-state lemmas and functions
+### 12.2.4. Two-state lemmas and functions
 TO BE WRITTEN - two-state lemmas; unchanged predicate
 
-## Function Declarations
+## 12.3. Function Declarations
 
 ````grammar
 FunctionDecl =
@@ -1513,13 +1590,13 @@ a ``SignatureEllipsis_`` which means to copy the signature from
 (if `M0.F` does not provide one). It can also add `ensures`
 clauses.
 
-### Predicates
+### 12.3.1. Predicates
 A function that returns a `bool` result is called a _predicate_. As an
 alternative syntax, a predicate can be declared by replacing the `function`
 keyword with the `predicate` keyword and omitting a declaration of the
 return type.
 
-### Function Transparency
+### 12.3.2. Function Transparency
 A function is said to be _transparent_ in a location if the
 body of the function is visible at that point.
 A function is said to be _opaque_ at a location if it is not
@@ -1547,11 +1624,12 @@ When `{:opaque}` is specified for function `g`, `g` is opaque,
 however the lemma `reveal_g` is available to give the semantics
 of `g` whether in the defining module or outside.
 
-### Inductive Predicates and Lemmas
+### 12.3.3. Inductive Predicates and Lemmas
 See section [#sec-friendliness] for descriptions
 of inductive predicates and lemmas.
 
-# Trait Types
+<!--PDF NEWPAGE-->
+# 13. Trait Types
 ````grammar
 TraitDecl =
   "trait" { Attribute } TraitName [ GenericParameters ]
@@ -1585,14 +1663,14 @@ of `C`.  A member in `J` is not allowed to be redeclared in `C`,
 except if the member is a non-`static` function or method without a
 body in `J`.  By doing so, type `C` can supply a stronger
 specification and a body for the member. There is further discussion on
-this point in Section [Inheritance](#sec-inheritance).
+this point in [Section 13.2](#sec-inheritance).
 
 `new` is not allowed to be used with traits.  Therefore, there is no
 object whose allocated type is a trait.  But there can of course be
 objects of a class `C` that implement a trait `J`, and a reference to
 such a `C` object can be used as a value of type `J`.
 
-## Type `object`
+## 13.1. Type `object`
 ````grammar
 ObjectType_ = "object"
 ````
@@ -1600,7 +1678,8 @@ ObjectType_ = "object"
 There is a built-in trait `object` that is a supertype of all
 reference types.
 Every class and every trait (other than `object` itself) automatically extends
-`object`. The purpose of type `object`
+`object`. This includes types like arrays and iterators that do not permit
+explicit extending of traits. The purpose of type `object`
 is to enable a uniform treatment of _dynamic frames_. In particular, it
 is useful to keep a ghost field (typically named `Repr` for
 "representation") of type `set<object>`.
@@ -1612,7 +1691,7 @@ Trait `object` contains no members.
 
 The dynamic allocation of objects is done using new C ..., where C is the name of a class. The name C is not allowed to be a trait, except that it is allowed to be `object`. The construction `new object` allocates a new object (of an unspecified class type). The construction can be used to create unique references, where no other properties of those references are needed.
 
-## Inheritance {#sec-inheritance}
+## 13.2. Inheritance {#sec-inheritance}
 
 The purpose of traits is to be able to express abstraction: a trait
 encapsulates a set of behaviors; classes and traits that extend it
@@ -1700,7 +1779,7 @@ If the declaring trait does give
 an initial value in the declaration, the extending class or trait may not either
 redeclare the field or give it a value in a constructor.
 
-## Example of traits
+## 13.3. Example of traits
 As an example, the following trait represents movable geometric shapes:
 ```dafny
 trait Shape
@@ -1768,7 +1847,8 @@ myShapes := myShapes + [tri];
 myShapes[1].MoveH(myShapes[0].Width());
 ```
 
-# Array Types
+<!--PDF NEWPAGE-->
+# 14. Array Types
 ````grammar
 ArrayType_ = arrayToken [ GenericInstantiation ]
 ````
@@ -1776,7 +1856,7 @@ ArrayType_ = arrayToken [ GenericInstantiation ]
 Dafny supports mutable fixed-length _array types_ of any positive
 dimension.  Array types are (heap-based) reference types.
 
-## One-dimensional arrays
+## 14.1. One-dimensional arrays
 
 A one-dimensional array of `n` `T` elements is created as follows:
 ```dafny
@@ -1880,7 +1960,7 @@ conversion:
 multiset(a[..]) == multiset(old(a[..]))
 ```
 
-## Multi-dimensional arrays
+## 14.2. Multi-dimensional arrays
 
 An array of 2 or more dimensions is mostly like a one-dimensional
 array, except that `new` takes more length arguments (one for each
@@ -1919,7 +1999,8 @@ convert stretches of elements from a multi-dimensional array to a
 sequence.
 
 
-# Iterator types
+<!--PDF NEWPAGE-->
+# 15. Iterator types {#sec-iterator-types}
 ````grammar
 IteratorDecl = "iterator" { Attribute } IteratorName
   ( [ GenericParameters ]
@@ -1930,7 +2011,7 @@ IteratorDecl = "iterator" { Attribute } IteratorName
   IteratorSpec [ BlockStmt ]
 ````
 
-See section [#sec-iterator-specification] for a description of ``IteratorSpec``.
+See [Section 5.5](#sec-iterator-specification) for a description of ``IteratorSpec``.
 
 An _iterator_ provides a programming abstraction for writing code that
 iteratively returns elements.  These CLU-style iterators are
@@ -1982,7 +2063,7 @@ iterator Gen(start: int) yields (x: int)
   }
 }
 ```
-An instance of this iterator is created using:
+An instance of this iterator is created using
 ```dafny
 iter := new Gen(30);
 ```
@@ -2038,7 +2119,7 @@ ghost var _decreases0: T0
 ghost var _decreases1: T1
 // ...
 ```
-where there is a `_decreases(_i_): T(_i_)` field for each
+where there is a `_decreases(`_i_`): T(`_i_`)` field for each
 component of the iterator's `decreases`
 clause.[^fn-iterator-field-names]
 In addition, there is a field:
@@ -2072,13 +2153,14 @@ iterator Iter<T>(s: set<T>) yields (x: T)
 {
   var r := s;
   while (r != {})
-    invariant forall z :: z in xs ==> x !in r;  // r and xs are disjoint
+    invariant forall z :: z in xs ==> x !in r;
+                                 // r and xs are disjoint
     invariant s == r + set z | z in xs;
   {
     var y :| y in r;
     r, x := r - {y}, y;
     yield;
-    assert y == xs[|xs|-1];  // needed as a lemma to prove loop invariant
+    assert y == xs[|xs|-1]; // a lemma to help prove loop invariant
   }
 }
 
@@ -2099,8 +2181,12 @@ method UseIterToCopy<T>(s: set<T>) returns (t: set<T>)
 }
 ```
 
+TODO: The sectino above can use some rewriting, a summary of the
+defined members of an iterator, and more examples. Probably also a redesign.
+
 <!--
-# Async-task types
+Make this a heading if it is uncommented
+ 16. Async-task types
 
 Another experimental feature in Dafny that is likely to undergo some
 evolution is _asynchronous methods_.  When an asynchronous method is
@@ -2134,7 +2220,8 @@ design of asynchronous methods evolves.
 
 -->
 
-# Function types
+<!--PDF NEWPAGE-->
+# 16. Function types
 
 ````grammar
 Type = DomainType "->" Type
@@ -2225,10 +2312,11 @@ f.requires.reads(t) == f.reads(t)
 f.requires.requires(t) == true
 ```
 
-Dafny also support anonymous functions by means of
-_lambda expressions_. See section [#sec-lambda-expressions].
+Dafny also supports anonymous functions by means of
+_lambda expressions_. See [Section 22.13](#sec-lambda-expressions).
 
-# Algebraic Datatypes
+<!--PDF NEWPAGE-->
+# 17. Algebraic Datatypes
 
 Dafny offers two kinds of algebraic datatypes, those defined
 inductively and those defined co-inductively.  The salient property of
@@ -2240,13 +2328,14 @@ its parameters.
 DatatypeDecl = ( InductiveDatatypeDecl | CoinductiveDatatypeDecl )
 ````
 
-## Inductive datatypes
+## 17.1. Inductive datatypes
 
 ````grammar
 InductiveDatatypeDecl_ =
   "datatype" { Attribute } DatatypeName [ GenericParameters ]
-  "=" [ "|" ] DatatypeMemberDecl { "|" DatatypeMemberDecl }
-  [ ";" ]
+  "=" [ "|" ] DatatypeMemberDecl
+      { "|" DatatypeMemberDecl }
+      [ ";" ]
 
 DatatypeMemberDecl =
   { Attribute } DatatypeMemberName [ FormalsOptionalIds ]
@@ -2340,14 +2429,14 @@ inductive datatype for trees may be updated as follows:
 node.(left := L, right := R)
 ```
 
-## Tuple types
+## 17.2. Tuple types {#sec-tuple-types}
 ````grammar
 TupleType_ = "(" [ Type { "," Type } ] ")"
 ````
 
 Dafny builds in record types that correspond to tuples and gives these
-a convenient special syntax, namely parentheses.  For example, what
-might have been declared as:
+a convenient special syntax, namely parentheses.  For example, for what
+might have been declared as
 ```dafny
 datatype Pair<T,U> = Pair(0: T, 1: U)
 ```
@@ -2368,7 +2457,7 @@ Dafny declares _n_-tuples where _n_ is 0 or 2 or more.  There are no
 no semantic meaning.  The 0-tuple type, `()`, is often known as the
 _unit type_ and its single value, also written `()`, is known as _unit_.
 
-## Co-inductive datatypes
+## 17.3. Co-inductive datatypes
 
 ````grammar
 CoinductiveDatatypeDecl_ =
@@ -2376,6 +2465,10 @@ CoinductiveDatatypeDecl_ =
   [ GenericParameters ] "="
   DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ]
 ````
+
+TODO: This section and particularly the subsections need rewriting using
+the leasst and greatest terminology, and to make the text fit better into
+the overall reference manual.
 
 Whereas Dafny insists that there is a way to construct every inductive
 datatype value from the ground up, Dafny also supports
@@ -2403,6 +2496,7 @@ paper in this section but the reader is referred to that paper for more
 complete details and to supply bibliographic references that are
 omitted here.
 
+## 17.4. Co-induction
 Mathematical induction is a cornerstone of programming and program
 verification. It arises in data definitions (e.g., some algebraic data
 structures can be described using induction), it underlies program
@@ -2494,7 +2588,7 @@ invoked, there are restrictions on how a _co-inductive_ hypothesis can be
 _used_. These are, of course, taken into consideration by Dafny's verifier.
 For example, as illustrated by the second co-lemma above, invoking the
 co-inductive hypothesis in an attempt to obtain the entire proof goal is
-futile. (We explain how this works in section [#sec-colemmas]) Our initial experience
+futile. (We explain how this works in [Section 17.4.5.2](#sec-colemmas)) Our initial experience
 with co-induction in Dafny shows it to provide an intuitive, low-overhead
 user experience that compares favorably to even the best of today’s
 interactive proof assistants for co-induction. In addition, the
@@ -2505,7 +2599,7 @@ shown to be useful in defining language semantics, as needed to verify
 the correctness of a compiler, so this opens the possibility that
 such verifications can benefit from SMT automation.
 
-### Well-Founded Function/Method Definitions
+### 17.4.1. Well-Founded Function/Method Definitions
 The Dafny programming language supports functions and methods. A _function_
 in Dafny is a mathematical function (i.e., it is well-defined,
 deterministic, and pure), whereas a _method_ is a body of statements that
@@ -2544,7 +2638,7 @@ is used to invoke `Lemma(x)` on all `x` for which `P(x)` holds. If
 forall x :: P(x) ==> Q(x).
 ```
 
-### Defining Co-inductive Datatypes
+### 17.4.2. Defining Co-inductive Datatypes
 Each value of an inductive datatype is finite, in the sense that it can
 be constructed by a finite number of calls to datatype constructors. In
 contrast, values of a co-inductive datatype, or co-datatype for short,
@@ -2590,7 +2684,7 @@ to datatype declarations, there is no grounding check for
 co-datatypes—since a codatatype admits infinite values, the type is
 nevertheless inhabited.
 
-### Creating Values of Co-datatypes
+### 17.4.3. Creating Values of Co-datatypes
 To define values of co-datatypes, one could imagine a “co-function”
 language feature: the body of a “co-function” could include possibly
 never-ending self-calls that are interpreted by a greatest fix-point
@@ -2599,7 +2693,7 @@ it offers only functions (not “co-functions”), but it classifies each
 intra-cluster call as either _recursive_ or _co-recursive_. Recursive calls
 are subject to termination checks. Co-recursive calls may be
 never-ending, which is what is needed to define infinite values of a
-co-datatype. For example, function `Up(n )` in the preceding example is defined as the
+co-datatype. For example, function `Up(n)` in the preceding example is defined as the
 stream of numbers from `n` upward: it returns a stream that starts with `n`
 and continues as the co-recursive call `Up(n + 1)`.
 
@@ -2617,7 +2711,7 @@ in Dafny are deterministic. Since there cannot be multiple fix-points,
 the language allows one function to be involved in both recursive and co-recursive calls,
 as we illustrate by the function `FivesUp`.
 
-### Copredicates
+### 17.4.4. Copredicates
 Determining properties of co-datatype values may require an infinite
 number of observations. To that end, Dafny provides _co-predicates_
 which are function declarations that use the `copredicate` keyword.
@@ -2674,9 +2768,9 @@ also a corresponding _prefix predicate_ `P#`. A prefix predicate is a
 finite unrolling of a co-predicate. The prefix predicate is constructed
 from the co-predicate by
 
-* adding a parameter _k of type nat to denote the prefix length,
+* adding a parameter `_k` of type `nat` to denote the prefix length,
 
-* adding the clause "**decreases** `_k;`" to the prefix predicate (the
+* adding the clause `decreases _k;` to the prefix predicate (the
   co-predicate itself is not allowed to have a decreases clause),
 
 * replacing in the body of the co-predicate every intra-cluster
@@ -2694,20 +2788,20 @@ In the Dafny grammar this is called a ``HashCall``. The definition of
 that is, `Pos` and `Pos#` must not be in the same cluster. In other
 words, the definition of `Pos` cannot depend on `Pos#`.
 
-#### Co-Equality
+#### 17.4.4.1. Co-Equality
 Equality between two values of a co-datatype is a built-in co-predicate.
 It has the usual equality syntax `s == t`, and the corresponding prefix
 equality is written `s ==#[k] t`. And similarly for `s != t`
 and `s !=#[k] t`.
 
-### Co-inductive Proofs
+### 17.4.5. Co-inductive Proofs
 From what we have said so far, a program can make use of properties of
 co-datatypes. For example, a method that declares `Pos(s)` as a
 precondition can rely on the stream `s` containing only positive integers.
 In this section, we consider how such properties are established in the
 first place.
 
-#### Properties About Prefix Predicates
+#### 17.4.5.1. Properties About Prefix Predicates
 Among other possible strategies for establishing co-inductive properties
 we take the time-honored approach of reducing co-induction to
 induction. More precisely, Dafny passes to the SMT solver an
@@ -2751,13 +2845,13 @@ the forall statement to show `? k • Pos#[k](Up(n))`. Finally, the axiom
 `D(Pos)` is used (automatically) to establish the co-predicate.
 
 
-#### Colemmas
+#### 17.4.5.2. Colemmas {#sec-colemmas}
 As we just showed, with help of the `D` axiom we can now prove a
 co-predicate by inductively proving that the corresponding prefix
-predicate holds for all prefix lengths `k` . In this section, we introduce
+predicate holds for all prefix lengths `k`. In this section, we introduce
 _co-lemma_ declarations, which bring about two benefits. The first benefit
 is that co-lemmas are syntactic sugar and reduce the tedium of having to
-write explicit quantifications over `k` . The second benefit is that, in
+write explicit quantifications over `k`. The second benefit is that, in
 simple cases, the bodies of co-lemmas can be understood as co-inductive
 proofs directly. As an example consider the following co-lemma.
 
@@ -2774,7 +2868,7 @@ co-recursively to obtain the proof for `Pos(Up(n).tail)` (since `Up(n).tail`
 equals `Up(n+1)`). The proof glue needed to then conclude `Pos(Up(n))` is
 provided automatically, thanks to the power of the SMT-based verifier.
 
-#### Prefix Lemmas
+#### 17.4.5.3. Prefix Lemmas
 To understand why the above `UpPosLemma` co-lemma code is a sound proof,
 let us now describe the details of the desugaring of co-lemmas. In
 analogy to how a **copredicate** declaration defines both a co-predicate and
@@ -2808,9 +2902,9 @@ identifier `_k` to appear in the original body of the
 co-lemma.[^fn-co-predicate-co-lemma-diffs]
 
 [^fn-co-predicate-co-lemma-diffs]: Note, two places where co-predicates
-    and co-lemmas are not analogous are: co-predicates must not make
-    recursive calls to their prefix predicates, and co-predicates cannot
-    mention _k.
+    and co-lemmas are not analogous are (a) co-predicates must not make
+    recursive calls to their prefix predicates and (b) co-predicates cannot
+    mention `_k`.
 
 We can now think of the body of the co-lemma as being replaced by a
 **forall** call, for every _k_ , to the prefix lemma. By construction,
@@ -2841,7 +2935,8 @@ the lemma. Whereas the inductive proof is performing proofs for deeper
 and deeper equalities, the co-lemma can be understood as producing the
 infinite proof on demand.
 
-# Newtypes
+<!--PDF NEWPAGE-->
+# 18. Newtypes
 ````grammar
 NewtypeDecl = "newtype" { Attribute } NewtypeName "="
   ( NumericTypeName [ ":" Type ]
@@ -2905,7 +3000,8 @@ signed 32-bit integers in the target hardware.
 The incompatibility of a newtype and its basetype is intentional,
 as newtypes are meant to be used as distinct types from the basetype.
 If numeric types are desired that mix more readily with the basetype,
-the subset types described in a later section may be more appropriate.
+the subset types described in [Section 19](#sec-subset-types)
+ may be more appropriate.
 
 Note that the bound variable `x` in `Q` has type `M`, not `N`.
 Consequently, it may not be possible to state `Q` about the `N`
@@ -2921,7 +3017,7 @@ and consider a variable `c` of type `int8`.  The expression
 is not well-defined, because the comparisons require each operand to
 have type `int8`, which means the literal `128` is checked to be of
 type `int8`, which it is not.  A proper way to write this expression
-would be to use a conversion operation, described [next](#sec-conversion), on `c` to
+would be to use a conversion operation, described in [Section 18.1](#sec-conversion), on `c` to
 convert it to the base type:
 ```dafny
 -128 <= c as int < 128
@@ -2931,7 +3027,7 @@ If possible, Dafny compilers will represent values of the newtype using
 a native data type for the sake of efficiency. This action can
 be inhibited or a specific native data type selected by
 using the `{:nativeType}` attribute, as explained in
-section [#sec-nativetype].
+[Section 23.1.12](#sec-nativetype).
 
 There is a current restriction that the value `0` must be part of every
 numeric newtype.
@@ -2940,19 +3036,19 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section: Compile-Time Constants](#sec-compile-time-constants).
+in [Section 22.46](#sec-compile-time-constants).
 
-## Conversion operations {#sec-conversion}
+## 18.1. Conversion operations {#sec-conversion}
 
 For every type `N`, there is a conversion operation with the
-name `as N`, described more fully in [a later section](#sec-as-expression).
+name `as N`, described more fully in [Section 22.10](#sec-as-expression).
 It is a partial function defined when the
 given value, which can be of any type, is a member of the type
 converted to.  When the conversion is from a real-based numeric type
 to an integer-based numeric type, the operation requires that the
 real-based argument have no fractional part.  (To round a real-based
 numeric value down to the nearest integer, use the `.Floor` member,
-see Section [Numeric Types](#sec-numeric-types).)
+see [Section 7.2](#sec-numeric-types).)
 
 To illustrate using the example from above, if `lo` and `hi` have type
 `int32`, then the code fragment can legally be written as follows:
@@ -2973,14 +3069,15 @@ The `as N` conversion operation is grammatically a suffix operation like
 `.`field and array indexing, but binds less tightly than unary operations:
 `- x as int` is `(- x) as int`; `a + b as int` is `a + (b as int)`.
 
-There is also a corresponding [`is` operation](#sec-as-expression) that
+There is also a corresponding `is` operation ([Section 22.10](#sec-as-expression)) that
 tests whether a value is valid for a given type. For example, `-5 is nat` is
 false. So `e as T` is well-defined exactly when `e is T` is true.
 For a newtype or subset type, the `is` operation is the predicate that defines
 the type.
 **The `is` operation is not yet implemented**.
 
-# Subset types {#sec-subset-types}
+<!--PDF NEWPAGE-->
+# 19. Subset types {#sec-subset-types}
 TO BE WRITTEN: add `-->` (subset of `~>`), `->` (subset of `-->`), non-null types subset of nullable types
 
 ````grammar
@@ -3011,7 +3108,7 @@ satisfies the predicate defining the receiving subset type.
 (Note, in contrast, assignments between a newtype and its base type
 are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
-Section [#sec-numeric-conversion-operations].)
+[Section 0](#sec-numeric-conversion-operations).)
 
 Dafny supports a built-in subset type, namely the type `nat`,
 whose base type is `int`. Type `nat`
