@@ -474,7 +474,7 @@ A function specification is zero or more `reads` `requires`
 specification does not have `modifies` clauses because functions are not
 allowed to modify any memory.
 
-## 5.4. Lambda Specification
+## 5.4. Lambda Specification {#sec-lambda-specification}
 ````grammar
 LambdaSpec_ =
   { ReadsClause_(allowLemma: true)

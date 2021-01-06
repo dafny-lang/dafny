@@ -234,7 +234,7 @@ AddOp = ( "+" | "-" )
 `Terms` combine `Factors` by adding or subtracting.
 Addition has these meanings for different types:
 
-* Arithmetic addition for numeric types ([Section 0](#sec-numeric-typesr)]).
+* Arithmetic addition for numeric types ([Section 7.2](#sec-numeric-types)]).
 * Union for sets and multisets ([Section 10.1](#sec-sets) and [Section 10.2](#sec-multisets))
 * Concatenation for sequences ([Section 10.3](#sec-sequences))
 
@@ -333,7 +333,7 @@ UnaryExpression(allowLemma, allowLambda) =
 ````
 
 A ``UnaryExpression`` applies either numeric ([Section 7.2](#sec-numeric-types))
-or logical ([Section 0](#sec-booleans)) negation to its operand.
+or logical ([Section 7.1](#sec-booleans)) negation to its operand.
 ## 22.12. Primary Expressions
 <!-- These are introduced for explanatory purposes as are not in the grammar. -->
 ````grammar
@@ -367,7 +367,7 @@ LambdaExpression(allowLemma) =
   "=>" Expression(allowLemma, allowLambda: true)
 ````
 
-See [Section 0](#sec-lambda-specification) for a description of ``LambdaSpec``.
+See [Section 5.4](#sec-lambda-specification) for a description of ``LambdaSpec``.
 
 In addition to named functions, Dafny supports expressions that define
 functions.  These are called _lambda (expression)s_ (some languages
@@ -469,7 +469,7 @@ ArrayAllocation_ = "new" Type "[" Expressions "]"
 ````
 
 This allocates a new single or multi-dimensional array as explained in
-section [Section 0](#sec-array-types).
+section [Section 14](#sec-array-types).
 
 TO BE WRITTEN - argument that describes how to initialize the array
 

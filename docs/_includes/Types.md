@@ -77,7 +77,7 @@ Dafny offers these basic types: `bool` for booleans, `char` for
 characters, `int` and `nat` for integers, `real` for reals,
 `ORDINAL`, and bit-vector types.
 
-## 7.1. Booleans
+## 7.1. Booleans {#sec-booleans}
 ````grammar
 BoolType_ = "bool"
 ````
@@ -1017,7 +1017,7 @@ For a sequence, the only difference is the length operator:
   }
 ```
 
-The `forall` statement ([Section 22.8](#sec-forall-statement)) can also be used
+The `forall` statement ([Section 21.8](#sec-forall-statement)) can also be used
 with arrays where parallel assigment is needed:
 ```dafny
   var rev := new int[s.Length];
@@ -1848,7 +1848,7 @@ myShapes[1].MoveH(myShapes[0].Width());
 ```
 
 <!--PDF NEWPAGE-->
-# 14. Array Types
+# 14. Array Types {#sec-array-types}
 ````grammar
 ArrayType_ = arrayToken [ GenericInstantiation ]
 ````
@@ -2936,7 +2936,7 @@ and deeper equalities, the co-lemma can be understood as producing the
 infinite proof on demand.
 
 <!--PDF NEWPAGE-->
-# 18. Newtypes
+# 18. Newtypes {#sec-newtypes}
 ````grammar
 NewtypeDecl = "newtype" { Attribute } NewtypeName "="
   ( NumericTypeName [ ":" Type ]
