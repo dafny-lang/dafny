@@ -5,5 +5,3 @@ Verifying Impl$$_module.__default.AbsCorrect ...
 COUNTEREXAMPLE_START {"States":[]} COUNTEREXAMPLE_END
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
-Verification completed successfully!
-[SUCCESS] [[DAFNY-SERVER: EOM]]

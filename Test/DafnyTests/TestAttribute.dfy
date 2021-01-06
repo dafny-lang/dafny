@@ -1,5 +1,7 @@
-// RUN: msbuild -t:restore ../DafnyTests.sln
-// RUN: msbuild -t:Test -v:q -noLogo > "%t".raw || true
+// UNSUPPORTED: windows, ubuntu16, ubuntu, macosx
+// RUN: %dafny /out:Output/DafnyMain.cs TestAttribute.dfy /compile:0 /spillTargetCode:3 /noVerify
+// RUN: dotnet build -t:restore ../DafnyTests.sln
+// RUN: dotnet build -t:Test -v:q -noLogo > "%t".raw || true
 // Remove the absolute file path before the expected error
 // RUN: sed 's/[^:]*://' "%t".raw > "%t"
 // RUN: %diff "%s.expect" "%t"
@@ -8,9 +10,9 @@ include "../exceptions/VoidOutcomeDt.dfy"
 include "../exceptions/NatOutcomeDt.dfy"
 
 function method SafeDivide(a: nat, b: nat): NatOutcome {
-  if b == 0 then 
-    NatFailure("Divide by zero") 
-  else 
+  if b == 0 then
+    NatFailure("Divide by zero")
+  else
     NatSuccess(a/b)
 }
 

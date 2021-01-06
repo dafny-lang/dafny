@@ -23,11 +23,11 @@ Execution trace:
 Twostate-Verification.dfy(78,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
-Twostate-Verification.dfy(234,69): Error: target object may not be allocated
+Twostate-Verification.dfy(235,69): Error: target object may not be allocated
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
-Twostate-Verification.dfy(234,80): Error: target object may not be allocated
+Twostate-Verification.dfy(235,80): Error: target object may not be allocated
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then

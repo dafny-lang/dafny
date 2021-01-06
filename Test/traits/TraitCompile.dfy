@@ -1,4 +1,8 @@
-// RUN: %dafny /compile:3 /spillTargetCode:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 trait TT
@@ -83,6 +87,13 @@ method Main()
   Generics.Test();
 
   TraitsExtendingTraits.Test();
+  TypeDescriptorTests.Test();
+  DiamondInitialization.Test();
+
+  NonCapturingFunctionCoercions.Test();
+  TailRecursion.Test();
+
+  ObjectEquality.Test();
 }
 
 module OtherModule {
@@ -129,7 +140,7 @@ module GenericBasics {
     const abc: B
     static const def: B
 
-    method Inst(x: int, a: A, b: B) returns (bb: B) { bb := b; }
+    method Inst(x: int, a: A, b: B) returns (bb: B, cc: seq<B>) { bb, cc := b, []; }
     static method Stat(y: int, a: A, b: B) returns (bb: B) { bb := b; }
 
     function method Teen<R>(a: (A, R)): B
@@ -140,6 +151,9 @@ module GenericBasics {
     function method RValue1<X>(x: X): (r: B)
     function method RValue2<X>(x: X): B
     function method RValue3<X>(x: X): (r: B)
+    function method RBValue<X>(x: X, b: B): B
+    method MValue0<X>(x: X, b: B) returns (r: B)
+    method MValue1<X>(x: X, b: B) returns (r: B, y: X)
 
     method ReferToTraitMembers(a: A, b: B, tt: Tr<bool, real>)
       modifies this
@@ -149,9 +163,9 @@ module GenericBasics {
       var x := xyz;
       var y := this.xyz;
 
-      var bb := Inst(0, a, b);
-      bb := this.Inst(0, a, b);
-      var rr := tt.Inst(0, true, 5.0);
+      var bb, sq := Inst(0, a, b);
+      bb, sq := this.Inst(0, a, b);
+      var rr, _ := tt.Inst(0, true, 5.0);
 
       bb := Stat(1, a, b);
       bb := this.Stat(1, a, b);
@@ -192,9 +206,9 @@ module GenericBasics {
 
       var tt: Tr<Q, int> := this;
 
-      var bb := Inst(0, a, b);
-      bb := this.Inst(0, a, b);
-      bb := tt.Inst(0, a, b);
+      var bb, sq := Inst(0, a, b);
+      bb, sq := this.Inst(0, a, b);
+      bb, sq := tt.Inst(0, a, b);
 
       bb := Stat(1, a, b);
       bb := this.Stat(1, a, b);
@@ -219,6 +233,13 @@ module GenericBasics {
     function method RValue1<XX>(x: XX): int { 5 }
     function method RValue2<XX>(x: XX): (r: int) { 5 }
     function method RValue3<XX>(x: XX): (r: int) { 5 }
+    function method RBValue<XX>(x: XX, b: int): int { b + 2 }
+    method MValue0<XX>(x: XX, b: int) returns (r: int) {
+      r := b + 3;
+    }
+    method MValue1<XX>(x: XX, b: int) returns (r: int, y: XX) {
+      r, y := b + 4, x;
+    }
   }
 
 
@@ -243,9 +264,9 @@ module GenericBasics {
 
       var tt: Tr<Q, int> := this;
 
-      var bb := Inst(0, a, b);
-      bb := this.Inst(0, a, b);
-      bb := tt.Inst(0, a, b);
+      var bb, sq := Inst(0, a, b);
+      bb, sq := this.Inst(0, a, b);
+      bb, sq := tt.Inst(0, a, b);
 
       bb := Stat(1, a, b);
       bb := this.Stat(1, a, b);
@@ -270,6 +291,13 @@ module GenericBasics {
     function method RValue1<XX>(x: XX): int { 5 }
     function method RValue2<XX>(x: XX): (r: int) { 5 }
     function method RValue3<XX>(x: XX): (r: int) { 5 }
+    function method RBValue<XX>(x: XX, b: int): int { b + 2 }
+    method MValue0<XX>(x: XX, b: int) returns (r: int) {
+      r := b + 3;
+    }
+    method MValue1<XX>(x: XX, b: int) returns (r: int, y: XX) {
+      r, y := b + 4, x;
+    }
   }
 
   method Test() {
@@ -287,16 +315,21 @@ module GenericBasics {
       print t.xyz, " ";
       print t.abc, " ";
       print t.def, " ";
-      var bb := t.Inst(50, 51.0, 52);
+      var bb, sq := t.Inst(50, 51.0, 52);
       print bb, " ";
       bb := t.Stat(50, 51.0, 52);
       print bb, " ";
       print t.Teen<bv9>((0.5, 100)), " ";
       print t.STeen<bv9>((0.5, 100), 53), " ";
-      print t.RValue0<(bv2,bv3)>((3, 3)), " ";
+      var rv0: int := t.RValue0<(bv2,bv3)>((3, 3));
+      print rv0, " ";
       print t.RValue1<(bv2,bv3)>((3, 3)), " ";
       print t.RValue2<(bv2,bv3)>((3, 3)), " ";
       print t.RValue3<(bv2,bv3)>((3, 3)), "\n";
+      var rb := t.RBValue<(bv2,bv3)>((3, 3), 10);
+      var m0 := t.MValue0<real>(18.8, 30);
+      var m1, m2 := t.MValue1<real>(18.8, 30);
+      print rb, " ", m0, " ", m1, " ", m2, "\n";
       i := i + 1;
     }
   }
@@ -363,6 +396,8 @@ module TraitsExtendingTraits {
      \  /  /
       \ | /
         G
+
+   In addition, for further testing, M, C, and G list "object" in the "extends" clause.
    */
 
   trait A<Y0, Y1> {
@@ -386,7 +421,7 @@ module TraitsExtendingTraits {
     method Quantity() returns (x: int)
     method Twice() returns (x: int)
   }
-  trait C {
+  trait C extends object {
   }
 
   trait K<Y> extends A<Y, Odd> {
@@ -398,7 +433,7 @@ module TraitsExtendingTraits {
     }
   }
 
-  trait M extends B {
+  trait M extends B, object {
     method Quantity() returns (x: int)
       ensures 0 <= x <= 20
     {
@@ -412,7 +447,7 @@ module TraitsExtendingTraits {
     }
   }
 
-  class G<X> extends K<X>, K<X>, M, N, C {
+  class G<X> extends K<X>, K<X>, M, object, N, C {
     constructor (x: X) {
       y0 := x;
     }
@@ -421,13 +456,29 @@ module TraitsExtendingTraits {
   method Test() {
     var g := new G<real>(5.2);
     print g.y0, " ", g.y1, " ", g.b, "\n";  // 5.2 9 false
+
     var m: M := g;
     var n: N := g;
-    m.b := true;
-    print g.b, " ", m.b, " ", n.b, "\n";  // true true true
+    var bg: B := g;
+    var a: A := g;
+    g.b := true;
+    assert g.b && m.b && n.b && bg.b;
+    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // true true true true
+    m.b := false;
+    assert !g.b && !m.b && !n.b && !bg.b;
+    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // false false false false
+    n.b := true;
+    assert g.b && m.b && n.b && bg.b;
+    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // true true true true
+    bg.b := false;
+    assert !g.b && !m.b && !n.b && !bg.b;
+    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // false false false false
+
     print g.GetY(), " ", g.GetY'(), "\n"; // 5.2 5.2
     g.SetY(1.2);
     print g.GetY(), " ", g.GetY'(), "\n";  // 1.2 1.2
+    var a0, a1 := a.GetY(), a.GetY'();
+    print a0, " ", a1, "\n";  // 1.2 1.2
 
     var q := g.Quantity();
     assert 0 <= q <= 20;
@@ -440,5 +491,312 @@ module TraitsExtendingTraits {
     q := n.Quantity();
     qq := n.Twice();
     print q, " ", qq, "\n";  // 15 30
+  }
+}
+
+module TypeDescriptorTests {
+  function method Gee<Whiz(0)>(): int { 10 }
+
+  trait UberTrait<X, Y(0), Z(0)> {
+    method Golly() {
+      var n := Gee<Y>();
+    }
+    function method Id(x: X): X { x }
+  }
+
+  trait Trait<T(0), R> extends UberTrait<int, seq<T>, seq<R>> {
+    method Compose<S(0)>(f: Trait<S, T>) returns (res: Trait<S, R>) {
+      res := new Composition<S, T, R>(f, this);
+    }
+  }
+
+  class Composition<Sx(0), Tx(0), RRx> extends Trait<Sx, RRx>, Trait<Sx, RRx> {
+    constructor(first: Trait<Sx, Tx>, second: Trait<Tx, RRx>) {
+    }
+  }
+
+  method Iffy(t: UberTrait<bool, real, real>) returns (n: int) {
+    if t.Id(true) {
+      n := 15;
+    }
+  }
+
+  // Go requires coercions to supertypes. Coersions involving functions require more work.
+  trait XT<U, W> {
+    const c: U
+    var u: U
+    function method F(u: U): U { u }
+    function method G(u: U): U
+    method M(u: U) returns (r: U) { r := u; }
+    method N(u: U) returns (r: U)
+
+    function method F'(u: W -> W): W -> W { u }
+    function method G'(u: W -> W): W -> W
+    method M'(u: W -> W) returns (r: W -> W) { r := u; }
+    method N'(u: W -> W) returns (r: W -> W)
+  }
+  class YT extends XT<int -> int, int> {
+    constructor () {
+      var inc := x => x + 1;
+      c := inc;
+      u := inc;
+    }
+    function method G(uu: int -> int): int -> int {
+      F(uu)
+    }
+    method N(uu: int -> int) returns (rr: int -> int) {
+      rr := M(uu);
+    }
+    function method G'(uu: int -> int): int -> int {
+      F(uu)
+    }
+    method N'(uu: int -> int) returns (rr: int -> int) {
+      rr := M'(uu);
+    }
+  }
+  method CallerT() {
+    var y := new YT();
+    var x: XT := y;
+    var f: int -> int;
+
+    f := y.c;
+    f := y.u;
+    y.u := f;
+    f := x.c;
+    f := x.u;
+    x.u := f;
+
+    f := y.F(f);
+    f := y.G(f);
+    f := x.F(f);
+    f := x.G(f);
+
+    f := y.M(f);
+    f := y.N(f);
+    f := x.M(f);
+    f := x.N(f);
+
+    f := y.F'(f);
+    f := y.G'(f);
+    f := x.F'(f);
+    f := x.G'(f);
+
+    f := y.M'(f);
+    f := y.N'(f);
+    f := x.M'(f);
+    f := x.N'(f);
+
+    print f(7), "\n";
+  }
+
+  trait TraitDependency<X> {
+    const a: X
+    const b: (X, X) := (a, c)
+    const c: X
+  }
+  class TraitDependencyClass extends TraitDependency<int> {
+  }
+
+  method Test() {
+    var c := new TraitDependencyClass;
+    print c.a, " ", c.b, " ", c.c, "\n";
+
+    CallerT();
+  }
+}
+
+module DiamondInitialization {
+  /*
+          A +-+
+        / | \  \
+       B  C  D  |
+     / | /|  |  |
+    |  E  |  |  |
+    \   \ |  |  |
+     +\     /  /
+         M   +
+  */
+
+  trait A<XA> {
+    var x: XA
+  }
+  trait B<XB> extends A<XB> { }
+  trait C<XC> extends A<XC> { }
+  trait D extends A<int> { }
+  trait E<XE> extends B<XE>, C<XE> { }
+  class M extends B<int>, E<int>, C<int>, D, A<int> {
+    method Print() {
+      var a: A := this;
+      var b: B := this;
+      var c: C := this;
+      var d: D := this;
+      var e: E := this;
+      var a0: A, a1: A, a2: A, a3: A := b, c, d, e;
+      var b0: B := e;
+      var c0: C := e;
+      print a.x, " ", b.x, " ", c.x, " ", d.x, " ", e.x, " ", this.x, " ";
+      print a0.x, " ", a1.x, " ", a2.x, " ", a3.x, " ", b0.x, " ", c0.x, "\n";
+    }
+    method Set(y: int)
+      modifies this
+    {
+      var a: A := this;
+      var b: B := this;
+      var c: C := this;
+      var d: D := this;
+      var e: E := this;
+      var a0: A, a1: A, a2: A, a3: A := b, c, d, e;
+      var b0: B := e;
+      var c0: C := e;
+      match y % 12
+      case 0 =>  a.x := y;
+      case 1 =>  b.x := y;
+      case 2 =>  c.x := y;
+      case 3 =>  d.x := y;
+      case 4 =>  e.x := y;
+      case 5 =>  x := y;
+      case 6 =>  a0.x := y;
+      case 7 =>  a1.x := y;
+      case 8 =>  a2.x := y;
+      case 9 =>  a3.x := y;
+      case 10 =>  b0.x := y;
+      case 11 =>  c0.x := y;
+    }
+  }
+
+  method Test() {
+    var m := new M;
+    m.Print();
+    var i := 13;
+    while i < 25 {
+      m.Set(i);
+      m.Print();
+      i := i + 1;
+    }
+  }
+}
+
+module NonCapturingFunctionCoercions {
+  method Identity<X>(f: X -> X) returns (g: X -> X) { g := f; }
+
+  method Test() {
+    var x := 3;
+    var f := y => y + x;
+    print "f(4) = ", f(4), "\n";  // 7
+    x := 100;
+    print "f(4) = ", f(4), "\n";  // still 7 (this tests that x was not captured)
+
+    // The following is a regression test, where compilation in Go once had captured
+    // the f in the automatically emitted coercions required to make the call to
+    // the generic method Identity.
+    var g := Identity(f);
+    print "g(4) = ", g(4), "\n";  // 7
+    f := y => y + x;
+    print "g(4) = ", g(4), "\n";  // still 7 (this tests that f was not captured)
+  }
+}
+
+module TailRecursion {
+  trait Trait<G> {
+    var h: G
+    var K: G
+    function method Id(g: G): G { g }
+    function method Combine(g0: G, g1: G): G
+
+    function method {:tailrecursion} Daisy(g: G, n: nat): G
+      reads this
+    {
+      if n == 0 then
+        g
+      else if n == 1 then
+        var f := Id;
+        Combine(f(h), f(K))
+      else
+        Daisy(g, n - 2)
+    }
+    method {:tailrecursion} Compute(g: G, n: nat) returns (r: G) {
+      if n == 0 {
+        return g;
+      } else if n == 1 {
+        var f := Id;
+        return Combine(f(h), f(K));
+      } else {
+        r := Compute(g, n - 2);
+      }
+    }
+  }
+
+  class Class extends Trait<int> {
+    function method Combine(g0: int, g1: int): int {
+      g0 + g1
+    }
+    constructor (u: int, v: int) {
+      h, K := u, v;
+    }
+  }
+
+  method Test() {
+    var c := new Class(24, 2);
+
+    var x := c.Daisy(15, 1_000_000) + c.Daisy(15, 999_999);
+    var y := c.Compute(15, 1_000_000);
+    var z := c.Compute(15, 999_999);
+    print x, " ", y, " ", z, "\n";  // 41 15 26
+  }
+}
+
+module ObjectEquality {
+  method Test() {
+    TestReferenceEquality();
+    NotTheSame();
+    TestSequences();
+  }
+
+  trait A { }
+
+  trait B extends A { }
+
+  class C extends B { }
+  class D extends B { }
+
+  method TestReferenceEquality() {
+    var c: C := new C;
+    var b: B := c;
+    var a0: A := c;
+    var a1: A := c;
+
+    print a0 == a1, " ", Eq(a0, a1), "\n";
+    print a0 == c, " ", Eq(a0, c), "\n";
+    print b == c, " ", Eq(b, c), "\n";
+    print b == a0, " ", Eq(b, a0), "\n";
+  }
+
+  predicate method Eq<U(==)>(u: U, v: U) {
+    u == v
+  }
+
+  method NotTheSame() {
+    var c: C, d: D := new C, new D;
+    var oc: object, od: object := c, d;
+
+    print oc != od, " ", !Eq(oc, od), " ", !Eq(c, d), "\n";
+
+    var ac: A, ad: A := c, d;
+    print ac != ad, " ", !Eq(ac, ad), " ", !Eq(ac, ad), "\n";
+  }
+
+  method TestSequences() {
+    /** TODO: Include this when all compilers support seq<TRAIT>
+    var c: C := new C;
+    var b: B := c;
+    var a: A := c;
+
+    var s: seq<A> := [a];
+    var t: seq<B> := [b];
+    var u: seq<C> := [c];
+
+    print s == t, " ", t == u, " ", u == s, "\n";
+    print s[0] == t[0], " ", t[0] == u[0], " ", u[0] == s[0], "\n";
+    **/
   }
 }

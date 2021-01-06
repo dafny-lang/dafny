@@ -1,6 +1,6 @@
-// Does not test anything Exceptions-related, but is included by other tests
 // RUN: %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
+// Does not test anything Exceptions-related, but is included by other tests
 
 datatype Option<T> = None | Some(get: T)
 
@@ -35,7 +35,7 @@ class NatSuccess extends NatOutcome {
 }
 
 class NatFailure extends NatOutcome {
-    const error: string;
+    const error: string
     constructor(error: string) {
         this.error := error;
     }

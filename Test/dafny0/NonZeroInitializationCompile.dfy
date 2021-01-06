@@ -1,4 +1,8 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type MyInt = x | 6 <= x witness 6
@@ -47,15 +51,15 @@ method Main()
   var s: short, s': short';
   print "short, short': ", s, ", ", s', "\n";
   var nes: NonEmptyIntSet;
-  print "nes: ", nes, "\n";
+  print "nes: "; PrintSet(nes); print "\n";
   var f0: TypeSynonym<int,bool>, f1: WithTypeParameters<int,bool>;
   print "f0, f1: ", f0, ", ", f1, "\n";
   var dt: Dt;
   print "dt: ", dt, "\n";
   var cl := new MyClass;
-  print "cl { u: ", cl.u, ", x: ", cl.x, ", r: ", cl.r, ", nes: ", cl.nes, " }\n";
+  print "cl { u: ", cl.u, ", x: ", cl.x, ", r: ", cl.r, ", nes: "; PrintSet(cl.nes); print " }\n";
   var cl' := new MyClassWithCtor.Init(20);
-  print "cl' { u: ", cl'.u, ", x: ", cl'.x, ", ': ", cl'.r, ", nes: ", cl'.nes, " }\n";
+  print "cl' { u: ", cl'.u, ", x: ", cl'.x, ", ': ", cl'.r, ", nes: "; PrintSet(cl'.nes); print " }\n";
   AdvancedZeroInitialization.Test(0);
   AdvancedZeroInitialization.Test(1);
 }
@@ -116,5 +120,34 @@ module AdvancedZeroInitialization {
     if ch == '\0' then "'\\0'"
     else if ch == 'D' then "'D'"
     else "'(other char)'"
+  }
+}
+
+// -------------------- set --------------------
+
+method PrintSet(S: set<int>) {
+  print "{";
+  var s: set<int>, sep := S, "";
+  while |s| != 0 {
+    print sep;
+    // pick smallest int in s
+    ghost var m := ThereIsASmallest(s);
+    var x :| x in s && forall y :: y in s ==> x <= y;
+    print x;
+    s, sep := s - {x}, ", ";
+  }
+  print "}";
+}
+
+lemma ThereIsASmallest(s: set<int>) returns (m: int)
+  requires s != {}
+  ensures m in s && forall y :: y in s ==> m <= y
+{
+  m :| m in s;
+  if y :| y in s && y < m {
+    var s' := s - {m};
+    assert s == s' + {m};
+    assert y in s';
+    m := ThereIsASmallest(s');
   }
 }

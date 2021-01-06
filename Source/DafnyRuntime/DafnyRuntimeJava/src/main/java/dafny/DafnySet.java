@@ -44,60 +44,70 @@ public class DafnySet<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> Type<DafnySet<T>> _type(Type<T> elementType) {
+    public static <T> TypeDescriptor<DafnySet<? extends T>> _typeDescriptor(TypeDescriptor<T> elementType) {
         // Fudge the type parameter; it's not great, but it's safe because
         // (for now) type descriptors are only used for default values
-        return Type.referenceWithInitializer(
-                (Class<DafnySet<T>>) (Class<?>) DafnySet.class,
-                DafnySet::empty);
+        return TypeDescriptor.referenceWithDefault(
+                (Class<DafnySet<? extends T>>) (Class<?>) DafnySet.class,
+                DafnySet.empty());
     }
 
     // Determines if the current object is a subset of the DafnySet passed in. Requires that the input DafnySet is not
     // null.
-    public boolean isSubsetOf(DafnySet<T> other) {
+    public boolean isSubsetOf(DafnySet other) {
         assert other != null : "Precondition Violation";
         return other.containsAll(this);
     }
 
     // Determines if the current object is a proper subset of the DafnySet passed in. Requires that the input DafnySet
     // is not null.
-    public boolean isProperSubsetOf(DafnySet<T> other) {
+    public boolean isProperSubsetOf(DafnySet other) {
         assert other != null : "Precondition Violation";
-        return isSubsetOf(other) && (size() < other.size());
+        return isSubsetOf(other) && size() < other.size();
     }
 
-    public boolean contains(T t) {
+    public boolean contains(Object t) {
         assert t != null : "Precondition Violation";
         return innerSet.contains(t);
     }
 
-    public boolean disjoint(DafnySet<T> other) {
+    public <U> boolean disjoint(DafnySet<? extends U> other) {
         assert other != null : "Precondition Violation";
-        for (T ele : innerSet) {
-            if (other.contains(ele)) return false;
+        for (U u : other.innerSet) {
+            if (contains(u)) return false;
         }
         return true;
     }
 
-    public DafnySet<T> union(DafnySet<T> other) {
+    public static <T> DafnySet<T> union(DafnySet<? extends T> th, DafnySet<? extends T> other) {
+        assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";
-        DafnySet<T> u = new DafnySet<>(other);
-        u.addAll(this);
-        return u;
+
+        if (th.isEmpty()) {
+            return (DafnySet<T>)other;
+        } else if (other.isEmpty()) {
+            return (DafnySet<T>)th;
+        } else {
+            DafnySet<T> u = new DafnySet<T>((DafnySet<T>)other);
+            u.addAll((DafnySet<T>)th);
+            return u;
+        }
     }
 
     //Returns a DafnySet containing elements only found in the current DafnySet
-    public DafnySet<T> difference(DafnySet<T> other) {
+    public static <T> DafnySet<T> difference(DafnySet<? extends T> th, DafnySet<? extends T> other) {
+        assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";
-        DafnySet<T> u = new DafnySet<>(this);
-        u.removeAll(other);
+        DafnySet<T> u = new DafnySet<T>((DafnySet<T>)th);
+        u.removeAll((DafnySet<T>)other);
         return u;
     }
 
-    public DafnySet<T> intersection(DafnySet<T> other) {
+    public static <T> DafnySet<T> intersection(DafnySet<? extends T> th, DafnySet<? extends T> other) {
+        assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";
-        DafnySet<T> u = new DafnySet<>();
-        for (T ele : innerSet) {
+        DafnySet<T> u = new DafnySet<T>();
+        for (T ele : th.innerSet) {
             if (other.contains(ele)) u.add(ele);
         }
         return u;

@@ -1,0 +1,4 @@
+git-issue-748.dfy(17,6): Error: invalid Ident
+git-issue-748.dfy(18,6): Error: invalid Ident
+git-issue-748.dfy(19,6): Error: invalid Ident
+3 parse errors detected in git-issue-748.dfy

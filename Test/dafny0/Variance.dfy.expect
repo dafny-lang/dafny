@@ -25,7 +25,7 @@ module VarianceChecks {
   {
   }
 
-  datatype Dt = Ctor(Dt -> Dt)
+  datatype Dt = Ctor(Dt -> int)
 
   datatype U0<!A> = U0(A -> bool)
 
