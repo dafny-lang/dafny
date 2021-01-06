@@ -1,20 +1,20 @@
-# 25. Advanced Topics
+# 24. Advanced Topics
 
-## 25.1. Type Parameter Completion {#sec-type-parameter-completion}
+## 24.1. Type Parameter Completion {#sec-type-parameter-completion}
 
 [http://leino.science/papers/krml270.html](http://leino.science/papers/krml270.html)
 
 TO BE WRITTEN
 
-## 25.2. Type Inference {#sec-type-inference}
+## 24.2. Type Inference {#sec-type-inference}
 
 TO BE WRITTEN
 
-## 25.3. Ghost Inference
+## 24.3. Ghost Inference
 
 TO BE WRITTEN
 
-## 26.4. Well-founded Functions and Extreme Predicates
+## 24.4. Well-founded Functions and Extreme Predicates
 
 TODO: This section needs rewriting
 
@@ -70,7 +70,7 @@ The encoding for coinductive predicates in Dafny was described previously
 [@LeinoMoskal:Coinduction] and is here described in Section
 [#sec-co-inductive-datatypes].
 
-### 25.4.1. Function Definitions
+### 24.4.1. Function Definitions
 
 To define a function $f \colon X \to Y$ in terms of itself, one can
 write an equation like
@@ -136,7 +136,7 @@ TO BE WRITTEN - functions with named results
 
 TO BE WRITTEN - various kinds of arrow types: ~> -> -->
 
-#### 25.4.1.1. Well-founded Functions
+#### 24.4.1.1. Well-founded Functions
 
 A standard way to ensure that equation [#eq-general] has a unique solution in $f$ is
 to make sure the recursion is well-founded, which roughly means that the
@@ -186,7 +186,7 @@ $\mathit{P}\_\downarrow(n)$ for every natural number $n$.  However, what we are 
 about here is to avoid mathematical inconsistencies, and that is
 indeed a consequence of the decrement condition.
 
-#### 25.4.1.2. Example with Well-founded Functions {#sec-fib-example}
+#### 24.4.1.2. Example with Well-founded Functions {#sec-fib-example}
 
 So that we can later see how inductive proofs are done in Dafny, let's prove that
 for any $n$, $\mathit{fib}(n)$ is even iff $n$ is a multiple of $3$.
@@ -202,7 +202,7 @@ even number and an odd number, which is odd.  In this proof, we invoked the indu
 hypothesis on $n-2$ and on $n-1$.  This is allowed, because both are smaller than
 $n$, and hence the invocations go down in the well-founded ordering on natural numbers.
 
-#### 25.4.1.3. Extreme Solutions
+#### 24.4.1.3. Extreme Solutions
 
 We don't need to exclude the possibility of equation [#eq-general] having multiple
 solutions---instead, we can just be clear about which one of them we want.
@@ -325,7 +325,7 @@ solution for $g$, there are two proof trees that establish $g(0)$:  one is the f
 proof tree that uses the left-hand rule of [#g-coind-rule] once, the other is the infinite
 proof tree that keeps on using the right-hand rule of [#g-coind-rule].
 
-### 25.4.2. Working with Extreme Predicates
+### 24.4.2. Working with Extreme Predicates
 
 In general, one cannot evaluate whether or not an extreme predicate holds for some
 input, because doing so may take an infinite number of steps.  For example, following
@@ -398,7 +398,7 @@ Let's consider two examples, both involving function $g$ in
 and therefore I will write $g^{\downarrow}$ and $g^{\uparrow}$ to denote the
 least and greatest solutions for $g$ in [#eq-EvenNat].
 
-#### 25.4.2.1. Example with Least Solution {#sec-example-least-solution}
+#### 24.4.2.1. Example with Least Solution {#sec-example-least-solution}
 
 The main technique for establishing that $g^{\downarrow}(x)$ holds for some
 $x$, that is, proving something of the form $Q \;\Longrightarrow\; g^{\downarrow}(x)$, is to
@@ -446,7 +446,7 @@ we apply the induction hypothesis (on the smaller $k-1$ and with $x-2$) and
 obtain $0 \leq (x-2)\;\wedge\; (x-2) \textrm{ even}$, from which our proof goal
 follows.
 
-#### 25.4.2.2. Example with Greatest Solution {#sec-example-greatest-solution}
+#### 24.4.2.2. Example with Greatest Solution {#sec-example-greatest-solution}
 
 We can think of a given predicate $g^{\uparrow}(x)$ as being represented
 by a proof tree---in this case a term in a _coinductive datatype_,
@@ -502,7 +502,7 @@ If $k > 0$, then ${ {}^{\sharp}\!g}_k(x) = (x = 0 \:\vee\: { {}^{\sharp}\!g}_{k-
 disjunct by applying the induction hypothesis (on the smaller $k-1$ and with $x-2$).
 -->
 
-### 25.4.3. Other Techniques
+### 24.4.3. Other Techniques
 
 Although in this paper I consider only well-founded functions and extreme
 predicates, it is worth mentioning that there are additional ways of making sure that
@@ -517,7 +517,7 @@ This was pointed out by Manolios and Moore [@ManoliosMoore:PartialFunctions].
 Functions can be underspecified in this way in the proof assistants ACL2 [@ACL2:book]
 and HOL [@Krauss:PhD].
 
-## 25.5. Functions in Dafny
+## 24.5. Functions in Dafny
 
 In this section, I explain with examples the support in
 Dafny[^fn-on-da-web] for well-founded functions, extreme predicates,
@@ -525,7 +525,7 @@ and proofs regarding these.
 
 [^fn-on-da-web]: Dafny is open source at [dafny.codeplex.com](http://dafny.codeplex.com) and can also be used online at [rise4fun.com/dafny](http://rise4fun.com/dafny).
 
-### 25.5.1. Well-founded Functions in Dafny
+### 24.5.1. Well-founded Functions in Dafny
 
 Declarations of well-founded functions are unsurprising.  For example, the Fibonacci
 function is declared as follows:
@@ -556,7 +556,7 @@ Dafny IDE) is very often correct, so users are rarely bothered to provide explic
 If a function returns `bool`, one can drop the result type `: bool` and change the
 keyword `function` to `predicate`.
 
-### 25.5.2. Proofs in Dafny
+### 24.5.2. Proofs in Dafny
 
 Dafny has `lemma` declarations.  These are really just special cases of methods:
 they can have pre- and postcondition specifications and their body is a code block.
@@ -632,7 +632,7 @@ $\\exists k \bullet\; 100 \leq \mathit{fib}(k) < 200$ is known, then the stateme
 `k :| 100 <= fib(k) < 200;` will assign to `k` some value (chosen arbitrarily)
 for which `fib(k)` falls in the given range.
 
-### 25.5.3. Extreme Predicates in Dafny {#sec-friendliness}
+### 24.5.3. Extreme Predicates in Dafny {#sec-friendliness}
 
 In this previous subsection, I explained that a `predicate` declaration introduces a
 well-founded predicate.  The declarations for introducing extreme predicates are
@@ -671,7 +671,7 @@ that recursive calls to inductive predicates are
 not inside unbounded universal quantifiers and that recursive calls to co-predicates
 are not inside unbounded existential quantifiers [@Milner:CCS; @LeinoMoskal:Coinduction].
 
-### 25.5.4. Proofs about Extreme Predicates
+### 24.5.4. Proofs about Extreme Predicates
 
 From what I have presented so far, we can do the formal proofs from Sections
 [#sec-example-least-solution] and [#sec-example-greatest-solution].  Here is the
@@ -733,7 +733,7 @@ the proofs do not reflect the intuitive proofs I described in
 Section [#sec-example-least-solution] and [#sec-example-greatest-solution].
 These shortcoming are addressed in the next subsection.
 
-### 25.5.5. Nicer Proofs of Extreme Predicates
+### 24.5.5. Nicer Proofs of Extreme Predicates
 
 The proofs we just saw follow standard forms:
 use Skolemization to convert the inductive predicate into a prefix predicate for some `k`
@@ -789,11 +789,11 @@ each lemma, the bodies of the given extreme lemmas `EvenNat` and
 `Always` can be empty and Dafny still completes the proofs.
 Folks, it doesn't get any simpler than that!
 
-## 25.6. Variable Initialization and Definite Assignment {#sec-definite-assignment}
+## 24.6. Variable Initialization and Definite Assignment {#sec-definite-assignment}
 
 TO BE WRITTEN -- rules for default initialization; resulting rules for constructors; definite assignment rules
 
-## 25.7. Well-founded Orders {#sec-well-founded-orders}
+## 24.7. Well-founded Orders {#sec-well-founded-orders}
 
 The well-founded order relations for a variety of built-in types in Dafny
 are given in the following table:
@@ -832,7 +832,7 @@ method TestD(dd: D) {
 
 TODO: Write this section; revise the above
 
-## 25.8. Module Refinement {#sec-module-refinement}
+## 24.8. Module Refinement {#sec-module-refinement}
 
 TODO: Write this section.
 

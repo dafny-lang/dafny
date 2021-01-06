@@ -198,7 +198,7 @@ is well-formed, whereas
 is not.
 
 In addition, booleans support _logical quantifiers_ (forall and
-exists), described in [Section 23.36](#sec-quantifier-expression).
+exists), described in [Section 22.36](#sec-quantifier-expression).
 
 ## 7.2. Numeric types {#sec-numeric-types}
 
@@ -211,7 +211,7 @@ Dafny supports _numeric types_ of two kinds, _integer-based_, which
 includes the basic type `int` of all integers, and _real-based_, which
 includes the basic type `real` of all real numbers.  User-defined
 numeric types based on `int` and `real`, either _subset types_ or _newtypes_, 
-are described in [Section 20](#sec-subset-types) and [Section 0](#sec-newtypes).
+are described in [Section 19](#sec-subset-types) and [Section 0](#sec-newtypes).
 
 There is one built-in [_subset type_](#sec-subset-types),
 `nat`, representing the non-negative subrange of `int`.
@@ -283,7 +283,7 @@ each other in the two groups.
 The groups are listed in order of
 increasing binding power, with equality binding less strongly than any of these operators.
 There is no implicit conversion between `int` and `real`: use `as int` or
-`as real` conversions to write an explict conversion (cf. [Section 23.10](#sec-as-expression)).
+`as real` conversions to write an explict conversion (cf. [Section 22.10](#sec-as-expression)).
 
 Modulus is supported only for integer-based numeric types.  Integer
 division and modulus are the _Euclidean division and modulus_.  This
@@ -466,7 +466,7 @@ parameterized by types.  These _type parameters_ are typically
 declared inside angle brackets and can stand for any type.
 
 Dafny has some inference support that makes certain signatures less
-cluttered (described in [Section 25.2](#sec-type-inference)).
+cluttered (described in [Section 24.2](#sec-type-inference)).
 
 ## 8.1. Declaring restrictions on type parameters {#sec-type-parameter-restrictions}
 
@@ -529,7 +529,7 @@ it does not.
 Variables and fields of a type that the compiler does not auto-initialize
 are subject to _definite-assignment_ rules. These ensure that the program
 explicitly assigns a value to a variable before it is used.
-For more details see [Section 25.6](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
+For more details see [Section 24.6](#sec-definite-assignment) and the `-definiteAssignment` command-line option.
 
 The `(0)` suffix indicates that the type must be one that the compiler knows
 how to auto-initialize, if the type is used to declare a non-ghost variable.
@@ -576,7 +576,7 @@ GenericInstantiation = "<" Type { "," Type } ">"
 When a generic entity is used, actual types must be specified for each
 generic parameter. This is done using a ``GenericInstantiation``.
 If the `GenericInstantiation` is omitted, type inference will try
-to fill these in (cf. [Section 25.2](#sec-type-inference)).
+to fill these in (cf. [Section 24.2](#sec-type-inference)).
 
 <!--PDF NEWPAGE-->
 # 10. Collection types {#sec-collection-types}
@@ -607,7 +607,7 @@ enclosed in curly braces.  To illustrate,
 ```
 are three examples of set displays. There is also a _set comprehension_
 expression (with a binder, like in logical quantifications), described in
-[Section 23.37](#sec-set-comprehension-expression).
+[Section 22.37](#sec-set-comprehension-expression).
 
 In addition to equality and disequality, set types
 support the following relational operations:
@@ -928,7 +928,7 @@ to have an infinite domain.
 If the same key occurs more than
 once in a map display expression, only the last occurrence appears in the resulting
 map.[^fn-map-display]  There is also a _map comprehension expression_,
-explained in [Section 0](#sec-map-comprehension-expression).
+explained in [Section 22.40](#sec-map-comprehension-expression).
 
 [^fn-map-display]: This is likely to change in the future to disallow
     multiple occurrences of the same key.
@@ -1931,7 +1931,7 @@ IteratorDecl = "iterator" { Attribute } IteratorName
   IteratorSpec [ BlockStmt ]
 ````
 
-See [Section 0](#sec-iterator-specification) for a description of ``IteratorSpec``.
+See [Section 5.5](#sec-iterator-specification) for a description of ``IteratorSpec``.
 
 An _iterator_ provides a programming abstraction for writing code that
 iteratively returns elements.  These CLU-style iterators are
@@ -2141,7 +2141,7 @@ design of asynchronous methods evolves.
 -->
 
 <!--PDF NEWPAGE-->
-# 17. Function types
+# 16. Function types
 
 ````grammar
 Type = DomainType "->" Type
@@ -2233,10 +2233,10 @@ f.requires.requires(t) == true
 ```
 
 Dafny also supports anonymous functions by means of
-_lambda expressions_. See [Section 0](#sec-lambda-expressions).
+_lambda expressions_. See [Section 22.13](#sec-lambda-expressions).
 
 <!--PDF NEWPAGE-->
-# 18. Algebraic Datatypes
+# 17. Algebraic Datatypes
 
 Dafny offers two kinds of algebraic datatypes, those defined
 inductively and those defined co-inductively.  The salient property of
@@ -2248,7 +2248,7 @@ its parameters.
 DatatypeDecl = ( InductiveDatatypeDecl | CoinductiveDatatypeDecl )
 ````
 
-## 18.1. Inductive datatypes
+## 17.1. Inductive datatypes
 
 ````grammar
 InductiveDatatypeDecl_ =
@@ -2349,7 +2349,7 @@ inductive datatype for trees may be updated as follows:
 node.(left := L, right := R)
 ```
 
-## 18.2. Tuple types {#sec-tuple-types}
+## 17.2. Tuple types {#sec-tuple-types}
 ````grammar
 TupleType_ = "(" [ Type { "," Type } ] ")"
 ````
@@ -2377,7 +2377,7 @@ Dafny declares _n_-tuples where _n_ is 0 or 2 or more.  There are no
 no semantic meaning.  The 0-tuple type, `()`, is often known as the
 _unit type_ and its single value, also written `()`, is known as _unit_.
 
-## 18.3. Co-inductive datatypes
+## 17.3. Co-inductive datatypes
 
 ````grammar
 CoinductiveDatatypeDecl_ =
@@ -2416,7 +2416,7 @@ paper in this section but the reader is referred to that paper for more
 complete details and to supply bibliographic references that are
 omitted here.
 
-## Co-induction
+## 17.4. Co-induction
 Mathematical induction is a cornerstone of programming and program
 verification. It arises in data definitions (e.g., some algebraic data
 structures can be described using induction), it underlies program
@@ -2508,7 +2508,7 @@ invoked, there are restrictions on how a _co-inductive_ hypothesis can be
 _used_. These are, of course, taken into consideration by Dafny's verifier.
 For example, as illustrated by the second co-lemma above, invoking the
 co-inductive hypothesis in an attempt to obtain the entire proof goal is
-futile. (We explain how this works in [Section 0](#sec-colemmas)) Our initial experience
+futile. (We explain how this works in [Section 17.4.5.2](#sec-colemmas)) Our initial experience
 with co-induction in Dafny shows it to provide an intuitive, low-overhead
 user experience that compares favorably to even the best of today’s
 interactive proof assistants for co-induction. In addition, the
@@ -2519,7 +2519,7 @@ shown to be useful in defining language semantics, as needed to verify
 the correctness of a compiler, so this opens the possibility that
 such verifications can benefit from SMT automation.
 
-### 18.3.1. Well-Founded Function/Method Definitions
+### 17.4.1. Well-Founded Function/Method Definitions
 The Dafny programming language supports functions and methods. A _function_
 in Dafny is a mathematical function (i.e., it is well-defined,
 deterministic, and pure), whereas a _method_ is a body of statements that
@@ -2558,7 +2558,7 @@ is used to invoke `Lemma(x)` on all `x` for which `P(x)` holds. If
 forall x :: P(x) ==> Q(x).
 ```
 
-### 18.3.2. Defining Co-inductive Datatypes
+### 17.4.2. Defining Co-inductive Datatypes
 Each value of an inductive datatype is finite, in the sense that it can
 be constructed by a finite number of calls to datatype constructors. In
 contrast, values of a co-inductive datatype, or co-datatype for short,
@@ -2604,7 +2604,7 @@ to datatype declarations, there is no grounding check for
 co-datatypes—since a codatatype admits infinite values, the type is
 nevertheless inhabited.
 
-### 18.3.3. Creating Values of Co-datatypes
+### 17.4.3. Creating Values of Co-datatypes
 To define values of co-datatypes, one could imagine a “co-function”
 language feature: the body of a “co-function” could include possibly
 never-ending self-calls that are interpreted by a greatest fix-point
@@ -2631,7 +2631,7 @@ in Dafny are deterministic. Since there cannot be multiple fix-points,
 the language allows one function to be involved in both recursive and co-recursive calls,
 as we illustrate by the function `FivesUp`.
 
-### 18.3.4. Copredicates
+### 17.4.4. Copredicates
 Determining properties of co-datatype values may require an infinite
 number of observations. To that end, Dafny provides _co-predicates_
 which are function declarations that use the `copredicate` keyword.
@@ -2708,20 +2708,20 @@ In the Dafny grammar this is called a ``HashCall``. The definition of
 that is, `Pos` and `Pos#` must not be in the same cluster. In other
 words, the definition of `Pos` cannot depend on `Pos#`.
 
-#### 18.3.4.1. Co-Equality
+#### 17.4.4.1. Co-Equality
 Equality between two values of a co-datatype is a built-in co-predicate.
 It has the usual equality syntax `s == t`, and the corresponding prefix
 equality is written `s ==#[k] t`. And similarly for `s != t`
 and `s !=#[k] t`.
 
-### 18.3.5. Co-inductive Proofs
+### 17.4.5. Co-inductive Proofs
 From what we have said so far, a program can make use of properties of
 co-datatypes. For example, a method that declares `Pos(s)` as a
 precondition can rely on the stream `s` containing only positive integers.
 In this section, we consider how such properties are established in the
 first place.
 
-#### 18.3.5.1. Properties About Prefix Predicates
+#### 17.4.5.1. Properties About Prefix Predicates
 Among other possible strategies for establishing co-inductive properties
 we take the time-honored approach of reducing co-induction to
 induction. More precisely, Dafny passes to the SMT solver an
@@ -2765,7 +2765,7 @@ the forall statement to show `? k • Pos#[k](Up(n))`. Finally, the axiom
 `D(Pos)` is used (automatically) to establish the co-predicate.
 
 
-#### 18.3.5.2. Colemmas {#sec-colemmas}
+#### 17.4.5.2. Colemmas {#sec-colemmas}
 As we just showed, with help of the `D` axiom we can now prove a
 co-predicate by inductively proving that the corresponding prefix
 predicate holds for all prefix lengths `k`. In this section, we introduce
@@ -2788,7 +2788,7 @@ co-recursively to obtain the proof for `Pos(Up(n).tail)` (since `Up(n).tail`
 equals `Up(n+1)`). The proof glue needed to then conclude `Pos(Up(n))` is
 provided automatically, thanks to the power of the SMT-based verifier.
 
-#### 18.3.5.3. Prefix Lemmas
+#### 17.4.5.3. Prefix Lemmas
 To understand why the above `UpPosLemma` co-lemma code is a sound proof,
 let us now describe the details of the desugaring of co-lemmas. In
 analogy to how a **copredicate** declaration defines both a co-predicate and
@@ -2856,7 +2856,7 @@ and deeper equalities, the co-lemma can be understood as producing the
 infinite proof on demand.
 
 <!--PDF NEWPAGE-->
-# 19. Newtypes
+# 18. Newtypes
 ````grammar
 NewtypeDecl = "newtype" { Attribute } NewtypeName "="
   ( NumericTypeName [ ":" Type ]
@@ -2920,7 +2920,7 @@ signed 32-bit integers in the target hardware.
 The incompatibility of a newtype and its basetype is intentional,
 as newtypes are meant to be used as distinct types from the basetype.
 If numeric types are desired that mix more readily with the basetype,
-the subset types described in [Section 0](#sec-subset-types)
+the subset types described in [Section 19](#sec-subset-types)
  may be more appropriate.
 
 Note that the bound variable `x` in `Q` has type `M`, not `N`.
@@ -2937,7 +2937,7 @@ and consider a variable `c` of type `int8`.  The expression
 is not well-defined, because the comparisons require each operand to
 have type `int8`, which means the literal `128` is checked to be of
 type `int8`, which it is not.  A proper way to write this expression
-would be to use a conversion operation, described in [Section 0](#sec-conversion), on `c` to
+would be to use a conversion operation, described in [Section 18.1](#sec-conversion), on `c` to
 convert it to the base type:
 ```dafny
 -128 <= c as int < 128
@@ -2947,7 +2947,7 @@ If possible, Dafny compilers will represent values of the newtype using
 a native data type for the sake of efficiency. This action can
 be inhibited or a specific native data type selected by
 using the `{:nativeType}` attribute, as explained in
-[Section 0](#sec-nativetype).
+[Section 23.1.12](#sec-nativetype).
 
 There is a current restriction that the value `0` must be part of every
 numeric newtype.
@@ -2956,12 +2956,12 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 23.46](#sec-compile-time-constants).
+in [Section 22.46](#sec-compile-time-constants).
 
-## 19.1. Conversion operations {#sec-conversion}
+## 18.1. Conversion operations {#sec-conversion}
 
 For every type `N`, there is a conversion operation with the
-name `as N`, described more fully in [Section 23.10](#sec-as-expression).
+name `as N`, described more fully in [Section 22.10](#sec-as-expression).
 It is a partial function defined when the
 given value, which can be of any type, is a member of the type
 converted to.  When the conversion is from a real-based numeric type
@@ -2989,7 +2989,7 @@ The `as N` conversion operation is grammatically a suffix operation like
 `.`field and array indexing, but binds less tightly than unary operations:
 `- x as int` is `(- x) as int`; `a + b as int` is `a + (b as int)`.
 
-There is also a corresponding `is` operation ([Section 0](#sec-as-expression)) that
+There is also a corresponding `is` operation ([Section 22.10](#sec-as-expression)) that
 tests whether a value is valid for a given type. For example, `-5 is nat` is
 false. So `e as T` is well-defined exactly when `e is T` is true.
 For a newtype or subset type, the `is` operation is the predicate that defines
@@ -2997,7 +2997,7 @@ the type.
 **The `is` operation is not yet implemented**.
 
 <!--PDF NEWPAGE-->
-# 20. Subset types {#sec-subset-types}
+# 19. Subset types {#sec-subset-types}
 TO BE WRITTEN: add `-->` (subset of `~>`), `->` (subset of `-->`), non-null types subset of nullable types
 
 ````grammar
