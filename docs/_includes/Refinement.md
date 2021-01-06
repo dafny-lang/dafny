@@ -1,6 +1,6 @@
 # 24. Refinement {#sec-module-refinement}
 
-Refinement is the process of replacing something somewhat abstract with somethiong somewhat more concrete.
+Refinement is the process of replacing something somewhat abstract with something somewhat more concrete.
 For example, in one module one might declare a type name, with no definition,
 such as `type T`, and then in a refining module, provide a definition. 
 One could prove general properties about the contents of an (abstract) module,
@@ -72,10 +72,16 @@ the result module's export set declarations have been assembled.
 
 ## 24.2. Import declarations
 
-Import declarations are not refined. The result module contains the union
+Aliasing import declarations are not refined. The result module contains the union
 of the import declarations from the two input modules.
 There must be no names in common among them.
 
+Abstract import declarations (declared with `:` instead of `=`, [Section 0](#sec-module-abstraction)) are refined. The refinement parent contains the 
+abstract import and the refining module contains a regular aliasing
+import for the same name. Dafny checks that the refining import _adheres_ to
+the abstract import.
+
+TODO: Add example?
 ## 24.3. Sub-module declarations
 
 TODO
