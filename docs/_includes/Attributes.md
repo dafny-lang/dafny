@@ -12,8 +12,13 @@ Here is an example of an attribute from the Dafny test suite:
 ```
 
 In general an attribute may have any name the user chooses. It may be
-followed by a comma separated list of expressions. These expressions will
+followed by a comma-separated list of expressions. These expressions will
 be resolved and type-checked in the context where the attribute appears.
+
+In general, any Dafny entity may have a list of attributes.
+Dafny does not check that the attributes listed for an entity
+are appropriate for that entity (which means that misspellings may
+go silently unnoticed).
 
 ## 23.1. Dafny Attributes
 All entities that Dafny translates to Boogie have their attributes
@@ -25,8 +30,8 @@ instead converted into a Boogie quantifier _trigger_. See Section 11 of
 Dafny has special processing for some attributes. For some attributes, the
 setting is only looked for on the entity with the attribute. For others, we start
 at the entity and if the attribute is not there, look up in the hierarchy
-(enclosing class and enclosing modules). The latter case is checked by
-the `ContainsBoolAtAnyLevel` method in the Dafny source. The attribute
+(enclosing class and enclosing modules). 
+The attribute
 declaration closest to the entity overrides those further away.
 
 For attributes with a single boolean expression argument, the attribute
@@ -326,7 +331,7 @@ to the `{:opaque}` attribute (which it got because it is a copy of `foo`).
 
 ### 23.1.14. opaque_full
 The `{:opaque_full}` attribute is used to mark the _full_ version
-of an opaque function. See Section [#sec-opaque].
+of an opaque function. See [Section 23.1.13](#sec-opaque).
 
 <!--
 Describe this where refinement is described, as appropriate.

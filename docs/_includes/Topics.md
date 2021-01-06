@@ -15,6 +15,9 @@ TO BE WRITTEN
 TO BE WRITTEN
 
 ## 24.4. Well-founded Functions and Extreme Predicates
+
+TODO: This section needs rewriting
+
 This section is a tutorial on well-founded functions and extreme predicates.
 We place it here in preparation for Section [#sec-class-types]
 where function and predicate definitions are described.
@@ -828,5 +831,4 @@ method TestD(dd: D) {
 
 
 TODO: Write this section; revise the above
-
 
