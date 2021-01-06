@@ -34,7 +34,7 @@ the labeled statement.
 The label is not allowed to be the same as any previous dominating
 label.
 
-The label may also be used in an [`old` expression](#sec-old-expression). In this case the label
+The label may also be used in an `old` expression( ([Section 0](#sec-old-expression)). In this case the label
 must have been encountered during the control flow in route to the `old`
 expression. That is, again, the label must dominate the use of the label.
 
@@ -266,10 +266,10 @@ A failure-compatible type with an `Extract` member is called _value-carrying_.
 
 To use this form of update,
 
- * the caller must have a first out-parameter whose type matches the output of `PropagateFailure` applied to the first output of the callee, unless an
-`expect`, `assume`, or `assert` keyword is used after `:-`
  * if the RHS of the update-with-failure statement is a method call, the first out-parameter of the callee must be failure-compatible
  * if instead the RHS of the update-with-failure statement is one or more expressions, the first of these expressions must be a value with a failure-compatible type
+ * the caller must have a first out-parameter whose type matches the output of `PropagateFailure` applied to the first output of the callee, unless an
+`expect`, `assume`, or `assert` keyword is used after `:-` (cf. [Section 0](#secd-failure-return-keyword)).
  * if the failure-compatible type of the RHS does not have an `Extract` member,
 then the LHS of the `:-` statement has one less expression than the RHS
 (or than the number of out-parameters from the method call)
@@ -279,6 +279,8 @@ then the LHS of the `:-` statement has the same number of expressions as the RHS
 and the type of the first LHS expression must be assignable from the return type of the `Extract` member
 * the `IsFailure` and `PropagateFailure` methods may not be ghost
 * the LHS expression assigned the output of the `Extract` member is ghost precisely if `Extract` is ghost
+
+The following subsections show various uses and alternatives.
 
 ### 21.7.1. Failure compatible types
 
@@ -478,20 +480,23 @@ s :- M();
 ```
 with the semantics as described above.
 
-### 21.7.7. Keyword alternative
+### 21.7.7. Keyword alternative {#sec-failure-return-keyword}
 
 In any of the above described uses of `:-`, the `:-` token may be followed immediately by the keyword `expect`, `assert` or `assume`.
 
 * `assert` means that the RHS evaluation is expected to be successful, but that
 the verifier should prove that this is so; that is, the verifier should prove
 `assert !r.IsFailure()` (where `r` is the status return from the callee)
+(cf. [Section 0](#sec-assert-ststement))
 * `assume` means that the RHS evaluation should be assumed to be successful,
 as if the statement `assume !r.IsFailure()` followed the evaluation of the RHS
+(cf. [Section 0](#sec-assume-ststement))
 * `expect` means that the RHS evaluation should be assumed to be successful
 (like using `assume` above), but that the compiler should include a
 run-time check for success. This is equivalent to including
 `expect !r.IsFailure()` after the RHS evaluation; that is, if the status
 return is a failure, the program halts.
+(cf. [Section 0](#sec-expect-ststement))
 
 In each of these cases, there is no abrupt return from the caller. Thus
 there is no evaluation of `PropagateFailure`. Consequently the first
@@ -764,7 +769,8 @@ TODO: Describe the ... refinement
 ## 22.1. While Statement
 ````grammar
 WhileStmt = "while"
-  ( LoopSpecWhile ( WhileAlternativeBlock | "{" WhileAlternativeBlock "}" )
+  ( LoopSpecWhile 
+    ( WhileAlternativeBlock | "{" WhileAlternativeBlock "}" )
   | ( Guard | "..." ) LoopSpec
       ( BlockStmt
       | "..."
@@ -978,7 +984,7 @@ MatchStmt =
 CaseStatement = CaseBinding_ "=>" { Stmt }
 ````
 
-[ `CaseBinding_` is defined [here](#sec-case-pattern).]
+[ `CaseBinding_` is defined in [Section 0](#sec-case-pattern).]
 
 The `match` statement is used to do case analysis on a value of an inductive or co-inductive datatype (which includes the built-in tuple types), a base type, or newtype. The expression after the `match` keyword is called the _selector_. The expression is evaluated and then matched against
 each clause in order until a matching clause is found.
@@ -1011,7 +1017,7 @@ In this case it is not needed because Dafny is able to deduce that
 coinductive this would not have been possible since `x` might have been
 infinite.
 
-## 22.4. Assert Statement
+## 22.4. Assert Statement {#sec-asseret-statement}
 ````grammar
 AssertStmt =
     "assert" { Attribute }
@@ -1036,7 +1042,7 @@ Using `...` as the argument of the statement is part of module refinement, as de
 
 TO BE WRITTEN - assert by statements
 
-## 22.5. Assume Statement
+## 22.5. Assume Statement {#sec-assume-statement}
 ````grammar
 AssumeStmt =
     "assume" { Attribute }
@@ -1061,7 +1067,7 @@ been replaced through a refinement step.
 
 Using `...` as the argument of the statement is part of module refinement, as described in [Section 25.8](#sec-module-refinement).
 
-## 22.6. Expect Statement
+## 22.6. Expect Statement {#sec-expect-statement}
 
 ````grammar
 ExpectStmt =

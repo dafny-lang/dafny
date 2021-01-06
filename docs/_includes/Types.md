@@ -120,7 +120,7 @@ A && (B || C)
 ```
 depending on the intended meaning.
 
-### 7.1.1. Equivalence Operator
+### 7.1.1. Equivalence Operator {#sec-equivalence-operator}
 The expressions `A <==> B` and `A == B` give the same value, but note
 that `<==>` is _associative_ whereas `==` is _chaining_ and they have
 different precedence.  So,
@@ -144,7 +144,7 @@ is simply a shorthand for
 A == B && B == C
 ```
 
-### 7.1.2. Conjunction and Disjunction
+### 7.1.2. Conjunction and Disjunction {#sec-conjunction-and-disjunction}
 Conjunction and disjunction are associative.  These operators are
 _short circuiting (from left to right)_, meaning that their second
 argument is evaluated only if the evaluation of the first operand does
@@ -154,7 +154,7 @@ evaluates to `false` or `B` is defined.  When `A && B` is defined, its
 meaning is the same as the ordinary, symmetric mathematical
 conjunction `&`.  The same holds for `||` and `|`.
 
-### 7.1.3. Implication and  Reverse Implication
+### 7.1.3. Implication and  Reverse Implication {#sec-implication-and-reverse-implication}
 Implication is _right associative_ and is short-circuiting from left
 to right.  Reverse implication `B <== A` is exactly the same as
 `A ==> B`, but gives the ability to write the operands in the opposite
@@ -579,11 +579,11 @@ If the `GenericInstantiation` is omitted, type inference will try
 to fill these in (cf. [Section 25.2](#sec-type-inference)).
 
 <!--PDF NEWPAGE-->
-# 10. Collection types
+# 10. Collection types {#sec-collection-types}
 
 Dafny offers several built-in collection types.
 
-## 10.1. Sets
+## 10.1. Sets {#sec-sets}
 ````grammar
 FiniteSetType_ = "set" [ GenericInstantiation ]
 InfiniteSetType_ = "iset" [ GenericInstantiation ]
@@ -659,7 +659,7 @@ expression `e` of type `T`, sets support the following operations:
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
-## 10.2. Multisets
+## 10.2. Multisets {#sec-multisets}
 ````grammar
 MultisetType_ = "multiset" [ GenericInstantiation ]
 ````
@@ -749,7 +749,7 @@ without any occurrences of `e` (whether or not `s` has occurrences of
 if e in s then s[e := s[e] - 1] else s
 ```
 
-## 10.3. Sequences
+## 10.3. Sequences {#sec-sequences}
 ````grammar
 SequenceType_ = "seq" [ GenericInstantiation ]
 ````
@@ -890,7 +890,7 @@ still denote proper prefix and prefix, respectively, not some kind of
 alphabetic comparison as might be desirable, for example, when
 sorting strings.
 
-## 10.4. Finite and Infinite Maps
+## 10.4. Finite and Infinite Maps {#sec-maps}
 ````grammar
 FiniteMapType_ = "map" [ GenericInstantiation ]
 InfiniteMapType_ = "imap" [ GenericInstantiation ]
@@ -2349,7 +2349,7 @@ inductive datatype for trees may be updated as follows:
 node.(left := L, right := R)
 ```
 
-## 18.2. Tuple types
+## 18.2. Tuple types {#sec-tuple-types}
 ````grammar
 TupleType_ = "(" [ Type { "," Type } ] ")"
 ````
@@ -2920,7 +2920,8 @@ signed 32-bit integers in the target hardware.
 The incompatibility of a newtype and its basetype is intentional,
 as newtypes are meant to be used as distinct types from the basetype.
 If numeric types are desired that mix more readily with the basetype,
-the subset types described in a later section may be more appropriate.
+the subset types described in [Section 0](#sec-subset-types)
+ may be more appropriate.
 
 Note that the bound variable `x` in `Q` has type `M`, not `N`.
 Consequently, it may not be possible to state `Q` about the `N`
@@ -2936,7 +2937,7 @@ and consider a variable `c` of type `int8`.  The expression
 is not well-defined, because the comparisons require each operand to
 have type `int8`, which means the literal `128` is checked to be of
 type `int8`, which it is not.  A proper way to write this expression
-would be to use a conversion operation, described [next](#sec-conversion), on `c` to
+would be to use a conversion operation, described in [Section 0](#sec-conversion), on `c` to
 convert it to the base type:
 ```dafny
 -128 <= c as int < 128
@@ -2946,7 +2947,7 @@ If possible, Dafny compilers will represent values of the newtype using
 a native data type for the sake of efficiency. This action can
 be inhibited or a specific native data type selected by
 using the `{:nativeType}` attribute, as explained in
-section [#sec-nativetype].
+[Section 0](#sec-nativetype).
 
 There is a current restriction that the value `0` must be part of every
 numeric newtype.
@@ -2988,7 +2989,7 @@ The `as N` conversion operation is grammatically a suffix operation like
 `.`field and array indexing, but binds less tightly than unary operations:
 `- x as int` is `(- x) as int`; `a + b as int` is `a + (b as int)`.
 
-There is also a corresponding [`is` operation](#sec-as-expression) that
+There is also a corresponding `is` operation ([Section 0](#sec-as-expression)) that
 tests whether a value is valid for a given type. For example, `-5 is nat` is
 false. So `e as T` is well-defined exactly when `e is T` is true.
 For a newtype or subset type, the `is` operation is the predicate that defines
@@ -3027,7 +3028,7 @@ satisfies the predicate defining the receiving subset type.
 (Note, in contrast, assignments between a newtype and its base type
 are never allowed, even if the value assigned is a value of the target
 type.  For such assignments, an explicit conversion must be used, see
-Section [#sec-numeric-conversion-operations].)
+[Section 0](#sec-numeric-conversion-operations).)
 
 Dafny supports a built-in subset type, namely the type `nat`,
 whose base type is `int`. Type `nat`
