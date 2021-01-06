@@ -490,7 +490,7 @@ clauses because they do not have names and thus cannot be recursive. A
 lambda specification does not have `modifies` clauses because lambdas
 are not allowed to modify any memory.
 
-## 5.5. Iterator Specification
+## 5.5. Iterator Specification {#sec-iterator-specification}
 ````grammar
 IteratorSpec =
   { IteratorReadsClause_
