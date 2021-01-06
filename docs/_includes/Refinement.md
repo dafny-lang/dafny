@@ -1,4 +1,4 @@
-X# 23. Refinement {#sec-module-refinement}
+# 23. Refinement {#sec-module-refinement}
 
 Refinement is the process of replacing something somewhat abstract with something somewhat more concrete.
 For example, in one module one might declare a type name, with no definition,

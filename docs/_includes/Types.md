@@ -1186,7 +1186,7 @@ not in code that will be compiled into executable code.
 
 Fields may not be declared static.
 
-X## 12.2. Const Declarations
+## 12.2. Const Declarations
 ```grammar
 ConstantFieldDecl = "const" { Attribute } CIdentType [ "..." ]
                     [ ":=" Expression ]
