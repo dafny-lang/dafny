@@ -19,10 +19,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, ubuntu-16.04, macos-latest, windows-latest ]
-        z3: [ 'https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c' ]
         include:
-        - ver: 'v3.0.0-pre-release-1'
-          rel: 'dafny-3.0.0-pre-1'
+        - ver: 'v3.0.0-test4'
+          rel: 'dafny-3.0.0-test4'
         - os:  'ubuntu-latest'
           osn: 'ubuntu-16.04'
         - os:  'ubuntu-16.04'
@@ -54,7 +53,6 @@ jobs:
       run: |
         Invoke-WebRequest -Outfile dafnyX.zip -Uri $Env:URL1
         Expand-Archive dafny*.zip
-        ls
         mv dafnyX/dafny dafny
       env:
         URL1: https://github.com/dafny-lang/dafny/releases/download/${{matrix.ver}}/${{matrix.rel}}-x64-${{matrix.osn}}.zip
@@ -94,16 +92,35 @@ jobs:
     - name: Check Go compile
       run: |
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
-        ##go run a-go/src/a.go a-go/src/*/*.go dafny/DafnyRuntime.go
+    - name: Running Go artifacts
+      if: runner.os != 'Windows'
+      run: |
+        GOPATH=$PWD/a-go go run a-go/src/a.go > actual.txt
+        diff expect.txt actual.txt
+    - name: Running Go artifacts - Windows
+      shell: pwsh
+      if: runner.os == 'Windows'
+      run: |
+        $Env:GOPATH="$PWD/a-go"
+        go run a-go/src/a.go > actual.txt
+        diff expect.txt actual.txt
     - name: Check Javascript compile
       run: |
         npm install bignumber.js
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node a.js dafny/DafnyRuntime.js | tail -1 > actual.txt
-        diff actual.txt expect.txt
+        node a.js dafny/DafnyRuntime.js > actual.txt
+        diff expect.txt actual.txt
     - name: Check Java compile
-      run: echo NOT CHECKING JAVA
-      ##run: |
-        ##(ls dafny/DafnyRuntime.java || echo NO DafnyRuntime.java); exit 0
-        ##dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy || echo EXPECTED FAILURE UNTIL DafnyRuntime.java is restored
-
+      run: |
+        (ls dafny/DafnyRuntime.jar || echo NO DafnyRuntime.jar )
+        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
+    - name: Check Java artifacts
+      if: runner.os != 'Windows'
+      run: |
+        java -cp a:dafny/DafnyRuntime.jar a > actual.txt
+        diff expect.txt actual.txt
+    - name: Check Java artifacts - Windows
+      if: runner.os == 'Windows'
+      run: |
+        java -cp "a;dafny/DafnyRuntime.jar" a > actual.txt
+        diff expect.txt actual.txt
