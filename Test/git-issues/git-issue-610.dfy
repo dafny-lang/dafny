@@ -19,3 +19,4 @@ method Main()
   expect a > 0;
   expect b > 0;
 }
+
