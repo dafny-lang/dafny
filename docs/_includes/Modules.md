@@ -15,12 +15,12 @@ interface.
 ## 4.1. Declaring New Modules
 ````grammar
 ModuleDefinition_ = "module" { Attribute } ModuleName
-        [ [  "exclusively" ] "refines" ModuleQualifiedId ]
+        [ "refines" QualifiedModuleName ]
         "{" { TopDecl } "}"
 
-ModuleQualifiedId = Ident { "." Ident }
+QualifiedModuleName = ModuleName { "." ModuleName }
 ````
-A `ModuleQualifiedId` is a qualified name that is expected to refer to a module;
+A `ModuleQualifiedNamed` is a qualified name that is expected to refer to a module;
 a _qualified name_ is a sequence of `.`-separated identifiers, which designates
 a program entity by representing increasingly-nested scopes.
 
@@ -122,7 +122,7 @@ The second module is completely separate; for example, it can be in
 a different file. 
 This feature provides flexibility in writing and maintenance;
 for example, it can reduce the size of module `A` by extracting module `A.B`
-into a separate set of text.
+into a separate body of text.
 
 However, it can also lead to confusion and program authors need to take care.
 It may not be apparent to a reader of module `A` that module `A.B` exists;
@@ -133,11 +133,11 @@ present or absent.
 ## 4.3. Importing Modules
 ````grammar
 ModuleImport_ = "import" ["opened" ]
-    [ ModuleQualifiedId
+    [ ModuleQualifiedName
           [ "`" ( ExportId | "{" ExportId { "," ExportId } "}" ) ]
-    | ModuleName "=" ModuleQualifiedId
+    | ModuleName "=" ModuleQualifiedName
           [ "`" ( ExportId | "{" ExportId { "," ExportId } "}" ) ]
-    | ModuleName ":" ModuleQualifiedId
+    | ModuleName ":" ModuleQualifiedName
     ]
 ````
 
@@ -176,7 +176,7 @@ it to a different name. The name `Helpers` is not available inside `m()`,
 as only names that have been bound inside `Mod` are available. In order
 to use the members from another module, that other module either has to be declared
 there with `module` or imported with `import`. (As described below, the
-resolution of the ModuleQualifiedId that follows the `=` in the `import`
+resolution of the `ModuleQualifiedName` that follows the `=` in the `import`
 statement or the `refines` in a module declaration uses slightly 
 different rules.)
 
@@ -187,9 +187,9 @@ even provides the shorthand `import Helpers` for this behavior. You
 can't bind two modules with the same name at the same time, so
 sometimes you have to use the = version to ensure the names do not
 clash. When importing nested modules, `import B.C` means `import C = B.C`;
-the new name is always the last name segment of the module designation.
+the implicit name is always the last name segment of the module designation.
 
-The ``ModuleQualifiedId`` in the ``ModuleImport_`` starts with a
+The ``ModuleQualifiedName`` in the ``ModuleImport_`` starts with a
 sibling module of the importing module, or with a submodule of the
 importing module. There is no way to refer to the parent module, only
 sibling modules (and their submodules).
@@ -224,8 +224,8 @@ module Mod {
 }
 ```
 
-When opening modules, the newly bound members will have low priority,
-so they will be hidden by local definitions. This means if you define
+When opening modules, the newly bound members have lower priority
+than local definitions. This means if you define
 a local function called `addOne`, the function from `Helpers` will no
 longer be available under that name. When modules are opened, the
 original name binding is still present however, so you can always use
@@ -249,7 +249,9 @@ If you open two modules that both declare members with the same name,
 then neither member can be referred to without a module prefix, as it
 would be ambiguous which one was meant. Just opening the two modules
 is not an error, however, as long as you don't attempt to use members
-with common names. The `opened` keyword can be used with any kind of
+with common names. However, if the ambiguous references actually 
+refer to the same declaration, then they are permitted. 
+The `opened` keyword may be used with any kind of
 `import` declaration, including the module abstraction form.
 
 An `import opened` may occur at the top-level as well. For example,
@@ -272,14 +274,14 @@ verbose enough to impede understanding.
 
 
 ## 4.5. Export Sets and Access Control
-```grammar
+````grammar
 "export" [ ExportId ] [ "..." ]
   {
     "provides" ( ExportSig { "," ExportSig } | "*" )
   | "reveals"  ( ExportSig { "," ExportSig } | "*" )
   | "extends"  ExportId { "," ExportId }
   }
-```
+````
 
 
 In some programming languages, keywords such as `public`, `private`, and `protected`
@@ -304,7 +306,7 @@ If a module `M` has export sets
 `E1` and `E2`, we can write ``import A = M`E1`` to create a module alias
 `A` that contains only the 
 names in `E1`. Or we can write ``import A = M`{E1,E2}`` to import the union
-of names in `E1` and `E2` as module alioas A.
+of names in `E1` and `E2` as module alias `A`.
 As before, ``import M`E1`` is an
 abbreviation of ``import M = M`E1``. 
 
@@ -313,39 +315,39 @@ statement, the default export set of the module is used.
 
  There are various
 defaults that apply differently in different cases.
-The following description is with respect to an example module M:
+The following description is with respect to an example module `M`:
 
-_M has no export sets declared_. Then another module may simply `import Z = M`
+_`M` has no export sets declared_. Then another module may simply `import Z = M`
 to obtain access to all of M's declarations.
 
-_M has one or more named export sets (e.g., E, F). Then another module can
-write ``import Z = M`E`` or ``import Z = M`{E,F}`` a to obtain access to the
-names that are listed in export set E or to the union of those in export sets
-E and F, respectively. If no export set has the same name as the module,
+_`M` has one or more named export sets (e.g., `E`, `F`)_. Then another module can
+write ``import Z = M`E`` or ``import Z = M`{E,F}`` to obtain access to the
+names that are listed in export set `E` or to the union of those in export sets
+`E` and `F`, respectively. If no export set has the same name as the module,
 then an export set designator must be used: in that case you cannot write
 simply ``import Z = M``.
 
-_M has an unnamed export set, along with other export sets (e.g, E)_. The unnamed
+_`M` has an unnamed export set, along with other export sets (e.g., `E`)_. The unnamed
 export set is the default export set and implicitly has the same name as 
 the module. Because there is a default export set, another module may write
 either ``import Z = M`` or ``import Z = M`M`` to import the names in that
 default export set. You can also still use the other export sets with the
 explicit designator: ``import Z = M`E``
 
-_M declares an export set with the same name as the module_. This is equivalent
+_`M` declares an export set with the same name as the module_. This is equivalent
 to declaring an export set without a name. ``import M`` and ``import M`M``
-perform the same function in either case; thre export set with or without
+perform the same function in either case; the export set with or without
 the name of the module is the default export set for the module.
 
-Note that names of module aliases (created by import statements) are
+Note that names of module aliases (declared by import statements) are
 just like other names in a module; they can be included or omitted from
 export sets. 
 Names brought into a module by [_refinement_](#TBD) are treated the same as 
-locally declared names and can be lsited in export set declarations.
+locally declared names and can be listed in export set declarations.
 However, names brought into a module by `import opened` (either into a module
 or a refinement parent of a module) may
 not be further exported. For example,
-```
+```dafny
 module A {
   const a := 10;
   const z := 10;
@@ -366,9 +368,9 @@ module C {
 However, in the above example, 
 
 * if `A` has one export set `export Y reveals a`
-then both the import in module `B` is invalid because `A` has no default
+then the import in module `B` is invalid because `A` has no default
 export set;
-* if `A` has one export set `export Y reveals a` `B` has ``import Z = A`Y``
+* if `A` has one export set `export Y reveals a` and `B` has ``import Z = A`Y``
 then B's import is OK. So is the use of `Z.a` in the assert because `B`
 declares `Z` and `C` brings in `Z` through the `import opened` and
 `Z` contains `a` by virtue of its declaration. (The alias `Z` is not able to
@@ -393,7 +395,7 @@ For example, in the following code the constant `a` is exported as provided.
 ```dafny
 {% include Example-ExportSet1.dfy %}
 ```
-Since `a` is imported into module `B` through the default export set `A``A`,
+Since `a` is imported into module `B` through the default export set ``A`A``,
 it can be referenced in the assert statement. The constant `b` is not 
 exported, so it is not available. But the assert about `a` is not provable
 because the value of `a` is not known in module `B`.
@@ -404,7 +406,7 @@ its value is known and the assertion can be proved.
 {% include Example-ExportSet2.dfy %}
 ```
 
-The following list shows the difference between _provides_ and _reveals_ for each kind of declaration.
+The following list presents the difference between _provides_ and _reveals_ for each kind of declaration.
 
 * const: type always known, but value not known when only provided
 * function, predicate: signature always known, but body not known when not revealed
@@ -420,10 +422,11 @@ The following list shows the difference between _provides_ and _reveals_ for eac
 reveals lists in export set declarations.
 
 A few other notes:
+
 * Using a `*` instead of a list of names means that all local names
 (except export set names) in the
 module are exported.
-* If no export sets are declared, then the implicitly declared 
+* If no export sets are declared, then the implicit 
 export set is `export reveals *`
 * A module acquires all the export sets from its refinement parent.
 * Names acquired by a module from its refinement parent are also subject to
@@ -432,8 +435,6 @@ export lists. (These are local names just like those declared directly.)
 re-exportable, though the new module alias name (such as the `C` in `import C = A.B`)
 is a local name.
 
-TODO: DOes a module get a default export set if it inherits ESs from its parent?
-
 ### 4.5.2. Extends list
 An export set declaration may include an _extends_ list, which is a list of
 one or more export set names from the same module containing the declaration
@@ -441,7 +442,7 @@ one or more export set names from the same module containing the declaration
 The effect is to include in the declaration the union of all the names in
 the export sets in the extends list, along with any other names explicitly
 included in the declaration. So for example in
-```
+```dafny
 module M {
   const a := 10;
   const b := 10;
@@ -451,7 +452,7 @@ module M {
   export C reveals c extends A, B
 }
 ```
-export set C will contain the names `a`, `b`, abnd `c`.
+export set C will contain the names `a`, `b`, and `c`.
  
 ## 4.6. Module Abstraction
 
@@ -510,14 +511,14 @@ compatible signatures, all the classes and datatypes with their
 constructors and fields in the abstract one must be present in the
 concrete one, the specifications must be compatible, etc.
 
-A module that includes an abstract import must be declared _abstract_.
+A module that includes an abstract import must be declared `abstract`.
 
 ## 4.7. Module Ordering and Dependencies
 
 Dafny isn't particular about the textual order in which modules are
 declared, but
-they must follow some rules to be well formed. As a rule of thumb,
-there should be a way to order the modules in a program such that each
+they must follow some rules to be well formed. In particular,
+there must be a way to order the modules in a program such that each
 only refers to things defined **before** it in the ordering. That
 doesn't mean the modules have to be given textually in that order in
 the source text. Dafny will
@@ -529,7 +530,7 @@ import A = B
 import B = A // error: circular
 ```
 
-You can have import statements at the toplevel, and you can import
+You can have import statements at the toplevel and you can import
 modules defined at the same level:
 
 ```dafny
@@ -548,7 +549,7 @@ dependency.
 Note that when rearranging modules and imports, they have to be kept
 in the same containing module, which disallows some pathological
 module structures. Also, the imports and submodules are always
-considered to be first, even at the toplevel. This means that the
+considered to be before their containing module, even at the toplevel. This means that the
 following is not well formed:
 
 ```dafny
@@ -564,8 +565,8 @@ because the module `M` must come before any other kind of members, such
 as methods. To define global functions like this, you can put them in
 a module (called `Globals`, say) and open it into any module that needs
 its functionality. Finally, if you import via a path, such as `import A
-= B.C`, then this creates a dependency of `A` on `B`, as we need to know
-what `B` is (e.g., is it abstract or concrete, or a refinement?).
+= B.C`, then this creates a dependency of `A` on `B`, and `B` itself
+depends on its own nested module `B.C`.
 
 ## 4.8. Name Resolution
 
@@ -648,6 +649,76 @@ Ordinarily a module must be _imported_ in order for its constitutent
 declarations to be visible inside a given module `M`. However, for the
 resolution of qualified names this is not the case.
 
+This example shows that the resolution of the refinement parent does not
+use any local names:
+```dafny
+{% include Example-Refines1.dfy %}
+```
+In the example, the `A` in `refines A` refers to the global `A`, not the submodule `A`.
+
+
+A module is a collection of declarations, each of which has a name.
+These names are held in two namespaces.
+
+* The names of export sets
+* The names of all other declarations, including submodules and aliased modules
+
+In addition names can be classified as _local_ or _imported_.
+
+* Local declarations of a module are the declarations
+ that are explicit in the module and the
+local declarations of the refinement parent. This includes, for
+example, the `N` of `import N = ` in the refinement parent, recursively.
+* Imported names of a module are those brought in by `import opened` plus
+the imported names in the refinement parent.
+
+Within each namespace, the local names are unique. Thus a module may
+not reuse a name that a refinement parent has declared (unless it is a
+refining declaration, which replaces both declarations, as described
+[here](#TODO)).
+
+Local names take precedence over imported names. If a name is used more than
+once among imported names (coming from different imports), then it is
+ambiguous to _use_ the name without qualification, unless they refer to the
+same entity or to equal types.
+
+### 4.8.3. Module Id Context Name Resolution
+
+A qualified name may be used to refer to a module in an import statement or a refines clause of a module declaration.
+Such a qualified name is resolved as follows, with respect to its syntactic
+location within a module `Z`:
+
+0. The leading ``NameSegment`` is resolved as a local or imported module name of `Z`, if there
+is one with a matching name. The target of a `refines` clause does not 
+consider local names, that is, in `module Z refines A.B.C`, any contents of `Z`
+are not considered in finding `A`.
+
+1. Otherwise, it is resolved as a local or imported module name of the most enclosing module of `Z`,
+   iterating outward to each successive enclosing module until a match is
+found or the default toplevel module is reached without a match.
+No consideration of export sets, default or otherwise, is used in this step.
+However, if at any stage a matching name is found that is not a module
+declaration, the resolution fails. See the examples below.
+
+2a. Once the leading ``NameSegment`` is resolved as say module `M`, the next ``NameSegment``
+   is resolved as a local or imported  module name within `M`
+   The resolution is restricted to the default export set of `M`.
+
+2b. If the resolved module name is a module alias (from an `import` statement)
+   then the target of the alias is resolved as a new qualified name
+   with respect to its syntactic context (independent of any resolutions or
+modules so far). Since `Z` depends on `M`, any such alias target will 
+already have been resolved, beccause modules are resolved in order of
+dependency.
+
+3. Step 2 is iterated for each ``NameSegment`` in the qualified module id,
+   resulting in a module that is the final resolution of the complete
+   qualified id.
+
+Ordinarily a module must be _imported_ in order for its constitutent
+declarations to be visible inside a given module `M`. However, for the
+resolution of qualified names this is not the case.
+
 Ths example shows that the resolution of the refinement parent does not
 use any local names:
 ```dafny
@@ -656,7 +727,7 @@ use any local names:
 The `A` in `refines A` refers to the submodule `A`, not the global `A`.
 
 
-### 4.8.3. Expression Context Name Resolution
+### 4.8.4. Expression Context Name Resolution
 
 The leading ``NameSegment`` is resolved using the first following
 rule that succeeds.
@@ -718,7 +789,7 @@ First resolve expression E and any type arguments.
 * If `E` denotes an expression:
   4. Let T be the type of E. Look up id in T.
 
-### 4.8.4. Type Context Name Resolution
+### 4.8.5. Type Context Name Resolution
 
 In a type context the priority of ``NameSegment`` resolution is:
 
