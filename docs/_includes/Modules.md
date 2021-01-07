@@ -342,7 +342,7 @@ the name of the module is the default export set for the module.
 Note that names of module aliases (declared by import statements) are
 just like other names in a module; they can be included or omitted from
 export sets. 
-Names brought into a module by [_refinement_](#TBD) are treated the same as 
+Names brought into a module by [_refinement_](#sec-module-refinement) are treated the same as 
 locally declared names and can be listed in export set declarations.
 However, names brought into a module by `import opened` (either into a module
 or a refinement parent of a module) may
@@ -380,7 +380,7 @@ default export set, so the import in `B` is OK, but neither the use of `a`
 in `B` nor as `Z.a` in C would be valid, because `a` is not in `Z`.
 
 The default export set is important in the resolution of qualified
-names, as described in Section [TODO}(#TODO).
+names, as described in [Section 4.8](#sec-name-resolution).
 
 ### 4.5.1. Provided and revealed names
 
@@ -568,7 +568,7 @@ its functionality. Finally, if you import via a path, such as `import A
 = B.C`, then this creates a dependency of `A` on `B`, and `B` itself
 depends on its own nested module `B.C`.
 
-## 4.8. Name Resolution
+## 4.8. Name Resolution {#sec-name-resolution}
 
 When Dafny sees something like `A<T>.B<U>.C<V>`, how does it know what each part
 refers to? The process Dafny uses to determine what identifier
@@ -606,7 +606,7 @@ the imported names in the refinement parent.
 Within each namespace, the local names are unique. Thus a module may
 not reuse a name that a refinement parent has declared (unless it is a
 refining declaration, which replaces both declarations, as described
-[here](#TODO)).
+in [Section 0](#sec-modiu;e-refinement)).
 
 Local names take precedence over imported names. If a name is used more than
 once among imported names (coming from different imports), then it is
@@ -675,7 +675,7 @@ the imported names in the refinement parent.
 Within each namespace, the local names are unique. Thus a module may
 not reuse a name that a refinement parent has declared (unless it is a
 refining declaration, which replaces both declarations, as described
-[here](#TODO)).
+in [Section 23](#sec-module-refinement)).
 
 Local names take precedence over imported names. If a name is used more than
 once among imported names (coming from different imports), then it is

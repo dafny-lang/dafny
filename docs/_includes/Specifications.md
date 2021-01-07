@@ -444,7 +444,7 @@ The invariant must hold on entry to the loop. And assuming it
 is valid on entry, Dafny must be able to prove that it then
 holds at the end of the loop.
 
-## 5.2. Method Specification
+## 5.2. Method Specification {#sec-method-specification}
 ````grammar
 MethodSpec =
   { ModifiesClause_
@@ -459,7 +459,7 @@ A method specification is zero or more `modifies` `requires`
 A method does not have `reads` clauses because methods are allowed to
 read any memory.
 
-## 5.3. Function Specification
+## 5.3. Function Specification {#sec-function-specification}
 ````grammar
 FunctionSpec =
   { RequiresClause_
@@ -474,7 +474,7 @@ A function specification is zero or more `reads` `requires`
 specification does not have `modifies` clauses because functions are not
 allowed to modify any memory.
 
-## 5.4. Lambda Specification
+## 5.4. Lambda Specification {#sec-lambda-specification}
 ````grammar
 LambdaSpec_ =
   { ReadsClause_(allowLemma: true)
