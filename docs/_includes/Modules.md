@@ -272,14 +272,14 @@ verbose enough to impede understanding.
 
 
 ## 4.5. Export Sets and Access Control
-```grammar
+````grammar
 "export" [ ExportId ] [ "..." ]
   {
     "provides" ( ExportSig { "," ExportSig } | "*" )
   | "reveals"  ( ExportSig { "," ExportSig } | "*" )
   | "extends"  ExportId { "," ExportId }
   }
-```
+````
 
 
 In some programming languages, keywords such as `public`, `private`, and `protected`
