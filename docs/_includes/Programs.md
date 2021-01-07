@@ -5,7 +5,7 @@ Dafny = { IncludeDirective_ } { TopDecl } EOF
 At the top level, a Dafny program (stored as files with extension `.dfy`)
 is a set of declarations. The declarations introduce (module-level)
 constants, methods, functions, lemmas, types (classes, traits, inductive and
-co-inductive datatypes, new_types, type synonyms, opaque types, and
+co-inductive datatypes, newtypes, type synonyms, opaque types, and
 iterators) and modules, where the order of introduction is irrelevant. A
 class also contains a set of declarations, introducing fields, methods,
 and functions.
@@ -58,7 +58,7 @@ verbatim string token. The ``stringToken`` is interpreted as the name of
 a file that will be included in the Dafny source. These included
 files also obey the ``Dafny`` grammar. Dafny parses and processes the
 transitive closure of the original source files and all the included files,
-but will not invoke the verifier on these unless they have been listed
+but will not invoke the verifier on the included files unless they have been listed
 explicitly on the command line.
 
 The file name may be a path using the customary `/`, `.`, and `..` specifiers.
@@ -70,7 +70,8 @@ designator (e.g., `C:`) are only permitted on Windows systems.
 
 ## 3.2. Top Level Declarations
 ````grammar
-TopDecl = { { DeclModifier }
+TopDecl = {
+  { DeclModifier }
   ( SubModuleDecl
   | ClassDecl
   | DatatypeDecl
@@ -79,16 +80,18 @@ TopDecl = { { DeclModifier }
   | IteratorDecl
   | TraitDecl
   | ClassMemberDecl(moduleLevelDecl: true)
+  )
   }
 ````
 Top-level declarations may appear either at the top level of a Dafny file,
-or within a ``SubModuleDecl``. A top-level declaration is one of the
+or within a ``SubModuleDecl``. A top-level declaration is one of
 various kinds of declarations described later. Top-level declarations are
 implicitly members of a default (unnamed) top-level module.
 
 The ``ClassDecl``, ``DatatypeDecl``, ``NewtypeDecl``,
 ``SynonymTypeDecl``, ``IteratorDecl``, and ``TraitDecl`` declarations are
-type declarations and are describe in Section [#sec-types]. Ordinarily
+type declarations and are described in [Section 0](#sec-types) and 
+the following sections. Ordinarily
 ``ClassMemberDecl``s appear in class declarations but they can also
 appear at the top level. In that case they are included as part of an
 implicit top-level class and are implicitly `static` (but cannot be
@@ -107,7 +110,7 @@ modifiers. Not all of these are allowed in all contexts.
 
 The `abstract` modifiers may only be used for module declarations.
 An abstract module can leave some entities underspecified.
-Abstract modules are not compiled to C\#.
+Abstract modules are not compiled.
 
 The `ghost` modifier is used to mark entities as being used for
 specification only, not for compilation to code.

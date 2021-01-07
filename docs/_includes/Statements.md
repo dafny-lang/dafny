@@ -911,7 +911,7 @@ conditions that Dafny needs to verify when using a `decreases` expression:
 * that it is bounded.
 
 That is, the expression must strictly decrease in a well-founded ordering
-(cf. [Section 24.7](#sec-well-founded-orders)).
+(cf. [Section 25.7](#sec-well-founded-orders)).
 
 Many times, an integral value (natural or plain integer) is the quantity
 that decreases, but other values can be used as well. In the case of
@@ -1038,7 +1038,7 @@ much as lemmas might be used in mathematical proofs.
 
 `Assert` statements are ignored by the compiler.
 
-Using `...` as the argument of the statement is part of module refinement, as described in [Section 24.8](#sec-module-refinement).
+Using `...` as the argument of the statement is part of module refinement, as described in [Section 23](#sec-module-refinement).
 
 TO BE WRITTEN - assert by statements
 
@@ -1065,7 +1065,7 @@ An `assume` statement cannot be compiled. In fact, the compiler
 will complain if it finds an `assume` anywhere where it has not
 been replaced through a refinement step.
 
-Using `...` as the argument of the statement is part of module refinement, as described in [Section 24.8](#sec-module-refinement).
+Using `...` as the argument of the statement is part of module refinement, as described in [Section 23](#sec-module-refinement).
 
 ## 21.6. Expect Statement {#sec-expect-statement}
 
@@ -1172,7 +1172,7 @@ then the verifier will interpret the `expect` like an `assume`,
 in which case the `assert` will be proved trivially
 and potential unsoundness will be hidden.
 
-Using `...` as the argument of the `expect` statement is part of module refinement, as described in [Section 24.8](#sec-module-refinement).
+Using `...` as the argument of the `expect` statement is part of module refinement, as described in [Section 23](#sec-module-refinement).
 
 <!--
 Describe where refinement is described.
@@ -1416,7 +1416,7 @@ Finally, the fourth example shows that the restrictions imposed by
 the modify statement do not apply to local variables, only those
 that are heap-based.
 
-Using `...` as the argument of the statement is part of module refinement, as described in [Section 24.8](#sec-module-refinement).
+Using `...` as the argument of the statement is part of module refinement, as described in [Section 23](#sec-module-refinement).
 
 ## 21.10. Calc Statement
 ````grammar
