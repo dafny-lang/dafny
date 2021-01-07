@@ -238,7 +238,7 @@ verbatimStringChar = ANY - '"'
 Characters that can appear in a verbatim string.
 See the [discussion on unicode support](#sec-unicode).
 
-X## 2.4. Comments
+## 2.4. Comments
 Comments are in two forms.
 
 * They may go from `/*` to `*/` .
