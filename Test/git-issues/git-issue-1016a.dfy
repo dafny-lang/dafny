@@ -31,7 +31,6 @@ method Test5(s: State)
     var n :- Gimmie();
     Some(100.0);
 
-  var c := x == z;  // BOGUS: this should give a type error, but it does not
-  // In fact, using /rprint shows that the type of z is inferred to be Option<State>
+  var c := x == z;  // ERROR: this should give a type error
 }
 

@@ -80,7 +80,6 @@ method Test2(process: Process, m: map<Process, State>, log: seq<Event>)
     Some(log[last].process);
 
   var c := x == z;  // ERROR: this should give a type error
-  // In fact, using /rprint shows that the type of z is inferred to be Option<State>
 }
 
 method Test3(process: Process, m: map<Process, State>, log: seq<Event>)
@@ -116,7 +115,6 @@ method Test4(process: Process, m: map<Process, State>, log: seq<Event>)
     Some(100);
 
   var c := x == z;  // ERROR: this should give a type error
-  // In fact, using /rprint shows that the type of z is inferred to be Option<State>
 }
 
 method Test5(s: State)
@@ -129,6 +127,5 @@ method Test5(s: State)
     Some(100.0);
 
   var c := x == z;  // ERROR: this should give a type error
-  // In fact, using /rprint shows that the type of z is inferred to be Option<State>
 }
 
