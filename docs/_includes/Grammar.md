@@ -283,12 +283,12 @@ method m() {
 the `*/` inside the line comment and the string are seen as the end of the outer
 comment, leaving trailing text that will provoke parsing errors.
 
-## 2.4. Tokens {#sec-tokens}
+## 2.5. Tokens {#sec-tokens}
 As with most languages, Dafny syntax is defined in two levels. First the stream
 of input characters is broken up into _tokens_. Then these tokens are parsed
 using the Dafny grammar. The Dafny tokens are defined in this section.
 
-### 2.4.1. Reserved Words
+### 2.5.1. Reserved Words
 The following reserved words appear in the Dafny grammar and may not be used
 as identifiers of user-defined entities:
 
@@ -328,7 +328,7 @@ is the type of two-dimensional arrays, etc.
 Similarly, `bv0`, `bv1`, and `bv8` are reserved words, but `bv02` is an
 ordinary identifier.
 
-### 2.4.2. Identifiers
+### 2.5.2. Identifiers
 
 ````grammar
 ident = nondigitIdChar { idchar } - charToken - reservedword
@@ -339,7 +339,7 @@ are not identifiers if they look like a character literal,
 or a reserved word (including array or bit-vvector type tokens).
 Also, `ident` tokens that begin with an `_` are not permitted as user identifiers.
 
-### 2.4.3. Digits
+### 2.5.3. Digits
 ````grammar
 digits = digit {['_'] digit}
 ````
@@ -359,7 +359,7 @@ decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}
 A decimal fraction constant, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
 Example: `123_456.789_123`.
 
-### 2.4.4. Escaped Character
+### 2.5.4. Escaped Character
 In this section the "\\" characters are literal.
 ````grammar
 escapedChar =
@@ -373,7 +373,7 @@ to specify the presence of a single- or double-quote character, backslash,
 null, new line, carriage return, tab, or a
 Unicode character with given hexadecimal representation.
 
-### 2.4.5. Character Constant Token
+### 2.5.5. Character Constant Token
 ````grammar
 charToken = "'" ( charChar | escapedChar ) "'"
 ````
@@ -385,7 +385,7 @@ in its character, string, and verbatim strings constants and in its comments](#s
 constant has type `char`.
 
 
-### 2.4.6. String Constant Token
+### 2.5.6. String Constant Token
 ````grammar
 stringToken =
     '"' { stringChar | escapedChar }  '"'
@@ -402,9 +402,9 @@ successive double quotes represent one quote character inside
 the string. This is the mechanism for escaping a double quote character,
 which is the only character needing escaping in a verbatim string.
 
-## 2.5. Low Level Grammar Productions {#sec-grammar}
+## 2.6. Low Level Grammar Productions {#sec-grammar}
 
-### 2.5.1. Identifier Variations
+### 2.6.1. Identifier Variations
 
 ````grammar
 Ident = ident
@@ -444,7 +444,7 @@ identifier `_`. When `_` appears it is replaced by a unique generated
 identifier distinct from user identifiers. This wildcard has several uses
 in the language, but it is not used as part of expressions.
 
-### 2.5.2. NoUSIdent Synonyms
+### 2.6.2. NoUSIdent Synonyms
 In the productions for the declaration of user-defined entities the name of the
 user-defined entity is required to be an identifier that does not start
 with an underscore, i.e., a ``NoUSIdent``. To make the productions more
@@ -471,7 +471,7 @@ FieldIdent = NoUSIdent
 A ``FieldIdent`` is one of the ways to identify a field. The other is
 using digits.
 
-### 2.5.3. Qualified Names
+### 2.6.3. Qualified Names
 ```grammar
 QualifiedModuleName = ModuleName { "." ModuleName }
 ```
@@ -487,7 +487,7 @@ The grammar does not actually have a production for qualified names
 except in the special case of a qualified name that is known to be
 a module name, i.e. a ``QualifiedModuleName``.
 
-### 2.5.4. Identifier-Type Combinations
+### 2.6.4. Identifier-Type Combinations
 In this section, we describe some nonterminals that combine an identifier and a type.
 
 ````grammar
@@ -532,7 +532,7 @@ A ``FormalsOptionalIds`` is a formal parameter list in which the types are requi
 but the names of the parameters are optional. This is used in algebraic
 datatype definitions.
 
-### 2.5.5. Numeric Literals
+### 2.6.5. Numeric Literals
 ````grammar
 Nat = ( digits | hexdigits )
 ````
