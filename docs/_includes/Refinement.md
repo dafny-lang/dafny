@@ -58,7 +58,7 @@ So that it is clear that refinment is taking place, refining declarations
 have some syntactic indicator that they are refining some parent declaration.
 Typically this is the presence of a `...` token.
 
-## 22.47. Export set declarations
+## 23.1. Export set declarations
 
 A refining export set declaration begins with the syntax
 ```grammar
@@ -75,7 +75,7 @@ module with the name of the parent module. The result module has a default
 export set according to the general rules for export sets, after all of 
 the result module's export set declarations have been assembled.
 
-## 22.48. Import declarations
+## 23.2. Import declarations
 
 Aliasing import declarations are not refined. The result module contains the union
 of the import declarations from the two input modules.
@@ -86,11 +86,11 @@ abstract import and the refining module contains a regular aliasing
 import for the same name. Dafny checks that the refining import _adheres_ to
 the abstract import.
 
-## 22.49. Sub-module declarations
+## 23.3. Sub-module declarations
 
 TODO
 
-## 22.50. Const declarations
+## 23.4. Const declarations
 
 A parent `const` declaration may be refined by a refining `const` declaration
 if
@@ -107,27 +107,27 @@ contains an ellipsis in this syntax:
 "const" { Attribute } CIdentType "..." [ ":=" Expression ]
 ```
 
-## 22.51. Method declarations
+## 23.5. Method declarations
 
 TODO
 
-## 22.52. Lemma declarations
+## 23.6. Lemma declarations
 
 TODO
 
-## 22.53. Function and predicate declarations
+## 23.7. Function and predicate declarations
 
 TODO
 
-## 22.54. Iterator declarations
+## 23.8. Iterator declarations
 
 TODO
 
-## 22.55. Class and trait declarations
+## 23.9. Class and trait declarations
 
 TODO
 
-## 22.56. Type declarations
+## 23.10. Type declarations
 -- opaque, type synonym, subset, newtype, datatype
 
 TODO

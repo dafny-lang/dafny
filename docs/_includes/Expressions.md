@@ -333,7 +333,7 @@ UnaryExpression(allowLemma, allowLambda) =
 ````
 
 A ``UnaryExpression`` applies either numeric ([Section 7.2](#sec-numeric-types))
-or logical ([Section 0](#sec-booleans)) negation to its operand.
+or logical ([Section 7.1](#sec-booleans)) negation to its operand.
 ## 22.12. Primary Expressions
 <!-- These are introduced for explanatory purposes as are not in the grammar. -->
 ````grammar
