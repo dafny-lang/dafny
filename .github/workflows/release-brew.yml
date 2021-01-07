@@ -20,7 +20,7 @@ jobs:
       run: brew install dafny || echo DONE
     - name: Get Z3
       run: |
-        wget -q https://github.com/Z3Prover/z3/releases/download/z3-4.8.5/z3-4.8.5-x64-osx-10.14.2.zip
+        wget -q https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-osx-10.14.2.zip
         unzip z3*.zip && rm z3*.zip
         mv z3-* z3
     - name: Make test program
@@ -42,9 +42,9 @@ jobs:
     - name: Check bad
       run: dafny /compile:0 b.dfy || echo EXPECTED FAILURE
     - name: Check
-      run: dafny /compile:0 a.dfy /z3exe:z3/bin/z3
+      run: dafny /compile:0 a.dfy /proverOpt:PROVER_PATH=z3/bin/z3
     - name: Check bad
-      run: dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo EXPECTED FAILURE
+      run: dafny /compile:0 b.dfy /proverOpt:PROVER_PATH=z3/bin/z3 || echo EXPECTED FAILURE
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |
