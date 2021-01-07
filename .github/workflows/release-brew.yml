@@ -34,9 +34,9 @@ jobs:
     - name: Check bad
       run: dafny /compile:0 b.dfy || echo EXPECTED FAILURE
     - name: Check
-      run: dafny /compile:0 a.dfy /proverOpt:PROVER_PATH=z3/bin/z3
+      run: dafny /compile:0 a.dfy
     - name: Check bad
-      run: dafny /compile:0 b.dfy /proverOpt:PROVER_PATH=z3/bin/z3 || echo EXPECTED FAILURE
+      run: dafny /compile:0 b.dfy || echo EXPECTED FAILURE
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |
