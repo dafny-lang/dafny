@@ -77,7 +77,7 @@ Dafny offers these basic types: `bool` for booleans, `char` for
 characters, `int` and `nat` for integers, `real` for reals,
 `ORDINAL`, and bit-vector types.
 
-## 7.1. Booleans
+## 7.1. Booleans {#sec-booleans}
 ````grammar
 BoolType_ = "bool"
 ````
@@ -1149,8 +1149,10 @@ ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
   "}"
 
 ClassMemberDecl(moduleLevelDecl) =
-  ( FieldDecl | FunctionDecl |
-    MethodDecl(isGhost: ("ghost" was present),
+  ( FieldDecl 
+  | ConstantFieldDecl
+  | FunctionDecl
+  | MethodDecl(isGhost: ("ghost" was present),
                allowConstructor: !moduleLevelDecl)
   )
 ````
@@ -1263,6 +1265,28 @@ Fields that are declared as `ghost` can only be used in specifications,
 not in code that will be compiled into executable code.
 
 Fields may not be declared static.
+
+## 12.2. Const Declarations
+```grammar
+ConstantFieldDecl = "const" { Attribute } CIdentType [ "..." ]
+                    [ ":=" Expression ]
+```
+
+A `const` declaration declares a name bound to a value,
+which value is fixed after initialization.
+
+The declaration must either have a type or an initializing expression (or both).
+If the type is omitted, it is inferred from the initializing expression.
+
+* A const declaration may include the `ghost` and `static` modifiers, but no 
+others. 
+* A const declaration may appear within a module or within any declaration
+that may contain members (class, trait, datatype, newtype).
+* If it is in a module, it is implicitly `static`, and may not also be declared
+`static`.
+* If the declaration has an initializing expression that is a ghost
+expression, then the ghost-ness of the declaration is inferred; the "ghost"
+modifier may be omitted.
 
 ## 12.2. Method Declarations
 ````grammar

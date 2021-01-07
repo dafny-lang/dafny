@@ -196,7 +196,7 @@ invariant forall u {:heapQuantifier} :: f(u) == u + r
 
 The quantifier is translated into the following Boogie:
 
-```dafny
+```
 (forall q$heap#8: Heap, u#5: int ::
     {:heapQuantifier}
     $IsGoodHeap(q$heap#8) && ($Heap == q$heap#8 || $HeapSucc($Heap, q$heap#8))
