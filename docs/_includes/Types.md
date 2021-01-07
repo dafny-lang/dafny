@@ -1272,16 +1272,17 @@ ConstantFieldDecl = "const" { Attribute } CIdentType [ "..." ]
                     [ ":=" Expression ]
 ```
 
-A `const` declaration declares a name designating a constant expression,
-that is, an expression whose value does not change in the program.
+A `const` declaration declares a name bound to a value,
+which value is fixed after initialization.
 
 The declaration must either have a type or an initializing expression (or both).
 If the type is omitted, it is inferred from the initializing expression.
 
 * A const declaration may include the `ghost` and `static` modifiers, but no 
 others. 
-* A const declaration may appear within a module, class or trait.
-* If it is in a module, itx is implicitly `static`, and may not also be declared
+* A const declaration may appear within a module or within any declaration
+that may contain members (class, trait, datatype, newtype).
+* If it is in a module, it is implicitly `static`, and may not also be declared
 `static`.
 * If the declaration has an initializing expression that is a ghost
 expression, then the ghost-ness of the declaration is inferred; the "ghost"

@@ -298,7 +298,7 @@ reservedword =
     "bool" | "break" |
     "calc" | "case" | "char" | "class" | "codatatype" |
     "colemma" | "const" | "constructor" | "copredicate" |
-    "datatype" | "decreases" | "default" |
+    "datatype" | "decreases" |
     "else" | "ensures" | "exists" | "extends" |
     "false" | "forall" | "fresh" | "function" |
     "ghost" | "if" | "imap" | "import" | "in" | "include" |
