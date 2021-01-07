@@ -11,7 +11,7 @@ A Coco/R input file consists of code written in the target language
 1. The [Tokens section](#sec-tokens) which defines the lexical tokens.
 2. The [Productions section](#sec-grammar)
  which defines the grammar. The grammar productions
-are distributed in the later parts of this document in the parts where
+are distributed in the later parts of this document in the places where
 those constructs are explained.
 
 The grammar presented in this document was derived from the `Dafny.atg`
@@ -97,10 +97,9 @@ Dafny source code files are readable text encoded as UTF-8 Unicode
 (because this is what the Coco/R-generated scanner and parser read).
 All program text other than the contents of comments, character, string and verbatim string literals
 are printable and white-space ASCII characters,
-that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters,
-with the exception of a few allowed unicode mathematical symbols.
+that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters.
 
-However, a current limitation is that the Coco/R tool used by Dafny is not up to date,
+However, a current limitation is that the Coco/R tool used by `dafny`
 and consequently, only printable and white-space ASCII characters can be used.
 Use `\u` escapes in string and character literals to insert unicode characters.
 Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication.
@@ -111,7 +110,7 @@ The characters used in a Dafny program fall into four groups:
 
 * White space characters
 * alphanumerics: letters, digits, underscore (`_`), apostrophe (`'`), and question mark (`?`)
-* punctuation: `(){}[],`
+* punctuation: ``(){}[],.`;``
 * operator characters (the other printable characters)
 
 Each Dafny token consists of a sequence of consecutive characters from just one of these
@@ -131,12 +130,12 @@ Somewhat differently, operator tokens need not be separated.
 Only specific sequences of operator characters are recognized and these
 are somewhat context-sensitive. For example, in `seq<set<int>>`, the grammar
 knows that `>>` is two individual `>` tokens terminating the nested
-type parameter lists; `>>` would never be valid here. Similarly, the
+type parameter lists; the right shift operator `>>` would never be valid here. Similarly, the
 sequence `==>` is always one token; even if it were invalid in its context,
 separating it into `==` and `>` would always still be invalid.
 
 In summary, except for required white space between alphanumeric tokens,
-removing white space can never result in changing the meaning of a Dafny program.
+adding white space between tokens or removing white space can never result in changing the meaning of a Dafny program.
 For the rest of this document, we consider Dafny programs as sequences of tokens.
 
 ## 2.3. Character Classes {#sec-character-classes}
@@ -180,7 +179,7 @@ that are allowed to appear in a Dafny identifier. These are
   programmers like to start names of type parameters with a `'`,
 * `_` because computer scientists expect to be able to have underscores in identifiers, and
 * `?` because it is useful to have `?` at the end of names of predicates,
-  e.g. "Cons?".
+  e.g., "Cons?".
 
 ````grammar
 cr        = '\r'
@@ -239,14 +238,15 @@ verbatimStringChar = ANY - '"'
 Characters that can appear in a verbatim string.
 See the [discussion on unicode support](#sec-unicode).
 
-### 2.3.1. Comments
+## 2.4. Comments
 Comments are in two forms.
 
-* They may go from "/\*" to "\*/" and be nested.
-* They may go from "//" to the end of the line.
+* They may go from `/*` to `*/` .
+* They may go from `//` to the end of the line.
 
-Note that the nesting of multi-line comments is behavior that is different
-from most programming languages. In dafny,
+Comments may be nested,
+but note that the nesting of multi-line comments is behavior that is different
+from most programming languages. In Dafny,
 ```dafny
 method m() {
   /* comment
@@ -283,37 +283,42 @@ method m() {
 the `*/` inside the line comment and the string are seen as the end of the outer
 comment, leaving trailing text that will provoke parsing errors.
 
-## 2.4. Tokens {#sec-tokens}
+## 2.5. Tokens {#sec-tokens}
 As with most languages, Dafny syntax is defined in two levels. First the stream
 of input characters is broken up into _tokens_. Then these tokens are parsed
 using the Dafny grammar. The Dafny tokens are defined in this section.
 
-### 2.4.1. Reserved Words
+### 2.5.1. Reserved Words
 The following reserved words appear in the Dafny grammar and may not be used
 as identifiers of user-defined entities:
 
 ```
 reservedword =
-    "abstract" | "array" | "as" | "assert" | "assume" | "bool" |
-    "break" | "calc" | "case" | "char" | "class" | "codatatype" |
-    "colemma" | "constructor" | "copredicate" | "datatype" |
-    "decreases" | "default" | "else" | "ensures" | "exists" |
-    "extends" | "false" | "forall" | "fresh" | "function" |
-    "ghost" | "if" | "imap" | "import" | "in" | "include" |
-    "inductive" | "int" | "invariant" | "is" | "iset" |
-    "iterator" | "label" | "lemma" | "map" | "match" | "method" |
-    "modifies" | "modify" | "module" | "multiset" | "nat" |
-    "new" | "newtype" | "null" | "object" | "old" | "opened" |
-    "predicate" | "print" | "provides" "reads" |
-    "real" | "refines" | "requires" | "return" | "returns" |
-    "reveals" | "seq" | "set" | "static" | "string" | "then" |
-    "this" | "trait" | "true" | "twostate" | "type" |
-    "unchanged" | "var" | "where" | "while" | "yield" | "yields" |
+    "abstract" | "allocated" | "as" | "assert" | "assume" |
+    "bool" | "break" | "by" |
+    "calc" | "case" | "char" | "class" | "codatatype" |
+    "colemma" | "const" | "constructor" | "copredicate" |
+    "datatype" | "decreases" |
+    "else" | "ensures" | "exists" | "export" | "extends" |
+    "false" | "forall" | "fresh" | "function" | "ghost" |
+    "if" | "imap" | "import" | "in" | "include" | "inductive" |
+    "int" | "invariant" | "is" | "iset" | "iterator" |
+    "label" | "lemma" | "map" | "match" | "method" |
+    "modifies" | "modify" | "module" | "multiset" |
+    "nat" | "new" | "newtype" | "null" |
+    "object" | "object?" | "old" | "opened" | "ORDINAL"
+    "predicate" | "print" | "provides" |
+    "reads" | "real" | "refines" | "requires" | "return" |
+    "returns" | "reveal" | "reveals" |
+    "seq" | "set" | "static" | "string" |
+    "then" | "this" | "trait" | "true" | "twostate" | "type" |
+    "unchanged" | "var" | "where" | "while" | "witness" |
+    "yield" | "yields" |
     arrayToken | bvToken
 
 arrayToken = "array" [ posdigit2 | posDigit digit { digit }]["?"]
 
-bvToken = "bv" [ 0 | posDigit { digit } ]
+bvToken = "bv" ( 0 | posDigit { digit } )
 ```
 
 An ``arrayToken`` is a reserved word that denotes an array type of
@@ -323,19 +328,18 @@ is the type of two-dimensional arrays, etc.
 Similarly, `bv0`, `bv1`, and `bv8` are reserved words, but `bv02` is an
 ordinary identifier.
 
-### 2.4.2. Identifiers
+### 2.5.2. Identifiers
 
 ````grammar
-ident = nondigitIdChar { idchar }
-        - arrayToken - charToken - bvToken - reservedword
+ident = nondigitIdChar { idchar } - charToken - reservedword
 ````
 In general Dafny identifiers are sequences of ``idchar`` characters where
 the first character is a ``nondigitIdChar``. However tokens that fit this pattern
-are not identifiers if they look like an array type token, a character literal,
-or a reserved word.
+are not identifiers if they look like a character literal,
+or a reserved word (including array or bit-vvector type tokens).
 Also, `ident` tokens that begin with an `_` are not permitted as user identifiers.
 
-### 2.4.3. Digits
+### 2.5.3. Digits
 ````grammar
 digits = digit {['_'] digit}
 ````
@@ -355,7 +359,7 @@ decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}
 A decimal fraction constant, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
 Example: `123_456.789_123`.
 
-### 2.4.4. Escaped Character
+### 2.5.4. Escaped Character
 In this section the "\\" characters are literal.
 ````grammar
 escapedChar =
@@ -369,19 +373,19 @@ to specify the presence of a single- or double-quote character, backslash,
 null, new line, carriage return, tab, or a
 Unicode character with given hexadecimal representation.
 
-### 2.4.5. Character Constant Token
+### 2.5.5. Character Constant Token
 ````grammar
 charToken = "'" ( charChar | escapedChar ) "'"
 ````
 
 A character constant is enclosed by `'` and includes either a character
-from the ``charChar`` set, or an escaped character. Note that although Unicode
+from the ``charChar`` set or an escaped character. Note that although Unicode
 letters are not allowed in Dafny identifiers, Dafny does support [Unicode
 in its character, string, and verbatim strings constants and in its comments](#sec-unicode). A character
 constant has type `char`.
 
 
-### 2.4.6. String Constant Token
+### 2.5.6. String Constant Token
 ````grammar
 stringToken =
     '"' { stringChar | escapedChar }  '"'
@@ -398,9 +402,9 @@ successive double quotes represent one quote character inside
 the string. This is the mechanism for escaping a double quote character,
 which is the only character needing escaping in a verbatim string.
 
-## 2.5. Low Level Grammar Productions {#sec-grammar}
+## 2.6. Low Level Grammar Productions {#sec-grammar}
 
-### 2.5.1. Identifier Variations
+### 2.6.1. Identifier Variations
 
 ````grammar
 Ident = ident
@@ -420,9 +424,9 @@ the token following the "." may be an identifier,
   datatypes. For example, the built-in tuple datatypes have destructors
   named 0, 1, 2, etc. Note that as a field or destructor name a digit sequence
   is treated as a string, not a number: internal
-  underscores matter, so 10 is different from 1_0 and from 010.
-* `m.requires` is used to denote the precondition for method m.
-* `m.reads` is used to denote the things that method m may read.
+  underscores matter, so `10` is different from `1_0` and from `010`.
+* `m.requires` is used to denote the precondition for method `m`.
+* `m.reads` is used to denote the things that method `m` may read.
 
 ````grammar
 NoUSIdent = ident - "_" { idchar }
@@ -440,7 +444,7 @@ identifier `_`. When `_` appears it is replaced by a unique generated
 identifier distinct from user identifiers. This wildcard has several uses
 in the language, but it is not used as part of expressions.
 
-### 2.5.2. NoUSIdent Synonyms
+### 2.6.2. NoUSIdent Synonyms
 In the productions for the declaration of user-defined entities the name of the
 user-defined entity is required to be an identifier that does not start
 with an underscore, i.e., a ``NoUSIdent``. To make the productions more
@@ -460,7 +464,6 @@ TypeVariableName = NoUSIdent
 MethodName = NoUSIdent
 FunctionName = NoUSIdent
 PredicateName = NoUSIdent
-CopredicateName = NoUSIdent
 LabelName = NoUSIdent
 AttributeName = NoUSIdent
 FieldIdent = NoUSIdent
@@ -468,7 +471,10 @@ FieldIdent = NoUSIdent
 A ``FieldIdent`` is one of the ways to identify a field. The other is
 using digits.
 
-### 2.5.3. Qualified Names
+### 2.6.3. Qualified Names
+```grammar
+QualifiedModuleName = ModuleName { "." ModuleName }
+```
 A qualified name starts with the name of the top-level entity and then is followed by
 zero or more ``DotSuffix``s which denote a component. Examples:
 
@@ -481,7 +487,7 @@ The grammar does not actually have a production for qualified names
 except in the special case of a qualified name that is known to be
 a module name, i.e. a ``QualifiedModuleName``.
 
-### 2.5.4. Identifier-Type Combinations
+### 2.6.4. Identifier-Type Combinations
 In this section, we describe some nonterminals that combine an identifier and a type.
 
 ````grammar
@@ -526,7 +532,7 @@ A ``FormalsOptionalIds`` is a formal parameter list in which the types are requi
 but the names of the parameters are optional. This is used in algebraic
 datatype definitions.
 
-### 2.5.5. Numeric Literals
+### 2.6.5. Numeric Literals
 ````grammar
 Nat = ( digits | hexdigits )
 ````

@@ -269,7 +269,7 @@ To use this form of update,
  * if the RHS of the update-with-failure statement is a method call, the first out-parameter of the callee must be failure-compatible
  * if instead the RHS of the update-with-failure statement is one or more expressions, the first of these expressions must be a value with a failure-compatible type
  * the caller must have a first out-parameter whose type matches the output of `PropagateFailure` applied to the first output of the callee, unless an
-`expect`, `assume`, or `assert` keyword is used after `:-` (cf. [Section 0](#secd-failure-return-keyword)).
+`expect`, `assume`, or `assert` keyword is used after `:-` (cf. [Section 20.7.7](#sec-failure-return-keyword)).
  * if the failure-compatible type of the RHS does not have an `Extract` member,
 then the LHS of the `:-` statement has one less expression than the RHS
 (or than the number of out-parameters from the method call)
@@ -487,16 +487,16 @@ In any of the above described uses of `:-`, the `:-` token may be followed immed
 * `assert` means that the RHS evaluation is expected to be successful, but that
 the verifier should prove that this is so; that is, the verifier should prove
 `assert !r.IsFailure()` (where `r` is the status return from the callee)
-(cf. [Section 0](#sec-assert-ststement))
+(cf. [Section 21.4](#sec-assert-statement))
 * `assume` means that the RHS evaluation should be assumed to be successful,
 as if the statement `assume !r.IsFailure()` followed the evaluation of the RHS
-(cf. [Section 0](#sec-assume-ststement))
+(cf. [Section 21.5](#sec-assume-statement))
 * `expect` means that the RHS evaluation should be assumed to be successful
 (like using `assume` above), but that the compiler should include a
 run-time check for success. This is equivalent to including
 `expect !r.IsFailure()` after the RHS evaluation; that is, if the status
 return is a failure, the program halts.
-(cf. [Section 0](#sec-expect-ststement))
+(cf. [Section 21.6](#sec-expect-statement))
 
 In each of these cases, there is no abrupt return from the caller. Thus
 there is no evaluation of `PropagateFailure`. Consequently the first
@@ -911,7 +911,7 @@ conditions that Dafny needs to verify when using a `decreases` expression:
 * that it is bounded.
 
 That is, the expression must strictly decrease in a well-founded ordering
-(cf. [Section 24.7](#sec-well-founded-orders)).
+(cf. [Section 25.7](#sec-well-founded-orders)).
 
 Many times, an integral value (natural or plain integer) is the quantity
 that decreases, but other values can be used as well. In the case of
@@ -1017,7 +1017,7 @@ In this case it is not needed because Dafny is able to deduce that
 coinductive this would not have been possible since `x` might have been
 infinite.
 
-## 21.4. Assert Statement {#sec-asseret-statement}
+## 21.4. Assert Statement {#sec-assert-statement}
 ````grammar
 AssertStmt =
     "assert" { Attribute }
@@ -1038,7 +1038,7 @@ much as lemmas might be used in mathematical proofs.
 
 `Assert` statements are ignored by the compiler.
 
-Using `...` as the argument of the statement is part of module refinement, as described in [Section 24.8](#sec-module-refinement).
+Using `...` as the argument of the statement is part of module refinement, as described in [Section 23](#sec-module-refinement).
 
 TO BE WRITTEN - assert by statements
 
@@ -1065,7 +1065,7 @@ An `assume` statement cannot be compiled. In fact, the compiler
 will complain if it finds an `assume` anywhere where it has not
 been replaced through a refinement step.
 
-Using `...` as the argument of the statement is part of module refinement, as described in [Section 24.8](#sec-module-refinement).
+Using `...` as the argument of the statement is part of module refinement, as described in [Section 23](#sec-module-refinement).
 
 ## 21.6. Expect Statement {#sec-expect-statement}
 
@@ -1172,7 +1172,7 @@ then the verifier will interpret the `expect` like an `assume`,
 in which case the `assert` will be proved trivially
 and potential unsoundness will be hidden.
 
-Using `...` as the argument of the `expect` statement is part of module refinement, as described in [Section 24.8](#sec-module-refinement).
+Using `...` as the argument of the `expect` statement is part of module refinement, as described in [Section 23](#sec-module-refinement).
 
 <!--
 Describe where refinement is described.
@@ -1215,7 +1215,7 @@ Note that Dafny does not have method overriding and there is no mechanism to
 override the built-in value->string conversion.  Nor is there a way to
 explicitly invoke this conversion.
 
-## 22.8. Forall Statement {#sec-forall-statement}
+## 21.8. Forall Statement {#sec-forall-statement}
 ````grammar
 ForallStmt = "forall"
   ( "(" [ QuantifierDomain ] ")"
@@ -1416,7 +1416,7 @@ Finally, the fourth example shows that the restrictions imposed by
 the modify statement do not apply to local variables, only those
 that are heap-based.
 
-Using `...` as the argument of the statement is part of module refinement, as described in [Section 24.8](#sec-module-refinement).
+Using `...` as the argument of the statement is part of module refinement, as described in [Section 23](#sec-module-refinement).
 
 ## 21.10. Calc Statement
 ````grammar
