@@ -15,7 +15,7 @@ interface.
 ## 4.1. Declaring New Modules
 ````grammar
 ModuleDefinition_ = "module" { Attribute } ModuleName
-        [ [ "exclusively" ] "refines" QualifiedModuleName ]
+        [ "refines" QualifiedModuleName ]
         "{" { TopDecl } "}"
 
 QualifiedModuleName = ModuleName { "." ModuleName }
@@ -679,7 +679,8 @@ refining declaration, which replaces both declarations, as described
 
 Local names take precedence over imported names. If a name is used more than
 once among imported names (coming from different imports), then it is
-ambiguous to _use_ the name without qualification.
+ambiguous to _use_ the name without qualification, unless they refer to the
+same entity or to equal types.
 
 ### 4.8.3. Module Id Context Name Resolution
 
@@ -696,7 +697,7 @@ are not considered in finding `A`.
    iterating outward to each successive enclosing module until a match is
 found or the default toplevel module is reached without a match.
 No consideration of export sets, default or otherwise, is used in this step.
-Howecver, if at any stage a matching name is found that is not a module
+However, if at any stage a matching name is found that is not a module
 declaration, the resolution fails. See the examples below.
 
 2a. Once the leading ``NameSegment`` is resolved as say module `M`, the next ``NameSegment``

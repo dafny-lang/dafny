@@ -97,7 +97,7 @@ Dafny source code files are readable text encoded as UTF-8 Unicode
 (because this is what the Coco/R-generated scanner and parser read).
 All program text other than the contents of comments, character, string and verbatim string literals
 are printable and white-space ASCII characters,
-that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters,
+that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters.
 
 However, a current limitation is that the Coco/R tool used by `dafny`
 and consequently, only printable and white-space ASCII characters can be used.
