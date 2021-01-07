@@ -76,5 +76,22 @@ jobs:
       run: pip install lit OutputCheck pyyaml
     - uses: actions/setup-node@v1
     - run: npm install bignumber.js
+    - name: Checkout Dafny
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+        path: dafny
+    - name: Create release
+      run: |
+        python dafny/Scripts/package.py 0.0.0-CI --os ${{ matrix.os_for_build }} --skip_manual=true --trial=true
+    - if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        Expand-Archive dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.os_for_release_zip }}.zip unzippedRelease
+    - if: runner.os != 'Windows'
+      run: |
+        unzip dafny/Package/dafny-0.0.0-CI-x64-${{ matrix.os_for_release_zip }}.zip -d unzippedRelease
+        sudo chmod +x $PWD/unzippedRelease/dafny/dafny
     - name: Run lit tests
-      run: lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} dafny/Test
+      run: |
+        lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} --param executable=$PWD/unzippedRelease/dafny/dafny --param serverExecutable=$PWD/unzippedRelease/dafny/DafnyServer dafny/Test
