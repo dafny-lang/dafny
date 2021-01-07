@@ -18,11 +18,6 @@ jobs:
       ## run: echo SKIPPING /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
     - name: Install dafny, mono, z3
       run: brew install dafny || echo DONE
-    - name: Get Z3
-      run: |
-        wget -q https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5/z3-4.8.5-x64-osx-10.14.2.zip
-        unzip z3*.zip && rm z3*.zip
-        mv z3-* z3
     - name: Make test program
       run: |
         echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
@@ -30,11 +25,8 @@ jobs:
         echo "42" > expect.txt
     - name: Versions
       run: |
-        ./z3/bin/z3 -version
-        z3 -version
         dafny -version || echo OK
         which dafny
-        which z3
         # -version is not supported in old dafny,
         # but this gives the version with an error
     - name: Check
