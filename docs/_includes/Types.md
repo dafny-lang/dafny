@@ -1,4 +1,4 @@
-# 6. Types
+# 6. Types {#sec-types}
 ````grammar
 Type = DomainType [ "->" Type ]
 ````
@@ -211,7 +211,7 @@ Dafny supports _numeric types_ of two kinds, _integer-based_, which
 includes the basic type `int` of all integers, and _real-based_, which
 includes the basic type `real` of all real numbers.  User-defined
 numeric types based on `int` and `real`, either _subset types_ or _newtypes_,
-are described in [Section 19](#sec-subset-types) and [Section 0](#sec-newtypes).
+are described in [Section 19](#sec-subset-types) and [Section 18](#sec-newtypes).
 
 There is one built-in [_subset type_](#sec-subset-types),
 `nat`, representing the non-negative subrange of `int`.
@@ -1231,7 +1231,7 @@ and that `new` does not require that an initialization method be
 invoked at creation.
 
 A class can declare special initializing methods called _constructor methods_.
-See [Section 0](#sec-method-declarations).
+See [Section 12.3](#sec-method-declarations).
 
 ## 12.1. Field Declarations
 ````grammar
@@ -1285,10 +1285,10 @@ that may contain members (class, trait, datatype, newtype).
 * If it is in a module, it is implicitly `static`, and may not also be declared
 `static`.
 * If the declaration has an initializing expression that is a ghost
-expression, then the ghost-ness of the declaration is inferred; the "ghost"
+expression, then the ghost-ness of the declaration is inferred; the `ghost`
 modifier may be omitted.
 
-## 12.3. Method Declarations
+## 12.3. Method Declarations {#sec-method-declarations}
 ````grammar
 MethodDecl(isGhost, allowConstructor) =
   MethodKeyword { Attribute } [ MethodName ]
@@ -1323,7 +1323,8 @@ if `ghost` was already specified for the method.
 SignatureEllipsis_ = "..."
 ````
 A ``SignatureEllipsis_`` is used when a method or function is being redeclared
-in a module that refines another module. In that case the signature is
+in a module that refines another module. (cf. [Section 23](#sec-module-refinement))
+In that case the signature is
 copied from the module that is being refined. This works because
 Dafny does not support method or function overloading, so the
 name of the class method uniquely identifies it without the
@@ -1337,7 +1338,7 @@ Formals(allowGhostKeyword) =
 The ``Formals`` specifies the names and types of the method input or
 output parameters.
 
-See section [#sec-method-specification] for a description of ``MethodSpec``.
+See [Section 5.2](#sec-method-specification) for a description of ``MethodSpec``.
 
 A method declaration adheres to the ``MethodDecl`` grammar above.
 Here is an example of a method declaration.
@@ -1414,7 +1415,7 @@ A constructor is declared with the keyword
 
 A constructor
 can only be called at the time an object is allocated (see
-object-creation examples below), and for a class that contains one or
+object-creation examples below); for a class that contains one or
 more constructors, object creation must be done in conjunction with a
 call to a constructor.
 
@@ -1454,7 +1455,7 @@ Constructors must have distinct names, even if their signatures are different.
 Many classes have just
 one constructor or have a typical constructor.  Therefore, Dafny
 allows one _anonymous constructor_, that is, a constructor whose name
-is essentially "" (an empty string).  For example:
+is essentially an empty string.  For example:
 ```dafny
 class Item {
   constructor I(xy: int) // ...
@@ -1501,7 +1502,7 @@ Lemmas are implicitly ghost methods and the `ghost` keyword cannot
 be applied to them.
 
 For an example, see the `FibProperty` lemma in
-Section [#sec-proofs-in-dafny].
+[Section 25.5.2](#sec-proofs-in-dafny).
 
 See [the Dafny Lemmas tutorial](http://rise4fun.com/Dafny/tutorial/Lemmas)
 for more examples and hints for using lemmas.
@@ -1524,6 +1525,7 @@ FunctionDecl =
   | "inductive" "predicate" { Attribute }
     PredicateName
     PredicateSignatureOrEllipsis_(allowGhostKeyword: false)
+
   | "copredicate" { Attribute }
     CopredicateName
     PredicateSignatureOrEllipsis_(allowGhostKeyword: false)
@@ -1531,7 +1533,7 @@ FunctionDecl =
   FunctionSpec [ FunctionBody ]
 
 FunctionSignatureOrEllipsis_(allowGhostKeyword) =
-  FunctionSignature_ | SignatureEllipsis_
+  FunctionSignature_(allowGhostKeyword) | SignatureEllipsis_
 
 FunctionSignature_(allowGhostKeyword) =
   [ GenericParameters ] Formals(allowGhostKeyword) ":" Type
@@ -1545,11 +1547,14 @@ PredicateSignature_(allowGhostKeyword) =
 FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
                "}"
 ````
+
+### 12.4.1. Functions
+
 In the above productions, `allowGhostKeyword` is true if the optional
 `method` keyword was specified. This allows some of the
-formal parameters of a function method to be specified as ghost.
+formal parameters of a function method to be specified as `ghost`.
 
-See section [#sec-function-specification] for a description of ``FunctionSpec``.
+See [Section 5.3](#sec-function-specification) for a description of ``FunctionSpec``.
 
 A Dafny function is a pure mathematical function. It is allowed to
 read memory that was specified in its `reads` expression but is not
@@ -1595,8 +1600,8 @@ function Factorial(n: int): int
 says that the result of Factorial is always positive, which Dafny
 verifies inductively from the function body.
 
-By default, a function is ghost, and cannot be called from non-ghost
-code. To make it non-ghost, replace the keyword function with the two
+By default, a function is `ghost`, and cannot be called from non-ghost
+code. To make it non-ghost, replace the keyword `function` with the two
 keywords "`function method`".
 
 Like methods, functions can be either _instance_ (which they are be default) or
@@ -1606,7 +1611,8 @@ by `C.F(…)`. This provides a convenient way to declare a number of helper
 functions in a separate class.
 
 As for methods, a ``SignatureEllipsis_`` is used when declaring
-a function in a module refinement. For example, if module `M0` declares
+a function in a module refinement. (cf. [Section 23](#sec-module-refinement))
+ For example, if module `M0` declares
 function `F`, a module `M1` can be declared to refine `M0` and
 `M1` can then refine `F`. The refinement function, `M1.F` can have
 a ``SignatureEllipsis_`` which means to copy the signature from
@@ -1614,13 +1620,13 @@ a ``SignatureEllipsis_`` which means to copy the signature from
 (if `M0.F` does not provide one). It can also add `ensures`
 clauses.
 
-### 12.4.1. Predicates
+### 12.4.2. Predicates
 A function that returns a `bool` result is called a _predicate_. As an
 alternative syntax, a predicate can be declared by replacing the `function`
 keyword with the `predicate` keyword and omitting a declaration of the
 return type.
 
-### 12.4.2. Function Transparency
+### 12.4.3. Function Transparency
 A function is said to be _transparent_ in a location if the
 body of the function is visible at that point.
 A function is said to be _opaque_ at a location if it is not
@@ -1633,7 +1639,7 @@ transparent all the way.
 
 But the transparency of a function is affected by
 whether the function was given the `{:opaque}` attribute (as explained
-in Section [#sec-opaque]).
+in [Section 24.1.13](#sec-opaque)).
 
 The following table summarizes where the function is transparent.
 The module referenced in the table is the module in which the
@@ -1648,8 +1654,8 @@ When `{:opaque}` is specified for function `g`, `g` is opaque,
 however the lemma `reveal_g` is available to give the semantics
 of `g` whether in the defining module or outside.
 
-### 12.4.3. Inductive Predicates and Lemmas
-See section [#sec-friendliness] for descriptions
+### 12.4.4. Inductive Predicates and Lemmas
+See [Section 25.5.3](#sec-friendliness) for descriptions
 of inductive predicates and lemmas.
 
 <!--PDF NEWPAGE-->
@@ -1657,13 +1663,16 @@ of inductive predicates and lemmas.
 ````grammar
 TraitDecl =
   "trait" { Attribute } TraitName [ GenericParameters ]
+  [ "extends" Type { "," Type } ]
   "{"
    { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) }
   "}"
 ````
 
 A _trait_ is an abstract superclass, similar to an "interface" or
-"mixin".  Traits are new to Dafny and are likely to evolve for a
+"mixin".{^fn-traits}
+
+[^fn-traits]: Traits are new to Dafny and are likely to evolve for a
 while.
 
 The declaration of a trait is much like that of a class:
@@ -1679,7 +1688,7 @@ declared `static`.
 
 A reference type `C` that extends a trait `J` is assignable to a variable of
 type `J`;
-a value of `J` is assignable to a variable of a reference type `C` that
+a value of type `J` is assignable to a variable of a reference type `C` that
 extends `J` only if the verifier can prove that the reference does
 indeed refer to an object of allocated type `C`.
 The members of `J` are available as members
@@ -1713,7 +1722,12 @@ an extendee in a class or trait declaration.
 
 Trait `object` contains no members.
 
-The dynamic allocation of objects is done using new C ..., where C is the name of a class. The name C is not allowed to be a trait, except that it is allowed to be `object`. The construction `new object` allocates a new object (of an unspecified class type). The construction can be used to create unique references, where no other properties of those references are needed.
+The dynamic allocation of objects is done using `new C ...`,
+ where `C` is the name of a class.
+ The name `C` is not allowed to be a trait,
+ except that it is allowed to be `object`.
+ The construction `new object` allocates a new object (of an unspecified class type).
+ The construction can be used to create unique references, where no other properties of those references are needed.
 
 ## 13.2. Inheritance {#sec-inheritance}
 
@@ -1781,7 +1795,7 @@ Each of any method declarations explicitly or implicitly
 includes a specification. In simple cases, those syntactially separate
 specifications will be copies of each other (up to renaming to take account
 of differing formal parameter names). However they need not be. The rule is
-that the specifications of M in a given class or trait must be _as stsrong as_
+that the specifications of M in a given class or trait must be _as strong as_
 M's specifications in a transitive parent.
 Here _as strong as_  means that it
 must be permitted to call the subtype's M in the context of the supertype's M.
@@ -1802,6 +1816,10 @@ initializer can initialize the field in a constructor.
 If the declaring trait does give
 an initial value in the declaration, the extending class or trait may not either
 redeclare the field or give it a value in a constructor.
+
+When names are inherited from multiple traits, they must be different.
+If two traits declare a common name (even with the same signature),
+they cannot both be extendees of the same class or trait.
 
 ## 13.3. Example of traits
 As an example, the following trait represents movable geometric shapes:
@@ -1837,6 +1855,7 @@ class UnitSquare extends Shape
     x, y := x + dx, y + dy;
   }
 }
+
 class LowerRightTriangle extends Shape
 {
   var xNW: real, yNW: real, xSE: real, ySE: real

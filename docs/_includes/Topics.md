@@ -556,7 +556,7 @@ Dafny IDE) is very often correct, so users are rarely bothered to provide explic
 If a function returns `bool`, one can drop the result type `: bool` and change the
 keyword `function` to `predicate`.
 
-### 25.5.2. Proofs in Dafny
+### 25.5.2. Proofs in Dafny {#sec-proofs-in-dafny}
 
 Dafny has `lemma` declarations.  These are really just special cases of methods:
 they can have pre- and postcondition specifications and their body is a code block.

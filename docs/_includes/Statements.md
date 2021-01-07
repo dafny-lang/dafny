@@ -487,7 +487,7 @@ In any of the above described uses of `:-`, the `:-` token may be followed immed
 * `assert` means that the RHS evaluation is expected to be successful, but that
 the verifier should prove that this is so; that is, the verifier should prove
 `assert !r.IsFailure()` (where `r` is the status return from the callee)
-(cf. [Section 0](#sec-assert-statement))
+(cf. [Section 21.4](#sec-assert-statement))
 * `assume` means that the RHS evaluation should be assumed to be successful,
 as if the statement `assume !r.IsFailure()` followed the evaluation of the RHS
 (cf. [Section 21.5](#sec-assume-statement))
