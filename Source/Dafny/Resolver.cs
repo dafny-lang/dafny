@@ -14778,6 +14778,7 @@ namespace Microsoft.Dafny
             : LetPatIn(expr.tok, expr.Lhs, VarDotFunction(expr.tok, temp, "Extract"), expr.Body)));
 
       ResolveExpression(expr.ResolvedExpression, opts);
+      expr.Type = expr.ResolvedExpression.Type;
       bool expectExtract = (expr.Lhs != null);
       EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract, false);
     }
