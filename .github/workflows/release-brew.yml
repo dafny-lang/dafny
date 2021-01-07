@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     branches: [ master ]
   push:
-    branches: [ master cok-834 ]
+    branches: [ master ]
   pull_request:
     branches: [ master ]
 
