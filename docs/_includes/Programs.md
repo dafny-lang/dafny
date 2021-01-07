@@ -70,7 +70,8 @@ designator (e.g., `C:`) are only permitted on Windows systems.
 
 ## 3.2. Top Level Declarations
 ````grammar
-TopDecl = { { DeclModifier }
+TopDecl = {
+  { DeclModifier }
   ( SubModuleDecl
   | ClassDecl
   | DatatypeDecl
@@ -79,6 +80,7 @@ TopDecl = { { DeclModifier }
   | IteratorDecl
   | TraitDecl
   | ClassMemberDecl(moduleLevelDecl: true)
+  )
   }
 ````
 Top-level declarations may appear either at the top level of a Dafny file,

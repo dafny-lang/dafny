@@ -832,7 +832,3 @@ method TestD(dd: D) {
 
 TODO: Write this section; revise the above
 
-## 24.8. Module Refinement {#sec-module-refinement}
-
-TODO: Write this section.
-
