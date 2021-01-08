@@ -19,8 +19,8 @@ jobs:
       matrix:
         os: [ ubuntu-latest, ubuntu-16.04, macos-latest, windows-latest ]
         include:
-        - ver: 'v3.0.0-test4'
-          rel: 'dafny-3.0.0-test4'
+        - ver: 'v3.0.0-PreRelease2'
+          rel: 'dafny-3.0.0-PreRelease2'
         - os:  'ubuntu-latest'
           osn: 'ubuntu-16.04'
         - os:  'ubuntu-16.04'
