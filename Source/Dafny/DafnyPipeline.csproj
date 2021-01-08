@@ -10,7 +10,7 @@
                Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />
     </ItemGroup>
   </Target>
-  
+
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <AssemblyName>DafnyPipeline</AssemblyName>
