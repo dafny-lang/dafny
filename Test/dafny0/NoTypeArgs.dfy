@@ -77,9 +77,9 @@ lemma Lemma<A>(xs: List, ys: List)
 {
   match xs
   case Nil =>
-    assert forall ws: List<A> :: concat(ws, Nil) == ws;
+    assert forall ws: List<A> {:induction} :: concat(ws, Nil) == ws;
   case Cons(t, rest) =>
-    assert forall a: List<A>, b, c :: concat(a, concat(b, c)) == concat(concat(a, b), c);
+    assert forall a: List<A>, b, c {:induction} :: concat(a, concat(b, c)) == concat(concat(a, b), c);
 }
 
 // ------ Here are some test cases where the inferred arguments will be a prefix of the given ones
