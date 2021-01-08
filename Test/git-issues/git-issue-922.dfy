@@ -9,9 +9,9 @@ module FOO {
   datatype D = D( xl : L)
 
   /** This const should not be allowed.  */
-   const KK := D([])    // label: FaultyConstDef
+  const KK := D([]) // error: argument to D constructor is not an L
 
   method m(i: int, j: int) {
-    var KKK := D([]);
+    var k := D([]); // error: argument to D constructor is not an L
   }
 }

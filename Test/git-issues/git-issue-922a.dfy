@@ -6,6 +6,6 @@ module FOO {
   datatype O = O(x : nat)
 
   /** This should not be allowed. */
-  const OO := O(-1)
+  const OO := O(-1)   // error: argument is not a nat
 
 }
