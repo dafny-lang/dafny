@@ -34,21 +34,21 @@ jobs:
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |
-        dafny/dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
+        dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
     - name: Check Go compile
       run: |
-        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
+        dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
         GOPATH=$PWD/a-go go run a-go/src/a.go > actual.txt
         diff expect.txt actual.txt
     - name: Check Javascript compile
       run: |
         npm install bignumber.js
-        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
+        dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
         node a.js dafny/DafnyRuntime.js > actual.txt
         diff expect.txt actual.txt
     - name: Check Java compile
       run: |
         (ls dafny/DafnyRuntime.jar || echo NO DafnyRuntime.jar )
-        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
+        dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
         java -cp a:dafny/DafnyRuntime.jar a > actual.txt
         diff expect.txt actual.txt
