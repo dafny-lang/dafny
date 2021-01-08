@@ -546,7 +546,7 @@ namespace Microsoft.Dafny
           break;
         case DafnyOptions.CompilationTarget.Java:
           targetExtension = "java";
-          targetBaseDir = baseName;
+          targetBaseDir = baseName + "-java";
           baseName = compiler.TransformToClassName(baseName);
           break;
         case DafnyOptions.CompilationTarget.Php:
@@ -694,7 +694,7 @@ namespace Microsoft.Dafny
       }
 
       if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-        string targetBaseDir = Path.GetFileNameWithoutExtension(dafnyProgramName);
+        string targetBaseDir = Path.GetFileNameWithoutExtension(dafnyProgramName) + "-java";
         string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
         var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
         Contract.Assert(assemblyLocation != null);
@@ -711,9 +711,9 @@ namespace Microsoft.Dafny
       if (!completeProgram) {
         return false;
       }
-      // If we got until here, compilation to C# succeeded
+      // If we got until here, compilation succeeded
       if (!invokeCompiler) {
-        return true; // If we're not asked to invoke the C# to assembly compiler, we can report success
+        return true; // If we're not asked to invoke the target compiler, we can report success
       }
 
       // compile the program into an assembly
