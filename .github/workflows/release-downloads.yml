@@ -19,8 +19,6 @@ jobs:
       matrix:
         os: [ ubuntu-latest, ubuntu-16.04, macos-latest, windows-latest ]
         include:
-        - ver: 'v3.0.0-test4'
-          rel: 'dafny-3.0.0-test4'
         - os:  'ubuntu-latest'
           osn: 'ubuntu-16.04'
         - os:  'ubuntu-16.04'
@@ -54,7 +52,7 @@ jobs:
         Expand-Archive dafny*.zip
         mv dafnyX/dafny dafny
       env:
-        URL1: https://github.com/dafny-lang/dafny/releases/download/${{matrix.ver}}/${{matrix.rel}}-x64-${{matrix.osn}}.zip
+        URL1: https://github.com/dafny-lang/dafny/releases/download/${{matrix.ver}}/dafny-${{matrix.ver}}-x64-${{matrix.osn}}.zip
 
     ## Create a simple smoke test program
     - name: Make test program

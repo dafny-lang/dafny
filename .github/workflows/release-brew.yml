@@ -14,9 +14,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      ## Does not appear to need brew installed
-      ## run: echo SKIPPING /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-    - name: Install dafny, mono, z3
+    - name: Install dafny
       run: brew install dafny || echo DONE
     - name: Make test program
       run: |
@@ -33,25 +31,24 @@ jobs:
       run: dafny /compile:0 a.dfy
     - name: Check bad
       run: dafny /compile:0 b.dfy || echo EXPECTED FAILURE
-    - name: Check
-      run: dafny /compile:0 a.dfy
-    - name: Check bad
-      run: dafny /compile:0 b.dfy || echo EXPECTED FAILURE
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |
-        dafny /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
+        dafny/dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
     - name: Check Go compile
       run: |
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
-        ##go run a-go/src/a.go a-go/src/*/*.go dafny/DafnyRuntime.go
+        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
+        GOPATH=$PWD/a-go go run a-go/src/a.go > actual.txt
+        diff expect.txt actual.txt
     - name: Check Javascript compile
       run: |
         npm install bignumber.js
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node a.js dafny/DafnyRuntime.js | tail -1 | diff - expect.txt
+        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
+        node a.js dafny/DafnyRuntime.js > actual.txt
+        diff expect.txt actual.txt
     - name: Check Java compile
       run: |
-        ls dafny/DafnyRuntime.java || echo NO DafnyRuntime.java
-        dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy || echo EXPECTED FAILURE UNTIL DafnyRuntime.java is restored
-
+        (ls dafny/DafnyRuntime.jar || echo NO DafnyRuntime.jar )
+        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
+        java -cp a:dafny/DafnyRuntime.jar a > actual.txt
+        diff expect.txt actual.txt
