@@ -18,6 +18,10 @@ Some care must be taken to enable both modes of rendering.
 * The abstract is duplicated, to permit it to be part of the pdf title page.
 * The title page itself is written in header.tex, in LaTeX.
 
+In addition, some textual search and replace operations are implemented
+(see the Makefile) to perform section numbering uniformly and to adjust a few
+pother aspects that are dissimilar between the pdf and online versions.
+
 GitHub pages are rendered (converted from markdown to html) using Jekyll.
 The result is a single, long html page.
 There are a number of configuration files for Jekyll in the docs folder and
@@ -41,7 +45,9 @@ require a PL-specific regular-expression based definition of the language
 syntax. Unfortunately there are many such tools.
 
 In the RM maarkdown sources, text bracketed by '```dafny' and '```' will have
-syntax coloring for dafny applied.
+syntax coloring for dafny applied. Text bracketed by
+'````grammar` and '````' has syntax coloring applied per the grammar
+definition file.
 
 ## On-line RM through github
 Github uses rouge, via Jekyll. The syntax definition is a ruby-based file
@@ -65,6 +71,8 @@ debug or extend the definition file.
 
 Once you create a PR that is merged, github automatically (after a bit of a
 time lag) uses the file to render code snippets.
+[The rouge maintenance team must accept the PR -- it seems they are not
+very active.]
 
 The mapping from tokens to actual colors is specified separately from the
 syntax definition. The on-line rendering uses the Github default.
@@ -92,4 +100,5 @@ file as well.
 
 ## LSP
 
-Many IDEs interact with Language Servers (via LSP)
+Many IDEs interact with Language Servers (via LSP). Possibly an LSP protocol
+will be generated in the future.
