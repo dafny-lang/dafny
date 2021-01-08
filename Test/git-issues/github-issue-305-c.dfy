@@ -1,4 +1,4 @@
-// RUN: %baredafny /nologo /compile:0 /spillTargetCode:2 "%s" > "%t"
+// RUN: %baredafny /compile:0 /spillTargetCode:2 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // At some point (https://github.com/dafny-lang/dafny/pull/307#issuecomment-510191495)

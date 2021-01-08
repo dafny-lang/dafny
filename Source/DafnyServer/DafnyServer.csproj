@@ -3,7 +3,6 @@
   <PropertyGroup>
       <OutputType>Exe</OutputType>
       <AssemblyName>DafnyServer</AssemblyName>
-      <TargetFramework>netcoreapp3.1</TargetFramework>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
       <PackageVersion>1.1.0</PackageVersion>
@@ -16,12 +15,6 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\boogie\Source\Core\Core-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\ExecutionEngine\ExecutionEngine-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\Graph\Graph-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\Model\Model-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\ParserHelper\ParserHelper-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\Provers\SMTLib\SMTLib-NetCore.csproj" />
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
   </ItemGroup>
 

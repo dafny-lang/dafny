@@ -1375,8 +1375,8 @@ namespace Microsoft.Dafny {
         }
       } else if (e.Value is BigInteger i) {
         EmitIntegerLiteral(i, wr);
-      } else if (e.Value is Basetypes.BigDec) {
-        throw NotSupported("EmitLiteralExpr of Basetypes.BigDec");
+      } else if (e.Value is BaseTypes.BigDec) {
+        throw NotSupported("EmitLiteralExpr of BaseTypes.BigDec");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
