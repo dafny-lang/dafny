@@ -990,7 +990,7 @@ assume x != 0; 10/x
 ````grammar
 LetExpr(allowLemma, allowLambda) =
   [ "ghost" ] "var" CasePattern { "," CasePattern }
-  ( ":=" | { Attribute } ":|" )
+  ( ":=" | ":-" | { Attribute } ":|" )
   Expression(allowLemma: false, allowLambda: true)
   { "," Expression(allowLemma: false, allowLambda: true) } ";"
   Expression(allowLemma, allowLambda)
@@ -1022,15 +1022,9 @@ function GhostF(z: Stuff): int
 }
 ```
 
+The syntax using `:-` is discussed in the following subsection.
+
 ## Let or Fail Expression
-````grammar
-LetExpr(allowLemma, allowLambda) =
-  [ "ghost" ] "var" CasePattern { "," CasePattern }
-  ( ":-" | { Attribute } ":|" )
-  Expression(allowLemma: false, allowLambda: true)
-  { "," Expression(allowLemma: false, allowLambda: true) } ";"
-  Expression(allowLemma, allowLambda)
-````
 
 The Let expression described in [Section 0](#sec-let-expression) has a failure variant
 that simply uses `:-` instead of `:=`. This Let-or-Fail expression also permits propagating
