@@ -4,7 +4,7 @@ Verifying Impl$$M0.C.M ...
 
 Verifying CheckWellformed$$M0.C.Q ...
   [3 proof obligations]  error
-Superposition.dfy(20,14): Error BP5003: A postcondition might not hold on this return path.
+Superposition.dfy(20,14): Error: A postcondition might not hold on this return path.
 Superposition.dfy(21,25): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -12,7 +12,7 @@ Execution trace:
 
 Verifying CheckWellformed$$M0.C.R ...
   [3 proof obligations]  error
-Superposition.dfy(26,14): Error BP5003: A postcondition might not hold on this return path.
+Superposition.dfy(26,14): Error: A postcondition might not hold on this return path.
 Superposition.dfy(27,25): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0

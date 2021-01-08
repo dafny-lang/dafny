@@ -103,7 +103,7 @@ SmallTests.dfy(255,30): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
-SmallTests.dfy(303,23): Error BP5002: A precondition for this call might not hold.
+SmallTests.dfy(303,23): Error: A precondition for this call might not hold.
 SmallTests.dfy(281,16): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -132,7 +132,7 @@ Execution trace:
     (0,0): anon7_Then
     (0,0): anon8_Then
     (0,0): anon3
-SmallTests.dfy(338,2): Error BP5003: A postcondition might not hold on this return path.
+SmallTests.dfy(338,2): Error: A postcondition might not hold on this return path.
 SmallTests.dfy(332,10): Related location: This is the postcondition that might not hold.
 SmallTests.dfy(332,40): Related location
 Execution trace:
@@ -154,7 +154,7 @@ SmallTests.dfy(396,3): Error: cannot prove termination; try supplying a decrease
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-SmallTests.dfy(440,9): Error BP5003: A postcondition might not hold on this return path.
+SmallTests.dfy(440,9): Error: A postcondition might not hold on this return path.
 SmallTests.dfy(443,40): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0

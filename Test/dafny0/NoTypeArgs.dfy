@@ -47,7 +47,7 @@ class MyClass<G(0)> {
 // ---------------------------------------------------
 
 // The followinng functions and methods are oblivious of the fact that
-// List takes a type parameter.
+// List takes a type parameter (except Lemma, which needs it).
 
 function concat(xs: List, ys: List): List
 {
@@ -63,25 +63,23 @@ function reverse(xs: List): List
   case Cons(t, rest) => concat(reverse(rest), Cons(t, Nil))
 }
 
-ghost method Theorem(xs: List)
-  ensures reverse(reverse(xs)) == xs;
+lemma Theorem(xs: List)
+  ensures reverse(reverse(xs)) == xs
 {
-  match (xs) {
-    case Nil =>
-    case Cons(t, rest) =>
-      Lemma(reverse(rest), Cons(t, Nil));
-  }
+  match xs
+  case Nil =>
+  case Cons(t, rest) =>
+    Lemma(reverse(rest), Cons(t, Nil));
 }
 
-ghost method Lemma<A>(xs: List, ys: List)
-  ensures reverse(concat(xs, ys)) == concat(reverse(ys), reverse(xs));
+lemma Lemma<A>(xs: List, ys: List)
+  ensures reverse(concat(xs, ys)) == concat(reverse(ys), reverse(xs))
 {
-  match (xs) {
-    case Nil =>
-      assert forall ws :: concat(ws, Nil) == var ws : List<A> := ws; ws;
-    case Cons(t, rest) =>
-      assert forall a, b, c :: concat(a, concat(b, c)) == var ws : List <A> := concat(concat(a, b), c); ws;
-  }
+  match xs
+  case Nil =>
+    assert forall ws: List<A> :: concat(ws, Nil) == ws;
+  case Cons(t, rest) =>
+    assert forall a: List<A>, b, c :: concat(a, concat(b, c)) == concat(concat(a, b), c);
 }
 
 // ------ Here are some test cases where the inferred arguments will be a prefix of the given ones
