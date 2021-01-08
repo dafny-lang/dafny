@@ -12,8 +12,8 @@ options:
 	echo '```' > OptionsTemp.txt
 	../../Scripts/dafny -help | tr -d '\r' | sed -e 's/[ ]+\n/\n/' | grep -v 'Error: ' >> OptionsTemp.txt
 	echo '```' >> OptionsTemp.txt
-	if [ ! -e ../_includes/Options.txt ]; then cp OptionsTemp.txt ../_includes/Options.txt; fi
-	diff -q OptionsTemp.txt ../_includes/Options.txt || ( cp OptionsTemp.txt ../_includes/Options.txt && echo Updated Options.txt )
+	if [ ! -e Options.txt ]; then cp OptionsTemp.txt Options.txt; fi
+	diff -q OptionsTemp.txt Options.txt || ( cp OptionsTemp.txt Options.txt && echo Updated Options.txt )
 	rm OptionsTemp.txt
 
 release: all

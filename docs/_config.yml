@@ -55,11 +55,10 @@ plugins:
 # their entries' file path in the `include:` list.
 #
 exclude:
-   - DafnyReferenceManual/Makefile
-   - DafnyReferenceManual/README.md
-   - DafnyReferenceManual/DafnyRefZ.md
-   - DafnyReferenceManual/header.tex
-   - DafnyReferenceManual/head.tex
+   - DafnyRef/Makefile
+   - DafnyRef/README.md
+   - DafnyRef/header.tex
+   - DafnyRef/head.tex
    - .sass-cache/
    - .jekyll-cache/
    - gemfiles/

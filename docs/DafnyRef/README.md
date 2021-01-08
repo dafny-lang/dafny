@@ -25,7 +25,7 @@ subfolders. In order to render files locally you must
 * have ruby, bundler and jekyll installed on your machine
 * set the working directly (cd) to the docs folder
 * run the jekyll server: bundle exec jekyll server
-* open a browser on the page http://localhost:4000 or directly to http://localhost:4000/DafnyReferenceManual/DafnyRef
+* open a browser on the page http://localhost:4000 or directly to http://localhost:4000/DafnyRef/DafnyRef
 * the server rerenders when files are changed -- but not always quite completely. Sometimes one must kill the saerver process, delete all the files in the _saite folder, and restart the server.
 
 In order to convert markdown to pdf, you must be able to execute the Makefile, which requires installing pandoc and LaTeX, and being on a Linux-like platform.

@@ -406,4 +406,4 @@ TO BE WRITTEN
 
 ## 26.12. Full list of -command-line options <!-- PDFOMIT -->
 For the on-line version only, the output of `dafny /?` follows: <!--PDFOMIT-->
-{% include Options.txt %} <!-- PDFOMIT -->
+{% include_relative Options.txt %} <!-- PDFOMIT -->
