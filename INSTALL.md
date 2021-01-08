@@ -126,6 +126,8 @@ In VSCode, open any `.dfy` file, and when asked if you want to install the Dafny
    * Build
 	make -C BASE-DIRECTORY refman
    * The reference manual html does not require building. It is at
-	https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef
+	https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef
    * After building, the reference manual pdf is at
-        BASE-DIRECTORY/docs/DafnyReferenceManual/DafnyRef.pdf
+        BASE-DIRECTORY/docs/DafnyRef/DafnyRef.pdf
+   * The committed version, pointed to by external links, is at
+        BASE-DIRECTORY/docs/DafnyRef/out/DafnyRef.pdf

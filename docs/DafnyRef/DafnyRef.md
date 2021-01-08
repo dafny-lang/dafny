@@ -14,45 +14,45 @@ Parts of this manual are more tutorial in nature in order to help the
 user understand how to do proofs with Dafny.
 
 [(Link to current document as pdf)](https://github.com/dafny-lang/dafny/blob/master/docs/DafnyRef/out/DafnyRef.pdf)\
-[(Link to current document as html)](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef)
+[(Link to current document as html)](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef)
 
 - numbered toc
 {:toc}
 
-{% include Introduction.md %}
+{% include_relative Introduction.md %}
 
 <!--PDF NEWPAGE-->
-{% include Grammar.md %}
+{% include_relative Grammar.md %}
 
 <!--PDF NEWPAGE-->
-{% include Programs.md %}
+{% include_relative Programs.md %}
 
 <!--PDF NEWPAGE-->
-{% include Modules.md %}
+{% include_relative Modules.md %}
 
 <!--PDF NEWPAGE-->
-{% include Specifications.md %}
+{% include_relative Specifications.md %}
 
 <!--PDF NEWPAGE-->
-{% include Types.md %}
+{% include_relative Types.md %}
 
 <!--PDF NEWPAGE-->
-{% include Statements.md %}
+{% include_relative Statements.md %}
 
 <!--PDF NEWPAGE-->
-{% include Expressions.md %}
+{% include_relative Expressions.md %}
 
 <!--PDF NEWPAGE-->
-{% include Refinement.md %}
+{% include_relative Refinement.md %}
 
 <!--PDF NEWPAGE-->
-{% include Attributes.md %}
+{% include_relative Attributes.md %}
 
 <!--PDF NEWPAGE-->
-{% include Topics.md %}
+{% include_relative Topics.md %}
 
 <!--PDF NEWPAGE-->
-{% include UserGuide.md %}
+{% include_relative UserGuide.md %}
 
 # 27. TODO
 
@@ -80,6 +80,6 @@ user understand how to do proofs with Dafny.
 
 -- labelled assertion statements, labelled preconditions
 
-{% include SyntaxTests.md %}
+{% include_relative SyntaxTests.md %}
 
 # 29. References

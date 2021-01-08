@@ -286,12 +286,12 @@ The following subsections show various uses and alternatives.
 
 A simple failure-compatible type is the following:
 ```dafny
-{% include Example-Fail1.dfy %}
+{% include_relative examples/Example-Fail1.dfy %}
 ```
 
 A commonly used alternative that carries some value information is something like this generic type:
 ```dafny
-{% include Example-Fail2.dfy %}
+{% include_relative examples/Example-Fail2.dfy %}
 ```
 
 

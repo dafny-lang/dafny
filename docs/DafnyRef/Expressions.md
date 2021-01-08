@@ -568,14 +568,14 @@ nor [two-state functions](#sec-two-state) or [two-state lemmas](#sec-two-state-l
 
 Here are some explanatory examples. All `assert` statements verify to be true.
 ```dafny
-{% include Example-Old.dfy %}
+{% include_relative examples/Example-Old.dfy %}
 ```
 ```dafny
-{% include Example-Old2.dfy %}
+{% include_relative examples/Example-Old2.dfy %}
 ```
 The next example demonstrates the interaction between `old` and array elements.
 ```dafny
-{% include Example-Old3.dfy %}
+{% include_relative examples/Example-Old3.dfy %}
 ```
 
 ## 22.24. Unchanged Expressions {#sec-unchanged}
