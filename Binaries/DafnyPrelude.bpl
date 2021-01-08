@@ -603,7 +603,7 @@ axiom (forall<T> s: Set T :: { Set#Card(s) }
   (Set#Card(s) != 0 ==> (exists x: T :: s[x])));
 
 // the empty set could be of anything
-//axiom (forall<T> t: Ty :: { $Is(Set#Empty() : [T]bool, TSet(t)) } $Is(Set#Empty() : [T]bool, TSet(t)));
+axiom (forall<T> t: Ty :: { $Is(Set#Empty() : [T]bool, TSet(t)) } $Is(Set#Empty() : [T]bool, TSet(t)));
 
 function Set#Singleton<T>(T): Set T;
 axiom (forall<T> r: T :: { Set#Singleton(r) } Set#Singleton(r)[r]);
@@ -693,7 +693,7 @@ function ISet#Empty<T>(): Set T;
 axiom (forall<T> o: T :: { ISet#Empty()[o] } !ISet#Empty()[o]);
 
 // the empty set could be of anything
-//axiom (forall<T> t: Ty :: { $Is(ISet#Empty() : [T]bool, TISet(t)) } $Is(ISet#Empty() : [T]bool, TISet(t)));
+axiom (forall<T> t: Ty :: { $Is(ISet#Empty() : [T]bool, TISet(t)) } $Is(ISet#Empty() : [T]bool, TISet(t)));
 
 
 function ISet#UnionOne<T>(ISet T, T): ISet T;
@@ -917,7 +917,7 @@ axiom (forall<T> s: Seq T :: { Seq#Length(s) }
   );
 
 // The empty sequence $Is any type
-//axiom (forall<T> t: Ty :: {$Is(Seq#Empty(): Seq T, t)} $Is(Seq#Empty(): Seq T, TSeq(t)));
+axiom (forall<T> t: Ty :: {$Is(Seq#Empty(): Seq T, t)} $Is(Seq#Empty(): Seq T, TSeq(t)));
 
 function Seq#Singleton<T>(T): Seq T;
 axiom (forall<T> t: T :: { Seq#Length(Seq#Singleton(t)) } Seq#Length(Seq#Singleton(t)) == 1);
