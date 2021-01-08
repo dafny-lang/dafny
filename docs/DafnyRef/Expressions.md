@@ -990,7 +990,7 @@ assume x != 0; 10/x
 ````grammar
 LetExpr(allowLemma, allowLambda) =
   [ "ghost" ] "var" CasePattern { "," CasePattern }
-  ( ":=" | { Attribute } ":|" )
+  ( ":=" | ":-" | { Attribute } ":|" )
   Expression(allowLemma: false, allowLambda: true)
   { "," Expression(allowLemma: false, allowLambda: true) } ";"
   Expression(allowLemma, allowLambda)
@@ -1021,6 +1021,42 @@ function GhostF(z: Stuff): int
   var SCons(u, v) := z; var sum := u + v; sum * sum
 }
 ```
+
+The syntax using `:-` is discussed in the following subsection.
+
+## Let or Fail Expression
+
+The Let expression described in [Section 0](#sec-let-expression) has a failure variant
+that simply uses `:-` instead of `:=`. This Let-or-Fail expression also permits propagating
+failure results. However, in statements [Section 0](#sec-update-failure) failure results in
+immediate return from the method; expressions do not have side effects or immediate return
+mechanisms.
+
+The expression `var v :- V; E` is desugared into the _expression_
+```dafny
+var tmp := V;
+if tmp.IsFailure()
+then tmp.PropagateFailure()
+else var v := tmp.Extract(); E
+```
+
+If the RHS is a list of expressions then the desugaring is similar. `var v, v1 :- V, V1; E` becomes
+```dafny
+var tmp := V;
+if tmp.IsFailure()
+then tmp.PropagateFailure()
+else var v, v1 := tmp.Extract(), V1; E
+```
+
+So, if tmp is a failure value, then a corresponding failure value is propagated along; otherwise, the expression
+is evaluated as normal.
+
+Note that the value of the let-or-fail expression is either `tmp.PropagateFailure()` or `E`, the two sides of the
+if-then-else expression. Consequently these two expressions must have types that can be joined into one type for
+the whole let-or-fail expression. Typically that means that `tmp.PropagateFailure()` is a failure value and
+`E` is a value-carrying success value, both of the same failure-compatible type, as described in [Section 0](#sec-update-failure).
+
+TODO: Should the assert/assume/expect variants be permitted?
 
 ## 22.40. Map Comprehension Expression {#sec-map-comprehension-expression}
 ````grammar
