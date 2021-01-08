@@ -3,10 +3,10 @@
 
 module FOO {
   // seq with more than one element
-  type L = x : seq<int> | |x| >= 1 as int witness [1]
+  type L = x: seq<int> | 1 <= |x| witness [1]
 
   // a datatype using the previous type
-  datatype D = D( xl : L)
+  datatype D = D(xl: L)
 
   /** This const should not be allowed.  */
   const KK := D([]) // error: argument to D constructor is not an L

@@ -917,7 +917,7 @@ axiom (forall<T> s: Seq T :: { Seq#Length(s) }
   );
 
 // The empty sequence $Is any type
-axiom (forall<T> t: Ty :: {$Is(Seq#Empty(): Seq T, TSeq(t))} $Is(Seq#Empty(): Seq T, TSeq(t)));
+//axiom (forall<T> t: Ty :: {$Is(Seq#Empty(): Seq T, TSeq(t))} $Is(Seq#Empty(): Seq T, TSeq(t)));
 
 function Seq#Singleton<T>(T): Seq T;
 axiom (forall<T> t: T :: { Seq#Length(Seq#Singleton(t)) } Seq#Length(Seq#Singleton(t)) == 1);
