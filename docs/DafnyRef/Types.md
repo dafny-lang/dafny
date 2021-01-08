@@ -1670,7 +1670,7 @@ TraitDecl =
 ````
 
 A _trait_ is an abstract superclass, similar to an "interface" or
-"mixin".{^fn-traits}
+"mixin".[^fn-traits]
 
 [^fn-traits]: Traits are new to Dafny and are likely to evolve for a
 while.
