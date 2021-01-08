@@ -333,7 +333,7 @@ Constant literals of bit-vector types are given by integer literals converted au
 to the designated type, either by an implicit or explicit conversion operation or by initialization in a declaration.
 Dafny checks that the constant literal is in the correct range. For example,
 ```dafny
-{% include Example-BV.dfy %}
+{% include_relative examples/Example-BV.dfy %}
 ```
 
 Bit-vector values can be converted to and from `int` and other bit-vector types, as long as
@@ -374,17 +374,17 @@ non-negative integers.
 
 Here are examples of the various operations (all the assertions are true except where indicated):
 ```dafny
-{% include Example-BV2.dfy %}
+{% include_relative examples/Example-BV2.dfy %}
 ```
 The following are incorrectly formed:
 ```dafny
-{% include Example-BV3.dfy %}
-{% include Example-BV3a.dfy %}
+{% include_relative examples/Example-BV3.dfy %}
+{% include_relative examples/Example-BV3a.dfy %}
 ```
 These produce assertion errors:
 ```dafny
-{% include Example-BV4.dfy %}
-{% include Example-BV4a.dfy %}
+{% include_relative examples/Example-BV4.dfy %}
+{% include_relative examples/Example-BV4a.dfy %}
 ```
 
 [^binding]: The binding power of shift and bit-wise operations is different than in C-like languages.
@@ -561,7 +561,7 @@ Also, opaque types at the topmost scope are always implicitly `(!new)`.
 
 Here are some examples:
 ```dafny
-{% include Example-TP.dfy %}
+{% include_relative examples/Example-TP.dfy %}
 ```
 
 ## 8.2. Type parameter variance
@@ -839,7 +839,7 @@ that is, its length is `|s|` minus the sum of the given length
 designators.  For example, the following equalities hold, for any
 sequence `s` of length at least `10`:
 ```dafny
-{% include Example-Seq.dfy %}
+{% include_relative examples/Example-Seq.dfy %}
 ```
 
 The operation `multiset(s)` yields the multiset of elements of
