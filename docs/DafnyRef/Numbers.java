@@ -12,7 +12,7 @@ import java.util.regex.*;
 
 public class Numbers {
 
-  public static Pattern inc = Pattern.compile("\\{%\\h+include(_relative)?\\h+([\\w.]+)");
+  public static Pattern inc = Pattern.compile("\\{%\\h+include(_relative)?\\h+([\\w.\\d/_-]+)");
   public static Pattern sec = Pattern.compile("\\h*([#]+)\\h+(\\D|((\\d+\\.)+))");
   public static Pattern ref = Pattern.compile("\\{#([\\w-]+)\\}");
   public static Pattern cite = Pattern.compile("\\(#([\\w-]+)\\)");
