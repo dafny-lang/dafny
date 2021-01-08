@@ -1,4 +1,4 @@
 // RUN: %dafny /verifyAllModules /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-include "../../docs/_includes/Example-Refines1.dfy"
+include "../../docs/DafnyRef/examples/Example-Refines1.dfy"
