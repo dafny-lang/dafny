@@ -2843,17 +2843,32 @@ namespace Microsoft.Dafny{
       }
     }
 
-    public void CompileTuples(string path){
+    protected override void EmitFooter(Program program, TargetWriter wr) {
+      // Emit tuples
       foreach (int i in tuples) {
         if (i == 2 || i == 3) {
           continue; // Tuple2 and Tuple3 already exist in DafnyRuntime.jar, so don't remake these files.
         }
-        CreateTuple(i, path);
+        CreateTuple(i, wr);
+      }
+      
+      // Emit function interfaces
+      foreach (var i in functions) {
+        CreateLambdaFunctionInterface(i, wr);
+      }
+      
+      // Emit arrays
+      foreach (var i in arrays) {
+        CreateDafnyArrays(i, wr);
       }
     }
+    
+    private void CreateTuple(int i, TargetWriter outputWr) {
+      Contract.Requires(0 <= i);
+      Contract.Requires(outputWr != null);
+      
+      var wrTop = outputWr.NewFile(Path.Combine("dafny", $"Tuple{i}.java"));
 
-    private void CreateTuple(int i, string path) {
-      var wrTop = new TargetWriter();
       wrTop.WriteLine("package dafny;");
       wrTop.WriteLine();
       EmitSuppression(wrTop);
@@ -2954,11 +2969,6 @@ namespace Microsoft.Dafny{
       for (int j = 0; j < i; j++){
         wr.WriteLine();
         wr.WriteLine("public T" + j + " dtor__" + j + "() { return this._" + j + "; }");
-      }
-
-      // Create a file to write to.
-      using (StreamWriter sw = File.CreateText(path + "/Tuple" + i + ".java")) {
-        sw.Write(wrTop.ToString());
       }
     }
 
@@ -3145,20 +3155,18 @@ namespace Microsoft.Dafny{
       wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
     }
 
-    public void CreateFunctionInterface(string path) {
-      foreach(int i in functions){
-        CreateLambdaFunctionInterface(i, path);
-      }
-    }
+    private void CreateLambdaFunctionInterface(int i, TargetWriter outputWr) {
+      Contract.Requires(0 <= i);
+      Contract.Requires(outputWr != null);
+      
+      var functionName = $"Function{i}";
+      var wr = outputWr.NewFile(Path.Combine("dafny", $"{functionName}.java"));
 
-    public void CreateLambdaFunctionInterface(int i, string path) {
       var typeArgs = "<" + Util.Comma(i + 1, j => $"T{j}") + ">";
 
-      var wr = new TargetWriter();
       wr.WriteLine("package dafny;");
       wr.WriteLine();
       wr.WriteLine("@FunctionalInterface");
-      var functionName = $"Function{i}";
       wr.Write($"public interface {functionName}{typeArgs}");
       var wrMembers = wr.NewBlock("");
       wrMembers.Write($"public T{i} apply(");
@@ -3173,20 +3181,14 @@ namespace Microsoft.Dafny{
       // arrow types are allowed as "(0)"-constrained type arguments), but it's
       // consistent with other backends.
       wrTypeBody.Write($"return ({DafnyTypeDescriptor}<{functionName}{typeArgs}>) ({DafnyTypeDescriptor}<?>) {DafnyTypeDescriptor}.reference({functionName}.class);");
-
-      using (StreamWriter sw = File.CreateText($"{path}/{functionName}.java")) {
-        sw.Write(wr.ToString());
-      }
     }
 
-    public void CompileDafnyArrays(string path) {
-      foreach(int i in arrays){
-        CreateDafnyArrays(i, path);
-      }
-    }
-
-    public void CreateDafnyArrays(int i, string path) {
-      var wrTop = new TargetWriter();
+    private void CreateDafnyArrays(int i, TargetWriter outputWr) {
+      Contract.Requires(0 <= i);
+      Contract.Requires(outputWr != null);
+      
+      var wrTop = outputWr.NewFile(Path.Combine("dafny", $"Array{i}.java"));
+      
       wrTop.WriteLine("package dafny;");
       wrTop.WriteLine();
 
@@ -3254,10 +3256,6 @@ namespace Microsoft.Dafny{
       EmitSuppression(wr);
       var wrTypeMethod = wr.NewBlock($"public static <T> {DafnyTypeDescriptor}<Array{i}<T>> {TypeMethodName}()");
       wrTypeMethod.WriteLine($"return ({DafnyTypeDescriptor}<Array{i}<T>>) ({DafnyTypeDescriptor}<?>) TYPE;");
-
-      using (StreamWriter sw = File.CreateText(path + "/Array" + i + ".java")) {
-        sw.Write(wrTop.ToString());
-      }
     }
 
     protected override BlockTargetWriter EmitTailCallStructure(MemberDecl member, BlockTargetWriter wr) {

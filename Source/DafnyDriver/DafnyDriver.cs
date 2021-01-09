@@ -592,15 +592,6 @@ namespace Microsoft.Dafny
         }
       }
       
-      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-        var dest = Path.Combine(targetDir, "dafny");
-        Directory.CreateDirectory(dest);
-        var jcompiler = (JavaCompiler)compiler;
-        jcompiler.CompileTuples(dest);
-        jcompiler.CreateFunctionInterface(dest);
-        jcompiler.CompileDafnyArrays(dest);
-      }
-      
       return targetFilename;
     }
 
