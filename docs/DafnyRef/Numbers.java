@@ -12,7 +12,7 @@ import java.util.regex.*;
 
 public class Numbers {
 
-  public static Pattern inc = Pattern.compile("\\{%\\h+include\\h+([\\w.]+)");
+  public static Pattern inc = Pattern.compile("\\{%\\h+include(_relative)?\\h+([\\w.\\d/_-]+)");
   public static Pattern sec = Pattern.compile("\\h*([#]+)\\h+(\\D|((\\d+\\.)+))");
   public static Pattern ref = Pattern.compile("\\{#([\\w-]+)\\}");
   public static Pattern cite = Pattern.compile("\\(#([\\w-]+)\\)");
@@ -64,8 +64,12 @@ public static void process(String file, boolean replace) {
       Matcher m = inc.matcher(line);
       if (m.find()) {
         if (replace) w.println(line);
-        String newfile = m.group(1);
-        if (newfile.endsWith(".md")) process("../_includes/" + newfile, replace);
+        String rel = m.group(1);
+        String newfile = m.group(2);
+        if (newfile.endsWith(".md")) {
+          String fn = rel == null ? "../_includes/" + newfile : newfile ;
+          process(fn, replace);
+        }
         continue;
       }
       m = sec.matcher(line);

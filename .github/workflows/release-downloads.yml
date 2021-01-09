@@ -19,8 +19,6 @@ jobs:
       matrix:
         os: [ ubuntu-latest, ubuntu-16.04, macos-latest, windows-latest ]
         include:
-        - ver: 'v3.0.0-PreRelease2'
-          rel: 'dafny-3.0.0-PreRelease2'
         - os:  'ubuntu-latest'
           osn: 'ubuntu-16.04'
         - os:  'ubuntu-16.04'
@@ -29,6 +27,7 @@ jobs:
           osn: 'osx-10.14.1'
         - os:  'windows-latest'
           osn: 'win'
+          ver: '3.0.0-PreRelease2'
     # There is no hosted environment for Unbuntu 14.04 or for debian
 
     # Mac environments need mono, but it is installed by default
@@ -50,11 +49,12 @@ jobs:
     - if: runner.os == 'Windows'
       shell: pwsh
       run: |
+        echo $Env:URL1
         Invoke-WebRequest -Outfile dafnyX.zip -Uri $Env:URL1
         Expand-Archive dafny*.zip
         mv dafnyX/dafny dafny
       env:
-        URL1: https://github.com/dafny-lang/dafny/releases/download/${{matrix.ver}}/${{matrix.rel}}-x64-${{matrix.osn}}.zip
+        URL1: https://github.com/dafny-lang/dafny/releases/download/v${{matrix.ver}}/dafny-${{matrix.ver}}-x64-${{matrix.osn}}.zip
 
     ## Create a simple smoke test program
     - name: Make test program

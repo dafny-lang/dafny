@@ -126,7 +126,6 @@ class Release:
         run(["make", "--quiet", "runtime"])
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "Dafny.sln"),
             "--nologo",
-            "-v:q",
             "-f", "netcoreapp3.1",
             "-o", self.buildDirectory,
             "-r", self.target,

@@ -393,7 +393,7 @@ name's declaration.
 
 For example, in the following code the constant `a` is exported as provided.
 ```dafny
-{% include Example-ExportSet1.dfy %}
+{% include_relative examples/Example-ExportSet1.dfy %}
 ```
 Since `a` is imported into module `B` through the default export set ``A`A``,
 it can be referenced in the assert statement. The constant `b` is not 
@@ -403,7 +403,7 @@ because the value of `a` is not known in module `B`.
 In contrast, if `a` is exported as _revealed_, as shown in the next example,
 its value is known and the assertion can be proved.
 ```dafny
-{% include Example-ExportSet2.dfy %}
+{% include_relative examples/Example-ExportSet2.dfy %}
 ```
 
 The following list presents the difference between _provides_ and _reveals_ for each kind of declaration.
@@ -652,7 +652,7 @@ resolution of qualified names this is not the case.
 This example shows that the resolution of the refinement parent does not
 use any local names:
 ```dafny
-{% include Example-Refines1.dfy %}
+{% include_relative examples/Example-Refines1.dfy %}
 ```
 In the example, the `A` in `refines A` refers to the global `A`, not the submodule `A`.
 
@@ -722,7 +722,7 @@ resolution of qualified names this is not the case.
 Ths example shows that the resolution of the refinement parent does not
 use any local names:
 ```dafny
-{% include Example-Refines1.dfy %}
+{% include_relative examples/Example-Refines1.dfy %}
 ```
 The `A` in `refines A` refers to the submodule `A`, not the global `A`.
 

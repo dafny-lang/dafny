@@ -66,6 +66,6 @@ The details of using (and contributing to) the dafny tool are described in the U
 To give a flavor of Dafny, here is the solution to a competition problem.
 
 ```dafny
-{% include Example-RM.dfy %}
+{% include_relative examples/Example-RM.dfy %}
 ```
 

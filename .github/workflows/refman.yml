@@ -76,6 +76,7 @@ jobs:
     - name: Build reference manual
       run: |
         eval "$(/usr/libexec/path_helper)"
-        make -C dafny/docs/DafnyReferenceManual
+        rm -f dafny/docs/DafnyRef/DafnyRef.pdf
+        make -C dafny/docs/DafnyRef
     - name: Check
-      run: ls -la dafny/docs/DafnyReferenceManual/DafnyRef.pdf
+      run: ls -la dafny/docs/DafnyRef/DafnyRef.pdf
