@@ -591,6 +591,16 @@ namespace Microsoft.Dafny
           outputWriter.WriteLine("Additional code written to {0}", Path.Combine(targetBaseDir, filename));
         }
       }
+      
+      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
+        var dest = Path.Combine(targetDir, "dafny");
+        Directory.CreateDirectory(dest);
+        var jcompiler = (JavaCompiler)compiler;
+        jcompiler.CompileTuples(dest);
+        jcompiler.CreateFunctionInterface(dest);
+        jcompiler.CompileDafnyArrays(dest);
+      }
+      
       return targetFilename;
     }
 
@@ -691,21 +701,6 @@ namespace Microsoft.Dafny
           p = null;
         }
         targetFilename = WriteDafnyProgramToFiles(compiler, dafnyProgramName, p, completeProgram, otherFiles, outputWriter);
-      }
-
-      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-        string targetBaseDir = Path.GetFileNameWithoutExtension(dafnyProgramName) + "-java";
-        string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
-        var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
-        Contract.Assert(assemblyLocation != null);
-        var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
-        Contract.Assert(codebase != null);
-        string dest = targetDir + "/dafny";
-        Directory.CreateDirectory(dest);
-        var jcompiler = (JavaCompiler) compiler;
-        jcompiler.CompileTuples(dest);
-        jcompiler.CreateFunctionInterface(dest);
-        jcompiler.CompileDafnyArrays(dest);
       }
 
       if (!completeProgram) {
