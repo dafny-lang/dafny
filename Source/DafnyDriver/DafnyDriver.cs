@@ -567,8 +567,9 @@ namespace Microsoft.Dafny
       // WARNING: Make sure that Directory.Delete is only called when the compilation target is Java.
       // If called during C# or JS compilation, you will lose your entire target directory.
       // Purpose is to delete the old generated folder with the Java compilation output and replace all contents.
-      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java && Directory.Exists(targetDir))
+      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java && Directory.Exists(targetDir)) {
         Directory.Delete(targetDir, true);
+      }
       string targetFilename = Path.Combine(targetDir, targetBaseName);
       if (targetProgram != null) {
         WriteFile(targetFilename, targetProgram);
@@ -579,8 +580,7 @@ namespace Microsoft.Dafny
         if (DafnyOptions.O.CompileVerbose) {
           outputWriter.WriteLine("Compiled program written to {0}", relativeTarget);
         }
-      }
-      else {
+      } else {
         outputWriter.WriteLine("File {0} contains the partially compiled program", relativeTarget);
       }
 
