@@ -673,18 +673,11 @@ namespace Microsoft.Dafny
           otherFiles.Add(wr.Filename, sw.ToString());
         }
       }
-      string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
       string callToMain = null;
       if (hasMain) {
         using (var wr = new TargetWriter(0)) {
-          if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-            baseName = compiler.TransformToClassName(baseName);
-            wr.WriteLine($"public class {baseName} {{");
-          }
-          compiler.EmitCallToMain(mainMethod, wr);
-          if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-            wr.WriteLine("}");
-          }
+          string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
+          compiler.EmitCallToMain(mainMethod, baseName, wr);
           callToMain = wr.ToString(); // assume there aren't multiple files just to call main
         }
       }
