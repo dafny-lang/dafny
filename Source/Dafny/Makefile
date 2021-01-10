@@ -11,7 +11,9 @@ FRAME_DIR = ..\..\third_party\Coco\src
 all: Parser.cs
 
 Parser.cs: $(FRAME_DIR)\scanner.frame $(FRAME_DIR)\parser.frame Dafny.atg
+	echo This is the Makefile about to run Coco
 	dotnet tool run coco Dafny.atg -namespace Microsoft.Dafny -frames $(FRAME_DIR)
+	echo Makefile is done running Coco
 
 clean:
 	if exist Scanner.cs del Scanner.cs
