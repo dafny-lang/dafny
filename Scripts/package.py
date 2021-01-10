@@ -124,12 +124,19 @@ class Release:
             shutil.rmtree(self.buildDirectory)
         run(["make", "--quiet", "clean"])
         run(["make", "--quiet", "runtime"])
-        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "Dafny-CI.sln"),
+        run(["dotnet", "build", path.join(SOURCE_DIRECTORY, "Dafny-RunCoco.sln"),
             "--nologo",
             "-f", "netcoreapp3.1",
             "-o", self.buildDirectory,
             "-r", self.target,
             "-c", "Checked"])
+        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "Dafny.sln"),
+            "--nologo",
+            "-f", "netcoreapp3.1",
+            "-o", self.buildDirectory,
+            "-r", self.target,
+            "-c", "Checked",
+            "-p", "Flavor=WithoutCoco"])
 
     def pack(self):
         try:

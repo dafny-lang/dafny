@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Target Name="RunCoco" BeforeTargets="PreBuildEvent">
+  <Target Name="RunCoco" BeforeTargets="PreBuildEvent" Condition="$(Flavor) != 'WithoutCoco'">
     <Exec Command="dotnet tool restore" />
     <Exec Command="dotnet tool run coco $(ProjectDir)Dafny.atg -namespace Microsoft.Dafny -frames $(ProjectDir)../../third_party/Coco/src" />
     <!-- Recompute files to build according to https://stackoverflow.com/a/44829863/93197 -->
