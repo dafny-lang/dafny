@@ -1,8 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Target Name="RunCoco" BeforeTargets="PreBuildEvent">
-    <Exec Command="dotnet tool restore" />
-    <Exec Command="echo Here are some settings: $(Configuration) AND $(ProjectDir) AND $(Platform) AND $(TargetFrameworks)" />
     <Exec Command="dotnet tool run coco $(ProjectDir)Dafny.atg -namespace Microsoft.Dafny -frames $(ProjectDir)../../third_party/Coco/src" />
     <!-- Recompute files to build according to https://stackoverflow.com/a/44829863/93197 -->
     <ItemGroup>
