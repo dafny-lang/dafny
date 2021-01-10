@@ -136,7 +136,7 @@ class Release:
             "-o", self.buildDirectory,
             "-r", self.target,
             "-c", "Checked",
-            "-p", "Flavor=WithoutCoco"])
+            "-p:Flavor=WithoutCoco"])
 
     def pack(self):
         try:
