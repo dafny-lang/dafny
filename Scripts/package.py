@@ -130,6 +130,7 @@ class Release:
             "-o", self.buildDirectory,
             "-r", self.target,
             "-c", "Checked"])
+        flush("  - BUILD and dotnet publish DONE")
 
     def pack(self):
         try:
