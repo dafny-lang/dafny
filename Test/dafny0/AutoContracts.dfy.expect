@@ -374,7 +374,7 @@ module N1 refines N0 {
    * SCC at height 0:
    *   C.Valid
    */
-  class {:autocontracts} C {
+  class {:autocontracts} C ...  {
     constructor X()
       ensures Valid()
       ensures fresh(Repr)
@@ -474,7 +474,7 @@ module N2 refines N1 {
    * SCC at height 0:
    *   C.Valid
    */
-  class {:autocontracts} C {
+  class {:autocontracts} C ...  {
     constructor X()
       ensures Valid()
       ensures fresh(Repr)
@@ -550,7 +550,7 @@ module N2 refines N1 {
   type {:axiom} C(==) = c: C? | c != null /*special witness*/
   */
 }
-AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy(12,14): Related location
 Execution trace:
@@ -566,7 +566,7 @@ Execution trace:
     (0,0): anon23_Then
     (0,0): anon14
     (0,0): anon24_Then
-AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -581,7 +581,7 @@ Execution trace:
     (0,0): anon23_Then
     (0,0): anon14
     (0,0): anon24_Then
-AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy(12,14): Related location
 Execution trace:
@@ -597,7 +597,7 @@ Execution trace:
     (0,0): anon23_Then
     (0,0): anon14
     (0,0): anon24_Then
-AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy(12,14): Related location
 Execution trace:
@@ -613,7 +613,7 @@ Execution trace:
     (0,0): anon23_Then
     (0,0): anon14
     (0,0): anon24_Then
-AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy(12,14): Related location
 AutoContracts.dfy(5,25): Related location
@@ -630,21 +630,21 @@ Execution trace:
     (0,0): anon23_Then
     (0,0): anon14
     (0,0): anon24_Then
-AutoContracts.dfy(50,4): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(50,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(49,24): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-AutoContracts.dfy(79,21): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy[N1](65,14): Related location
 Execution trace:
     (0,0): anon0
-AutoContracts.dfy(79,21): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy[N1](65,14): Related location
 Execution trace:
     (0,0): anon0
-AutoContracts.dfy(79,21): Error BP5003: A postcondition might not hold on this return path.
+AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0

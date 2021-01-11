@@ -4,10 +4,10 @@
 module A {
   module AA {
     module AAA {
-      const aaa := 50;
+      const aaa := 50
     }
   }
-  const a := 51;
+  const a := 51
 }
 
 module B {
@@ -38,7 +38,7 @@ module F {
 module G {
   module H {
     module Z {
-      const z := 52;
+      const z := 52
     }
   }
 

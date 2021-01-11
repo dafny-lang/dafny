@@ -15,7 +15,6 @@ namespace Microsoft.Dafny
     public DafnyOptions(ErrorReporter errorReporter = null)
       : base("Dafny", "Dafny program verifier") {
         this.errorReporter = errorReporter;
-        SetZ3ExecutableName();
     }
 
     public override string VersionNumber {
@@ -108,7 +107,6 @@ namespace Microsoft.Dafny
       false
 #endif
     ;
-    public bool PrintVersionAndExit = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -411,14 +409,9 @@ namespace Microsoft.Dafny
 
             if (PrintIncludesMode == IncludesModes.Immediate || PrintIncludesMode == IncludesModes.Transitive) {
               Compile = false;
-              DontShowLogo = true;
               DafnyVerify = false;
             }
           }
-          return true;
-
-        case "version":
-          PrintVersionAndExit = true;
           return true;
 
         default:
@@ -434,14 +427,17 @@ namespace Microsoft.Dafny
       // expand macros in filenames, now that LogPrefix is fully determined
       ExpandFilename(ref DafnyPrelude, LogPrefix, FileTimestamp);
       ExpandFilename(ref DafnyPrintFile, LogPrefix, FileTimestamp);
-      if (DisableNLarith || 3 <= ArithMode) {
-        this.AddZ3Option("smt.arith.nl=false");
-      }
+
+      SetZ3ExecutablePath();
+      SetZ3Options();
+
+      // Ask Boogie to perform abstract interpretation
+      UseAbstractInterpretation = true;
+      Ai.J_Intervals = true;
     }
 
-    public override void AttributeUsage() {
-            Console.WriteLine(
-@"Dafny: The following attributes are supported by this implementation.
+    public override string AttributeHelp =>
+@"Dafny: The following attributes are supported by this version.
 
     {:extern}
     {:extern <s1:string>}
@@ -588,41 +584,82 @@ namespace Microsoft.Dafny
       TODO
 
     {:trigger}
-      TODO
-");
-    }
-
+      TODO";
 
     /// <summary>
-    /// Dafny comes with it's own copy of z3, to save new users the trouble of having to install extra dependency.
-    /// For this to work, Dafny makes the Z3ExecutablePath point to the path were Z3 is put by our release script.
-    /// For developers though (and people getting this from source), it's convenient to be able to run right away,
-    /// so we vendor a Windows version.  This is the default value; it may be overwritten by command-line arguments
+    /// Dafny releases come with their own copy of Z3, to save users the trouble of having to install extra dependencies.
+    /// For this to work, Dafny looks for Z3 at the location where it is put by our release script (i.e., z3/bin/z3[.exe]).
+    /// If Z3 is not found there, Dafny relies on Boogie to locate Z3 (which also supports setting a path explicitly on the command line).
+    /// Developers (and people getting Dafny from source) need to install an appropriate version of Z3 themselves.
     /// </summary>
-    public void SetZ3ExecutableName() {
-      var platform = (int)System.Environment.OSVersion.Platform;
+    private void SetZ3ExecutablePath() {
+      var pp = "PROVER_PATH=";
+      var proverPathOption = ProverOptions.Find(o => o.StartsWith(pp));
+      if (proverPathOption != null) {
+        var proverPath = proverPathOption.Substring(pp.Length);
+        // Boogie will perform the ultimate test to see if "proverPath" is real--it will attempt to run it.
+        // However, by at least checking if the file exists, we can produce a better error message in common scenarios.
+        if (!File.Exists(proverPath)) {
+          throw new Bpl.ProverException($"Requested prover not found: '{proverPath}'");
+        }
+      } else {
+        var platform = (int)System.Environment.OSVersion.Platform;
 
-      // http://www.mono-project.com/docs/faq/technical/
-      var isUnix = platform == 4 || platform == 6 || platform == 128;
+        // http://www.mono-project.com/docs/faq/technical/
+        var isUnix = platform == 4 || platform == 6 || platform == 128;
 
-      var z3binName = isUnix ? "z3" : "z3.exe";
-      var dafnyBinDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-      var z3BinDir = System.IO.Path.Combine(dafnyBinDir, "z3", "bin");
-      var z3BinPath = System.IO.Path.Combine(z3BinDir, z3binName);
+        var z3binName = isUnix ? "z3" : "z3.exe";
+        var dafnyBinDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+        var z3BinDir = System.IO.Path.Combine(dafnyBinDir, "z3", "bin");
+        var z3BinPath = System.IO.Path.Combine(z3BinDir, z3binName);
 
-      if (!System.IO.File.Exists(z3BinPath) && !isUnix) {
-        // This is most likely a Windows user running from source without downloading z3
-        // separately; this is ok, since we vendor z3.exe.
-        z3BinPath = System.IO.Path.Combine(dafnyBinDir, z3binName);
+        if (System.IO.File.Exists(z3BinPath)) {
+          // Let's use z3BinPath
+          ProverOptions.Add($"{pp}{z3BinPath}");
+        }
       }
-
-      // Only the default value is set here. Command-line arguments are processed later,
-      // so no checking of whether the path exists is done.
-      Z3ExecutablePath = z3BinPath;
     }
 
-    public override void Usage() {
-      Console.WriteLine(@"  ---- Dafny options ---------------------------------------------------------
+    // Set a Z3 option, but only if it is not overwriting an existing option.
+    private void SetZ3Option(string name, string value)
+    {
+      if (!ProverOptions.Any(o => o.StartsWith($"O:{name}=")))
+      {
+        ProverOptions.Add($"O:{name}={value}");
+      }
+    }
+
+    private void SetZ3Options()
+    {
+      // Boogie sets the following Z3 options by default:
+      // smt.mbqi = false
+      // model.compact = false
+      // model.v2 = true
+      // pp.bv_literals = false
+
+      // Boogie also used to set the following options, but does not anymore.
+      SetZ3Option("auto_config", "false");
+      SetZ3Option("type_check", "true");
+      SetZ3Option("smt.phase_selection", "0");  // TODO: this seems not to be needed
+      SetZ3Option("smt.restart_strategy", "0");  // TODO: this seems not to be needed
+      SetZ3Option("smt.restart_factor", "|1.5|");  // TODO: this seems not to be needed
+      SetZ3Option("smt.arith.random_initial_value", "true");  // TODO: this seems not to be needed
+      SetZ3Option("smt.case_split", "3");
+      SetZ3Option("smt.qi.eager_threshold", "100");
+      SetZ3Option("smt.delay_units", "true");
+      SetZ3Option("nnf.sk_hack", "true");  // TODO: this seems not to be needed
+      SetZ3Option("smt.arith.solver", "2");
+
+      if (DisableNLarith || 3 <= ArithMode) {
+        SetZ3Option("smt.arith.nl", "false");
+      }
+    }
+
+    public override string Help =>
+      base.Help +
+@"
+
+  ---- Dafny options ---------------------------------------------------------
 
  All the .dfy files supplied on the command line along with files recursively
  included by 'include' directives are considered a single Dafny program;
@@ -832,10 +869,6 @@ namespace Microsoft.Dafny
     Immediate and Transitive will exit after printing.
 /disableScopes
     Treat all export sets as 'export reveal *'. i.e. don't hide function bodies
-    or type definitions during translation.
-/version      Print the Dafny version number and exit.
-");
-      base.Usage();  // also print the Boogie options
-    }
+    or type definitions during translation.";
   }
 }

@@ -34,7 +34,7 @@ namespace DafnyServer {
         if (clbl is Predicate) {
           var predicate = clbl as Predicate;
           var predicateSymbol = new SymbolInformation {
-            Module = predicate.EnclosingClass.Module.Name,
+            Module = predicate.EnclosingClass.EnclosingModuleDefinition.Name,
             Name = predicate.Name,
             ParentClass = predicate.EnclosingClass.Name,
             SymbolType = SymbolInformation.Type.Predicate,
@@ -46,7 +46,7 @@ namespace DafnyServer {
         } else if (clbl is Function) {
           var fn = (Function)clbl;
           var functionSymbol = new SymbolInformation {
-            Module = fn.EnclosingClass.Module.Name,
+            Module = fn.EnclosingClass.EnclosingModuleDefinition.Name,
             Name = fn.Name,
             ParentClass = fn.EnclosingClass.Name,
             SymbolType = SymbolInformation.Type.Function,
@@ -64,7 +64,7 @@ namespace DafnyServer {
             information.AddRange(ResolveLocalDefinitions(m.Body.Body, m));
           }
           var methodSymbol = new SymbolInformation {
-            Module = m.EnclosingClass.Module.Name,
+            Module = m.EnclosingClass.EnclosingModuleDefinition.Name,
             Name = m.Name,
             ParentClass = m.EnclosingClass.Name,
             SymbolType = SymbolInformation.Type.Method,
@@ -72,7 +72,7 @@ namespace DafnyServer {
             Ensures = ParseContracts(m.Ens),
             Requires = ParseContracts(m.Req),
             References =
-                  FindMethodReferencesInternal(m.EnclosingClass.Module.Name + "." + m.EnclosingClass.Name + "." +
+                  FindMethodReferencesInternal(m.EnclosingClass.EnclosingModuleDefinition.Name + "." + m.EnclosingClass.Name + "." +
                                    m.Name),
             EndColumn = m.BodyEndTok.col,
             EndLine = m.BodyEndTok.line,
@@ -89,17 +89,17 @@ namespace DafnyServer {
           var fs in ModuleDefinition.AllFields(module.TopLevelDecls).Where(e => e != null && !(e.tok is IncludeToken))) {
 
         var fieldSymbol = new SymbolInformation {
-          Module = fs.EnclosingClass.Module.Name,
+          Module = fs.EnclosingClass.EnclosingModuleDefinition.Name,
           Name = fs.Name,
           ParentClass = fs.EnclosingClass.Name,
           SymbolType = SymbolInformation.Type.Field,
           StartToken = fs.tok,
-          References = FindFieldReferencesInternal(fs.Name, fs.EnclosingClass.Name, fs.EnclosingClass.Module.Name)
+          References = FindFieldReferencesInternal(fs.Name, fs.EnclosingClass.Name, fs.EnclosingClass.EnclosingModuleDefinition.Name)
         };
         if (fs.Type is UserDefinedType) {
           var userType = fs.Type as UserDefinedType;
           fieldSymbol.ReferencedClass = userType.ResolvedClass.CompileName;
-          fieldSymbol.ReferencedModule = userType.ResolvedClass.Module.CompileName;
+          fieldSymbol.ReferencedModule = userType.ResolvedClass.EnclosingModuleDefinition.CompileName;
         }
         information.Add(fieldSymbol);
       }
@@ -107,9 +107,9 @@ namespace DafnyServer {
 
     private static void AddClasses(ModuleDefinition module, List<SymbolInformation> information) {
       foreach (var cs in ModuleDefinition.AllClasses(module.TopLevelDecls).Where(cl => !(cl.tok is IncludeToken))) {
-        if (cs.Module != null && cs.tok != null) {
+        if (cs.EnclosingModuleDefinition != null && cs.tok != null) {
           var classSymbol = new SymbolInformation {
-            Module = cs.Module.Name,
+            Module = cs.EnclosingModuleDefinition.Name,
             Name = cs.Name,
             SymbolType = SymbolInformation.Type.Class,
             StartToken = cs.tok,
@@ -151,7 +151,7 @@ namespace DafnyServer {
                 information.Add(new SymbolInformation {
                   Name = name,
                   ParentClass = userType.ResolvedClass.CompileName,
-                  Module = userType.ResolvedClass.Module.CompileName,
+                  Module = userType.ResolvedClass.EnclosingModuleDefinition.CompileName,
                   SymbolType = SymbolInformation.Type.Definition,
                   StartToken = method.BodyStartTok,
                   EndToken = method.BodyEndTok
@@ -211,7 +211,7 @@ namespace DafnyServer {
         information.Add(new SymbolInformation {
           Name = callStmt.Method.CompileName,
           ParentClass = userType.ResolvedClass.CompileName,
-          Module = userType.ResolvedClass.Module.CompileName,
+          Module = userType.ResolvedClass.EnclosingModuleDefinition.CompileName,
           Call = reveiverName + "." + callStmt.MethodSelect.Member,
           SymbolType = SymbolInformation.Type.Call,
           StartToken = callStmt.MethodSelect.tok
@@ -235,7 +235,7 @@ namespace DafnyServer {
         information.Add(new SymbolInformation {
           Name = exprDotName.SuffixName,
           ParentClass = type.ResolvedClass.CompileName,
-          Module = type.ResolvedClass.Module.CompileName,
+          Module = type.ResolvedClass.EnclosingModuleDefinition.CompileName,
           Call = designator + "." + exprDotName.SuffixName,
           SymbolType = SymbolInformation.Type.Call,
           StartToken = exprDotName.tok
@@ -309,7 +309,7 @@ namespace DafnyServer {
             if (exprDotName.Lhs.Type is UserDefinedType) {
               var type = (UserDefinedType)exprDotName.Lhs.Type;
               if (fieldName == exprDotName.SuffixName && className == type.ResolvedClass.CompileName &&
-                  moduleName == type.ResolvedClass.Module.CompileName) {
+                  moduleName == type.ResolvedClass.EnclosingModuleDefinition.CompileName) {
                 information.Add(new ReferenceInformation {
                   MethodName = exprDotName.SuffixName,
                   StartToken = exprDotName.tok,
@@ -325,7 +325,7 @@ namespace DafnyServer {
               var memberAcc = (MemberSelectExpr)nameSegment.ResolvedExpression;
               if (fieldName == memberAcc.MemberName &&
                   className == memberAcc.Member.EnclosingClass.CompileName &&
-                  moduleName == memberAcc.Member.EnclosingClass.Module.CompileName) {
+                  moduleName == memberAcc.Member.EnclosingClass.EnclosingModuleDefinition.CompileName) {
                 information.Add(new ReferenceInformation {
                   MethodName = memberAcc.MemberName,
                   StartToken = memberAcc.tok,

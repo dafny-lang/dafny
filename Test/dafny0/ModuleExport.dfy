@@ -249,7 +249,7 @@ module ModuleName5 {
   const e := 2.7
   import X = ModuleName4`X  // fine, because export names are in a different name space than other module contents
   datatype Dt = Make(pi: int)
-  const X := Make(10)  // fine, because name of const comes lexically "before" names of imports
+  const X := Make(10)  // X is duplicate here and as local name of (aliased) module
   method Test() {
     assert X.pi == 10;  // X.pi refers to member pi of const X, not to the imported ModuleName4.pi
   }

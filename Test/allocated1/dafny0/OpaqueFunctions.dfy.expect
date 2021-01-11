@@ -1,7 +1,7 @@
 OpaqueFunctions.dfy(38,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
-OpaqueFunctions.dfy(69,7): Error BP5002: A precondition for this call might not hold.
+OpaqueFunctions.dfy(69,7): Error: A precondition for this call might not hold.
 OpaqueFunctions.dfy(35,15): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -21,7 +21,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
     (0,0): anon6_Then
-OpaqueFunctions.dfy(98,11): Error BP5002: A precondition for this call might not hold.
+OpaqueFunctions.dfy(98,11): Error: A precondition for this call might not hold.
 OpaqueFunctions.dfy[A'](35,15): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -52,7 +52,7 @@ OpaqueFunctions.dfy(146,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-OpaqueFunctions.dfy(148,9): Error BP5002: A precondition for this call might not hold.
+OpaqueFunctions.dfy(148,9): Error: A precondition for this call might not hold.
 OpaqueFunctions.dfy[A'](35,15): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0

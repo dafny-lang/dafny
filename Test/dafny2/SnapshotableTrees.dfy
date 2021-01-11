@@ -610,6 +610,7 @@ module SnapTree {
         case Cons(p, rest) =>
           // lemmas:
           reveal p.NodeValid();
+          assert R(rest, N + 1 + if p.right==null then 0 else |p.right.Contents|, Contents, T.Repr);
 
           stack, N := rest, N+1;
 

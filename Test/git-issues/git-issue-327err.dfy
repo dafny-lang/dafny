@@ -35,7 +35,7 @@ module F {
 module G {
   module H {
     module Z {
-      const z := 52;
+      const z := 52
     }
   }
 

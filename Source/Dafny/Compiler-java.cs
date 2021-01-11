@@ -305,7 +305,7 @@ namespace Microsoft.Dafny{
     public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
-      var modName = mainMethod.EnclosingClass.Module.CompileName == "_module" ? "_System." : "";
+      var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_System." : "";
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
       wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling({companion}::{IdName(mainMethod)});");
@@ -355,7 +355,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr){
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);
@@ -753,10 +753,10 @@ namespace Microsoft.Dafny{
         return DafnyTupleClass(tupleDecl.TypeArgs.Count);
       } else if (cl is TraitDecl && useCompanionName) {
         return IdProtect(udt.FullCompanionCompileName);
-      } else if (cl.Module.CompileName == ModuleName || cl.Module.IsDefaultModule) {
+      } else if (cl.EnclosingModuleDefinition.CompileName == ModuleName || cl.EnclosingModuleDefinition.IsDefaultModule) {
         return IdProtect(cl.CompileName);
       } else {
-        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
+        return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
       }
     }
 
@@ -976,7 +976,7 @@ namespace Microsoft.Dafny{
         } else {
           wr.Write($"new java.math.BigInteger(\"{i}\")");
         }
-      } else if (e.Value is Basetypes.BigDec n){
+      } else if (e.Value is BaseTypes.BigDec n){
         if (0 <= n.Exponent){
           wr.Write($"new {DafnyBigRationalClass}(new java.math.BigInteger(\"{n.Mantissa}");
           for (int j = 0; j < n.Exponent; j++){
@@ -1932,7 +1932,7 @@ namespace Microsoft.Dafny{
         if (dt is TupleTypeDecl) {
           nm = "";
         } else {
-          nm = (dt.Module.IsDefaultModule ? "" : dt.Module.Name + ".") + dt.Name + "." + ctor.Name;
+          nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
         }
         if (dt is TupleTypeDecl && ctor.Formals.Count == 0) {
           // here we want parentheses and no name
@@ -3360,7 +3360,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr){
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.CompileName), IdName(nt), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var nativeType = GetBoxedNativeTypeName(nt.NativeType);

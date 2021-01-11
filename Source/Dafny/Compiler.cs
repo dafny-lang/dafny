@@ -16,7 +16,7 @@ using System.Diagnostics.SymbolStore;
 using System.Net.Security;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
-using Microsoft.Basetypes;
+using Microsoft.BaseTypes;
 
 
 namespace Microsoft.Dafny {
@@ -1182,13 +1182,13 @@ namespace Microsoft.Dafny {
             }
             var classIsExtern = false;
             if (include) {
-              classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern") || cl.IsDefaultClass && Attributes.Contains(cl.Module.Attributes, "extern");
+              classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern") || cl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern");
               if (classIsExtern && cl.Members.TrueForAll(member => member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
                 include = false;
               }
             }
             if (include) {
-              var cw = CreateClass(IdProtect(d.Module.CompileName), IdName(cl), classIsExtern, cl.FullName,
+              var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.CompileName), IdName(cl), classIsExtern, cl.FullName,
                 cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.tok, wr);
               CompileClassMembers(cl, cw);
               cw.Finish();
@@ -1391,7 +1391,7 @@ namespace Microsoft.Dafny {
           consts.Add((ConstantField)decl);
         }
       }
-      consts.Sort((a, b) => c.Module.CallGraph.GetSCCRepresentativeId(a) - c.Module.CallGraph.GetSCCRepresentativeId(b));
+      consts.Sort((a, b) => c.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativeId(a) - c.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativeId(b));
       foreach (var con in consts) {
         decls.Remove(con);
       }

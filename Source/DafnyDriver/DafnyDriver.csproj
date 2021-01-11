@@ -3,7 +3,6 @@
   <PropertyGroup>
       <OutputType>Exe</OutputType>
       <AssemblyName>Dafny</AssemblyName>
-      <TargetFramework>netcoreapp3.1</TargetFramework>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
@@ -14,13 +13,6 @@
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\boogie\Source\AbsInt\AbsInt-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\Concurrency\Concurrency-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\Core\Core-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\ExecutionEngine\ExecutionEngine-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\ParserHelper\ParserHelper-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\Provers\SMTLib\SMTLib-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\VCGeneration\VCGeneration-NetCore.csproj" />
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
   </ItemGroup>
   

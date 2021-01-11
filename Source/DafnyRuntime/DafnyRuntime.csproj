@@ -3,7 +3,6 @@
   <PropertyGroup>
       <OutputType>Library</OutputType>
       <AssemblyName>DafnyRuntime</AssemblyName>
-      <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
       <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE;ISDAFNYRUNTIMELIB</DefineConstants>

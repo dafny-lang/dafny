@@ -1,0 +1,2 @@
+git-issue-1016a.dfy(34,13): Error: arguments must have comparable types (got Option<State> and Option<real>)
+1 resolution/type errors detected in git-issue-1016a.dfy

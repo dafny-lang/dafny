@@ -2,11 +2,11 @@ ComputationsNeg.dfy(7,2): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-ComputationsNeg.dfy(11,0): Error BP5003: A postcondition might not hold on this return path.
+ComputationsNeg.dfy(11,0): Error: A postcondition might not hold on this return path.
 ComputationsNeg.dfy(10,16): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-ComputationsNeg.dfy(23,0): Error BP5003: A postcondition might not hold on this return path.
+ComputationsNeg.dfy(23,0): Error: A postcondition might not hold on this return path.
 ComputationsNeg.dfy(22,10): Related location: This is the postcondition that might not hold.
 ComputationsNeg.dfy(19,28): Related location
 ComputationsNeg.dfy(19,65): Related location
