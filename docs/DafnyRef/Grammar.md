@@ -160,9 +160,9 @@ A digit is just one of the base-10 digits.
 
 ````grammar
 posDigit = "123456789"
-posDigit2 = "23456789"
+posDigitFrom2 = "23456789"
 ````
-A ``posDigit`` is a digit, excluding 0. ``posDigit2`` excludes both 0 and 1.
+A ``posDigit`` is a digit, excluding 0. ``posDigitFrom2`` excludes both 0 and 1.
 
 ````grammar
 hexdigit = "0123456789ABCDEFabcdef"
@@ -316,7 +316,7 @@ reservedword =
     "yield" | "yields" |
     arrayToken | bvToken
 
-arrayToken = "array" [ posdigit2 | posDigit digit { digit }]["?"]
+arrayToken = "array" [ posDigitFrom2 | posDigit digit { digit }]["?"]
 
 bvToken = "bv" ( 0 | posDigit { digit } )
 ```

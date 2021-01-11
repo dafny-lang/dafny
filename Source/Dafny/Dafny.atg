@@ -578,7 +578,6 @@ bool IsNonArrowType(ref IToken pt) {
       pt = scanner.Peek();
       return true;
     case _arrayToken:
-    case _arrayToken_q:
     case _bvToken:
     case _set:
     case _iset:
@@ -660,7 +659,7 @@ CHARACTERS
   posDigitFrom2 = "23456789".
   hexdigit = "0123456789ABCDEFabcdef".
   special = "'_?".
-  glyph = "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
+  // glyph = "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
   cr        = '\r'.
   lf        = '\n'.
   tab       = '\t'.
@@ -684,7 +683,7 @@ CHARACTERS
 
 /*------------------------------------------------------------------------*/
 TOKENS
-  ident =  nondigitMinusABTick {idchar}       /* if char 0 is not an 'a' or '\'', then anything else is fine */
+  ident =  nondigitMinusABTick {idchar}       /* if char 0 is not an 'a' or 'b' or '\'', then anything else is fine */
         |  'a' [ idcharMinusR {idchar} ]      /* if char 0 is an 'a', then either there is no char 1 or char 1 is not an 'r' */
         |  'a' 'r' [ idcharMinusR {idchar} ]  /* etc. */
         |  'a' 'r' 'r' [ idcharMinusA {idchar} ]
@@ -705,8 +704,7 @@ TOKENS
   digits = digit {['_'] digit}.
   hexdigits = "0x" hexdigit {['_'] hexdigit}.
   decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}.
-  arrayToken = "array" [('1' digit | posDigitFrom2 ) {digit}].
-  arrayToken_q = "array" [('1' digit | posDigitFrom2 ) {digit}] '?'.
+  arrayToken = "array" [('1' digit | posDigitFrom2 ) {digit}] ['?'].
   bvToken = "bv" ( '0' | posDigit {digit} ).
   bool = "bool".
   char = "char".
@@ -714,7 +712,7 @@ TOKENS
   nat = "nat".
   real = "real".
   ORDINAL = "ORDINAL".
-  object = "object".
+  object = "object". // Keeping object and object? as literals simplifies ident
   object_q = "object?".
   string = "string".
   set = "set".
@@ -883,7 +881,7 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
   | ClassDecl<dmod, module, out td>             (. module.TopLevelDecls.Add(td); .)
   | DatatypeDecl<dmod, module, out dt>         (. module.TopLevelDecls.Add(dt); .)
   | NewtypeDecl<dmod, module, out td>          (. module.TopLevelDecls.Add(td); .)
-  | OtherTypeDecl<dmod, module, out td>        (. module.TopLevelDecls.Add(td); .)
+  | SynonymTypeDecl<dmod, module, out td>      (. module.TopLevelDecls.Add(td); .)
   | IteratorDecl<dmod, module, out iter>       (. module.TopLevelDecls.Add(iter); .)
   | TraitDecl<dmod, module, out trait>         (. module.TopLevelDecls.Add(trait); .)
   | ClassMemberDecl<dmod, membersDefaultClass, false, true, !DafnyOptions.O.AllowGlobals,
@@ -891,43 +889,57 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
   ) .
 
 SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
-= (. Attributes attrs = null;  IToken/*!*/ id, iderr; var prefixIds = new List<IToken>();
+=
+  (. submodule = null; .)
+  ( ModuleDefinition<dmod, parent, out submodule>
+  | ModuleImport<parent, out submodule>
+  | ModuleExport<parent, out submodule>
+  )
+.
+
+ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
+=  "module"
+   (. Attributes attrs = null;
+     IToken/*!*/ id, iderr; var prefixIds = new List<IToken>();
      List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
-     List<IToken> idPath = new List<IToken>();
-     List<IToken> idExports = null;
      List<IToken> idRefined = null;
      ModuleDefinition module;
      submodule = null; // appease compiler
      bool isAbstract = dmod.IsAbstract;
-     bool opened = false;
      CheckDeclModifiers(dmod, "module", AllowedDeclModifiers.Abstract);
-  .)
-  ( "module"
-    { Attribute<ref attrs> }
-    NoUSIdent<out id>
-    { (. prefixIds.Add(id); .)
-      "." NoUSIdent<out id>
-    }
-    [ "refines" QualifiedModuleId<out idRefined>
-    |  Ident<out iderr> (. SemErr(la, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
-    ]
-    (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, false,
-                                      idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
-                                      false, theVerifyThisFile, theCompileThisFile);
-    .)
-    SYNC
-    "{"                                 (. module.BodyStartTok = t; .)
-      { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
-    "}"
+   .)
+   { Attribute<ref attrs> }
+   NoUSIdent<out id>
+   { (. prefixIds.Add(id); .)
+        "." NoUSIdent<out id>
+   }
+   [ "refines" QualifiedModuleId<out idRefined>
+   | Ident<out iderr> (. SemErr(la, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
+   ]
+   (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, false,
+                                        idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
+                                        false, theVerifyThisFile, theCompileThisFile);
+   .)
+   SYNC
+   "{"                                 (. module.BodyStartTok = t; .)
+     { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
+   "}"
     (.
-       module.BodyEndTok = t;
-       module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
-       submodule = new LiteralModuleDecl(module, parent);
+         module.BodyEndTok = t;
+         module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
+         submodule = new LiteralModuleDecl(module, parent);
     .)
-  |
-    "import" ["opened" (.opened = true;.)]
+  .
+
+ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
+=  "import"                          (.bool opened = false;
+                                      List<IToken> idExports = new List<IToken>();
+                                      IToken/*!*/ id;
+                                      List<IToken> idPath = new List<IToken>();
+                                      submodule = null;
+                                     .)
+    ["opened"                        (.opened = true;.) ]
     ModuleName<out id>
-    (. idExports = new List<IToken>(); .)
     (
       "."
       QualifiedModuleExport<out idPath, out idExports>
@@ -950,46 +962,48 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
                                          id, parent, opened, idExports);
           .)
     )
+    .
 
-  | (.
-      IToken exportId;
-      List<ExportSignature> exports = new List<ExportSignature>();;
-      List<IToken> extends = new List<IToken>();
-      bool provideAll = false;
-      bool revealAll = false;
-      bool isDefault = false;
-      bool isRefining = false;
-      ExportSignature exsig;
-    .)
-    "export" (. exportId = t; .)
-    [ ExportIdent<out exportId> ]
-    [ "..."  (. isRefining = true; .) ]
-    {
-      "provides"
-      (
-        ( ModuleExportSignature<true, out exsig>        (. exports.Add(exsig); .)
-          {"," ModuleExportSignature<true, out exsig>   (. exports.Add(exsig); .) }
-        )
-      | "*" (. provideAll = true; .)
+ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
+= "export"
+  (.
+    IToken exportId = t;
+    IToken/*!*/ id;
+    List<ExportSignature> exports = new List<ExportSignature>();;
+    List<IToken> extends = new List<IToken>();
+    bool provideAll = false;
+    bool revealAll = false;
+    bool isDefault = false;
+    bool isRefining = false;
+    ExportSignature exsig;
+  .)
+  [ ExportIdent<out exportId> ]
+  [ "..."  (. isRefining = true; .) ]
+  {
+    "provides"
+    (
+      ( ModuleExportSignature<true, out exsig>        (. exports.Add(exsig); .)
+        {"," ModuleExportSignature<true, out exsig>   (. exports.Add(exsig); .) }
       )
-    | "reveals"
-      (
-        ( ModuleExportSignature<false, out exsig>       (. exports.Add(exsig); .)
-          {"," ModuleExportSignature<false, out exsig>  (. exports.Add(exsig); .) }
-        )
-      | "*" (. revealAll = true; .)
+    | "*" (. provideAll = true; .)
+    )
+  | "reveals"
+    (
+      ( ModuleExportSignature<false, out exsig>       (. exports.Add(exsig); .)
+        {"," ModuleExportSignature<false, out exsig>  (. exports.Add(exsig); .) }
       )
-    | "extends"
-      ExportIdent<out id>       (. extends.Add(id); .)
-      {"," ExportIdent<out id>  (. extends.Add(id); .) }
-    }
-    (. if (exportId.val == "export" || exportId.val == parent.Name) {
-         isDefault = true;
-       }
-       submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault, isRefining);
-    .)
-  )
-.
+    | "*" (. revealAll = true; .)
+    )
+  | "extends"
+    ExportIdent<out id>       (. extends.Add(id); .)
+    {"," ExportIdent<out id>  (. extends.Add(id); .) }
+  }
+  (. if (exportId.val == "export" || exportId.val == parent.Name) {
+       isDefault = true;
+     }
+     submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault, isRefining);
+  .)
+  .
 
 ModuleExportSignature<bool opaque, out ExportSignature exsig>
 = (. IToken prefix; IToken suffix = null; .)
@@ -1270,7 +1284,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     (. td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining); .)
   )
   .
-OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
+SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id, bvId;
      Attributes attrs = null;
      var characteristics = new TypeParameter.TypeParameterCharacteristics(false);
@@ -1819,16 +1833,11 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                     .)
   | arrayToken                      (. tok = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
-                                    (. var dimString = tok.val.Substring(5);
+                                    (. var tokString = tok.val;
+                                       bool q = tokString[tokString.Length-1] == '?';
+                                       var dimString = tokString.Substring(5, tokString.Length - (q?6:5)); // 5 is length of "array"
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
-                                       ty = theBuiltIns.ArrayType(tok, dims, gt, true);
-                                    .)
-  | arrayToken_q                    (. tok = t; .)
-    OptGenericInstantiation<out gt, inExpressionContext>
-                                    (. var dimString = tok.val.Substring(5);
-                                       dimString = dimString.Substring(0, dimString.Length - 1);
-                                       int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
-                                       ty = theBuiltIns.ArrayType(tok, dims, gt, true, true);
+                                       ty = theBuiltIns.ArrayType(tok, dims, gt, true, q);
                                     .)
   | "("                             (. tok = t; tupleArgTypes = new List<Type>(); .)
     [ Type<out ty>                  (. tupleArgTypes.Add(ty); .)
