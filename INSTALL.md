@@ -80,10 +80,11 @@ or follow these instructions manually:
        cd BASE-DIRECTORY
        git clone https://github.com/dafny-lang/dafny.git --recurse-submodules
        dotnet build dafny/Source/Dafny.sln
+       cd dafny
        brew install pre-commit
        pre-commit install
        ## If java is installed:
-       make -C dafny runtime
+       make runtime
 
 3. Download and unpack Z3 (Dafny looks for `z3` in Binaries/z3/bin/) version 4.8.5 (note, this is not the latest version of Z3). You can use
 
