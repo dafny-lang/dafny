@@ -690,7 +690,7 @@ namespace Microsoft.Dafny
       if (!completeProgram) {
         return false;
       }
-      // If we got until here, compilation succeeded
+      // If we got here, compilation succeeded
       if (!invokeCompiler) {
         return true; // If we're not asked to invoke the target compiler, we can report success
       }
