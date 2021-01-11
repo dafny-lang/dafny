@@ -130,7 +130,6 @@ class Release:
             "-o", self.buildDirectory,
             "-r", self.target,
             "-c", "Checked"])
-
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyDriver", "DafnyDriver.csproj"),
             "--nologo",
             "-f", "netcoreapp3.1",
