@@ -179,13 +179,13 @@ module References {
   method M2() returns (c: C, r: R)
   {
     var o: object;
-    c := o;  // error
+    c := o;  // OK for type resolution, but must be proved
   }
 
   method M3() returns (c: C, r: R)
   {
     var o: object;
-    r := o;  // error
+    r := o;  // OK for type resolution, but must be proved
   }
 }
 

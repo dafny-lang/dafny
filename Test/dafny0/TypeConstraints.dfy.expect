@@ -13,8 +13,6 @@ TypeConstraints.dfy(147,16): Error: type of + must be of a numeric type, a bitve
 TypeConstraints.dfy(145,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got map<bool, int>)
 TypeConstraints.dfy(149,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got C)
 TypeConstraints.dfy(176,6): Error: RHS (of type C) not assignable to LHS (of type R)
-TypeConstraints.dfy(182,6): Error: RHS (of type object) not assignable to LHS (of type C)
-TypeConstraints.dfy(188,6): Error: RHS (of type object) not assignable to LHS (of type R)
 // TypeConstraints.dfy
 
 /*
@@ -848,4 +846,4 @@ module TypeArgumentPrintTests {
   type {:axiom} B(==)<Y> = c: B?<Y> | c != null /*special witness*/
   */
 }
-17 resolution/type errors detected in TypeConstraints.dfy
+15 resolution/type errors detected in TypeConstraints.dfy

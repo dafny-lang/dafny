@@ -1,0 +1,14 @@
+git-issue-885.dfy(10,10): Error: value does not satisfy the subset constraints of 'Class?'
+Execution trace:
+    (0,0): anon0
+git-issue-885.dfy(16,7): Error: value does not satisfy the subset constraints of 'Class' (it may be null)
+Execution trace:
+    (0,0): anon0
+git-issue-885.dfy(22,13): Error: value does not satisfy the subset constraints of 'Class?'
+Execution trace:
+    (0,0): anon0
+git-issue-885.dfy(27,26): Error: unless an initializer is provided for the array elements, a new array of 'Class' must have empty size
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 0 verified, 4 errors

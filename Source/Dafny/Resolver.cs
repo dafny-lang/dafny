@@ -4732,13 +4732,19 @@ namespace Microsoft.Dafny
         switch (ConstraintName) {
           case "Assignable": {
               Contract.Assert(t == t.Normalize());  // it's already been normalized above
-              var u = Types[1].NormalizeExpandKeepConstraints();
+              var u = Types[1].NormalizeExpand();
               if (CheckTypeInference_Visitor.IsDetermined(t) &&
-                (fullstrength
-                || !ProxyWithNoSubTypeConstraint(u, resolver)
-                || (Types[0].NormalizeExpandKeepConstraints().IsNonNullRefType && u is TypeProxy && resolver.HasApplicableNullableRefTypeConstraint(new HashSet<TypeProxy>() { (TypeProxy)u })))) {
+                  (fullstrength
+                   || !ProxyWithNoSubTypeConstraint(u, resolver)
+                   || (Types[0].NormalizeExpandKeepConstraints().IsNonNullRefType && u is TypeProxy && resolver.HasApplicableNullableRefTypeConstraint(new HashSet<TypeProxy>() {(TypeProxy)u})))) {
                 // This is the best case.  We convert Assignable(t, u) to the subtype constraint base(t) :> u.
-                resolver.ConstrainAssignable((NonProxyType)t, u, errorMsg, out moreXConstraints, fullstrength);
+                if (CheckTypeInference_Visitor.IsDetermined(u) && t.IsSubtypeOf(u, false) && t.IsRefType) {
+                  // But we also allow cases where the rhs is a proper supertype of the lhs, and let the verifier
+                  // determine whether the rhs is provably an instance of the lhs.
+                  resolver.ConstrainAssignable((NonProxyType)u, (NonProxyType)t, errorMsg, out moreXConstraints, fullstrength);
+                } else {
+                  resolver.ConstrainAssignable((NonProxyType)t, u, errorMsg, out moreXConstraints, fullstrength);
+                }
                 convertedIntoOtherTypeConstraints = true;
                 return true;
               } else if (u.IsTypeParameter) {
@@ -14195,7 +14201,9 @@ namespace Microsoft.Dafny
 
         ResolveExpression(e.Array, opts);
         Contract.Assert(e.Array.Type != null);  // follows from postcondition of ResolveExpression
-        Type elementType = new InferredTypeProxy();
+        Type elementType = e.Array.Type.TypeArgs.Count > 0 ?
+          e.Array.Type.TypeArgs[0] :
+          new InferredTypeProxy();
         ConstrainSubtypeRelation(ResolvedArrayType(e.Array.tok, e.Indices.Count, elementType, opts.codeContext, true), e.Array.Type, e.Array,
           "array selection requires an array{0} (got {1})", e.Indices.Count, e.Array.Type);
         int i = 0;
