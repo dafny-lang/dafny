@@ -14201,6 +14201,7 @@ namespace Microsoft.Dafny
 
         ResolveExpression(e.Array, opts);
         Contract.Assert(e.Array.Type != null);  // follows from postcondition of ResolveExpression
+        Contract.Assert(e.Array.Type.TypeArgs != null);  // if it is null, should make a 1-element list with a Proxy
         Type elementType = e.Array.Type.TypeArgs.Count > 0 ?
           e.Array.Type.TypeArgs[0] :
           new InferredTypeProxy();

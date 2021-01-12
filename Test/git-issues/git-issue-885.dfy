@@ -28,3 +28,9 @@ method Test4(x: Trait)
   m[0, 0] := x;   // Error: should fail in verifier, not resolver
 }
 
+method Test5(x: Trait?)
+{
+  var m: array2 := new Class?[10, 10];
+  m[0, 0] := x;   // Error: should fail in verifier, not resolver
+}
+
