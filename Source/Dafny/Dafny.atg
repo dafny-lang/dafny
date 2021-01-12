@@ -1658,6 +1658,39 @@ KType<ref ExtremePredicate.KType kType>
   )
   "]"
   .
+
+RequiresClause<List<AttributedExpression> req>
+= "requires"
+  { Attribute<ref attrs> }
+  [ IF(IsLabel(true))
+    LabelIdent<out lbl> ":"
+  ]
+  Expression<out e, false, false>
+  OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
+  .
+
+EnsuresClause<List<AttributedExpression> ens>
+= "ensures"
+  { Attribute<ref attrs> }
+  Expression<out e, false, false>
+  OldSemi       (. ens.Add(new AttributedExpression(e, attrs)); .)
+  .
+
+ModifiesClause<List<FrameExpression> mod, ref Attributes attrs>
+= "modifies" { Attribute<ref attrs> }
+  FrameExpression<out fe, false, false>         (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
+  { "," FrameExpression<out fe, false, false>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
+  }
+  OldSemi
+  .
+
+DecreasesClause<List<Expression> decreases, ref Attributes attrs>
+= "decreases"
+  { Attribute<ref attrs> }
+  DecreasesList<decreases, true, false>
+  OldSemi
+  .
+
 MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<AttributedExpression> ens,
             List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, string caption, bool performThisDeprecatedCheck.>
 = (. Contract.Requires(cce.NonNullElements(req));
@@ -1668,28 +1701,13 @@ MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<Attr
      IToken lbl = null;
   .)
   SYNC
-  ( "modifies" { Attribute<ref attrs> }
-    FrameExpression<out fe, false, false>         (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
-    { "," FrameExpression<out fe, false, false>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
-    }
-    OldSemi
-  | "requires"
-    { Attribute<ref attrs> }
-    [ IF(IsLabel(true))
-      LabelIdent<out lbl> ":"
-    ]
-    Expression<out e, false, false>
-    OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
-  | "ensures"
-    { Attribute<ref attrs> }
-    Expression<out e, false, false>
-    OldSemi       (. ens.Add(new AttributedExpression(e, attrs)); .)
-  | "decreases"
-    { Attribute<ref attrs> }
-    DecreasesList<decreases, true, false>
-    OldSemi
+  ( ModifiesClause<mod, modAttrs>
+  | RequiresClause<req>
+  | EnsuresClause<ens>
+  | DecreasesClause<decreases, decAttrs>
   )
   .
+
 IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/*!*/ mod, List<Expression/*!*/> decreases,
               List<AttributedExpression/*!*/>/*!*/ req, List<AttributedExpression/*!*/>/*!*/ ens,
               List<AttributedExpression/*!*/>/*!*/ yieldReq, List<AttributedExpression/*!*/>/*!*/ yieldEns,
