@@ -82,7 +82,7 @@ namespace Microsoft.Dafny {
     /// Emits a call to "mainMethod" as the program's entry point, if such an explicit call is
     /// required in the target language.
     /// </summary>
-    public virtual void EmitCallToMain(Method mainMethod, TargetWriter wr) { }
+    public virtual void EmitCallToMain(Method mainMethod, string baseName, TargetWriter wr) { }
     /// <summary>
     /// Creates a static Main method. The caller will fill the body of this static Main with a
     /// call to the instance Main method in the enclosing class.
