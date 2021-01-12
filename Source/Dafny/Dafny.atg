@@ -796,6 +796,7 @@ TOKENS
   closeparen = ')'.
   openAngleBracket = '<'.
   closeAngleBracket = '>'.
+  singleeq = "=".
   eq = "==".
   neq = "!=".
   neqAlt = '\u2260'.
@@ -871,14 +872,16 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
      TraitDecl/*!*/ trait;
   .)
   { DeclModifier<ref dmod> }
-  ( SubModuleDecl<dmod, module, out submodule> (. var litmod = submodule as LiteralModuleDecl;
+  ( SubModuleDecl<dmod, module, out submodule, isTopLevel>
+                                               (. var litmod = submodule as LiteralModuleDecl;
                                                   if (litmod != null && litmod.ModuleDef.PrefixIds.Count != 0) {
                                                     var tup = new Tuple<List<IToken>, LiteralModuleDecl>(litmod.ModuleDef.PrefixIds, litmod);
                                                     module.PrefixNamedModules.Add(tup);
                                                   } else {
                                                     module.TopLevelDecls.Add(submodule);
-                                                  } .)
-  | ClassDecl<dmod, module, out td>             (. module.TopLevelDecls.Add(td); .)
+                                                  }
+                                               .)
+  | ClassDecl<dmod, module, out td>            (. module.TopLevelDecls.Add(td); .)
   | DatatypeDecl<dmod, module, out dt>         (. module.TopLevelDecls.Add(dt); .)
   | NewtypeDecl<dmod, module, out td>          (. module.TopLevelDecls.Add(td); .)
   | SynonymTypeDecl<dmod, module, out td>      (. module.TopLevelDecls.Add(td); .)
@@ -888,20 +891,24 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
                     !isTopLevel && DafnyOptions.O.IronDafny && isAbstract>
   ) .
 
-SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
+SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule, bool isTopLevel>
 =
   (. submodule = null; .)
   ( ModuleDefinition<dmod, parent, out submodule>
   | ModuleImport<parent, out submodule>
   | ModuleExport<parent, out submodule>
+    (. if (isTopLevel) SemErr(submodule.tok, "There is no point to an export declaration at the top level");
+    .)
   )
 .
 
 ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
 =  "module"
    (. Attributes attrs = null;
-     IToken/*!*/ id, iderr; var prefixIds = new List<IToken>();
+     IToken/*!*/ id, iderr;
+     var prefixIds = new List<IToken>();
      List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
+     List<IToken> idQualified = null;
      List<IToken> idRefined = null;
      ModuleDefinition module;
      submodule = null; // appease compiler
@@ -909,11 +916,12 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      CheckDeclModifiers(dmod, "module", AllowedDeclModifiers.Abstract);
    .)
    { Attribute<ref attrs> }
-   NoUSIdent<out id>
-   { (. prefixIds.Add(id); .)
-        "." NoUSIdent<out id>
-   }
-   [ "refines" QualifiedModuleId<out idRefined>
+   ModuleQualifiedName<out idQualified>
+   (. id = idQualified[idQualified.Count-1];
+			prefixIds = idQualified.GetRange(0,idQualified.Count-1);
+   .)
+
+   [ "refines" ModuleQualifiedName<out idRefined>
    | Ident<out iderr> (. SemErr(la, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
    ]
    (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, false,
@@ -939,30 +947,28 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
                                       submodule = null;
                                      .)
     ["opened"                        (.opened = true;.) ]
-    ModuleName<out id>
-    (
-      "."
+    (. int lookAhead = scanner.Peek().kind; .)
+    ( IF(lookAhead == _singleeq)
+      ModuleName<out id>
+      "="
       QualifiedModuleExport<out idPath, out idExports>
-      (. idPath.Insert(0, id);
-         submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
-                                         idPath[idPath.Count-1], parent, opened, idExports);
-      .)
-
-    | "=" QualifiedModuleExport<out idPath, out idExports>
           (. submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
                                          id, parent, opened, idExports); .)
-
-    | ":" QualifiedModuleExport<out idPath, out idExports>
+    | IF(lookAhead == _colon)
+      ModuleName<out id>
+      ":"
+      QualifiedModuleExport<out idPath, out idExports>
           (. submodule = new AbstractModuleDecl(new ModuleQualifiedId(idPath),
                                          id, parent, opened, idExports); .)
-
-    | [ "`" ModuleExportSuffix<idExports> ]
-          (. idPath.Add(id);
-             submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
-                                         id, parent, opened, idExports);
+    |
+      QualifiedModuleExport<out idPath, out idExports>
+          (. submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
+                                         idPath[idPath.Count-1], parent, opened, idExports);
           .)
     )
     .
+
+ExportId<out IToken id> = NoUSIdent<out id> .
 
 ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
 = "export"
@@ -977,26 +983,26 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
     bool isRefining = false;
     ExportSignature exsig;
   .)
-  [ ExportIdent<out exportId> ]
+  [ ExportId<out exportId> ]
   [ "..."  (. isRefining = true; .) ]
   {
     "provides"
     (
-      ( ModuleExportSignature<true, out exsig>        (. exports.Add(exsig); .)
-        {"," ModuleExportSignature<true, out exsig>   (. exports.Add(exsig); .) }
+      ( ExportSignature<true, out exsig>        (. exports.Add(exsig); .)
+        {"," ExportSignature<true, out exsig>   (. exports.Add(exsig); .) }
       )
     | "*" (. provideAll = true; .)
     )
   | "reveals"
     (
-      ( ModuleExportSignature<false, out exsig>       (. exports.Add(exsig); .)
-        {"," ModuleExportSignature<false, out exsig>  (. exports.Add(exsig); .) }
+      ( ExportSignature<false, out exsig>       (. exports.Add(exsig); .)
+        {"," ExportSignature<false, out exsig>  (. exports.Add(exsig); .) }
       )
     | "*" (. revealAll = true; .)
     )
   | "extends"
-    ExportIdent<out id>       (. extends.Add(id); .)
-    {"," ExportIdent<out id>  (. extends.Add(id); .) }
+    ExportId<out id>       (. extends.Add(id); .)
+    {"," ExportId<out id>  (. extends.Add(id); .) }
   }
   (. if (exportId.val == "export" || exportId.val == parent.Name) {
        isDefault = true;
@@ -1005,7 +1011,8 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
   .)
   .
 
-ModuleExportSignature<bool opaque, out ExportSignature exsig>
+// TODO - this is somewhat a hack because any member name is allowed
+ExportSignature<bool opaque, out ExportSignature exsig>
 = (. IToken prefix; IToken suffix = null; .)
   TypeNameOrCtorSuffix<out prefix> [ "." TypeNameOrCtorSuffix<out suffix> ]
   (. if (suffix != null) {
@@ -1022,7 +1029,7 @@ ModuleName<out IToken id>
 = Ident<out id>
   .
 
-QualifiedModuleId<.out List<IToken> ids.>
+ModuleQualifiedName<.out List<IToken> ids.>
 = (. IToken id; ids = new List<IToken>();
   .)
   ModuleName<out id> (. ids.Add(id); .)
@@ -1032,15 +1039,15 @@ QualifiedModuleId<.out List<IToken> ids.>
 QualifiedModuleExport<.out List<IToken> idPath, out List<IToken> exports.>
 = (. exports = new List<IToken>();
   .)
-  QualifiedModuleId<out idPath>
+  ModuleQualifiedName<out idPath>
   [ "`" ModuleExportSuffix<exports> ]
   .
 
 ModuleExportSuffix<. List<IToken> exports.>
 =                              (. IToken id; .)
-    ( ExportIdent<out id>       (. exports.Add(id); .)
-    | "{" ExportIdent<out id>   (. exports.Add(id); .)
-       { "," ExportIdent<out id> (. exports.Add(id); .) }
+    ( ExportId<out id>       (. exports.Add(id); .)
+    | "{" ExportId<out id>   (. exports.Add(id); .)
+       { "," ExportId<out id> (. exports.Add(id); .) }
       "}"
     )
   .
@@ -1888,6 +1895,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     .)
   ]
   .
+
 OptGenericInstantiation<.out List<Type> gt, bool inExpressionContext.>  /* NOTE: Coco complains about "OptGenericInstantiation deletable". That's okay. */
 = (. gt = null; .)
   [ IF(IsGenericInstantiation(inExpressionContext))  /* be greedy -- if it looks like a type instantiation, take it */
@@ -4173,10 +4181,7 @@ FuMe_Ident<out IToken id>
   | digits         (. id = t; .)
   )
   .
-ExportIdent<out IToken id>
-=
-  FuMe_Ident<out id>
-  .
+
 TypeNameOrCtorSuffix<out IToken id>
 = (. id = Token.NoToken; .)
   ( Ident<out id>
