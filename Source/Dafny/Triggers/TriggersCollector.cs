@@ -176,7 +176,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private ISet<IVariable> CollectVariables(Expression expr) {
-      return ReduceAnnotatedSubExpressions(expr, new HashSet<IVariable>(), a => a.Variables, TriggerUtils.MergeAlterFirst);
+      return ReduceAnnotatedSubExpressions<ISet<IVariable>>(expr, new HashSet<IVariable>(), a => a.Variables, TriggerUtils.MergeAlterFirst);
     }
 
     private bool CollectIsKiller(Expression expr) {

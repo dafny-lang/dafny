@@ -1001,8 +1001,8 @@ iterate over the contents is well-known. For an array:
 ```dafny
   var i := 0;
   var sum := 0;
-  while i < s.Length {
-    sum := sum + s[i];
+  while i < a.Length {
+    sum := sum + a[i];
     i := i + 1;
   }
 }
@@ -1042,7 +1042,7 @@ as follows:
   }
 ```
 
-Because `iset`s may be infinite, Dafny doesnot permit iteration over an `iset`.
+Because `iset`s may be infinite, Dafny does not permit iteration over an `iset`.
 
 ### 10.5.3. Maps
 

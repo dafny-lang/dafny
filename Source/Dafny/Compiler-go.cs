@@ -87,7 +87,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
+    public override void EmitCallToMain(Method mainMethod, string baseName, TargetWriter wr) {
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
 
       var wBody = wr.NewNamedBlock("func main()");

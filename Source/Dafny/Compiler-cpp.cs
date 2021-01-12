@@ -98,7 +98,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
+    public override void EmitCallToMain(Method mainMethod, string baseName, TargetWriter wr) {
       var w = wr.NewBlock("int main()");
       var tryWr = w.NewBlock("try");
       tryWr.WriteLine(string.Format("{0}::{1}::{2}();", mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName, mainMethod.EnclosingClass.CompileName, mainMethod.Name));

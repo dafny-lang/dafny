@@ -546,7 +546,7 @@ namespace Microsoft.Dafny
           break;
         case DafnyOptions.CompilationTarget.Java:
           targetExtension = "java";
-          targetBaseDir = baseName;
+          targetBaseDir = baseName + "-java";
           baseName = compiler.TransformToClassName(baseName);
           break;
         case DafnyOptions.CompilationTarget.Php:
@@ -567,8 +567,9 @@ namespace Microsoft.Dafny
       // WARNING: Make sure that Directory.Delete is only called when the compilation target is Java.
       // If called during C# or JS compilation, you will lose your entire target directory.
       // Purpose is to delete the old generated folder with the Java compilation output and replace all contents.
-      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java && Directory.Exists(targetDir))
+      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java && Directory.Exists(targetDir)) {
         Directory.Delete(targetDir, true);
+      }
       string targetFilename = Path.Combine(targetDir, targetBaseName);
       if (targetProgram != null) {
         WriteFile(targetFilename, targetProgram);
@@ -579,8 +580,7 @@ namespace Microsoft.Dafny
         if (DafnyOptions.O.CompileVerbose) {
           outputWriter.WriteLine("Compiled program written to {0}", relativeTarget);
         }
-      }
-      else {
+      } else {
         outputWriter.WriteLine("File {0} contains the partially compiled program", relativeTarget);
       }
 
@@ -591,6 +591,7 @@ namespace Microsoft.Dafny
           outputWriter.WriteLine("Additional code written to {0}", Path.Combine(targetBaseDir, filename));
         }
       }
+      
       return targetFilename;
     }
 
@@ -663,18 +664,11 @@ namespace Microsoft.Dafny
           otherFiles.Add(wr.Filename, sw.ToString());
         }
       }
-      string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
       string callToMain = null;
       if (hasMain) {
         using (var wr = new TargetWriter(0)) {
-          if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-            baseName = compiler.TransformToClassName(baseName);
-            wr.WriteLine($"public class {baseName} {{");
-          }
-          compiler.EmitCallToMain(mainMethod, wr);
-          if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-            wr.WriteLine("}");
-          }
+          string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
+          compiler.EmitCallToMain(mainMethod, baseName, wr);
           callToMain = wr.ToString(); // assume there aren't multiple files just to call main
         }
       }
@@ -693,27 +687,12 @@ namespace Microsoft.Dafny
         targetFilename = WriteDafnyProgramToFiles(compiler, dafnyProgramName, p, completeProgram, otherFiles, outputWriter);
       }
 
-      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-        string targetBaseDir = Path.GetFileNameWithoutExtension(dafnyProgramName);
-        string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
-        var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
-        Contract.Assert(assemblyLocation != null);
-        var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
-        Contract.Assert(codebase != null);
-        string dest = targetDir + "/dafny";
-        Directory.CreateDirectory(dest);
-        var jcompiler = (JavaCompiler) compiler;
-        jcompiler.CompileTuples(dest);
-        jcompiler.CreateFunctionInterface(dest);
-        jcompiler.CompileDafnyArrays(dest);
-      }
-
       if (!completeProgram) {
         return false;
       }
-      // If we got until here, compilation to C# succeeded
+      // If we got here, compilation succeeded
       if (!invokeCompiler) {
-        return true; // If we're not asked to invoke the C# to assembly compiler, we can report success
+        return true; // If we're not asked to invoke the target compiler, we can report success
       }
 
       // compile the program into an assembly
