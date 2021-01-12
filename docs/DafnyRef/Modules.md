@@ -290,6 +290,8 @@ ModuleExport =
   | "extends"  ExportId { "," ExportId }
   }
 
+ExportId =
+
 ExportSignature = NoUSIdent
 ````
 

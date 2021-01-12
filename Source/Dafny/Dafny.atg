@@ -968,7 +968,7 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
     )
     .
 
-ExportId<out IToken id> = NoUSIdent<out id> .
+ExportId<out IToken id> = NoUSIdentOrDigits<out id> .
 
 ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
 = "export"
@@ -1659,8 +1659,11 @@ KType<ref ExtremePredicate.KType kType>
   "]"
   .
 
-RequiresClause<List<AttributedExpression> req>
-= "requires"
+RequiresClause<.List<AttributedExpression> req.>
+= "requires"    (. IToken lbl = null;
+                   Attributes attrs = null;
+                   Expression e;
+                 .)
   { Attribute<ref attrs> }
   [ IF(IsLabel(true))
     LabelIdent<out lbl> ":"
@@ -1669,25 +1672,51 @@ RequiresClause<List<AttributedExpression> req>
   OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
   .
 
-EnsuresClause<List<AttributedExpression> ens>
-= "ensures"
+EnsuresClause<.List<AttributedExpression> ens.>
+= "ensures"     (. Expression e;
+                   Attributes attrs = null;
+                 .)
   { Attribute<ref attrs> }
   Expression<out e, false, false>
   OldSemi       (. ens.Add(new AttributedExpression(e, attrs)); .)
   .
 
-ModifiesClause<List<FrameExpression> mod, ref Attributes attrs>
-= "modifies" { Attribute<ref attrs> }
+ModifiesClause<.ref List<FrameExpression> mod, ref Attributes attrs, bool performThisDeprecatedCheck.>
+= "modifies"                                    (. FrameExpression fe; .)
+  { Attribute<ref attrs> }
   FrameExpression<out fe, false, false>         (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
   { "," FrameExpression<out fe, false, false>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
   }
   OldSemi
   .
 
-DecreasesClause<List<Expression> decreases, ref Attributes attrs>
+DecreasesClause<.List<Expression> decreases, ref Attributes attrs,
+                 bool allowWildcard, bool allowLambda.>
 = "decreases"
   { Attribute<ref attrs> }
-  DecreasesList<decreases, true, false>
+  DecreasesList<decreases, allowWildcard, allowLambda>
+  OldSemi
+  .
+
+ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads.>
+= "reads"                                             (. Attributes attrs = null;
+                                                         FrameExpression fe;
+                                                       .)
+  { Attribute<ref attrs> }
+  FrameExpression<out fe, false, false>          (. reads.Add(fe); .)
+  { "," FrameExpression<out fe, false, false>    (. reads.Add(fe); .)
+  }
+  OldSemi
+  .
+
+ReadsClausePossiblyWild<.List<FrameExpression/*!*/>/*!*/ reads.>
+= "reads"                                             (. Attributes attrs = null;
+                                                         FrameExpression fe;
+                                                       .)
+  { Attribute<ref attrs> }
+  PossiblyWildFrameExpression<out fe, false>          (. reads.Add(fe); .)
+  { "," PossiblyWildFrameExpression<out fe, false>    (. reads.Add(fe); .)
+  }
   OldSemi
   .
 
@@ -1697,14 +1726,12 @@ MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<Attr
      Contract.Requires(cce.NonNullElements(mod));
      Contract.Requires(cce.NonNullElements(ens));
      Contract.Requires(cce.NonNullElements(decreases));
-     Expression e;  FrameExpression fe;  Attributes attrs = null;
-     IToken lbl = null;
   .)
   SYNC
-  ( ModifiesClause<mod, modAttrs>
+  ( ModifiesClause<ref mod, ref modAttrs, performThisDeprecatedCheck>
   | RequiresClause<req>
   | EnsuresClause<ens>
-  | DecreasesClause<decreases, decAttrs>
+  | DecreasesClause<decreases, ref decAttrs, true, false>
   )
   .
 
@@ -1712,20 +1739,12 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
               List<AttributedExpression/*!*/>/*!*/ req, List<AttributedExpression/*!*/>/*!*/ ens,
               List<AttributedExpression/*!*/>/*!*/ yieldReq, List<AttributedExpression/*!*/>/*!*/ yieldEns,
               ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs.>
-= (. Expression/*!*/ e; FrameExpression/*!*/ fe; bool isYield = false; Attributes attrs = null;
+= (. Expression/*!*/ e; bool isYield = false; Attributes attrs = null;
      IToken lbl = null;
   .)
   SYNC
-  ( "reads"    { Attribute<ref readsAttrs> }
-               FrameExpression<out fe, false, false>       (. reads.Add(fe); .)
-               { "," FrameExpression<out fe, false, false> (. reads.Add(fe); .)
-               }
-               OldSemi
-  | "modifies" { Attribute<ref modAttrs> }
-               FrameExpression<out fe, false, false>       (. mod.Add(fe); .)
-               { "," FrameExpression<out fe, false, false> (. mod.Add(fe); .)
-               }
-               OldSemi
+  ( ReadsClause<reads>
+  | ModifiesClause<ref mod, ref modAttrs, false>
   | [ "yield"                                                (. isYield = true; .)
     ]
     ( "requires"                                             (. attrs = null; .)
@@ -1733,21 +1752,15 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
       [ IF(IsLabel(!isYield))
         LabelIdent<out lbl> ":"
       ]
-      Expression<out e, false, false> OldSemi                (. AssertLabel al = lbl == null ? null : new AssertLabel(lbl, lbl.val);
+      Expression<out e, false, false>
+      OldSemi                                                (. AssertLabel al = lbl == null ? null : new AssertLabel(lbl, lbl.val);
                                                                 if (isYield) {
                                                                   yieldReq.Add(new AttributedExpression(e, al, null));
                                                                 } else {
                                                                   req.Add(new AttributedExpression(e, al, null));
                                                                 }
                                                              .)
-    | "ensures"                                              (. attrs = null; .)
-      { Attribute<ref attrs> }
-      Expression<out e, false, false> OldSemi                (. if (isYield) {
-                                                                  yieldEns.Add(new AttributedExpression(e, attrs));
-                                                                } else {
-                                                                  ens.Add(new AttributedExpression(e, attrs));
-                                                                }
-                                                             .)
+    | EnsuresClause<(isYield?yieldEns:ens)>
     )
   | "decreases"
     { Attribute<ref decrAttrs> }
@@ -2099,31 +2112,18 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
 = (. Contract.Requires(cce.NonNullElements(reqs));
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));
-     Expression/*!*/ e;  FrameExpression/*!*/ fe;
      Attributes attrs = null;
   .)
   SYNC
-  ( "requires"
-    { Attribute<ref attrs> }
-    Expression<out e, false, false> OldSemi             (. reqs.Add(new AttributedExpression(e, attrs)); .)
-  | "reads"
-    { Attribute<ref attrs> }
-    PossiblyWildFrameExpression<out fe, false>          (. reads.Add(fe); .)
-    { "," PossiblyWildFrameExpression<out fe, false>    (. reads.Add(fe); .)
-    }
-    OldSemi
-  | "ensures"
-    { Attribute<ref attrs> }
-    Expression<out e, false, false>
-    OldSemi                                   (. ens.Add(new AttributedExpression(e, attrs)); .)
-  | "decreases"                               (. if (decreases == null) {
+  ( RequiresClause<reqs>
+  | ReadsClausePossiblyWild<reads>
+  | EnsuresClause<ens>
+  | DecreasesClause<decreases, ref attrs, false, false>
+                                              (. if (decreases == null) {
                                                    SemErr(t, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
                                                    decreases = new List<Expression/*!*/>();
                                                  }
                                               .)
-    { Attribute<ref attrs> }
-    DecreasesList<decreases, false, false>
-    OldSemi
   )
   .
 
@@ -2149,21 +2149,26 @@ PossiblyWildFrameExpression<out FrameExpression fe, bool allowSemi>
   | FrameExpression<out fe, allowSemi, false>
   )
   .
+
+FrameField<out IToken id> = "`" Ident<out id>.
+
 FrameExpression<out FrameExpression fe, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out fe) != null);
      Expression/*!*/ e;
      IToken/*!*/ id;
-     string fieldName = null;  IToken feTok = null;
+     string fieldName = null;
+     IToken feTok = null;
      fe = dummyFrameExpr;
   .)
   ( Expression<out e, allowSemi, allowLambda>   (. feTok = e.tok; .)
-    [ "`" Ident<out id>        (. fieldName = id.val;  feTok = id; .)
-    ]                          (. fe = new FrameExpression(feTok, e, fieldName); .)
+    [ FrameField<out id>        (. fieldName = id.val;  feTok = id; .)
+    ]                           (. fe = new FrameExpression(feTok, e, fieldName); .)
   |
-    "`" Ident<out id>          (. fieldName = id.val; .)
-                               (. fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName); .)
+    FrameField<out id>          (. fieldName = id.val; .)
+                                (. fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName); .)
   )
   .
+
 FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
   "{"                         (. bodyStart = t; .)
@@ -3486,7 +3491,7 @@ LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
 = (. IToken x = Token.NoToken;
      IToken id;  BoundVar bv;
      var bvs = new List<BoundVar>();
-     FrameExpression fe;  Expression ee;
+     Expression ee;
      var reads = new List<FrameExpression>();
      Expression req = null;
      Expression body = null;
@@ -3501,12 +3506,7 @@ LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
       ]
     ")"
   )
-  { "reads"                                           (. attrs = null; .)
-    { Attribute<ref attrs> }
-    PossiblyWildFrameExpression<out fe, true>         (. reads.Add(fe); .)
-    { ","
-      PossiblyWildFrameExpression<out fe, true>       (. reads.Add(fe); .)
-    }
+  { ReadsClausePossiblyWild<reads>
   | "requires"                                        (. attrs = null; .)
     { Attribute<ref attrs> }
     Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); .)
@@ -4178,34 +4178,6 @@ DotSuffix<out IToken x, out IToken y>
   | "reads"        (. x = t; .)
   )
   .
-MemberBindingUpdate<out IToken id, out Expression e>
-= (. id = Token.NoToken; e = dummyExpr; .)
-  ( Ident<out id>
-  | digits         (. id = t; .)
-  )
-  ":="
-  Expression<out e, true, true>
-  .
-
-LabelIdent<out IToken id>
-= (. id = Token.NoToken; .)
-  ( NoUSIdent<out id>
-  | digits         (. id = t; .)
-  )
-  .
-FuMe_Ident<out IToken id>
-= (. id = Token.NoToken; .)
-  ( NoUSIdent<out id>
-  | digits         (. id = t; .)
-  )
-  .
-
-TypeNameOrCtorSuffix<out IToken id>
-= (. id = Token.NoToken; .)
-  ( Ident<out id>
-  | digits         (. id = t; .)
-  )
-  .
 
 // Identifier, disallowing leading underscores
 NoUSIdent<out IToken/*!*/ x>
@@ -4214,6 +4186,40 @@ NoUSIdent<out IToken/*!*/ x>
                         SemErr("cannot declare identifier beginning with underscore");
                       }
                    .)
+  .
+
+IdentOrDigits<out IToken id>
+= (. id = Token.NoToken; .)
+  ( Ident<out id>
+  | digits         (. id = t; .)
+  )
+  .
+
+NoUSIdentOrDigits<out IToken id>
+= (. id = Token.NoToken; .)
+  ( NoUSIdent<out id>
+  | digits         (. id = t; .)
+  )
+  .
+
+MemberBindingUpdate<out IToken id, out Expression e>
+= (. id = Token.NoToken; e = dummyExpr; .)
+  NoUSIdentOrDigits<out id>
+  ":="
+  Expression<out e, true, true>
+  .
+
+LabelIdent<out IToken id>
+= NoUSIdentOrDigits<out id>
+  .
+
+FuMe_Ident<out IToken id>
+= NoUSIdentOrDigits<out id>
+  .
+
+TypeNameOrCtorSuffix<out IToken id>
+= (. id = Token.NoToken; .)
+  IdentOrDigits<out id>
   .
 
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"

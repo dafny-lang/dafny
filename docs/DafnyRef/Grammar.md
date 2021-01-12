@@ -448,9 +448,11 @@ in the language, but it is not used as part of expressions.
 In the productions for the declaration of user-defined entities the name of the
 user-defined entity is required to be an identifier that does not start
 with an underscore, i.e., a ``NoUSIdent``. To make the productions more
-mnemonic, we introduce the following synonyms for ``NoUSIdent``.
+mnemonic, we introduce the following synonyms for ``NoUSIdent``
+and otehr identifier-related symbols.
 
 ````grammar
+NoUSIdentOrDigits = NoUSIdent | digits
 ModuleName = NoUSIdent
 ClassName = NoUSIdent
 TraitName = NoUSIdent
@@ -464,9 +466,9 @@ TypeVariableName = NoUSIdent
 MethodName = NoUSIdent
 FunctionName = NoUSIdent
 PredicateName = NoUSIdent
-LabelName = NoUSIdent
+LabelName = NoUSIdentOrDigits
 AttributeName = NoUSIdent
-FieldIdent = NoUSIdent
+FieldIdent = NoUSIdent // TODO ????
 ````
 A ``FieldIdent`` is one of the ways to identify a field. The other is
 using digits.

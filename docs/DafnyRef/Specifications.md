@@ -12,7 +12,7 @@ We document specifications at these levels:
 - At the lowest level are the various kinds of specification clauses,
   e.g., a ``RequiresClause_``.
 - Next are the specifications for entities that need them,
-  e.g., a ``MethodSpec``, which typically consist of a sequence of 
+  e.g., a ``MethodSpec``, which typically consist of a sequence of
   specification clauses.
 - At the top level are the entity declarations that include
   the specifications, e.g., ``MethodDecl``.
@@ -26,8 +26,9 @@ that use them.
 ### 5.1.1. Requires Clause
 
 ````grammar
-RequiresClause_ =
-  "requires" Expression(allowLemma: false, allowLambda: false)
+RequiresClause =
+  "requires" { Attribute } Expression(allowLemma: false,
+                                      allowLambda: false)
 ````
 
 The `requires` clauses specify preconditions for methods,
@@ -39,7 +40,8 @@ If no `requires` clause is specified it is taken to be `true`.
 
 If more than one `requires` clause is given, then the
 precondition is the conjunction of all of the expressions
-from all of the `requires` clauses. The order of conjunctions
+from all of the `requires` clauses, with a collected list
+of all the given Attributes. The order of conjunctions
 (and hence the order of `requires` clauses with respect to each other)
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
@@ -47,7 +49,7 @@ establish that later conjuncts are well-defined.
 ### 5.1.2. Ensures Clause
 
 ````grammar
-EnsuresClause_ =
+EnsuresClause =
   "ensures" { Attribute } Expression(allowLemma: false,
                                      allowLambda: false)
 ````
@@ -59,7 +61,8 @@ If no `ensures` clause is specified it is taken to be `true`.
 
 If more than one `ensures` clause is given, then the
 postcondition is the conjunction of all of the expressions
-from all of the `ensures` clauses.
+from all of the `ensures` clauses, with a
+collected list of all the given Attributes.
 The order of conjunctions
 (and hence the order of `ensures` clauses with respect to each other)
 can be important: earlier conjuncts can set conditions that
@@ -80,9 +83,9 @@ If `allowWildcard` is false but one of the
 reported.
 
 Decreases clauses are used to prove termination in the
-presence of recursion. if more than one `decreases` clause is given
+presence of recursion. If more than one `decreases` clause is given
 it is as if a single `decreases` clause had been given with the
-collected list of arguments. That is,
+collected list of arguments and a collected list of Attributes. That is,
 
 ```dafny
 decreases A, B
