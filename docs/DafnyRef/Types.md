@@ -928,7 +928,7 @@ to have an infinite domain.
 If the same key occurs more than
 once in a map display expression, only the last occurrence appears in the resulting
 map.[^fn-map-display]  There is also a _map comprehension expression_,
-explained in [Section 22.40](#sec-map-comprehension-expression).
+explained in [Section 22.41](#sec-map-comprehension-expression).
 
 [^fn-map-display]: This is likely to change in the future to disallow
     multiple occurrences of the same key.
@@ -1149,7 +1149,7 @@ ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
   "}"
 
 ClassMemberDecl(moduleLevelDecl) =
-  ( FieldDecl 
+  ( FieldDecl
   | ConstantFieldDecl
   | FunctionDecl
   | MethodDecl(isGhost: ("ghost" was present),
@@ -1278,8 +1278,8 @@ which value is fixed after initialization.
 The declaration must either have a type or an initializing expression (or both).
 If the type is omitted, it is inferred from the initializing expression.
 
-* A const declaration may include the `ghost` and `static` modifiers, but no 
-others. 
+* A const declaration may include the `ghost` and `static` modifiers, but no
+others.
 * A const declaration may appear within a module or within any declaration
 that may contain members (class, trait, datatype, newtype).
 * If it is in a module, it is implicitly `static`, and may not also be declared
@@ -3080,7 +3080,7 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 22.46](#sec-compile-time-constants).
+in [Section 22.47](#sec-compile-time-constants).
 
 ## 18.1. Conversion operations {#sec-conversion}
 
