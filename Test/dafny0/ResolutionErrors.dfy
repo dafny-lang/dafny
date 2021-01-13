@@ -1777,10 +1777,10 @@ module TypeConversions {
   method M() returns (x: int, n: nat, o: object, j: J, c: C) {
     n := x as nat;  // yes, this is allowed now
     o := j;
-    j := o;  // error: cannot assign 'object' to 'J'
+    j := o;  // OK for type resolution, but must be proved
     j := o as J;  // error: not allowed to convert to 'J'
     j := c;
-    c := j;  // error: cannot assign J' to 'C'
+    c := j;  // OK for type resolution, but must be proved
     c := j as C;  // error: not allowed to convert to 'C'
     var oo := o as realint;  // error: there's no such type as "realint" (this once used to crash Dafny)
   }

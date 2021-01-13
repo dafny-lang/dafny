@@ -33,7 +33,7 @@ namespace Microsoft.Dafny {
       ReadRuntimeSystem("DafnyRuntime.js", wr);
     }
 
-    public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
+    public override void EmitCallToMain(Method mainMethod, string baseName, TargetWriter wr) {
       Coverage.EmitSetup(wr);
       wr.WriteLine("_dafny.HandleHaltExceptions({0}.{1});", mainMethod.EnclosingClass.FullCompileName, IdName(mainMethod));
       Coverage.EmitTearDown(wr);

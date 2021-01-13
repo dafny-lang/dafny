@@ -1001,8 +1001,8 @@ iterate over the contents is well-known. For an array:
 ```dafny
   var i := 0;
   var sum := 0;
-  while i < s.Length {
-    sum := sum + s[i];
+  while i < a.Length {
+    sum := sum + a[i];
     i := i + 1;
   }
 }
@@ -1042,7 +1042,7 @@ as follows:
   }
 ```
 
-Because `iset`s may be infinite, Dafny doesnot permit iteration over an `iset`.
+Because `iset`s may be infinite, Dafny does not permit iteration over an `iset`.
 
 ### 10.5.3. Maps
 
@@ -1149,7 +1149,7 @@ ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
   "}"
 
 ClassMemberDecl(moduleLevelDecl) =
-  ( FieldDecl 
+  ( FieldDecl
   | ConstantFieldDecl
   | FunctionDecl
   | MethodDecl(isGhost: ("ghost" was present),
@@ -1278,8 +1278,8 @@ which value is fixed after initialization.
 The declaration must either have a type or an initializing expression (or both).
 If the type is omitted, it is inferred from the initializing expression.
 
-* A const declaration may include the `ghost` and `static` modifiers, but no 
-others. 
+* A const declaration may include the `ghost` and `static` modifiers, but no
+others.
 * A const declaration may appear within a module or within any declaration
 that may contain members (class, trait, datatype, newtype).
 * If it is in a module, it is implicitly `static`, and may not also be declared
