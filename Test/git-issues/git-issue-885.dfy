@@ -22,9 +22,10 @@ method Test3(x: Trait?)
   m[0, 0] := x;   // Error: should fail in verifier, not resolver
 }
 
-method Test4(x: Trait)
+method Test4(x: Trait, m: array2<Class>)
+  requires m.Length0 > 0 && m.Length1 > 0
+  modifies m
 {
-  var m: array2<Class> := new Class[10, 10];
   m[0, 0] := x;   // Error: should fail in verifier, not resolver
 }
 

@@ -13667,7 +13667,9 @@ namespace Microsoft.Dafny {
       targetType = targetType.NormalizeExpandKeepConstraints();
       var cre = MkIs(bSource, targetType);
       var udt = targetType as UserDefinedType;
-      if (udt != null && udt.ResolvedClass is NonNullTypeDecl) {
+      if (udt != null && udt.IsRefType && sourceType.IsRefType) {
+        msg = string.Format("the RHS value (a {0}) is not known to be an instance of the LHS type ({1})", sourceType, targetType.Normalize());
+      } else if (udt != null && udt.ResolvedClass is NonNullTypeDecl) {
         var certain = udt.ResolvedClass.TypeArgs.Count == 0;
         msg = string.Format("value does not satisfy the subset constraints of '{0}' ({1}it may be null)", targetType.Normalize(), certain ? "" : "possible cause: ");
       } else if (udt != null && ArrowType.IsTotalArrowTypeName(udt.Name)) {
