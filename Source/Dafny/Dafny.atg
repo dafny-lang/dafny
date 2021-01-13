@@ -891,7 +891,8 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
   | TraitDecl<dmod, module, out trait>         (. module.TopLevelDecls.Add(trait); .)
   | ClassMemberDecl<dmod, membersDefaultClass, false, true, !DafnyOptions.O.AllowGlobals,
                     !isTopLevel && DafnyOptions.O.IronDafny && isAbstract>
-  ) .
+  )
+  .
 
 /*------------------------------------------------------------------------*/
 SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule, bool isTopLevel>
@@ -903,7 +904,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     (. if (isTopLevel) SemErr(submodule.tok, "There is no point to an export declaration at the top level");
     .)
   )
-.
+  .
 
 /*------------------------------------------------------------------------*/
 ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
@@ -922,7 +923,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    { Attribute<ref attrs> }
    ModuleQualifiedName<out idQualified>
    (. id = idQualified[idQualified.Count-1];
-			prefixIds = idQualified.GetRange(0,idQualified.Count-1);
+      prefixIds = idQualified.GetRange(0,idQualified.Count-1);
    .)
 
    [ "refines" ModuleQualifiedName<out idRefined>
@@ -937,9 +938,9 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
      { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
    "}"
     (.
-         module.BodyEndTok = t;
-         module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
-         submodule = new LiteralModuleDecl(module, parent);
+      module.BodyEndTok = t;
+      module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
+      submodule = new LiteralModuleDecl(module, parent);
     .)
   .
 
@@ -973,9 +974,9 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
     )
     .
 
+/*------------------------------------------------------------------------*/
 ExportId<out IToken id> = NoUSIdentOrDigits<out id> .
 
-/*------------------------------------------------------------------------*/
 ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
 = "export"
   (.
@@ -1018,7 +1019,9 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
   .
 
 /*------------------------------------------------------------------------*/
-// TODO - this is somewhat a hack because any member name is allowed
+// TODO - this is somewhat a hack because it relies on TypeNameOrCtorSuffix
+// matching any permitted member name
+
 ExportSignature<bool opaque, out ExportSignature exsig>
 = (. IToken prefix; IToken suffix = null; .)
   TypeNameOrCtorSuffix<out prefix> [ "." TypeNameOrCtorSuffix<out suffix> ]
@@ -1030,11 +1033,8 @@ ExportSignature<bool opaque, out ExportSignature exsig>
   .)
   .
 
-
 /*------------------------------------------------------------------------*/
-ModuleName<out IToken id>
-= Ident<out id>
-  .
+ModuleName<out IToken id> = Ident<out id> .
 
 ModuleQualifiedName<.out List<IToken> ids.>
 = (. IToken id; ids = new List<IToken>();
@@ -1051,6 +1051,7 @@ QualifiedModuleExport<.out List<IToken> idPath, out List<IToken> exports.>
   [ "`" ModuleExportSuffix<exports> ]
   .
 
+/*------------------------------------------------------------------------*/
 ModuleExportSuffix<. List<IToken> exports.>
 =                              (. IToken id; .)
     ( ExportId<out id>       (. exports.Add(id); .)
@@ -1702,13 +1703,13 @@ KType<ref ExtremePredicate.KType kType>
   .
 
 /*------------------------------------------------------------------------*/
-RequiresClause<.List<AttributedExpression> req.>
+RequiresClause<.List<AttributedExpression> req, bool allowLabel=true.>
 = "requires"    (. IToken lbl = null;
                    Attributes attrs = null;
                    Expression e;
                  .)
   { Attribute<ref attrs> }
-  [ IF(IsLabel(true))
+  [ IF(IsLabel(allowLabel))
     LabelIdent<out lbl> ":"
   ]
   Expression<out e, false, false>
@@ -1727,13 +1728,13 @@ EnsuresClause<.List<AttributedExpression> ens.>
 
 /*------------------------------------------------------------------------*/
 ModifiesClause<.ref List<FrameExpression> mod, ref Attributes attrs,
-                bool allowLemma, bool allowLambda, bool performThisDeprecatedCheck.>
+                bool allowLambda, bool performThisDeprecatedCheck.>
 = "modifies"                                    (. FrameExpression fe;
                                                    mod = mod ?? new List<FrameExpression>();
                                                 .)
   { Attribute<ref attrs> }
-  FrameExpression<out fe, allowLemma, allowLambda>         (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
-  { "," FrameExpression<out fe, allowLemma, allowLambda>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
+  FrameExpression<out fe, false, allowLambda>         (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
+  { "," FrameExpression<out fe, false, allowLambda>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
   }
   OldSemi
   .
@@ -1748,14 +1749,14 @@ DecreasesClause<.List<Expression> decreases, ref Attributes attrs,
   .
 
 /*------------------------------------------------------------------------*/
-ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads, bool allowLemma,
-                  bool allowLambda, bool allowWild.>
+ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads,
+                  bool allowSemi, bool allowLambda, bool allowWild.>
 = "reads"                                             (. Attributes attrs = null;
                                                          FrameExpression fe;
                                                        .)
   { Attribute<ref attrs> }
-  PossiblyWildFrameExpression<out fe, false, allowLemma, allowLambda, allowWild>          (. reads.Add(fe); .)
-  { "," PossiblyWildFrameExpression<out fe, false, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
+  PossiblyWildFrameExpression<out fe, allowSemi, allowLambda, allowWild>          (. reads.Add(fe); .)
+  { "," PossiblyWildFrameExpression<out fe, allowSemi, allowLambda, allowWild>    (. reads.Add(fe); .)
   }
   OldSemi
   .
@@ -1779,7 +1780,7 @@ MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<Attr
      Contract.Requires(cce.NonNullElements(decreases));
   .)
   SYNC
-  ( ModifiesClause<ref mod, ref modAttrs, false, false, performThisDeprecatedCheck>
+  ( ModifiesClause<ref mod, ref modAttrs, false, performThisDeprecatedCheck>
   | RequiresClause<req>
   | EnsuresClause<ens>
   | DecreasesClause<decreases, ref decAttrs, true, false>
@@ -1791,27 +1792,14 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
               List<AttributedExpression/*!*/>/*!*/ req, List<AttributedExpression/*!*/>/*!*/ ens,
               List<AttributedExpression/*!*/>/*!*/ yieldReq, List<AttributedExpression/*!*/>/*!*/ yieldEns,
               ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs.>
-= (. Expression/*!*/ e; bool isYield = false; Attributes attrs = null;
-     IToken lbl = null;
+= (. bool isYield = false;
   .)
   SYNC
   ( ReadsClause<reads, false, false, false>
-  | ModifiesClause<ref mod, ref modAttrs, false, false, false>
+  | ModifiesClause<ref mod, ref modAttrs, false, false>
   | [ "yield"                                                (. isYield = true; .)
     ]
-    ( "requires"                                             (. attrs = null; .)
-      { Attribute<ref attrs> }
-      [ IF(IsLabel(!isYield))
-        LabelIdent<out lbl> ":"
-      ]
-      Expression<out e, false, false>
-      OldSemi                                                (. AssertLabel al = lbl == null ? null : new AssertLabel(lbl, lbl.val);
-                                                                if (isYield) {
-                                                                  yieldReq.Add(new AttributedExpression(e, al, null));
-                                                                } else {
-                                                                  req.Add(new AttributedExpression(e, al, null));
-                                                                }
-                                                             .)
+    ( RequiresClause<(isYield?yieldReq:req), !isYield>
     | EnsuresClause<(isYield?yieldEns:ens)>
     )
   | DecreasesClause<decreases, ref decrAttrs, false, false>
@@ -2188,20 +2176,24 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
   .
 
 /*------------------------------------------------------------------------*/
-PossiblyWildExpression<out Expression e, bool allowLambda>
+PossiblyWildExpression<out Expression e, bool allowLambda, bool allowWild>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e)!=null);
      e = dummyExpr; .)
   /* A decreases clause on a loop asks that no termination check be performed.
    * Use of this feature is sound only with respect to partial correctness.
    */
-  ( "*"                        (. e = new WildcardExpr(t); .)
+  ( "*"                        (. e = new WildcardExpr(t);
+                                  if (!allowWild) {
+                                    SemErr(e.tok, "A '*' expression is not allowed here");
+                                  }
+                               .)
   | Expression<out e, false, allowLambda>
   )
   .
 
 /*------------------------------------------------------------------------*/
 PossiblyWildFrameExpression<out FrameExpression fe, bool allowSemi,
-                            bool allowLemma, bool allowLambda, bool allowWild>
+                            bool allowLambda, bool allowWild>
 = (. Contract.Ensures(Contract.ValueAtReturn(out fe) != null); fe = dummyFrameExpr; .)
   /* A reads clause can list a wildcard, which allows the enclosing function to
    * read anything.  In many cases, and in particular in all cases where
@@ -2211,7 +2203,7 @@ PossiblyWildFrameExpression<out FrameExpression fe, bool allowSemi,
    */
   ( "*"                        (. fe = new FrameExpression(t, new WildcardExpr(t), null);
                                   if (!allowWild) {
-                                     SemErr(t, "A wild-card frame expression is not permitted here");
+                                     SemErr(t, "A '*' frame expression is not permitted here");
                                   }
                                .)
   | FrameExpression<out fe, allowSemi, allowLambda>
@@ -2739,26 +2731,15 @@ LoopSpec<.List<AttributedExpression> invariants, List<Expression> decreases, ref
   | SYNC
     DecreasesClause<decreases, ref decAttrs, true, true>
   | SYNC
-    ModifiesClause<ref mod, ref modAttrs, false, true, false>
+    ModifiesClause<ref mod, ref modAttrs, true, false>
   )
   .
 
 /*------------------------------------------------------------------------*/
 DecreasesList<.List<Expression> decreases, bool allowWildcard, bool allowLambda.>
 = (. Expression e; .)
-  PossiblyWildExpression<out e, allowLambda> (. if (!allowWildcard && e is WildcardExpr) {
-                                                  SemErr(e.tok, "'decreases *' is allowed only on loops and tail-recursive methods");
-                                                } else {
-                                                  decreases.Add(e);
-                                                }
-                                             .)
-  { "," PossiblyWildExpression<out e, allowLambda>
-                                             (. if (!allowWildcard && e is WildcardExpr) {
-                                                  SemErr(e.tok, "'decreases *' is allowed only on loops and tail-recursive methods");
-                                                } else {
-                                                  decreases.Add(e);
-                                                }
-                                             .)
+  PossiblyWildExpression<out e, allowLambda, allowWildcard>       (. decreases.Add(e); .)
+  { "," PossiblyWildExpression<out e, allowLambda, allowWildcard> (. decreases.Add(e); .)
   }
   .
 
@@ -3620,11 +3601,9 @@ LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
 = (. IToken x = Token.NoToken;
      IToken id;  BoundVar bv;
      var bvs = new List<BoundVar>();
-     Expression ee;
      var reads = new List<FrameExpression>();
      Expression req = null;
      Expression body = null;
-     Attributes attrs = null;
   .)
   ( WildIdent<out id, true>                  (. x = t; bvs.Add(new BoundVar(id, id.val, new InferredTypeProxy())); .)
   | "("                                      (. x = t; .)
@@ -3635,16 +3614,20 @@ LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
       ]
     ")"
   )
-  { ReadsClause<reads, false, false, true>
-  | "requires"                                        (. attrs = null; .)
-    { Attribute<ref attrs> }
-    Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); .)
-  }
+  LambdaSpec<ref reads, ref req>
   LambdaArrow
   Expression<out body, allowSemi, true, allowBitwiseOps>
   (. e = new LambdaExpr(x, bvs, req, reads, body);
      theBuiltIns.CreateArrowTypeDecl(bvs.Count);
   .)
+  .
+
+LambdaSpec<.ref List<FrameExpression> reads, ref Expression req.>
+= { ReadsClause<reads, true, false, true>
+  | "requires"                             (. Attributes attrs = null; .)
+    { Attribute<ref attrs> }               (. Expression ee; .)
+    Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); .)
+  }
   .
 
 /*------------------------------------------------------------------------*/

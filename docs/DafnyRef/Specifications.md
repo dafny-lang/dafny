@@ -26,9 +26,10 @@ that use them.
 ### 5.1.1. Requires Clause
 
 ````grammar
-RequiresClause =
-  "requires" { Attribute } Expression(allowLemma: false,
-                                      allowLambda: false)
+RequiresClause(allowLabel) =
+  "requires" { Attribute }
+  [ LabelIdent ":" ]  // Label allowed only if allowLabel is true
+  Expression(allowLemma: false, allowLambda: false)
 ````
 
 The `requires` clauses specify preconditions for methods,
@@ -75,8 +76,8 @@ DecreasesClause(allowWildcard, allowLambda) =
                                           allowLambda)
 
 DecreasesList(allowWildcard, allowLambda) =
-  PossiblyWildExpression(allowLambda)
-  { "," PossiblyWildExpression(allowLambda) }
+  PossiblyWildExpression(allowLambda, allowWildcard)
+  { "," PossiblyWildExpression(allowLambdai, allowWildcard) }
 ````
 If `allowWildcard` is false but one of the
 ``PossiblyWildExpression``s is a wild-card, an error is
@@ -289,7 +290,7 @@ The ingredients are simple, but the end result may seem like magic. For many use
 
 ### 5.1.4. Framing
 ````grammar
-FrameExpression(allowLemma, allowLambda) =
+FrameExpressionallowLambda) =
   ( Expression(allowLemma, allowLambda) [ FrameField ]
   | FrameField )
 
@@ -449,7 +450,7 @@ holds at the end of the loop.
 ````grammar
 MethodSpec =
   { ModifiesClause(allowLemma: false, allowLambda: false)
-  | RequiresClause
+  | RequiresClause(allowLabel: true)
   | EnsuresClause
   | DecreasesClause(allowWildcard: true, allowLambda: false)
   }
@@ -463,7 +464,7 @@ read any memory.
 ## 5.3. Function Specification {#sec-function-specification}
 ````grammar
 FunctionSpec =
-  { RequiresClause
+  { RequiresClause(allowLabel: true)
   | ReadsClause(allowLemma: false, allowLambda: false,
                                    allowWild: true)
   | EnsuresClause
@@ -481,7 +482,7 @@ allowed to modify any memory.
 LambdaSpec_ =
   { ReadsClause(allowLemma: true, allowLambda: false,
                                   allowWild: true)
-  | RequiresClause
+  | RequiresClause(allowLabel: true)
   }
 ````
 

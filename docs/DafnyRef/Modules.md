@@ -134,10 +134,12 @@ present or absent.
 ````grammar
 ModuleImport =
     "import" ["opened" ]
-    ( ModuleQualifiedName [ "`" ModuleExportSuffix ]
-    | ModuleName "=" ModuleQualifiedName [ "`" ModuleExportSuffix ]
-    | ModuleName ":" ModuleQualifiedName
+    ( QualifiedModuleExport
+    | ModuleName "=" QualifiedModuleExport
+    | ModuleName ":" QualifiedModuleExport
     )
+
+QualifiedModuleExport = ModuleQualifiedName [ "`" ModuleExportSuffix ]
 
 ModuleExportSuffix =
     (
@@ -290,12 +292,10 @@ ModuleExport =
   | "extends"  ExportId { "," ExportId }
   }
 
-ExportId =
+ExportId = NoUSIdentOrDigits
 
-ExportSignature = NoUSIdent
+ExportSignature = IdentOrDigits [ "." IdentOrDigits ]
 ````
-
-TODO - fix grammar for ExportSignature
 
 In some programming languages, keywords such as `public`, `private`, and `protected`
 are used to control access to (that is, visibility of) declared program entities.
