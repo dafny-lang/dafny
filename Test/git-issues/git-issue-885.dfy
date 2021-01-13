@@ -35,3 +35,17 @@ method Test5(x: Trait?)
   m[0, 0] := x;   // Error: should fail in verifier, not resolver
 }
 
+method Test6()
+{
+  var t: Trait := new Class;
+  var c: Class := t; // OK
+}
+
+class ClassB extends Trait { }
+
+method Test7()
+{
+  var t: Trait := new ClassB;
+  var c: Class := t; // error in verifier
+}
+
