@@ -22,9 +22,10 @@ method Test3(x: Trait?)
   m[0, 0] := x;   // Error: should fail in verifier, not resolver
 }
 
-method Test4(x: Trait)
+method Test4(x: Trait, m: array2<Class>)
+  requires m.Length0 > 0 && m.Length1 > 0
+  modifies m
 {
-  var m: array2<Class> := new Class[10, 10];
   m[0, 0] := x;   // Error: should fail in verifier, not resolver
 }
 
@@ -34,3 +35,26 @@ method Test5(x: Trait?)
   m[0, 0] := x;   // Error: should fail in verifier, not resolver
 }
 
+method Test6()
+{
+  var t: Trait := new Class;
+  var c: Class := t; // OK
+}
+
+class ClassB extends Trait { }
+
+method Test7()
+{
+  var t: Trait := new ClassB;
+  var c: Class := t; // error in verifier
+}
+
+method Test8(cn: Class?) {
+  var c: Class := cn;
+}
+
+class ClassT<T> extends Trait {}
+
+method Test9(cc: ClassT?) {
+  var c: ClassT := cc;
+}

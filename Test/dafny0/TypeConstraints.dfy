@@ -176,15 +176,13 @@ module References {
     r := c;  // error
   }
 
-  method M2() returns (c: C, r: R)
+  method M2() returns (c: C, r: R, o: object)
   {
-    var o: object;
     c := o;  // OK for type resolution, but must be proved
   }
 
-  method M3() returns (c: C, r: R)
+  method M3() returns (c: C, r: R, o: object)
   {
-    var o: object;
     r := o;  // OK for type resolution, but must be proved
   }
 }

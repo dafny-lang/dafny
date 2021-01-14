@@ -409,15 +409,13 @@ module References {
     r := c;
   }
 
-  method M2() returns (c: C, r: R)
+  method M2() returns (c: C, r: R, o: object)
   {
-    var o: object;
     c := o;
   }
 
-  method M3() returns (c: C, r: R)
+  method M3() returns (c: C, r: R, o: object)
   {
-    var o: object;
     r := o;
   }
 }
