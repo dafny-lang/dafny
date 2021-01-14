@@ -1,17 +1,26 @@
-git-issue-885.dfy(10,10): Error: value does not satisfy the subset constraints of 'Class?'
+git-issue-885.dfy(10,10): Error: the RHS value (a Trait) is not known to be an instance of the LHS type (Class?)
 Execution trace:
     (0,0): anon0
-git-issue-885.dfy(16,7): Error: value does not satisfy the subset constraints of 'Class' (it may be null)
+git-issue-885.dfy(16,7): Error: the RHS value (a Trait) is not known to be an instance of the LHS type (Class)
 Execution trace:
     (0,0): anon0
-git-issue-885.dfy(22,13): Error: value does not satisfy the subset constraints of 'Class?'
+git-issue-885.dfy(22,13): Error: the RHS value (a Trait?) is not known to be an instance of the LHS type (Class?)
 Execution trace:
     (0,0): anon0
-git-issue-885.dfy(27,26): Error: unless an initializer is provided for the array elements, a new array of 'Class' must have empty size
+git-issue-885.dfy(29,13): Error: the RHS value (a Trait) is not known to be an instance of the LHS type (Class)
 Execution trace:
     (0,0): anon0
-git-issue-885.dfy(34,13): Error: value does not satisfy the subset constraints of 'Class?'
+git-issue-885.dfy(35,13): Error: the RHS value (a Trait?) is not known to be an instance of the LHS type (Class?)
+Execution trace:
+    (0,0): anon0
+git-issue-885.dfy(49,18): Error: the RHS value (a Trait) is not known to be an instance of the LHS type (Class)
+Execution trace:
+    (0,0): anon0
+git-issue-885.dfy(53,18): Error: the RHS value (a Class?) is not known to be an instance of the LHS type (Class), because it may be null
+Execution trace:
+    (0,0): anon0
+git-issue-885.dfy(59,19): Error: the RHS value (a ClassT?<_T0>) is not known to be an instance of the LHS type (ClassT<_T0>) (possible cause: it may be null)
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 0 verified, 5 errors
+Dafny program verifier finished with 2 verified, 8 errors
