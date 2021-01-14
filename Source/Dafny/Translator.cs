@@ -13667,11 +13667,13 @@ namespace Microsoft.Dafny {
       targetType = targetType.NormalizeExpandKeepConstraints();
       var cre = MkIs(bSource, targetType);
       var udt = targetType as UserDefinedType;
-      if (udt != null && udt.IsRefType && sourceType.IsRefType) {
-        msg = string.Format("the RHS value (a {0}) is not known to be an instance of the LHS type ({1})", sourceType, targetType.Normalize());
-      } else if (udt != null && udt.ResolvedClass is NonNullTypeDecl) {
-        var certain = udt.ResolvedClass.TypeArgs.Count == 0;
-        msg = string.Format("value does not satisfy the subset constraints of '{0}' ({1}it may be null)", targetType.Normalize(), certain ? "" : "possible cause: ");
+      if (udt != null && udt.IsRefType) {
+        msg = string.Format("the RHS value (a {0}) is not known to be an instance of the LHS type ({1})", sourceType, targetType);
+        var s = sourceType.NormalizeExpandKeepConstraints();
+        if (s is UserDefinedType sudt && udt.ResolvedClass is NonNullTypeDecl nntd && nntd.Class == sudt.ResolvedClass) {
+          var certain = udt.ResolvedClass.TypeArgs.Count == 0;
+          msg += certain ? ", because it may be null" : " (possible cause: it may be null)";
+        }
       } else if (udt != null && ArrowType.IsTotalArrowTypeName(udt.Name)) {
         msg = string.Format("value does not satisfy the subset constraints of '{0}' (possible cause: it may be partial or have read effects)", targetType.Normalize());
       } else if (udt != null && ArrowType.IsPartialArrowTypeName(udt.Name)) {

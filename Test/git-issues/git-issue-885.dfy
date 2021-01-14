@@ -49,3 +49,12 @@ method Test7()
   var c: Class := t; // error in verifier
 }
 
+method Test8(cn: Class?) {
+  var c: Class := cn;
+}
+
+class ClassT<T> extends Trait {}
+
+method Test9(cc: ClassT?) {
+  var c: ClassT := cc;
+}

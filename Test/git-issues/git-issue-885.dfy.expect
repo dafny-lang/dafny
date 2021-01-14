@@ -16,5 +16,11 @@ Execution trace:
 git-issue-885.dfy(49,18): Error: the RHS value (a Trait) is not known to be an instance of the LHS type (Class)
 Execution trace:
     (0,0): anon0
+git-issue-885.dfy(53,18): Error: the RHS value (a Class?) is not known to be an instance of the LHS type (Class), because it may be null
+Execution trace:
+    (0,0): anon0
+git-issue-885.dfy(59,19): Error: the RHS value (a ClassT?<_T0>) is not known to be an instance of the LHS type (ClassT<_T0>) (possible cause: it may be null)
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 2 verified, 6 errors
+Dafny program verifier finished with 2 verified, 8 errors
