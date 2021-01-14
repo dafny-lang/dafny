@@ -9264,7 +9264,10 @@ namespace Microsoft.Dafny
 
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is NewtypeDecl) {
+      if (cl is InternalTypeSynonymDecl) {
+        // a type exported as opaque from another module is like a ground type
+        return true;
+      } else if (cl is NewtypeDecl) {
         // values of a newtype can be constructed
         return true;
       } else if (cl is SubsetTypeDecl) {
