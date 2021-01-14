@@ -659,7 +659,7 @@ CHARACTERS
   posDigitFrom2 = "23456789".
   hexdigit = "0123456789ABCDEFabcdef".
   special = "'_?".
-  // glyph = "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
+  // These symbols are used but not needed as a production: "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
   cr        = '\r'.
   lf        = '\n'.
   tab       = '\t'.
@@ -1915,6 +1915,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     OptGenericInstantiation<out gt, inExpressionContext>
                                     (. var tokString = tok.val;
                                        bool q = tokString[tokString.Length-1] == '?';
+                                       // Extracting the dimension out of array2 or array10?
                                        var dimString = tokString.Substring(5, tokString.Length - (q?6:5)); // 5 is length of "array"
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
                                        ty = theBuiltIns.ArrayType(tok, dims, gt, true, q);
@@ -2179,7 +2180,7 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
 PossiblyWildExpression<out Expression e, bool allowLambda, bool allowWild>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e)!=null);
      e = dummyExpr; .)
-  /* A decreases clause on a loop asks that no termination check be performed.
+  /* A decreases-* clause on a loop asks that no termination check be performed.
    * Use of this feature is sound only with respect to partial correctness.
    */
   ( "*"                        (. e = new WildcardExpr(t);

@@ -77,7 +77,12 @@ DecreasesClause(allowWildcard, allowLambda) =
 
 DecreasesList(allowWildcard, allowLambda) =
   PossiblyWildExpression(allowLambda, allowWildcard)
-  { "," PossiblyWildExpression(allowLambdai, allowWildcard) }
+  { "," PossiblyWildExpression(allowLambda, allowWildcard) }
+
+PossiblyWildExpression(allowLambda, allowWild) =
+  ( "*"  // if allowWild is false, the '*' alternative provokes an error
+  | Expression(allowLemma: false, allowLambda)
+  )
 ````
 If `allowWildcard` is false but one of the
 ``PossiblyWildExpression``s is a wild-card, an error is
@@ -290,14 +295,16 @@ The ingredients are simple, but the end result may seem like magic. For many use
 
 ### 5.1.4. Framing
 ````grammar
-FrameExpressionallowLambda) =
+FrameExpression(allowLemma, allowLambda) =
   ( Expression(allowLemma, allowLambda) [ FrameField ]
   | FrameField )
 
 FrameField = "`" Ident
 
-PossiblyWildFrameExpression(allowLemma) =
-  ( "*" | FrameExpression(allowLemma, allowLambda: false) )
+PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) =
+  ( "*"  // error if !allowWild and '*'
+  | FrameExpression(allowLemma, allowLambda: false)
+  )
 ````
 
 Frame expressions are used to denote the set of memory locations
@@ -340,13 +347,8 @@ lambda expressions.
 ReadsClause(allowLemma, allowLambda, allowWild) =
   "reads"
   { Attribute }
-  PossiblyWildFrameExpression(allowLemmai, allowWild)
-  { "," PossiblyWildFrameExpression(allowLemma, allowWild) }
-
-PossiblyWildExpression(allowLambda) =
-  ( "*"  // if allowWild is false, the '*' alternative provokes an error
-  | Expression(allowLemma: false, allowLambda)
-  )
+  PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild)
+  { "," PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) }
 ````
 
 Functions are not allowed to have side effects; they may also be restricted in
@@ -384,10 +386,10 @@ TO BE WRITTEN: multiset of objects allowed in reads clauses
 ### 5.1.6. Modifies Clause
 
 ````grammar
-ModifiesClause<.bool allowLemma, bool allowLambda.> =
+ModifiesClause<.bool allowLambda.> =
   "modifies" { Attribute }
-  FrameExpression(allowLemma, allowLambda)
-  { "," FrameExpression(allowLemma, allowLambda) }
+  FrameExpression(allowLemma: false, allowLambda)
+  { "," FrameExpression(allowLemma: false, allowLambda) }
 ````
 
 Frames also affect methods. Methods are not
@@ -449,7 +451,7 @@ holds at the end of the loop.
 ## 5.2. Method Specification {#sec-method-specification}
 ````grammar
 MethodSpec =
-  { ModifiesClause(allowLemma: false, allowLambda: false)
+  { ModifiesClause(allowLambda: false)
   | RequiresClause(allowLabel: true)
   | EnsuresClause
   | DecreasesClause(allowWildcard: true, allowLambda: false)
@@ -479,12 +481,13 @@ allowed to modify any memory.
 
 ## 5.4. Lambda Specification {#sec-lambda-specification}
 ````grammar
-LambdaSpec_ =
+LambdaSpec =
   { ReadsClause(allowLemma: true, allowLambda: false,
                                   allowWild: true)
-  | RequiresClause(allowLabel: true)
+  | RequiresClause(allowLabel: false)
   }
 ````
+// TODO - the above grammar is not quite right for Requires
 
 A lambda specification is zero or more `reads` or `requires` clauses.
 Lambda specifications do not have `ensures` clauses because the body
@@ -497,10 +500,10 @@ are not allowed to modify any memory.
 ## 5.5. Iterator Specification {#sec-iterator-specification}
 ````grammar
 IteratorSpec =
-  { ReadsClause(allowLemma: true, allowLambda: false,
+  { ReadsClause(allowLemma: false, allowLambda: false,
                                   allowWild: false)
-  | ModifiesClause(allowLemma: false, allowLambda: false)
-  | [ "yield" ] RequiresClause
+  | ModifiesClause(allowLambda: false)
+  | [ "yield" ] RequiresClause(allowLabel: !isYield)
   | [ "yield" ] EnsuresClause
   | DecreasesClause(allowWildcard: false, allowLambda: false)
   }

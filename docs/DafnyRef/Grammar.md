@@ -449,7 +449,7 @@ In the productions for the declaration of user-defined entities the name of the
 user-defined entity is required to be an identifier that does not start
 with an underscore, i.e., a ``NoUSIdent``. To make the productions more
 mnemonic, we introduce the following synonyms for ``NoUSIdent``
-and otehr identifier-related symbols.
+and other identifier-related symbols.
 
 ````grammar
 NoUSIdentOrDigits = NoUSIdent | digits
