@@ -464,3 +464,29 @@ module TypeArgumentPrintTests {
     }
   }
 }
+
+module PrettyPrintingBindingPowers {
+  newtype MyInt = u: int | u != 193
+
+  method M(m: map<int, real>, n: map<int, real>, a: set<int>, b: set<int>, c: set<int>) returns (r: map<int, real>)
+  {
+    r := m - b - c;
+    r := m - b + n;
+    r := (m - b) + n;  // unnecessary parentheses
+    r := m - (b + c);
+    r := m + n - (b + c);
+    r := m + (n - (b + c));
+    r := m + (n - b) - c;
+    r := m + (m + n) + m;
+    r := (((m + m) + n) + m);  // unnecessary parentheses
+  }
+
+  method P() returns (x: int, u: MyInt, s: set<int>, e: seq<int>, m: map<int, int>)
+  {
+    x := x + (x + x);  // unnecessary parentheses
+    u := u + (u + u);
+    s := s + (s + s);
+    e := e + (e + e);
+    m := m + (m + m);
+  }
+}
