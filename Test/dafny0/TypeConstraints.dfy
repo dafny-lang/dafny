@@ -142,7 +142,7 @@ module MorePlusTests {
     var q := [false];
     var qq := q + q;
     var p := map[false := 17];
-    var pp := p + p;  // error: map is not plussable
+    var pp := p + p;
     var n: C := null;
     var nn := n + n;  // error: references types are not plussable
     var c := new C;
