@@ -578,7 +578,6 @@ bool IsNonArrowType(ref IToken pt) {
       pt = scanner.Peek();
       return true;
     case _arrayToken:
-    case _arrayToken_q:
     case _bvToken:
     case _set:
     case _iset:
@@ -660,7 +659,7 @@ CHARACTERS
   posDigitFrom2 = "23456789".
   hexdigit = "0123456789ABCDEFabcdef".
   special = "'_?".
-  glyph = "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
+  // These symbols are used but not needed as a production: "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
   cr        = '\r'.
   lf        = '\n'.
   tab       = '\t'.
@@ -684,7 +683,7 @@ CHARACTERS
 
 /*------------------------------------------------------------------------*/
 TOKENS
-  ident =  nondigitMinusABTick {idchar}       /* if char 0 is not an 'a' or '\'', then anything else is fine */
+  ident =  nondigitMinusABTick {idchar}       /* if char 0 is not an 'a' or 'b' or '\'', then anything else is fine */
         |  'a' [ idcharMinusR {idchar} ]      /* if char 0 is an 'a', then either there is no char 1 or char 1 is not an 'r' */
         |  'a' 'r' [ idcharMinusR {idchar} ]  /* etc. */
         |  'a' 'r' 'r' [ idcharMinusA {idchar} ]
@@ -705,8 +704,7 @@ TOKENS
   digits = digit {['_'] digit}.
   hexdigits = "0x" hexdigit {['_'] hexdigit}.
   decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}.
-  arrayToken = "array" [('1' digit | posDigitFrom2 ) {digit}].
-  arrayToken_q = "array" [('1' digit | posDigitFrom2 ) {digit}] '?'.
+  arrayToken = "array" [('1' digit | posDigitFrom2 ) {digit}] ['?'].
   bvToken = "bv" ( '0' | posDigit {digit} ).
   bool = "bool".
   char = "char".
@@ -714,7 +712,7 @@ TOKENS
   nat = "nat".
   real = "real".
   ORDINAL = "ORDINAL".
-  object = "object".
+  object = "object". // Keeping object and object? as literals simplifies ident
   object_q = "object?".
   string = "string".
   set = "set".
@@ -798,6 +796,7 @@ TOKENS
   closeparen = ')'.
   openAngleBracket = '<'.
   closeAngleBracket = '>'.
+  singleeq = "=".
   eq = "==".
   neq = "!=".
   neqAlt = '\u2260'.
@@ -852,6 +851,7 @@ Dafny
   EOF
   .
 
+/*------------------------------------------------------------------------*/
 DeclModifier<ref DeclModifierData dmod>
 = ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); .)
   | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); .)
@@ -867,131 +867,162 @@ DeclModifier<ref DeclModifierData dmod>
   )
   .
 
+/*------------------------------------------------------------------------*/
 TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bool isTopLevel, bool isAbstract .>
 = (. DeclModifierData dmod = new DeclModifierData(); ModuleDecl submodule;
      DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
      TraitDecl/*!*/ trait;
   .)
   { DeclModifier<ref dmod> }
-  ( SubModuleDecl<dmod, module, out submodule> (. var litmod = submodule as LiteralModuleDecl;
+  ( SubModuleDecl<dmod, module, out submodule, isTopLevel>
+                                               (. var litmod = submodule as LiteralModuleDecl;
                                                   if (litmod != null && litmod.ModuleDef.PrefixIds.Count != 0) {
                                                     var tup = new Tuple<List<IToken>, LiteralModuleDecl>(litmod.ModuleDef.PrefixIds, litmod);
                                                     module.PrefixNamedModules.Add(tup);
                                                   } else {
                                                     module.TopLevelDecls.Add(submodule);
-                                                  } .)
-  | ClassDecl<dmod, module, out td>             (. module.TopLevelDecls.Add(td); .)
+                                                  }
+                                               .)
+  | ClassDecl<dmod, module, out td>            (. module.TopLevelDecls.Add(td); .)
   | DatatypeDecl<dmod, module, out dt>         (. module.TopLevelDecls.Add(dt); .)
   | NewtypeDecl<dmod, module, out td>          (. module.TopLevelDecls.Add(td); .)
-  | OtherTypeDecl<dmod, module, out td>        (. module.TopLevelDecls.Add(td); .)
+  | SynonymTypeDecl<dmod, module, out td>      (. module.TopLevelDecls.Add(td); .)
   | IteratorDecl<dmod, module, out iter>       (. module.TopLevelDecls.Add(iter); .)
   | TraitDecl<dmod, module, out trait>         (. module.TopLevelDecls.Add(trait); .)
   | ClassMemberDecl<dmod, membersDefaultClass, false, true, !DafnyOptions.O.AllowGlobals,
                     !isTopLevel && DafnyOptions.O.IronDafny && isAbstract>
-  ) .
+  )
+  .
 
-SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
-= (. Attributes attrs = null;  IToken/*!*/ id, iderr; var prefixIds = new List<IToken>();
+/*------------------------------------------------------------------------*/
+SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule, bool isTopLevel>
+=
+  (. submodule = null; .)
+  ( ModuleDefinition<dmod, parent, out submodule>
+  | ModuleImport<parent, out submodule>
+  | ModuleExport<parent, out submodule>
+    (. if (isTopLevel) SemErr(submodule.tok, "There is no point to an export declaration at the top level");
+    .)
+  )
+  .
+
+/*------------------------------------------------------------------------*/
+ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
+=  "module"
+   (. Attributes attrs = null;
+     IToken/*!*/ id, iderr;
+     var prefixIds = new List<IToken>();
      List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
-     List<IToken> idPath = new List<IToken>();
-     List<IToken> idExports = null;
+     List<IToken> idQualified = null;
      List<IToken> idRefined = null;
      ModuleDefinition module;
      submodule = null; // appease compiler
      bool isAbstract = dmod.IsAbstract;
-     bool opened = false;
      CheckDeclModifiers(dmod, "module", AllowedDeclModifiers.Abstract);
-  .)
-  ( "module"
-    { Attribute<ref attrs> }
-    NoUSIdent<out id>
-    { (. prefixIds.Add(id); .)
-      "." NoUSIdent<out id>
-    }
-    [ "refines" QualifiedModuleId<out idRefined>
-    |  Ident<out iderr> (. SemErr(la, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
-    ]
-    (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, false,
-                                      idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
-                                      false, theVerifyThisFile, theCompileThisFile);
-    .)
-    SYNC
-    "{"                                 (. module.BodyStartTok = t; .)
-      { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
-    "}"
-    (.
-       module.BodyEndTok = t;
-       module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
-       submodule = new LiteralModuleDecl(module, parent);
-    .)
-  |
-    "import" ["opened" (.opened = true;.)]
-    ModuleName<out id>
-    (. idExports = new List<IToken>(); .)
-    (
-      "."
-      QualifiedModuleExport<out idPath, out idExports>
-      (. idPath.Insert(0, id);
-         submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
-                                         idPath[idPath.Count-1], parent, opened, idExports);
-      .)
+   .)
+   { Attribute<ref attrs> }
+   ModuleQualifiedName<out idQualified>
+   (. id = idQualified[idQualified.Count-1];
+      prefixIds = idQualified.GetRange(0,idQualified.Count-1);
+   .)
 
-    | "=" QualifiedModuleExport<out idPath, out idExports>
+   [ "refines" ModuleQualifiedName<out idRefined>
+   | Ident<out iderr> (. SemErr(la, $"expected either a '{{' or a 'refines' keyword here, found {iderr.val}"); .)
+   ]
+   (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, false,
+                                        idRefined == null ? null : new ModuleQualifiedId(idRefined), parent, attrs,
+                                        false, theVerifyThisFile, theCompileThisFile);
+   .)
+   SYNC
+   "{"                                 (. module.BodyStartTok = t; .)
+     { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
+   "}"
+    (.
+      module.BodyEndTok = t;
+      module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
+      submodule = new LiteralModuleDecl(module, parent);
+    .)
+  .
+
+/*------------------------------------------------------------------------*/
+ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
+=  "import"                          (.bool opened = false;
+                                      List<IToken> idExports = new List<IToken>();
+                                      IToken/*!*/ id;
+                                      List<IToken> idPath = new List<IToken>();
+                                      submodule = null;
+                                     .)
+    ["opened"                        (.opened = true;.) ]
+    (. int lookAhead = scanner.Peek().kind; .)
+    ( IF(lookAhead == _singleeq)
+      ModuleName<out id>
+      "="
+      QualifiedModuleExport<out idPath, out idExports>
           (. submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
                                          id, parent, opened, idExports); .)
-
-    | ":" QualifiedModuleExport<out idPath, out idExports>
+    | IF(lookAhead == _colon)
+      ModuleName<out id>
+      ":"
+      QualifiedModuleExport<out idPath, out idExports>
           (. submodule = new AbstractModuleDecl(new ModuleQualifiedId(idPath),
                                          id, parent, opened, idExports); .)
-
-    | [ "`" ModuleExportSuffix<idExports> ]
-          (. idPath.Add(id);
-             submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
-                                         id, parent, opened, idExports);
+    |
+      QualifiedModuleExport<out idPath, out idExports>
+          (. submodule = new AliasModuleDecl(new ModuleQualifiedId(idPath),
+                                         idPath[idPath.Count-1], parent, opened, idExports);
           .)
     )
+    .
 
-  | (.
-      IToken exportId;
-      List<ExportSignature> exports = new List<ExportSignature>();;
-      List<IToken> extends = new List<IToken>();
-      bool provideAll = false;
-      bool revealAll = false;
-      bool isDefault = false;
-      bool isRefining = false;
-      ExportSignature exsig;
-    .)
-    "export" (. exportId = t; .)
-    [ ExportIdent<out exportId> ]
-    [ "..."  (. isRefining = true; .) ]
-    {
-      "provides"
-      (
-        ( ModuleExportSignature<true, out exsig>        (. exports.Add(exsig); .)
-          {"," ModuleExportSignature<true, out exsig>   (. exports.Add(exsig); .) }
-        )
-      | "*" (. provideAll = true; .)
-      )
-    | "reveals"
-      (
-        ( ModuleExportSignature<false, out exsig>       (. exports.Add(exsig); .)
-          {"," ModuleExportSignature<false, out exsig>  (. exports.Add(exsig); .) }
-        )
-      | "*" (. revealAll = true; .)
-      )
-    | "extends"
-      ExportIdent<out id>       (. extends.Add(id); .)
-      {"," ExportIdent<out id>  (. extends.Add(id); .) }
-    }
-    (. if (exportId.val == "export" || exportId.val == parent.Name) {
-         isDefault = true;
-       }
-       submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault, isRefining);
-    .)
-  )
-.
+/*------------------------------------------------------------------------*/
+ExportId<out IToken id> = NoUSIdentOrDigits<out id> .
 
-ModuleExportSignature<bool opaque, out ExportSignature exsig>
+ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
+= "export"
+  (.
+    IToken exportId = t;
+    IToken/*!*/ id;
+    List<ExportSignature> exports = new List<ExportSignature>();;
+    List<IToken> extends = new List<IToken>();
+    bool provideAll = false;
+    bool revealAll = false;
+    bool isDefault = false;
+    bool isRefining = false;
+    ExportSignature exsig;
+  .)
+  [ ExportId<out exportId> ]
+  [ "..."  (. isRefining = true; .) ]
+  {
+    "provides"
+    (
+      ( ExportSignature<true, out exsig>        (. exports.Add(exsig); .)
+        {"," ExportSignature<true, out exsig>   (. exports.Add(exsig); .) }
+      )
+    | "*" (. provideAll = true; .)
+    )
+  | "reveals"
+    (
+      ( ExportSignature<false, out exsig>       (. exports.Add(exsig); .)
+        {"," ExportSignature<false, out exsig>  (. exports.Add(exsig); .) }
+      )
+    | "*" (. revealAll = true; .)
+    )
+  | "extends"
+    ExportId<out id>       (. extends.Add(id); .)
+    {"," ExportId<out id>  (. extends.Add(id); .) }
+  }
+  (. if (exportId.val == "export" || exportId.val == parent.Name) {
+       isDefault = true;
+     }
+     submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault, isRefining);
+  .)
+  .
+
+/*------------------------------------------------------------------------*/
+// TODO - this is somewhat a hack because it relies on TypeNameOrCtorSuffix
+// matching any permitted member name
+
+ExportSignature<bool opaque, out ExportSignature exsig>
 = (. IToken prefix; IToken suffix = null; .)
   TypeNameOrCtorSuffix<out prefix> [ "." TypeNameOrCtorSuffix<out suffix> ]
   (. if (suffix != null) {
@@ -1002,36 +1033,35 @@ ModuleExportSignature<bool opaque, out ExportSignature exsig>
   .)
   .
 
+/*------------------------------------------------------------------------*/
+ModuleName<out IToken id> = Ident<out id> .
 
-/* The only modules in any given scope are siblings, so we no longer need qualified lookups */
-ModuleName<out IToken id>
-= Ident<out id>
-  .
-
-QualifiedModuleId<.out List<IToken> ids.>
+ModuleQualifiedName<.out List<IToken> ids.>
 = (. IToken id; ids = new List<IToken>();
   .)
   ModuleName<out id> (. ids.Add(id); .)
   { "." ModuleName<out id> (. ids.Add(id); .) }
   .
 
+/*------------------------------------------------------------------------*/
 QualifiedModuleExport<.out List<IToken> idPath, out List<IToken> exports.>
 = (. exports = new List<IToken>();
   .)
-  QualifiedModuleId<out idPath>
+  ModuleQualifiedName<out idPath>
   [ "`" ModuleExportSuffix<exports> ]
   .
 
+/*------------------------------------------------------------------------*/
 ModuleExportSuffix<. List<IToken> exports.>
 =                              (. IToken id; .)
-    ( ExportIdent<out id>       (. exports.Add(id); .)
-    | "{" ExportIdent<out id>   (. exports.Add(id); .)
-       { "," ExportIdent<out id> (. exports.Add(id); .) }
+    ( ExportId<out id>       (. exports.Add(id); .)
+    | "{" ExportId<out id>   (. exports.Add(id); .)
+       { "," ExportId<out id> (. exports.Add(id); .) }
       "}"
     )
   .
 
-
+/*------------------------------------------------------------------------*/
 ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevelDecl/*!*/ c>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);
@@ -1069,6 +1099,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   .)
   .
 
+/*------------------------------------------------------------------------*/
 TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*!*/ trait>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
@@ -1105,6 +1136,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
     .)
   .
 
+/*------------------------------------------------------------------------*/
 ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool isValueType, bool moduleLevelDecl, bool isWithinAbstractModule.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
@@ -1132,6 +1164,8 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
     MethodDecl<dmod, allowConstructors, isWithinAbstractModule, out m>  (. mm.Add(m); .)
   )
   .
+
+/*------------------------------------------------------------------------*/
 DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDecl/*!*/ dt>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out dt)!=null);
@@ -1167,6 +1201,8 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      dt.BodyEndTok = t;
   .)
   .
+
+/*------------------------------------------------------------------------*/
 DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
 = (. Contract.Requires(cce.NonNullElements(ctors));
      Attributes attrs = null;
@@ -1178,6 +1214,8 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
   [ FormalsOptionalIds<formals> ]
   (. ctors.Add(new DatatypeCtor(id, id.val, formals, attrs)); .)
   .
+
+/*------------------------------------------------------------------------*/
 TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members .>
 = (. DeclModifierData dmod;
   .)
@@ -1188,6 +1226,8 @@ TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members .>
   }
   "}"
   .
+
+/*------------------------------------------------------------------------*/
 FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
@@ -1209,6 +1249,8 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
   }
   OldSemi
   .
+
+/*------------------------------------------------------------------------*/
 ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool moduleLevelDecl.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
@@ -1232,6 +1274,8 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                              .)
   OldSemi
   .
+
+/*------------------------------------------------------------------------*/
 NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id, bvId;
      Attributes attrs = null;
@@ -1270,7 +1314,9 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     (. td = new NewtypeDecl(id, id.val, module, baseType, members, attrs, isRefining); .)
   )
   .
-OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
+
+/*------------------------------------------------------------------------*/
+SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id, bvId;
      Attributes attrs = null;
      var characteristics = new TypeParameter.TypeParameterCharacteristics(false);
@@ -1321,6 +1367,8 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
                              .)
   (. CheckDeclModifiers(dmod, kind, AllowedDeclModifiers.None); .)
   .
+
+/*------------------------------------------------------------------------*/
 GIdentType<bool allowGhostKeyword, bool allowNewKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld>
 /* isGhost always returns as false if allowGhostKeyword is false */
 = (. Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
@@ -1331,6 +1379,7 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, out IToken/*!*/ id, out
   }
   IdentType<out id, out ty, true>
   .
+
 FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
     id = Token.NoToken;
@@ -1341,6 +1390,7 @@ FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
   ":"
   Type<out ty>
   .
+
 CIdentType<out IToken/*!*/ id, out Type ty>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id) != null);
     id = Token.NoToken;
@@ -1353,12 +1403,14 @@ CIdentType<out IToken/*!*/ id, out Type ty>
     Type<out ty>
   ]
   .
+
 IdentType<out IToken/*!*/ id, out Type/*!*/ ty, bool allowWildcardId>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);.)
   WildIdent<out id, allowWildcardId>
   ":"
   Type<out ty>
   .
+
 LocalIdentTypeOptional<out LocalVariable var, bool isGhost>
 = (. IToken id;  Type ty;  Type optType = null;
   .)
@@ -1367,6 +1419,7 @@ LocalIdentTypeOptional<out LocalVariable var, bool isGhost>
   ]
   (. var = new LocalVariable(id, id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); .)
   .
+
 IdentTypeOptional<out BoundVar var>
 = (. Contract.Ensures(Contract.ValueAtReturn(out var) != null);
      IToken id;  Type ty;  Type optType = null;
@@ -1376,6 +1429,7 @@ IdentTypeOptional<out BoundVar var>
   ]
   (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType); .)
   .
+
 TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
@@ -1406,6 +1460,7 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
      }
   .)
   .
+
 /*------------------------------------------------------------------------*/
 IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!*/ iter>
 = (. Contract.Ensures(Contract.ValueAtReturn(out iter) != null);
@@ -1458,6 +1513,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
      iter.BodyEndTok = bodyEnd;
  .)
   .
+
 /*------------------------------------------------------------------------*/
 GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
 = (. Contract.Requires(cce.NonNullElements(typeArgs));
@@ -1487,6 +1543,8 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
   }
   ">"
   .
+
+/*------------------------------------------------------------------------*/
 Variance<out TypeParameter.TPVarianceSyntax variance>
 = (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;  // never used; here just to please the C# compiler
   .)
@@ -1496,6 +1554,8 @@ Variance<out TypeParameter.TPVarianceSyntax variance>
   | "-"  (. variance = TypeParameter.TPVarianceSyntax.Contravariance; .)
   )
   .
+
+/*------------------------------------------------------------------------*/
 TypeParameterCharacteristics<ref TypeParameter.TypeParameterCharacteristics characteristics>
 = "("
   TPCharOption<ref characteristics>
@@ -1504,6 +1564,7 @@ TypeParameterCharacteristics<ref TypeParameter.TypeParameterCharacteristics char
   }
   ")"
   .
+
 TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
 = ( "=="       (. characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.Required; .)
   | digits     (. if (t.val == "0") {
@@ -1515,6 +1576,7 @@ TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
   | "!" "new"  (. characteristics.DisallowReferenceTypes = true; .)
   )
   .
+
 /*------------------------------------------------------------------------*/
 MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractModule, out Method/*!*/ m>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
@@ -1630,6 +1692,8 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      m.BodyEndTok = bodyEnd;
  .)
   .
+
+/*------------------------------------------------------------------------*/
 KType<ref ExtremePredicate.KType kType>
 = "["
   ( "nat"       (. kType = ExtremePredicate.KType.Nat; .)
@@ -1637,85 +1701,112 @@ KType<ref ExtremePredicate.KType kType>
   )
   "]"
   .
+
+/*------------------------------------------------------------------------*/
+RequiresClause<.List<AttributedExpression> req, bool allowLabel=true.>
+= "requires"    (. IToken lbl = null;
+                   Attributes attrs = null;
+                   Expression e;
+                 .)
+  { Attribute<ref attrs> }
+  [ IF(IsLabel(allowLabel))
+    LabelIdent<out lbl> ":"
+  ]
+  Expression<out e, false, false>
+  OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
+  .
+
+/*------------------------------------------------------------------------*/
+EnsuresClause<.List<AttributedExpression> ens.>
+= "ensures"     (. Expression e;
+                   Attributes attrs = null;
+                 .)
+  { Attribute<ref attrs> }
+  Expression<out e, false, false>
+  OldSemi       (. ens.Add(new AttributedExpression(e, attrs)); .)
+  .
+
+/*------------------------------------------------------------------------*/
+ModifiesClause<.ref List<FrameExpression> mod, ref Attributes attrs,
+                bool allowLambda, bool performThisDeprecatedCheck.>
+= "modifies"                                    (. FrameExpression fe;
+                                                   mod = mod ?? new List<FrameExpression>();
+                                                .)
+  { Attribute<ref attrs> }
+  FrameExpression<out fe, false, allowLambda>         (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
+  { "," FrameExpression<out fe, false, allowLambda>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
+  }
+  OldSemi
+  .
+
+/*------------------------------------------------------------------------*/
+DecreasesClause<.List<Expression> decreases, ref Attributes attrs,
+                 bool allowWildcard, bool allowLambda.>
+= "decreases"
+  { Attribute<ref attrs> }
+  DecreasesList<decreases, allowWildcard, allowLambda>
+  OldSemi
+  .
+
+/*------------------------------------------------------------------------*/
+ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads,
+                  bool allowSemi, bool allowLambda, bool allowWild.>
+= "reads"                                             (. Attributes attrs = null;
+                                                         FrameExpression fe;
+                                                       .)
+  { Attribute<ref attrs> }
+  PossiblyWildFrameExpression<out fe, allowSemi, allowLambda, allowWild>          (. reads.Add(fe); .)
+  { "," PossiblyWildFrameExpression<out fe, allowSemi, allowLambda, allowWild>    (. reads.Add(fe); .)
+  }
+  OldSemi
+  .
+
+/*------------------------------------------------------------------------*/
+InvariantClause<. List<AttributedExpression> invariants.> =
+  "invariant"                                   (. Attributes attrs = null;
+                                                   Expression e;
+                                                .)
+  { Attribute<ref attrs> }
+  Expression<out e, false, true>                (. invariants.Add(new AttributedExpression(e, attrs)); .)
+  OldSemi
+  .
+
+/*------------------------------------------------------------------------*/
 MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<AttributedExpression> ens,
             List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, string caption, bool performThisDeprecatedCheck.>
 = (. Contract.Requires(cce.NonNullElements(req));
      Contract.Requires(cce.NonNullElements(mod));
      Contract.Requires(cce.NonNullElements(ens));
      Contract.Requires(cce.NonNullElements(decreases));
-     Expression e;  FrameExpression fe;  Attributes attrs = null;
-     IToken lbl = null;
   .)
   SYNC
-  ( "modifies" { Attribute<ref attrs> }
-    FrameExpression<out fe, false, false>         (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
-    { "," FrameExpression<out fe, false, false>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
-    }
-    OldSemi
-  | "requires"
-    { Attribute<ref attrs> }
-    [ IF(IsLabel(true))
-      LabelIdent<out lbl> ":"
-    ]
-    Expression<out e, false, false>
-    OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
-  | "ensures"
-    { Attribute<ref attrs> }
-    Expression<out e, false, false>
-    OldSemi       (. ens.Add(new AttributedExpression(e, attrs)); .)
-  | "decreases"
-    { Attribute<ref attrs> }
-    DecreasesList<decreases, true, false>
-    OldSemi
+  ( ModifiesClause<ref mod, ref modAttrs, false, performThisDeprecatedCheck>
+  | RequiresClause<req>
+  | EnsuresClause<ens>
+  | DecreasesClause<decreases, ref decAttrs, true, false>
   )
   .
+
+/*------------------------------------------------------------------------*/
 IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/*!*/ mod, List<Expression/*!*/> decreases,
               List<AttributedExpression/*!*/>/*!*/ req, List<AttributedExpression/*!*/>/*!*/ ens,
               List<AttributedExpression/*!*/>/*!*/ yieldReq, List<AttributedExpression/*!*/>/*!*/ yieldEns,
               ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs.>
-= (. Expression/*!*/ e; FrameExpression/*!*/ fe; bool isYield = false; Attributes attrs = null;
-     IToken lbl = null;
+= (. bool isYield = false;
   .)
   SYNC
-  ( "reads"    { Attribute<ref readsAttrs> }
-               FrameExpression<out fe, false, false>       (. reads.Add(fe); .)
-               { "," FrameExpression<out fe, false, false> (. reads.Add(fe); .)
-               }
-               OldSemi
-  | "modifies" { Attribute<ref modAttrs> }
-               FrameExpression<out fe, false, false>       (. mod.Add(fe); .)
-               { "," FrameExpression<out fe, false, false> (. mod.Add(fe); .)
-               }
-               OldSemi
+  ( ReadsClause<reads, false, false, false>
+  | ModifiesClause<ref mod, ref modAttrs, false, false>
   | [ "yield"                                                (. isYield = true; .)
     ]
-    ( "requires"                                             (. attrs = null; .)
-      { Attribute<ref attrs> }
-      [ IF(IsLabel(!isYield))
-        LabelIdent<out lbl> ":"
-      ]
-      Expression<out e, false, false> OldSemi                (. AssertLabel al = lbl == null ? null : new AssertLabel(lbl, lbl.val);
-                                                                if (isYield) {
-                                                                  yieldReq.Add(new AttributedExpression(e, al, null));
-                                                                } else {
-                                                                  req.Add(new AttributedExpression(e, al, null));
-                                                                }
-                                                             .)
-    | "ensures"                                              (. attrs = null; .)
-      { Attribute<ref attrs> }
-      Expression<out e, false, false> OldSemi                (. if (isYield) {
-                                                                  yieldEns.Add(new AttributedExpression(e, attrs));
-                                                                } else {
-                                                                  ens.Add(new AttributedExpression(e, attrs));
-                                                                }
-                                                             .)
+    ( RequiresClause<(isYield?yieldReq:req), !isYield>
+    | EnsuresClause<(isYield?yieldEns:ens)>
     )
-  | "decreases"
-    { Attribute<ref decrAttrs> }
-    DecreasesList<decreases, false, false>
-    OldSemi
+  | DecreasesClause<decreases, ref decrAttrs, false, false>
   )
   .
+
+/*------------------------------------------------------------------------*/
 Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, List<Formal> formals.>
 = (. Contract.Requires(cce.NonNullElements(formals));
      IToken id;
@@ -1733,6 +1824,8 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, List<Forma
   ]
   ")"
   .
+
+/*------------------------------------------------------------------------*/
 FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
 = (. Contract.Requires(cce.NonNullElements(formals)); IToken/*!*/ id;  Type/*!*/ ty;  string/*!*/ name;  bool isGhost; .)
   "("
@@ -1743,6 +1836,7 @@ FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
   ]
   ")"
   .
+
 /*------------------------------------------------------------------------*/
 Type<out Type ty>
 = (. Contract.Ensures(Contract.ValueAtReturn(out ty) != null); IToken/*!*/ tok; .)
@@ -1819,16 +1913,12 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                     .)
   | arrayToken                      (. tok = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
-                                    (. var dimString = tok.val.Substring(5);
+                                    (. var tokString = tok.val;
+                                       bool q = tokString[tokString.Length-1] == '?';
+                                       // Extracting the dimension out of array2 or array10?
+                                       var dimString = tokString.Substring(5, tokString.Length - (q?6:5)); // 5 is length of "array"
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
-                                       ty = theBuiltIns.ArrayType(tok, dims, gt, true);
-                                    .)
-  | arrayToken_q                    (. tok = t; .)
-    OptGenericInstantiation<out gt, inExpressionContext>
-                                    (. var dimString = tok.val.Substring(5);
-                                       dimString = dimString.Substring(0, dimString.Length - 1);
-                                       int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
-                                       ty = theBuiltIns.ArrayType(tok, dims, gt, true, true);
+                                       ty = theBuiltIns.ArrayType(tok, dims, gt, true, q);
                                     .)
   | "("                             (. tok = t; tupleArgTypes = new List<Type>(); .)
     [ Type<out ty>                  (. tupleArgTypes.Add(ty); .)
@@ -1879,6 +1969,8 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
     .)
   ]
   .
+
+/*------------------------------------------------------------------------*/
 OptGenericInstantiation<.out List<Type> gt, bool inExpressionContext.>  /* NOTE: Coco complains about "OptGenericInstantiation deletable". That's okay. */
 = (. gt = null; .)
   [ IF(IsGenericInstantiation(inExpressionContext))  /* be greedy -- if it looks like a type instantiation, take it */
@@ -1886,6 +1978,8 @@ OptGenericInstantiation<.out List<Type> gt, bool inExpressionContext.>  /* NOTE:
     GenericInstantiation<gt>
   ]
   .
+
+/*------------------------------------------------------------------------*/
 GenericInstantiation<.List<Type> gt.>
 = (. Contract.Requires(cce.NonNullElements(gt)); Type/*!*/ ty; .)
   "<"
@@ -1894,6 +1988,7 @@ GenericInstantiation<.List<Type> gt.>
     }
   ">"
   .
+
 /*------------------------------------------------------------------------*/
 FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!*/ f>
 = (. Contract.Ensures(Contract.ValueAtReturn(out f)!=null);
@@ -2060,49 +2155,46 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      }
   .)
   .
+
+/*------------------------------------------------------------------------*/
 FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<AttributedExpression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases.>
 = (. Contract.Requires(cce.NonNullElements(reqs));
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));
-     Expression/*!*/ e;  FrameExpression/*!*/ fe;
      Attributes attrs = null;
   .)
   SYNC
-  ( "requires"
-    { Attribute<ref attrs> }
-    Expression<out e, false, false> OldSemi             (. reqs.Add(new AttributedExpression(e, attrs)); .)
-  | "reads"
-    { Attribute<ref attrs> }
-    PossiblyWildFrameExpression<out fe, false>          (. reads.Add(fe); .)
-    { "," PossiblyWildFrameExpression<out fe, false>    (. reads.Add(fe); .)
-    }
-    OldSemi
-  | "ensures"
-    { Attribute<ref attrs> }
-    Expression<out e, false, false>
-    OldSemi                                   (. ens.Add(new AttributedExpression(e, attrs)); .)
-  | "decreases"                               (. if (decreases == null) {
+  ( RequiresClause<reqs>
+  | ReadsClause<reads, false, false, true>
+  | EnsuresClause<ens>
+  | DecreasesClause<decreases, ref attrs, false, false>
+                                              (. if (decreases == null) {
                                                    SemErr(t, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
                                                    decreases = new List<Expression/*!*/>();
                                                  }
                                               .)
-    { Attribute<ref attrs> }
-    DecreasesList<decreases, false, false>
-    OldSemi
   )
   .
 
-PossiblyWildExpression<out Expression e, bool allowLambda>
+/*------------------------------------------------------------------------*/
+PossiblyWildExpression<out Expression e, bool allowLambda, bool allowWild>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e)!=null);
      e = dummyExpr; .)
-  /* A decreases clause on a loop asks that no termination check be performed.
+  /* A decreases-* clause on a loop asks that no termination check be performed.
    * Use of this feature is sound only with respect to partial correctness.
    */
-  ( "*"                        (. e = new WildcardExpr(t); .)
+  ( "*"                        (. e = new WildcardExpr(t);
+                                  if (!allowWild) {
+                                    SemErr(e.tok, "A '*' expression is not allowed here");
+                                  }
+                               .)
   | Expression<out e, false, allowLambda>
   )
   .
-PossiblyWildFrameExpression<out FrameExpression fe, bool allowSemi>
+
+/*------------------------------------------------------------------------*/
+PossiblyWildFrameExpression<out FrameExpression fe, bool allowSemi,
+                            bool allowLambda, bool allowWild>
 = (. Contract.Ensures(Contract.ValueAtReturn(out fe) != null); fe = dummyFrameExpr; .)
   /* A reads clause can list a wildcard, which allows the enclosing function to
    * read anything.  In many cases, and in particular in all cases where
@@ -2110,31 +2202,43 @@ PossiblyWildFrameExpression<out FrameExpression fe, bool allowSemi>
    * any use of the function.  Nevertheless, as an experimental feature, the
    * language allows it (and it is sound).
    */
-  ( "*"                        (. fe = new FrameExpression(t, new WildcardExpr(t), null); .)
-  | FrameExpression<out fe, allowSemi, false>
+  ( "*"                        (. fe = new FrameExpression(t, new WildcardExpr(t), null);
+                                  if (!allowWild) {
+                                     SemErr(t, "A '*' frame expression is not permitted here");
+                                  }
+                               .)
+  | FrameExpression<out fe, allowSemi, allowLambda>
   )
   .
+
+/*------------------------------------------------------------------------*/
+FrameField<out IToken id> = "`" Ident<out id>.
+
 FrameExpression<out FrameExpression fe, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out fe) != null);
      Expression/*!*/ e;
      IToken/*!*/ id;
-     string fieldName = null;  IToken feTok = null;
+     string fieldName = null;
+     IToken feTok = null;
      fe = dummyFrameExpr;
   .)
   ( Expression<out e, allowSemi, allowLambda>   (. feTok = e.tok; .)
-    [ "`" Ident<out id>        (. fieldName = id.val;  feTok = id; .)
-    ]                          (. fe = new FrameExpression(feTok, e, fieldName); .)
+    [ FrameField<out id>        (. fieldName = id.val;  feTok = id; .)
+    ]                           (. fe = new FrameExpression(feTok, e, fieldName); .)
   |
-    "`" Ident<out id>          (. fieldName = id.val; .)
-                               (. fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName); .)
+    FrameField<out id>          (. fieldName = id.val; .)
+                                (. fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName); .)
   )
   .
+
+/*------------------------------------------------------------------------*/
 FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
   "{"                         (. bodyStart = t; .)
   Expression<out e, true, true>
   "}"                         (. bodyEnd = t; .)
   .
+
 /*------------------------------------------------------------------------*/
 BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out block) != null);
@@ -2146,6 +2250,8 @@ BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
   "}"                                  (. bodyEnd = t;
                                           block = new BlockStmt(bodyStart, bodyEnd, body); .)
   .
+
+/*------------------------------------------------------------------------*/
 DividedBlockStmt<out DividedBlockStmt body, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out body) != null);
      List<Statement> bodyInit = new List<Statement>();
@@ -2161,11 +2267,15 @@ DividedBlockStmt<out DividedBlockStmt body, out IToken bodyStart, out IToken bod
   "}"                                  (. bodyEnd = t; .)
   (. body = new DividedBlockStmt(bodyStart, bodyEnd, bodyInit, separatorTok, bodyProper); .)
   .
+
+/*------------------------------------------------------------------------*/
 Stmt<.List<Statement/*!*/>/*!*/ ss.>
 = (. Statement/*!*/ s;
   .)
   OneStmt<out s>                                (. ss.Add(s); .)
   .
+
+/*------------------------------------------------------------------------*/
 OneStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  IToken/*!*/ id;  string label = null;
      s = dummyStmt;  /* to please the compiler */
@@ -2203,6 +2313,7 @@ OneStmt<out Statement/*!*/ s>
   )
   .
 
+/*------------------------------------------------------------------------*/
 SkeletonStmt<out Statement s>
 = (. List<IToken> names = null;
      List<Expression> exprs = null;
@@ -2226,6 +2337,8 @@ SkeletonStmt<out Statement s>
   ";"
   (. s = new SkeletonStatement(dotdotdot, t, names, exprs); .)
   .
+
+/*------------------------------------------------------------------------*/
 ReturnStmt<out Statement/*!*/ s>
 = (.
    IToken returnTok = null;
@@ -2247,6 +2360,8 @@ ReturnStmt<out Statement/*!*/ s>
                                         }
                                      .)
   .
+
+/*------------------------------------------------------------------------*/
 UpdateStmt<out Statement/*!*/ s>
 = (. List<Expression> lhss = new List<Expression>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
@@ -2308,6 +2423,8 @@ UpdateStmt<out Statement/*!*/ s>
      }
   .)
   .
+
+/*------------------------------------------------------------------------*/
 Rhs<out AssignmentRhs r>
 = (. Contract.Ensures(Contract.ValueAtReturn<AssignmentRhs>(out r) != null);
      IToken/*!*/ x, newToken;  Expression/*!*/ e;
@@ -2346,6 +2463,8 @@ Rhs<out AssignmentRhs r>
   )
   { Attribute<ref attrs> }             (. r.Attributes = attrs; .)
   .
+
+/*------------------------------------------------------------------------*/
 NewArray<. out List<Expression> ee, out Expression arrayElementInit, out List<Expression> display .>
 = (. ee = new List<Expression>();
      arrayElementInit = null;
@@ -2380,6 +2499,8 @@ NewArray<. out List<Expression> ee, out Expression arrayElementInit, out List<Ex
      }
   .)
   .
+
+/*------------------------------------------------------------------------*/
 VarDeclStatement<.out Statement/*!*/ s.>
 = (. IToken x = null, assignTok = null;  bool isGhost = false;
      LocalVariable d;
@@ -2460,6 +2581,8 @@ VarDeclStatement<.out Statement/*!*/ s.>
     (. s = new VarDeclPattern(e.tok, e.tok, pat, e, !isGhost); .)
   )
   .
+
+/*------------------------------------------------------------------------*/
 IfStmt<out Statement/*!*/ ifStmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out ifStmt) != null); IToken/*!*/ x;
      Expression guard = null;  IToken guardEllipsis = null;  bool isExistentialGuard = false;
@@ -2497,6 +2620,8 @@ IfStmt<out Statement/*!*/ ifStmt>
     .)
   )
   .
+
+/*------------------------------------------------------------------------*/
 AlternativeBlock<.bool allowExistentialGuards, out List<GuardedAlternative> alternatives, out bool usesOptionalBraces, out IToken endTok.>
 = (. alternatives = new List<GuardedAlternative>();
      endTok = null;
@@ -2519,6 +2644,8 @@ AlternativeBlock<.bool allowExistentialGuards, out List<GuardedAlternative> alte
   )
   (. endTok = t; .)
   .
+
+/*------------------------------------------------------------------------*/
 AlternativeBlockCase<.bool allowExistentialGuards, out GuardedAlternative alt.>
 = (. IToken x;
      Expression e; bool isExistentialGuard;
@@ -2541,6 +2668,8 @@ AlternativeBlockCase<.bool allowExistentialGuards, out GuardedAlternative alt.>
   }
   (. alt = new GuardedAlternative(x, isExistentialGuard, e, body); .)
   .
+
+/*------------------------------------------------------------------------*/
 WhileStmt<out Statement stmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken x;
      Expression guard = null;  IToken guardEllipsis = null;
@@ -2595,53 +2724,36 @@ WhileStmt<out Statement stmt>
     .)
   )
   .
+
+/*------------------------------------------------------------------------*/
 LoopSpec<.List<AttributedExpression> invariants, List<Expression> decreases, ref List<FrameExpression> mod, ref Attributes decAttrs, ref Attributes modAttrs.>
-= (. Expression e; FrameExpression fe;
-     Attributes attrs = null;
-  .)
-  ( SYNC
-    "invariant"
-    { Attribute<ref attrs> }
-    Expression<out e, false, true>                (. invariants.Add(new AttributedExpression(e, attrs)); .)
-    OldSemi
+= ( SYNC
+    InvariantClause<invariants>
   | SYNC
-    "decreases"
-    { Attribute<ref attrs> }
-    DecreasesList<decreases, true, true>
-    OldSemi
+    DecreasesClause<decreases, ref decAttrs, true, true>
   | SYNC
-    "modifies"                                    (. mod = mod ?? new List<FrameExpression>(); .)
-    { Attribute<ref attrs> }
-    FrameExpression<out fe, false, true>          (. mod.Add(fe); .)
-    { "," FrameExpression<out fe, false, true>    (. mod.Add(fe); .)
-    }
-    OldSemi
+    ModifiesClause<ref mod, ref modAttrs, true, false>
   )
   .
+
+/*------------------------------------------------------------------------*/
 DecreasesList<.List<Expression> decreases, bool allowWildcard, bool allowLambda.>
 = (. Expression e; .)
-  PossiblyWildExpression<out e, allowLambda> (. if (!allowWildcard && e is WildcardExpr) {
-                                                  SemErr(e.tok, "'decreases *' is allowed only on loops and tail-recursive methods");
-                                                } else {
-                                                  decreases.Add(e);
-                                                }
-                                             .)
-  { "," PossiblyWildExpression<out e, allowLambda>
-                                             (. if (!allowWildcard && e is WildcardExpr) {
-                                                  SemErr(e.tok, "'decreases *' is allowed only on loops and tail-recursive methods");
-                                                } else {
-                                                  decreases.Add(e);
-                                                }
-                                             .)
+  PossiblyWildExpression<out e, allowLambda, allowWildcard>       (. decreases.Add(e); .)
+  { "," PossiblyWildExpression<out e, allowLambda, allowWildcard> (. decreases.Add(e); .)
   }
   .
+
+/*------------------------------------------------------------------------*/
 Guard<out Expression e>   /* null represents demonic-choice */
 = (. Expression/*!*/ ee;  e = null; .)
-  ( "*"                             (. e = null; .)
-  | IF(IsParenStar())  "(" "*" ")"  (. e = null; .)
+  ( "*"                                   (. e = null; .)
+  | IF(IsParenStar())  "(" "*" ")"        (. e = null; .)
   | Expression<out ee, true, true>        (. e = ee; .)
   )
   .
+
+/*------------------------------------------------------------------------*/
 ExistentialGuard<out Expression e, bool allowLambda>
 = (. var bvars = new List<BoundVar>();
      BoundVar bv;  IToken x;
@@ -2697,6 +2809,8 @@ ExtendedPattern<.out ExtendedPattern pat.>
     }
   .)
   .
+
+/*------------------------------------------------------------------------*/
 NestedMatchStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken x; Expression/*!*/ e; NestedMatchCaseStmt/*!*/ c;
@@ -2715,6 +2829,8 @@ NestedMatchStmt<out Statement/*!*/ s>
   )
   (. s = new NestedMatchStmt(x, t, e, cases, usesOptionalBraces); .)
   .
+
+/*------------------------------------------------------------------------*/
 NestedCaseStatement<out NestedMatchCaseStmt/*!*/ c>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ x;
@@ -2764,6 +2880,8 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
      }
   .)
   .
+
+/*------------------------------------------------------------------------*/
 ExpectStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
      Expression e = dummyExpr; Expression m = null; Attributes attrs = null;
@@ -2783,6 +2901,8 @@ ExpectStmt<out Statement/*!*/ s>
      }
   .)
   .
+
+/*------------------------------------------------------------------------*/
 AssumeStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
      Expression e = dummyExpr; Attributes attrs = null;
@@ -2801,6 +2921,8 @@ AssumeStmt<out Statement/*!*/ s>
      }
   .)
   .
+
+/*------------------------------------------------------------------------*/
 PrintStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken x;  Expression e;
@@ -2813,6 +2935,7 @@ PrintStmt<out Statement s>
   ";"                                          (. s = new PrintStmt(x, t, args); .)
   .
 
+/*------------------------------------------------------------------------*/
 RevealStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken x; Expression e; var es = new List<Expression>();
@@ -2824,6 +2947,7 @@ RevealStmt<out Statement s>
   ";"                                           (. s = new RevealStmt(x, t, es); .)
   .
 
+/*------------------------------------------------------------------------*/
 ForallStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken/*!*/ x = Token.NoToken;
@@ -2869,6 +2993,7 @@ ForallStmt<out Statement/*!*/ s>
   .)
   .
 
+/*------------------------------------------------------------------------*/
 ModifyStmt<out Statement s>
 = (. IToken tok;  IToken endTok = Token.NoToken;
      Attributes attrs = null;
@@ -2897,6 +3022,7 @@ ModifyStmt<out Statement s>
   .)
   .
 
+/*------------------------------------------------------------------------*/
 CalcStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken x;
@@ -2963,6 +3089,8 @@ CalcStmt<out Statement s>
     s = new CalcStmt(x, t, userSuppliedOp, lines, hints, stepOps, attrs);
   .)
   .
+
+/*------------------------------------------------------------------------*/
 CalcOp<out IToken x, out CalcStmt.CalcOp/*!*/ op>
 = (. var binOp = BinaryExpr.Opcode.Eq; // Returns Eq if parsing fails because it is compatible with any other operator
      Expression k = null;
@@ -3038,6 +3166,7 @@ Expression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwise
     .)
   ]
   .
+
 /*------------------------------------------------------------------------*/
 EquivExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
@@ -3047,6 +3176,7 @@ EquivExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allowB
     ImpliesExpliesExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Iff, e0, e1); .)
   }
   .
+
 /*------------------------------------------------------------------------*/
 ImpliesExpliesExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
@@ -3070,6 +3200,8 @@ ImpliesExpliesExpression<out Expression e0, bool allowSemi, bool allowLambda, bo
     )
   ]
   .
+
+/*------------------------------------------------------------------------*/
 ImpliesExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1; .)
   LogicalExpression<out e0, allowSemi, allowLambda, allowBitwiseOps>
@@ -3079,6 +3211,7 @@ ImpliesExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allo
   ]
   [ IF(IsExpliesOp()) ExpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) ]
   .
+
 /*------------------------------------------------------------------------*/
 LogicalExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;
@@ -3131,6 +3264,7 @@ LogicalExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allo
     ]
   )
   .
+
 /*------------------------------------------------------------------------*/
 RelationalExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
@@ -3220,6 +3354,8 @@ RelationalExpression<out Expression e, bool allowSemi, bool allowLambda, bool al
      }
   .)
   .
+
+/*------------------------------------------------------------------------*/
 RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null);
      x = Token.NoToken;  op = BinaryExpr.Opcode.Add/*(dummy)*/;
@@ -3255,6 +3391,7 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
   | '\u2265'       (. x = t;  op = BinaryExpr.Opcode.Ge; .)
   )
   .
+
 /*------------------------------------------------------------------------*/
 ShiftTerm<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null);
@@ -3270,6 +3407,7 @@ ShiftTerm<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwise
     Term<out e1, allowSemi, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
   }
   .
+
 /*------------------------------------------------------------------------*/
 Term<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; .)
@@ -3285,6 +3423,7 @@ AddOp<out IToken x, out BinaryExpr.Opcode op>
   | "-"            (. x = t;  op = BinaryExpr.Opcode.Sub; .)
   )
   .
+
 /*------------------------------------------------------------------------*/
 Factor<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; .)
@@ -3294,6 +3433,8 @@ Factor<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps
     BitvectorFactor<out e1, allowSemi, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
   }
   .
+
+/*------------------------------------------------------------------------*/
 MulOp<out IToken x, out BinaryExpr.Opcode op>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); x = Token.NoToken;  op = BinaryExpr.Opcode.Add/*(dummy)*/; .)
   ( "*"            (. x = t;  op = BinaryExpr.Opcode.Mul; .)
@@ -3301,6 +3442,7 @@ MulOp<out IToken x, out BinaryExpr.Opcode op>
   | "%"            (. x = t;  op = BinaryExpr.Opcode.Mod; .)
   )
   .
+
 /*------------------------------------------------------------------------*/
 BitvectorFactor<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e0) != null); IToken/*!*/ x;  Expression/*!*/ e1;  BinaryExpr.Opcode op; .)
@@ -3333,6 +3475,7 @@ BitvectorFactor<out Expression e0, bool allowSemi, bool allowLambda, bool allowB
     )
   ]
   .
+
 /*------------------------------------------------------------------------*/
 AsExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. IToken tok; IToken x; Type toType; .)
@@ -3342,6 +3485,8 @@ AsExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwi
      TypeAndToken<out x, out toType, true>   (. e = new ConversionExpr(tok, e, toType); .)
   }
   .
+
+/*------------------------------------------------------------------------*/
 UnaryExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  e = dummyExpr; .)
   ( "-"                                             (. x = t; .)
@@ -3376,6 +3521,8 @@ UnaryExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBi
     { IF(IsSuffix()) Suffix<ref e> }
   )
   .
+
+/*------------------------------------------------------------------------*/
 Lhs<out Expression e>
 = (. e = dummyExpr;  // the assignment is to please the compiler, the dummy value to satisfy contracts in the event of a parse error
   .)
@@ -3387,6 +3534,7 @@ Lhs<out Expression e>
   )
   .
 
+/*------------------------------------------------------------------------*/
 /* A ConstAtomExpression is never an l-value, and does not start with an identifier. */
 ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
@@ -3416,6 +3564,7 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
   )
   .
 
+/*------------------------------------------------------------------------*/
 LiteralExpr<out Expression e>
 = (. BigInteger n; BaseTypes.BigDec d;
      e = dummyExpr;
@@ -3433,6 +3582,7 @@ LiteralExpr<out Expression e>
   )
   .
 
+/*------------------------------------------------------------------------*/
 PossiblyNegatedLiteralExpr<out Expression e>
 = (. BigInteger n; BaseTypes.BigDec d;
      e = dummyExpr;
@@ -3445,17 +3595,16 @@ PossiblyNegatedLiteralExpr<out Expression e>
   )
   .
 
+/*------------------------------------------------------------------------*/
 LambdaArrow = "=>".
 
 LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
 = (. IToken x = Token.NoToken;
      IToken id;  BoundVar bv;
      var bvs = new List<BoundVar>();
-     FrameExpression fe;  Expression ee;
      var reads = new List<FrameExpression>();
      Expression req = null;
      Expression body = null;
-     Attributes attrs = null;
   .)
   ( WildIdent<out id, true>                  (. x = t; bvs.Add(new BoundVar(id, id.val, new InferredTypeProxy())); .)
   | "("                                      (. x = t; .)
@@ -3466,22 +3615,23 @@ LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
       ]
     ")"
   )
-  { "reads"                                           (. attrs = null; .)
-    { Attribute<ref attrs> }
-    PossiblyWildFrameExpression<out fe, true>         (. reads.Add(fe); .)
-    { ","
-      PossiblyWildFrameExpression<out fe, true>       (. reads.Add(fe); .)
-    }
-  | "requires"                                        (. attrs = null; .)
-    { Attribute<ref attrs> }
-    Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); .)
-  }
+  LambdaSpec<ref reads, ref req>
   LambdaArrow
   Expression<out body, allowSemi, true, allowBitwiseOps>
   (. e = new LambdaExpr(x, bvs, req, reads, body);
      theBuiltIns.CreateArrowTypeDecl(bvs.Count);
   .)
   .
+
+LambdaSpec<.ref List<FrameExpression> reads, ref Expression req.>
+= { ReadsClause<reads, true, false, true>
+  | "requires"                             (. Attributes attrs = null; .)
+    { Attribute<ref attrs> }               (. Expression ee; .)
+    Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); .)
+  }
+  .
+
+/*------------------------------------------------------------------------*/
 ParensExpression<out Expression e, bool allowSemi, bool allowLambda>
 = (. IToken x;
      var args = new List<Expression>();
@@ -3498,6 +3648,8 @@ ParensExpression<out Expression e, bool allowSemi, bool allowLambda>
      }
   .)
   .
+
+/*------------------------------------------------------------------------*/
 ISetDisplayExpr<IToken/*!*/ setToken, bool finite, out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      List<Expression> elements = new List<Expression/*!*/>();;
@@ -3507,6 +3659,8 @@ ISetDisplayExpr<IToken/*!*/ setToken, bool finite, out Expression e>
       [ Expressions<elements> ]                (. e = new SetDisplayExpr(setToken, finite, elements);.)
   "}"
   .
+
+/*------------------------------------------------------------------------*/
 DisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken x;  List<Expression> elements;
@@ -3520,6 +3674,8 @@ DisplayExpr<out Expression e>
     "]"
   )
   .
+
+/*------------------------------------------------------------------------*/
 MultiSetExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken/*!*/ x = null;  List<Expression/*!*/>/*!*/ elements;
@@ -3534,6 +3690,8 @@ MultiSetExpr<out Expression e>
     ")"
   )
   .
+
+/*------------------------------------------------------------------------*/
 SeqConstructionExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken x = null;
@@ -3556,6 +3714,8 @@ SeqConstructionExpr<out Expression e>
   Expression<out f, true, true>
   ")"                            (. e = new SeqConstructionExpr(x, explicitTypeArg, n, f); .)
   .
+
+/*------------------------------------------------------------------------*/
 MapDisplayExpr<IToken/*!*/ mapToken, bool finite, out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      List<ExpressionPair/*!*/>/*!*/ elements= new List<ExpressionPair/*!*/>() ;
@@ -3565,6 +3725,8 @@ MapDisplayExpr<IToken/*!*/ mapToken, bool finite, out Expression e>
     [ MapLiteralExpressions<out elements> ]  (. e = new MapDisplayExpr(mapToken, finite, elements);.)
   "]"
   .
+
+/*------------------------------------------------------------------------*/
 MapLiteralExpressions<.out List<ExpressionPair> elements.>
 = (. Expression/*!*/ d, r;
      elements = new List<ExpressionPair/*!*/>(); .)
@@ -3572,6 +3734,8 @@ MapLiteralExpressions<.out List<ExpressionPair> elements.>
   { "," Expression<out d, true, true> ":=" Expression<out r, true, true> (. elements.Add(new ExpressionPair(d,r)); .)
   }
   .
+
+/*------------------------------------------------------------------------*/
 MapComprehensionExpr<IToken mapToken, bool finite, out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      BoundVar bv;
@@ -3600,6 +3764,8 @@ MapComprehensionExpr<IToken mapToken, bool finite, out Expression e, bool allowS
      }
   .)
   .
+
+/*------------------------------------------------------------------------*/
 EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. IToken/*!*/ x;
      Expression e0, e1;
@@ -3641,6 +3807,7 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
   )
   .
 
+/*------------------------------------------------------------------------*/
 StmtInExpr<out Statement s>
 = (. s = dummyStmt; .)
   ( AssertStmt<out s, true>
@@ -3651,12 +3818,14 @@ StmtInExpr<out Statement s>
   )
   .
 
+/*------------------------------------------------------------------------*/
 LetExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. e = dummyExpr; .)
   ( LetExprWithLHS<out e, allowSemi, allowLambda, allowBitwiseOps>
   | LetExprWithoutLHS<out e, allowSemi, allowLambda, allowBitwiseOps>
   ).
 
+/*------------------------------------------------------------------------*/
 LetExprWithLHS<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. IToken x = null;
      bool isGhost = false;
@@ -3717,6 +3886,7 @@ LetExprWithLHS<out Expression e, bool allowSemi, bool allowLambda, bool allowBit
   .)
   .
 
+/*------------------------------------------------------------------------*/
 LetExprWithoutLHS<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. IToken x;
      Expression rhs;
@@ -3729,6 +3899,7 @@ LetExprWithoutLHS<out Expression e, bool allowSemi, bool allowLambda, bool allow
   (. e = new LetOrFailExpr(x, null, rhs, body); .)
   .
 
+/*------------------------------------------------------------------------*/
 NamedExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. IToken/*!*/ x, d;
      e = dummyExpr;
@@ -3742,6 +3913,7 @@ NamedExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseO
                                         e = new NamedExpr(x, d.val, expr); .)
   .
 
+/*------------------------------------------------------------------------*/
 NestedMatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  NestedMatchCaseExpr/*!*/ c;
      List<NestedMatchCaseExpr/*!*/> cases = new List<NestedMatchCaseExpr/*!*/>();
@@ -3760,6 +3932,7 @@ NestedMatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool a
   (. e = new NestedMatchExpr(x, e, cases, usesOptionalBraces); .)
 .
 
+/*------------------------------------------------------------------------*/
 NestedCaseExpression<out NestedMatchCaseExpr c, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x;
      ExtendedPattern/*!*/ pat = null;
@@ -3771,6 +3944,7 @@ NestedCaseExpression<out NestedMatchCaseExpr c, bool allowSemi, bool allowLambda
   Expression<out body, allowSemi, allowLambda, allowBitwiseOps>    (. c = new NestedMatchCaseExpr(x, pat, body); .)
 .
 
+/*------------------------------------------------------------------------*/
 CasePattern<.out CasePattern<BoundVar> pat.>
 = (. IToken id;  List<CasePattern<BoundVar>> arguments;
      BoundVar bv;
@@ -3810,6 +3984,8 @@ CasePattern<.out CasePattern<BoundVar> pat.>
      }
   .)
   .
+
+/*------------------------------------------------------------------------*/
 /* CasePatternLocal is identical to CasePattern, except that it uses LocalVariable instead of BoundVar. Coco does
  * not have a way to make the patterns take a bounded type parameter.
  */
@@ -3853,6 +4029,7 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
      }
   .)
   .
+
 /*------------------------------------------------------------------------*/
 NameSegment<out Expression e>
 = (. IToken id;
@@ -3872,6 +4049,8 @@ NameSegment<out Expression e>
      }
   .)
   .
+
+/*------------------------------------------------------------------------*/
 /* NameSegmentForTypeName is like the production NameSegment, except that it does not allow HashCall */
 NameSegmentForTypeName<out Expression e, bool inExpressionContext>
 = (. IToken id;  List<Type> typeArgs; .)
@@ -3880,6 +4059,8 @@ NameSegmentForTypeName<out Expression e, bool inExpressionContext>
   (. e = new NameSegment(id, id.val, typeArgs);
   .)
   .
+
+/*------------------------------------------------------------------------*/
 /* The HashCall production extends a given identifier with a hash sign followed by
  * a list of argument expressions.  That is, if what was just parsed was an identifier id,
  * then the HashCall production will continue parsing into id#[arg](args).
@@ -3900,6 +4081,8 @@ HashCall<.IToken id, out IToken openParen, out List<Type> typeArgs, out List<Exp
     [ Expressions<args> ]
   ")"
   .
+
+/*------------------------------------------------------------------------*/
 Suffix<ref Expression e>
 = (. Contract.Requires(e != null); Contract.Ensures(e!=null);
      IToken id, x;
@@ -4032,6 +4215,7 @@ QuantifierGuts<out Expression q, bool allowSemi, bool allowLambda>
   .)
   .
 
+/*------------------------------------------------------------------------*/
 QuantifierDomain<.out List<BoundVar> bvars, out Attributes attrs, out Expression range.>
 = (.
      bvars = new List<BoundVar>();
@@ -4050,6 +4234,7 @@ QuantifierDomain<.out List<BoundVar> bvars, out Attributes attrs, out Expression
   ]
   .
 
+/*------------------------------------------------------------------------*/
 SetComprehensionExpr<IToken setToken, bool finite, out Expression q, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out q) != null);
      BoundVar bv;
@@ -4076,12 +4261,15 @@ SetComprehensionExpr<IToken setToken, bool finite, out Expression q, bool allowS
      }
   .)
   .
+
+/*------------------------------------------------------------------------*/
 Expressions<.List<Expression> args.>
 = (. Expression e; .)
   Expression<out e, true, true>                      (. args.Add(e); .)
   { "," Expression<out e, true, true>                (. args.Add(e); .)
   }
   .
+
 /*------------------------------------------------------------------------*/
 Attribute<ref Attributes attrs>
 = (. IToken openBrace, closeBrace;
@@ -4095,6 +4283,7 @@ Attribute<ref Attributes attrs>
   "}"                         (. closeBrace = t; .)
   (. attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs); .)
   .
+
 /*------------------------------------------------------------------------*/
 Ident<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
@@ -4104,6 +4293,8 @@ Ident<out IToken/*!*/ x>
   )
   (. x = t; .)
   .
+
+/*------------------------------------------------------------------------*/
 // Identifier or sequence of digits
 // Parse one of the following, which are supposed to follow a ".":
 //        ident
@@ -4143,38 +4334,8 @@ DotSuffix<out IToken x, out IToken y>
   | "reads"        (. x = t; .)
   )
   .
-MemberBindingUpdate<out IToken id, out Expression e>
-= (. id = Token.NoToken; e = dummyExpr; .)
-  ( Ident<out id>
-  | digits         (. id = t; .)
-  )
-  ":="
-  Expression<out e, true, true>
-  .
 
-LabelIdent<out IToken id>
-= (. id = Token.NoToken; .)
-  ( NoUSIdent<out id>
-  | digits         (. id = t; .)
-  )
-  .
-FuMe_Ident<out IToken id>
-= (. id = Token.NoToken; .)
-  ( NoUSIdent<out id>
-  | digits         (. id = t; .)
-  )
-  .
-ExportIdent<out IToken id>
-=
-  FuMe_Ident<out id>
-  .
-TypeNameOrCtorSuffix<out IToken id>
-= (. id = Token.NoToken; .)
-  ( Ident<out id>
-  | digits         (. id = t; .)
-  )
-  .
-
+/*------------------------------------------------------------------------*/
 // Identifier, disallowing leading underscores
 NoUSIdent<out IToken/*!*/ x>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
@@ -4184,12 +4345,54 @@ NoUSIdent<out IToken/*!*/ x>
                    .)
   .
 
+/*------------------------------------------------------------------------*/
+IdentOrDigits<out IToken id>
+= (. id = Token.NoToken; .)
+  ( Ident<out id>
+  | digits         (. id = t; .)
+  )
+  .
+
+/*------------------------------------------------------------------------*/
+NoUSIdentOrDigits<out IToken id>
+= (. id = Token.NoToken; .)
+  ( NoUSIdent<out id>
+  | digits         (. id = t; .)
+  )
+  .
+
+/*------------------------------------------------------------------------*/
+MemberBindingUpdate<out IToken id, out Expression e>
+= (. id = Token.NoToken; e = dummyExpr; .)
+  NoUSIdentOrDigits<out id>
+  ":="
+  Expression<out e, true, true>
+  .
+
+/*------------------------------------------------------------------------*/
+LabelIdent<out IToken id>
+= NoUSIdentOrDigits<out id>
+  .
+
+/*------------------------------------------------------------------------*/
+FuMe_Ident<out IToken id>
+= NoUSIdentOrDigits<out id>
+  .
+
+/*------------------------------------------------------------------------*/
+TypeNameOrCtorSuffix<out IToken id>
+= (. id = Token.NoToken; .)
+  IdentOrDigits<out id>
+  .
+
+/*------------------------------------------------------------------------*/
 // Identifier, disallowing leading underscores, except possibly the "wildcard" identifier "_"
 WildIdent<out IToken x, bool allowWildcardId>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); .)
   Ident<out x>     (. t.val = UnwildIdent(t.val, allowWildcardId); .)
   .
 
+/*------------------------------------------------------------------------*/
 OldSemi  /* NOTE: Coco complains about "OldSemi deletable". That's okay. */
 = /* In the future, it may be that semi-colons will be neither needed nor allowed in certain places where,
    * in the past, they were required.  As a period of transition between the two, such semi-colons are optional.
@@ -4197,6 +4400,7 @@ OldSemi  /* NOTE: Coco complains about "OldSemi deletable". That's okay. */
   [ SYNC ";"    (. errors.DeprecatedStyle(t, "deprecated style: a semi-colon is not needed here"); .)
   ].
 
+/*------------------------------------------------------------------------*/
 Nat<out BigInteger n>
 = (. n = BigInteger.Zero;
      string S;
@@ -4222,6 +4426,8 @@ Nat<out BigInteger n>
     .)
   )
   .
+
+/*------------------------------------------------------------------------*/
 Dec<out BaseTypes.BigDec d>
 = (. d = BaseTypes.BigDec.ZERO; .)
   (decimaldigits
@@ -4235,4 +4441,6 @@ Dec<out BaseTypes.BigDec d>
     .)
   )
   .
+
+/*------------------------------------------------------------------------*/
 END Dafny.

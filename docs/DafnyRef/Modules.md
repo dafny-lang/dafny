@@ -1,7 +1,7 @@
 # 4. Modules
 
 ````grammar
-SubModuleDecl = ( ModuleDefinition_ | ModuleImport_ )
+SubModuleDecl = ( ModuleDefinition | ModuleImport | ModuleExport )
 ````
 
 Structuring a program by breaking it into parts is an important part of
@@ -14,13 +14,13 @@ interface.
 
 ## 4.1. Declaring New Modules
 ````grammar
-ModuleDefinition_ = "module" { Attribute } ModuleName
-        [ "refines" QualifiedModuleName ]
+ModuleDefinition = "module" { Attribute } ModuleQualifiedName
+        [ "refines" ModuleQualifiedName ]
         "{" { TopDecl } "}"
 
-QualifiedModuleName = ModuleName { "." ModuleName }
+ModuleQualifiedName = ModuleName { "." ModuleName }
 ````
-A `ModuleQualifiedNamed` is a qualified name that is expected to refer to a module;
+A `ModuleQualifiedName` is a qualified name that is expected to refer to a module;
 a _qualified name_ is a sequence of `.`-separated identifiers, which designates
 a program entity by representing increasingly-nested scopes.
 
@@ -103,7 +103,7 @@ of a single implicit unnamed global module.
 ## 4.2. Declaring nested modules standalone
 
 As described in the previous section, module declarations can be nested.
-It is also permitted to declare a nested module _outside_ of its 
+It is also permitted to declare a nested module _outside_ of its
 "enclosing" module. So instead of
 ```dafny
 module A {
@@ -119,26 +119,33 @@ module A.B {
 }
 ```
 The second module is completely separate; for example, it can be in
-a different file. 
+a different file.
 This feature provides flexibility in writing and maintenance;
 for example, it can reduce the size of module `A` by extracting module `A.B`
 into a separate body of text.
 
 However, it can also lead to confusion and program authors need to take care.
 It may not be apparent to a reader of module `A` that module `A.B` exists;
-the existence of `A.B` might cause names to be resolved differently and 
+the existence of `A.B` might cause names to be resolved differently and
 the semantics of the program might be (silently) different if `A.B` is
 present or absent.
 
 ## 4.3. Importing Modules
 ````grammar
-ModuleImport_ = "import" ["opened" ]
-    [ ModuleQualifiedName
-          [ "`" ( ExportId | "{" ExportId { "," ExportId } "}" ) ]
-    | ModuleName "=" ModuleQualifiedName
-          [ "`" ( ExportId | "{" ExportId { "," ExportId } "}" ) ]
-    | ModuleName ":" ModuleQualifiedName
-    ]
+ModuleImport =
+    "import" ["opened" ]
+    ( QualifiedModuleExport
+    | ModuleName "=" QualifiedModuleExport
+    | ModuleName ":" QualifiedModuleExport
+    )
+
+QualifiedModuleExport = ModuleQualifiedName [ "`" ModuleExportSuffix ]
+
+ModuleExportSuffix =
+    (
+      ExportId
+    | "{" ExportId { "," ExportId } "}"
+    )
 ````
 
 Sometimes you want to refer to
@@ -177,7 +184,7 @@ as only names that have been bound inside `Mod` are available. In order
 to use the members from another module, that other module either has to be declared
 there with `module` or imported with `import`. (As described below, the
 resolution of the `ModuleQualifiedName` that follows the `=` in the `import`
-statement or the `refines` in a module declaration uses slightly 
+statement or the `refines` in a module declaration uses slightly
 different rules.)
 
 We don't have to give `Helpers` a new name, though, if we don't want
@@ -249,8 +256,8 @@ If you open two modules that both declare members with the same name,
 then neither member can be referred to without a module prefix, as it
 would be ambiguous which one was meant. Just opening the two modules
 is not an error, however, as long as you don't attempt to use members
-with common names. However, if the ambiguous references actually 
-refer to the same declaration, then they are permitted. 
+with common names. However, if the ambiguous references actually
+refer to the same declaration, then they are permitted.
 The `opened` keyword may be used with any kind of
 `import` declaration, including the module abstraction form.
 
@@ -275,14 +282,20 @@ verbose enough to impede understanding.
 
 ## 4.5. Export Sets and Access Control
 ````grammar
-"export" [ ExportId ] [ "..." ]
+ModuleExport =
+  "export"
+  [ ExportId ]
+  [ "..." ]
   {
-    "provides" ( ExportSig { "," ExportSig } | "*" )
-  | "reveals"  ( ExportSig { "," ExportSig } | "*" )
+    "provides" ( ExportSignature { "," ExportSignature } | "*" )
+  | "reveals"  ( ExportSignature { "," ExportSignature } | "*" )
   | "extends"  ExportId { "," ExportId }
   }
-````
 
+ExportId = NoUSIdentOrDigits
+
+ExportSignature = IdentOrDigits [ "." IdentOrDigits ]
+````
 
 In some programming languages, keywords such as `public`, `private`, and `protected`
 are used to control access to (that is, visibility of) declared program entities.
@@ -304,11 +317,11 @@ Export sets have names; those names are used in `import` statements to
 designate which export set of a module is being imported.
 If a module `M` has export sets
 `E1` and `E2`, we can write ``import A = M`E1`` to create a module alias
-`A` that contains only the 
+`A` that contains only the
 names in `E1`. Or we can write ``import A = M`{E1,E2}`` to import the union
 of names in `E1` and `E2` as module alias `A`.
 As before, ``import M`E1`` is an
-abbreviation of ``import M = M`E1``. 
+abbreviation of ``import M = M`E1``.
 
 If no export set is given in an import
 statement, the default export set of the module is used.
@@ -328,7 +341,7 @@ then an export set designator must be used: in that case you cannot write
 simply ``import Z = M``.
 
 _`M` has an unnamed export set, along with other export sets (e.g., `E`)_. The unnamed
-export set is the default export set and implicitly has the same name as 
+export set is the default export set and implicitly has the same name as
 the module. Because there is a default export set, another module may write
 either ``import Z = M`` or ``import Z = M`M`` to import the names in that
 default export set. You can also still use the other export sets with the
@@ -341,8 +354,8 @@ the name of the module is the default export set for the module.
 
 Note that names of module aliases (declared by import statements) are
 just like other names in a module; they can be included or omitted from
-export sets. 
-Names brought into a module by [_refinement_](#sec-module-refinement) are treated the same as 
+export sets.
+Names brought into a module by [_refinement_](#sec-module-refinement) are treated the same as
 locally declared names and can be listed in export set declarations.
 However, names brought into a module by `import opened` (either into a module
 or a refinement parent of a module) may
@@ -365,7 +378,7 @@ module C {
 }
 ```
 
-However, in the above example, 
+However, in the above example,
 
 * if `A` has one export set `export Y reveals a`
 then the import in module `B` is invalid because `A` has no default
@@ -375,7 +388,7 @@ then B's import is OK. So is the use of `Z.a` in the assert because `B`
 declares `Z` and `C` brings in `Z` through the `import opened` and
 `Z` contains `a` by virtue of its declaration. (The alias `Z` is not able to
 have export sets; all of its names are visible.)
-* if `A` has one export set `export provides z` then `A` does have a 
+* if `A` has one export set `export provides z` then `A` does have a
 default export set, so the import in `B` is OK, but neither the use of `a`
 in `B` nor as `Z.a` in C would be valid, because `a` is not in `Z`.
 
@@ -387,7 +400,7 @@ names, as described in [Section 4.8](#sec-name-resolution).
 Names can be exported from modules in two ways, designated by `provides`
 and `reveals` in the export set declaration.
 
-When a name is exported as _provided_, then inside a module that has 
+When a name is exported as _provided_, then inside a module that has
 imported the name only the name is known, not the details of the
 name's declaration.
 
@@ -396,7 +409,7 @@ For example, in the following code the constant `a` is exported as provided.
 {% include_relative examples/Example-ExportSet1.dfy %}
 ```
 Since `a` is imported into module `B` through the default export set ``A`A``,
-it can be referenced in the assert statement. The constant `b` is not 
+it can be referenced in the assert statement. The constant `b` is not
 exported, so it is not available. But the assert about `a` is not provable
 because the value of `a` is not known in module `B`.
 
@@ -426,7 +439,7 @@ A few other notes:
 * Using a `*` instead of a list of names means that all local names
 (except export set names) in the
 module are exported.
-* If no export sets are declared, then the implicit 
+* If no export sets are declared, then the implicit
 export set is `export reveals *`
 * A module acquires all the export sets from its refinement parent.
 * Names acquired by a module from its refinement parent are also subject to
@@ -453,7 +466,7 @@ module M {
 }
 ```
 export set C will contain the names `a`, `b`, and `c`.
- 
+
 ## 4.6. Module Abstraction
 
 Sometimes, using a specific implementation is unnecessary; instead,
@@ -619,7 +632,7 @@ Such a qualified name is resolved as follows, with respect to its syntactic
 location within a module `Z`:
 
 0. The leading ``NameSegment`` is resolved as a local or imported module name of `Z`, if there
-is one with a matching name. The target of a `refines` clause does not 
+is one with a matching name. The target of a `refines` clause does not
 consider local names, that is, in `module Z refines A.B.C`, any contents of `Z`
 are not considered in finding `A`.
 
@@ -637,7 +650,7 @@ declaration, the resolution fails. See the examples below.
 2b. If the resolved module name is a module alias (from an `import` statement)
    then the target of the alias is resolved as a new qualified name
    with respect to its syntactic context (independent of any resolutions or
-modules so far). Since `Z` depends on `M`, any such alias target will 
+modules so far). Since `Z` depends on `M`, any such alias target will
 already have been resolved, beccause modules are resolved in order of
 dependency.
 
@@ -689,7 +702,7 @@ Such a qualified name is resolved as follows, with respect to its syntactic
 location within a module `Z`:
 
 0. The leading ``NameSegment`` is resolved as a local or imported module name of `Z`, if there
-is one with a matching name. The target of a `refines` clause does not 
+is one with a matching name. The target of a `refines` clause does not
 consider local names, that is, in `module Z refines A.B.C`, any contents of `Z`
 are not considered in finding `A`.
 
@@ -707,7 +720,7 @@ declaration, the resolution fails. See the examples below.
 2b. If the resolved module name is a module alias (from an `import` statement)
    then the target of the alias is resolved as a new qualified name
    with respect to its syntactic context (independent of any resolutions or
-modules so far). Since `Z` depends on `M`, any such alias target will 
+modules so far). Since `Z` depends on `M`, any such alias target will
 already have been resolved, beccause modules are resolved in order of
 dependency.
 
@@ -765,7 +778,7 @@ In each module, names from opened modules are also potential martches, but
 only after names declared in the module.
 If a ambiguous name is found or  name of the wrong kind (e.g. a module
 instead of an expression identifier), an error is generated, rather than continuing
-down the list. 
+down the list.
 
 After the first identifier, the rules are basically the
 same, except in the new context. For example, if the first identifier is

@@ -90,7 +90,7 @@ implicitly members of a default (unnamed) top-level module.
 
 The ``ClassDecl``, ``DatatypeDecl``, ``NewtypeDecl``,
 ``SynonymTypeDecl``, ``IteratorDecl``, and ``TraitDecl`` declarations are
-type declarations and are described in [Section 6](#sec-types) and 
+type declarations and are described in [Section 6](#sec-types) and
 the following sections. Ordinarily
 ``ClassMemberDecl``s appear in class declarations but they can also
 appear at the top level. In that case they are included as part of an
@@ -100,9 +100,7 @@ the top level cannot be a ``FieldDecl``.
 
 ## 3.3. Declaration Modifiers
 ````grammar
-DeclModifier =
-  ( "abstract" | "ghost" | "static"
-  )
+DeclModifier = ( "abstract" | "ghost" | "static" )
 ````
 
 Top level declarations may be preceded by zero or more declaration
