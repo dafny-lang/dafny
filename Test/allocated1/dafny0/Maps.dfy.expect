@@ -98,11 +98,11 @@ Maps.dfy(339,11): Error: index out of range
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Maps.dfy(341,16): Error: the RHS value (a Elem?) is not known to be an instance of the LHS type (Elem)
+Maps.dfy(341,16): Error: the RHS value (a Elem?) is not known to be an instance of the LHS type (Elem), because it may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Maps.dfy(347,11): Error: the RHS value (a Elem?) is not known to be an instance of the LHS type (Elem)
+Maps.dfy(347,11): Error: the RHS value (a Elem?) is not known to be an instance of the LHS type (Elem), because it may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
@@ -110,11 +110,11 @@ Maps.dfy(349,16): Error: new number of occurrences might be negative
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-Maps.dfy(358,11): Error: the RHS value (a Elem?) is not known to be an instance of the LHS type (Elem)
+Maps.dfy(358,11): Error: the RHS value (a Elem?) is not known to be an instance of the LHS type (Elem), because it may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Maps.dfy(360,16): Error: the RHS value (a Elem?) is not known to be an instance of the LHS type (Elem)
+Maps.dfy(360,16): Error: the RHS value (a Elem?) is not known to be an instance of the LHS type (Elem), because it may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
