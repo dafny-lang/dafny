@@ -928,7 +928,7 @@ to have an infinite domain.
 If the same key occurs more than
 once in a map display expression, only the last occurrence appears in the resulting
 map.[^fn-map-display]  There is also a _map comprehension expression_,
-explained in [Section 22.40](#sec-map-comprehension-expression).
+explained in [Section 22.41](#sec-map-comprehension-expression).
 
 [^fn-map-display]: This is likely to change in the future to disallow
     multiple occurrences of the same key.
@@ -3080,7 +3080,7 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 22.46](#sec-compile-time-constants).
+in [Section 22.47](#sec-compile-time-constants).
 
 ## 18.1. Conversion operations {#sec-conversion}
 
