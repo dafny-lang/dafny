@@ -360,3 +360,91 @@ method UpdateValidityMapNull(mm: map<Elem?, Elem?>, d: Elem?, e: Elem)
     m := m[e := d];  // error: value is not a Elem
   }
 }
+
+// ---------- map union and map subtraction ----------
+
+method TestMapSubtraction(m: map<int, real>, s: set<int>, x: int, y: int)
+  requires x in m.Keys && x in s
+  requires y in m.Keys && y !in s
+{
+  var xx, yy := m[x], m[y];
+  var m' := m - s;
+  assert x !in m'.Keys;
+  assert y in m'.Keys;
+  assert m'[y] == yy;
+  assert m'.Keys <= m.Keys;
+  assert m'.Keys == m.Keys - s;
+}
+
+method TestIMapSubtraction(m: imap<int, real>, s: set<int>, x: int, y: int)
+  requires x in m.Keys && x in s
+  requires y in m.Keys && y !in s
+{
+  var xx, yy := m[x], m[y];
+  var m' := m - s;
+  assert x !in m'.Keys;
+  assert y in m'.Keys;
+  assert m'[y] == yy;
+  assert m'.Keys <= m.Keys;
+  assert m'.Keys == m.Keys - iset u | u in s;
+}
+
+method TestMapUnion(m0: map<int, real>, m1: map<int, real>, m2: map<int, real>, x: int, y: int, z: int)
+  requires x in m0.Keys && y in m1.Keys && z in m2.Keys
+{
+  var xx, yy, zz := m0[x], m1[y], m2[z];
+  var m := m0 + m1 + m2;
+  assert x in m.Keys && y in m.Keys && z in m.Keys;
+  assert m[x] == xx || x in m1.Keys || x in m2.Keys;
+  assert m[y] == yy || y in m2.Keys;
+  assert m[z] == zz;
+  assert forall u :: u in m.Keys <==> u in m0.Keys + m1.Keys + m2.Keys;
+}
+
+method TestIMapUnion(m0: imap<int, real>, m1: imap<int, real>, m2: imap<int, real>, x: int, y: int, z: int)
+  requires x in m0.Keys && y in m1.Keys && z in m2.Keys
+{
+  var xx, yy, zz := m0[x], m1[y], m2[z];
+  var m := m0 + m1 + m2;
+  assert x in m.Keys && y in m.Keys && z in m.Keys;
+  assert m[x] == xx || x in m1.Keys || x in m2.Keys;
+  assert m[y] == yy || y in m2.Keys;
+  assert m[z] == zz;
+  assert forall u :: u in m.Keys <==> u in m0.Keys + m1.Keys + m2.Keys;
+}
+
+method FailingMapOperations(m: map<int, real>, n: map<int, real>, s: set<int>, x: int, y: int)
+  requires x in m.Keys && y in n.Keys
+{
+  var xx, yy := m[x], n[y];
+  if * {
+    var m' := m - s;
+    assert x in m'.Keys ==> m'[x] == xx;
+    assert x !in m'.Keys ==> x in s;
+    assert x in m'.Keys;  // error: no reason to think this
+  } else {
+    var m' := m + n;
+    assert m'[y] == n[y];
+    assert x !in n.Keys ==> m'[x] == m[x];
+    assert m'[x] == m[x];  // error: no reason to think this
+    assert y in m.Keys;  // error: no reason to think this
+  }
+}
+
+method FailingIMapOperations(m: imap<int, real>, n: imap<int, real>, s: set<int>, x: int, y: int)
+  requires x in m.Keys && y in n.Keys
+{
+  var xx, yy := m[x], n[y];
+  if * {
+    var m' := m - s;
+    assert x in m'.Keys ==> m'[x] == xx;
+    assert x !in m'.Keys ==> x in s;
+    assert x in m'.Keys;  // error: no reason to think this
+  } else {
+    var m' := m + n;
+    assert m'[y] == n[y];
+    assert x !in n.Keys ==> m'[x] == m[x];
+    assert m'[x] == m[x];  // error: no reason to think this
+    assert y in m.Keys;  // error: no reason to think this
+  }
+}

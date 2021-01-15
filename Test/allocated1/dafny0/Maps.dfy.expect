@@ -118,5 +118,45 @@ Maps.dfy(360,16): Error: the RHS value (a Elem?) is not known to be an instance 
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
+Maps.dfy(424,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    Maps.dfy(422,25): anon10_Else
+    (0,0): anon3
+    (0,0): anon11_Then
+    (0,0): anon5
+Maps.dfy(429,17): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Else
+    Maps.dfy(428,25): anon12_Else
+    (0,0): anon8
+Maps.dfy(430,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Else
+    (0,0): anon12_Then
+    (0,0): anon8
+Maps.dfy(442,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    Maps.dfy(440,25): anon10_Else
+    (0,0): anon3
+    (0,0): anon11_Then
+    (0,0): anon5
+Maps.dfy(447,17): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Else
+    Maps.dfy(446,25): anon12_Else
+    (0,0): anon8
+Maps.dfy(448,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Else
+    (0,0): anon12_Then
+    (0,0): anon8
 
-Dafny program verifier finished with 29 verified, 22 errors
+Dafny program verifier finished with 33 verified, 28 errors

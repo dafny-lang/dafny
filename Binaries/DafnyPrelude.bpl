@@ -1211,6 +1211,26 @@ axiom (forall<U, V> m: Map U V, u: U, v: V :: { Map#Card(Map#Build(m, u, v)) }
 axiom (forall<U, V> m: Map U V, u: U, v: V :: { Map#Card(Map#Build(m, u, v)) }
   !Map#Domain(m)[u] ==> Map#Card(Map#Build(m, u, v)) == Map#Card(m) + 1);
 
+// Map operations
+function Map#Union<U, V>(Map U V, Map U V): Map U V;
+axiom (forall<U, V> m: Map U V, n: Map U V ::
+  { Map#Domain(Map#Union(m, n)) }
+  Map#Domain(Map#Union(m, n)) == Set#Union(Map#Domain(m), Map#Domain(n)));
+axiom (forall<U, V> m: Map U V, n: Map U V, u: U ::
+  { Map#Elements(Map#Union(m, n))[u] }
+  Map#Domain(Map#Union(m, n))[u] ==>
+    (!Map#Domain(n)[u] ==> Map#Elements(Map#Union(m, n))[u] == Map#Elements(m)[u]) &&
+    (Map#Domain(n)[u] ==> Map#Elements(Map#Union(m, n))[u] == Map#Elements(n)[u]));
+
+function Map#Subtract<U, V>(Map U V, Set U): Map U V;
+axiom (forall<U, V> m: Map U V, s: Set U ::
+  { Map#Domain(Map#Subtract(m, s)) }
+  Map#Domain(Map#Subtract(m, s)) == Set#Difference(Map#Domain(m), s));
+axiom (forall<U, V> m: Map U V, s: Set U, u: U ::
+  { Map#Elements(Map#Subtract(m, s))[u] }
+  Map#Domain(Map#Subtract(m, s))[u] ==>
+    Map#Elements(Map#Subtract(m, s))[u] == Map#Elements(m)[u]);
+
 //equality for maps
 function Map#Equal<U, V>(Map U V, Map U V): bool;
 axiom (forall<U, V> m: Map U V, m': Map U V::
@@ -1308,6 +1328,26 @@ axiom (forall<U, V> m: IMap U V, m': IMap U V::
 axiom (forall<U, V> m: IMap U V, m': IMap U V::
   { IMap#Equal(m, m') }
     IMap#Equal(m, m') ==> m == m');
+
+// IMap operations
+function IMap#Union<U, V>(IMap U V, IMap U V): IMap U V;
+axiom (forall<U, V> m: IMap U V, n: IMap U V ::
+  { IMap#Domain(IMap#Union(m, n)) }
+  IMap#Domain(IMap#Union(m, n)) == Set#Union(IMap#Domain(m), IMap#Domain(n)));
+axiom (forall<U, V> m: IMap U V, n: IMap U V, u: U ::
+  { IMap#Elements(IMap#Union(m, n))[u] }
+  IMap#Domain(IMap#Union(m, n))[u] ==>
+    (!IMap#Domain(n)[u] ==> IMap#Elements(IMap#Union(m, n))[u] == IMap#Elements(m)[u]) &&
+    (IMap#Domain(n)[u] ==> IMap#Elements(IMap#Union(m, n))[u] == IMap#Elements(n)[u]));
+
+function IMap#Subtract<U, V>(IMap U V, Set U): IMap U V;
+axiom (forall<U, V> m: IMap U V, s: Set U ::
+  { IMap#Domain(IMap#Subtract(m, s)) }
+  IMap#Domain(IMap#Subtract(m, s)) == Set#Difference(IMap#Domain(m), s));
+axiom (forall<U, V> m: IMap U V, s: Set U, u: U ::
+  { IMap#Elements(IMap#Subtract(m, s))[u] }
+  IMap#Domain(IMap#Subtract(m, s))[u] ==>
+    IMap#Elements(IMap#Subtract(m, s))[u] == IMap#Elements(m)[u]);
 
 // -------------------------------------------------------------------------
 // -- Provide arithmetic wrappers to improve triggering and non-linear math

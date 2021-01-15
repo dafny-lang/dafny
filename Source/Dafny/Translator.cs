@@ -15630,6 +15630,16 @@ namespace Microsoft.Dafny {
                                      BoxIfNecessary(expr.tok, e0, e.E0.Type));
               return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, inMap);
             }
+            case BinaryExpr.ResolvedOpcode.MapUnion: {
+              bool finite = e.E0.Type.AsMapType.Finite;
+              var f = finite ? "Map#Union" : "IMap#Union";
+              return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type), e0, e1);
+            }
+            case BinaryExpr.ResolvedOpcode.MapSubtraction: {
+              bool finite = e.E0.Type.AsMapType.Finite;
+              var f = finite ? "Map#Subtract" : "IMap#Subtract";
+              return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type), e0, e1);
+            }
 
             case BinaryExpr.ResolvedOpcode.RankLt:
               return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.Lt,
