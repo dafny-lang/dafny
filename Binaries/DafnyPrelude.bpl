@@ -715,10 +715,6 @@ axiom (forall<T> a, b: ISet T :: { ISet#Union(a, b) }
   ISet#Disjoint(a, b) ==>
     ISet#Difference(ISet#Union(a, b), a) == b &&
     ISet#Difference(ISet#Union(a, b), b) == a);
-// Follows from the general union axiom, but might be still worth including, because disjoint union is a common case:
-// axiom (forall<T> a, b: ISet T :: { ISet#Card(ISet#Union(a, b)) }
-//   ISet#Disjoint(a, b) ==>
-//     ISet#Card(ISet#Union(a, b)) == ISet#Card(a) + ISet#Card(b));
 
 function ISet#Intersection<T>(ISet T, ISet T): ISet T;
 axiom (forall<T> a: ISet T, b: ISet T, o: T :: { ISet#Intersection(a,b)[o] }
@@ -743,10 +739,6 @@ axiom (forall<T> a, b: ISet T, y: T :: { ISet#Difference(a, b), b[y] }
 function ISet#Subset<T>(ISet T, ISet T): bool;
 axiom(forall<T> a: ISet T, b: ISet T :: { ISet#Subset(a,b) }
   ISet#Subset(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] ==> b[o]));
-// axiom(forall<T> a: ISet T, b: ISet T ::
-//   { ISet#Subset(a,b), ISet#Card(a), ISet#Card(b) }  // very restrictive trigger
-//   ISet#Subset(a,b) ==> ISet#Card(a) <= ISet#Card(b));
-
 
 function ISet#Equal<T>(ISet T, ISet T): bool;
 axiom(forall<T> a: ISet T, b: ISet T :: { ISet#Equal(a,b) }
