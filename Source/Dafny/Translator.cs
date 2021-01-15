@@ -2022,7 +2022,7 @@ namespace Microsoft.Dafny {
           } else {
             // ordinary equality; let the usual translation machinery figure out the translation
             var equal = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, new BoogieWrapper(a, ty), new BoogieWrapper(b, ty));
-            equal.ResolvedOp = Resolver.ResolveOp(equal.Op, ty);  // resolve here
+            equal.ResolvedOp = Resolver.ResolveOp(equal.Op, ty, ty);  // resolve here
             equal.Type = Type.Bool;  // resolve here
             q = etran.TrExpr(equal);
           }
