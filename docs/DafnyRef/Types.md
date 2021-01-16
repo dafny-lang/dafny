@@ -458,8 +458,8 @@ when used as a parameter of a `print` statement.
 
 ````grammar
 GenericParameters(allowVariance) =
-  "<" [ Variance ] TypeVariableName [ TypeParameterCharacteristics ]
-  { "," [ Variance ] TypeVariableName [ TypeParameterCharacteristics ] }
+  "<" [ Variance ] TypeVariableName { TypeParameterCharacteristics }
+  { "," [ Variance ] TypeVariableName { TypeParameterCharacteristics } }
   ">"
 
 // The optional Variance indicator is permitted only if allowVariance is true
@@ -487,8 +487,10 @@ In some cases, type inference will infer that a type-parameter
 must be restricted in a particular way, in which case Dafny
 will add the appropriate suffix, such as `(==)`, automatically.
 
-If more than one restriction is needed, they are listed, comma-separated,
-inside the parentheses, like this: `T(==,0)`.
+If more than one restriction is needed, they are either
+listed comma-separated,
+inside the parentheses or as multiple parentesizezd elements:
+ `T(==,0)` or `T(==)(0)`.
 
 ### 8.1.1. Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
 
@@ -1085,7 +1087,7 @@ SynonymTypeName = NoUSIdent
 
 SynonymTypeDecl =
   "type" { Attribute } SynonymTypeName
-   [ TypeParameterCharacteristics ]
+   { TypeParameterCharacteristics }
    [ GenericParameters ]
    [ "=" Type
    | TypeMembers
