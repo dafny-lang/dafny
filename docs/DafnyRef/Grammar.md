@@ -454,8 +454,7 @@ and other identifier-related symbols.
 ````grammar
 NoUSIdentOrDigits = NoUSIdent | digits
 ModuleName = NoUSIdent
-ClassName = NoUSIdent
-TraitName = NoUSIdent
+ClassName = NoUSIdent    // also traits
 DatatypeName = NoUSIdent
 DatatypeMemberName = NoUSIdent
 NewtypeName = NoUSIdent
@@ -463,14 +462,13 @@ NumericTypeName = NoUSIdent
 SynonymTypeName = NoUSIdent
 IteratorName = NoUSIdent
 TypeVariableName = NoUSIdent
-MethodName = NoUSIdent
-FunctionName = NoUSIdent
+MethodFunctionName = NoUSIdentOrDigits
 PredicateName = NoUSIdent
 LabelName = NoUSIdentOrDigits
 AttributeName = NoUSIdent
-FieldIdent = NoUSIdent // TODO ????
+FieldName = NoUSIdent
 ````
-A ``FieldIdent`` is one of the ways to identify a field. The other is
+A ``FieldName`` is one of the ways to identify a field. The other is
 using digits.
 
 ### 2.6.3. Qualified Names
@@ -499,12 +497,12 @@ In Dafny, a variable or field is typically declared by giving its name followed 
 a ``colon`` and its type. An ``IdentType`` is such a construct.
 
 ````grammar
-GIdentType(allowGhostKeyword) = [ "ghost" ] IdentType
+GIdentType(allowGhostKeyword, allowNewKeyword) = [ "ghost" | "new" ] IdentType
 ````
-A ``GIdentType`` is a typed entity declaration optionally preceded by `ghost`. The _ghost_
+A ``GIdentType`` is a typed entity declaration optionally preceded by `ghost` or `new`. The _ghost_
 qualifier means the entity is only used during verification and not in the generated code.
 Ghost variables are useful for abstractly representing internal state in specifications.
-If `allowGhostKeyword` is false then `ghost` is not allowed.
+If `allowGhostKeyword` is false then `ghost` is not allowed. // TODO - what about new
 
 ````grammar
 LocalIdentTypeOptional = WildIdent [ ":" Type ]

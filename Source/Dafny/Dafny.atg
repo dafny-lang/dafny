@@ -441,6 +441,8 @@ bool IsNotEndOfCase() {
 
 /* The following is the largest lookahead there is. It needs to check if what follows
  * can be nothing but "<" Type { "," Type } ">".
+ * If inExpressionContext == false and there is an opening '<', then
+ * it is assumed, without checking, that what follows is a type parameter list
  */
 bool IsGenericInstantiation(bool inExpressionContext) {
   scanner.ResetPeek();
@@ -991,7 +993,7 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
     ExportSignature exsig;
   .)
   [ ExportId<out exportId> ]
-  [ "..."  (. isRefining = true; .) ]
+  [ ellipsis  (. isRefining = true; .) ]
   {
     "provides"
     (
@@ -1062,6 +1064,8 @@ ModuleExportSuffix<. List<IToken> exports.>
   .
 
 /*------------------------------------------------------------------------*/
+ClassName<out IToken id> = NoUSIdent<out id> .
+
 ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevelDecl/*!*/ c>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out c) != null);
@@ -1079,12 +1083,12 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   SYNC
   "class"
   { Attribute<ref attrs> }
-  NoUSIdent<out id>
+  ClassName<out id>
   [ GenericParameters<typeArgs, true> ]
   [ "extends"
     Type<out parentTrait>       (. parentTraits.Add(parentTrait); .)
     {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); .) }
-  | "..."                       (. isRefining = true; .)
+  | ellipsis                    (. isRefining = true; .)
   ]
   SYNC
   "{"                                            (. bodyStart = t;  .)
@@ -1117,12 +1121,12 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   SYNC
   "trait"
   { Attribute<ref attrs> }
-  NoUSIdent<out id>
+  ClassName<out id>
   [ GenericParameters<typeArgs, true> ]
   [ "extends"
     Type<out parentTrait>       (. parentTraits.Add(parentTrait); .)
     {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); .) }
-  | "..."                       (. isRefining = true; .)
+  | ellipsis                    (. isRefining = true; .)
   ]
   "{"                                            (. bodyStart = t; .)
     { (. dmod  = new DeclModifierData(); .)
@@ -1166,6 +1170,8 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
   .
 
 /*------------------------------------------------------------------------*/
+DatatypeName<out IToken id> = NoUSIdent<out id> .
+
 DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDecl/*!*/ dt>
 = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out dt)!=null);
@@ -1184,10 +1190,10 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   | "codatatype"     (. co = true; .)
   )
   { Attribute<ref attrs> }
-  NoUSIdent<out id>
+  DatatypeName<out id>
   [ GenericParameters<typeArgs, true> ]
   "="                                      (. bodyStart = t; .)
-  [ "..."                                  (. isRefining = true; .)
+  [ ellipsis                               (. isRefining = true; .)
   ]
   [ "|" ] DatatypeMemberDecl<ctors>
   { "|" DatatypeMemberDecl<ctors> }
@@ -1203,6 +1209,8 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   .
 
 /*------------------------------------------------------------------------*/
+DatatypeMemberName<out IToken id> = NoUSIdent<out id> .
+
 DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
 = (. Contract.Requires(cce.NonNullElements(ctors));
      Attributes attrs = null;
@@ -1210,7 +1218,7 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
   .)
   { Attribute<ref attrs> }
-  NoUSIdent<out id>
+  DatatypeMemberName<out id>
   [ FormalsOptionalIds<formals> ]
   (. ctors.Add(new DatatypeCtor(id, id.val, formals, attrs)); .)
   .
@@ -1266,6 +1274,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   "const"
   { Attribute<ref attrs> }
   CIdentType<out id, out ty>                 (. if (ty == null) { ty = new InferredTypeProxy(); } .)
+  [ ellipsis ]
   [ ":=" Expression<out e, false, true> ]
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(id, "a const declaration must have a type or a RHS value");
@@ -1276,6 +1285,8 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   .
 
 /*------------------------------------------------------------------------*/
+NewtypeName<out IToken id> = NoUSIdent<out id> .
+
 NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id, bvId;
      Attributes attrs = null;
@@ -1290,9 +1301,9 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   .)
   "newtype"
   { Attribute<ref attrs> }
-  NoUSIdent<out id>
+  NewtypeName<out id>
   "="
-  [ "..."                                    (. isRefining = true; .)
+  [ ellipsis                         (. isRefining = true; .)
   ]
   ( IF(IsIdentColonOrBar())
     NoUSIdent<out bvId>
@@ -1316,6 +1327,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   .
 
 /*------------------------------------------------------------------------*/
+// The following includes Opaque type definitions
 SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id, bvId;
      Attributes attrs = null;
@@ -1332,7 +1344,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   "type"
   { Attribute<ref attrs> }
   NoUSIdent<out id>
-  { TypeParameterCharacteristics<ref characteristics> }
+  [ TypeParameterCharacteristics<ref characteristics> ]
   [ GenericParameters<typeArgs, true> ]
   [ "="
     ( IF(IsIdentColonOrBar())
@@ -1369,7 +1381,8 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   .
 
 /*------------------------------------------------------------------------*/
-GIdentType<bool allowGhostKeyword, bool allowNewKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld>
+GIdentType<bool allowGhostKeyword, bool allowNewKeyword,
+           out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld>
 /* isGhost always returns as false if allowGhostKeyword is false */
 = (. Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
@@ -1377,16 +1390,14 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, out IToken/*!*/ id, out
   { "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } .)
   | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(t, "formal cannot be declared 'new' in this context"); } .)
   }
-  IdentType<out id, out ty, true>
+  IdentType<out id, out ty, false>
   .
 
 FIdentType<out IToken/*!*/ id, out Type/*!*/ ty>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id) != null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
     id = Token.NoToken;
   .)
-  ( WildIdent<out id, false>
-  | digits         (. id = t; .)
-  )
+  NoUSIdentOrDigits<out id> (. id = t; .)
   ":"
   Type<out ty>
   .
@@ -1396,9 +1407,7 @@ CIdentType<out IToken/*!*/ id, out Type ty>
     id = Token.NoToken;
     ty = null;
   .)
-  ( WildIdent<out id, false>
-  | digits         (. id = t; .)
-  )
+  NoUSIdentOrDigits<out id> (. id = t; .)
   [ ":"
     Type<out ty>
   ]
@@ -1462,6 +1471,8 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
   .
 
 /*------------------------------------------------------------------------*/
+IteratorName<out IToken id> = NoUSIdent<out id> .
+
 IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!*/ iter>
 = (. Contract.Ensures(Contract.ValueAtReturn(out iter) != null);
      IToken/*!*/ id;
@@ -1489,7 +1500,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
   SYNC
   "iterator"
   { Attribute<ref attrs> }
-  NoUSIdent<out id>
+  IteratorName<out id>
   (
     [ GenericParameters<typeArgs, true> ]
     Formals<true, true, false, ins>
@@ -1498,7 +1509,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
       )
       Formals<false, true, false, outs>
     ]
-  | "..."                                       (. signatureEllipsis = t; .)
+  | ellipsis                (. signatureEllipsis = t; .)
   )
   { IteratorSpec<reads, mod, decreases, req, ens, yieldReq, yieldEns, ref readsAttrs, ref modAttrs, ref decrAttrs> }
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
@@ -1515,6 +1526,8 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
   .
 
 /*------------------------------------------------------------------------*/
+TypeVariableName<out IToken id> = NoUSIdent<out id> .
+
 GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
 = (. Contract.Requires(cce.NonNullElements(typeArgs));
      IToken/*!*/ id;
@@ -1528,7 +1541,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
   "<"
   [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
   ]
-  NoUSIdent<out id>
+  TypeVariableName<out id>
   { TypeParameterCharacteristics<ref characteristics> }
   (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics)); .)
   { ","
@@ -1537,7 +1550,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
     .)
     [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
     ]
-    NoUSIdent<out id>
+    TypeVariableName<out id>
     { TypeParameterCharacteristics<ref characteristics> }
     (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics)); .)
   }
@@ -1635,7 +1648,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   )                                 (. keywordToken = t;
                                        CheckDeclModifiers(dmod, caption, allowed); .)
   { Attribute<ref attrs> }
-  [ FuMe_Ident<out id>               (. hasName = true; .)
+  [ MethodFunctionName<out id>               (. hasName = true; .)
   ]
   (. if (!hasName) {
        id = keywordToken;
@@ -1653,7 +1666,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
     [ "returns"                                 (. if (isConstructor) { SemErr(t, "constructors cannot have out-parameters"); } .)
       Formals<false, isCompilable, false, outs>
     ]
-  | "..."                                       (. signatureEllipsis = t; .)
+  | ellipsis                                    (. signatureEllipsis = t; .)
   )
   { MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs, caption, isConstructor> }
   [ IF(isConstructor)
@@ -1844,9 +1857,12 @@ Type<out Type ty>
   .
 
 TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
-= (. Contract.Ensures(Contract.ValueAtReturn(out tok)!=null); Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
-     tok = Token.NoToken;  ty = new BoolType();  /*keep compiler happy*/
-     List<Type> gt; List<Type> tupleArgTypes = null;
+= (. Contract.Ensures(Contract.ValueAtReturn(out tok)!=null);
+     Contract.Ensures(Contract.ValueAtReturn(out ty) != null);
+     tok = Token.NoToken;
+     ty = new BoolType();  /*keep compiler happy*/
+     List<Type> gt;
+     List<Type> tupleArgTypes = null;
   .)
   ( "bool"                          (. tok = t; .)
   | "char"                          (. tok = t;  ty = new CharType(); .)
@@ -1920,26 +1936,8 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
                                        ty = theBuiltIns.ArrayType(tok, dims, gt, true, q);
                                     .)
-  | "("                             (. tok = t; tupleArgTypes = new List<Type>(); .)
-    [ Type<out ty>                  (. tupleArgTypes.Add(ty); .)
-      { "," Type<out ty>            (. tupleArgTypes.Add(ty); .)
-      }
-    ]
-    ")"                             (. if (tupleArgTypes.Count == 1) {
-                                         // just return the type 'ty'
-                                       } else {
-                                         var dims = tupleArgTypes.Count;
-                                         var tmp = theBuiltIns.TupleType(tok, dims, true);  // make sure the tuple type exists
-                                         ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(dims), dims == 0 ? null : tupleArgTypes);
-                                       }
-                                    .)
-  | (. Expression e; .)
-    NameSegmentForTypeName<out e, inExpressionContext>  (. tok = t; .)
-    { "." TypeNameOrCtorSuffix<out tok>       (. List<Type> typeArgs; .)
-      OptGenericInstantiation<out typeArgs, inExpressionContext>
-      (. e = new ExprDotName(tok, e, tok.val, typeArgs); .)
-    }
-    (. ty = new UserDefinedType(e.tok, e); .)
+  | TupleType<out ty, out tok, out tupleArgTypes>
+  | NamedType<out ty, out tok, inExpressionContext>
   )
   [ (. int arrowKind = 0; /* 0: any, 1: partial, 2: total */
        Type t2;
@@ -1968,6 +1966,39 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
        }
     .)
   ]
+  .
+
+/*------------------------------------------------------------------------*/
+
+TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes.> =
+  "("                             (. tok = t;
+                                     ty = null; // To keep compiler happy
+                                     tupleArgTypes = new List<Type>();
+                                  .)
+  [ Type<out ty>                  (. tupleArgTypes.Add(ty); .)
+    { "," Type<out ty>            (. tupleArgTypes.Add(ty); .)
+    }
+  ]
+  ")"                             (. if (tupleArgTypes.Count == 1) {
+                                       // just return the type 'ty'
+                                     } else {
+                                       var dims = tupleArgTypes.Count;
+                                       var tmp = theBuiltIns.TupleType(tok, dims, true);  // make sure the tuple type exists
+                                       ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(dims), dims == 0 ? null : tupleArgTypes);
+                                     }
+                                  .)
+  .
+
+/*------------------------------------------------------------------------*/
+NamedType<out Type ty, out IToken tok, bool inExpressionContext> =
+  (. Expression e; .)
+  NameSegmentForTypeName<out e, inExpressionContext>  (. tok = t; .)
+  { "."
+    TypeNameOrCtorSuffix<out tok>       (. List<Type> typeArgs; .)
+    OptGenericInstantiation<out typeArgs, inExpressionContext>
+    (. e = new ExprDotName(tok, e, tok.val, typeArgs); .)
+  }
+  (. ty = new UserDefinedType(e.tok, e); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2027,7 +2058,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
        CheckDeclModifiers(dmod, caption, allowed);
     .)
     { Attribute<ref attrs> }
-    FuMe_Ident<out id>
+    MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
       Formals<true, isFunctionMethod, isTwoState, formals>
@@ -2047,7 +2078,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
          ")"
          | Type<out returnType>
       )
-    | "..."                    (. signatureEllipsis = t; .)
+    | ellipsis                 (. signatureEllipsis = t; .)
     )
 
   /* ----- predicate ----- */
@@ -2064,14 +2095,14 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
        CheckDeclModifiers(dmod, caption, allowed);
     .)
     { Attribute<ref attrs> }
-    NoUSIdent<out id>
+    MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
       [ Formals<true, isFunctionMethod, isTwoState, formals>
       ]
-      [ ":"                    (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
+      [ ":" Type<out returnType> (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
-    | "..."                    (. signatureEllipsis = t; .)
+    | ellipsis                   (. signatureEllipsis = t; .)
     )
 
   /* ----- least predicate ----- */
@@ -2086,14 +2117,14 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
          AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static);
     .)
     { Attribute<ref attrs> }
-    FuMe_Ident<out id>
+    MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
       [ KType<ref kType> ]
       Formals<true, isFunctionMethod, false, formals>
       [ ":"                    (. SemErr(t, "least predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
-    | "..."                    (. signatureEllipsis = t; .)
+    | ellipsis                 (. signatureEllipsis = t; .)
     )
 
   /* ----- greatest predicate ----- */
@@ -2107,14 +2138,14 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
          AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static);
     .)
     { Attribute<ref attrs> }
-    NoUSIdent<out id>
+    MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
       [ KType<ref kType> ]
       Formals<true, isFunctionMethod, false, formals>
       [ ":"                    (. SemErr(t, "greatest predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
-    | "..."                    (. signatureEllipsis = t; .)
+    | ellipsis                 (. signatureEllipsis = t; .)
     )
   )
 
@@ -2319,7 +2350,7 @@ SkeletonStmt<out Statement s>
      List<Expression> exprs = null;
      IToken tok, dotdotdot, whereTok;
      Expression e; .)
-  "..."                                (. dotdotdot = t; .)
+  ellipsis                             (. dotdotdot = t; .)
   ["where"                             (. names = new List<IToken>(); exprs = new List<Expression>(); whereTok = t;.)
      Ident<out tok>                    (. names.Add(tok); .)
      {"," Ident<out tok>               (. names.Add(tok); .)
@@ -2604,7 +2635,7 @@ IfStmt<out Statement/*!*/ ifStmt>
     ( IF(IsExistentialGuard())
       ExistentialGuard<out guard, true>  (. isExistentialGuard = true; .)
     | Guard<out guard>
-    | "..."                              (. guardEllipsis = t; .)
+    | ellipsis                           (. guardEllipsis = t; .)
     )
     BlockStmt<out thn, out bodyStart, out bodyEnd>    (. endTok = thn.EndTok; .)
     [ "else"
@@ -2695,13 +2726,13 @@ WhileStmt<out Statement stmt>
     (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces); .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
-    | "..."                      (. guardEllipsis = t; .)
+    | ellipsis                   (. guardEllipsis = t; .)
     )
     { LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs> }
     ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
       BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
     | IF(la.kind == _ellipsis)    /* if there's an ellipsis, claim it as standing for the loop body (as opposed to a "...;" statement following the loop) */
-      "..."                      (. bodyEllipsis = t; endTok = t; isDirtyLoop = false; .)
+      ellipsis                   (. bodyEllipsis = t; endTok = t; isDirtyLoop = false; .)
     | /* go body-less */
     )
     (.
@@ -2870,7 +2901,7 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
       BlockStmt<out proof, out proofStart, out proofEnd>
     | ";"
     )
-  | "..."                                      (. dotdotdot = t; .)
+  | ellipsis                                   (. dotdotdot = t; .)
     ";"
   )
   (. if (dotdotdot != null) {
@@ -2890,7 +2921,7 @@ ExpectStmt<out Statement/*!*/ s>
   "expect"                                     (. x = t; .)
   { Attribute<ref attrs> }
   ( Expression<out e, false, true>
-  | "..."                                      (. dotdotdot = t; .)
+  | ellipsis                                   (. dotdotdot = t; .)
   )
   [ "," Expression<out m, false, true> ]
   ";"
@@ -2911,7 +2942,7 @@ AssumeStmt<out Statement/*!*/ s>
   "assume"                                     (. x = t; .)
   { Attribute<ref attrs> }
   ( Expression<out e, false, true>
-  | "..."                                      (. dotdotdot = t; .)
+  | ellipsis                                   (. dotdotdot = t; .)
   )
   ";"
   (. if (dotdotdot != null) {
@@ -3010,7 +3041,7 @@ ModifyStmt<out Statement s>
   ( FrameExpression<out fe, false, true>       (. mod.Add(fe); .)
     { "," FrameExpression<out fe, false, true> (. mod.Add(fe); .)
     }
-  | "..."                               (. ellipsisToken = t; .)
+  | ellipsis                            (. ellipsisToken = t; .)
   )
   ( BlockStmt<out body, out bodyStart, out endTok>
   | SYNC ";"         (. endTok = t; .)
@@ -3623,6 +3654,7 @@ LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
   .)
   .
 
+// Coco says LambdaSpec is deletable. This is OK (it might be empty).
 LambdaSpec<.ref List<FrameExpression> reads, ref Expression req.>
 = { ReadsClause<reads, true, false, true>
   | "requires"                             (. Attributes attrs = null; .)
@@ -4375,7 +4407,7 @@ LabelIdent<out IToken id>
   .
 
 /*------------------------------------------------------------------------*/
-FuMe_Ident<out IToken id>
+MethodFunctionName<out IToken id>
 = NoUSIdentOrDigits<out id>
   .
 
