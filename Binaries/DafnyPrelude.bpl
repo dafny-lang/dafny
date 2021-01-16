@@ -255,6 +255,12 @@ axiom (forall v: Map Box Box, t0: Ty, t1: Ty, h: Heap ::
       Map#Domain(v)[bx] ==>
         $IsAllocBox(Map#Elements(v)[bx], t1, h) &&
         $IsAllocBox(bx, t0, h)));
+axiom (forall v: Map Box Box, t0: Ty, t1: Ty ::
+  { $Is(v, TMap(t0, t1)) }
+  $Is(v, TMap(t0, t1)) ==>
+    $Is(Map#Domain(v), TSet(t0)) &&
+    $Is(Map#Values(v), TSet(t1)) &&
+    $Is(Map#Items(v), TSet(Tclass._System.Tuple2(t0, t1))));
 
 axiom (forall v: IMap Box Box, t0: Ty, t1: Ty ::
   { $Is(v, TIMap(t0, t1)) }
@@ -272,6 +278,12 @@ axiom (forall v: IMap Box Box, t0: Ty, t1: Ty, h: Heap ::
       IMap#Domain(v)[bx] ==>
         $IsAllocBox(IMap#Elements(v)[bx], t1, h) &&
         $IsAllocBox(bx, t0, h)));
+axiom (forall v: IMap Box Box, t0: Ty, t1: Ty ::
+  { $Is(v, TIMap(t0, t1)) }
+  $Is(v, TIMap(t0, t1)) ==>
+    $Is(IMap#Domain(v), TISet(t0)) &&
+    $Is(IMap#Values(v), TISet(t1)) &&
+    $Is(IMap#Items(v), TISet(Tclass._System.Tuple2(t0, t1))));
 
 // ---------------------------------------------------------------
 // -- Encoding of type names -------------------------------------
@@ -285,6 +297,7 @@ const unique class._System.seq: ClassName;
 const unique class._System.multiset: ClassName;
 
 function Tclass._System.object?(): Ty;
+function Tclass._System.Tuple2(Ty, Ty): Ty;
 
 function /*{:never_pattern true}*/ dtype(ref): Ty; // changed from ClassName to Ty
 
@@ -1122,11 +1135,29 @@ function Map#Card<U,V>(Map U V) : int;
 
 axiom (forall<U,V> m: Map U V :: { Map#Card(m) } 0 <= Map#Card(m));
 
-// The set of Keys of a Map are available by Map#Domain, and the cardinality of that
-// set is given by Map#Card.
+axiom (forall<U, V> m: Map U V ::
+  { Map#Card(m) }
+  Map#Card(m) == 0 <==> m == Map#Empty());
 
-axiom (forall<U,V> m: Map U V :: { Set#Card(Map#Domain(m)) }
+axiom (forall<U, V> m: Map U V ::
+  { Map#Domain(m) }
+  m == Map#Empty() || (exists k: U :: Map#Domain(m)[k]));
+axiom (forall<U, V> m: Map U V ::
+  { Map#Values(m) }
+  m == Map#Empty() || (exists v: V :: Map#Values(m)[v]));
+axiom (forall<U, V> m: Map U V ::
+  { Map#Items(m) }
+  m == Map#Empty() || (exists k, v: Box :: Map#Items(m)[$Box(#_System._tuple#2._#Make2(k, v))]));
+
+axiom (forall<U, V> m: Map U V ::
+  { Set#Card(Map#Domain(m)) }
   Set#Card(Map#Domain(m)) == Map#Card(m));
+axiom (forall<U, V> m: Map U V ::
+  { Set#Card(Map#Values(m)) }
+  Set#Card(Map#Values(m)) <= Map#Card(m));
+axiom (forall<U, V> m: Map U V ::
+  { Set#Card(Map#Items(m)) }
+  Set#Card(Map#Items(m)) == Map#Card(m));
 
 // The set of Values of a Map can be obtained by the function Map#Values, which is
 // defined as follows.  Remember, a Set is defined by membership (using Boogie's
@@ -1152,12 +1183,9 @@ axiom (forall<U,V> m: Map U V, v: V :: { Map#Values(m)[v] }
 
 function Map#Items<U,V>(Map U V) : Set Box;
 
+function #_System._tuple#2._#Make2(Box, Box) : DatatypeType;
 function _System.Tuple2._0(DatatypeType) : Box;
-
 function _System.Tuple2._1(DatatypeType) : Box;
-
-axiom (forall<U,V> m: Map U V :: { Set#Card(Map#Items(m)) }
-  Set#Card(Map#Items(m)) == Map#Card(m));
 
 axiom (forall m: Map Box Box, item: Box :: { Map#Items(m)[item] }
   Map#Items(m)[item] <==>
@@ -1170,9 +1198,6 @@ function Map#Empty<U, V>(): Map U V;
 axiom (forall<U, V> u: U ::
         { Map#Domain(Map#Empty(): Map U V)[u] }
         !Map#Domain(Map#Empty(): Map U V)[u]);
-axiom (forall<U, V> m: Map U V :: { Map#Card(m) }
- (Map#Card(m) == 0 <==> m == Map#Empty()) &&
- (Map#Card(m) != 0 ==> (exists x: U :: Map#Domain(m)[x])));
 
 function Map#Glue<U, V>([U] bool, [U]V, Ty): Map U V;
 axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::

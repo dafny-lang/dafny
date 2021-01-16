@@ -158,5 +158,11 @@ Execution trace:
     (0,0): anon9_Else
     (0,0): anon12_Then
     (0,0): anon8
+Maps.dfy(520,18): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Maps.dfy(525,20): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 33 verified, 28 errors
+Dafny program verifier finished with 44 verified, 30 errors

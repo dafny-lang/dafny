@@ -264,6 +264,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Function IMapItems;
       public readonly Bpl.Function Tuple2Destructors0;
       public readonly Bpl.Function Tuple2Destructors1;
+      public readonly Bpl.Function Tuple2Constructor;
       private readonly Bpl.TypeCtorDecl seqTypeCtor;
       public readonly Bpl.Type Bv0Type;
       readonly Bpl.TypeCtorDecl fieldName;
@@ -302,6 +303,7 @@ namespace Microsoft.Dafny {
         Contract.Invariant(IMapItems != null);
         Contract.Invariant(Tuple2Destructors0 != null);
         Contract.Invariant(Tuple2Destructors1 != null);
+        Contract.Invariant(Tuple2Constructor != null);
         Contract.Invariant(seqTypeCtor != null);
         Contract.Invariant(fieldName != null);
         Contract.Invariant(HeapVarName != null);
@@ -370,7 +372,7 @@ namespace Microsoft.Dafny {
                              Bpl.Function ORD_isLimit, Bpl.Function ORD_isSucc, Bpl.Function ORD_offset, Bpl.Function ORD_isNat,
                              Bpl.Function mapDomain, Bpl.Function imapDomain,
                              Bpl.Function mapValues, Bpl.Function imapValues, Bpl.Function mapItems, Bpl.Function imapItems,
-                             Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1,
+                             Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1, Bpl.Function tuple2Constructor,
                              Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
                              Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType, Bpl.TypeCtorDecl tyTagFamilyType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
@@ -400,6 +402,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(imapItems != null);
         Contract.Requires(tuple2Destructors0 != null);
         Contract.Requires(tuple2Destructors1 != null);
+        Contract.Requires(tuple2Constructor != null);
         Contract.Requires(seqTypeCtor != null);
         Contract.Requires(bv0TypeDecl != null);
         Contract.Requires(fieldNameType != null);
@@ -438,6 +441,7 @@ namespace Microsoft.Dafny {
         this.IMapItems = imapItems;
         this.Tuple2Destructors0 = tuple2Destructors0;
         this.Tuple2Destructors1 = tuple2Destructors1;
+        this.Tuple2Constructor = tuple2Constructor;
         this.seqTypeCtor = seqTypeCtor;
         this.Bv0Type = new Bpl.TypeSynonymAnnotation(Token.NoToken, bv0TypeDecl, new List<Bpl.Type>());
         this.fieldName = fieldNameType;
@@ -483,6 +487,7 @@ namespace Microsoft.Dafny {
       Bpl.Function imapItems = null;
       Bpl.Function tuple2Destructors0 = null;
       Bpl.Function tuple2Destructors1 = null;
+      Bpl.Function tuple2Constructor = null;
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
@@ -590,6 +595,8 @@ namespace Microsoft.Dafny {
             tuple2Destructors0 = f;
           } else if (f.Name == "_System.Tuple2._1") {
             tuple2Destructors1 = f;
+          } else if (f.Name == "#_System._tuple#2._#Make2") {
+            tuple2Constructor = f;
           }
         }
       }
@@ -633,6 +640,8 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._0");
       } else if (tuple2Destructors1 == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._1");
+      } else if (tuple2Constructor == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function #_System._tuple#2._#Make2");
       } else if (bv0TypeDecl == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Bv0");
       } else if (fieldNameType == null) {
@@ -675,7 +684,7 @@ namespace Microsoft.Dafny {
                                    ORDINAL_isLimit, ORDINAL_isSucc, ORDINAL_offset, ORDINAL_isNat,
                                    mapDomain, imapDomain,
                                    mapValues, imapValues, mapItems, imapItems,
-                                   tuple2Destructors0, tuple2Destructors1,
+                                   tuple2Destructors0, tuple2Destructors1, tuple2Constructor,
                                    seqTypeCtor, bv0TypeDecl,
                                    fieldNameType, tyType, tyTagType, tyTagFamilyType,
                                    heap, classNameType, nameFamilyType,
@@ -1338,11 +1347,16 @@ namespace Microsoft.Dafny {
           argTypes.Add(a);
         }
         Bpl.Variable resType = new Bpl.Formal(ctor.tok, new Bpl.TypedIdent(ctor.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), false);
-        Bpl.Function fn = new Bpl.Function(ctor.tok, ctor.FullName, argTypes, resType, "Constructor function declaration");
+        Bpl.Function fn;
+        if (dt is TupleTypeDecl ttd && ttd.Dims == 2) {
+          fn = predef.Tuple2Constructor;
+        } else {
+          fn = new Bpl.Function(ctor.tok, ctor.FullName, argTypes, resType, "Constructor function declaration");
+          sink.AddTopLevelDeclaration(fn);
+        }
         if (InsertChecksums) {
           InsertChecksum(dt, fn);
         }
-        sink.AddTopLevelDeclaration(fn);
 
         List<Bpl.Variable> bvs;
         List<Bpl.Expr> args;
@@ -9102,7 +9116,11 @@ namespace Microsoft.Dafny {
       var inner_name = GetClass(td).TypedIdent.Name;
       string name = "T" + inner_name;
       // Create the type constructor
-      if (!(td is ClassDecl cl && cl.IsObjectTrait)) {  // the type constructor for "object" is in DafnyPrelude.bpl
+      if (td is ClassDecl cl && cl.IsObjectTrait) {
+        // the type constructor for "object" is in DafnyPrelude.bpl
+      } else if (td is TupleTypeDecl ttd && ttd.Dims == 2) {
+        // the type constructor for "Tuple2" is in DafnyPrelude.bpl
+      } else {
         Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
         List<Bpl.Variable> args = new List<Bpl.Variable>(
           Enumerable.Range(0, arity).Select(i =>

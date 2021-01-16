@@ -448,3 +448,107 @@ method FailingIMapOperations(m: imap<int, real>, n: imap<int, real>, s: set<int>
     assert y in m.Keys;  // error: no reason to think this
   }
 }
+
+class MyClass { }
+newtype Range = x | 0 <= x
+
+method CommonUseCase0(m: map<MyClass, Range>) returns (s: nat)
+{
+  s := 0;
+  var m := m;
+  while m != map[]
+    decreases m.Keys
+  {
+    var k :| k in m.Keys;
+    var v := m[k];
+    s := s + v as int;
+    m := m - {k};
+  }
+}
+
+method CommonUseCase1(m: map<MyClass, Range>) returns (s: nat)
+{
+  s := 0;
+  var m := m;
+  while m != map[]
+    decreases m.Keys
+  {
+    var kv :| kv in m.Items;
+    var (k, v) := kv;
+    s := s + v as int;
+    m := m - {k};
+  }
+}
+
+method CommonUseCase2(m: map<MyClass, Range>) returns (s: nat)
+{
+  s := 0;
+  var m := m;
+  while m != map[]
+    decreases m.Keys
+  {
+    var k, v :| (k, v) in m.Items;
+    s := s + v as int;
+    m := m - {k};
+  }
+}
+
+// Here follow a number of map properties that should be verifiable
+// independent of each other. Several of these require the appropriate
+// $Is type axioms to be present in the translation.
+
+method TestMapPropertyNonempty(m: map<MyClass, Range>)
+  requires m != map[]
+{
+  if
+  case true =>
+    assert |m| != 0;
+  case true =>
+    assert m.Keys != {};
+  case true =>
+    assert m.Values != {};
+  case true =>
+    assert m.Items != {};
+}
+
+method TestMapPropertyCardinality0(m: map<MyClass, Range>) {
+  assert |m| == |m.Keys|;
+}
+
+method TestMapPropertyCardinality1(m: map<MyClass, Range>) {
+  assert |m.Values| <= |m.Keys|;
+  assert |m.Keys| == |m.Values|;  // error: this may not be true
+}
+
+method TestMapPropertyCardinality2(m: map<MyClass, Range>) {
+  assert |m.Values| <= |m.Items|;
+  assert |m.Values| == |m.Items|;  // error: this may not be true
+}
+
+method TestMapPropertyCardinality3(m: map<MyClass, Range>) {
+  assert |m.Items| == |m|;
+}
+
+method TestMapPropertyMembership0(m: map<MyClass, Range>)
+  requires |m.Values| != 0 || |m.Items| != 0
+{
+  assert exists k :: k in m.Keys;
+}
+
+method TestMapPropertyMembership1(m: map<MyClass, Range>)
+  requires |m.Items| != 0 || |m.Keys| != 0
+{assert m.Values != {};
+  assert exists v :: v in m.Values;
+}
+
+method TestMapPropertyMembership2(m: map<MyClass, Range>)
+  requires |m.Keys| != 0 || |m.Values| != 0
+{
+  assert exists kv :: kv in m.Items;
+}
+
+method TestMapPropertyMembership3(m: map<MyClass, Range>)
+  requires |m.Keys| != 0 || |m.Values| != 0
+{
+  assert exists k, v :: (k, v) in m.Items;
+}
