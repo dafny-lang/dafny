@@ -12712,36 +12712,43 @@ namespace Microsoft.Dafny {
 
       } else if ((ty0 is SetType && ((SetType)ty0).Finite) || (ty0 is MapType && ((MapType)ty0).Finite)) {
         Bpl.Expr b0, b1;
-        if (ty0 is SetType && ((SetType)ty0).Finite) {
+        if (ty0 is SetType) {
           b0 = e0;
           b1 = e1;
-        } else if (ty0 is MapType && ((MapType)ty0).Finite) {
+        } else {
           // for maps, compare their domains as sets
           b0 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, true, predef.BoxType, predef.BoxType), e0);
           b1 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, true, predef.BoxType, predef.BoxType), e1);
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();
         }
         eq = FunctionCall(tok, BuiltinFunction.SetEqual, null, b0, b1);
         less = ProperSubset(tok, b0, b1);
         atmost = FunctionCall(tok, BuiltinFunction.SetSubset, null, b0, b1);
+
+      } else if (ty0 is SetType || ty0 is MapType) {
+        Bpl.Expr b0, b1;
+        if (ty0 is SetType) {
+          Contract.Assert(!((SetType)ty0).Finite);
+          b0 = e0;
+          b1 = e1;
+        } else {
+          Contract.Assert(!((MapType)ty0).Finite);
+          // for maps, compare their domains as sets
+          b0 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType(tok, false, predef.BoxType, predef.BoxType), e0);
+          b1 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType(tok, false, predef.BoxType, predef.BoxType), e1);
+        }
+        eq = FunctionCall(tok, BuiltinFunction.ISetEqual, null, b0, b1);
+        less = Bpl.Expr.False;
+        atmost = BplOr(less, eq);
 
       } else if (ty0 is MultiSetType) {
         eq = FunctionCall(tok, BuiltinFunction.MultiSetEqual, null, e0, e1);
         less = ProperMultiset(tok, e0, e1);
         atmost = FunctionCall(tok, BuiltinFunction.MultiSetSubset, null, e0, e1);
 
-      } else if (ty0 is MapType && !((MapType)ty0).Finite) {
-        eq = Bpl.Expr.False;
-        less = Bpl.Expr.False;
-        atmost = Bpl.Expr.False;
-
       } else if (ty0 is ArrowType) {
-        // TODO: ComputeLessEq for arrow types
-        // what!?
-        eq = Bpl.Expr.False;
-        less = Bpl.Expr.False;
-        atmost = Bpl.Expr.False;
+        eq = Bpl.Expr.Eq(e0, e1);
+        less = Bpl.Expr.False;  // TODO: try to do better than this
+        atmost = BplOr(less, eq);
 
       } else if (ty0 is BitvectorType) {
         BitvectorType bv = (BitvectorType)ty0;
@@ -12753,6 +12760,11 @@ namespace Microsoft.Dafny {
         eq = Bpl.Expr.Eq(e0, e1);
         less = FunctionCall(tok, "ORD#Less", Bpl.Type.Bool, e0, e1);
         atmost = BplOr(eq, less);
+
+      } else if (ty0.IsTypeParameter) {
+        eq = Bpl.Expr.Eq(e0, e1);
+        less = Bpl.Expr.False;
+        atmost = BplOr(less, eq);
 
       } else {
         // reference type
