@@ -450,7 +450,7 @@ method FailingIMapOperations(m: imap<int, real>, n: imap<int, real>, s: set<int>
 }
 
 class MyClass { }
-newtype Range = x | 0 <= x
+type Range = bv3
 
 method CommonUseCase0(m: map<MyClass, Range>) returns (s: nat)
 {
