@@ -1344,7 +1344,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   "type"
   { Attribute<ref attrs> }
   NoUSIdent<out id>
-  [ TypeParameterCharacteristics<ref characteristics> ]
+  { TypeParameterCharacteristics<ref characteristics> }
   [ GenericParameters<typeArgs, true> ]
   [ "="
     ( IF(IsIdentColonOrBar())
