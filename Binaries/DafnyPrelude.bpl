@@ -1276,6 +1276,26 @@ function IMap#Domain<U,V>(IMap U V) : Set U;
 
 function IMap#Elements<U,V>(IMap U V) : [U]V;
 
+axiom (forall<U, V> m: IMap U V ::
+  { IMap#Domain(m) }
+  m == IMap#Empty() || (exists k: U :: IMap#Domain(m)[k]));
+axiom (forall<U, V> m: IMap U V ::
+  { IMap#Values(m) }
+  m == IMap#Empty() || (exists v: V :: IMap#Values(m)[v]));
+axiom (forall<U, V> m: IMap U V ::
+  { IMap#Items(m) }
+  m == IMap#Empty() || (exists k, v: Box :: IMap#Items(m)[$Box(#_System._tuple#2._#Make2(k, v))]));
+
+axiom (forall<U, V> m: IMap U V ::
+  { IMap#Domain(m) }
+  m == IMap#Empty() <==> IMap#Domain(m) == ISet#Empty());
+axiom (forall<U, V> m: IMap U V ::
+  { IMap#Values(m) }
+  m == IMap#Empty() <==> IMap#Values(m) == ISet#Empty());
+axiom (forall<U, V> m: IMap U V ::
+  { IMap#Items(m) }
+  m == IMap#Empty() <==> IMap#Items(m) == ISet#Empty());
+
 // The set of Values of a IMap can be obtained by the function IMap#Values, which is
 // defined as follows.  Remember, a ISet is defined by membership (using Boogie's
 // square brackets) so we need to define what these mean for the Set

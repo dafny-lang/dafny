@@ -552,3 +552,87 @@ method TestMapPropertyMembership3(m: map<MyClass, Range>)
 {
   assert exists k, v :: (k, v) in m.Items;
 }
+
+// ---- Same things but for imap
+
+method IMapCommonUseCase0(m: imap<MyClass, Range>) returns (s: nat)
+{
+  s := 0;
+  var m := m;
+  while m != imap[]  // error: cannot prove termination
+    decreases m.Keys
+  {
+    var k :| k in m.Keys;
+    var v := m[k];
+    s := s + v as int;
+    m := m - {k};
+  }
+}
+
+method IMapCommonUseCase1(m: imap<MyClass, Range>) returns (s: nat)
+{
+  s := 0;
+  var m := m;
+  while m != imap[]  // error: cannot prove termination
+    decreases m.Keys
+  {
+    var kv :| kv in m.Items;
+    var (k, v) := kv;
+    s := s + v as int;
+    m := m - {k};
+  }
+}
+
+method IMapCommonUseCase2(m: imap<MyClass, Range>) returns (s: nat)
+  decreases *
+{
+  s := 0;
+  var m := m;
+  while m != imap[]
+    decreases *  // let's do it differently from previous two test methods
+  {
+    var k, v :| (k, v) in m.Items;
+    s := s + v as int;
+    m := m - {k};
+  }
+}
+
+// Here follow a number of imap properties that should be verifiable
+// independent of each other. Several of these require the appropriate
+// $Is type axioms to be present in the translation.
+
+method TestIMapPropertyNonempty(m: imap<MyClass, Range>)
+  requires m != imap[]
+{
+  if
+  case true =>
+    assert m.Keys != iset{};
+  case true =>
+    assert m.Values != iset{};
+  case true =>
+    assert m.Items != iset{};
+}
+
+method TestIMapPropertyMembership0(m: imap<MyClass, Range>)
+  requires m.Values != iset{} || m.Items != iset{}
+{
+  assert exists k :: k in m.Keys;
+}
+
+method TestIMapPropertyMembership1(m: imap<MyClass, Range>)
+  requires m.Items != iset{} || m.Keys != iset{}
+{
+  assert exists v :: v in m.Values;
+}
+
+method TestIMapPropertyMembership2(m: imap<MyClass, Range>)
+  requires m.Keys != iset{} || m.Values != iset{}
+{
+  assert exists kv :: kv in m.Items;
+}
+
+method TestIMapPropertyMembership3(m: imap<MyClass, Range>)
+  requires m.Keys != iset{} || m.Values != iset{}
+{
+  assert exists k, v :: (k, v) in m.Items;
+}

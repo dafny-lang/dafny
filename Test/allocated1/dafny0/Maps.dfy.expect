@@ -164,5 +164,17 @@ Execution trace:
 Maps.dfy(525,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
+Maps.dfy(562,2): Error: decreases expression might not decrease
+Execution trace:
+    Maps.dfy(562,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Maps.dfy(562,3): anon7_Else
+    Maps.dfy(562,3): anon8_Else
+Maps.dfy(576,2): Error: decreases expression might not decrease
+Execution trace:
+    Maps.dfy(576,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Maps.dfy(576,3): anon7_Else
+    Maps.dfy(576,3): anon8_Else
 
-Dafny program verifier finished with 44 verified, 30 errors
+Dafny program verifier finished with 50 verified, 32 errors
