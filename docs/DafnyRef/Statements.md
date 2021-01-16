@@ -1,20 +1,16 @@
 # 20. Statements
 ````grammar
 Stmt =
-  ( BlockStmt | AssertStmt | AssumeStmt | ExpectStmt
-  | PrintStmt | UpdateStmt | UpdateFailureStmt
-  | VarDeclStatement | IfStmt | WhileStmt | MatchStmt | ForallStmt
-  | CalcStmt | ModifyStmt | LabeledStmt_ | BreakStmt_ | ReturnStmt
-  | RevealStmt | YieldStmt
+  ( AssertStmt | AssumeStmt | BlockStmt | BreakStmt
+  | CalcStmt | ExpectStmt | ForallStmt | IfStmt
+  | LabeledStmt | MatchStmt | ModifyStmt
+  | PrintStmt | ReturnStmt | RevealStmt | SkeletonStmt
+  | UpdateStmt | UpdateFailureStmt
+  | VarDeclStatement | WhileStmt | YieldStmt
   )
 ````
 <!--
-Grammar has SkeletonStmt
-Added RevealStmt
-
-Describe where refinement is described.
-
-| SkeletonStmt
+TODO: RevealStmt, SkeletonStmt
 -->
 
 Many of Dafny's statements are similar to those in traditional
@@ -22,9 +18,9 @@ programming languages, but a number of them are significantly different.
 This grammar production shows the different kinds of Dafny statements.
 They are described in subsequent sections.
 
-## 20.1. Labeled Statement
+## 20.1. Labeled Statement {#sec-labeled-stmt}
 ````grammar
-LabeledStmt_ = "label" LabelName ":" Stmt
+LabeledStmt = "label" LabelName ":" Stmt
 ````
 A labeled statement is just the keyword `label` followed by an identifier
 which is the label, followed by a colon and a statement. The label may be
@@ -158,17 +154,11 @@ UpdateStmt =
                Expression(allowLemma: false, allowLambda: true)
      )
      ";"
-    | ":"
     )
 ````
 If more than one
 left-hand side is used, these must denote different l-values, unless the
 corresponding right-hand sides also denote the same value.
-
-````grammar
-CallStmt_ =
-    [ Lhs { , Lhs } ":=" ] Lhs ";"
-````
 
 The update statement serves several logical purposes.
 
@@ -183,13 +173,10 @@ is assumed to be a call to a method with no out-parameters.
 2) The form
 
 ```
-    [ Lhs { , Lhs } ":=" ] Lhs ";"
+    Lhs { , Lhs } ":=" Rhs ";"
 ```
 can occur in the ``UpdateStmt`` grammar when there is a single Rhs that
-takes the special form of a ``Lhs`` that is a call;
-that is, this form matches the grammar of a ``CallStmt_``, in which the ``Lhs`` after
-the `:=` references a method and the arguments to it, corresponding to a
-method call or a new allocation with an initializing method.
+takes the special form of a ``Lhs`` that is a call.
 This is the only case
 where the number of left-hand sides can be different than the number of
 right-hand sides in the ``UpdateStmt``. In that case the number of
@@ -199,7 +186,11 @@ the `:=`, which then is assigned a tuple of the out-parameters.
 Note that the result of a method call is not allowed to be used as an argument of
 another method call, as if it were an expression.
 
-3) If no call is involved, the ``UpdateStmt`` can be a parallel
+3) This is the typical parallel-assignment form, in which no call is involved:
+```
+    Lhs { , Lhs } ":=" Rhs { "," Rhs } ";"
+```
+Thise ``UpdateStmt`` is a parallel
 assignment of right-hand-side values to the left-hand sides. For example,
 `x,y := y,x` swaps the values of `x` and `y`. If more than one
 left-hand side is used, these must denote different l-values, unless the
@@ -208,10 +199,15 @@ be an equal number of left-hand sides and right-hand sides in this case.
 Of course, the most common case will have only one
 ``Rhs`` and one ``Lhs``.
 
-4) The form that uses "`:|`" assigns some values to the left-hand side
+4) The form
+```
+  Lhs { "," Lhs } :| [ "assume" ] Expression<false,false>
+```
+using "`:|`" assigns some values to the left-hand side
 variables such that the boolean expression on the right hand side
 is satisfied. This can be used to make a choice as in the
 following example where we choose an element in a set.
+The given boolean expression need not constrain the LHS values uniquely.
 
 ```dafny
 method Sum(X: set<int>) returns (s: int)
@@ -248,10 +244,12 @@ UpdateFailureStmt  =
     [ Lhs { "," Lhs } ]
     ":-"
     [ "expect"  | "assert" | "assume" ]
-    Expression(allowLemma: false, allowLambda: false) { "," Rhs }
+    Expression(allowLemma: false, allowLambda: false)
+    { "," Rhs }
+    ";"
 ````
 
-A `:-` statement is similar to a `:=` statement, but allows for abrupt return if a failure is detected.
+A `:-` statement is an alternate form of the `:=` statement that allows for abrupt return if a failure is detected.
 This is a language feature somewhat analogous to exceptions in other languages.
 
 An update-with-failure statement uses _failure-compatible_ types.
@@ -587,20 +585,29 @@ using either `:-` statements or using `:=` statements with a LHS to receive the 
 
 ## 20.8. Variable Declaration Statement {#sec-var-decl-statement}
 ````grammar
-VarDeclStatement = [ "ghost" ] "var" { Attribute }
+VarDeclStatement
+= [ "ghost" ] "var" { Attribute }
   (
     LocalIdentTypeOptional
     { "," { Attribute } LocalIdentTypeOptional }
-    [ ":=" Rhs { "," Rhs }
-    | ":-" [ "expect" ] Expression { "," Rhs }
-    | { Attribute } ":|" [ "assume" ]
-                 Expression(allowLemma: false, allowLambda: true)
+    [ ":="
+      Rhs { "," Rhs }
+    | ":-"
+      [ "expect" | "assert" | "assume" ]
+      Expression<allowLemma: false, allowLambda: false>
+      { "," Rhs }
+    | { Attribute }
+      ":|"
+      [ "assume" ] Expression(allowLemma: false, allowLambda: true)
     ]
   |
-    "(" CasePattern { "," CasePattern } ")"
-    ":=" Expression(allowLemma: false, allowLambda: true)
+    CasePatternLocal
+    ( ":=" | { Attribute } ":|" )
+    Expression(allowLemma: false, allowLambda: true)
   )
   ";"
+
+CasePatternLocal = "(" CasePattern { "," CasePattern } ")"  // TODO
 ````
 
 A ``VarDeclStatement`` is used to declare one or more local variables in
@@ -659,8 +666,10 @@ may be different each time it is executed.
 ## 20.10. Binding Guards
 ````grammar
 BindingGuard(allowLambda) =
-  IdentTypeOptional { "," IdentTypeOptional } { Attribute }
-  ":|" Expression(allowLemma: true, allowLambda)
+  IdentTypeOptional { "," IdentTypeOptional }
+  { Attribute }
+  ":|"
+  Expression(allowLemma: true, allowLambda)
 ````
 
 ``IfStmt``s can also take a ``BindingGuard``.
@@ -706,8 +715,7 @@ method M1() returns (ghost y: int)
 ## 20.11. If Statement
 ````grammar
 IfStmt = "if"
-  ( IfAlternativeBlock
-  | "{" IfAlternativeBlock "}"
+  ( AlternativeBlock(allowBindingGuards: true)
   |
     ( BindingGuard(allowLambda: true)
     | Guard
@@ -715,20 +723,22 @@ IfStmt = "if"
     )
     BlockStmt [ "else" ( IfStmt | BlockStmt ) ]
   )
-````
 
-````grammar
-IfAlternativeBlock =
+AlternativeBlock(allowBindingGuards)
+= ( { AlternativeBlockCase(allowBindingGuards) }
+  | "{" { AlternativeBlockCase(allowBindingGuards) } "}"
+  )
+
+AlternativeBlockCase(allowBindingGuards) =
       { "case"
       (
-        BindingGuard(allowLambda:false)
+        BindingGuard(allowLambda: false) // permitted iff allowBindingGuards == true
       | Expression(allowLemma: true, allowLambda: false)
       ) "=>" { Stmt } } .
 ````
 
 The simplest form of an `if` statement uses a guard that is a boolean
-# 21. and other common
-programming languages. For example,
+expression. For example,
 
 ```dafny
   if x < 0 {
@@ -746,7 +756,7 @@ If the guard is an asterisk then a non-deterministic choice is made:
   }
 ```
 
-The `if` statement using the `IfAlternativeBlock` form is similar to the
+The `if` statement using the `AlternativeBlock` form is similar to the
 `if ... fi` construct used in the book "A Discipline of Programming" by
 Edsger W. Dijkstra. It is used for a multi-branch `if`.
 
@@ -770,21 +780,13 @@ TODO: Describe the ... refinement
 ````grammar
 WhileStmt = "while"
   ( LoopSpecWhile
-    ( WhileAlternativeBlock | "{" WhileAlternativeBlock "}" )
-  | ( Guard | "..." ) LoopSpec
+    AlternativeBlock(allowBindingGuards: false)
+  | ( Guard | ellipsis ) LoopSpec
       ( BlockStmt
-      | "..."
+      | ellipsis
       | /* go body-less */
       )
   )
-````
-
-````grammar
-WhileAlternativeBlock =
-   "{"
-   { "case" Expression(allowLemma: true, allowLambda: false)
-   "=>" { Stmt } }
-   "}
 ````
 
 Loops need _loop specifications_ (``LoopSpec`` in the grammar) in order for Dafny to prove that
@@ -825,7 +827,7 @@ TODO: Wouldn't a missing body cause problems? Isn't it clearer to have
 a block statement with no statements inside?
 -->
 
-The second form uses the `WhileAlternativeBlock`. It is similar to the
+The second form uses the `AlternativeBlock`. It is similar to the
 `do ... od` construct used in the book "A Discipline of Programming" by
 Edsger W. Dijkstra. For example:
 
@@ -977,11 +979,11 @@ TO BE WRITTEN
 ````grammar
 MatchStmt =
   "match" Expression(allowLemma: true, allowLambda: true)
-  ( "{" { CaseStatement } "}"
-  | { CaseStatement }
+  ( "{" { CaseStmt } "}"
+  | { CaseStmt }
   )
 
-CaseStatement = CaseBinding_ "=>" { Stmt }
+CaseStmt = CaseBinding_ "=>" { Stmt }
 ````
 
 [ `CaseBinding_` is defined in [Section 22.34](#sec-case-pattern).]
@@ -1020,10 +1022,15 @@ infinite.
 ## 21.4. Assert Statement {#sec-assert-statement}
 ````grammar
 AssertStmt =
-    "assert" { Attribute }
-    ( Expression(allowLemma: false, allowLambda: true)
-    | "..."
-    ) ";"
+    "assert"
+    { Attribute }
+    ( [ LabelName ":" ]
+      Expression(allowLemma: false, allowLambda: true)
+      ( ";"
+      | "by" BlockStmt
+      )
+    | ellipsis
+      ";"
 ````
 
 `Assert` statements are used to express logical proposition that are
@@ -1045,10 +1052,12 @@ TO BE WRITTEN - assert by statements
 ## 21.5. Assume Statement {#sec-assume-statement}
 ````grammar
 AssumeStmt =
-    "assume" { Attribute }
+    "assume"
+    { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
-    | "..."
-    ) ";"
+    | ellipsis
+    )
+    ";"
 ````
 
 The `assume` statement lets the user specify a logical proposition
@@ -1071,7 +1080,8 @@ Using `...` as the argument of the statement is part of module refinement, as de
 
 ````grammar
 ExpectStmt =
-    "expect" { Attribute }
+    "expect"
+    { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
     | "..."
     )
@@ -1183,8 +1193,10 @@ If the proposition is `...` then (TODO: what does this mean?).
 ## 21.7. Print Statement
 ````grammar
 PrintStmt =
-    "print" Expression(allowLemma: false, allowLambda: true)
-    { "," Expression(allowLemma: false, allowLambda: true) } ";"
+    "print"
+    Expression(allowLemma: false, allowLambda: true)
+    { "," Expression(allowLemma: false, allowLambda: true) }
+    ";"
 ````
 
 The `print` statement is used to print the values of a comma-separated
@@ -1215,13 +1227,25 @@ Note that Dafny does not have method overriding and there is no mechanism to
 override the built-in value->string conversion.  Nor is there a way to
 explicitly invoke this conversion.
 
+## Reveal Statement {#sec-reveal-statement}
+````grammar
+RevealStmt =
+    "reveal"
+    Expression(allowLemma: false, allowLambda: true)
+    { "," Expression(allowLemma: false, allowLambda: true) }
+    ";"
+````
+
+
+TODO
+
 ## 21.8. Forall Statement {#sec-forall-statement}
 ````grammar
 ForallStmt = "forall"
   ( "(" [ QuantifierDomain ] ")"
   | [ QuantifierDomain ]
   )
-  { EnsuresClause_ }
+  { EnsuresClause(allowLambda: true) }
   [ BlockStmt ]
 ````
 
@@ -1318,12 +1342,15 @@ co-predicates and co-lemmas. See section [#sec-co-inductive-datatypes].
 ## 21.9. Modify Statement {#sec-modify-statement}
 ````grammar
 ModifyStmt =
-  "modify" { Attribute }
+  "modify"
+  { Attribute }
   ( FrameExpression(allowLemma: false, allowLambda: true)
     { "," FrameExpression(allowLemma: false, allowLambda: true) }
-  | "..."
+  | ellipsis
   )
-  ( BlockStmt | ";" )
+  ( BlockStmt
+  | ";"
+  )
 ````
 
 The `modify` statement has two forms which have two different
@@ -1420,10 +1447,14 @@ Using `...` as the argument of the statement is part of module refinement, as de
 
 ## 21.10. Calc Statement
 ````grammar
-CalcStmt = "calc" { Attribute } [ CalcOp ] "{" CalcBody "}"
-CalcBody = { CalcLine [ CalcOp ] Hints }
-CalcLine = Expression(allowLemma: false, allowLambda: true) ";"
-Hints = { ( BlockStmt | CalcStmt ) }
+CalcStmt = "calc" { Attribute } [ CalcOp ] "{" CalcBody_ "}"
+
+CalcBody_ = { CalcLine_ [ CalcOp ] Hints_ }
+
+CalcLine_ = Expression(allowLemma: false, allowLambda: true) ";"
+
+Hints_ = { ( BlockStmt | CalcStmt ) }
+
 CalcOp =
   ( "==" [ "#" "["
            Expression(allowLemma: true, allowLambda: true) "]" ]
@@ -1539,12 +1570,6 @@ the expressions is to provide hints to aid Dafny in proving that
 step. As shown in the example, comments can also be used to aid
 the human reader in cases where Dafny can prove the step automatically.
 
-## 21.11. Reveal Statement
-
-TO BE WRITTEN
-
-<!--
-Move to discussion of refinement.
 
 ## 21.12. Skeleton Statement
 ````grammar
@@ -1555,4 +1580,4 @@ SkeletonStmt =
     {"," Expression(allowLemma: false, allowLambda: true) }
   ] ";"
 ````
--->
+TODO: Move to discussion of refinement?

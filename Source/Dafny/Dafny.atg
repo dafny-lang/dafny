@@ -223,7 +223,7 @@ bool IsGets() {
 // * a comma (if there's a list of bound variables and the first one is not given an explicit type),
 // * a start-attribute (if there's one bound variable and it is not given an explicit type and there are attributes), or
 // * a bored smiley (if there's one bound variable and it is not given an explicit type).
-bool IsExistentialGuard() {
+bool IsBindingGuard() {
   scanner.ResetPeek();
   if (IsIdentifier(la.kind)) {
     Token x = scanner.Peek();
@@ -1723,19 +1723,19 @@ RequiresClause<.List<AttributedExpression> req, bool allowLabel=true.>
                  .)
   { Attribute<ref attrs> }
   [ IF(IsLabel(allowLabel))
-    LabelIdent<out lbl> ":"
+    LabelName<out lbl> ":"
   ]
   Expression<out e, false, false>
   OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
   .
 
 /*------------------------------------------------------------------------*/
-EnsuresClause<.List<AttributedExpression> ens.>
+EnsuresClause<.List<AttributedExpression> ens, bool allowLambda=false.>
 = "ensures"     (. Expression e;
                    Attributes attrs = null;
                  .)
   { Attribute<ref attrs> }
-  Expression<out e, false, false>
+  Expression<out e, false, allowLambda>
   OldSemi       (. ens.Add(new AttributedExpression(e, attrs)); .)
   .
 
@@ -2276,8 +2276,7 @@ BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
      List<Statement/*!*/> body = new List<Statement/*!*/>();
   .)
   "{"                                  (. bodyStart = t; .)
-  { Stmt<body>
-  }
+  { Stmt<body> }
   "}"                                  (. bodyEnd = t;
                                           block = new BlockStmt(bodyStart, bodyEnd, body); .)
   .
@@ -2308,40 +2307,40 @@ Stmt<.List<Statement/*!*/>/*!*/ ss.>
 
 /*------------------------------------------------------------------------*/
 OneStmt<out Statement/*!*/ s>
-= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;  IToken/*!*/ id;  string label = null;
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      s = dummyStmt;  /* to please the compiler */
      BlockStmt bs;
      IToken bodyStart, bodyEnd;
-     int breakCount;
   .)
   SYNC
   ( BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
-  | AssertStmt<out s, false>
-  | ExpectStmt<out s>
-  | AssumeStmt<out s>
-  | PrintStmt<out s>
-  | RevealStmt<out s>
-  | UpdateStmt<out s>
+  | UpdateStmt<out s>     // includes UpdateFailure
   | VarDeclStatement<out s>
+  | ReturnStmt<out s>
   | IfStmt<out s>
   | WhileStmt<out s>
-  | NestedMatchStmt<out s>
-  | ForallStmt<out s>
+  | AssertStmt<out s, false>
+  | AssumeStmt<out s>
+  | BreakStmt<out s>
   | CalcStmt<out s>
+  | ExpectStmt<out s>
+  | ForallStmt<out s>
+  | LabeledStmt<out s>
+  | MatchStmt<out s>
   | ModifyStmt<out s>
-  | "label"
-    LabelIdent<out id> ":"
-    OneStmt<out s>                     (. s.Labels = new LList<Label>(new Label(id, id.val), s.Labels); .)
-  | "break"                            (. x = t; breakCount = 1; label = null; .)
-    ( LabelIdent<out id>               (. label = id.val; .)
-    | { "break"                        (. breakCount++; .)
-      }
-    )
-    SYNC
-    ";"                                (. s = label != null ? new BreakStmt(x, t, label) : new BreakStmt(x, t, breakCount); .)
-  | ReturnStmt<out s>
+  | PrintStmt<out s>
+  | RevealStmt<out s>
   | SkeletonStmt<out s>
+  | YieldStmt<out s>
   )
+  .
+
+/*------------------------------------------------------------------------*/
+LabeledStmt<out Statement s>
+= "label"  (. IToken id; .)
+  LabelName<out id> ":"
+  OneStmt<out s>
+  (. s.Labels = new LList<Label>(new Label(id, id.val), s.Labels); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2370,25 +2369,52 @@ SkeletonStmt<out Statement s>
   .
 
 /*------------------------------------------------------------------------*/
-ReturnStmt<out Statement/*!*/ s>
-= (.
-   IToken returnTok = null;
-   List<AssignmentRhs> rhss = null;
-   AssignmentRhs r;
-   bool isYield = false;
-   .)
-  ( "return"                         (. returnTok = t; .)
-  | "yield"                          (. returnTok = t; isYield = true; .)
+BreakStmt<out Statement/*!*/ s>
+= "break"                 (. IToken x = t;
+                             IToken id = null;
+                             int breakCount = 1;
+                             String label = null;
+                          .)
+  ( LabelName<out id>     (. label = id.val; .)
+  | { "break"             (. breakCount++; .)
+    }
   )
-  [ Rhs<out r>                       (. rhss = new List<AssignmentRhs>(); rhss.Add(r); .)
+  SYNC
+  ";"
+  (. s = label != null ?
+     new BreakStmt(x, t, label) :
+     new BreakStmt(x, t, breakCount); .)
+  .
+
+/*------------------------------------------------------------------------*/
+ReturnStmt<out Statement/*!*/ s>
+= "return"
+       (.
+         IToken returnTok = t;
+         List<AssignmentRhs> rhss = new List<AssignmentRhs>();
+         AssignmentRhs r;
+       .)
+  [ Rhs<out r>                       (. rhss.Add(r); .)
     { "," Rhs<out r>                 (. rhss.Add(r); .)
     }
   ]
-  ";"                                (. if (isYield) {
-                                          s = new YieldStmt(returnTok, t, rhss);
-                                        } else {
-                                          s = new ReturnStmt(returnTok, t, rhss);
-                                        }
+  ";"                                (. s = new ReturnStmt(returnTok, t, rhss);
+                                     .)
+  .
+
+/*------------------------------------------------------------------------*/
+YieldStmt<out Statement/*!*/ s>
+= "yield"
+       (.
+         IToken yieldTok = t;
+         List<AssignmentRhs> rhss = new List<AssignmentRhs>();
+         AssignmentRhs r;
+       .)
+  [ Rhs<out r>                       (. rhss.Add(r); .)
+    { "," Rhs<out r>                 (. rhss.Add(r); .)
+    }
+  ]
+  ";"                                (. s = new YieldStmt(yieldTok, t, rhss);
                                      .)
   .
 
@@ -2428,7 +2454,7 @@ UpdateStmt<out Statement/*!*/ s>
       Expression<out exceptionExpr, false, false>
       { "," Rhs<out r>             (. rhss.Add(r); .)
       }
-     )
+    )
     ";"                            (. endTok = t; .)
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
@@ -2616,7 +2642,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
 /*------------------------------------------------------------------------*/
 IfStmt<out Statement/*!*/ ifStmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out ifStmt) != null); IToken/*!*/ x;
-     Expression guard = null;  IToken guardEllipsis = null;  bool isExistentialGuard = false;
+     Expression guard = null;  IToken guardEllipsis = null;  bool isBindingGuard = false;
      BlockStmt/*!*/ thn;
      BlockStmt/*!*/ bs;
      Statement/*!*/ s;
@@ -2632,8 +2658,8 @@ IfStmt<out Statement/*!*/ ifStmt>
     AlternativeBlock<true, out alternatives, out usesOptionalBraces, out endTok>
     (. ifStmt = new AlternativeStmt(x, endTok, alternatives, usesOptionalBraces); .)
   |
-    ( IF(IsExistentialGuard())
-      ExistentialGuard<out guard, true>  (. isExistentialGuard = true; .)
+    ( IF(IsBindingGuard())
+      BindingGuard<out guard, true>      (. isBindingGuard = true; .)
     | Guard<out guard>
     | ellipsis                           (. guardEllipsis = t; .)
     )
@@ -2644,16 +2670,16 @@ IfStmt<out Statement/*!*/ ifStmt>
       )
     ]
     (. if (guardEllipsis != null) {
-         ifStmt = new SkeletonStatement(new IfStmt(x, endTok, isExistentialGuard, guard, thn, els), guardEllipsis, null);
+         ifStmt = new SkeletonStatement(new IfStmt(x, endTok, isBindingGuard, guard, thn, els), guardEllipsis, null);
        } else {
-         ifStmt = new IfStmt(x, endTok, isExistentialGuard, guard, thn, els);
+         ifStmt = new IfStmt(x, endTok, isBindingGuard, guard, thn, els);
        }
     .)
   )
   .
 
 /*------------------------------------------------------------------------*/
-AlternativeBlock<.bool allowExistentialGuards, out List<GuardedAlternative> alternatives, out bool usesOptionalBraces, out IToken endTok.>
+AlternativeBlock<.bool allowBindingGuards, out List<GuardedAlternative> alternatives, out bool usesOptionalBraces, out IToken endTok.>
 = (. alternatives = new List<GuardedAlternative>();
      endTok = null;
      usesOptionalBraces = false;
@@ -2661,30 +2687,30 @@ AlternativeBlock<.bool allowExistentialGuards, out List<GuardedAlternative> alte
   .)
   ( "{"    (. usesOptionalBraces = true; .)
     {
-      AlternativeBlockCase<allowExistentialGuards, out alt>  (. alternatives.Add(alt); .)
+      AlternativeBlockCase<allowBindingGuards, out alt>  (. alternatives.Add(alt); .)
     }
     "}"
   | /* Note, an alternative-less while is not parsed here; it is a body-less while (not an alternative while).
        Also, an alternative-less if is not allowed.
        These decisions save a Coco warning.
     */
-    AlternativeBlockCase<allowExistentialGuards, out alt>  (. alternatives.Add(alt); .)
+    AlternativeBlockCase<allowBindingGuards, out alt>  (. alternatives.Add(alt); .)
     { IF(la.kind == _case)
-      AlternativeBlockCase<allowExistentialGuards, out alt>  (. alternatives.Add(alt); .)
+      AlternativeBlockCase<allowBindingGuards, out alt>  (. alternatives.Add(alt); .)
     }
   )
   (. endTok = t; .)
   .
 
 /*------------------------------------------------------------------------*/
-AlternativeBlockCase<.bool allowExistentialGuards, out GuardedAlternative alt.>
+AlternativeBlockCase<.bool allowBindingGuards, out GuardedAlternative alt.>
 = (. IToken x;
-     Expression e; bool isExistentialGuard;
+     Expression e; bool isBindingGuard;
      List<Statement> body;
   .)
-  "case"                             (. x = t; isExistentialGuard = false; e = dummyExpr; .)
-  ( IF(allowExistentialGuards && IsExistentialGuard())
-    ExistentialGuard<out e, false >  (. isExistentialGuard = true; .)  // NB: don't allow lambda here
+  "case"                             (. x = t; isBindingGuard = false; e = dummyExpr; .)
+  ( IF(allowBindingGuards && IsBindingGuard())
+    BindingGuard<out e, false >  (. isBindingGuard = true; .)  // NB: don't allow lambda here
   | Expression<out e, true, false> // NB: don't allow lambda here
   )
   "=>"
@@ -2697,7 +2723,7 @@ AlternativeBlockCase<.bool allowExistentialGuards, out GuardedAlternative alt.>
     Stmt<body>
     SYNC  /* see comment about SYNC above */
   }
-  (. alt = new GuardedAlternative(x, isExistentialGuard, e, body); .)
+  (. alt = new GuardedAlternative(x, isBindingGuard, e, body); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2785,7 +2811,7 @@ Guard<out Expression e>   /* null represents demonic-choice */
   .
 
 /*------------------------------------------------------------------------*/
-ExistentialGuard<out Expression e, bool allowLambda>
+BindingGuard<out Expression e, bool allowLambda>
 = (. var bvars = new List<BoundVar>();
      BoundVar bv;  IToken x;
      Attributes attrs = null;
@@ -2842,7 +2868,7 @@ ExtendedPattern<.out ExtendedPattern pat.>
   .
 
 /*------------------------------------------------------------------------*/
-NestedMatchStmt<out Statement/*!*/ s>
+MatchStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken x; Expression/*!*/ e; NestedMatchCaseStmt/*!*/ c;
      List<NestedMatchCaseStmt/*!*/> cases = new List<NestedMatchCaseStmt/*!*/>();
@@ -2852,24 +2878,24 @@ NestedMatchStmt<out Statement/*!*/ s>
   Expression<out e, true, true>
   ( IF(la.kind == _lbrace)  /* always favor brace-enclosed match body to a case-less match */
     "{" (. usesOptionalBraces = true; .)
-        { NestedCaseStatement<out c> (. cases.Add(c); .) }
+        { CaseStmt<out c> (. cases.Add(c); .) }
     "}"
   |     { IF(la.kind == _case)  /* let each "case" bind to the closest preceding "match" */
-          NestedCaseStatement<out c> (. cases.Add(c); .)
+          CaseStmt<out c> (. cases.Add(c); .)
         }
   )
   (. s = new NestedMatchStmt(x, t, e, cases, usesOptionalBraces); .)
   .
 
 /*------------------------------------------------------------------------*/
-NestedCaseStatement<out NestedMatchCaseStmt/*!*/ c>
+CaseStmt<out NestedMatchCaseStmt/*!*/ c>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ x;
      ExtendedPattern/*!*/ pat = null;
      var body = new List<Statement/*!*/>();
   .)
   "case"                      (. x = t; .)
-  ExtendedPattern<out pat>             (. .)
+  ExtendedPattern<out pat>    (. .)
   "=>"
     SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
            * skip until the next symbol that can legally occur here, which is either the beginning of a Stmt or whatever is allowed
@@ -2894,7 +2920,7 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
   "assert"                                     (. x = t; .)
   { Attribute<ref attrs> }
   ( [ IF(IsLabel(!inExprContext))
-      LabelIdent<out lbl> ":"
+      LabelName<out lbl> ":"
     ]
     Expression<out e, false, true>
     ( "by"
@@ -2984,10 +3010,8 @@ ForallStmt<out Statement/*!*/ s>
      IToken/*!*/ x = Token.NoToken;
      List<BoundVar> bvars = null;
      Attributes qattrs = null;
-     Attributes attrs = null;
      Expression range = null;
      var ens = new List<AttributedExpression/*!*/>();
-     Expression/*!*/ e;
      BlockStmt block = null;
      IToken bodyStart, bodyEnd;
      IToken tok = Token.NoToken;
@@ -3005,10 +3029,7 @@ ForallStmt<out Statement/*!*/ s>
   .)
 
   {
-    "ensures"
-    { Attribute<ref attrs> }
-    Expression<out e, false, true>  (. ens.Add(new AttributedExpression(e)); .)
-    OldSemi                         (. tok = t; .)
+    EnsuresClause<ens, true>
   }
   [ IF(la.kind == _lbrace)  /* if the input continues like a block statement, take it to be the body of the forall statement; a body-less forall statement must continue in some other way */
     BlockStmt<out block, out bodyStart, out bodyEnd>
@@ -3579,14 +3600,14 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
   | "allocated"                                (. x = t; .)
     "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Allocated, e); .)
   | "unchanged"                                (. x = t; FrameExpression fe; var mod = new List<FrameExpression>(); IToken oldAt = null; .)
-    [ "@" LabelIdent<out oldAt> ]
+    [ "@" LabelName<out oldAt> ]
     "("
       FrameExpression<out fe, false, false>         (. mod.Add(fe); .)
       { "," FrameExpression<out fe, false, false>   (. mod.Add(fe); .)
       }
     ")"                                        (. e = new UnchangedExpr(x, mod, oldAt?.val); .)
   | "old"                                      (. x = t; IToken oldAt = null; .)
-    [ "@" LabelIdent<out oldAt> ]
+    [ "@" LabelName<out oldAt> ]
     "(" Expression<out e, true, true> ")"      (. e = new OldExpr(x, e, oldAt?.val); .)
   | "|"                                        (. x = t; .)
       Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
@@ -3802,17 +3823,17 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
 = (. IToken/*!*/ x;
      Expression e0, e1;
      Statement s;
-     bool isExistentialGuard = false;
+     bool isBindingGuard = false;
      e = dummyExpr;
   .)
   ( "if"                            (. x = t; .)
-    ( IF(IsExistentialGuard())
-      ExistentialGuard<out e, true>  (. isExistentialGuard = true; .)
+    ( IF(IsBindingGuard())
+      BindingGuard<out e, true>  (. isBindingGuard = true; .)
     | Expression<out e, true, true>
     )
     "then" Expression<out e0, true, true, true>
     "else" Expression<out e1, allowSemi, allowLambda, allowBitwiseOps>
-                                                         (.  if (isExistentialGuard) {
+                                                         (.  if (isBindingGuard) {
                                                                var exists = (ExistsExpr) e;
                                                                var LHSs = new List<CasePattern<BoundVar>>();
                                                                foreach (var v in exists.BoundVars) {
@@ -3820,7 +3841,7 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
                                                                }
                                                                e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false);
                                                              }
-                                                             e = new ITEExpr(x, isExistentialGuard, e, e0, e1);
+                                                             e = new ITEExpr(x, isBindingGuard, e, e0, e1);
                                                          .)
   | NestedMatchExpression<out e, allowSemi, allowLambda, allowBitwiseOps>
   | QuantifierGuts<out e, allowSemi, allowLambda>  /* types are such that we can allow bitwise operations in the quantifier body */
@@ -4402,7 +4423,7 @@ MemberBindingUpdate<out IToken id, out Expression e>
   .
 
 /*------------------------------------------------------------------------*/
-LabelIdent<out IToken id>
+LabelName<out IToken id>
 = NoUSIdentOrDigits<out id>
   .
 

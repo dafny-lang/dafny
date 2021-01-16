@@ -50,9 +50,9 @@ establish that later conjuncts are well-defined.
 ### 5.1.2. Ensures Clause
 
 ````grammar
-EnsuresClause =
+EnsuresClause(allowLambda) =
   "ensures" { Attribute } Expression(allowLemma: false,
-                                     allowLambda: false)
+                                     allowLambda)
 ````
 
 An `ensures` clause specifies the post condition for a
@@ -453,7 +453,7 @@ holds at the end of the loop.
 MethodSpec =
   { ModifiesClause(allowLambda: false)
   | RequiresClause(allowLabel: true)
-  | EnsuresClause
+  | EnsuresClause(allowLambda: false)
   | DecreasesClause(allowWildcard: true, allowLambda: false)
   }
 ````
@@ -469,7 +469,7 @@ FunctionSpec =
   { RequiresClause(allowLabel: true)
   | ReadsClause(allowLemma: false, allowLambda: false,
                                    allowWild: true)
-  | EnsuresClause
+  | EnsuresClause(allowLambda: false)
   | DecreasesClause(allowWildcard: false, allowLambda: false)
   }
 ````
@@ -504,7 +504,7 @@ IteratorSpec =
                                   allowWild: false)
   | ModifiesClause(allowLambda: false)
   | [ "yield" ] RequiresClause(allowLabel: !isYield)
-  | [ "yield" ] EnsuresClause
+  | [ "yield" ] EnsuresClause(allowLambda: false)
   | DecreasesClause(allowWildcard: false, allowLambda: false)
   }
 ````
