@@ -13,6 +13,7 @@ DomainType_ =
   | MultisetType_
   | FiniteMapType_ | InfiniteMapType_
   | SequenceType_
+  | NatType_
   | StringType_
   | ArrayType_
   | TupleType
@@ -489,7 +490,7 @@ will add the appropriate suffix, such as `(==)`, automatically.
 
 If more than one restriction is needed, they are either
 listed comma-separated,
-inside the parentheses or as multiple parentesizezd elements:
+inside the parentheses or as multiple parenthesized elements:
  `T(==,0)` or `T(==)(0)`.
 
 ### 8.1.1. Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
@@ -1328,8 +1329,8 @@ modifier may be omitted.
 ````grammar
 MethodDecl(isGhost, allowConstructors, isWithinAbstractModule) =
   MethodKeyword_ { Attribute } [ MethodFunctionName ]
-  ( MethodSignature_(isGhost, isCoinductive: true iff this is a least
-                                             or greatest lemma declaration)
+  ( MethodSignature_(isGhost, isExtreme: true iff this is a least
+                                              or greatest lemma declaration)
   | ellipsis
   )
   MethodSpec(isConstructor: true iff this is a constructor declaration)
@@ -1355,10 +1356,10 @@ The method keyword is used to specify special kinds of methods
 as explained below.
 
 ````grammar
-MethodSignature_(isGhost,isCoinductive) =
+MethodSignature_(isGhost, isExtreme) =
   [ GenericParameters ]
   Formals(allowGhostKeyword: !isGhost)
-  [ KType ]    // permitted only if isCoinductive == true
+  [ KType ]    // permitted only if isExtreme == true
   [ "returns" Formals(allowGhostKeyword: !isGhost) ]
 ````
 A method signature specifies the method generic parameters,
@@ -1779,17 +1780,16 @@ such a `C` object can be used as a value of type `J`.
 ObjectType_ = "object" | "object?"
 ````
 
-There is a built-in trait `object?` that is a supertype of all
-reference types and a trait `object` that is a supertype of all non-null reference types..
-Every class and every trait (other than `object` itself) automatically extends
-`object?`; every non-null class or trait extends `object`.
-This includes types like arrays and iterators that do not permit
-explicit extending of traits. The purpose of type `object
+There is a built-in trait `object` that is implicitly extended by all classes and traits.
+It produces two types: the type `object?` that is a supertype of all
+reference types and a subset type `object` that is a supertype of all non-null reference types.
+This includes reference types like arrays and iterators that do not permit
+explicit extending of traits. The purpose of type `object`
 is to enable a uniform treatment of _dynamic frames_. In particular, it
 is useful to keep a ghost field (typically named `Repr` for
 "representation") of type `set<object>`.
 
-It serves no purpose (but does no harm) to explicitly list `object` ior `object?` as
+It serves no purpose (but does no harm) to explicitly list the trait `object` as
 an extendee in a class or trait declaration.
 
 Traits `object?` and  `object` contain no members.
@@ -1800,7 +1800,7 @@ The dynamic allocation of objects is done using `new C ...`,
  except that it is allowed to be `object`.
  The construction `new object` allocates a new object (of an unspecified class type).
  The construction can be used to create unique references, where no other properties of those references are needed.
-(`new object?` makes no sense; always use `new object` insteadi because the result of
+(`new object?` makes no sense; always use `new object` instead because the result of
 `new` is always non-null.)
 
 ## 13.2. Inheritance {#sec-inheritance}

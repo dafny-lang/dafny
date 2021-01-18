@@ -502,7 +502,8 @@ GIdentType(allowGhostKeyword, allowNewKeyword) = [ "ghost" | "new" ] IdentType
 A ``GIdentType`` is a typed entity declaration optionally preceded by `ghost` or `new`. The _ghost_
 qualifier means the entity is only used during verification and not in the generated code.
 Ghost variables are useful for abstractly representing internal state in specifications.
-If `allowGhostKeyword` is false then `ghost` is not allowed. // TODO - what about new
+If `allowGhostKeyword` is false then `ghost` is not allowed.
+If `allowNewKeyword` is false then `new` is not allowed.
 
 ````grammar
 LocalIdentTypeOptional = WildIdent [ ":" Type ]
