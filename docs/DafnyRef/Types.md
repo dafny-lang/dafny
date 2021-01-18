@@ -1,18 +1,23 @@
 # 6. Types {#sec-types}
 ````grammar
-Type = DomainType [ "->" Type ]
+Type = DomainType_ | FunctionType_
 ````
 A Dafny type is a domain type (i.e., a type that can be the domain of a
 function type) optionally followed by an arrow and a range type.
 
 ````grammar
-DomainType =
+DomainType_ =
   ( BoolType_ | CharType_ | IntType_ | RealType_
   | OrdinalType_ | BitVectorType_ | ObjectType_
-  | FiniteSetType_ | InfiniteSetType_ | MultisetType_
-  | SequenceType_ | StringType_
-  | FiniteMapType_ | InfiniteMapType_ | ArrayType_
-  | TupleType_ | NamedType_
+  | FiniteSetType_ | InfiniteSetType_
+  | MultisetType_
+  | FiniteMapType_ | InfiniteMapType_
+  | SequenceType_
+  | NatType_
+  | StringType_
+  | ArrayType_
+  | TupleType
+  | NamedType
   )
 ````
 The domain types comprise the builtin scalar types, the builtin
@@ -450,14 +455,18 @@ by indexing into a string, and the implicit conversion to string
 when used as a parameter of a `print` statement.
 
 <!--PDF NEWPAGE-->
-# 8. Type parameters
+# 8. Type parameters {#sec-type-parameters}
 
 ````grammar
-GenericParameters =
-  "<" TypeVariableName [ TPChars ]
-  { "," TypeVariableName [ TPChars ] } ">"
+GenericParameters(allowVariance) =
+  "<" [ Variance ] TypeVariableName { TypeParameterCharacteristics }
+  { "," [ Variance ] TypeVariableName { TypeParameterCharacteristics } }
+  ">"
 
-TPChars = "(" TPCharOption { "," TPCharOption } ")"
+// The optional Variance indicator is permitted only if allowVariance is true
+Variance = ( "*" | "+" | "!" | "-" )
+
+TypeParameterCharacteristics = "(" TPCharOption { "," TPCharOption } ")"
 
 TPCharOption = ( "==" | "0" | "!" "new" )
 ````
@@ -479,8 +488,10 @@ In some cases, type inference will infer that a type-parameter
 must be restricted in a particular way, in which case Dafny
 will add the appropriate suffix, such as `(==)`, automatically.
 
-If more than one restriction is needed, they are listed, comma-separated,
-inside the parentheses, like this: `T(==,0)`.
+If more than one restriction is needed, they are either
+listed comma-separated,
+inside the parentheses or as multiple parenthesized elements:
+ `T(==,0)` or `T(==)(0)`.
 
 ### 8.1.1. Equality-supporting type parameters: `T(==)` {#sec-equality-supporting}
 
@@ -586,6 +597,7 @@ Dafny offers several built-in collection types.
 ## 10.1. Sets {#sec-sets}
 ````grammar
 FiniteSetType_ = "set" [ GenericInstantiation ]
+
 InfiniteSetType_ = "iset" [ GenericInstantiation ]
 ````
 
@@ -893,6 +905,7 @@ sorting strings.
 ## 10.4. Finite and Infinite Maps {#sec-maps}
 ````grammar
 FiniteMapType_ = "map" [ GenericInstantiation ]
+
 InfiniteMapType_ = "imap" [ GenericInstantiation ]
 ````
 
@@ -1064,25 +1077,43 @@ There are no mechanisms currently defined in Dafny for iterating over `imap`s.
 
 <!--PDF NEWPAGE-->
 # 11. Types that stand for other types
-````grammar
-SynonymTypeDecl =
-  ( SynonymTypeDefinition_ | OpaqueTypeDefinition_ )
-````
-It is sometimes useful to know a type by several names or to treat a
-type abstractly. Synonym and opaque types serve this purpose.
 
-## 11.1. Type synonyms
+It is sometimes useful to know a type by several names or to treat a
+type abstractly. Synonym and opaque types serve this purpose,
+as do subset types ([Section 19](#sec-subset-types)) and newtypes ([Section 18](#sec-newtypes)).
+
+## 11.1. Type synonyms {#sec-synonym-type}
 ````grammar
-SynonymTypeDefinition_ =
-  "type" { Attribute } SynonymTypeName [ TPChars ] [ GenericParameters ]
-   "=" Type
+SynonymTypeName = NoUSIdent
+
+SynonymTypeDecl =
+  "type" { Attribute } SynonymTypeName
+   { TypeParameterCharacteristics }
+   [ GenericParameters ]
+   [ "=" Type
+   | TypeMembers
+   ]
+
+TypeMembers
+= "{"
+  {
+    { DeclModifier }
+    ClassMemberDecl<false, true, false, module.IsAbstract>  // TODO - check this
+  }
+  "}"
+
 ````
 
 A _type synonym_ declaration:
 ```dafny
 type Y<T> = G
 ```
-declares `Y<T>` to be a synonym for the type `G`.  Here, `T` is a
+declares `Y<T>` to be a synonym for the type `G`.
+If the `= G` is omitted then the declaration just declares a name as an uninterpreted
+_opaque_ type, as described in [Section 11.2](#sec-opaque-types).  Such types may be
+given a definition elsewhere in the Dafny program.
+
+  Here, `T` is a
 nonempty list of type parameters (each of which optionally
 has a [type characteristics suffix](#sec-type-characteristics)), which can be used as free type
 variables in `G`.  If the synonym has no type parameters, the "`<T>`"
@@ -1097,23 +1128,20 @@ type Replacements<T> = map<T,T>
 type Vertex = int
 ```
 
+The new type name itself may have type characteristics declared, though these are typically
+inferred from the definition, if there is one.
+
 As already described in [Section 10.3.5](#sec-strings), `string` is a built-in
 type synonym for `seq<char>`, as if it would have been declared as
 follows:
 ```dafny
-type string = seq<char>
+type string(==,0,!new) = seq<char>
 ```
+If the implicit declaration did not include the type characteristics, they would be inferred in any case.
 
-The optional type parameter characteristics are described in
-[Section 8.1](#sec-type-characteristics)
+## 11.2. Opaque types {#sec-opaque-types}
 
-
-## 11.2. Opaque types
-````grammar
-OpaqueTypeDefinition_ = "type" { Attribute } SynonymTypeName
-  [ TPChars ] [ GenericParameters ]
-````
-
+(The grammar of an opaque type is given above in [Section 11.1](#sec-synonym-type).)
 A special case of a type synonym is one that is underspecified.  Such
 a type is declared simply by:
 ```dafny
@@ -1121,7 +1149,10 @@ type Y<T>
 ```
 It is known as an _opaque type_.  Its definition can be revealed in a
 refining module.  The name `Y` can be immediately followed by
-a [type characteristics suffix](#sec-type-characteristics).
+a type characteristics suffix ([Section 8.1](#sec-type-characteristics)).
+Because there is no defining RHS, the type characterics cannot be inferred and so
+must be stated. If, in some refining module, a definition of the type is given, the
+type characteristics must match those of the new definition.
 
 For example, the declarations
 ```dafny
@@ -1135,25 +1166,25 @@ type Monad<T>
 ```
 can be used abstractly to represent an arbitrary parameterized monad.
 
-The optional type parameter characteristics are described in
-[Section 8.1](#sec-type-characteristics)
-
+Even as an opaque type, the type
+may be given members such as constants, methods or functions.
 
 <!--PDF NEWPAGE-->
 # 12. Class Types {#sec-class-types}
 
 ````grammar
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
-  ["extends" Type {"," Type} ]
+  ["extends" Type {"," Type} | ellipsis ]
   "{" { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) }
   "}"
 
-ClassMemberDecl(moduleLevelDecl) =
-  ( FieldDecl
-  | ConstantFieldDecl
-  | FunctionDecl
+ClassMemberDecl(allowConstructors, isValueType,
+                moduleLevelDecl, isWithinAbstractModule) =
+  ( FieldDecl(isValueType)   // not permitted if moduleLevelDecl == true
+  | ConstantFieldDecl(moduleLevelDecl)
+  | FunctionDecl(isWithinAbstractModule)
   | MethodDecl(isGhost: ("ghost" was present),
-               allowConstructor: !moduleLevelDecl)
+               allowConstructors, isWithinAbstractModule)
   )
 ````
 The ``ClassMemberDecl`` parameter `moduleLevelDecl` will be true if
@@ -1235,14 +1266,17 @@ See [Section 12.3](#sec-method-declarations).
 
 ## 12.1. Field Declarations
 ````grammar
-FieldDecl = "var" { Attribute } FIdentType { "," FIdentType }
+FieldDecl(isValueType)
+ = "var" { Attribute } FIdentType { "," FIdentType }
 ````
+A `FieldDecl` is not permitted in a value type (i.e., if `isValueType` is true).
+
 An ``FIdentType`` is used to declare a field. The field name is either an
 identifier (that is not allowed to start with a leading underscore) or
 some digits. Digits are used if you want to number your fields, e.g. "0",
 "1", etc.
 ````grammar
-FIdentType = ( FieldIdent | digits ) ":" Type
+FIdentType = NoUSIdentOrDigits ":" Type
 ````
 
 A field x of some type T is declared as:
@@ -1266,10 +1300,13 @@ not in code that will be compiled into executable code.
 
 Fields may not be declared static.
 
-## 12.2. Const Declarations
+## 12.2. Constant Field Declarations
 ```grammar
-ConstantFieldDecl = "const" { Attribute } CIdentType [ "..." ]
-                    [ ":=" Expression ]
+ConstantFieldDecl(moduleLeavelDecl)
+ = "const" { Attribute } CIdentType [ ellipsis ]
+   [ ":=" Expression(allowLemma: false, allowLambda:true) ]
+
+CIdentType = NoUSIdentOrDigits [ ":" Type ]
 ```
 
 A `const` declaration declares a name bound to a value,
@@ -1290,10 +1327,14 @@ modifier may be omitted.
 
 ## 12.3. Method Declarations {#sec-method-declarations}
 ````grammar
-MethodDecl(isGhost, allowConstructor) =
-  MethodKeyword { Attribute } [ MethodName ]
-  ( MethodSignature(isGhost)  | SignatureEllipsis_ )
-  MethodSpec [ BlockStmt ]
+MethodDecl(isGhost, allowConstructors, isWithinAbstractModule) =
+  MethodKeyword_ { Attribute } [ MethodFunctionName ]
+  ( MethodSignature_(isGhost, isExtreme: true iff this is a least
+                                             or greatest lemma declaration)
+  | ellipsis
+  )
+  MethodSpec(isConstructor: true iff this is a constructor declaration)
+  [ BlockStmt ]
 ````
 The `isGhost` parameter is true iff the `ghost` keyword
 preceded the method declaration.
@@ -1303,16 +1344,23 @@ the ``MethodDecl`` must not be a `constructor`
 declaration.
 
 ````grammar
-MethodKeyword = ("method" | "lemma" | "colemma"
-                | "inductive" "lemma" | "constructor" )
+MethodKeyword_ = ( "method"
+                 | "constructor"
+                 | "lemma"
+                 | "twostate" "lemma"
+                 | "least" "lemma"
+                 | "greatest" "lemma"
+                 )
 ````
 The method keyword is used to specify special kinds of methods
 as explained below.
 
 ````grammar
-MethodSignature(isGhost) =
-  [ GenericParameters ] Formals(allowGhost: !isGhost)
-  [ "returns" Formals(allowGhost: !isGhost) ]
+MethodSignature_(isGhost, isExtreme) =
+  [ GenericParameters ]
+  Formals(allowGhostKeyword: !isGhost)
+  [ KType ]    // permitted only if isExtreme == true
+  [ "returns" Formals(allowGhostKeyword: !isGhost) ]
 ````
 A method signature specifies the method generic parameters,
 input parameters and return parameters.
@@ -1320,9 +1368,9 @@ The formal parameters are not allowed to have `ghost` specified
 if `ghost` was already specified for the method.
 
 ````grammar
-SignatureEllipsis_ = "..."
+ellipsis = "..."
 ````
-A ``SignatureEllipsis_`` is used when a method or function is being redeclared
+A ``ellipsis`` is used when a method or function is being redeclared
 in a module that refines another module. (cf. [Section 23](#sec-module-refinement))
 In that case the signature is
 copied from the module that is being refined. This works because
@@ -1331,9 +1379,17 @@ name of the class method uniquely identifies it without the
 signature.
 
 ````grammar
-Formals(allowGhostKeyword) =
-  "(" [ GIdentType(allowGhostKeyword)
-        { "," GIdentType(allowGhostKeyword) } ] ")"
+KType = "[" ( "nat" | "ORDINAL" ) "]"
+````
+The _k-type_ may be specified only for least and greatest lemmas and is described
+in [Section 0](#sec-coinduction). // TODO - check this is the correct reference
+
+````grammar
+Formals(allowGhostKeyword, allowNewKeyword) =
+  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword)
+        { "," GIdentType(allowGhostKeyword, allowNewKeyword) }
+      ]
+  ")"
 ````
 The ``Formals`` specifies the names and types of the method input or
 output parameters.
@@ -1513,33 +1569,33 @@ TO BE WRITTEN - two-state lemmas; unchanged predicate
 ## 12.4. Function Declarations
 
 ````grammar
-FunctionDecl =
-  ( "function" [ "method" ] { Attribute }
-    FunctionName
+MethodFunctionName = NoUSIdent
+
+FunctionDecl(isWithinAbstractModule) =
+  ( [ "twostate" ] "function" [ "method" ] { Attribute }
+    MethodFunctionName
     FunctionSignatureOrEllipsis_(allowGhostKeyword:
                                            ("method" present))
   | "predicate" [ "method" ] { Attribute }
-    PredicateName
+    MethodFunctionName
     PredicateSignatureOrEllipsis_(allowGhostKeyword:
                                            ("method" present))
-  | "inductive" "predicate" { Attribute }
-    PredicateName
-    PredicateSignatureOrEllipsis_(allowGhostKeyword: false)
-
-  | "copredicate" { Attribute }
-    CopredicateName
+  | ( "least" | "greatest" ) "predicate" { Attribute }
+    MethodFunctionName
     PredicateSignatureOrEllipsis_(allowGhostKeyword: false)
   )
-  FunctionSpec [ FunctionBody ]
+  FunctionSpec
+  [ FunctionBody ]
 
 FunctionSignatureOrEllipsis_(allowGhostKeyword) =
-  FunctionSignature_(allowGhostKeyword) | SignatureEllipsis_
+  FunctionSignature_(allowGhostKeyword) | ellipsis
 
 FunctionSignature_(allowGhostKeyword) =
-  [ GenericParameters ] Formals(allowGhostKeyword) ":" Type
+  [ GenericParameters ] Formals(allowGhostKeyword)i
+  ":" ( Type | "(" GIdentType ")" )
 
 PredicateSignatureOrEllipsis_(allowGhostKeyword) =
-  PredicateSignature_(allowGhostKeyword) | SignatureEllipsis_
+  PredicateSignature_(allowGhostKeyword) | ellipsis
 
 PredicateSignature_(allowGhostKeyword) =
   [ GenericParameters ] Formals(allowGhostKeyword)
@@ -1582,23 +1638,39 @@ postcondition, `Rank` is the function’s variant function, and `Body` is
 an expression that defines the function's return value. The precondition
 allows a function to be partial, that is, the precondition says when the
 function is defined (and Dafny will verify that every use of the function
-meets the precondition). The postcondition is usually not needed, since
+meets the precondition).
+
+The postcondition is usually not needed, since
 the body of the function gives the full definition. However, the
 postcondition can be a convenient place to declare properties of the
 function that may require an inductive proof to establish, such as when
 the function is recursive. For example:
 
-````grammar
+```dafny
 function Factorial(n: int): int
   requires 0 <= n
   ensures 1 <= Factorial(n)
 {
   if n == 0 then 1 else Factorial(n-1) * n
 }
-````
+```
 
 says that the result of Factorial is always positive, which Dafny
 verifies inductively from the function body.
+
+Within a postcondition, the result of the function is designated by
+a call of the function, such as `Factorial(n)` in the example above.
+Alternatively, a name for the function result can be given in the signature,
+as in the following rewrite of the example above.
+
+```dafny
+function Factorial(n: int): (f: int)
+  requires 0 <= n
+  ensures 1 <= f
+{
+  if n == 0 then 1 else Factorial(n-1) * n
+}
+```
 
 By default, a function is `ghost`, and cannot be called from non-ghost
 code. To make it non-ghost, replace the keyword `function` with the two
@@ -1610,12 +1682,12 @@ An instance function, but not a static function, has an implicit receiver parame
 by `C.F(…)`. This provides a convenient way to declare a number of helper
 functions in a separate class.
 
-As for methods, a ``SignatureEllipsis_`` is used when declaring
+As for methods, a ``...`` is used when declaring
 a function in a module refinement. (cf. [Section 23](#sec-module-refinement))
  For example, if module `M0` declares
 function `F`, a module `M1` can be declared to refine `M0` and
 `M1` can then refine `F`. The refinement function, `M1.F` can have
-a ``SignatureEllipsis_`` which means to copy the signature from
+a ``...`` which means to copy the signature from
 `M0.F`. A refinement function can furnish a body for a function
 (if `M0.F` does not provide one). It can also add `ensures`
 clauses.
@@ -1654,7 +1726,7 @@ When `{:opaque}` is specified for function `g`, `g` is opaque,
 however the lemma `reveal_g` is available to give the semantics
 of `g` whether in the defining module or outside.
 
-### 12.4.4. Inductive Predicates and Lemmas
+### 12.4.4. Least/Greatest (CoInductive) Predicates and Lemmas
 See [Section 25.5.3](#sec-friendliness) for descriptions
 of inductive predicates and lemmas.
 
@@ -1662,8 +1734,8 @@ of inductive predicates and lemmas.
 # 13. Trait Types
 ````grammar
 TraitDecl =
-  "trait" { Attribute } TraitName [ GenericParameters ]
-  [ "extends" Type { "," Type } ]
+  "trait" { Attribute } ClassName [ GenericParameters ]
+  [ "extends" Type { "," Type } | "..." ]
   "{"
    { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) }
   "}"
@@ -1705,19 +1777,19 @@ such a `C` object can be used as a value of type `J`.
 
 ## 13.1. Type `object`
 ````grammar
-ObjectType_ = "object"
+ObjectType_ = "object" | "object?"
 ````
 
-There is a built-in trait `object` that is a supertype of all
-reference types.
-Every class and every trait (other than `object` itself) automatically extends
-`object`. This includes types like arrays and iterators that do not permit
+There is a built-in trait `object` that is implicitly extended by all classes and traits.
+It produces two types: the type `object?` that is a supertype of all
+reference types and a subset type `object` that is a supertype of all non-null reference types.
+This includes reference types like arrays and iterators that do not permit
 explicit extending of traits. The purpose of type `object`
 is to enable a uniform treatment of _dynamic frames_. In particular, it
 is useful to keep a ghost field (typically named `Repr` for
 "representation") of type `set<object>`.
 
-It serves no purpose (but does no harm) to explicitly list `object` as
+It serves no purpose (but does no harm) to explicitly list the trait `object` as
 an extendee in a class or trait declaration.
 
 Trait `object` contains no members.
@@ -1728,6 +1800,8 @@ The dynamic allocation of objects is done using `new C ...`,
  except that it is allowed to be `object`.
  The construction `new object` allocates a new object (of an unspecified class type).
  The construction can be used to create unique references, where no other properties of those references are needed.
+(`new object?` makes no sense; always use `new object` instead because the result of
+`new` is always non-null.)
 
 ## 13.2. Inheritance {#sec-inheritance}
 
@@ -2049,9 +2123,10 @@ IteratorDecl = "iterator" { Attribute } IteratorName
   ( [ GenericParameters ]
     Formals(allowGhostKeyword: true)
     [ "yields" Formals(allowGhostKeyword: true) ]
-  | "..."
+  | ellipsis
   )
-  IteratorSpec [ BlockStmt ]
+  IteratorSpec
+  [ BlockStmt ]
 ````
 
 See [Section 5.5](#sec-iterator-specification) for a description of ``IteratorSpec``.
@@ -2224,7 +2299,7 @@ method UseIterToCopy<T>(s: set<T>) returns (t: set<T>)
 }
 ```
 
-TODO: The sectino above can use some rewriting, a summary of the
+TODO: The section above can use some rewriting, a summary of the
 defined members of an iterator, and more examples. Probably also a redesign.
 
 <!--
@@ -2267,7 +2342,7 @@ design of asynchronous methods evolves.
 # 16. Function types
 
 ````grammar
-Type = DomainType "->" Type
+FunctionType_ = DomainType_ "->" Type
 ````
 
 Functions are first-class values in Dafny.  Function types have the form
@@ -2368,7 +2443,7 @@ of the datatype's constructors and each constructor is injective in
 its parameters.
 
 ````grammar
-DatatypeDecl = ( InductiveDatatypeDecl | CoinductiveDatatypeDecl )
+DatatypeDecl = ( InductiveDatatypeDecl_ | CoinductiveDatatypeDecl_ )
 ````
 
 ## 17.1. Inductive datatypes
@@ -2376,9 +2451,10 @@ DatatypeDecl = ( InductiveDatatypeDecl | CoinductiveDatatypeDecl )
 ````grammar
 InductiveDatatypeDecl_ =
   "datatype" { Attribute } DatatypeName [ GenericParameters ]
-  "=" [ "|" ] DatatypeMemberDecl
+  "=" [ ellipsis ]
+      [ "|" ] DatatypeMemberDecl
       { "|" DatatypeMemberDecl }
-      [ ";" ]
+      [ TypeMembers ]
 
 DatatypeMemberDecl =
   { Attribute } DatatypeMemberName [ FormalsOptionalIds ]
@@ -2505,12 +2581,13 @@ _unit type_ and its single value, also written `()`, is known as _unit_.
 ````grammar
 CoinductiveDatatypeDecl_ =
   "codatatype" { Attribute } DatatypeName
-  [ GenericParameters ] "="
+  [ GenericParameters ] "=" [ ellipsis ]
   DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ]
+  [ TypeMembers ]
 ````
 
 TODO: This section and particularly the subsections need rewriting using
-the leasst and greatest terminology, and to make the text fit better into
+the least and greatest terminology, and to make the text fit better into
 the overall reference manual.
 
 Whereas Dafny insists that there is a way to construct every inductive
@@ -2983,10 +3060,13 @@ infinite proof on demand.
 # 18. Newtypes {#sec-newtypes}
 ````grammar
 NewtypeDecl = "newtype" { Attribute } NewtypeName "="
-  ( NumericTypeName [ ":" Type ]
-   "|" Expression(allowLemma: false, allowLambda: true)
+  [ ellipsis ]
+  ( LocalIdentTypeOptional
+    "|"
+    Expression(allowLemma: false, allowLambda: true)
   | Type
   )
+  [ TypeMembers ]
 ````
 
 A new type can be declared with the _newtype_
@@ -3125,10 +3205,12 @@ the type.
 TO BE WRITTEN: add `-->` (subset of `~>`), `->` (subset of `-->`), non-null types subset of nullable types
 
 ````grammar
-SubsetTypeDecl =
+SubsetTypeDecl_ =
   "type" { Attribute } NewtypeName OptGenericParameters
-  "=" Ident [ ":" Type ]
-  "|" Expression(allowLemma: false, allowLambda: true)
+  "="
+  LocalIdentTypeOptional
+  "|"
+  Expression(allowLemma: false, allowLambda: true)
   [ "witness" Expression(allowLemma: false, allowLambda: true) ]
 ````
 

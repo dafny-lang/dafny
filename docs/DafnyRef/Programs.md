@@ -76,7 +76,7 @@ TopDecl = {
   | ClassDecl
   | DatatypeDecl
   | NewtypeDecl
-  | SynonymTypeDecl
+  | SynonymTypeDecl  // includes opaque types
   | IteratorDecl
   | TraitDecl
   | ClassMemberDecl(moduleLevelDecl: true)
