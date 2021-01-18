@@ -2391,10 +2391,12 @@ ReturnStmt<out Statement/*!*/ s>
 = "return"
        (.
          IToken returnTok = t;
-         List<AssignmentRhs> rhss = new List<AssignmentRhs>();
+         List<AssignmentRhs> rhss = null;
          AssignmentRhs r;
        .)
-  [ Rhs<out r>                       (. rhss.Add(r); .)
+  [ Rhs<out r>                       (. rhss = new List<AssignmentRhs>();
+                                        rhss.Add(r);
+                                     .)
     { "," Rhs<out r>                 (. rhss.Add(r); .)
     }
   ]
@@ -2407,10 +2409,12 @@ YieldStmt<out Statement/*!*/ s>
 = "yield"
        (.
          IToken yieldTok = t;
-         List<AssignmentRhs> rhss = new List<AssignmentRhs>();
+         List<AssignmentRhs> rhss = null;
          AssignmentRhs r;
        .)
-  [ Rhs<out r>                       (. rhss.Add(r); .)
+  [ Rhs<out r>                       (. rhss = new List<AssignmentRhs>();
+                                        rhss.Add(r);
+                                     .)
     { "," Rhs<out r>                 (. rhss.Add(r); .)
     }
   ]
