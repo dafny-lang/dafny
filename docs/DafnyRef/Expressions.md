@@ -1024,11 +1024,11 @@ function GhostF(z: Stuff): int
 
 The syntax using `:-` is discussed in the following subsection.
 
-## Let or Fail Expression
+## 22.40. Let or Fail Expression
 
 The Let expression described in [Section 0](#sec-let-expression) has a failure variant
 that simply uses `:-` instead of `:=`. This Let-or-Fail expression also permits propagating
-failure results. However, in statements [Section 0](#sec-update-failure) failure results in
+failure results. However, in statements [Section 20.7](#sec-update-failure) failure results in
 immediate return from the method; expressions do not have side effects or immediate return
 mechanisms.
 
@@ -1054,11 +1054,11 @@ is evaluated as normal.
 Note that the value of the let-or-fail expression is either `tmp.PropagateFailure()` or `E`, the two sides of the
 if-then-else expression. Consequently these two expressions must have types that can be joined into one type for
 the whole let-or-fail expression. Typically that means that `tmp.PropagateFailure()` is a failure value and
-`E` is a value-carrying success value, both of the same failure-compatible type, as described in [Section 0](#sec-update-failure).
+`E` is a value-carrying success value, both of the same failure-compatible type, as described in [Section 20.7](#sec-update-failure).
 
 TODO: Should the assert/assume/expect variants be permitted?
 
-## 22.40. Map Comprehension Expression {#sec-map-comprehension-expression}
+## 22.41. Map Comprehension Expression {#sec-map-comprehension-expression}
 ````grammar
 MapComprehensionExpr(allowLemma, allowLambda) =
   ( "map" | "imap" ) IdentTypeOptional { Attribute }
@@ -1099,7 +1099,7 @@ method test()
 
 <!-- Experimental - do not document.
 
-## 22.41. Named Expression
+## 22.42. Named Expression
 ````grammar
 NamedExpr(allowLemma, allowLambda) =
     "label" LabelName ":" Expression(allowLemma, allowLambda)
@@ -1116,7 +1116,7 @@ TODO: When is this useful. Is there any way to refer to the label?
 Should we remove the description?
 -->
 
-## 22.42. Name Segment
+## 22.43. Name Segment
 ````grammar
 NameSegment = Ident [ GenericInstantiation | HashCall ]
 ````
@@ -1135,7 +1135,7 @@ prefix lemma (see [Section 0](#sec-prefix-lemmas)), the identifier
 must be the name of the copredicate or colemma and it must be
 followed by a ``HashCall``.
 
-## 22.43. Hash Call
+## 22.44. Hash Call
 ````grammar
 HashCall = "#" [ GenericInstantiation ]
   "[" Expression(allowLemma: true, allowLambda: true) "]"
@@ -1193,7 +1193,7 @@ colemma {:induction false} Theorem0<T>(s: T)
 where the ``HashCall`` is `"Theorem0#<T>[_k-1](s);"`.
 See sections [#sec-copredicates] and [#sec-prefix-lemmas].
 
-## 22.44. Suffix
+## 22.45. Suffix
 ````grammar
 Suffix =
   ( AugmentedDotSuffix_
@@ -1210,7 +1210,7 @@ The ``Suffix`` non-terminal describes ways of deriving a new value from
 the entity to which the suffix is appended. There are six kinds
 of suffixes which are described below.
 
-### 22.44.1. Augmented Dot Suffix
+### 22.45.1. Augmented Dot Suffix
 ````grammar
 AugmentedDotSuffix_ = "." DotSuffix
                       [ GenericInstantiation | HashCall ]
@@ -1225,7 +1225,7 @@ selected by the ``DotSuffix`` is generic), or
   or colemma. The result is the result of calling the prefix copredicate
   or colemma.
 
-### 22.44.2. Datatype Update Suffix
+### 22.45.2. Datatype Update Suffix
 
 ````grammar
 DatatypeUpdateSuffix_ =
@@ -1281,7 +1281,7 @@ method test(datum:MyDataType, x:int)
 
 
 
-### 22.44.3. Subsequence Suffix
+### 22.45.3. Subsequence Suffix
 ````grammar
 SubsequenceSuffix_ =
   "[" [ Expression(allowLemma: true, allowLambda: true) ]
@@ -1294,7 +1294,7 @@ example, expression `s[lo..hi]` for sequence `s`, and integer-based
 numerics `lo` and `hi` satisfying `0 <= lo <= hi <= |s|`. See
 section [#sec-other-sequence-expressions] for details.
 
-### 22.44.4. Slices By Length Suffix
+### 22.45.4. Slices By Length Suffix
 ````grammar
 SlicesByLengthSuffix_ =
   "[" Expression(allowLemma: true, allowLambda: true) ":"
@@ -1310,7 +1310,7 @@ Applying a ``SlicesByLengthSuffix_`` to a sequence produces a
 sequence of subsequences of the original sequence.
 See section [#sec-other-sequence-expressions] for details.
 
-### 22.44.5. Sequence Update Suffix
+### 22.45.5. Sequence Update Suffix
 ````grammar
 SequenceUpdateSuffix_ =
   "[" Expression(allowLemma: true, allowLambda: true)
@@ -1328,7 +1328,7 @@ The index `i` can have any integer- or bit-vector-based type
 conversion, as if an `as int` were appended to the index expression).
 The expression `s[i := v]` has the same type as `s`.
 
-### 22.44.6. Selection Suffix
+### 22.45.6. Selection Suffix
 ````grammar
 SelectionSuffix_ =
   "[" Expression(allowLemma: true, allowLambda: true)
@@ -1350,7 +1350,7 @@ type
 (this is one situation in which Dafny implements implicit
 conversion, as if an `as int` were appended to the index expression).
 
-### 22.44.7. Argument List Suffix
+### 22.45.7. Argument List Suffix
 ````grammar
 ArgumentListSuffix_ = "(" [ Expressions ] ")"
 ````
@@ -1360,7 +1360,7 @@ are the arguments to pass to a method or function that is being
 called. Applying such a suffix causes the method or function
 to be called and the result is the result of the call.
 
-## 22.45. Expression Lists
+## 22.46. Expression Lists
 ````grammar
 Expressions =
     Expression(allowLemma: true, allowLambda: true)
@@ -1370,7 +1370,7 @@ Expressions =
 The ``Expressions`` non-terminal represents a list of
 one or more expressions separated by commas.
 
-## 22.46. Compile-Time Constants {#sec-compile-time-constants}
+## 22.47. Compile-Time Constants {#sec-compile-time-constants}
 
 In certain situations in Dafny it is helpful to know what the value of a
 constant is during program analysis, before verification or execution takes
