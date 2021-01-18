@@ -1113,13 +1113,13 @@ namespace Microsoft.Dafny {
         return t as ArrowType;
       }
     }
+    
     public bool IsMapType {
       get {
         var t = NormalizeExpand() as MapType;
         return t != null && t.Finite;
       }
     }
-
     public bool IsIMapType {
       get {
         var t = NormalizeExpand() as MapType;
@@ -10235,6 +10235,7 @@ namespace Microsoft.Dafny {
       InMap,
       NotInMap,
       MapUnion,
+      MapSubtraction,
       // datatypes
       RankLt,
       RankGt

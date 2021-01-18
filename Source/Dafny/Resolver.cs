@@ -4799,10 +4799,10 @@ namespace Microsoft.Dafny
               break;
             }
           case "Plussable":
-            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType || t.IsCharType || t is SeqType || t is SetType || t is MultiSetType;
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType || t.IsCharType || t is SeqType || t is SetType || t is MultiSetType || t is MapType;
             break;
           case "Minusable":
-            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType || t.IsCharType || t is SetType || t is MultiSetType;
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsBigOrdinalType || t.IsCharType || t is SetType || t is MultiSetType || t is MapType;
             break;
           case "Mullable":
             satisfied = t.IsNumericBased() || t.IsBitVectorType || t is SetType || t is MultiSetType;
@@ -6580,7 +6580,7 @@ namespace Microsoft.Dafny
         } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
           if (expr is BinaryExpr) {
             var e = (BinaryExpr)expr;
-            e.ResolvedOp = ResolveOp(e.Op, e.E1.Type);
+            e.ResolvedOp = ResolveOp(e.Op, e.E0.Type, e.E1.Type);
             // Check for useless comparisons with "null"
             Expression other = null;  // if "null" if one of the operands, then "other" is the other
             if (e.E0 is LiteralExpr && ((LiteralExpr)e.E0).Value == null) {
@@ -8546,6 +8546,7 @@ namespace Microsoft.Dafny
           case BinaryExpr.ResolvedOpcode.Concat:
           // maps: +
           case BinaryExpr.ResolvedOpcode.MapUnion:
+          case BinaryExpr.ResolvedOpcode.MapSubtraction:
             return true;
           default:
             return false;
@@ -14459,7 +14460,7 @@ namespace Microsoft.Dafny
 
           case BinaryExpr.Opcode.Add: {
               expr.Type = new InferredTypeProxy();
-              AddXConstraint(e.tok, "Plussable", expr.Type, "type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got {0})");
+              AddXConstraint(e.tok, "Plussable", expr.Type, "type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got {0})");
               ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr.tok, "type of left argument to + ({0}) must agree with the result type ({1})", e.E0.Type, expr.Type);
               ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr.tok, "type of right argument to + ({0}) must agree with the result type ({1})", e.E1.Type, expr.Type);
             }
@@ -14467,9 +14468,23 @@ namespace Microsoft.Dafny
 
           case BinaryExpr.Opcode.Sub: {
               expr.Type = new InferredTypeProxy();
-              AddXConstraint(e.tok, "Minusable", expr.Type, "type of - must be of a numeric type, bitvector type, ORDINAL, char, or a set-like type (instead got {0})");
+              AddXConstraint(e.tok, "Minusable", expr.Type, "type of - must be of a numeric type, bitvector type, ORDINAL, char, or a set-like or map-like type (instead got {0})");
               ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr.tok, "type of left argument to - ({0}) must agree with the result type ({1})", e.E0.Type, expr.Type);
-              ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr.tok, "type of right argument to - ({0}) must agree with the result type ({1})", e.E1.Type, expr.Type);
+              // The following handles map subtraction, but does not in an unfortunately restrictive way.
+              // First, it would be nice to delay the decision of it this is a map subtraction or not. This settles
+              // for the simple way to decide based on what is currently known about the result type, which is also
+              // done, for example, when deciding if "<" denotes rank ordering on datatypes.
+              // Second, for map subtraction, it would be nice to allow the right-hand operand to be either a set or
+              // an iset. That would also lead to further complexity in the code, so this code restricts the right-hand
+              // operand to be a set.
+              var eType = PartiallyResolveTypeForMemberSelection(expr.tok, expr.Type).AsMapType; 
+              if (eType != null) {
+                // allow "map - set == map"
+                var expected = new SetType(true, eType.Domain);
+                ConstrainSubtypeRelation(expected, e.E1.Type, expr.tok, "map subtraction expects right-hand operand to have type {0} (instead got {1})", expected, e.E1.Type);
+              } else {
+                ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr.tok, "type of right argument to - ({0}) must agree with the result type ({1})", e.E1.Type, expr.Type);
+              }
             }
             break;
 
@@ -17215,8 +17230,10 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Note: this method is allowed to be called even if "type" does not make sense for "op", as might be the case if
     /// resolution of the binary expression failed.  If so, an arbitrary resolved opcode is returned.
+    /// Usually, the type of the right-hand operand is used to determine the resolved operator (hence, the shorter
+    /// name "operandType" instead of, say, "rightOperandType").
     /// </summary>
-    public static BinaryExpr.ResolvedOpcode ResolveOp(BinaryExpr.Opcode op, Type operandType) {
+    public static BinaryExpr.ResolvedOpcode ResolveOp(BinaryExpr.Opcode op, Type leftOperandType, Type operandType) {
       Contract.Requires(operandType != null);
       operandType = operandType.NormalizeExpand();
       switch (op) {
@@ -17294,11 +17311,15 @@ namespace Microsoft.Dafny
             return BinaryExpr.ResolvedOpcode.MapUnion;
           } else if (operandType is SeqType) {
             return BinaryExpr.ResolvedOpcode.Concat;
+          } else if (operandType is MapType) {
+            return BinaryExpr.ResolvedOpcode.MapUnion;
           } else {
             return BinaryExpr.ResolvedOpcode.Add;
           }
         case BinaryExpr.Opcode.Sub:
-          if (operandType is SetType) {
+          if (leftOperandType is MapType) {
+            return BinaryExpr.ResolvedOpcode.MapSubtraction;
+          } else if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.SetDifference;
           } else if (operandType is MultiSetType) {
             return BinaryExpr.ResolvedOpcode.MultiSetDifference;
