@@ -3764,7 +3764,7 @@ SeqDisplayExpr<out Expression e>
     ")"                            (. e = new SeqConstructionExpr(x, explicitTypeArg, n, f); .)
   |
     "["                                      (. List<Expression> elements = new List<Expression/*!*/>();
-                                                x = t;!daf
+                                                x = t;
 
                                              .)
     [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements);
