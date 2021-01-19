@@ -741,6 +741,8 @@ namespace Microsoft.Dafny {
       Type.PushScope(this.currentScope);
 
       foreach (var w in program.BuiltIns.Bitwidths) {
+        // type axioms
+        AddBitvectorTypeAxioms(w);
         // bitwise operations
         AddBitvectorFunction(w, "and_bv", "bvand");
         AddBitvectorFunction(w, "or_bv", "bvor");
@@ -928,6 +930,38 @@ namespace Microsoft.Dafny {
       } else {
         return new Bpl.LiteralExpr(tok, n, width);
       }
+    }
+
+    private void AddBitvectorTypeAxioms(int w) {
+      Contract.Requires(0 <= w);
+      
+      if (w == 0) {
+        // the axioms for bv0 are already in DafnyPrelude.bpl
+        return;
+      }
+
+      // box/unbox axiom
+      var tok = Token.NoToken;
+      var printableName = "bv" + w;
+      var dafnyType = new BitvectorType(w);
+      var boogieType = BplBvType(w);
+      var typeTerm = TypeToTy(dafnyType);
+      AddBoxUnboxAxiom(tok, printableName, typeTerm, boogieType, new List<Variable>());
+      
+      // axiom (forall v: bv3 :: { $Is(v, TBitvector(3)) } $Is(v, TBitvector(3)));
+      var vVar = BplBoundVar("v", boogieType, out var v);
+      var bvs = new List<Variable>() { vVar };
+      var isBv = MkIs(v, typeTerm);
+      var tr = BplTrigger(isBv);
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isBv)));
+      
+      // axiom (forall v: bv3, heap: Heap :: { $IsAlloc(v, TBitvector(3), h) } $IsAlloc(v, TBitvector(3), heap));
+      vVar = BplBoundVar("v", boogieType, out v);
+      var heapVar = BplBoundVar("heap", predef.HeapType, out var heap);
+      bvs = new List<Variable>() { vVar, heapVar };
+      var isAllocBv = MkIsAlloc(v, typeTerm, heap);
+      tr = BplTrigger(isAllocBv);
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isAllocBv)));
     }
 
     /// <summary>
@@ -9195,21 +9229,39 @@ namespace Microsoft.Dafny {
       */
       if (!ModeledAsBoxType(UserDefinedType.FromTopLevelDecl(td.tok, td))) {
         Helper((argExprs, args, _inner) => {
-          Bpl.Expr bx; var bxVar = BplBoundVar("bx", predef.BoxType, out bx);
-          var ty = FunctionCall(tok, name, predef.Ty, argExprs);
-          var unbox = FunctionCall(tok, BuiltinFunction.Unbox, ty_repr, bx);
-          var box_is = MkIs(bx, ty, true);
-          var unbox_is = MkIs(unbox, ty, false);
-          var box_unbox = FunctionCall(tok, BuiltinFunction.Box, null, unbox);
-          sink.AddTopLevelDeclaration(
-            new Axiom(tok,
-              BplForall(Snoc(args, bxVar), BplTrigger(box_is),
-                BplImp(box_is, BplAnd(Bpl.Expr.Eq(box_unbox, bx), unbox_is))),
-              "Box/unbox axiom for " + name));
+          var typeTerm = FunctionCall(tok, name, predef.Ty, argExprs);
+          AddBoxUnboxAxiom(tok, name, typeTerm, ty_repr, args);
         });
       }
 
       return name;
+    }
+
+    /// <summary>
+    /// Generate:
+    ///     axiom (forall args: Ty, bx: Box ::
+    ///       { $IsBox(bx, name(argExprs)) }
+    ///       $IsBox(bx, name(argExprs)) ==>
+    ///         $Box($Unbox(bx): tyRepr) == bx &&
+    ///         $Is($Unbox(bx): tyRepr, name(argExprs)));
+    /// </summary>
+    private void AddBoxUnboxAxiom(IToken tok, string printableName, Bpl.Expr typeTerm, Bpl.Type tyRepr, List<Variable> args) {
+      Contract.Requires(tok != null);
+      Contract.Requires(printableName != null);
+      Contract.Requires(typeTerm != null);
+      Contract.Requires(tyRepr != null);
+      Contract.Requires(args != null);
+      
+      var bxVar = BplBoundVar("bx", predef.BoxType, out var bx);
+      var unbox = FunctionCall(tok, BuiltinFunction.Unbox, tyRepr, bx);
+      var box_is = MkIs(bx, typeTerm, true);
+      var unbox_is = MkIs(unbox, typeTerm, false);
+      var box_unbox = FunctionCall(tok, BuiltinFunction.Box, null, unbox);
+      sink.AddTopLevelDeclaration(
+        new Axiom(tok,
+          BplForall(Snoc(args, bxVar), BplTrigger(box_is),
+            BplImp(box_is, BplAnd(Bpl.Expr.Eq(box_unbox, bx), unbox_is))),
+          "Box/unbox axiom for " + printableName));
     }
 
     Bpl.Constant GetClass(TopLevelDecl cl)

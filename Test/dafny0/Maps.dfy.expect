@@ -177,4 +177,4 @@ Execution trace:
     Maps.dfy(576,3): anon7_Else
     Maps.dfy(576,3): anon8_Else
 
-Dafny program verifier finished with 50 verified, 32 errors
+Dafny program verifier finished with 49 verified, 32 errors
