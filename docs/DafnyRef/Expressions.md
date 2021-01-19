@@ -468,7 +468,7 @@ allocated, or in which havoc may be produced.
 
 ## 21.16. Array Allocation
 ````grammar
-ArrayAllocation_ = "new" [ Type ] "[" Expressions "]"
+ArrayAllocation_ = "new" [ Type ] "[" [ Expressions ] "]"
                    [ "(" Expression(allowLemma: true, allowLambda: true) ")"
                    | "[" [ Expressions ] "]"
                    ]

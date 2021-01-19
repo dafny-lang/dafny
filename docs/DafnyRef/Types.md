@@ -319,7 +319,7 @@ function `as real` from `int` to `real`, as described in
 
 TODO: Need syntax for real literals with exponents
 
-TODO: Need double and flot machine-precision types, with literals and operations (including NaN, infinities and signed zero).
+TODO: Need double and float machine-precision types, with literals and operations (including NaN, infinities and signed zero).
 
 ## 7.3. Bit-vector types
 ````grammar
