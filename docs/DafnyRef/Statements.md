@@ -36,7 +36,7 @@ expression. That is, again, the label must dominate the use of the label.
 
 ## 20.2. Break Statement
 ````grammar
-BreakStmt_ = "break" ( LabelName | { "break" } ) ";"
+BreakStmt = "break" ( LabelName | { "break" } ) ";"
 ````
 A break statement provides a means to transfer control
 in a way different than the usual nested control structures.
@@ -585,8 +585,8 @@ using either `:-` statements or using `:=` statements with a LHS to receive the 
 
 ## 20.8. Variable Declaration Statement {#sec-var-decl-statement}
 ````grammar
-VarDeclStatement
-= [ "ghost" ] "var" { Attribute }
+VarDeclStatement =
+  [ "ghost" ] "var" { Attribute }
   (
     LocalIdentTypeOptional
     { "," { Attribute } LocalIdentTypeOptional }
@@ -724,8 +724,8 @@ IfStmt = "if"
     BlockStmt [ "else" ( IfStmt | BlockStmt ) ]
   )
 
-AlternativeBlock(allowBindingGuards)
-= ( { AlternativeBlockCase(allowBindingGuards) }
+AlternativeBlock(allowBindingGuards) =
+  ( { AlternativeBlockCase(allowBindingGuards) }
   | "{" { AlternativeBlockCase(allowBindingGuards) } "}"
   )
 
@@ -779,7 +779,7 @@ TODO: Describe the ... refinement
 ## 20.12. While Statement
 ````grammar
 WhileStmt = "while"
-  ( LoopSpecWhile
+  ( LoopSpec
     AlternativeBlock(allowBindingGuards: false)
   | ( Guard | ellipsis ) LoopSpec
       ( BlockStmt

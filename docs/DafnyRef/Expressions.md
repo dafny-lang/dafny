@@ -282,8 +282,8 @@ Bit-vector operations are not allowed in some contexts.   TODO
 
 ## 21.10. As (Conversion) and Is (type test) Expressions {#sec-as-expression}
 ````grammar
-AsExpression_ =
-  UnaryExpression(allowLemma: true, allowLambda: true)
+AsExpression(allowLemma, allowLambda) =
+  UnaryExpression(allowLemma, allowLambda)
   { ( "as" | "is" ) Type }
 ````
 The `as` expression converts the given `UnaryExpression` to the stated
@@ -345,7 +345,6 @@ PrimaryExpression_(allowLemma, allowLambda) =
   | MapDisplayExpr { Suffix }
   | SeqDisplayExpr { Suffix }
   | SetDisplayExpr { Suffix }
-  | MultiSetExpr { Suffix }
   | EndlessExpression(allowLemma, allowLambda)
   | ConstAtomExpression(allowLemma, allowLambda) { Suffix }
   )
@@ -528,7 +527,7 @@ an instance method or function.
 ````grammar
 FreshExpression_ =
   "fresh" "(" Expression(allowLemma: true, allowLambda: true) ")"
-```
+````
 
 `fresh(e)` returns a boolean value that is true if
 the objects referenced in expression `e` were all
@@ -540,7 +539,7 @@ or a collection of object references.
 ````grammar
 AllocatedExpression_ =
   "allocated" "(" Expression(allowLemma: true, allowLambda: true) ")"
-```
+````
 
 TO BE WRITTEN -- allocated predicate
 
@@ -721,7 +720,7 @@ EndlessExpression(allowLemma, allowLambda) =
   | QuantifierExpression(allowLemma, allowLambda)
   | SetComprehensionExpr(allowLemma, allowLambda)
   | StmtInExpr Expression(allowLemma, allowLambda)
-  | LetExpr(allowLemma, allowLambda)
+  | LetExpression(allowLemma, allowLambda)
   | MapComprehensionExpr(allowLemma, allowLambda)
   )
 ````
@@ -774,7 +773,7 @@ CasePattern =
   )
 
 ExtendedPattern =
-  ( LiteralExpression_
+  ( LiteralExpression
   | Ident [ ":" Type ]
   | [ Ident ] "(" [ ExtendedPattern { "," ExtendedPattern } ] ")"
   )

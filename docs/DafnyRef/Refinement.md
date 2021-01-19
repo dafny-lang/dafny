@@ -61,9 +61,9 @@ Typically this is the presence of a `...` token.
 ## 22.1. Export set declarations
 
 A refining export set declaration begins with the syntax
-```grammar
+````grammar
 "export" Ident "..."
-```
+````
 but otherwise contains the same `provides`, `reveals` and `extends` sections,
 with the ellipsis indicating that it is a refining declaration.
 

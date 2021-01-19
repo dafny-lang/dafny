@@ -56,10 +56,10 @@ Dafny supports both reference types that contain the special `null` value
 
 ## 6.3. Named Types
 ````grammar
-NamedType_ = NameSegmentForTypeName { "." NameSegmentForTypeName }
+NamedType = NameSegmentForTypeName { "." NameSegmentForTypeName }
 ````
 
-A ``NamedType_`` is used to specify a user-defined type by name
+A ``NamedType`` is used to specify a user-defined type by name
 (possibly module-qualified). Named types are introduced by
 class, trait, inductive, co-inductive, synonym and opaque
 type declarations. They are also used to refer to type variables.
@@ -1094,11 +1094,14 @@ SynonymTypeDecl =
    | TypeMembers
    ]
 
-TypeMembers
-= "{"
+TypeMembers =
+  "{"
   {
     { DeclModifier }
-    ClassMemberDecl<false, true, false, module.IsAbstract>  // TODO - check this
+    ClassMemberDecl(allowConstructors: false,
+                    isValueType: true,
+                    moduleLevelDecl: false,
+                    isWithinAbstractModule: module.IsAbstract)
   }
   "}"
 
@@ -1175,12 +1178,15 @@ may be given members such as constants, methods or functions.
 ````grammar
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
   ["extends" Type {"," Type} | ellipsis ]
-  "{" { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) }
+  "{" { { DeclModifier } ClassMemberDecl(allowConstructors: true,
+                                         isValueType: false,
+                                         moduleLevelDecl: false,
+                                         isWithinAbstractModule: false) }
   "}"
 
 ClassMemberDecl(allowConstructors, isValueType,
                 moduleLevelDecl, isWithinAbstractModule) =
-  ( FieldDecl(isValueType)   // not permitted if moduleLevelDecl == true
+  ( FieldDecl(isValueType)   // not permitted if moduleLevelDecl is true
   | ConstantFieldDecl(moduleLevelDecl)
   | FunctionDecl(isWithinAbstractModule)
   | MethodDecl(isGhost: ("ghost" was present),
@@ -1266,8 +1272,8 @@ See [Section 12.3](#sec-method-declarations).
 
 ## 12.1. Field Declarations
 ````grammar
-FieldDecl(isValueType)
- = "var" { Attribute } FIdentType { "," FIdentType }
+FieldDecl(isValueType) =
+  "var" { Attribute } FIdentType { "," FIdentType }
 ````
 A `FieldDecl` is not permitted in a value type (i.e., if `isValueType` is true).
 
@@ -1301,13 +1307,13 @@ not in code that will be compiled into executable code.
 Fields may not be declared static.
 
 ## 12.2. Constant Field Declarations
-```grammar
-ConstantFieldDecl(moduleLeavelDecl)
- = "const" { Attribute } CIdentType [ ellipsis ]
+````grammar
+ConstantFieldDecl(moduleLeavelDecl) =
+  "const" { Attribute } CIdentType [ ellipsis ]
    [ ":=" Expression(allowLemma: false, allowLambda:true) ]
 
 CIdentType = NoUSIdentOrDigits [ ":" Type ]
-```
+````
 
 A `const` declaration declares a name bound to a value,
 which value is fixed after initialization.
@@ -1737,7 +1743,10 @@ TraitDecl =
   "trait" { Attribute } ClassName [ GenericParameters ]
   [ "extends" Type { "," Type } | "..." ]
   "{"
-   { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) }
+   { { DeclModifier } ClassMemberDecl(allowConstructors: true,
+                                      isValueType: false,
+                                      moduleLevelDecl: false,
+                                      isWithinAbstractModule: false) }
   "}"
 ````
 
@@ -2550,7 +2559,7 @@ node.(left := L, right := R)
 
 ## 17.2. Tuple types {#sec-tuple-types}
 ````grammar
-TupleType_ = "(" [ Type { "," Type } ] ")"
+TupleType = "(" [ Type { "," Type } ] ")"
 ````
 
 Dafny builds in record types that correspond to tuples and gives these
@@ -3206,7 +3215,7 @@ TO BE WRITTEN: add `-->` (subset of `~>`), `->` (subset of `-->`), non-null type
 
 ````grammar
 SubsetTypeDecl_ =
-  "type" { Attribute } NewtypeName OptGenericParameters
+  "type" { Attribute } NewtypeName [ GenericParameters ]
   "="
   LocalIdentTypeOptional
   "|"

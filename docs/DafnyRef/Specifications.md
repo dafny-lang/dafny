@@ -28,7 +28,7 @@ that use them.
 ````grammar
 RequiresClause(allowLabel) =
   "requires" { Attribute }
-  [ LabelIdent ":" ]  // Label allowed only if allowLabel is true
+  [ LabelName ":" ]  // Label allowed only if allowLabel is true
   Expression(allowLemma: false, allowLambda: false)
 ````
 
@@ -387,7 +387,7 @@ TO BE WRITTEN: multiset of objects allowed in reads clauses
 ### 5.1.6. Modifies Clause
 
 ````grammar
-ModifiesClause<.bool allowLambda.> =
+ModifiesClause(allowLambda) =
   "modifies" { Attribute }
   FrameExpression(allowLemma: false, allowLambda)
   { "," FrameExpression(allowLemma: false, allowLambda) }
