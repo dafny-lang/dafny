@@ -264,6 +264,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Function IMapItems;
       public readonly Bpl.Function Tuple2Destructors0;
       public readonly Bpl.Function Tuple2Destructors1;
+      public readonly Bpl.Function Tuple2Constructor;
       private readonly Bpl.TypeCtorDecl seqTypeCtor;
       public readonly Bpl.Type Bv0Type;
       readonly Bpl.TypeCtorDecl fieldName;
@@ -302,6 +303,7 @@ namespace Microsoft.Dafny {
         Contract.Invariant(IMapItems != null);
         Contract.Invariant(Tuple2Destructors0 != null);
         Contract.Invariant(Tuple2Destructors1 != null);
+        Contract.Invariant(Tuple2Constructor != null);
         Contract.Invariant(seqTypeCtor != null);
         Contract.Invariant(fieldName != null);
         Contract.Invariant(HeapVarName != null);
@@ -370,7 +372,7 @@ namespace Microsoft.Dafny {
                              Bpl.Function ORD_isLimit, Bpl.Function ORD_isSucc, Bpl.Function ORD_offset, Bpl.Function ORD_isNat,
                              Bpl.Function mapDomain, Bpl.Function imapDomain,
                              Bpl.Function mapValues, Bpl.Function imapValues, Bpl.Function mapItems, Bpl.Function imapItems,
-                             Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1,
+                             Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1, Bpl.Function tuple2Constructor,
                              Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
                              Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType, Bpl.TypeCtorDecl tyTagFamilyType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
@@ -400,6 +402,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(imapItems != null);
         Contract.Requires(tuple2Destructors0 != null);
         Contract.Requires(tuple2Destructors1 != null);
+        Contract.Requires(tuple2Constructor != null);
         Contract.Requires(seqTypeCtor != null);
         Contract.Requires(bv0TypeDecl != null);
         Contract.Requires(fieldNameType != null);
@@ -438,6 +441,7 @@ namespace Microsoft.Dafny {
         this.IMapItems = imapItems;
         this.Tuple2Destructors0 = tuple2Destructors0;
         this.Tuple2Destructors1 = tuple2Destructors1;
+        this.Tuple2Constructor = tuple2Constructor;
         this.seqTypeCtor = seqTypeCtor;
         this.Bv0Type = new Bpl.TypeSynonymAnnotation(Token.NoToken, bv0TypeDecl, new List<Bpl.Type>());
         this.fieldName = fieldNameType;
@@ -483,6 +487,7 @@ namespace Microsoft.Dafny {
       Bpl.Function imapItems = null;
       Bpl.Function tuple2Destructors0 = null;
       Bpl.Function tuple2Destructors1 = null;
+      Bpl.Function tuple2Constructor = null;
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
@@ -590,6 +595,8 @@ namespace Microsoft.Dafny {
             tuple2Destructors0 = f;
           } else if (f.Name == "_System.Tuple2._1") {
             tuple2Destructors1 = f;
+          } else if (f.Name == "#_System._tuple#2._#Make2") {
+            tuple2Constructor = f;
           }
         }
       }
@@ -633,6 +640,8 @@ namespace Microsoft.Dafny {
         Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._0");
       } else if (tuple2Destructors1 == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._1");
+      } else if (tuple2Constructor == null) {
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function #_System._tuple#2._#Make2");
       } else if (bv0TypeDecl == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Bv0");
       } else if (fieldNameType == null) {
@@ -675,7 +684,7 @@ namespace Microsoft.Dafny {
                                    ORDINAL_isLimit, ORDINAL_isSucc, ORDINAL_offset, ORDINAL_isNat,
                                    mapDomain, imapDomain,
                                    mapValues, imapValues, mapItems, imapItems,
-                                   tuple2Destructors0, tuple2Destructors1,
+                                   tuple2Destructors0, tuple2Destructors1, tuple2Constructor,
                                    seqTypeCtor, bv0TypeDecl,
                                    fieldNameType, tyType, tyTagType, tyTagFamilyType,
                                    heap, classNameType, nameFamilyType,
@@ -732,6 +741,8 @@ namespace Microsoft.Dafny {
       Type.PushScope(this.currentScope);
 
       foreach (var w in program.BuiltIns.Bitwidths) {
+        // type axioms
+        AddBitvectorTypeAxioms(w);
         // bitwise operations
         AddBitvectorFunction(w, "and_bv", "bvand");
         AddBitvectorFunction(w, "or_bv", "bvor");
@@ -919,6 +930,38 @@ namespace Microsoft.Dafny {
       } else {
         return new Bpl.LiteralExpr(tok, n, width);
       }
+    }
+
+    private void AddBitvectorTypeAxioms(int w) {
+      Contract.Requires(0 <= w);
+      
+      if (w == 0) {
+        // the axioms for bv0 are already in DafnyPrelude.bpl
+        return;
+      }
+
+      // box/unbox axiom
+      var tok = Token.NoToken;
+      var printableName = "bv" + w;
+      var dafnyType = new BitvectorType(w);
+      var boogieType = BplBvType(w);
+      var typeTerm = TypeToTy(dafnyType);
+      AddBoxUnboxAxiom(tok, printableName, typeTerm, boogieType, new List<Variable>());
+      
+      // axiom (forall v: bv3 :: { $Is(v, TBitvector(3)) } $Is(v, TBitvector(3)));
+      var vVar = BplBoundVar("v", boogieType, out var v);
+      var bvs = new List<Variable>() { vVar };
+      var isBv = MkIs(v, typeTerm);
+      var tr = BplTrigger(isBv);
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isBv)));
+      
+      // axiom (forall v: bv3, heap: Heap :: { $IsAlloc(v, TBitvector(3), h) } $IsAlloc(v, TBitvector(3), heap));
+      vVar = BplBoundVar("v", boogieType, out v);
+      var heapVar = BplBoundVar("heap", predef.HeapType, out var heap);
+      bvs = new List<Variable>() { vVar, heapVar };
+      var isAllocBv = MkIsAlloc(v, typeTerm, heap);
+      tr = BplTrigger(isAllocBv);
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isAllocBv)));
     }
 
     /// <summary>
@@ -1338,11 +1381,16 @@ namespace Microsoft.Dafny {
           argTypes.Add(a);
         }
         Bpl.Variable resType = new Bpl.Formal(ctor.tok, new Bpl.TypedIdent(ctor.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), false);
-        Bpl.Function fn = new Bpl.Function(ctor.tok, ctor.FullName, argTypes, resType, "Constructor function declaration");
+        Bpl.Function fn;
+        if (dt is TupleTypeDecl ttd && ttd.Dims == 2) {
+          fn = predef.Tuple2Constructor;
+        } else {
+          fn = new Bpl.Function(ctor.tok, ctor.FullName, argTypes, resType, "Constructor function declaration");
+          sink.AddTopLevelDeclaration(fn);
+        }
         if (InsertChecksums) {
           InsertChecksum(dt, fn);
         }
-        sink.AddTopLevelDeclaration(fn);
 
         List<Bpl.Variable> bvs;
         List<Bpl.Expr> args;
@@ -2022,7 +2070,7 @@ namespace Microsoft.Dafny {
           } else {
             // ordinary equality; let the usual translation machinery figure out the translation
             var equal = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, new BoogieWrapper(a, ty), new BoogieWrapper(b, ty));
-            equal.ResolvedOp = Resolver.ResolveOp(equal.Op, ty);  // resolve here
+            equal.ResolvedOp = Resolver.ResolveOp(equal.Op, ty, ty);  // resolve here
             equal.Type = Type.Bool;  // resolve here
             q = etran.TrExpr(equal);
           }
@@ -9102,7 +9150,11 @@ namespace Microsoft.Dafny {
       var inner_name = GetClass(td).TypedIdent.Name;
       string name = "T" + inner_name;
       // Create the type constructor
-      if (!(td is ClassDecl cl && cl.IsObjectTrait)) {  // the type constructor for "object" is in DafnyPrelude.bpl
+      if (td is ClassDecl cl && cl.IsObjectTrait) {
+        // the type constructor for "object" is in DafnyPrelude.bpl
+      } else if (td is TupleTypeDecl ttd && ttd.Dims == 2) {
+        // the type constructor for "Tuple2" is in DafnyPrelude.bpl
+      } else {
         Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
         List<Bpl.Variable> args = new List<Bpl.Variable>(
           Enumerable.Range(0, arity).Select(i =>
@@ -9177,21 +9229,39 @@ namespace Microsoft.Dafny {
       */
       if (!ModeledAsBoxType(UserDefinedType.FromTopLevelDecl(td.tok, td))) {
         Helper((argExprs, args, _inner) => {
-          Bpl.Expr bx; var bxVar = BplBoundVar("bx", predef.BoxType, out bx);
-          var ty = FunctionCall(tok, name, predef.Ty, argExprs);
-          var unbox = FunctionCall(tok, BuiltinFunction.Unbox, ty_repr, bx);
-          var box_is = MkIs(bx, ty, true);
-          var unbox_is = MkIs(unbox, ty, false);
-          var box_unbox = FunctionCall(tok, BuiltinFunction.Box, null, unbox);
-          sink.AddTopLevelDeclaration(
-            new Axiom(tok,
-              BplForall(Snoc(args, bxVar), BplTrigger(box_is),
-                BplImp(box_is, BplAnd(Bpl.Expr.Eq(box_unbox, bx), unbox_is))),
-              "Box/unbox axiom for " + name));
+          var typeTerm = FunctionCall(tok, name, predef.Ty, argExprs);
+          AddBoxUnboxAxiom(tok, name, typeTerm, ty_repr, args);
         });
       }
 
       return name;
+    }
+
+    /// <summary>
+    /// Generate:
+    ///     axiom (forall args: Ty, bx: Box ::
+    ///       { $IsBox(bx, name(argExprs)) }
+    ///       $IsBox(bx, name(argExprs)) ==>
+    ///         $Box($Unbox(bx): tyRepr) == bx &&
+    ///         $Is($Unbox(bx): tyRepr, name(argExprs)));
+    /// </summary>
+    private void AddBoxUnboxAxiom(IToken tok, string printableName, Bpl.Expr typeTerm, Bpl.Type tyRepr, List<Variable> args) {
+      Contract.Requires(tok != null);
+      Contract.Requires(printableName != null);
+      Contract.Requires(typeTerm != null);
+      Contract.Requires(tyRepr != null);
+      Contract.Requires(args != null);
+      
+      var bxVar = BplBoundVar("bx", predef.BoxType, out var bx);
+      var unbox = FunctionCall(tok, BuiltinFunction.Unbox, tyRepr, bx);
+      var box_is = MkIs(bx, typeTerm, true);
+      var unbox_is = MkIs(unbox, typeTerm, false);
+      var box_unbox = FunctionCall(tok, BuiltinFunction.Box, null, unbox);
+      sink.AddTopLevelDeclaration(
+        new Axiom(tok,
+          BplForall(Snoc(args, bxVar), BplTrigger(box_is),
+            BplImp(box_is, BplAnd(Bpl.Expr.Eq(box_unbox, bx), unbox_is))),
+          "Box/unbox axiom for " + printableName));
     }
 
     Bpl.Constant GetClass(TopLevelDecl cl)
@@ -12712,36 +12782,43 @@ namespace Microsoft.Dafny {
 
       } else if ((ty0 is SetType && ((SetType)ty0).Finite) || (ty0 is MapType && ((MapType)ty0).Finite)) {
         Bpl.Expr b0, b1;
-        if (ty0 is SetType && ((SetType)ty0).Finite) {
+        if (ty0 is SetType) {
           b0 = e0;
           b1 = e1;
-        } else if (ty0 is MapType && ((MapType)ty0).Finite) {
+        } else {
           // for maps, compare their domains as sets
           b0 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, true, predef.BoxType, predef.BoxType), e0);
           b1 = FunctionCall(tok, BuiltinFunction.MapDomain, predef.MapType(tok, true, predef.BoxType, predef.BoxType), e1);
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();
         }
         eq = FunctionCall(tok, BuiltinFunction.SetEqual, null, b0, b1);
         less = ProperSubset(tok, b0, b1);
         atmost = FunctionCall(tok, BuiltinFunction.SetSubset, null, b0, b1);
+
+      } else if (ty0 is SetType || ty0 is MapType) {
+        Bpl.Expr b0, b1;
+        if (ty0 is SetType) {
+          Contract.Assert(!((SetType)ty0).Finite);
+          b0 = e0;
+          b1 = e1;
+        } else {
+          Contract.Assert(!((MapType)ty0).Finite);
+          // for maps, compare their domains as sets
+          b0 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType(tok, false, predef.BoxType, predef.BoxType), e0);
+          b1 = FunctionCall(tok, BuiltinFunction.IMapDomain, predef.MapType(tok, false, predef.BoxType, predef.BoxType), e1);
+        }
+        eq = FunctionCall(tok, BuiltinFunction.ISetEqual, null, b0, b1);
+        less = Bpl.Expr.False;
+        atmost = BplOr(less, eq);
 
       } else if (ty0 is MultiSetType) {
         eq = FunctionCall(tok, BuiltinFunction.MultiSetEqual, null, e0, e1);
         less = ProperMultiset(tok, e0, e1);
         atmost = FunctionCall(tok, BuiltinFunction.MultiSetSubset, null, e0, e1);
 
-      } else if (ty0 is MapType && !((MapType)ty0).Finite) {
-        eq = Bpl.Expr.False;
-        less = Bpl.Expr.False;
-        atmost = Bpl.Expr.False;
-
       } else if (ty0 is ArrowType) {
-        // TODO: ComputeLessEq for arrow types
-        // what!?
-        eq = Bpl.Expr.False;
-        less = Bpl.Expr.False;
-        atmost = Bpl.Expr.False;
+        eq = Bpl.Expr.Eq(e0, e1);
+        less = Bpl.Expr.False;  // TODO: try to do better than this
+        atmost = BplOr(less, eq);
 
       } else if (ty0 is BitvectorType) {
         BitvectorType bv = (BitvectorType)ty0;
@@ -12753,6 +12830,11 @@ namespace Microsoft.Dafny {
         eq = Bpl.Expr.Eq(e0, e1);
         less = FunctionCall(tok, "ORD#Less", Bpl.Type.Bool, e0, e1);
         atmost = BplOr(eq, less);
+
+      } else if (ty0.IsTypeParameter) {
+        eq = Bpl.Expr.Eq(e0, e1);
+        less = Bpl.Expr.False;
+        atmost = BplOr(less, eq);
 
       } else {
         // reference type
@@ -15629,6 +15711,16 @@ namespace Microsoft.Dafny {
               Bpl.Expr inMap = Bpl.Expr.SelectTok(expr.tok, translator.FunctionCall(expr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), e1),
                                      BoxIfNecessary(expr.tok, e0, e.E0.Type));
               return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, inMap);
+            }
+            case BinaryExpr.ResolvedOpcode.MapUnion: {
+              bool finite = e.E0.Type.AsMapType.Finite;
+              var f = finite ? "Map#Union" : "IMap#Union";
+              return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type), e0, e1);
+            }
+            case BinaryExpr.ResolvedOpcode.MapSubtraction: {
+              bool finite = e.E0.Type.AsMapType.Finite;
+              var f = finite ? "Map#Subtract" : "IMap#Subtract";
+              return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type), e0, e1);
             }
 
             case BinaryExpr.ResolvedOpcode.RankLt:

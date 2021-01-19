@@ -292,7 +292,7 @@ using the Dafny grammar. The Dafny tokens are defined in this section.
 The following reserved words appear in the Dafny grammar and may not be used
 as identifiers of user-defined entities:
 
-```
+````grammar
 reservedword =
     "abstract" | "allocated" | "as" | "assert" | "assume" |
     "bool" | "break" | "by" |
@@ -319,7 +319,7 @@ reservedword =
 arrayToken = "array" [ posDigitFrom2 | posDigit digit { digit }]["?"]
 
 bvToken = "bv" ( 0 | posDigit { digit } )
-```
+````
 
 An ``arrayToken`` is a reserved word that denotes an array type of
 given rank. `array` is an array type of rank 1 (aka a vector). `array2`
@@ -452,25 +452,21 @@ mnemonic, we introduce the following synonyms for ``NoUSIdent``
 and other identifier-related symbols.
 
 ````grammar
+IdentOrDigits = Ident | digits
 NoUSIdentOrDigits = NoUSIdent | digits
 ModuleName = NoUSIdent
-ClassName = NoUSIdent
-TraitName = NoUSIdent
+ClassName = NoUSIdent    // also traits
 DatatypeName = NoUSIdent
 DatatypeMemberName = NoUSIdent
 NewtypeName = NoUSIdent
-NumericTypeName = NoUSIdent
 SynonymTypeName = NoUSIdent
 IteratorName = NoUSIdent
 TypeVariableName = NoUSIdent
-MethodName = NoUSIdent
-FunctionName = NoUSIdent
-PredicateName = NoUSIdent
+MethodFunctionName = NoUSIdentOrDigits
 LabelName = NoUSIdentOrDigits
 AttributeName = NoUSIdent
-FieldIdent = NoUSIdent // TODO ????
 ````
-A ``FieldIdent`` is one of the ways to identify a field. The other is
+A ``FieldName`` is one of the ways to identify a field. The other is
 using digits.
 
 ### 2.6.3. Qualified Names
@@ -499,12 +495,13 @@ In Dafny, a variable or field is typically declared by giving its name followed 
 a ``colon`` and its type. An ``IdentType`` is such a construct.
 
 ````grammar
-GIdentType(allowGhostKeyword) = [ "ghost" ] IdentType
+GIdentType(allowGhostKeyword, allowNewKeyword) = [ "ghost" | "new" ] IdentType
 ````
-A ``GIdentType`` is a typed entity declaration optionally preceded by `ghost`. The _ghost_
+A ``GIdentType`` is a typed entity declaration optionally preceded by `ghost` or `new`. The _ghost_
 qualifier means the entity is only used during verification and not in the generated code.
 Ghost variables are useful for abstractly representing internal state in specifications.
 If `allowGhostKeyword` is false then `ghost` is not allowed.
+If `allowNewKeyword` is false then `new` is not allowed.
 
 ````grammar
 LocalIdentTypeOptional = WildIdent [ ":" Type ]

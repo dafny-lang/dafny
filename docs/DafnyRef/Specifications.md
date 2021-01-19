@@ -28,7 +28,7 @@ that use them.
 ````grammar
 RequiresClause(allowLabel) =
   "requires" { Attribute }
-  [ LabelIdent ":" ]  // Label allowed only if allowLabel is true
+  [ LabelName ":" ]  // Label allowed only if allowLabel is true
   Expression(allowLemma: false, allowLambda: false)
 ````
 
@@ -50,9 +50,9 @@ establish that later conjuncts are well-defined.
 ### 5.1.2. Ensures Clause
 
 ````grammar
-EnsuresClause =
+EnsuresClause(allowLambda) =
   "ensures" { Attribute } Expression(allowLemma: false,
-                                     allowLambda: false)
+                                     allowLambda)
 ````
 
 An `ensures` clause specifies the post condition for a
@@ -293,11 +293,12 @@ method Inner(x: nat, y: nat)
 The ingredients are simple, but the end result may seem like magic. For many users, however, there may be no magic at all -- the end result may be so natural that the user never even has to be bothered to think about that there was a need to prove termination in the first place.
 
 
-### 5.1.4. Framing
+### 5.1.4. Framing {#sec-frame-expression}
 ````grammar
 FrameExpression(allowLemma, allowLambda) =
   ( Expression(allowLemma, allowLambda) [ FrameField ]
-  | FrameField )
+  | FrameField
+  )
 
 FrameField = "`" Ident
 
@@ -386,7 +387,7 @@ TO BE WRITTEN: multiset of objects allowed in reads clauses
 ### 5.1.6. Modifies Clause
 
 ````grammar
-ModifiesClause<.bool allowLambda.> =
+ModifiesClause(allowLambda) =
   "modifies" { Attribute }
   FrameExpression(allowLemma: false, allowLambda)
   { "," FrameExpression(allowLemma: false, allowLambda) }
@@ -410,7 +411,7 @@ or within the scope of a `modifies` statement or a loop's `modifies` clause,
 
 It is also possible to frame what can be modified by a block statement
 by means of the block form of the
-modify statement (cf. [Section 21.9](#sec-modify-statement)).
+modify statement (cf. [Section 20.21](#sec-modify-statement)).
 
 A `modifies` clause specifies the set of memory locations that a
 method, iterator or loop body may modify. If more than one `modifies`
@@ -453,7 +454,7 @@ holds at the end of the loop.
 MethodSpec =
   { ModifiesClause(allowLambda: false)
   | RequiresClause(allowLabel: true)
-  | EnsuresClause
+  | EnsuresClause(allowLambda: false)
   | DecreasesClause(allowWildcard: true, allowLambda: false)
   }
 ````
@@ -469,7 +470,7 @@ FunctionSpec =
   { RequiresClause(allowLabel: true)
   | ReadsClause(allowLemma: false, allowLambda: false,
                                    allowWild: true)
-  | EnsuresClause
+  | EnsuresClause(allowLambda: false)
   | DecreasesClause(allowWildcard: false, allowLambda: false)
   }
 ````
@@ -504,7 +505,7 @@ IteratorSpec =
                                   allowWild: false)
   | ModifiesClause(allowLambda: false)
   | [ "yield" ] RequiresClause(allowLabel: !isYield)
-  | [ "yield" ] EnsuresClause
+  | [ "yield" ] EnsuresClause(allowLambda: false)
   | DecreasesClause(allowWildcard: false, allowLambda: false)
   }
 ````

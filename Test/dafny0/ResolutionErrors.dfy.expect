@@ -60,7 +60,7 @@ ResolutionErrors.dfy(430,12): Error: first argument to ==> must be of type bool 
 ResolutionErrors.dfy(430,12): Error: second argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(429,8): Error: first argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(429,8): Error: second argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(416,8): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(416,8): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(420,8): Error: arguments must have comparable types (got bool and int)
@@ -209,11 +209,11 @@ ResolutionErrors.dfy(1422,4): Error: name of module (Y) is used as a variable
 ResolutionErrors.dfy(1432,9): Error: type of RHS of assign-such-that statement must be boolean (got int)
 ResolutionErrors.dfy(1431,11): Error: type of left argument to + (int) must agree with the result type (bool)
 ResolutionErrors.dfy(1431,11): Error: type of right argument to + (int) must agree with the result type (bool)
-ResolutionErrors.dfy(1431,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(1431,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 ResolutionErrors.dfy(1433,13): Error: type of RHS of assign-such-that statement must be boolean (got int)
 ResolutionErrors.dfy(1436,15): Error: type of left argument to + (int) must agree with the result type (bool)
 ResolutionErrors.dfy(1436,15): Error: type of right argument to + (int) must agree with the result type (bool)
-ResolutionErrors.dfy(1436,15): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(1436,15): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 ResolutionErrors.dfy(1479,20): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(1501,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1502,10): Error: a hint is not allowed to update heap locations

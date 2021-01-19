@@ -527,3 +527,78 @@ lemma ExtEvensSumToEven(t: Tree)
     assert right.Sum() % 2 == 0;
     assert t.Sum() % 2 == 0;
 }
+
+// ------ attempts to use a decreases term whose "less" relation is "false"
+
+method LoopyInt(x: int) {
+  while x < 100  // error: failure to decreases termination metric
+    decreases 58
+  {
+  }
+}
+
+method LoopyISet(m: imap<int, int>)
+{
+  while m != imap[]  // error: failure to decreases termination metric
+    decreases m.Keys
+  {
+  }
+}
+
+method LoopyIMap(x: int, m: imap<int, int>) {
+  while x < 100  // error: failure to decreases termination metric
+    decreases m
+  {
+  }
+}
+
+method LoopyFunction(x: int, f: int -> int) {
+  while x < 100  // error: failure to decreases termination metric
+    decreases f
+  {
+  }
+}
+
+method LoopyTypeParam<Y>(x: int, y: Y) {
+  while x < 100  // error: failure to decreases termination metric
+    decreases y
+  {
+  }
+}
+
+type ZOT
+method LoopyOpaqueType(x: int, z: ZOT) {
+  while x < 100  // error: failure to decreases termination metric
+    decreases z
+  {
+  }
+}
+
+type SubZOT = z: ZOT | true  // error: cannot find witness
+method LoopySubsetType(x: int, z: SubZOT) {
+  while x < 100  // error: failure to decreases termination metric
+    decreases z
+  {
+  }
+}
+
+codatatype Forever = More(next: Forever)
+
+method LoopyForever(x: int, f: Forever) {
+  var f := f;
+  while x < 100  // error: failure to decreases termination metric
+    decreases f
+  {
+    f := f.next;
+  }
+}
+
+method GoodLoop<Y>(x: int, y: Y, z0: ZOT, z1: SubZOT, f: int -> int, forever: Forever, m: imap<int, int>, s: iset<int>)
+{
+  var i := 0;
+  while i < x
+    decreases y, z0, z1, f, forever, m, s, x - i
+  {
+    i := i + 1;
+  }
+}
