@@ -244,8 +244,8 @@ difference for sets and multisets.
 ## 22.8. Factors
 ````grammar
 Factor(allowLemma, allowLambda) =
-  BitVectorOp(allowLemma, allowLambda)
-  { MulOp BitVectorOp(allowLemma, allowLambda) }
+  BitvectorFactor(allowLemma, allowLambda)
+  { MulOp BitvectorFactor(allowLemma, allowLambda) }
 
 MulOp = ( "*" | "/" | "%" )
 ````
@@ -262,7 +262,7 @@ intersection as explained in [Section 10.1](#sec-sets) and [Section 10.2](#sec-m
 
 ## 22.9. Bit-vector Operations
 ````grammar
-BitVectorOp(allowLemma, allowLambda) =
+BitvectorFactor(allowLemma, allowLambda) =
   AsExpression(allowLemma, allowLambda)
   { BVOp AsExpression(allowLemma, allowLambda) }
 
@@ -278,11 +278,13 @@ These operations associate to the left but do not associate with each other;
 use parentheses: `a & b | c` is illegal; use `(a & b) | c` or `a & (b | c)`
 instead.
 
+Bit-vector operations are not allowed in some contexts.   TODO
+
 ## 22.10. As (Conversion) and Is (type test) Expressions {#sec-as-expression}
 ````grammar
-NumericConversionExpression_ =
-    UnaryExpression(allowLemma: true, allowLambda: true)
-    ( "as" | "is" ) Type
+AsExpression_ =
+  UnaryExpression(allowLemma: true, allowLambda: true)
+  { ( "as" | "is" ) Type }
 ````
 The `as` expression converts the given `UnaryExpression` to the stated
 `Type`, with the result being of the given type. The following combinations
@@ -345,7 +347,7 @@ PrimaryExpression_(allowLemma, allowLambda) =
   | SetDisplayExpr { Suffix }
   | MultiSetExpr { Suffix }
   | EndlessExpression(allowLemma, allowLambda)
-  | ConstAtomExpression { Suffix }
+  | ConstAtomExpression(allowLemma, allowLambda) { Suffix }
   )
 ````
 
@@ -363,8 +365,9 @@ LambdaExpression(allowLemma) =
   ( WildIdent
   | "(" [ IdentTypeOptional { "," IdentTypeOptional } ] ")"
   )
-  LambdaSpec_
-  "=>" Expression(allowLemma, allowLambda: true)
+  LambdaSpec
+  "=>"
+  Expression(allowLemma, allowLambda: true)
 ````
 
 See [Section 5.4](#sec-lambda-specification) for a description of ``LambdaSpec``.
@@ -419,7 +422,8 @@ x requires F.requires(x) reads F.reads(x) => F(x)
 ````grammar
 Lhs =
   ( NameSegment { Suffix }
-  | ConstAtomExpression Suffix { Suffix }
+  | ConstAtomExpression(allowLemma: false, allowLambda: false)
+    Suffix { Suffix }
   )
 ````
 
@@ -465,7 +469,10 @@ allocated, or in which havoc may be produced.
 
 ## 22.16. Array Allocation
 ````grammar
-ArrayAllocation_ = "new" Type "[" Expressions "]"
+ArrayAllocation_ = "new" [ Type ] "[" Expressions "]"
+                   [ "(" Expression(allowLemma: true, allowLambda: true) ")"
+                   | "[" [ Expressions ] "]"
+                   ]
 ````
 
 This allocates a new single or multi-dimensional array as explained in
@@ -492,21 +499,23 @@ operator (`:|`) can be used. See [Section 20.6](#sec-update-and-call-statement).
 
 ## 22.19. Constant Or Atomic Expressions
 ````grammar
-ConstAtomExpression =
-  ( LiteralExpression_
+ConstAtomExpression(allowLemma, allowLambda) =
+  ( LiteralExpression
+  | "this"
   | FreshExpression_
+  | AllocatedExpression_
+  | UnchangedExpression_
   | OldExpression_
   | CardinalityExpression_
-  | NumericConversionExpression_
-  | ParensExpression
+  | ParensExpression(allowLemma, allowLambda)
   )
 ````
-A ``ConstAtomExpression`` represent either a constant of some type, or an
+A ``ConstAtomExpression`` represents either a constant of some type, or an
 atomic expression. A ``ConstAtomExpression`` is never an l-value.
 
 ## 22.20. Literal Expressions
 ````grammar
-LiteralExpression_ =
+LiteralExpression =
  ( "false" | "true" | "null" | Nat | Dec |
    charToken | stringToken | "this")
 ````
@@ -519,7 +528,7 @@ an instance method or function.
 ````grammar
 FreshExpression_ =
   "fresh" "(" Expression(allowLemma: true, allowLambda: true) ")"
-````
+```
 
 `fresh(e)` returns a boolean value that is true if
 the objects referenced in expression `e` were all
@@ -528,15 +537,31 @@ The argument of `fresh` must be either an object reference
 or a collection of object references.
 
 ## 22.22. Allocated expression
+````grammar
+AllocatedExpression_ =
+  "allocated" "(" Expression(allowLemma: true, allowLambda: true) ")"
+```
 
 TO BE WRITTEN -- allocated predicate
+
+## Unchanged Expressions
+
+````grammar
+UnchangedExpression_ =
+  "unchanged" [ "@" LabelName ]
+  "(" FrameExpression(allowLemma: true, allowLambda: true)
+      { "," FrameExpression(allowLemma: true, allowLambda: true) }
+  ")"
+````
+
+TO BE WRITTEN - unchanged expressions
 
 ## 22.23. Old and Old@ Expressions {#sec-old-expression}
 
 ````grammar
 OldExpression_ =
-  "old" [ "@" ident ] "("
-  Expression(allowLemma: true, allowLambda: true) ")"
+  "old" [ "@" LabelName ]
+  "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
 An _old expression_ is used in postconditions or in the body of a method
@@ -578,10 +603,6 @@ The next example demonstrates the interaction between `old` and array elements.
 {% include_relative examples/Example-Old3.dfy %}
 ```
 
-## 22.24. Unchanged Expressions {#sec-unchanged}
-
-TO BE WRITTEN -- including with labels
-
 TO BE WRITTEN -- Inside an old, disallow unchanged, fresh, two-state functions, two-state lemmas, and nested old
 
 ## 22.25. Cardinality Expressions
@@ -599,7 +620,7 @@ For more, see [Section 10](#sec-collection-types).
 
 ## 22.26. Parenthesized Expression
 ````grammar
-ParensExpression =
+ParensExpression(allowLemma, allowLambda) =
   "(" [ Expressions ] ")"
 ````
 A ``ParensExpression`` is a list of zero or more expressions
@@ -627,7 +648,9 @@ sequences.
 
 ## 22.28. Set Display Expression
 ````grammar
-SetDisplayExpr = [ "iset" ] "{" [ Expressions ] "}"
+SetDisplayExpr = [ "iset" | "multiset" ] "{" [ Expressions ] "}"
+                 | "multiset" "(" Expression(allowLemma: true, allowLambda: true) ")"
+                 ]
 ````
 
 A set display expression provides a way of constructing a set with given

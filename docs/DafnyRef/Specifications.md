@@ -297,7 +297,8 @@ The ingredients are simple, but the end result may seem like magic. For many use
 ````grammar
 FrameExpression(allowLemma, allowLambda) =
   ( Expression(allowLemma, allowLambda) [ FrameField ]
-  | FrameField )
+  | FrameField
+  )
 
 FrameField = "`" Ident
 
