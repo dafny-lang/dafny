@@ -467,7 +467,7 @@ module M {
 ```
 export set C will contain the names `a`, `b`, and `c`.
 
-## 4.6. Module Abstraction
+## 4.6. Module Abstraction {#sec-module-abstraction}
 
 Sometimes, using a specific implementation is unnecessary; instead,
 all that is needed is a module that implements some interface.  In
@@ -688,7 +688,7 @@ the imported names in the refinement parent.
 Within each namespace, the local names are unique. Thus a module may
 not reuse a name that a refinement parent has declared (unless it is a
 refining declaration, which replaces both declarations, as described
-in [Section 23](#sec-module-refinement)).
+in [Section 22](#sec-module-refinement)).
 
 Local names take precedence over imported names. If a name is used more than
 once among imported names (coming from different imports), then it is
