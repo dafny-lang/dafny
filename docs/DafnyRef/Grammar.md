@@ -292,7 +292,7 @@ using the Dafny grammar. The Dafny tokens are defined in this section.
 The following reserved words appear in the Dafny grammar and may not be used
 as identifiers of user-defined entities:
 
-```
+````grammar
 reservedword =
     "abstract" | "allocated" | "as" | "assert" | "assume" |
     "bool" | "break" | "by" |
@@ -319,7 +319,7 @@ reservedword =
 arrayToken = "array" [ posDigitFrom2 | posDigit digit { digit }]["?"]
 
 bvToken = "bv" ( 0 | posDigit { digit } )
-```
+````
 
 An ``arrayToken`` is a reserved word that denotes an array type of
 given rank. `array` is an array type of rank 1 (aka a vector). `array2`
@@ -452,21 +452,19 @@ mnemonic, we introduce the following synonyms for ``NoUSIdent``
 and other identifier-related symbols.
 
 ````grammar
+IdentOrDigits = Ident | digits
 NoUSIdentOrDigits = NoUSIdent | digits
 ModuleName = NoUSIdent
 ClassName = NoUSIdent    // also traits
 DatatypeName = NoUSIdent
 DatatypeMemberName = NoUSIdent
 NewtypeName = NoUSIdent
-NumericTypeName = NoUSIdent
 SynonymTypeName = NoUSIdent
 IteratorName = NoUSIdent
 TypeVariableName = NoUSIdent
 MethodFunctionName = NoUSIdentOrDigits
-PredicateName = NoUSIdent
 LabelName = NoUSIdentOrDigits
 AttributeName = NoUSIdent
-FieldName = NoUSIdent
 ````
 A ``FieldName`` is one of the ways to identify a field. The other is
 using digits.
