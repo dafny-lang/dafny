@@ -160,9 +160,9 @@ A digit is just one of the base-10 digits.
 
 ````grammar
 posDigit = "123456789"
-posDigit2 = "23456789"
+posDigitFrom2 = "23456789"
 ````
-A ``posDigit`` is a digit, excluding 0. ``posDigit2`` excludes both 0 and 1.
+A ``posDigit`` is a digit, excluding 0. ``posDigitFrom2`` excludes both 0 and 1.
 
 ````grammar
 hexdigit = "0123456789ABCDEFabcdef"
@@ -316,7 +316,7 @@ reservedword =
     "yield" | "yields" |
     arrayToken | bvToken
 
-arrayToken = "array" [ posdigit2 | posDigit digit { digit }]["?"]
+arrayToken = "array" [ posDigitFrom2 | posDigit digit { digit }]["?"]
 
 bvToken = "bv" ( 0 | posDigit { digit } )
 ```
@@ -448,12 +448,13 @@ in the language, but it is not used as part of expressions.
 In the productions for the declaration of user-defined entities the name of the
 user-defined entity is required to be an identifier that does not start
 with an underscore, i.e., a ``NoUSIdent``. To make the productions more
-mnemonic, we introduce the following synonyms for ``NoUSIdent``.
+mnemonic, we introduce the following synonyms for ``NoUSIdent``
+and other identifier-related symbols.
 
 ````grammar
+NoUSIdentOrDigits = NoUSIdent | digits
 ModuleName = NoUSIdent
-ClassName = NoUSIdent
-TraitName = NoUSIdent
+ClassName = NoUSIdent    // also traits
 DatatypeName = NoUSIdent
 DatatypeMemberName = NoUSIdent
 NewtypeName = NoUSIdent
@@ -461,14 +462,13 @@ NumericTypeName = NoUSIdent
 SynonymTypeName = NoUSIdent
 IteratorName = NoUSIdent
 TypeVariableName = NoUSIdent
-MethodName = NoUSIdent
-FunctionName = NoUSIdent
+MethodFunctionName = NoUSIdentOrDigits
 PredicateName = NoUSIdent
-LabelName = NoUSIdent
+LabelName = NoUSIdentOrDigits
 AttributeName = NoUSIdent
-FieldIdent = NoUSIdent
+FieldName = NoUSIdent
 ````
-A ``FieldIdent`` is one of the ways to identify a field. The other is
+A ``FieldName`` is one of the ways to identify a field. The other is
 using digits.
 
 ### 2.6.3. Qualified Names
@@ -497,12 +497,13 @@ In Dafny, a variable or field is typically declared by giving its name followed 
 a ``colon`` and its type. An ``IdentType`` is such a construct.
 
 ````grammar
-GIdentType(allowGhostKeyword) = [ "ghost" ] IdentType
+GIdentType(allowGhostKeyword, allowNewKeyword) = [ "ghost" | "new" ] IdentType
 ````
-A ``GIdentType`` is a typed entity declaration optionally preceded by `ghost`. The _ghost_
+A ``GIdentType`` is a typed entity declaration optionally preceded by `ghost` or `new`. The _ghost_
 qualifier means the entity is only used during verification and not in the generated code.
 Ghost variables are useful for abstractly representing internal state in specifications.
 If `allowGhostKeyword` is false then `ghost` is not allowed.
+If `allowNewKeyword` is false then `new` is not allowed.
 
 ````grammar
 LocalIdentTypeOptional = WildIdent [ ":" Type ]
