@@ -1,6 +1,6 @@
 # 24. Attributes
 ````grammar
-Attribute = "{" ":" AttributeName [ Expressions ] "}"
+Attribute = "{:" AttributeName [ Expressions ] "}"
 ````
 Dafny allows many of its entities to be annotated with _Attributes_.
 The grammar shows where the attribute annotations may appear.
@@ -30,7 +30,7 @@ instead converted into a Boogie quantifier _trigger_. See Section 11 of
 Dafny has special processing for some attributes. For some attributes, the
 setting is only looked for on the entity with the attribute. For others, we start
 at the entity and if the attribute is not there, look up in the hierarchy
-(enclosing class and enclosing modules). 
+(enclosing class and enclosing modules).
 The attribute
 declaration closest to the entity overrides those further away.
 

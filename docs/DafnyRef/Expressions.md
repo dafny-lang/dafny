@@ -666,17 +666,6 @@ is a set with three elements in it.
 See [Section 10.1](#sec-sets) for more information on
 sets.
 
-TO BE WRITTEN - use of initializing display expression in new-array allocation
-
-## 22.29. Multiset Display or Cast Expression
-````grammar
-MultiSetExpr =
-    "multiset"
-    ( "{" [ Expressions ] "}"
-    | "(" Expression(allowLemma: true, allowLambda: true) ")"
-    )
-````
-
 A multiset display expression provides a way of constructing
 a multiset with given elements and multiplicities. For example
 
@@ -684,9 +673,9 @@ a multiset with given elements and multiplicities. For example
 multiset{1, 1, 2, 3}
 ```
 is a multiset with three elements in it. The number 1 has a multiplicity of 2,
-the others a multiplicity of 1.
+and the numbers 2 and 3 each have a multiplicity of 1.
 
-On the other hand, a multiset cast expression converts a set or a sequence
+A multiset cast expression converts a set or a sequence
 into a multiset as shown here:
 
 ```dafny
@@ -748,7 +737,9 @@ all end with an ``Expression`` at the end. The various
 ## 22.32. If Expression
 ````grammar
 IfExpression_(allowLemma, allowLambda) =
-    "if" Expression(allowLemma: true, allowLambda: true)
+    "if" ( BindingGuard(allowLambda: true)
+         | Expression(allowLemma: true, allowLambda: true)
+         )
     "then" Expression(allowLemma: true, allowLambda: true)
     "else" Expression(allowLemma, allowLambda)
 ````
@@ -766,9 +757,7 @@ var k := 10 / x; // error, may divide by 0.
 var m := if x != 0 then 10 / x else 1; // ok, guarded
 ```
 
-## 22.33. Binding If Expression
-
-TO BE WRITTEN
+TO BE WRITTEN - binding form
 
 ## 22.34. Case Bindings, Patterns, and Extended Patterns {#sec-case-pattern}
 ````grammar
@@ -786,9 +775,8 @@ CasePattern =
 
 ExtendedPattern =
   ( LiteralExpression_
-  | Ident
-  | Ident "(" ")"
-  | Ident "(" ExtendedPattern { "," ExtendedPattern } ")"
+  | Ident [ ":" Type ]
+  | [ Ident ] "(" [ ExtendedPattern { "," ExtendedPattern } ] ")"
   )
 ````
 
@@ -853,7 +841,7 @@ MatchExpression(allowLemma, allowLambda) =
   )
 
 CaseExpression(allowLemma, allowLambda) =
-    CaseBinding_ "=>" Expression(allowLemma, allowLambda)
+    ExtendedPattern "=>" Expression(allowLemma, allowLambda)
 ````
 
 A ``MatchExpression`` is used to conditionally evaluate and select an
@@ -995,7 +983,7 @@ of `I` for each value of `x.i`, or any other combination.
 
 ## 22.38. Statements in an Expression
 ````grammar
-StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt | CalcStmt )
+StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt | RevealStmt | CalcStmt )
 ````
 
 A ``StmtInExpr`` is a kind of statement that is allowed to
@@ -1006,16 +994,22 @@ can be evaluated without error. For example:
 assume x != 0; 10/x
 ```
 
-`Assert`, `assume`, `expect` and `calc` statements can be used in this way.
+`Assert`, `assume`, `expect`, 'reveal' and `calc` statements can be used in this way.
 
 ## 22.39. Let Expression
 
 ````grammar
-LetExpr(allowLemma, allowLambda) =
-  [ "ghost" ] "var" CasePattern { "," CasePattern }
-  ( ":=" | ":-" | { Attribute } ":|" )
-  Expression(allowLemma: false, allowLambda: true)
-  { "," Expression(allowLemma: false, allowLambda: true) } ";"
+LetExpression(allowLemma, allowLambda) =
+  (
+    [ "ghost" ] "var" CasePattern { "," CasePattern }
+    ( ":=" | ":-" | { Attribute } ":|" )
+    Expression(allowLemma: false, allowLambda: true)
+    { "," Expression(allowLemma: false, allowLambda: true) }
+  |
+    ":-"
+    Expression(allowLemma: false, allowLambda: true)
+  )
+  ";"
   Expression(allowLemma, allowLambda)
 ````
 
@@ -1051,9 +1045,17 @@ The syntax using `:-` is discussed in the following subsection.
 
 The Let expression described in [Section 0](#sec-let-expression) has a failure variant
 that simply uses `:-` instead of `:=`. This Let-or-Fail expression also permits propagating
-failure results. However, in statements [Section 20.7](#sec-update-failure) failure results in
+failure results. However, in statements [Section 20.7](#sec-update-failure), failure results in
 immediate return from the method; expressions do not have side effects or immediate return
 mechanisms.
+
+The expression `:- V; E` is desugared into the _expression_
+```dafny
+var tmp := V;
+if tmp.IsFailure()
+then tmp.PropagateFailure()
+else E
+```
 
 The expression `var v :- V; E` is desugared into the _expression_
 ```dafny

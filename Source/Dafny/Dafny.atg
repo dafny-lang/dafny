@@ -3764,6 +3764,8 @@ SeqDisplayExpr<out Expression e>
     ")"                            (. e = new SeqConstructionExpr(x, explicitTypeArg, n, f); .)
   |
     "["                                      (. List<Expression> elements = new List<Expression/*!*/>();
+                                                x = t;!daf
+
                                              .)
     [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements);
                                              .)
@@ -3794,7 +3796,7 @@ MapLiteralExpressions<.out List<ExpressionPair> elements.>
   .
 
 /*------------------------------------------------------------------------*/
-MapComprehensionExpr<IToken mapToken, bool finite, out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
+MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      BoundVar bv;
      List<BoundVar> bvars = new List<BoundVar>();
@@ -3802,7 +3804,9 @@ MapComprehensionExpr<IToken mapToken, bool finite, out Expression e, bool allowL
      Expression bodyLeft = null;
      Expression bodyRight;
      Attributes attrs = null;
+     bool finite = true;
   .)
+  ( "map" | "imap" (. finite = false; .) )     (. IToken mapToken = t; .)
   IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
   { ","
     IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
@@ -3812,7 +3816,7 @@ MapComprehensionExpr<IToken mapToken, bool finite, out Expression e, bool allowL
   QSep
   Expression<out bodyRight, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(IsGets())  /* greedily parse ":=" */    (. bodyLeft = bodyRight; .)
-    ":=" Expression<out bodyRight, allowLemma, allowLambda, allowBitwiseOps>
+    ":=" Expression<out bodyRight, allowLemma, allowLambda, allowBitwiseOps || !finite>
   ]
   (. if (bodyLeft == null && bvars.Count != 1) {
        SemErr(t, "a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'");
@@ -3848,19 +3852,13 @@ EndlessExpression<out Expression e, bool allowLemma, bool allowLambda, bool allo
                                                              }
                                                              e = new ITEExpr(x, isBindingGuard, e, e0, e1);
                                                          .)
-  | NestedMatchExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
-  | QuantifierGuts<out e, allowLemma, allowLambda>  /* types are such that we can allow bitwise operations in the quantifier body */
-  | "set"                           (. x = t; .)
-    SetComprehensionExpr<x, true, out e, allowLemma, allowLambda, allowBitwiseOps>
-  | "iset"                          (. x = t; .)
-    SetComprehensionExpr<x, false, out e, allowLemma, allowLambda, true>
+  | MatchExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
+  | QuantifierExpression<out e, allowLemma, allowLambda>  /* types are such that we can allow bitwise operations in the quantifier body */
+  | SetComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   | StmtInExpr<out s>
     Expression<out e, allowLemma, allowLambda, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e); .)
-  | LetExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
-  | "map"                           (. x = t; .)
-    MapComprehensionExpr<x, true, out e, allowLemma, allowLambda, allowBitwiseOps>
-  | "imap"                          (. x = t; .)
-    MapComprehensionExpr<x, false, out e, allowLemma, allowLambda, true>
+  | LetExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
+  | MapComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   | NamedExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   )
   .
@@ -3877,7 +3875,7 @@ StmtInExpr<out Statement s>
   .
 
 /*------------------------------------------------------------------------*/
-LetExpr<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
+LetExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. e = dummyExpr; .)
   ( LetExprWithLHS<out e, allowLemma, allowLambda, allowBitwiseOps>
   | LetExprWithoutLHS<out e, allowLemma, allowLambda, allowBitwiseOps>
@@ -3964,15 +3962,16 @@ NamedExpr<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwise
      Expression expr;
   .)
     "label"                          (. x = t; .)
-    NoUSIdent<out d>
+    LabelName<out d>
     ":"
     Expression<out e, allowLemma, allowLambda, allowBitwiseOps>
                                      (. expr = e;
-                                        e = new NamedExpr(x, d.val, expr); .)
+                                        e = new NamedExpr(x, d.val, expr);
+                                     .)
   .
 
 /*------------------------------------------------------------------------*/
-NestedMatchExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
+MatchExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  NestedMatchCaseExpr/*!*/ c;
      List<NestedMatchCaseExpr/*!*/> cases = new List<NestedMatchCaseExpr/*!*/>();
      bool usesOptionalBraces = false;
@@ -3981,17 +3980,17 @@ NestedMatchExpression<out Expression e, bool allowLemma, bool allowLambda, bool 
   Expression<out e, allowLemma, allowLambda, allowBitwiseOps>
   ( IF(la.kind == _lbrace)  /* always favor brace-enclosed match body to a case-less match */
     "{" (. usesOptionalBraces = true; .)
-        { NestedCaseExpression<out c, true, true, allowBitwiseOps> (. cases.Add(c); .) }
+        { CaseExpression<out c, true, true, allowBitwiseOps> (. cases.Add(c); .) }
     "}"
   |     { IF(la.kind == _case)  /* let each "case" bind to the closest preceding "match" */
-          NestedCaseExpression<out c, allowLemma, allowLambda, allowBitwiseOps> (. cases.Add(c); .)
+          CaseExpression<out c, allowLemma, allowLambda, allowBitwiseOps> (. cases.Add(c); .)
         }
   )
   (. e = new NestedMatchExpr(x, e, cases, usesOptionalBraces); .)
 .
 
 /*------------------------------------------------------------------------*/
-NestedCaseExpression<out NestedMatchCaseExpr c, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
+CaseExpression<out NestedMatchCaseExpr c, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x;
      ExtendedPattern/*!*/ pat = null;
      Expression/*!*/ body;
@@ -4251,7 +4250,7 @@ Suffix<ref Expression e>
   .
 
 /*------------------------------------------------------------------------*/
-QuantifierGuts<out Expression q, bool allowLemma, bool allowLambda>
+QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out q) != null); IToken/*!*/ x = Token.NoToken;
      bool univ = false;
      List<BoundVar/*!*/> bvars;
@@ -4293,14 +4292,16 @@ QuantifierDomain<.out List<BoundVar> bvars, out Attributes attrs, out Expression
   .
 
 /*------------------------------------------------------------------------*/
-SetComprehensionExpr<IToken setToken, bool finite, out Expression q, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
+SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out q) != null);
      BoundVar bv;
      List<BoundVar/*!*/> bvars = new List<BoundVar>();
      Expression range;
      Expression body = null;
      Attributes attrs = null;
+     bool finite = true;
   .)
+  ( "set" | "iset" (. finite = false; .) )     (. IToken setToken = t; .)
   IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
   { ","
     IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
@@ -4309,7 +4310,7 @@ SetComprehensionExpr<IToken setToken, bool finite, out Expression q, bool allowL
   "|" Expression<out range, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(IsQSep())  /* let any given body bind to the closest enclosing set comprehension */
     QSep
-    Expression<out body, allowLemma, allowLambda, allowBitwiseOps>
+    Expression<out body, allowLemma, allowLambda, allowBitwiseOps || !finite>
   ]
   (. if (body == null && bvars.Count != 1) {
        SemErr(t, "a set comprehension with more than one bound variable must have a term expression");
@@ -4329,6 +4330,8 @@ Expressions<.List<Expression> args.>
   .
 
 /*------------------------------------------------------------------------*/
+AttributeName<out IToken id> = NoUSIdent<out id>.
+
 Attribute<ref Attributes attrs>
 = (. IToken openBrace, closeBrace;
      IToken x = null;
@@ -4336,7 +4339,7 @@ Attribute<ref Attributes attrs>
   .)
   "{:"                         (. openBrace = t; .)
   (. ConvertKeywordTokenToIdent(); .)
-  NoUSIdent<out x>
+  AttributeName<out x>
   [ Expressions<args> ]
   "}"                         (. closeBrace = t; .)
   (. attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs); .)
