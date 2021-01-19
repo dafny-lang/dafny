@@ -150,6 +150,13 @@ axiom (forall bx : Box ::
 axiom (forall bx : Box ::
     { $IsBox(bx, TChar) }
     ( $IsBox(bx, TChar) ==> $Box($Unbox(bx) : char) == bx && $Is($Unbox(bx) : char, TChar)));
+
+// Since each bitvector type is a separate type in Boogie, the Box/Unbox axioms for bitvectors are
+// generated programmatically. Except, Bv0 is given here.
+axiom (forall bx : Box ::
+    { $IsBox(bx, TBitvector(0)) }
+    ( $IsBox(bx, TBitvector(0)) ==> $Box($Unbox(bx) : Bv0) == bx && $Is($Unbox(bx) : Set Box, TBitvector(0))));
+
 axiom (forall bx : Box, t : Ty ::
     { $IsBox(bx, TSet(t)) }
     ( $IsBox(bx, TSet(t)) ==> $Box($Unbox(bx) : Set Box) == bx && $Is($Unbox(bx) : Set Box, TSet(t))));
@@ -201,6 +208,11 @@ axiom(forall h : Heap, v : real :: { $IsAlloc(v,TReal,h) } $IsAlloc(v,TReal,h));
 axiom(forall h : Heap, v : bool :: { $IsAlloc(v,TBool,h) } $IsAlloc(v,TBool,h));
 axiom(forall h : Heap, v : char :: { $IsAlloc(v,TChar,h) } $IsAlloc(v,TChar,h));
 axiom(forall h : Heap, v : ORDINAL :: { $IsAlloc(v,TORDINAL,h) } $IsAlloc(v,TORDINAL,h));
+
+// Since every bitvector type is a separate type in Boogie, the $Is/$IsAlloc axioms
+// for bitvectors are generated programatically. Except, TBitvector(0) is given here.
+axiom (forall v: Bv0 :: { $Is(v, TBitvector(0)) } $Is(v, TBitvector(0)));
+axiom (forall v: Bv0, h: Heap :: { $IsAlloc(v, TBitvector(0), h) } $IsAlloc(v, TBitvector(0), h));
 
 axiom (forall v: Set Box, t0: Ty :: { $Is(v, TSet(t0)) }
   $Is(v, TSet(t0)) <==>
