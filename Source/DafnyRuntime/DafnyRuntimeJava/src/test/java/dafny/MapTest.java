@@ -8,22 +8,32 @@ import org.junit.jupiter.api.Test;
 
 class MapTest {
     HashMap<Integer, Character> h = new HashMap<>();
-    DafnyMap<Integer, Character> dm = new DafnyMap<>(h);
+    DafnyMap<? extends Integer, ? extends Character> dm = new DafnyMap<>(h);
 
     @Test
     void testSubset(){
+        // add map[1 := 'c'] to both h and dm
         h.put(1, 'c');
-        dm.put(1, 'c');
+        dm = DafnyMap.update(dm, 1, 'c');
         assertEquals(dm, new DafnyMap<>(h));
-        DafnyMap.<Integer, Character>update(dm, 6, 't');
-        assertEquals(dm, new DafnyMap<>(h));
-        assertEquals(dm.entrySet(), h.entrySet());
-        assertEquals(dm.keySet(), h.keySet());
+        assertEquals(dm.dafnyKeySet(), new DafnySet(h.keySet()));
         assertTrue(dm.contains(1));
-        HashMap<Integer, Character> d = new HashMap<>();
-        d.put(6,'l');
-        h.remove(1);
-        dm.remove(1);
+
+        // create an updated map, but dm stays the same
+        DafnyMap<? extends Integer, ? extends Character> dmUpdated;
+        dmUpdated = DafnyMap.<Integer, Character>update(dm, 6, 't');
         assertEquals(dm, new DafnyMap<>(h));
+
+        // remove key 1 from both h and dm
+        h.remove(1);
+        DafnySet<? extends Integer> ds = DafnySet.of(1);
+        dm = DafnyMap.<Integer, Character>subtract(dm, ds);
+        assertEquals(dm, new DafnyMap<>(h));
+
+        // remove key 1 from dmUpdated, which gives map[6 := 't']
+        dmUpdated = DafnyMap.<Integer, Character>subtract(dmUpdated, ds);
+        HashMap<Integer, Character> k = new HashMap<>();
+        k.put(6, 't');
+        assertEquals(dmUpdated, new DafnyMap<>(k));
     }
 }
