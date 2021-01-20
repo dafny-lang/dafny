@@ -176,6 +176,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         };
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> DafnySequence<T> concatenate(DafnySequence<? extends T> th, DafnySequence<? extends T> other) {
         assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";
@@ -254,6 +255,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return seq.<R>update((int)idx, t);
     }
 
+    @SuppressWarnings("unchecked")
     public boolean contains(Object t) {
         assert t != null : "Precondition Violation";
         return asList().indexOf((T)t) != -1;
@@ -456,6 +458,7 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <R> ArrayDafnySequence<R> update(int i, R t) {
         assert t != null : "Precondition Violation";
         //todo: should we allow i=length, and return a new sequence with t appended to the sequence?
@@ -583,6 +586,7 @@ final class StringDafnySequence extends NonLazyDafnySequence<Character> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <R> DafnySequence<R> update(int i, R t) {
         // assume R == Character
         assert t != null : "Precondition Violation";

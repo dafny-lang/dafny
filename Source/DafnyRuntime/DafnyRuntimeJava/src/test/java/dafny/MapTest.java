@@ -11,6 +11,7 @@ class MapTest {
     DafnyMap<? extends Integer, ? extends Character> dm = new DafnyMap<>(h);
 
     @Test
+    @SuppressWarnings("unchecked")
     void testSubset(){
         // add map[1 := 'c'] to both h and dm
         h.put(1, 'c');

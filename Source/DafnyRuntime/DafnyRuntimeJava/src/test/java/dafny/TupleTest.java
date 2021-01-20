@@ -81,10 +81,10 @@ class TupleTest {
     complex.dtor__1().append("J");
     assertEquals(complex.dtor__1(), sb);
     assertNotEquals(new StringBuilder(), complex.dtor__1());
-    assertEquals(complex.dtor__2(), new Integer(3));
+    assertEquals(complex.dtor__2(), 3);
     @SuppressWarnings("unused")
     Integer a = 1 + complex.dtor__2();
-    assertEquals(complex.dtor__2(), new Integer(3));
+    assertEquals(complex.dtor__2(), 3);
     Tuple3<Integer, String, Integer> nullTest = new Tuple3<>(null, null, null);
     assertNull(nullTest.dtor__0());
     assertNull(nullTest.dtor__1());

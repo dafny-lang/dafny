@@ -24,6 +24,7 @@ public class DafnyMap<K, V> {
 
     public static <K, V> DafnyMap<K, V> empty() { return new DafnyMap<K, V>(); }
 
+    @SuppressWarnings("unchecked")
     public static <K, V> DafnyMap<K, V> fromElements(Tuple2<K, V> ... pairs) {
         DafnyMap<K, V> result = new DafnyMap<K, V>();
         for (Tuple2<K, V> pair : pairs) {
@@ -83,6 +84,7 @@ public class DafnyMap<K, V> {
         innerMap.forEach(action);
     }
 
+    @SuppressWarnings("unchecked")
     public static <K, V> DafnyMap<? extends K, ? extends V> merge(DafnyMap<? extends K, ? extends V> th, DafnyMap<? extends K, ? extends V> other) {
         assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";
@@ -102,6 +104,7 @@ public class DafnyMap<K, V> {
         return new DafnyMap<K, V>(m);
     }
 
+    @SuppressWarnings("unchecked")
     public static <K, V> DafnyMap<? extends K, ? extends V> subtract(DafnyMap<? extends K, ? extends V> th, DafnySet<? extends K> keys) {
         assert th != null : "Precondition Violation";
         assert keys != null : "Precondition Violation";
@@ -143,6 +146,7 @@ public class DafnyMap<K, V> {
 
     // Until tuples (and other datatypes) are compiled with type-argument variance, the following
     // method takes type parameters <KK, VV>. The expectation is that <K, V> is <? extends KK, ? extends VV>.
+    @SuppressWarnings("unchecked")
     public <KK, VV> DafnySet<? extends Tuple2<KK, VV>> entrySet() {
         ArrayList<Tuple2<K, V>> list = new ArrayList<Tuple2<K, V>>();
         for (Map.Entry<K, V> entry : innerMap.entrySet()) {
