@@ -8544,8 +8544,8 @@ namespace Microsoft.Dafny
           case BinaryExpr.ResolvedOpcode.MultiSetDifference:
            // sequences: +
           case BinaryExpr.ResolvedOpcode.Concat:
-          // maps: +
-          case BinaryExpr.ResolvedOpcode.MapUnion:
+          // maps: +, -
+          case BinaryExpr.ResolvedOpcode.MapMerge:
           case BinaryExpr.ResolvedOpcode.MapSubtraction:
             return true;
           default:
@@ -17308,11 +17308,9 @@ namespace Microsoft.Dafny
           } else if (operandType is MultiSetType) {
             return BinaryExpr.ResolvedOpcode.MultiSetUnion;
           } else if (operandType is MapType) {
-            return BinaryExpr.ResolvedOpcode.MapUnion;
+            return BinaryExpr.ResolvedOpcode.MapMerge;
           } else if (operandType is SeqType) {
             return BinaryExpr.ResolvedOpcode.Concat;
-          } else if (operandType is MapType) {
-            return BinaryExpr.ResolvedOpcode.MapUnion;
           } else {
             return BinaryExpr.ResolvedOpcode.Add;
           }

@@ -2033,12 +2033,16 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.Union:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           callString = "Union"; break;
+        case BinaryExpr.ResolvedOpcode.MapMerge:
+          callString = "Merge"; break;
         case BinaryExpr.ResolvedOpcode.Intersection:
         case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
           callString = "Intersect"; break;
         case BinaryExpr.ResolvedOpcode.SetDifference:
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
           callString = "Difference"; break;
+        case BinaryExpr.ResolvedOpcode.MapSubtraction:
+          callString = "Subtract"; break;
 
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
           staticCallString = $"{DafnySeqClass}.IsProperPrefixOf"; break;

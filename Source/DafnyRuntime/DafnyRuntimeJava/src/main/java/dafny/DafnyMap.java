@@ -12,6 +12,10 @@ public class DafnyMap<K, V> implements Map<K, V> {
         innerMap = new HashMap<>();
     }
 
+    private DafnyMap(HashMap<K, V> innerMap) {
+        this.innerMap = innerMap;
+    }
+
     public DafnyMap(Map<K, V> m) {
         assert m != null : "Precondition Violation";
         innerMap = new HashMap<>();
@@ -103,6 +107,40 @@ public class DafnyMap<K, V> implements Map<K, V> {
     @Override
     public boolean remove(Object key, Object value) {
         return innerMap.remove(key, value);
+    }
+
+    public static <K, V> DafnyMap<? extends K, ? extends V> merge(DafnyMap<? extends K, ? extends V> th, DafnyMap<? extends K, ? extends V> other) {
+        assert th != null : "Precondition Violation";
+        assert other != null : "Precondition Violation";
+
+        if (th.isEmpty()) {
+            return (DafnyMap<K, V>)other;
+        } else if (other.isEmpty()) {
+            return (DafnyMap<K, V>)th;
+        }
+
+        Map<K, V> m = new HashMap<K, V>(other.innerMap);
+        th.forEach((k, v) -> {
+                if (!m.containsKey(k)) {
+                    m.put(k, v);
+                }
+            });
+        return new DafnyMap<K, V>(m);
+    }
+
+    public static <K, V> DafnyMap<? extends K, ? extends V> subtract(DafnyMap<? extends K, ? extends V> th, DafnySet<? extends K> keys) {
+        assert th != null : "Precondition Violation";
+        assert keys != null : "Precondition Violation";
+
+        if (th.isEmpty() || keys.isEmpty()) {
+            return (DafnyMap<K, V>)th;
+        }
+
+        Map<K, V> m = new HashMap(th.innerMap);
+        for (K k : keys.Elements()) {
+            m.remove(k);
+        }
+        return new DafnyMap<K, V>(m);
     }
 
     @Override
