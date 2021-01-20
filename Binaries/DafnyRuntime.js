@@ -636,6 +636,30 @@ let _dafny = (function() {
       }
       return s;
     }
+    Union(that) {
+      let m = that.slice();
+      for (let e of this) {
+        let [k, v] = e;
+        let i = m.findIndex(k);
+        if (i == m.length) {
+          m[i] = [k, v];
+        }
+      }
+      return m;
+    }
+    Subtract(keys) {
+      if (this.length === 0 || keys.length === 0) {
+        return this;
+      }
+      let m = new Map();
+      for (let e of this) {
+        let [k, v] = e;
+        if (!keys.contains(k)) {
+          m[m.length] = e;
+        }
+      }
+      return m;
+    }
   }
   $module.newArray = function(initValue, ...dims) {
     return { dims: dims, elmts: buildArray(initValue, ...dims) };

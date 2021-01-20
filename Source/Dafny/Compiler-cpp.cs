@@ -2140,6 +2140,7 @@ namespace Microsoft.Dafny {
           preOpString = "!"; callString = "contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.Union:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
+        case BinaryExpr.ResolvedOpcode.MapUnion:
           callString = "Union"; break;
         case BinaryExpr.ResolvedOpcode.Intersection:
         case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
@@ -2147,6 +2148,8 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.SetDifference:
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
           callString = "Difference"; break;
+        case BinaryExpr.ResolvedOpcode.MapSubtraction:
+          callString = "Subtract"; break;
 
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
           callString = "IsProperPrefixOf"; break;

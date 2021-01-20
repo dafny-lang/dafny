@@ -1445,6 +1445,39 @@ func (m Map) Update(key, value interface{}) Map {
   return ans
 }
 
+func (a Map) Union(b Map) Map {
+  if a.CardinalityInt() == 0 {
+    return b
+  }
+  if b.CardinalityInt() == 0 {
+    return a
+  }
+
+  m := make([]mapElt, len(b.elts), len(a.elts) + len(b.elts))
+  copy(m, b.elts)
+  for _, e := range a.elts {
+    _, found := b.findIndex(e.key)
+    if !found {
+      m = append(m, e)
+    }
+  }
+  return Map{m}
+}
+
+func (a Map) Subtract(keys Set) Map {
+  if a.CardinalityInt() == 0 || keys.CardinalityInt() == 0 {
+    return a
+  }
+
+  mb := NewMapBuilder()
+  for _, e := range a.elts {
+    if !keys.Contains(e.key) {
+      *mb = append(*mb, e)
+    }
+  }
+  return mb.ToMap()
+}
+
 // Equals returns whether each map associates the same keys to the same values.
 func (m Map) Equals(m2 Map) bool {
   if len(m.elts) != len(m2.elts) {

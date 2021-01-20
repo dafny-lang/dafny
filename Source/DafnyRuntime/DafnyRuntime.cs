@@ -588,13 +588,19 @@ namespace Dafny
     readonly bool hasNullKey;  // true when "null" is a key of the Map
     readonly V nullValue;  // if "hasNullKey", the value that "null" maps to
 
-    Map(ImmutableDictionary<U, V>.Builder d, bool hasNullKey, V nullValue) {
+    private Map(ImmutableDictionary<U, V>.Builder d, bool hasNullKey, V nullValue) {
       dict = d.ToImmutable();
       this.hasNullKey = hasNullKey;
       this.nullValue = nullValue;
     }
     public static readonly Map<U, V> Empty = new Map<U, V>(ImmutableDictionary<U, V>.Empty.ToBuilder(), false, default(V));
 
+    private Map(ImmutableDictionary<U, V> d, bool hasNullKey, V nullValue) {
+      dict = d;
+      this.hasNullKey = hasNullKey;
+      this.nullValue = nullValue;
+    }
+    
     private static readonly TypeDescriptor<IMap<U, V>> _TYPE = new Dafny.TypeDescriptor<IMap<U, V>>(Empty);
     public static TypeDescriptor<IMap<U, V>> _TypeDescriptor() {
       return _TYPE;
@@ -748,6 +754,19 @@ namespace Dafny
       }
     }
 
+    public static IMap<U, V> Union(IMap<U, V> th, IMap<U, V> other) {
+      var a = FromIMap(th);
+      var b = FromIMap(other);
+      ImmutableDictionary<U, V> d = a.dict.SetItems(b.dict);
+      return new Map<U, V>(d, a.hasNullKey || b.hasNullKey, b.hasNullKey ? b.nullValue : a.nullValue);
+    }
+    
+    public static IMap<U, V> Subtract(IMap<U, V> th, ISet<U> keys) {
+      var a = FromIMap(th);
+      ImmutableDictionary<U, V> d = a.dict.RemoveRange(keys.Elements);
+      return new Map<U, V>(d, a.hasNullKey && !keys.Contains<object>(null), a.nullValue);
+    }
+    
     public ISet<U> Keys {
       get {
         if (hasNullKey) {
