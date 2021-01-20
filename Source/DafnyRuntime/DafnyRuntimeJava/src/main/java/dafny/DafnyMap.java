@@ -133,17 +133,17 @@ public class DafnyMap<K, V> {
         return innerMap.get(key);
     }
 
-    public DafnySet<K> dafnyKeySet() {
+    public DafnySet<K> keySet() {
         return new DafnySet<>(innerMap.keySet());
     }
 
-    public DafnySet<V> dafnyValues() {
+    public DafnySet<V> valueSet() {
         return new DafnySet<>(innerMap.values());
     }
 
     // Until tuples (and other datatypes) are compiled with type-argument variance, the following
     // method takes type parameters <KK, VV>. The expectation is that <K, V> is <? extends KK, ? extends VV>.
-    public <KK, VV> DafnySet<? extends Tuple2<KK, VV>> dafnyEntrySet() {
+    public <KK, VV> DafnySet<? extends Tuple2<KK, VV>> entrySet() {
         ArrayList<Tuple2<K, V>> list = new ArrayList<Tuple2<K, V>>();
         for (Map.Entry<K, V> entry : innerMap.entrySet()) {
             list.add(new Tuple2<K, V>(entry.getKey(), entry.getValue()));

@@ -16,7 +16,7 @@ class MapTest {
         h.put(1, 'c');
         dm = DafnyMap.update(dm, 1, 'c');
         assertEquals(dm, new DafnyMap<>(h));
-        assertEquals(dm.dafnyKeySet(), new DafnySet(h.keySet()));
+        assertEquals(dm.keySet(), new DafnySet(h.keySet()));
         assertTrue(dm.contains(1));
 
         // create an updated map, but dm stays the same
