@@ -3008,8 +3008,9 @@ namespace Microsoft.Dafny {
           callString = "Contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.Union:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-        case BinaryExpr.ResolvedOpcode.MapUnion:
           callString = "Union"; break;
+        case BinaryExpr.ResolvedOpcode.MapMerge:
+          callString = "Merge"; break;
         case BinaryExpr.ResolvedOpcode.Intersection:
         case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
           callString = "Intersection"; break;

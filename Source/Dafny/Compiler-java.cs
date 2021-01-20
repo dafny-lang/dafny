@@ -2809,8 +2809,8 @@ namespace Microsoft.Dafny{
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           staticCallString = $"{DafnyMultiSetClass}.<{BoxedTypeName(resultType.AsMultiSetType.Arg, errorWr, tok)}>union";
           break;
-        case BinaryExpr.ResolvedOpcode.MapUnion:
-          staticCallString = $"{DafnyMapClass}.<{BoxedTypeName(resultType.AsMapType.Domain, errorWr, tok)}, {BoxedTypeName(resultType.AsMapType.Range, errorWr, tok)}>union";
+        case BinaryExpr.ResolvedOpcode.MapMerge:
+          staticCallString = $"{DafnyMapClass}.<{BoxedTypeName(resultType.AsMapType.Domain, errorWr, tok)}, {BoxedTypeName(resultType.AsMapType.Range, errorWr, tok)}>merge";
           break;
         case BinaryExpr.ResolvedOpcode.Intersection:
           staticCallString = $"{DafnySetClass}.<{BoxedTypeName(resultType.AsSetType.Arg, errorWr, tok)}>intersection";

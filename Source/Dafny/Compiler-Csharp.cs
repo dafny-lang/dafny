@@ -2496,8 +2496,9 @@ namespace Microsoft.Dafny
 
         case BinaryExpr.ResolvedOpcode.Union:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-        case BinaryExpr.ResolvedOpcode.MapUnion:
           staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Union"; break;
+        case BinaryExpr.ResolvedOpcode.MapMerge:
+          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Merge"; break;
         case BinaryExpr.ResolvedOpcode.Intersection:
         case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
           staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Intersect"; break;

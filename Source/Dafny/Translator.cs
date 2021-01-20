@@ -15712,9 +15712,9 @@ namespace Microsoft.Dafny {
                                      BoxIfNecessary(expr.tok, e0, e.E0.Type));
               return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, inMap);
             }
-            case BinaryExpr.ResolvedOpcode.MapUnion: {
+            case BinaryExpr.ResolvedOpcode.MapMerge: {
               bool finite = e.E0.Type.AsMapType.Finite;
-              var f = finite ? "Map#Union" : "IMap#Union";
+              var f = finite ? "Map#Merge" : "IMap#Merge";
               return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type), e0, e1);
             }
             case BinaryExpr.ResolvedOpcode.MapSubtraction: {

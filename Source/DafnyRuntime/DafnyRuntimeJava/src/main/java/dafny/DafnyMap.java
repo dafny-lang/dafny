@@ -109,7 +109,7 @@ public class DafnyMap<K, V> implements Map<K, V> {
         return innerMap.remove(key, value);
     }
 
-    public static <K, V> DafnyMap<? extends K, ? extends V> union(DafnyMap<? extends K, ? extends V> th, DafnyMap<? extends K, ? extends V> other) {
+    public static <K, V> DafnyMap<? extends K, ? extends V> merge(DafnyMap<? extends K, ? extends V> th, DafnyMap<? extends K, ? extends V> other) {
         assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";
 

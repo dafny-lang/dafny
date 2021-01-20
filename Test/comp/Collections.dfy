@@ -242,17 +242,17 @@ method Maps() {
   var items := m.Items;
   print "items: ", items, "\n";
 
-  TestMapUnionSubtraction();
+  TestMapMergeSubtraction();
 }
 
-method TestMapUnionSubtraction() {
-  TestMapUnion();
+method TestMapMergeSubtraction() {
+  TestMapMerge();
   TestMapSubtraction();
   TestNullsAmongKeys();
   TestNullsAmongValues();
 }
 
-method TestMapUnion() {
+method TestMapMerge() {
   var a := map["ronald" := 66, "jack" := 70, "bk" := 8];
   var b := map["wendy" := 52, "bk" := 67];
   var ages := a + b;

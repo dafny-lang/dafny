@@ -636,7 +636,7 @@ let _dafny = (function() {
       }
       return s;
     }
-    Union(that) {
+    Merge(that) {
       let m = that.slice();
       for (let e of this) {
         let [k, v] = e;

@@ -1445,7 +1445,7 @@ func (m Map) Update(key, value interface{}) Map {
   return ans
 }
 
-func (a Map) Union(b Map) Map {
+func (a Map) Merge(b Map) Map {
   if a.CardinalityInt() == 0 {
     return b
   }

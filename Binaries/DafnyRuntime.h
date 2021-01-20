@@ -739,7 +739,7 @@ struct DafnyMap {
         return ret;
     }
 
-    DafnyMap<K, V> Union(DafnyMap<K, V> other) {
+    DafnyMap<K, V> Merge(DafnyMap<K, V> other) {
         DafnyMap<K,V> ret(other);
         for (const auto& kv : map) {
             auto ptr = other.map.find(kv.first);

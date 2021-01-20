@@ -754,7 +754,7 @@ namespace Dafny
       }
     }
 
-    public static IMap<U, V> Union(IMap<U, V> th, IMap<U, V> other) {
+    public static IMap<U, V> Merge(IMap<U, V> th, IMap<U, V> other) {
       var a = FromIMap(th);
       var b = FromIMap(other);
       ImmutableDictionary<U, V> d = a.dict.SetItems(b.dict);
