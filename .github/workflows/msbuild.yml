@@ -22,7 +22,7 @@ jobs:
              ubuntu-latest,
              macos-latest,
            ##  windows-latest,
-             ubuntu-16.04
+             ubuntu-16.04,
             ]
         ## Size of the following array must match --num-shards in lit command
         shard: [1, 2, 3, 4, 5]
