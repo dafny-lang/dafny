@@ -81,7 +81,7 @@ class Release:
             raise Exception("{} does not match Z3_RELEASE_REGEXP".format(name))
         return m.group('platform'), m.group('os'), m.group("directory")
 
-    def __init__(self, js, version):
+    def __init__(self, js, version, out):
         self.z3_name = js["name"]
         self.size = js["size"]
         self.url = js["browser_download_url"]
@@ -89,6 +89,8 @@ class Release:
         self.os_name = self.os.split("-")[0]
         self.z3_zip = path.join(CACHE_DIRECTORY, self.z3_name)
         self.dafny_name = "dafny-{}-{}-{}.zip".format(version, self.platform, self.os)
+        if out != None:
+            self.dafny_name = out
         self.target = "{}-{}".format(z3ToDotNetOSMapping[self.os_name], self.platform)
         self.dafny_zip = path.join(DESTINATION_DIRECTORY, self.dafny_name)
         self.buildDirectory = path.join(BINARIES_DIRECTORY, self.target, "publish")
@@ -181,13 +183,13 @@ class Release:
         if missing:
             flush("      WARNING: Not all files were found: {} were missing".format(", ".join(missing)))
 
-def discover(version):
+def discover(args):
     flush("  - Getting information about latest release")
     with urllib.request.urlopen(Z3_RELEASES_URL) as reader:
         js = json.loads(reader.read().decode("utf-8"))
 
         for release_js in js["assets"]:
-            release = Release(release_js, version)
+            release = Release(release_js, args.version, args.out)
             if release.platform == "x64":
                 flush("    + Selecting {} ({:.2f}MB, {})".format(release.z3_name, release.MB, release.size))
                 yield release
@@ -259,6 +261,7 @@ def parse_arguments():
     parser.add_argument("--os", help="operating system name for which to make a release")
     parser.add_argument("--skip_manual", help="do not create the reference manual")
     parser.add_argument("--trial", help="ignore version.cs discrepancies")
+    parser.add_argument("--out", help="output zip file")
     return parser.parse_args()
 
 def main():
@@ -273,7 +276,7 @@ def main():
 
     # Z3
     flush("* Finding and downloading Z3 releases")
-    releases = list(discover(args.version))
+    releases = list(discover(args))
     if args.os:
         releases = list(filter(lambda release: release.os_name == args.os, releases))
     download(releases)
