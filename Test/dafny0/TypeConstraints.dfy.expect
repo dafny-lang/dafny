@@ -7,11 +7,10 @@ TypeConstraints.dfy(81,6): Error: RHS (of type int) not assignable to LHS (of ty
 TypeConstraints.dfy(77,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
 TypeConstraints.dfy(94,8): Error: the type of this local variable is underspecified
 TypeConstraints.dfy(94,11): Error: the type of this local variable is underspecified
-TypeConstraints.dfy(102,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
-TypeConstraints.dfy(136,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
-TypeConstraints.dfy(147,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got C?)
-TypeConstraints.dfy(145,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got map<bool, int>)
-TypeConstraints.dfy(149,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got C)
+TypeConstraints.dfy(102,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+TypeConstraints.dfy(136,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+TypeConstraints.dfy(147,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got C?)
+TypeConstraints.dfy(149,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got C)
 TypeConstraints.dfy(176,6): Error: RHS (of type C) not assignable to LHS (of type R)
 // TypeConstraints.dfy
 
@@ -844,4 +843,41 @@ module TypeArgumentPrintTests {
   type {:axiom} B(==)<Y> = c: B?<Y> | c != null /*special witness*/
   */
 }
-15 resolution/type errors detected in TypeConstraints.dfy
+
+module PrettyPrintingBindingPowers {
+  /* CALL GRAPH for module PrettyPrintingBindingPowers:
+   * SCC at height 2:
+   *   M
+   * SCC at height 1:
+   *   P
+   * SCC at height 0:
+   *   MyInt
+   */
+  newtype MyInt = u: int
+    | u != 193
+
+  method M(m: map<int, real>, n: map<int, real>, a: set<int>, b: set<int>, c: set<int>)
+      returns (r: map<int, real>)
+  {
+    r := m - b - c;
+    r := m - b + n;
+    r := m - b + n;
+    r := m - (b + c);
+    r := m + n - (b + c);
+    r := m + (n - (b + c));
+    r := m + (n - b) - c;
+    r := m + (m + n) + m;
+    r := m + m + n + m;
+  }
+
+  method P()
+      returns (x: int, u: MyInt, s: set<int>, e: seq<int>, m: map<int, int>)
+  {
+    x := x + x + x;
+    u := u + (u + u);
+    s := s + (s + s);
+    e := e + (e + e);
+    m := m + (m + m);
+  }
+}
+14 resolution/type errors detected in TypeConstraints.dfy
