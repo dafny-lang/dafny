@@ -2495,7 +2495,7 @@ namespace Microsoft.Dafny{
       var mt = e.Type.AsMapType;
       var domType = mt.Domain;
       var ranType = mt.Range;
-      wr.WriteLine($"{DafnyMapClass}<{BoxedTypeName(domType, wr, e.tok)}, {BoxedTypeName(ranType, wr, e.tok)}> {collectionName} = new {DafnyMapClass}<>();");
+      wr.WriteLine($"java.util.HashMap<{BoxedTypeName(domType, wr, e.tok)}, {BoxedTypeName(ranType, wr, e.tok)}> {collectionName} = new java.util.HashMap<>();");
     }
 
     protected override void OrganizeModules(Program program, out List<ModuleDefinition> modules){
