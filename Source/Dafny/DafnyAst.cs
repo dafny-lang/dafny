@@ -5311,8 +5311,6 @@ namespace Microsoft.Dafny {
     public readonly DafnyOptions.CompilationTarget CompilationTargets;
     public NativeType(string Name, BigInteger LowerBound, BigInteger UpperBound, int bitwidth, Selection sel, DafnyOptions.CompilationTarget compilationTargets) {
       Contract.Requires(Name != null);
-      Contract.Requires(LowerBound != null);
-      Contract.Requires(UpperBound != null);
       Contract.Requires(0 <= bitwidth && (bitwidth == 0 || LowerBound == 0));
       this.Name = Name;
       this.LowerBound = LowerBound;
