@@ -72,11 +72,9 @@ jobs:
       if: runner.os != 'Windows'
       run: |
         dafny/dafny /compileVerbose:0 /compile:0 a.dfy
-        ##dafny/dafny /compileVerbose:0 /compile:0 a.dfy /proverOpt:PROVER_PATH=dafny/z3/bin/z3
     - name: Check - Windows
       if: runner.os == 'Windows'
       run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy
-      ##run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy /proverOpt:PROVER_PATH=dafny/z3/bin/z3.exe
     - name: Check bad
       run: dafny/dafny /compile:0 b.dfy || echo "EXPECTED FAILURE" ; exit 0
     - name: Check bad - non Windows
