@@ -78,5 +78,5 @@ jobs:
         unzip dafny/Package/CI.zip -d unzippedRelease
     - name: Run lit tests
       run: |
-        lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} dafny/Test
-        ##lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} --param executable=$PWD/unzippedRelease/dafny/dafny --param serverExecutable=$PWD/unzippedRelease/dafny/DafnyServer dafny/Test
+        ## lit in this context needs the executables specified
+        lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} --param executable=$PWD/unzippedRelease/dafny/dafny --param serverExecutable=$PWD/unzippedRelease/dafny/DafnyServer dafny/Test
