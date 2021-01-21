@@ -1241,15 +1241,15 @@ axiom (forall<U, V> m: Map U V, u: U, v: V :: { Map#Card(Map#Build(m, u, v)) }
   !Map#Domain(m)[u] ==> Map#Card(Map#Build(m, u, v)) == Map#Card(m) + 1);
 
 // Map operations
-function Map#Union<U, V>(Map U V, Map U V): Map U V;
+function Map#Merge<U, V>(Map U V, Map U V): Map U V;
 axiom (forall<U, V> m: Map U V, n: Map U V ::
-  { Map#Domain(Map#Union(m, n)) }
-  Map#Domain(Map#Union(m, n)) == Set#Union(Map#Domain(m), Map#Domain(n)));
+  { Map#Domain(Map#Merge(m, n)) }
+  Map#Domain(Map#Merge(m, n)) == Set#Union(Map#Domain(m), Map#Domain(n)));
 axiom (forall<U, V> m: Map U V, n: Map U V, u: U ::
-  { Map#Elements(Map#Union(m, n))[u] }
-  Map#Domain(Map#Union(m, n))[u] ==>
-    (!Map#Domain(n)[u] ==> Map#Elements(Map#Union(m, n))[u] == Map#Elements(m)[u]) &&
-    (Map#Domain(n)[u] ==> Map#Elements(Map#Union(m, n))[u] == Map#Elements(n)[u]));
+  { Map#Elements(Map#Merge(m, n))[u] }
+  Map#Domain(Map#Merge(m, n))[u] ==>
+    (!Map#Domain(n)[u] ==> Map#Elements(Map#Merge(m, n))[u] == Map#Elements(m)[u]) &&
+    (Map#Domain(n)[u] ==> Map#Elements(Map#Merge(m, n))[u] == Map#Elements(n)[u]));
 
 function Map#Subtract<U, V>(Map U V, Set U): Map U V;
 axiom (forall<U, V> m: Map U V, s: Set U ::
@@ -1379,15 +1379,15 @@ axiom (forall<U, V> m: IMap U V, m': IMap U V::
     IMap#Equal(m, m') ==> m == m');
 
 // IMap operations
-function IMap#Union<U, V>(IMap U V, IMap U V): IMap U V;
+function IMap#Merge<U, V>(IMap U V, IMap U V): IMap U V;
 axiom (forall<U, V> m: IMap U V, n: IMap U V ::
-  { IMap#Domain(IMap#Union(m, n)) }
-  IMap#Domain(IMap#Union(m, n)) == Set#Union(IMap#Domain(m), IMap#Domain(n)));
+  { IMap#Domain(IMap#Merge(m, n)) }
+  IMap#Domain(IMap#Merge(m, n)) == Set#Union(IMap#Domain(m), IMap#Domain(n)));
 axiom (forall<U, V> m: IMap U V, n: IMap U V, u: U ::
-  { IMap#Elements(IMap#Union(m, n))[u] }
-  IMap#Domain(IMap#Union(m, n))[u] ==>
-    (!IMap#Domain(n)[u] ==> IMap#Elements(IMap#Union(m, n))[u] == IMap#Elements(m)[u]) &&
-    (IMap#Domain(n)[u] ==> IMap#Elements(IMap#Union(m, n))[u] == IMap#Elements(n)[u]));
+  { IMap#Elements(IMap#Merge(m, n))[u] }
+  IMap#Domain(IMap#Merge(m, n))[u] ==>
+    (!IMap#Domain(n)[u] ==> IMap#Elements(IMap#Merge(m, n))[u] == IMap#Elements(m)[u]) &&
+    (IMap#Domain(n)[u] ==> IMap#Elements(IMap#Merge(m, n))[u] == IMap#Elements(n)[u]));
 
 function IMap#Subtract<U, V>(IMap U V, Set U): IMap U V;
 axiom (forall<U, V> m: IMap U V, s: Set U ::

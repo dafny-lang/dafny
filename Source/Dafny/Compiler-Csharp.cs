@@ -2497,12 +2497,17 @@ namespace Microsoft.Dafny
         case BinaryExpr.ResolvedOpcode.Union:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Union"; break;
+        case BinaryExpr.ResolvedOpcode.MapMerge:
+          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Merge"; break;
         case BinaryExpr.ResolvedOpcode.Intersection:
         case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
           staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Intersect"; break;
         case BinaryExpr.ResolvedOpcode.SetDifference:
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
           staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Difference"; break;
+
+        case BinaryExpr.ResolvedOpcode.MapSubtraction:
+          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Subtract"; break;
 
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
           staticCallString = TypeHelperName(e0.Type, errorWr, e0.tok) + ".IsProperPrefixOf"; break;
