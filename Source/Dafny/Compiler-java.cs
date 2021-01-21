@@ -1212,16 +1212,16 @@ namespace Microsoft.Dafny{
           postString = ")";
           break;
         case SpecialField.ID.Keys:
-          compiledName = "dafnyKeySet()";
+          compiledName = "keySet()";
           break;
         case SpecialField.ID.Values:
-          compiledName = "dafnyValues()";
+          compiledName = "valueSet()";
           break;
         case SpecialField.ID.Items:
           var mapType = receiverType.AsMapType;
           Contract.Assert(mapType != null);
           var errorWr = new TargetWriter();
-          compiledName = $"<{BoxedTypeName(mapType.Domain, errorWr, Bpl.Token.NoToken)}, {BoxedTypeName(mapType.Range, errorWr, Bpl.Token.NoToken)}>dafnyEntrySet()";
+          compiledName = $"<{BoxedTypeName(mapType.Domain, errorWr, Bpl.Token.NoToken)}, {BoxedTypeName(mapType.Range, errorWr, Bpl.Token.NoToken)}>entrySet()";
           break;
         case SpecialField.ID.Reads:
           compiledName = "_reads";
@@ -2495,7 +2495,7 @@ namespace Microsoft.Dafny{
       var mt = e.Type.AsMapType;
       var domType = mt.Domain;
       var ranType = mt.Range;
-      wr.WriteLine($"{DafnyMapClass}<{BoxedTypeName(domType, wr, e.tok)}, {BoxedTypeName(ranType, wr, e.tok)}> {collectionName} = new {DafnyMapClass}<>();");
+      wr.WriteLine($"java.util.HashMap<{BoxedTypeName(domType, wr, e.tok)}, {BoxedTypeName(ranType, wr, e.tok)}> {collectionName} = new java.util.HashMap<>();");
     }
 
     protected override void OrganizeModules(Program program, out List<ModuleDefinition> modules){
