@@ -76,7 +76,7 @@ jobs:
     - if: runner.os != 'Windows'
       run: |
         unzip dafny/Package/CI.zip -d unzippedRelease
-        sudo chmod +x $PWD/unzippedRelease/dafny/dafny
+        ##sudo chmod +x $PWD/unzippedRelease/dafny/dafny
     - name: Run lit tests
       run: |
         lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} --param executable=$PWD/unzippedRelease/dafny/dafny --param serverExecutable=$PWD/unzippedRelease/dafny/DafnyServer dafny/Test
