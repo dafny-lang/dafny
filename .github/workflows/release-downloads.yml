@@ -45,10 +45,9 @@ jobs:
       if: runner.os != 'Windows'
       run: |
         curl "https://api.github.com/repos/dafny-lang/dafny/releases/latest" > tmp.curl
-        wc tmp.curl
-        cat tmp.curl
+        grep "rate limit" tmp.curl
         downloadUrl=`grep 'browser_download_url' tmp.curl | grep "${{matrix.osn}}" | sed -e 's@"browser_download_url":@@' -e 's@"@@g'`
-        echo $downloadUrl
+        echo URL: $downloadUrl
         wget -q $downloadUrl
         unzip dafny*.zip && rm dafny*.zip
     - if: runner.os == 'Windows'
