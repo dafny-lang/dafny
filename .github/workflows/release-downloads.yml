@@ -44,7 +44,11 @@ jobs:
     - name: Download ${{matrix.os}} releases ( ${{matrix.osn}} )
       if: runner.os != 'Windows'
       run: |
-        wget -q `curl --silent "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | grep 'browser_download_url' |  grep "${{matrix.osn}}" | sed -e 's@"browser_download_url":@@' -e 's@"@@g'`
+        metadata=$(curl "https://api.github.com/repos/dafny-lang/dafny/releases/latest")
+        echo $metadata | grep 'browser_download_url'
+        downloadUrl=`echo $metadata | grep 'browser_download_url' |  grep "${{matrix.osn}}" | sed -e 's@"browser_download_url":@@' -e 's@"@@g'
+        echo $downloadUrl
+        wget -q $downloadUrl
         unzip dafny*.zip && rm dafny*.zip
     - if: runner.os == 'Windows'
       shell: pwsh
