@@ -7,10 +7,10 @@
       <DefineConstants>TRACE</DefineConstants>
       <PackageVersion>1.1.0</PackageVersion>
       <TargetFramework>net5.0</TargetFramework>
+      <OutputPath>..\..\Binaries\</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net5.0|AnyCPU'">
-    <OutputPath>..\..\Binaries\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
