@@ -874,6 +874,194 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// This property returns true if the type is known to be nonempty.
+    /// This property should be used only after successful resolution. It is assumed that all type proxies have
+    /// been resolved and that all recursion through types comes to an end.
+    /// Note, HasCompilableValue ==> IsNonEmpty.
+    /// </summary>
+    public bool IsNonempty {
+      get {
+        var t = NormalizeExpandKeepConstraints();
+        Contract.Assume(t is NonProxyType); // precondition
+
+        if (t is BoolType || t is CharType || t is IntType || t is BigOrdinalType || t is RealType || t is BitvectorType) {
+          return true;
+        } else if (t is CollectionType) {
+          return true;
+        }
+
+        var udt = (UserDefinedType)t;
+        if (udt.ResolvedParam != null) {
+          return udt.ResolvedParam.Characteristics.MustBeNonempty;
+        }
+        var cl = udt.ResolvedClass;
+        Contract.Assert(cl != null);
+        if (cl is OpaqueTypeDecl) {
+          var otd = (OpaqueTypeDecl)cl;
+          return otd.Characteristics.MustBeNonempty;
+        } else if (cl is InternalTypeSynonymDecl) {
+          var isyn = (InternalTypeSynonymDecl)cl;
+          return isyn.Characteristics.MustBeNonempty;
+        } else if (cl is NewtypeDecl) {
+          var td = (NewtypeDecl)cl;
+          switch (td.WitnessKind) {
+            case SubsetTypeDecl.WKind.Compiled:
+            case SubsetTypeDecl.WKind.Ghost:
+              return true;
+            case SubsetTypeDecl.WKind.None:
+              // 0 is a witness
+              return true;
+            case SubsetTypeDecl.WKind.Special:
+            default:
+              Contract.Assert(false);  // unexpected case
+              return false;
+          }
+        } else if (cl is SubsetTypeDecl) {
+          var td = (SubsetTypeDecl)cl;
+          switch (td.WitnessKind) {
+            case SubsetTypeDecl.WKind.Compiled:
+            case SubsetTypeDecl.WKind.Ghost:
+              return true;
+            case SubsetTypeDecl.WKind.None:
+              // 0 is a witness
+              return true;
+            case SubsetTypeDecl.WKind.Special:
+              // WKind.Special is only used with -->, ->, and non-null types:
+              Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
+              if (ArrowType.IsPartialArrowTypeName(td.Name)) {
+                // partial arrow
+                return udt.TypeArgs.Last().IsNonempty;
+              } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
+                // total arrow
+                return udt.TypeArgs.Last().IsNonempty;
+              } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
+                // non-null array type; we know how to initialize them
+                return true;
+              } else {
+                // non-null (non-array) type
+                return false;
+              }
+            default:
+              Contract.Assert(false);  // unexpected case
+              return false;
+          }
+        } else if (cl is ClassDecl) {
+          return true;  // null is a value of this type
+        } else if (cl is IndDatatypeDecl) {
+          var dt = (IndDatatypeDecl)cl;
+          Contract.Assert(dt.TypeArgs.Count == udt.TypeArgs.Count);
+          Contract.Assert(dt.TypeArgs.Count == dt.TypeParametersUsedInConstructionByGroundingCtor.Length);
+          for (var i = 0; i < dt.TypeParametersUsedInConstructionByGroundingCtor.Length; i++) {
+            if (dt.TypeParametersUsedInConstructionByGroundingCtor[i] && !udt.TypeArgs[i].IsNonempty) {
+              return false;
+            }
+          }
+          return true;
+        } else if (cl is CoDatatypeDecl) {
+          return false;  // TODO: try harder
+        } else {
+          Contract.Assert(false); // unexpected type
+          throw new cce.UnreachableException();
+        }
+      }
+    }
+
+    /// <summary>
+    /// This property returns true if the type has a known compilable value.
+    /// This property should be used only after successful resolution. It is assumed that all type proxies have
+    /// been resolved and that all recursion through types comes to an end.
+    /// Note, HasCompilableValue ==> IsNonEmpty.
+    /// </summary>
+    public bool HasCompilableValue {
+      get {
+        var t = NormalizeExpandKeepConstraints();
+        Contract.Assume(t is NonProxyType); // precondition
+
+        if (t is BoolType || t is CharType || t is IntType || t is BigOrdinalType || t is RealType || t is BitvectorType) {
+          return true;
+        } else if (t is CollectionType) {
+          return true;
+        }
+
+        var udt = (UserDefinedType)t;
+        if (udt.ResolvedParam != null) {
+          return udt.ResolvedParam.Characteristics.MustSupportZeroInitialization;
+        }
+        var cl = udt.ResolvedClass;
+        Contract.Assert(cl != null);
+        if (cl is OpaqueTypeDecl) {
+          var otd = (OpaqueTypeDecl)cl;
+          return otd.Characteristics.MustSupportZeroInitialization;
+        } else if (cl is InternalTypeSynonymDecl) {
+          var isyn = (InternalTypeSynonymDecl)cl;
+          return isyn.Characteristics.MustSupportZeroInitialization;
+        } else if (cl is NewtypeDecl) {
+          var td = (NewtypeDecl)cl;
+          switch (td.WitnessKind) {
+            case SubsetTypeDecl.WKind.Compiled:
+              return true;
+            case SubsetTypeDecl.WKind.Ghost:
+              return false;
+            case SubsetTypeDecl.WKind.None:
+              // 0 is a witness
+              return true;
+            case SubsetTypeDecl.WKind.Special:
+            default:
+              Contract.Assert(false); // unexpected case
+              return false;
+          }
+        } else if (cl is SubsetTypeDecl) {
+          var td = (SubsetTypeDecl)cl;
+          switch (td.WitnessKind) {
+            case SubsetTypeDecl.WKind.Compiled:
+              return true;
+            case SubsetTypeDecl.WKind.Ghost:
+              return false;
+            case SubsetTypeDecl.WKind.None:
+              // 0 is a witness
+              return true;
+            case SubsetTypeDecl.WKind.Special:
+              // WKind.Special is only used with -->, ->, and non-null types:
+              Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
+              if (ArrowType.IsPartialArrowTypeName(td.Name)) {
+                // partial arrow
+                return udt.TypeArgs.Last().HasCompilableValue;
+              } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
+                // total arrow
+                return udt.TypeArgs.Last().HasCompilableValue;
+              } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
+                // non-null array type; we know how to initialize them
+                return true;
+              } else {
+                // non-null (non-array) type
+                return false;
+              }
+            default:
+              Contract.Assert(false); // unexpected case
+              return false;
+          }
+        } else if (cl is ClassDecl) {
+          return true; // null is a value of this type
+        } else if (cl is IndDatatypeDecl) {
+          var dt = (IndDatatypeDecl)cl;
+          Contract.Assert(dt.TypeArgs.Count == udt.TypeArgs.Count);
+          Contract.Assert(dt.TypeArgs.Count == dt.TypeParametersUsedInConstructionByGroundingCtor.Length);
+          for (var i = 0; i < dt.TypeParametersUsedInConstructionByGroundingCtor.Length; i++) {
+            if (dt.TypeParametersUsedInConstructionByGroundingCtor[i] && !udt.TypeArgs[i].HasCompilableValue) {
+              return false;
+            }
+          }
+          return true;
+        } else if (cl is CoDatatypeDecl) {
+          return false; // TODO: try harder
+        } else {
+          Contract.Assert(false); // unexpected type
+          throw new cce.UnreachableException();
+        }
+      }
+    }
+
     public bool HasFinitePossibleValues {
       get {
         if (IsBoolType || IsCharType || IsRefType) {
@@ -3426,6 +3614,7 @@ namespace Microsoft.Dafny {
     {
       public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
       public bool MustSupportZeroInitialization;
+      public bool MustBeNonempty => true;  // TODO: make this an independent characteristic
       public bool DisallowReferenceTypes;
       public TypeParameterCharacteristics(bool dummy) {
         EqualitySupport = EqualitySupportValue.Unspecified;

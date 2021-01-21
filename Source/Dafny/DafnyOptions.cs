@@ -813,7 +813,7 @@ namespace Microsoft.Dafny
     to be shadowed
 /definiteAssignment:<n>
     0 - ignores definite-assignment rules; this mode is for testing only--it is
-        not sound to be used with compilation
+        not sound
     1 (default) - enforces definite-assignment rules for variables and fields
         of types that do not support auto-initialization
     2 - enforces definite-assignment for all non-ghost non-yield-parameter

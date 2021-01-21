@@ -4619,10 +4619,23 @@ namespace Microsoft.Dafny {
       Contract.Requires(p != null);
       Contract.Requires(localVariables != null);
 
-      if (DafnyOptions.O.DefiniteAssignmentLevel == 0 || p.IsGhost) {
+      if (DafnyOptions.O.DefiniteAssignmentLevel == 0) {
         return;
-      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(p.Type)) {
-        return;
+      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1) {
+#if DEBUG
+        var debug0 = p.Type.IsNonempty;
+        var debug1 = p.Type.HasCompilableValue;
+        var debug2 = Compiler.InitializerIsKnown(p.Type);
+        // we expect: (debug2 ==> debug1) and (debug1 ==> debug0)
+        if ((debug2 && !debug1) || (debug1 && !debug0)) {
+          Console.WriteLine($"DEBUG: {p.Tok.filename}({p.Tok.line},{p.Tok.col}): variable '{p.Name}' of type '{p.Type}' ~~> {debug0} {debug1} {debug2}");          
+        }
+#endif
+        if (p.IsGhost && p.Type.IsNonempty) {
+          return;
+        } else if (!p.IsGhost && p.Type.HasCompilableValue) {
+          return;
+        }
       }
       var tracker = new Bpl.LocalVariable(p.Tok, new Bpl.TypedIdent(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool));
       localVariables.Add(tracker);
@@ -4634,12 +4647,25 @@ namespace Microsoft.Dafny {
       Contract.Requires(field != null);
       Contract.Requires(localVariables != null);
 
-      if (DafnyOptions.O.DefiniteAssignmentLevel == 0 || field.IsGhost) {
+      if (DafnyOptions.O.DefiniteAssignmentLevel == 0) {
         return;
       }
       var type = Resolver.SubstType(field.Type, enclosingClass.ParentFormalTypeParametersToActuals);
-      if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(type)) {
-        return;
+      if (DafnyOptions.O.DefiniteAssignmentLevel == 1) {
+#if DEBUG
+        var debug0 = field.Type.IsNonempty;
+        var debug1 = field.Type.HasCompilableValue;
+        var debug2 = Compiler.InitializerIsKnown(field.Type);
+        // we expect: (debug2 ==> debug1) and (debug1 ==> debug0)
+        if ((debug2 && !debug1) || (debug1 && !debug0)) {
+          Console.WriteLine($"DEBUG: {field.tok.filename}({field.tok.line},{field.tok.col}): field '{field.Name}' of type '{field.Type}' ~~> {debug0} {debug1} {debug2}");          
+        }
+#endif
+        if (field.IsGhost && field.Type.IsNonempty) {
+          return;
+        } else if (!field.IsGhost && field.Type.HasCompilableValue) {
+          return;
+        }
       }
       var nm = SurrogateName(field);
       var tracker = new Bpl.LocalVariable(field.tok, new Bpl.TypedIdent(field.tok, "defass#" + nm, Bpl.Type.Bool));
