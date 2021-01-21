@@ -5,6 +5,7 @@
       <AssemblyName>Dafny</AssemblyName>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
+      <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.1|AnyCPU'">

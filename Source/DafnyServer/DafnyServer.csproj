@@ -6,6 +6,7 @@
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
       <PackageVersion>1.1.0</PackageVersion>
+      <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.1|AnyCPU'">
