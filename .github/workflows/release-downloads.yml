@@ -45,7 +45,7 @@ jobs:
       if: runner.os != 'Windows'
       run: |
         metadata=$(curl "https://api.github.com/repos/dafny-lang/dafny/releases/latest")
-        echo $metadata | grep 'browser_download_url'
+        echo $metadata
         downloadUrl=`echo $metadata | grep 'browser_download_url' |  grep "${{matrix.osn}}" | sed -e 's@"browser_download_url":@@' -e 's@"@@g'
         echo $downloadUrl
         wget -q $downloadUrl
