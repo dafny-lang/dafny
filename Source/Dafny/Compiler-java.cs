@@ -806,7 +806,7 @@ namespace Microsoft.Dafny{
     //
     // An example to show how type parameters are dealt with:
     //
-    //   class Class<T /* needs zero initializer */, U /* does not */> {
+    //   class Class<T /* needs auto-initializer */, U /* does not */> {
     //     private String sT; // type descriptor for T
     //
     //     // Fields are assigned in the constructor because some will

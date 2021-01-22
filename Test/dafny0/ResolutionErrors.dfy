@@ -1912,11 +1912,11 @@ module ReturnBeforeNew {
   }
 }
 
-// ---------------- required zero initialization -----------------------
+// ---------------- required auto-initialization -----------------------
 
 module ZI {
   // the following are different syntactic ways of saying that the type
-  // must support zero initialization
+  // must support auto-initialization
   type ZA(0)
   type ZB(==)(0)
   type ZC(0)(==)
@@ -1951,11 +1951,11 @@ module ZI {
     P(c);
   }
 
-  newtype byte = x: int | 0 <= x < 256  // supports zero initialization
-  newtype MyInt = int  // supports zero initialization
-  newtype SixOrMore = x | 6 <= x witness 6
-  newtype AnotherSixOrMore = s: SixOrMore | true witness 6
-  newtype MySixOrMore = x: MyInt | 6 <= x witness 6
+  newtype byte = x: int | 0 <= x < 256  // supports auto-initialization
+  newtype MyInt = int  // supports auto-initialization
+  newtype SixOrMore = x | 6 <= x ghost witness 6
+  newtype AnotherSixOrMore = s: SixOrMore | true ghost witness 6
+  newtype MySixOrMore = x: MyInt | 6 <= x ghost witness 6
   // The resolver uses the presence/absence of a "witness" clause to figure out if the type
   // supports zero initialization.  This can be inaccurate.  If the type does not have a
   // "witness" clause, some type replacements may slip by the resolver, but will then be
@@ -1964,7 +1964,7 @@ module ZI {
   // clause is supplied unnecessarily (perhaps to be explicit about the witness in the
   // program text), then the resolver will treat the type as if it does not support
   // zero initialization, and hence some good programs will be rejected by the resolver.
-  newtype UnclearA = x: int | true witness 0  // actually supports zero initialization, but has a "witness" clause
+  newtype UnclearA = x: int | true ghost witness 0  // actually supports zero initialization, but has a "witness" clause
   newtype UnclearB = x | 6 <= x  // "witness" clause omitted; type does not actually support zero initialization
 
   method M3(a: byte, b: MyInt, c: SixOrMore, d: AnotherSixOrMore, e: MySixOrMore,
@@ -1980,10 +1980,10 @@ module ZI {
 
   type Sbyte = x: int | 0 <= x < 256  // supports zero initialization
   type SMyInt = int  // supports zero initialization
-  type SSixOrMore = x | 6 <= x witness 6
-  type SAnotherSixOrMore = s: SSixOrMore | true witness 6
-  type SMySixOrMore = x: SMyInt | 6 <= x witness 6
-  type SUnclearA = x: int | true witness 0  // see note about for UnclearA
+  type SSixOrMore = x | 6 <= x ghost witness 6
+  type SAnotherSixOrMore = s: SSixOrMore | true ghost witness 6
+  type SMySixOrMore = x: SMyInt | 6 <= x ghost witness 6
+  type SUnclearA = x: int | true ghost witness 0  // see note about for UnclearA
   type SUnclearB = x | 6 <= x  // see note about for UnclearB
 
   method M4(a: Sbyte, b: SMyInt, c: SSixOrMore, d: SAnotherSixOrMore, e: SMySixOrMore,
@@ -1997,11 +1997,11 @@ module ZI {
     P<SUnclearB>(sub);  // fine, as far as the resolver can tell (but this would be caught later by the verifier)
   }
 }
-
 abstract module ZI_RefinementAbstract {
   type A
   type A'
   type B(0)
+  type BB(0)
   type B'(0)
 
   type Mxx(0)
@@ -2011,15 +2011,15 @@ abstract module ZI_RefinementAbstract {
 
   method Delta<Q(0),W,E(0),R>()
 }
-
 module ZI_RefinementConcrete0 refines ZI_RefinementAbstract {
-  newtype Six = x | 6 <= x witness 6  // does not support zero initialization
+  newtype Kuusi = x | 6 <= x witness 6  // supports auto-initialization
+  newtype Six = x | 6 <= x ghost witness 6  // does not support auto-initialization
   type A = int
   type A' = Six
   type B = int
-  type B' = Six  // error: RHS is expected to support zero initialization
+  type BB = Kuusi
+  type B' = Six  // error: RHS is expected to support auto-initialization
 }
-
 module ZI_ExportSource {
   export
     reveals RGB
@@ -2634,7 +2634,7 @@ module Initialization {
   method TypeParamViolation() returns (e: Yt<Even>, o: Yt<Odd>, g: Yt<GW>)
   {
     e := GimmieOne<Yt<Even>>();
-    o := GimmieOne<Yt<Odd>>();  // error: cannot pass Yt<Odd> to a (0)-parameter
+    o := GimmieOne<Yt<Odd>>();
     g := GimmieOne<Yt<GW>>();  // error: cannot pass Yt<GW> to a (0)-parameter
   }
 }

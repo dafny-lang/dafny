@@ -293,7 +293,7 @@ ResolutionErrors.dfy(1993,17): Error: type parameter (G) passed to method P must
 ResolutionErrors.dfy(1994,24): Error: type parameter (G) passed to method P must support zero initialization (got SAnotherSixOrMore)
 ResolutionErrors.dfy(1995,19): Error: type parameter (G) passed to method P must support zero initialization (got SMySixOrMore)
 ResolutionErrors.dfy(1996,16): Error: type parameter (G) passed to method P must support zero initialization (got SUnclearA)
-ResolutionErrors.dfy(2020,7): Error: type 'B'', which does not support zero initialization, is used to refine an opaque type that expects zero initialization
+ResolutionErrors.dfy(2021,7): Error: type 'B'', which does not support zero initialization, is used to refine an opaque type that expects zero initialization
 ResolutionErrors.dfy(2040,7): Error: type declaration 'Mxx' is not allowed to change the requirement of supporting zero initialization
 ResolutionErrors.dfy(2043,7): Error: type declaration 'M__' is not allowed to change the requirement of supporting zero initialization
 ResolutionErrors.dfy(2046,4): Error: type parameter 'Q' is not allowed to change the requirement of supporting zero initialization
@@ -404,7 +404,6 @@ ResolutionErrors.dfy(2610,13): Error: no label 'WonderfulLabel' in scope at this
 ResolutionErrors.dfy(2519,11): Error: no label 'L' in scope at this time
 ResolutionErrors.dfy(2522,10): Error: label shadows a dominating label
 ResolutionErrors.dfy(2530,10): Error: label shadows a dominating label
-ResolutionErrors.dfy(2637,27): Error: type parameter (G) passed to method GimmieOne must support zero initialization (got Yt<Odd>)
 ResolutionErrors.dfy(2638,26): Error: type parameter (G) passed to method GimmieOne must support zero initialization (got Yt<GW>)
 ResolutionErrors.dfy(2651,50): Error: type of the receiver is not fully determined at this program point
 ResolutionErrors.dfy(2677,11): Error: name of type (Cache) is used as a variable
@@ -447,4 +446,4 @@ ResolutionErrors.dfy(2934,16): Error: sequence update requires the value to have
 ResolutionErrors.dfy(2938,11): Error: multiset update requires domain element to be of type Elem (got Trait)
 ResolutionErrors.dfy(2943,13): Error: map update requires domain element to be of type Elem (got Trait)
 ResolutionErrors.dfy(2945,18): Error: map update requires the value to have the range type Elem (got Trait)
-444 resolution/type errors detected in ResolutionErrors.dfy
+443 resolution/type errors detected in ResolutionErrors.dfy

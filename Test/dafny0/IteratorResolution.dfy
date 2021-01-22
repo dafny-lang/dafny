@@ -147,8 +147,8 @@ module DecreasesFields {
 // ---------- iterator (and other) type parameters -------------------------------
 
 module IteratorTypeParameters {
-  type Five = x | 5 <= x witness 6
-  type Six = x | 6 <= x witness 6
+  type Five = x | 5 <= x ghost witness 6
+  type Six = x | 6 <= x ghost witness 6
   codatatype Stream = More(r: real, s: Stream)
 
   class MyClass<A(==),B(0)> {

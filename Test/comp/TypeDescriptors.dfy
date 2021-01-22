@@ -67,7 +67,7 @@ method Main() {
   Method("AtomicShells<AtomicShells<int>>", Atom(Atom(3)));
   // NEEDS NEW (0) SEMANTICS: Method("AtomicShells<AtomicShells<pos>>", Atom(Atom(3 as pos)));
   var u: Class := new Class<int, int>;
-  Method("Record<int, Class<int, int>, Class<real, real>>", Record<int, Class<int, int>, Class<real, real>>.SimpleRecord(5, u));
+  Method("Record<int, Class<int, int>, Class<real, real>>", Record<int, Class?<int, int>, Class<real, real>>.SimpleRecord(5, u));
 
   // codatatypes
   print "Stream<int>: ", Up(0), "\n";

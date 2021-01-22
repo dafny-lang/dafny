@@ -7759,8 +7759,8 @@ namespace Microsoft.Dafny
           hint = TypeEqualityErrorMessageHint(actual);
           return false;
         }
-        if (formal.MustSupportZeroInitialization && !Compiler.HasZeroInitializer(actual)) {
           whatIsWrong = "zero initialization";
+        if (formal.MustSupportZeroInitialization && !actual.HasCompilableValue) {
           hint = "";
           return false;
         }
