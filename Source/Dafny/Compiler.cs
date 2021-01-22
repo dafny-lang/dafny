@@ -2447,7 +2447,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      bool usePlaceboValue = !InitializerIsKnown(type);
+      bool usePlaceboValue = !type.HasCompilableValue;
       bool hs, hz, ik;
       string dv;
       TypeInitialization(type, this, wr, tok, out hs, out hz, out ik, out dv, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
@@ -4107,7 +4107,7 @@ namespace Microsoft.Dafny {
       } else {
         // If an initializer is not known, the only way the verifier would have allowed this allocation
         // is if the requested size is 0.
-        EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, InitializerIsKnown(tp.EType), wr);
+        EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, tp.EType.HasCompilableValue, wr);
       }
     }
 
