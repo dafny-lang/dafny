@@ -7,7 +7,6 @@
     <Exec Command="dotnet --list-runtimes" />
     <Exec Command="dotnet --list-sdks" />
     <Exec Command="dotnet tool list" />
-    <Exec Command="dotnet tool run coco" />
     <Exec Command="dotnet tool run coco $(ProjectDir)Dafny.atg -namespace Microsoft.Dafny -frames $(ProjectDir)../../third_party/Coco/src" />
     <!-- Recompute files to build according to https://stackoverflow.com/a/44829863/93197 -->
     <ItemGroup>
