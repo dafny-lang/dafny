@@ -234,7 +234,16 @@ namespace Microsoft.Dafny {
     protected virtual string TypeArgumentName(Type type, TextWriter wr, Bpl.IToken tok) {
       return TypeName(type, wr, tok);
     }
-    public abstract string TypeInitializationValue(Type type, TextWriter wr /*?*/, Bpl.IToken tok /*?*/, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors);
+    /// <summary>
+    /// This method returns the target representation of one possible value of the type.
+    /// Requires: usePlaceboValue || type.HasCompilableValue
+    /// 
+    ///   usePlaceboValue - If "true", the default value produced is one that the target language accepts as a value
+    ///                  of the type, but which may not correspond to a Dafny value. This option is used when it is known
+    ///                  that the Dafny program will not use the value (for example, when a field is automatically initialized
+    ///                  but the Dafny program will soon assign a new value).
+    /// </summary>
+    protected abstract string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors);
 
     protected string TypeName_UDT(string fullCompileName, UserDefinedType udt, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(fullCompileName != null);
@@ -2411,47 +2420,22 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
+      type = type.NormalizeExpandKeepConstraints();
+      Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
       bool usePlaceboValue = !type.HasCompilableValue;
-      string dv;
-      TypeInitialization(type, this, wr, tok, out dv, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
-      return dv;
+      return TypeInitializationValue(type, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
     protected string DefaultValue(Type type, TextWriter wr, Bpl.IToken tok, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
       Contract.Requires(type != null);
+      Contract.Requires(type.HasCompilableValue);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      string dv;
-      TypeInitialization(type, this, wr, tok, out dv, false, constructTypeParameterDefaultsFromTypeDescriptors);
-      return dv;
-    }
-
-    /// <summary>
-    /// This method returns three things about the given type. Since the three things are related,
-    /// it makes sense to compute them side by side.
-    ///   defaultValue - If "compiler" is non-null, "defaultValue" is the C# representation of one possible value of the
-    ///                  type (not necessarily the same value as the auto-initializer, if any, may give).
-    ///                  If "compiler" is null, then "defaultValue" can return as anything.
-    ///   usePlaceboValue - If "true", the default value produced is one that the target language accepts as a value
-    ///                  of the type, but which may not correspond to a Dafny value. This option is used when it is known
-    ///                  that the Dafny program will not use the value (for example, when a field is automatically initialized
-    ///                  but the Dafny program will soon assign a new value)
-    /// </summary>
-    static void TypeInitialization(Type type, Compiler/*?*/ compiler, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok,
-        out string defaultValue,
-        bool usePlaceboValue = false, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
-      Contract.Requires(type != null);
-      Contract.Requires(compiler == null || (wr != null && tok != null));
-      Contract.Ensures(compiler == null || Contract.ValueAtReturn(out defaultValue) != null);
-
-      var xType = type.NormalizeExpandKeepConstraints();
-      if (xType is TypeProxy) {
-        Contract.Assert(false);  // this should never happen, since all types should have been successfully resolved
-      }
-
-      defaultValue = compiler?.TypeInitializationValue(xType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+      type = type.NormalizeExpandKeepConstraints();
+      Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
+      return TypeInitializationValue(type, wr, tok, false, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
     // ----- Stmt ---------------------------------------------------------------------------------
