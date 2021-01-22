@@ -979,11 +979,7 @@ namespace Microsoft.Dafny {
         var dt = (DatatypeDecl)cl;
         var subst = Resolver.TypeSubstitutionMap(dt.TypeArgs, udt.TypeArgs);
         var r = AutoInitInfo.CompilableValue;  // assume it's compilable, until we find out otherwise
-        DatatypeCtor ctor;
-        if (cl is IndDatatypeDecl) {
-          ctor = ((IndDatatypeDecl)dt).GroundingCtor;
-        } else {
-          ctor = dt.Ctors[0];
+        if (cl is CoDatatypeDecl) {
           if (coDatatypesBeingVisited != null) {
             if (coDatatypesBeingVisited.Exists(coType => udt.Equals(coType))) {
               // This can be compiled into a lazy constructor call
@@ -998,7 +994,7 @@ namespace Microsoft.Dafny {
           }
           coDatatypesBeingVisited.Add(udt);
         }
-        foreach (var formal in ctor.Formals) {
+        foreach (var formal in dt.GetGroundingCtor().Formals) {
           var autoInit = Resolver.SubstType(formal.Type, subst).GetAutoInit(coDatatypesBeingVisited);
           if (autoInit == AutoInitInfo.MaybeEmpty) {
             return AutoInitInfo.MaybeEmpty;
