@@ -2448,95 +2448,10 @@ namespace Microsoft.Dafny {
 
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is TypeProxy) {
-        // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
-        xType = new BoolType();
+        Contract.Assert(false);  // this should never happen, since all types should have been successfully resolved
       }
 
       defaultValue = compiler?.TypeInitializationValue(xType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
-      if (xType is BoolType) {
-        return;
-      } else if (xType is CharType) {
-        return;
-      } else if (xType is IntType || xType is BigOrdinalType) {
-        return;
-      } else if (xType is RealType) {
-        return;
-      } else if (xType is BitvectorType) {
-        return;
-      } else if (xType is CollectionType) {
-        return;
-      }
-
-      var udt = (UserDefinedType)xType;
-      if (udt.ResolvedParam != null) {
-        // If the module is complete, we expect "udt.ResolvedClass == null" at this time. However, it could be that
-        // the compiler has already generated an error about this type not being compilable, in which case
-        // "udt.ResolvedClass" might be non-null here.
-        return;
-      }
-      var cl = udt.ResolvedClass;
-      Contract.Assert(cl != null);
-      if (cl is OpaqueTypeDecl) {
-        // The compiler should never need to know a "defaultValue" for an opaque type, but this routine may
-        // be asked from outside the compiler about one of the other output booleans.
-        Contract.Assume(compiler == null);
-        return;
-      } else if (cl is NewtypeDecl) {
-        var td = (NewtypeDecl)cl;
-        if (td.Witness != null) {
-          return;
-        } else if (td.NativeType != null) {
-          string dv;
-          TypeInitialization(td.BaseType, null, null, null, out dv);
-          return;
-        } else {
-          Contract.Assert(td.WitnessKind != SubsetTypeDecl.WKind.Special);  // this value is never used with NewtypeDecl
-          string dv;
-          TypeInitialization(td.BaseType, compiler, wr, udt.tok, out dv);
-          Contract.Assert(compiler == null || string.Equals(dv, defaultValue));
-          return;
-        }
-      } else if (cl is SubsetTypeDecl) {
-        var td = (SubsetTypeDecl)cl;
-        if (td.Witness != null) {
-          return;
-        } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
-          // WKind.Special is only used with -->, ->, and non-null types:
-          Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
-          if (ArrowType.IsPartialArrowTypeName(td.Name)) {
-            // partial arrow
-            return;
-          } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
-            // total arrow
-            Contract.Assert(udt.TypeArgs.Count == td.TypeArgs.Count);
-            Contract.Assert(1 <= udt.TypeArgs.Count);  // the return type is one of the type arguments
-            string dv;
-            TypeInitialization(udt.TypeArgs.Last(), compiler, wr, udt.tok, out dv);
-            return;
-          } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
-            Contract.Assert(udt.TypeArgs.Count == 1);
-          } else {
-            // non-null (non-array) type
-            return;
-          }
-        } else {
-          string dv;
-          TypeInitialization(td.RhsWithArgument(udt.TypeArgs), compiler, wr, udt.tok, out dv);
-          Contract.Assert(compiler == null || string.Equals(dv, defaultValue));
-          return;
-        }
-      } else if (cl is TypeSynonymDeclBase) {
-        // The compiler should never need to know a "defaultValue" for a(n internal) type synonym, but this routine may
-        // be asked from outside the compiler about one of the other output booleans.
-        Contract.Assume(compiler == null);
-        return;
-      } else if (cl is ClassDecl) {
-        return;
-      } else if (cl is DatatypeDecl) {
-        return;
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
-      }
     }
 
     // ----- Stmt ---------------------------------------------------------------------------------
