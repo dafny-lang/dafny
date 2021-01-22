@@ -124,7 +124,7 @@ class Release:
             shutil.rmtree(self.buildDirectory)
         run(["make", "--quiet", "clean"])
         run(["make", "--quiet", "runtime"])
-        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "Dafny", "DafnyPipeline.csproj"),
+        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyRuntime", "DafnyRuntime.csproj"),
             "--nologo",
             "-f", "net5.0",
             "-o", self.buildDirectory,
