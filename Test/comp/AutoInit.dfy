@@ -273,12 +273,12 @@ module ImportedTypes {
   method Test() {
     var c: Library.Color;
     Try(c);
-    /** TODO: include these tests once the new (0) semantics allows them
+
     var co: Library.CoColor;
     Try(co);
     var mo: Library.MoColor;
     Try(mo);
-    **/
+
     var nt: Library.Nt;
     Try(nt);
   }
