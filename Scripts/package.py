@@ -124,12 +124,8 @@ class Release:
             shutil.rmtree(self.buildDirectory)
         run(["make", "--quiet", "clean"])
         run(["make", "--quiet", "runtime"])
-        run(["dotnet", "restore", path.join(SOURCE_DIRECTORY, "DafnyServer", "DafnyServer.csproj"),
-            "--nologo",
-            "-f", "net5.0",
-            "-o", self.buildDirectory,
-            "-r", self.target,
-            "-c", "Checked"])
+        run(["dotnet", "restore", path.join(SOURCE_DIRECTORY, "DafnyServer", "DafnyServer.csproj")])
+        flush("The dotnet restore is done")
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyServer", "DafnyServer.csproj"),
             "--nologo",
             "-f", "net5.0",
