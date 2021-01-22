@@ -50,22 +50,22 @@ method Main() {
   Method("map<int, int>", map[2 := 7]);
 
   // subset types
-  // NEEDS NEW (0) SEMANTICS: Method("pos", 3 as pos);
+  Method("pos", 3 as pos);
 
   // newtypes
   Method("Hundred", 6 as Hundred); // nativeType, no witness
-  // NEEDS NEW (0) SEMANTICS: Method("HundredOdd", 13 as HundredOdd); // nativeType, with witness
-  // NEEDS NEW (0) SEMANTICS: Method("JustOdd", 131 as JustOdd); // just witness
+  Method("HundredOdd", 13 as HundredOdd); // nativeType, with witness
+  Method("JustOdd", 131 as JustOdd); // just witness
 
   // tuples
   Method("()", ());
   Method("(int, real)", (2, 3.2));
-  // NEEDS NEW (0) SEMANTICS: Method("(int, pos)", (2, 3 as pos));
+  Method("(int, pos)", (2, 3 as pos));
 
   // datatypes
   Method("AtomicShells<bool>", Atom(true));
   Method("AtomicShells<AtomicShells<int>>", Atom(Atom(3)));
-  // NEEDS NEW (0) SEMANTICS: Method("AtomicShells<AtomicShells<pos>>", Atom(Atom(3 as pos)));
+  Method("AtomicShells<AtomicShells<pos>>", Atom(Atom(3 as pos)));
   var u: Class := new Class<int, int>;
   Method("Record<int, Class<int, int>, Class<real, real>>", Record<int, Class?<int, int>, Class<real, real>>.SimpleRecord(5, u));
 
