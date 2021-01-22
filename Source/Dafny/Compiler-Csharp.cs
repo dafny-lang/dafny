@@ -1604,6 +1604,41 @@ namespace Microsoft.Dafny
       return wrs;
     }
 
+    /// <summary>
+    /// Return "true" if the C# all-zero bit pattern is a meaningful value for a Dafny type "t".
+    /// This method is allowed to be conservative; that is, it is allowed to return "false" more often
+    /// than strictly needed.
+    /// </summary>
+    private bool HasSimpleZeroInitializer(Type t) {
+      Contract.Requires(t != null);
+
+      t = t.NormalizeExpandKeepConstraints();
+      if (t is CharType) {
+        // Okay, so '\0' _is_ a value of type "char", but it's so unpleasant to deal with in test files, etc.
+        // By returning false here, a different value will be chosen.
+        return false;
+      } else if (t is BoolType || t is IntType || t is BigOrdinalType || t is RealType || t is BitvectorType) {
+        return true;
+      } else if (t is CollectionType) {
+        return false;
+      }
+
+      var udt = (UserDefinedType)t;
+      if (udt.ResolvedParam != null) {
+        return false;
+      }
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is NewtypeDecl) {
+        var td = (NewtypeDecl)cl;
+        return td.WitnessKind == SubsetTypeDecl.WKind.None;
+      } else if (cl is ClassDecl) {
+        return true; // null is a value of this type
+      } else {
+        return false;
+      }
+    }
+
     protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
