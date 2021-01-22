@@ -1932,15 +1932,15 @@ module ZI {
     P(c);
     P(d);
     P(e);
-    P(f);  // error: type of argument is expected to support zero initialization
+    P(f);  // error: type of argument is expected to support auto-initialization
     P(g);
-    P(y);  // error: type of argument is expected to support zero initialization
+    P(y);  // error: type of argument is expected to support auto-initialization
   }
 
   datatype List<T> = Nil | Cons(T, List<T>)
   method M1<G,H(0)>(xs: List<G>, ys: List<H>) {
-    P(xs);  // yay, type of argument does support zero initialization
-    P(ys);  // yay, type of argument does support zero initialization
+    P(xs);  // yay, type of argument does support auto-initialization
+    P(ys);  // yay, type of argument does support auto-initialization
   }
 
   class Cls {
@@ -1957,29 +1957,29 @@ module ZI {
   newtype AnotherSixOrMore = s: SixOrMore | true ghost witness 6
   newtype MySixOrMore = x: MyInt | 6 <= x ghost witness 6
   // The resolver uses the presence/absence of a "witness" clause to figure out if the type
-  // supports zero initialization.  This can be inaccurate.  If the type does not have a
+  // supports auto-initialization.  This can be inaccurate.  If the type does not have a
   // "witness" clause, some type replacements may slip by the resolver, but will then be
   // caught by the verifier when the witness test is performed (because the witness test
-  // uses a zero value in the absence of a "witness" clause).  Regrettably, if a "witness"
-  // clause is supplied unnecessarily (perhaps to be explicit about the witness in the
-  // program text), then the resolver will treat the type as if it does not support
-  // zero initialization, and hence some good programs will be rejected by the resolver.
-  newtype UnclearA = x: int | true ghost witness 0  // actually supports zero initialization, but has a "witness" clause
-  newtype UnclearB = x | 6 <= x  // "witness" clause omitted; type does not actually support zero initialization
+  // uses a zero value in the absence of a "witness" clause).
+  // A "ghost witness" clause tells the resolver that the type does not support
+  // auto-initialization, but only ghost auto-initialzation.
+
+  newtype UnclearA = x: int | true ghost witness 0  // actually supports auto-initialization, but has a "ghost witness" clause
+  newtype UnclearB = x | x == 6 && x < 4  // "witness" clause omitted; type does not actually support auto-initialization
 
   method M3(a: byte, b: MyInt, c: SixOrMore, d: AnotherSixOrMore, e: MySixOrMore,
             ua: UnclearA, ub: UnclearB) {
     P(a);
     P(b);
-    P(c);  // error: type of argument is expected to support zero initialization
-    P(d);  // error: type of argument is expected to support zero initialization
-    P(e);  // error: type of argument is expected to support zero initialization
-    P(ua);  // error: as far as the resolver can tell, type of argument does not support zero initialization
+    P(c);  // error: type of argument is expected to support auto-initialization
+    P(d);  // error: type of argument is expected to support auto-initialization
+    P(e);  // error: type of argument is expected to support auto-initialization
+    P(ua);  // error: as far as the resolver can tell, type of argument does not support auto-initialization
     P(ub);  // fine, as far as the resolver can tell (but this would be caught later by the verifier)
   }
 
-  type Sbyte = x: int | 0 <= x < 256  // supports zero initialization
-  type SMyInt = int  // supports zero initialization
+  type Sbyte = x: int | 0 <= x < 256  // supports auto-initialization
+  type SMyInt = int  // supports auto-initialization
   type SSixOrMore = x | 6 <= x ghost witness 6
   type SAnotherSixOrMore = s: SSixOrMore | true ghost witness 6
   type SMySixOrMore = x: SMyInt | 6 <= x ghost witness 6
@@ -1990,10 +1990,10 @@ module ZI {
             sua: SUnclearA, sub: SUnclearB) {
     P<Sbyte>(a);
     P<SMyInt>(b);
-    P<SSixOrMore>(c);  // error: type of argument is expected to support zero initialization
-    P<SAnotherSixOrMore>(d);  // error: type of argument is expected to support zero initialization
-    P<SMySixOrMore>(e);  // error: type of argument is expected to support zero initialization
-    P<SUnclearA>(sua);  // error: as far as the resolver can tell, type of argument does not support zero initialization
+    P<SSixOrMore>(c);  // error: type of argument is expected to support auto-initialization
+    P<SAnotherSixOrMore>(d);  // error: type of argument is expected to support auto-initialization
+    P<SMySixOrMore>(e);  // error: type of argument is expected to support auto-initialization
+    P<SUnclearA>(sua);  // error: as far as the resolver can tell, type of argument does not support auto-initialization
     P<SUnclearB>(sub);  // fine, as far as the resolver can tell (but this would be caught later by the verifier)
   }
 }
@@ -2034,19 +2034,19 @@ module ZI_RefinementConcrete1 refines ZI_RefinementAbstract {
   method P<G(0)>(g: G)
   method M(m: Z.RGB, n: Z.XYZ) {
     P(m);
-    P(n);  // error: Z.XYZ is not known to support zero initialization
+    P(n);  // error: Z.XYZ is not known to support auto-initialization
   }
 
-  type Mxx  // error: not allowed to change zero-initialization setting
+  type Mxx  // error: not allowed to change auto-initialization setting
   type Mx_
   type M_x(0)
-  type M__(0)  // error: not allowed to change zero-initialization setting
+  type M__(0)  // error: not allowed to change auto-initialization setting
 
   method Delta<
-    Q,  // error: not allowed to change zero-initialization setting
+    Q,  // error: not allowed to change auto-initialization setting
     W,
     E(0),
-    R(0)>()  // error: not allowed to change zero-initialization setting
+    R(0)>()  // error: not allowed to change auto-initialization setting
 }
 
 // ----- constructor-less classes with need for initialization -----
@@ -2612,7 +2612,7 @@ module LabelDomination {
   }
 }
 
-// ----- bad use of types without zero initializers -----
+// ----- bad use of types without auto-initializers -----
 
 module Initialization {
   datatype Yt<Y> = MakeYt(x: int, y: Y)
