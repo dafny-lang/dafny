@@ -35,6 +35,9 @@ z3-ubuntu:
 	mv z3-4.8.5-x64-ubuntu-16.04 ${DIR}/Binaries/z3
 
 clean:
+	(cd ${DIR}; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin )
+	(cd ${DIR}; rm -rf  Source/Dafny/obj Source/DafnyDriver/obj Source/DafnyRuntime/obj Source/DafnyServer/obj )
+	echo Source/*/bin Source/*/obj
 	(cd ${DIR} ; dotnet build Source/Dafny.sln -v:q --nologo -target:clean )
 	make -C ${DIR}/Source/Dafny -f Makefile.Linux clean
 	(cd ${DIR}/Source/DafnyRuntime/DafnyRuntimeJava; ./gradlew clean)
