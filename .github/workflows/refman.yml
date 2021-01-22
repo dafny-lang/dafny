@@ -24,7 +24,7 @@ jobs:
     - name: Setup dotnet
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '3.1.x' # SDK Version to use; x will use the latest version of the 3.1 channel
+        dotnet-version: '5.0.x' # SDK Version to use; x will use the latest version of the 5.0 channel
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
