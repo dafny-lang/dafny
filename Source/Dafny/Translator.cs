@@ -2069,8 +2069,12 @@ namespace Microsoft.Dafny {
             q = CoEqualCall(codecl, lexprs, rexprs, k, l, a, b);
           } else {
             // ordinary equality; let the usual translation machinery figure out the translation
-            var equal = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, new BoogieWrapper(a, ty), new BoogieWrapper(b, ty));
-            equal.ResolvedOp = Resolver.ResolveOp(equal.Op, ty, ty);  // resolve here
+            var tyA = Resolver.SubstType(ty, lsu);
+            var tyB = Resolver.SubstType(ty, rsu);
+            var aa = CondApplyUnbox(tok, a, ty, tyA);
+            var bb = CondApplyUnbox(tok, b, ty, tyB);
+            var equal = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, new BoogieWrapper(aa, tyA), new BoogieWrapper(bb, tyB));
+            equal.ResolvedOp = Resolver.ResolveOp(equal.Op, tyA, tyB);  // resolve here
             equal.Type = Type.Bool;  // resolve here
             q = etran.TrExpr(equal);
           }
