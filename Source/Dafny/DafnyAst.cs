@@ -880,92 +880,7 @@ namespace Microsoft.Dafny {
     /// been resolved and that all recursion through types comes to an end.
     /// Note, HasCompilableValue ==> IsNonEmpty.
     /// </summary>
-    public bool IsNonempty {
-      get {
-        var t = NormalizeExpandKeepConstraints();
-        Contract.Assume(t is NonProxyType); // precondition
-
-        if (t is BoolType || t is CharType || t is IntType || t is BigOrdinalType || t is RealType || t is BitvectorType) {
-          return true;
-        } else if (t is CollectionType) {
-          return true;
-        }
-
-        var udt = (UserDefinedType)t;
-        if (udt.ResolvedParam != null) {
-          return udt.ResolvedParam.Characteristics.MustBeNonempty;
-        }
-        var cl = udt.ResolvedClass;
-        Contract.Assert(cl != null);
-        if (cl is OpaqueTypeDecl) {
-          var otd = (OpaqueTypeDecl)cl;
-          return otd.Characteristics.MustBeNonempty;
-        } else if (cl is InternalTypeSynonymDecl) {
-          var isyn = (InternalTypeSynonymDecl)cl;
-          return isyn.Characteristics.MustBeNonempty;
-        } else if (cl is NewtypeDecl) {
-          var td = (NewtypeDecl)cl;
-          switch (td.WitnessKind) {
-            case SubsetTypeDecl.WKind.Compiled:
-            case SubsetTypeDecl.WKind.Ghost:
-              return true;
-            case SubsetTypeDecl.WKind.None:
-              // 0 is a witness
-              return true;
-            case SubsetTypeDecl.WKind.Special:
-            default:
-              Contract.Assert(false);  // unexpected case
-              return false;
-          }
-        } else if (cl is SubsetTypeDecl) {
-          var td = (SubsetTypeDecl)cl;
-          switch (td.WitnessKind) {
-            case SubsetTypeDecl.WKind.Compiled:
-            case SubsetTypeDecl.WKind.Ghost:
-              return true;
-            case SubsetTypeDecl.WKind.None:
-              // 0 is a witness
-              return true;
-            case SubsetTypeDecl.WKind.Special:
-              // WKind.Special is only used with -->, ->, and non-null types:
-              Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
-              if (ArrowType.IsPartialArrowTypeName(td.Name)) {
-                // partial arrow
-                return udt.TypeArgs.Last().IsNonempty;
-              } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
-                // total arrow
-                return udt.TypeArgs.Last().IsNonempty;
-              } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
-                // non-null array type; we know how to initialize them
-                return true;
-              } else {
-                // non-null (non-array) type
-                return false;
-              }
-            default:
-              Contract.Assert(false);  // unexpected case
-              return false;
-          }
-        } else if (cl is ClassDecl) {
-          return true;  // null is a value of this type
-        } else if (cl is IndDatatypeDecl) {
-          var dt = (IndDatatypeDecl)cl;
-          Contract.Assert(dt.TypeArgs.Count == udt.TypeArgs.Count);
-          Contract.Assert(dt.TypeArgs.Count == dt.TypeParametersUsedInConstructionByGroundingCtor.Length);
-          for (var i = 0; i < dt.TypeParametersUsedInConstructionByGroundingCtor.Length; i++) {
-            if (dt.TypeParametersUsedInConstructionByGroundingCtor[i] && !udt.TypeArgs[i].IsNonempty) {
-              return false;
-            }
-          }
-          return true;
-        } else if (cl is CoDatatypeDecl) {
-          return false;  // TODO: try harder
-        } else {
-          Contract.Assert(false); // unexpected type
-          throw new cce.UnreachableException();
-        }
-      }
-    }
+    public bool IsNonempty => AutoInit != AutoInitInfo.MaybeEmpty;
 
     /// <summary>
     /// This property returns true if the type has a known compilable value.
@@ -973,88 +888,113 @@ namespace Microsoft.Dafny {
     /// been resolved and that all recursion through types comes to an end.
     /// Note, HasCompilableValue ==> IsNonEmpty.
     /// </summary>
-    public bool HasCompilableValue {
+    public bool HasCompilableValue => AutoInit == AutoInitInfo.CompilableValue;
+
+    public enum AutoInitInfo { MaybeEmpty, Nonempty, CompilableValue }
+    
+    /// <summary>
+    /// This property returns
+    ///     - CompilableValue, if the type has a known compilable value
+    ///     - Nonempty,        if the type is known to contain some value
+    ///     - MaybeEmpty,      otherwise
+    /// This property should be used only after successful resolution. It is assumed that all type proxies have
+    /// been resolved and that all recursion through types comes to an end.
+    /// </summary>
+    public AutoInitInfo AutoInit {
       get {
         var t = NormalizeExpandKeepConstraints();
         Contract.Assume(t is NonProxyType); // precondition
 
+        AutoInitInfo CharacteristicToAutoInitInfo(TypeParameter.TypeParameterCharacteristics c) {
+          if (c.MustSupportZeroInitialization) {
+            return AutoInitInfo.CompilableValue;
+          } else if (c.MustBeNonempty) {
+            return AutoInitInfo.Nonempty;
+          } else {
+            return AutoInitInfo.MaybeEmpty;
+          }
+        }
+
         if (t is BoolType || t is CharType || t is IntType || t is BigOrdinalType || t is RealType || t is BitvectorType) {
-          return true;
+          return AutoInitInfo.CompilableValue;
         } else if (t is CollectionType) {
-          return true;
+          return AutoInitInfo.CompilableValue;
         }
 
         var udt = (UserDefinedType)t;
         if (udt.ResolvedParam != null) {
-          return udt.ResolvedParam.Characteristics.MustSupportZeroInitialization;
+          return CharacteristicToAutoInitInfo(udt.ResolvedParam.Characteristics);
         }
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
         if (cl is OpaqueTypeDecl) {
           var otd = (OpaqueTypeDecl)cl;
-          return otd.Characteristics.MustSupportZeroInitialization;
+          return CharacteristicToAutoInitInfo(otd.Characteristics);
         } else if (cl is InternalTypeSynonymDecl) {
           var isyn = (InternalTypeSynonymDecl)cl;
-          return isyn.Characteristics.MustSupportZeroInitialization;
+          return CharacteristicToAutoInitInfo(isyn.Characteristics);
         } else if (cl is NewtypeDecl) {
           var td = (NewtypeDecl)cl;
           switch (td.WitnessKind) {
-            case SubsetTypeDecl.WKind.Compiled:
-              return true;
-            case SubsetTypeDecl.WKind.Ghost:
-              return false;
             case SubsetTypeDecl.WKind.None:
-              // 0 is a witness
-              return true;
+            case SubsetTypeDecl.WKind.Compiled:
+              return AutoInitInfo.CompilableValue;
+            case SubsetTypeDecl.WKind.Ghost:
+              return AutoInitInfo.Nonempty;
             case SubsetTypeDecl.WKind.Special:
             default:
               Contract.Assert(false); // unexpected case
-              return false;
+              throw new cce.UnreachableException();
           }
         } else if (cl is SubsetTypeDecl) {
           var td = (SubsetTypeDecl)cl;
           switch (td.WitnessKind) {
-            case SubsetTypeDecl.WKind.Compiled:
-              return true;
-            case SubsetTypeDecl.WKind.Ghost:
-              return false;
             case SubsetTypeDecl.WKind.None:
-              // 0 is a witness
-              return true;
+            case SubsetTypeDecl.WKind.Compiled:
+              return AutoInitInfo.CompilableValue;
+            case SubsetTypeDecl.WKind.Ghost:
+              return AutoInitInfo.Nonempty;
             case SubsetTypeDecl.WKind.Special:
               // WKind.Special is only used with -->, ->, and non-null types:
               Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
               if (ArrowType.IsPartialArrowTypeName(td.Name)) {
                 // partial arrow
-                return udt.TypeArgs.Last().HasCompilableValue;
+                return AutoInitInfo.CompilableValue;
               } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
                 // total arrow
-                return udt.TypeArgs.Last().HasCompilableValue;
+                return udt.TypeArgs.Last().AutoInit;
               } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
                 // non-null array type; we know how to initialize them
-                return true;
+                return AutoInitInfo.CompilableValue;
               } else {
                 // non-null (non-array) type
-                return false;
+                return AutoInitInfo.MaybeEmpty;
               }
             default:
               Contract.Assert(false); // unexpected case
-              return false;
+              throw new cce.UnreachableException();
           }
         } else if (cl is ClassDecl) {
-          return true; // null is a value of this type
+          return AutoInitInfo.CompilableValue; // null is a value of this type
         } else if (cl is IndDatatypeDecl) {
           var dt = (IndDatatypeDecl)cl;
-          Contract.Assert(dt.TypeArgs.Count == udt.TypeArgs.Count);
-          Contract.Assert(dt.TypeArgs.Count == dt.TypeParametersUsedInConstructionByGroundingCtor.Length);
-          for (var i = 0; i < dt.TypeParametersUsedInConstructionByGroundingCtor.Length; i++) {
-            if (dt.TypeParametersUsedInConstructionByGroundingCtor[i] && !udt.TypeArgs[i].HasCompilableValue) {
-              return false;
+          var subst = Resolver.TypeSubstitutionMap(dt.TypeArgs, udt.TypeArgs);
+          var r = AutoInitInfo.CompilableValue;  // assume it's compilable, until we find out otherwise
+          foreach (var formal in dt.GroundingCtor.Formals) {
+            var autoInit = Resolver.SubstType(formal.Type, subst).AutoInit;
+            if (autoInit == AutoInitInfo.MaybeEmpty) {
+              return AutoInitInfo.MaybeEmpty;
+            } else if (formal.IsGhost) {
+              // cool
+            } else if (autoInit == AutoInitInfo.CompilableValue) {
+              // cool
+            } else {
+              r = AutoInitInfo.Nonempty;
             }
           }
-          return true;
+          return r;
         } else if (cl is CoDatatypeDecl) {
-          return false; // TODO: try harder
+          return AutoInitInfo.MaybeEmpty;
         } else {
           Contract.Assert(false); // unexpected type
           throw new cce.UnreachableException();
