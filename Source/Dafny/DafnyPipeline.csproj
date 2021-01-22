@@ -4,6 +4,8 @@
     <Exec Command="dotnet tool restore" />
     <Exec Command="dotnet --version" />
     <Exec Command="dotnet --info" />
+    <Exec Command="dotnet --list-runtimes" />
+    <Exec Command="dotnet --list-sdks" />
     <Exec Command="dotnet tool list" />
     <Exec Command="dotnet tool run coco" />
     <Exec Command="dotnet tool run coco $(ProjectDir)Dafny.atg -namespace Microsoft.Dafny -frames $(ProjectDir)../../third_party/Coco/src" />
