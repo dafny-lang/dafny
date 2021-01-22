@@ -7759,8 +7759,8 @@ namespace Microsoft.Dafny
           hint = TypeEqualityErrorMessageHint(actual);
           return false;
         }
-          whatIsWrong = "zero initialization";
         if (formal.MustSupportZeroInitialization && !actual.HasCompilableValue) {
+          whatIsWrong = "auto-initialization";
           hint = "";
           return false;
         }
@@ -8974,7 +8974,7 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
           }
           if (o.Characteristics.MustSupportZeroInitialization != n.Characteristics.MustSupportZeroInitialization) {
-            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting zero initialization", n.Name);
+            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
           }
           if (o.Characteristics.DisallowReferenceTypes != n.Characteristics.DisallowReferenceTypes) {
             reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
