@@ -126,13 +126,13 @@ class Release:
         run(["make", "--quiet", "runtime"])
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyServer", "DafnyServer.csproj"),
             "--nologo",
-            "-f", "netcoreapp3.1",
+            "-f", "net5.0",
             "-o", self.buildDirectory,
             "-r", self.target,
             "-c", "Checked"])
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyDriver", "DafnyDriver.csproj"),
             "--nologo",
-            "-f", "netcoreapp3.1",
+            "-f", "net5.0",
             "-o", self.buildDirectory,
             "-r", self.target,
             "-c", "Checked"])

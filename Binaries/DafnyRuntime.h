@@ -739,6 +739,27 @@ struct DafnyMap {
         return ret;
     }
 
+    DafnyMap<K, V> Merge(DafnyMap<K, V> other) {
+        DafnyMap<K,V> ret(other);
+        for (const auto& kv : map) {
+            auto ptr = other.map.find(kv.first);
+            if (ptr == other.map.end()) {
+                ret.map.emplace(kv.first, kv.second);
+            }
+        }
+        return ret;
+    }
+
+    DafnyMap<K, V> Subtract(DafnySet<K> keys) {
+        DafnyMap<K,V> ret = DafnyMap();
+        for (const auto& kv : map) {
+            if (!keys.contains(kv.first)) {
+                ret.map.emplace(kv.first, kv.second);
+            }
+        }
+        return ret;
+    }
+
     uint64 size () const { return map.size(); }
 
     bool isEmpty() const { return map.empty(); }

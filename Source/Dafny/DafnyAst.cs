@@ -5311,8 +5311,6 @@ namespace Microsoft.Dafny {
     public readonly DafnyOptions.CompilationTarget CompilationTargets;
     public NativeType(string Name, BigInteger LowerBound, BigInteger UpperBound, int bitwidth, Selection sel, DafnyOptions.CompilationTarget compilationTargets) {
       Contract.Requires(Name != null);
-      Contract.Requires(LowerBound != null);
-      Contract.Requires(UpperBound != null);
       Contract.Requires(0 <= bitwidth && (bitwidth == 0 || LowerBound == 0));
       this.Name = Name;
       this.LowerBound = LowerBound;
@@ -10234,7 +10232,7 @@ namespace Microsoft.Dafny {
       MapNeq,
       InMap,
       NotInMap,
-      MapUnion,
+      MapMerge,
       MapSubtraction,
       // datatypes
       RankLt,
@@ -10325,13 +10323,14 @@ namespace Microsoft.Dafny {
         case ResolvedOpcode.Add:
         case ResolvedOpcode.Union:
         case ResolvedOpcode.MultiSetUnion:
-        case ResolvedOpcode.MapUnion:
+        case ResolvedOpcode.MapMerge:
         case ResolvedOpcode.Concat:
           return Opcode.Add;
 
         case ResolvedOpcode.Sub:
         case ResolvedOpcode.SetDifference:
         case ResolvedOpcode.MultiSetDifference:
+        case ResolvedOpcode.MapSubtraction:
           return Opcode.Sub;
 
         case ResolvedOpcode.Mul:

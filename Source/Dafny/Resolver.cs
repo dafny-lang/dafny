@@ -3977,7 +3977,7 @@ namespace Microsoft.Dafny
         } else if (e is SeqSelectExpr sse) {
           var b = GetAnyConst(sse.Seq, consts) as string;
           BigInteger index = (BigInteger)GetAnyConst(sse.E0, consts);
-          if (b == null || index == null) return null;
+          if (b == null) return null;
           if (index < 0 || index >= b.Length || index > Int32.MaxValue) {
             return null; // Index out of range
           }
@@ -8544,8 +8544,8 @@ namespace Microsoft.Dafny
           case BinaryExpr.ResolvedOpcode.MultiSetDifference:
            // sequences: +
           case BinaryExpr.ResolvedOpcode.Concat:
-          // maps: +
-          case BinaryExpr.ResolvedOpcode.MapUnion:
+          // maps: +, -
+          case BinaryExpr.ResolvedOpcode.MapMerge:
           case BinaryExpr.ResolvedOpcode.MapSubtraction:
             return true;
           default:
@@ -17308,11 +17308,9 @@ namespace Microsoft.Dafny
           } else if (operandType is MultiSetType) {
             return BinaryExpr.ResolvedOpcode.MultiSetUnion;
           } else if (operandType is MapType) {
-            return BinaryExpr.ResolvedOpcode.MapUnion;
+            return BinaryExpr.ResolvedOpcode.MapMerge;
           } else if (operandType is SeqType) {
             return BinaryExpr.ResolvedOpcode.Concat;
-          } else if (operandType is MapType) {
-            return BinaryExpr.ResolvedOpcode.MapUnion;
           } else {
             return BinaryExpr.ResolvedOpcode.Add;
           }
