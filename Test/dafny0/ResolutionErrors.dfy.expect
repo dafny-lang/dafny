@@ -300,8 +300,8 @@ ResolutionErrors.dfy(2046,4): Error: type parameter 'Q' is not allowed to change
 ResolutionErrors.dfy(2049,4): Error: type parameter 'R' is not allowed to change the requirement of supporting auto-initialization
 ResolutionErrors.dfy(2037,5): Error: type parameter (G) passed to method P must support auto-initialization (got Z.XYZ)
 ResolutionErrors.dfy(2055,8): Error: class 'C' with fields without known initializers, like 'u' of type 'T', must declare a constructor
-ResolutionErrors.dfy(2078,8): Error: class 'Class' with fields without known initializers, like 'co' of type 'Co', must declare a constructor
-ResolutionErrors.dfy(2081,8): Error: class 'CoClass0' with fields without known initializers, like 'co' of type 'Co', must declare a constructor
+ResolutionErrors.dfy(2078,8): Error: class 'Class' with fields without known initializers, like 'co' of type 'Co<int>', must declare a constructor
+ResolutionErrors.dfy(2081,8): Error: class 'CoClass0' with fields without known initializers, like 'co' of type 'Co<int>', must declare a constructor
 ResolutionErrors.dfy(2103,13): Error: ghost fields are allowed only in specification contexts
 ResolutionErrors.dfy(2117,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2118,8): Error: an ORDINAL type is not allowed to be used as a type argument

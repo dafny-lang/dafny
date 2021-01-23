@@ -270,11 +270,33 @@ module FilledInTypeParameters {
   }
 
   codatatype Co = More(Co)
+  codatatype GenericCoUnused<G> = More(GenericCoUnused<G>)
+  codatatype GenericCo<G> = More(GenericCo<G>, G)
+  codatatype NonuniformGenericCo<G> = More(NonuniformGenericCo<int>)
+  type Magic = x | 2 <= x < 5 ghost witness 4
 
   method Test()
   {
-    var iter := new Iter();
-    var m: seq<Co> := iter.s;
+    var iter0 := new Iter();
+    var m0: seq<Co> := iter0.s;
+
+    var iter1 := new Iter();
+    var m1: seq<GenericCoUnused<int>> := iter1.s;
+
+    var iter2 := new Iter();
+    var m2: seq<GenericCoUnused<Magic>> := iter2.s;
+
+    var iter3 := new Iter();
+    var m3: seq<GenericCo<int>> := iter3.s;
+
+    var iter4 := new Iter();  // error: Auto-init not support for GenericCo<Magic>, as required by the iterator's type parameters
+    var m4: seq<GenericCo<Magic>> := iter4.s;
+
+    var iter5 := new Iter();
+    var m5: seq<NonuniformGenericCo<int>> := iter5.s;
+
+    var iter6 := new Iter();  // error: Auto-init not support for NonuniformGenericCo<bool>, as required by the iterator's type parameters
+    var m6: seq<NonuniformGenericCo<bool>> := iter6.s;
   }
 }
 

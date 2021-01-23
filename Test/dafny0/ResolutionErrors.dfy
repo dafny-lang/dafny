@@ -2070,24 +2070,24 @@ module ConstructorlessClasses {
     print "real: ", c.c, "\n";
   }
 
-  codatatype Co = CoEnd | Suc(Co)
-
+  codatatype Co<X> = Suc(Co<seq<X>>)  // does not know a known compilable value
+  codatatype Co2 = CoEnd | CoSuc(Co2)
   trait Trait {
-    var co: Co  // has no known initializer
+    var co: Co<int>  // has no known initializer
   }
   class Class extends Trait {  // error: must have constructor, because of inherited field "co"
   }
 
   class CoClass0 {  // error: must have constructor
-    const co: Co
+    const co: Co<int>
   }
 
   class CoClass1 {  // fine
-    const co: Co := CoEnd
+    const co: Co2 := CoEnd
   }
 
   trait CoTrait {
-    const co: Co := CoEnd
+    const co: Co2 := CoEnd
   }
   class CoClass2 extends CoTrait {  // fine
   }

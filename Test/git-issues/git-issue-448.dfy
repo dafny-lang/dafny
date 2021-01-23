@@ -10,11 +10,11 @@ class C {
   }
 }
 
-codatatype Stream = More(x: int, tail: Stream)
+codatatype Stream<G> = More(x: G, tail: Stream<int>)
 
 method Main() {
   var c: C;
-  var s: Stream;
+  var s: Stream<bool>;
   print s.x, "\n";  // error: "s" hasn't been initialized yet
   if * {
     // Regression test:
