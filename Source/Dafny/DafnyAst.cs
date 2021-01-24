@@ -890,6 +890,10 @@ namespace Microsoft.Dafny {
     /// </summary>
     public bool HasCompilableValue => GetAutoInit() == AutoInitInfo.CompilableValue;
 
+    public bool KnownToHaveToAValue(bool ghostContext) {
+      return ghostContext ? IsNonempty : HasCompilableValue;
+    }
+    
     public enum AutoInitInfo { MaybeEmpty, Nonempty, CompilableValue }
     
     /// <summary>

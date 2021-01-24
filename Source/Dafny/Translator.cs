@@ -11155,8 +11155,8 @@ namespace Microsoft.Dafny {
       var x = bvars[0];
       var otherBvars = bvars.GetRange(1, bvars.Count - 1);
       foreach (var tup in GeneratePartialGuesses(otherBvars, expression)) {
-        // in the special case that x does not even occur in expression, we can just ignore x
-        if (!ContainsFreeVariable(tup.Item2, false, x)) {
+        // in the special case that x does not even occur in expression (and we know the type has a value for x), we can just ignore x
+        if (!ContainsFreeVariable(tup.Item2, false, x) && x.Type.KnownToHaveToAValue(x.IsGhost)) {
           result.Add(tup);
           continue;
         }
