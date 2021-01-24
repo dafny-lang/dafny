@@ -10512,11 +10512,8 @@ namespace Microsoft.Dafny {
           var bvars = new List<BoundVar>();
           foreach (var lhs in s.Lhss) {
             var l = lhs.Resolved;
-            if (l is IdentifierExpr) {
-              var x = (IdentifierExpr)l;
-              BoundVar bv;
-              IdentifierExpr ie;
-              CloneVariableAsBoundVar(x.tok, x.Var, "$as#" + x.Name, out bv, out ie);
+            if (l is IdentifierExpr x) {
+              CloneVariableAsBoundVar(x.tok, x.Var, "$as#" + x.Name, out var bv, out var ie);
               bvars.Add(bv);
               substMap.Add(x.Var, ie);
             } else {
