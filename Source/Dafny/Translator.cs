@@ -12476,17 +12476,19 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Dictionary<IVariable, Expression> SetupBoundVarsAsLocals(List<BoundVar> boundVars, BoogieStmtListBuilder builder,
-      List<Variable> locals, ExpressionTranslator etran, Dictionary<TypeParameter, Type> typeMap = null,
-      string nameSuffix = null) {
+    Dictionary<IVariable, Expression> SetupBoundVarsAsLocals(List<BoundVar> boundVars, out Bpl.Expr typeAntecedent,
+      BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+      Dictionary<TypeParameter, Type> typeMap = null, string nameSuffix = null) {
       Contract.Requires(boundVars != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
+      Contract.Ensures(Contract.ValueAtReturn(out typeAntecedent) != null);
 
       if (typeMap == null) {
         typeMap = new Dictionary<TypeParameter, Type>();
       }
+      typeAntecedent = Bpl.Expr.True; 
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (BoundVar bv in boundVars) {
         LocalVariable local = new LocalVariable(bv.tok, bv.tok, nameSuffix == null ? bv.Name : bv.Name + nameSuffix, Resolver.SubstType(bv.Type, typeMap), bv.IsGhost);
@@ -12500,7 +12502,12 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.HavocCmd(bv.tok, new List<Bpl.IdentifierExpr> { bIe }));
         Bpl.Expr wh = GetWhereClause(bv.tok, bIe, local.Type, etran, NOALLOC);
         if (wh != null) {
-          builder.Add(TrAssumeCmd(bv.tok, wh));
+          typeAntecedent = BplAnd(typeAntecedent, wh);
+        }
+      }
+      return substMap;
+    }
+
         }
       }
       return substMap;
