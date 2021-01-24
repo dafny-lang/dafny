@@ -8109,22 +8109,32 @@ namespace Microsoft.Dafny {
 
       } else {
         // CheckWellformed(var b :| RHS(b); Body(b)) =
-        //   var b where typeAntecedent;
-        //   CheckWellformed(RHS(b));
+        //   var b;
+        //   if (typeAntecedent(b)) {
+        //     CheckWellformed(RHS(b));
+        //   }
         //   assert (exists b' :: typeAntecedent' && RHS(b'));
+        //   assume typeAntecedent(b);
         //   assume RHS(b);
         //   CheckWellformed(Body(b));
         //   If non-ghost:  var b' where typeAntecedent; assume RHS(b'); assert Body(b) == Body(b');
         //   assume CanCall
         Contract.Assert(e.RHSs.Count == 1);  // this is true of all successfully resolved let-such-that expressions
-        List<BoundVar> lhsVars = e.BoundVars.ToList<BoundVar>();
-        var substMap = SetupBoundVarsAsLocals(lhsVars, builder, locals, etran);
+        var lhsVars = e.BoundVars.ToList<BoundVar>();
+        var substMap = SetupBoundVarsAsLocals(lhsVars, out var typeAntecedent, builder, locals, etran);
         var rhs = Substitute(e.RHSs[0], null, substMap);
         if (checkRhs) {
-          CheckWellformed(rhs, options, locals, builder, etran);
-          var bounds = lhsVars.ConvertAll(v => (ComprehensionExpr.BoundedPool)new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());  // indicate "no alloc" (is this what we want?)
+          var wellFormednessBuilder = new BoogieStmtListBuilder(this);
+          CheckWellformed(rhs, options, locals, wellFormednessBuilder, etran);
+          var ifCmd = new Bpl.IfCmd(e.tok, typeAntecedent, wellFormednessBuilder.Collect(e.tok), null, null);
+          builder.Add(ifCmd);
+          
+          var bounds = lhsVars.ConvertAll(_ => (ComprehensionExpr.BoundedPool)new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());  // indicate "no alloc" (is this what we want?)
           GenerateAndCheckGuesses(e.tok, lhsVars, bounds, e.RHSs[0], TrTrigger(etran, e.Attributes, e.tok), builder, etran);
         }
+        // assume typeAntecedent(b);
+        builder.Add(TrAssumeCmd(e.tok, typeAntecedent));
+        // assume RHS(b);
         builder.Add(TrAssumeCmd(e.tok, etran.TrExpr(rhs)));
         var letBody = Substitute(e.Body, null, substMap);
         CheckWellformed(letBody, options, locals, builder, etran);
@@ -10481,9 +10491,9 @@ namespace Microsoft.Dafny {
         var s = (AssignSuchThatStmt)stmt;
         AddComment(builder, s, "assign-such-that statement");
         // Essentially, treat like an assert, a parallel havoc, and an assume.  However, we also need to check
-        // the well-formedness of the expression, which is easiest to do after the havoc.  So, we do the havoc
-        // first, then the well-formedness check, then the assert (unless the whole statement is an assume), and
-        // finally the assume.
+        // the well-formedness of the expression, which is done after the havoc BUT BEFORE COMMITTING TO ASSUMING
+        // THE TYPE ANTECEDENT.  So, we do the havoc first, then--conditionally, under the type antecedent--the
+        // well-formedness check, then the assert (unless the whole statement is an assume), and finally the assume.
 
         // Here comes the havoc part
         var lhss = new List<Expression>();
@@ -12508,6 +12518,48 @@ namespace Microsoft.Dafny {
       return substMap;
     }
 
+    Dictionary<IVariable, Expression> SetupBoundVarsAsLocals(List<BoundVar> boundVars, BoogieStmtListBuilder builder,
+      List<Variable> locals, ExpressionTranslator etran, Dictionary<TypeParameter, Type> typeMap = null,
+      string nameSuffix = null) {
+      Contract.Requires(boundVars != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+
+      var substMap = SetupBoundVarsAsLocals(boundVars, out var typeAntecedent, builder, locals, etran, typeMap, nameSuffix);
+      builder.Add(TrAssumeCmd(typeAntecedent.tok, typeAntecedent));
+      return substMap;
+    }
+
+    /// <summary>
+    /// Clone each Dafny variable "vars[i]" into a new Dafny local variable "l".
+    /// Return a substitution from "vars[i]" to an IdentifierExpr for "l".
+    /// Also, generate a Boogie variable "bvar" for "l", add "bvar" to "locals", and
+    /// emit to "builder" a havoc statement for "bvar". Rather than generating a
+    /// "where" clause for "bvar", emit an "assume" statement for what would have been
+    /// that "where" clause.
+    /// </summary>
+    Dictionary<IVariable, Expression> SetupVariablesAsLocals(List<IVariable> vars, BoogieStmtListBuilder builder,
+      List<Bpl.Variable> locals, ExpressionTranslator etran) {
+      Contract.Requires(vars != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+
+      var substMap = new Dictionary<IVariable, Expression>();
+      foreach (var v in vars) {
+        var local = new LocalVariable(v.Tok, v.Tok, v.Name, v.Type, v.IsGhost);
+        local.type = local.OptionalType;  // resolve local here
+        var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
+        ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
+        substMap.Add(v, ie);
+        var bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type)));
+        locals.Add(bvar);
+        var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
+        builder.Add(new Bpl.HavocCmd(v.Tok, new List<Bpl.IdentifierExpr> { bIe }));
+        Bpl.Expr wh = GetWhereClause(v.Tok, bIe, local.Type, etran, ISALLOC);
+        if (wh != null) {
+          builder.Add(TrAssumeCmd(v.Tok, wh));
         }
       }
       return substMap;
