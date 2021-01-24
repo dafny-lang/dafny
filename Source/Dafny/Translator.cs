@@ -4619,23 +4619,24 @@ namespace Microsoft.Dafny {
     }
 
 #region Definite-assignment tracking
-    void AddDefiniteAssignmentTracker(IVariable p, List<Variable> localVariables) {
+    Bpl.Expr/*?*/ AddDefiniteAssignmentTracker(IVariable p, List<Variable> localVariables) {
       Contract.Requires(p != null);
       Contract.Requires(localVariables != null);
 
       if (DafnyOptions.O.DefiniteAssignmentLevel == 0) {
-        return;
+        return null;
       } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1) {
         if (p.IsGhost && p.Type.IsNonempty) {
-          return;
+          return null;
         } else if (!p.IsGhost && p.Type.HasCompilableValue) {
-          return;
+          return null;
         }
       }
       var tracker = new Bpl.LocalVariable(p.Tok, new Bpl.TypedIdent(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool));
       localVariables.Add(tracker);
       var ie = new Bpl.IdentifierExpr(p.Tok, tracker);
       definiteAssignmentTrackers.Add(p.UniqueName, ie);
+      return ie;
     }
 
     void AddDefiniteAssignmentTrackerSurrogate(Field field, TopLevelDeclWithMembers enclosingClass, List<Variable> localVariables) {
@@ -10959,12 +10960,8 @@ namespace Microsoft.Dafny {
           Bpl.Expr wh = GetWhereClause(local.Tok,
             new Bpl.IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType),
             local.Type, etran, isAllocContext.Var(stmt.IsGhost, local));
-          Bpl.LocalVariable var = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh));
-          var.Attributes = etran.TrAttributes(local.Attributes, null);
-          newLocalIds.Add(new Bpl.IdentifierExpr(local.Tok, var));
-          locals.Add(var);
           // if needed, register definite-assignment tracking for this local
-          var needDefiniteAssignmentTracking = s.Update == null;
+          var needDefiniteAssignmentTracking = s.Update == null || s.Update is AssignSuchThatStmt;
           if (s.Update is UpdateStmt) {
             // there is an initial assignment, but we need to look out for "*" being that assignment
             var us = (UpdateStmt)s.Update;
@@ -10973,8 +10970,19 @@ namespace Microsoft.Dafny {
             }
           }
           if (needDefiniteAssignmentTracking) {
-            AddDefiniteAssignmentTracker(local, locals);
+            var defassExpr = AddDefiniteAssignmentTracker(local, locals);
+            if (wh != null && defassExpr != null) {
+              // make the "where" expression be "defass ==> wh", because we don't want to assume anything
+              // before the variable has been assigned (for a variable that needs definite-assignment tracking
+              // in the first place)
+              wh = BplImp(defassExpr, wh);
+            }
           }
+          // create the variable itself (now that "wh" may mention the definite-assignment tracker)
+          Bpl.LocalVariable var = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh));
+          var.Attributes = etran.TrAttributes(local.Attributes, null);
+          newLocalIds.Add(new Bpl.IdentifierExpr(local.Tok, var));
+          locals.Add(var);
           i++;
         }
         if (s.Update == null) {
