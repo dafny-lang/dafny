@@ -289,3 +289,72 @@ class Regression213 {
     var g := f;  // error: use of f before a definition
   }
 }
+
+// -------------------
+
+module AssignSuchThat {
+  type D(==)
+
+  method BadCompiled0()
+  {
+    var d: D :| true;  // error: cannot prove existence of such a "d"
+  }
+  method BadCompiled1()
+  {
+    // we don't expect any "variable used before defined" errors on the next line
+    var d: D :| d == d;  // error: cannot prove existence of such a "d"
+  }
+  method BadCompiled2()
+  {
+    var d: D;
+    d :| true;  // error: cannot prove existence of such a "d"
+  }
+  method BadCompiled3()
+  {
+    var d: D;
+    // we don't expect any "variable used before defined" errors on the next line
+    d :| d == d;  // error: cannot prove existence of such a "d"
+  }
+}
+
+module AssignSuchThatReference {
+  trait D {
+    const x: int
+  }
+
+  method BadCompiled0()
+  {
+    // we don't expect any "variable used before defined" errors on the next line,
+    // and no null errors, either.
+    var d: D :| d.x == d.x;  // error: cannot prove existence of such a "d"
+  }
+  method BadCompiled1()
+  {
+    var d: D;
+    // we don't expect any "variable used before defined" errors on the next line,
+    // and no null errors, either.
+    d :| d.x == d.x;  // error: cannot prove existence of such a "d"
+  }
+  method Good(y: D)
+  {
+    var d: D;
+    d :| d.x == d.x;  // fine, since parameter "y" serves as a witness
+  }
+}
+
+module LetSuchThat {
+  type C
+
+  function Bad(): int
+  {
+    // regression: in the the following line, the verifier once used the fact that all types were nonempty
+    var c: C :| true;  // error: cannot prove existence of such a "c"
+    5
+  }
+
+  function Good(y: C): int
+  {
+    var c: C :| true;  // fine, since parameter "y" serves as a witness
+    5
+  }
+}

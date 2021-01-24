@@ -1,0 +1,22 @@
+git-issue-851.dfy(108,9): Warning: /!\ No terms found to trigger on.
+git-issue-851.dfy(17,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    git-issue-851.dfy(17,5): anon7_Else
+    (0,0): anon5
+git-issue-851.dfy(37,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    git-issue-851.dfy(37,5): anon7_Else
+    (0,0): anon5
+git-issue-851.dfy(55,4): Error: variable 'd', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+git-issue-851.dfy(62,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+    git-issue-851.dfy(62,14): anon3_Else
+
+Dafny program verifier finished with 8 verified, 4 errors

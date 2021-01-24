@@ -1,3 +1,33 @@
+DefiniteAssignment.dfy(300,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+    DefiniteAssignment.dfy(300,14): anon3_Else
+DefiniteAssignment.dfy(305,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+    DefiniteAssignment.dfy(305,14): anon3_Else
+DefiniteAssignment.dfy(310,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+    DefiniteAssignment.dfy(310,7): anon3_Else
+DefiniteAssignment.dfy(316,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+    DefiniteAssignment.dfy(316,7): anon3_Else
+DefiniteAssignment.dfy(329,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+    DefiniteAssignment.dfy(329,14): anon3_Else
+DefiniteAssignment.dfy(336,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+    DefiniteAssignment.dfy(336,7): anon3_Else
+DefiniteAssignment.dfy(351,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    DefiniteAssignment.dfy(351,5): anon7_Else
+    (0,0): anon5
 DefiniteAssignment.dfy(11,9): Error: field 'y', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
@@ -74,4 +104,4 @@ DefiniteAssignment.dfy(238,12): Error: variable 'b', which is subject to definit
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 9 verified, 17 errors
+Dafny program verifier finished with 11 verified, 24 errors
