@@ -58,7 +58,7 @@ BINARIES_DIRECTORY = path.join(ROOT_DIRECTORY, BINARIES_DIRECTORY)
 DESTINATION_DIRECTORY = path.join(ROOT_DIRECTORY, DESTINATION_DIRECTORY)
 CACHE_DIRECTORY = path.join(DESTINATION_DIRECTORY, "cache")
 
-OTHERS = ( [ "Scripts/quicktest.sh" ] ) ## Other files to include in zip
+OTHERS = ( [ "Scripts/quicktest.sh" , "Scripts/quicktest.out" ] ) ## Other files to include in zip
 OTHER_UPLOADS = ( ["docs/DafnyRef/out/DafnyRef.pdf"] )
 
 z3ToDotNetOSMapping = {
