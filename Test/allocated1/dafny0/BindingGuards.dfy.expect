@@ -2,9 +2,9 @@ BindingGuards.dfy(85,10): Error: A postcondition might not hold on this return p
 BindingGuards.dfy(71,12): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Then
-    (0,0): anon9
-    (0,0): anon16_Then
+    (0,0): anon14_Then
+    (0,0): anon11
+    (0,0): anon19_Then
 BindingGuards.dfy(134,9): Error: assertion violation
 BindingGuards.dfy(6,8): Related location
 Execution trace:

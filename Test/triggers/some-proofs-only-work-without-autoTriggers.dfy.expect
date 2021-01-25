@@ -7,6 +7,7 @@ some-proofs-only-work-without-autoTriggers.dfy(33,11): Info: Selected triggers: 
 some-proofs-only-work-without-autoTriggers.dfy(20,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
+    (0,0): anon21_Then
     (0,0): anon22_Then
     (0,0): anon3
     (0,0): anon23_Then
@@ -14,6 +15,7 @@ Execution trace:
 some-proofs-only-work-without-autoTriggers.dfy(28,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
+    (0,0): anon24_Then
     (0,0): anon25_Then
     (0,0): anon9
     (0,0): anon26_Then

@@ -59,6 +59,7 @@ Execution trace:
 Parallel.dfy(182,11): Error: left-hand sides for different forall-statement bound variables may refer to the same location
 Execution trace:
     (0,0): anon0
+    (0,0): anon18_Then
     (0,0): anon19_Then
     (0,0): anon20_Then
     (0,0): anon5

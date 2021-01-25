@@ -25,13 +25,31 @@ Execution trace:
 MiscTypeInferenceTests.dfy(109,18): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Then
+    (0,0): anon15_Then
     (0,0): anon2
+    (0,0): anon16_Then
+    (0,0): anon17_Then
+    (0,0): anon5
+    (0,0): anon6
+    (0,0): anon18_Then
+    (0,0): anon8
+    (0,0): anon19_Then
+    (0,0): anon10
 MiscTypeInferenceTests.dfy(110,18): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Then
+    (0,0): anon15_Then
     (0,0): anon2
+    (0,0): anon16_Then
+    (0,0): anon17_Then
+    (0,0): anon5
+    (0,0): anon6
+    (0,0): anon18_Then
+    (0,0): anon8
+    (0,0): anon19_Then
+    (0,0): anon10
+    (0,0): anon20_Then
+    (0,0): anon12
 MiscTypeInferenceTests.dfy(143,15): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0

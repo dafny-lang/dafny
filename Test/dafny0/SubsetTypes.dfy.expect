@@ -10,21 +10,41 @@ Execution trace:
 SubsetTypes.dfy(11,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
 SubsetTypes.dfy(15,15): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
 SubsetTypes.dfy(16,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(19,11): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(21,15): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(23,8): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(30,4): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
@@ -66,21 +86,41 @@ Execution trace:
 SubsetTypes.dfy(68,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
 SubsetTypes.dfy(72,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
 SubsetTypes.dfy(73,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(76,11): Error: value does not satisfy the subset constraints of 'set<nat>'
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(78,15): Error: value does not satisfy the subset constraints of 'set<nat>'
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(80,8): Error: value does not satisfy the subset constraints of 'set<nat>'
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(87,4): Error: value does not satisfy the subset constraints of 'set<nat>'
 Execution trace:
     (0,0): anon0
@@ -149,6 +189,9 @@ Execution trace:
 SubsetTypes.dfy(170,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(183,11): Error: value does not satisfy the subset constraints of 'int ~> nat'
 Execution trace:
     (0,0): anon0
