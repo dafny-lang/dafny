@@ -24,13 +24,12 @@ jobs:
         - os:  'ubuntu-16.04'
           osn: 'ubuntu-16.04'
         - os:  'macos-latest'
-          osn: 'osx-10.14.1'
+          osn: 'osx'
         - os:  'windows-latest'
           osn: 'win'
           ver: '3.0.0-PreRelease2'
     # There is no hosted environment for Unbuntu 14.04 or for debian
 
-    # Mac environments need mono, but it is installed by default
     # Java is installed by default, but we need to select 1.8
 
     steps:
@@ -41,7 +40,7 @@ jobs:
       with:
         java-version: 1.8
 
-    - name: Download ${{matrix.os}} releases ( ${{matrix.osn}} )
+    - name: Download ${{matrix.os}} releases
       if: runner.os != 'Windows'
       run: |
         wget -q `curl --silent "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | grep 'browser_download_url' |  grep "${{matrix.osn}}" | sed -e 's@"browser_download_url":@@' -e 's@"@@g'`
@@ -72,18 +71,18 @@ jobs:
     - name: Check - non Windows
       if: runner.os != 'Windows'
       run: |
-        dafny/dafny /compileVerbose:0 /compile:0 a.dfy /proverOpt:PROVER_PATH=dafny/z3/bin/z3
+        dafny/dafny /compileVerbose:0 /compile:0 a.dfy
     - name: Check - Windows
       if: runner.os == 'Windows'
-      run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy /proverOpt:PROVER_PATH=dafny/z3/bin/z3.exe
+      run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy
     - name: Check bad
       run: dafny/dafny /compile:0 b.dfy || echo "EXPECTED FAILURE" ; exit 0
     - name: Check bad - non Windows
       if: runner.os != 'Windows'
-      run: dafny/dafny /compile:0 b.dfy /proverOpt:PROVER_PATH=dafny/z3/bin/z3 || echo "EXPECTED FAILURE"
+      run: dafny/dafny /compile:0 b.dfy || echo "EXPECTED FAILURE"
     - name: Check bad - Windows
       if: runner.os == 'Windows'
-      run: (dafny/Dafny.exe /compile:0 b.dfy /proverOpt:PROVER_PATH=dafny/z3/bin/z3.exe || echo "EXPECTED FAILURE") ; exit 0
+      run: (dafny/Dafny.exe /compile:0 b.dfy || echo "EXPECTED FAILURE") ; exit 0
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |

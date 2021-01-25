@@ -40,7 +40,6 @@ make runtime
 make z3-mac
 make refman
 
-npm install bignumber
-pip3 install lit
-pip3 install OutputCheck
+npm install -g bignumber.js
+pip3 install lit OutputCheck
 lit Test
