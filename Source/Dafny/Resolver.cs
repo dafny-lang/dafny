@@ -12259,13 +12259,20 @@ namespace Microsoft.Dafny
       Contract.Requires(s != null);
       Contract.Requires(codeContext != null);
 
-      if (s.AssumeToken == null) {
-        // to ease in the verification of the existence check, only allow local variables as LHSs
-        foreach (var lhs in s.Lhss) {
-          var ide = lhs.Resolved as IdentifierExpr;
-          if (ide == null) {
-            reporter.Error(MessageSource.Resolver, lhs, "an assign-such-that statement (without an 'assume' clause) currently only supports local-variable LHSs");
+      var lhsSimpleVariables = new HashSet<IVariable>();
+      foreach (var lhs in s.Lhss) {
+        CheckIsLvalue(lhs.Resolved, codeContext);
+        if (lhs.Resolved is IdentifierExpr ide) {
+          if (lhsSimpleVariables.Contains(ide.Var)) {
+            // syntactically forbid duplicate simple-variables on the LHS
+            reporter.Error(MessageSource.Resolver, lhs, $"variable '{ide.Var.Name}' occurs more than once as left-hand side of :|");
+          } else {
+            lhsSimpleVariables.Add(ide.Var);
           }
+        }
+        // to ease in the verification of the existence check, only allow local variables as LHSs
+        if (s.AssumeToken == null && !(lhs.Resolved is IdentifierExpr)) {
+          reporter.Error(MessageSource.Resolver, lhs, "an assign-such-that statement (without an 'assume' clause) currently only supports local-variable LHSs");
         }
       }
 
