@@ -806,7 +806,7 @@ namespace Microsoft.Dafny{
     //
     // An example to show how type parameters are dealt with:
     //
-    //   class Class<T /* needs zero initializer */, U /* does not */> {
+    //   class Class<T /* needs auto-initializer */, U /* does not */> {
     //     private String sT; // type descriptor for T
     //
     //     // Fields are assigned in the constructor because some will
@@ -2978,7 +2978,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    public override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
+    protected override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is BoolType) {
         return "false";

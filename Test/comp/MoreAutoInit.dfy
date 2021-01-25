@@ -467,7 +467,7 @@ module DefaultValuedExpressions {
   class Trait<T, U(0)> { }
 
   codatatype Stream<T> = More(T, Stream<T>)
-  // BUG: this causes a verifier crash: codatatype PossiblyFiniteStream<T> = Stop | GoOn(T, Stream<T>)
+  codatatype EmptyOrInfinite<U> = EmptyStream | InfiniteStream(U, Stream<U>)  // regression: this once crashed the Translator
   codatatype PossiblyFiniteStream<T> = Stop | GoOn(T, PossiblyFiniteStream<T>)
 
   datatype Color = Red | Green | Blue
