@@ -7,10 +7,8 @@
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE;ISDAFNYRUNTIMELIB</DefineConstants>
       <PackageVersion>1.1.0</PackageVersion>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.1|AnyCPU'">
-    <OutputPath>..\..\Binaries\</OutputPath>
+      <TargetFramework>net5.0</TargetFramework>
+      <OutputPath>..\..\Binaries\</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
