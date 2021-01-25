@@ -35,6 +35,8 @@ DatatypeDefaultValues_Compile.GenericTree.Leaf
 DatatypeDefaultValues_Compile.Difficult.MakeDifficult(null)
   DatatypeDefaultValues_Compile.GenDifficult.MakeGenDifficult(null)
 ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
+ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile.CoColor.Yellow
+ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
 0.0 and 0.0
 13
 
@@ -72,6 +74,8 @@ DatatypeDefaultValues_Compile.GenericTree.Leaf
 DatatypeDefaultValues_Compile.Difficult.MakeDifficult(null)
   DatatypeDefaultValues_Compile.GenDifficult.MakeGenDifficult(null)
 ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
+ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile.CoColor.Yellow
+ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
 0.0 and 0.0
 13
 
@@ -109,6 +113,8 @@ DatatypeDefaultValues_Compile.GenericTree.Leaf
 DatatypeDefaultValues_Compile.Difficult.MakeDifficult(null)
   DatatypeDefaultValues_Compile.GenDifficult.MakeGenDifficult(null)
 ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
+ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile.CoColor.Yellow
+ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
 0.0 and 0.0
 13
 
@@ -146,5 +152,7 @@ DatatypeDefaultValues_Compile.GenericTree.Leaf
 DatatypeDefaultValues_Compile.Difficult.MakeDifficult(null)
   DatatypeDefaultValues_Compile.GenDifficult.MakeGenDifficult(null)
 ImportedTypes_mLibrary_Compile.Color.Red(0) and ImportedTypes_mLibrary_Compile.Color.Red(0)
+ImportedTypes_mLibrary_Compile.CoColor.Yellow and ImportedTypes_mLibrary_Compile.CoColor.Yellow
+ImportedTypes_mLibrary_Compile.MoColor.MoYellow and ImportedTypes_mLibrary_Compile.MoColor.MoYellow
 0.0 and 0.0
 13
