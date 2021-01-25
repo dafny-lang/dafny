@@ -2,7 +2,7 @@
 
   <!-- Target framework -->
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
   <!-- Boogie dependency -->
