@@ -640,14 +640,9 @@ namespace Microsoft.Dafny
       // Boogie also used to set the following options, but does not anymore.
       SetZ3Option("auto_config", "false");
       SetZ3Option("type_check", "true");
-      SetZ3Option("smt.phase_selection", "0");  // TODO: this seems not to be needed
-      SetZ3Option("smt.restart_strategy", "0");  // TODO: this seems not to be needed
-      SetZ3Option("smt.restart_factor", "|1.5|");  // TODO: this seems not to be needed
-      SetZ3Option("smt.arith.random_initial_value", "true");  // TODO: this seems not to be needed
-      SetZ3Option("smt.case_split", "3");
-      SetZ3Option("smt.qi.eager_threshold", "100");
+      SetZ3Option("smt.case_split", "3");  // TODO: try removing
+      SetZ3Option("smt.qi.eager_threshold", "100");  // TODO: try lowering
       SetZ3Option("smt.delay_units", "true");
-      SetZ3Option("nnf.sk_hack", "true");  // TODO: this seems not to be needed
       SetZ3Option("smt.arith.solver", "2");
 
       if (DisableNLarith || 3 <= ArithMode) {
@@ -813,10 +808,10 @@ namespace Microsoft.Dafny
     to be shadowed
 /definiteAssignment:<n>
     0 - ignores definite-assignment rules; this mode is for testing only--it is
-        not sound to be used with compilation
+        not sound
     1 (default) - enforces definite-assignment rules for variables and fields
         of types that do not support auto-initialization
-    2 - enforces definite-assignment for all non-ghost non-yield-parameter
+    2 - enforces definite-assignment for all non-yield-parameter
         variables and fields, regardless of their types
     3 - like 2, but also performs checks in the compiler that no nondeterministic
         statements are used; thus, a program that passes at this level 3 is one

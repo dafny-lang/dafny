@@ -3371,7 +3371,7 @@ namespace Microsoft.Dafny
             foreach (var member in cl.Members) {
               if (member is ConstantField && member.IsStatic && !member.IsGhost) {
                 var f = (ConstantField)member;
-                if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !Compiler.InitializerIsKnown(f.Type) && !f.IsExtern(out _, out _)) {
+                if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !f.Type.HasCompilableValue && !f.IsExtern(out _, out _)) {
                   reporter.Error(MessageSource.Resolver, f.tok, "static non-ghost const field '{0}' of type '{1}' (which does not have a default compiled value) must give a defining value",
                     f.Name, f.Type);
                 }
@@ -3390,7 +3390,7 @@ namespace Microsoft.Dafny
               }
             } else if (member is ConstantField && member.IsStatic && !member.IsGhost) {
               var f = (ConstantField)member;
-              if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !Compiler.InitializerIsKnown(f.Type) && !f.IsExtern(out _, out _)) {
+              if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !f.Type.HasCompilableValue && !f.IsExtern(out _, out _)) {
                 reporter.Error(MessageSource.Resolver, f.tok, "static non-ghost const field '{0}' of type '{1}' (which does not have a default compiled value) must give a defining value",
                   f.Name, f.Type);
               }
@@ -3398,7 +3398,7 @@ namespace Microsoft.Dafny
               var f = (Field)member;
               if (f is ConstantField && ((ConstantField)f).Rhs != null) {
                 // fine
-              } else if (!Compiler.InitializerIsKnown(f.Type)) {
+              } else if (!f.Type.HasCompilableValue) {
                 fieldWithoutKnownInitializer = f;
               }
             }
@@ -3411,7 +3411,7 @@ namespace Microsoft.Dafny
                   var f = (Field)member;
                   if (f is ConstantField && ((ConstantField)f).Rhs != null) {
                     // fine
-                  } else if (!Compiler.InitializerIsKnown(Resolver.SubstType(f.Type, cl.ParentFormalTypeParametersToActuals))) {
+                  } else if (!Resolver.SubstType(f.Type, cl.ParentFormalTypeParametersToActuals).HasCompilableValue) {
                     fieldWithoutKnownInitializer = f;
                     break;
                   }
@@ -3977,7 +3977,7 @@ namespace Microsoft.Dafny
         } else if (e is SeqSelectExpr sse) {
           var b = GetAnyConst(sse.Seq, consts) as string;
           BigInteger index = (BigInteger)GetAnyConst(sse.E0, consts);
-          if (b == null || index == null) return null;
+          if (b == null) return null;
           if (index < 0 || index >= b.Length || index > Int32.MaxValue) {
             return null; // Index out of range
           }
@@ -7759,8 +7759,8 @@ namespace Microsoft.Dafny
           hint = TypeEqualityErrorMessageHint(actual);
           return false;
         }
-        if (formal.MustSupportZeroInitialization && !Compiler.HasZeroInitializer(actual)) {
-          whatIsWrong = "zero initialization";
+        if (formal.MustSupportZeroInitialization && !actual.HasCompilableValue) {
+          whatIsWrong = "auto-initialization";
           hint = "";
           return false;
         }
@@ -8974,7 +8974,7 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
           }
           if (o.Characteristics.MustSupportZeroInitialization != n.Characteristics.MustSupportZeroInitialization) {
-            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting zero initialization", n.Name);
+            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
           }
           if (o.Characteristics.DisallowReferenceTypes != n.Characteristics.DisallowReferenceTypes) {
             reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
@@ -9828,8 +9828,14 @@ namespace Microsoft.Dafny
       var option = initiallyNoTypeArguments ? new ResolveTypeOption(iter) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       // resolve the types of the parameters
       var prevErrorCount = reporter.Count(ErrorLevel.Error);
-      foreach (var p in iter.Ins.Concat(iter.Outs)) {
+      foreach (var p in iter.Ins) {
         ResolveType(p.tok, p.Type, iter, option, iter.TypeArgs);
+      }
+      foreach (var p in iter.Outs) {
+        ResolveType(p.tok, p.Type, iter, option, iter.TypeArgs);
+        if (!p.Type.KnownToHaveToAValue(p.IsGhost)) {
+          reporter.Error(MessageSource.Resolver, p.tok, "type of yield-parameter must support auto-initialization (got '{0}')", p.Type);
+        }
       }
       // resolve the types of the added fields (in case some of these types would cause the addition of default type arguments)
       if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
@@ -12259,13 +12265,20 @@ namespace Microsoft.Dafny
       Contract.Requires(s != null);
       Contract.Requires(codeContext != null);
 
-      if (s.AssumeToken == null) {
-        // to ease in the verification of the existence check, only allow local variables as LHSs
-        foreach (var lhs in s.Lhss) {
-          var ide = lhs.Resolved as IdentifierExpr;
-          if (ide == null) {
-            reporter.Error(MessageSource.Resolver, lhs, "an assign-such-that statement (without an 'assume' clause) currently only supports local-variable LHSs");
+      var lhsSimpleVariables = new HashSet<IVariable>();
+      foreach (var lhs in s.Lhss) {
+        CheckIsLvalue(lhs.Resolved, codeContext);
+        if (lhs.Resolved is IdentifierExpr ide) {
+          if (lhsSimpleVariables.Contains(ide.Var)) {
+            // syntactically forbid duplicate simple-variables on the LHS
+            reporter.Error(MessageSource.Resolver, lhs, $"variable '{ide.Var.Name}' occurs more than once as left-hand side of :|");
+          } else {
+            lhsSimpleVariables.Add(ide.Var);
           }
+        }
+        // to ease in the verification of the existence check, only allow local variables as LHSs
+        if (s.AssumeToken == null && !(lhs.Resolved is IdentifierExpr)) {
+          reporter.Error(MessageSource.Resolver, lhs, "an assign-such-that statement (without an 'assume' clause) currently only supports local-variable LHSs");
         }
       }
 

@@ -1,23 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Target Name="RunCoco" BeforeTargets="PreBuildEvent" >
+  <Target Name="RunCoco" BeforeTargets="PreBuildEvent">
     <Exec Command="dotnet tool restore" />
+    <Exec Command="dotnet --info" />
     <Exec Command="dotnet tool run coco $(ProjectDir)Dafny.atg -namespace Microsoft.Dafny -frames $(ProjectDir)../../third_party/Coco/src" />
     <!-- Recompute files to build according to https://stackoverflow.com/a/44829863/93197 -->
     <ItemGroup>
-      <Compile Include="**/*$(DefaultLanguageSourceExtension)"
-               Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />
+      <Compile Include="**/*$(DefaultLanguageSourceExtension)" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />
     </ItemGroup>
   </Target>
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
     <AssemblyName>DafnyPipeline</AssemblyName>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <DefineConstants>TRACE</DefineConstants>
     <PackageVersion>1.1.0</PackageVersion>
+    <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>

@@ -476,8 +476,8 @@ module NeedForConstructors {
   class AAA<Y> extends Tr<(Y,Y)> {  // error: AAA must declare a constructor, since w has type (Y,Y)
   }
 
-  codatatype Forever = More(Forever)
-
+  codatatype Forever'<G> = More(Forever'<int>)
+  type Forever = Forever'<bool>
   class BBB extends Tr<Forever> {  // error: BBB must declare a constructor, since w has type Forever
   }
 
@@ -493,9 +493,9 @@ module TypeCharacteristicsDiscrepancies {
   class ClassRequiresZero<Y(0)> {
   }
 
-  codatatype Forever = More(Forever)
-
-  function method AlwaysMore(): Forever {
+  codatatype Forever'<G> = More(Forever'<int>)
+  type Forever = Forever'<bool>
+  function method AlwaysMore(): Forever'<int> {
     More(AlwaysMore())
   }
 
@@ -512,7 +512,7 @@ module TypeCharacteristicsDiscrepancies {
   class HasZero2<Y(0)> extends RequiresZero<(Y,Y)> { }
   class NoZero0 extends RequiresZero<Forever> {  // error: cannot instantiate X(0) with Forever
     constructor () {
-      x := AlwaysMore();
+      x := More(AlwaysMore());
     }
   }
   class NoZero1<Y> extends RequiresZero<Y> {  // error: cannot instantiate X(0) with Y
