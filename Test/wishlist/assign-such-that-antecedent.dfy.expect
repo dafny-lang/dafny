@@ -7,8 +7,9 @@ Execution trace:
 assign-such-that-antecedent.dfy(13,9): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon4_Then
     (0,0): anon5_Then
-    (0,0): anon3
+    (0,0): anon6_Then
+    (0,0): anon7_Then
+    (0,0): anon4
 
 Dafny program verifier finished with 2 verified, 2 errors

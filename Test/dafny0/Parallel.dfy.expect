@@ -1,7 +1,8 @@
 Parallel.dfy(293,21): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon4_Else
+    (0,0): anon6_Else
+    (0,0): anon7_Then
 Parallel.dfy(33,9): Error: A precondition for this call might not hold.
 Parallel.dfy(59,13): Related location: This is the precondition that might not hold.
 Execution trace:

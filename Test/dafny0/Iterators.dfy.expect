@@ -52,19 +52,19 @@ Execution trace:
 Iterators.dfy(208,6): Error: an assignment to _new is only allowed to shrink the set
 Execution trace:
     (0,0): anon0
-    Iterators.dfy(197,3): anon16_LoopHead
-    (0,0): anon16_LoopBody
-    Iterators.dfy(197,3): anon17_Else
-    Iterators.dfy(197,3): anon19_Else
-    (0,0): anon20_Then
+    Iterators.dfy(197,3): anon17_LoopHead
+    (0,0): anon17_LoopBody
+    Iterators.dfy(197,3): anon18_Else
+    Iterators.dfy(197,3): anon21_Else
+    (0,0): anon22_Then
 Iterators.dfy(212,20): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    Iterators.dfy(197,3): anon16_LoopHead
-    (0,0): anon16_LoopBody
-    Iterators.dfy(197,3): anon17_Else
-    Iterators.dfy(197,3): anon19_Else
-    (0,0): anon21_Then
+    Iterators.dfy(197,3): anon17_LoopHead
+    (0,0): anon17_LoopBody
+    Iterators.dfy(197,3): anon18_Else
+    Iterators.dfy(197,3): anon21_Else
+    (0,0): anon23_Then
 Iterators.dfy(436,18): Error: This loop invariant might not be maintained by the loop.
 Iterators.dfy(436,18): Related message: loop invariant violation
 Execution trace:
