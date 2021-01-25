@@ -150,7 +150,7 @@ abstract module M0 {
 
   datatype Reason = rCompatibility | rValidity
 
-  type Path(==)
+  type Path(==,0)  // TODO: this is a good candidate for a "ghost (0)" marking (meaning nonempty type)
   function Loc(cmd: string, deps: set<Path>, exp: string): Path
 
   type Artifact(0)  // TODO: this is a good candidate for a "ghost (0)" marking (meaning nonempty type)
