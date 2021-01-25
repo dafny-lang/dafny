@@ -79,6 +79,19 @@ Execution trace:
 Array.dfy(191,5): Error: assignment may update an array element not in the enclosing context's modifies clause
 Execution trace:
     (0,0): anon0
+Array.dfy(332,4): Error: assignment may update an object not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+Array.dfy(338,5): Error: assignment may update an array element not in the enclosing context's modifies clause
+Execution trace:
+    (0,0): anon0
+Array.dfy(353,17): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Array.dfy(358,17): Error: left-hand sides that.x and this.x may refer to the same location
+Execution trace:
+    (0,0): anon0
 Array.dfy(216,0): Error: A postcondition might not hold on this return path.
 Array.dfy(215,10): Related location: This is the postcondition that might not hold.
 Execution trace:
@@ -122,4 +135,4 @@ Execution trace:
     (0,0): anon2
     (0,0): anon6_Then
 
-Dafny program verifier finished with 37 verified, 23 errors
+Dafny program verifier finished with 41 verified, 27 errors

@@ -55,6 +55,14 @@ module ExampleB {
     d.False();  // error: d is used before it is assigned
   }
 
+  lemma BadSuchThatGhost()
+    ensures false
+  {
+    // regression: the verifier once thought the compiler would provide a value for "d"
+    var d: D :| d == d;  // error: cannot prove existence of such a "d"
+    d.False();
+  }
+
   method BadCompiled()
     ensures false
   {
@@ -109,5 +117,14 @@ module ExampleC {
       d.False();
       assert false;  // fine, since control will never reach this point
     case true =>
+  }
+}
+
+module ExampleD {
+  type D
+
+  method Test() {
+    var d0: D :| true;  // error: cannot prove existence of a D here
+    var d1: D :| true;  // here, it can prove the existence of a D, since "d0" is one such value
   }
 }

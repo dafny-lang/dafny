@@ -91,11 +91,9 @@ method DontForgetHavoc<G>(a: G, h: int) returns (k: G) {
 
 method OtherAssignments<G(==)>(a: G, h: int) returns (k: G) {
   var e0: G, e1: G;
-  e0 :| e0 == e1;  // error: about the use of e1, but not the use of e0
-  var x:G, y:G, z:G :| x == z == a;  // (note, the compiler would complain here
-                                     // that it doesn't know how to compile the
-                                     // statement, but it does satisfy the
-                                     // definite-assignment rules)
+  e0 :| e0 == e1;  // error (x2): about the use of e1, but not the use of e0; and about can't prove existence
+  var x:G, y:G, z:G :| x == z == a;  // (note, the compiler would complain here that it doesn't know how to compile the
+                                     // statement, but it does satisfy the definite-assignment rules)
   if h < 10 {
     k := x;  // fine
   } else if h < 20 {
@@ -104,9 +102,11 @@ method OtherAssignments<G(==)>(a: G, h: int) returns (k: G) {
     return z;
   }
 }
-
-method Callee<G>(a: G) returns (x: G, y: G, z: G)
-{
+method OtherAssignments'<G(==,0)>() {
+  var e0: G, e1: G;
+  e0 :| e0 == e1;  // all is fine here
+}
+method Callee<G>(a: G) returns (x: G, y: G, z: G) {
   return a, a, a;
 }
 

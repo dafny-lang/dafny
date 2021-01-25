@@ -2,26 +2,32 @@ DefiniteAssignment.dfy(300,13): Error: cannot establish the existence of LHS val
 Execution trace:
     (0,0): anon0
     DefiniteAssignment.dfy(300,14): anon3_Else
+    (0,0): anon2
 DefiniteAssignment.dfy(305,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
     DefiniteAssignment.dfy(305,14): anon3_Else
+    (0,0): anon2
 DefiniteAssignment.dfy(310,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
     DefiniteAssignment.dfy(310,7): anon3_Else
+    (0,0): anon2
 DefiniteAssignment.dfy(316,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
     DefiniteAssignment.dfy(316,7): anon3_Else
+    (0,0): anon2
 DefiniteAssignment.dfy(329,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
     DefiniteAssignment.dfy(329,14): anon3_Else
+    (0,0): anon2
 DefiniteAssignment.dfy(336,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
     DefiniteAssignment.dfy(336,7): anon3_Else
+    (0,0): anon2
 DefiniteAssignment.dfy(351,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
@@ -89,9 +95,15 @@ Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Then
+DefiniteAssignment.dfy(94,5): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+    DefiniteAssignment.dfy(94,6): anon12_Else
+    (0,0): anon2
 DefiniteAssignment.dfy(94,14): Error: variable 'e1', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
+    (0,0): anon12_Then
 DefiniteAssignment.dfy(143,8): Error: variable 'w', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
@@ -104,4 +116,4 @@ DefiniteAssignment.dfy(238,12): Error: variable 'b', which is subject to definit
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 11 verified, 24 errors
+Dafny program verifier finished with 12 verified, 25 errors

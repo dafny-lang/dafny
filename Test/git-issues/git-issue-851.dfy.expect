@@ -1,4 +1,4 @@
-git-issue-851.dfy(108,9): Warning: /!\ No terms found to trigger on.
+git-issue-851.dfy(116,9): Warning: /!\ No terms found to trigger on.
 git-issue-851.dfy(17,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
@@ -18,5 +18,16 @@ git-issue-851.dfy(62,13): Error: cannot establish the existence of LHS values th
 Execution trace:
     (0,0): anon0
     git-issue-851.dfy(62,14): anon3_Else
+    (0,0): anon2
+git-issue-851.dfy(70,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+    git-issue-851.dfy(70,14): anon3_Else
+    (0,0): anon2
+git-issue-851.dfy(127,14): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+    git-issue-851.dfy(127,15): anon5_Else
+    (0,0): anon2
 
-Dafny program verifier finished with 8 verified, 4 errors
+Dafny program verifier finished with 8 verified, 6 errors

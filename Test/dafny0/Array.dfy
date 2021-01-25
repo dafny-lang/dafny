@@ -323,4 +323,40 @@ module DtypeRegression {
   }
 }
 
+// ------- :| -------
+
+class AssignSuchThat {
+  var x: int
+
+  method P() {
+    x :| assume x == 10;  // error: P is not allowed to modify "this"
+  }
+
+  method Q0(a: array<int>)
+    requires a.Length == 50
+  {
+    a[22] :| assume a[22] == 12;  // error: Q0 is not allowed to modify "a"
+    assert a[22] == 12;
+  }
+  method Q1(a: array<int>)
+    requires a.Length == 50
+    modifies a
+  {
+    a[22] :| assume a[22] == 12;
+    assert a[22] == 12;
+  }
+  method Q2(a: array<int>)
+    requires a.Length == 50
+    modifies a
+  {
+    a[22] :| assume a[22] == 12;
+    assert a[22] == 0;  // error: a[22] is not 0
+  }
+  method R(that: AssignSuchThat)
+    modifies this, that
+  {
+    this.x, that.x :| assume this.x == 5 && that.x == 5;  // error: duplicate LHSs (no regard to same final values in :| statements)
+  }
+}
+
 // WISH: autoTriggers disabled because of induction
