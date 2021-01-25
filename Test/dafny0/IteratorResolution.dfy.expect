@@ -46,4 +46,7 @@ IteratorResolution.dfy(292,21): Error: type parameter (_T0) passed to type Iter 
 IteratorResolution.dfy(292,17): Error: type parameter (_T0) passed to type Iter must support auto-initialization (got GenericCo<Magic>)
 IteratorResolution.dfy(298,21): Error: type parameter (_T0) passed to type Iter must support auto-initialization (got NonuniformGenericCo<bool>)
 IteratorResolution.dfy(298,17): Error: type parameter (_T0) passed to type Iter must support auto-initialization (got NonuniformGenericCo<bool>)
-48 resolution/type errors detected in IteratorResolution.dfy
+IteratorResolution.dfy(325,23): Error: type of yield-parameter must support auto-initialization (got 'MaybeEmpty')
+IteratorResolution.dfy(328,23): Error: type of yield-parameter must support auto-initialization (got 'GhostAutoInit')
+IteratorResolution.dfy(334,29): Error: type of yield-parameter must support auto-initialization (got 'MaybeEmpty')
+51 resolution/type errors detected in IteratorResolution.dfy

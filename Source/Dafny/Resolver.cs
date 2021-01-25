@@ -9828,8 +9828,14 @@ namespace Microsoft.Dafny
       var option = initiallyNoTypeArguments ? new ResolveTypeOption(iter) : new ResolveTypeOption(ResolveTypeOptionEnum.AllowPrefix);
       // resolve the types of the parameters
       var prevErrorCount = reporter.Count(ErrorLevel.Error);
-      foreach (var p in iter.Ins.Concat(iter.Outs)) {
+      foreach (var p in iter.Ins) {
         ResolveType(p.tok, p.Type, iter, option, iter.TypeArgs);
+      }
+      foreach (var p in iter.Outs) {
+        ResolveType(p.tok, p.Type, iter, option, iter.TypeArgs);
+        if (!p.Type.KnownToHaveToAValue(p.IsGhost)) {
+          reporter.Error(MessageSource.Resolver, p.tok, "type of yield-parameter must support auto-initialization (got '{0}')", p.Type);
+        }
       }
       // resolve the types of the added fields (in case some of these types would cause the addition of default type arguments)
       if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
