@@ -3,6 +3,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon16_Else
     (0,0): anon18_Else
+    (0,0): anon20_Then
     (0,0): anon21_Then
     (0,0): anon13
 LhsDuplicates.dfy(36,11): Error: left-hand sides for different forall-statement bound variables may refer to the same location
@@ -10,6 +11,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon16_Else
     (0,0): anon18_Else
+    (0,0): anon20_Then
     (0,0): anon21_Then
     (0,0): anon13
 LhsDuplicates.dfy(42,5): Error: left-hand sides a and a refer to the same location

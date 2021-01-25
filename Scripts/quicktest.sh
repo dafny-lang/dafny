@@ -8,7 +8,7 @@ DIR="$(dirname ${BASH_SOURCE[0]})"
 echo Should succeed
 $DIR/dafny /compile:0 a.dfy
 echo Should fail
-$DIR/dafny /compile:0 b.dfy
+$DIR/dafny /compile:0 -useBaseNameForFileName b.dfy
 echo Compiling on C#
 $DIR/dafny /compile:3 /compileTarget:cs c.dfy
 echo Compiling to Javascript

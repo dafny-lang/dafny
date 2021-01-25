@@ -266,3 +266,20 @@ module T refines S {
   const y: int  // error: there must be more of a change to allow a re-declaration
   const z := 2.7  // error: bad type for the RHS
 }
+
+// ---------- assign-such-that --------
+
+module AssignSuchThat {
+  method Duplicate() {
+    var x: int;
+    x, x :| true;  // error: duplicate LHS
+  }
+
+  class MyClass {
+    const c: int
+
+    method M() {
+      c :| assume true;  // error: c is not mutable
+    }
+  }
+}
