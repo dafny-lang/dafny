@@ -129,3 +129,22 @@ module TypeParameters {
       ghost var x := c;
   }
 }
+
+module OutParameters {
+  trait EmptyType {
+    lemma False()
+      ensures false
+  }
+
+  method M0() returns (e: EmptyType) {
+  }  // error: there's no definite assignment to "e"
+
+  method M1() returns (e: EmptyType) {
+    // The following line should give an error, because it's not possible to prove the
+    // existence of such a "d". This tests that the "where" clause of out-parameter "e"
+    // has the form "defass ==> typeAntecedent" (if the "where" clause were just
+    // "typeAntecedent", then the verifier would be able to find a value for "d", which
+    // would be bad).
+    var d: EmptyType :| true;  // error: failure to prove existence of such a "d"
+  }  // error: there's no definite assignment to "e"
+}
