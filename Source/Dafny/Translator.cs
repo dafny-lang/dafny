@@ -10491,35 +10491,65 @@ namespace Microsoft.Dafny {
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         AddComment(builder, s, "assign-such-that statement");
-        // Essentially, treat like an assert, a parallel havoc, and an assume.  However, we also need to check
-        // the well-formedness of the expression, which is done after the havoc BUT BEFORE COMMITTING TO ASSUMING
-        // THE TYPE ANTECEDENT.  So, we do the havoc first, then--conditionally, under the type antecedent--the
-        // well-formedness check, then the assert (unless the whole statement is an assume), and finally the assume.
+        // Essentially, treat like an assert (that values for the LHS exist), a havoc (of the LHS), and an
+        // assume (of the RHS).  However, we also need to check the well-formedness of the LHS and RHS.
+        // The well-formedness of the LHS is done by the havoc. The well-formedness of the RHS is most
+        // easily done after that havoc, but we need to be careful about two things:
+        //   - We should not generate any errors for uses of LHSs. This is not an issue for fields or
+        //     array elements, because they already have values before reaching the assign-such-that statement.
+        //     (Note, "this.f" is not allowed as a LHS in the first division of a constructor.)
+        //     For any local variable or out-parameter x that's a LHS, we create a new variable x' and
+        //     substitute x' for x in the RHS before doing the well-formedness check.
+        //   - The well-formedness checks need to be able to assume that each x' has a value of its
+        //     type. However, this assumption must not carry over to the existence assertion, because
+        //     then everything will be provable if x' is of a known-empty type. Instead, the well-formedness
+        //     check is wrapped inside an "if" whose guard is the type antecedent. After the existence
+        //     check, the type antecedent is assumed of the original x, the RHS is assumed, and x is
+        //     marked off has having been definitely assigned.
+        //
+        // So, the Dafny statement
+        //     E.f, x :| RHS(x);
+        // is translated into the following Boogie code:
+        //     var x';
+        //     Tr[[ E.f := *; ]]  // this havoc is translated like a Dafny assignment statement, which means
+        //                        // the well-formedness of E is checked here
+        //     if (typeAntecedent(x')) {
+        //       check well-formedness of RHS(x');
+        //     }
+        //     assert (exists x'' :: RHS(x''));  // for ":| assume", omit this line; for ":|", LHS is only allowed to contain simple variables
+        //     defass$x := true;
+        //     havoc x;
+        //     assume RHS(x);
 
-        // Here comes the havoc part
-        var lhss = new List<Expression>();
-        var havocRhss = new List<AssignmentRhs>();
+        var simpleLHSs = new List<IdentifierExpr>();
+        Bpl.Expr typeAntecedent = Bpl.Expr.True;
+        var havocLHSs = new List<Expression>();
+        var havocRHSs = new List<AssignmentRhs>();
+        var substMap = new Dictionary<IVariable, Expression>();
         foreach (var lhs in s.Lhss) {
-          lhss.Add(lhs.Resolved);
-          havocRhss.Add(new HavocRhs(lhs.tok));  // note, a HavocRhs is constructed as already resolved
-        }
-        List<AssignToLhs> lhsBuilder;
-        List<Bpl.IdentifierExpr> bLhss;
-        Bpl.Expr[] ignore1, ignore2;
-        string[] ignore3;
-        ProcessLhss(lhss, false, true, builder, locals, etran, out lhsBuilder, out bLhss, out ignore1, out ignore2, out ignore3);
-        foreach (var lhs in s.Lhss) {
-          var ide = lhs.Resolved as IdentifierExpr;
-          if (ide != null) {
-            MarkDefiniteAssignmentTracker(ide, builder);
+          var lvalue = lhs.Resolved;
+          if (lvalue is IdentifierExpr ide) {
+            simpleLHSs.Add(ide);
+            var wh = SetupVariableAsLocal(ide.Var, substMap, builder, locals, etran);
+            typeAntecedent = BplAnd(typeAntecedent, wh);
+          } else {
+            havocLHSs.Add(lhs.Resolved);
+            havocRHSs.Add(new HavocRhs(lhs.tok));  // note, a HavocRhs is constructed as already resolved
           }
         }
-        ProcessRhss(lhsBuilder, bLhss, lhss, havocRhss, builder, locals, etran);
+        ProcessLhss(havocLHSs, false, true, builder, locals, etran, out var lhsBuilder, out var bLhss, out _, out _, out _);
+        ProcessRhss(lhsBuilder, bLhss, havocLHSs, havocRHSs, builder, locals, etran);
+        
         // Here comes the well-formedness check
-        TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
+        var wellFormednessBuilder = new BoogieStmtListBuilder(this);
+        var rhs = Substitute(s.Expr, null, substMap);
+        TrStmt_CheckWellformed(rhs, wellFormednessBuilder, locals, etran, false);
+        var ifCmd = new Bpl.IfCmd(s.Tok, typeAntecedent, wellFormednessBuilder.Collect(s.Tok), null, null);
+        builder.Add(ifCmd);
+        
         // Here comes the assert part
         if (s.AssumeToken == null) {
-          var substMap = new Dictionary<IVariable, Expression>();
+          substMap = new Dictionary<IVariable, Expression>();
           var bvars = new List<BoundVar>();
           foreach (var lhs in s.Lhss) {
             var l = lhs.Resolved;
@@ -10537,6 +10567,16 @@ namespace Microsoft.Dafny {
 
           GenerateAndCheckGuesses(s.Tok, bvars, s.Bounds, Substitute(s.Expr, null, substMap), TrTrigger(etran, s.Attributes, s.Tok, substMap), builder, etran);
         }
+
+        // Mark off the simple variables as having definitely been assigned AND THEN havoc their values. By doing them
+        // in this order, they type antecedents will in effect be assumed.
+        var bHavocLHSs = new List<Bpl.IdentifierExpr>();
+        foreach (var lhs in simpleLHSs) {
+          MarkDefiniteAssignmentTracker(lhs, builder);
+          bHavocLHSs.Add((Bpl.IdentifierExpr)etran.TrExpr(lhs));
+        }
+        builder.Add(new Bpl.HavocCmd(s.Tok, bHavocLHSs));
+        
         // End by doing the assume
         builder.Add(TrAssumeCmd(s.Tok, etran.TrExpr(s.Expr)));
         builder.Add(CaptureState(s));  // just do one capture state--here, at the very end (that is, don't do one before the assume)
@@ -12540,37 +12580,32 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Clone each Dafny variable "vars[i]" into a new Dafny local variable "l".
-    /// Return a substitution from "vars[i]" to an IdentifierExpr for "l".
+    /// Clone Dafny variable "v" into a new Dafny local variable "l".
+    /// Add to "substMap" the substitution from "v" to an IdentifierExpr for "l".
     /// Also, generate a Boogie variable "bvar" for "l", add "bvar" to "locals", and
-    /// emit to "builder" a havoc statement for "bvar". Rather than generating a
-    /// "where" clause for "bvar", emit an "assume" statement for what would have been
-    /// that "where" clause.
+    /// emit to "builder" a havoc statement for "bvar". The type antecedent for "bvar"
+    /// is NOT emitted; rather, it is returned by this method.
     /// </summary>
-    Dictionary<IVariable, Expression> SetupVariablesAsLocals(List<IVariable> vars, BoogieStmtListBuilder builder,
-      List<Bpl.Variable> locals, ExpressionTranslator etran) {
-      Contract.Requires(vars != null);
+    Bpl.Expr SetupVariableAsLocal(IVariable v, Dictionary<IVariable, Expression> substMap,
+      BoogieStmtListBuilder builder, List<Bpl.Variable> locals, ExpressionTranslator etran) {
+      Contract.Requires(v != null);
+      Contract.Requires(substMap != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
-      var substMap = new Dictionary<IVariable, Expression>();
-      foreach (var v in vars) {
-        var local = new LocalVariable(v.Tok, v.Tok, v.Name, v.Type, v.IsGhost);
-        local.type = local.OptionalType;  // resolve local here
-        var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
-        ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
-        substMap.Add(v, ie);
-        var bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type)));
-        locals.Add(bvar);
-        var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
-        builder.Add(new Bpl.HavocCmd(v.Tok, new List<Bpl.IdentifierExpr> { bIe }));
-        Bpl.Expr wh = GetWhereClause(v.Tok, bIe, local.Type, etran, ISALLOC);
-        if (wh != null) {
-          builder.Add(TrAssumeCmd(v.Tok, wh));
-        }
-      }
-      return substMap;
+      var local = new LocalVariable(v.Tok, v.Tok, v.Name, v.Type, v.IsGhost);
+      local.type = local.OptionalType;  // resolve local here
+      var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
+      ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
+      substMap.Add(v, ie);
+      
+      var bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type)));
+      locals.Add(bvar);
+      var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
+      builder.Add(new Bpl.HavocCmd(v.Tok, new List<Bpl.IdentifierExpr> { bIe }));
+      var wh = GetWhereClause(v.Tok, bIe, local.Type, etran, ISALLOC);
+      return wh ?? Bpl.Expr.True;
     }
 
     List<Bpl.Expr> RecordDecreasesValue(List<Expression> decreases, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, string varPrefix)
