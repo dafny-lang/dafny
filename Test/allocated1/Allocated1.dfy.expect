@@ -43,7 +43,7 @@ AllocatedCommon.dfyi(93,9): Error: assertion violation
 AllocatedCommon.dfyi(94,9): Error: assertion violation
 AllocatedCommon.dfyi(95,9): Error: assertion violation
 AllocatedCommon.dfyi(96,19): Error: assertion violation
-AllocatedCommon.dfyi(97,9): Error: assertion violation
+AllocatedCommon.dfyi(97,19): Error: assertion violation
 AllocatedCommon.dfyi(98,23): Error: assertion violation
 AllocatedCommon.dfyi(116,26): Error: assertion violation
 AllocatedCommon.dfyi(117,26): Error: assertion violation
@@ -62,7 +62,7 @@ AllocatedCommon.dfyi(129,9): Error: assertion violation
 AllocatedCommon.dfyi(130,9): Error: assertion violation
 AllocatedCommon.dfyi(131,9): Error: assertion violation
 AllocatedCommon.dfyi(132,19): Error: assertion violation
-AllocatedCommon.dfyi(133,9): Error: assertion violation
+AllocatedCommon.dfyi(133,19): Error: assertion violation
 AllocatedCommon.dfyi(134,23): Error: assertion violation
 AllocatedCommon.dfyi(177,26): Error: assertion violation
 AllocatedCommon.dfyi(178,26): Error: assertion violation

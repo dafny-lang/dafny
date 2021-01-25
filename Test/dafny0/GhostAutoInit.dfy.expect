@@ -46,5 +46,18 @@ GhostAutoInit.dfy(125,21): Error: variable 'a', which is subject to definite-ass
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
+GhostAutoInit.dfy(140,2): Error: out-parameter 'e', which is subject to definite-assignment rules, might not have been defined at this return point
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(148,21): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+    GhostAutoInit.dfy(148,22): anon3_Else
+    (0,0): anon2
+GhostAutoInit.dfy(149,2): Error: out-parameter 'e', which is subject to definite-assignment rules, might not have been defined at this return point
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
 
-Dafny program verifier finished with 1 verified, 12 errors
+Dafny program verifier finished with 1 verified, 15 errors
