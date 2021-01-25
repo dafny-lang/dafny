@@ -115,8 +115,6 @@ SmallTests.dfy(303,23): Error: A precondition for this call might not hold.
 SmallTests.dfy(281,16): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Then
-    (0,0): anon2
 SmallTests.dfy(408,11): Error: assertion violation
 Execution trace:
     (0,0): anon0

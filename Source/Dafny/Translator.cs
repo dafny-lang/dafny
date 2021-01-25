@@ -2069,8 +2069,12 @@ namespace Microsoft.Dafny {
             q = CoEqualCall(codecl, lexprs, rexprs, k, l, a, b);
           } else {
             // ordinary equality; let the usual translation machinery figure out the translation
-            var equal = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, new BoogieWrapper(a, ty), new BoogieWrapper(b, ty));
-            equal.ResolvedOp = Resolver.ResolveOp(equal.Op, ty, ty);  // resolve here
+            var tyA = Resolver.SubstType(ty, lsu);
+            var tyB = Resolver.SubstType(ty, rsu);
+            var aa = CondApplyUnbox(tok, a, ty, tyA);
+            var bb = CondApplyUnbox(tok, b, ty, tyB);
+            var equal = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, new BoogieWrapper(aa, tyA), new BoogieWrapper(bb, tyB));
+            equal.ResolvedOp = Resolver.ResolveOp(equal.Op, tyA, tyB);  // resolve here
             equal.Type = Type.Bool;  // resolve here
             q = etran.TrExpr(equal);
           }
@@ -4619,10 +4623,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(p != null);
       Contract.Requires(localVariables != null);
 
-      if (DafnyOptions.O.DefiniteAssignmentLevel == 0 || p.IsGhost) {
+      if (DafnyOptions.O.DefiniteAssignmentLevel == 0) {
         return;
-      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(p.Type)) {
-        return;
+      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1) {
+        if (p.IsGhost && p.Type.IsNonempty) {
+          return;
+        } else if (!p.IsGhost && p.Type.HasCompilableValue) {
+          return;
+        }
       }
       var tracker = new Bpl.LocalVariable(p.Tok, new Bpl.TypedIdent(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool));
       localVariables.Add(tracker);
@@ -4634,12 +4642,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(field != null);
       Contract.Requires(localVariables != null);
 
-      if (DafnyOptions.O.DefiniteAssignmentLevel == 0 || field.IsGhost) {
+      if (DafnyOptions.O.DefiniteAssignmentLevel == 0) {
         return;
       }
       var type = Resolver.SubstType(field.Type, enclosingClass.ParentFormalTypeParametersToActuals);
-      if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(type)) {
-        return;
+      if (DafnyOptions.O.DefiniteAssignmentLevel == 1) {
+        if (field.IsGhost && type.IsNonempty) {
+          return;
+        } else if (!field.IsGhost && type.HasCompilableValue) {
+          return;
+        }
       }
       var nm = SurrogateName(field);
       var tracker = new Bpl.LocalVariable(field.tok, new Bpl.TypedIdent(field.tok, "defass#" + nm, Bpl.Type.Bool));
@@ -13533,7 +13545,7 @@ namespace Microsoft.Dafny {
             }
           } else if (DafnyOptions.O.DefiniteAssignmentLevel == 0) {
             // cool
-          } else if (2 <= DafnyOptions.O.DefiniteAssignmentLevel || !Compiler.InitializerIsKnown(tRhs.EType)) {
+          } else if (2 <= DafnyOptions.O.DefiniteAssignmentLevel || !tRhs.EType.HasCompilableValue) {
             // this is allowed only if the array size is such that it has no elements
             Bpl.Expr zeroSize = Bpl.Expr.False;
             foreach (Expression dim in tRhs.ArrayDimensions) {
