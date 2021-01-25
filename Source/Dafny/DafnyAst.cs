@@ -3569,7 +3569,7 @@ namespace Microsoft.Dafny {
     {
       public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
       public bool MustSupportZeroInitialization;
-      public bool MustBeNonempty => true;  // TODO: make this an independent characteristic
+      public bool MustBeNonempty => false;  // TODO: make this an independent characteristic
       public bool DisallowReferenceTypes;
       public TypeParameterCharacteristics(bool dummy) {
         EqualitySupport = EqualitySupportValue.Unspecified;

@@ -37,10 +37,34 @@ Execution trace:
 DefiniteAssignment.dfy(11,9): Error: field 'y', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
+DefiniteAssignment.dfy(13,4): Error: field 'oxA', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+Execution trace:
+    (0,0): anon0
+DefiniteAssignment.dfy(13,4): Error: field 'oxB', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+Execution trace:
+    (0,0): anon0
+DefiniteAssignment.dfy(18,4): Error: field 'oxA', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+Execution trace:
+    (0,0): anon0
+DefiniteAssignment.dfy(18,4): Error: field 'oxB', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+Execution trace:
+    (0,0): anon0
 DefiniteAssignment.dfy(18,4): Error: field 'y', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
 Execution trace:
     (0,0): anon0
+DefiniteAssignment.dfy(23,2): Error: field 'oxA', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+Execution trace:
+    (0,0): anon0
+DefiniteAssignment.dfy(23,2): Error: field 'oxB', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+Execution trace:
+    (0,0): anon0
 DefiniteAssignment.dfy(23,2): Error: field 'y', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+Execution trace:
+    (0,0): anon0
+DefiniteAssignment.dfy(27,2): Error: field 'oxA', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+Execution trace:
+    (0,0): anon0
+DefiniteAssignment.dfy(27,2): Error: field 'oxB', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
 Execution trace:
     (0,0): anon0
 DefiniteAssignment.dfy(27,2): Error: field 'x', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
@@ -104,6 +128,19 @@ DefiniteAssignment.dfy(94,14): Error: variable 'e1', which is subject to definit
 Execution trace:
     (0,0): anon0
     (0,0): anon12_Then
+DefiniteAssignment.dfy(127,7): Error: variable 'b', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+DefiniteAssignment.dfy(128,0): Error: out-parameter 'g', which is subject to definite-assignment rules, might not have been defined at this return point
+Execution trace:
+    (0,0): anon0
+DefiniteAssignment.dfy(133,7): Error: variable 'b', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+DefiniteAssignment.dfy(136,9): Error: variable 'c', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
 DefiniteAssignment.dfy(143,8): Error: variable 'w', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
@@ -116,4 +153,4 @@ DefiniteAssignment.dfy(238,12): Error: variable 'b', which is subject to definit
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 12 verified, 25 errors
+Dafny program verifier finished with 12 verified, 37 errors

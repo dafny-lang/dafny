@@ -4,27 +4,27 @@
 class MyClass<G> {
   const x: G
   var y: G
-  ghost var oxA: G  // ghosts never need to be assigned
-  ghost const oxB: G  // ghosts never need to be assigned
+  ghost var oxA: G  // error (TODO: "ghosts never need to be assigned" applies if G were marked as nonempty)
+  ghost const oxB: G  // error (TODO: "ghosts never need to be assigned" applies if G were marked as nonempty)
   constructor C0()
   {
     x := y;  // error: y has not yet been defined
     this.y := (((this))).x;
-    new;
+    new;  // error (x2): oxA and oxB have not been assigned
   }
   constructor C1(g: G)
   {
     x := g;
-    new;  // error: y was never assigned
+    new;  // error: y was never assigned, neither was oxA or oxB
   }
   constructor C2(g: G)
   {
     x := g;
-  }  // error: y was never assigned
+  }  // error: y was never assigned, neither was oxA or oxB
   constructor C3(g: G)
   {
     y := g;
-  }  // error: x was never assigned
+  }  // error: x was never assigned, neither was oxA or oxB
 }
 
 method M0<G>(x: int, a: G, b: G) returns (y: G)
@@ -124,16 +124,16 @@ method Caller<G>(g: G) returns (k: G) {
 ghost method GM<G>() returns (g: G)
 {
   var a: G, b: G;
-  a := b;  // no problem, since we're in a ghost method
-}  // no problem that g was never assigned, since we're in a ghost method
+  a := b;  // error: since b has not been assigned
+}  // error: g was never assigned
 
 method MM<G>(ghost x: int, g: G) returns (vv: G, ww: G)
 {
   ghost var a: G, b: G;
-  a := b;  // no problem, since this is a ghost assignment
+  a := b;  // error: b has not been assigned
   if x < 10 {
     var c: G;
-    a := c;  // no problem, since this is a ghost assignment
+    a := c;  // error: c has not been assigned
   }
   var v: G := g;
   v := *;  // this assignment does not make v un-assigned, since it was assigned before
