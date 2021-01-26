@@ -1997,7 +1997,7 @@ module ZI {
     P<SUnclearB>(sub);  // fine, as far as the resolver can tell (but this would be caught later by the verifier)
   }
 }
-/*abstract module ZI_RefinementAbstract {
+abstract module ZI_RefinementAbstract {
   type A0
   type A1
   type A2
@@ -2049,12 +2049,12 @@ module ZI_RefinementConcrete1 refines ZI_RefinementAbstract {
 
   type A0
   type A1(0)   // error: not allowed to change auto-initialization setting
-  type A2(00)
+  type A2(00)  // error: not allowed to change nonempty setting
   type B0      // error: not allowed to change auto-initialization setting
   type B1(0)
   type B2(00)  // error: not allowed to change auto-initialization setting
   type C0      // error: not allowed to change nonempty setting
-  type C1(0)   // error: not allowed to change nonempty setting
+  type C1(0)   // error: not allowed to change auto-initialization setting
   type C2(00)
 
   method Delta<
@@ -2063,7 +2063,7 @@ module ZI_RefinementConcrete1 refines ZI_RefinementAbstract {
     E(0),
     R(0)>()  // error: not allowed to change auto-initialization setting
 }
-*/
+
 // ----- constructor-less classes with need for initialization -----
 
 module ConstructorlessClasses {

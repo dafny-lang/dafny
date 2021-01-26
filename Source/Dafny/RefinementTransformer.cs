@@ -205,6 +205,8 @@ namespace Microsoft.Dafny
             }
             if (od.Characteristics.HasCompiledValue != ((OpaqueTypeDecl)nw).Characteristics.HasCompiledValue) {
               reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of supporting auto-initialization", nw.Name);
+            } else if (od.Characteristics.IsNonempty != ((OpaqueTypeDecl)nw).Characteristics.IsNonempty) {
+              reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of being nonempty", nw.Name);
             }
           } else {
             if (od.SupportsEquality) {
