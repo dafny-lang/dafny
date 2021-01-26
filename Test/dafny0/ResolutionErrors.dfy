@@ -2000,9 +2000,14 @@ module ZI {
 abstract module ZI_RefinementAbstract {
   type A
   type A'
-  type B(0)
-  type BB(0)
-  type B'(0)
+  type B0(0)
+  type B1(0)
+  type B2(0)
+//  type B3(0)
+//  type C0(00)
+//  type C1(00)
+//  type C2(00)
+//  type C3(00)
 
   type Mxx(0)
   type Mx_
@@ -2014,12 +2019,23 @@ abstract module ZI_RefinementAbstract {
 module ZI_RefinementConcrete0 refines ZI_RefinementAbstract {
   newtype Kuusi = x | 6 <= x witness 6  // supports auto-initialization
   newtype Six = x | 6 <= x ghost witness 6  // does not support auto-initialization
+//  newtype Sesis = x | 6 <= x witness *  // possibly empty
   type A = int
   type A' = Six
-  type B = int
-  type BB = Kuusi
-  type B' = Six  // error: RHS is expected to support auto-initialization
+  type B0 = int
+  type B1 = Kuusi
+  type B2 = Six  // error: RHS is expected to support auto-initialization
+//  type B3 = Sesis  // error: RHS is expected to support auto-initialization
 }
+/*module ZI_00 refines ZI_RefinementAbstract {
+  newtype Kuusi = x | 6 <= x witness 6  // nonempty
+  newtype Six = x | 6 <= x ghost witness 6  // nonempty
+  newtype Sesis = x | 6 <= x witness *  // possibly empty
+  type C0 = int
+  type C1 = Kuusi
+  type C2 = Six
+  type C3 = Sesis  // error: RHS is expected to be nonempty
+}*/
 module ZI_ExportSource {
   export
     reveals RGB
