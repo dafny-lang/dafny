@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Boogie.ExecutionEngine" Version="2.8.21" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.8" />
     <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="3.1.8" />
     <PackageReference Include="NLog" Version="4.7.5" />
@@ -22,12 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\dafny\Source\boogie\Source\ExecutionEngine\ExecutionEngine-NetCore.csproj" />
     <ProjectReference Include="..\..\dafny\Source\boogie\Source\Model\Model-NetCore.csproj" />
     <ProjectReference Include="..\..\dafny\Source\Dafny\DafnyPipeline.csproj" />
-    
-    <!-- SMTLib is implicitely required by Dafny since its loaded on-demand by boogie. -->
-    <ProjectReference Include="..\..\dafny\Source\boogie\Source\Provers\SMTLib\SMTLib-NetCore.csproj" />
     <ProjectReference Include="..\ModelViewer-NetCore\ModelViewer-NetCore.csproj" />
   </ItemGroup>
 
