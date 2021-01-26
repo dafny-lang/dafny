@@ -1116,6 +1116,9 @@ namespace Microsoft.Dafny {
       if (characteristics.HasCompiledValue) {
         var prefix = s == null ? "" : s + ",";
         s = prefix + "0";
+      } else if (characteristics.IsNonempty) {
+        var prefix = s == null ? "" : s + ",";
+        s = prefix + "00";
       }
       if (characteristics.ContainsNoReferenceTypes) {
         var prefix = s == null ? "" : s + ",";

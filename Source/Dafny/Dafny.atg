@@ -1588,7 +1588,11 @@ TypeParameterCharacteristics<ref TypeParameter.TypeParameterCharacteristics char
 TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
 = ( "=="       (. characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.Required; .)
   | digits     (. if (t.val == "0") {
-                    characteristics.HasCompiledValue = true;
+                    characteristics.AutoInit = Microsoft.Dafny.Type.AutoInitInfo.CompilableValue;
+                  } else if (t.val == "00") {
+                    if (characteristics.AutoInit != Microsoft.Dafny.Type.AutoInitInfo.CompilableValue) {
+                      characteristics.AutoInit = Microsoft.Dafny.Type.AutoInitInfo.Nonempty;
+                    }
                   } else {
                     SemErr(t, "unexpected type parameter option - should be == or 0 or !new");
                   }

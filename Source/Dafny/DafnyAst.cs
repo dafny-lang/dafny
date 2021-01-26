@@ -126,13 +126,17 @@ namespace Microsoft.Dafny {
     public BuiltIns() {
       SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
       // create type synonym 'string'
-      var str = new TypeSynonymDecl(Token.NoToken, "string", new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, false, false), new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
+      var str = new TypeSynonymDecl(Token.NoToken, "string",
+        new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
+        new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
       SystemModule.TopLevelDecls.Add(str);
       // create subset type 'nat'
       var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
       var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
       var ax = AxiomAttribute();
-      NatDecl = new SubsetTypeDecl(Token.NoToken, "nat", new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, false, false), new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
+      NatDecl = new SubsetTypeDecl(Token.NoToken, "nat",
+        new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
+        new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
       SystemModule.TopLevelDecls.Add(NatDecl);
       // create trait 'object'
       ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
@@ -3572,17 +3576,18 @@ namespace Microsoft.Dafny {
     public struct TypeParameterCharacteristics
     {
       public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
-      public bool HasCompiledValue;
-      public bool IsNonempty => false;  // TODO: make this an independent characteristic
+      public Type.AutoInitInfo AutoInit;
+      public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;
+      public bool IsNonempty => AutoInit != Type.AutoInitInfo.MaybeEmpty;
       public bool ContainsNoReferenceTypes;
       public TypeParameterCharacteristics(bool dummy) {
         EqualitySupport = EqualitySupportValue.Unspecified;
-        HasCompiledValue = false;
+        AutoInit = Type.AutoInitInfo.MaybeEmpty;
         ContainsNoReferenceTypes = false;
       }
-      public TypeParameterCharacteristics(EqualitySupportValue eqSupport, bool hasCompiledValue, bool containsNoReferenceTypes) {
+      public TypeParameterCharacteristics(EqualitySupportValue eqSupport, Type.AutoInitInfo autoInit, bool containsNoReferenceTypes) {
         EqualitySupport = eqSupport;
-        HasCompiledValue = hasCompiledValue;
+        AutoInit = autoInit;
         ContainsNoReferenceTypes = containsNoReferenceTypes;
       }
     }
@@ -3638,7 +3643,7 @@ namespace Microsoft.Dafny {
         characteristics = dd.Characteristics;
       }
       if (characteristics.EqualitySupport == EqualitySupportValue.InferredRequired) {
-        return new TypeParameterCharacteristics(EqualitySupportValue.Unspecified, characteristics.HasCompiledValue, characteristics.ContainsNoReferenceTypes);
+        return new TypeParameterCharacteristics(EqualitySupportValue.Unspecified, characteristics.AutoInit, characteristics.ContainsNoReferenceTypes);
       } else {
         return characteristics;
       }
@@ -4932,7 +4937,7 @@ namespace Microsoft.Dafny {
                         List<AttributedExpression> yieldRequires,
                         List<AttributedExpression> yieldEnsures,
                         BlockStmt body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, module, MutateIntoRequiringZeroInitBit(typeArgs), new List<MemberDecl>(), attributes, signatureEllipsis != null, null)
+      : base(tok, name, module, typeArgs, new List<MemberDecl>(), attributes, signatureEllipsis != null, null)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -4965,17 +4970,6 @@ namespace Microsoft.Dafny {
 
       YieldCountVariable = new LocalVariable(tok, tok, "_yieldCount", new EverIncreasingType(), true);
       YieldCountVariable.type = YieldCountVariable.OptionalType;  // resolve YieldCountVariable here
-    }
-
-    private static List<TypeParameter> MutateIntoRequiringZeroInitBit(List<TypeParameter> typeArgs) {
-      Contract.Requires(typeArgs != null);
-      Contract.Ensures(Contract.Result<List<TypeParameter>>() == typeArgs);
-      // Note! This is not the only place where IteratorDecl type parameters come through.  Some may
-      // be created by "FillInTypeArguments".
-      foreach (var tp in typeArgs) {
-        tp.Characteristics.HasCompiledValue = true;
-      }
-      return typeArgs;
     }
 
     /// <summary>
