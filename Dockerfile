@@ -19,6 +19,6 @@ RUN apt-get update \
     && apt-get install -y libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /build/Source/DafnyLS/bin/Release/netcoreapp3.1 .
-RUN chmod +x DafnyLS \
-    && chmod +x z3/bin/z3
+RUN chmod u+x DafnyLS \
+    && chmod u+x z3/bin/z3
 CMD [ "./DafnyLS" ]
