@@ -5,7 +5,6 @@ method h(n: nat) {
   var a: array<nat> := new [n](i => i); // OK - i is nat, RHS is array<nat>
 }
 
-
 method k(n: nat) {
   var a: array := new [n]((i: nat) => i as nat); // OK
 }

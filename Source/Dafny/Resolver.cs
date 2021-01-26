@@ -4103,7 +4103,9 @@ namespace Microsoft.Dafny
         ConstrainSubtypeRelation(lhsWithProxyArgs, rhs, errMsg, false, allowDecisions);
         ConstrainAssignableTypeArgs(lhs, lhsWithProxyArgs.TypeArgs, lhs.TypeArgs, errMsg, out moreXConstraints);
         if (Type.SameHead(lhs, rhs, true) && lhs.AsCollectionType == null) {
-          ConstrainAssignableTypeArgs(lhs, lhs.TypeArgs, rhs.TypeArgs, errMsg, out moreXConstraints);
+          bool more2;
+          ConstrainAssignableTypeArgs(lhs, lhs.TypeArgs, rhs.TypeArgs, errMsg, out more2);
+          moreXConstraints = moreXConstraints || more2;
         }
       }
     }
@@ -4136,17 +4138,17 @@ namespace Microsoft.Dafny
         Contract.Assert(cl.TypeArgs.Count == B.Count);
         moreXConstraints = false;
         for (int i = 0; i < B.Count; i++) {
-          var msgFormat = "variance for type parameter" + (B.Count == 1 ? "" : "" + i) + " expects {1} <: {0}";
+          var msgFormat = "variance for type parameter" + (B.Count == 1 ? "" : "" + i) + " expects {0} {1} {2}";
           if (cl.TypeArgs[i].Variance == TypeParameter.TPVariance.Co) {
-            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "co" + msgFormat, A[i], B[i]);
+            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "co" + msgFormat, A[i], ":>", B[i]);
             AddAssignableConstraint(tok, A[i], B[i], em);
             moreXConstraints = true;
           } else if (cl.TypeArgs[i].Variance == TypeParameter.TPVariance.Contra) {
-            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "contra" + msgFormat, B[i], A[i]);
+            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "contra" + msgFormat, A[i], "<:", B[i]);
             AddAssignableConstraint(tok, B[i], A[i], em);
             moreXConstraints = true;
           } else {
-            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "non" + msgFormat, A[i], B[i]);
+            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "non" + msgFormat, A[i], "=", B[i]);
             ConstrainSubtypeRelation_Equal(A[i], B[i], em);
           }
         }
@@ -4664,7 +4666,7 @@ namespace Microsoft.Dafny
       if (super is SetType || super is SeqType || super is MultiSetType || super is MapType) {
         return true;
       } else if (super is ArrowType) {
-        return true;
+        return false;
       } else if (super.IsObjectQ) {
         return false;
       } else {
@@ -13127,6 +13129,10 @@ namespace Microsoft.Dafny
               args.Add(builtIns.Nat());
             }
             var arrowType = new ArrowType(rr.ElementInit.tok, builtIns.ArrowTypeDecls[rr.ArrayDimensions.Count], args, rr.EType);
+            var lambdaType = rr.ElementInit.Type.AsArrowType;
+            if (lambdaType != null && lambdaType.TypeArgs[0] is InferredTypeProxy) {
+              (lambdaType.TypeArgs[0] as InferredTypeProxy).KeepConstraints = true;
+            }
             string underscores;
             if (rr.ArrayDimensions.Count == 1) {
               underscores = "_";
