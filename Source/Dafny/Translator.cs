@@ -4544,7 +4544,7 @@ namespace Microsoft.Dafny {
         builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, "$_reverifyPost", Bpl.Type.Bool), Bpl.Expr.False));
         // register output parameters with definite-assignment trackers
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
-        m.Outs.Iter(p => AddExistingDefiniteAssignmentTracker(p));
+        m.Outs.Iter(p => AddExistingDefiniteAssignmentTracker(p, m.IsGhost));
         // translate the body
         TrStmt(m.Body, builder, localVariables, etran);
         m.Outs.Iter(p => CheckDefiniteAssignmentReturn(m.BodyEndTok, p, builder));
@@ -4633,11 +4633,11 @@ namespace Microsoft.Dafny {
       return true;
     }
     
-    Bpl.Expr/*?*/ AddDefiniteAssignmentTracker(IVariable p, List<Bpl.Variable> localVariables, bool isOutParam = false) {
+    Bpl.Expr/*?*/ AddDefiniteAssignmentTracker(IVariable p, List<Bpl.Variable> localVariables, bool isOutParam = false, bool forceGhostVar = false) {
       Contract.Requires(p != null);
       Contract.Requires(localVariables != null);
 
-      if (!NeedsDefiniteAssignmentTracker(p.IsGhost, p.Type)) {
+      if (!NeedsDefiniteAssignmentTracker(p.IsGhost || forceGhostVar, p.Type)) {
         return null;
       }
       Bpl.Variable tracker;
@@ -4652,10 +4652,10 @@ namespace Microsoft.Dafny {
       return ie;
     }
 
-    void AddExistingDefiniteAssignmentTracker(IVariable p) {
+    void AddExistingDefiniteAssignmentTracker(IVariable p, bool forceGhostVar) {
       Contract.Requires(p != null);
 
-      if (NeedsDefiniteAssignmentTracker(p.IsGhost, p.Type)) {
+      if (NeedsDefiniteAssignmentTracker(p.IsGhost || forceGhostVar, p.Type)) {
         var ie = new Bpl.IdentifierExpr(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool);
         definiteAssignmentTrackers.Add(p.UniqueName, ie);
       }
@@ -9802,7 +9802,7 @@ namespace Microsoft.Dafny {
             new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType),
             p.Type, etran, isAllocContext.Var(p));
           if (kind == MethodTranslationKind.Implementation) {
-            var tracker = AddDefiniteAssignmentTracker(p, outParams, true);
+            var tracker = AddDefiniteAssignmentTracker(p, outParams, true, m.IsGhost);
             if (wh != null && tracker != null) {
               wh = BplImp(tracker, wh);
             }
