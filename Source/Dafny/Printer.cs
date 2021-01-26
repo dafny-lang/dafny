@@ -432,6 +432,9 @@ namespace Microsoft.Dafny {
           wr.Write("witness ");
           PrintExpression(dd.Witness, true);
           break;
+        case SubsetTypeDecl.WKind.OptOut:
+          wr.Write("witness *");
+          break;
         case SubsetTypeDecl.WKind.Special:
           wr.Write("/*special witness*/");
           break;

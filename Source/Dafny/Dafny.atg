@@ -1297,7 +1297,6 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      Expression constraint;
      Expression witness = null;
      bool isRefining = false;
-     bool witnessIsGhost = false;
      CheckDeclModifiers(dmod, "newtype", AllowedDeclModifiers.None);
      var members = new List<MemberDecl>();
   .)
@@ -1312,15 +1311,18 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     [ ":" Type<out baseType> ]       (. if (baseType == null) { baseType = new InferredTypeProxy(); } .)
     "|"
     Expression<out constraint, false, true>
+    (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
     [ IF(IsWitness())
-      [ "ghost"                      (. witnessIsGhost = true; .)
-      ]
-      "witness" Expression<out witness, false, true>
+      ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .) 
+        Expression<out witness, false, true>
+      | "witness"
+        ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
+        | Expression<out witness, false, true>       (. witnessKind = SubsetTypeDecl.WKind.Compiled; .)
+        )
+      )
     ]
     [ TypeMembers<module, members> ]
-    (. var witnessKind = witness == null ? SubsetTypeDecl.WKind.CompiledZero :
-       witnessIsGhost ? SubsetTypeDecl.WKind.Ghost : SubsetTypeDecl.WKind.Compiled;
-       td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, members, attrs, isRefining);
+    (. td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, members, attrs, isRefining);
     .)
   | Type<out baseType>
     [ TypeMembers<module, members> ]
@@ -1339,7 +1341,6 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      Type ty = null;
      Expression constraint;
      Expression witness = null;
-     bool witnessIsGhost = false;
      var kind = "opaque type";
      var members = new List<MemberDecl>();
   .)
@@ -1354,31 +1355,35 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
       [ ":" Type<out ty> ]   (. if (ty == null) { ty = new InferredTypeProxy(); } .)
       "|"
       Expression<out constraint, false, true>
+      (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
       [ IF(IsWitness())
-        [ "ghost"            (. witnessIsGhost = true; .)
-        ]
-        "witness" Expression<out witness, false, true>
+        ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .) 
+          Expression<out witness, false, true>
+        | "witness"
+          ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
+          | Expression<out witness, false, true>       (. witnessKind = SubsetTypeDecl.WKind.Compiled; .)
+          )
+        )
       ]
-                             (. var witnessKind = witness == null ? SubsetTypeDecl.WKind.CompiledZero :
-                                  witnessIsGhost ? SubsetTypeDecl.WKind.Ghost : SubsetTypeDecl.WKind.Compiled;
-                                td = new SubsetTypeDecl(id, id.val, characteristics, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, attrs);
-                                kind = "subset type";
-                             .)
+      (. td = new SubsetTypeDecl(id, id.val, characteristics, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, attrs);
+         kind = "subset type";
+      .)
     |
-      Type<out ty>           (. td = new TypeSynonymDecl(id, id.val, characteristics, typeArgs, module, ty, attrs);
-                                kind = "type synonym";
-                             .)
+      Type<out ty>
+      (. td = new TypeSynonymDecl(id, id.val, characteristics, typeArgs, module, ty, attrs);
+         kind = "type synonym";
+      .)
     )
   | TypeMembers<module, members>
   ]
-                             (. if (td == null) {
-                                  if (module is DefaultModuleDecl) {
-                                    // opaque type declarations at the very outermost program scope get an automatic (!new)
-                                    characteristics.DisallowReferenceTypes = true;
-                                  }
-                                  td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, members, attrs);
-                                }
-                             .)
+  (. if (td == null) {
+       if (module is DefaultModuleDecl) {
+         // opaque type declarations at the very outermost program scope get an automatic (!new)
+         characteristics.DisallowReferenceTypes = true;
+       }
+       td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, members, attrs);
+     }
+  .)
   (. CheckDeclModifiers(dmod, kind, AllowedDeclModifiers.None); .)
   .
 

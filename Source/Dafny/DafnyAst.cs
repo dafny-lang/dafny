@@ -944,6 +944,8 @@ namespace Microsoft.Dafny {
             return AutoInitInfo.CompilableValue;
           case SubsetTypeDecl.WKind.Ghost:
             return AutoInitInfo.Nonempty;
+          case SubsetTypeDecl.WKind.OptOut:
+            return AutoInitInfo.MaybeEmpty;
           case SubsetTypeDecl.WKind.Special:
           default:
             Contract.Assert(false); // unexpected case
@@ -957,6 +959,8 @@ namespace Microsoft.Dafny {
             return AutoInitInfo.CompilableValue;
           case SubsetTypeDecl.WKind.Ghost:
             return AutoInitInfo.Nonempty;
+          case SubsetTypeDecl.WKind.OptOut:
+            return AutoInitInfo.MaybeEmpty;
           case SubsetTypeDecl.WKind.Special:
             // WKind.Special is only used with -->, ->, and non-null types:
             Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
@@ -5698,7 +5702,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "subset type"; } }
     public readonly BoundVar Var;
     public readonly Expression Constraint;
-    public enum WKind { CompiledZero, Compiled, Ghost, Special }
+    public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
     public readonly SubsetTypeDecl.WKind WitnessKind;
     public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
     public SubsetTypeDecl(IToken tok, string name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
