@@ -15,14 +15,14 @@ COPY dafny ./dafny
 COPY Source ./Source
 RUN dotnet restore Source/DafnyLS.sln
 RUN dotnet build --configuration Release --no-restore Source/DafnyLS.sln
-RUN cp -r z3 Source/DafnyLS/bin/Release/netcoreapp3.1/z3
+RUN cp -r z3 Source/DafnyLS/bin/Release/net5.0/z3
 
 FROM mcr.microsoft.com/dotnet/aspnet:5.0 AS runtime
 WORKDIR /app
 RUN apt-get update \
     && apt-get install -y libgomp1 \
     && rm -rf /var/lib/apt/lists/*
-COPY --from=build /build/Source/DafnyLS/bin/Release/netcoreapp3.1 .
+COPY --from=build /build/Source/DafnyLS/bin/Release/net5.0 .
 RUN chmod u+x DafnyLS \
     && chmod u+x z3/bin/z3
 CMD [ "./DafnyLS" ]
