@@ -18,7 +18,7 @@ type EffectlessArrow<!A(!new),B> = f: A ~> B
   | forall a :: f.reads(a) == {}
   ghost witness GhostEffectlessArrowWitness<A,B>
 
-function GhostEffectlessArrowWitness<A,B>(a: A): B
+function GhostEffectlessArrowWitness<A, B(0)>(a: A): B  // TODO: this is a good candidate for a "ghost (0)" marking (meaning nonempty type)
 {
   var b: B :| true; b
 }
@@ -74,11 +74,11 @@ predicate Total<A(!new),B>(f: A ~> B)  // (is this (!new) really necessary?)
   forall a :: f.reads(a) == {} && f.requires(a)
 }
 
-type TotalArrow<!A,B> = f: EffectlessArrow<A,B>
+type TotalArrow<!A(!new),B> = f: EffectlessArrow<A,B>
   | Total(f)
   ghost witness TotalWitness<A,B>
 
-function TotalWitness<A,B>(a: A): B
+function TotalWitness<A, B(0)>(a: A): B  // TODO: this is a good candidate for a "ghost (0)" marking (meaning nonempty type)
 {
   var b: B :| true; b
 }
@@ -129,7 +129,7 @@ type TwoPred_TotalArrow<!A,B> = f: A ~> B
 
 predicate SomeCondition<A>(a: A)
 
-function PartialFunction<A,B>(a: A): B
+function PartialFunction<A, B(0)>(a: A): B  // TODO: this is a good candidate for a "ghost (0)" marking (meaning nonempty type)
   requires SomeCondition(a)
 {
   var b: B :| true; b

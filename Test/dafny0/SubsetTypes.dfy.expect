@@ -10,21 +10,41 @@ Execution trace:
 SubsetTypes.dfy(11,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
 SubsetTypes.dfy(15,15): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
 SubsetTypes.dfy(16,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(19,11): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(21,15): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(23,8): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(30,4): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
@@ -39,13 +59,17 @@ Execution trace:
 SubsetTypes.dfy(44,15): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
+SubsetTypes.dfy(45,9): Error: value does not satisfy the subset constraints of 'int ~> nat'
+Execution trace:
+    (0,0): anon0
+    SubsetTypes.dfy(45,10): anon5_Else
 SubsetTypes.dfy(50,15): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
 SubsetTypes.dfy(52,9): Error: value does not satisfy the subset constraints of 'int -> nat' (possible cause: it may be partial or have read effects)
 Execution trace:
     (0,0): anon0
-    SubsetTypes.dfy(51,15): anon3_Else
+    SubsetTypes.dfy(51,15): anon5_Else
 SubsetTypes.dfy(57,4): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
@@ -62,21 +86,41 @@ Execution trace:
 SubsetTypes.dfy(68,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
 SubsetTypes.dfy(72,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
 SubsetTypes.dfy(73,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(76,11): Error: value does not satisfy the subset constraints of 'set<nat>'
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(78,15): Error: value does not satisfy the subset constraints of 'set<nat>'
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(80,8): Error: value does not satisfy the subset constraints of 'set<nat>'
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon2
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(87,4): Error: value does not satisfy the subset constraints of 'set<nat>'
 Execution trace:
     (0,0): anon0
@@ -94,14 +138,14 @@ Execution trace:
 SubsetTypes.dfy(102,9): Error: value does not satisfy the subset constraints of 'set<int> ~> set<nat>'
 Execution trace:
     (0,0): anon0
-    SubsetTypes.dfy(102,10): anon3_Else
+    SubsetTypes.dfy(102,10): anon5_Else
 SubsetTypes.dfy(107,15): Error: value does not satisfy the subset constraints of 'set<nat>'
 Execution trace:
     (0,0): anon0
 SubsetTypes.dfy(109,9): Error: value does not satisfy the subset constraints of 'set<int> -> set<nat>' (possible cause: it may be partial or have read effects)
 Execution trace:
     (0,0): anon0
-    SubsetTypes.dfy(108,15): anon3_Else
+    SubsetTypes.dfy(108,15): anon5_Else
 SubsetTypes.dfy(114,4): Error: value does not satisfy the subset constraints of 'set<nat>'
 Execution trace:
     (0,0): anon0
@@ -145,6 +189,9 @@ Execution trace:
 SubsetTypes.dfy(170,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
+    (0,0): anon6_Then
+    (0,0): anon4
 SubsetTypes.dfy(183,11): Error: value does not satisfy the subset constraints of 'int ~> nat'
 Execution trace:
     (0,0): anon0
@@ -176,7 +223,7 @@ SubsetTypes.dfy(261,11): Error: value does not satisfy the subset constraints of
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
-SubsetTypes.dfy(264,11): Error: value does not satisfy the subset constraints of 'array<Person>' (possible cause: it may be null)
+SubsetTypes.dfy(264,11): Error: the RHS value (a array<Person?>) is not known to be an instance of the LHS type (array<Person>)
 Execution trace:
     (0,0): anon0
     (0,0): anon12_Then
@@ -185,6 +232,22 @@ Execution trace:
     (0,0): anon0
     (0,0): anon15_Then
 SubsetTypes.dfy(289,11): Error: value does not satisfy the subset constraints of 'seq<Person>'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon18_Then
+SubsetTypes.dfy(300,11): Error: the RHS value (a Cell<Person?>) is not known to be an instance of the LHS type (Cell<Person>)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon14_Then
+SubsetTypes.dfy(302,11): Error: the RHS value (a Cell<Person>) is not known to be an instance of the LHS type (Cell<Person?>)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon15_Then
+SubsetTypes.dfy(306,11): Error: the RHS value (a Cell<Person>) is not known to be an instance of the LHS type (Cell<Person?>)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon17_Then
+SubsetTypes.dfy(308,11): Error: the RHS value (a Cell<Person?>) is not known to be an instance of the LHS type (Cell<Person>)
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Then
@@ -284,7 +347,7 @@ SubsetTypes.dfy(437,19): Error: value does not satisfy the subset constraints of
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
-SubsetTypes.dfy(439,19): Error: value does not satisfy the subset constraints of 'C' (it may be null)
+SubsetTypes.dfy(439,19): Error: the RHS value (a C?) is not known to be an instance of the LHS type (C), because it may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
@@ -311,5 +374,13 @@ Execution trace:
 SubsetTypes.dfy(455,9): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
+SubsetTypes.dfy(465,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+SubsetTypes.dfy(467,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
 
-Dafny program verifier finished with 11 verified, 84 errors
+Dafny program verifier finished with 13 verified, 105 errors

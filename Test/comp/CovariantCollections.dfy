@@ -112,7 +112,7 @@ method PrintSet(prefix: string, S: set<Number>) {
 
 lemma ThereIsASmallest(s: set<Number>) returns (m: Number)
   requires s != {}
-  ensures m in s && forall y :: y in s ==> m.value <= y.value;
+  ensures m in s && forall y :: y in s ==> m.value <= y.value
 {
   m :| m in s;
   if y :| y in s && y.value < m.value {
@@ -178,7 +178,7 @@ method PrintMultiset(prefix: string, S: multiset<Number>) {
 
 lemma ThereIsASmallestInMultiset(s: multiset<Number>) returns (m: Number)
   requires s != multiset{}
-  ensures m in s && forall y :: y in s ==> m.value <= y.value;
+  ensures m in s && forall y :: y in s ==> m.value <= y.value
 {
   m :| m in s;
   if y :| y in s && y.value < m.value {
@@ -410,19 +410,19 @@ function method {:tailrecursion} TailRecursiveFunction(x: nat, ghost u: int, s: 
 
 class Class {
   constructor (s: set<Integer>) {
-    ns, is := s, s;
+    ns, js := s, s;
   }
   var ns: set<Number>
-  var is: set<Integer>
+  var js: set<Integer>
 }
 
 method HeapAssignmentDowncasts() {
   var n: Number := new Integer(22);
   var ns: set<Number> := {n};
   var c := new Class(ns);
-  c.ns := c.is;
-  c.is := c.ns;
-  PrintSet("c.is: ", c.is); print " ";
+  c.ns := c.js;
+  c.js := c.ns;
+  PrintSet("c.js: ", c.js); print " ";
 
   var a := new set<Integer>[20];
   var m := new set<Integer>[18, 18];

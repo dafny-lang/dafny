@@ -455,3 +455,15 @@ module ErrorMessagesOfFailingConstraints {
     n := x;  // error: x may be negative
   }
 }
+
+// ----------- regression tests, subset type of char ----------
+
+module CharSubsetDefault {
+  // If a witness clause is not given, then value the verifier uses 'D' as the
+  // candidate witness for char. This value must agree with what the compilers do.
+  type GoodChar = ch: char | 3 as char < ch < 200 as char
+  type NeedsWitnessChar0 = ch: char | ch < 40 as char  // error: needs manually provided witness
+  type GoodWitness0 = ch: char | ch < 40 as char witness ' '
+  type NeedsWitnessChar1 = ch: char | ch != 'D'  // error: needs manually provided witness
+  type GoodWitnessChar1 = ch: char | ch != 'D' witness 'd'
+}

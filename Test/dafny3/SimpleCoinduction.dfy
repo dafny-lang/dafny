@@ -6,7 +6,7 @@ codatatype IList<T> = Nil | ICons(head: T, tail: IList)
 
 // -----------------------------------------------------------------------
 
-copredicate Pos(s: Stream<int>)
+greatest predicate Pos(s: Stream<int>)
 {
   s.head > 0 && Pos(s.tail)
 }
@@ -29,7 +29,7 @@ lemma {:induction false} UpLemma(k: nat, n: int)
   }
 }
 
-colemma {:induction false} CoUpLemma(n: int)
+greatest lemma {:induction false} CoUpLemma(n: int)
   ensures Inc(Up(n)) == Up(n+1);
 {
   CoUpLemma(n+1);
@@ -40,7 +40,7 @@ lemma UpLemma_Auto(k: nat, n: int, nn: int)
 {
 }
 
-colemma CoUpLemma_Auto(n: int, nn: int)
+greatest lemma CoUpLemma_Auto(n: int, nn: int)
   ensures nn == n+1 ==> Inc(Up(n)) == Up(nn);  // see comment above
 {
 }
@@ -52,39 +52,39 @@ function Repeat(n: int): Stream<int>
   Cons(n, Repeat(n))
 }
 
-colemma RepeatLemma(n: int)
+greatest lemma RepeatLemma(n: int)
   ensures Inc(Repeat(n)) == Repeat(n+1);
 {
 }
 
 // -----------------------------------------------------------------------
 
-copredicate True(s: Stream)
+greatest predicate True(s: Stream)
 {
   True(s.tail)
 }
 
-colemma AlwaysTrue(s: Stream)
+greatest lemma AlwaysTrue(s: Stream)
   ensures True(s);
 {
 }
 
-copredicate AlsoTrue(s: Stream)
+greatest predicate AlsoTrue(s: Stream)
 {
   AlsoTrue(s)
 }
 
-colemma AlsoAlwaysTrue(s: Stream)
+greatest lemma AlsoAlwaysTrue(s: Stream)
   ensures AlsoTrue(s);
 {
 }
 
-copredicate TT(y: int)
+greatest predicate TT(y: int)
 {
   TT(y+1)
 }
 
-colemma AlwaysTT(y: int)
+greatest lemma AlwaysTT(y: int)
   ensures TT(y);
 {
 }
@@ -108,19 +108,19 @@ function ones(): IList<int>
   ICons(1, ones())
 }
 
-copredicate AtMost(a: IList<int>, b: IList<int>)
+greatest predicate AtMost(a: IList<int>, b: IList<int>)
 {
   match a
   case Nil => true
   case ICons(h,t) => b.ICons? && h <= b.head && AtMost(t, b.tail)
 }
 
-colemma ZerosAndOnes_Theorem0()
+greatest lemma ZerosAndOnes_Theorem0()
   ensures AtMost(zeros(), ones());
 {
 }
 
-colemma ZerosAndOnes_Theorem1()
+greatest lemma ZerosAndOnes_Theorem1()
   ensures Append(zeros(), ones()) == zeros();
 {
 }

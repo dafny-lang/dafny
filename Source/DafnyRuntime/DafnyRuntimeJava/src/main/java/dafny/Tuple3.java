@@ -11,12 +11,17 @@ public class Tuple3<T0, T1, T2> {
     this._1 = _1;
     this._2 = _2;
   }
-  public static <T0,T1,T2> dafny.Type<Tuple3<T0,T1,T2> > _type(dafny.Type<T0> _td_T0,dafny.Type<T1> _td_T1,dafny.Type<T2> _td_T2) {
-    return (dafny.Type<Tuple3<T0,T1,T2> >) (dafny.Type<?>) dafny.Type.referenceWithInitializer(Tuple3.class, () -> Default(_td_T0, _td_T1, _td_T2));
+
+  public static <T0, T1, T2> dafny.TypeDescriptor<Tuple3<T0, T1, T2>> _typeDescriptor(dafny.TypeDescriptor<T0> _td_T0, dafny.TypeDescriptor<T1> _td_T1, dafny.TypeDescriptor<T2> _td_T2) {
+    return (dafny.TypeDescriptor<Tuple3<T0, T1, T2>>) (dafny.TypeDescriptor<?>) dafny.TypeDescriptor.referenceWithInitializer(Tuple3.class, () -> Default(_td_T0.defaultValue(), _td_T1.defaultValue(), _td_T2.defaultValue()));
   }
 
-  public static <T0, T1, T2> Tuple3<T0, T1, T2> Default(dafny.Type<T0> _td_T0, dafny.Type<T1> _td_T1, dafny.Type<T2> _td_T2) {
-    return new Tuple3<>(_td_T0.defaultValue(), _td_T1.defaultValue(), _td_T2.defaultValue());
+  public static <T0, T1, T2> Tuple3<T0, T1, T2> Default(T0 _default_T0, T1 _default_T1, T2 _default_T2) {
+    return create(_default_T0, _default_T1, _default_T2);
+  }
+
+  public static <T0, T1, T2> Tuple3<T0, T1, T2> create(T0 _0, T1 _1, T2 _2) {
+    return new Tuple3(_0, _1, _2);
   }
 
   @Override

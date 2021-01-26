@@ -142,7 +142,7 @@ module MorePlusTests {
     var q := [false];
     var qq := q + q;
     var p := map[false := 17];
-    var pp := p + p;  // error: map is not plussable
+    var pp := p + p;
     var n: C := null;
     var nn := n + n;  // error: references types are not plussable
     var c := new C;
@@ -176,16 +176,14 @@ module References {
     r := c;  // error
   }
 
-  method M2() returns (c: C, r: R)
+  method M2() returns (c: C, r: R, o: object)
   {
-    var o: object;
-    c := o;  // error
+    c := o;  // OK for type resolution, but must be proved
   }
 
-  method M3() returns (c: C, r: R)
+  method M3() returns (c: C, r: R, o: object)
   {
-    var o: object;
-    r := o;  // error
+    r := o;  // OK for type resolution, but must be proved
   }
 }
 
@@ -490,5 +488,31 @@ module TypeArgumentPrintTests {
       else
         A<Y>.F(y)  // should print as A<Y>.F(y)
     }
+  }
+}
+
+module PrettyPrintingBindingPowers {
+  newtype MyInt = u: int | u != 193
+
+  method M(m: map<int, real>, n: map<int, real>, a: set<int>, b: set<int>, c: set<int>) returns (r: map<int, real>)
+  {
+    r := m - b - c;
+    r := m - b + n;
+    r := (m - b) + n;  // unnecessary parentheses
+    r := m - (b + c);
+    r := m + n - (b + c);
+    r := m + (n - (b + c));
+    r := m + (n - b) - c;
+    r := m + (m + n) + m;
+    r := (((m + m) + n) + m);  // unnecessary parentheses
+  }
+
+  method P() returns (x: int, u: MyInt, s: set<int>, e: seq<int>, m: map<int, int>)
+  {
+    x := x + (x + x);  // unnecessary parentheses
+    u := u + (u + u);
+    s := s + (s + s);
+    e := e + (e + e);
+    m := m + (m + m);
   }
 }

@@ -252,7 +252,7 @@ module S {
 }
 
 module T refines S {
-  class MyClass {
+  class MyClass ... {
     const a: int  // error: cannot change a "var" to a "const"
     var b: int  // error: cannot change a "const" to a "var"
     const u: real  // error: cannot change from static to non-static
@@ -265,4 +265,21 @@ module T refines S {
   ghost const x: int  // this ghostified field inherits the RHS from above
   const y: int  // error: there must be more of a change to allow a re-declaration
   const z := 2.7  // error: bad type for the RHS
+}
+
+// ---------- assign-such-that --------
+
+module AssignSuchThat {
+  method Duplicate() {
+    var x: int;
+    x, x :| true;  // error: duplicate LHS
+  }
+
+  class MyClass {
+    const c: int
+
+    method M() {
+      c :| assume true;  // error: c is not mutable
+    }
+  }
 }

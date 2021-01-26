@@ -1,5 +1,5 @@
-ResolutionErrors.dfy(322,33): Warning: Dafny's constructors no longer need 'this' to be listed in modifies clauses
-ResolutionErrors.dfy(1892,15): Warning: Dafny's constructors no longer need 'this' to be listed in modifies clauses
+ResolutionErrors.dfy(322,33): Warning: constructors no longer need 'this' to be listed in modifies clauses
+ResolutionErrors.dfy(1892,15): Warning: constructors no longer need 'this' to be listed in modifies clauses
 ResolutionErrors.dfy(51,15): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(88,16): Error: the name 'Benny' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.Benny')
 ResolutionErrors.dfy(93,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
@@ -60,7 +60,7 @@ ResolutionErrors.dfy(430,12): Error: first argument to ==> must be of type bool 
 ResolutionErrors.dfy(430,12): Error: second argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(429,8): Error: first argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(429,8): Error: second argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(416,8): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(416,8): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(420,8): Error: arguments must have comparable types (got bool and int)
@@ -209,11 +209,11 @@ ResolutionErrors.dfy(1422,4): Error: name of module (Y) is used as a variable
 ResolutionErrors.dfy(1432,9): Error: type of RHS of assign-such-that statement must be boolean (got int)
 ResolutionErrors.dfy(1431,11): Error: type of left argument to + (int) must agree with the result type (bool)
 ResolutionErrors.dfy(1431,11): Error: type of right argument to + (int) must agree with the result type (bool)
-ResolutionErrors.dfy(1431,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(1431,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 ResolutionErrors.dfy(1433,13): Error: type of RHS of assign-such-that statement must be boolean (got int)
 ResolutionErrors.dfy(1436,15): Error: type of left argument to + (int) must agree with the result type (bool)
 ResolutionErrors.dfy(1436,15): Error: type of right argument to + (int) must agree with the result type (bool)
-ResolutionErrors.dfy(1436,15): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(1436,15): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 ResolutionErrors.dfy(1479,20): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(1501,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1502,10): Error: a hint is not allowed to update heap locations
@@ -259,11 +259,9 @@ ResolutionErrors.dfy(1741,38): Error: the type of the bound variable 'u' could n
 ResolutionErrors.dfy(1781,11): Error: type conversions are not supported to this type (got J)
 ResolutionErrors.dfy(1784,11): Error: type conversions are not supported to this type (got C)
 ResolutionErrors.dfy(1785,19): Error: Undeclared top-level type or type parameter: realint (did you forget to qualify a name or declare a module import 'opened'?)
-ResolutionErrors.dfy(1780,6): Error: RHS (of type object) not assignable to LHS (of type J)
-ResolutionErrors.dfy(1783,6): Error: RHS (of type J) not assignable to LHS (of type C)
 ResolutionErrors.dfy(1793,44): Error: range of comprehension must be of type bool (instead got C)
-ResolutionErrors.dfy(1800,14): Error: Duplicate member name: P
-ResolutionErrors.dfy(1802,10): Error: Duplicate member name: L
+ResolutionErrors.dfy(1800,21): Error: Duplicate member name: P
+ResolutionErrors.dfy(1802,17): Error: Duplicate member name: L
 ResolutionErrors.dfy(1810,4): Error: second argument to && must be of type bool (instead got int)
 ResolutionErrors.dfy(1808,11): Error: Function body type mismatch (expected int, got bool)
 ResolutionErrors.dfy(1814,4): Error: second argument to && must be of type bool (instead got int)
@@ -285,25 +283,25 @@ ResolutionErrors.dfy(1860,14): Error: in the first division of the constructor b
 ResolutionErrors.dfy(1891,15): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(1893,16): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(1909,8): Error: return statement is not allowed before 'new;' in a constructor
-ResolutionErrors.dfy(1935,5): Error: type parameter (G) passed to method P must support zero initialization (got F)
-ResolutionErrors.dfy(1937,5): Error: type parameter (G) passed to method P must support zero initialization (got Y)
-ResolutionErrors.dfy(1974,5): Error: type parameter (G) passed to method P must support zero initialization (got SixOrMore)
-ResolutionErrors.dfy(1975,5): Error: type parameter (G) passed to method P must support zero initialization (got AnotherSixOrMore)
-ResolutionErrors.dfy(1976,5): Error: type parameter (G) passed to method P must support zero initialization (got MySixOrMore)
-ResolutionErrors.dfy(1977,5): Error: type parameter (G) passed to method P must support zero initialization (got UnclearA)
-ResolutionErrors.dfy(1993,17): Error: type parameter (G) passed to method P must support zero initialization (got SSixOrMore)
-ResolutionErrors.dfy(1994,24): Error: type parameter (G) passed to method P must support zero initialization (got SAnotherSixOrMore)
-ResolutionErrors.dfy(1995,19): Error: type parameter (G) passed to method P must support zero initialization (got SMySixOrMore)
-ResolutionErrors.dfy(1996,16): Error: type parameter (G) passed to method P must support zero initialization (got SUnclearA)
-ResolutionErrors.dfy(2020,7): Error: type 'B'', which does not support zero initialization, is used to refine an opaque type that expects zero initialization
-ResolutionErrors.dfy(2040,7): Error: type declaration 'Mxx' is not allowed to change the requirement of supporting zero initialization
-ResolutionErrors.dfy(2043,7): Error: type declaration 'M__' is not allowed to change the requirement of supporting zero initialization
-ResolutionErrors.dfy(2046,4): Error: type parameter 'Q' is not allowed to change the requirement of supporting zero initialization
-ResolutionErrors.dfy(2049,4): Error: type parameter 'R' is not allowed to change the requirement of supporting zero initialization
-ResolutionErrors.dfy(2037,5): Error: type parameter (G) passed to method P must support zero initialization (got Z.XYZ)
+ResolutionErrors.dfy(1935,5): Error: type parameter (G) passed to method P must support auto-initialization (got F)
+ResolutionErrors.dfy(1937,5): Error: type parameter (G) passed to method P must support auto-initialization (got Y)
+ResolutionErrors.dfy(1974,5): Error: type parameter (G) passed to method P must support auto-initialization (got SixOrMore)
+ResolutionErrors.dfy(1975,5): Error: type parameter (G) passed to method P must support auto-initialization (got AnotherSixOrMore)
+ResolutionErrors.dfy(1976,5): Error: type parameter (G) passed to method P must support auto-initialization (got MySixOrMore)
+ResolutionErrors.dfy(1977,5): Error: type parameter (G) passed to method P must support auto-initialization (got UnclearA)
+ResolutionErrors.dfy(1993,17): Error: type parameter (G) passed to method P must support auto-initialization (got SSixOrMore)
+ResolutionErrors.dfy(1994,24): Error: type parameter (G) passed to method P must support auto-initialization (got SAnotherSixOrMore)
+ResolutionErrors.dfy(1995,19): Error: type parameter (G) passed to method P must support auto-initialization (got SMySixOrMore)
+ResolutionErrors.dfy(1996,16): Error: type parameter (G) passed to method P must support auto-initialization (got SUnclearA)
+ResolutionErrors.dfy(2021,7): Error: type 'B'', which does not support auto-initialization, is used to refine an opaque type that expects auto-initialization
+ResolutionErrors.dfy(2040,7): Error: type declaration 'Mxx' is not allowed to change the requirement of supporting auto-initialization
+ResolutionErrors.dfy(2043,7): Error: type declaration 'M__' is not allowed to change the requirement of supporting auto-initialization
+ResolutionErrors.dfy(2046,4): Error: type parameter 'Q' is not allowed to change the requirement of supporting auto-initialization
+ResolutionErrors.dfy(2049,4): Error: type parameter 'R' is not allowed to change the requirement of supporting auto-initialization
+ResolutionErrors.dfy(2037,5): Error: type parameter (G) passed to method P must support auto-initialization (got Z.XYZ)
 ResolutionErrors.dfy(2055,8): Error: class 'C' with fields without known initializers, like 'u' of type 'T', must declare a constructor
-ResolutionErrors.dfy(2078,8): Error: class 'Class' with fields without known initializers, like 'co' of type 'Co', must declare a constructor
-ResolutionErrors.dfy(2081,8): Error: class 'CoClass0' with fields without known initializers, like 'co' of type 'Co', must declare a constructor
+ResolutionErrors.dfy(2078,8): Error: class 'Class' with fields without known initializers, like 'co' of type 'Co<int>', must declare a constructor
+ResolutionErrors.dfy(2081,8): Error: class 'CoClass0' with fields without known initializers, like 'co' of type 'Co<int>', must declare a constructor
 ResolutionErrors.dfy(2103,13): Error: ghost fields are allowed only in specification contexts
 ResolutionErrors.dfy(2117,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2118,8): Error: an ORDINAL type is not allowed to be used as a type argument
@@ -406,8 +404,7 @@ ResolutionErrors.dfy(2610,13): Error: no label 'WonderfulLabel' in scope at this
 ResolutionErrors.dfy(2519,11): Error: no label 'L' in scope at this time
 ResolutionErrors.dfy(2522,10): Error: label shadows a dominating label
 ResolutionErrors.dfy(2530,10): Error: label shadows a dominating label
-ResolutionErrors.dfy(2637,27): Error: type parameter (G) passed to method GimmieOne must support zero initialization (got Yt<Odd>)
-ResolutionErrors.dfy(2638,26): Error: type parameter (G) passed to method GimmieOne must support zero initialization (got Yt<GW>)
+ResolutionErrors.dfy(2638,26): Error: type parameter (G) passed to method GimmieOne must support auto-initialization (got Yt<GW>)
 ResolutionErrors.dfy(2651,50): Error: type of the receiver is not fully determined at this program point
 ResolutionErrors.dfy(2677,11): Error: name of type (Cache) is used as a variable
 ResolutionErrors.dfy(2677,17): Error: incorrect type for selection into ? (got X)
@@ -449,4 +446,4 @@ ResolutionErrors.dfy(2934,16): Error: sequence update requires the value to have
 ResolutionErrors.dfy(2938,11): Error: multiset update requires domain element to be of type Elem (got Trait)
 ResolutionErrors.dfy(2943,13): Error: map update requires domain element to be of type Elem (got Trait)
 ResolutionErrors.dfy(2945,18): Error: map update requires the value to have the range type Elem (got Trait)
-446 resolution/type errors detected in ResolutionErrors.dfy
+443 resolution/type errors detected in ResolutionErrors.dfy

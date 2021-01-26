@@ -37,7 +37,7 @@ datatype com = SKIP | Assign(vname, aexp) | Seq(com, com) | If(bexp, com, com) |
 
 // ----- Big-step semantics -----
 
-inductive predicate big_step(c: com, s: state, t: state)
+least predicate big_step(c: com, s: state, t: state)
 {
   match c
   case SKIP =>
@@ -110,7 +110,7 @@ lemma lemma_7_5(b: bexp, c: com, c': com)
   }
 }
 
-inductive lemma lemma_7_6(b: bexp, c: com, c': com, s: state, t: state)
+least lemma lemma_7_6(b: bexp, c: com, c': com, s: state, t: state)
   requires big_step(While(b, c), s, t) && equiv_c(c, c')
   ensures big_step(While(b, c'), s, t)
 {
@@ -135,7 +135,7 @@ lemma IMP_is_deterministic(c: com, s: state, t: state, t': state)
   ensures t == t'
 {
   // If we use iterates indexed by nat (not ORDINAL) and declare this lemma as an
-  // "inductive lemma", then Dafny proves the lemma automatically (Dafny totally rocks!).
+  // "least lemma", then Dafny proves the lemma automatically (Dafny totally rocks!).
   // However, with ORDINAL, we have to supply the .IsLimit case ourselves (well,
   // Dafny is still pretty good).
   var k :| big_step#[k](c, s, t);
@@ -151,7 +151,7 @@ lemma IMP_is_deterministic_Aux(k: ORDINAL, k': ORDINAL, c: com, s: state, t: sta
 
 // ----- Small-step semantics -----
 
-inductive predicate small_step(c: com, s: state, c': com, s': state)
+least predicate small_step(c: com, s: state, c': com, s': state)
 {
   match c
   case SKIP => false
@@ -223,7 +223,7 @@ lemma SmallStep_is_deterministic_Aux(k: ORDINAL, k': ORDINAL, cs: (com, state), 
   }
 }
 
-inductive predicate small_step_star(c: com, s: state, c': com, s': state)
+least predicate small_step_star(c: com, s: state, c': com, s': state)
 {
   (c == c' && s == s') ||
   exists c'', s'' ::
@@ -236,14 +236,14 @@ lemma star_transitive(c0: com, s0: state, c1: com, s1: state, c2: com, s2: state
 {
   star_transitive_aux(c0, s0, c1, s1, c2, s2);
 }
-inductive lemma star_transitive_aux(c0: com, s0: state, c1: com, s1: state, c2: com, s2: state)
+least lemma star_transitive_aux(c0: com, s0: state, c1: com, s1: state, c2: com, s2: state)
   requires small_step_star(c0, s0, c1, s1)
   ensures small_step_star(c1, s1, c2, s2) ==> small_step_star(c0, s0, c2, s2)
 {
 }
 
 // The big-step semantics can be simulated by some number of small steps
-inductive lemma BigStep_implies_SmallStepStar(c: com, s: state, t: state)
+least lemma BigStep_implies_SmallStepStar(c: com, s: state, t: state)
   requires big_step(c, s, t)
   ensures small_step_star(c, s, SKIP, t)
 {
@@ -300,7 +300,7 @@ inductive lemma BigStep_implies_SmallStepStar(c: com, s: state, t: state)
     }
 }
 
-inductive lemma lemma_7_13(c0: com, s0: state, c: com, t: state, c1: com)
+least lemma lemma_7_13(c0: com, s0: state, c: com, t: state, c1: com)
   requires small_step_star(c0, s0, c, t)
   ensures small_step_star(Seq(c0, c1), s0, Seq(c, c1), t)
 {
@@ -311,7 +311,7 @@ inductive lemma lemma_7_13(c0: com, s0: state, c: com, t: state, c1: com)
   }
 }
 
-inductive lemma SmallStepStar_implies_BigStep(c: com, s: state, t: state)
+least lemma SmallStepStar_implies_BigStep(c: com, s: state, t: state)
   requires small_step_star(c, s, SKIP, t)
   ensures big_step(c, s, t)
 {
@@ -322,7 +322,7 @@ inductive lemma SmallStepStar_implies_BigStep(c: com, s: state, t: state)
   }
 }
 
-inductive lemma SmallStep_plus_BigStep(c: com, s: state, c': com, s': state, t: state)
+least lemma SmallStep_plus_BigStep(c: com, s: state, c': com, s': state, t: state)
   requires small_step(c, s, c', s')
   ensures big_step(c', s', t) ==> big_step(c, s, t)
 {

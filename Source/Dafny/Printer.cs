@@ -353,59 +353,69 @@ namespace Microsoft.Dafny {
         } else if (d is ModuleDecl) {
           wr.WriteLine();
           Indent(indent);
-          if (d is LiteralModuleDecl) {
-            LiteralModuleDecl modDecl = ((LiteralModuleDecl)d);
+          if (d is LiteralModuleDecl modDecl) {
             VisibilityScope scope = null;
-            if (modDecl.Signature != null){
+            if (modDecl.Signature != null) {
               scope = modDecl.Signature.VisibilityScope;
             }
             PrintModuleDefinition(modDecl.ModuleDef, scope, indent, prefixIds, fileBeingPrinted);
           } else if (d is AliasModuleDecl) {
             var dd = (AliasModuleDecl)d;
 
-            wr.Write("import"); if (dd.Opened) wr.Write(" opened");
+            wr.Write("import");
+            if (dd.Opened) {
+              wr.Write(" opened");
+            }
             if (dd.ResolvedHash.HasValue && this.printMode == DafnyOptions.PrintModes.DllEmbed) {
               wr.Write(" /*");
               wr.Write(dd.ResolvedHash);
               wr.Write("*/");
             }
             wr.Write(" {0} ", dd.Name);
-            wr.Write("= {0}", Util.Comma(".", dd.Path, id => id.val));
+            wr.Write("= {0}", dd.TargetQId.ToString());
             if (dd.Exports.Count > 0) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
             wr.WriteLine();
-          } else if (d is ModuleFacadeDecl) {
-            var dd = (ModuleFacadeDecl)d;
+          } else if (d is AbstractModuleDecl) {
+            var dd = (AbstractModuleDecl)d;
 
-            wr.Write("import"); if (dd.Opened) wr.Write(" opened");
+            wr.Write("import");
+            if (dd.Opened) {
+              wr.Write(" opened");
+            }
             if (dd.ResolvedHash.HasValue && this.printMode == DafnyOptions.PrintModes.DllEmbed) {
               wr.Write(" /*");
               wr.Write(dd.ResolvedHash);
               wr.Write("*/");
             }
             wr.Write(" {0} ", dd.Name);
-            wr.Write(": {0}", Util.Comma(".", dd.Path, id => id.val));
+            wr.Write(": {0}", dd.QId.ToString());
             if (dd.Exports.Count > 0) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
             wr.WriteLine();
 
           } else if (d is ModuleExportDecl) {
-            ModuleExportDecl e = (ModuleExportDecl)d;
+            ModuleExportDecl e = (ModuleExportDecl) d;
             if (!e.IsDefault) {
               wr.Write("export {0}", e.Name);
             } else {
-              wr.Write("export ");
+              wr.Write("export");
             }
-            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id));
+
+            if (e.IsRefining) {
+              wr.Write(" ...");
+            }
+            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id.val));
             wr.WriteLine();
             PrintModuleExportDecl(e, indent + IndentAmount, fileBeingPrinted);
             wr.WriteLine();
+          } else {
+            Contract.Assert(false); // unexpected ModuleDecl
           }
-
         } else {
-          Contract.Assert(false);  // unexpected TopLevelDecl
+          Contract.Assert(false); // unexpected TopLevelDecl
         }
       }
     }
@@ -483,9 +493,6 @@ namespace Microsoft.Dafny {
       if (module.IsAbstract) {
         wr.Write("abstract ");
       }
-      if (module.IsProtected) {
-        wr.Write("protected ");
-      }
       wr.Write("module");
       PrintAttributes(module.Attributes);
       wr.Write(" ");
@@ -495,8 +502,8 @@ namespace Microsoft.Dafny {
         }
       }
       wr.Write("{0} ", module.Name);
-      if (module.RefinementBaseName != null) {
-        wr.Write("refines {0} ", module.RefinementBaseName.val);
+      if (module.RefinementQId != null) {
+        wr.Write("refines {0} ", module.RefinementQId.ToString());
       }
       if (module.TopLevelDecls.Count == 0) {
         wr.WriteLine("{ }");
@@ -533,8 +540,8 @@ namespace Microsoft.Dafny {
     void PrintIteratorSignature(IteratorDecl iter, int indent) {
       Indent(indent);
       PrintClassMethodHelper("iterator", iter.Attributes, iter.Name, iter.TypeArgs);
-      if (iter.SignatureIsOmitted) {
-        wr.WriteLine(" ...");
+      if (iter.IsRefining) {
+        wr.WriteLine(" ... ");
       } else {
         PrintFormals(iter.Ins, iter);
         if (iter.Outs.Count != 0) {
@@ -579,12 +586,17 @@ namespace Microsoft.Dafny {
 
       Indent(indent);
       PrintClassMethodHelper((c is TraitDecl) ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
-      string sep = " extends ";
-      foreach (var trait in c.ParentTraits) {
-        wr.Write(sep);
-        PrintType(trait);
-        sep = ", ";
+      if (c.IsRefining) {
+        wr.Write(" ... ");
+      } else {
+        string sep = " extends ";
+        foreach (var trait in c.ParentTraits) {
+          wr.Write(sep);
+          PrintType(trait);
+          sep = ", ";
+        }
       }
+
       if (c.Members.Count == 0) {
         wr.WriteLine(" { }");
       } else {
@@ -617,7 +629,7 @@ namespace Microsoft.Dafny {
         } else if (m is Method) {
           if (state != 0) { wr.WriteLine(); }
           PrintMethod((Method)m, indent, false);
-          var com = m as FixpointLemma;
+          var com = m as ExtremeLemma;
           if (com != null && com.PrefixLemma != null) {
             Indent(indent); wr.WriteLine("/***");
             PrintMethod(com.PrefixLemma, indent, false);
@@ -631,7 +643,7 @@ namespace Microsoft.Dafny {
         } else if (m is Function) {
           if (state != 0) { wr.WriteLine(); }
           PrintFunction((Function)m, indent, false);
-          var fixp = m as FixpointPredicate;
+          var fixp = m as ExtremePredicate;
           if (fixp != null && fixp.PrefixPredicate != null) {
             Indent(indent); wr.WriteLine("/*** (note, what is printed here does not show substitutions of calls to prefix predicates)");
             PrintFunction(fixp.PrefixPredicate, indent, false);
@@ -828,18 +840,17 @@ namespace Microsoft.Dafny {
       var isPredicate = f is Predicate || f is PrefixPredicate;
       Indent(indent);
       string k = isPredicate ? "predicate" : f.WhatKind;
-      if (f.IsProtected) { k = "protected " + k; }
       if (f.HasStaticKeyword) { k = "static " + k; }
       if (!f.IsGhost) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
       if (f.SignatureIsOmitted) {
         wr.WriteLine(" ...");
       } else {
-        if (f is FixpointPredicate) {
-          PrintKTypeIndication(((FixpointPredicate)f).TypeOfK);
+        if (f is ExtremePredicate) {
+          PrintKTypeIndication(((ExtremePredicate)f).TypeOfK);
         }
         PrintFormals(f.Formals, f, f.Name);
-        if (!isPredicate && !(f is FixpointPredicate) && !(f is TwoStatePredicate)) {
+        if (!isPredicate && !(f is ExtremePredicate) && !(f is TwoStatePredicate)) {
           wr.Write(": ");
           if (f.Result != null) {
             wr.Write("(");
@@ -902,13 +913,13 @@ namespace Microsoft.Dafny {
       if (PrintModeSkipFunctionOrMethod(method.IsGhost, method.Attributes, method.Name)) { return; }
       Indent(indent);
       string k = method is Constructor ? "constructor" :
-        method is InductiveLemma ? "inductive lemma" :
-        method is CoLemma ? "colemma" :
+        method is LeastLemma ? "least lemma" :
+        method is GreatestLemma ? "greatest lemma" :
         method is Lemma || method is PrefixLemma ? "lemma" :
         method is TwoStateLemma ? "twostate lemma" :
         "method";
       if (method.HasStaticKeyword) { k = "static " + k; }
-      if (method.IsGhost && !(method is Lemma) && !(method is PrefixLemma) && !(method is TwoStateLemma) && !(method is FixpointLemma)) {
+      if (method.IsGhost && !(method is Lemma) && !(method is PrefixLemma) && !(method is TwoStateLemma) && !(method is ExtremeLemma)) {
         k = "ghost " + k;
       }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
@@ -916,8 +927,8 @@ namespace Microsoft.Dafny {
       if (method.SignatureIsOmitted) {
         wr.WriteLine(" ...");
       } else {
-        if (method is FixpointLemma) {
-          PrintKTypeIndication(((FixpointLemma)method).TypeOfK);
+        if (method is ExtremeLemma) {
+          PrintKTypeIndication(((ExtremeLemma)method).TypeOfK);
         }
         PrintFormals(method.Ins, method, method.Name);
         if (method.Outs.Count != 0) {
@@ -948,15 +959,15 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintKTypeIndication(FixpointPredicate.KType kType) {
+    void PrintKTypeIndication(ExtremePredicate.KType kType) {
       switch (kType) {
-        case FixpointPredicate.KType.Nat:
+        case ExtremePredicate.KType.Nat:
           wr.Write("[nat]");
           break;
-        case FixpointPredicate.KType.ORDINAL:
+        case ExtremePredicate.KType.ORDINAL:
           wr.Write("[ORDINAL]");
           break;
-        case FixpointPredicate.KType.Unspecified:
+        case ExtremePredicate.KType.Unspecified:
           break;
         default:
           Contract.Assume(false);  // unexpected KType value
@@ -1965,8 +1976,8 @@ namespace Microsoft.Dafny {
         } else if (e is StringLiteralExpr) {
           var str = (StringLiteralExpr)e;
           wr.Write("{0}\"{1}\"", str.IsVerbatim ? "@" : "", (string)e.Value);
-        } else if (e.Value is Basetypes.BigDec) {
-          Basetypes.BigDec dec = (Basetypes.BigDec)e.Value;
+        } else if (e.Value is BaseTypes.BigDec) {
+          BaseTypes.BigDec dec = (BaseTypes.BigDec)e.Value;
           wr.Write((dec.Mantissa >= 0) ? "" : "-");
           string s = BigInteger.Abs(dec.Mantissa).ToString();
           int digits = s.Length;

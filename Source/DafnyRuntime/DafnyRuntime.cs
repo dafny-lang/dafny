@@ -37,6 +37,12 @@ namespace Dafny
       this.containsNull = containsNull;
     }
     public static readonly ISet<T> Empty = new Set<T>(ImmutableHashSet<T>.Empty, false);
+
+    private static readonly TypeDescriptor<ISet<T>> _TYPE = new Dafny.TypeDescriptor<ISet<T>>(Empty);
+    public static TypeDescriptor<ISet<T>> _TypeDescriptor() {
+      return _TYPE;
+    }
+
     public static ISet<T> FromElements(params T[] values) {
       return FromCollection(values);
     }
@@ -100,10 +106,6 @@ namespace Dafny
           yield return t;
         }
       }
-    }
-
-    public static ISet<T> _DafnyDefaultValue() {
-      return Empty;
     }
 
     /// <summary>
@@ -276,6 +278,12 @@ namespace Dafny
       this.occurrencesOfNull = occurrencesOfNull;
     }
     public static readonly MultiSet<T> Empty = new MultiSet<T>(ImmutableDictionary<T, BigInteger>.Empty.ToBuilder(), BigInteger.Zero);
+
+    private static readonly TypeDescriptor<IMultiSet<T>> _TYPE = new Dafny.TypeDescriptor<IMultiSet<T>>(Empty);
+    public static TypeDescriptor<IMultiSet<T>> _TypeDescriptor() {
+      return _TYPE;
+    }
+
     public static MultiSet<T> FromIMultiSet(IMultiSet<T> s) {
       return s as MultiSet<T> ?? FromCollection(s.Elements);
     }
@@ -350,10 +358,6 @@ namespace Dafny
         }
         return new MultiSet<U>(d, this.occurrencesOfNull);
       }
-    }
-
-    public static MultiSet<T> _DafnyDefaultValue() {
-      return Empty;
     }
 
     public bool Equals(IMultiSet<T> other) {
@@ -584,12 +588,23 @@ namespace Dafny
     readonly bool hasNullKey;  // true when "null" is a key of the Map
     readonly V nullValue;  // if "hasNullKey", the value that "null" maps to
 
-    Map(ImmutableDictionary<U, V>.Builder d, bool hasNullKey, V nullValue) {
+    private Map(ImmutableDictionary<U, V>.Builder d, bool hasNullKey, V nullValue) {
       dict = d.ToImmutable();
       this.hasNullKey = hasNullKey;
       this.nullValue = nullValue;
     }
     public static readonly Map<U, V> Empty = new Map<U, V>(ImmutableDictionary<U, V>.Empty.ToBuilder(), false, default(V));
+
+    private Map(ImmutableDictionary<U, V> d, bool hasNullKey, V nullValue) {
+      dict = d;
+      this.hasNullKey = hasNullKey;
+      this.nullValue = nullValue;
+    }
+    
+    private static readonly TypeDescriptor<IMap<U, V>> _TYPE = new Dafny.TypeDescriptor<IMap<U, V>>(Empty);
+    public static TypeDescriptor<IMap<U, V>> _TypeDescriptor() {
+      return _TYPE;
+    }
 
     public static Map<U, V> FromElements(params IPair<U, V>[] values) {
       var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
@@ -640,9 +655,6 @@ namespace Dafny
     }
     public long LongCount {
       get { return dict.Count + (hasNullKey ? 1 : 0); }
-    }
-    public static Map<U, V> _DafnyDefaultValue() {
-      return Empty;
     }
 
     public bool Equals(IMap<U, V> other) {
@@ -742,6 +754,19 @@ namespace Dafny
       }
     }
 
+    public static IMap<U, V> Merge(IMap<U, V> th, IMap<U, V> other) {
+      var a = FromIMap(th);
+      var b = FromIMap(other);
+      ImmutableDictionary<U, V> d = a.dict.SetItems(b.dict);
+      return new Map<U, V>(d, a.hasNullKey || b.hasNullKey, b.hasNullKey ? b.nullValue : a.nullValue);
+    }
+    
+    public static IMap<U, V> Subtract(IMap<U, V> th, ISet<U> keys) {
+      var a = FromIMap(th);
+      ImmutableDictionary<U, V> d = a.dict.RemoveRange(keys.Elements);
+      return new Map<U, V>(d, a.hasNullKey && !keys.Contains<object>(null), a.nullValue);
+    }
+    
     public ISet<U> Keys {
       get {
         if (hasNullKey) {
@@ -813,11 +838,13 @@ namespace Dafny
 
   public abstract class Sequence<T>: ISequence<T>
   {
-    public static ISequence<T> Empty {
-      get {
-        return new ArraySequence<T>(new T[0]);
-      }
+    public static readonly ISequence<T> Empty = new ArraySequence<T>(new T[0]);
+
+    private static readonly TypeDescriptor<ISequence<T>> _TYPE = new Dafny.TypeDescriptor<ISequence<T>>(Empty);
+    public static TypeDescriptor<ISequence<T>> _TypeDescriptor() {
+      return _TYPE;
     }
+
     public static ISequence<T> Create(BigInteger length, System.Func<BigInteger, T> init) {
       var len = (int)length;
       var values = new T[len];
@@ -834,9 +861,6 @@ namespace Dafny
     }
     public static ISequence<char> FromString(string s) {
       return new ArraySequence<char>(s.ToCharArray());
-    }
-    public static ISequence<T> _DafnyDefaultValue() {
-      return Empty;
     }
     public ISequence<U> DowncastClone<U>(Func<T, U> converter) {
       if (this is ISequence<U> th) {
@@ -1149,10 +1173,24 @@ namespace Dafny
       this.cdr = b;
     }
   }
-  public partial class Helpers {
+
+  public class TypeDescriptor<T>
+  {
+    private readonly T initValue;
+    public TypeDescriptor(T initValue) {
+      this.initValue = initValue;
+    }
+    public T Default() {
+      return initValue;
+    }
+  }
+
+  public partial class Helpers
+  {
     public static int GetHashCode<G>(G g) {
       return g == null ? 1001 : g.GetHashCode();
     }
+
     public static int ToIntChecked(BigInteger i, string msg) {
       if (i > Int32.MaxValue || i < Int32.MinValue) {
         if (msg == null) msg = "value out of range for a 32-bit int";
@@ -1183,28 +1221,24 @@ namespace Dafny
     public static void Print<G>(G g) {
       System.Console.Write(ToString(g));
     }
-    public static G Default<G>() {
-      Type ty = typeof(G);
-      // If ty is Dafny.ISequence<T> for some concrete T, use Dafny.Sequence<T> instead
-      // TODO-RS: How to generalize these mappings?
-      if (ty.IsGenericType && typeof(Dafny.ISet<>) == ty.GetGenericTypeDefinition()) {
-        ty = typeof(Dafny.Set<>).MakeGenericType(ty.GenericTypeArguments);
-      } else if (ty.IsGenericType && typeof(Dafny.ISequence<>) == ty.GetGenericTypeDefinition()) {
-        ty = typeof(Dafny.Sequence<>).MakeGenericType(ty.GenericTypeArguments);
-      } else if (ty.IsGenericType && typeof(Dafny.IMultiSet<>) == ty.GetGenericTypeDefinition()) {
-        ty = typeof(Dafny.MultiSet<>).MakeGenericType(ty.GenericTypeArguments);
-      } else if (ty.IsGenericType && typeof(Dafny.IMap<,>) == ty.GetGenericTypeDefinition()) {
-        ty = typeof(Dafny.Map<,>).MakeGenericType(ty.GenericTypeArguments);
-      }
-      System.Reflection.MethodInfo mInfo = ty.GetMethod("_DafnyDefaultValue");
-      if (mInfo != null) {
-        G g = (G)mInfo.Invoke(null, null);
-        return g;
-      } else {
-        return default(G);
-      }
+
+    public static readonly TypeDescriptor<bool> BOOL = new TypeDescriptor<bool>(false);
+    public static readonly TypeDescriptor<char> CHAR = new TypeDescriptor<char>('D');  // See CharType.DefaultValue in Dafny source code
+    public static readonly TypeDescriptor<BigInteger> INT = new TypeDescriptor<BigInteger>(BigInteger.Zero);
+    public static readonly TypeDescriptor<BigRational> REAL = new TypeDescriptor<BigRational>(BigRational.ZERO);
+    public static readonly TypeDescriptor<byte> UINT8 = new TypeDescriptor<byte>(0);
+    public static readonly TypeDescriptor<ushort> UINT16 = new TypeDescriptor<ushort>(0);
+    public static readonly TypeDescriptor<uint> UINT32 = new TypeDescriptor<uint>(0);
+    public static readonly TypeDescriptor<ulong> UINT64 = new TypeDescriptor<ulong>(0);
+
+    public static TypeDescriptor<T> NULL<T>() where T : class {
+      return new TypeDescriptor<T>(null);
     }
-    // Computing forall/exists quantifiers
+
+    public static TypeDescriptor<A[]> ARRAY<A>() {
+      return new TypeDescriptor<A[]>(new A[0]);
+    }
+
     public static bool Quantifier<T>(IEnumerable<T> vals, bool frall, System.Predicate<T> pred) {
       foreach (var u in vals) {
         if (pred(u) != frall) { return !frall; }
@@ -1589,7 +1623,7 @@ namespace @_System
       this._1 = _1;
     }
     public override bool Equals(object other) {
-      var oth = other as _System.@Tuple2<T0,T1>;
+      var oth = other as _System.Tuple2<T0,T1>;
       return oth != null && object.Equals(this._0, oth._0) && object.Equals(this._1, oth._1);
     }
     public override int GetHashCode() {
@@ -1608,20 +1642,16 @@ namespace @_System
       s += ")";
       return s;
     }
-    static Tuple2<T0,T1> theDefault;
-    public static Tuple2<T0,T1> Default {
-      get {
-        if (theDefault == null) {
-          theDefault = new _System.@Tuple2<T0,T1>(Dafny.Helpers.Default<T0>(), Dafny.Helpers.Default<T1>());
-        }
-        return theDefault;
-      }
+    public static Tuple2<T0,T1> Default(T0 _default_T0, T1 _default_T1) {
+      return create(_default_T0, _default_T1);
     }
-    public static Tuple2<T0,T1> _DafnyDefaultValue() { return Default; }
+    public static Dafny.TypeDescriptor<_System.Tuple2<T0, T1>> _TypeDescriptor(Dafny.TypeDescriptor<T0> _td_T0, Dafny.TypeDescriptor<T1> _td_T1) {
+      return new Dafny.TypeDescriptor<_System.Tuple2<T0, T1>>(_System.Tuple2<T0, T1>.Default(_td_T0.Default(), _td_T1.Default()));
+    }
     public static Tuple2<T0,T1> create(T0 _0, T1 _1) {
       return new Tuple2<T0,T1>(_0, _1);
     }
-    public bool is____hMake3 { get { return true; } }
+    public bool is____hMake2 { get { return true; } }
     public T0 dtor__0 {
       get {
         return this._0;

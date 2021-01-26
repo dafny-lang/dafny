@@ -15,7 +15,8 @@ namespace Microsoft.Dafny
       if (m is DefaultModuleDecl) {
         nw = new DefaultModuleDecl();
       } else {
-        nw = new ModuleDefinition(Tok(m.tok), name, m.PrefixIds, m.IsAbstract, m.IsProtected, m.IsFacade, m.RefinementBaseName, m.Module, CloneAttributes(m.Attributes),
+        nw = new ModuleDefinition(Tok(m.tok), name, m.PrefixIds, m.IsAbstract, m.IsFacade,
+                                  m.RefinementQId, m.EnclosingModule, CloneAttributes(m.Attributes),
                                   true, m.IsToBeVerified, m.IsToBeCompiled);
       }
       foreach (var d in m.TopLevelDecls) {
@@ -25,17 +26,8 @@ namespace Microsoft.Dafny
         var newTup = new Tuple<List<IToken>, LiteralModuleDecl>(tup.Item1, (LiteralModuleDecl)CloneDeclaration(tup.Item2, nw));
         nw.PrefixNamedModules.Add(newTup);
       }
-      if (null != m.RefinementBase) {
-        nw.RefinementBase = GetRefinementBase(m);
-      }
       nw.Height = m.Height;
       return nw;
-    }
-
-
-    public virtual ModuleDefinition GetRefinementBase(ModuleDefinition m) {
-      Contract.Requires(m != null);
-      return m.RefinementBase;
     }
 
     public virtual TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
@@ -57,24 +49,24 @@ namespace Microsoft.Dafny
       } else if (d is NewtypeDecl) {
         var dd = (NewtypeDecl)d;
           if (dd.Var == null) {
-            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes));
+            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
           } else {
-            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes));
+            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
           }
       } else if (d is TupleTypeDecl) {
         var dd = (TupleTypeDecl)d;
-        return new TupleTypeDecl(dd.Dims, dd.Module, dd.Attributes);
+        return new TupleTypeDecl(dd.Dims, dd.EnclosingModuleDefinition, dd.Attributes);
       } else if (d is IndDatatypeDecl) {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new IndDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes));
+        var dt = new IndDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
         return dt;
       } else if (d is CoDatatypeDecl) {
         var dd = (CoDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new CoDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes));
+        var dt = new CoDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
         return dt;
       } else if (d is IteratorDecl) {
         var dd = (IteratorDecl)d;
@@ -98,7 +90,7 @@ namespace Microsoft.Dafny
         var dd = (TraitDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(CloneMember);
-        var cl = new TraitDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.ParentTraits.ConvertAll(CloneType));
+        var cl = new TraitDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
         return cl;
       } else if (d is ClassDecl) {
         var dd = (ClassDecl)d;
@@ -107,20 +99,21 @@ namespace Microsoft.Dafny
         if (d is DefaultClassDecl) {
           return new DefaultClassDecl(m, mm);
         } else {
-          return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.ParentTraits.ConvertAll(CloneType));
+          return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
         }
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl) {
+          // TODO: Does not clone any details; is still resolved
           return new LiteralModuleDecl(((LiteralModuleDecl)d).ModuleDef, m);
         } else if (d is AliasModuleDecl) {
           var a = (AliasModuleDecl)d;
-          return new AliasModuleDecl(a.Path, a.tok, m, a.Opened, a.Exports);
-        } else if (d is ModuleFacadeDecl) {
-          var a = (ModuleFacadeDecl)d;
-          return new ModuleFacadeDecl(a.Path, a.tok, m, a.Opened, a.Exports);
+          return new AliasModuleDecl(a.TargetQId?.Clone(false), a.tok, m, a.Opened, a.Exports);
+        } else if (d is AbstractModuleDecl) {
+          var a = (AbstractModuleDecl)d;
+          return new AbstractModuleDecl(a.QId?.Clone(false), a.tok, m, a.Opened, a.Exports);
         } else if (d is ModuleExportDecl) {
           var a = (ModuleExportDecl)d;
-          return new ModuleExportDecl(a.tok, m, a.Exports, a.Extends, a.ProvideAll, a.RevealAll, a.IsDefault);
+          return new ModuleExportDecl(a.tok, a.Name, m, a.Exports, a.Extends, a.ProvideAll, a.RevealAll, a.IsDefault, a.IsRefining);
         } else {
           Contract.Assert(false);  // unexpected declaration
           return null;  // to please compiler
@@ -279,8 +272,8 @@ namespace Microsoft.Dafny
         } else if (e is StringLiteralExpr) {
           var str = (StringLiteralExpr)e;
           return new StringLiteralExpr(Tok(e.tok), (string)e.Value, str.IsVerbatim);
-        } else if (e.Value is Basetypes.BigDec) {
-          return new LiteralExpr(Tok(e.tok), (Basetypes.BigDec)e.Value);
+        } else if (e.Value is BaseTypes.BigDec) {
+          return new LiteralExpr(Tok(e.tok), (BaseTypes.BigDec)e.Value);
         } else {
           return new LiteralExpr(Tok(e.tok), (BigInteger)e.Value);
         }
@@ -647,7 +640,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AssignOrReturnStmt) {
         var s = (AssignOrReturnStmt)stmt;
-        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs), s.ExpectToken == null ? null : Tok(s.ExpectToken), s.Rhss == null ? null : s.Rhss.ConvertAll(e => CloneRHS(e)));
+        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs), s.KeywordToken == null ? null : Tok(s.KeywordToken), s.Rhss == null ? null : s.Rhss.ConvertAll(e => CloneRHS(e)));
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
@@ -755,13 +748,13 @@ namespace Microsoft.Dafny
       }
 
       if (f is Predicate) {
-        return new Predicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, f.IsGhost, tps, formals,
+        return new Predicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsGhost, tps, formals,
           req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, CloneAttributes(f.Attributes), null);
-      } else if (f is InductivePredicate) {
-        return new InductivePredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, ((InductivePredicate)f).TypeOfK, tps, formals,
+      } else if (f is LeastPredicate) {
+        return new LeastPredicate(Tok(f.tok), newName, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
-      } else if (f is CoPredicate) {
-        return new CoPredicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, ((CoPredicate)f).TypeOfK, tps, formals,
+      } else if (f is GreatestPredicate) {
+        return new GreatestPredicate(Tok(f.tok), newName, f.HasStaticKeyword, ((GreatestPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else if (f is TwoStatePredicate) {
         return new TwoStatePredicate(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals,
@@ -770,7 +763,7 @@ namespace Microsoft.Dafny
         return new TwoStateFunction(Tok(f.tok), newName, f.HasStaticKeyword, tps, formals, f.Result == null ? null : CloneFormal(f.Result), CloneType(f.ResultType),
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       } else {
-        return new Function(Tok(f.tok), newName, f.HasStaticKeyword, f.IsProtected, f.IsGhost, tps, formals, f.Result == null ? null : CloneFormal(f.Result), CloneType(f.ResultType),
+        return new Function(Tok(f.tok), newName, f.HasStaticKeyword, f.IsGhost, tps, formals, f.Result == null ? null : CloneFormal(f.Result), CloneType(f.ResultType),
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       }
     }
@@ -791,11 +784,11 @@ namespace Microsoft.Dafny
       if (m is Constructor) {
         return new Constructor(Tok(m.tok), m.Name, tps, ins,
           req, mod, ens, decreases, (DividedBlockStmt)body, CloneAttributes(m.Attributes), null);
-      } else if (m is InductiveLemma) {
-        return new InductiveLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, ((InductiveLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(CloneFormal),
+      } else if (m is LeastLemma) {
+        return new LeastLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, ((LeastLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
-      } else if (m is CoLemma) {
-        return new CoLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, ((CoLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(CloneFormal),
+      } else if (m is GreatestLemma) {
+        return new GreatestLemma(Tok(m.tok), m.Name, m.HasStaticKeyword, ((GreatestLemma)m).TypeOfK, tps, ins, m.Outs.ConvertAll(CloneFormal),
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else if (m is Lemma) {
         return new Lemma(Tok(m.tok), m.Name, m.HasStaticKeyword, tps, ins, m.Outs.ConvertAll(CloneFormal),
@@ -832,18 +825,18 @@ namespace Microsoft.Dafny
       var dd = base.CloneDeclaration(d, m);
       if (d is ModuleDecl) {
         ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
-        if (d is ModuleFacadeDecl) {
-          var sourcefacade = (ModuleFacadeDecl)d;
+        if (d is AbstractModuleDecl) {
+          var sourcefacade = (AbstractModuleDecl)d;
 
-          ((ModuleFacadeDecl)dd).OriginalSignature = sourcefacade.OriginalSignature;
-          if (sourcefacade.Root != null) {
-            ((ModuleFacadeDecl)dd).Root = (ModuleDecl)CloneDeclaration(sourcefacade.Root, m);
+          ((AbstractModuleDecl)dd).OriginalSignature = sourcefacade.OriginalSignature;
+          if (sourcefacade.QId.Root != null) {
+            ((AbstractModuleDecl)dd).QId.SetRoot((ModuleDecl)CloneDeclaration(sourcefacade.QId.Root, m));
           }
         } else if (d is AliasModuleDecl) {
           var sourcealias = (AliasModuleDecl)d;
 
-          if (sourcealias.Root != null) {
-            ((AliasModuleDecl)dd).Root = (ModuleDecl)CloneDeclaration(sourcealias.Root, m);
+          if (sourcealias.TargetQId.Root != null) {
+            ((AliasModuleDecl)dd).TargetQId.SetRoot((ModuleDecl)CloneDeclaration(sourcealias.TargetQId.Root, m));
           }
         }
       }
@@ -1052,16 +1045,6 @@ namespace Microsoft.Dafny
       return base.CloneStmt(stmt);
     }
 
-    public override ModuleDefinition GetRefinementBase(ModuleDefinition m) {
-      var rbase = m.RefinementBase;
-      ModuleDefinition r;
-      if (compilationModuleClones.TryGetValue(rbase, out r)) {
-        return r;
-      } else {
-        return rbase;
-      }
-    }
-
     public ModuleSignature CloneModuleSignature(ModuleSignature org, ModuleSignature newSig) {
       var sig = new ModuleSignature();
       sig.ModuleDef = newSig.ModuleDef;
@@ -1101,15 +1084,15 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// Subclass of Cloner that collects some common functionality between FixpointLemmaSpecificationSubstituter and
-  /// FixpointLemmaBodyCloner.
+  /// Subclass of Cloner that collects some common functionality between ExtremeLemmaSpecificationSubstituter and
+  /// ExtremeLemmaBodyCloner.
   /// </summary>
-  abstract class FixpointCloner : Cloner
+  abstract class ExtremeCloner : Cloner
   {
     protected readonly Expression k;
     protected readonly ErrorReporter reporter;
     protected readonly string suffix;
-    protected FixpointCloner(Expression k, ErrorReporter reporter)
+    protected ExtremeCloner(Expression k, ErrorReporter reporter)
     {
       Contract.Requires(k != null);
       Contract.Requires(reporter != null);
@@ -1119,7 +1102,7 @@ namespace Microsoft.Dafny
     }
     protected Expression CloneCallAndAddK(ApplySuffix e) {
       Contract.Requires(e != null);
-      Contract.Requires(e.Resolved is FunctionCallExpr && ((FunctionCallExpr)e.Resolved).Function is FixpointPredicate);
+      Contract.Requires(e.Resolved is FunctionCallExpr && ((FunctionCallExpr)e.Resolved).Function is ExtremePredicate);
       Contract.Requires(e.Lhs is NameSegment || e.Lhs is ExprDotName);
       Expression lhs;
       string name;
@@ -1143,7 +1126,7 @@ namespace Microsoft.Dafny
     }
     protected Expression CloneCallAndAddK(FunctionCallExpr e) {
       Contract.Requires(e != null);
-      Contract.Requires(e.Function is FixpointPredicate);
+      Contract.Requires(e.Function is ExtremePredicate);
       var receiver = CloneExpr(e.Receiver);
       var args = new List<Expression>();
       args.Add(k);
@@ -1157,19 +1140,19 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// The FixpointLemmaSpecificationSubstituter clones the precondition (or postcondition) declared
-  /// on an inductive lemma (resp. colemma), but replaces the calls and equalities in "coConclusions"
+  /// The ExtremeLemmaSpecificationSubstituter clones the precondition (or postcondition) declared
+  /// on a least (resp. greatest) lemma, but replaces the calls and equalities in "coConclusions"
   /// with corresponding prefix versions.  The resulting expression is then appropriate to be a
-  /// precondition (resp. postcondition) of the inductive lemma's (resp. colemma's) corresponding prefix lemma.
+  /// precondition (resp. postcondition) of the least (resp. greatest) lemma's corresponding prefix lemma.
   /// It is assumed that the source expression has been resolved.  Note, the "k" given to the constructor
   /// is not cloned with each use; it is simply used as is.
   /// The resulting expression needs to be resolved by the caller.
   /// </summary>
-  class FixpointLemmaSpecificationSubstituter : FixpointCloner
+  class ExtremeLemmaSpecificationSubstituter : ExtremeCloner
   {
     readonly bool isCoContext;
     readonly ISet<Expression> friendlyCalls;
-    public FixpointLemmaSpecificationSubstituter(ISet<Expression> friendlyCalls, Expression k, ErrorReporter reporter, bool isCoContext)
+    public ExtremeLemmaSpecificationSubstituter(ISet<Expression> friendlyCalls, Expression k, ErrorReporter reporter, bool isCoContext)
       : base(k, reporter)
     {
       Contract.Requires(friendlyCalls != null);
@@ -1193,7 +1176,7 @@ namespace Microsoft.Dafny
         return base.CloneExpr(expr);
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
-        // Note, the CoLemmaPostconditionSubstituter is an unusual cloner in that it operates on
+        // Note, the ExtremeLemmaSpecificationSubstituter is an unusual cloner in that it operates on
         // resolved expressions.  Hence, we bypass the syntactic parts here, except for the ones
         // checked above.
         return CloneExpr(e.Resolved);
@@ -1239,15 +1222,15 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// The task of the FixpointLemmaBodyCloner is to fill in the implicit _k-1 arguments in recursive inductive/co-lemma calls
+  /// The task of the ExtremeLemmaBodyCloner is to fill in the implicit _k-1 arguments in recursive least/greatest lemma calls
   /// and in calls to the focal predicates.
   /// The source statement and the given "k" are assumed to have been resolved.
   /// </summary>
-  class FixpointLemmaBodyCloner : FixpointCloner
+  class ExtremeLemmaBodyCloner : ExtremeCloner
   {
-    readonly FixpointLemma context;
-    readonly ISet<FixpointPredicate> focalPredicates;
-    public FixpointLemmaBodyCloner(FixpointLemma context, Expression k, ISet<FixpointPredicate> focalPredicates, ErrorReporter reporter)
+    readonly ExtremeLemma context;
+    readonly ISet<ExtremePredicate> focalPredicates;
+    public ExtremeLemmaBodyCloner(ExtremeLemma context, Expression k, ISet<ExtremePredicate> focalPredicates, ErrorReporter reporter)
       : base(k, reporter)
     {
       Contract.Requires(context != null);
@@ -1268,7 +1251,7 @@ namespace Microsoft.Dafny
     public override Expression CloneExpr(Expression expr) {
       if (DafnyOptions.O.RewriteFocalPredicates) {
         if (expr is FunctionCallExpr) {
-          var e = (FunctionCallExpr)expr;
+          var e = (FunctionCallExpr) expr;
 #if DEBUG_PRINT
           if (e.Function.Name.EndsWith("#") && Contract.Exists(focalPredicates, p => e.Function.Name == p.Name + "#")) {
             Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", e.tok.filename, e.tok.line, e.tok.col, Printer.ExprToString(e));
@@ -1278,7 +1261,7 @@ namespace Microsoft.Dafny
           // However, if something changes in the future (for example, some rewrite that changing an ApplySuffix
           // to its resolved FunctionCallExpr), then we do want this code, so with the hope of preventing
           // some error in the future, this case is included.  (Of course, it is currently completely untested!)
-          var f = e.Function as FixpointPredicate;
+          var f = e.Function as ExtremePredicate;
           if (f != null && focalPredicates.Contains(f)) {
 #if DEBUG_PRINT
             var r = CloneCallAndAddK(e);
@@ -1288,6 +1271,8 @@ namespace Microsoft.Dafny
             return CloneCallAndAddK(e);
 #endif
           }
+        } else if (expr is StaticReceiverExpr ee) {
+          return new StaticReceiverExpr(Tok(ee.tok), ee.Type, ee.IsImplicit);
         } else if (expr is ApplySuffix) {
           var apply = (ApplySuffix)expr;
           if (!apply.WasResolved()) {
@@ -1304,7 +1289,7 @@ namespace Microsoft.Dafny
                 Console.WriteLine("{0}({1},{2}): DEBUG: Possible opportunity to rely on new rewrite: {3}", fce.tok.filename, fce.tok.line, fce.tok.col, Printer.ExprToString(fce));
               }
 #endif
-              var f = fce.Function as FixpointPredicate;
+              var f = fce.Function as ExtremePredicate;
               if (f != null && focalPredicates.Contains(f)) {
 #if DEBUG_PRINT
                 var r = CloneCallAndAddK(fce);
@@ -1325,10 +1310,10 @@ namespace Microsoft.Dafny
       if (r != null && r.Expr is ApplySuffix) {
         var apply = (ApplySuffix)r.Expr;
         var mse = apply.Lhs.Resolved as MemberSelectExpr;
-        if (mse != null && mse.Member is FixpointLemma && ModuleDefinition.InSameSCC(context, (FixpointLemma)mse.Member)) {
-          // we're looking at a recursive call to a fixpoint lemma
+        if (mse != null && mse.Member is ExtremeLemma && ModuleDefinition.InSameSCC(context, (ExtremeLemma)mse.Member)) {
+          // we're looking at a recursive call to an extreme lemma
           Contract.Assert(apply.Lhs is NameSegment || apply.Lhs is ExprDotName);  // this is the only way a call statement can have been parsed
-          // clone "apply.Lhs", changing the inductive/co lemma to the prefix lemma; then clone "apply", adding in the extra argument
+          // clone "apply.Lhs", changing the least/greatest lemma to the prefix lemma; then clone "apply", adding in the extra argument
           Expression lhsClone;
           if (apply.Lhs is NameSegment) {
             var lhs = (NameSegment)apply.Lhs;

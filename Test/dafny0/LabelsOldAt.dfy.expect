@@ -10,6 +10,11 @@ Execution trace:
 LabelsOldAt.dfy(56,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
+    (0,0): anon11_Then
+    (0,0): anon12_Then
+    (0,0): anon13_Then
+    (0,0): anon14_Then
+    (0,0): anon15_Then
 LabelsOldAt.dfy(78,13): Error: assertion violation
 Execution trace:
     (0,0): anon0

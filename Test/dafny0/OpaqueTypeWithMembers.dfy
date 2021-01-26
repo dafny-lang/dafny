@@ -28,10 +28,10 @@ type Opaque {
     var f' := F();
   }
 
-  inductive predicate Q(u: int) {
+  least predicate Q(u: int) {
     y + z < 20 || Q(u + 1)
   }
-  inductive lemma QL(u: int)
+  least lemma QL(u: int)
     requires Q(u)
     ensures y + z < 20
   {
@@ -66,10 +66,10 @@ type StaticOpaque {
     var f' := F();
   }
 
-  static inductive predicate Q(u: int) {
+  static least predicate Q(u: int) {
     y + z < 20 || Q(u + 1)
   }
-  static inductive lemma QL(u: int)
+  static least lemma QL(u: int)
     requires Q(u)
     ensures y + z < 20
   {
@@ -96,10 +96,10 @@ type OpaqueErrors {
     var f' := F();
   }
 
-  inductive predicate Q(u: int) {
+  least predicate Q(u: int) {
     100 / y + z < 20 || Q(u + 1)  // error: division by zero
   }
-  inductive lemma QL(u: int)
+  least lemma QL(u: int)
     requires Q(u) && y != 0
     ensures 100 / y + z < 20
   {
@@ -108,7 +108,7 @@ type OpaqueErrors {
   }
 }
 
-type FailureCompatible {
+type FailureCompatible(0) {
   const c: int
   predicate method IsFailure() { c < 10 }
   function method PropagateFailure(): int
@@ -145,4 +145,3 @@ method P'(t: FailureCompatible) {
 method M() returns (r: FailureCompatible) {
   r :| true;
 }
-

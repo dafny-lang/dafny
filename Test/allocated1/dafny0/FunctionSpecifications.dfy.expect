@@ -1,4 +1,4 @@
-FunctionSpecifications.dfy(29,9): Error BP5003: A postcondition might not hold on this return path.
+FunctionSpecifications.dfy(29,9): Error: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(31,12): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -7,7 +7,7 @@ Execution trace:
     (0,0): anon12_Then
     (0,0): anon13_Else
     (0,0): anon9
-FunctionSpecifications.dfy(38,9): Error BP5003: A postcondition might not hold on this return path.
+FunctionSpecifications.dfy(38,9): Error: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(40,23): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -20,7 +20,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
     (0,0): anon5
-FunctionSpecifications.dfy(59,9): Error BP5003: A postcondition might not hold on this return path.
+FunctionSpecifications.dfy(59,9): Error: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(60,21): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -39,7 +39,7 @@ FunctionSpecifications.dfy(130,26): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-FunctionSpecifications.dfy(135,19): Error BP5003: A postcondition might not hold on this return path.
+FunctionSpecifications.dfy(135,19): Error: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(137,28): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -56,7 +56,7 @@ FunctionSpecifications.dfy(158,2): Error: cannot prove termination; try supplyin
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-FunctionSpecifications.dfy(164,9): Error BP5003: A postcondition might not hold on this return path.
+FunctionSpecifications.dfy(164,9): Error: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(165,14): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
