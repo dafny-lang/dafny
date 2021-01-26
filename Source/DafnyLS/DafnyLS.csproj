@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -23,9 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\dafny\Source\boogie\Source\Model\Model-NetCore.csproj" />
+    <ProjectReference Include="..\..\dafny\Source\DafnyServer\DafnyServer.csproj" />
     <ProjectReference Include="..\..\dafny\Source\Dafny\DafnyPipeline.csproj" />
-    <ProjectReference Include="..\ModelViewer-NetCore\ModelViewer-NetCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>
