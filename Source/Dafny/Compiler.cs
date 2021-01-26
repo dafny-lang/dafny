@@ -197,7 +197,7 @@ namespace Microsoft.Dafny {
 
     protected virtual bool NeedsTypeDescriptor(TypeParameter tp) {
       Contract.Requires(tp != null);
-      return tp.Characteristics.MustSupportZeroInitialization;
+      return tp.Characteristics.HasCompiledValue;
     }
 
     protected abstract string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok);

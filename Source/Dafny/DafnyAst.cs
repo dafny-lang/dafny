@@ -909,9 +909,9 @@ namespace Microsoft.Dafny {
       Contract.Assume(t is NonProxyType); // precondition
 
       AutoInitInfo CharacteristicToAutoInitInfo(TypeParameter.TypeParameterCharacteristics c) {
-        if (c.MustSupportZeroInitialization) {
+        if (c.HasCompiledValue) {
           return AutoInitInfo.CompilableValue;
-        } else if (c.MustBeNonempty) {
+        } else if (c.IsNonempty) {
           return AutoInitInfo.Nonempty;
         } else {
           return AutoInitInfo.MaybeEmpty;
@@ -1047,7 +1047,7 @@ namespace Microsoft.Dafny {
         if (IsRefType) {
           return false;
         } else if (IsTypeParameter) {
-          return AsTypeParameter.Characteristics.DisallowReferenceTypes;
+          return AsTypeParameter.Characteristics.ContainsNoReferenceTypes;
         } else {
           return TypeArgs.All(ta => ta.IsAllocFree);
         }
@@ -3038,7 +3038,7 @@ namespace Microsoft.Dafny {
           return true;
         } else if (ResolvedClass is TypeSynonymDeclBase) {
           var t = (TypeSynonymDeclBase)ResolvedClass;
-          if (t.MustSupportEquality) {
+          if (t.SupportsEquality) {
             return true;
           } else if (t.IsRevealedInScope(Type.GetScope())) {
             return t.RhsWithArgument(TypeArgs).SupportsEquality;
@@ -3046,7 +3046,7 @@ namespace Microsoft.Dafny {
             return false;
           }
         } else if (ResolvedParam != null) {
-          return ResolvedParam.MustSupportEquality;
+          return ResolvedParam.SupportsEquality;
         }
         Contract.Assume(false);  // the SupportsEquality getter requires the Type to have been successfully resolved
         return true;
@@ -3572,22 +3572,22 @@ namespace Microsoft.Dafny {
     public struct TypeParameterCharacteristics
     {
       public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
-      public bool MustSupportZeroInitialization;
-      public bool MustBeNonempty => false;  // TODO: make this an independent characteristic
-      public bool DisallowReferenceTypes;
+      public bool HasCompiledValue;
+      public bool IsNonempty => false;  // TODO: make this an independent characteristic
+      public bool ContainsNoReferenceTypes;
       public TypeParameterCharacteristics(bool dummy) {
         EqualitySupport = EqualitySupportValue.Unspecified;
-        MustSupportZeroInitialization = false;
-        DisallowReferenceTypes = false;
+        HasCompiledValue = false;
+        ContainsNoReferenceTypes = false;
       }
-      public TypeParameterCharacteristics(EqualitySupportValue eqSupport, bool mustSupportZeroInitialization, bool disallowReferenceTypes) {
+      public TypeParameterCharacteristics(EqualitySupportValue eqSupport, bool hasCompiledValue, bool containsNoReferenceTypes) {
         EqualitySupport = eqSupport;
-        MustSupportZeroInitialization = mustSupportZeroInitialization;
-        DisallowReferenceTypes = disallowReferenceTypes;
+        HasCompiledValue = hasCompiledValue;
+        ContainsNoReferenceTypes = containsNoReferenceTypes;
       }
     }
     public TypeParameterCharacteristics Characteristics;
-    public bool MustSupportEquality {
+    public bool SupportsEquality {
       get { return Characteristics.EqualitySupport != EqualitySupportValue.Unspecified; }
     }
 
@@ -3638,7 +3638,7 @@ namespace Microsoft.Dafny {
         characteristics = dd.Characteristics;
       }
       if (characteristics.EqualitySupport == EqualitySupportValue.InferredRequired) {
-        return new TypeParameterCharacteristics(EqualitySupportValue.Unspecified, characteristics.MustSupportZeroInitialization, characteristics.DisallowReferenceTypes);
+        return new TypeParameterCharacteristics(EqualitySupportValue.Unspecified, characteristics.HasCompiledValue, characteristics.ContainsNoReferenceTypes);
       } else {
         return characteristics;
       }
@@ -4973,7 +4973,7 @@ namespace Microsoft.Dafny {
       // Note! This is not the only place where IteratorDecl type parameters come through.  Some may
       // be created by "FillInTypeArguments".
       foreach (var tp in typeArgs) {
-        tp.Characteristics.MustSupportZeroInitialization = true;
+        tp.Characteristics.HasCompiledValue = true;
       }
       return typeArgs;
     }
@@ -5407,8 +5407,8 @@ namespace Microsoft.Dafny {
     public TypeParameter.TypeParameterCharacteristics Characteristics {
       get { return TheType.Characteristics; }
     }
-    public bool MustSupportEquality {
-      get { return TheType.MustSupportEquality; }
+    public bool SupportsEquality {
+      get { return TheType.SupportsEquality; }
     }
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -5427,10 +5427,6 @@ namespace Microsoft.Dafny {
 
     public TopLevelDecl AsTopLevelDecl {
       get { return this; }
-    }
-
-    public bool SupportsEquality {
-      get { return this.MustSupportEquality; }
     }
   }
 
@@ -5601,7 +5597,7 @@ namespace Microsoft.Dafny {
   {
     public override string WhatKind { get { return "type synonym"; } }
     public TypeParameter.TypeParameterCharacteristics Characteristics;  // the resolver may change the .EqualitySupport component of this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
-    public bool MustSupportEquality {
+    public bool SupportsEquality {
       get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
     }
     public readonly Type Rhs;

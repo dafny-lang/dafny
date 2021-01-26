@@ -1113,11 +1113,11 @@ namespace Microsoft.Dafny {
         (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired && DafnyOptions.O.DafnyPrintResolvedFile != null)) {
         s = "==";
       }
-      if (characteristics.MustSupportZeroInitialization) {
+      if (characteristics.HasCompiledValue) {
         var prefix = s == null ? "" : s + ",";
         s = prefix + "0";
       }
-      if (characteristics.DisallowReferenceTypes) {
+      if (characteristics.ContainsNoReferenceTypes) {
         var prefix = s == null ? "" : s + ",";
         s = prefix + "!new";
       }

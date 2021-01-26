@@ -3264,7 +3264,7 @@ namespace Microsoft.Dafny
           } else if (d is TypeSynonymDecl) {
             var syn = (TypeSynonymDecl)d;
             CheckEqualityTypes_Type(syn.tok, syn.Rhs);
-            if (syn.MustSupportEquality && !syn.Rhs.SupportsEquality) {
+            if (syn.SupportsEquality && !syn.Rhs.SupportsEquality) {
               reporter.Error(MessageSource.Resolver, syn.tok, "type '{0}' declared as supporting equality, but the RHS type ({1}) does not", syn.Name, syn.Rhs);
             }
           }
@@ -7759,12 +7759,12 @@ namespace Microsoft.Dafny
           hint = TypeEqualityErrorMessageHint(actual);
           return false;
         }
-        if (formal.MustSupportZeroInitialization && !actual.HasCompilableValue) {
+        if (formal.HasCompiledValue && !actual.HasCompilableValue) {
           whatIsWrong = "auto-initialization";
           hint = "";
           return false;
         }
-        if (formal.DisallowReferenceTypes && !actual.IsAllocFree) {
+        if (formal.ContainsNoReferenceTypes && !actual.IsAllocFree) {
           whatIsWrong = "no references";
           hint = "";
           return false;
@@ -8593,7 +8593,7 @@ namespace Microsoft.Dafny
           var i = 0;
           foreach (var argType in udt.TypeArgs) {
             var formalTypeArg = formalTypeArgs[i];
-            if ((formalTypeArg.MustSupportEquality && argType.AsTypeParameter == tp) || InferRequiredEqualitySupport(tp, argType)) {
+            if ((formalTypeArg.SupportsEquality && argType.AsTypeParameter == tp) || InferRequiredEqualitySupport(tp, argType)) {
               return true;
             }
             i++;
@@ -8973,10 +8973,10 @@ namespace Microsoft.Dafny
           if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport) {
             reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
           }
-          if (o.Characteristics.MustSupportZeroInitialization != n.Characteristics.MustSupportZeroInitialization) {
+          if (o.Characteristics.HasCompiledValue != n.Characteristics.HasCompiledValue) {
             reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
           }
-          if (o.Characteristics.DisallowReferenceTypes != n.Characteristics.DisallowReferenceTypes) {
+          if (o.Characteristics.ContainsNoReferenceTypes != n.Characteristics.ContainsNoReferenceTypes) {
             reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
           }
 
@@ -9553,7 +9553,7 @@ namespace Microsoft.Dafny
 
       if (f.IsGhost) {
         foreach (TypeParameter p in f.TypeArgs) {
-          if (p.MustSupportEquality) {
+          if (p.SupportsEquality) {
             reporter.Warning(MessageSource.Resolver, p.tok,
               $"type parameter {p.Name} of ghost {f.WhatKind} {f.Name} is declared (==), which is unnecessary because the {f.WhatKind} doesn’t contain any compiled code");
           }
@@ -9701,7 +9701,7 @@ namespace Microsoft.Dafny
 
         if (m.IsGhost) {
           foreach (TypeParameter p in m.TypeArgs) {
-            if (p.MustSupportEquality) {
+            if (p.SupportsEquality) {
               reporter.Warning(MessageSource.Resolver, p.tok,
                 $"type parameter {p.Name} of ghost {m.WhatKind} {m.Name} is declared (==), which is unnecessary because the {m.WhatKind} doesn’t contain any compiled code");
             }
@@ -10342,7 +10342,7 @@ namespace Microsoft.Dafny
           for (int i = defaultTypeArguments.Count; i < n; i++) {
             var tp = new TypeParameter(tok, "_T" + i, i, option.Parent);
             if (option.Parent is IteratorDecl) {
-              tp.Characteristics.MustSupportZeroInitialization = true;
+              tp.Characteristics.HasCompiledValue = true;
             }
             defaultTypeArguments.Add(tp);
           }
