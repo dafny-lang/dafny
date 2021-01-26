@@ -26,6 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
 
     [TestMethod]
+    [Ignore]
     public async Task GetCounterExampleForFileWithBodylessMethodReturnsSingleCounterExampleForPostconditions() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -43,6 +44,7 @@ method Abs(x: int) returns (y: int)
     }
 
     [TestMethod]
+    [Ignore]
     public async Task GetCounterExampleForFileWithMethodWithErrorsReturnsCounterExampleForPostconditionsAndEveryUpdateLine() {
       var source = @"
 method Abs(x: int) returns (y: int)
@@ -83,6 +85,7 @@ method Abs(x: int) returns (y: int)
     }
 
     [TestMethod]
+    [Ignore]
     public async Task GetCounterExampleWithMultipleMethodsWithErrorsReturnsCounterExamplesForEveryMethod() {
       var source = @"
 method Abs(x: int) returns (y: int)
