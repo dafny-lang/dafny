@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1-bionic AS build
+FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
 WORKDIR /build
 RUN apt-get update \
     && apt-get install -y unzip \
@@ -13,7 +13,7 @@ RUN dotnet restore Source/DafnyLS.sln
 RUN dotnet build --configuration Release --no-restore Source/DafnyLS.sln
 RUN cp -r z3 Source/DafnyLS/bin/Release/netcoreapp3.1/z3
 
-FROM mcr.microsoft.com/dotnet/core/aspnet:3.1-bionic AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:5.0 AS runtime
 WORKDIR /app
 RUN apt-get update \
     && apt-get install -y libgomp1 \
