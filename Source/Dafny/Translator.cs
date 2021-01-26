@@ -6235,7 +6235,7 @@ namespace Microsoft.Dafny {
       // If there's no constraint, there's nothing to do
       if (decl.Var == null) {
         Contract.Assert(decl.Constraint == null);  // there's a constraint only if there's a variable to be constrained
-        Contract.Assert(decl.WitnessKind == SubsetTypeDecl.WKind.None);  // a witness makes sense only if there is a constraint
+        Contract.Assert(decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero);  // a witness makes sense only if there is a constraint
         Contract.Assert(decl.Witness == null);  // a witness makes sense only if there is a constraint
         return;
       }

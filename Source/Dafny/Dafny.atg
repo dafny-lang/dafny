@@ -1318,7 +1318,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
       "witness" Expression<out witness, false, true>
     ]
     [ TypeMembers<module, members> ]
-    (. var witnessKind = witness == null ? SubsetTypeDecl.WKind.None :
+    (. var witnessKind = witness == null ? SubsetTypeDecl.WKind.CompiledZero :
        witnessIsGhost ? SubsetTypeDecl.WKind.Ghost : SubsetTypeDecl.WKind.Compiled;
        td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, members, attrs, isRefining);
     .)
@@ -1359,7 +1359,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
         ]
         "witness" Expression<out witness, false, true>
       ]
-                             (. var witnessKind = witness == null ? SubsetTypeDecl.WKind.None :
+                             (. var witnessKind = witness == null ? SubsetTypeDecl.WKind.CompiledZero :
                                   witnessIsGhost ? SubsetTypeDecl.WKind.Ghost : SubsetTypeDecl.WKind.Compiled;
                                 td = new SubsetTypeDecl(id, id.val, characteristics, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, attrs);
                                 kind = "subset type";
