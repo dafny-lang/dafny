@@ -120,5 +120,5 @@ jobs:
     - name: Check Java artifacts - Windows
       if: runner.os == 'Windows'
       run: |
-        java -cp "a;dafny/DafnyRuntime.jar" a > actual.txt
+        java -cp "a-java;dafny/DafnyRuntime.jar" a > actual.txt
         diff expect.txt actual.txt
