@@ -28,7 +28,7 @@ jobs:
       publishPath: publish
       testPath: Source/DafnyLS.IntegrationTest/bin/Debug/netcoreapp3.1
       solutionPath: Source/DafnyLS.sln
-      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/z3-4.8.5
+      z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
       coverageFile: coverage.cobertura.xml
     outputs:
       binaries: ${{env.publishPath}}
