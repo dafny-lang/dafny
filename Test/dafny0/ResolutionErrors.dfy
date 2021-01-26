@@ -1997,9 +1997,11 @@ module ZI {
     P<SUnclearB>(sub);  // fine, as far as the resolver can tell (but this would be caught later by the verifier)
   }
 }
-abstract module ZI_RefinementAbstract {
-  type A
-  type A'
+/*abstract module ZI_RefinementAbstract {
+  type A0
+  type A1
+  type A2
+  type A3
   type B0(0)
   type B1(0)
   type B2(0)
@@ -2009,28 +2011,20 @@ abstract module ZI_RefinementAbstract {
   type C2(00)
   type C3(00)
 
-  type Mxx(0)
-  type Mx_
-  type M_x(0)
-  type M__
-
   method Delta<Q(0),W,E(0),R>()
 }
 module ZI_RefinementConcrete0 refines ZI_RefinementAbstract {
   newtype Kuusi = x | 6 <= x witness 6  // supports auto-initialization
   newtype Six = x | 6 <= x ghost witness 6  // does not support auto-initialization
   newtype Sesis = x | 6 <= x witness *  // possibly empty
-  type A = int
-  type A' = Six
+  type A0 = int
+  type A1 = Kuusi
+  type A2 = Six
+  type A3 = Sesis
   type B0 = int
   type B1 = Kuusi
   type B2 = Six  // error: RHS is expected to support auto-initialization
   type B3 = Sesis  // error: RHS is expected to support auto-initialization
-}
-module ZI_00 refines ZI_RefinementAbstract {
-  newtype Kuusi = x | 6 <= x witness 6  // nonempty
-  newtype Six = x | 6 <= x ghost witness 6  // nonempty
-  newtype Sesis = x | 6 <= x witness *  // possibly empty
   type C0 = int
   type C1 = Kuusi
   type C2 = Six
@@ -2053,10 +2047,15 @@ module ZI_RefinementConcrete1 refines ZI_RefinementAbstract {
     P(n);  // error: Z.XYZ is not known to support auto-initialization
   }
 
-  type Mxx  // error: not allowed to change auto-initialization setting
-  type Mx_
-  type M_x(0)
-  type M__(0)  // error: not allowed to change auto-initialization setting
+  type A0
+  type A1(0)   // error: not allowed to change auto-initialization setting
+  type A2(00)
+  type B0      // error: not allowed to change auto-initialization setting
+  type B1(0)
+  type B2(00)  // error: not allowed to change auto-initialization setting
+  type C0      // error: not allowed to change nonempty setting
+  type C1(0)   // error: not allowed to change nonempty setting
+  type C2(00)
 
   method Delta<
     Q,  // error: not allowed to change auto-initialization setting
@@ -2064,7 +2063,7 @@ module ZI_RefinementConcrete1 refines ZI_RefinementAbstract {
     E(0),
     R(0)>()  // error: not allowed to change auto-initialization setting
 }
-
+*/
 // ----- constructor-less classes with need for initialization -----
 
 module ConstructorlessClasses {
