@@ -81,10 +81,11 @@ Execution trace:
     (0,0): anon10_Else
     (0,0): anon12_Then
     (0,0): anon13_Then
-Comprehensions.dfy(189,16): Error: value does not satisfy the subset constraints of 'nat'
+Comprehensions.dfy(189,35): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
-    Comprehensions.dfy(189,17): anon11_Else
+    (0,0): anon12_Then
+    (0,0): anon13_Then
 
 Dafny program verifier finished with 16 verified, 15 errors
