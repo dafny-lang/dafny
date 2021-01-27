@@ -897,9 +897,9 @@ namespace Microsoft.Dafny {
     public bool KnownToHaveToAValue(bool ghostContext) {
       return ghostContext ? IsNonempty : HasCompilableValue;
     }
-    
+
     public enum AutoInitInfo { MaybeEmpty, Nonempty, CompilableValue }
-    
+
     /// <summary>
     /// This property returns
     ///     - CompilableValue, if the type has a known compilable value
@@ -1264,7 +1264,7 @@ namespace Microsoft.Dafny {
         return t as ArrowType;
       }
     }
-    
+
     public bool IsMapType {
       get {
         var t = NormalizeExpand() as MapType;
@@ -4839,7 +4839,7 @@ namespace Microsoft.Dafny {
     string FullSanitizedName { get; }
     bool AllowsNontermination { get; }
   }
-  
+
   public class CodeContextWrapper : ICodeContext {
     private readonly ICodeContext inner;
     private readonly bool isGhostContext;
@@ -4873,7 +4873,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     bool InferredDecreases { get; set; }
   }
-  
+
   public class DontUseICallable : ICallable
   {
     public string WhatKind { get { throw new cce.UnreachableException(); } }

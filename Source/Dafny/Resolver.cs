@@ -14514,7 +14514,7 @@ namespace Microsoft.Dafny
               // Second, for map subtraction, it would be nice to allow the right-hand operand to be either a set or
               // an iset. That would also lead to further complexity in the code, so this code restricts the right-hand
               // operand to be a set.
-              var eType = PartiallyResolveTypeForMemberSelection(expr.tok, expr.Type).AsMapType; 
+              var eType = PartiallyResolveTypeForMemberSelection(expr.tok, expr.Type).AsMapType;
               if (eType != null) {
                 // allow "map - set == map"
                 var expected = new SetType(true, eType.Domain);

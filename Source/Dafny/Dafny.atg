@@ -1313,7 +1313,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     Expression<out constraint, false, true>
     (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
     [ IF(IsWitness())
-      ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .) 
+      ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
         Expression<out witness, false, true>
       | "witness"
         ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
@@ -1357,7 +1357,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
       Expression<out constraint, false, true>
       (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
       [ IF(IsWitness())
-        ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .) 
+        ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
           Expression<out witness, false, true>
         | "witness"
           ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
