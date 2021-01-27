@@ -1878,6 +1878,7 @@ namespace Microsoft.Dafny {
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         Indent(indent);
+        if (e.LHSs.Exists(lhs => lhs != null && lhs.Var != null && lhs.Var.IsGhost)) { wr.Write("ghost "); }
         wr.Write("var ");
         string sep = "";
         foreach (var lhs in e.LHSs) {

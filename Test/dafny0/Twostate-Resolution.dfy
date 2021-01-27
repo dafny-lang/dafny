@@ -269,3 +269,47 @@ module TraitsAndOldParameters {
     twostate lemma N(c: C, new d: C)
   }
 }
+
+module PrintTest {
+  function method Five(): int { 5 }
+  function Six(): int { 6 }
+
+  function method Ten(): int {
+    var f := Five();
+    ghost var s := Six();
+    assert s == 6;
+    f + f
+  }
+
+  function method TenAgain(): int {
+    var ten :=
+      var f := Five();
+      ghost var s := Six();
+      assert s == 6;
+      f + f;
+    ten
+  }
+
+  function Eleven(): int {
+    var f, s := Five(), Six();
+    f + s
+  }
+
+  function Twelve(): int {
+    var s, t := Six(), Six();
+    s + t
+  }
+
+  function method Twenty(): int {
+    var x :| x == 10;
+    x + x
+  }
+
+  function method TwentyOne(): int {
+    ghost var x :| x == 10 && Yes(x);
+    assert x + x + 1 == 21;
+    21
+  }
+
+  predicate Yes(x: int) { true }
+}
