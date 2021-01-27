@@ -148,3 +148,119 @@ module OutParameters {
     var d: EmptyType :| true;  // error: failure to prove existence of such a "d"
   }  // error: there's no definite assignment to "e"
 }
+
+module FiftyShadesOfGhost {
+  // A variable of type G is not subject to defiite-assignment rules if the variable
+  // is ghost--more precisely, either a variable declared with "ghost" or a variable contained
+  // in a ghost context. The tests in this module check that the enclosing context is
+  // considered when making decisions about definite assignments.
+  type G = x | x % 2 == 1 ghost witness 1  // nonempty type
+  trait H { }                              // (treated as) may be empty
+
+  method L() returns (c: G, ghost g: G, d: H, ghost h: H) {
+  }  // error (x3): c,d,h have not been assigned (but g is fine, since g is ghost and of type G)
+
+  method M() {
+    var m: G;
+    ghost var n: G;
+    ghost var b0 := m == n;  // error: m is used before it's been initialized
+    var x: H;
+    ghost var y: H;
+    ghost var b1 := x == y;  // error (x2): neither x nor y has been initialized
+  }
+
+  ghost method N() returns (g: G, h: H) {
+    var m: G;  // even without the "ghost" keyword, this is really a ghost variable
+    ghost var n: G;
+    ghost var b0 := m == n;  // all is fine
+    var x: H;
+    ghost var y: H;
+    ghost var b1 := x == y;  // error (x2): neither x nor y has been initialized
+  }  // error: h has not been assigned (but g is fine)
+
+  method O() returns (c: G, ghost g: G, d: H, ghost h: H)
+    ensures c == g && d == h ==> g == c && h == d  // out-parameters can be assumed to have value in ensures clauses
+  {
+  }  // error (x3): c,d,h have not been assigned
+
+  method P(z: int) {
+    assert z < 10 by {
+      var m: G;  // even without the "ghost" keyword, this is really a ghost variable--it will never be compiled
+      ghost var n: G;
+      ghost var b0 := m == n;  // all is fine
+      var x: H;
+      ghost var y: H;
+      ghost var b1 := x == y;  // error (x2): neither x nor y has been initialized
+      assume z < 2;  // this will make the assertion failure go away
+    }
+  }
+
+  method Q(ghost z: int, w: int) {
+    if z < w {  // this "if" statement is a ghost statement
+      var m: G;  // even without the "ghost" keyword, this is really a ghost variable--it will never be compiled
+      ghost var n: G;
+      ghost var b0 := m == n;  // all is fine
+      var x: H;
+      ghost var y: H;
+      ghost var b1 := x == y;  // error (x2): neither x nor y has been initialized
+    }
+  }
+
+  method R(z: int, w: int)
+    requires z == w
+  {
+    calc {
+      z;
+    <=  {
+          var m: G;  // even without the "ghost" keyword, this is really a ghost variable--it will never be compiled
+          ghost var n: G;
+          ghost var b0 := m == n;  // all is fine
+          var x: H;
+          ghost var y: H;
+          ghost var b1 := x == y;  // error (x2): neither x nor y has been initialized
+        }
+      z;
+    }
+  }
+
+  method S() {
+    var m: G;
+    ghost var n: G;
+    var x: H;
+    ghost var y: H;
+    Callee(m, n, x, y);  // error (3x): m,x,y have not been assigned
+  }
+  method Callee(c: G, ghost g: G, d: H, ghost h: H)
+  ghost method GhostCallee(c: G, g: G, d: H, h: H)
+
+  datatype LongCell = LongGH(c: G, ghost g: G, d: H, ghost h: H)
+  datatype SmallCell = SmallGH(g: G, h: H)
+
+  method T() {
+    var m: G;
+    ghost var n: G;
+    var x: H;
+    ghost var y: H;
+    var cell := LongGH(m, n, x, y);  // error (3x): m,x,y have not been assigned
+  }
+
+  method U(cell: LongCell) {
+    match cell
+    case LongGH(m, n, x, y) =>  // all 4 get bound to values
+      Callee(m, n, x, y);  // all fine
+  }
+
+  method V(cell: LongCell) {
+    if m, n, x, y :| cell == LongGH(m, n, x, y) {  // all 4 get bound to values
+      // we're in a ghost context here
+      GhostCallee(m, n, x, y);  // all fine
+    }
+  }
+
+  method W(cell: SmallCell) {
+    if m, x :| cell == SmallGH(m, x) {  // all 2 get bound to values
+      // this is still a ghost context
+      GhostCallee(m, m, x, x);  // all fine
+    }
+  }
+}
