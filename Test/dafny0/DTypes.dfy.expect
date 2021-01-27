@@ -20,6 +20,8 @@ DTypes.dfy(121,11): Error: assertion violation
 DTypes.dfy(93,29): Related location
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
 DTypes.dfy(127,11): Error: assertion violation
 DTypes.dfy(93,19): Related location
 Execution trace:
