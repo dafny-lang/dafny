@@ -163,7 +163,7 @@ module OutParameters {
 }
 
 module FiftyShadesOfGhost {
-  // A variable of type G is not subject to defiite-assignment rules if the variable
+  // A variable of type G is not subject to definite-assignment rules if the variable
   // is ghost--more precisely, either a variable declared with "ghost" or a variable contained
   // in a ghost context. The tests in this module check that the enclosing context is
   // considered when making decisions about definite assignments.
