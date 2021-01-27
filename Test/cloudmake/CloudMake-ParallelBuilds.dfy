@@ -153,7 +153,7 @@ abstract module M0 {
   type Path(==,00)
   function Loc(cmd: string, deps: set<Path>, exp: string): Path
 
-  type Artifact(0)
+  type Artifact(00)
   type Identifier
 
   datatype Tuple<A, B> = Pair(fst: A, snd: B)
