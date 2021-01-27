@@ -132,7 +132,7 @@ namespace Microsoft.Dafny {
       var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
       var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
       var ax = AxiomAttribute();
-      NatDecl = new SubsetTypeDecl(Token.NoToken, "nat", new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, false, false), new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.None, null, ax);
+      NatDecl = new SubsetTypeDecl(Token.NoToken, "nat", new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, false, false), new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
       SystemModule.TopLevelDecls.Add(NatDecl);
       // create trait 'object'
       ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
@@ -939,11 +939,13 @@ namespace Microsoft.Dafny {
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         switch (td.WitnessKind) {
-          case SubsetTypeDecl.WKind.None:
+          case SubsetTypeDecl.WKind.CompiledZero:
           case SubsetTypeDecl.WKind.Compiled:
             return AutoInitInfo.CompilableValue;
           case SubsetTypeDecl.WKind.Ghost:
             return AutoInitInfo.Nonempty;
+          case SubsetTypeDecl.WKind.OptOut:
+            return AutoInitInfo.MaybeEmpty;
           case SubsetTypeDecl.WKind.Special:
           default:
             Contract.Assert(false); // unexpected case
@@ -952,11 +954,13 @@ namespace Microsoft.Dafny {
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         switch (td.WitnessKind) {
-          case SubsetTypeDecl.WKind.None:
+          case SubsetTypeDecl.WKind.CompiledZero:
           case SubsetTypeDecl.WKind.Compiled:
             return AutoInitInfo.CompilableValue;
           case SubsetTypeDecl.WKind.Ghost:
             return AutoInitInfo.Nonempty;
+          case SubsetTypeDecl.WKind.OptOut:
+            return AutoInitInfo.MaybeEmpty;
           case SubsetTypeDecl.WKind.Special:
             // WKind.Special is only used with -->, ->, and non-null types:
             Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
@@ -5525,7 +5529,7 @@ namespace Microsoft.Dafny {
     public readonly Type BaseType;
     public readonly BoundVar Var;  // can be null (if non-null, then object.ReferenceEquals(Var.Type, BaseType))
     public readonly Expression Constraint;  // is null iff Var is
-    public readonly SubsetTypeDecl.WKind WitnessKind = SubsetTypeDecl.WKind.None;
+    public readonly SubsetTypeDecl.WKind WitnessKind = SubsetTypeDecl.WKind.CompiledZero;
     public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
     public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
     public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, List<MemberDecl> members, Attributes attributes, bool isRefining)
@@ -5652,7 +5656,7 @@ namespace Microsoft.Dafny {
     ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
     BoundVar RedirectingTypeDecl.Var { get { return null; } }
     Expression RedirectingTypeDecl.Constraint { get { return null; } }
-    SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return SubsetTypeDecl.WKind.None; } }
+    SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return SubsetTypeDecl.WKind.CompiledZero; } }
     Expression RedirectingTypeDecl.Witness { get { return null; } }
     FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
@@ -5700,7 +5704,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "subset type"; } }
     public readonly BoundVar Var;
     public readonly Expression Constraint;
-    public enum WKind { None, Compiled, Ghost, Special }
+    public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
     public readonly SubsetTypeDecl.WKind WitnessKind;
     public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
     public SubsetTypeDecl(IToken tok, string name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
