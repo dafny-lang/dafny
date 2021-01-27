@@ -14490,7 +14490,7 @@ namespace Microsoft.Dafny
               // Second, for map subtraction, it would be nice to allow the right-hand operand to be either a set or
               // an iset. That would also lead to further complexity in the code, so this code restricts the right-hand
               // operand to be a set.
-              var eType = PartiallyResolveTypeForMemberSelection(expr.tok, expr.Type).AsMapType; 
+              var eType = PartiallyResolveTypeForMemberSelection(expr.tok, expr.Type).AsMapType;
               if (eType != null) {
                 // allow "map - set == map"
                 var expected = new SetType(true, eType.Domain);
@@ -14625,11 +14625,6 @@ namespace Microsoft.Dafny
       } else if (expr is LetOrFailExpr) {
         var e = (LetOrFailExpr)expr;
         ResolveLetOrFailExpr(e, opts);
-      } else if (expr is NamedExpr) {
-        var e = (NamedExpr)expr;
-        ResolveExpression(e.Body, opts);
-        if (e.Contract != null) ResolveExpression(e.Contract, opts);
-        e.Type = e.Body.Type;
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
         if (opts.codeContext is Function) {
@@ -16410,10 +16405,6 @@ namespace Microsoft.Dafny
         CheckIsCompilable(e.Term);
         return;
 
-      } else if (expr is NamedExpr) {
-        if (!moduleInfo.IsAbstract)
-          CheckIsCompilable(((NamedExpr)expr).Body);
-        return;
       } else if (expr is ChainingExpression) {
         // We don't care about the different operators; we only want the operands, so let's get them directly from
         // the chaining expression
@@ -17504,8 +17495,6 @@ namespace Microsoft.Dafny
         } else {
           return true;  // let-such-that is always ghost
         }
-      } else if (expr is NamedExpr) {
-        return moduleInfo.IsAbstract ? false : UsesSpecFeatures(((NamedExpr)expr).Body);
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
         Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution

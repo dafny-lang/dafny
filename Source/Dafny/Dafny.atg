@@ -1313,7 +1313,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     Expression<out constraint, false, true>
     (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
     [ IF(IsWitness())
-      ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .) 
+      ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
         Expression<out witness, false, true>
       | "witness"
         ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
@@ -1357,7 +1357,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
       Expression<out constraint, false, true>
       (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
       [ IF(IsWitness())
-        ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .) 
+        ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
           Expression<out witness, false, true>
         | "witness"
           ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
@@ -2352,27 +2352,10 @@ LabeledStmt<out Statement s>
 
 /*------------------------------------------------------------------------*/
 SkeletonStmt<out Statement s>
-= (. List<IToken> names = null;
-     List<Expression> exprs = null;
-     IToken tok, dotdotdot, whereTok;
-     Expression e; .)
+= (. IToken dotdotdot; .)
   ellipsis                             (. dotdotdot = t; .)
-  ["where"                             (. names = new List<IToken>(); exprs = new List<Expression>(); whereTok = t;.)
-     Ident<out tok>                    (. names.Add(tok); .)
-     {"," Ident<out tok>               (. names.Add(tok); .)
-     }
-     ":="
-     Expression<out e, false, true>          (. exprs.Add(e); .)
-     {"," Expression<out e, false, true>     (. exprs.Add(e); .)
-     }
-                                       (. if (exprs.Count != names.Count) {
-                                            SemErr(whereTok, exprs.Count < names.Count ? "not enough expressions" : "too many expressions");
-                                            names = null; exprs = null;
-                                          }
-                                       .)
-  ]
   ";"
-  (. s = new SkeletonStatement(dotdotdot, t, names, exprs); .)
+  (. s = new SkeletonStatement(dotdotdot, t); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3864,7 +3847,6 @@ EndlessExpression<out Expression e, bool allowLemma, bool allowLambda, bool allo
     Expression<out e, allowLemma, allowLambda, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e); .)
   | LetExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   | MapComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
-  | NamedExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   )
   .
 
@@ -3958,21 +3940,6 @@ LetExprWithoutLHS<out Expression e, bool allowLemma, bool allowLambda, bool allo
   ";"
   Expression<out body, allowLemma, allowLambda, allowBitwiseOps>
   (. e = new LetOrFailExpr(x, null, rhs, body); .)
-  .
-
-/*------------------------------------------------------------------------*/
-NamedExpr<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
-= (. IToken/*!*/ x, d;
-     e = dummyExpr;
-     Expression expr;
-  .)
-    "label"                          (. x = t; .)
-    LabelName<out d>
-    ":"
-    Expression<out e, allowLemma, allowLambda, allowBitwiseOps>
-                                     (. expr = e;
-                                        e = new NamedExpr(x, d.val, expr);
-                                     .)
   .
 
 /*------------------------------------------------------------------------*/

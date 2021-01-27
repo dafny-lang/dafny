@@ -237,7 +237,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// This method returns the target representation of one possible value of the type.
     /// Requires: usePlaceboValue || type.HasCompilableValue
-    /// 
+    ///
     ///   usePlaceboValue - If "true", the default value produced is one that the target language accepts as a value
     ///                  of the type, but which may not correspond to a Dafny value. This option is used when it is known
     ///                  that the Dafny program will not use the value (for example, when a field is automatically initialized
@@ -4507,8 +4507,6 @@ namespace Microsoft.Dafny {
         var e = (ConcreteSyntaxExpression)expr;
         TrExpr(e.ResolvedExpression, wr, inLetExprBody);
 
-      } else if (expr is NamedExpr) {
-        TrExpr(((NamedExpr)expr).Body, wr, inLetExprBody);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

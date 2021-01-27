@@ -900,25 +900,12 @@ namespace Microsoft.Dafny
               if (nxt != null && nxt is SkeletonStatement && ((SkeletonStatement)nxt).S == null) {
                 // "...; ...;" is the same as just "...;", so skip this one
               } else {
-                SubstitutionCloner subber = null;
-                if (c.NameReplacements != null) {
-                  var subExprs = new Dictionary<string, Expression>();
-                  Contract.Assert(c.NameReplacements.Count == c.ExprReplacements.Count);
-                  for (int k = 0; k < c.NameReplacements.Count; k++) {
-                    if (subExprs.ContainsKey(c.NameReplacements[k].val)) {
-                      reporter.Error(MessageSource.RefinementTransformer, c.NameReplacements[k], "replacement definition must contain at most one definition for a given label");
-                    } else subExprs.Add(c.NameReplacements[k].val, c.ExprReplacements[k]);
-                  }
-                  subber = new SubstitutionCloner(subExprs, rawCloner);
-                }
                 // skip up until the next thing that matches "nxt"
                 var hoverTextA = "";
                 var sepA = "";
                 while (nxt == null || !PotentialMatch(nxt, oldS)) {
                   // loop invariant:  oldS == oldStmt.Body[j]
                   var s = refinementCloner.CloneStmt(oldS);
-                  if (subber != null)
-                    s = subber.CloneStmt(s);
                   body.Add(s);
                   hoverTextA += sepA + Printer.StatementToString(s);
                   sepA = "\n";
@@ -928,11 +915,6 @@ namespace Microsoft.Dafny
                 }
                 if (hoverTextA.Length != 0) {
                   reporter.Info(MessageSource.RefinementTransformer, c.Tok, hoverTextA);
-                }
-                if (subber != null && subber.SubstitutionsMade.Count < subber.Exprs.Count) {
-                  foreach (var s in subber.SubstitutionsMade)
-                    subber.Exprs.Remove(s);
-                  reporter.Error(MessageSource.RefinementTransformer, c.Tok, "could not find labeled expression(s): " + Util.Comma(subber.Exprs.Keys, x => x));
                 }
               }
               i++;
@@ -1514,30 +1496,6 @@ namespace Microsoft.Dafny
       } else {
         return new Attributes(moreAttrs.Name, moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
       }
-    }
-  }
-  class SubstitutionCloner : Cloner {
-    public Dictionary<string, Expression> Exprs;
-    public SortedSet<string> SubstitutionsMade;
-    Cloner c;
-    public SubstitutionCloner(Dictionary<string, Expression> subs, Cloner c) {
-      Exprs = subs;
-      SubstitutionsMade = new SortedSet<string>();
-      this.c = c;
-    }
-    public override Expression CloneExpr(Expression expr) {
-      if (expr is NamedExpr) {
-        NamedExpr n = (NamedExpr)expr;
-        Expression E;
-        if (Exprs.TryGetValue(n.Name, out E)) {
-          SubstitutionsMade.Add(n.Name);
-          return new NamedExpr(n.tok, n.Name, E, c.CloneExpr(n.Body), E.tok);
-        }
-      }
-      return base.CloneExpr(expr); // in all other cases, just do what the base class would.
-                                   // note that when we get a named expression that is not in
-                                   // our substitution list, then we call the base class, which
-                                   // recurses on the body of the named expression.
     }
   }
 }
