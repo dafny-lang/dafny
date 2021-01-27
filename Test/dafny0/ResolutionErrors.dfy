@@ -2961,3 +2961,45 @@ module CollectionUpdates {
     }
   }
 }
+
+// --------------- update operations ------------------------------
+
+module MoreAutoInitAndNonempty {
+  type A(0)
+  type B(00)
+  type C
+
+  method Q<F(0)>(f: F)
+  method P<G(00)>(g: G)
+  method R<H>(h: H)
+
+  function method FQ<F(0)>(f: F): int
+  function method FP<G(00)>(g: G): int
+  function method FR<H>(h: H): int
+
+  method M<X(0), Y(00), Z>(x: X, y: Y, z: Z)
+  {
+    Q(x);
+    P(x);
+    R(x);
+    Q(y);  // error: auto-init mismatch
+    P(y);
+    R(y);
+    Q(z);  // error: auto-init mismatch
+    P(z);  // error: auto-init mismatch
+    R(z);
+  }
+
+  method N<X(0), Y(00), Z>(x: X, y: Y, z: Z) returns (u: int)
+  {
+    u := FQ(x);
+    u := FP(x);
+    u := FR(x);
+    u := FQ(y);  // error: auto-init mismatch
+    u := FP(y);
+    u := FR(y);
+    u := FQ(z);  // error: auto-init mismatch
+    u := FP(z);  // error: auto-init mismatch
+    u := FR(z);
+  }
+}

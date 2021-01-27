@@ -7764,6 +7764,11 @@ namespace Microsoft.Dafny
           hint = "";
           return false;
         }
+        if (formal.IsNonempty && !actual.IsNonempty) {
+          whatIsWrong = "nonempty";
+          hint = "";
+          return false;
+        }
         if (formal.ContainsNoReferenceTypes && !actual.IsAllocFree) {
           whatIsWrong = "no references";
           hint = "";
