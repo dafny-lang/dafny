@@ -326,6 +326,22 @@ module TraitsAndOldParameters {
 }
 
 module PrintTest {
+  type Odd = x
+    | var rr := 2; x % rr == 1
+    witness var ww := 2; ww + 7
+
+  newtype NewOdd = x
+    | var rr := 2; x % rr == 1
+    witness var ww := 2; ww + 7
+
+  type Even = x
+    | var rr := 2; x % rr == 0
+    ghost witness var ww := 2; ww + 8
+
+  newtype NewEven = x
+    | var rr := 2; x % rr == 0
+    ghost witness var ww := 2; ww + 8
+
   function method Five(): int
   {
     5
@@ -345,6 +361,12 @@ module PrintTest {
   }
 
   function method TenAgain(): int
+  {
+    var ten := var f := Five(); ghost var s := Six(); assert s == 6; f + f;
+    ten
+  }
+
+  function TenOnceMore(): int
   {
     var ten := var f := Five(); ghost var s := Six(); assert s == 6; f + f;
     ten

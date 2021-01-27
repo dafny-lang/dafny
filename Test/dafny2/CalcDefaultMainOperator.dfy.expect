@@ -107,6 +107,115 @@ module _System {
  * SCC at height 0:
  *   TestBool
  */
+
+module PrintTest {
+  /* CALL GRAPH for module PrintTest:
+   * SCC at height 13:
+   *   NewEven
+   * SCC at height 12:
+   *   Even
+   * SCC at height 11:
+   *   NewOdd
+   * SCC at height 10:
+   *   Odd
+   * SCC at height 9:
+   *   Twenty
+   * SCC at height 8:
+   *   TwentyOne
+   * SCC at height 7:
+   *   Yes
+   * SCC at height 6:
+   *   Twelve
+   * SCC at height 5:
+   *   Eleven
+   * SCC at height 4:
+   *   TenOnceMore
+   * SCC at height 3:
+   *   TenAgain
+   * SCC at height 2:
+   *   Ten
+   * SCC at height 1:
+   *   Six
+   * SCC at height 0:
+   *   Five
+   */
+  type Odd = x: int
+    | ghost var rr: int := 2; x % rr == 1
+    witness var ww: int := 2; ww + 7
+
+  newtype NewOdd = x: int
+    | ghost var rr: int := 2; x % rr == 1
+    witness var ww: int := 2; ww + 7
+
+  type Even = x: int
+    | ghost var rr: int := 2; x % rr == 0
+    ghost witness ghost var ww: int := 2; ww + 8
+
+  newtype NewEven = x: int
+    | ghost var rr: int := 2; x % rr == 0
+    ghost witness ghost var ww: int := 2; ww + 8
+
+  function method Five(): int
+  {
+    5
+  }
+
+  function Six(): int
+  {
+    6
+  }
+
+  function method Ten(): int
+  {
+    var f: int := Five();
+    ghost var s: int := Six();
+    assert s == 6;
+    f + f
+  }
+
+  function method TenAgain(): int
+  {
+    var ten: int := var f: int := Five(); ghost var s: int := Six(); assert s == 6; f + f;
+    ten
+  }
+
+  function TenOnceMore(): int
+  {
+    ghost var ten: int := ghost var f: int := Five(); ghost var s: int := Six(); assert s == 6; f + f;
+    ten
+  }
+
+  function Eleven(): int
+  {
+    ghost var f: int, s: int := Five(), Six();
+    f + s
+  }
+
+  function Twelve(): int
+  {
+    ghost var s: int, t: int := Six(), Six();
+    s + t
+  }
+
+  function method Twenty(): int
+  {
+    var x: int :| x == 10;
+    x + x
+  }
+
+  function method TwentyOne(): int
+  {
+    ghost var x: int :| x == 10 && Yes(x);
+    assert x + x + 1 == 21;
+    21
+  }
+
+  predicate Yes(x: int)
+    decreases x
+  {
+    true
+  }
+}
 lemma TestBool(F: bool, T: bool)
   requires F == false && T == true
   decreases F, T
@@ -221,4 +330,4 @@ Execution trace:
     CalcDefaultMainOperator.dfy(47,3): anon11_Else
     (0,0): anon14_Then
 
-Dafny program verifier finished with 0 verified, 8 errors
+Dafny program verifier finished with 11 verified, 8 errors

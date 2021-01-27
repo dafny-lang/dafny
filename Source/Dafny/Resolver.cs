@@ -2820,12 +2820,18 @@ namespace Microsoft.Dafny
           } else if (d is SubsetTypeDecl) {
             var dd = (SubsetTypeDecl)d;
             Contract.Assert(dd.Constraint != null);
-            CheckExpression(dd.Constraint, this, dd);
+            CheckExpression(dd.Constraint, this, new CodeContextWrapper(dd, true));
+            if (dd.Witness != null) {
+              CheckExpression(dd.Witness, this, new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+            }
           } else if (d is NewtypeDecl) {
             var dd = (NewtypeDecl)d;
             if (dd.Var != null) {
               Contract.Assert(dd.Constraint != null);
-              CheckExpression(dd.Constraint, this, dd);
+              CheckExpression(dd.Constraint, this, new CodeContextWrapper(dd, true));
+              if (dd.Witness != null) {
+                CheckExpression(dd.Witness, this, new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+              }
             }
             FigureOutNativeType(dd);
             ResolveClassMembers_Pass1(dd);
@@ -6753,7 +6759,8 @@ namespace Microsoft.Dafny
     }
     /// <summary>
     /// This method computes ghost interests in the statement portion of StmtExpr's and
-    /// checks for hint restrictions in any CalcStmt.
+    /// checks for hint restrictions in any CalcStmt. In any ghost context, it also
+    /// changes the bound variables of all let- and let-such-that expressions to ghost.
     /// </summary>
     void CheckExpression(Statement stmt, Resolver resolver, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
@@ -6775,6 +6782,13 @@ namespace Microsoft.Dafny
         if (expr is StmtExpr) {
           var e = (StmtExpr)expr;
           resolver.ComputeGhostInterest(e.S, true, CodeContext);
+        } else if (expr is LetExpr) {
+          var e = (LetExpr)expr;
+          if (CodeContext.IsGhost) {
+            foreach (var bv in e.BoundVars) {
+              bv.MakeGhost();
+            }
+          }
         }
       }
       protected override void VisitOneStmt(Statement stmt) {

@@ -4839,6 +4839,24 @@ namespace Microsoft.Dafny {
     string FullSanitizedName { get; }
     bool AllowsNontermination { get; }
   }
+  
+  public class CodeContextWrapper : ICodeContext {
+    private readonly ICodeContext inner;
+    private readonly bool isGhostContext;
+    public CodeContextWrapper(ICodeContext inner, bool isGhostContext) {
+      this.inner = inner;
+      this.isGhostContext = isGhostContext;
+    }
+
+    public bool IsGhost => isGhostContext;
+    public List<TypeParameter> TypeArgs => inner.TypeArgs;
+    public List<Formal> Ins => inner.Ins;
+    public ModuleDefinition EnclosingModule => inner.EnclosingModule;
+    public bool MustReverify => inner.MustReverify;
+    public string FullSanitizedName => inner.FullSanitizedName;
+    public bool AllowsNontermination => inner.AllowsNontermination;
+  }
+
   /// <summary>
   /// An ICallable is a Function, Method, IteratorDecl, or (less fitting for the name ICallable) RedirectingTypeDecl or DatatypeDecl.
   /// </summary>
@@ -4855,7 +4873,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     bool InferredDecreases { get; set; }
   }
-
+  
   public class DontUseICallable : ICallable
   {
     public string WhatKind { get { throw new cce.UnreachableException(); } }
@@ -5566,7 +5584,9 @@ namespace Microsoft.Dafny {
     Expression RedirectingTypeDecl.Witness { get { return Witness; } }
     FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
-    bool ICodeContext.IsGhost { get { return true; } }
+    bool ICodeContext.IsGhost {
+      get { throw new NotSupportedException(); }  // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
+    }
     List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
     ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
@@ -5648,7 +5668,9 @@ namespace Microsoft.Dafny {
     Expression RedirectingTypeDecl.Witness { get { return null; } }
     FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
-    bool ICodeContext.IsGhost { get { return false; } }
+    bool ICodeContext.IsGhost {
+      get { throw new NotSupportedException(); }  // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
+    }
     List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
     ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }

@@ -294,7 +294,7 @@ module GhostWitness {
     | forall a :: f.reads(a) == {}
     ghost witness GhostEffectlessArrowWitness<A, B>
 
-  function GhostEffectlessArrowWitness<A, B(0)>(a: A): B  // TODO: this is a good candidate for a "ghost (0)" marking (meaning nonempty type)
+  function GhostEffectlessArrowWitness<A, B(00)>(a: A): B
   {
     var b: B :| true; b
   }
@@ -313,7 +313,7 @@ module GhostWitness {
     | Total(f)
     ghost witness TotalWitness<A, B>
 
-  function TotalWitness<A, B(0)>(a: A): B  // TODO: this is a good candidate for a "ghost (0)" marking (meaning nonempty type)
+  function TotalWitness<A, B(00)>(a: A): B
   {
     var b: B :| true; b
   }
