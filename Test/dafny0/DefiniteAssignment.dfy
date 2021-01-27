@@ -148,11 +148,11 @@ method MM<G>(ghost x: int, g: G) returns (vv: G, ww: G)
 // To check that yield parameters, which are stored as fields of "this",
 // get values before "this" is available, one would need some sort of
 // mechanism like the "new;" in constructors.  Until such a mechanism
-// is invented for iterators, iterators cannot be allowed to be instantiated
-// with "difficult to initialize" type arguments.
+// is invented for iterators, yield-parameters must be auto-init types
+// (and ghost yield-parameters must be nonempty).
 // Still, definite-assignment rules are enforced for local variables
 // declared in the iterator body.
-iterator Iter<G>(n: nat, g: G) yields (y: G, ghost ug: G, z: G)
+iterator Iter<G(0)>(n: nat, g: G) yields (y: G, ghost ug: G, z: G)
 {
   var i;
   i := 0;

@@ -42,7 +42,7 @@ method CopyFastest<T>(s: set<T>) returns (t: set<T>)
   t := s;  // :)
 }
 
-iterator Iter<T>(s: set<T>) yields (x: T)
+iterator Iter<T(0)>(s: set<T>) yields (x: T)
   yield ensures x in s && x !in xs[..|xs|-1]
   ensures s == set z | z in xs
 {
