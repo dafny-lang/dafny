@@ -1357,12 +1357,6 @@ namespace Microsoft.Dafny {
         bool isHandle = true;
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return "ulong";
-        } else if (DafnyOptions.O.IronDafny &&
-            !(xType is ArrowType) &&
-            cl != null &&
-            cl.EnclosingModuleDefinition != null &&
-            !cl.EnclosingModuleDefinition.IsDefaultModule) {
-          s = cl.FullCompileName;
         } else if (xType is ArrowType at) {
           return string.Format("func ({0}) {1}", Util.Comma(at.Args, arg => TypeName(arg, wr, tok)), TypeName(at.Result, wr, tok));
         } else if (cl is TupleTypeDecl) {

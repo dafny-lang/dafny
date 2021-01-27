@@ -1034,12 +1034,6 @@ namespace Microsoft.Dafny
         bool isHandle = true;
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return "ulong";
-        } else if (DafnyOptions.O.IronDafny &&
-            !(xType is ArrowType) &&
-            cl != null &&
-            cl.EnclosingModuleDefinition != null &&
-            !cl.EnclosingModuleDefinition.IsDefaultModule) {
-          s = cl.FullCompileName;
         }
         return TypeName_UDT(s, udt, wr, udt.tok);
       } else if (xType is SetType) {
@@ -1173,14 +1167,6 @@ namespace Microsoft.Dafny
         }
       } else if (cl is DatatypeDecl dt) {
         var s = FullTypeName(udt);
-        var rc = cl;
-        if (DafnyOptions.O.IronDafny &&
-            !(xType is ArrowType) &&
-            rc != null &&
-            rc.EnclosingModuleDefinition != null &&
-            !rc.EnclosingModuleDefinition.IsDefaultModule) {
-          s = "@" + rc.FullCompileName;
-        }
         if (udt.TypeArgs.Count != 0) {
           s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
         }
