@@ -4,27 +4,27 @@
 class MyClass<G> {
   const x: G
   var y: G
-  ghost var oxA: G  // ghosts never need to be assigned
-  ghost const oxB: G  // ghosts never need to be assigned
+  ghost var oxA: G  // error (TODO: "ghosts never need to be assigned" applies if G were marked as nonempty)
+  ghost const oxB: G  // error (TODO: "ghosts never need to be assigned" applies if G were marked as nonempty)
   constructor C0()
   {
     x := y;  // error: y has not yet been defined
     this.y := (((this))).x;
-    new;
+    new;  // error (x2): oxA and oxB have not been assigned
   }
   constructor C1(g: G)
   {
     x := g;
-    new;  // error: y was never assigned
+    new;  // error: y was never assigned, neither was oxA or oxB
   }
   constructor C2(g: G)
   {
     x := g;
-  }  // error: y was never assigned
+  }  // error: y was never assigned, neither was oxA or oxB
   constructor C3(g: G)
   {
     y := g;
-  }  // error: x was never assigned
+  }  // error: x was never assigned, neither was oxA or oxB
 }
 
 method M0<G>(x: int, a: G, b: G) returns (y: G)
@@ -91,11 +91,9 @@ method DontForgetHavoc<G>(a: G, h: int) returns (k: G) {
 
 method OtherAssignments<G(==)>(a: G, h: int) returns (k: G) {
   var e0: G, e1: G;
-  e0 :| e0 == e1;  // error: about the use of e1, but not the use of e0
-  var x:G, y:G, z:G :| x == z == a;  // (note, the compiler would complain here
-                                     // that it doesn't know how to compile the
-                                     // statement, but it does satisfy the
-                                     // definite-assignment rules)
+  e0 :| e0 == e1;  // error (x2): about the use of e1, but not the use of e0; and about can't prove existence
+  var x:G, y:G, z:G :| x == z == a;  // (note, the compiler would complain here that it doesn't know how to compile the
+                                     // statement, but it does satisfy the definite-assignment rules)
   if h < 10 {
     k := x;  // fine
   } else if h < 20 {
@@ -104,9 +102,11 @@ method OtherAssignments<G(==)>(a: G, h: int) returns (k: G) {
     return z;
   }
 }
-
-method Callee<G>(a: G) returns (x: G, y: G, z: G)
-{
+method OtherAssignments'<G(==,0)>() {
+  var e0: G, e1: G;
+  e0 :| e0 == e1;  // all is fine here
+}
+method Callee<G>(a: G) returns (x: G, y: G, z: G) {
   return a, a, a;
 }
 
@@ -124,16 +124,16 @@ method Caller<G>(g: G) returns (k: G) {
 ghost method GM<G>() returns (g: G)
 {
   var a: G, b: G;
-  a := b;  // no problem, since we're in a ghost method
-}  // no problem that g was never assigned, since we're in a ghost method
+  a := b;  // error: since b has not been assigned
+}  // error: g was never assigned
 
 method MM<G>(ghost x: int, g: G) returns (vv: G, ww: G)
 {
   ghost var a: G, b: G;
-  a := b;  // no problem, since this is a ghost assignment
+  a := b;  // error: b has not been assigned
   if x < 10 {
     var c: G;
-    a := c;  // no problem, since this is a ghost assignment
+    a := c;  // error: c has not been assigned
   }
   var v: G := g;
   v := *;  // this assignment does not make v un-assigned, since it was assigned before
@@ -287,5 +287,74 @@ class Regression213 {
   method N() {
     var f: object;
     var g := f;  // error: use of f before a definition
+  }
+}
+
+// -------------------
+
+module AssignSuchThat {
+  type D(==)
+
+  method BadCompiled0()
+  {
+    var d: D :| true;  // error: cannot prove existence of such a "d"
+  }
+  method BadCompiled1()
+  {
+    // we don't expect any "variable used before defined" errors on the next line
+    var d: D :| d == d;  // error: cannot prove existence of such a "d"
+  }
+  method BadCompiled2()
+  {
+    var d: D;
+    d :| true;  // error: cannot prove existence of such a "d"
+  }
+  method BadCompiled3()
+  {
+    var d: D;
+    // we don't expect any "variable used before defined" errors on the next line
+    d :| d == d;  // error: cannot prove existence of such a "d"
+  }
+}
+
+module AssignSuchThatReference {
+  trait D {
+    const x: int
+  }
+
+  method BadCompiled0()
+  {
+    // we don't expect any "variable used before defined" errors on the next line,
+    // and no null errors, either.
+    var d: D :| d.x == d.x;  // error: cannot prove existence of such a "d"
+  }
+  method BadCompiled1()
+  {
+    var d: D;
+    // we don't expect any "variable used before defined" errors on the next line,
+    // and no null errors, either.
+    d :| d.x == d.x;  // error: cannot prove existence of such a "d"
+  }
+  method Good(y: D)
+  {
+    var d: D;
+    d :| d.x == d.x;  // fine, since parameter "y" serves as a witness
+  }
+}
+
+module LetSuchThat {
+  type C
+
+  function Bad(): int
+  {
+    // regression: in the the following line, the verifier once used the fact that all types were nonempty
+    var c: C :| true;  // error: cannot prove existence of such a "c"
+    5
+  }
+
+  function Good(y: C): int
+  {
+    var c: C :| true;  // fine, since parameter "y" serves as a witness
+    5
   }
 }

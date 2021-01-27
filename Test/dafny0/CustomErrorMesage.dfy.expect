@@ -31,17 +31,17 @@ CustomErrorMesage.dfy(42,63): Error: This loop invariant might not be maintained
 CustomErrorMesage.dfy(42,63): Related message: position variable out of range
 Execution trace:
     (0,0): anon0
-    CustomErrorMesage.dfy(41,3): anon12_LoopHead
-    (0,0): anon12_LoopBody
-    CustomErrorMesage.dfy(41,3): anon13_Else
-    CustomErrorMesage.dfy(41,3): anon17_Else
+    CustomErrorMesage.dfy(41,3): anon13_LoopHead
+    (0,0): anon13_LoopBody
+    CustomErrorMesage.dfy(41,3): anon14_Else
+    CustomErrorMesage.dfy(41,3): anon19_Else
 CustomErrorMesage.dfy(43,63): Error: This loop invariant might not be maintained by the loop.
 CustomErrorMesage.dfy(43,63): Related message: output array doesn't match input arry
 Execution trace:
     (0,0): anon0
-    CustomErrorMesage.dfy(41,3): anon12_LoopHead
-    (0,0): anon12_LoopBody
-    CustomErrorMesage.dfy(41,3): anon13_Else
-    CustomErrorMesage.dfy(41,3): anon17_Else
+    CustomErrorMesage.dfy(41,3): anon13_LoopHead
+    (0,0): anon13_LoopBody
+    CustomErrorMesage.dfy(41,3): anon14_Else
+    CustomErrorMesage.dfy(41,3): anon19_Else
 
 Dafny program verifier finished with 1 verified, 9 errors

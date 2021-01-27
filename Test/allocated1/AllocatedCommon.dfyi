@@ -71,7 +71,7 @@ lemma LGood(c:C, d:D, a:array<C>, s:set<C>)
 lemma LCall() returns(c:C)
 
 lemma LBad(c:C, d:D, a:array<C>, s:set<C>)
-  returns(r:C)
+  returns(r:C?)
 
 
 {
@@ -94,7 +94,7 @@ lemma LBad(c:C, d:D, a:array<C>, s:set<C>)
   assert allocated(d);
   assert allocated(a);
   assert l == null || allocated(l);
-  assert allocated(r);
+  assert r == null || allocated(r);
   l := LCall(); assert allocated(l);
 }
 
@@ -107,7 +107,7 @@ ghost method GGood(c:C, d:D, a:array<C>, s:set<C>)
 }
 
 ghost method GBad(c:C, d:D, a:array<C>, s:set<C>)
-  returns(r:C)
+  returns(r:C?)
 
 
 {
@@ -130,7 +130,7 @@ ghost method GBad(c:C, d:D, a:array<C>, s:set<C>)
   assert allocated(d);
   assert allocated(a);
   assert l == null || allocated(l);
-  assert allocated(r);
+  assert r == null || allocated(r);
   l := LCall(); assert allocated(l);
 }
 

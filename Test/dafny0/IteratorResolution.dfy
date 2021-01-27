@@ -314,3 +314,29 @@ module CheckEndOfScopeForDominatingLabels {
     yield 700;
   }
 }
+
+// ---------- initialization of yield parameters -------------------------------
+
+module YieldParameterInitialization {
+  trait MaybeEmpty { }
+  type GhostAutoInit = x | x % 2 == 1 ghost witness 77
+  type CompileAutoInit = x | x % 2 == 1 witness 73
+
+  iterator A() yields (y: MaybeEmpty) {  // error: yield parameter must be of an auto-init type
+  }
+
+  iterator B() yields (y: GhostAutoInit) {  // error: yield parameter must be of an auto-init type
+  }
+
+  iterator C() yields (y: CompileAutoInit) {
+  }
+
+  iterator D() yields (ghost y: MaybeEmpty) {  // error: ghost yield parameter must be of a nonempty type
+  }
+
+  iterator E() yields (ghost y: GhostAutoInit) {
+  }
+
+  iterator F() yields (ghost y: CompileAutoInit) {
+  }
+}

@@ -1631,7 +1631,7 @@ namespace Microsoft.Dafny
       Contract.Assert(cl != null);
       if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
-        return td.WitnessKind == SubsetTypeDecl.WKind.None;
+        return td.WitnessKind == SubsetTypeDecl.WKind.CompiledZero;
       } else if (cl is ClassDecl) {
         return true; // null is a value of this type
       } else {

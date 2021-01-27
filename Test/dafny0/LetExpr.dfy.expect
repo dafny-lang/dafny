@@ -46,7 +46,8 @@ Execution trace:
 LetExpr.dfy(323,11): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 Execution trace:
     (0,0): anon0
-    (0,0): anon10_Then
+    (0,0): anon17_Then
+    (0,0): anon18_Then
 
 Dafny program verifier finished with 37 verified, 13 errors
 LetExpr.dfy.tmp.dprint.dfy(97,4): Warning: /!\ No terms found to trigger on.

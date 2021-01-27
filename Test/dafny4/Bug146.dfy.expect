@@ -1,12 +1,13 @@
 Bug146.dfy(6,75): Error: insufficient reads clause to read array element
 Execution trace:
     (0,0): anon0
-    (0,0): anon11_Else
-    (0,0): anon12_Then
+    (0,0): anon12_Else
     (0,0): anon13_Then
     (0,0): anon14_Then
     (0,0): anon15_Then
-    (0,0): anon10
+    (0,0): anon16_Then
+    (0,0): anon17_Then
+    (0,0): anon11
 Bug146.dfy(37,15): Error: assertion violation
 Bug146.dfy(26,4): Related location
 Bug146.dfy(26,75): Related location

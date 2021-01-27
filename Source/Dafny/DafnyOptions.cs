@@ -811,7 +811,7 @@ namespace Microsoft.Dafny
         not sound
     1 (default) - enforces definite-assignment rules for variables and fields
         of types that do not support auto-initialization
-    2 - enforces definite-assignment for all non-ghost non-yield-parameter
+    2 - enforces definite-assignment for all non-yield-parameter
         variables and fields, regardless of their types
     3 - like 2, but also performs checks in the compiler that no nondeterministic
         statements are used; thus, a program that passes at this level 3 is one
