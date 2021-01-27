@@ -358,3 +358,32 @@ module LetSuchThat {
     5
   }
 }
+
+module NonEmpty {
+  class MyClass<G(00)> {
+    const x: G
+    var y: G
+    ghost var oxA: G  // since G is nonempty, oxA does not need to be initialized by the constructor
+    ghost const oxB: G  // ditto
+    constructor C0()
+    {
+      x := y;  // error: y has not yet been defined
+      this.y := (((this))).x;
+      new;
+    }
+    constructor C1(g: G)
+    {
+      x := g;
+      new;  // error: y was never assigned
+    }
+    constructor C2(g: G)
+    {
+      x := g;
+    }  // error: y was never assigned
+    constructor C3(g: G)
+    {
+      oxB := oxA;  // fine
+      y := g;
+    }  // error: x was never assigned
+  }
+}

@@ -42,135 +42,147 @@ GhostAutoInit.dfy(112,15): Error: variable 'a', which is subject to definite-ass
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
+GhostAutoInit.dfy(114,15): Error: variable 'b', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
 GhostAutoInit.dfy(125,21): Error: variable 'a', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
-GhostAutoInit.dfy(140,2): Error: out-parameter 'e', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
-GhostAutoInit.dfy(148,21): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    GhostAutoInit.dfy(148,22): anon3_Else
-    (0,0): anon2
-GhostAutoInit.dfy(149,2): Error: out-parameter 'e', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-    (0,0): anon2
-GhostAutoInit.dfy(161,2): Error: out-parameter 'c', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
-GhostAutoInit.dfy(161,2): Error: out-parameter 'd', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
-GhostAutoInit.dfy(161,2): Error: out-parameter 'h', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
-GhostAutoInit.dfy(166,20): Error: variable 'm', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-GhostAutoInit.dfy(169,20): Error: variable 'x', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-GhostAutoInit.dfy(169,25): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-GhostAutoInit.dfy(178,20): Error: variable 'x', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-GhostAutoInit.dfy(178,25): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-GhostAutoInit.dfy(179,2): Error: out-parameter 'h', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
-GhostAutoInit.dfy(184,2): Error: out-parameter 'c', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
-GhostAutoInit.dfy(184,2): Error: out-parameter 'd', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
-GhostAutoInit.dfy(184,2): Error: out-parameter 'h', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
-GhostAutoInit.dfy(193,22): Error: variable 'x', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-GhostAutoInit.dfy(193,27): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-GhostAutoInit.dfy(205,22): Error: variable 'x', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-GhostAutoInit.dfy(205,27): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-GhostAutoInit.dfy(220,26): Error: variable 'x', which is subject to definite-assignment rules, might be used before it has been assigned
+GhostAutoInit.dfy(138,21): Error: variable 'a', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
-GhostAutoInit.dfy(220,31): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
+GhostAutoInit.dfy(140,21): Error: variable 'b', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
+GhostAutoInit.dfy(153,2): Error: out-parameter 'e', which is subject to definite-assignment rules, might not have been defined at this return point
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(161,21): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+Execution trace:
+    (0,0): anon0
+    GhostAutoInit.dfy(161,22): anon3_Else
+    (0,0): anon2
+GhostAutoInit.dfy(162,2): Error: out-parameter 'e', which is subject to definite-assignment rules, might not have been defined at this return point
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
+GhostAutoInit.dfy(174,2): Error: out-parameter 'c', which is subject to definite-assignment rules, might not have been defined at this return point
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(174,2): Error: out-parameter 'd', which is subject to definite-assignment rules, might not have been defined at this return point
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(174,2): Error: out-parameter 'h', which is subject to definite-assignment rules, might not have been defined at this return point
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(179,20): Error: variable 'm', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(182,20): Error: variable 'x', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(182,25): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(191,20): Error: variable 'x', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(191,25): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(192,2): Error: out-parameter 'h', which is subject to definite-assignment rules, might not have been defined at this return point
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(197,2): Error: out-parameter 'c', which is subject to definite-assignment rules, might not have been defined at this return point
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(197,2): Error: out-parameter 'd', which is subject to definite-assignment rules, might not have been defined at this return point
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(197,2): Error: out-parameter 'h', which is subject to definite-assignment rules, might not have been defined at this return point
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(206,22): Error: variable 'x', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+GhostAutoInit.dfy(206,27): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+GhostAutoInit.dfy(218,22): Error: variable 'x', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+GhostAutoInit.dfy(218,27): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+GhostAutoInit.dfy(233,26): Error: variable 'x', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
-GhostAutoInit.dfy(231,11): Error: variable 'm', which is subject to definite-assignment rules, might be used before it has been assigned
+GhostAutoInit.dfy(233,31): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
-GhostAutoInit.dfy(231,17): Error: variable 'x', which is subject to definite-assignment rules, might be used before it has been assigned
+    (0,0): anon5_Then
+GhostAutoInit.dfy(244,11): Error: variable 'm', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
-GhostAutoInit.dfy(231,20): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
+GhostAutoInit.dfy(244,17): Error: variable 'x', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
-GhostAutoInit.dfy(244,23): Error: variable 'm', which is subject to definite-assignment rules, might be used before it has been assigned
+GhostAutoInit.dfy(244,20): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
-GhostAutoInit.dfy(244,29): Error: variable 'x', which is subject to definite-assignment rules, might be used before it has been assigned
+GhostAutoInit.dfy(257,23): Error: variable 'm', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
-GhostAutoInit.dfy(244,32): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
+GhostAutoInit.dfy(257,29): Error: variable 'x', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
-GhostAutoInit.dfy(269,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
+GhostAutoInit.dfy(257,32): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(282,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-GhostAutoInit.dfy(285,2): Error: A postcondition might not hold on this return path.
-GhostAutoInit.dfy(284,12): Related location: This is the postcondition that might not hold.
+GhostAutoInit.dfy(298,2): Error: A postcondition might not hold on this return path.
+GhostAutoInit.dfy(297,12): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-GhostAutoInit.dfy(290,9): Error: value does not satisfy the subset constraints of 'nat'
+GhostAutoInit.dfy(303,9): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-GhostAutoInit.dfy(295,9): Error: value does not satisfy the subset constraints of 'nat'
+GhostAutoInit.dfy(308,9): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-GhostAutoInit.dfy(302,9): Error: value does not satisfy the subset constraints of 'nat'
+GhostAutoInit.dfy(315,9): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-GhostAutoInit.dfy(309,9): Error: value does not satisfy the subset constraints of 'nat'
+GhostAutoInit.dfy(322,9): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-GhostAutoInit.dfy(316,9): Error: value does not satisfy the subset constraints of 'nat'
+GhostAutoInit.dfy(329,9): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-GhostAutoInit.dfy(318,19): Error: variable 'cell', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-GhostAutoInit.dfy(319,11): Error: value does not satisfy the subset constraints of 'nat'
+GhostAutoInit.dfy(331,19): Error: variable 'cell', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-GhostAutoInit.dfy(322,19): Error: variable 'e', which is subject to definite-assignment rules, might be used before it has been assigned
+GhostAutoInit.dfy(332,11): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+GhostAutoInit.dfy(335,19): Error: variable 'e', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
 
-Dafny program verifier finished with 7 verified, 49 errors
+Dafny program verifier finished with 7 verified, 52 errors
