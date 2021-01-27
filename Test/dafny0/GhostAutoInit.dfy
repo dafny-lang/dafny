@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module DeclaredTypes {
-  // type KnownToBeEmpty = x: int | false  // TODO
+
   trait MaybeEmpty { }
   type GhostAutoInit = x: MaybeEmpty? | true ghost witness null
   type CompileAutoInit = MaybeEmpty?
@@ -261,6 +261,66 @@ module FiftyShadesOfGhost {
     if m, x :| cell == SmallGH(m, x) {  // all 2 get bound to values
       // this is still a ghost context
       GhostCallee(m, m, x, x);  // all fine
+    }
+  }
+}
+
+module EmptyTypeNotDeclaredAsSuch {
+  type Empty = x: int | false  // error: no witness
+}
+
+module EmptyType {
+  type Empty = x: int | false witness *
+
+  function F(x: Empty): nat {
+    -3  // no problem, since the function can't ever be called
+  }
+
+  method M(x: Empty, y: int) {
+    var u := 10 / y;  // no problem, since the method can't ever be called
+  }
+
+  lemma Bad()
+    ensures false
+  {  // error (the presence of type Empty should not make verification unsound)
+  }
+
+  method EmptyLocal() returns (n: nat) {
+    var e: Empty;  // it's okay to declare a variable of type Empty, as long as it's never used
+    n := -8;  // error
+  }
+
+  lemma EmptyLocalGhost() returns (n: nat) {
+    var e: Empty;  // it's okay to declare a variable of type Empty, as long as it's never used
+    n := -8;  // error
+  }
+
+  datatype WellFoundedButEmpty = WFBE(e: Empty)
+
+  method EmptyLocalDatatype() returns (n: nat) {
+    var e: WellFoundedButEmpty;  // it's okay to declare a variable of type Empty, as long as it's never used
+    n := -8;  // error
+  }
+
+  datatype Cell<X> = Cell(x: X)
+
+  method CellNonemptyPayload(y: int) returns (n: nat) {
+    var cell: Cell<int>;
+    n := y;  // error: y may be negative
+    var cell' := cell;  // fine, since Cell<int> is not under definite-assignment rules
+    cell := Cell(y);
+  }
+
+  method CellEmptyPayload(y: int) returns (n: nat) {
+    var cell: Cell<Empty>;
+    n := y;  // error: y may be negative
+    if * {
+      var cell' := cell;  // error: cell is used before it's been defined
+      n := -8;  // error: -8 is not a nat
+    } else {
+      var e: Empty;
+      cell := Cell(e);  // error: e is used before it's been defined
+      n := -8;  // control never reaches this point
     }
   }
 }

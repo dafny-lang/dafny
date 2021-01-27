@@ -137,5 +137,40 @@ Execution trace:
 GhostAutoInit.dfy(244,32): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
+GhostAutoInit.dfy(269,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+GhostAutoInit.dfy(285,2): Error: A postcondition might not hold on this return path.
+GhostAutoInit.dfy(284,12): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(290,9): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(295,9): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(302,9): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(309,9): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(316,9): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+GhostAutoInit.dfy(318,19): Error: variable 'cell', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+GhostAutoInit.dfy(319,11): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+GhostAutoInit.dfy(322,19): Error: variable 'e', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
 
-Dafny program verifier finished with 5 verified, 39 errors
+Dafny program verifier finished with 7 verified, 49 errors

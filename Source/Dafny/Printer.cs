@@ -252,7 +252,7 @@ namespace Microsoft.Dafny {
             wr.Write("| ");
             PrintExpression(dd.Constraint, true);
             wr.WriteLine();
-            if (dd.WitnessKind != SubsetTypeDecl.WKind.None) {
+            if (dd.WitnessKind != SubsetTypeDecl.WKind.CompiledZero) {
               Indent(indent + IndentAmount);
               PrintWitnessClause(dd);
               wr.WriteLine();
@@ -283,7 +283,7 @@ namespace Microsoft.Dafny {
           }
           wr.Write("| ");
           PrintExpression(dd.Constraint, true);
-          if (dd.WitnessKind != SubsetTypeDecl.WKind.None) {
+          if (dd.WitnessKind != SubsetTypeDecl.WKind.CompiledZero) {
             if (dd is NonNullTypeDecl) {
               wr.Write(" ");
             } else {
@@ -422,7 +422,7 @@ namespace Microsoft.Dafny {
 
     private void PrintWitnessClause(RedirectingTypeDecl dd) {
       Contract.Requires(dd != null);
-      Contract.Requires(dd.WitnessKind != SubsetTypeDecl.WKind.None);
+      Contract.Requires(dd.WitnessKind != SubsetTypeDecl.WKind.CompiledZero);
 
       switch (dd.WitnessKind) {
         case SubsetTypeDecl.WKind.Ghost:
@@ -432,10 +432,13 @@ namespace Microsoft.Dafny {
           wr.Write("witness ");
           PrintExpression(dd.Witness, true);
           break;
+        case SubsetTypeDecl.WKind.OptOut:
+          wr.Write("witness *");
+          break;
         case SubsetTypeDecl.WKind.Special:
           wr.Write("/*special witness*/");
           break;
-        case SubsetTypeDecl.WKind.None:
+        case SubsetTypeDecl.WKind.CompiledZero:
         default:
           Contract.Assert(false);  // unexpected WKind
           break;

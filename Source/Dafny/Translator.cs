@@ -6235,7 +6235,7 @@ namespace Microsoft.Dafny {
       // If there's no constraint, there's nothing to do
       if (decl.Var == null) {
         Contract.Assert(decl.Constraint == null);  // there's a constraint only if there's a variable to be constrained
-        Contract.Assert(decl.WitnessKind == SubsetTypeDecl.WKind.None);  // a witness makes sense only if there is a constraint
+        Contract.Assert(decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero);  // a witness makes sense only if there is a constraint
         Contract.Assert(decl.Witness == null);  // a witness makes sense only if there is a constraint
         return;
       }
@@ -6314,7 +6314,7 @@ namespace Microsoft.Dafny {
         // check that the witness expression checks out
         witnessExpr = Substitute(decl.Constraint, decl.Var, decl.Witness);
         witnessErrorMsg = "the given witness expression might not satisfy constraint";
-      } else {
+      } else if (decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero) {
         var witness = Zero(decl.tok, decl.Var.Type);
         if (witness == null) {
           witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, "cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause"));
