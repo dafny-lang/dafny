@@ -173,7 +173,7 @@ namespace Microsoft.Dafny.Triggers {
               arg1.UniqueName == arg2.UniqueName &&
               arg1.IsGhost == arg2.IsGhost &&
               arg1.IsMutable == arg2.IsMutable &&
-              ((arg1.Type == null && arg2.Type == null) || arg1.Type.Equals(arg2.Type)));
+              ((arg1.Type == null && arg2.Type == null) || (arg1.Type != null && arg1.Type.Equals(arg2.Type))));
     }
 
     /// <summary>

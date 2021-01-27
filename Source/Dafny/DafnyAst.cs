@@ -6061,7 +6061,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void makeGhost() {
+    public void MakeGhost() {
       IsGhost = true;
     }
 

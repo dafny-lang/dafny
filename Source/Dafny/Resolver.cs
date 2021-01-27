@@ -8109,7 +8109,7 @@ namespace Microsoft.Dafny
           if (mustBeErasable) {
             foreach (var local in s.Locals) {
               // a local variable in a specification-only context might as well be ghost
-              local.IsGhost = true;
+              local.MakeGhost();
             }
           }
           if (s.Update != null) {
@@ -8122,17 +8122,20 @@ namespace Microsoft.Dafny
 
           if (mustBeErasable) {
             foreach (var local in s.LocalVars) {
-              local.IsGhost = true;
+              local.MakeGhost();
             }
           }
           if (!s.IsAutoGhost || mustBeErasable) {
             s.IsGhost = s.LocalVars.All(v => v.IsGhost);
           } else {
-            bool spec = resolver.UsesSpecFeatures(s.RHS);
-            foreach (var local in s.LocalVars) {
-              local.IsGhost = spec;
+            var spec = resolver.UsesSpecFeatures(s.RHS);
+            if (spec) {
+              foreach (var local in s.LocalVars) {
+                local.MakeGhost();
+              }
+            } else {
+              resolver.CheckIsCompilable(s.RHS);
             }
-            if (!spec) resolver.CheckIsCompilable(s.RHS);
             s.IsGhost = spec;
           }
 
@@ -17572,7 +17575,7 @@ namespace Microsoft.Dafny
 
     void MakeGhostAsNeeded(CasePattern<BoundVar> arg, DatatypeDestructor d) {
       if (arg.Expr is IdentifierExpr ie && ie.Var is BoundVar bv) {
-        if (d.IsGhost) bv.makeGhost();
+        if (d.IsGhost) bv.MakeGhost();
       }
       if (arg.Ctor != null) {
         MakeGhostAsNeeded(arg);
