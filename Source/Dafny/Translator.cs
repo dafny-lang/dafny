@@ -6742,13 +6742,6 @@ namespace Microsoft.Dafny {
           return BplAnd(canCallRHS, let);
         }
 
-      } else if (expr is NamedExpr) {
-        var e = (NamedExpr)expr;
-        var canCall = CanCallAssumption(e.Body, etran);
-        if (e.Contract != null)
-          return BplAnd(canCall, CanCallAssumption(e.Contract, etran));
-        else return canCall;
-
       } else if (expr is LambdaExpr) {
         var e = (LambdaExpr)expr;
 
@@ -7857,14 +7850,6 @@ namespace Microsoft.Dafny {
       } else if (expr is LetExpr) {
         result = CheckWellformedLetExprWithResult((LetExpr)expr, options, result, resultType, locals, builder, etran, true);
 
-      } else if (expr is NamedExpr) {
-        var e = (NamedExpr)expr;
-        CheckWellformedWithResult(e.Body, options, result, resultType, locals, builder, etran);
-        if (e.Contract != null) {
-          CheckWellformedWithResult(e.Contract, options, result, resultType, locals, builder, etran);
-          var theSame = Bpl.Expr.Eq(etran.TrExpr(e.Body), etran.TrExpr(e.Contract));
-          builder.Add(Assert(new ForceCheckToken(e.ReplacerToken), theSame, "replacement must be the same value"));
-        }
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         var q = e as QuantifierExpr;
@@ -15931,8 +15916,6 @@ namespace Microsoft.Dafny {
             // in the following, use the token for Body instead of the token for the whole let expression; this gives better error locations
             return new Bpl.LetExpr(e.Body.tok, lhss, rhss, null, body);
           }
-        } else if (expr is NamedExpr) {
-          return TrExpr(((NamedExpr)expr).Body);
         } else if (expr is QuantifierExpr) {
           QuantifierExpr e = (QuantifierExpr)expr;
 
@@ -18602,11 +18585,6 @@ namespace Microsoft.Dafny {
             newExpr = newME;
           }
 
-        } else if (expr is NamedExpr) {
-          var e = (NamedExpr)expr;
-          var body = Substitute(e.Body);
-          var contract = e.Contract == null ? null : Substitute(e.Contract);
-          newExpr = new NamedExpr(e.tok, e.Name, body, contract, e.ReplacerToken);
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
           // For quantifiers and setComprehesion we want to make sure that we don't introduce name clashes with

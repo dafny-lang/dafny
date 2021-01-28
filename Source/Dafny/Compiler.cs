@@ -4507,8 +4507,6 @@ namespace Microsoft.Dafny {
         var e = (ConcreteSyntaxExpression)expr;
         TrExpr(e.ResolvedExpression, wr, inLetExprBody);
 
-      } else if (expr is NamedExpr) {
-        TrExpr(((NamedExpr)expr).Body, wr, inLetExprBody);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

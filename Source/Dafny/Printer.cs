@@ -2538,11 +2538,6 @@ namespace Microsoft.Dafny {
         }
         if (parensNeeded) { wr.Write(")"); }
 
-      } else if (expr is NamedExpr) {
-        var e = (NamedExpr)expr;
-        wr.Write("expr {0}: ", e.Name);
-        PrintExpression(e.Body, isFollowedBySemicolon);
-
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
         bool parensNeeded = !isRightmost;

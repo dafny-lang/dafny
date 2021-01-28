@@ -8586,8 +8586,6 @@ namespace Microsoft.Dafny {
     public readonly IToken ConditionEllipsis;
     public bool BodyOmitted { get { return BodyEllipsis != null; } }
     public readonly IToken BodyEllipsis;
-    public readonly List<IToken> NameReplacements;
-    public readonly List<Expression> ExprReplacements;
     public SkeletonStatement(IToken tok, IToken endTok)
       : base(tok, endTok)
     {
@@ -8602,14 +8600,6 @@ namespace Microsoft.Dafny {
       S = s;
       ConditionEllipsis = conditionEllipsis;
       BodyEllipsis = bodyEllipsis;
-    }
-    public SkeletonStatement(IToken tok, IToken endTok, List<IToken> nameReplacements, List<Expression> exprReplacements)
-      : base(tok, endTok) {
-      Contract.Requires(tok != null);
-      Contract.Requires(endTok != null);
-      NameReplacements = nameReplacements;
-      ExprReplacements = exprReplacements;
-
     }
     public override IEnumerable<Statement> SubStatements {
       get {
@@ -10765,35 +10755,6 @@ namespace Microsoft.Dafny {
       Lhs = lhs;
       Rhs = rhs;
       Body = body;
-    }
-  }
-
-  // Represents expr Name: Body
-  //         or expr Name: (assert Body == Contract; Body)
-  public class NamedExpr : Expression
-  {
-    public readonly string Name;
-    public readonly Expression Body;
-    public readonly Expression Contract;
-    public readonly IToken ReplacerToken;
-
-    public NamedExpr(IToken tok, string p, Expression body)
-      : base(tok) {
-      Name = p;
-      Body = body;
-    }
-    public NamedExpr(IToken tok, string p, Expression body, Expression contract, IToken token)
-      : base(tok) {
-      Name = p;
-      Body = body;
-      Contract = contract;
-      ReplacerToken = token;
-    }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        yield return Body;
-        if (Contract != null) yield return Contract;
-      }
     }
   }
 
