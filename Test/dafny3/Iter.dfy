@@ -46,7 +46,7 @@ class List<T> {
 
 class Cell { var data: int }
 
-iterator M<T>(l: List<T>, c: Cell) yields (x: T)
+iterator M<T(0)>(l: List<T>, c: Cell) yields (x: T)
   requires l.Valid()
   reads l.Repr
   modifies c

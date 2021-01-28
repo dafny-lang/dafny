@@ -600,7 +600,7 @@ namespace Dafny
       this.hasNullKey = hasNullKey;
       this.nullValue = nullValue;
     }
-    
+
     private static readonly TypeDescriptor<IMap<U, V>> _TYPE = new Dafny.TypeDescriptor<IMap<U, V>>(Empty);
     public static TypeDescriptor<IMap<U, V>> _TypeDescriptor() {
       return _TYPE;
@@ -760,13 +760,13 @@ namespace Dafny
       ImmutableDictionary<U, V> d = a.dict.SetItems(b.dict);
       return new Map<U, V>(d, a.hasNullKey || b.hasNullKey, b.hasNullKey ? b.nullValue : a.nullValue);
     }
-    
+
     public static IMap<U, V> Subtract(IMap<U, V> th, ISet<U> keys) {
       var a = FromIMap(th);
       ImmutableDictionary<U, V> d = a.dict.RemoveRange(keys.Elements);
       return new Map<U, V>(d, a.hasNullKey && !keys.Contains<object>(null), a.nullValue);
     }
-    
+
     public ISet<U> Keys {
       get {
         if (hasNullKey) {

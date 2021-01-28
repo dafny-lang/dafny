@@ -126,13 +126,17 @@ namespace Microsoft.Dafny {
     public BuiltIns() {
       SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
       // create type synonym 'string'
-      var str = new TypeSynonymDecl(Token.NoToken, "string", new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, false, false), new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
+      var str = new TypeSynonymDecl(Token.NoToken, "string",
+        new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
+        new List<TypeParameter>(), SystemModule, new SeqType(new CharType()), null);
       SystemModule.TopLevelDecls.Add(str);
       // create subset type 'nat'
       var bvNat = new BoundVar(Token.NoToken, "x", Type.Int);
       var natConstraint = Expression.CreateAtMost(Expression.CreateIntLiteral(Token.NoToken, 0), Expression.CreateIdentExpr(bvNat));
       var ax = AxiomAttribute();
-      NatDecl = new SubsetTypeDecl(Token.NoToken, "nat", new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, false, false), new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
+      NatDecl = new SubsetTypeDecl(Token.NoToken, "nat",
+        new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
+        new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
       SystemModule.TopLevelDecls.Add(NatDecl);
       // create trait 'object'
       ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
@@ -909,9 +913,9 @@ namespace Microsoft.Dafny {
       Contract.Assume(t is NonProxyType); // precondition
 
       AutoInitInfo CharacteristicToAutoInitInfo(TypeParameter.TypeParameterCharacteristics c) {
-        if (c.MustSupportZeroInitialization) {
+        if (c.HasCompiledValue) {
           return AutoInitInfo.CompilableValue;
-        } else if (c.MustBeNonempty) {
+        } else if (c.IsNonempty) {
           return AutoInitInfo.Nonempty;
         } else {
           return AutoInitInfo.MaybeEmpty;
@@ -1047,7 +1051,7 @@ namespace Microsoft.Dafny {
         if (IsRefType) {
           return false;
         } else if (IsTypeParameter) {
-          return AsTypeParameter.Characteristics.DisallowReferenceTypes;
+          return AsTypeParameter.Characteristics.ContainsNoReferenceTypes;
         } else {
           return TypeArgs.All(ta => ta.IsAllocFree);
         }
@@ -1540,7 +1544,7 @@ namespace Microsoft.Dafny {
     /// It is assumed that t and u have been normalized and expanded by the caller, according
     /// to its purposes.
     /// </summary>
-    public static bool SameHead(Type t, Type u) {
+    public static bool SameHead(Type t, Type u, bool allowNonNull = false) {
       Contract.Requires(t != null);
       Contract.Requires(u != null);
       if (t is TypeProxy) {
@@ -1558,7 +1562,8 @@ namespace Microsoft.Dafny {
       } else {
         var udtT = (UserDefinedType)t;
         var udtU = u as UserDefinedType;
-        return udtU != null && udtT.ResolvedClass == udtU.ResolvedClass;
+        return udtU != null && (udtT.ResolvedClass == udtU.ResolvedClass
+                   || (allowNonNull && udtU.ResolvedClass is NonNullTypeDecl nudtU && udtT.ResolvedClass == nudtU.Class));
       }
     }
 
@@ -2955,6 +2960,7 @@ namespace Microsoft.Dafny {
           return true;
         }
       } else {
+        // TODO?: return i.Equals(that.NormalizeExpand());
         return i.Equals(that, keepConstraints);
       }
     }
@@ -3038,7 +3044,7 @@ namespace Microsoft.Dafny {
           return true;
         } else if (ResolvedClass is TypeSynonymDeclBase) {
           var t = (TypeSynonymDeclBase)ResolvedClass;
-          if (t.MustSupportEquality) {
+          if (t.SupportsEquality) {
             return true;
           } else if (t.IsRevealedInScope(Type.GetScope())) {
             return t.RhsWithArgument(TypeArgs).SupportsEquality;
@@ -3046,7 +3052,7 @@ namespace Microsoft.Dafny {
             return false;
           }
         } else if (ResolvedParam != null) {
-          return ResolvedParam.MustSupportEquality;
+          return ResolvedParam.SupportsEquality;
         }
         Contract.Assume(false);  // the SupportsEquality getter requires the Type to have been successfully resolved
         return true;
@@ -3572,22 +3578,23 @@ namespace Microsoft.Dafny {
     public struct TypeParameterCharacteristics
     {
       public EqualitySupportValue EqualitySupport;  // the resolver may change this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
-      public bool MustSupportZeroInitialization;
-      public bool MustBeNonempty => false;  // TODO: make this an independent characteristic
-      public bool DisallowReferenceTypes;
+      public Type.AutoInitInfo AutoInit;
+      public bool HasCompiledValue => AutoInit == Type.AutoInitInfo.CompilableValue;
+      public bool IsNonempty => AutoInit != Type.AutoInitInfo.MaybeEmpty;
+      public bool ContainsNoReferenceTypes;
       public TypeParameterCharacteristics(bool dummy) {
         EqualitySupport = EqualitySupportValue.Unspecified;
-        MustSupportZeroInitialization = false;
-        DisallowReferenceTypes = false;
+        AutoInit = Type.AutoInitInfo.MaybeEmpty;
+        ContainsNoReferenceTypes = false;
       }
-      public TypeParameterCharacteristics(EqualitySupportValue eqSupport, bool mustSupportZeroInitialization, bool disallowReferenceTypes) {
+      public TypeParameterCharacteristics(EqualitySupportValue eqSupport, Type.AutoInitInfo autoInit, bool containsNoReferenceTypes) {
         EqualitySupport = eqSupport;
-        MustSupportZeroInitialization = mustSupportZeroInitialization;
-        DisallowReferenceTypes = disallowReferenceTypes;
+        AutoInit = autoInit;
+        ContainsNoReferenceTypes = containsNoReferenceTypes;
       }
     }
     public TypeParameterCharacteristics Characteristics;
-    public bool MustSupportEquality {
+    public bool SupportsEquality {
       get { return Characteristics.EqualitySupport != EqualitySupportValue.Unspecified; }
     }
 
@@ -3638,7 +3645,7 @@ namespace Microsoft.Dafny {
         characteristics = dd.Characteristics;
       }
       if (characteristics.EqualitySupport == EqualitySupportValue.InferredRequired) {
-        return new TypeParameterCharacteristics(EqualitySupportValue.Unspecified, characteristics.MustSupportZeroInitialization, characteristics.DisallowReferenceTypes);
+        return new TypeParameterCharacteristics(EqualitySupportValue.Unspecified, characteristics.AutoInit, characteristics.ContainsNoReferenceTypes);
       } else {
         return characteristics;
       }
@@ -4834,6 +4841,24 @@ namespace Microsoft.Dafny {
     string FullSanitizedName { get; }
     bool AllowsNontermination { get; }
   }
+
+  public class CodeContextWrapper : ICodeContext {
+    private readonly ICodeContext inner;
+    private readonly bool isGhostContext;
+    public CodeContextWrapper(ICodeContext inner, bool isGhostContext) {
+      this.inner = inner;
+      this.isGhostContext = isGhostContext;
+    }
+
+    public bool IsGhost => isGhostContext;
+    public List<TypeParameter> TypeArgs => inner.TypeArgs;
+    public List<Formal> Ins => inner.Ins;
+    public ModuleDefinition EnclosingModule => inner.EnclosingModule;
+    public bool MustReverify => inner.MustReverify;
+    public string FullSanitizedName => inner.FullSanitizedName;
+    public bool AllowsNontermination => inner.AllowsNontermination;
+  }
+
   /// <summary>
   /// An ICallable is a Function, Method, IteratorDecl, or (less fitting for the name ICallable) RedirectingTypeDecl or DatatypeDecl.
   /// </summary>
@@ -4932,7 +4957,7 @@ namespace Microsoft.Dafny {
                         List<AttributedExpression> yieldRequires,
                         List<AttributedExpression> yieldEnsures,
                         BlockStmt body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, module, MutateIntoRequiringZeroInitBit(typeArgs), new List<MemberDecl>(), attributes, signatureEllipsis != null, null)
+      : base(tok, name, module, typeArgs, new List<MemberDecl>(), attributes, signatureEllipsis != null, null)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -4965,17 +4990,6 @@ namespace Microsoft.Dafny {
 
       YieldCountVariable = new LocalVariable(tok, tok, "_yieldCount", new EverIncreasingType(), true);
       YieldCountVariable.type = YieldCountVariable.OptionalType;  // resolve YieldCountVariable here
-    }
-
-    private static List<TypeParameter> MutateIntoRequiringZeroInitBit(List<TypeParameter> typeArgs) {
-      Contract.Requires(typeArgs != null);
-      Contract.Ensures(Contract.Result<List<TypeParameter>>() == typeArgs);
-      // Note! This is not the only place where IteratorDecl type parameters come through.  Some may
-      // be created by "FillInTypeArguments".
-      foreach (var tp in typeArgs) {
-        tp.Characteristics.MustSupportZeroInitialization = true;
-      }
-      return typeArgs;
     }
 
     /// <summary>
@@ -5407,8 +5421,8 @@ namespace Microsoft.Dafny {
     public TypeParameter.TypeParameterCharacteristics Characteristics {
       get { return TheType.Characteristics; }
     }
-    public bool MustSupportEquality {
-      get { return TheType.MustSupportEquality; }
+    public bool SupportsEquality {
+      get { return TheType.SupportsEquality; }
     }
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -5427,10 +5441,6 @@ namespace Microsoft.Dafny {
 
     public TopLevelDecl AsTopLevelDecl {
       get { return this; }
-    }
-
-    public bool SupportsEquality {
-      get { return this.MustSupportEquality; }
     }
   }
 
@@ -5576,7 +5586,9 @@ namespace Microsoft.Dafny {
     Expression RedirectingTypeDecl.Witness { get { return Witness; } }
     FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
-    bool ICodeContext.IsGhost { get { return true; } }
+    bool ICodeContext.IsGhost {
+      get { throw new NotSupportedException(); }  // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
+    }
     List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
     ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
@@ -5601,7 +5613,7 @@ namespace Microsoft.Dafny {
   {
     public override string WhatKind { get { return "type synonym"; } }
     public TypeParameter.TypeParameterCharacteristics Characteristics;  // the resolver may change the .EqualitySupport component of this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
-    public bool MustSupportEquality {
+    public bool SupportsEquality {
       get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
     }
     public readonly Type Rhs;
@@ -5658,7 +5670,9 @@ namespace Microsoft.Dafny {
     Expression RedirectingTypeDecl.Witness { get { return null; } }
     FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
-    bool ICodeContext.IsGhost { get { return false; } }
+    bool ICodeContext.IsGhost {
+      get { throw new NotSupportedException(); }  // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
+    }
     List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
     ModuleDefinition ICodeContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
@@ -6071,7 +6085,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void makeGhost() {
+    public void MakeGhost() {
       IsGhost = true;
     }
 

@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-iterator MyIter<T>(q: T) yields (x: T, y: T)
+iterator MyIter<T(0)>(q: T) yields (x: T, y: T)
 {
 }
 

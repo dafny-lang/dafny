@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
       this.source = source;
       this.sourceIsFile = sourceIsFile;
     }
-    
+
     public string ProgramSource { get { return sourceIsFile ? File.ReadAllText(source) : source; } }
 
     internal static VerificationTask ReadTask(string b64Repr) {

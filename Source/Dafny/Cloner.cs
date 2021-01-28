@@ -131,7 +131,7 @@ namespace Microsoft.Dafny
       } else {
         eqSupport = characteristics.EqualitySupport;
       }
-      return new TypeParameter.TypeParameterCharacteristics(eqSupport, characteristics.MustSupportZeroInitialization, characteristics.DisallowReferenceTypes);
+      return new TypeParameter.TypeParameterCharacteristics(eqSupport, characteristics.AutoInit, characteristics.ContainsNoReferenceTypes);
     }
 
     public DatatypeCtor CloneCtor(DatatypeCtor ct) {
