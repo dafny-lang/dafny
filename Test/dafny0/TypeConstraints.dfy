@@ -416,19 +416,45 @@ module LetPatterns {
 
 module Arrays_and_SubsetTypes {
   method M()
+  {
+    var a: array<nat>;
+    var b: array<int>;
+    if * {
+      a := new nat[100];
+      b := new nat[100]; // ERROR
+    } else if * {
+      a := new int[100]; // ERROR
+      b := new int[100];
+    } else if * {
+      a := b;  // ERROR
+    } else if * {
+      b := a;  // ERROR
+    } else if * {
+      var n := new nat[100];  // array<nat>
+      if * {
+        a := n;
+      } else {
+        b := n; // A verification error
+      }
+    }
+  }
+}
+
+module Arrays_and_SubsetTypesOK {
+  method M()
   { // Type-wise, all of the following are allowed (but the verifier will complain):
     var a: array<nat>;
     var b: array<int>;
     if * {
       a := new nat[100];
-      b := new nat[100];
+      b := new nat[100]; // Error
     } else if * {
-      a := new int[100];
+      a := new int[100]; // Error
       b := new int[100];
     } else if * {
-      a := b;
+      a := b;            // Error
     } else if * {
-      b := a;
+      b := a;            // Error
     } else if * {
       var n := new nat[100];  // array<nat>
       if * {

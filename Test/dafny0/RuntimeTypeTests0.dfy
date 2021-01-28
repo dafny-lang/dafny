@@ -105,7 +105,7 @@ method Downcast()
   var c0 := new Class0;
   var s: seq<Class0> := [c0, c0];
   var t: seq<Tr> := s;
-  t := s;  // TODO
+  t := s;
   print s, " and ", t, "\n";
 }
 
@@ -119,4 +119,5 @@ method Main()
   L();
   M();
   Downcast();
+
 }

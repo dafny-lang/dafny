@@ -1429,7 +1429,7 @@ namespace Microsoft.Dafny {
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        if (usePlaceboValue && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
+        if (usePlaceboValue && !udt.ResolvedParam.Characteristics.HasCompiledValue) {
           return nil();
         } else if (constructTypeParameterDefaultsFromTypeDescriptors) {
           var w = new TargetWriter(0, true);

@@ -591,7 +591,7 @@ namespace Microsoft.Dafny
           outputWriter.WriteLine("Additional code written to {0}", Path.Combine(targetBaseDir, filename));
         }
       }
-      
+
       return targetFilename;
     }
 

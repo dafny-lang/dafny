@@ -31,7 +31,7 @@ namespace Microsoft.Dafny {
         encode = true;
         n++;
       }
-      
+
       if (selftest) {
         VerificationTask.SelfTest();
         return;

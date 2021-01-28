@@ -1998,27 +1998,37 @@ module ZI {
   }
 }
 abstract module ZI_RefinementAbstract {
-  type A
-  type A'
-  type B(0)
-  type BB(0)
-  type B'(0)
-
-  type Mxx(0)
-  type Mx_
-  type M_x(0)
-  type M__
+  type A0
+  type A1
+  type A2
+  type A3
+  type B0(0)
+  type B1(0)
+  type B2(0)
+  type B3(0)
+  type C0(00)
+  type C1(00)
+  type C2(00)
+  type C3(00)
 
   method Delta<Q(0),W,E(0),R>()
 }
 module ZI_RefinementConcrete0 refines ZI_RefinementAbstract {
   newtype Kuusi = x | 6 <= x witness 6  // supports auto-initialization
   newtype Six = x | 6 <= x ghost witness 6  // does not support auto-initialization
-  type A = int
-  type A' = Six
-  type B = int
-  type BB = Kuusi
-  type B' = Six  // error: RHS is expected to support auto-initialization
+  newtype Sesis = x | 6 <= x witness *  // possibly empty
+  type A0 = int
+  type A1 = Kuusi
+  type A2 = Six
+  type A3 = Sesis
+  type B0 = int
+  type B1 = Kuusi
+  type B2 = Six  // error: RHS is expected to support auto-initialization
+  type B3 = Sesis  // error: RHS is expected to support auto-initialization
+  type C0 = int
+  type C1 = Kuusi
+  type C2 = Six
+  type C3 = Sesis  // error: RHS is expected to be nonempty
 }
 module ZI_ExportSource {
   export
@@ -2037,10 +2047,15 @@ module ZI_RefinementConcrete1 refines ZI_RefinementAbstract {
     P(n);  // error: Z.XYZ is not known to support auto-initialization
   }
 
-  type Mxx  // error: not allowed to change auto-initialization setting
-  type Mx_
-  type M_x(0)
-  type M__(0)  // error: not allowed to change auto-initialization setting
+  type A0
+  type A1(0)   // error: not allowed to change auto-initialization setting
+  type A2(00)  // error: not allowed to change nonempty setting
+  type B0      // error: not allowed to change auto-initialization setting
+  type B1(0)
+  type B2(00)  // error: not allowed to change auto-initialization setting
+  type C0      // error: not allowed to change nonempty setting
+  type C1(0)   // error: not allowed to change auto-initialization setting
+  type C2(00)
 
   method Delta<
     Q,  // error: not allowed to change auto-initialization setting
@@ -2944,5 +2959,47 @@ module CollectionUpdates {
     } else {
       m := m[e := d];  // error: value is not a Elem
     }
+  }
+}
+
+// --------------- update operations ------------------------------
+
+module MoreAutoInitAndNonempty {
+  type A(0)
+  type B(00)
+  type C
+
+  method Q<F(0)>(f: F)
+  method P<G(00)>(g: G)
+  method R<H>(h: H)
+
+  function method FQ<F(0)>(f: F): int
+  function method FP<G(00)>(g: G): int
+  function method FR<H>(h: H): int
+
+  method M<X(0), Y(00), Z>(x: X, y: Y, z: Z)
+  {
+    Q(x);
+    P(x);
+    R(x);
+    Q(y);  // error: auto-init mismatch
+    P(y);
+    R(y);
+    Q(z);  // error: auto-init mismatch
+    P(z);  // error: auto-init mismatch
+    R(z);
+  }
+
+  method N<X(0), Y(00), Z>(x: X, y: Y, z: Z) returns (u: int)
+  {
+    u := FQ(x);
+    u := FP(x);
+    u := FR(x);
+    u := FQ(y);  // error: auto-init mismatch
+    u := FP(y);
+    u := FR(y);
+    u := FQ(z);  // error: auto-init mismatch
+    u := FP(z);  // error: auto-init mismatch
+    u := FR(z);
   }
 }

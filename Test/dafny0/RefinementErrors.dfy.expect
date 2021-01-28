@@ -11,8 +11,12 @@ RefinementErrors.dfy(40,9): Error: there is a difference in name of parameter 3 
 RefinementErrors.dfy(57,20): Error: a function can be changed into a function method in a refining module only if the function has not yet been given a body: G
 RefinementErrors.dfy(94,10): Error: refinement method cannot assign to a field defined in parent module ('a')
 RefinementErrors.dfy(114,7): Error: type 'T' is declared with a different number of type parameters (3 instead of 2) than the corresponding type in the module it refines
-RefinementErrors.dfy(121,9): Error: type parameter 'C' is not allowed to change the requirement of supporting auto-initialization
-RefinementErrors.dfy(121,14): Error: type parameter 'D' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(121,11): Error: type parameter 'Q' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(121,13): Error: type parameter 'R' is not allowed to change the requirement of being nonempty
+RefinementErrors.dfy(121,15): Error: type parameter 'U' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(121,25): Error: type parameter 'W' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(121,30): Error: type parameter 'X' is not allowed to change the requirement of being nonempty
+RefinementErrors.dfy(121,36): Error: type parameter 'Y' is not allowed to change the requirement of supporting auto-initialization
 RefinementErrors.dfy(128,9): Error: type parameter 'C' is not allowed to change the requirement of supporting equality
 RefinementErrors.dfy(128,15): Error: type parameter 'D' is not allowed to change the requirement of supporting equality
 RefinementErrors.dfy(135,10): Error: type parameter 'A' is not allowed to change variance (here, from '+' to '=')
@@ -79,4 +83,4 @@ RefinementErrors.dfy(181,14): Error: iterator declarations only support non-vari
 RefinementErrors.dfy(181,20): Error: iterator declarations only support non-variant type parameters
 RefinementErrors.dfy[TpJ](181,14): Error: iterator declarations only support non-variant type parameters
 RefinementErrors.dfy[TpJ](181,20): Error: iterator declarations only support non-variant type parameters
-81 resolution/type errors detected in RefinementErrors.dfy
+85 resolution/type errors detected in RefinementErrors.dfy

@@ -842,6 +842,9 @@ Dafny
   }
   { TopDecl<defaultModule, membersDefaultClass, /* isTopLevel */ true, /* isAbstract */ false> }
   (. // find the default class in the default module, then append membersDefaultClass to its member list
+		 if (membersDefaultClass.Count == 0 && defaultModule.Includes.Count == 0 && defaultModule.TopLevelDecls.Count == 0) {
+		   errors.Warning(defaultModule.tok, "File contains no code: " + Path.GetRelativePath(Directory.GetCurrentDirectory(), scanner.FullFilename));
+		 }
      DefaultClassDecl defaultClass = null;
      foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {
        defaultClass = topleveldecl as DefaultClassDecl;
@@ -1385,7 +1388,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   (. if (td == null) {
        if (module is DefaultModuleDecl) {
          // opaque type declarations at the very outermost program scope get an automatic (!new)
-         characteristics.DisallowReferenceTypes = true;
+         characteristics.ContainsNoReferenceTypes = true;
        }
        td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, members, attrs);
      }
@@ -1594,12 +1597,16 @@ TypeParameterCharacteristics<ref TypeParameter.TypeParameterCharacteristics char
 TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
 = ( "=="       (. characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.Required; .)
   | digits     (. if (t.val == "0") {
-                    characteristics.MustSupportZeroInitialization = true;
+                    characteristics.AutoInit = Microsoft.Dafny.Type.AutoInitInfo.CompilableValue;
+                  } else if (t.val == "00") {
+                    if (characteristics.AutoInit != Microsoft.Dafny.Type.AutoInitInfo.CompilableValue) {
+                      characteristics.AutoInit = Microsoft.Dafny.Type.AutoInitInfo.Nonempty;
+                    }
                   } else {
                     SemErr(t, "unexpected type parameter option - should be == or 0 or !new");
                   }
                .)
-  | "!" "new"  (. characteristics.DisallowReferenceTypes = true; .)
+  | "!" "new"  (. characteristics.ContainsNoReferenceTypes = true; .)
   )
   .
 
@@ -2358,27 +2365,10 @@ LabeledStmt<out Statement s>
 
 /*------------------------------------------------------------------------*/
 SkeletonStmt<out Statement s>
-= (. List<IToken> names = null;
-     List<Expression> exprs = null;
-     IToken tok, dotdotdot, whereTok;
-     Expression e; .)
+= (. IToken dotdotdot; .)
   ellipsis                             (. dotdotdot = t; .)
-  ["where"                             (. names = new List<IToken>(); exprs = new List<Expression>(); whereTok = t;.)
-     Ident<out tok>                    (. names.Add(tok); .)
-     {"," Ident<out tok>               (. names.Add(tok); .)
-     }
-     ":="
-     Expression<out e, false, true>          (. exprs.Add(e); .)
-     {"," Expression<out e, false, true>     (. exprs.Add(e); .)
-     }
-                                       (. if (exprs.Count != names.Count) {
-                                            SemErr(whereTok, exprs.Count < names.Count ? "not enough expressions" : "too many expressions");
-                                            names = null; exprs = null;
-                                          }
-                                       .)
-  ]
   ";"
-  (. s = new SkeletonStatement(dotdotdot, t, names, exprs); .)
+  (. s = new SkeletonStatement(dotdotdot, t); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3851,7 +3841,6 @@ EndlessExpression<out Expression e, bool allowLemma, bool allowLambda, bool allo
     Expression<out e, allowLemma, allowLambda, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e); .)
   | LetExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   | MapComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
-  | NamedExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   )
   .
 
@@ -3967,21 +3956,6 @@ LetExprWithoutLHS<out Expression e, bool allowLemma, bool allowLambda, bool allo
   ";"
   Expression<out body, allowLemma, allowLambda, allowBitwiseOps>
   (. e = new LetOrFailExpr(x, null, rhs, body); .)
-  .
-
-/*------------------------------------------------------------------------*/
-NamedExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
-= (. IToken/*!*/ x, d;
-     e = dummyExpr;
-     Expression expr;
-  .)
-    "label"                          (. x = t; .)
-    LabelName<out d>
-    ":"
-    Expression<out e, allowLemma, allowLambda, allowBitwiseOps>
-                                     (. expr = e;
-                                        e = new NamedExpr(x, d.val, expr);
-                                     .)
   .
 
 /*------------------------------------------------------------------------*/

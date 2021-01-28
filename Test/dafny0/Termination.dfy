@@ -331,7 +331,7 @@ function ReachBack_Alt(n: int): bool
 
 ghost method Lemma_ReachBack()
 {
-  assert (forall m :: 0 <= m ==> ReachBack_Alt(m));
+  assert forall m {:induction} :: 0 <= m ==> ReachBack_Alt(m);
 }
 
 // ----------------- default decreases clause for functions ----------

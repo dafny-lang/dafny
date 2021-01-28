@@ -934,7 +934,7 @@ namespace Microsoft.Dafny {
 
     private void AddBitvectorTypeAxioms(int w) {
       Contract.Requires(0 <= w);
-      
+
       if (w == 0) {
         // the axioms for bv0 are already in DafnyPrelude.bpl
         return;
@@ -947,14 +947,14 @@ namespace Microsoft.Dafny {
       var boogieType = BplBvType(w);
       var typeTerm = TypeToTy(dafnyType);
       AddBoxUnboxAxiom(tok, printableName, typeTerm, boogieType, new List<Variable>());
-      
+
       // axiom (forall v: bv3 :: { $Is(v, TBitvector(3)) } $Is(v, TBitvector(3)));
       var vVar = BplBoundVar("v", boogieType, out var v);
       var bvs = new List<Variable>() { vVar };
       var isBv = MkIs(v, typeTerm);
       var tr = BplTrigger(isBv);
       sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isBv)));
-      
+
       // axiom (forall v: bv3, heap: Heap :: { $IsAlloc(v, TBitvector(3), h) } $IsAlloc(v, TBitvector(3), heap));
       vVar = BplBoundVar("v", boogieType, out v);
       var heapVar = BplBoundVar("heap", predef.HeapType, out var heap);
@@ -4620,7 +4620,7 @@ namespace Microsoft.Dafny {
 
     bool NeedsDefiniteAssignmentTracker(bool isGhost, Type type) {
       Contract.Requires(type != null);
-      
+
       if (DafnyOptions.O.DefiniteAssignmentLevel == 0) {
         return false;
       } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1) {
@@ -4632,7 +4632,7 @@ namespace Microsoft.Dafny {
       }
       return true;
     }
-    
+
     Bpl.Expr/*?*/ AddDefiniteAssignmentTracker(IVariable p, List<Bpl.Variable> localVariables, bool isOutParam = false, bool forceGhostVar = false) {
       Contract.Requires(p != null);
       Contract.Requires(localVariables != null);
@@ -6742,13 +6742,6 @@ namespace Microsoft.Dafny {
           return BplAnd(canCallRHS, let);
         }
 
-      } else if (expr is NamedExpr) {
-        var e = (NamedExpr)expr;
-        var canCall = CanCallAssumption(e.Body, etran);
-        if (e.Contract != null)
-          return BplAnd(canCall, CanCallAssumption(e.Contract, etran));
-        else return canCall;
-
       } else if (expr is LambdaExpr) {
         var e = (LambdaExpr)expr;
 
@@ -7857,14 +7850,6 @@ namespace Microsoft.Dafny {
       } else if (expr is LetExpr) {
         result = CheckWellformedLetExprWithResult((LetExpr)expr, options, result, resultType, locals, builder, etran, true);
 
-      } else if (expr is NamedExpr) {
-        var e = (NamedExpr)expr;
-        CheckWellformedWithResult(e.Body, options, result, resultType, locals, builder, etran);
-        if (e.Contract != null) {
-          CheckWellformedWithResult(e.Contract, options, result, resultType, locals, builder, etran);
-          var theSame = Bpl.Expr.Eq(etran.TrExpr(e.Body), etran.TrExpr(e.Contract));
-          builder.Add(Assert(new ForceCheckToken(e.ReplacerToken), theSame, "replacement must be the same value"));
-        }
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         var q = e as QuantifierExpr;
@@ -7885,7 +7870,7 @@ namespace Microsoft.Dafny {
         }
         locals.AddRange(Map(copies,
           tp => new Bpl.LocalVariable(tp.tok, new TypedIdent(tp.tok, nameTypeParam(tp), predef.Ty))));
-        
+
         builder.Add(new Bpl.CommentCmd("Begin Comprehension WF check"));
         BplIfIf(e.tok, lam != null, null, builder, nextBuilder => {
           var substMap = SetupBoundVarsAsLocals(e.BoundVars, out var typeAntecedents, nextBuilder, locals, etran, typeMap);
@@ -8145,7 +8130,7 @@ namespace Microsoft.Dafny {
           CheckWellformed(rhs, options, locals, wellFormednessBuilder, etran);
           var ifCmd = new Bpl.IfCmd(e.tok, typeAntecedent, wellFormednessBuilder.Collect(e.tok), null, null);
           builder.Add(ifCmd);
-          
+
           var bounds = lhsVars.ConvertAll(_ => (ComprehensionExpr.BoundedPool)new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());  // indicate "no alloc" (is this what we want?)
           GenerateAndCheckGuesses(e.tok, lhsVars, bounds, e.RHSs[0], TrTrigger(etran, e.Attributes, e.tok), builder, etran);
         }
@@ -9290,7 +9275,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(typeTerm != null);
       Contract.Requires(tyRepr != null);
       Contract.Requires(args != null);
-      
+
       var bxVar = BplBoundVar("bx", predef.BoxType, out var bx);
       var unbox = FunctionCall(tok, BuiltinFunction.Unbox, tyRepr, bx);
       var box_is = MkIs(bx, typeTerm, true);
@@ -9812,7 +9797,7 @@ namespace Microsoft.Dafny {
         // tear down definite-assignment trackers
         m.Outs.Iter(RemoveDefiniteAssignmentTracker);
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
-        
+
         if (kind == MethodTranslationKind.Implementation) {
           outParams.Add(new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "$_reverifyPost", Bpl.Type.Bool), false));
         }
@@ -10566,14 +10551,14 @@ namespace Microsoft.Dafny {
         }
         ProcessLhss(havocLHSs, false, true, builder, locals, etran, out var lhsBuilder, out var bLhss, out _, out _, out _);
         ProcessRhss(lhsBuilder, bLhss, havocLHSs, havocRHSs, builder, locals, etran);
-        
+
         // Here comes the well-formedness check
         var wellFormednessBuilder = new BoogieStmtListBuilder(this);
         var rhs = Substitute(s.Expr, null, substMap);
         TrStmt_CheckWellformed(rhs, wellFormednessBuilder, locals, etran, false);
         var ifCmd = new Bpl.IfCmd(s.Tok, typeAntecedent, wellFormednessBuilder.Collect(s.Tok), null, null);
         builder.Add(ifCmd);
-        
+
         // Here comes the assert part
         if (s.AssumeToken == null) {
           substMap = new Dictionary<IVariable, Expression>();
@@ -10603,7 +10588,7 @@ namespace Microsoft.Dafny {
           bHavocLHSs.Add((Bpl.IdentifierExpr)etran.TrExpr(lhs));
         }
         builder.Add(new Bpl.HavocCmd(s.Tok, bHavocLHSs));
-        
+
         // End by doing the assume
         builder.Add(TrAssumeCmd(s.Tok, etran.TrExpr(s.Expr)));
         builder.Add(CaptureState(s));  // just do one capture state--here, at the very end (that is, don't do one before the assume)
@@ -12573,7 +12558,7 @@ namespace Microsoft.Dafny {
       if (typeMap == null) {
         typeMap = new Dictionary<TypeParameter, Type>();
       }
-      typeAntecedent = Bpl.Expr.True; 
+      typeAntecedent = Bpl.Expr.True;
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (BoundVar bv in boundVars) {
         LocalVariable local = new LocalVariable(bv.tok, bv.tok, nameSuffix == null ? bv.Name : bv.Name + nameSuffix, Resolver.SubstType(bv.Type, typeMap), bv.IsGhost);
@@ -12626,7 +12611,7 @@ namespace Microsoft.Dafny {
       var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
       ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
       substMap.Add(v, ie);
-      
+
       var bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type)));
       locals.Add(bvar);
       var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
@@ -15931,8 +15916,6 @@ namespace Microsoft.Dafny {
             // in the following, use the token for Body instead of the token for the whole let expression; this gives better error locations
             return new Bpl.LetExpr(e.Body.tok, lhss, rhss, null, body);
           }
-        } else if (expr is NamedExpr) {
-          return TrExpr(((NamedExpr)expr).Body);
         } else if (expr is QuantifierExpr) {
           QuantifierExpr e = (QuantifierExpr)expr;
 
@@ -18602,11 +18585,6 @@ namespace Microsoft.Dafny {
             newExpr = newME;
           }
 
-        } else if (expr is NamedExpr) {
-          var e = (NamedExpr)expr;
-          var body = Substitute(e.Body);
-          var contract = e.Contract == null ? null : Substitute(e.Contract);
-          newExpr = new NamedExpr(e.tok, e.Name, body, contract, e.ReplacerToken);
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
           // For quantifiers and setComprehesion we want to make sure that we don't introduce name clashes with

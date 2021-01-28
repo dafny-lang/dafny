@@ -200,14 +200,16 @@ namespace Microsoft.Dafny
         } else {
           var od = (OpaqueTypeDecl)d;
           if (nw is OpaqueTypeDecl) {
-            if (od.MustSupportEquality != ((OpaqueTypeDecl)nw).MustSupportEquality) {
+            if (od.SupportsEquality != ((OpaqueTypeDecl)nw).SupportsEquality) {
               reporter.Error(MessageSource.RefinementTransformer, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
             }
-            if (od.Characteristics.MustSupportZeroInitialization != ((OpaqueTypeDecl)nw).Characteristics.MustSupportZeroInitialization) {
+            if (od.Characteristics.HasCompiledValue != ((OpaqueTypeDecl)nw).Characteristics.HasCompiledValue) {
               reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of supporting auto-initialization", nw.Name);
+            } else if (od.Characteristics.IsNonempty != ((OpaqueTypeDecl)nw).Characteristics.IsNonempty) {
+              reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of being nonempty", nw.Name);
             }
           } else {
-            if (od.MustSupportEquality) {
+            if (od.SupportsEquality) {
               if (nw is ClassDecl || nw is NewtypeDecl) {
                 // fine
               } else if (nw is CoDatatypeDecl) {
@@ -224,13 +226,22 @@ namespace Microsoft.Dafny
                 });
               }
             }
-            if (od.Characteristics.MustSupportZeroInitialization) {
+            if (od.Characteristics.HasCompiledValue) {
               // We need to figure out if the new type supports auto-initialization.  But we won't know about that until resolution has
               // taken place, so we defer it until the PostResolve phase.
               var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
               postTasks.Enqueue(() => {
                 if (!udt.HasCompilableValue) {
                   reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support auto-initialization, is used to refine an opaque type that expects auto-initialization", udt.Name);
+                }
+              });
+            } else if (od.Characteristics.IsNonempty) {
+              // We need to figure out if the new type is nonempty.  But we won't know about that until resolution has
+              // taken place, so we defer it until the PostResolve phase.
+              var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
+              postTasks.Enqueue(() => {
+                if (!udt.IsNonempty) {
+                  reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which may be empty, is used to refine an opaque type expected to be nonempty", udt.Name);
                 }
               });
             }
@@ -755,10 +766,12 @@ namespace Microsoft.Dafny
             if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport) {
               reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
             }
-            if (o.Characteristics.MustSupportZeroInitialization != n.Characteristics.MustSupportZeroInitialization) {
+            if (o.Characteristics.HasCompiledValue != n.Characteristics.HasCompiledValue) {
               reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
+            } else if (o.Characteristics.IsNonempty != n.Characteristics.IsNonempty) {
+              reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of being nonempty", n.Name);
             }
-            if (o.Characteristics.DisallowReferenceTypes != n.Characteristics.DisallowReferenceTypes) {
+            if (o.Characteristics.ContainsNoReferenceTypes != n.Characteristics.ContainsNoReferenceTypes) {
               reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
             }
             if (o.Variance != n.Variance) {  // syntax is allowed to be different as long as the meaning is the same (i.e., compare Variance, not VarianceSyntax)
@@ -900,25 +913,12 @@ namespace Microsoft.Dafny
               if (nxt != null && nxt is SkeletonStatement && ((SkeletonStatement)nxt).S == null) {
                 // "...; ...;" is the same as just "...;", so skip this one
               } else {
-                SubstitutionCloner subber = null;
-                if (c.NameReplacements != null) {
-                  var subExprs = new Dictionary<string, Expression>();
-                  Contract.Assert(c.NameReplacements.Count == c.ExprReplacements.Count);
-                  for (int k = 0; k < c.NameReplacements.Count; k++) {
-                    if (subExprs.ContainsKey(c.NameReplacements[k].val)) {
-                      reporter.Error(MessageSource.RefinementTransformer, c.NameReplacements[k], "replacement definition must contain at most one definition for a given label");
-                    } else subExprs.Add(c.NameReplacements[k].val, c.ExprReplacements[k]);
-                  }
-                  subber = new SubstitutionCloner(subExprs, rawCloner);
-                }
                 // skip up until the next thing that matches "nxt"
                 var hoverTextA = "";
                 var sepA = "";
                 while (nxt == null || !PotentialMatch(nxt, oldS)) {
                   // loop invariant:  oldS == oldStmt.Body[j]
                   var s = refinementCloner.CloneStmt(oldS);
-                  if (subber != null)
-                    s = subber.CloneStmt(s);
                   body.Add(s);
                   hoverTextA += sepA + Printer.StatementToString(s);
                   sepA = "\n";
@@ -928,11 +928,6 @@ namespace Microsoft.Dafny
                 }
                 if (hoverTextA.Length != 0) {
                   reporter.Info(MessageSource.RefinementTransformer, c.Tok, hoverTextA);
-                }
-                if (subber != null && subber.SubstitutionsMade.Count < subber.Exprs.Count) {
-                  foreach (var s in subber.SubstitutionsMade)
-                    subber.Exprs.Remove(s);
-                  reporter.Error(MessageSource.RefinementTransformer, c.Tok, "could not find labeled expression(s): " + Util.Comma(subber.Exprs.Keys, x => x));
                 }
               }
               i++;
@@ -1514,30 +1509,6 @@ namespace Microsoft.Dafny
       } else {
         return new Attributes(moreAttrs.Name, moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
       }
-    }
-  }
-  class SubstitutionCloner : Cloner {
-    public Dictionary<string, Expression> Exprs;
-    public SortedSet<string> SubstitutionsMade;
-    Cloner c;
-    public SubstitutionCloner(Dictionary<string, Expression> subs, Cloner c) {
-      Exprs = subs;
-      SubstitutionsMade = new SortedSet<string>();
-      this.c = c;
-    }
-    public override Expression CloneExpr(Expression expr) {
-      if (expr is NamedExpr) {
-        NamedExpr n = (NamedExpr)expr;
-        Expression E;
-        if (Exprs.TryGetValue(n.Name, out E)) {
-          SubstitutionsMade.Add(n.Name);
-          return new NamedExpr(n.tok, n.Name, E, c.CloneExpr(n.Body), E.tok);
-        }
-      }
-      return base.CloneExpr(expr); // in all other cases, just do what the base class would.
-                                   // note that when we get a named expression that is not in
-                                   // our substitution list, then we call the base class, which
-                                   // recurses on the body of the named expression.
     }
   }
 }

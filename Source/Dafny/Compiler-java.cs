@@ -2324,7 +2324,7 @@ namespace Microsoft.Dafny{
     /// <summary>
     /// Returns whether or not there is a run-time type descriptor corresponding to "tp".
     ///
-    /// Note, one might thing that this method should return "tp.Characteristics.MustSupportZeroInitialization".
+    /// Note, one might thing that this method should return "tp.Characteristics.HasCompiledValue".
     /// However, currently, all built-in collection types in Java use type descriptors for their arguments.
     /// To get this threaded through everywhere, all type arguments must always be passed with a
     /// corresponding type descriptor. :(  Thus, this method returns "true".
@@ -2857,22 +2857,22 @@ namespace Microsoft.Dafny{
         }
         CreateTuple(i, wr);
       }
-      
+
       // Emit function interfaces
       foreach (var i in functions) {
         CreateLambdaFunctionInterface(i, wr);
       }
-      
+
       // Emit arrays
       foreach (var i in arrays) {
         CreateDafnyArrays(i, wr);
       }
     }
-    
+
     private void CreateTuple(int i, TargetWriter outputWr) {
       Contract.Requires(0 <= i);
       Contract.Requires(outputWr != null);
-      
+
       var wrTop = outputWr.NewFile(Path.Combine("dafny", $"Tuple{i}.java"));
 
       wrTop.WriteLine("package dafny;");
@@ -3006,7 +3006,7 @@ namespace Microsoft.Dafny{
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        if (usePlaceboValue && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
+        if (usePlaceboValue && !udt.ResolvedParam.Characteristics.HasCompiledValue) {
           return "null";
         } else if (constructTypeParameterDefaultsFromTypeDescriptors) {
           return $"{FormatTypeDescriptorVariable(udt.ResolvedParam.CompileName)}.defaultValue()";
@@ -3164,7 +3164,7 @@ namespace Microsoft.Dafny{
     private void CreateLambdaFunctionInterface(int i, TargetWriter outputWr) {
       Contract.Requires(0 <= i);
       Contract.Requires(outputWr != null);
-      
+
       var functionName = $"Function{i}";
       var wr = outputWr.NewFile(Path.Combine("dafny", $"{functionName}.java"));
 
@@ -3192,9 +3192,9 @@ namespace Microsoft.Dafny{
     private void CreateDafnyArrays(int i, TargetWriter outputWr) {
       Contract.Requires(0 <= i);
       Contract.Requires(outputWr != null);
-      
+
       var wrTop = outputWr.NewFile(Path.Combine("dafny", $"Array{i}.java"));
-      
+
       wrTop.WriteLine("package dafny;");
       wrTop.WriteLine();
 

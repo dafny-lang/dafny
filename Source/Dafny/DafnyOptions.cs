@@ -51,7 +51,7 @@ namespace Microsoft.Dafny
     public bool UnicodeOutput = false;
     public bool DisallowSoundnessCheating = false;
     public bool Dafnycc = false;
-    public int Induction = 3;
+    public int Induction = 4;
     public int InductionHeuristic = 6;
     public bool TypeInferenceDebug = false;
     public bool MatchCompilerDebug = false;
@@ -252,7 +252,7 @@ namespace Microsoft.Dafny
           return true;
 
         case "induction":
-          ps.GetNumericArgument(ref Induction, 4);
+          ps.GetNumericArgument(ref Induction, 5);
           return true;
 
         case "inductionHeuristic":
@@ -605,7 +605,6 @@ namespace Microsoft.Dafny
       } else {
         var platform = (int)System.Environment.OSVersion.Platform;
 
-        // http://www.mono-project.com/docs/faq/technical/
         var isUnix = platform == 4 || platform == 6 || platform == 128;
 
         var z3binName = isUnix ? "z3" : "z3.exe";
@@ -745,8 +744,9 @@ namespace Microsoft.Dafny
     1 - only apply induction when attributes request it
     2 - apply induction as requested (by attributes) and also
         for heuristically chosen quantifiers
-    3 (default) - apply induction as requested, and for
+    3 - apply induction as requested, and for
         heuristically chosen quantifiers and lemmas
+    4 (default) - apply induction as requested, and for lemmas
 /inductionHeuristic:<n>
     0 - least discriminating induction heuristic (that is, lean
         toward applying induction more often)
