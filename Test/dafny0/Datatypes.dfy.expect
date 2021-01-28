@@ -1,18 +1,18 @@
-Datatypes.dfy(297,9): Error BP5003: A postcondition might not hold on this return path.
+Datatypes.dfy(297,9): Error: A postcondition might not hold on this return path.
 Datatypes.dfy(295,14): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon13_Then
-    (0,0): anon14_Else
-    (0,0): anon15_Then
+    (0,0): anon14_Then
+    (0,0): anon15_Else
+    (0,0): anon16_Then
     (0,0): anon6
 Datatypes.dfy(298,11): Error: missing case in match expression: Appendix(_)
 Execution trace:
     (0,0): anon0
-    (0,0): anon13_Then
-    (0,0): anon14_Else
+    (0,0): anon14_Then
     (0,0): anon15_Else
-    (0,0): anon16_Then
+    (0,0): anon16_Else
+    (0,0): anon17_Then
 Datatypes.dfy(349,4): Error: missing case in match expression: Cons(_,_)
 Execution trace:
     (0,0): anon0

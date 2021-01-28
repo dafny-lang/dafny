@@ -1,0 +1,39 @@
+#! /bin/bash -f
+
+## pandoc does not process the include directive in GitHub markdown
+## so we do a bit of (inefficient) text processing to assemble the files
+## NOTE: this script is finickhy about the white space in the include directive
+## NOTE: All included files must be in the _includes folder
+
+tmp=/tmp/dafnyt$pid
+tmpZ=/tmp/dafnyZ$pid
+tmpA=/tmp/dafnyA$pid
+tmpB=/tmp/dafnyB$pid
+
+cat $@ > $tmp
+
+grep -q '{% include' $tmp
+a=$?
+
+for (( ; $a==0 ; ))
+do
+
+mv $tmp $tmpZ
+grep -v 'PDFOMIT' $tmpZ > $tmp
+line=`grep -n '{% include_relative' $tmp | head -1 | sed -e 's/:.*//'`
+file=`grep -n '{% include_relative' $tmp | head -1 | sed -e 's/.*include_relative //' -e 's/%}//' `
+la=`wc -l < $tmp`
+let "ln = $line - 1"
+let "lp = $la - $line"
+#echo $line $file $la $ln $lp $file `wc -l $tmp`
+head -n $ln < $tmp > $tmpA
+tail -n $lp < $tmp > $tmpB
+cat $tmpA $file $tmpB > $tmp
+
+grep -q '{% include_relative' $tmp
+a=$?
+
+done
+
+cat $tmp
+

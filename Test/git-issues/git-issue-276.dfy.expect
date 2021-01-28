@@ -1,0 +1,28 @@
+git-issue-276.dfy(7,10): Info: newtype byte resolves as {:nativeType "byte"} (Detected Range: 0 .. 256)
+git-issue-276.dfy(8,10): Info: newtype b0 resolves as {:nativeType "ushort"} (Detected Range: 0 .. 2560)
+git-issue-276.dfy(9,10): Info: newtype b1 resolves as {:nativeType "byte"} (Detected Range: 0 .. 5)
+git-issue-276.dfy(10,10): Info: newtype b2 resolves as {:nativeType "byte"} (Detected Range: 0 .. 10)
+git-issue-276.dfy(11,10): Info: newtype b3 resolves as {:nativeType "byte"} (Detected Range: 0 .. 5)
+git-issue-276.dfy(12,10): Info: newtype b3a resolves as {:nativeType "byte"} (Detected Range: 0 .. 5)
+git-issue-276.dfy(13,10): Info: newtype b4 resolves as {:nativeType "byte"} (Detected Range: 0 .. 7)
+git-issue-276.dfy(14,10): Info: newtype b4a resolves as {:nativeType "byte"} (Detected Range: 0 .. 7)
+git-issue-276.dfy(15,10): Info: newtype b5 resolves as {:nativeType "byte"} (Detected Range: 0 .. 42)
+git-issue-276.dfy(16,10): Info: newtype b6 resolves as {:nativeType "byte"} (Detected Range: 0 .. 20)
+git-issue-276.dfy(17,10): Info: newtype b7 resolves as {:nativeType "byte"} (Detected Range: 0 .. 42)
+git-issue-276.dfy(18,10): Info: newtype b8 resolves as {:nativeType "byte"} (Detected Range: 0 .. 20)
+git-issue-276.dfy(19,10): Info: newtype b9 resolves as {:nativeType "byte"} (Detected Range: 0 .. 42)
+git-issue-276.dfy(20,10): Info: newtype ba resolves as {:nativeType "byte"} (Detected Range: 0 .. 20)
+git-issue-276.dfy(21,10): Info: newtype b3b resolves as {:nativeType "byte"} (Detected Range: 0 .. 6)
+git-issue-276.dfy(22,10): Info: newtype b4b resolves as {:nativeType "byte"} (Detected Range: 0 .. 10)
+git-issue-276.dfy(36,10): Info: newtype cx resolves as {:nativeType "byte"} (Detected Range: 0 .. 4)
+git-issue-276.dfy(25,17): Error: result of operation might violate newtype constraint for 'byte'
+Execution trace:
+    (0,0): anon0
+git-issue-276.dfy(29,18): Error: result of operation might violate newtype constraint for 'b2'
+Execution trace:
+    (0,0): anon0
+git-issue-276.dfy(32,18): Error: result of operation might violate newtype constraint for 'b3'
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 18 verified, 3 errors

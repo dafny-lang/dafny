@@ -1,5 +1,5 @@
-ResolutionErrors.dfy(322,33): Warning: Dafny's constructors no longer need 'this' to be listed in modifies clauses
-ResolutionErrors.dfy(1892,15): Warning: Dafny's constructors no longer need 'this' to be listed in modifies clauses
+ResolutionErrors.dfy(322,33): Warning: constructors no longer need 'this' to be listed in modifies clauses
+ResolutionErrors.dfy(1892,15): Warning: constructors no longer need 'this' to be listed in modifies clauses
 ResolutionErrors.dfy(51,15): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(88,16): Error: the name 'Benny' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.Benny')
 ResolutionErrors.dfy(93,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
@@ -60,7 +60,7 @@ ResolutionErrors.dfy(430,12): Error: first argument to ==> must be of type bool 
 ResolutionErrors.dfy(430,12): Error: second argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(429,8): Error: first argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(429,8): Error: second argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(416,8): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(416,8): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(420,8): Error: arguments must have comparable types (got bool and int)
@@ -97,9 +97,9 @@ ResolutionErrors.dfy(729,22): Error: a possibly infinite loop is allowed only if
 ResolutionErrors.dfy(762,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(793,19): Error: calls to methods with side-effects are not allowed inside a statement expression
 ResolutionErrors.dfy(794,20): Error: wrong number of method result arguments (got 0, expected 1)
-ResolutionErrors.dfy(806,23): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(806,26): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(816,4): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(827,36): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(827,40): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(836,17): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(850,6): Error: RHS (of type B) not assignable to LHS (of type object)
 ResolutionErrors.dfy(852,6): Error: RHS (of type B) not assignable to LHS (of type object)
@@ -163,7 +163,7 @@ ResolutionErrors.dfy(1139,13): Error: arguments must have comparable types (got 
 ResolutionErrors.dfy(1150,10): Error: new can be applied only to class types (got JJ)
 ResolutionErrors.dfy(1158,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
 ResolutionErrors.dfy(1160,38): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
-ResolutionErrors.dfy(1165,24): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
+ResolutionErrors.dfy(1165,27): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
 ResolutionErrors.dfy(1173,15): Error: arguments to / must be numeric or bitvector types (got set<bool>)
 ResolutionErrors.dfy(1180,20): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1195,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
@@ -209,11 +209,11 @@ ResolutionErrors.dfy(1422,4): Error: name of module (Y) is used as a variable
 ResolutionErrors.dfy(1432,9): Error: type of RHS of assign-such-that statement must be boolean (got int)
 ResolutionErrors.dfy(1431,11): Error: type of left argument to + (int) must agree with the result type (bool)
 ResolutionErrors.dfy(1431,11): Error: type of right argument to + (int) must agree with the result type (bool)
-ResolutionErrors.dfy(1431,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(1431,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 ResolutionErrors.dfy(1433,13): Error: type of RHS of assign-such-that statement must be boolean (got int)
 ResolutionErrors.dfy(1436,15): Error: type of left argument to + (int) must agree with the result type (bool)
 ResolutionErrors.dfy(1436,15): Error: type of right argument to + (int) must agree with the result type (bool)
-ResolutionErrors.dfy(1436,15): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(1436,15): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 ResolutionErrors.dfy(1479,20): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(1501,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1502,10): Error: a hint is not allowed to update heap locations
@@ -232,11 +232,11 @@ ResolutionErrors.dfy(1452,29): Error: only ghost methods can be called from this
 ResolutionErrors.dfy(1454,17): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(1570,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1588,12): Error: trying to break out of more loop levels than there are enclosing loops
-ResolutionErrors.dfy(1600,16): Error: ghost fields are allowed only in specification contexts
+ResolutionErrors.dfy(1600,20): Error: ghost fields are allowed only in specification contexts
 ResolutionErrors.dfy(1607,9): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(1613,4): Error: non-ghost variable cannot be assigned a value that depends on a ghost
 ResolutionErrors.dfy(1630,8): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ResolutionErrors.dfy(1639,26): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(1639,29): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
@@ -259,11 +259,9 @@ ResolutionErrors.dfy(1741,38): Error: the type of the bound variable 'u' could n
 ResolutionErrors.dfy(1781,11): Error: type conversions are not supported to this type (got J)
 ResolutionErrors.dfy(1784,11): Error: type conversions are not supported to this type (got C)
 ResolutionErrors.dfy(1785,19): Error: Undeclared top-level type or type parameter: realint (did you forget to qualify a name or declare a module import 'opened'?)
-ResolutionErrors.dfy(1780,6): Error: RHS (of type object) not assignable to LHS (of type J)
-ResolutionErrors.dfy(1783,6): Error: RHS (of type J) not assignable to LHS (of type C)
 ResolutionErrors.dfy(1793,44): Error: range of comprehension must be of type bool (instead got C)
-ResolutionErrors.dfy(1800,14): Error: Duplicate member name: P
-ResolutionErrors.dfy(1802,10): Error: Duplicate member name: L
+ResolutionErrors.dfy(1800,21): Error: Duplicate member name: P
+ResolutionErrors.dfy(1802,17): Error: Duplicate member name: L
 ResolutionErrors.dfy(1810,4): Error: second argument to && must be of type bool (instead got int)
 ResolutionErrors.dfy(1808,11): Error: Function body type mismatch (expected int, got bool)
 ResolutionErrors.dfy(1814,4): Error: second argument to && must be of type bool (instead got int)
@@ -285,168 +283,177 @@ ResolutionErrors.dfy(1860,14): Error: in the first division of the constructor b
 ResolutionErrors.dfy(1891,15): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(1893,16): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(1909,8): Error: return statement is not allowed before 'new;' in a constructor
-ResolutionErrors.dfy(1935,5): Error: type parameter (G) passed to method P must support zero initialization (got F)
-ResolutionErrors.dfy(1937,5): Error: type parameter (G) passed to method P must support zero initialization (got Y)
-ResolutionErrors.dfy(1974,5): Error: type parameter (G) passed to method P must support zero initialization (got SixOrMore)
-ResolutionErrors.dfy(1975,5): Error: type parameter (G) passed to method P must support zero initialization (got AnotherSixOrMore)
-ResolutionErrors.dfy(1976,5): Error: type parameter (G) passed to method P must support zero initialization (got MySixOrMore)
-ResolutionErrors.dfy(1977,5): Error: type parameter (G) passed to method P must support zero initialization (got UnclearA)
-ResolutionErrors.dfy(1993,17): Error: type parameter (G) passed to method P must support zero initialization (got SSixOrMore)
-ResolutionErrors.dfy(1994,24): Error: type parameter (G) passed to method P must support zero initialization (got SAnotherSixOrMore)
-ResolutionErrors.dfy(1995,19): Error: type parameter (G) passed to method P must support zero initialization (got SMySixOrMore)
-ResolutionErrors.dfy(1996,16): Error: type parameter (G) passed to method P must support zero initialization (got SUnclearA)
-ResolutionErrors.dfy(2020,7): Error: type 'B'', which does not support zero initialization, is used to refine an opaque type that expects zero initialization
-ResolutionErrors.dfy(2040,7): Error: type declaration 'Mxx' is not allowed to change the requirement of supporting zero initialization
-ResolutionErrors.dfy(2043,7): Error: type declaration 'M__' is not allowed to change the requirement of supporting zero initialization
-ResolutionErrors.dfy(2046,4): Error: type parameter 'Q' is not allowed to change the requirement of supporting zero initialization
-ResolutionErrors.dfy(2049,4): Error: type parameter 'R' is not allowed to change the requirement of supporting zero initialization
-ResolutionErrors.dfy(2037,5): Error: type parameter (G) passed to method P must support zero initialization (got Z.XYZ)
-ResolutionErrors.dfy(2055,8): Error: class 'C' with fields without known initializers, like 'u' of type 'T', must declare a constructor
-ResolutionErrors.dfy(2078,8): Error: class 'Class' with fields without known initializers, like 'co' of type 'Co', must declare a constructor
-ResolutionErrors.dfy(2081,8): Error: class 'CoClass0' with fields without known initializers, like 'co' of type 'Co', must declare a constructor
-ResolutionErrors.dfy(2103,13): Error: ghost fields are allowed only in specification contexts
-ResolutionErrors.dfy(2117,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2118,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2120,19): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2121,9): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F'' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2122,9): Error: type parameter 'G' (passed in as '(char, ORDINAL)') to function call 'F'' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2123,18): Error: type parameter 'G' (passed in as 'ORDINAL') to the function 'F'' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2124,4): Error: type parameter 'G' (passed in as 'ORDINAL') to the method 'ParameterizedMethod' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2128,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2130,14): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2131,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(1935,5): Error: type parameter (G) passed to method P must support auto-initialization (got F)
+ResolutionErrors.dfy(1937,5): Error: type parameter (G) passed to method P must support auto-initialization (got Y)
+ResolutionErrors.dfy(1974,5): Error: type parameter (G) passed to method P must support auto-initialization (got SixOrMore)
+ResolutionErrors.dfy(1975,5): Error: type parameter (G) passed to method P must support auto-initialization (got AnotherSixOrMore)
+ResolutionErrors.dfy(1976,5): Error: type parameter (G) passed to method P must support auto-initialization (got MySixOrMore)
+ResolutionErrors.dfy(1977,5): Error: type parameter (G) passed to method P must support auto-initialization (got UnclearA)
+ResolutionErrors.dfy(1993,17): Error: type parameter (G) passed to method P must support auto-initialization (got SSixOrMore)
+ResolutionErrors.dfy(1994,24): Error: type parameter (G) passed to method P must support auto-initialization (got SAnotherSixOrMore)
+ResolutionErrors.dfy(1995,19): Error: type parameter (G) passed to method P must support auto-initialization (got SMySixOrMore)
+ResolutionErrors.dfy(1996,16): Error: type parameter (G) passed to method P must support auto-initialization (got SUnclearA)
+ResolutionErrors.dfy(2026,7): Error: type 'B2', which does not support auto-initialization, is used to refine an opaque type that expects auto-initialization
+ResolutionErrors.dfy(2027,7): Error: type 'B3', which does not support auto-initialization, is used to refine an opaque type that expects auto-initialization
+ResolutionErrors.dfy(2031,7): Error: type 'C3', which may be empty, is used to refine an opaque type expected to be nonempty
+ResolutionErrors.dfy(2051,7): Error: type declaration 'A1' is not allowed to change the requirement of supporting auto-initialization
+ResolutionErrors.dfy(2052,7): Error: type declaration 'A2' is not allowed to change the requirement of being nonempty
+ResolutionErrors.dfy(2053,7): Error: type declaration 'B0' is not allowed to change the requirement of supporting auto-initialization
+ResolutionErrors.dfy(2055,7): Error: type declaration 'B2' is not allowed to change the requirement of supporting auto-initialization
+ResolutionErrors.dfy(2056,7): Error: type declaration 'C0' is not allowed to change the requirement of being nonempty
+ResolutionErrors.dfy(2057,7): Error: type declaration 'C1' is not allowed to change the requirement of supporting auto-initialization
+ResolutionErrors.dfy(2061,4): Error: type parameter 'Q' is not allowed to change the requirement of supporting auto-initialization
+ResolutionErrors.dfy(2064,4): Error: type parameter 'R' is not allowed to change the requirement of supporting auto-initialization
+ResolutionErrors.dfy(2047,5): Error: type parameter (G) passed to method P must support auto-initialization (got Z.XYZ)
+ResolutionErrors.dfy(2110,33): Error: type of yield-parameter must support auto-initialization (got 'T')
+ResolutionErrors.dfy(2118,13): Error: ghost fields are allowed only in specification contexts
 ResolutionErrors.dfy(2132,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2133,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2135,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2138,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2138,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2139,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2139,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2139,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2139,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2141,25): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2167,36): Error: Name of yield-parameter is used by another member of the iterator: u
-ResolutionErrors.dfy(2168,37): Error: Name of implicit yield-history variable 'u' is already used by another member of the iterator
-ResolutionErrors.dfy(2192,15): Error: To access members of class 'MyClass', write 'MyClass', not 'MyClass?'
-ResolutionErrors.dfy(2203,15): Error: name of type (MyClass) is used as a variable
-ResolutionErrors.dfy(2204,15): Error: name of type (MyClass?) is used as a variable
-ResolutionErrors.dfy(2217,17): Error: To access members of class 'MyClass', write 'MyClass', not 'MyClass?'
-ResolutionErrors.dfy(2228,17): Error: name of type (MyClass) is used as a variable
-ResolutionErrors.dfy(2229,17): Error: name of type (MyClass?) is used as a variable
-ResolutionErrors.dfy(2246,17): Error: static non-ghost const field 'W' of type 'MyClass' (which does not have a default compiled value) must give a defining value
-ResolutionErrors.dfy(2248,17): Error: static non-ghost const field 'O' of type 'Odd' (which does not have a default compiled value) must give a defining value
-ResolutionErrors.dfy(2254,17): Error: static non-ghost const field 'W' of type 'MyClass' (which does not have a default compiled value) must give a defining value
-ResolutionErrors.dfy(2256,17): Error: static non-ghost const field 'O' of type 'Odd' (which does not have a default compiled value) must give a defining value
-ResolutionErrors.dfy(2264,8): Error: class 'Instance' with fields without known initializers, like 'w' of type 'MyClass', must declare a constructor
-ResolutionErrors.dfy(2238,8): Error: static non-ghost const field 'X' of type 'Odd' (which does not have a default compiled value) must give a defining value
-ResolutionErrors.dfy(2241,8): Error: static non-ghost const field 'Y' of type 'MyClass' (which does not have a default compiled value) must give a defining value
-ResolutionErrors.dfy(2280,6): Error: LHS of assignment must denote a mutable field
-ResolutionErrors.dfy(2281,10): Error: LHS of assignment must denote a mutable field
-ResolutionErrors.dfy(2288,6): Error: LHS of assignment must denote a mutable field
-ResolutionErrors.dfy(2295,8): Error: LHS of assignment must denote a mutable field of 'this'
-ResolutionErrors.dfy(2309,20): Error: ghost fields are allowed only in specification contexts
-ResolutionErrors.dfy(2312,18): Error: ghost fields are allowed only in specification contexts
-ResolutionErrors.dfy(2328,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
-ResolutionErrors.dfy(2331,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
-ResolutionErrors.dfy(2337,24): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
-ResolutionErrors.dfy(2337,24): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
-ResolutionErrors.dfy(2340,36): Error: a set comprehension involved in a newtype definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
-ResolutionErrors.dfy(2341,34): Error: a set comprehension involved in a subset type definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
-ResolutionErrors.dfy(2339,22): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
-ResolutionErrors.dfy(2339,22): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
-ResolutionErrors.dfy(2346,19): Error: a set comprehension involved in a predicate definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
-ResolutionErrors.dfy(2352,37): Error: a const field definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2352,10): Error: const field's type is not fully determined
-ResolutionErrors.dfy(2355,49): Error: a newtype definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2356,47): Error: a subset type definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2354,35): Error: a const field definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2354,8): Error: const field's type is not fully determined
-ResolutionErrors.dfy(2361,32): Error: a predicate definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2367,41): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2135,19): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2136,9): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F'' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2137,9): Error: type parameter 'G' (passed in as '(char, ORDINAL)') to function call 'F'' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2138,18): Error: type parameter 'G' (passed in as 'ORDINAL') to the function 'F'' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2139,4): Error: type parameter 'G' (passed in as 'ORDINAL') to the method 'ParameterizedMethod' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2143,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2145,14): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2146,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2147,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2148,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2150,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2153,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2153,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2154,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2154,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2154,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2154,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2156,25): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2182,36): Error: Name of yield-parameter is used by another member of the iterator: u
+ResolutionErrors.dfy(2183,37): Error: Name of implicit yield-history variable 'u' is already used by another member of the iterator
+ResolutionErrors.dfy(2207,15): Error: To access members of class 'MyClass', write 'MyClass', not 'MyClass?'
+ResolutionErrors.dfy(2218,15): Error: name of type (MyClass) is used as a variable
+ResolutionErrors.dfy(2219,15): Error: name of type (MyClass?) is used as a variable
+ResolutionErrors.dfy(2232,17): Error: To access members of class 'MyClass', write 'MyClass', not 'MyClass?'
+ResolutionErrors.dfy(2243,17): Error: name of type (MyClass) is used as a variable
+ResolutionErrors.dfy(2244,17): Error: name of type (MyClass?) is used as a variable
+ResolutionErrors.dfy(2261,17): Error: static non-ghost const field 'W' of type 'MyClass' (which does not have a default compiled value) must give a defining value
+ResolutionErrors.dfy(2263,17): Error: static non-ghost const field 'O' of type 'Odd' (which does not have a default compiled value) must give a defining value
+ResolutionErrors.dfy(2269,17): Error: static non-ghost const field 'W' of type 'MyClass' (which does not have a default compiled value) must give a defining value
+ResolutionErrors.dfy(2271,17): Error: static non-ghost const field 'O' of type 'Odd' (which does not have a default compiled value) must give a defining value
+ResolutionErrors.dfy(2279,8): Error: class 'Instance' with fields without known initializers, like 'w' of type 'MyClass', must declare a constructor
+ResolutionErrors.dfy(2253,8): Error: static non-ghost const field 'X' of type 'Odd' (which does not have a default compiled value) must give a defining value
+ResolutionErrors.dfy(2256,8): Error: static non-ghost const field 'Y' of type 'MyClass' (which does not have a default compiled value) must give a defining value
+ResolutionErrors.dfy(2295,6): Error: LHS of assignment must denote a mutable field
+ResolutionErrors.dfy(2296,10): Error: LHS of assignment must denote a mutable field
+ResolutionErrors.dfy(2303,6): Error: LHS of assignment must denote a mutable field
+ResolutionErrors.dfy(2310,8): Error: LHS of assignment must denote a mutable field of 'this'
+ResolutionErrors.dfy(2324,20): Error: ghost fields are allowed only in specification contexts
+ResolutionErrors.dfy(2327,18): Error: ghost fields are allowed only in specification contexts
+ResolutionErrors.dfy(2343,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
+ResolutionErrors.dfy(2346,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
+ResolutionErrors.dfy(2352,24): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+ResolutionErrors.dfy(2352,24): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
+ResolutionErrors.dfy(2355,36): Error: a set comprehension involved in a newtype definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+ResolutionErrors.dfy(2356,34): Error: a set comprehension involved in a subset type definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+ResolutionErrors.dfy(2354,22): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+ResolutionErrors.dfy(2354,22): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
+ResolutionErrors.dfy(2361,19): Error: a set comprehension involved in a predicate definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+ResolutionErrors.dfy(2367,37): Error: a const field definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2367,10): Error: const field's type is not fully determined
-ResolutionErrors.dfy(2370,53): Error: a newtype definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2371,51): Error: a subset type definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2369,39): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2370,49): Error: a newtype definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2371,47): Error: a subset type definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2369,35): Error: a const field definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2369,8): Error: const field's type is not fully determined
-ResolutionErrors.dfy(2376,36): Error: a predicate definition is not allowed to depend on the set of allocated references
-ResolutionErrors.dfy(2383,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
-ResolutionErrors.dfy(2419,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
-ResolutionErrors.dfy(2426,32): Error: an abstemious function is allowed to invoke a codatatype destructor only on its parameters
-ResolutionErrors.dfy(2431,12): Error: an abstemious function is allowed to codatatype-match only on its parameters
-ResolutionErrors.dfy(2438,9): Error: an abstemious function is not only allowed to check codatatype equality
-ResolutionErrors.dfy(2440,14): Error: an abstemious function is not only allowed to check codatatype equality
-ResolutionErrors.dfy(2465,19): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2466,13): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F'' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2467,13): Error: type parameter 'G' (passed in as '(char, ORDINAL)') to function call 'F'' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2468,18): Error: type parameter 'G' (passed in as 'ORDINAL') to the function 'F'' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2473,17): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2474,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2475,24): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2486,25): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2487,17): Error: type of bound variable 'yt' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2484,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2484,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2483,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2480,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2376,32): Error: a predicate definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2382,41): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2382,10): Error: const field's type is not fully determined
+ResolutionErrors.dfy(2385,53): Error: a newtype definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2386,51): Error: a subset type definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2384,39): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2384,8): Error: const field's type is not fully determined
+ResolutionErrors.dfy(2391,36): Error: a predicate definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2398,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
+ResolutionErrors.dfy(2434,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
+ResolutionErrors.dfy(2441,32): Error: an abstemious function is allowed to invoke a codatatype destructor only on its parameters
+ResolutionErrors.dfy(2446,12): Error: an abstemious function is allowed to codatatype-match only on its parameters
+ResolutionErrors.dfy(2453,9): Error: an abstemious function is not only allowed to check codatatype equality
+ResolutionErrors.dfy(2455,14): Error: an abstemious function is not only allowed to check codatatype equality
+ResolutionErrors.dfy(2480,19): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2481,13): Error: type parameter 'G' (passed in as 'ORDINAL') to function call 'F'' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2482,13): Error: type parameter 'G' (passed in as '(char, ORDINAL)') to function call 'F'' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2483,18): Error: type parameter 'G' (passed in as 'ORDINAL') to the function 'F'' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2488,17): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2489,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2490,24): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2501,25): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2502,17): Error: type of bound variable 'yt' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2499,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2499,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2498,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2495,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2493,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2492,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2491,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2490,14): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2488,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2487,26): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2486,18): Error: type of bound variable 'r' ('(ORDINAL, int)') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2485,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2484,4): Error: type parameter 'G' (passed in as 'ORDINAL') to the lemma 'ParameterizedLemma' is not allowed to use ORDINAL
 ResolutionErrors.dfy(2478,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2477,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2476,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2475,14): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2473,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2472,26): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2471,18): Error: type of bound variable 'r' ('(ORDINAL, int)') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2470,18): Error: type of bound variable 'r' ('ORDINAL') is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2469,4): Error: type parameter 'G' (passed in as 'ORDINAL') to the lemma 'ParameterizedLemma' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2463,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2462,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2601,23): Error: no label 'Treasure' in scope at this time
-ResolutionErrors.dfy(2602,19): Error: no label 'WonderfulLabel' in scope at this time
-ResolutionErrors.dfy(2609,13): Error: no label 'Treasure' in scope at this time
-ResolutionErrors.dfy(2610,13): Error: no label 'WonderfulLabel' in scope at this time
-ResolutionErrors.dfy(2519,11): Error: no label 'L' in scope at this time
-ResolutionErrors.dfy(2522,10): Error: label shadows a dominating label
-ResolutionErrors.dfy(2530,10): Error: label shadows a dominating label
-ResolutionErrors.dfy(2637,27): Error: type parameter (G) passed to method GimmieOne must support zero initialization (got Yt<Odd>)
-ResolutionErrors.dfy(2638,26): Error: type parameter (G) passed to method GimmieOne must support zero initialization (got Yt<GW>)
-ResolutionErrors.dfy(2651,50): Error: type of the receiver is not fully determined at this program point
-ResolutionErrors.dfy(2677,11): Error: name of type (Cache) is used as a variable
-ResolutionErrors.dfy(2677,17): Error: incorrect type for selection into ? (got X)
-ResolutionErrors.dfy(2685,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
-ResolutionErrors.dfy(2695,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
-ResolutionErrors.dfy(2728,13): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ResolutionErrors.dfy(2729,13): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ResolutionErrors.dfy(2731,11): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(2752,4): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(2762,15): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ResolutionErrors.dfy(2763,22): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ResolutionErrors.dfy(2769,15): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ResolutionErrors.dfy(2770,22): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-ResolutionErrors.dfy(2787,23): Error: type of left argument to * (int) must agree with the result type (bool)
-ResolutionErrors.dfy(2787,23): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
-ResolutionErrors.dfy(2786,13): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
-ResolutionErrors.dfy(2796,21): Error: type of left argument to * (int) must agree with the result type (bool)
-ResolutionErrors.dfy(2796,21): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
-ResolutionErrors.dfy(2795,11): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
-ResolutionErrors.dfy(2782,9): Error: not resolving module 'ErrorsFromNestedModules' because there were errors in resolving its nested module 'U'
-ResolutionErrors.dfy(2804,11): Error: duplicate name of top-level declaration: G
-ResolutionErrors.dfy(2810,11): Error: duplicate name of top-level declaration: H
-ResolutionErrors.dfy(2826,4): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(2828,20): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(2837,6): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(2838,4): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(2847,6): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(2848,8): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(2849,4): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(2861,13): Error: expression is not allowed to refer to constant field x
-ResolutionErrors.dfy(2863,22): Error: expression is not allowed to refer to constant field x
-ResolutionErrors.dfy(2874,13): Error: arguments must be of a set or multiset type (got map<X, Y>)
-ResolutionErrors.dfy(2884,4): Error: expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ResolutionErrors.dfy(2890,11): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
-ResolutionErrors.dfy(2891,21): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(2902,15): Error: RHS (of type X) not assignable to LHS (of type X)
-ResolutionErrors.dfy(2906,10): Error: type of corresponding source/RHS (X) does not match type of bound variable (X)
-ResolutionErrors.dfy(2934,16): Error: sequence update requires the value to have the element type of the sequence (got Trait)
-ResolutionErrors.dfy(2938,11): Error: multiset update requires domain element to be of type Elem (got Trait)
-ResolutionErrors.dfy(2943,13): Error: map update requires domain element to be of type Elem (got Trait)
-ResolutionErrors.dfy(2945,18): Error: map update requires the value to have the range type Elem (got Trait)
-446 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2616,23): Error: no label 'Treasure' in scope at this time
+ResolutionErrors.dfy(2617,19): Error: no label 'WonderfulLabel' in scope at this time
+ResolutionErrors.dfy(2624,13): Error: no label 'Treasure' in scope at this time
+ResolutionErrors.dfy(2625,13): Error: no label 'WonderfulLabel' in scope at this time
+ResolutionErrors.dfy(2534,11): Error: no label 'L' in scope at this time
+ResolutionErrors.dfy(2537,10): Error: label shadows a dominating label
+ResolutionErrors.dfy(2545,10): Error: label shadows a dominating label
+ResolutionErrors.dfy(2653,26): Error: type parameter (G) passed to method GimmieOne must support auto-initialization (got Yt<GW>)
+ResolutionErrors.dfy(2666,50): Error: type of the receiver is not fully determined at this program point
+ResolutionErrors.dfy(2692,11): Error: name of type (Cache) is used as a variable
+ResolutionErrors.dfy(2692,17): Error: incorrect type for selection into ? (got X)
+ResolutionErrors.dfy(2700,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
+ResolutionErrors.dfy(2710,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
+ResolutionErrors.dfy(2743,13): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(2744,13): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(2746,11): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2767,4): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2777,15): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(2778,22): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(2784,15): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(2785,22): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(2802,23): Error: type of left argument to * (int) must agree with the result type (bool)
+ResolutionErrors.dfy(2802,23): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(2801,13): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
+ResolutionErrors.dfy(2811,21): Error: type of left argument to * (int) must agree with the result type (bool)
+ResolutionErrors.dfy(2811,21): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(2810,11): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
+ResolutionErrors.dfy(2797,9): Error: not resolving module 'ErrorsFromNestedModules' because there were errors in resolving its nested module 'U'
+ResolutionErrors.dfy(2819,11): Error: duplicate name of top-level declaration: G
+ResolutionErrors.dfy(2825,11): Error: duplicate name of top-level declaration: H
+ResolutionErrors.dfy(2841,4): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2843,20): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2852,6): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2853,4): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2862,6): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2863,8): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2864,4): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2876,13): Error: expression is not allowed to refer to constant field x
+ResolutionErrors.dfy(2878,22): Error: expression is not allowed to refer to constant field x
+ResolutionErrors.dfy(2889,13): Error: arguments must be of a set or multiset type (got map<X, Y>)
+ResolutionErrors.dfy(2899,4): Error: expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ResolutionErrors.dfy(2905,11): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
+ResolutionErrors.dfy(2906,21): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2917,15): Error: RHS (of type X) not assignable to LHS (of type X)
+ResolutionErrors.dfy(2921,10): Error: type of corresponding source/RHS (X) does not match type of bound variable (X)
+ResolutionErrors.dfy(2949,16): Error: sequence update requires the value to have the element type of the sequence (got Trait)
+ResolutionErrors.dfy(2953,11): Error: multiset update requires domain element to be of type Elem (got Trait)
+ResolutionErrors.dfy(2958,13): Error: map update requires domain element to be of type Elem (got Trait)
+ResolutionErrors.dfy(2960,18): Error: map update requires the value to have the range type Elem (got Trait)
+ResolutionErrors.dfy(2985,5): Error: type parameter (F) passed to method Q must support auto-initialization (got Y)
+ResolutionErrors.dfy(2988,5): Error: type parameter (F) passed to method Q must support auto-initialization (got Z)
+ResolutionErrors.dfy(2989,5): Error: type parameter (G) passed to method P must support nonempty (got Z)
+ResolutionErrors.dfy(2998,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Y)
+ResolutionErrors.dfy(3001,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Z)
+ResolutionErrors.dfy(3002,9): Error: type parameter (G) passed to function FP must support nonempty (got Z)
+453 resolution/type errors detected in ResolutionErrors.dfy

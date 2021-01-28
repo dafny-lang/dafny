@@ -42,7 +42,6 @@ module AssignmentToNat {
     requires f.requires(x)  // error
   {
     var y := f(x);  // error
-    g := z => z;  // error
   }
   method Q(x: int) {
     var f := Pf;
@@ -176,9 +175,9 @@ module SoftCasts {
   {
     if
     case true =>
-      g := z => if z < 0 then -z else z;
+      g := z => (if z < 0 then -z else z) as nat; // OK with check in verifier
     case true =>
-      g := z => if z <= 0 then -z else z-1;
+      g := z => if z <= 0 then -z else z-1; // OK with check in verifier
     case true =>
       g := (z: int) => if z < 0 then -z else z-1;  // error: may fail to return a nat
     case true =>
@@ -205,63 +204,16 @@ module AssignmentsFromNewAllocation {
     b := new Person[N](_ => null);  // error: null is not a Person
   }
 
-  method K(p: Person) returns (a: array<Person?>, b: array<Person>) {
-    if * {
-      a := new Person[0];  // error: cannot assign array<Person> to array<Person?>
-    } else if * {
-      a := new Person[100](_ => p);  // error: ditto
-    } else if * {
-      a := new Person[] [p, p];  // error: ditto
-    } else if * {
-      a := b;  // error: ditto
-    }
-  }
-
-  method L(p: Person) returns (a: array<Person?>, b: array<Person>) {
-    if * {
-      b := new Person?[100];  // error: cannot assign array<Person?> to array<Person>
-    } else if * {
-      b := new Person?[100](_ => p);  // error: ditto
-    } else if * {
-      b := new Person?[] [p, p];  // error: ditto
-    } else if * {
-      b := a;  // error: ditto
-    }
-  }
-
-  method M(N: nat, p: Person) {
-    var a: array<Person?>;
-    var b: array<Person>;
-    if * {
-      a := b;  // error
-    } else if * {
-      b := a;  // error
-    } else if * {
-      a := new Person?[N](_ => p);
-      b := a;  // error
-    } else if * {
-      a := new Person[N](_ => p);  // error: cannot assign array<Person> to array<Person?>
-    } else if * {
-      b := new Person?[N](_ => p);  // error: cannot assign array<Person?> to array<Person>
-    }
-  }
-
   method N(p: Person) returns (a: array<Person>, b: array<Person?>)
   {
     var c := new Person[1] [p];
     var d := new Person?[1];
     if * {
-      assume b.Length == 0;  // the next line is an error even in this case
-      a := b;  // error
-    } else if * {
-      assume a.Length == 0;  // the next line is an error even in this case
-      b := a;  // error
-    } else if * {
       a := c;
-      b := c;  // error
+      b := c;  // error: arrays are non-variant
     } else if * {
       b := d;
-      a := d;  // error
+      a := d;  // error: arrays are non-variant
     }
   }
 
@@ -297,15 +249,7 @@ module AssignmentsFromNewAllocation {
     if * {
       c := new Cell<Person?>;
     } else if * {
-      d := new Cell<Person?>;  // error: Cell<Person?> is not assignable to Cell<Person>
-    } else if * {
-      c := new Cell<Person>;  // error: Cell<Person> is not assignable to Cell<Person?>
-    } else if * {
       d := new Cell<Person>;
-    } else if * {
-      c := dd;  // error: Cell<Person> is not assignable to Cell<Person?>
-    } else if * {
-      d := cc;  // error: Cell<Person?> is not assignable to Cell<Person>
     }
   }
 }
@@ -454,4 +398,16 @@ module ErrorMessagesOfFailingConstraints {
   method m2(x: int) returns (n: nat) {
     n := x;  // error: x may be negative
   }
+}
+
+// ----------- regression tests, subset type of char ----------
+
+module CharSubsetDefault {
+  // If a witness clause is not given, then value the verifier uses 'D' as the
+  // candidate witness for char. This value must agree with what the compilers do.
+  type GoodChar = ch: char | 3 as char < ch < 200 as char
+  type NeedsWitnessChar0 = ch: char | ch < 40 as char  // error: needs manually provided witness
+  type GoodWitness0 = ch: char | ch < 40 as char witness ' '
+  type NeedsWitnessChar1 = ch: char | ch != 'D'  // error: needs manually provided witness
+  type GoodWitnessChar1 = ch: char | ch != 'D' witness 'd'
 }

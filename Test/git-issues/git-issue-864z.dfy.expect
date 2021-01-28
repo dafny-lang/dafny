@@ -1,0 +1,3 @@
+git-issue-864z.dfy(27,13): Error: unresolved identifier: c
+git-issue-864z.dfy(29,13): Error: unresolved identifier: b
+2 resolution/type errors detected in git-issue-864z.dfy

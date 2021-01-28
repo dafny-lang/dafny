@@ -14,7 +14,7 @@ from collections import defaultdict
 from multiprocessing import Pool, Manager
 from subprocess import Popen, call, PIPE, TimeoutExpired
 
-# C:/Python34/python.exe runTests.py --compiler "c:/MSR/dafny/Binaries/Dafny.exe" --flags "/useBaseNameForFileName /compile:1 /nologo" --difftool "C:\Program Files (x86)\Meld\Meld.exe" -j4 --flags "/dprelude preludes\AlmostAllTriggers.bpl" dafny0\SeqFromArray.dfy
+# C:/Python34/python.exe runTests.py --compiler "c:/MSR/dafny/Binaries/Dafny.exe" --flags "/useBaseNameForFileName /compile:1 --difftool "C:\Program Files (x86)\Meld\Meld.exe" -j4 --flags "/dprelude preludes\AlmostAllTriggers.bpl" dafny0\SeqFromArray.dfy
 
 # c:/Python34/python.exe runTests.py --compare ../TestStable/results/SequenceAxioms/2015-06-06-00-54-52--PrettyPrinted.report.csv ../TestStable/results/SequenceAxioms/*.csv
 
@@ -40,7 +40,7 @@ class Defaults:
     EXCLUDED_FOLDERS = ["Inputs", "Output", "sandbox", "desktop"]
     DAFNY_BIN = os.path.realpath(os.path.join(os.path.dirname(__file__), "../Binaries/Dafny.exe"))
     COMPILER = [DAFNY_BIN]
-    FLAGS = ["/useBaseNameForFileName", "/compile:1", "/nologo", "/timeLimit:300"]
+    FLAGS = ["/useBaseNameForFileName", "/compile:1", "/timeLimit:300"]
     EXTENSIONS = [".dfy", ".transcript"]
 
 class Colors:

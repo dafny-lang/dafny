@@ -184,3 +184,12 @@ module TypeInference {
     t := b;  // error: cannot assign Tr<real> to Tr<int>
   }
 }  // TypeInference
+
+module ExtendObject {
+  trait A extends object { }
+  trait B extends object, A { }
+  trait C extends A, object { }
+  class X extends object { }
+  class Y extends object, A { }
+  class Z extends A, object { }
+}

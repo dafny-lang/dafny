@@ -361,7 +361,7 @@ Execution trace:
     DirtyLoops.dfy(377,3): anon9_Else
     (0,0): anon10_Then
     (0,0): anon11_Then
-DirtyLoops.dfy(401,18): Error BP5004: This loop invariant might not hold on entry.
+DirtyLoops.dfy(401,18): Error: This loop invariant might not hold on entry.
 DirtyLoops.dfy(401,18): Related message: loop invariant violation
 Execution trace:
     (0,0): anon0
@@ -454,4 +454,4 @@ DirtyLoops.dfy.tmp.dprint.dfy(409,2): Warning: the conclusion of the body of thi
 DirtyLoops.dfy.tmp.dprint.dfy(415,2): Warning: note, this loop has no body (loop frame: x)
 DirtyLoops.dfy.tmp.dprint.dfy(409,2): Warning: /!\ No terms found to trigger on.
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier did not attempt verification

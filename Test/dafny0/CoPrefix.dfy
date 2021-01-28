@@ -22,14 +22,14 @@ function ones(): Stream
   Cons(1, ones())
 }
 
-copredicate atmost(a: Stream, b: Stream)
+greatest predicate atmost(a: Stream, b: Stream)
 {
   match a
   case Nil => true
   case Cons(h,t) => b.Cons? && h <= b.head && atmost(t, b.tail)
 }
 
-colemma {:induction false} Theorem0()
+greatest lemma {:induction false} Theorem0()
   ensures atmost(zeros(), ones());
 {
   // the following shows two equivalent ways to getting essentially the
@@ -51,7 +51,7 @@ ghost method Theorem0_Manual()
 
 datatype Natural = Zero | Succ(Natural)
 
-colemma {:induction false} Theorem0_TerminationFailure_ExplicitDecreases(y: Natural)
+greatest lemma {:induction false} Theorem0_TerminationFailure_ExplicitDecreases(y: Natural)
   ensures atmost(zeros(), ones());
   decreases y;
 {
@@ -65,7 +65,7 @@ colemma {:induction false} Theorem0_TerminationFailure_ExplicitDecreases(y: Natu
   Theorem0_TerminationFailure_ExplicitDecreases#[_k-1](y);
 }
 
-colemma {:induction false} Theorem0_TerminationFailure_DefaultDecreases(y: Natural)
+greatest lemma {:induction false} Theorem0_TerminationFailure_DefaultDecreases(y: Natural)
   ensures atmost(zeros(), ones());
 {
   match (y) {
@@ -83,7 +83,7 @@ ghost method {:induction true} Theorem0_Lemma(k: ORDINAL)
 {
 }
 
-colemma {:induction false} Theorem1()
+greatest lemma {:induction false} Theorem1()
   ensures append(zeros(), ones()) == zeros();
 {
   Theorem1();
@@ -96,19 +96,19 @@ function UpIList(n: int): IList
   ICons(n, UpIList(n+1))
 }
 
-copredicate Pos(s: IList)
+greatest predicate Pos(s: IList)
 {
   s.head > 0 && Pos(s.tail)
 }
 
-colemma {:induction false} Theorem2(n: int)
+greatest lemma {:induction false} Theorem2(n: int)
   requires 1 <= n;
   ensures Pos(UpIList(n));
 {
   Theorem2(n+1);
 }
 
-colemma {:induction false} Theorem2_NotAProof(n: int)
+greatest lemma {:induction false} Theorem2_NotAProof(n: int)
   requires 1 <= n;
   ensures Pos(UpIList(n));
 {  // error: this is not a proof (without automatic induction)
@@ -128,7 +128,7 @@ function GG<T>(h: T): TList<T>
   TCons(h, GG(Next(h)))
 }
 
-colemma {:induction false} Compare<T>(h: T)
+greatest lemma {:induction false} Compare<T>(h: T)
   ensures FF(h) == GG(h);
 {
   assert FF(h).head == GG(h).head;
@@ -146,7 +146,7 @@ colemma {:induction false} Compare<T>(h: T)
   }
 }
 
-colemma {:induction false} BadTheorem(s: IList)
+greatest lemma {:induction false} BadTheorem(s: IList)
   ensures false;
 {  // error: postcondition violation
   BadTheorem(s.tail);
@@ -156,36 +156,36 @@ colemma {:induction false} BadTheorem(s: IList)
 
 // Make sure recursive calls get checked for termination
 module Recursion {
-  colemma X() { Y(); }
-  colemma Y() { X(); }
+  greatest lemma X() { Y(); }
+  greatest lemma Y() { X(); }
 
-  colemma G(x: int)
+  greatest lemma G(x: int)
     ensures x < 100;
   {  // error: postcondition violation (when _k == 0)
     H(x);
   }
-  colemma H(x: int)
+  greatest lemma H(x: int)
     ensures x < 100;
   {  // error: postcondition violation (when _k == 0)
     G(x);
   }
 
-  colemma A(x: int) { B(x); }
-  colemma B(x: int)
+  greatest lemma A(x: int) { B(x); }
+  greatest lemma B(x: int)
   {
     A#[10](x);  // error: this is a recursive call, and the termination metric may not be going down
   }
 
-  colemma A'(x: int) { B'(x); }
-  colemma B'(x: int)
+  greatest lemma A'(x: int) { B'(x); }
+  greatest lemma B'(x: int)
   {
     if (10 < _k) {
       A'#[10](x);
     }
   }
 
-  colemma A''(x: int) { B''(x); }
-  colemma B''(x: int)
+  greatest lemma A''(x: int) { B''(x); }
+  greatest lemma B''(x: int)
   {
     if (0 < x) {
       A''#[_k](x-1);
@@ -196,7 +196,7 @@ module Recursion {
 module PrefixEquality {
   codatatype Stream<T> = Cons(head: T, Stream)
 
-  colemma Test0(s: Stream, t: Stream)
+  greatest lemma Test0(s: Stream, t: Stream)
     requires s.head == t.head
   {
     calc {
@@ -210,7 +210,7 @@ module PrefixEquality {
     }
   }
 
-  colemma Test1(s: Stream, t: Stream)
+  greatest lemma Test1(s: Stream, t: Stream)
     requires s == t
   {
     calc {

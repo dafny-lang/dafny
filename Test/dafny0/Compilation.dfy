@@ -102,7 +102,7 @@ abstract module S {
 }
 
 module T refines S {
-  class C {
+  class C ... {
     constructor () { }
     method m() {
       print "in T.C.m()";
@@ -234,7 +234,7 @@ module GhostLetExpr {
         ghost var z := bb + F();
         ghost var t0 := var y := z; z + 3;
         ghost var t1 := ghost var y := z; z + 3;
-        var t2 := ghost var y := z; aa + 3;
+        var t2; t2 := ghost var y := z; aa + 3;
     }
   }
 
@@ -363,12 +363,12 @@ class DigitUnderscore_Names_Functions_and_Methods {
     p.567(100);
   }
 
-  inductive predicate 500(y: int)
+  least predicate 500(y: int)
   {
     y == 0 || this.500(y-1)
   }
 
-  inductive lemma 5_0_0(y: int)
+  least lemma 5_0_0(y: int)
     requires this.500(y)
     ensures 0 <= y
   {

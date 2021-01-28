@@ -36,16 +36,13 @@ let _dafny = (function() {
     static get Default() { return false; }
   }
   $module.Rtd_char = class {
-    static get Default() { return '\0'; }
+    static get Default() { return 'D'; }  // See CharType.DefaultValue in Dafny source code
   }
   $module.Rtd_int = class {
     static get Default() { return BigNumber(0); }
   }
-  $module.Rtd_bv_Native = class {
+  $module.Rtd_number = class {
     static get Default() { return 0; }
-  }
-  $module.Rtd_bv_NonNative = class {
-    static get Default() { return BigNumber(0); }
   }
   $module.Rtd_ref = class {
     static get Default() { return null; }
@@ -73,6 +70,9 @@ let _dafny = (function() {
         }
       }
       return true;
+    }
+    static Default(...values) {
+      return Tuple.of(...values);
     }
     static Rtd(...rtdArgs) {
       return {
@@ -635,6 +635,30 @@ let _dafny = (function() {
         s.push(_dafny.Tuple.of(k, v));
       }
       return s;
+    }
+    Merge(that) {
+      let m = that.slice();
+      for (let e of this) {
+        let [k, v] = e;
+        let i = m.findIndex(k);
+        if (i == m.length) {
+          m[i] = [k, v];
+        }
+      }
+      return m;
+    }
+    Subtract(keys) {
+      if (this.length === 0 || keys.length === 0) {
+        return this;
+      }
+      let m = new Map();
+      for (let e of this) {
+        let [k, v] = e;
+        if (!keys.contains(k)) {
+          m[m.length] = e;
+        }
+      }
+      return m;
     }
   }
   $module.newArray = function(initValue, ...dims) {

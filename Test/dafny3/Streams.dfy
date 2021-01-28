@@ -43,7 +43,7 @@ function map_fg(M: Stream<X>): Stream<X>
 // ----- Theorems
 
 // map (f * g) M = map f (map g M)
-colemma Theorem0(M: Stream<X>)
+greatest lemma Theorem0(M: Stream<X>)
   ensures map_fg(M) == map_f(map_g(M));
 {
   match (M) {
@@ -52,7 +52,7 @@ colemma Theorem0(M: Stream<X>)
       Theorem0(N);
   }
 }
-colemma Theorem0_Alt(M: Stream<X>)
+greatest lemma Theorem0_Alt(M: Stream<X>)
   ensures map_fg(M) == map_f(map_g(M));
 {
   if (M.Cons?) {
@@ -83,7 +83,7 @@ lemma Theorem0_AutoInd(k: nat, M: Stream<X>)
 }
 
 // map f (append M N) = append (map f M) (map f N)
-colemma Theorem1(M: Stream<X>, N: Stream<X>)
+greatest lemma Theorem1(M: Stream<X>, N: Stream<X>)
   ensures map_f(append(M, N)) == append(map_f(M), map_f(N));
 {
   match (M) {
@@ -92,7 +92,7 @@ colemma Theorem1(M: Stream<X>, N: Stream<X>)
       Theorem1(M', N);
   }
 }
-colemma Theorem1_Alt(M: Stream<X>, N: Stream<X>)
+greatest lemma Theorem1_Alt(M: Stream<X>, N: Stream<X>)
   ensures map_f(append(M, N)) == append(map_f(M), map_f(N));
 {
   if (M.Cons?) {
@@ -135,7 +135,7 @@ lemma Theorem2(M: Stream<X>)
 }
 
 // append M NIL = M
-colemma Theorem3(M: Stream<X>)
+greatest lemma Theorem3(M: Stream<X>)
   ensures append(M, Nil) == M;
 {
   match (M) {
@@ -144,7 +144,7 @@ colemma Theorem3(M: Stream<X>)
       Theorem3(N);
   }
 }
-colemma Theorem3_Alt(M: Stream<X>)
+greatest lemma Theorem3_Alt(M: Stream<X>)
   ensures append(M, Nil) == M;
 {
   if (M.Cons?) {
@@ -153,7 +153,7 @@ colemma Theorem3_Alt(M: Stream<X>)
 }
 
 // append M (append N P) = append (append M N) P
-colemma Theorem4(M: Stream<X>, N: Stream<X>, P: Stream<X>)
+greatest lemma Theorem4(M: Stream<X>, N: Stream<X>, P: Stream<X>)
   ensures append(M, append(N, P)) == append(append(M, N), P);
 {
   match (M) {
@@ -162,7 +162,7 @@ colemma Theorem4(M: Stream<X>, N: Stream<X>, P: Stream<X>)
       Theorem4(M', N, P);
   }
 }
-colemma Theorem4_Alt(M: Stream<X>, N: Stream<X>, P: Stream<X>)
+greatest lemma Theorem4_Alt(M: Stream<X>, N: Stream<X>, P: Stream<X>)
   ensures append(M, append(N, P)) == append(append(M, N), P);
 {
   if (M.Cons?) {
@@ -208,7 +208,7 @@ function PrependThenFlattenStartMarker<T>(prefix: Stream, M: Stream<Stream>, sta
 
 // The next variation of Flatten requires M to contain no empty streams.
 
-copredicate StreamOfNonEmpties(M: Stream<Stream>)
+greatest predicate StreamOfNonEmpties(M: Stream<Stream>)
 {
   match M
   case Nil => true
@@ -244,7 +244,7 @@ function Prepend<T>(x: T, M: Stream<Stream>): Stream<Stream>
   case Cons(s, N) => Cons(Cons(x, s), Prepend(x, N))
 }
 
-colemma Prepend_Lemma<T>(x: T, M: Stream<Stream>)
+greatest lemma Prepend_Lemma<T>(x: T, M: Stream<Stream>)
   ensures StreamOfNonEmpties(Prepend(x, M));
 {
   match M {
@@ -264,7 +264,7 @@ lemma Theorem_Flatten<T>(M: Stream<Stream>, startMarker: T)
   Lemma_Flatten(Nil, M, startMarker);
 }
 
-colemma Lemma_Flatten<T>(prefix: Stream, M: Stream<Stream>, startMarker: T)
+greatest lemma Lemma_Flatten<T>(prefix: Stream, M: Stream<Stream>, startMarker: T)
   ensures
     StreamOfNonEmpties(Prepend(startMarker, M)) ==> // always holds, on account of Prepend_Lemma;
                                           // but until (co-)method can be called from functions,
@@ -328,7 +328,7 @@ colemma Lemma_Flatten<T>(prefix: Stream, M: Stream<Stream>, startMarker: T)
   }
 }
 
-colemma Lemma_FlattenAppend0<T>(s: Stream, M: Stream<Stream>, startMarker: T)
+greatest lemma Lemma_FlattenAppend0<T>(s: Stream, M: Stream<Stream>, startMarker: T)
   ensures PrependThenFlattenStartMarker(s, M, startMarker) == append(s, PrependThenFlattenStartMarker(Nil, M, startMarker));
 {
   match (s) {
@@ -338,7 +338,7 @@ colemma Lemma_FlattenAppend0<T>(s: Stream, M: Stream<Stream>, startMarker: T)
   }
 }
 
-colemma Lemma_FlattenAppend1<T>(s: Stream, M: Stream<Stream>)
+greatest lemma Lemma_FlattenAppend1<T>(s: Stream, M: Stream<Stream>)
   requires StreamOfNonEmpties(M);
   ensures PrependThenFlattenNonEmpties(s, M) == append(s, PrependThenFlattenNonEmpties(Nil, M));
 {

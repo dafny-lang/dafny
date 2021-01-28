@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
+// RUN: %dafny /compile:3 /induction:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Specifications and proofs involving foldr (inspired by Liquid Haskell) and foldl
@@ -100,7 +100,11 @@ function method F23(a: int, b: int): int {
 lemma FoldR_F23(xs: List<int>)
   ensures foldr(F23, 0, xs) % 2 == 0
 {
-  // Dafny proves this lemma automatically
+  // Note: With Z3 v.4.8.4, this proof had been automatic.
+  // With Z3 v.4.8.9, the following empty match structure is needed.
+  match xs
+  case Nil =>
+  case Cons(head, tail) =>
 }
 
 // In fact, it's also possible to write this lemma in an inline assertion.

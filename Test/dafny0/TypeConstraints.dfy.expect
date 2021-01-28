@@ -7,14 +7,19 @@ TypeConstraints.dfy(81,6): Error: RHS (of type int) not assignable to LHS (of ty
 TypeConstraints.dfy(77,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
 TypeConstraints.dfy(94,8): Error: the type of this local variable is underspecified
 TypeConstraints.dfy(94,11): Error: the type of this local variable is underspecified
-TypeConstraints.dfy(102,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
-TypeConstraints.dfy(136,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
-TypeConstraints.dfy(147,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got C?)
-TypeConstraints.dfy(145,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got map<bool, int>)
-TypeConstraints.dfy(149,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got C)
+TypeConstraints.dfy(102,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+TypeConstraints.dfy(136,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+TypeConstraints.dfy(147,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got C?)
+TypeConstraints.dfy(149,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got C)
 TypeConstraints.dfy(176,6): Error: RHS (of type C) not assignable to LHS (of type R)
-TypeConstraints.dfy(182,6): Error: RHS (of type object) not assignable to LHS (of type C)
-TypeConstraints.dfy(188,6): Error: RHS (of type object) not assignable to LHS (of type R)
+TypeConstraints.dfy(424,8): Error: type array<nat> is not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
+TypeConstraints.dfy(426,8): Error: type array<int> is not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
+TypeConstraints.dfy(429,8): Error: RHS (of type array<int>) not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
+TypeConstraints.dfy(431,8): Error: RHS (of type array<nat>) not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
+TypeConstraints.dfy(450,8): Error: type array<nat> is not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
+TypeConstraints.dfy(452,8): Error: type array<int> is not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
+TypeConstraints.dfy(455,8): Error: RHS (of type array<int>) not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
+TypeConstraints.dfy(457,8): Error: RHS (of type array<nat>) not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
 // TypeConstraints.dfy
 
 /*
@@ -27,9 +32,9 @@ module _System {
    * SCC at height 0:
    *   nat
    */
-  type string(==) = seq<char>
+  type string(==,0) = seq<char>
 
-  type {:axiom} nat(==) = x: int
+  type {:axiom} nat(==,0) = x: int
     | 0 <= x
 
   trait {:compile false} object { }
@@ -411,15 +416,13 @@ module References {
     r := c;
   }
 
-  method M2() returns (c: C, r: R)
+  method M2() returns (c: C, r: R, o: object)
   {
-    var o: object;
     c := o;
   }
 
-  method M3() returns (c: C, r: R)
+  method M3() returns (c: C, r: R, o: object)
   {
-    var o: object;
     r := o;
   }
 }
@@ -798,6 +801,40 @@ module Arrays_and_SubsetTypes {
   }
 }
 
+module Arrays_and_SubsetTypesOK {
+  /* CALL GRAPH for module Arrays_and_SubsetTypesOK:
+   * SCC at height 2:
+   *   M
+   * SCC at height 1:
+   *   array
+   * SCC at height 0:
+   *   nat
+   */
+  method M()
+  {
+    var a: array<nat>;
+    var b: array<int>;
+    if * {
+      a := new nat[100];
+      b := new nat[100];
+    } else if * {
+      a := new int[100];
+      b := new int[100];
+    } else if * {
+      a := b;
+    } else if * {
+      b := a;
+    } else if * {
+      var n: array<nat> := new nat[100];
+      if * {
+        a := n;
+      } else {
+        b := n;
+      }
+    }
+  }
+}
+
 module TypeArgumentPrintTests {
   /* CALL GRAPH for module TypeArgumentPrintTests:
    * SCC at height 3:
@@ -848,4 +885,41 @@ module TypeArgumentPrintTests {
   type {:axiom} B(==)<Y> = c: B?<Y> | c != null /*special witness*/
   */
 }
-17 resolution/type errors detected in TypeConstraints.dfy
+
+module PrettyPrintingBindingPowers {
+  /* CALL GRAPH for module PrettyPrintingBindingPowers:
+   * SCC at height 2:
+   *   M
+   * SCC at height 1:
+   *   P
+   * SCC at height 0:
+   *   MyInt
+   */
+  newtype MyInt = u: int
+    | u != 193
+
+  method M(m: map<int, real>, n: map<int, real>, a: set<int>, b: set<int>, c: set<int>)
+      returns (r: map<int, real>)
+  {
+    r := m - b - c;
+    r := m - b + n;
+    r := m - b + n;
+    r := m - (b + c);
+    r := m + n - (b + c);
+    r := m + (n - (b + c));
+    r := m + (n - b) - c;
+    r := m + (m + n) + m;
+    r := m + m + n + m;
+  }
+
+  method P()
+      returns (x: int, u: MyInt, s: set<int>, e: seq<int>, m: map<int, int>)
+  {
+    x := x + x + x;
+    u := u + (u + u);
+    s := s + (s + s);
+    e := e + (e + e);
+    m := m + (m + m);
+  }
+}
+22 resolution/type errors detected in TypeConstraints.dfy

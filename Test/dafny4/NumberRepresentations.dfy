@@ -57,27 +57,35 @@ lemma CompleteNat(n: nat, base: int) returns (digits: seq<int>)
   } else {
     var d, m := n / base, n % base;
     assert base * d + m == n;
-    if n <= d {
-      calc {
-        base * d + m == n;
-      ==> { assert 0 <= m; }
-        base * d <= n;
-      ==> { assert n <= d; }
-        base * n <= n;
-        (base - 1) * n + n <= n;
-        (base - 1) * n <= 0;
-      ==> { assert (base - 1) * n <= 0; MulSign(base - 1, n); }
-        (base - 1) <= 0 || n <= 0;
-        { assert 0 < n; }
-        (base - 1) <= 0;
-        { assert 2 <= base; }
-        false;
-      }
-      assert false;
-    }
+    DivIsLess(n, base, d);
     assert d < n && 0 <= m;
     digits := CompleteNat(d, base);
     digits := [m] + digits;
+  }
+}
+
+lemma DivIsLess(n: nat, base: int, d: int)
+  requires 2 <= base <= n && d == n / base
+  ensures d < n
+{
+  var m := n % base;
+  if n <= d {
+    calc {
+      base * d + m == n;
+    ==> { assert 0 <= m; }
+      base * d <= n;
+    ==> { assert n <= d; MulIsMonotonic(base, n, d); }
+      base * n <= n;
+      (base - 1) * n + n <= n;
+      (base - 1) * n <= 0;
+    ==> { assert (base - 1) * n <= 0; MulSign(base - 1, n); }
+      (base - 1) <= 0 || n <= 0;
+    ==  { assert 0 < n; }
+      (base - 1) <= 0;
+    ==  { assert 2 <= base; }
+      false;
+    }
+    assert false;
   }
 }
 
@@ -119,8 +127,33 @@ ghost method inc(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
   } else if a[0] + 1 < lowDigit + base {
     b := a[0 := a[0] + 1];
   } else {
-    b := inc(a[1..], lowDigit, base);
-    b := [lowDigit] + b;
+    // here's what we know about a:
+    assert A: a[0] + 1 == lowDigit + base;
+    var a' := a[1..];
+    assert eval(a, base) == a[0] + base * eval(a', base);
+
+    var b' := inc(a', lowDigit, base);
+    assert eval(b', base) == eval(a', base) + 1;
+
+    b := [lowDigit] + b';
+    assert IsSkewNumber(b, lowDigit, base);
+
+    calc {
+      eval(b, base);
+    ==  // def. eval
+      b[0] + base * eval(b[1..], base);
+    ==  { assert b[0] == lowDigit; }
+      lowDigit + base * eval(b[1..], base);
+    ==  { assert b[1..] == b'; }
+      lowDigit + base * eval(b', base);
+    ==  { assert eval(b', base) == eval(a', base) + 1; }
+      lowDigit + base * (eval(a', base) + 1);
+      lowDigit + base * eval(a', base) + base;
+    ==  { reveal A; }
+      a[0] + base * eval(a', base) + 1;
+    ==  // def. eval
+      eval(a, base) + 1;
+    }
   }
 }
 
@@ -161,7 +194,7 @@ lemma TrimProperty(a: seq<int>)
   requires a == trim(a)
   ensures a == [] || a[1..] == trim(a[1..])
 {
-  assert forall b :: |trim(b)| <= |b|;
+  assert forall b {:induction} :: |trim(b)| <= |b|;
 }
 
 lemma TrimPreservesValue(digits: seq<int>, base: int)
@@ -249,7 +282,9 @@ lemma {:induction false} ZeroIsUnique(a: seq<int>, lowDigit: int, base: int)
 
     calc {
       a1 <= -1;
-    ==  // multiply both sides by base
+    ==> { MulIsMonotonic(base, a1, -1); }  // multiply both sides by base
+      base * a1 <= base * -1;
+    ==>  { assert base * a1 == b; }
       b <= base * -1;
     ==  // add a[0] to both sides
       a[0] + b <= a[0] - base;
@@ -263,7 +298,9 @@ lemma {:induction false} ZeroIsUnique(a: seq<int>, lowDigit: int, base: int)
 
     calc {
       1 <= a1;
-    ==  // multiply both sides by base
+    ==> { MulIsMonotonic(base, 1, a1); }  // multiply both sides by base
+      base * 1 <= base * a1;
+    ==  { assert base * 1 == base; }
       base <= base * a1;
     ==  // add a[0] to both sides
       a[0] + base <= a[0] + base * a1;
@@ -349,7 +386,7 @@ lemma LeastSignificantDigitIsAlmostMod_Pos(a: seq<int>, lowDigit: int, base: int
     (a[0] + base * a1) % base;
   ==  { ModProperty(a[0], a1, base); }
     a[0] % base;
-  ==  { assert a[0] in a; assert 0 <= a[0] < base; }
+  ==  { assert a[0] in a; ModNoop(a[0], base); }
     a[0];
   }
 }
@@ -375,7 +412,7 @@ lemma LeastSignificantDigitIsAlmostMod_Neg(a: seq<int>, lowDigit: int, base: int
     ((a[0] + base) + base * a1minus) % base;
   ==  { ModProperty(a[0] + base, a1minus, base); }
     (a[0] + base) % base;
-  ==  { assert a[0] in a; assert 0 <= a[0] + base < base; }
+  ==  { assert a[0] in a; ModNoop(a[0] + base, base); }
     a[0] + base;
   }
 }
@@ -414,15 +451,28 @@ lemma ModProperty(n: int, k: int, base: int)
   }
   if
   case pk < 0 =>
+    MulIsMonotonic(base, pk, -1);
     assert base * pk <= -base;
     assert false;
   case 0 < pk =>
+    MulIsMonotonic(base, 1, pk);
     assert base <= base * pk;
     assert false;
   case pk == 0 =>
     assert base * pk == 0;
     assert m' == m;
 }
+
+lemma MulIsMonotonic(a: int, x: int, y: int)
+  requires 0 <= a && x <= y
+  ensures a * x <= a * y
+{
+}
+
+// This axiom about % is needed.  Unfortunately, Z3 v.4.8.9 seems incapable of proving it.
+lemma ModNoop(a: int, b: int)
+  requires 0 <= a < b
+  ensures a % b == a
 
 lemma MulProperty(k: int, a: int, x: int, b: int, y: int) returns (p: int)
   requires 0 < k

@@ -1,0 +1,4 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+.../github-issue-305-b.dfy(6,7): Error: Method _module._default.hasNoBody has no body
+File github-issue-305-b.cs contains the partially compiled program

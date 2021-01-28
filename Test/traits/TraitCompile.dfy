@@ -396,6 +396,8 @@ module TraitsExtendingTraits {
      \  /  /
       \ | /
         G
+
+   In addition, for further testing, M, C, and G list "object" in the "extends" clause.
    */
 
   trait A<Y0, Y1> {
@@ -419,7 +421,7 @@ module TraitsExtendingTraits {
     method Quantity() returns (x: int)
     method Twice() returns (x: int)
   }
-  trait C {
+  trait C extends object {
   }
 
   trait K<Y> extends A<Y, Odd> {
@@ -431,7 +433,7 @@ module TraitsExtendingTraits {
     }
   }
 
-  trait M extends B {
+  trait M extends B, object {
     method Quantity() returns (x: int)
       ensures 0 <= x <= 20
     {
@@ -445,7 +447,7 @@ module TraitsExtendingTraits {
     }
   }
 
-  class G<X> extends K<X>, K<X>, M, N, C {
+  class G<X> extends K<X>, K<X>, M, object, N, C {
     constructor (x: X) {
       y0 := x;
     }

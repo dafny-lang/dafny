@@ -69,7 +69,7 @@ function method Count<T(==)>(a: seq<T>, s: int, t: int, x: T): int
   Count(a, s, t-1, x) + if a[t-1] == x then 1 else 0
 }
 
-predicate HasMajority<T(==)>(a: seq<T>, s: int, t: int, x: T)
+predicate HasMajority<T>(a: seq<T>, s: int, t: int, x: T)
   requires 0 <= s <= t <= |a|
 {
   2 * Count(a, s, t, x) > t - s

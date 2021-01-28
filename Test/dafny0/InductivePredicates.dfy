@@ -3,7 +3,7 @@
 
 datatype natinf = N(n: nat) | Inf
 
-inductive predicate Even(x: natinf)
+least predicate Even(x: natinf)
 {
   (x.N? && x.n == 0) ||
   (x.N? && 2 <= x.n && Even(N(x.n - 2)))
@@ -17,7 +17,7 @@ lemma M(x: natinf)
   M'(k, x);
 }
 
-// yay!  my first proof involving an inductive predicate :)
+// yay!  my first proof involving a least predicate :)
 lemma {:induction false} M'(k: ORDINAL, x: natinf)
   requires Even#[k](x)
   ensures x.N? && x.n % 2 == 0
@@ -42,8 +42,8 @@ lemma M'_auto(k: ORDINAL, x: natinf)
 {
 }
 
-// Here is the same proof as in M / M', but packaged into a single "inductive lemma":
-inductive lemma {:induction false} IL(x: natinf)
+// Here is the same proof as in M / M', but packaged into a single "least lemma":
+least lemma {:induction false} IL(x: natinf)
   requires Even(x)
   ensures x.N? && x.n % 2 == 0
 {
@@ -55,7 +55,7 @@ inductive lemma {:induction false} IL(x: natinf)
   }
 }
 
-inductive lemma {:induction false} IL_EvenBetter(x: natinf)
+least lemma {:induction false} IL_EvenBetter(x: natinf)
   requires Even(x)
   ensures x.N? && x.n % 2 == 0
 {
@@ -67,13 +67,13 @@ inductive lemma {:induction false} IL_EvenBetter(x: natinf)
   }
 }
 
-inductive lemma IL_Best(x: natinf)
+least lemma IL_Best(x: natinf)
   requires Even(x)
   ensures x.N? && x.n % 2 == 0
 {
 }
 
-inductive lemma IL_Bad(x: natinf)
+least lemma IL_Bad(x: natinf)
   requires Even(x)
   ensures x.N? && x.n % 2 == 0
 {
@@ -126,13 +126,13 @@ module Alt {
     case Inf => Inf
   }
 
-  inductive predicate Even(x: natinf)
+  least predicate Even(x: natinf)
   {
     (x.N? && x.n == 0) ||
     exists y :: x == S(S(y)) && Even(y)
   }
 
-  inductive lemma {:induction false} MyLemma_NotSoNice(x: natinf)
+  least lemma {:induction false} MyLemma_NotSoNice(x: natinf)
     requires Even(x)
     ensures x.N? && x.n % 2 == 0
   {
@@ -146,7 +146,7 @@ module Alt {
     }
   }
 
-  inductive lemma {:induction false} MyLemma_Nicer(x: natinf)  // same as MyLemma_NotSoNice but relying on syntactic rewrites
+  least lemma {:induction false} MyLemma_Nicer(x: natinf)  // same as MyLemma_NotSoNice but relying on syntactic rewrites
     requires Even(x)
     ensures x.N? && x.n % 2 == 0
   {
@@ -160,7 +160,7 @@ module Alt {
     }
   }
 
-  inductive lemma MyLemma_RealNice_AndFastToo(x: natinf)
+  least lemma MyLemma_RealNice_AndFastToo(x: natinf)
     requires Even(x)
     ensures x.N? && x.n % 2 == 0
   {
@@ -174,7 +174,7 @@ module Alt {
     }
   }
 
-  inductive lemma InfNotEven_Aux()
+  least lemma InfNotEven_Aux()
     requires Even(Inf)
     ensures false
   {
@@ -194,7 +194,7 @@ module Alt {
  * are currently not produced--they are controled by #if WILLING_TO_TAKE_THE_PERFORMANCE_HIT.
  ***********
 module Monotonicity {
-  inductive predicate P(x: char)
+  least predicate P(x: char)
 
   lemma MonotonicityP(k: ORDINAL, k': ORDINAL, x: char)
     requires P#[k](x) && k <= k'
@@ -202,7 +202,7 @@ module Monotonicity {
   {
   }
 
-  inductive predicate Q[nat](x: char)
+  least predicate Q[nat](x: char)
 
   lemma MonotonicityQ(k: nat, k': nat, x: char)
     requires Q#[k](x) && k <= k'
@@ -210,7 +210,7 @@ module Monotonicity {
   {
   }
 
-  copredicate H[nat](x: char)
+  greatest predicate H[nat](x: char)
 
   lemma MonotonicityH(k: nat, k': nat, x: char)
     requires H#[k](x) && k' <= k
@@ -218,7 +218,7 @@ module Monotonicity {
   {
   }
 
-  copredicate J(x: char)
+  greatest predicate J(x: char)
 
   lemma MonotonicityJ(k: ORDINAL, k': ORDINAL, x: char)
     requires J#[k](x) && k' <= k
@@ -234,13 +234,13 @@ module Monotonicity {
 module TargetedMonotonicity {
   function Next(x: int): int
 
-  inductive predicate P(x: int, y: int, z: int)
+  least predicate P(x: int, y: int, z: int)
   {
     (x == 0 && y == z) ||
     (x != 0 && P(Next(x), y, z))
   }
 
-  inductive lemma Deterministic(x: int, y: int, z: int, z': int)
+  least lemma Deterministic(x: int, y: int, z: int, z': int)
     requires P(x, y, z) && P(x, y, z')
     ensures z == z'
   {
@@ -249,33 +249,33 @@ module TargetedMonotonicity {
 }
 
 module SomeCoolDisjunctionTests {
-  inductive predicate P[ORDINAL](x: int)
+  least predicate P[ORDINAL](x: int)
   {
     Q(x)
   }
 
-  inductive predicate Q[ORDINAL](x: int)
+  least predicate Q[ORDINAL](x: int)
   {
     P(x)
   }
 
-  inductive lemma L[ORDINAL](x: int)
+  least lemma L[ORDINAL](x: int)
     requires P(x) || Q(x)
     ensures false  // fine
   {
   }
 
-  inductive predicate Pn[nat](x: int)
+  least predicate Pn[nat](x: int)
   {
     Qn(x)
   }
 
-  inductive predicate Qn[nat](x: int)
+  least predicate Qn[nat](x: int)
   {
     Pn(x)
   }
 
-  inductive lemma Ln[nat](x: int)
+  least lemma Ln[nat](x: int)
     requires Pn(x) || Qn(x)
     ensures false  // fine
   {

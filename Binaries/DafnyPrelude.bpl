@@ -78,6 +78,9 @@ axiom (forall t: Ty    :: { TSeq(t) }      Tag(TSeq(t))      == TagSeq);
 axiom (forall t, u: Ty :: { TMap(t,u) }    Tag(TMap(t,u))    == TagMap);
 axiom (forall t, u: Ty :: { TIMap(t,u) }   Tag(TIMap(t,u))   == TagIMap);
 
+type TyTagFamily;
+function TagFamily(Ty): TyTagFamily;
+
 // ---------------------------------------------------------------
 // -- Literals ---------------------------------------------------
 // ---------------------------------------------------------------
@@ -147,6 +150,13 @@ axiom (forall bx : Box ::
 axiom (forall bx : Box ::
     { $IsBox(bx, TChar) }
     ( $IsBox(bx, TChar) ==> $Box($Unbox(bx) : char) == bx && $Is($Unbox(bx) : char, TChar)));
+
+// Since each bitvector type is a separate type in Boogie, the Box/Unbox axioms for bitvectors are
+// generated programmatically. Except, Bv0 is given here.
+axiom (forall bx : Box ::
+    { $IsBox(bx, TBitvector(0)) }
+    ( $IsBox(bx, TBitvector(0)) ==> $Box($Unbox(bx) : Bv0) == bx && $Is($Unbox(bx) : Set Box, TBitvector(0))));
+
 axiom (forall bx : Box, t : Ty ::
     { $IsBox(bx, TSet(t)) }
     ( $IsBox(bx, TSet(t)) ==> $Box($Unbox(bx) : Set Box) == bx && $Is($Unbox(bx) : Set Box, TSet(t))));
@@ -198,6 +208,11 @@ axiom(forall h : Heap, v : real :: { $IsAlloc(v,TReal,h) } $IsAlloc(v,TReal,h));
 axiom(forall h : Heap, v : bool :: { $IsAlloc(v,TBool,h) } $IsAlloc(v,TBool,h));
 axiom(forall h : Heap, v : char :: { $IsAlloc(v,TChar,h) } $IsAlloc(v,TChar,h));
 axiom(forall h : Heap, v : ORDINAL :: { $IsAlloc(v,TORDINAL,h) } $IsAlloc(v,TORDINAL,h));
+
+// Since every bitvector type is a separate type in Boogie, the $Is/$IsAlloc axioms
+// for bitvectors are generated programatically. Except, TBitvector(0) is given here.
+axiom (forall v: Bv0 :: { $Is(v, TBitvector(0)) } $Is(v, TBitvector(0)));
+axiom (forall v: Bv0, h: Heap :: { $IsAlloc(v, TBitvector(0), h) } $IsAlloc(v, TBitvector(0), h));
 
 axiom (forall v: Set Box, t0: Ty :: { $Is(v, TSet(t0)) }
   $Is(v, TSet(t0)) <==>
@@ -252,6 +267,12 @@ axiom (forall v: Map Box Box, t0: Ty, t1: Ty, h: Heap ::
       Map#Domain(v)[bx] ==>
         $IsAllocBox(Map#Elements(v)[bx], t1, h) &&
         $IsAllocBox(bx, t0, h)));
+axiom (forall v: Map Box Box, t0: Ty, t1: Ty ::
+  { $Is(v, TMap(t0, t1)) }
+  $Is(v, TMap(t0, t1)) ==>
+    $Is(Map#Domain(v), TSet(t0)) &&
+    $Is(Map#Values(v), TSet(t1)) &&
+    $Is(Map#Items(v), TSet(Tclass._System.Tuple2(t0, t1))));
 
 axiom (forall v: IMap Box Box, t0: Ty, t1: Ty ::
   { $Is(v, TIMap(t0, t1)) }
@@ -269,6 +290,12 @@ axiom (forall v: IMap Box Box, t0: Ty, t1: Ty, h: Heap ::
       IMap#Domain(v)[bx] ==>
         $IsAllocBox(IMap#Elements(v)[bx], t1, h) &&
         $IsAllocBox(bx, t0, h)));
+axiom (forall v: IMap Box Box, t0: Ty, t1: Ty ::
+  { $Is(v, TIMap(t0, t1)) }
+  $Is(v, TIMap(t0, t1)) ==>
+    $Is(IMap#Domain(v), TISet(t0)) &&
+    $Is(IMap#Values(v), TISet(t1)) &&
+    $Is(IMap#Items(v), TISet(Tclass._System.Tuple2(t0, t1))));
 
 // ---------------------------------------------------------------
 // -- Encoding of type names -------------------------------------
@@ -282,6 +309,7 @@ const unique class._System.seq: ClassName;
 const unique class._System.multiset: ClassName;
 
 function Tclass._System.object?(): Ty;
+function Tclass._System.Tuple2(Ty, Ty): Ty;
 
 function /*{:never_pattern true}*/ dtype(ref): Ty; // changed from ClassName to Ty
 
@@ -712,10 +740,6 @@ axiom (forall<T> a, b: ISet T :: { ISet#Union(a, b) }
   ISet#Disjoint(a, b) ==>
     ISet#Difference(ISet#Union(a, b), a) == b &&
     ISet#Difference(ISet#Union(a, b), b) == a);
-// Follows from the general union axiom, but might be still worth including, because disjoint union is a common case:
-// axiom (forall<T> a, b: ISet T :: { ISet#Card(ISet#Union(a, b)) }
-//   ISet#Disjoint(a, b) ==>
-//     ISet#Card(ISet#Union(a, b)) == ISet#Card(a) + ISet#Card(b));
 
 function ISet#Intersection<T>(ISet T, ISet T): ISet T;
 axiom (forall<T> a: ISet T, b: ISet T, o: T :: { ISet#Intersection(a,b)[o] }
@@ -740,10 +764,6 @@ axiom (forall<T> a, b: ISet T, y: T :: { ISet#Difference(a, b), b[y] }
 function ISet#Subset<T>(ISet T, ISet T): bool;
 axiom(forall<T> a: ISet T, b: ISet T :: { ISet#Subset(a,b) }
   ISet#Subset(a,b) <==> (forall o: T :: {a[o]} {b[o]} a[o] ==> b[o]));
-// axiom(forall<T> a: ISet T, b: ISet T ::
-//   { ISet#Subset(a,b), ISet#Card(a), ISet#Card(b) }  // very restrictive trigger
-//   ISet#Subset(a,b) ==> ISet#Card(a) <= ISet#Card(b));
-
 
 function ISet#Equal<T>(ISet T, ISet T): bool;
 axiom(forall<T> a: ISet T, b: ISet T :: { ISet#Equal(a,b) }
@@ -914,7 +934,7 @@ axiom (forall<T> s: Seq T :: { Seq#Length(s) }
   );
 
 // The empty sequence $Is any type
-axiom (forall<T> t: Ty :: {$Is(Seq#Empty(): Seq T, t)} $Is(Seq#Empty(): Seq T, t));
+//axiom (forall<T> t: Ty :: {$Is(Seq#Empty(): Seq T, TSeq(t))} $Is(Seq#Empty(): Seq T, TSeq(t)));
 
 function Seq#Singleton<T>(T): Seq T;
 axiom (forall<T> t: T :: { Seq#Length(Seq#Singleton(t)) } Seq#Length(Seq#Singleton(t)) == 1);
@@ -951,10 +971,6 @@ axiom (forall ty: Ty, heap: Heap, len: int, init: HandleType, i: int ::
 function Seq#Append<T>(Seq T, Seq T): Seq T;
 axiom (forall<T> s0: Seq T, s1: Seq T :: { Seq#Length(Seq#Append(s0,s1)) }
   Seq#Length(Seq#Append(s0,s1)) == Seq#Length(s0) + Seq#Length(s1));
-
-// Append preserves $Is
-axiom (forall s0 : Seq Box, s1 : Seq Box, t : Ty :: { $Is(Seq#Append(s0,s1),t) }
-    $Is(s0,t) && $Is(s1,t) ==> $Is(Seq#Append(s0,s1),t));
 
 function Seq#Index<T>(Seq T, int): T;
 axiom (forall<T> t: T :: { Seq#Index(Seq#Singleton(t), 0) } Seq#Index(Seq#Singleton(t), 0) == t);
@@ -1131,11 +1147,29 @@ function Map#Card<U,V>(Map U V) : int;
 
 axiom (forall<U,V> m: Map U V :: { Map#Card(m) } 0 <= Map#Card(m));
 
-// The set of Keys of a Map are available by Map#Domain, and the cardinality of that
-// set is given by Map#Card.
+axiom (forall<U, V> m: Map U V ::
+  { Map#Card(m) }
+  Map#Card(m) == 0 <==> m == Map#Empty());
 
-axiom (forall<U,V> m: Map U V :: { Set#Card(Map#Domain(m)) }
+axiom (forall<U, V> m: Map U V ::
+  { Map#Domain(m) }
+  m == Map#Empty() || (exists k: U :: Map#Domain(m)[k]));
+axiom (forall<U, V> m: Map U V ::
+  { Map#Values(m) }
+  m == Map#Empty() || (exists v: V :: Map#Values(m)[v]));
+axiom (forall<U, V> m: Map U V ::
+  { Map#Items(m) }
+  m == Map#Empty() || (exists k, v: Box :: Map#Items(m)[$Box(#_System._tuple#2._#Make2(k, v))]));
+
+axiom (forall<U, V> m: Map U V ::
+  { Set#Card(Map#Domain(m)) }
   Set#Card(Map#Domain(m)) == Map#Card(m));
+axiom (forall<U, V> m: Map U V ::
+  { Set#Card(Map#Values(m)) }
+  Set#Card(Map#Values(m)) <= Map#Card(m));
+axiom (forall<U, V> m: Map U V ::
+  { Set#Card(Map#Items(m)) }
+  Set#Card(Map#Items(m)) == Map#Card(m));
 
 // The set of Values of a Map can be obtained by the function Map#Values, which is
 // defined as follows.  Remember, a Set is defined by membership (using Boogie's
@@ -1161,12 +1195,9 @@ axiom (forall<U,V> m: Map U V, v: V :: { Map#Values(m)[v] }
 
 function Map#Items<U,V>(Map U V) : Set Box;
 
+function #_System._tuple#2._#Make2(Box, Box) : DatatypeType;
 function _System.Tuple2._0(DatatypeType) : Box;
-
 function _System.Tuple2._1(DatatypeType) : Box;
-
-axiom (forall<U,V> m: Map U V :: { Set#Card(Map#Items(m)) }
-  Set#Card(Map#Items(m)) == Map#Card(m));
 
 axiom (forall m: Map Box Box, item: Box :: { Map#Items(m)[item] }
   Map#Items(m)[item] <==>
@@ -1179,9 +1210,6 @@ function Map#Empty<U, V>(): Map U V;
 axiom (forall<U, V> u: U ::
         { Map#Domain(Map#Empty(): Map U V)[u] }
         !Map#Domain(Map#Empty(): Map U V)[u]);
-axiom (forall<U, V> m: Map U V :: { Map#Card(m) }
- (Map#Card(m) == 0 <==> m == Map#Empty()) &&
- (Map#Card(m) != 0 ==> (exists x: U :: Map#Domain(m)[x])));
 
 function Map#Glue<U, V>([U] bool, [U]V, Ty): Map U V;
 axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
@@ -1212,6 +1240,26 @@ axiom (forall<U, V> m: Map U V, u: U, v: V :: { Map#Card(Map#Build(m, u, v)) }
 axiom (forall<U, V> m: Map U V, u: U, v: V :: { Map#Card(Map#Build(m, u, v)) }
   !Map#Domain(m)[u] ==> Map#Card(Map#Build(m, u, v)) == Map#Card(m) + 1);
 
+// Map operations
+function Map#Merge<U, V>(Map U V, Map U V): Map U V;
+axiom (forall<U, V> m: Map U V, n: Map U V ::
+  { Map#Domain(Map#Merge(m, n)) }
+  Map#Domain(Map#Merge(m, n)) == Set#Union(Map#Domain(m), Map#Domain(n)));
+axiom (forall<U, V> m: Map U V, n: Map U V, u: U ::
+  { Map#Elements(Map#Merge(m, n))[u] }
+  Map#Domain(Map#Merge(m, n))[u] ==>
+    (!Map#Domain(n)[u] ==> Map#Elements(Map#Merge(m, n))[u] == Map#Elements(m)[u]) &&
+    (Map#Domain(n)[u] ==> Map#Elements(Map#Merge(m, n))[u] == Map#Elements(n)[u]));
+
+function Map#Subtract<U, V>(Map U V, Set U): Map U V;
+axiom (forall<U, V> m: Map U V, s: Set U ::
+  { Map#Domain(Map#Subtract(m, s)) }
+  Map#Domain(Map#Subtract(m, s)) == Set#Difference(Map#Domain(m), s));
+axiom (forall<U, V> m: Map U V, s: Set U, u: U ::
+  { Map#Elements(Map#Subtract(m, s))[u] }
+  Map#Domain(Map#Subtract(m, s))[u] ==>
+    Map#Elements(Map#Subtract(m, s))[u] == Map#Elements(m)[u]);
+
 //equality for maps
 function Map#Equal<U, V>(Map U V, Map U V): bool;
 axiom (forall<U, V> m: Map U V, m': Map U V::
@@ -1239,6 +1287,26 @@ type IMap U V;
 function IMap#Domain<U,V>(IMap U V) : Set U;
 
 function IMap#Elements<U,V>(IMap U V) : [U]V;
+
+axiom (forall<U, V> m: IMap U V ::
+  { IMap#Domain(m) }
+  m == IMap#Empty() || (exists k: U :: IMap#Domain(m)[k]));
+axiom (forall<U, V> m: IMap U V ::
+  { IMap#Values(m) }
+  m == IMap#Empty() || (exists v: V :: IMap#Values(m)[v]));
+axiom (forall<U, V> m: IMap U V ::
+  { IMap#Items(m) }
+  m == IMap#Empty() || (exists k, v: Box :: IMap#Items(m)[$Box(#_System._tuple#2._#Make2(k, v))]));
+
+axiom (forall<U, V> m: IMap U V ::
+  { IMap#Domain(m) }
+  m == IMap#Empty() <==> IMap#Domain(m) == ISet#Empty());
+axiom (forall<U, V> m: IMap U V ::
+  { IMap#Values(m) }
+  m == IMap#Empty() <==> IMap#Values(m) == ISet#Empty());
+axiom (forall<U, V> m: IMap U V ::
+  { IMap#Items(m) }
+  m == IMap#Empty() <==> IMap#Items(m) == ISet#Empty());
 
 // The set of Values of a IMap can be obtained by the function IMap#Values, which is
 // defined as follows.  Remember, a ISet is defined by membership (using Boogie's
@@ -1309,6 +1377,26 @@ axiom (forall<U, V> m: IMap U V, m': IMap U V::
 axiom (forall<U, V> m: IMap U V, m': IMap U V::
   { IMap#Equal(m, m') }
     IMap#Equal(m, m') ==> m == m');
+
+// IMap operations
+function IMap#Merge<U, V>(IMap U V, IMap U V): IMap U V;
+axiom (forall<U, V> m: IMap U V, n: IMap U V ::
+  { IMap#Domain(IMap#Merge(m, n)) }
+  IMap#Domain(IMap#Merge(m, n)) == Set#Union(IMap#Domain(m), IMap#Domain(n)));
+axiom (forall<U, V> m: IMap U V, n: IMap U V, u: U ::
+  { IMap#Elements(IMap#Merge(m, n))[u] }
+  IMap#Domain(IMap#Merge(m, n))[u] ==>
+    (!IMap#Domain(n)[u] ==> IMap#Elements(IMap#Merge(m, n))[u] == IMap#Elements(m)[u]) &&
+    (IMap#Domain(n)[u] ==> IMap#Elements(IMap#Merge(m, n))[u] == IMap#Elements(n)[u]));
+
+function IMap#Subtract<U, V>(IMap U V, Set U): IMap U V;
+axiom (forall<U, V> m: IMap U V, s: Set U ::
+  { IMap#Domain(IMap#Subtract(m, s)) }
+  IMap#Domain(IMap#Subtract(m, s)) == Set#Difference(IMap#Domain(m), s));
+axiom (forall<U, V> m: IMap U V, s: Set U, u: U ::
+  { IMap#Elements(IMap#Subtract(m, s))[u] }
+  IMap#Domain(IMap#Subtract(m, s))[u] ==>
+    IMap#Elements(IMap#Subtract(m, s))[u] == IMap#Elements(m)[u]);
 
 // -------------------------------------------------------------------------
 // -- Provide arithmetic wrappers to improve triggering and non-linear math

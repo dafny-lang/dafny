@@ -7,6 +7,10 @@ Execution trace:
     (0,0): anon9_Else
     (0,0): anon10_Then
     (0,0): anon11_Else
+Termination.dfy(577,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
 Termination.dfy(108,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Execution trace:
     (0,0): anon0
@@ -54,5 +58,55 @@ Execution trace:
     Termination.dfy(296,3): anon10_Else
     Termination.dfy(296,3): anon11_Else
     (0,0): anon12_Else
+Termination.dfy(534,2): Error: decreases expression might not decrease
+Execution trace:
+    (0,0): anon0
+    Termination.dfy(534,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Termination.dfy(534,3): anon7_Else
+    Termination.dfy(534,3): anon8_Else
+Termination.dfy(542,2): Error: decreases expression might not decrease
+Execution trace:
+    Termination.dfy(542,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Termination.dfy(542,3): anon7_Else
+    Termination.dfy(542,3): anon8_Else
+Termination.dfy(549,2): Error: decreases expression might not decrease
+Execution trace:
+    Termination.dfy(549,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Termination.dfy(549,3): anon7_Else
+    Termination.dfy(549,3): anon8_Else
+Termination.dfy(556,2): Error: decreases expression might not decrease
+Execution trace:
+    Termination.dfy(556,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Termination.dfy(556,3): anon7_Else
+    Termination.dfy(556,3): anon8_Else
+Termination.dfy(563,2): Error: decreases expression might not decrease
+Execution trace:
+    Termination.dfy(563,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Termination.dfy(563,3): anon7_Else
+    Termination.dfy(563,3): anon8_Else
+Termination.dfy(571,2): Error: decreases expression might not decrease
+Execution trace:
+    Termination.dfy(571,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Termination.dfy(571,3): anon7_Else
+    Termination.dfy(571,3): anon8_Else
+Termination.dfy(579,2): Error: decreases expression might not decrease
+Execution trace:
+    Termination.dfy(579,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Termination.dfy(579,3): anon7_Else
+    Termination.dfy(579,3): anon8_Else
+Termination.dfy(589,2): Error: decreases expression might not decrease
+Execution trace:
+    (0,0): anon0
+    Termination.dfy(589,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Termination.dfy(589,3): anon7_Else
+    Termination.dfy(589,3): anon8_Else
 
-Dafny program verifier finished with 43 verified, 8 errors
+Dafny program verifier finished with 44 verified, 17 errors
