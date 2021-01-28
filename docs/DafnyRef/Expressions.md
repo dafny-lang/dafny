@@ -281,7 +281,7 @@ instead.
 
 Bit-vector operations are not allowed in some contexts.
 The `|` symbol is used both for bit-wise or and as the delimiter in a
-[cardinality](#sec-cardinality) expression: an ambiguity arise if
+[cardinality](#sec-cardinality-expression) expression: an ambiguity arise if
 the expression E in `| E |` contains a `|`. This situation is easily
 remedied; just enclose E in parentheses, as in `|(E)|`.
 The only type-correct way this can happen is if the expression is
@@ -624,7 +624,7 @@ The next example demonstrates the interaction between `old` and array elements.
 
 TO BE WRITTEN -- Inside an old, disallow unchanged, fresh, two-state functions, two-state lemmas, and nested old
 
-## 20.25. Cardinality Expressions
+## 20.25. Cardinality Expressions {#sec-cardinallity-expression}
 ````grammar
 CardinalityExpression_ =
   "|" Expression(allowLemma: true, allowLambda: true) "|"
