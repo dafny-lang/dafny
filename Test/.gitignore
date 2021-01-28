@@ -1,3 +1,30 @@
+**/Output/
+
+# C# output
+**/*.cs
+**/*.dll
+**/*.runtimeconfig.json
+**/*.mdb
+**/*.pdb
+
+# JavaScript output
+**/*.js
+
+# Go output
+**/*-go
+
+# Java output
+**/*-java
+
+# C++ output
+**/*.h
+**/*.cpp
+**/*.dSYM
+**/*.exe
+
+node_modules/
+package-lock.json
+packages
+
+server/model.bvd
 git-issues/git-issue-622$f/**
-*/Output/
-c++/*
