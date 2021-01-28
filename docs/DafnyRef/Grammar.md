@@ -3,7 +3,7 @@ Dafny uses the Coco/R lexer and parser generator for its lexer and parser
 (<http://www.ssw.uni-linz.ac.at/Research/Projects/Coco>)[@Linz:Coco].
 The Dafny input file to Coco/R is the `Dafny.atg` file in the source tree.
 A Coco/R input file consists of code written in the target language
-(e.g., C\#) intermixed with these special sections:
+(C\# for the `dafny` tool) intermixed with these special sections:
 
 0. The [Characters section](#sec-character-classes)
     which defines classes of characters that are used
@@ -35,7 +35,7 @@ following transformations have been performed.
   * In the case of uses of the parameter, the common case is that the
     parameter is just passed to a lower-level non-terminal. In that
     case we just give the name, e.g. `entity2(allowsX)`.
-  * If we want to given an explicit value to a parameter, we specify it in
+  * If we want to give an explicit value to a parameter, we specify it in
     a keyword notation like this: `entity2(allowsX: true)`.
   * In some cases the value to be passed depends on the grammatical context.
     In such cases we give a description of the conditions under which the
@@ -85,11 +85,7 @@ that are not present in the original grammar. We name these with a trailing
 underscore. If you inline these where they are referenced, the result should
 let you reconstruct the original grammar.
 
-**For the convenience of the reader, any references to character sets,
-tokens, or grammar non-terminals in this document are hyper-links that
-will link to the definition of the entity.**
-
-<!-- TODO: Those grammar hyperlinks are not implemented -->
+<!-- TODO: grammar hyperlinks are not implemented -->
 
 ## 2.1. Dafny Input {#sec-unicode}
 
@@ -99,8 +95,8 @@ All program text other than the contents of comments, character, string and verb
 are printable and white-space ASCII characters,
 that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters.
 
-However, a current limitation is that the Coco/R tool used by `dafny`
-and consequently, only printable and white-space ASCII characters can be used.
+However, a current limitation of the Coco/R tool used by `dafny`
+is that only printable and white-space ASCII characters can be used.
 Use `\u` escapes in string and character literals to insert unicode characters.
 Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication.
 Unicode in verbatim strings will likely not be interpreted as intended. [Outstanding issue #818].
@@ -312,7 +308,7 @@ reservedword =
     "returns" | "reveal" | "reveals" |
     "seq" | "set" | "static" | "string" |
     "then" | "this" | "trait" | "true" | "twostate" | "type" |
-    "unchanged" | "var" | "where" | "while" | "witness" |
+    "unchanged" | "var" | "while" | "witness" |
     "yield" | "yields" |
     arrayToken | bvToken
 
@@ -335,8 +331,8 @@ ident = nondigitIdChar { idchar } - charToken - reservedword
 ````
 In general Dafny identifiers are sequences of ``idchar`` characters where
 the first character is a ``nondigitIdChar``. However tokens that fit this pattern
-are not identifiers if they look like a character literal,
-or a reserved word (including array or bit-vvector type tokens).
+are not identifiers if they look like a character literal
+or a reserved word (including array or bit-vector type tokens).
 Also, `ident` tokens that begin with an `_` are not permitted as user identifiers.
 
 ### 2.5.3. Digits
@@ -402,6 +398,13 @@ successive double quotes represent one quote character inside
 the string. This is the mechanism for escaping a double quote character,
 which is the only character needing escaping in a verbatim string.
 
+### Ellipsis
+````grammar
+ellipsis = "..."
+````
+The ellipsis symbol is typically used to designate something missing that will
+later be inserted through refinement or is already present in a parent declaration..
+
 ## 2.6. Low Level Grammar Productions {#sec-grammar}
 
 ### 2.6.1. Identifier Variations
@@ -433,7 +436,8 @@ NoUSIdent = ident - "_" { idchar }
 ````
 A ``NoUSIdent`` is an identifier except that identifiers with a **leading**
 underscore are not allowed. The names of user-defined entities are
-required to be ``NoUSIdent``s. We introduce more mnemonic names
+required to be ``NoUSIdent``s or, in some contexts, a ``digits``.
+ We introduce more mnemonic names
 for these below (e.g. ``ClassName``).
 
 ````grammar
@@ -456,8 +460,9 @@ IdentOrDigits = Ident | digits
 NoUSIdentOrDigits = NoUSIdent | digits
 ModuleName = NoUSIdent
 ClassName = NoUSIdent    // also traits
+LocalVarName = NoUSIdent
 DatatypeName = NoUSIdent
-DatatypeMemberName = NoUSIdent
+DatatypeMemberName = NoUSIdentOrDigits
 NewtypeName = NoUSIdent
 SynonymTypeName = NoUSIdent
 IteratorName = NoUSIdent
@@ -465,9 +470,8 @@ TypeVariableName = NoUSIdent
 MethodFunctionName = NoUSIdentOrDigits
 LabelName = NoUSIdentOrDigits
 AttributeName = NoUSIdent
+ExportId = NoUSIdentOrDigits
 ````
-A ``FieldName`` is one of the ways to identify a field. The other is
-using digits.
 
 ### 2.6.3. Qualified Names
 ```grammar
@@ -495,7 +499,19 @@ In Dafny, a variable or field is typically declared by giving its name followed 
 a ``colon`` and its type. An ``IdentType`` is such a construct.
 
 ````grammar
-GIdentType(allowGhostKeyword, allowNewKeyword) = [ "ghost" | "new" ] IdentType
+FIdentType = NoUSIdentOrDigits ":" Type
+````
+A `FIdentType` is used to declare a field. The Type is required because there is no initializer.
+
+````grammar
+CIdentType = NoUSIdentOrDigits [ ":" Type ]
+````
+A `CIdentType` is used for a `const` declaration. The Type is optional because it may be inferred from
+the initializer.
+
+````grammar
+GIdentType(allowGhostKeyword, allowNewKeyword) =
+    [ "ghost" | "new" ] IdentType
 ````
 A ``GIdentType`` is a typed entity declaration optionally preceded by `ghost` or `new`. The _ghost_
 qualifier means the entity is only used during verification and not in the generated code.
@@ -518,7 +534,7 @@ A ``IdentTypeOptional`` is typically used in a context where the type of the ide
 may be inferred from the context. Examples are in pattern matching or quantifiers.
 
 ````grammar
-TypeIdentOptional = [ "ghost" ] [ ( NoUSIdent | digits ) ":" ] Type
+TypeIdentOptional = [ "ghost" ] [ NoUSIdentOrDigits ":" ] Type
 ````
 ``TypeIdentOptional``s are used in ``FormalsOptionalIds``. This represents situations
 where a type is given but there may not be an identifier.
@@ -541,3 +557,4 @@ A ``Nat`` represents a natural number expressed in either decimal or hexadecimal
 Dec = decimaldigits
 ````
 A ``Dec`` represents a decimal fraction literal.
+

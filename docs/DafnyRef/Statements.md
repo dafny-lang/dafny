@@ -30,7 +30,7 @@ the labeled statement.
 The label is not allowed to be the same as any previous dominating
 label.
 
-The label may also be used in an `old` expression( ([Section 21.24](#sec-old-expression)). In this case the label
+The label may also be used in an `old` expression ([Section 21.24](#sec-old-expression)). In this case the label
 must have been encountered during the control flow in route to the `old`
 expression. That is, again, the label must dominate the use of the label.
 
@@ -719,7 +719,7 @@ IfStmt = "if"
   |
     ( BindingGuard(allowLambda: true)
     | Guard
-    | "..."
+    | ellipsis
     )
     BlockStmt [ "else" ( IfStmt | BlockStmt ) ]
   )
@@ -778,14 +778,16 @@ TODO: Describe the ... refinement
 
 ## 20.12. While Statement
 ````grammar
-WhileStmt = "while"
-  ( LoopSpec
+WhileStmt =
+  "while"
+  ( { LoopSpec }
     AlternativeBlock(allowBindingGuards: false)
-  | ( Guard | ellipsis ) LoopSpec
-      ( BlockStmt
-      | ellipsis
-      | /* go body-less */
-      )
+  | ( Guard | ellipsis )
+    { LoopSpec }
+    ( BlockStmt
+    | ellipsis
+    | /* go body-less */
+    )
   )
 ````
 
@@ -978,15 +980,16 @@ TO BE WRITTEN
 ## 20.14. Match Statement {#sec-match-statement}
 ````grammar
 MatchStmt =
-  "match" Expression(allowLemma: true, allowLambda: true)
+  "match"
+  Expression(allowLemma: true, allowLambda: true)
   ( "{" { CaseStmt } "}"
   | { CaseStmt }
   )
 
-CaseStmt = CaseBinding_ "=>" { Stmt }
+CaseStmt = "case" ExtendedPattern "=>" { Stmt }
 ````
 
-[ `CaseBinding_` is defined in [Section 21.32](#sec-case-pattern).]
+[ `ExtendedPattern` is defined in [Section 21.32](#sec-case-pattern).]
 
 The `match` statement is used to do case analysis on a value of an inductive or co-inductive datatype (which includes the built-in tuple types), a base type, or newtype. The expression after the `match` keyword is called the _selector_. The expression is evaluated and then matched against
 each clause in order until a matching clause is found.
@@ -1083,7 +1086,7 @@ ExpectStmt =
     "expect"
     { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
-    | "..."
+    | ellipsis
     )
     [ "," Expression(allowLemma: false, allowLambda: true) ]
     ";"
@@ -1241,7 +1244,8 @@ TODO
 
 ## 20.20. Forall Statement {#sec-forall-statement}
 ````grammar
-ForallStmt = "forall"
+ForallStmt =
+  "forall"
   ( "(" [ QuantifierDomain ] ")"
   | [ QuantifierDomain ]
   )
@@ -1574,7 +1578,7 @@ the human reader in cases where Dafny can prove the step automatically.
 ## 20.23. Skeleton Statement
 ````grammar
 SkeletonStmt =
-  "..."
+  ellipsis
   ["where" Ident {"," Ident } ":="
     Expression(allowLemma: false, allowLambda: true)
     {"," Expression(allowLemma: false, allowLambda: true) }

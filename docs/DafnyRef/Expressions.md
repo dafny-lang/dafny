@@ -237,9 +237,10 @@ Addition has these meanings for different types:
 * Arithmetic addition for numeric types ([Section 7.2](#sec-numeric-types)]).
 * Union for sets and multisets ([Section 10.1](#sec-sets) and [Section 10.2](#sec-multisets))
 * Concatenation for sequences ([Section 10.3](#sec-sequences))
+* Map merging for maps ([Section 0](#sec-maps)).
 
 Subtraction is arithmetic subtraction for numeric types, and set or multiset
-difference for sets and multisets.
+difference for sets and multisets, and map difference for maps..
 
 ## 21.8. Factors
 ````grammar
@@ -346,7 +347,7 @@ PrimaryExpression_(allowLemma, allowLambda) =
   | SeqDisplayExpr { Suffix }
   | SetDisplayExpr { Suffix }
   | EndlessExpression(allowLemma, allowLambda)
-  | ConstAtomExpression(allowLemma, allowLambda) { Suffix }
+  | ConstAtomExpression { Suffix }
   )
 ````
 
@@ -421,7 +422,7 @@ x requires F.requires(x) reads F.reads(x) => F(x)
 ````grammar
 Lhs =
   ( NameSegment { Suffix }
-  | ConstAtomExpression(allowLemma: false, allowLambda: false)
+  | ConstAtomExpression
     Suffix { Suffix }
   )
 ````
@@ -498,7 +499,7 @@ operator (`:|`) can be used. See [Section 20.6](#sec-update-and-call-statement).
 
 ## 21.19. Constant Or Atomic Expressions
 ````grammar
-ConstAtomExpression(allowLemma, allowLambda) =
+ConstAtomExpression =
   ( LiteralExpression
   | "this"
   | FreshExpression_
@@ -506,7 +507,7 @@ ConstAtomExpression(allowLemma, allowLambda) =
   | UnchangedExpression_
   | OldExpression_
   | CardinalityExpression_
-  | ParensExpression(allowLemma, allowLambda)
+  | ParensExpression
   )
 ````
 A ``ConstAtomExpression`` represents either a constant of some type, or an
@@ -619,7 +620,7 @@ For more, see [Section 10](#sec-collection-types).
 
 ## 21.26. Parenthesized Expression
 ````grammar
-ParensExpression(allowLemma, allowLambda) =
+ParensExpression =
   "(" [ Expressions ] ")"
 ````
 A ``ParensExpression`` is a list of zero or more expressions
@@ -631,9 +632,14 @@ the value of that expression.
 If there are zero or more than one, the result is a `tuple` value.
 See [Section 17.2](#sec-tuple-types).
 
-## 21.27. Sequence Display Expression
+## 21.27. Sequence Display Expression {#sec-seq-comprehension}
 ````grammar
 SeqDisplayExpr = "[" [ Expressions ] "]"
+               | "seq" [ GenericInstantiation ]
+                 "(" Expression(allowLemma: true, allowLambda: true)
+                 "," Expression(allowLemma: true, allowLambda: true)
+                 ")"
+
 ````
 A sequence display expression provides a way to construct
 a sequence with given values. For example
@@ -642,6 +648,13 @@ a sequence with given values. For example
 [1, 2, 3]
 ```
 is a sequence with three elements in it.
+
+```dafny
+seq(k, n => n+1)
+```
+is a sequence of k elements whose values are obtained by evaluating the
+second argument (a function) on the indices 0 through k-1.
+
 See section [#sec-sequences] for more information on
 sequences.
 
@@ -710,23 +723,21 @@ var m := map[1 := "a", 2 := "b"];
 ghost var im := imap[1 := "a", 2 := "b"];
 ```
 
-See  [iSection 0](#sec-maps) for more details on maps and imaps.
+See  [Section 0](#sec-maps) for more details on maps and imaps.
 
 ## 21.30. Endless Expression
 ````grammar
 EndlessExpression(allowLemma, allowLambda) =
-  ( IfExpression_(allowLemma, allowLambda)
+  ( IfExpression(allowLemma, allowLambda)
   | MatchExpression(allowLemma, allowLambda)
   | QuantifierExpression(allowLemma, allowLambda)
   | SetComprehensionExpr(allowLemma, allowLambda)
   | StmtInExpr Expression(allowLemma, allowLambda)
   | LetExpression(allowLemma, allowLambda)
   | MapComprehensionExpr(allowLemma, allowLambda)
+  | NamedExpression(allowLemma, allowLambda)
   )
 ````
-<!-- Experimental - do not document.
-  | NamedExpr(allowLemma, allowLambda)
--->
 
 ``EndlessExpression`` gets it name from the fact that all its alternate
 productions have no terminating symbol to end them, but rather they
@@ -735,7 +746,7 @@ all end with an ``Expression`` at the end. The various
 
 ## 21.31. If Expression
 ````grammar
-IfExpression_(allowLemma, allowLambda) =
+IfExpression(allowLemma, allowLambda) =
     "if" ( BindingGuard(allowLambda: true)
          | Expression(allowLemma: true, allowLambda: true)
          )
@@ -758,14 +769,8 @@ var m := if x != 0 then 10 / x else 1; // ok, guarded
 
 TO BE WRITTEN - binding form
 
-## 21.32. Case Bindings, Patterns, and Extended Patterns {#sec-case-pattern}
+## 21.32. Case Patterns {#sec-case-pattern}
 ````grammar
-CaseBinding_ =
-  "case"
-  ( ExtendedPattern
-  | "(" [ ExtendedPattern { "," ExtendedPattern } ] ")"
-  )
-
 CasePattern =
   ( Ident "(" [ CasePattern { "," CasePattern } ] ")"
   | "(" [ CasePattern { "," CasePattern } ] ")"
@@ -773,15 +778,20 @@ CasePattern =
   )
 
 ExtendedPattern =
-  ( LiteralExpression
-  | Ident [ ":" Type ]
+  ( PossiblyNegatedLiteralExpression
+  | IdentTypeOptional
   | [ Ident ] "(" [ ExtendedPattern { "," ExtendedPattern } ] ")"
+  )
+
+PossiblyNegatedLiteralExpression =
+  ( "-" ( Nat | Dec )
+  | LiteralExpression
   )
 ````
 
-Case bindings and extended patterns are used for (possibly nested)
+Case patterns and extended patterns are used for (possibly nested)
 pattern matching on inductive, coinductive or base type values.
-The `CaseBinding_` and `ExtendedPattern` constructs are used in
+The `ExtendedPattern` construct is used in
 `CaseStatement` and `CaseExpression`s,
 that is, in `match`
 [statements](#sec-match-statement)
@@ -1121,24 +1131,22 @@ method test()
 ```
 `m` maps `2` to `3`, `4` to `6`, and so on.
 
-<!-- Experimental - do not document.
-
 ## 21.40. Named Expression
 ````grammar
-NamedExpr(allowLemma, allowLambda) =
+NamedExpression(allowLemma, allowLambda) =
     "label" LabelName ":" Expression(allowLemma, allowLambda)
 ````
 
-A ``NamedExpr`` is an expression that has been tagged with a name.
+A ``NamedExpression`` is an expression that has been tagged with a name.
 For example:
 ```dafny
 label squareit: x * x
 ```
 
-This is an experimental feature.
+This is an experimental feature and may not be implemented.
+
 TODO: When is this useful. Is there any way to refer to the label?
 Should we remove the description?
--->
 
 ## 21.41. Name Segment {#sec-name-segment}
 ````grammar

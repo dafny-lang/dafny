@@ -671,7 +671,7 @@ CHARACTERS
   nondigit = letter + special.
   idchar = nondigit + digit.
   nonidchar = ANY - idchar.
-  /* exclude the characters in 'array' and '\'' */
+  /* exclude the characters in 'array' and 'bv' and '\'' */
   nondigitMinusABTick = nondigit - 'a' - 'b' - '\''.
   nondigitMinusQuery = nondigit - '?'.
   idcharMinusA = idchar - 'a'.
@@ -708,6 +708,9 @@ TOKENS
   digits = digit {['_'] digit}.
   hexdigits = "0x" hexdigit {['_'] hexdigit}.
   decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}.
+  // NOTE: all alphabetic strings used in the grammar become reserved words automatically
+  // The reason to include a definition here is so that a token can be referred to by its 'kind',
+  // as in la.kind == _bool
   arrayToken = "array" [('1' digit | posDigitFrom2 ) {digit}] ['?'].
   bvToken = "bv" ( '0' | posDigit {digit} ).
   bool = "bool".
@@ -1038,7 +1041,7 @@ ExportSignature<bool opaque, out ExportSignature exsig>
   .
 
 /*------------------------------------------------------------------------*/
-ModuleName<out IToken id> = Ident<out id> .
+ModuleName<out IToken id> = NoUSIdent<out id> .
 
 ModuleQualifiedName<.out List<IToken> ids.>
 = (. IToken id; ids = new List<IToken>();
@@ -1211,7 +1214,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   .
 
 /*------------------------------------------------------------------------*/
-DatatypeMemberName<out IToken id> = NoUSIdent<out id> .
+DatatypeMemberName<out IToken id> = NoUSIdentOrDigits<out id> .
 
 DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
 = (. Contract.Requires(cce.NonNullElements(ctors));
@@ -1288,6 +1291,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
 
 /*------------------------------------------------------------------------*/
 NewtypeName<out IToken id> = NoUSIdent<out id> .
+LocalVarName<out IToken id> = NoUSIdent<out id> .
 
 NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id, bvId;
@@ -1307,13 +1311,13 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   [ ellipsis                         (. isRefining = true; .)
   ]
   ( IF(IsIdentColonOrBar())
-    NoUSIdent<out bvId>
+    LocalVarName<out bvId>
     [ ":" Type<out baseType> ]       (. if (baseType == null) { baseType = new InferredTypeProxy(); } .)
     "|"
     Expression<out constraint, false, true>
     (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
     [ IF(IsWitness())
-      ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .) 
+      ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
         Expression<out witness, false, true>
       | "witness"
         ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
@@ -1331,6 +1335,8 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   .
 
 /*------------------------------------------------------------------------*/
+SynonymTypeName<out IToken id> = NoUSIdent<out id> .
+
 // The following includes Opaque type definitions
 SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
 = (. IToken id, bvId;
@@ -1346,18 +1352,18 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   .)
   "type"
   { Attribute<ref attrs> }
-  NoUSIdent<out id>
+  SynonymTypeName<out id>
   { TypeParameterCharacteristics<ref characteristics> }
   [ GenericParameters<typeArgs, true> ]
   [ "="
     ( IF(IsIdentColonOrBar())
-      NoUSIdent<out bvId>
+      LocalVarName<out bvId>
       [ ":" Type<out ty> ]   (. if (ty == null) { ty = new InferredTypeProxy(); } .)
       "|"
       Expression<out constraint, false, true>
       (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
       [ IF(IsWitness())
-        ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .) 
+        ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
           Expression<out witness, false, true>
         | "witness"
           ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
@@ -1427,10 +1433,10 @@ IdentType<out IToken/*!*/ id, out Type/*!*/ ty, bool allowWildcardId>
   Type<out ty>
   .
 
-LocalIdentTypeOptional<out LocalVariable var, bool isGhost>
+LocalIdentTypeOptional<out LocalVariable var, bool isGhost, bool allowWild=true>
 = (. IToken id;  Type ty;  Type optType = null;
   .)
-  WildIdent<out id, true>
+  WildIdent<out id, allowWild>
   [ ":" Type<out ty>             (. optType = ty; .)
   ]
   (. var = new LocalVariable(id, id, id.val, optType == null ? new InferredTypeProxy() : optType, isGhost); .)
@@ -1542,9 +1548,9 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
      TypeParameter.TPVarianceSyntax variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;  // assignment is to please compiler
      characteristics = new TypeParameter.TypeParameterCharacteristics(false);
   .)
-  // There's a subtle issue here.  The next things in the input could be a '<' followed by an '=' (and then an identifier).
-  // This is legal (provided "allowVariance" is "true").  However, unless there's whitespace between the '<' and '=', the
-  // scanner will read these two characters as a "<=" token.
+  // If a "<" combined with a Variance symbol is a new token, then teh parser here will need to be more complex,
+  // since, for example, a < followed immediately by a Variance symbol would scan as the wrong token.
+  // Fortunately that is not currently the case.
   "<"
   [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
   ]
@@ -1723,7 +1729,7 @@ KType<ref ExtremePredicate.KType kType>
   .
 
 /*------------------------------------------------------------------------*/
-RequiresClause<.List<AttributedExpression> req, bool allowLabel=true.>
+RequiresClause<.List<AttributedExpression> req, bool allowLabel.>
 = "requires"    (. IToken lbl = null;
                    Attributes attrs = null;
                    Expression e;
@@ -1737,7 +1743,7 @@ RequiresClause<.List<AttributedExpression> req, bool allowLabel=true.>
   .
 
 /*------------------------------------------------------------------------*/
-EnsuresClause<.List<AttributedExpression> ens, bool allowLambda=false.>
+EnsuresClause<.List<AttributedExpression> ens, bool allowLambda.>
 = "ensures"     (. Expression e;
                    Attributes attrs = null;
                  .)
@@ -1801,8 +1807,8 @@ MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<Attr
   .)
   SYNC
   ( ModifiesClause<ref mod, ref modAttrs, false, performThisDeprecatedCheck>
-  | RequiresClause<req>
-  | EnsuresClause<ens>
+  | RequiresClause<req, true>
+  | EnsuresClause<ens, false>
   | DecreasesClause<decreases, ref decAttrs, true, false>
   )
   .
@@ -1820,7 +1826,7 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
   | [ "yield"                                                (. isYield = true; .)
     ]
     ( RequiresClause<(isYield?yieldReq:req), !isYield>
-    | EnsuresClause<(isYield?yieldEns:ens)>
+    | EnsuresClause<(isYield?yieldEns:ens), false>
     )
   | DecreasesClause<decreases, ref decrAttrs, false, false>
   )
@@ -2202,9 +2208,9 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
      Attributes attrs = null;
   .)
   SYNC
-  ( RequiresClause<reqs>
+  ( RequiresClause<reqs, true>
   | ReadsClause<reads, false, false, true>
-  | EnsuresClause<ens>
+  | EnsuresClause<ens, false>
   | DecreasesClause<decreases, ref attrs, false, false>
                                               (. if (decreases == null) {
                                                    SemErr(t, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
@@ -2250,7 +2256,7 @@ PossiblyWildFrameExpression<out FrameExpression fe, bool allowLemma,
   .
 
 /*------------------------------------------------------------------------*/
-FrameField<out IToken id> = "`" Ident<out id>.
+FrameField<out IToken id> = "`" IdentOrDigits<out id>.
 
 FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out fe) != null);
@@ -3481,6 +3487,8 @@ Term<out Expression e0, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
     Factor<out e1, allowLemma, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
   }
   .
+
+/*------------------------------------------------------------------------*/
 AddOp<out IToken x, out BinaryExpr.Opcode op>
 = (. Contract.Ensures(Contract.ValueAtReturn(out x) != null); x = Token.NoToken;  op=BinaryExpr.Opcode.Add/*(dummy)*/; .)
   ( "+"            (. x = t;  op = BinaryExpr.Opcode.Add; .)
@@ -3577,7 +3585,7 @@ PrimaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allo
     { IF(IsSuffix()) Suffix<ref e> }
   | SeqDisplayExpr<out e>
     { IF(IsSuffix()) Suffix<ref e> }
-  | ConstAtomExpression<out e, allowLemma, allowLambda>
+  | ConstAtomExpression<out e>
     { IF(IsSuffix()) Suffix<ref e> }
   )
   .
@@ -3588,7 +3596,7 @@ Lhs<out Expression e>
   .)
   ( NameSegment<out e>
     { Suffix<ref e> }
-  | ConstAtomExpression<out e, false, false>
+  | ConstAtomExpression<out e>
     Suffix<ref e>
     { Suffix<ref e> }
   )
@@ -3596,7 +3604,7 @@ Lhs<out Expression e>
 
 /*------------------------------------------------------------------------*/
 /* A ConstAtomExpression is never an l-value, and does not start with an identifier. */
-ConstAtomExpression<out Expression e, bool allowLemma, bool allowLambda>
+ConstAtomExpression<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken/*!*/ x;
      e = dummyExpr;
@@ -3620,7 +3628,7 @@ ConstAtomExpression<out Expression e, bool allowLemma, bool allowLambda>
   | "|"                                        (. x = t; .)
       Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
     "|"
-  | ParensExpression<out e, allowLemma, allowLambda>
+  | ParensExpression<out e>
   )
   .
 
@@ -3656,8 +3664,6 @@ PossiblyNegatedLiteralExpr<out Expression e>
   .
 
 /*------------------------------------------------------------------------*/
-LambdaArrow = "=>".
-
 LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
 = (. IToken x = Token.NoToken;
      IToken id;  BoundVar bv;
@@ -3676,7 +3682,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
     ")"
   )
   LambdaSpec<ref reads, ref req>
-  LambdaArrow
+  "=>"
   Expression<out body, allowLemma, true, allowBitwiseOps>
   (. e = new LambdaExpr(x, bvs, req, reads, body);
      theBuiltIns.CreateArrowTypeDecl(bvs.Count);
@@ -3693,7 +3699,7 @@ LambdaSpec<.ref List<FrameExpression> reads, ref Expression req.>
   .
 
 /*------------------------------------------------------------------------*/
-ParensExpression<out Expression e, bool allowLemma, bool allowLambda>
+ParensExpression<out Expression e>
 = (. IToken x;
      var args = new List<Expression>();
   .)
@@ -3834,29 +3840,10 @@ MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool a
 
 /*------------------------------------------------------------------------*/
 EndlessExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
-= (. IToken/*!*/ x;
-     Expression e0, e1;
-     Statement s;
-     bool isBindingGuard = false;
+= (. Statement s;
      e = dummyExpr;
   .)
-  ( "if"                            (. x = t; .)
-    ( IF(IsBindingGuard())
-      BindingGuard<out e, true>  (. isBindingGuard = true; .)
-    | Expression<out e, true, true>
-    )
-    "then" Expression<out e0, true, true, true>
-    "else" Expression<out e1, allowLemma, allowLambda, allowBitwiseOps>
-                                                         (.  if (isBindingGuard) {
-                                                               var exists = (ExistsExpr) e;
-                                                               var LHSs = new List<CasePattern<BoundVar>>();
-                                                               foreach (var v in exists.BoundVars) {
-                                                                 LHSs.Add(new CasePattern<BoundVar>(e.tok, v));
-                                                               }
-                                                               e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false);
-                                                             }
-                                                             e = new ITEExpr(x, isBindingGuard, e, e0, e1);
-                                                         .)
+  ( IfExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   | MatchExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   | QuantifierExpression<out e, allowLemma, allowLambda>  /* types are such that we can allow bitwise operations in the quantifier body */
   | SetComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
@@ -3864,10 +3851,32 @@ EndlessExpression<out Expression e, bool allowLemma, bool allowLambda, bool allo
     Expression<out e, allowLemma, allowLambda, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e); .)
   | LetExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   | MapComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
-  | NamedExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
+  | NamedExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   )
   .
 
+/*------------------------------------------------------------------------*/
+IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
+= "if"   (. IToken x = t; Expression e0; Expression e1;
+            bool isBindingGuard = false;
+            e = dummyExpr;
+         .)
+      ( IF(IsBindingGuard())
+        BindingGuard<out e, true>  (. isBindingGuard = true; .)
+      | Expression<out e, true, true>
+      )
+      "then" Expression<out e0, true, true, true>
+      "else" Expression<out e1, allowLemma, allowLambda, allowBitwiseOps>
+                (. if (isBindingGuard) {
+                     var exists = (ExistsExpr) e;
+                     var LHSs = new List<CasePattern<BoundVar>>();
+                     foreach (var v in exists.BoundVars) {
+                       LHSs.Add(new CasePattern<BoundVar>(e.tok, v));
+                     }
+                     e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false); }
+                     e = new ITEExpr(x, isBindingGuard, e, e0, e1);
+                .)
+  .
 /*------------------------------------------------------------------------*/
 StmtInExpr<out Statement s>
 = (. s = dummyStmt; .)
@@ -3961,7 +3970,7 @@ LetExprWithoutLHS<out Expression e, bool allowLemma, bool allowLambda, bool allo
   .
 
 /*------------------------------------------------------------------------*/
-NamedExpr<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
+NamedExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. IToken/*!*/ x, d;
      e = dummyExpr;
      Expression expr;
