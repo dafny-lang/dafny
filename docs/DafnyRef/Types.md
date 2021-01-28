@@ -1295,7 +1295,7 @@ NewtypeDecl = "newtype" { Attribute } NewtypeName "="
   )
   [ TypeMembers ]
 ````
-A newtype is like a type synonym except that it declares a wholly new type
+A newtype is like a type synonym or subset type except that it declares a wholly new type
 name that is distinct from its base type.
 
 A new type can be declared with the _newtype_
@@ -1370,7 +1370,7 @@ and consider a variable `c` of type `int8`.  The expression
 is not well-defined, because the comparisons require each operand to
 have type `int8`, which means the literal `128` is checked to be of
 type `int8`, which it is not.  A proper way to write this expression
-would be to use a conversion operation, described in [Section 12.1](#sec-conversion), on `c` to
+is to use a conversion operation, described in [Section 12.1](#sec-conversion), on `c` to
 convert it to the base type:
 ```dafny
 -128 <= c as int < 128
@@ -1381,9 +1381,6 @@ a native data type for the sake of efficiency. This action can
 be inhibited or a specific native data type selected by
 using the `{:nativeType}` attribute, as explained in
 [Section 22.1.12](#sec-nativetype).
-
-There is a current restriction that the value `0` must be part of every
-numeric newtype.
 
 Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be

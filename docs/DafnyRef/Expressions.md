@@ -673,7 +673,7 @@ is a sequence with three elements in it.
 seq(k, n => n+1)
 ```
 is a sequence of k elements whose values are obtained by evaluating the
-second argument (a function) on the indices 0 through k-1.
+second argument (a function) on the indices 0 up to k.
 
 See section [#sec-sequences] for more information on
 sequences.

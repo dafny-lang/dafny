@@ -1551,7 +1551,7 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
      TypeParameter.TPVarianceSyntax variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;  // assignment is to please compiler
      characteristics = new TypeParameter.TypeParameterCharacteristics(false);
   .)
-  // If a "<" combined with a Variance symbol is a new token, then teh parser here will need to be more complex,
+  // If a "<" combined with a Variance symbol could be a new token, then the parser here will need to be more complex,
   // since, for example, a < followed immediately by a Variance symbol would scan as the wrong token.
   // Fortunately that is not currently the case.
   "<"
@@ -3862,7 +3862,9 @@ IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
                      foreach (var v in exists.BoundVars) {
                        LHSs.Add(new CasePattern<BoundVar>(e.tok, v));
                      }
-                     e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false); }
+                     e0 = new LetExpr(e.tok, LHSs, new List<Expression>() {
+                       exists.Term }, e0, false);
+                     }
                      e = new ITEExpr(x, isBindingGuard, e, e0, e1);
                 .)
   .
