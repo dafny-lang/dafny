@@ -528,7 +528,8 @@ namespace Microsoft.Dafny
 
     #region Compilation
 
-    static string WriteDafnyProgramToFiles(Compiler compiler, string dafnyProgramName, string targetProgram, bool completeProgram, Dictionary<String, String> otherFiles, TextWriter outputWriter)
+    static string WriteDafnyProgramToFiles(Compiler compiler, string dafnyProgramName, bool targetProgramHasErrors,
+      string targetProgramText, string/*?*/ callToMain, Dictionary<string, string> otherFiles, TextWriter outputWriter)
     {
       string targetExtension;
       string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
@@ -539,6 +540,11 @@ namespace Microsoft.Dafny
           break;
         case DafnyOptions.CompilationTarget.JavaScript:
           targetExtension = "js";
+          // In JavaScript, compiling (that is, running "node" on) the target program text will also run it.
+          // Therefore, if in the end we don't want to run the program, ignore the call to Main here.
+          if (!DafnyOptions.O.RunAfterCompile) {
+            callToMain = null;
+          }
           break;
         case DafnyOptions.CompilationTarget.Go:
           targetExtension = "go";
@@ -571,31 +577,30 @@ namespace Microsoft.Dafny
         Directory.Delete(targetDir, true);
       }
       string targetFilename = Path.Combine(targetDir, targetBaseName);
-      if (targetProgram != null) {
-        WriteFile(targetFilename, targetProgram);
-      }
+      WriteFile(targetFilename, targetProgramText, callToMain);
 
       string relativeTarget = Path.Combine(targetBaseDir, targetBaseName);
-      if (completeProgram && targetProgram != null) {
-        if (DafnyOptions.O.CompileVerbose) {
-          outputWriter.WriteLine("Compiled program written to {0}", relativeTarget);
-        }
-      } else {
-        outputWriter.WriteLine("File {0} contains the partially compiled program", relativeTarget);
+      if (targetProgramHasErrors) {
+        // Something went wrong during compilation (e.g., the compiler may have found an "assume" statement).
+        // As a courtesy, we're still printing the text of the generated target program. We print a message regardless
+        // of the CompileVerbose settings.
+        outputWriter.WriteLine("Wrote textual form of partial target program to {0}", relativeTarget);
+      } else if (DafnyOptions.O.CompileVerbose) {
+        outputWriter.WriteLine("Wrote textual form of target program to {0}", relativeTarget);
       }
 
       foreach (var entry in otherFiles) {
         var filename = entry.Key;
         WriteFile(Path.Combine(targetDir, filename), entry.Value);
         if (DafnyOptions.O.CompileVerbose) {
-          outputWriter.WriteLine("Additional code written to {0}", Path.Combine(targetBaseDir, filename));
+          outputWriter.WriteLine("Additional target code written to {0}", Path.Combine(targetBaseDir, filename));
         }
       }
 
       return targetFilename;
     }
 
-    static void WriteFile(string filename, string text) {
+    static void WriteFile(string filename, string text, string moreText = null) {
       var dir = Path.GetDirectoryName(filename);
       if (dir != "") {
         Directory.CreateDirectory(dir);
@@ -603,6 +608,9 @@ namespace Microsoft.Dafny
 
       using (TextWriter target = new StreamWriter(new FileStream(filename, System.IO.FileMode.Create))) {
         target.Write(text);
+        if (moreText != null) {
+          target.Write(moreText);
+        }
       }
     }
 
@@ -672,22 +680,19 @@ namespace Microsoft.Dafny
         }
       }
       Contract.Assert(hasMain == (callToMain != null));
-      bool completeProgram = dafnyProgram.reporter.Count(ErrorLevel.Error) == oldErrorCount;
+      bool targetProgramHasErrors = dafnyProgram.reporter.Count(ErrorLevel.Error) != oldErrorCount;
 
       compiler.Coverage.WriteLegendFile();
 
       // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
       string targetFilename = null;
-      if (DafnyOptions.O.SpillTargetCode > 0 || otherFileNames.Count > 0 || (invokeCompiler && !compiler.SupportsInMemoryCompilation))
+      if (DafnyOptions.O.SpillTargetCode > 0 || otherFileNames.Count > 0 || (invokeCompiler && !compiler.SupportsInMemoryCompilation) ||
+          (invokeCompiler && compiler.TextualTargetIsExecutable && !DafnyOptions.O.RunAfterCompile))
       {
-        var p = callToMain == null ? targetProgramText : targetProgramText + callToMain;
-        if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java && callToMain == null) {
-          p = null;
-        }
-        targetFilename = WriteDafnyProgramToFiles(compiler, dafnyProgramName, p, completeProgram, otherFiles, outputWriter);
+        targetFilename = WriteDafnyProgramToFiles(compiler, dafnyProgramName, targetProgramHasErrors, targetProgramText, callToMain, otherFiles, outputWriter);
       }
 
-      if (!completeProgram) {
+      if (targetProgramHasErrors) {
         return false;
       }
       // If we got here, compilation succeeded

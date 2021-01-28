@@ -4791,7 +4791,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public virtual bool SupportsInMemoryCompilation { get => true; }
+    public virtual bool SupportsInMemoryCompilation => true;
+    public virtual bool TextualTargetIsExecutable => false;
 
     /// <summary>
     /// Compile the target program known as "dafnyProgramName".

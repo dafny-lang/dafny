@@ -2,3 +2,6 @@
 Dafny program verifier finished with 0 verified, 0 errors
 Compiled assembly into CompileAndThenRun.dll
 hello, Dafny
+
+Dafny program verifier finished with 0 verified, 0 errors
+Wrote textual form of target program to CompileAndThenRun.js
