@@ -55,6 +55,8 @@ namespace Microsoft.Dafny {
     protected override string ModuleSeparator => "::";
     protected override string ClassAccessor => "->";
 
+    public override bool SupportsInMemoryCompilation => false;
+
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);
       wr.WriteLine("#include \"DafnyRuntime.h\"");
@@ -2338,7 +2340,7 @@ namespace Microsoft.Dafny {
 
     // ----- Target compilation and execution -------------------------------------------------------------
     private string ComputeExeName(string targetFilename) {
-      return Path.GetFileNameWithoutExtension(targetFilename);
+      return Path.GetFileNameWithoutExtension(targetFilename) + ".exe";
     }
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
