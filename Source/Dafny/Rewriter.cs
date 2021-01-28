@@ -1725,6 +1725,9 @@ namespace Microsoft.Dafny
         } else if (DafnyOptions.O.Induction == 2 && lemma != null) {
           // We're asked to infer induction variables only for quantifiers, not for lemmas
           return;
+        } else if (DafnyOptions.O.Induction == 4 && lemma == null) {
+          // We're asked to infer induction variables only for lemmas, not for quantifiers
+          return;
         }
         // GO INFER below (only select boundVars)
       } else if (args.Count == 0) {
