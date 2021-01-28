@@ -540,11 +540,6 @@ namespace Microsoft.Dafny
           break;
         case DafnyOptions.CompilationTarget.JavaScript:
           targetExtension = "js";
-          // In JavaScript, compiling (that is, running "node" on) the target program text will also run it.
-          // Therefore, if in the end we don't want to run the program, ignore the call to Main here.
-          if (!DafnyOptions.O.RunAfterCompile) {
-            callToMain = null;
-          }
           break;
         case DafnyOptions.CompilationTarget.Go:
           targetExtension = "go";

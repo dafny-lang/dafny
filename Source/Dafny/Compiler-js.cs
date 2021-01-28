@@ -2273,8 +2273,7 @@ namespace Microsoft.Dafny {
       TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
-      var args = targetFilename != null && otherFileNames.Count == 0 ? targetFilename : "";
-      var psi = new ProcessStartInfo("node", args) {
+      var psi = new ProcessStartInfo("node", "") {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardInput = true,
@@ -2284,17 +2283,15 @@ namespace Microsoft.Dafny {
 
       try {
         using (var nodeProcess = Process.Start(psi)) {
-          if (args == "") {
-            foreach (var filename in otherFileNames) {
-              WriteFromFile(filename, nodeProcess.StandardInput);
-            }
-            nodeProcess.StandardInput.Write(targetProgramText);
-            if (callToMain != null) {
-              nodeProcess.StandardInput.Write(callToMain);
-            }
-            nodeProcess.StandardInput.Flush();
-            nodeProcess.StandardInput.Close();
+          foreach (var filename in otherFileNames) {
+            WriteFromFile(filename, nodeProcess.StandardInput);
           }
+          nodeProcess.StandardInput.Write(targetProgramText);
+          if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
+            nodeProcess.StandardInput.Write(callToMain);
+          }
+          nodeProcess.StandardInput.Flush();
+          nodeProcess.StandardInput.Close();
           nodeProcess.WaitForExit();
           return nodeProcess.ExitCode == 0;
         }
