@@ -12,6 +12,14 @@ TypeConstraints.dfy(136,16): Error: type of + must be of a numeric type, a bitve
 TypeConstraints.dfy(147,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got C?)
 TypeConstraints.dfy(149,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got C)
 TypeConstraints.dfy(176,6): Error: RHS (of type C) not assignable to LHS (of type R)
+TypeConstraints.dfy(424,8): Error: type array<nat> is not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
+TypeConstraints.dfy(426,8): Error: type array<int> is not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
+TypeConstraints.dfy(429,8): Error: RHS (of type array<int>) not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
+TypeConstraints.dfy(431,8): Error: RHS (of type array<nat>) not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
+TypeConstraints.dfy(450,8): Error: type array<nat> is not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
+TypeConstraints.dfy(452,8): Error: type array<int> is not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
+TypeConstraints.dfy(455,8): Error: RHS (of type array<int>) not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
+TypeConstraints.dfy(457,8): Error: RHS (of type array<nat>) not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
 // TypeConstraints.dfy
 
 /*
@@ -24,9 +32,9 @@ module _System {
    * SCC at height 0:
    *   nat
    */
-  type string(==) = seq<char>
+  type string(==,0) = seq<char>
 
-  type {:axiom} nat(==) = x: int
+  type {:axiom} nat(==,0) = x: int
     | 0 <= x
 
   trait {:compile false} object { }
@@ -793,6 +801,40 @@ module Arrays_and_SubsetTypes {
   }
 }
 
+module Arrays_and_SubsetTypesOK {
+  /* CALL GRAPH for module Arrays_and_SubsetTypesOK:
+   * SCC at height 2:
+   *   M
+   * SCC at height 1:
+   *   array
+   * SCC at height 0:
+   *   nat
+   */
+  method M()
+  {
+    var a: array<nat>;
+    var b: array<int>;
+    if * {
+      a := new nat[100];
+      b := new nat[100];
+    } else if * {
+      a := new int[100];
+      b := new int[100];
+    } else if * {
+      a := b;
+    } else if * {
+      b := a;
+    } else if * {
+      var n: array<nat> := new nat[100];
+      if * {
+        a := n;
+      } else {
+        b := n;
+      }
+    }
+  }
+}
+
 module TypeArgumentPrintTests {
   /* CALL GRAPH for module TypeArgumentPrintTests:
    * SCC at height 3:
@@ -880,4 +922,4 @@ module PrettyPrintingBindingPowers {
     m := m + (m + m);
   }
 }
-14 resolution/type errors detected in TypeConstraints.dfy
+22 resolution/type errors detected in TypeConstraints.dfy

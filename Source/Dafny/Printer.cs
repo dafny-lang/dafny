@@ -1113,11 +1113,14 @@ namespace Microsoft.Dafny {
         (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired && DafnyOptions.O.DafnyPrintResolvedFile != null)) {
         s = "==";
       }
-      if (characteristics.MustSupportZeroInitialization) {
+      if (characteristics.HasCompiledValue) {
         var prefix = s == null ? "" : s + ",";
         s = prefix + "0";
+      } else if (characteristics.IsNonempty) {
+        var prefix = s == null ? "" : s + ",";
+        s = prefix + "00";
       }
-      if (characteristics.DisallowReferenceTypes) {
+      if (characteristics.ContainsNoReferenceTypes) {
         var prefix = s == null ? "" : s + ",";
         s = prefix + "!new";
       }
@@ -1875,6 +1878,7 @@ namespace Microsoft.Dafny {
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         Indent(indent);
+        if (e.LHSs.Exists(lhs => lhs != null && lhs.Var != null && lhs.Var.IsGhost)) { wr.Write("ghost "); }
         wr.Write("var ");
         string sep = "";
         foreach (var lhs in e.LHSs) {
@@ -2533,11 +2537,6 @@ namespace Microsoft.Dafny {
           PrintExpression(e.Term, !parensNeeded && isFollowedBySemicolon);
         }
         if (parensNeeded) { wr.Write(")"); }
-
-      } else if (expr is NamedExpr) {
-        var e = (NamedExpr)expr;
-        wr.Write("expr {0}: ", e.Name);
-        PrintExpression(e.Body, isFollowedBySemicolon);
 
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;

@@ -90,14 +90,14 @@ module Mx {
     }
   }
 
-  iterator GenericIterator<T>(t: T) yields (u: T)
+  iterator GenericIterator<T(0)>(t: T) yields (u: T)
   {
     while true {
       yield t;
     }
   }
 
-  iterator GenericIteratorResult<T>() yields (t: T)
+  iterator GenericIteratorResult<T(0)>() yields (t: T)
   {
     while (*) { yield; }
   }
@@ -186,7 +186,7 @@ module IteratorTypeParameters {
     var y := MyFunction<Five,Six>();  // error: cannot pass in Six as type parameter B(0)
   }
 
-  iterator MyIter<A(==),B>(a: A) yields (b: B)
+  iterator MyIter<A(0,==), B(0)>(a: A) yields (b: B)
     ensures false  // never ends
   {
     while true
@@ -246,7 +246,7 @@ module IteratorTypeParameters {
     }
   }
 
-  iterator AnotherIter<A(==,0),B(==)>(a: A) yields (b: B)
+  iterator AnotherIter<A(==,0), B(==,0)>(a: A) yields (b: B)
     ensures false  // never ends
   {
     while true

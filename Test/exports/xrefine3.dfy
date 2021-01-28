@@ -7,7 +7,7 @@ module AlphaImpl {
 
     export Spec provides Alpha, IsValid, Init
 
-    type Alpha(0) = bool  // TODO: this is a good candidate for a "ghost (0)" marking (meaning nonempty type)
+    type Alpha(00) = bool
 
     predicate IsValid(a:Alpha) {
         a

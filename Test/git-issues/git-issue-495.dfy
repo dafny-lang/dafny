@@ -62,7 +62,7 @@ method B2C(g: Gen<IntB>, m: IntA) returns (y: IntC)
   }
 }
 
-type GenSub<Y, L(0), V> = g: Gen<L> | true ghost witness Create(var l: L :| true; l)  // TODO: this is a good candidate for a "ghost (0)" marking (meaning nonempty type)
+type GenSub<Y, L(00), V> = g: Gen<L> | true ghost witness Create(var l: L :| true; l)
 
 method B2C'(g: GenSub<bool, IntB, real>, m: IntA) returns (y: IntC)
   requires m < 0 ==> m % 2 == 1  // negative numbers are odd
