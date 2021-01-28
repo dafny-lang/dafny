@@ -980,7 +980,7 @@ namespace Microsoft.Dafny
 
           if (!Attributes.Contains(f.Attributes, "opaque")) {
             // Nothing to do
-          } else if (!RefinementToken.IsInherited(f.tok, c.Module)) {
+          } else if (!RefinementToken.IsInherited(f.tok, c.EnclosingModuleDefinition)) {
             RewriteOpaqueFunctionUseFuel(f, newDecls);
           }
         }
@@ -1350,8 +1350,6 @@ namespace Microsoft.Dafny
           //    2) Add forall x :: g(x) ==> WP(f(x, y)) to the function's requirements
           //    3) Current option -- do nothing.  Up to the spec writer to fix
         }
-      } else if (expr is NamedExpr) {
-        reqs.AddRange(generateAutoReqs(((NamedExpr)expr).Body));
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
 
@@ -1500,7 +1498,7 @@ namespace Microsoft.Dafny
                       var arg = attr.Args[0] as LiteralExpr;
                       System.Numerics.BigInteger value = (System.Numerics.BigInteger)arg.Value;
                       if (value.Sign > 0) {
-                        int current_limit = DafnyOptions.O.ProverKillTime > 0 ? DafnyOptions.O.ProverKillTime : 10;  // Default to 10 seconds
+                        int current_limit = DafnyOptions.O.TimeLimit > 0 ? DafnyOptions.O.TimeLimit : 10;  // Default to 10 seconds
                         attr.Args[0] = new LiteralExpr(attr.Args[0].tok, value * current_limit);
                         attr.Name = "timeLimit";
                       }
@@ -1726,6 +1724,9 @@ namespace Microsoft.Dafny
           return;
         } else if (DafnyOptions.O.Induction == 2 && lemma != null) {
           // We're asked to infer induction variables only for quantifiers, not for lemmas
+          return;
+        } else if (DafnyOptions.O.Induction == 4 && lemma == null) {
+          // We're asked to infer induction variables only for lemmas, not for quantifiers
           return;
         }
         // GO INFER below (only select boundVars)

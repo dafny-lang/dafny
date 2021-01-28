@@ -302,10 +302,13 @@ namespace Microsoft.Dafny{
     // Only exists to make sure method is overriden
     protected override void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr){ }
 
-    public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
+    public override void EmitCallToMain(Method mainMethod, string baseName, TargetWriter wr) {
+      var className = TransformToClassName(baseName);
+      wr = wr.NewBlock($"public class {className}");
+
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
-      var modName = mainMethod.EnclosingClass.Module.CompileName == "_module" ? "_System." : "";
+      var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_System." : "";
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
       wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling({companion}::{IdName(mainMethod)});");
@@ -355,7 +358,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr){
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);
@@ -753,10 +756,10 @@ namespace Microsoft.Dafny{
         return DafnyTupleClass(tupleDecl.TypeArgs.Count);
       } else if (cl is TraitDecl && useCompanionName) {
         return IdProtect(udt.FullCompanionCompileName);
-      } else if (cl.Module.CompileName == ModuleName || cl.Module.IsDefaultModule) {
+      } else if (cl.EnclosingModuleDefinition.CompileName == ModuleName || cl.EnclosingModuleDefinition.IsDefaultModule) {
         return IdProtect(cl.CompileName);
       } else {
-        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
+        return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
       }
     }
 
@@ -803,7 +806,7 @@ namespace Microsoft.Dafny{
     //
     // An example to show how type parameters are dealt with:
     //
-    //   class Class<T /* needs zero initializer */, U /* does not */> {
+    //   class Class<T /* needs auto-initializer */, U /* does not */> {
     //     private String sT; // type descriptor for T
     //
     //     // Fields are assigned in the constructor because some will
@@ -976,7 +979,7 @@ namespace Microsoft.Dafny{
         } else {
           wr.Write($"new java.math.BigInteger(\"{i}\")");
         }
-      } else if (e.Value is Basetypes.BigDec n){
+      } else if (e.Value is BaseTypes.BigDec n){
         if (0 <= n.Exponent){
           wr.Write($"new {DafnyBigRationalClass}(new java.math.BigInteger(\"{n.Mantissa}");
           for (int j = 0; j < n.Exponent; j++){
@@ -1209,16 +1212,16 @@ namespace Microsoft.Dafny{
           postString = ")";
           break;
         case SpecialField.ID.Keys:
-          compiledName = "dafnyKeySet()";
+          compiledName = "keySet()";
           break;
         case SpecialField.ID.Values:
-          compiledName = "dafnyValues()";
+          compiledName = "valueSet()";
           break;
         case SpecialField.ID.Items:
           var mapType = receiverType.AsMapType;
           Contract.Assert(mapType != null);
           var errorWr = new TargetWriter();
-          compiledName = $"<{BoxedTypeName(mapType.Domain, errorWr, Bpl.Token.NoToken)}, {BoxedTypeName(mapType.Range, errorWr, Bpl.Token.NoToken)}>dafnyEntrySet()";
+          compiledName = $"<{BoxedTypeName(mapType.Domain, errorWr, Bpl.Token.NoToken)}, {BoxedTypeName(mapType.Range, errorWr, Bpl.Token.NoToken)}>entrySet()";
           break;
         case SpecialField.ID.Reads:
           compiledName = "_reads";
@@ -1932,7 +1935,7 @@ namespace Microsoft.Dafny{
         if (dt is TupleTypeDecl) {
           nm = "";
         } else {
-          nm = (dt.Module.IsDefaultModule ? "" : dt.Module.Name + ".") + dt.Name + "." + ctor.Name;
+          nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
         }
         if (dt is TupleTypeDecl && ctor.Formals.Count == 0) {
           // here we want parentheses and no name
@@ -2321,7 +2324,7 @@ namespace Microsoft.Dafny{
     /// <summary>
     /// Returns whether or not there is a run-time type descriptor corresponding to "tp".
     ///
-    /// Note, one might thing that this method should return "tp.Characteristics.MustSupportZeroInitialization".
+    /// Note, one might thing that this method should return "tp.Characteristics.HasCompiledValue".
     /// However, currently, all built-in collection types in Java use type descriptors for their arguments.
     /// To get this threaded through everywhere, all type arguments must always be passed with a
     /// corresponding type descriptor. :(  Thus, this method returns "true".
@@ -2492,7 +2495,7 @@ namespace Microsoft.Dafny{
       var mt = e.Type.AsMapType;
       var domType = mt.Domain;
       var ranType = mt.Range;
-      wr.WriteLine($"{DafnyMapClass}<{BoxedTypeName(domType, wr, e.tok)}, {BoxedTypeName(ranType, wr, e.tok)}> {collectionName} = new {DafnyMapClass}<>();");
+      wr.WriteLine($"java.util.HashMap<{BoxedTypeName(domType, wr, e.tok)}, {BoxedTypeName(ranType, wr, e.tok)}> {collectionName} = new java.util.HashMap<>();");
     }
 
     protected override void OrganizeModules(Program program, out List<ModuleDefinition> modules){
@@ -2806,6 +2809,9 @@ namespace Microsoft.Dafny{
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           staticCallString = $"{DafnyMultiSetClass}.<{BoxedTypeName(resultType.AsMultiSetType.Arg, errorWr, tok)}>union";
           break;
+        case BinaryExpr.ResolvedOpcode.MapMerge:
+          staticCallString = $"{DafnyMapClass}.<{BoxedTypeName(resultType.AsMapType.Domain, errorWr, tok)}, {BoxedTypeName(resultType.AsMapType.Range, errorWr, tok)}>merge";
+          break;
         case BinaryExpr.ResolvedOpcode.Intersection:
           staticCallString = $"{DafnySetClass}.<{BoxedTypeName(resultType.AsSetType.Arg, errorWr, tok)}>intersection";
           break;
@@ -2817,6 +2823,9 @@ namespace Microsoft.Dafny{
           break;
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
           staticCallString = $"{DafnyMultiSetClass}.<{BoxedTypeName(resultType.AsMultiSetType.Arg, errorWr, tok)}>difference";
+          break;
+        case BinaryExpr.ResolvedOpcode.MapSubtraction:
+          staticCallString = $"{DafnyMapClass}.<{BoxedTypeName(resultType.AsMapType.Domain, errorWr, tok)}, {BoxedTypeName(resultType.AsMapType.Range, errorWr, tok)}>subtract";
           break;
 
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
@@ -2840,17 +2849,32 @@ namespace Microsoft.Dafny{
       }
     }
 
-    public void CompileTuples(string path){
+    protected override void EmitFooter(Program program, TargetWriter wr) {
+      // Emit tuples
       foreach (int i in tuples) {
         if (i == 2 || i == 3) {
           continue; // Tuple2 and Tuple3 already exist in DafnyRuntime.jar, so don't remake these files.
         }
-        CreateTuple(i, path);
+        CreateTuple(i, wr);
+      }
+
+      // Emit function interfaces
+      foreach (var i in functions) {
+        CreateLambdaFunctionInterface(i, wr);
+      }
+
+      // Emit arrays
+      foreach (var i in arrays) {
+        CreateDafnyArrays(i, wr);
       }
     }
 
-    private void CreateTuple(int i, string path) {
-      var wrTop = new TargetWriter();
+    private void CreateTuple(int i, TargetWriter outputWr) {
+      Contract.Requires(0 <= i);
+      Contract.Requires(outputWr != null);
+
+      var wrTop = outputWr.NewFile(Path.Combine("dafny", $"Tuple{i}.java"));
+
       wrTop.WriteLine("package dafny;");
       wrTop.WriteLine();
       EmitSuppression(wrTop);
@@ -2952,14 +2976,9 @@ namespace Microsoft.Dafny{
         wr.WriteLine();
         wr.WriteLine("public T" + j + " dtor__" + j + "() { return this._" + j + "; }");
       }
-
-      // Create a file to write to.
-      using (StreamWriter sw = File.CreateText(path + "/Tuple" + i + ".java")) {
-        sw.Write(wrTop.ToString());
-      }
     }
 
-    public override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
+    protected override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is BoolType) {
         return "false";
@@ -2987,7 +3006,7 @@ namespace Microsoft.Dafny{
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        if (usePlaceboValue && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
+        if (usePlaceboValue && !udt.ResolvedParam.Characteristics.HasCompiledValue) {
           return "null";
         } else if (constructTypeParameterDefaultsFromTypeDescriptors) {
           return $"{FormatTypeDescriptorVariable(udt.ResolvedParam.CompileName)}.defaultValue()";
@@ -3142,20 +3161,18 @@ namespace Microsoft.Dafny{
       wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
     }
 
-    public void CreateFunctionInterface(string path) {
-      foreach(int i in functions){
-        CreateLambdaFunctionInterface(i, path);
-      }
-    }
+    private void CreateLambdaFunctionInterface(int i, TargetWriter outputWr) {
+      Contract.Requires(0 <= i);
+      Contract.Requires(outputWr != null);
 
-    public void CreateLambdaFunctionInterface(int i, string path) {
+      var functionName = $"Function{i}";
+      var wr = outputWr.NewFile(Path.Combine("dafny", $"{functionName}.java"));
+
       var typeArgs = "<" + Util.Comma(i + 1, j => $"T{j}") + ">";
 
-      var wr = new TargetWriter();
       wr.WriteLine("package dafny;");
       wr.WriteLine();
       wr.WriteLine("@FunctionalInterface");
-      var functionName = $"Function{i}";
       wr.Write($"public interface {functionName}{typeArgs}");
       var wrMembers = wr.NewBlock("");
       wrMembers.Write($"public T{i} apply(");
@@ -3170,20 +3187,14 @@ namespace Microsoft.Dafny{
       // arrow types are allowed as "(0)"-constrained type arguments), but it's
       // consistent with other backends.
       wrTypeBody.Write($"return ({DafnyTypeDescriptor}<{functionName}{typeArgs}>) ({DafnyTypeDescriptor}<?>) {DafnyTypeDescriptor}.reference({functionName}.class);");
-
-      using (StreamWriter sw = File.CreateText($"{path}/{functionName}.java")) {
-        sw.Write(wr.ToString());
-      }
     }
 
-    public void CompileDafnyArrays(string path) {
-      foreach(int i in arrays){
-        CreateDafnyArrays(i, path);
-      }
-    }
+    private void CreateDafnyArrays(int i, TargetWriter outputWr) {
+      Contract.Requires(0 <= i);
+      Contract.Requires(outputWr != null);
 
-    public void CreateDafnyArrays(int i, string path) {
-      var wrTop = new TargetWriter();
+      var wrTop = outputWr.NewFile(Path.Combine("dafny", $"Array{i}.java"));
+
       wrTop.WriteLine("package dafny;");
       wrTop.WriteLine();
 
@@ -3251,10 +3262,6 @@ namespace Microsoft.Dafny{
       EmitSuppression(wr);
       var wrTypeMethod = wr.NewBlock($"public static <T> {DafnyTypeDescriptor}<Array{i}<T>> {TypeMethodName}()");
       wrTypeMethod.WriteLine($"return ({DafnyTypeDescriptor}<Array{i}<T>>) ({DafnyTypeDescriptor}<?>) TYPE;");
-
-      using (StreamWriter sw = File.CreateText(path + "/Array" + i + ".java")) {
-        sw.Write(wrTop.ToString());
-      }
     }
 
     protected override BlockTargetWriter EmitTailCallStructure(MemberDecl member, BlockTargetWriter wr) {
@@ -3360,7 +3367,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr){
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.CompileName), IdName(nt), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var nativeType = GetBoxedNativeTypeName(nt.NativeType);

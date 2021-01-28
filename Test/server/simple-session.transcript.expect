@@ -53,7 +53,7 @@ Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
-transcript(7,0): Error: ident expected
+transcript(7,0): Error: invalid Ident
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 Verification completed successfully!
@@ -84,11 +84,11 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(6,2): Error: EOF expected
+transcript(6,2): Error: this symbol not expected in Dafny
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(6,2): Error: EOF expected
+transcript(6,2): Error: this symbol not expected in Dafny
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
@@ -107,13 +107,11 @@ transcript(11,0): Error: invalid LogicalExpression
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,22): Warning: the syntax "int(expr)" for type conversions has been deprecated; the new syntax is "expr as int"
-transcript(10,25): Error: openparen expected
+transcript(10,22): Error: invalid LogicalExpression
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,22): Warning: the syntax "int(expr)" for type conversions has been deprecated; the new syntax is "expr as int"
-transcript(10,25): Error: openparen expected
+transcript(10,22): Error: invalid LogicalExpression
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
@@ -136,6 +134,8 @@ Verifying Impl$$_module.__default.M_k ...
 transcript(10,9): Error: assertion violation
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
@@ -300,6 +300,8 @@ Verifying Impl$$_module.__default.M2 ...
 transcript(38,9): Error: assertion violation
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
@@ -335,6 +337,8 @@ Verifying Impl$$_module.__default.M2 ...
 transcript(38,9): Error: assertion violation
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
@@ -504,7 +508,5 @@ Retrieving cached verification result for implementation Impl$$_module.__default
 Verifying Impl$$_module.__default.M2 ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M2...
   [1 proof obligation]  verified
-Verification completed successfully!
-[SUCCESS] [[DAFNY-SERVER: EOM]]
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]

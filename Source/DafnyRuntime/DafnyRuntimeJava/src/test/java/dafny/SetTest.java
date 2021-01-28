@@ -122,6 +122,7 @@ class SetTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testAddRemove() {
         testSet.add(19);
         assertTrue(testSet.contains(19));

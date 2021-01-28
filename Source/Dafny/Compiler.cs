@@ -16,7 +16,7 @@ using System.Diagnostics.SymbolStore;
 using System.Net.Security;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
-using Microsoft.Basetypes;
+using Microsoft.BaseTypes;
 
 
 namespace Microsoft.Dafny {
@@ -82,7 +82,7 @@ namespace Microsoft.Dafny {
     /// Emits a call to "mainMethod" as the program's entry point, if such an explicit call is
     /// required in the target language.
     /// </summary>
-    public virtual void EmitCallToMain(Method mainMethod, TargetWriter wr) { }
+    public virtual void EmitCallToMain(Method mainMethod, string baseName, TargetWriter wr) { }
     /// <summary>
     /// Creates a static Main method. The caller will fill the body of this static Main with a
     /// call to the instance Main method in the enclosing class.
@@ -197,7 +197,7 @@ namespace Microsoft.Dafny {
 
     protected virtual bool NeedsTypeDescriptor(TypeParameter tp) {
       Contract.Requires(tp != null);
-      return tp.Characteristics.MustSupportZeroInitialization;
+      return tp.Characteristics.HasCompiledValue;
     }
 
     protected abstract string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok);
@@ -234,7 +234,16 @@ namespace Microsoft.Dafny {
     protected virtual string TypeArgumentName(Type type, TextWriter wr, Bpl.IToken tok) {
       return TypeName(type, wr, tok);
     }
-    public abstract string TypeInitializationValue(Type type, TextWriter wr /*?*/, Bpl.IToken tok /*?*/, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors);
+    /// <summary>
+    /// This method returns the target representation of one possible value of the type.
+    /// Requires: usePlaceboValue || type.HasCompilableValue
+    ///
+    ///   usePlaceboValue - If "true", the default value produced is one that the target language accepts as a value
+    ///                  of the type, but which may not correspond to a Dafny value. This option is used when it is known
+    ///                  that the Dafny program will not use the value (for example, when a field is automatically initialized
+    ///                  but the Dafny program will soon assign a new value).
+    /// </summary>
+    protected abstract string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors);
 
     protected string TypeName_UDT(string fullCompileName, UserDefinedType udt, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(fullCompileName != null);
@@ -1182,13 +1191,13 @@ namespace Microsoft.Dafny {
             }
             var classIsExtern = false;
             if (include) {
-              classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern") || cl.IsDefaultClass && Attributes.Contains(cl.Module.Attributes, "extern");
+              classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern") || cl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern");
               if (classIsExtern && cl.Members.TrueForAll(member => member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
                 include = false;
               }
             }
             if (include) {
-              var cw = CreateClass(IdProtect(d.Module.CompileName), IdName(cl), classIsExtern, cl.FullName,
+              var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.CompileName), IdName(cl), classIsExtern, cl.FullName,
                 cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.tok, wr);
               CompileClassMembers(cl, cw);
               cw.Finish();
@@ -1391,7 +1400,7 @@ namespace Microsoft.Dafny {
           consts.Add((ConstantField)decl);
         }
       }
-      consts.Sort((a, b) => c.Module.CallGraph.GetSCCRepresentativeId(a) - c.Module.CallGraph.GetSCCRepresentativeId(b));
+      consts.Sort((a, b) => c.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativeId(a) - c.EnclosingModuleDefinition.CallGraph.GetSCCRepresentativeId(b));
       foreach (var con in consts) {
         decls.Remove(con);
       }
@@ -2405,251 +2414,28 @@ namespace Microsoft.Dafny {
       return Util.Comma(types, ty => TypeName(ty, wr, tok));
     }
 
-    /// <summary>
-    /// Returns "true" if a value of type "type" can be initialized with the all-zero bit pattern.
-    /// </summary>
-    public static bool HasSimpleZeroInitializer(Type type) {
-      Contract.Requires(type != null);
-
-      bool hs, hz, ik;
-      string dv;
-      TypeInitialization(type, null, null, null, out hs, out hz, out ik, out dv);
-      return hs;
-    }
-
-    /// <summary>
-    /// Returns "true" if a value of type "type" can be initialized with the all-zero bit pattern or by calling the type's _DafnyDefaultValue method.
-    /// </summary>
-    public static bool HasZeroInitializer(Type type) {
-      Contract.Requires(type != null);
-
-      bool hs, hz, ik;
-      string dv;
-      TypeInitialization(type, null, null, null, out hs, out hz, out ik, out dv);
-      return hz;
-    }
-
-    /// <summary>
-    /// Returns "true" if "type" denotes a type for which a specific compiled value (non-ghost witness) is known.
-    /// </summary>
-    public static bool InitializerIsKnown(Type type) {
-      Contract.Requires(type != null);
-
-      bool hs, hz, ik;
-      string dv;
-      TypeInitialization(type, null, null, null, out hs, out hz, out ik, out dv);
-      return ik;
-    }
-
     protected string PlaceboValue(Type type, TextWriter wr, Bpl.IToken tok, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
       Contract.Requires(type != null);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      bool usePlaceboValue = !InitializerIsKnown(type);
-      bool hs, hz, ik;
-      string dv;
-      TypeInitialization(type, this, wr, tok, out hs, out hz, out ik, out dv, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
-      return dv;
+      type = type.NormalizeExpandKeepConstraints();
+      Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
+      bool usePlaceboValue = !type.HasCompilableValue;
+      return TypeInitializationValue(type, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
     protected string DefaultValue(Type type, TextWriter wr, Bpl.IToken tok, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
       Contract.Requires(type != null);
+      Contract.Requires(type.HasCompilableValue);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      bool hs, hz, ik;
-      string dv;
-      TypeInitialization(type, this, wr, tok, out hs, out hz, out ik, out dv, false, constructTypeParameterDefaultsFromTypeDescriptors);
-      return dv;
-    }
-
-    /// <summary>
-    /// This method returns three things about the given type. Since the three things are related,
-    /// it makes sense to compute them side by side.
-    ///   hasZeroInitializer - "true" if a value of type "type" can be initialized with the all-zero bit pattern or
-    ///                        by calling the type's _DafnyDefaultValue method.
-    ///   hasSimpleZeroInitializer - "true" if a value of type "type" can be initialized with the all-zero bit pattern.
-    ///   initializerIsKnown - "true" if "type" denotes a type for which a specific value (witness) is known.
-    ///   defaultValue - If "compiler" is non-null, "defaultValue" is the C# representation of one possible value of the
-    ///                  type (not necessarily the same value as the zero initializer, if any, may give).
-    ///                  If "compiler" is null, then "defaultValue" can return as anything.
-    ///   usePlaceboValue - If "true", the default value produced is one that the target language accepts as a value
-    ///                  of the type, but which may not correspond to a Dafny value. This option is used when it is known
-    ///                  that the Dafny program will not use the value (for example, when a field is automatically initialized
-    ///                  but the Dafny program will soon assign a new value)
-    /// </summary>
-    static void TypeInitialization(Type type, Compiler/*?*/ compiler, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok,
-        out bool hasSimpleZeroInitializer, out bool hasZeroInitializer, out bool initializerIsKnown, out string defaultValue,
-        bool usePlaceboValue = false, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
-      Contract.Requires(type != null);
-      Contract.Requires(compiler == null || (wr != null && tok != null));
-      Contract.Ensures(!Contract.ValueAtReturn(out hasSimpleZeroInitializer) || Contract.ValueAtReturn(out hasZeroInitializer));  // hasSimpleZeroInitializer ==> hasZeroInitializer
-      Contract.Ensures(!Contract.ValueAtReturn(out hasZeroInitializer) || Contract.ValueAtReturn(out initializerIsKnown));  // hasZeroInitializer ==> initializerIsKnown
-      Contract.Ensures(compiler == null || Contract.ValueAtReturn(out defaultValue) != null);
-
-      var xType = type.NormalizeExpandKeepConstraints();
-      if (xType is TypeProxy) {
-        // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
-        xType = new BoolType();
-      }
-
-      defaultValue = compiler?.TypeInitializationValue(xType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
-      if (xType is BoolType) {
-        hasSimpleZeroInitializer = true;
-        hasZeroInitializer = true;
-        initializerIsKnown = true;
-        return;
-      } else if (xType is CharType) {
-        hasSimpleZeroInitializer = false;
-        hasZeroInitializer = true;
-        initializerIsKnown = true;
-        return;
-      } else if (xType is IntType || xType is BigOrdinalType) {
-        hasSimpleZeroInitializer = true;
-        hasZeroInitializer = true;
-        initializerIsKnown = true;
-        return;
-      } else if (xType is RealType) {
-        hasSimpleZeroInitializer = true;
-        hasZeroInitializer = true;
-        initializerIsKnown = true;
-        return;
-      } else if (xType is BitvectorType) {
-        var t = (BitvectorType)xType;
-        hasSimpleZeroInitializer = true;
-        hasZeroInitializer = true;
-        initializerIsKnown = true;
-        return;
-      } else if (xType is CollectionType) {
-        hasSimpleZeroInitializer = false;
-        hasZeroInitializer = true;
-        initializerIsKnown = true;
-        return;
-      }
-
-      var udt = (UserDefinedType)xType;
-      if (udt.ResolvedParam != null) {
-        hasSimpleZeroInitializer = false;
-        hasZeroInitializer = udt.ResolvedParam.Characteristics.MustSupportZeroInitialization;
-        initializerIsKnown = hasZeroInitializer;
-        // If the module is complete, we expect "udt.ResolvedClass == null" at this time. However, it could be that
-        // the compiler has already generated an error about this type not being compilable, in which case
-        // "udt.ResolvedClass" might be non-null here.
-        return;
-      }
-      var cl = udt.ResolvedClass;
-      Contract.Assert(cl != null);
-      if (cl is OpaqueTypeDecl) {
-        hasSimpleZeroInitializer = false;
-        hasZeroInitializer = ((OpaqueTypeDecl)cl).TheType.Characteristics.MustSupportZeroInitialization;
-        initializerIsKnown = hasZeroInitializer;
-        // The compiler should never need to know a "defaultValue" for an opaque type, but this routine may
-        // be asked from outside the compiler about one of the other output booleans.
-        Contract.Assume(compiler == null);
-        return;
-      } else if (cl is NewtypeDecl) {
-        var td = (NewtypeDecl)cl;
-        if (td.Witness != null) {
-          hasSimpleZeroInitializer = false;
-          hasZeroInitializer = false;
-          initializerIsKnown = td.WitnessKind != SubsetTypeDecl.WKind.Ghost;
-          return;
-        } else if (td.NativeType != null) {
-          bool ik;
-          string dv;
-          TypeInitialization(td.BaseType, null, null, null, out hasSimpleZeroInitializer, out hasZeroInitializer, out ik, out dv);
-          initializerIsKnown = true;
-          return;
-        } else {
-          Contract.Assert(td.WitnessKind != SubsetTypeDecl.WKind.Special);  // this value is never used with NewtypeDecl
-          string dv;
-          TypeInitialization(td.BaseType, compiler, wr, udt.tok, out hasSimpleZeroInitializer, out hasZeroInitializer, out initializerIsKnown, out dv);
-          Contract.Assert(compiler == null || string.Equals(dv, defaultValue));
-          return;
-        }
-      } else if (cl is SubsetTypeDecl) {
-        var td = (SubsetTypeDecl)cl;
-        if (td.Witness != null) {
-          hasSimpleZeroInitializer = false;
-          hasZeroInitializer = false;
-          initializerIsKnown = td.WitnessKind != SubsetTypeDecl.WKind.Ghost;
-          return;
-        } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
-          // WKind.Special is only used with -->, ->, and non-null types:
-          Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
-          if (ArrowType.IsPartialArrowTypeName(td.Name)) {
-            // partial arrow
-            hasSimpleZeroInitializer = true;
-            hasZeroInitializer = true;
-            initializerIsKnown = true;
-            return;
-          } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
-            // total arrow
-            Contract.Assert(udt.TypeArgs.Count == td.TypeArgs.Count);
-            Contract.Assert(1 <= udt.TypeArgs.Count);  // the return type is one of the type arguments
-            hasSimpleZeroInitializer = false;
-            hasZeroInitializer = false;
-            bool hs, hz;
-            string dv;
-            TypeInitialization(udt.TypeArgs.Last(), compiler, wr, udt.tok, out hs, out hz, out initializerIsKnown, out dv);
-            return;
-          } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
-            // non-null array type; we know how to initialize them
-            hasSimpleZeroInitializer = false;
-            hasZeroInitializer = false;
-            initializerIsKnown = true;
-            Contract.Assert(udt.TypeArgs.Count == 1);
-          } else {
-            // non-null (non-array) type
-            hasSimpleZeroInitializer = false;
-            hasZeroInitializer = false;
-            initializerIsKnown = false;  // (this could be improved in some cases)
-            return;
-          }
-        } else {
-          string dv;
-          TypeInitialization(td.RhsWithArgument(udt.TypeArgs), compiler, wr, udt.tok, out hasSimpleZeroInitializer, out hasZeroInitializer, out initializerIsKnown, out dv);
-          Contract.Assert(compiler == null || string.Equals(dv, defaultValue));
-          return;
-        }
-      } else if (cl is TypeSynonymDeclBase) {
-        hasSimpleZeroInitializer = false;
-        hasZeroInitializer = ((TypeSynonymDeclBase)cl).Characteristics.MustSupportZeroInitialization;
-        initializerIsKnown = hasZeroInitializer;
-        // The compiler should never need to know a "defaultValue" for a(n internal) type synonym, but this routine may
-        // be asked from outside the compiler about one of the other output booleans.
-        Contract.Assume(compiler == null);
-        return;
-      } else if (cl is ClassDecl) {
-        hasSimpleZeroInitializer = true;
-        hasZeroInitializer = true;
-        initializerIsKnown = true;
-        return;
-      } else if (cl is DatatypeDecl) {
-        // --- hasZeroInitializer ---
-        hasSimpleZeroInitializer = false;  // TODO: improve this one in special cases where one of the datatype values can be represented by "null"
-        // --- initializerIsKnown ---
-        if (cl is CoDatatypeDecl) {
-          hasZeroInitializer = false;  // TODO: improve this one by laying down a _DafnyDefaultValue method when it's possible
-          // The constructors of a codatatype may use type arguments that are not "smaller" than "type",
-          // in which case recursing on the types of the constructor's formals may lead to an infinite loop
-          // here.  If this were important, the code here could be changed to detect such loop, which would
-          // let "initializerIsKnown" be computed more precisely.  For now, set it to "true" if the type
-          // has a zero initializer.
-          initializerIsKnown = hasZeroInitializer;
-        } else {
-          var groundingCtor = ((IndDatatypeDecl)cl).GroundingCtor;
-          var subst = Resolver.TypeSubstitutionMap(cl.TypeArgs, udt.TypeArgs);
-          hasZeroInitializer = groundingCtor.Formals.TrueForAll(formal => formal.IsGhost || HasZeroInitializer(Resolver.SubstType(formal.Type, subst)));
-          initializerIsKnown = groundingCtor.Formals.TrueForAll(formal => formal.IsGhost || InitializerIsKnown(Resolver.SubstType(formal.Type, subst)));
-        }
-        return;
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
-      }
+      type = type.NormalizeExpandKeepConstraints();
+      Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
+      return TypeInitializationValue(type, wr, tok, false, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
     // ----- Stmt ---------------------------------------------------------------------------------
@@ -4107,7 +3893,7 @@ namespace Microsoft.Dafny {
       } else {
         // If an initializer is not known, the only way the verifier would have allowed this allocation
         // is if the requested size is 0.
-        EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, InitializerIsKnown(tp.EType), wr);
+        EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, tp.EType.HasCompilableValue, wr);
       }
     }
 
@@ -4721,8 +4507,6 @@ namespace Microsoft.Dafny {
         var e = (ConcreteSyntaxExpression)expr;
         TrExpr(e.ResolvedExpression, wr, inLetExprBody);
 
-      } else if (expr is NamedExpr) {
-        TrExpr(((NamedExpr)expr).Body, wr, inLetExprBody);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

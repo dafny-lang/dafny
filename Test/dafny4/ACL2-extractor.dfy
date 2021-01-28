@@ -16,7 +16,7 @@ function length(xs: List): nat
 
 // If "0 <= n < length(xs)", then return the element of "xs" that is preceded by
 // "n" elements; otherwise, return an arbitrary value.
-function nth<T>(n: int, xs: List<T>): T
+function nth<T(00)>(n: int, xs: List<T>): T
 {
   if 0 <= n < length(xs) then
     nthWorker(n, xs)

@@ -150,10 +150,10 @@ abstract module M0 {
 
   datatype Reason = rCompatibility | rValidity
 
-  type Path(==)
+  type Path(==,00)
   function Loc(cmd: string, deps: set<Path>, exp: string): Path
 
-  type Artifact
+  type Artifact(00)
   type Identifier
 
   datatype Tuple<A, B> = Pair(fst: A, snd: B)

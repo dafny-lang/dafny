@@ -8,47 +8,79 @@ on:
 
 jobs:
   build:
-
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        # Windows build is not yet working due to issues with the checked-in z3.exe
-        os: [ubuntu-latest]
+        ## Windows jobs fail on some lit tests and sometimes fail even to
+        ## setup a work environment (e.g. dotnet installation)
+        ##os: [ubuntu-latest]
+        ##os: [ubuntu-latest, windows-latest, ubuntu-16.04]
+        ##os: [ubuntu-latest, macos-latest]
+        os: [
+             ubuntu-latest,
+             macos-latest,
+           ##  windows-latest,
+             ubuntu-16.04,
+            ]
+        ## Size of the following array must match --num-shards in lit command
         shard: [1, 2, 3, 4, 5]
+        ##shard: [1, 2, 3]
+        include:
+        - os:                  'ubuntu-latest'
+          os_for_build:        'ubuntu'
+        - os:                  'ubuntu-16.04'
+          os_for_build:        'ubuntu'
+        - os:                  'macos-latest'
+          os_for_build:        'osx'
+        ##- os:                  'windows-latest'
+        ##  os_for_build:        'win'
+
       fail-fast: false
     steps:
     - name: Manually sync certs
+      if: runner.os == 'Linux'
       run: cert-sync /etc/ssl/certs/ca-certificates.crt
-    - name: Checkout Dafny
-      uses: actions/checkout@v2
-      with:
-        submodules: recursive
-        path: dafny
-    - name: Get Z3
-      if: matrix.os != 'windows-latest'
-      run: |
-        wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-ubuntu-14.04.zip
-        unzip z3*.zip && rm *.zip
-        cp -r z3* dafny/Binaries/z3
-    - name: Setup dotnet
+    - uses: actions/setup-python@v1
+    - name: Setup dotnet 5.0
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '3.1.x' # SDK Version to use; x will use the latest version of the 3.1 channel
-    - name: Build Dafny
-      run: dotnet build dafny/Source/Dafny.sln
+        dotnet-version: '5.0.x' # SDK Version for building Dafny; x will use the latest version of the 5.0 channel
+    - name: Setup dotnet 3.1
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: '3.1.x' # SDK Version for running Coco; x will use the latest version of the 3.1 channel
+    - name: C++ for ubuntu 16.04
+      if: matrix.os == 'ubuntu-16.04'
+      run: |
+        sudo apt-get install -y build-essential
     - uses: actions/setup-python@v1
     - name: Set up JDK 1.8
       uses: actions/setup-java@v1
       with:
         java-version: 1.8
-    - name: Build and Copy DafnyRuntime.jar with Gradle
-      run: dafny/Source/DafnyRuntime/DafnyRuntimeJava/gradlew -p dafny/Source/DafnyRuntime/DafnyRuntimeJava copyJarToBinaries
     - name: Upgrade outdated pip
       run: python -m pip install --upgrade pip
     - name: Install lit
       run: pip install lit OutputCheck pyyaml
     - uses: actions/setup-node@v1
     - run: npm install bignumber.js
+    - name: Checkout Dafny
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+        path: dafny
+    - name: Create release
+      run: |
+        python dafny/Scripts/package.py 0.0.0-CI --os ${{ matrix.os_for_build }} --skip_manual=true --trial=true --out=CI.zip
+    - if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        Expand-Archive dafny/Package/CI.zip unzippedRelease
+    - if: runner.os != 'Windows'
+      run: |
+        unzip dafny/Package/CI.zip -d unzippedRelease
     - name: Run lit tests
-      run: lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} dafny/Test
+      run: |
+        ## lit in this context needs the executables specified
+        lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} --param executable=$PWD/unzippedRelease/dafny/dafny --param serverExecutable=$PWD/unzippedRelease/dafny/DafnyServer dafny/Test

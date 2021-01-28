@@ -1777,10 +1777,10 @@ module TypeConversions {
   method M() returns (x: int, n: nat, o: object, j: J, c: C) {
     n := x as nat;  // yes, this is allowed now
     o := j;
-    j := o;  // error: cannot assign 'object' to 'J'
+    j := o;  // OK for type resolution, but must be proved
     j := o as J;  // error: not allowed to convert to 'J'
     j := c;
-    c := j;  // error: cannot assign J' to 'C'
+    c := j;  // OK for type resolution, but must be proved
     c := j as C;  // error: not allowed to convert to 'C'
     var oo := o as realint;  // error: there's no such type as "realint" (this once used to crash Dafny)
   }
@@ -1912,11 +1912,11 @@ module ReturnBeforeNew {
   }
 }
 
-// ---------------- required zero initialization -----------------------
+// ---------------- required auto-initialization -----------------------
 
 module ZI {
   // the following are different syntactic ways of saying that the type
-  // must support zero initialization
+  // must support auto-initialization
   type ZA(0)
   type ZB(==)(0)
   type ZC(0)(==)
@@ -1932,15 +1932,15 @@ module ZI {
     P(c);
     P(d);
     P(e);
-    P(f);  // error: type of argument is expected to support zero initialization
+    P(f);  // error: type of argument is expected to support auto-initialization
     P(g);
-    P(y);  // error: type of argument is expected to support zero initialization
+    P(y);  // error: type of argument is expected to support auto-initialization
   }
 
   datatype List<T> = Nil | Cons(T, List<T>)
   method M1<G,H(0)>(xs: List<G>, ys: List<H>) {
-    P(xs);  // yay, type of argument does support zero initialization
-    P(ys);  // yay, type of argument does support zero initialization
+    P(xs);  // yay, type of argument does support auto-initialization
+    P(ys);  // yay, type of argument does support auto-initialization
   }
 
   class Cls {
@@ -1951,75 +1951,85 @@ module ZI {
     P(c);
   }
 
-  newtype byte = x: int | 0 <= x < 256  // supports zero initialization
-  newtype MyInt = int  // supports zero initialization
-  newtype SixOrMore = x | 6 <= x witness 6
-  newtype AnotherSixOrMore = s: SixOrMore | true witness 6
-  newtype MySixOrMore = x: MyInt | 6 <= x witness 6
+  newtype byte = x: int | 0 <= x < 256  // supports auto-initialization
+  newtype MyInt = int  // supports auto-initialization
+  newtype SixOrMore = x | 6 <= x ghost witness 6
+  newtype AnotherSixOrMore = s: SixOrMore | true ghost witness 6
+  newtype MySixOrMore = x: MyInt | 6 <= x ghost witness 6
   // The resolver uses the presence/absence of a "witness" clause to figure out if the type
-  // supports zero initialization.  This can be inaccurate.  If the type does not have a
+  // supports auto-initialization.  This can be inaccurate.  If the type does not have a
   // "witness" clause, some type replacements may slip by the resolver, but will then be
   // caught by the verifier when the witness test is performed (because the witness test
-  // uses a zero value in the absence of a "witness" clause).  Regrettably, if a "witness"
-  // clause is supplied unnecessarily (perhaps to be explicit about the witness in the
-  // program text), then the resolver will treat the type as if it does not support
-  // zero initialization, and hence some good programs will be rejected by the resolver.
-  newtype UnclearA = x: int | true witness 0  // actually supports zero initialization, but has a "witness" clause
-  newtype UnclearB = x | 6 <= x  // "witness" clause omitted; type does not actually support zero initialization
+  // uses a zero value in the absence of a "witness" clause).
+  // A "ghost witness" clause tells the resolver that the type does not support
+  // auto-initialization, but only ghost auto-initialzation.
+
+  newtype UnclearA = x: int | true ghost witness 0  // actually supports auto-initialization, but has a "ghost witness" clause
+  newtype UnclearB = x | x == 6 && x < 4  // "witness" clause omitted; type does not actually support auto-initialization
 
   method M3(a: byte, b: MyInt, c: SixOrMore, d: AnotherSixOrMore, e: MySixOrMore,
             ua: UnclearA, ub: UnclearB) {
     P(a);
     P(b);
-    P(c);  // error: type of argument is expected to support zero initialization
-    P(d);  // error: type of argument is expected to support zero initialization
-    P(e);  // error: type of argument is expected to support zero initialization
-    P(ua);  // error: as far as the resolver can tell, type of argument does not support zero initialization
+    P(c);  // error: type of argument is expected to support auto-initialization
+    P(d);  // error: type of argument is expected to support auto-initialization
+    P(e);  // error: type of argument is expected to support auto-initialization
+    P(ua);  // error: as far as the resolver can tell, type of argument does not support auto-initialization
     P(ub);  // fine, as far as the resolver can tell (but this would be caught later by the verifier)
   }
 
-  type Sbyte = x: int | 0 <= x < 256  // supports zero initialization
-  type SMyInt = int  // supports zero initialization
-  type SSixOrMore = x | 6 <= x witness 6
-  type SAnotherSixOrMore = s: SSixOrMore | true witness 6
-  type SMySixOrMore = x: SMyInt | 6 <= x witness 6
-  type SUnclearA = x: int | true witness 0  // see note about for UnclearA
+  type Sbyte = x: int | 0 <= x < 256  // supports auto-initialization
+  type SMyInt = int  // supports auto-initialization
+  type SSixOrMore = x | 6 <= x ghost witness 6
+  type SAnotherSixOrMore = s: SSixOrMore | true ghost witness 6
+  type SMySixOrMore = x: SMyInt | 6 <= x ghost witness 6
+  type SUnclearA = x: int | true ghost witness 0  // see note about for UnclearA
   type SUnclearB = x | 6 <= x  // see note about for UnclearB
 
   method M4(a: Sbyte, b: SMyInt, c: SSixOrMore, d: SAnotherSixOrMore, e: SMySixOrMore,
             sua: SUnclearA, sub: SUnclearB) {
     P<Sbyte>(a);
     P<SMyInt>(b);
-    P<SSixOrMore>(c);  // error: type of argument is expected to support zero initialization
-    P<SAnotherSixOrMore>(d);  // error: type of argument is expected to support zero initialization
-    P<SMySixOrMore>(e);  // error: type of argument is expected to support zero initialization
-    P<SUnclearA>(sua);  // error: as far as the resolver can tell, type of argument does not support zero initialization
+    P<SSixOrMore>(c);  // error: type of argument is expected to support auto-initialization
+    P<SAnotherSixOrMore>(d);  // error: type of argument is expected to support auto-initialization
+    P<SMySixOrMore>(e);  // error: type of argument is expected to support auto-initialization
+    P<SUnclearA>(sua);  // error: as far as the resolver can tell, type of argument does not support auto-initialization
     P<SUnclearB>(sub);  // fine, as far as the resolver can tell (but this would be caught later by the verifier)
   }
 }
-
 abstract module ZI_RefinementAbstract {
-  type A
-  type A'
-  type B(0)
-  type B'(0)
-
-  type Mxx(0)
-  type Mx_
-  type M_x(0)
-  type M__
+  type A0
+  type A1
+  type A2
+  type A3
+  type B0(0)
+  type B1(0)
+  type B2(0)
+  type B3(0)
+  type C0(00)
+  type C1(00)
+  type C2(00)
+  type C3(00)
 
   method Delta<Q(0),W,E(0),R>()
 }
-
 module ZI_RefinementConcrete0 refines ZI_RefinementAbstract {
-  newtype Six = x | 6 <= x witness 6  // does not support zero initialization
-  type A = int
-  type A' = Six
-  type B = int
-  type B' = Six  // error: RHS is expected to support zero initialization
+  newtype Kuusi = x | 6 <= x witness 6  // supports auto-initialization
+  newtype Six = x | 6 <= x ghost witness 6  // does not support auto-initialization
+  newtype Sesis = x | 6 <= x witness *  // possibly empty
+  type A0 = int
+  type A1 = Kuusi
+  type A2 = Six
+  type A3 = Sesis
+  type B0 = int
+  type B1 = Kuusi
+  type B2 = Six  // error: RHS is expected to support auto-initialization
+  type B3 = Sesis  // error: RHS is expected to support auto-initialization
+  type C0 = int
+  type C1 = Kuusi
+  type C2 = Six
+  type C3 = Sesis  // error: RHS is expected to be nonempty
 }
-
 module ZI_ExportSource {
   export
     reveals RGB
@@ -2034,19 +2044,24 @@ module ZI_RefinementConcrete1 refines ZI_RefinementAbstract {
   method P<G(0)>(g: G)
   method M(m: Z.RGB, n: Z.XYZ) {
     P(m);
-    P(n);  // error: Z.XYZ is not known to support zero initialization
+    P(n);  // error: Z.XYZ is not known to support auto-initialization
   }
 
-  type Mxx  // error: not allowed to change zero-initialization setting
-  type Mx_
-  type M_x(0)
-  type M__(0)  // error: not allowed to change zero-initialization setting
+  type A0
+  type A1(0)   // error: not allowed to change auto-initialization setting
+  type A2(00)  // error: not allowed to change nonempty setting
+  type B0      // error: not allowed to change auto-initialization setting
+  type B1(0)
+  type B2(00)  // error: not allowed to change auto-initialization setting
+  type C0      // error: not allowed to change nonempty setting
+  type C1(0)   // error: not allowed to change auto-initialization setting
+  type C2(00)
 
   method Delta<
-    Q,  // error: not allowed to change zero-initialization setting
+    Q,  // error: not allowed to change auto-initialization setting
     W,
     E(0),
-    R(0)>()  // error: not allowed to change zero-initialization setting
+    R(0)>()  // error: not allowed to change auto-initialization setting
 }
 
 // ----- constructor-less classes with need for initialization -----
@@ -2070,24 +2085,24 @@ module ConstructorlessClasses {
     print "real: ", c.c, "\n";
   }
 
-  codatatype Co = CoEnd | Suc(Co)
-
+  codatatype Co<X> = Suc(Co<seq<X>>)  // does not know a known compilable value
+  codatatype Co2 = CoEnd | CoSuc(Co2)
   trait Trait {
-    var co: Co  // has no known initializer
+    var co: Co<int>  // has no known initializer
   }
   class Class extends Trait {  // error: must have constructor, because of inherited field "co"
   }
 
   class CoClass0 {  // error: must have constructor
-    const co: Co
+    const co: Co<int>
   }
 
   class CoClass1 {  // fine
-    const co: Co := CoEnd
+    const co: Co2 := CoEnd
   }
 
   trait CoTrait {
-    const co: Co := CoEnd
+    const co: Co2 := CoEnd
   }
   class CoClass2 extends CoTrait {  // fine
   }
@@ -2612,7 +2627,7 @@ module LabelDomination {
   }
 }
 
-// ----- bad use of types without zero initializers -----
+// ----- bad use of types without auto-initializers -----
 
 module Initialization {
   datatype Yt<Y> = MakeYt(x: int, y: Y)
@@ -2634,7 +2649,7 @@ module Initialization {
   method TypeParamViolation() returns (e: Yt<Even>, o: Yt<Odd>, g: Yt<GW>)
   {
     e := GimmieOne<Yt<Even>>();
-    o := GimmieOne<Yt<Odd>>();  // error: cannot pass Yt<Odd> to a (0)-parameter
+    o := GimmieOne<Yt<Odd>>();
     g := GimmieOne<Yt<GW>>();  // error: cannot pass Yt<GW> to a (0)-parameter
   }
 }
@@ -2944,5 +2959,47 @@ module CollectionUpdates {
     } else {
       m := m[e := d];  // error: value is not a Elem
     }
+  }
+}
+
+// --------------- update operations ------------------------------
+
+module MoreAutoInitAndNonempty {
+  type A(0)
+  type B(00)
+  type C
+
+  method Q<F(0)>(f: F)
+  method P<G(00)>(g: G)
+  method R<H>(h: H)
+
+  function method FQ<F(0)>(f: F): int
+  function method FP<G(00)>(g: G): int
+  function method FR<H>(h: H): int
+
+  method M<X(0), Y(00), Z>(x: X, y: Y, z: Z)
+  {
+    Q(x);
+    P(x);
+    R(x);
+    Q(y);  // error: auto-init mismatch
+    P(y);
+    R(y);
+    Q(z);  // error: auto-init mismatch
+    P(z);  // error: auto-init mismatch
+    R(z);
+  }
+
+  method N<X(0), Y(00), Z>(x: X, y: Y, z: Z) returns (u: int)
+  {
+    u := FQ(x);
+    u := FP(x);
+    u := FR(x);
+    u := FQ(y);  // error: auto-init mismatch
+    u := FP(y);
+    u := FR(y);
+    u := FQ(z);  // error: auto-init mismatch
+    u := FP(z);  // error: auto-init mismatch
+    u := FR(z);
   }
 }

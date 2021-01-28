@@ -15,12 +15,12 @@ module MB {
   module I {
     type T42 = x | 0 <= x < 42
     type T43 = x | 0 <= x < 43
-  } 
+  }
 }
 
 module B {
-  import MAI = MA.Inner // error - no MA
-  import MA.Inner // error - no MA
+  import MAI = MA.Inner // now OK
+  import MA.Inner // now OK
 }
 
 module C {

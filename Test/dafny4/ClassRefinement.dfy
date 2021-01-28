@@ -51,7 +51,7 @@ abstract module M0 {
 }
 
 module M1 refines M0 {
-  class Counter {
+  class Counter ... {
     var c: Cell
     var d: Cell
     predicate Valid...

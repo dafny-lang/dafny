@@ -293,9 +293,9 @@ class InitCalls {
     var e: InitCalls := new InitCalls.Init(18);
     var f: object := new InitCalls.Init(19);
     assert c.z + d.z + e.z == 50;
-    // poor man's type cast:
-    ghost var g: InitCalls;
-    assert f == g ==> g.z == 19;
+
+    assert var g: InitCalls := f; f == g;
+    assert var g: InitCalls := f; g.z == 19;
 
     // test that the call is done before the assignment to the LHS
     var r := c;

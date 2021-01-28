@@ -1,0 +1,10 @@
+MapMergeSubtraction.dfy(36,15): Error: type of right argument to + (map<int, bool>) must agree with the result type (map<int, real>) (covariant type parameter 1 would require bool <: real)
+MapMergeSubtraction.dfy(38,19): Error: type of right argument to + (map<int, bool>) must agree with the result type (map<int, real>) (covariant type parameter 1 would require bool <: real)
+MapMergeSubtraction.dfy(40,15): Error: type of right argument to + (map<int, bool>) must agree with the result type (map<int, real>) (covariant type parameter 1 would require bool <: real)
+MapMergeSubtraction.dfy(47,15): Error: type of right argument to + (map<bool, real>) must agree with the result type (map<int, real>) (covariant type parameter 0 would require bool <: int)
+MapMergeSubtraction.dfy(49,19): Error: type of right argument to + (map<bool, real>) must agree with the result type (map<int, real>) (covariant type parameter 0 would require bool <: int)
+MapMergeSubtraction.dfy(51,15): Error: map subtraction expects right-hand operand to have type set<bool> (instead got set<int>) (covariant type parameter would require int <: bool)
+MapMergeSubtraction.dfy(65,15): Error: map subtraction expects right-hand operand to have type set<int> (instead got iset<int>)
+MapMergeSubtraction.dfy(67,15): Error: map subtraction expects right-hand operand to have type set<int> (instead got iset<int>)
+MapMergeSubtraction.dfy(84,7): Error: RHS (of type set<int>) not assignable to LHS (of type map<int, real>)
+9 resolution/type errors detected in MapMergeSubtraction.dfy

@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using IToken = Microsoft.Boogie.IToken;
 
 namespace Microsoft.Dafny
@@ -76,56 +77,52 @@ namespace Microsoft.Dafny
     private ModuleSignature refinedSigOpened;
 
     internal override void PreResolve(ModuleDefinition m) {
-      if (m.RefinementBaseRoot != null) {
-        RefinedSig = m.RefinementBaseRoot.Signature;
+      if (m.RefinementQId?.Decl != null) { // There is a refinement parent and it resolved OK
+        RefinedSig = m.RefinementQId.Sig;
 
-        if (RefinedSig.ModuleDef != null) {
-          m.RefinementBase = RefinedSig.ModuleDef;
-          // check that the openess in the imports between refinement and its base matches
-          List<TopLevelDecl> declarations = m.TopLevelDecls;
-          List<TopLevelDecl> baseDeclarations = m.RefinementBase.TopLevelDecls;
-          foreach (var im in declarations) {
-            if (im is ModuleDecl) {
-              ModuleDecl mdecl = (ModuleDecl)im;
-              //find the matching import from the base
-              // TODO: this is a terribly slow algorithm; use the symbol table instead
-              foreach (var bim in baseDeclarations) {
-                if (bim is ModuleDecl && ((ModuleDecl)bim).Name.Equals(mdecl.Name)) {
-                  if (mdecl.Opened != ((ModuleDecl)bim).Opened) {
-                    string message = mdecl.Opened ?
-                      "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2} " :
-                      "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.";
-                    reporter.Error(MessageSource.RefinementTransformer, m.tok, message, im.Name, m.Name, m.RefinementBase.Name);
+        Contract.Assert(RefinedSig.ModuleDef != null);
+        Contract.Assert(m.RefinementQId.Def == RefinedSig.ModuleDef);
+        // check that the openess in the imports between refinement and its base matches
+        List<TopLevelDecl> declarations = m.TopLevelDecls;
+        List<TopLevelDecl> baseDeclarations = m.RefinementQId.Def.TopLevelDecls;
+        foreach (var im in declarations) {
+          // TODO: this is a terribly slow algorithm; use the symbol table instead
+          foreach (var bim in baseDeclarations) {
+            if (bim.Name.Equals(im.Name)) {
+              if (im is ModuleDecl mdecl) {
+                if (bim is ModuleDecl mbim) {
+                  if (mdecl.Opened != mbim.Opened) {
+                    string message = mdecl.Opened
+                      ? "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}."
+                      : "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.";
+                    reporter.Error(MessageSource.RefinementTransformer, m.tok, message, im.Name, m.Name,
+                      m.RefinementQId.ToString());
                   }
-                  break;
                 }
-                break;
               }
+              break;
             }
           }
-          PreResolveWorker(m);
-
-        } else {
-          reporter.Error(MessageSource.RefinementTransformer, m.RefinementBaseName, "module ({0}) named as refinement base does not exist", m.RefinementBaseName.val);
         }
+        PreResolveWorker(m);
       }
     }
 
     void PreResolveWorker(ModuleDefinition m) {
       Contract.Requires(m != null);
 
-      if (m.RefinementBase == null) return;
+      if (m.RefinementQId?.Def == null) return;
 
       if (moduleUnderConstruction != null) {
         postTasks.Clear();
       }
       moduleUnderConstruction = m;
       refinementCloner = new RefinementCloner(moduleUnderConstruction);
-      var prev = m.RefinementBase;
+      var prev = m.RefinementQId.Def;
 
       //copy the signature, including its opened imports
       refinedSigOpened = Resolver.MergeSignature(new ModuleSignature(), RefinedSig);
-      Resolver.ResolveOpenedImports(refinedSigOpened, m.RefinementBase, false, null);
+      Resolver.ResolveOpenedImports(refinedSigOpened, m.RefinementQId.Def, false, null);
 
       // Create a simple name-to-decl dictionary.  Ignore any duplicates at this time.
       var declaredNames = new Dictionary<string, int>();
@@ -145,7 +142,14 @@ namespace Microsoft.Dafny
           m.TopLevelDecls.Add(refinementCloner.CloneDeclaration(d, m));
         } else {
           var nw = m.TopLevelDecls[index];
-          MergeTopLevelDecls(m, nw, d, index);
+          if (d.Name == "_default" || m.TopLevelDecls[index].IsRefining
+                                   || d is OpaqueTypeDecl) {
+            MergeTopLevelDecls(m, nw, d, index);
+          } else if (d is TypeSynonymDecl) {
+            reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} may not redeclare a non-opaque type name {d.Name} from module {m.RefinementQId.ToString()}, even with the same type, unless refining (...)");
+          } else if (!(d is AbstractModuleDecl)) {
+            reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} redeclares a name {d.Name} from module {m.RefinementQId.ToString()} without indicating refining");
+          }
         }
       }
 
@@ -159,7 +163,7 @@ namespace Microsoft.Dafny
           MergeTopLevelDecls(m, nw, d, index);
         }
       }
-      m.RefinementBaseSig = RefinedSig;
+      m.RefinementQId.Sig = RefinedSig;
 
       Contract.Assert(moduleUnderConstruction == m);  // this should be as it was set earlier in this method
     }
@@ -183,11 +187,11 @@ namespace Microsoft.Dafny
           } else {
             MergeModuleExports((ModuleExportDecl)nw,(ModuleExportDecl)d);
           }
-        } else if (!(d is ModuleFacadeDecl)) {
+        } else if (!(d is AbstractModuleDecl)) {
           reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only refine a module facade", nw.Name);
         } else {
           // check that the new module refines the previous declaration
-          if (!CheckIsRefinement((ModuleDecl)nw, (ModuleFacadeDecl)d))
+          if (!CheckIsRefinement((ModuleDecl)nw, (AbstractModuleDecl)d))
             reporter.Error(MessageSource.RefinementTransformer, nw.tok, "a module ({0}) can only be replaced by a refinement of the original module", d.Name);
         }
       } else if (d is OpaqueTypeDecl) {
@@ -196,14 +200,16 @@ namespace Microsoft.Dafny
         } else {
           var od = (OpaqueTypeDecl)d;
           if (nw is OpaqueTypeDecl) {
-            if (od.MustSupportEquality != ((OpaqueTypeDecl)nw).MustSupportEquality) {
+            if (od.SupportsEquality != ((OpaqueTypeDecl)nw).SupportsEquality) {
               reporter.Error(MessageSource.RefinementTransformer, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
             }
-            if (od.Characteristics.MustSupportZeroInitialization != ((OpaqueTypeDecl)nw).Characteristics.MustSupportZeroInitialization) {
-              reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of supporting zero initialization", nw.Name);
+            if (od.Characteristics.HasCompiledValue != ((OpaqueTypeDecl)nw).Characteristics.HasCompiledValue) {
+              reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of supporting auto-initialization", nw.Name);
+            } else if (od.Characteristics.IsNonempty != ((OpaqueTypeDecl)nw).Characteristics.IsNonempty) {
+              reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of being nonempty", nw.Name);
             }
           } else {
-            if (od.MustSupportEquality) {
+            if (od.SupportsEquality) {
               if (nw is ClassDecl || nw is NewtypeDecl) {
                 // fine
               } else if (nw is CoDatatypeDecl) {
@@ -220,13 +226,22 @@ namespace Microsoft.Dafny
                 });
               }
             }
-            if (od.Characteristics.MustSupportZeroInitialization) {
-              // We need to figure out if the new type supports zero initialization.  But we won't know about that until resolution has
+            if (od.Characteristics.HasCompiledValue) {
+              // We need to figure out if the new type supports auto-initialization.  But we won't know about that until resolution has
               // taken place, so we defer it until the PostResolve phase.
               var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
               postTasks.Enqueue(() => {
-                if (!Compiler.HasZeroInitializer(udt)) {
-                  reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support zero initialization, is used to refine an opaque type that expects zero initialization", udt.Name);
+                if (!udt.HasCompilableValue) {
+                  reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support auto-initialization, is used to refine an opaque type that expects auto-initialization", udt.Name);
+                }
+              });
+            } else if (od.Characteristics.IsNonempty) {
+              // We need to figure out if the new type is nonempty.  But we won't know about that until resolution has
+              // taken place, so we defer it until the PostResolve phase.
+              var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
+              postTasks.Enqueue(() => {
+                if (!udt.IsNonempty) {
+                  reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which may be empty, is used to refine an opaque type expected to be nonempty", udt.Name);
                 }
               });
             }
@@ -264,7 +279,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    public bool CheckIsRefinement(ModuleDecl derived, ModuleFacadeDecl original) {
+    public bool CheckIsRefinement(ModuleDecl derived, AbstractModuleDecl original) {
 
 
       // Check explicit refinement
@@ -275,8 +290,8 @@ namespace Microsoft.Dafny
           HashSet<string> exports;
           if (derived is AliasModuleDecl) {
             exports = new HashSet<string>(((AliasModuleDecl)derived).Exports.ConvertAll(t => t.val));
-          } else if (derived is ModuleFacadeDecl) {
-            exports = new HashSet<string>(((ModuleFacadeDecl)derived).Exports.ConvertAll(t => t.val));
+          } else if (derived is AbstractModuleDecl) {
+            exports = new HashSet<string>(((AbstractModuleDecl)derived).Exports.ConvertAll(t => t.val));
           } else {
             reporter.Error(MessageSource.RefinementTransformer, derived, "a module ({0}) can only be refined by an alias module or a module facade", original.Name);
             return false;
@@ -284,7 +299,7 @@ namespace Microsoft.Dafny
           var oexports = new HashSet<string>(original.Exports.ConvertAll(t => t.val));
           return oexports.IsSubsetOf(exports);
         }
-        derivedPointer = derivedPointer.RefinementBase;
+        derivedPointer = derivedPointer.RefinementQId.Def;
       }
       return false;
     }
@@ -493,7 +508,6 @@ namespace Microsoft.Dafny
       }
 
       if (nw.SignatureIsOmitted) {
-        Contract.Assert(nw.TypeArgs.Count == 0);
         Contract.Assert(nw.Ins.Count == 0);
         Contract.Assert(nw.Outs.Count == 0);
         reporter.Info(MessageSource.RefinementTransformer, nw.SignatureEllipsis, Printer.IteratorSignatureToString(prev));
@@ -537,6 +551,7 @@ namespace Microsoft.Dafny
     ClassDecl MergeClass(ClassDecl nw, ClassDecl prev) {
       CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, "class");
 
+      prev.ParentTraits.ForEach(item => nw.ParentTraits.Add(item));
       nw.Attributes = refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes);
 
       // Create a simple name-to-member dictionary.  Ignore any duplicates at this time.
@@ -751,10 +766,12 @@ namespace Microsoft.Dafny
             if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport) {
               reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
             }
-            if (o.Characteristics.MustSupportZeroInitialization != n.Characteristics.MustSupportZeroInitialization) {
-              reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting zero initialization", n.Name);
+            if (o.Characteristics.HasCompiledValue != n.Characteristics.HasCompiledValue) {
+              reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
+            } else if (o.Characteristics.IsNonempty != n.Characteristics.IsNonempty) {
+              reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of being nonempty", n.Name);
             }
-            if (o.Characteristics.DisallowReferenceTypes != n.Characteristics.DisallowReferenceTypes) {
+            if (o.Characteristics.ContainsNoReferenceTypes != n.Characteristics.ContainsNoReferenceTypes) {
               reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
             }
             if (o.Variance != n.Variance) {  // syntax is allowed to be different as long as the meaning is the same (i.e., compare Variance, not VarianceSyntax)
@@ -896,25 +913,12 @@ namespace Microsoft.Dafny
               if (nxt != null && nxt is SkeletonStatement && ((SkeletonStatement)nxt).S == null) {
                 // "...; ...;" is the same as just "...;", so skip this one
               } else {
-                SubstitutionCloner subber = null;
-                if (c.NameReplacements != null) {
-                  var subExprs = new Dictionary<string, Expression>();
-                  Contract.Assert(c.NameReplacements.Count == c.ExprReplacements.Count);
-                  for (int k = 0; k < c.NameReplacements.Count; k++) {
-                    if (subExprs.ContainsKey(c.NameReplacements[k].val)) {
-                      reporter.Error(MessageSource.RefinementTransformer, c.NameReplacements[k], "replacement definition must contain at most one definition for a given label");
-                    } else subExprs.Add(c.NameReplacements[k].val, c.ExprReplacements[k]);
-                  }
-                  subber = new SubstitutionCloner(subExprs, rawCloner);
-                }
                 // skip up until the next thing that matches "nxt"
                 var hoverTextA = "";
                 var sepA = "";
                 while (nxt == null || !PotentialMatch(nxt, oldS)) {
                   // loop invariant:  oldS == oldStmt.Body[j]
                   var s = refinementCloner.CloneStmt(oldS);
-                  if (subber != null)
-                    s = subber.CloneStmt(s);
                   body.Add(s);
                   hoverTextA += sepA + Printer.StatementToString(s);
                   sepA = "\n";
@@ -924,11 +928,6 @@ namespace Microsoft.Dafny
                 }
                 if (hoverTextA.Length != 0) {
                   reporter.Info(MessageSource.RefinementTransformer, c.Tok, hoverTextA);
-                }
-                if (subber != null && subber.SubstitutionsMade.Count < subber.Exprs.Count) {
-                  foreach (var s in subber.SubstitutionsMade)
-                    subber.Exprs.Remove(s);
-                  reporter.Error(MessageSource.RefinementTransformer, c.Tok, "could not find labeled expression(s): " + Util.Comma(subber.Exprs.Keys, x => x));
                 }
               }
               i++;
@@ -1450,7 +1449,7 @@ namespace Microsoft.Dafny
 
       if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        if (e.Function.EnclosingClass.Module == m) {
+        if (e.Function.EnclosingClass.EnclosingModuleDefinition == m) {
           var p = e.Function as Predicate;
           if (p != null && p.BodyOrigin == Predicate.BodyOriginKind.Extension) {
             return true;
@@ -1484,12 +1483,19 @@ namespace Microsoft.Dafny
     }
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       var dd = base.CloneDeclaration(d, m);
-      if (dd is ModuleExportDecl) {
-        ((ModuleExportDecl)dd).SetupDefaultSignature();
+      if (dd is ModuleExportDecl ddex) {
+        // In refinement cloning, a default export set from the parent should, in the
+        // refining module, retain its name but not be default, unless the refining module has the same name
+        ModuleExportDecl dex = d as ModuleExportDecl;
+        if (dex.IsDefault && d.Name != m.Name) {
+          ddex = new ModuleExportDecl(dex.tok, d.Name, m, dex.Exports, dex.Extends, dex.ProvideAll, dex.RevealAll, false, true);
+        }
+        ddex.SetupDefaultSignature();
+        dd = ddex;
       } else if (d is ModuleDecl) {
         ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
-        if (d is ModuleFacadeDecl) {
-          ((ModuleFacadeDecl)dd).OriginalSignature = ((ModuleFacadeDecl)d).OriginalSignature;
+        if (d is AbstractModuleDecl) {
+          ((AbstractModuleDecl)dd).OriginalSignature = ((AbstractModuleDecl)d).OriginalSignature;
         }
       }
       return dd;
@@ -1503,30 +1509,6 @@ namespace Microsoft.Dafny
       } else {
         return new Attributes(moreAttrs.Name, moreAttrs.Args.ConvertAll(CloneExpr), MergeAttributes(prevAttrs, moreAttrs.Prev));
       }
-    }
-  }
-  class SubstitutionCloner : Cloner {
-    public Dictionary<string, Expression> Exprs;
-    public SortedSet<string> SubstitutionsMade;
-    Cloner c;
-    public SubstitutionCloner(Dictionary<string, Expression> subs, Cloner c) {
-      Exprs = subs;
-      SubstitutionsMade = new SortedSet<string>();
-      this.c = c;
-    }
-    public override Expression CloneExpr(Expression expr) {
-      if (expr is NamedExpr) {
-        NamedExpr n = (NamedExpr)expr;
-        Expression E;
-        if (Exprs.TryGetValue(n.Name, out E)) {
-          SubstitutionsMade.Add(n.Name);
-          return new NamedExpr(n.tok, n.Name, E, c.CloneExpr(n.Body), E.tok);
-        }
-      }
-      return base.CloneExpr(expr); // in all other cases, just do what the base class would.
-                                   // note that when we get a named expression that is not in
-                                   // our substitution list, then we call the base class, which
-                                   // recurses on the body of the named expression.
     }
   }
 }

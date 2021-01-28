@@ -21,7 +21,7 @@ module A {
 module B refines A {
   class C { }
   datatype Dt = Ax | Bx
-  class T {
+  class T ... {
     method P() returns (p: int)
     {
       p := 18;
@@ -49,14 +49,14 @@ module A_AnonymousClass {
 }
 
 module B_AnonymousClass refines A_AnonymousClass {
-  class XX {
+  class XX ... {
     method Increment...
       ensures x <= old(x) + d;
   }
 }
 
 module C_AnonymousClass refines B_AnonymousClass {
-  class XX {
+  class XX ... {
     method Increment(d: int)
       ensures old(x) + d <= x;
     method Main()
@@ -141,7 +141,7 @@ module Abstract {
 }
 
 module Concrete refines Abstract {
-  class MyNumber {
+  class MyNumber ... {
     var a: int
     var b: int
     predicate Valid...
@@ -183,7 +183,7 @@ module Client {
 }
 
 module IncorrectConcrete refines Abstract {
-  class MyNumber {
+  class MyNumber ... {
     var a: int
     var b: int
     predicate Valid...

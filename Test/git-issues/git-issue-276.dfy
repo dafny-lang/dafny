@@ -32,7 +32,7 @@ module Main {
     var x3 := 300 as b3; // expect error
   }
 
-  const c0: b1 := 4;
+  const c0: b1 := 4
   newtype cx = x:int | 0 <= x < c0 as int
 }
 

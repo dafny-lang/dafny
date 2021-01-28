@@ -39,13 +39,13 @@ Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Then
-PatternMatchingErrors.dfy(78,2): Error BP5003: A postcondition might not hold on this return path.
+PatternMatchingErrors.dfy(78,2): Error: A postcondition might not hold on this return path.
 PatternMatchingErrors.dfy(75,12): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon13_Then
-    (0,0): anon14_Then
-PatternMatchingErrors.dfy(99,33): Error BP5003: A postcondition might not hold on this return path.
+    (0,0): anon17_Then
+    (0,0): anon18_Then
+PatternMatchingErrors.dfy(99,33): Error: A postcondition might not hold on this return path.
 PatternMatchingErrors.dfy(96,12): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0

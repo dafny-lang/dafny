@@ -1,0 +1,9 @@
+# RUN: %server "%s" > "%t"
+# RUN: %diff "%s.expect" "%t"
+marshal
+method Abs(x: int) returns (y: int)
+  ensures 0 <= y
+{
+  return x;  // error: may be negative
+}
+[[DAFNY-CLIENT: EOM]]

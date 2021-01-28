@@ -42,7 +42,8 @@ Execution trace:
 LetExpr.dfy(323,11): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 Execution trace:
     (0,0): anon0
-    (0,0): anon10_Then
+    (0,0): anon17_Then
+    (0,0): anon18_Then
 LetExpr.dfy(109,22): Error: assertion violation
 Execution trace:
     (0,0): anon0

@@ -3,25 +3,19 @@
   <PropertyGroup>
       <OutputType>Exe</OutputType>
       <AssemblyName>DafnyServer</AssemblyName>
-      <TargetFramework>netcoreapp3.1</TargetFramework>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
       <PackageVersion>1.1.0</PackageVersion>
+      <TargetFramework>net5.0</TargetFramework>
+      <OutputPath>..\..\Binaries\</OutputPath>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.1|AnyCPU'">
-    <OutputPath>..\..\Binaries\</OutputPath>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net5.0|AnyCPU'">
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
-  
+
   <ItemGroup>
-    <ProjectReference Include="..\boogie\Source\Core\Core-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\ExecutionEngine\ExecutionEngine-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\Graph\Graph-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\Model\Model-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\ParserHelper\ParserHelper-NetCore.csproj" />
-    <ProjectReference Include="..\boogie\Source\Provers\SMTLib\SMTLib-NetCore.csproj" />
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
   </ItemGroup>
 

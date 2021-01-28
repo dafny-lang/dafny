@@ -90,14 +90,14 @@ module Mx {
     }
   }
 
-  iterator GenericIterator<T>(t: T) yields (u: T)
+  iterator GenericIterator<T(0)>(t: T) yields (u: T)
   {
     while true {
       yield t;
     }
   }
 
-  iterator GenericIteratorResult<T>() yields (t: T)
+  iterator GenericIteratorResult<T(0)>() yields (t: T)
   {
     while (*) { yield; }
   }
@@ -147,8 +147,8 @@ module DecreasesFields {
 // ---------- iterator (and other) type parameters -------------------------------
 
 module IteratorTypeParameters {
-  type Five = x | 5 <= x witness 6
-  type Six = x | 6 <= x witness 6
+  type Five = x | 5 <= x ghost witness 6
+  type Six = x | 6 <= x ghost witness 6
   codatatype Stream = More(r: real, s: Stream)
 
   class MyClass<A(==),B(0)> {
@@ -186,7 +186,7 @@ module IteratorTypeParameters {
     var y := MyFunction<Five,Six>();  // error: cannot pass in Six as type parameter B(0)
   }
 
-  iterator MyIter<A(==),B>(a: A) yields (b: B)
+  iterator MyIter<A(0,==), B(0)>(a: A) yields (b: B)
     ensures false  // never ends
   {
     while true
@@ -246,7 +246,7 @@ module IteratorTypeParameters {
     }
   }
 
-  iterator AnotherIter<A(==,0),B(==)>(a: A) yields (b: B)
+  iterator AnotherIter<A(==,0), B(==,0)>(a: A) yields (b: B)
     ensures false  // never ends
   {
     while true
@@ -270,11 +270,33 @@ module FilledInTypeParameters {
   }
 
   codatatype Co = More(Co)
+  codatatype GenericCoUnused<G> = More(GenericCoUnused<G>)
+  codatatype GenericCo<G> = More(GenericCo<G>, G)
+  codatatype NonuniformGenericCo<G> = More(NonuniformGenericCo<int>)
+  type Magic = x | 2 <= x < 5 ghost witness 4
 
   method Test()
   {
-    var iter := new Iter();
-    var m: seq<Co> := iter.s;
+    var iter0 := new Iter();
+    var m0: seq<Co> := iter0.s;
+
+    var iter1 := new Iter();
+    var m1: seq<GenericCoUnused<int>> := iter1.s;
+
+    var iter2 := new Iter();
+    var m2: seq<GenericCoUnused<Magic>> := iter2.s;
+
+    var iter3 := new Iter();
+    var m3: seq<GenericCo<int>> := iter3.s;
+
+    var iter4 := new Iter();  // error: Auto-init not support for GenericCo<Magic>, as required by the iterator's type parameters
+    var m4: seq<GenericCo<Magic>> := iter4.s;
+
+    var iter5 := new Iter();
+    var m5: seq<NonuniformGenericCo<int>> := iter5.s;
+
+    var iter6 := new Iter();  // error: Auto-init not support for NonuniformGenericCo<bool>, as required by the iterator's type parameters
+    var m6: seq<NonuniformGenericCo<bool>> := iter6.s;
   }
 }
 
@@ -290,5 +312,31 @@ module CheckEndOfScopeForDominatingLabels {
     yield 500;
     label 1:
     yield 700;
+  }
+}
+
+// ---------- initialization of yield parameters -------------------------------
+
+module YieldParameterInitialization {
+  trait MaybeEmpty { }
+  type GhostAutoInit = x | x % 2 == 1 ghost witness 77
+  type CompileAutoInit = x | x % 2 == 1 witness 73
+
+  iterator A() yields (y: MaybeEmpty) {  // error: yield parameter must be of an auto-init type
+  }
+
+  iterator B() yields (y: GhostAutoInit) {  // error: yield parameter must be of an auto-init type
+  }
+
+  iterator C() yields (y: CompileAutoInit) {
+  }
+
+  iterator D() yields (ghost y: MaybeEmpty) {  // error: ghost yield parameter must be of a nonempty type
+  }
+
+  iterator E() yields (ghost y: GhostAutoInit) {
+  }
+
+  iterator F() yields (ghost y: CompileAutoInit) {
   }
 }

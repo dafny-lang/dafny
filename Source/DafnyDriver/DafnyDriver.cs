@@ -108,13 +108,8 @@ namespace Microsoft.Dafny
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
 
-      if (DafnyOptions.O.PrintVersionAndExit)
-      {
-        Console.WriteLine(CommandLineOptions.Clo.Version);
-        return CommandLineArgumentsResult.OK_EXIT_EARLY;
-      }
-
-      if (CommandLineOptions.Clo.HelpRequested)
+      // If requested, print version number, help, attribute help, etc. and exit.
+      if (DafnyOptions.O.ProcessInfoFlags())
       {
         return CommandLineArgumentsResult.OK_EXIT_EARLY;
       }
@@ -130,10 +125,6 @@ namespace Microsoft.Dafny
           ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: " + errMsg);
           return CommandLineArgumentsResult.PREPROCESSING_ERROR;
         }
-      }
-      if (!CommandLineOptions.Clo.DontShowLogo)
-      {
-        Console.WriteLine(CommandLineOptions.Clo.Version);
       }
       if (CommandLineOptions.Clo.ShowEnv == CommandLineOptions.ShowEnvironment.Always)
       {
@@ -389,7 +380,7 @@ namespace Microsoft.Dafny
     }
 
     private static void WriteTrailer(PipelineStatistics stats) {
-      if (CommandLineOptions.Clo.vcVariety != CommandLineOptions.VCVariety.Doomed && !CommandLineOptions.Clo.Verify && stats.ErrorCount == 0) {
+      if (!CommandLineOptions.Clo.Verify && stats.ErrorCount == 0) {
         Console.WriteLine();
         Console.Write("{0} did not attempt verification", CommandLineOptions.Clo.DescriptiveToolName);
         if (stats.InconclusiveCount != 0) {
@@ -439,9 +430,9 @@ namespace Microsoft.Dafny
       {
         case PipelineOutcome.VerificationCompleted:
           WriteStatss(statss);
-          if ((DafnyOptions.O.Compile && verified && CommandLineOptions.Clo.ProcsToCheck == null) || DafnyOptions.O.ForceCompile) {
+          if ((DafnyOptions.O.Compile && verified && !CommandLineOptions.Clo.UserConstrainedProcsToCheck) || DafnyOptions.O.ForceCompile) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
-          } else if ((2 <= DafnyOptions.O.SpillTargetCode && verified && CommandLineOptions.Clo.ProcsToCheck == null) || 3 <= DafnyOptions.O.SpillTargetCode) {
+          } else if ((2 <= DafnyOptions.O.SpillTargetCode && verified && !CommandLineOptions.Clo.UserConstrainedProcsToCheck) || 3 <= DafnyOptions.O.SpillTargetCode) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, false);
           }
           break;
@@ -474,9 +465,8 @@ namespace Microsoft.Dafny
       Contract.Ensures(0 <= Contract.ValueAtReturn(out stats).InconclusiveCount && 0 <= Contract.ValueAtReturn(out stats).TimeoutCount);
 
       stats = new PipelineStatistics();
-      LinearTypeChecker ltc;
       CivlTypeChecker ctc;
-      PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName, out ltc, out ctc);
+      PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName, out ctc);
       switch (oc) {
         case PipelineOutcome.Done:
           return oc;
@@ -493,7 +483,7 @@ namespace Microsoft.Dafny
             fileNames.Add(bplFileName);
             Bpl.Program reparsedProgram = ExecutionEngine.ParseBoogieProgram(fileNames, true);
             if (reparsedProgram != null) {
-              ExecutionEngine.ResolveAndTypecheck(reparsedProgram, bplFileName, out ltc, out ctc);
+              ExecutionEngine.ResolveAndTypecheck(reparsedProgram, bplFileName, out ctc);
             }
           }
           return oc;
@@ -556,7 +546,7 @@ namespace Microsoft.Dafny
           break;
         case DafnyOptions.CompilationTarget.Java:
           targetExtension = "java";
-          targetBaseDir = baseName;
+          targetBaseDir = baseName + "-java";
           baseName = compiler.TransformToClassName(baseName);
           break;
         case DafnyOptions.CompilationTarget.Php:
@@ -577,8 +567,9 @@ namespace Microsoft.Dafny
       // WARNING: Make sure that Directory.Delete is only called when the compilation target is Java.
       // If called during C# or JS compilation, you will lose your entire target directory.
       // Purpose is to delete the old generated folder with the Java compilation output and replace all contents.
-      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java && Directory.Exists(targetDir))
+      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java && Directory.Exists(targetDir)) {
         Directory.Delete(targetDir, true);
+      }
       string targetFilename = Path.Combine(targetDir, targetBaseName);
       if (targetProgram != null) {
         WriteFile(targetFilename, targetProgram);
@@ -589,8 +580,7 @@ namespace Microsoft.Dafny
         if (DafnyOptions.O.CompileVerbose) {
           outputWriter.WriteLine("Compiled program written to {0}", relativeTarget);
         }
-      }
-      else {
+      } else {
         outputWriter.WriteLine("File {0} contains the partially compiled program", relativeTarget);
       }
 
@@ -601,6 +591,7 @@ namespace Microsoft.Dafny
           outputWriter.WriteLine("Additional code written to {0}", Path.Combine(targetBaseDir, filename));
         }
       }
+
       return targetFilename;
     }
 
@@ -673,18 +664,11 @@ namespace Microsoft.Dafny
           otherFiles.Add(wr.Filename, sw.ToString());
         }
       }
-      string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
       string callToMain = null;
       if (hasMain) {
         using (var wr = new TargetWriter(0)) {
-          if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-            baseName = compiler.TransformToClassName(baseName);
-            wr.WriteLine($"public class {baseName} {{");
-          }
-          compiler.EmitCallToMain(mainMethod, wr);
-          if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-            wr.WriteLine("}");
-          }
+          string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
+          compiler.EmitCallToMain(mainMethod, baseName, wr);
           callToMain = wr.ToString(); // assume there aren't multiple files just to call main
         }
       }
@@ -703,27 +687,12 @@ namespace Microsoft.Dafny
         targetFilename = WriteDafnyProgramToFiles(compiler, dafnyProgramName, p, completeProgram, otherFiles, outputWriter);
       }
 
-      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-        string targetBaseDir = Path.GetFileNameWithoutExtension(dafnyProgramName);
-        string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
-        var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
-        Contract.Assert(assemblyLocation != null);
-        var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
-        Contract.Assert(codebase != null);
-        string dest = targetDir + "/dafny";
-        Directory.CreateDirectory(dest);
-        var jcompiler = (JavaCompiler) compiler;
-        jcompiler.CompileTuples(dest);
-        jcompiler.CreateFunctionInterface(dest);
-        jcompiler.CompileDafnyArrays(dest);
-      }
-
       if (!completeProgram) {
         return false;
       }
-      // If we got until here, compilation to C# succeeded
+      // If we got here, compilation succeeded
       if (!invokeCompiler) {
-        return true; // If we're not asked to invoke the C# to assembly compiler, we can report success
+        return true; // If we're not asked to invoke the target compiler, we can report success
       }
 
       // compile the program into an assembly

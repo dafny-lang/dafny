@@ -270,7 +270,7 @@ namespace Microsoft.Dafny
       //     }
       //   }
 
-      var cw = CreateClass(IdProtect(iter.Module.CompileName), IdName(iter), iter, wr) as CsharpCompiler.ClassWriter;
+      var cw = CreateClass(IdProtect(iter.EnclosingModuleDefinition.CompileName), IdName(iter), iter, wr) as CsharpCompiler.ClassWriter;
       var w = cw.InstanceMemberWriter;
       // here come the fields
       Constructor ct = null;
@@ -630,7 +630,7 @@ namespace Microsoft.Dafny
         if (dt is TupleTypeDecl) {
           nm = "";
         } else {
-          nm = (dt.Module.IsDefaultModule ? "" : dt.Module.Name + ".") + dt.Name + "." + ctor.Name;
+          nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
         }
         if (dt is TupleTypeDecl tupleDt && ctor.Formals.Count == 0) {
           // here we want parentheses and no name
@@ -690,7 +690,7 @@ namespace Microsoft.Dafny
       Contract.Ensures(Contract.Result<string>() != null);
 
       var dt = ctor.EnclosingDatatype;
-      var dtName = dt.Module.IsDefaultModule ? IdProtect(dt.CompileName) : dt.FullCompileName;
+      var dtName = dt.EnclosingModuleDefinition.IsDefaultModule ? IdProtect(dt.CompileName) : dt.FullCompileName;
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.CompileName;
     }
     string DtCreateName(DatatypeCtor ctor) {
@@ -702,7 +702,7 @@ namespace Microsoft.Dafny
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.CompileName), IdName(nt), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var wEnum = w.NewNamedBlock("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi)", GetNativeTypeName(nt.NativeType));
@@ -726,7 +726,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);
@@ -1043,8 +1043,8 @@ namespace Microsoft.Dafny
         } else if (DafnyOptions.O.IronDafny &&
             !(xType is ArrowType) &&
             cl != null &&
-            cl.Module != null &&
-            !cl.Module.IsDefaultModule) {
+            cl.EnclosingModuleDefinition != null &&
+            !cl.EnclosingModuleDefinition.IsDefaultModule) {
           s = cl.FullCompileName;
         }
         return TypeName_UDT(s, udt, wr, udt.tok);
@@ -1099,7 +1099,7 @@ namespace Microsoft.Dafny
       return "object";
     }
 
-    public override string TypeInitializationValue(Type type, TextWriter wr /*?*/, Bpl.IToken tok /*?*/, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
+    protected override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       var xType = type.NormalizeExpandKeepConstraints();
 
       if (usePlaceboValue) {
@@ -1183,8 +1183,8 @@ namespace Microsoft.Dafny
         if (DafnyOptions.O.IronDafny &&
             !(xType is ArrowType) &&
             rc != null &&
-            rc.Module != null &&
-            !rc.Module.IsDefaultModule) {
+            rc.EnclosingModuleDefinition != null &&
+            !rc.EnclosingModuleDefinition.IsDefaultModule) {
           s = "@" + rc.FullCompileName;
         }
         if (udt.TypeArgs.Count != 0) {
@@ -1604,6 +1604,41 @@ namespace Microsoft.Dafny
       return wrs;
     }
 
+    /// <summary>
+    /// Return "true" if the C# all-zero bit pattern is a meaningful value for a Dafny type "t".
+    /// This method is allowed to be conservative; that is, it is allowed to return "false" more often
+    /// than strictly needed.
+    /// </summary>
+    private bool HasSimpleZeroInitializer(Type t) {
+      Contract.Requires(t != null);
+
+      t = t.NormalizeExpandKeepConstraints();
+      if (t is CharType) {
+        // Okay, so '\0' _is_ a value of type "char", but it's so unpleasant to deal with in test files, etc.
+        // By returning false here, a different value will be chosen.
+        return false;
+      } else if (t is BoolType || t is IntType || t is BigOrdinalType || t is RealType || t is BitvectorType) {
+        return true;
+      } else if (t is CollectionType) {
+        return false;
+      }
+
+      var udt = (UserDefinedType)t;
+      if (udt.ResolvedParam != null) {
+        return false;
+      }
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is NewtypeDecl) {
+        var td = (NewtypeDecl)cl;
+        return td.WitnessKind == SubsetTypeDecl.WKind.CompiledZero;
+      } else if (cl is ClassDecl) {
+        return true; // null is a value of this type
+      } else {
+        return false;
+      }
+    }
+
     protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
@@ -1632,8 +1667,8 @@ namespace Microsoft.Dafny
       } else if (e.Value is BigInteger) {
         var i = (BigInteger)e.Value;
         EmitIntegerLiteral(i, wr);
-      } else if (e.Value is Basetypes.BigDec) {
-        var n = (Basetypes.BigDec)e.Value;
+      } else if (e.Value is BaseTypes.BigDec) {
+        var n = (BaseTypes.BigDec)e.Value;
         if (0 <= n.Exponent) {
           wr.Write("new Dafny.BigRational(BigInteger.Parse(\"{0}", n.Mantissa);
           for (int i = 0; i < n.Exponent; i++) {
@@ -1904,10 +1939,10 @@ namespace Microsoft.Dafny
       var cl = udt.ResolvedClass;
       if (cl == null) {
         return IdProtect(udt.CompileName);
-      } else if (cl.Module.IsDefaultModule) {
+      } else if (cl.EnclosingModuleDefinition.IsDefaultModule) {
         return IdProtect(cl.CompileName);
       } else {
-        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
+        return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
       }
     }
 
@@ -1922,7 +1957,7 @@ namespace Microsoft.Dafny
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
-      var dtName = dt.Module.IsDefaultModule ? dt.CompileName : dt.FullCompileName;
+      var dtName = dt.EnclosingModuleDefinition.IsDefaultModule ? dt.CompileName : dt.FullCompileName;
 
       var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : $"<{TypeNames(dtv.InferredTypeArgs, wr, dtv.tok)}>";
       if (!dtv.IsCoCall) {
@@ -2497,12 +2532,17 @@ namespace Microsoft.Dafny
         case BinaryExpr.ResolvedOpcode.Union:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Union"; break;
+        case BinaryExpr.ResolvedOpcode.MapMerge:
+          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Merge"; break;
         case BinaryExpr.ResolvedOpcode.Intersection:
         case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
           staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Intersect"; break;
         case BinaryExpr.ResolvedOpcode.SetDifference:
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
           staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Difference"; break;
+
+        case BinaryExpr.ResolvedOpcode.MapSubtraction:
+          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Subtract"; break;
 
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
           staticCallString = TypeHelperName(e0.Type, errorWr, e0.tok) + ".IsProperPrefixOf"; break;
@@ -2874,11 +2914,11 @@ namespace Microsoft.Dafny
       }
     }
 
-    public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
+    public override void EmitCallToMain(Method mainMethod, string baseName, TargetWriter wr) {
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
       var wClass = wr.NewNamedBlock("class __CallToMain");
       var wBody = wClass.NewNamedBlock("public static void Main(string[] args)");
-      var modName = mainMethod.EnclosingClass.Module.CompileName == "_module" ? "_module." : "";
+      var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_module." : "";
       companion = modName + companion;
 
       var idName = mainMethod.IsStatic ? IdName(mainMethod) : "_StaticMain";

@@ -3,4 +3,4 @@
 
 // This tests that an example in the Reference Manual behaves as expected
 
-include "../../docs/_includes/Example-Old3.dfy"
+include "../../docs/DafnyRef/examples/Example-Old3.dfy"

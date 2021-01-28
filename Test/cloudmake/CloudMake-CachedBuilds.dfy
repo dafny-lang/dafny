@@ -1126,7 +1126,7 @@ abstract module M0 {
   {
     var big := {st} + sts;
     if st in sts {
-      assert forall states :: st in states ==> DomSt(st) <= DomSt_Union(states);
+      assert forall states {:induction} :: st in states ==> DomSt(st) <= DomSt_Union(states);
       assert {st} + sts == sts;
     } else {
       var stPick := PickOne(big);
@@ -1156,7 +1156,7 @@ abstract module M0 {
     var big := {st} + sts;
     if st in sts {
       assert big == sts;
-      assert forall states :: st in states ==> DomSt(st) <= DomSt_Union(states);
+      assert forall states {:induction} :: st in states ==> DomSt(st) <= DomSt_Union(states);
       Combine_DomSt_X(sts, useCache);
     } else {
       var stPick := PickOne(big);

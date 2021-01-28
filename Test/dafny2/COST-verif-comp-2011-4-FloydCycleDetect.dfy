@@ -288,7 +288,7 @@ class Node {
   {
     if Nexxxt(x, S) != null
     {
-      assert forall j :: 0 <= j ==> Nexxxt(x, S).Nexxxt(j, S) == Nexxxt(x + j, S);  // Dafny's induction tactic kicks in
+      assert forall j {:induction} :: 0 <= j ==> Nexxxt(x, S).Nexxxt(j, S) == Nexxxt(x + j, S);  // Dafny's induction tactic kicks in
       /* Alternatively, here's a manual proof by induction (but only up to the needed y):
       var j := 0;
       while j < y
@@ -332,7 +332,7 @@ class Node {
     requires IsClosed(S) && 0 <= n && Nexxxt(n, S) == null
     ensures forall k,l :: n <= k && 0 <= l && Nexxxt(k, S) != null && Nexxxt(k, S).next != null ==> Nexxxt(k, S).next.Nexxxt(l, S) != Nexxxt(k, S)
   {
-    assert forall k :: n <= k ==> Nexxxt(k, S) == null;  // Dafny proves this thanks to its induction tactic
+    assert forall k {:induction} :: n <= k ==> Nexxxt(k, S) == null;  // Dafny proves this thanks to its induction tactic
   }
 
   lemma Lemma_NullImpliesNoCycles_part1(n: int, S: set<Node?>)
@@ -340,8 +340,8 @@ class Node {
     ensures forall k,l :: 0 <= k && n <= l && Nexxxt(k, S) != null && Nexxxt(k, S).next != null ==> Nexxxt(k, S).next.Nexxxt(l, S) != Nexxxt(k, S)
   {
     // Each of the following assertions makes use of Dafny's induction tactic
-    assert forall k,l {:matchinglooprewrite false} :: 0 <= k && 0 <= l && Nexxxt(k, S) != null && Nexxxt(k, S).next != null ==> Nexxxt(k, S).next.Nexxxt(l, S) == Nexxxt(k+1+l, S);
-    assert forall kl :: n <= kl ==> Nexxxt(kl, S) == null;
+    assert forall k,l {:matchinglooprewrite false} {:induction} :: 0 <= k && 0 <= l && Nexxxt(k, S) != null && Nexxxt(k, S).next != null ==> Nexxxt(k, S).next.Nexxxt(l, S) == Nexxxt(k+1+l, S);
+    assert forall kl {:induction} :: n <= kl ==> Nexxxt(kl, S) == null;
   }
 
   lemma Lemma_NullImpliesNoCycles_part2(n: int, S: set<Node?>)
@@ -384,7 +384,7 @@ class Node {
             }
             Lemma_NexxxtIsTransitive(kn, nn, S);
             assert Nexxxt(kn, S).Nexxxt(nn, S) == Nexxxt(kn+nn, S);
-            assert forall j :: n <= j ==> Nexxxt(j, S) == null;  // this uses Dafny's induction tactic
+            assert forall j {:induction} :: n <= j ==> Nexxxt(j, S) == null;  // this uses Dafny's induction tactic
             assert false;  // we have reached a contradiction
           }
           assert Nexxxt(kn+1, S).Nexxxt(ln, S) != Nexxxt(kn, S);
