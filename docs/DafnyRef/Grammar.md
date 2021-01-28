@@ -398,7 +398,7 @@ successive double quotes represent one quote character inside
 the string. This is the mechanism for escaping a double quote character,
 which is the only character needing escaping in a verbatim string.
 
-### Ellipsis
+### 2.5.7. Ellipsis
 ````grammar
 ellipsis = "..."
 ````
