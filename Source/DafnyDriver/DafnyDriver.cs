@@ -591,7 +591,7 @@ namespace Microsoft.Dafny
           outputWriter.WriteLine("Additional code written to {0}", Path.Combine(targetBaseDir, filename));
         }
       }
-      
+
       return targetFilename;
     }
 
@@ -644,8 +644,7 @@ namespace Microsoft.Dafny
           break;
       }
 
-      Method mainMethod;
-      var hasMain = compiler.HasMain(dafnyProgram, out mainMethod);
+      var hasMain = compiler.HasMain(dafnyProgram, out var mainMethod);
       string targetProgramText;
       var otherFiles = new Dictionary<string, string>();
       {
@@ -672,11 +671,12 @@ namespace Microsoft.Dafny
           callToMain = wr.ToString(); // assume there aren't multiple files just to call main
         }
       }
+      Contract.Assert(hasMain == (callToMain != null));
       bool completeProgram = dafnyProgram.reporter.Count(ErrorLevel.Error) == oldErrorCount;
 
       compiler.Coverage.WriteLegendFile();
 
-      // blurt out the code to a file, if requested, or if other files were specified for the C# command line.
+      // blurt out the code to a file, if requested, or if other target-language files were specified on the command line.
       string targetFilename = null;
       if (DafnyOptions.O.SpillTargetCode > 0 || otherFileNames.Count > 0 || (invokeCompiler && !compiler.SupportsInMemoryCompilation))
       {
@@ -698,7 +698,7 @@ namespace Microsoft.Dafny
       // compile the program into an assembly
       object compilationResult;
       var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames,
-        hasMain, hasMain && DafnyOptions.O.RunAfterCompile, outputWriter, out compilationResult);
+        hasMain && DafnyOptions.O.RunAfterCompile, outputWriter, out compilationResult);
       if (compiledCorrectly && DafnyOptions.O.RunAfterCompile) {
         if (hasMain) {
           if (DafnyOptions.O.CompileVerbose) {

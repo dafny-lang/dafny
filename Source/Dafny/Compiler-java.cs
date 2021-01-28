@@ -2160,7 +2160,7 @@ namespace Microsoft.Dafny{
     }
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain, string /*?*/ targetFilename,
-      ReadOnlyCollection<string> otherFileNames, bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+      ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       compilationResult = null;
       foreach (var otherFileName in otherFileNames) {
         if (Path.GetExtension(otherFileName) != ".java") {
@@ -2857,22 +2857,22 @@ namespace Microsoft.Dafny{
         }
         CreateTuple(i, wr);
       }
-      
+
       // Emit function interfaces
       foreach (var i in functions) {
         CreateLambdaFunctionInterface(i, wr);
       }
-      
+
       // Emit arrays
       foreach (var i in arrays) {
         CreateDafnyArrays(i, wr);
       }
     }
-    
+
     private void CreateTuple(int i, TargetWriter outputWr) {
       Contract.Requires(0 <= i);
       Contract.Requires(outputWr != null);
-      
+
       var wrTop = outputWr.NewFile(Path.Combine("dafny", $"Tuple{i}.java"));
 
       wrTop.WriteLine("package dafny;");
@@ -3164,7 +3164,7 @@ namespace Microsoft.Dafny{
     private void CreateLambdaFunctionInterface(int i, TargetWriter outputWr) {
       Contract.Requires(0 <= i);
       Contract.Requires(outputWr != null);
-      
+
       var functionName = $"Function{i}";
       var wr = outputWr.NewFile(Path.Combine("dafny", $"{functionName}.java"));
 
@@ -3192,9 +3192,9 @@ namespace Microsoft.Dafny{
     private void CreateDafnyArrays(int i, TargetWriter outputWr) {
       Contract.Requires(0 <= i);
       Contract.Requires(outputWr != null);
-      
+
       var wrTop = outputWr.NewFile(Path.Combine("dafny", $"Array{i}.java"));
-      
+
       wrTop.WriteLine("package dafny;");
       wrTop.WriteLine();
 
