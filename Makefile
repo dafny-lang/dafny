@@ -7,10 +7,10 @@ all: runtime boogie exe refman
 exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
 
-boogie: ${DIR}/../boogie/Binaries/Boogie.exe
+boogie: ${DIR}/Source/boogie/Binaries/Boogie.exe
 
-${DIR}/../boogie/Binaries/Boogie.exe:
-	(cd ${DIR}/../boogie ; dotnet build Source/Boogie.sln )
+${DIR}/Source/boogie/Binaries/Boogie.exe:
+	(cd ${DIR}/../boogie ; dotnet build Source/boogie/Source/Boogie.sln )
 
 parser:
 	make -C ${DIR}/Source/Dafny -f Makefile.linux all

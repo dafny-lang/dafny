@@ -893,9 +893,9 @@ namespace Microsoft.Dafny {
     public bool KnownToHaveToAValue(bool ghostContext) {
       return ghostContext ? IsNonempty : HasCompilableValue;
     }
-    
+
     public enum AutoInitInfo { MaybeEmpty, Nonempty, CompilableValue }
-    
+
     /// <summary>
     /// This property returns
     ///     - CompilableValue, if the type has a known compilable value
@@ -1260,7 +1260,7 @@ namespace Microsoft.Dafny {
         return t as ArrowType;
       }
     }
-    
+
     public bool IsMapType {
       get {
         var t = NormalizeExpand() as MapType;
@@ -1540,7 +1540,7 @@ namespace Microsoft.Dafny {
     /// It is assumed that t and u have been normalized and expanded by the caller, according
     /// to its purposes.
     /// </summary>
-    public static bool SameHead(Type t, Type u) {
+    public static bool SameHead(Type t, Type u, bool allowNonNull = false) {
       Contract.Requires(t != null);
       Contract.Requires(u != null);
       if (t is TypeProxy) {
@@ -1558,7 +1558,8 @@ namespace Microsoft.Dafny {
       } else {
         var udtT = (UserDefinedType)t;
         var udtU = u as UserDefinedType;
-        return udtU != null && udtT.ResolvedClass == udtU.ResolvedClass;
+        return udtU != null && (udtT.ResolvedClass == udtU.ResolvedClass
+                   || (allowNonNull && udtU.ResolvedClass is NonNullTypeDecl nudtU && udtT.ResolvedClass == nudtU.Class));
       }
     }
 
@@ -2955,6 +2956,7 @@ namespace Microsoft.Dafny {
           return true;
         }
       } else {
+        // TODO?: return i.Equals(that.NormalizeExpand());
         return i.Equals(that, keepConstraints);
       }
     }
