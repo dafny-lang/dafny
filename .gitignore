@@ -77,3 +77,4 @@ Source/.vs
 /Source/DafnyRuntime/DafnyRuntimeJava/.gradle
 /Source/DafnyRuntime/DafnyRuntimeJava/build
 *.class
+Test/**/*.runtimeconfig.json
