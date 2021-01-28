@@ -257,30 +257,33 @@ method test_factorial1_old()
   // proving that 5! == 10*12 _used to_ take some effort...
   calc {
     factorial(n5);
-    { mult_lemma(n2, n6); }
+  ==  { mult_lemma(n2, n6); }
     mult(n5, plus(plus(n6, n6), plus(plus(n6, n6), O)));
-    { mult_lemma(n5, plus(n6, n6)); }
+  ==  { mult_lemma(n5, plus(n6, n6)); }
     mult(n10, n12);
   }
 }
 
 // This lemma expresses:  m*(2*n) == (2*m)*n
 lemma mult_lemma(m: Nat, n: Nat)
-  ensures mult(m, plus(n, n)) == mult(plus(m, m), n);
+  ensures mult(m, plus(n, n)) == mult(plus(m, m), n)
 {
   match m {
     case O =>
     case S(m') =>
       calc {
         mult(m, plus(n, n));
+      ==
         plus(plus(n, n), mult(m', plus(n, n)));
-        // induction hypothesis
+      ==  // induction hypothesis
         plus(plus(n, n), mult(plus(m', m'), n));
-        { assert forall a,b,c :: plus(plus(a, b), c) == plus(a, plus(b, c)); }
+      ==  { assert forall a,b,c {:induction} :: plus(plus(a, b), c) == plus(a, plus(b, c)); }
         plus(n, plus(n, mult(plus(m', m'), n)));
+      ==
         mult(S(S(plus(m', m'))), n);
+      ==
         mult(S(plus(S(m'), m')), n);
-        { assert forall a,b :: S(plus(a, b)) == plus(a, S(b)); }
+      ==  { assert forall a,b {:induction} :: S(plus(a, b)) == plus(a, S(b)); }
         mult(plus(S(m'), S(m')), n);
       }
   }
@@ -338,43 +341,43 @@ method test_blt_nat1()
 // Proof by Simplification
 
 lemma plus_O_n (n: Nat)
-  ensures plus(O, n) == n;
+  ensures plus(O, n) == n
 {
 }
 
 lemma plus_1_l (n: Nat)
-  ensures plus(S(O), n) == S(n);
+  ensures plus(S(O), n) == S(n)
 {
 }
 
 lemma mult_0_l (n: Nat)
-  ensures mult(O, n) == O;
+  ensures mult(O, n) == O
 {
 }
 
 // Proof by Rewriting
 
 lemma plus_id_example (n: Nat, m: Nat)
-  ensures n == m ==> plus(n, n) == plus(m, m);
+  ensures n == m ==> plus(n, n) == plus(m, m)
 {
 }
 
 // Exercise: 1 star (plus_id_exercise)
 
 lemma plus_id_exercise (n: Nat, m: Nat, o: Nat)
-  ensures n == m ==> m == o ==> plus(n, m) == plus(m, o);
+  ensures n == m ==> m == o ==> plus(n, m) == plus(m, o)
 {
 }
 
 lemma mult_0_plus (n: Nat, m: Nat)
-  ensures mult(plus(O, n), m) == mult(n, m);
+  ensures mult(plus(O, n), m) == mult(n, m)
 {
 }
 
 // Exercise: 2 stars (mult_S_1)
 
 lemma mult_S_1 (n: Nat, m: Nat)
-  ensures m == S(n) ==> mult(m, plus(S(O), n)) == mult(m, m);
+  ensures m == S(n) ==> mult(m, plus(S(O), n)) == mult(m, m)
 {
 }
 
@@ -382,24 +385,24 @@ lemma mult_S_1 (n: Nat, m: Nat)
 // Proof by Case Analysis
 
 lemma plus_1_neq_0_firsttry (n: Nat)
-  ensures beq_nat(plus(n, S(O)), O) == False;
+  ensures beq_nat(plus(n, S(O)), O) == False
 {
 }
 
 lemma plus_1_neq_0 (n: Nat)
-  ensures beq_nat(plus(n, S(O)), O) == False;
+  ensures beq_nat(plus(n, S(O)), O) == False
 {
 }
 
 lemma negb_involutive (b: Bool)
-  ensures negb(negb(b)) == b;
+  ensures negb(negb(b)) == b
 {
 }
 
 // Exercise: 1 star (zero_nbeq_plus_1)
 
 lemma zero_nbeq_plus_1 (n: Nat)
-  ensures beq_nat(O, plus(n, S(O))) == False;
+  ensures beq_nat(O, plus(n, S(O))) == False
 {
 }
 
@@ -417,32 +420,32 @@ function f(x: Bool): Bool
 //      { x }
 
 lemma identity_fn_applied_twice(b: Bool)
-  requires forall x :: f(x) == x;
-  ensures f(f(b)) == b;
+  requires forall x :: f(x) == x
+  ensures f(f(b)) == b
 {
 }
 
 
 lemma negation_fn_applied_twice(b: Bool)
-  requires forall x :: f(x) == negb(x);
-  ensures f(f(b)) == b;
+  requires forall x :: f(x) == negb(x)
+  ensures f(f(b)) == b
 {
 }
 
 // Exercise: 2 stars (andb_eq_orb)
 
 lemma andb_true (b : Bool)
-  ensures andb(True, b) == b;
+  ensures andb(True, b) == b
 {
 }
 
 lemma orb_false (b : Bool)
-  ensures orb(False, b) == b;
+  ensures orb(False, b) == b
 {
 }
 
 lemma andb_eq_orb (b: Bool, c: Bool)
-  ensures andb(b, c) == orb(b, c) ==> b == c;
+  ensures andb(b, c) == orb(b, c) ==> b == c
 {
 }
 

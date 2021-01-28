@@ -21,11 +21,11 @@ module VarianceChecks {
     }
   }
 
-  iterator VaryingIter<A(0), B(0), C(0), +HotDog(0), D(0), -Whale(0)>()
+  iterator VaryingIter<A, B, C, +HotDog, D, -Whale>()
   {
   }
 
-  datatype Dt = Ctor(Dt -> Dt)
+  datatype Dt = Ctor(Dt -> int)
 
   datatype U0<!A> = U0(A -> bool)
 

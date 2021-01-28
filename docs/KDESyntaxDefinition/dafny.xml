@@ -110,17 +110,17 @@
 
         <!-- Either an entire attribute if it has no expressions, or just the opening and attribute name,
              so that the expressions get their own coloring -->
-        <RegExpr attribute="Attribute" String="{:\s*[a-zA-Z0-9_'?]+(?:\s+\})?" />
+        <RegExpr attribute="Attribute" String="\{:\s*[a-zA-Z0-9_'?]+(?:\s+\})?" />
 
         <!-- Complicated set of rules to distinguish builtin types and identifiers -->
         <RegExpr attribute="Ident" String="(?:bool|char|int|nat|real|string)[a-zA-Z0-9_'?]+" />
         <RegExpr attribute="Ident" String="(?:object[?])[a-zA-Z0-9_'][a-zA-Z0-9_'?]*" />
         <keyword attribute="Types" String="types" context="#stay" />
-        <RegExpr attribute="Types" String="(?:bv0|bv[1-9]\d*)(?![a-zA-Z0-9_'?])"/>
+        <RegExpr attribute="Types" String="(?:bv(0|[1-9]\d*))(?![a-zA-Z0-9_'?])"/>
         <RegExpr attribute="Types" String="array(?:1\d+|[2-9]\d*)?[?]?(?![a-zA-Z0-9_'?])"/>
-        <RegExpr attribute="Types" String="(?:seq|set|iset|map|imap|multiset)\s*&lt;" context="TypeParameters" />
-        <RegExpr attribute="Error" String="(?:seq|set|iset|map|imap|multiset)(?![&lt;0-9a-zA-Z_'?])" />
-        <RegExpr attribute="Error" String="(?:seq|set|iset|map|imap|multiset)(?=\s+[^&lt;])" />
+        <RegExpr attribute="Types" String="(?:seq|set|iset|map|imap|multiset)(?:\s*&lt;)" context="TypeParameters" />
+        <RegExpr attribute="Types" String="(?:seq|set|iset|map|imap|multiset)(?![a-zA-Z_'?0-9])" context="#stay" />
+
         <!-- Digit sequence ending in _ is an error -->
         <RegExpr attribute="Error" String="[0-9]+(?:_[0-9]+)*_(?![0-9])" />
         <RegExpr attribute="BaseN" String="0x[0-9a-fA-F]+(?:_[0-9a-fA-F]+)*" />
@@ -147,10 +147,10 @@
         <!-- operators, error chars and punctuation -->
         <RegExpr attribute="Operators" String="!in(?![0-9a-zA-Z_'?])" />
         <RegExpr attribute="Operators" String="in(?![0-9a-zA-Z_'?])" />
-        <RegExpr attribute="Operators" String="(?:\+|-|\*|/|%|&lt;(?:=(?:=(?:&gt;)?)?)?|&gt;[=]?|==[#&gt;]?|!=[#]?|&amp;&amp;|\|\||![!]?|[~]|#|\.\.|:)" />
-        <RegExpr attribute="Error" String="(?:[`$])" />
+        <RegExpr attribute="Operators" String="(?:\+|-|\*|/|%|&lt;(?:=(?:=(?:&gt;)?)?)?|&gt;(?:=)?|=&gt;|==[&gt;#]|!=[#]?|&amp;&amp;|\|\||![!]?|[~]|#|\.\.|:)" />
+        <RegExpr attribute="Error" String="(?:\$)" />
 
-        <RegExpr attribute="Punctuation" String="(?:;|\(|\)|\[|\]|\{|\}|,|\.|:[:=|]?|\|)" />
+        <RegExpr attribute="Punctuation" String="(?:;|\(|\)|\[|\]|\{|\}|,|\.|:[=|]|`|\|)" />
 
         <!-- Openings for quoted and verbatim strings -->
         <DetectChar attribute="String" char="&quot;" context="Quoted String" />
@@ -170,7 +170,7 @@
 
       <context name="TypeParameters" attribute="Types" lineEndContext="#stay">
         <keyword attribute="Types" String="types" context="#stay" />
-        <RegExpr attribute="Types" String="bv0|bv[1-9]\d*(?![a-zA-Z0-9_'?])" context="#stay" />
+        <RegExpr attribute="Types" String="bv[1-9]\d*(?![a-zA-Z0-9_'?])" context="#stay" />
         <RegExpr attribute="Types" String="array(?:1\d|[2-9])\d*[?]?(?![a-zA-Z0-9_'?])" context="#stay"/>
         <RegExpr attribute="Types" String="(?:seq|set|iset|map|imap|multiset)\s*&lt;" context="TypeParameters" />
         <RegExpr attribute="Types" String="[a-zA-Z_'?][a-zA-Z0-9_'?]*" context="#stay" />

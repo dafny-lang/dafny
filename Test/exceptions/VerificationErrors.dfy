@@ -12,6 +12,6 @@ method CheckThatVerifierRunsInsideDesugaredExprs_Nat(r1: NatOutcome, r2: NatOutc
 method CheckThatVerifierRunsInsideDesugaredExprs_Void(r1: VoidOutcome, r2: VoidOutcome) returns (res: VoidOutcome) {
     var x := assert 2 + 2 == 4; 8;
     assert x == 8;
-    :- assert r1 == r2; r1;
+    :- (assert r1 == r2; r1);
     res := r1;
 }

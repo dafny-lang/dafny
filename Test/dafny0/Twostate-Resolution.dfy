@@ -227,7 +227,7 @@ module J {
   {
     assert P();
     b := P();  // error: cannot assign a ghost to a non-ghost
-    var p': () -> bool := P;  // error: cannot assign a ghost
+    var p': () -> bool; p' := P;  // error: cannot assign a ghost
   }
 }
 
@@ -268,4 +268,74 @@ module TraitsAndOldParameters {
     twostate lemma M(c: C)  // error: cannot change new to old
     twostate lemma N(c: C, new d: C)
   }
+}
+
+// Print test for /dprint. Note, this same class is tested with /rprint in Test/dafny2/CalcDefaultMainOperator.dfy.
+module PrintTest {
+  function method Five(): int { 5 }
+  function Six(): int { 6 }
+
+  function method Ten(): int {
+    var f := Five();
+    ghost var s := Six();
+    assert s == 6;
+    f + f
+  }
+
+  function method TenAgain(): int {
+    var ten :=
+      var f := Five();
+      ghost var s := Six();
+      assert s == 6;
+      f + f;
+    ten
+  }
+
+  function TenOnceMore(): int {
+    var ten :=
+      var f := Five();
+      ghost var s := Six();
+      assert s == 6;
+      f + f;
+    ten
+  }
+
+  function Eleven(): int {
+    var f, s := Five(), Six();
+    f + s
+  }
+
+  function Twelve(): int {
+    var s, t := Six(), Six();
+    s + t
+  }
+
+  function method Twenty(): int {
+    var x :| x == 10;
+    x + x
+  }
+
+  function method TwentyOne(): int {
+    ghost var x :| x == 10 && Yes(x);
+    assert x + x + 1 == 21;
+    21
+  }
+
+  predicate Yes(x: int) { true }
+
+  type Odd = x |
+    var rr := 2; x % rr == 1
+    witness var ww := 2; ww + 7
+
+  newtype NewOdd = x |
+    var rr := 2; x % rr == 1
+    witness var ww := 2; ww + 7
+
+  type Even = x |
+    var rr := 2; x % rr == 0
+    ghost witness var ww := 2; ww + 8
+
+  newtype NewEven = x |
+    var rr := 2; x % rr == 0
+    ghost witness var ww := 2; ww + 8
 }

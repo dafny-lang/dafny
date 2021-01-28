@@ -10,6 +10,7 @@ class List<T> {
 
   predicate Valid()
     reads this, Repr
+    ensures Valid() ==> this in Repr
   {
     this in Repr &&
     a in Repr &&
@@ -18,7 +19,7 @@ class List<T> {
   }
 
   constructor Init()
-    ensures Valid() && fresh(Repr - {this})
+    ensures Valid() && fresh(Repr)
     ensures Contents == []
   {
     Contents, n := [], 0;
@@ -45,7 +46,7 @@ class List<T> {
 
 class Cell { var data: int }
 
-iterator M<T>(l: List<T>, c: Cell) yields (x: T)
+iterator M<T(0)>(l: List<T>, c: Cell) yields (x: T)
   requires l.Valid()
   reads l.Repr
   modifies c

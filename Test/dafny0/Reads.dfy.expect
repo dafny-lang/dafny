@@ -1,6 +1,11 @@
 Reads.dfy(138,10): Error: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
+Reads.dfy(149,25): Error: insufficient reads clause to read field
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Then
 Reads.dfy(9,16): Error: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
@@ -30,4 +35,4 @@ Reads.dfy(125,37): Error: insufficient reads clause to invoke function
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 18 verified, 9 errors
+Dafny program verifier finished with 18 verified, 10 errors

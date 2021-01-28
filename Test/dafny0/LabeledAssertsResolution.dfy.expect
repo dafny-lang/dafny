@@ -72,4 +72,8 @@ LabeledAssertsResolution.dfy(338,10): Error: trying to break out of more loop le
 LabeledAssertsResolution.dfy(339,10): Error: break label is undefined or not in scope: A
 LabeledAssertsResolution.dfy(345,10): Error: trying to break out of more loop levels than there are enclosing loops
 LabeledAssertsResolution.dfy(346,10): Error: break label is undefined or not in scope: A
-73 resolution/type errors detected in LabeledAssertsResolution.dfy
+LabeledAssertsResolution.dfy(357,8): Error: return statement is allowed only in method
+LabeledAssertsResolution.dfy(372,8): Error: return statement is allowed only in method
+LabeledAssertsResolution.dfy(364,10): Error: return statement is allowed only in method
+LabeledAssertsResolution.dfy(379,10): Error: return statement is allowed only in method
+77 resolution/type errors detected in LabeledAssertsResolution.dfy

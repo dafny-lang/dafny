@@ -35,7 +35,7 @@ function FivesUp(n: int): Stream<int>
 }
 
 // A co-predicate that holds for those integer streams where every value is greater than 0.
-copredicate Pos(s: Stream<int>)
+greatest predicate Pos(s: Stream<int>)
 {
   match s
   case SNil => true
@@ -83,8 +83,8 @@ lemma SAppendIsAssociative(a:Stream, b:Stream, c:Stream)
   assert (forall k:nat {:autotriggers false} :: SAppend(SAppend(a, b), c) ==#[k] SAppend(a, SAppend(b, c))); //FIXME: Should Dafny generate a trigger here? If so then which one?
 }
 
-// Equivalent proof using the colemma syntax.
-colemma {:induction false} SAppendIsAssociativeC(a:Stream, b:Stream, c:Stream)
+// Equivalent proof using the greatest lemma syntax.
+greatest lemma {:induction false} SAppendIsAssociativeC(a:Stream, b:Stream, c:Stream)
   ensures SAppend(SAppend(a, b), c) == SAppend(a, SAppend(b, c));
 {
   match (a) {
@@ -94,26 +94,26 @@ colemma {:induction false} SAppendIsAssociativeC(a:Stream, b:Stream, c:Stream)
 }
 
 // In fact the proof can be fully automatic.
-colemma SAppendIsAssociative_Auto(a:Stream, b:Stream, c:Stream)
+greatest lemma SAppendIsAssociative_Auto(a:Stream, b:Stream, c:Stream)
   ensures SAppend(SAppend(a, b), c) == SAppend(a, SAppend(b, c));
 {
 }
 
-colemma {:induction false} UpPos(n:int)
+greatest lemma {:induction false} UpPos(n:int)
   requires n > 0;
   ensures Pos(Up(n));
 {
   UpPos(n+1);
 }
 
-colemma UpPos_Auto(n:int)
+greatest lemma UpPos_Auto(n:int)
   requires n > 0;
   ensures Pos(Up(n));
 {
 }
 
 // This does induction and coinduction in the same proof.
-colemma {:induction false} FivesUpPos(n:int)
+greatest lemma {:induction false} FivesUpPos(n:int)
   requires n > 0;
   ensures Pos(FivesUp(n));
   decreases 4 - (n-1) % 5;
@@ -127,7 +127,7 @@ colemma {:induction false} FivesUpPos(n:int)
 
 // Again, Dafny can just employ induction tactic and do it automatically.
 // The only hint required is the decrease clause.
-colemma FivesUpPos_Auto(n:int)
+greatest lemma FivesUpPos_Auto(n:int)
   requires n > 0;
   ensures Pos(FivesUp(n));
   decreases 4 - (n-1) % 5;

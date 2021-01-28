@@ -1,0 +1,7 @@
+git-issue-283g.dfy(20,21): Error: the type of the pattern (int) does not agree with the match expression (string)
+git-issue-283g.dfy(19,34): Error: arguments must have comparable types (got seq<char> and int)
+git-issue-283g.dfy(35,12): Error: incorrect type of datatype constructor argument (found real, expected int)
+git-issue-283g.dfy(41,14): Error: the type of the pattern (int) does not agree with the match expression (real)
+git-issue-283g.dfy(40,8): Error: arguments must have comparable types (got real and int)
+git-issue-283g.dfy(50,4): Warning: this branch is redundant
+5 resolution/type errors detected in git-issue-283g.dfy

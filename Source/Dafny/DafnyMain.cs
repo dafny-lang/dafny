@@ -10,7 +10,6 @@ using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Reflection;
 using DafnyAssembly;
-using Mono.Cecil;
 
 namespace Microsoft.Dafny {
 
@@ -18,10 +17,19 @@ namespace Microsoft.Dafny {
 
   public class DafnyFile {
     public string FilePath { get; private set; }
+    public string CanonicalPath { get; private set; }
     public string BaseName { get; private set; }
     public bool isPrecompiled { get; private set; }
     public string SourceFileName { get; private set; }
 
+    // Returns a canonical string for the given file path, namely one which is the same
+    // for all paths to a given file and different otherwise. The best we can do is to
+    // make the path absolute -- detecting case and canoncializing symbolic and hard
+    // links are difficult across file systems (which may mount parts of other filesystems,
+    // with different characteristics) and is not supported by .Net libraries
+    public static string Canonicalize(String filePath) {
+      return Path.GetFullPath(filePath);
+    }
     public static List<string> fileNames(IList<DafnyFile> dafnyFiles) {
       var sourceFiles = new List<string>();
       foreach (DafnyFile f in dafnyFiles) {
@@ -29,7 +37,6 @@ namespace Microsoft.Dafny {
       }
       return sourceFiles;
     }
-
     public DafnyFile(string filePath) {
       FilePath = filePath;
       BaseName = Path.GetFileName(filePath);
@@ -37,17 +44,26 @@ namespace Microsoft.Dafny {
       var extension = Path.GetExtension(filePath);
       if (extension != null) { extension = extension.ToLower(); }
 
+      // Normalizing symbolic links appears to be not
+      // supported in .Net APIs, because it is very difficult in general
+      // So we will just use the absolute path, lowercased for all file systems.
+      // cf. IncludeComparer.CompareTo
+      CanonicalPath = Canonicalize(filePath);
+
+      if (!Path.IsPathRooted(filePath))
+        filePath = Path.GetFullPath(filePath);
+
       if (extension == ".dfy" || extension == ".dfyi") {
         isPrecompiled = false;
         SourceFileName = filePath;
       } else if (extension == ".dll") {
         isPrecompiled = true;
-        var asm = AssemblyDefinition.ReadAssembly(filePath);
+        var asm = Assembly.LoadFile(filePath);
         string sourceText = null;
         foreach (var adata in asm.CustomAttributes) {
           if (adata.Constructor.DeclaringType.Name == "DafnySourceAttribute") {
             foreach (var args in adata.ConstructorArguments) {
-              if (args.Type.FullName == "System.String") {
+              if (args.ArgumentType.FullName == "System.String") {
                 sourceText = (string)args.Value;
               }
             }
@@ -157,7 +173,7 @@ namespace Microsoft.Dafny {
     // Lower-case file names before comparing them, since Windows uses case-insensitive file names
     private class IncludeComparer : IComparer<Include> {
       public int Compare(Include x, Include y) {
-        return x.includedFullPath.ToLower().CompareTo(y.includedFullPath.ToLower());
+        return x.CompareTo(y);
       }
     }
 
@@ -165,7 +181,7 @@ namespace Microsoft.Dafny {
       SortedSet<Include> includes = new SortedSet<Include>(new IncludeComparer());
       DependencyMap dmap = new DependencyMap();
       foreach (string fileName in excludeFiles) {
-        includes.Add(new Include(null, null, fileName, Path.GetFullPath(fileName)));
+        includes.Add(new Include(null, null, fileName));
       }
       dmap.AddIncludes(includes);
       bool newlyIncluded;

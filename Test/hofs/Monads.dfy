@@ -8,15 +8,15 @@ abstract module Monad {
   function method Bind<A,B>(m: M<A>, f:A -> M<B>): M<B>
 
   // return x >>= f = f x
-  lemma LeftIdentity<A,B>(x : A, f : A -> M<B>)
+  lemma LeftIdentity<A,B>(x: A, f: A -> M<B>)
     ensures Bind(Return(x),f) == f(x)
 
   // m >>= return = m
-  lemma RightIdentity<A>(m : M<A>)
+  lemma RightIdentity<A>(m: M<A>)
     ensures Bind(m,Return) == m
 
   // (m >>= f) >>= g = m >>= (x => f(x) >>= g)
-  lemma Associativity<A,B,C>(m : M<A>, f:A -> M<B>, g: B -> M<C>)
+  lemma Associativity<A,B,C>(m: M<A>, f: A -> M<B>, g: B -> M<C>)
     ensures Bind(Bind(m,f),g) ==
             Bind(m,x => Bind(f(x),g))
 }
@@ -32,16 +32,16 @@ module Identity refines Monad {
     var I(x) := m; f(x)
   }
 
-  lemma LeftIdentity<A,B>(x : A, f : A -> M<B>)
+  lemma LeftIdentity<A,B>(x: A, f: A -> M<B>)
   {
   }
 
-  lemma RightIdentity<A>(m : M<A>)
+  lemma RightIdentity<A>(m: M<A>)
   {
     assert Bind(m,Return) == m;
   }
 
-  lemma Associativity<A,B,C>(m : M<A>, f:A -> M<B>, g: B -> M<C>)
+  lemma Associativity<A,B,C>(m: M<A>, f: A -> M<B>, g: B -> M<C>)
   {
     assert
       Bind(Bind(m,f),g) ==
@@ -63,16 +63,16 @@ module Maybe refines Monad {
     case Just(x) => f(x)
   }
 
-  lemma LeftIdentity<A,B>(x : A, f : A -> M<B>)
+  lemma LeftIdentity<A,B>(x: A, f: A -> M<B>)
   {
   }
 
-  lemma RightIdentity<A>(m : M<A>)
+  lemma RightIdentity<A>(m: M<A>)
   {
     assert Bind(m,Return) == m;
   }
 
-  lemma Associativity<A,B,C>(m : M<A>, f:A -> M<B>, g: B -> M<C>)
+  lemma Associativity<A,B,C>(m: M<A>, f: A -> M<B>, g: B -> M<C>)
   {
     assert
       Bind(Bind(m,f),g) ==
@@ -94,7 +94,7 @@ module List refines Monad {
     case Cons(x,xs) => Cons(x,Concat(xs,ys))
   }
 
-  function method Join<A>(xss: M<M<A>>) : M<A>
+  function method Join<A>(xss: M<M<A>>): M<A>
   {
     match xss
     case Nil => Nil
@@ -108,24 +108,24 @@ module List refines Monad {
     case Cons(x,xs) => Cons(f(x),Map(xs,f))
   }
 
-  function method Bind<A,B>(m: M<A>, f:A -> M<B>): M<B>
+  function method Bind<A,B>(m: M<A>, f: A -> M<B>): M<B>
   {
     Join(Map(m,f))
   }
 
-  lemma LeftIdentity<A,B>(x : A, f : A -> M<B>)
+  lemma LeftIdentity<A,B>(x: A, f: A -> M<B>)
   {
     calc {
        Bind(Return(x),f);
     == Join(Map(Cons(x,Nil),f));
     == Join(Cons(f(x),Nil));
     == Concat(f(x),Nil);
-    == { assert forall xs : M<B> :: Concat(xs,Nil) == xs; }
+    == { assert forall xs: M<B> {:induction} :: Concat(xs,Nil) == xs; }
        f(x);
     }
   }
 
-  lemma RightIdentity<A>(m : M<A>)
+  lemma RightIdentity<A>(m: M<A>)
   {
     match m
     case Nil =>
@@ -151,11 +151,11 @@ module List refines Monad {
       }
   }
 
-  lemma ConcatAssociativity<A>(xs : M<A>, ys : M<A>, zs: M<A>)
+  lemma ConcatAssociativity<A>(xs: M<A>, ys: M<A>, zs: M<A>)
     ensures Concat(Concat(xs,ys),zs) == Concat(xs,Concat(ys,zs));
   {}
 
-  lemma BindMorphism<A,B>(xs : M<A>, ys: M<A>, f : A -> M<B>)
+  lemma BindMorphism<A,B>(xs: M<A>, ys: M<A>, f: A -> M<B>)
     ensures Bind(Concat(xs,ys),f) == Concat(Bind(xs,f),Bind(ys,f));
   {
     match xs
@@ -180,7 +180,7 @@ module List refines Monad {
       }
   }
 
-  lemma Associativity<A,B,C>(m : M<A>, f:A -> M<B>, g: B -> M<C>)
+  lemma Associativity<A,B,C>(m: M<A>, f: A -> M<B>, g: B -> M<C>)
   {
     match m
     case Nil =>

@@ -13,7 +13,7 @@ class C {
   }
 }
 
-iterator Iter<X(==)>(a: array<X>, stop: X) yields (x: X)
+iterator Iter<X(==,0)>(a: array<X>, stop: X) yields (x: X)
   yield ensures |xs| <= a.Length
   ensures |xs| <= a.Length
 {

@@ -26,21 +26,21 @@ Execution trace:
 Newtypes.dfy(193,67): Error: index 0 out of range
 Execution trace:
     (0,0): anon0
-    Newtypes.dfy(182,23): anon29_Else
-    Newtypes.dfy(183,23): anon30_Else
-    Newtypes.dfy(184,26): anon31_Else
-    (0,0): anon42_Then
-    (0,0): anon43_Then
-    (0,0): anon22
+    Newtypes.dfy(182,23): anon35_Else
+    Newtypes.dfy(183,23): anon37_Else
+    Newtypes.dfy(184,26): anon39_Else
+    (0,0): anon51_Then
+    (0,0): anon52_Then
+    (0,0): anon28
 Newtypes.dfy(194,70): Error: index 1 out of range
 Execution trace:
     (0,0): anon0
-    Newtypes.dfy(182,23): anon29_Else
-    Newtypes.dfy(183,23): anon30_Else
-    Newtypes.dfy(184,26): anon31_Else
-    (0,0): anon44_Then
-    (0,0): anon45_Then
-    (0,0): anon25
+    Newtypes.dfy(182,23): anon35_Else
+    Newtypes.dfy(183,23): anon37_Else
+    Newtypes.dfy(184,26): anon39_Else
+    (0,0): anon53_Then
+    (0,0): anon54_Then
+    (0,0): anon31
 Newtypes.dfy(223,21): Error: new number of occurrences might be negative
 Execution trace:
     (0,0): anon0

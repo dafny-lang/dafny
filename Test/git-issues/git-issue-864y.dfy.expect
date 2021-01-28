@@ -1,0 +1,3 @@
+git-issue-864y.dfy(7,8): Error: duplicate declaration for name A
+git-issue-864y.dfy(7,8): Error: 'A' cannot be revealed in an export. Use "provides" instead.
+2 resolution/type errors detected in git-issue-864y.dfy

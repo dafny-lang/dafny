@@ -88,8 +88,8 @@ namespace Microsoft.Dafny
       var forallvisiter = new ForAllStmtVisitor(reporter);
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         forallvisiter.Visit(decl, true);
-        if (decl is FixpointLemma) {
-          var prefixLemma = ((FixpointLemma)decl).PrefixLemma;
+        if (decl is ExtremeLemma) {
+          var prefixLemma = ((ExtremeLemma)decl).PrefixLemma;
           if (prefixLemma != null) {
             forallvisiter.Visit(prefixLemma, true);
           }
@@ -217,7 +217,7 @@ namespace Microsoft.Dafny
             // Strengthen the range of the "forall" statement with the precondition of the call, suitably substituted with the actual parameters.
             if (Attributes.Contains(s.Attributes, "_autorequires")) {
               var range = s.Range;
-              foreach (var req in s0.Method.Req) { 
+              foreach (var req in s0.Method.Req) {
                 var p = substituter.Substitute(req.E);  // substitute the call's actuals for the method's formals
                 range = Expression.CreateAnd(range, p);
               }
@@ -412,6 +412,7 @@ namespace Microsoft.Dafny
   ///
   /// For function/predicate Valid(), insert:
   ///    reads this, Repr
+  ///    ensures Valid() ==> this in Repr
   /// Into body of Valid(), insert (at the beginning of the body):
   ///    this in Repr && null !in Repr
   /// and also insert, for every array-valued field A declared in the class:
@@ -422,7 +423,7 @@ namespace Microsoft.Dafny
   /// be added.
   ///
   /// For every constructor, add:
-  ///    ensures Valid() && fresh(Repr - {this})
+  ///    ensures Valid() && fresh(Repr)
   /// At the end of the body of the constructor, add:
   ///    Repr := {this};
   ///    if (A != null) { Repr := Repr + {A}; }
@@ -480,7 +481,7 @@ namespace Microsoft.Dafny
       // Add:  predicate Valid()
       // ...unless an instance function with that name is already present
       if (!cl.Members.Exists(member => member is Function && member.Name == "Valid" && !member.IsStatic)) {
-        var valid = new Predicate(cl.tok, "Valid", false, false, true, new List<TypeParameter>(), new List<Formal>(),
+        var valid = new Predicate(cl.tok, "Valid", false, true, new List<TypeParameter>(), new List<Formal>(),
           new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
           null, Predicate.BodyOriginKind.OriginalOrInherited, null, null);
         cl.Members.Add(valid);
@@ -505,11 +506,18 @@ namespace Microsoft.Dafny
           var r1 = new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr");
           valid.Reads.Add(new FrameExpression(tok, r0, null));
           valid.Reads.Add(new FrameExpression(tok, r1, null));
+          // ensures Valid() ==> this in Repr
+          var post = new BinaryExpr(tok, BinaryExpr.Opcode.Imp,
+            new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>()),
+            new BinaryExpr(tok, BinaryExpr.Opcode.In,
+              new ThisExpr(tok),
+               new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr")));
+          valid.Ens.Insert(0, new AttributedExpression(post));
           if (member.tok == cl.tok) {
             // We added this function above, so produce a hover text for the entire function signature
             AddHoverText(cl.tok, "{0}", Printer.FunctionSignatureToString(valid));
           } else {
-            AddHoverText(member.tok, "reads {0}, {1}", r0, r1);
+            AddHoverText(member.tok, $"reads {r0}, {r1}\nensures {post}");
           }
         } else if (member is Function && !member.IsStatic) {
           var f = (Function)member;
@@ -529,10 +537,9 @@ namespace Microsoft.Dafny
           // ensures Valid();
           var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>());
           ctor.Ens.Insert(0, new AttributedExpression(valid));
-          // ensures fresh(Repr - {this});
-          var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh, new BinaryExpr(tok, BinaryExpr.Opcode.Sub,
-            new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"),
-            new SetDisplayExpr(tok, true, new List<Expression>() { new ThisExpr(tok) })));
+          // ensures fresh(Repr);
+          var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh,
+            new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"));
           ctor.Ens.Insert(1, new AttributedExpression(freshness));
           var m0 = new ThisExpr(tok);
           AddHoverText(member.tok, "modifies {0}\nensures {1} && {2}", m0, valid, freshness);
@@ -973,9 +980,7 @@ namespace Microsoft.Dafny
 
           if (!Attributes.Contains(f.Attributes, "opaque")) {
             // Nothing to do
-          } else if (f.IsProtected) {
-            reporter.Error(MessageSource.Rewriter, f.tok, ":opaque is not allowed to be applied to protected functions (this will be allowed when the language introduces 'opaque'/'reveal' as keywords)");
-          } else if (!RefinementToken.IsInherited(f.tok, c.Module)) {
+          } else if (!RefinementToken.IsInherited(f.tok, c.EnclosingModuleDefinition)) {
             RewriteOpaqueFunctionUseFuel(f, newDecls);
           }
         }
@@ -1345,8 +1350,6 @@ namespace Microsoft.Dafny
           //    2) Add forall x :: g(x) ==> WP(f(x, y)) to the function's requirements
           //    3) Current option -- do nothing.  Up to the spec writer to fix
         }
-      } else if (expr is NamedExpr) {
-        reqs.AddRange(generateAutoReqs(((NamedExpr)expr).Body));
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
 
@@ -1495,7 +1498,7 @@ namespace Microsoft.Dafny
                       var arg = attr.Args[0] as LiteralExpr;
                       System.Numerics.BigInteger value = (System.Numerics.BigInteger)arg.Value;
                       if (value.Sign > 0) {
-                        int current_limit = DafnyOptions.O.ProverKillTime > 0 ? DafnyOptions.O.ProverKillTime : 10;  // Default to 10 seconds
+                        int current_limit = DafnyOptions.O.TimeLimit > 0 ? DafnyOptions.O.TimeLimit : 10;  // Default to 10 seconds
                         attr.Args[0] = new LiteralExpr(attr.Args[0].tok, value * current_limit);
                         attr.Name = "timeLimit";
                       }
@@ -1648,8 +1651,8 @@ namespace Microsoft.Dafny
           if (decl is TopLevelDeclWithMembers) {
             var cl = (TopLevelDeclWithMembers)decl;
             foreach (var member in cl.Members) {
-              if (member is FixpointLemma) {
-                var method = (FixpointLemma)member;
+              if (member is ExtremeLemma) {
+                var method = (ExtremeLemma)member;
                 ProcessMethodExpressions(method);
                 ComputeLemmaInduction(method.PrefixLemma);
                 ProcessMethodExpressions(method.PrefixLemma);
@@ -1657,8 +1660,8 @@ namespace Microsoft.Dafny
                 var method = (Method)member;
                 ComputeLemmaInduction(method);
                 ProcessMethodExpressions(method);
-              } else if (member is FixpointPredicate) {
-                var function = (FixpointPredicate)member;
+              } else if (member is ExtremePredicate) {
+                var function = (ExtremePredicate)member;
                 ProcessFunctionExpressions(function);
                 ProcessFunctionExpressions(function.PrefixPredicate);
               } else if (member is Function) {
@@ -1700,7 +1703,7 @@ namespace Microsoft.Dafny
 
     void ComputeLemmaInduction(Method method) {
       Contract.Requires(method != null);
-      if (method.Body != null && method.IsGhost && method.Mod.Expressions.Count == 0 && method.Outs.Count == 0 && !(method is FixpointLemma)) {
+      if (method.Body != null && method.IsGhost && method.Mod.Expressions.Count == 0 && method.Outs.Count == 0 && !(method is ExtremeLemma)) {
         var specs = new List<Expression>();
         method.Req.ForEach(mfe => specs.Add(mfe.E));
         method.Ens.ForEach(mfe => specs.Add(mfe.E));
@@ -1721,6 +1724,9 @@ namespace Microsoft.Dafny
           return;
         } else if (DafnyOptions.O.Induction == 2 && lemma != null) {
           // We're asked to infer induction variables only for quantifiers, not for lemmas
+          return;
+        } else if (DafnyOptions.O.Induction == 4 && lemma == null) {
+          // We're asked to infer induction variables only for lemmas, not for quantifiers
           return;
         }
         // GO INFER below (only select boundVars)
