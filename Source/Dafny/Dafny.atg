@@ -839,6 +839,9 @@ Dafny
   }
   { TopDecl<defaultModule, membersDefaultClass, /* isTopLevel */ true, /* isAbstract */ false> }
   (. // find the default class in the default module, then append membersDefaultClass to its member list
+		 if (membersDefaultClass.Count == 0 && defaultModule.Includes.Count == 0 && defaultModule.TopLevelDecls.Count == 0) {
+		   errors.Warning(defaultModule.tok, "File contains no code: " + Path.GetRelativePath(Directory.GetCurrentDirectory(), scanner.FullFilename));
+		 }
      DefaultClassDecl defaultClass = null;
      foreach (TopLevelDecl topleveldecl in defaultModule.TopLevelDecls) {
        defaultClass = topleveldecl as DefaultClassDecl;
