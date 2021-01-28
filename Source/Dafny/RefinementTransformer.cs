@@ -200,14 +200,16 @@ namespace Microsoft.Dafny
         } else {
           var od = (OpaqueTypeDecl)d;
           if (nw is OpaqueTypeDecl) {
-            if (od.MustSupportEquality != ((OpaqueTypeDecl)nw).MustSupportEquality) {
+            if (od.SupportsEquality != ((OpaqueTypeDecl)nw).SupportsEquality) {
               reporter.Error(MessageSource.RefinementTransformer, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
             }
-            if (od.Characteristics.MustSupportZeroInitialization != ((OpaqueTypeDecl)nw).Characteristics.MustSupportZeroInitialization) {
+            if (od.Characteristics.HasCompiledValue != ((OpaqueTypeDecl)nw).Characteristics.HasCompiledValue) {
               reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of supporting auto-initialization", nw.Name);
+            } else if (od.Characteristics.IsNonempty != ((OpaqueTypeDecl)nw).Characteristics.IsNonempty) {
+              reporter.Error(MessageSource.RefinementTransformer, nw.tok, "type declaration '{0}' is not allowed to change the requirement of being nonempty", nw.Name);
             }
           } else {
-            if (od.MustSupportEquality) {
+            if (od.SupportsEquality) {
               if (nw is ClassDecl || nw is NewtypeDecl) {
                 // fine
               } else if (nw is CoDatatypeDecl) {
@@ -224,13 +226,22 @@ namespace Microsoft.Dafny
                 });
               }
             }
-            if (od.Characteristics.MustSupportZeroInitialization) {
+            if (od.Characteristics.HasCompiledValue) {
               // We need to figure out if the new type supports auto-initialization.  But we won't know about that until resolution has
               // taken place, so we defer it until the PostResolve phase.
               var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
               postTasks.Enqueue(() => {
                 if (!udt.HasCompilableValue) {
                   reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which does not support auto-initialization, is used to refine an opaque type that expects auto-initialization", udt.Name);
+                }
+              });
+            } else if (od.Characteristics.IsNonempty) {
+              // We need to figure out if the new type is nonempty.  But we won't know about that until resolution has
+              // taken place, so we defer it until the PostResolve phase.
+              var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
+              postTasks.Enqueue(() => {
+                if (!udt.IsNonempty) {
+                  reporter.Error(MessageSource.RefinementTransformer, udt.tok, "type '{0}', which may be empty, is used to refine an opaque type expected to be nonempty", udt.Name);
                 }
               });
             }
@@ -755,10 +766,12 @@ namespace Microsoft.Dafny
             if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport) {
               reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
             }
-            if (o.Characteristics.MustSupportZeroInitialization != n.Characteristics.MustSupportZeroInitialization) {
+            if (o.Characteristics.HasCompiledValue != n.Characteristics.HasCompiledValue) {
               reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
+            } else if (o.Characteristics.IsNonempty != n.Characteristics.IsNonempty) {
+              reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of being nonempty", n.Name);
             }
-            if (o.Characteristics.DisallowReferenceTypes != n.Characteristics.DisallowReferenceTypes) {
+            if (o.Characteristics.ContainsNoReferenceTypes != n.Characteristics.ContainsNoReferenceTypes) {
               reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
             }
             if (o.Variance != n.Variance) {  // syntax is allowed to be different as long as the meaning is the same (i.e., compare Variance, not VarianceSyntax)

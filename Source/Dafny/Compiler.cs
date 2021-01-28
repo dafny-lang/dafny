@@ -197,7 +197,7 @@ namespace Microsoft.Dafny {
 
     protected virtual bool NeedsTypeDescriptor(TypeParameter tp) {
       Contract.Requires(tp != null);
-      return tp.Characteristics.MustSupportZeroInitialization;
+      return tp.Characteristics.HasCompiledValue;
     }
 
     protected abstract string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok);
@@ -237,7 +237,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// This method returns the target representation of one possible value of the type.
     /// Requires: usePlaceboValue || type.HasCompilableValue
-    /// 
+    ///
     ///   usePlaceboValue - If "true", the default value produced is one that the target language accepts as a value
     ///                  of the type, but which may not correspond to a Dafny value. This option is used when it is known
     ///                  that the Dafny program will not use the value (for example, when a field is automatically initialized

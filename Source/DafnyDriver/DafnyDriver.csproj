@@ -16,7 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <Compile Include="..\version.cs" />
   </ItemGroup>

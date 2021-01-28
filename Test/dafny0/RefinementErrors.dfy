@@ -115,10 +115,10 @@ module TpA refines OrigA {
 }
 
 module OrigB {
-  type T<A,B(0)>
+  type T<A,B(0),C(00),D,E(0),F(00),G,H(0),I(00)>
 }
 module TpB refines OrigB {
-  type T<C(0),D>  // error (x2): change in (0) requirement
+  type T<P,Q,R,U(0),V(0),W(0),X(00),Y(00),Z(00)>  // error (x6): change in (0)/(00) requirements
 }
 
 module OrigC {
