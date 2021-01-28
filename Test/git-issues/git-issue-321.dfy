@@ -17,4 +17,5 @@ method p(n: nat) {
 method q(n: nat) {
   var init: int -> int := i => i;
   var a: array<nat> := new [n](init); // ERROR
+  var b: array<nat> := new nat[n](init); // OK
 }

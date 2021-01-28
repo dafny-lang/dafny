@@ -434,7 +434,7 @@ module Arrays_and_SubsetTypes {
       if * {
         a := n;
       } else {
-        b := n;
+        b := n; // A verification error
       }
     }
   }
@@ -447,14 +447,14 @@ module Arrays_and_SubsetTypesOK {
     var b: array<int>;
     if * {
       a := new nat[100];
-      //b := new nat[100];
+      b := new nat[100]; // Error
     } else if * {
-      //a := new int[100];
+      a := new int[100]; // Error
       b := new int[100];
     } else if * {
-      //a := b;
+      a := b;            // Error
     } else if * {
-      //b := a;
+      b := a;            // Error
     } else if * {
       var n := new nat[100];  // array<nat>
       if * {

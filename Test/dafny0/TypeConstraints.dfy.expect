@@ -16,6 +16,10 @@ TypeConstraints.dfy(424,8): Error: type array<nat> is not assignable to LHS (of 
 TypeConstraints.dfy(426,8): Error: type array<int> is not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
 TypeConstraints.dfy(429,8): Error: RHS (of type array<int>) not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
 TypeConstraints.dfy(431,8): Error: RHS (of type array<nat>) not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
+TypeConstraints.dfy(450,8): Error: type array<nat> is not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
+TypeConstraints.dfy(452,8): Error: type array<int> is not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
+TypeConstraints.dfy(455,8): Error: RHS (of type array<int>) not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
+TypeConstraints.dfy(457,8): Error: RHS (of type array<nat>) not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
 // TypeConstraints.dfy
 
 /*
@@ -812,10 +816,14 @@ module Arrays_and_SubsetTypesOK {
     var b: array<int>;
     if * {
       a := new nat[100];
+      b := new nat[100];
     } else if * {
+      a := new int[100];
       b := new int[100];
     } else if * {
+      a := b;
     } else if * {
+      b := a;
     } else if * {
       var n: array<nat> := new nat[100];
       if * {
@@ -914,4 +922,4 @@ module PrettyPrintingBindingPowers {
     m := m + (m + m);
   }
 }
-18 resolution/type errors detected in TypeConstraints.dfy
+22 resolution/type errors detected in TypeConstraints.dfy
