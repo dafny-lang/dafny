@@ -624,7 +624,7 @@ The next example demonstrates the interaction between `old` and array elements.
 
 TO BE WRITTEN -- Inside an old, disallow unchanged, fresh, two-state functions, two-state lemmas, and nested old
 
-## 20.25. Cardinality Expressions {#sec-cardinallity-expression}
+## 20.25. Cardinality Expressions {#sec-cardinality-expression}
 ````grammar
 CardinalityExpression_ =
   "|" Expression(allowLemma: true, allowLambda: true) "|"
