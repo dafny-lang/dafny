@@ -17,7 +17,7 @@ RUN dotnet restore Source/DafnyLS.sln
 RUN dotnet build --configuration Release --no-restore Source/DafnyLS.sln
 RUN cp -r z3 Source/DafnyLS/bin/Release/net5.0/z3
 
-FROM mcr.microsoft.com/dotnet/aspnet:5.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:5.0-focal AS runtime
 WORKDIR /app
 RUN apt-get update \
     && apt-get install -y libgomp1 \
