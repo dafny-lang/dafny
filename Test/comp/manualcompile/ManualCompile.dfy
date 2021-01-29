@@ -3,12 +3,11 @@
 // RUN: dotnet bin/Debug/net5.0/ManualCompile.dll >> "%t"
 
 // RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
+// RUN: node ManualCompile.js >> "%t"
 
 // RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
+// RUN: go run ManualCompile-go/src/ManualCompile.go >> "%t"
 
-// RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
-
-// RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:cpp "%s" >> "%t"
 
 // RUN: %diff "%s.expect" "%t"
 
