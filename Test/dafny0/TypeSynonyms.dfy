@@ -53,3 +53,108 @@ module Basic {
     x in m && x as real in m[x] && m[x][x as real]
   }
 }
+
+// --------------- Test knowledge of emptiness ---------------
+
+module Library {
+  export
+    reveals Empty
+  export Opaque
+    provides Empty
+
+  type Empty = x: int | false witness *
+}
+
+module KnowsItIsEmpty {
+  import L = Library
+  method M(x: L.Empty) {
+    assert false;  // no prob, since L.Empty is known to be empty
+  }
+}
+
+module OnlySeesOpaqueType {
+  import L = Library`Opaque
+  method M(x: L.Empty) {
+    assert false;  // error
+  }
+}
+
+// --------------- Test lack of knowledge of nonemptiness ---------------
+
+module NonemptyLibrary {
+  export E0
+    reveals Something, A, B, C
+  export E1
+    provides Something
+    reveals A, B, C
+  export E2
+    reveals Something
+    provides A, B, C
+  export E3
+    provides Something, A, B, C
+  export E4
+    provides A, B, C
+
+  type Something = int
+  type A = Something
+  type B(00) = Something
+  type C(0) = Something
+}
+
+module ClientE0 {
+  import L = NonemptyLibrary`E0
+  method MethodS() returns (x: L.Something, ghost y: L.Something) {
+  }
+  method MethodA() returns (x: L.A, ghost y: L.A) {
+  }
+  method MethodB() returns (x: L.B, ghost y: L.B) {
+  }
+  method MethodC() returns (x: L.C, ghost y: L.C) {
+  }
+}
+
+module ClientE1 {
+  import L = NonemptyLibrary`E1
+  method MethodS() returns (x: L.Something, ghost y: L.Something) {
+  } // error (x2): x, y have not been assigned
+  method MethodA() returns (x: L.A, ghost y: L.A) {
+  } // error (x2): x, y have not been assigned
+  method MethodB() returns (x: L.B, ghost y: L.B) {
+  } // error (x2): x, y have not been assigned
+  method MethodC() returns (x: L.C, ghost y: L.C) {
+  } // error (x2): x, y have not been assigned
+}
+
+module ClientE2 {
+  import L = NonemptyLibrary`E2
+  method MethodS() returns (x: L.Something, ghost y: L.Something) {
+  }
+  method MethodA() returns (x: L.A, ghost y: L.A) {
+  } // error (x2): x, y have not been assigned
+  method MethodB() returns (x: L.B, ghost y: L.B) {
+  } // error: x has not been assigned
+  method MethodC() returns (x: L.C, ghost y: L.C) {
+  }
+}
+
+module ClientE3 {
+  import L = NonemptyLibrary`E3
+  method MethodS() returns (x: L.Something, ghost y: L.Something) {
+  } // error (x2): x, y have not been assigned
+  method MethodA() returns (x: L.A, ghost y: L.A) {
+  } // error (x2): x, y have not been assigned
+  method MethodB() returns (x: L.B, ghost y: L.B) {
+  } // error: x has not been assigned
+  method MethodC() returns (x: L.C, ghost y: L.C) {
+  }
+}
+
+module ClientE4 {
+  import L = NonemptyLibrary`E4
+  method MethodA() returns (x: L.A, ghost y: L.A) {
+  } // error (x2): x, y have not been assigned
+  method MethodB() returns (x: L.B, ghost y: L.B) {
+  } // error: x has not been assigned
+  method MethodC() returns (x: L.C, ghost y: L.C) {
+  }
+}
