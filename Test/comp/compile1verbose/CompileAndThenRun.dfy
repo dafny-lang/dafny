@@ -5,7 +5,7 @@
 // RUN: node CompileAndThenRun.js >> "%t"
 
 // RUN: %dafny /compileVerbose:1 /compileTarget:go "%s" >> "%t"
-// RUN: go run CompileAndThenRun-go/src/CompileAndThenRun.go >> "%t"
+// RUN: ./CompileAndThenRun >> "%t"
 
 // RUN: %dafny /compileVerbose:1 /compileTarget:java "%s" >> "%t"
 // RUN: java CompileAndThenRun >> "%t"

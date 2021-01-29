@@ -5,7 +5,7 @@
 // RUN: node CompileRunQuietly.js >> "%t"
 
 // RUN: %dafny /compileTarget:go "%s" >> "%t"
-// RUN: go run CompileRunQuietly-go/src/CompileRunQuietly.go >> "%t"
+// RUN: ./CompileRunQuietly >> "%t"
 
 // RUN: %dafny /compileTarget:java "%s" >> "%t"
 // RUN: java CompileRunQuietly >> "%t"
