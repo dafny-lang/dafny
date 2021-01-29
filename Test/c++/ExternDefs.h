@@ -29,7 +29,7 @@ namespace Extern {
     bool my_method0(uint64 a) { (void)a; return true; }
     bool my_method1(uint64 c) { (void)c; return false; }
   };
-  
+
   class ExternClass2 {
     public:
       ExternClass2(uint64 x) { (void)x; }
@@ -39,7 +39,7 @@ namespace Extern {
   uint64 Caller(uint64 (*inc)(uint64), uint64 x) {
     return inc(x);
   }
-  
+
   template <typename A>
   A GenericCaller(A (*inc)(A), A x) {
     return inc(x);

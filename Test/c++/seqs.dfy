@@ -25,14 +25,14 @@ method BoundedLength(s:seq<uint8>)
   print x;
 }
 
-method BufferTest(b:buffer_t) 
+method BufferTest(b:buffer_t)
   requires b != null
 {
   var t := b[..];
   print t;
 }
 
-method Test(name:string, b:bool) 
+method Test(name:string, b:bool)
   requires b
 {
   if b {

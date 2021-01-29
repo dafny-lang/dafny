@@ -18,7 +18,7 @@
             "italic": false,
             "underline": false
         },
-        "SpecialString": { 
+        "SpecialString": {
             "text-color": "#008080",
             "background-color": null,
             "bold": false,

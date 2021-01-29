@@ -11,8 +11,8 @@ datatype D1 = D1(o: MyClass)
 
   function getObjs(): set<object>
     reads o
-  { 
-    {o, o.repr} 
+  {
+    {o, o.repr}
   }
 }
 

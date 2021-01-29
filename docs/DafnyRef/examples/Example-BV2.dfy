@@ -16,7 +16,7 @@ method m() {
   assert (i >> 1) == (4 as bv4);
   assert i == 9; // auto conversion of literal to bv4
   assert i * 4 == j + 8 + 9; // arithmetic is modulo 16
-  assert i + j >> 1 == (i + j) >> 1; // + - bind tigher than << >> 
-  assert i + j ^ 2 == i + (j^2); 
+  assert i + j >> 1 == (i + j) >> 1; // + - bind tigher than << >>
+  assert i + j ^ 2 == i + (j^2);
   assert i * j & 1 == i * (j&1); // & | ^ bind tighter than + - *
 }

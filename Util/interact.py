@@ -42,7 +42,7 @@ class Task:
         self.file_name = file_name
 
     def to_dict(self):
-        return {"args" :         self.args, 
+        return {"args" :         self.args,
                 "filename" :     self.file_label,
                 "sourceIsFile" : self.sourceIsFile,
                 "source" :       self.file_name}
@@ -61,9 +61,9 @@ class DafnyServer:
         self.CLIENT_EOM_TAG = "[[DAFNY-CLIENT: EOM]]"
 
         try:
-            self.pipe = subprocess.Popen(server_path, 
-                                         stdin = subprocess.PIPE, 
-                                         stdout = subprocess.PIPE, 
+            self.pipe = subprocess.Popen(server_path,
+                                         stdin = subprocess.PIPE,
+                                         stdout = subprocess.PIPE,
                                          stderr = subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             print(f'Error starting the DafnyServer: {e.output}')
@@ -78,10 +78,10 @@ class DafnyServer:
         self.write(self.CLIENT_EOM_TAG)
         self.pipe.stdin.flush()
 
-    def write_verification_task(self, task): 
+    def write_verification_task(self, task):
         query = task.to_dict()
         #print(query)
-        j_string = json.dumps(query) 
+        j_string = json.dumps(query)
         b = j_string.encode(self.encoding) # Convert to bytes
         b64 = base64.b64encode(b)          # Produce base64-encoded bytes
         self.pipe.stdin.write(b64)
@@ -103,7 +103,7 @@ class DafnyServer:
         response = ""
         while True:
             line = self.pipe.stdout.readline().decode(self.encoding)
-            
+
             if line.startswith("[%s] %s" % (self.SUCCESS, self.SERVER_EOM_TAG)):
                 #print("Ended in success")
                 break
@@ -117,9 +117,9 @@ class DafnyServer:
             else:
                 if add_color:
                     if "Error" in line:
-                        line = color(line, "red") 
+                        line = color(line, "red")
                     if "verified" in line:
-                        line = color(line, "green") 
+                        line = color(line, "green")
 
                 response = response + line
         #print(response)
@@ -200,7 +200,7 @@ def verify_function_method(server, name):
 prev_function_method = None
 
 def do_function_method(session, server):
-    global prev_function_method 
+    global prev_function_method
     task = Task(server.dfy_args, server.dfy_file_name, True, server.dfy_file_name)
     names = server.get_functions_methods(task)
     print("\nFound:")
@@ -217,7 +217,7 @@ def do_function_method(session, server):
     verify_function_method(server, name)
 
 def do_prev_function_method(session, server):
-    global prev_function_method 
+    global prev_function_method
     if not prev_function_method is None:
         verify_function_method(server, prev_function_method)
     else:
@@ -229,7 +229,7 @@ class Validators:
     def number_validator(lbound=None, ubound=None):
         return Validator.from_callable(
                 lambda s : s == "" or (is_number(s) and in_bounds(s, lbound, ubound)),
-                error_message='This input may only contain numeric characters' 
+                error_message='This input may only contain numeric characters'
                              + ('' if lbound is None else ' and it must be >= %d' % lbound)
                              + ('' if ubound is None else ' and it must be < %d' % ubound),
                 move_cursor_to_end=True)
@@ -239,7 +239,7 @@ class Validators:
         options_str = ', '.join(sorted(list(s)))
         return Validator.from_callable(
             lambda i : i in s,
-            error_message = "Sorry, that's not a valid option.  Try one of these: " 
+            error_message = "Sorry, that's not a valid option.  Try one of these: "
                           + options_str
                           + ".  Tab complete may help!",
             move_cursor_to_end=True)
@@ -274,10 +274,10 @@ def event_loop(server):
     our_history = pt.history.FileHistory(".cmd_history")
     session = pt.PromptSession(history=our_history, key_bindings=bindings)
     actions = [('Verify the entire file', do_file),
-               ('Verify a specific Method/Function',do_function_method), 
-               ('Verify the previous Method/Function',do_prev_function_method)] 
+               ('Verify a specific Method/Function',do_function_method),
+               ('Verify the previous Method/Function',do_prev_function_method)]
     while True:
-        try: 
+        try:
             dispatcher(session, actions, server)
         except EOFError:
             break
@@ -297,7 +297,7 @@ def main():
     parser.add_argument('-d', '--dfy', action='store', help="Dafny file to verify", required=True)
     parser.add_argument('-a', '--args', action='store', help="Dafny arguments.  Overrides --arg_file", required=False)
     arg_file_help  = "File to read Dafny arguments from."
-    arg_file_help += "Should consist of one line with all of the desired command-line arguments." 
+    arg_file_help += "Should consist of one line with all of the desired command-line arguments."
     arg_file_help += "Defaults to %s" % default_arg_file_name
     parser.add_argument('-f', '--arg_file', action='store', default=default_arg_file_name,
                         required=False, help=arg_file_help)
@@ -307,7 +307,7 @@ def main():
                         help="Don't add color to verification results")
     parser.add_argument('--show-tooltips', action='store_true', default=False, required=False,
                         help="Show all of the tooltips that Dafny returns")
-    
+
     args = parser.parse_args()
 
     dfy_args = []

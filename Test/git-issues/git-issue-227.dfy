@@ -27,7 +27,7 @@ module LogImpl {
   datatype Constants = Constants()
   datatype Variables = Variables()
 
-  datatype Step = 
+  datatype Step =
       CrashAndRecover
     | TerminateScan
 
