@@ -10,7 +10,11 @@
 
 // RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
 // RUN: javac ManualCompile-java/ManualCompile.java ManualCompile-java/*/*.java
-// RUN: java ManualCompile
+// RUN: java ManualCompile >> "%t"
+
+// RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:cpp "%s" >> "%t"
+// RUN: g++ -g -Wall -Wextra -Wpedantic -Wno-unused-variable -std=c++17 -I %binaryDir -o ManualCompile.exe ManualCompile.cpp
+// RUN: ./ManualCompile.exe >> "%t"
 
 // RUN: %diff "%s.expect" "%t"
 
