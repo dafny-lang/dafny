@@ -4,6 +4,8 @@
 // Edited sequence axioms 20 October 2009 by Alex Summers.
 // Modified 2014 by Dan Rosen.
 // Copyright (c) 2008-2014, Microsoft.
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
 
 const $$Language$Dafny: bool;  // To be recognizable to the ModelViewer as
 axiom $$Language$Dafny;        // coming from a Dafny program.
