@@ -1123,7 +1123,7 @@ TODO: Should the assert/assume/expect variants be permitted?
 MapComprehensionExpr(allowLemma, allowLambda) =
   ( "map" | "imap" )
   IdentTypeOptional
-  { "," IdentOptional }
+  { "," IdentTypeOptional }
   { Attribute }
   [ "|" Expression(allowLemma: true, allowLambda: true) ]
   "::"

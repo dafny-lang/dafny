@@ -594,7 +594,7 @@ VarDeclStatement =
       Rhs { "," Rhs }
     | ":-"
       [ "expect" | "assert" | "assume" ]
-      Expression<allowLemma: false, allowLambda: false>
+      Expression(allowLemma: false, allowLambda: false)
       { "," Rhs }
     | { Attribute }
       ":|"
@@ -780,10 +780,10 @@ TODO: Describe the ... refinement
 ````grammar
 WhileStmt =
   "while"
-  ( { LoopSpec }
+  ( LoopSpec
     AlternativeBlock(allowBindingGuards: false)
   | ( Guard | ellipsis )
-    { LoopSpec }
+    LoopSpec
     ( BlockStmt
     | ellipsis
     | /* go body-less */

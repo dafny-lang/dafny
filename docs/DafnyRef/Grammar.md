@@ -342,7 +342,7 @@ digits = digit {['_'] digit}
 
 A sequence of decimal digits, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
 Example: `1_234_567`.
-````
+````grammar
 hexdigits = "0x" hexdigit {['_'] hexdigit}
 ````
 
@@ -460,7 +460,6 @@ IdentOrDigits = Ident | digits
 NoUSIdentOrDigits = NoUSIdent | digits
 ModuleName = NoUSIdent
 ClassName = NoUSIdent    // also traits
-LocalVarName = NoUSIdent
 DatatypeName = NoUSIdent
 DatatypeMemberName = NoUSIdentOrDigits
 NewtypeName = NoUSIdent

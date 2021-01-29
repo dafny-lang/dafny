@@ -1527,7 +1527,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
     ]
   | ellipsis                (. signatureEllipsis = t; .)
   )
-  { IteratorSpec<reads, mod, decreases, req, ens, yieldReq, yieldEns, ref readsAttrs, ref modAttrs, ref decrAttrs> }
+  IteratorSpec<reads, mod, decreases, req, ens, yieldReq, yieldEns, ref readsAttrs, ref modAttrs, ref decrAttrs>
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
   (. iter = new IteratorDecl(id, id.val, module, typeArgs, ins, outs,
@@ -1688,7 +1688,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
     ]
   | ellipsis                                    (. signatureEllipsis = t; .)
   )
-  { MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs, caption, isConstructor> }
+  MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs, caption, isConstructor>
   [ IF(isConstructor)
     (. DividedBlockStmt dividedBody; .)
     DividedBlockStmt<out dividedBody, out bodyStart, out bodyEnd>
@@ -1813,11 +1813,11 @@ MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<Attr
      Contract.Requires(cce.NonNullElements(decreases));
   .)
   SYNC
-  ( ModifiesClause<ref mod, ref modAttrs, false, performThisDeprecatedCheck>
+  { ModifiesClause<ref mod, ref modAttrs, false, performThisDeprecatedCheck>
   | RequiresClause<req, true>
   | EnsuresClause<ens, false>
   | DecreasesClause<decreases, ref decAttrs, true, false>
-  )
+  }
   .
 
 /*------------------------------------------------------------------------*/
@@ -1825,18 +1825,18 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
               List<AttributedExpression/*!*/>/*!*/ req, List<AttributedExpression/*!*/>/*!*/ ens,
               List<AttributedExpression/*!*/>/*!*/ yieldReq, List<AttributedExpression/*!*/>/*!*/ yieldEns,
               ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs.>
-= (. bool isYield = false;
-  .)
+=
   SYNC
-  ( ReadsClause<reads, false, false, false>
+  { ReadsClause<reads, false, false, false>
   | ModifiesClause<ref mod, ref modAttrs, false, false>
-  | [ "yield"                                                (. isYield = true; .)
+  | (. bool isYield = false; .)
+    [ "yield"                                                (. isYield = true; .)
     ]
     ( RequiresClause<(isYield?yieldReq:req), !isYield>
     | EnsuresClause<(isYield?yieldEns:ens), false>
     )
   | DecreasesClause<decreases, ref decrAttrs, false, false>
-  )
+  }
   .
 
 /*------------------------------------------------------------------------*/
@@ -2170,7 +2170,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
   )
 
   (. decreases = isLeastPredicate || isGreatestPredicate ? null : new List<Expression/*!*/>(); .)
-  { FunctionSpec<reqs, reads, ens, decreases> }
+  FunctionSpec<reqs, reads, ens, decreases>
   [ FunctionBody<out body, out bodyStart, out bodyEnd>
   ]
   (. if (!isWithinAbstractModule && DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 &&
@@ -2215,7 +2215,7 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
      Attributes attrs = null;
   .)
   SYNC
-  ( RequiresClause<reqs, true>
+  { RequiresClause<reqs, true>
   | ReadsClause<reads, false, false, true>
   | EnsuresClause<ens, false>
   | DecreasesClause<decreases, ref attrs, false, false>
@@ -2224,7 +2224,7 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
                                                    decreases = new List<Expression/*!*/>();
                                                  }
                                               .)
-  )
+  }
   .
 
 /*------------------------------------------------------------------------*/
@@ -2754,14 +2754,14 @@ WhileStmt<out Statement stmt>
   "while"                    (. x = t; .)
   (
     IF(IsLoopSpec() || IsAlternative())
-    { LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs> }
+    LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
     AlternativeBlock<false, out alternatives, out usesOptionalBraces, out endTok>
     (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces); .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
     | ellipsis                   (. guardEllipsis = t; .)
     )
-    { LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs> }
+    LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
     ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
       BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
     | IF(la.kind == _ellipsis)    /* if there's an ellipsis, claim it as standing for the loop body (as opposed to a "...;" statement following the loop) */
@@ -2791,13 +2791,13 @@ WhileStmt<out Statement stmt>
 
 /*------------------------------------------------------------------------*/
 LoopSpec<.List<AttributedExpression> invariants, List<Expression> decreases, ref List<FrameExpression> mod, ref Attributes decAttrs, ref Attributes modAttrs.>
-= ( SYNC
+= { SYNC
     InvariantClause<invariants>
   | SYNC
     DecreasesClause<decreases, ref decAttrs, true, true>
   | SYNC
     ModifiesClause<ref mod, ref modAttrs, true, false>
-  )
+  }
   .
 
 /*------------------------------------------------------------------------*/

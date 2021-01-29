@@ -1444,7 +1444,7 @@ ClassMemberDecl(allowConstructors, isValueType,
   ( FieldDecl(isValueType) // allowed iff moduleLevelDecl is true
   | ConstantFieldDecl(moduleLevelDecl)
   | FunctionDecl(isWithinAbstractModule)
-  | MethodDecl(isGhost: ("ghost" was present),
+  | MethodDecl(isGhost: "ghost" was present,
                allowConstructors, isWithinAbstractModule)
   )
 ````
@@ -1589,8 +1589,8 @@ MethodDecl(isGhost, allowConstructors, isWithinAbstractModule) =
                                    or greatest lemma declaration)
   | ellipsis
   )
-  { MethodSpec(isConstructor: true iff
-                       this is a constructor declaration) }
+  MethodSpec(isConstructor: true iff
+                       this is a constructor declaration)
   [ BlockStmt ]
 ````
 The `isGhost` parameter is true iff the `ghost` keyword
@@ -1836,7 +1836,7 @@ FunctionDecl(isWithinAbstractModule) =
     MethodFunctionName
     PredicateSignatureOrEllipsis_(allowGhostKeyword: false)
   )
-  { FunctionSpec }
+  FunctionSpec
   [ FunctionBody ]
 
 FunctionSignatureOrEllipsis_(allowGhostKeyword) =
@@ -2380,7 +2380,7 @@ IteratorDecl = "iterator" { Attribute } IteratorName
     [ "yields" Formals(allowGhostKeyword: true) ]
   | ellipsis
   )
-  { IteratorSpec }
+  IteratorSpec
   [ BlockStmt ]
 ````
 
@@ -2722,7 +2722,7 @@ _unit type_ and its single value, also written `()`, is known as _unit_.
 # 18. Algebraic Datatypes
 
 ````grammar
-InductiveDatatypeDecl_ =
+DatatypeDecl =
   ( "datatype" | "codatatype" )
   { Attribute }
   DatatypeName [ GenericParameters ]
@@ -2736,14 +2736,11 @@ DatatypeMemberDecl =
 ````
 
 Dafny offers two kinds of algebraic datatypes, those defined
-inductively and those defined co-inductively.  The salient property of
+inductively (with `datatype`)  and those defined co-inductively (with `codatatype`).
+The salient property of
 every datatype is that each value of the type uniquely identifies one
 of the datatype's constructors and each constructor is injective in
 its parameters.
-
-````grammar
-DatatypeDecl = ( InductiveDatatypeDecl_ | CoinductiveDatatypeDecl_ )
-````
 
 ## 18.1. Inductive datatypes
 
