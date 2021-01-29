@@ -10,7 +10,7 @@ method Main() {
   m();
   mm();
 }
-   
+
 method m() {
   var x := (2,3);
   match x { case (2,y) => print "OK",y; case _ => print "DEF"; }
@@ -18,7 +18,7 @@ method m() {
   match x { case zz => print "OK"; case _ => print "DEF"; } // warning
   print "\n";
 }
-  
+
 method mm() {
   var x := ();
   match x { case () => print "OK"; }
@@ -28,6 +28,6 @@ method mm() {
   var y := match () { case () => 0 case _ => 1 }; // warning
   print z, y, "\n";
 }
- 
+
 
 

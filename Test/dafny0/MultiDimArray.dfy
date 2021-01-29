@@ -6,7 +6,7 @@ class A {
   var a: array<int>;
   var b: array  <bool>;
   var c: array <A>;
-  var d: array1 <A>; 
+  var d: array1 <A>;
   var e: array2 <A>;
   var f: array3 <A?>;
   var g: array300 <A>;

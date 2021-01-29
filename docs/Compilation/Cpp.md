@@ -1,4 +1,4 @@
-<p></p> <!-- avoids duplicate title -->  
+<p></p> <!-- avoids duplicate title -->
 
 # Dafny compilation to C++
 

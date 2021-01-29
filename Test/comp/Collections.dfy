@@ -290,7 +290,7 @@ method TestNullsAmongKeys() {
   var m := map[a := 0, b := 1, c := 2, d := 3];
   var n := map[a := 0, b := 10, c := 20, e := 4];
   var o := map[b := 199, a := 198];
-  
+
   var o' := map[b := 199, c := 55, a := 198];
   var o'' := map[b := 199, c := 56, a := 198];
   var o3 := map[c := 3, d := 16];
@@ -339,7 +339,7 @@ method TestNullsAmongValues() {
   var m: map<int, MyClass?> := map[0 := a, 1 := b, 2 := null, 3 := null];
   var n: map<int, MyClass?> := map[0 := d, 10 := b, 20 := null, 4 := e];
   var o: map<int, MyClass?> := map[199 := null, 198 := a];
-  
+
   var o': map<int, MyClass?> := map[199 := b, 55 := null, 198 := a];
   var o'': map<int, MyClass?> := map[199 := b, 56 := null, 198 := a];
   var o3: map<int, MyClass?> := map[3 := null, 16 := d];

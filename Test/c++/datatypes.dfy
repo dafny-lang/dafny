@@ -112,7 +112,7 @@ method DupTestTest()
   DupTest(Dup2(330));
 }
 
-datatype IntList = 
+datatype IntList =
   | Nil
   | Cons(hd:uint32, tl:IntList)
 
@@ -120,7 +120,7 @@ method IntListLen(l:IntList) returns (len:uint32)
 {
   match l {
     case Nil => len := 0;
-    case Cons(hd, tl) => 
+    case Cons(hd, tl) =>
       var len_rest := IntListLen(tl);
       if len_rest < 0xFFFFFFFF {
         len := len_rest + 1;

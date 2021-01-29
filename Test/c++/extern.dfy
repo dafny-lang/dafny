@@ -7,13 +7,13 @@ module {:extern "Extern"} Extern {
   method {:extern "Extern", "newArrayFill"} newArrayFill<T>(n: uint64, t: T) returns (ar: array<T>)
 
   type {:extern "struct"} state
-  
+
   class {:extern} ExternClass {
     constructor {:extern "Extern", "ExternClass"}()
     method {:extern "Extern", "my_method0"} my_method0(a:uint64) returns (b:bool)
     method {:extern "Extern", "my_method1"} my_method1(c:uint64) returns (d:bool)
   }
-  
+
   class {:extern} ExternClass2 {
     constructor {:extern "Extern", "ExternClass2"}(x:uint64)
   }
@@ -23,7 +23,7 @@ module TestMod {
   import opened Extern
   class C {
     var s:state;
- 
+
     constructor (i:state) {
       this.s := i;
     }
@@ -31,7 +31,7 @@ module TestMod {
 
   class D {
     var s:uint64;
- 
+
     constructor (i:uint64) {
       this.s := i;
     }

@@ -6,7 +6,7 @@ datatype Status =
   function method PropagateFailure(): Status
     requires IsFailure()
   {
-    Failure(this.error) 
+    Failure(this.error)
   }
 }
 
