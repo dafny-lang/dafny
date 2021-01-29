@@ -123,4 +123,3 @@ implicitly ghost (non-ghost).
  copredicate              | already-ghost static
 
 
-
