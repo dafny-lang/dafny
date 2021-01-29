@@ -1007,12 +1007,14 @@ if K in cache {  // check if temperature is in domain of cache
 ```
 
 Dafny also overloads the `+` and `-` binary operators for maps.
-The `+` operator merges two maps of the same type, as if each
-(key,value) pair of the RHS is added in turn to the LHS map.
+The `+` operator merges two maps or imaps of the same type, as if each
+(key,value) pair of the RHS is added in turn to the LHS (i)map.
+In this use, `+` is not commutative; if a key exists in both
+(i)maps, it is the value from the RHS (i)map that is present in the result.
 
 The `-` operator implements a map difference operator. Here the LHS
-is a `map<K,V>` and the RHS is a `set<K>`; the operation removes
-from the map all the (key,value) pairs whose key is a member of the set.
+is a `map<K,V>` or `imap<K,V>` and the RHS is a `set<K>` (but not an `iset`); the operation removes
+from the LHS all the (key,value) pairs whose key is a member of the RHS set.
 
 ## 10.5. Iterating over collections
 
@@ -1268,16 +1270,6 @@ function Fib(n: int): int
 }
 ```
 
-TODO: I think the following is false, or at least should be.
-
-Type inference will never infer the type of a variable to be a
-subset type.  It will instead infer the type to be the base type
-of the subset type.  For example, the type of `x` in
-```dafny
-forall x :: P(x)
-```
-will be `int`, even if predicate `P` declares its argument to have
-type `nat`.
 
 <!--PDF NEWPAGE-->
 # 12. Newtypes {#sec-newtypes}
@@ -1333,7 +1325,7 @@ particular, it never overflows, since `int` has no upper bound.  In
 contrast, if `lo` and `hi` are variables of a newtype `int32` declared
 as follows:
 ```dafny
-newtype int32 = x | -0x80000000 <= x < 0x80000000
+newtype int32 = x | -0x8000_0000 <= x < 0x8000_0000
 ```
 then the code fragment is erroneous, since the result of the addition
 may fail to satisfy the predicate in the definition of `int32`.  The
@@ -1377,7 +1369,7 @@ convert it to the base type:
 ```
 
 If possible, Dafny compilers will represent values of the newtype using
-a native data type for the sake of efficiency. This action can
+a native type for the sake of efficiency. This action can
 be inhibited or a specific native data type selected by
 using the `{:nativeType}` attribute, as explained in
 [Section 22.1.12](#sec-nativetype).

@@ -240,7 +240,7 @@ Addition has these meanings for different types:
 * Map merging for maps ([Section 10.4](#sec-maps)).
 
 Subtraction is arithmetic subtraction for numeric types, and set or multiset
-difference for sets and multisets, and map difference for maps.
+subtraction for sets and multisets, and domain subtraction for maps.
 
 ## 20.8. Factors
 ````grammar
