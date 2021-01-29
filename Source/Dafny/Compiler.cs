@@ -1349,7 +1349,7 @@ namespace Microsoft.Dafny {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  Error(m.tok, "More than one method is declared as \"main\". First declaration appeared at {0}.", null, ErrorReporter.TokenToString(mainMethod.tok));
+                  Error(m.tok, "More than one method is declared as \"Main\". First declaration appeared at {0}.", null, ErrorReporter.TokenToString(mainMethod.tok));
                   hasMain = false;
                 }
               }

@@ -190,9 +190,10 @@ Without a `Main` method, `dafny` will still produce executable output files, but
 they will need to be linked with some other code in the target language that
 provides a `main` entry point.
 
-TO BE WRITTEN
-
-TODO - non-static main in a class.
+The Main method may be declared in any module or class. If it is not static,
+then the containing class may not have any constructors.
+The method itself may not take arguments and may not have `requires` clauses
+in its specification.
 
 ### 24.9.2. extern declarations
 

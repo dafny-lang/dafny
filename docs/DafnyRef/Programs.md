@@ -12,12 +12,9 @@ and functions.
 
 When asked to compile a program, Dafny looks for the existence of a
 Main() method. If a legal Main() method is found, the compiler will emit
-a `.EXE`; otherwise, it will emit a `.DLL`.
-
- (If there is more than one Main(), Dafny will try to emit an .EXE, but
- the compiler may complain. One could imagine improving
- this functionality so that Dafny will produce a polite error message in
- this case.)
+an executable appropriate to the target langauge; otherwise it will emit
+a library or individual files.
+If there is more than one Main(), Dafny will emi an error message.
 
 In order to be a legal Main() method, the following must be true:
 

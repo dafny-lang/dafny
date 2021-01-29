@@ -6,9 +6,15 @@
 // RUN: %diff "%s.expect" "%t"
 
 module A {
-  method Main() {}
+  module AA {
+    method Main() {}
+  }
 }
 
 module B {
-  method Main() {}
+  class C {
+    static method Main() {}
+  }
 }
+
+method Main() {}
