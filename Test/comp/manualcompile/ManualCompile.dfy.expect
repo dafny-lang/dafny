@@ -1,0 +1,26 @@
+
+Dafny program verifier finished with 0 verified, 0 errors
+Compiled assembly into CompileAndThenRun.dll
+hello, Dafny
+
+Dafny program verifier finished with 0 verified, 0 errors
+Wrote textual form of target program to CompileAndThenRun.js
+hello, Dafny
+
+Dafny program verifier finished with 0 verified, 0 errors
+Wrote textual form of target program to CompileAndThenRun-go/src/CompileAndThenRun.go
+Additional target code written to CompileAndThenRun-go/src/dafny/dafny.go
+Additional target code written to CompileAndThenRun-go/src/System_/System_.go
+hello, Dafny
+
+Dafny program verifier finished with 0 verified, 0 errors
+Wrote textual form of target program to CompileAndThenRun-java/CompileAndThenRun.java
+Additional target code written to CompileAndThenRun-java/_System/nat.java
+Additional target code written to CompileAndThenRun-java/_System/__default.java
+Additional target code written to CompileAndThenRun-java/dafny/Tuple0.java
+hello, Dafny
+
+Dafny program verifier finished with 0 verified, 0 errors
+Wrote textual form of target program to CompileAndThenRun.cpp
+Additional target code written to CompileAndThenRun.h
+hello, Dafny

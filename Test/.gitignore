@@ -6,6 +6,8 @@
 **/*.runtimeconfig.json
 **/*.mdb
 **/*.pdb
+**/bin
+**/obj
 
 # JavaScript output
 **/*.js
