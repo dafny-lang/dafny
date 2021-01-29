@@ -2858,9 +2858,7 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(ax);
       // TODO(namin) Is checking f.Reads.Count==0 excluding Valid() of BinaryTree in the right way?
       //             I don't see how this in the decreasing clause would help there.
-      if (!(f is ExtremePredicate) && f.CoClusterTarget == Function.CoCallClusterInvolvement.None &&
-        f.Reads.Count == 0 &&
-        !DafnyOptions.O.Dafnycc) {
+      if (!(f is ExtremePredicate) && f.CoClusterTarget == Function.CoCallClusterInvolvement.None && f.Reads.Count == 0) {
         var FVs = new HashSet<IVariable>();
         Type usesThis = null;
         bool dontCare0 = false, dontCare1 = false;
