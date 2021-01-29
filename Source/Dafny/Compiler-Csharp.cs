@@ -15,6 +15,7 @@ using Bpl = Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
 using System.Runtime.Loader;
+using System.Text.Json;
 
 namespace Microsoft.Dafny
 {
@@ -45,16 +46,9 @@ namespace Microsoft.Dafny
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
-      wr.WriteLine("// To recompile, use 'csc' with");
-      wr.WriteLine("//     /r:System.Numerics.dll /r:System.Collections.Immutable.dll /r:System.Runtime.dll");
-      wr.WriteLine("// You'll find a copy of System.Collections.Immutable.dll in the Dafny distribution, and");
-      wr.WriteLine("// Dafny will have tried to copy this file into the target directory if you compiled to");
-      wr.WriteLine("// an executable (with a Main method). The csc compiler should know where to pick up the");
-      wr.WriteLine("// other two DLLs.");
-      wr.WriteLine("// You should also choose either");
-      wr.WriteLine("//     /target:exe");
-      wr.WriteLine("// or");
-      wr.WriteLine("//     /target:library");
+      wr.WriteLine("// To recompile, you will need the libraries");
+      wr.WriteLine("//     System.Runtime.Numerics.dll System.Collections.Immutable.dll");
+      wr.WriteLine("// but the 'dotnet' tool in net5.0 should pick those up automatically.");
       wr.WriteLine("// Optionally, you may want to include compiler switches like");
       wr.WriteLine("//     /debug /nowarn:162,164,168,183,219,436,1717,1718");
       wr.WriteLine();
@@ -2765,7 +2759,7 @@ namespace Microsoft.Dafny
     }
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-      bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+      bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
 
       compilationResult = null;
 
@@ -2777,8 +2771,7 @@ namespace Microsoft.Dafny
           MetadataReference.CreateFromFile(Assembly.Load("mscorlib").Location));
 
       var inMemory = runAfterCompile;
-      var consoleApplication = hasMain || callToMain != null;
-      compilation = compilation.WithOptions(compilation.Options.WithOutputKind(consoleApplication ? OutputKind.ConsoleApplication : OutputKind.DynamicallyLinkedLibrary));
+      compilation = compilation.WithOptions(compilation.Options.WithOutputKind(callToMain != null ? OutputKind.ConsoleApplication : OutputKind.DynamicallyLinkedLibrary));
 
       var tempCompilationResult = new CSharpCompilationResult();
       var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -2822,8 +2815,9 @@ namespace Microsoft.Dafny
       foreach (var sourceFile in otherSourceFiles) {
         compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile)));
       }
-      var outputDir = targetFilename == null ? Path.GetTempPath() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
+      var outputDir = targetFilename == null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
       var outputPath = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".dll");
+      var outputJson = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".runtimeconfig.json");
       if (inMemory) {
         using var stream = new MemoryStream();
         var emitResult = compilation.Emit(stream);
@@ -2844,7 +2838,24 @@ namespace Microsoft.Dafny
         if (emitResult.Success) {
           tempCompilationResult.CompiledAssembly = Assembly.LoadFile(outputPath);
           if (DafnyOptions.O.CompileVerbose) {
-            outputWriter.WriteLine("Compiled assembly into {0}", compilation.AssemblyName);
+            outputWriter.WriteLine("Compiled assembly into {0}.dll", compilation.AssemblyName);
+          }
+          try {
+            var configuration = JsonSerializer.Serialize(
+              new {
+                runtimeOptions = new {
+                  tfm = "net5.0",
+                  framework = new {
+                    name = "Microsoft.NETCore.App",
+                    version = "5.0.0",
+                    rollForward = "LatestMinor"
+                  }
+                }
+              }, new JsonSerializerOptions() { WriteIndented = true });
+            File.WriteAllText(outputJson, configuration + Environment.NewLine);
+          } catch (Exception e) {
+            outputWriter.WriteLine($"Error trying to write '{outputJson}': {e.Message}");
+            return false;
           }
         } else {
           outputWriter.WriteLine("Errors compiling program into {0}", compilation.AssemblyName);

@@ -2246,17 +2246,20 @@ namespace Microsoft.Dafny {
 
     // ----- Target compilation and execution -------------------------------------------------------------
 
+    public override bool TextualTargetIsExecutable => true;
+
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-      bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+      bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       compilationResult = null;
-      if (!DafnyOptions.O.RunAfterCompile || callToMain == null) {
-        // compile now
-        return SendToNewNodeProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames, outputWriter);
-      } else {
+      if (runAfterCompile) {
+        Contract.Assert(callToMain != null);  // this is part of the contract of CompileTargetProgram
         // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
         // in the emitted program--this should never happen if the compiler itself is correct) will be reported as 'node'
         // will run the program.
         return true;
+      } else {
+        // compile now
+        return SendToNewNodeProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames, outputWriter);
       }
     }
 
@@ -2270,8 +2273,7 @@ namespace Microsoft.Dafny {
       TextWriter outputWriter) {
       Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
-      var args = targetFilename != null && otherFileNames.Count == 0 ? targetFilename : "";
-      var psi = new ProcessStartInfo("node", args) {
+      var psi = new ProcessStartInfo("node", "") {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardInput = true,
@@ -2281,17 +2283,15 @@ namespace Microsoft.Dafny {
 
       try {
         using (var nodeProcess = Process.Start(psi)) {
-          if (args == "") {
-            foreach (var filename in otherFileNames) {
-              WriteFromFile(filename, nodeProcess.StandardInput);
-            }
-            nodeProcess.StandardInput.Write(targetProgramText);
-            if (callToMain != null) {
-              nodeProcess.StandardInput.Write(callToMain);
-            }
-            nodeProcess.StandardInput.Flush();
-            nodeProcess.StandardInput.Close();
+          foreach (var filename in otherFileNames) {
+            WriteFromFile(filename, nodeProcess.StandardInput);
           }
+          nodeProcess.StandardInput.Write(targetProgramText);
+          if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
+            nodeProcess.StandardInput.Write(callToMain);
+          }
+          nodeProcess.StandardInput.Flush();
+          nodeProcess.StandardInput.Close();
           nodeProcess.WaitForExit();
           return nodeProcess.ExitCode == 0;
         }

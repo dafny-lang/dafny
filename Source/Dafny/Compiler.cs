@@ -1330,6 +1330,7 @@ namespace Microsoft.Dafny {
     }
 
     public bool HasMain(Program program, out Method mainMethod) {
+      Contract.Ensures(Contract.Result<bool>() == (Contract.ValueAtReturn(out mainMethod) != null));
       mainMethod = null;
       bool hasMain = false;
       foreach (var module in program.CompileModules) {
@@ -4788,7 +4789,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public virtual bool SupportsInMemoryCompilation { get => true; }
+    public virtual bool SupportsInMemoryCompilation => true;
+    public virtual bool TextualTargetIsExecutable => false;
 
     /// <summary>
     /// Compile the target program known as "dafnyProgramName".
@@ -4797,7 +4799,7 @@ namespace Microsoft.Dafny {
     /// file. "targetFileName" must be non-null if "otherFileNames" is nonempty.
     /// "otherFileNames" is a list of other files to include in the compilation.
     ///
-    /// "hasMain" says whether or not the program contains a "Main()" program.
+    /// When "callToMain" is non-null, the program contains a "Main()" program.
     ///
     /// Upon successful compilation, "runAfterCompile" says whether or not to execute the program.
     ///
@@ -4807,13 +4809,13 @@ namespace Microsoft.Dafny {
     /// the instance's "RunTargetProgram" method.
     /// </summary>
     public virtual bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-      bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+      bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       Contract.Requires(dafnyProgramName != null);
       Contract.Requires(targetProgramText != null);
       Contract.Requires(otherFileNames != null);
       Contract.Requires(otherFileNames.Count == 0 || targetFilename != null);
       Contract.Requires(this.SupportsInMemoryCompilation || targetFilename != null);
-      Contract.Requires(!runAfterCompile || hasMain);
+      Contract.Requires(!runAfterCompile || callToMain != null);
       Contract.Requires(outputWriter != null);
 
       compilationResult = null;
