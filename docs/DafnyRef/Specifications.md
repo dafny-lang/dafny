@@ -80,7 +80,7 @@ DecreasesList(allowWildcard, allowLambda) =
   { "," PossiblyWildExpression(allowLambda, allowWildcard) }
 
 PossiblyWildExpression(allowLambda, allowWild) =
-  ( "*"  // if allowWild is false, the '*' alternative provokes an error
+  ( "*"  // if allowWild is false, using '*' provokes an error
   | Expression(allowLemma: false, allowLambda)
   )
 ````
@@ -292,6 +292,7 @@ method Inner(x: nat, y: nat)
 ```
 The ingredients are simple, but the end result may seem like magic. For many users, however, there may be no magic at all -- the end result may be so natural that the user never even has to be bothered to think about that there was a need to prove termination in the first place.
 
+TODO: Should there be user-level syntax to invoke this termination ordering
 
 ### 5.1.4. Framing {#sec-frame-expression}
 ````grammar
@@ -300,11 +301,11 @@ FrameExpression(allowLemma, allowLambda) =
   | FrameField
   )
 
-FrameField = "`" Ident
+FrameField = "`" IdentOrDigits
 
 PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) =
   ( "*"  // error if !allowWild and '*'
-  | FrameExpression(allowLemma, allowLambda: false)
+  | FrameExpression(allowLemma, allowLambda)
   )
 ````
 
@@ -411,7 +412,7 @@ or within the scope of a `modifies` statement or a loop's `modifies` clause,
 
 It is also possible to frame what can be modified by a block statement
 by means of the block form of the
-modify statement (cf. [Section 20.21](#sec-modify-statement)).
+`modify` statement (cf. [Section 19.21](#sec-modify-statement)).
 
 A `modifies` clause specifies the set of memory locations that a
 method, iterator or loop body may modify. If more than one `modifies`
@@ -528,7 +529,7 @@ the `Valid()` predicate?
 LoopSpec =
   { InvariantClause_
   | DecreasesClause(allowWildcard: true, allowLambda: true)
-  | ModifiesClause(allowLemma: false, allowLambda: true)
+  | ModifiesClause(allowLambda: true)
   }
 ````
 

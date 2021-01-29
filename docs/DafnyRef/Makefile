@@ -21,3 +21,6 @@ release: all
 
 clean:
 	@-rm -f DafnyRef.pdf
+
+grammar:
+	javac GrammarLinks.java && java -cp . GrammarLinks DafnyRef.md

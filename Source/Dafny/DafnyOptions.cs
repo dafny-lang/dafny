@@ -715,19 +715,19 @@ namespace Microsoft.Dafny
     1 (default) - print information such as files being written by
         the compiler to the console
 /spillTargetCode:<n>
-    0 (default) - don't write the compiled Dafny program (but
-        still compile it, if /compile indicates to do so)
-    1 - write the compiled Dafny program in the target language,
-        if it is being compiled
-    2 - write the compiled Dafny program in the target language,
-        provided it passes the verifier (and /noVerify is NOT used),
-        regardless of /compile setting
-    3 - write the compiled Dafny program in the target language,
-        regardless of verification outcome and /compile setting
-    NOTE: If there are .cs or .dll files on the command line, then
-    the compiled Dafny program will also be written. More precisely,
-    such files on the command line implies /spillTargetCode:1 (or
-    higher, if manually specified).
+    This option concerns the textual representation of the target program.
+    This representation is of no interest when working with only Dafny code,
+    but may be of interest in cross-language situations.
+    0 (default) - Don't make any extra effort to write the textual target program
+        (but still compile it, if /compile indicates to do so).
+    1 - Write the textual target program, if it is being compiled.
+    2 - Write the textual target program, provided it passes the verifier (and
+        /noVerify is NOT used), regardless of /compile setting.
+    3 - Write the textual target program, regardless of verification outcome
+        and /compile setting.
+    Note, some compiler targets may (always or in some situations) write out the
+    textual target program as part of compilation, in which case /spillTargetCode:0
+    behaves the same way as /spillTargetCode:1.
 /out:<file>
     filename and location for the generated target language files
 /coverage:<file>
