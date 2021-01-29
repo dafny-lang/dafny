@@ -544,3 +544,22 @@ module ExtendObject {
   class C extends object { }
   class D extends object? { }   // error: should say, object, not object?
 }
+
+module TypeCharacteristics {
+  trait Tr {
+    method M<A, B(0), C(00), d(!new), E(==)>()
+    function F<A, B(0), C(00), d(!new), E(==)>(): int
+  }
+  class C0 extends Tr {
+    method M<R, S, T, U, V>()  // error (4x): type-characteristic mismatches
+    function F<R, S, T, U, V>(): int  // error (4x): type-characteristic mismatches
+  }
+  class C1 extends Tr {
+    method M<R(0), S(0), T(0), U(!new), V(==)>()  // error (2x): type-characteristic mismatches
+    function F<R(0), S(0), T(0), U(!new), V(==)>(): int  // error (2x): type-characteristic mismatches
+  }
+  class C2 extends Tr {
+    method M<R(00), S(00), T(00), U(!new), V(==)>()  // error (2x): type-characteristic mismatches
+    function F<R(00), S(00), T(00), U(!new), V(==)>(): int  // error (2x): type-characteristic mismatches
+  }
+}

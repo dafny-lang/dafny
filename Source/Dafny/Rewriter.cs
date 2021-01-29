@@ -1350,8 +1350,6 @@ namespace Microsoft.Dafny
           //    2) Add forall x :: g(x) ==> WP(f(x, y)) to the function's requirements
           //    3) Current option -- do nothing.  Up to the spec writer to fix
         }
-      } else if (expr is NamedExpr) {
-        reqs.AddRange(generateAutoReqs(((NamedExpr)expr).Body));
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
 
@@ -1726,6 +1724,9 @@ namespace Microsoft.Dafny
           return;
         } else if (DafnyOptions.O.Induction == 2 && lemma != null) {
           // We're asked to infer induction variables only for quantifiers, not for lemmas
+          return;
+        } else if (DafnyOptions.O.Induction == 4 && lemma == null) {
+          // We're asked to infer induction variables only for lemmas, not for quantifiers
           return;
         }
         // GO INFER below (only select boundVars)

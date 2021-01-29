@@ -2820,12 +2820,18 @@ namespace Microsoft.Dafny
           } else if (d is SubsetTypeDecl) {
             var dd = (SubsetTypeDecl)d;
             Contract.Assert(dd.Constraint != null);
-            CheckExpression(dd.Constraint, this, dd);
+            CheckExpression(dd.Constraint, this, new CodeContextWrapper(dd, true));
+            if (dd.Witness != null) {
+              CheckExpression(dd.Witness, this, new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+            }
           } else if (d is NewtypeDecl) {
             var dd = (NewtypeDecl)d;
             if (dd.Var != null) {
               Contract.Assert(dd.Constraint != null);
-              CheckExpression(dd.Constraint, this, dd);
+              CheckExpression(dd.Constraint, this, new CodeContextWrapper(dd, true));
+              if (dd.Witness != null) {
+                CheckExpression(dd.Witness, this, new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+              }
             }
             FigureOutNativeType(dd);
             ResolveClassMembers_Pass1(dd);
@@ -3264,7 +3270,7 @@ namespace Microsoft.Dafny
           } else if (d is TypeSynonymDecl) {
             var syn = (TypeSynonymDecl)d;
             CheckEqualityTypes_Type(syn.tok, syn.Rhs);
-            if (syn.MustSupportEquality && !syn.Rhs.SupportsEquality) {
+            if (syn.SupportsEquality && !syn.Rhs.SupportsEquality) {
               reporter.Error(MessageSource.Resolver, syn.tok, "type '{0}' declared as supporting equality, but the RHS type ({1}) does not", syn.Name, syn.Rhs);
             }
           }
@@ -4102,6 +4108,11 @@ namespace Microsoft.Dafny
         var lhsWithProxyArgs = Type.HeadWithProxyArgs(lhs);
         ConstrainSubtypeRelation(lhsWithProxyArgs, rhs, errMsg, false, allowDecisions);
         ConstrainAssignableTypeArgs(lhs, lhsWithProxyArgs.TypeArgs, lhs.TypeArgs, errMsg, out moreXConstraints);
+        if (Type.SameHead(lhs, rhs, true) && lhs.AsCollectionType == null) {
+          bool more2;
+          ConstrainAssignableTypeArgs(lhs, lhs.TypeArgs, rhs.TypeArgs, errMsg, out more2);
+          moreXConstraints = moreXConstraints || more2;
+        }
       }
     }
 
@@ -4133,17 +4144,17 @@ namespace Microsoft.Dafny
         Contract.Assert(cl.TypeArgs.Count == B.Count);
         moreXConstraints = false;
         for (int i = 0; i < B.Count; i++) {
-          var msgFormat = "variance for type parameter" + (B.Count == 1 ? "" : "" + i) + " expects {1} <: {0}";
+          var msgFormat = "variance for type parameter" + (B.Count == 1 ? "" : "" + i) + " expects {0} {1} {2}";
           if (cl.TypeArgs[i].Variance == TypeParameter.TPVariance.Co) {
-            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "co" + msgFormat, A[i], B[i]);
+            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "co" + msgFormat, A[i], ":>", B[i]);
             AddAssignableConstraint(tok, A[i], B[i], em);
             moreXConstraints = true;
           } else if (cl.TypeArgs[i].Variance == TypeParameter.TPVariance.Contra) {
-            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "contra" + msgFormat, B[i], A[i]);
+            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "contra" + msgFormat, A[i], "<:", B[i]);
             AddAssignableConstraint(tok, B[i], A[i], em);
             moreXConstraints = true;
           } else {
-            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "non" + msgFormat, A[i], B[i]);
+            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "non" + msgFormat, A[i], "=", B[i]);
             ConstrainSubtypeRelation_Equal(A[i], B[i], em);
           }
         }
@@ -4428,7 +4439,7 @@ namespace Microsoft.Dafny
       }
       // set proxy.T right away, so that we can freely recurse without having to worry about infinite recursion
       if (DafnyOptions.O.TypeInferenceDebug) {
-        Console.WriteLine("DEBUG: setting proxy {0}.T := {1}", proxy, t, Type.Real);
+        Console.WriteLine("DEBUG: setting proxy {0}.T := {1}", proxy, t);
       }
       proxy.T = t;
 
@@ -6753,7 +6764,8 @@ namespace Microsoft.Dafny
     }
     /// <summary>
     /// This method computes ghost interests in the statement portion of StmtExpr's and
-    /// checks for hint restrictions in any CalcStmt.
+    /// checks for hint restrictions in any CalcStmt. In any ghost context, it also
+    /// changes the bound variables of all let- and let-such-that expressions to ghost.
     /// </summary>
     void CheckExpression(Statement stmt, Resolver resolver, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
@@ -6775,6 +6787,13 @@ namespace Microsoft.Dafny
         if (expr is StmtExpr) {
           var e = (StmtExpr)expr;
           resolver.ComputeGhostInterest(e.S, true, CodeContext);
+        } else if (expr is LetExpr) {
+          var e = (LetExpr)expr;
+          if (CodeContext.IsGhost) {
+            foreach (var bv in e.BoundVars) {
+              bv.MakeGhost();
+            }
+          }
         }
       }
       protected override void VisitOneStmt(Statement stmt) {
@@ -7759,12 +7778,17 @@ namespace Microsoft.Dafny
           hint = TypeEqualityErrorMessageHint(actual);
           return false;
         }
-        if (formal.MustSupportZeroInitialization && !actual.HasCompilableValue) {
+        if (formal.HasCompiledValue && !actual.HasCompilableValue) {
           whatIsWrong = "auto-initialization";
           hint = "";
           return false;
         }
-        if (formal.DisallowReferenceTypes && !actual.IsAllocFree) {
+        if (formal.IsNonempty && !actual.IsNonempty) {
+          whatIsWrong = "nonempty";
+          hint = "";
+          return false;
+        }
+        if (formal.ContainsNoReferenceTypes && !actual.IsAllocFree) {
           whatIsWrong = "no references";
           hint = "";
           return false;
@@ -8104,7 +8128,7 @@ namespace Microsoft.Dafny
           if (mustBeErasable) {
             foreach (var local in s.Locals) {
               // a local variable in a specification-only context might as well be ghost
-              local.IsGhost = true;
+              local.MakeGhost();
             }
           }
           if (s.Update != null) {
@@ -8117,17 +8141,20 @@ namespace Microsoft.Dafny
 
           if (mustBeErasable) {
             foreach (var local in s.LocalVars) {
-              local.IsGhost = true;
+              local.MakeGhost();
             }
           }
           if (!s.IsAutoGhost || mustBeErasable) {
             s.IsGhost = s.LocalVars.All(v => v.IsGhost);
           } else {
-            bool spec = resolver.UsesSpecFeatures(s.RHS);
-            foreach (var local in s.LocalVars) {
-              local.IsGhost = spec;
+            var spec = resolver.UsesSpecFeatures(s.RHS);
+            if (spec) {
+              foreach (var local in s.LocalVars) {
+                local.MakeGhost();
+              }
+            } else {
+              resolver.CheckIsCompilable(s.RHS);
             }
-            if (!spec) resolver.CheckIsCompilable(s.RHS);
             s.IsGhost = spec;
           }
 
@@ -8593,7 +8620,7 @@ namespace Microsoft.Dafny
           var i = 0;
           foreach (var argType in udt.TypeArgs) {
             var formalTypeArg = formalTypeArgs[i];
-            if ((formalTypeArg.MustSupportEquality && argType.AsTypeParameter == tp) || InferRequiredEqualitySupport(tp, argType)) {
+            if ((formalTypeArg.SupportsEquality && argType.AsTypeParameter == tp) || InferRequiredEqualitySupport(tp, argType)) {
               return true;
             }
             i++;
@@ -8973,10 +9000,12 @@ namespace Microsoft.Dafny
           if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport) {
             reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
           }
-          if (o.Characteristics.MustSupportZeroInitialization != n.Characteristics.MustSupportZeroInitialization) {
+          if (o.Characteristics.HasCompiledValue != n.Characteristics.HasCompiledValue) {
             reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
+          } else if (o.Characteristics.IsNonempty != n.Characteristics.IsNonempty) {
+            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of being nonempty", n.Name);
           }
-          if (o.Characteristics.DisallowReferenceTypes != n.Characteristics.DisallowReferenceTypes) {
+          if (o.Characteristics.ContainsNoReferenceTypes != n.Characteristics.ContainsNoReferenceTypes) {
             reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
           }
 
@@ -9553,7 +9582,7 @@ namespace Microsoft.Dafny
 
       if (f.IsGhost) {
         foreach (TypeParameter p in f.TypeArgs) {
-          if (p.MustSupportEquality) {
+          if (p.SupportsEquality) {
             reporter.Warning(MessageSource.Resolver, p.tok,
               $"type parameter {p.Name} of ghost {f.WhatKind} {f.Name} is declared (==), which is unnecessary because the {f.WhatKind} doesn’t contain any compiled code");
           }
@@ -9701,7 +9730,7 @@ namespace Microsoft.Dafny
 
         if (m.IsGhost) {
           foreach (TypeParameter p in m.TypeArgs) {
-            if (p.MustSupportEquality) {
+            if (p.SupportsEquality) {
               reporter.Warning(MessageSource.Resolver, p.tok,
                 $"type parameter {p.Name} of ghost {m.WhatKind} {m.Name} is declared (==), which is unnecessary because the {m.WhatKind} doesn’t contain any compiled code");
             }
@@ -10342,7 +10371,7 @@ namespace Microsoft.Dafny
           for (int i = defaultTypeArguments.Count; i < n; i++) {
             var tp = new TypeParameter(tok, "_T" + i, i, option.Parent);
             if (option.Parent is IteratorDecl) {
-              tp.Characteristics.MustSupportZeroInitialization = true;
+              tp.Characteristics.AutoInit = Type.AutoInitInfo.CompilableValue;
             }
             defaultTypeArguments.Add(tp);
           }
@@ -13121,9 +13150,13 @@ namespace Microsoft.Dafny
             builtIns.CreateArrowTypeDecl(rr.ArrayDimensions.Count);  // TODO: should this be done already in the parser?
             var args = new List<Type>();
             for (int ii = 0; ii < rr.ArrayDimensions.Count; ii++) {
-              args.Add(Type.Int);
+              args.Add(builtIns.Nat());
             }
             var arrowType = new ArrowType(rr.ElementInit.tok, builtIns.ArrowTypeDecls[rr.ArrayDimensions.Count], args, rr.EType);
+            var lambdaType = rr.ElementInit.Type.AsArrowType;
+            if (lambdaType != null && lambdaType.TypeArgs[0] is InferredTypeProxy) {
+              (lambdaType.TypeArgs[0] as InferredTypeProxy).KeepConstraints = true;
+            }
             string underscores;
             if (rr.ArrayDimensions.Count == 1) {
               underscores = "_";
@@ -14295,7 +14328,8 @@ namespace Microsoft.Dafny
         ResolveExpression(e.N, opts);
         ConstrainToIntegerType(e.N, false, "sequence construction must use an integer-based expression for the sequence size (got {0})");
         ResolveExpression(e.Initializer, opts);
-        var arrowType = new ArrowType(e.tok, builtIns.ArrowTypeDecls[1], new List<Type>() { Type.Int }, elementType);
+        UserDefinedType t = builtIns.Nat() as UserDefinedType;
+        var arrowType = new ArrowType(e.tok, builtIns.ArrowTypeDecls[1], new List<Type>() { t }, elementType);
         var hintString = " (perhaps write '_ =>' in front of the expression you gave in order to make it an arrow type)";
         ConstrainSubtypeRelation(arrowType, e.Initializer.Type, e.Initializer, "sequence-construction initializer expression expected to have type '{0}' (instead got '{1}'){2}",
           arrowType, e.Initializer.Type, new LazyString_OnTypeEquals(elementType, e.Initializer.Type, hintString));
@@ -14490,7 +14524,7 @@ namespace Microsoft.Dafny
               // Second, for map subtraction, it would be nice to allow the right-hand operand to be either a set or
               // an iset. That would also lead to further complexity in the code, so this code restricts the right-hand
               // operand to be a set.
-              var eType = PartiallyResolveTypeForMemberSelection(expr.tok, expr.Type).AsMapType; 
+              var eType = PartiallyResolveTypeForMemberSelection(expr.tok, expr.Type).AsMapType;
               if (eType != null) {
                 // allow "map - set == map"
                 var expected = new SetType(true, eType.Domain);
@@ -14625,11 +14659,6 @@ namespace Microsoft.Dafny
       } else if (expr is LetOrFailExpr) {
         var e = (LetOrFailExpr)expr;
         ResolveLetOrFailExpr(e, opts);
-      } else if (expr is NamedExpr) {
-        var e = (NamedExpr)expr;
-        ResolveExpression(e.Body, opts);
-        if (e.Contract != null) ResolveExpression(e.Contract, opts);
-        e.Type = e.Body.Type;
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
         if (opts.codeContext is Function) {
@@ -16410,10 +16439,6 @@ namespace Microsoft.Dafny
         CheckIsCompilable(e.Term);
         return;
 
-      } else if (expr is NamedExpr) {
-        if (!moduleInfo.IsAbstract)
-          CheckIsCompilable(((NamedExpr)expr).Body);
-        return;
       } else if (expr is ChainingExpression) {
         // We don't care about the different operators; we only want the operands, so let's get them directly from
         // the chaining expression
@@ -17504,8 +17529,6 @@ namespace Microsoft.Dafny
         } else {
           return true;  // let-such-that is always ghost
         }
-      } else if (expr is NamedExpr) {
-        return moduleInfo.IsAbstract ? false : UsesSpecFeatures(((NamedExpr)expr).Body);
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;
         Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
@@ -17565,7 +17588,7 @@ namespace Microsoft.Dafny
 
     void MakeGhostAsNeeded(CasePattern<BoundVar> arg, DatatypeDestructor d) {
       if (arg.Expr is IdentifierExpr ie && ie.Var is BoundVar bv) {
-        if (d.IsGhost) bv.makeGhost();
+        if (d.IsGhost) bv.MakeGhost();
       }
       if (arg.Ctor != null) {
         MakeGhostAsNeeded(arg);

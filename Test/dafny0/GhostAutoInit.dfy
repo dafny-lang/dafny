@@ -97,13 +97,13 @@ module DeclaredTypes {
 }
 
 module TypeParameters {
-  method NotUsed<MaybeEmpty, GhostAutoInit(0)/*TODO*/, CompileAutoInit(0)>() {
+  method NotUsed<MaybeEmpty, GhostAutoInit(00), CompileAutoInit(0)>() {
     var a: MaybeEmpty;
     var b: GhostAutoInit;
     var c: CompileAutoInit;
   }
 
-  method Used<MaybeEmpty, GhostAutoInit(0)/*TODO*/, CompileAutoInit(0)> () {
+  method Used<MaybeEmpty, GhostAutoInit(00), CompileAutoInit(0)> () {
     var a: MaybeEmpty;
     var b: GhostAutoInit;
     var c: CompileAutoInit;
@@ -111,12 +111,25 @@ module TypeParameters {
     case true =>
       var x := a;  // error: a has not been initialized
     case true =>
-      // TODO: var x := b;
+      var x := b;  // error: b has not been initialized
     case true =>
       var x := c;
   }
 
-  method GhostUsed<MaybeEmpty, GhostAutoInit(0)/*TODO*/, CompileAutoInit(0)>() {
+  method GhostUsed<MaybeEmpty, GhostAutoInit(00), CompileAutoInit(0)>() {
+    ghost var a: MaybeEmpty;
+    ghost var b: GhostAutoInit;
+    ghost var c: CompileAutoInit;
+    if
+    case true =>
+      ghost var x := a;  // error: a has not been initialized
+    case true =>
+      ghost var x := b;
+    case true =>
+      ghost var x := c;
+  }
+
+  method UsedByGhost<MaybeEmpty, GhostAutoInit(00), CompileAutoInit(0)>() {
     var a: MaybeEmpty;
     var b: GhostAutoInit;
     var c: CompileAutoInit;
@@ -124,7 +137,7 @@ module TypeParameters {
     case true =>
       ghost var x := a;  // error: a has not been initialized
     case true =>
-      // TODO: ghost var x := b;
+      ghost var x := b;  // error: b has not been initialized
     case true =>
       ghost var x := c;
   }
@@ -150,7 +163,7 @@ module OutParameters {
 }
 
 module FiftyShadesOfGhost {
-  // A variable of type G is not subject to defiite-assignment rules if the variable
+  // A variable of type G is not subject to definite-assignment rules if the variable
   // is ghost--more precisely, either a variable declared with "ghost" or a variable contained
   // in a ghost context. The tests in this module check that the enclosing context is
   // considered when making decisions about definite assignments.

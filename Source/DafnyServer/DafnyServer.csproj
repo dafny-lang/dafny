@@ -14,7 +14,7 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
   </ItemGroup>

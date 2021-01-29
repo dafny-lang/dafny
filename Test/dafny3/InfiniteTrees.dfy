@@ -119,7 +119,7 @@ function SkinnyTree(): Tree
 lemma Proposition1()
   ensures IsFiniteSomewhere(SkinnyTree()) && !HasBoundedHeight(SkinnyTree());
 {
-  assert forall n :: 0 <= n ==> !LowerThan(SkinnyTree().children, n);
+  assert forall n {:induction} :: 0 <= n ==> !LowerThan(SkinnyTree().children, n);
 }
 
 // Any tree where all paths have bounded height are finite somewhere.

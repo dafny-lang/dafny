@@ -34,6 +34,18 @@ Execution trace:
     (0,0): anon6_Else
     DefiniteAssignment.dfy(351,5): anon7_Else
     (0,0): anon5
+DefiniteAssignment.dfy(370,11): Error: field 'y', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+DefiniteAssignment.dfy(377,6): Error: field 'y', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+Execution trace:
+    (0,0): anon0
+DefiniteAssignment.dfy(382,4): Error: field 'y', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+Execution trace:
+    (0,0): anon0
+DefiniteAssignment.dfy(387,4): Error: field 'x', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+Execution trace:
+    (0,0): anon0
 DefiniteAssignment.dfy(11,9): Error: field 'y', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
@@ -153,4 +165,4 @@ DefiniteAssignment.dfy(238,12): Error: variable 'b', which is subject to definit
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 12 verified, 37 errors
+Dafny program verifier finished with 12 verified, 41 errors

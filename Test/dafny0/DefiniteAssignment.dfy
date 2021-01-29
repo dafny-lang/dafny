@@ -148,11 +148,11 @@ method MM<G>(ghost x: int, g: G) returns (vv: G, ww: G)
 // To check that yield parameters, which are stored as fields of "this",
 // get values before "this" is available, one would need some sort of
 // mechanism like the "new;" in constructors.  Until such a mechanism
-// is invented for iterators, iterators cannot be allowed to be instantiated
-// with "difficult to initialize" type arguments.
+// is invented for iterators, yield-parameters must be auto-init types
+// (and ghost yield-parameters must be nonempty).
 // Still, definite-assignment rules are enforced for local variables
 // declared in the iterator body.
-iterator Iter<G>(n: nat, g: G) yields (y: G, ghost ug: G, z: G)
+iterator Iter<G(0)>(n: nat, g: G) yields (y: G, ghost ug: G, z: G)
 {
   var i;
   i := 0;
@@ -356,5 +356,34 @@ module LetSuchThat {
   {
     var c: C :| true;  // fine, since parameter "y" serves as a witness
     5
+  }
+}
+
+module NonEmpty {
+  class MyClass<G(00)> {
+    const x: G
+    var y: G
+    ghost var oxA: G  // since G is nonempty, oxA does not need to be initialized by the constructor
+    ghost const oxB: G  // ditto
+    constructor C0()
+    {
+      x := y;  // error: y has not yet been defined
+      this.y := (((this))).x;
+      new;
+    }
+    constructor C1(g: G)
+    {
+      x := g;
+      new;  // error: y was never assigned
+    }
+    constructor C2(g: G)
+    {
+      x := g;
+    }  // error: y was never assigned
+    constructor C3(g: G)
+    {
+      oxB := oxA;  // fine
+      y := g;
+    }  // error: x was never assigned
   }
 }

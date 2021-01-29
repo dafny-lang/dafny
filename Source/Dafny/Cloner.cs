@@ -131,7 +131,7 @@ namespace Microsoft.Dafny
       } else {
         eqSupport = characteristics.EqualitySupport;
       }
-      return new TypeParameter.TypeParameterCharacteristics(eqSupport, characteristics.MustSupportZeroInitialization, characteristics.DisallowReferenceTypes);
+      return new TypeParameter.TypeParameterCharacteristics(eqSupport, characteristics.AutoInit, characteristics.ContainsNoReferenceTypes);
     }
 
     public DatatypeCtor CloneCtor(DatatypeCtor ct) {
@@ -399,9 +399,6 @@ namespace Microsoft.Dafny
         var e = (LetOrFailExpr)expr;
         return new LetOrFailExpr(Tok(e.tok), e.Lhs == null ? null : CloneCasePattern(e.Lhs), CloneExpr(e.Rhs), CloneExpr(e.Body));
 
-      } else if (expr is NamedExpr) {
-        var e = (NamedExpr)expr;
-        return new NamedExpr(Tok(e.tok), e.Name, CloneExpr(e.Body));
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
         var tk = Tok(e.tok);

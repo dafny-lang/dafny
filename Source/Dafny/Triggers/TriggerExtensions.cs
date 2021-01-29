@@ -173,7 +173,7 @@ namespace Microsoft.Dafny.Triggers {
               arg1.UniqueName == arg2.UniqueName &&
               arg1.IsGhost == arg2.IsGhost &&
               arg1.IsMutable == arg2.IsMutable &&
-              ((arg1.Type == null && arg2.Type == null) || arg1.Type.Equals(arg2.Type)));
+              ((arg1.Type == null && arg2.Type == null) || (arg1.Type != null && arg1.Type.Equals(arg2.Type))));
     }
 
     /// <summary>
@@ -206,8 +206,6 @@ namespace Microsoft.Dafny.Triggers {
         return ShallowEq((WildcardExpr)expr1, (WildcardExpr)expr2);
       } else if (expr1 is ComprehensionExpr && expr2 is ComprehensionExpr) {
         return ShallowEq((ComprehensionExpr)expr1, (ComprehensionExpr)expr2);
-      } else if (expr1 is NamedExpr && expr2 is NamedExpr) {
-        return ShallowEq((NamedExpr)expr1, (NamedExpr)expr2);
       } else if (expr1 is LetExpr && expr2 is LetExpr) {
         return ShallowEq((LetExpr)expr1, (LetExpr)expr2);
       } else if (expr1 is TernaryExpr && expr2 is TernaryExpr) {
@@ -353,11 +351,6 @@ namespace Microsoft.Dafny.Triggers {
       } else {
         return false; // ComprehensionExpr is abstract
       }
-    }
-
-    private static bool ShallowEq(NamedExpr expr1, NamedExpr expr2) {
-      return expr1.Name == expr2.Name &&
-             TriggerUtils.SameNullity(expr1.Contract, expr2.Contract);
     }
 
     private static bool ShallowEq(LetExpr expr1, LetExpr expr2) {

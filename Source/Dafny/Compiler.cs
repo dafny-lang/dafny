@@ -197,7 +197,7 @@ namespace Microsoft.Dafny {
 
     protected virtual bool NeedsTypeDescriptor(TypeParameter tp) {
       Contract.Requires(tp != null);
-      return tp.Characteristics.MustSupportZeroInitialization;
+      return tp.Characteristics.HasCompiledValue;
     }
 
     protected abstract string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok);
@@ -4508,8 +4508,6 @@ namespace Microsoft.Dafny {
         var e = (ConcreteSyntaxExpression)expr;
         TrExpr(e.ResolvedExpression, wr, inLetExprBody);
 
-      } else if (expr is NamedExpr) {
-        TrExpr(((NamedExpr)expr).Body, wr, inLetExprBody);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
