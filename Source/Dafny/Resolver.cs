@@ -740,27 +740,6 @@ namespace Microsoft.Dafny
 
       var anyChangeToDecreases = false;
       var decr = clbl.Decreases.Expressions;
-      if (DafnyOptions.O.Dafnycc) {
-        if (decr.Count > 1) {
-          reporter.Error(MessageSource.Resolver, decr[1].tok,
-            "In dafnycc mode, only one decreases expression is allowed");
-        }
-
-        // In dafnycc mode, only consider first argument
-        if (decr.Count == 0 && clbl.Ins.Count > 0) {
-          var p = clbl.Ins[0];
-          if (!(p is ImplicitFormal) && p.Type.IsOrdered) {
-            var ie = new IdentifierExpr(p.tok, p.Name);
-            ie.Var = p;
-            ie.Type = p.Type; // resolve it here
-            decr.Add(ie);
-            return true;
-          }
-        }
-
-        return false;
-      }
-
       if (decr.Count == 0 || (clbl is PrefixLemma && decr.Count == 1)) {
         // The default for a function starts with the function's reads clause, if any
         if (clbl is Function) {
@@ -11039,10 +11018,8 @@ namespace Microsoft.Dafny
       ResolveAttributes(decreases.Attributes, null, new ResolveOpts(codeContext, true));
       foreach (Expression e in decreases.Expressions) {
         ResolveExpression(e, new ResolveOpts(codeContext, true));
-        if (e is WildcardExpr) {
-          if (!codeContext.AllowsNontermination && !DafnyOptions.O.Dafnycc) {
-            reporter.Error(MessageSource.Resolver, e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
-          }
+        if (e is WildcardExpr && !codeContext.AllowsNontermination) {
+          reporter.Error(MessageSource.Resolver, e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
         }
         if (fvs != null) {
           Translator.ComputeFreeVariables(e, fvs, ref usesHeap);
