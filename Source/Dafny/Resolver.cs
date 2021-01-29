@@ -3250,7 +3250,15 @@ namespace Microsoft.Dafny
             var syn = (TypeSynonymDecl)d;
             CheckEqualityTypes_Type(syn.tok, syn.Rhs);
             if (syn.SupportsEquality && !syn.Rhs.SupportsEquality) {
-              reporter.Error(MessageSource.Resolver, syn.tok, "type '{0}' declared as supporting equality, but the RHS type ({1}) does not", syn.Name, syn.Rhs);
+              reporter.Error(MessageSource.Resolver, syn.tok, "type '{0}' declared as supporting equality, but the RHS type ({1}) might not", syn.Name, syn.Rhs);
+            }
+            if (syn.Characteristics.IsNonempty && !syn.Rhs.IsNonempty) {
+              reporter.Error(MessageSource.Resolver, syn.tok, "type '{0}' declared as being nonempty, but the RHS type ({1}) may be empty", syn.Name, syn.Rhs);
+            } else if (syn.Characteristics.HasCompiledValue && !syn.Rhs.HasCompilableValue) {
+              reporter.Error(MessageSource.Resolver, syn.tok, "type '{0}' declared as auto-initialization type, but the RHS type ({1}) does not support auto-initialization", syn.Name, syn.Rhs);
+            }
+            if (syn.Characteristics.ContainsNoReferenceTypes && !syn.Rhs.IsAllocFree) {
+              reporter.Error(MessageSource.Resolver, syn.tok, "type '{0}' declared as containing no reference types, but the RHS type ({1}) may contain reference types", syn.Name, syn.Rhs);
             }
           }
         }
