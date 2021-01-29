@@ -3811,7 +3811,7 @@ namespace Microsoft.Dafny{
 
     protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
       var wr = ((ClassWriter) cw).StaticMemberWriter;
-      return wr.NewBlock("public static void Main(string[] args)");
+      return wr.NewBlock("public static void Main(String[] args)");
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, TargetWriter wr, out TargetWriter wrRhs, out TargetWriter wrBody) {

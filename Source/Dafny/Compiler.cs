@@ -26,6 +26,8 @@ namespace Microsoft.Dafny {
       Coverage = new CoverageInstrumenter(this);
     }
 
+    public static string DefaultNameMain = "Main";
+
     public abstract string TargetLanguage { get; }
     protected virtual string ModuleSeparator { get => "."; }
     protected virtual string ClassAccessor { get => "."; }
@@ -1333,6 +1335,29 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<bool>() == (Contract.ValueAtReturn(out mainMethod) != null));
       mainMethod = null;
       bool hasMain = false;
+      if (DafnyOptions.O.MainMethod != null) {
+        string name = DafnyOptions.O.MainMethod;
+        foreach (var module in program.CompileModules) {
+          if (module.IsAbstract) {
+            // the purpose of an abstract module is to skip compilation
+            continue;
+          }
+          foreach (var decl in module.TopLevelDecls) {
+            var c = decl as ClassDecl;
+            if (c != null) {
+              foreach (MemberDecl member in c.Members) {
+                var m = member as Method;
+                if (m == null) continue;
+                if (member.FullDafnyName == name) {
+                  mainMethod = m;
+                  return true;
+                }
+              }
+            }
+          }
+        }
+        Error(program.DefaultModule.tok, "Could not find the method named by the -Main option: {0}", null, name);
+      }
       foreach (var module in program.CompileModules) {
         if (module.IsAbstract) {
           // the purpose of an abstract module is to skip compilation
@@ -1343,13 +1368,18 @@ namespace Microsoft.Dafny {
           if (c != null) {
             foreach (var member in c.Members) {
               var m = member as Method;
-              if (m != null && IsMain(m)) {
+              if (m != null && Attributes.Contains(m.Attributes, "main")) {
                 if (mainMethod == null) {
-                  mainMethod = m;
-                  hasMain = true;
+                  if (!IsMain(m, true)) {
+                    Error(m.tok, "This method marked \"{:main}\" is not permitted as a main method.", null);
+                  } else {
+                    mainMethod = m;
+                    hasMain = true;
+                  }
                 } else {
                   // more than one main in the program
-                  Error(m.tok, "More than one method is declared as \"Main\". First declaration appeared at {0}.", null, ErrorReporter.TokenToString(mainMethod.tok));
+                  Error(m.tok, "More than one method is marked \"{{:main}}\". First declaration appeared at {0}.", null,
+                    ErrorReporter.TokenToString(mainMethod.tok));
                   hasMain = false;
                 }
               }
@@ -1357,6 +1387,39 @@ namespace Microsoft.Dafny {
           }
         }
       }
+      if (hasMain) return hasMain;
+      if (mainMethod != null) {
+        mainMethod = null;
+        return false;
+      }
+
+      mainMethod = null;
+      foreach (var module in program.CompileModules) {
+        if (module.IsAbstract) {
+          // the purpose of an abstract module is to skip compilation
+          continue;
+        }
+        foreach (var decl in module.TopLevelDecls) {
+          var c = decl as ClassDecl;
+          if (c != null) {
+            foreach (var member in c.Members) {
+              var m = member as Method;
+              if (m != null && m.Name == DefaultNameMain) {
+                if (mainMethod == null) {
+                  mainMethod = m;
+                  hasMain = true;
+                } else {
+                  // more than one main in the program
+                  Error(m.tok, "More than one method is declared as \"{0}\". First declaration appeared at {1}.", null,
+                    DefaultNameMain, ErrorReporter.TokenToString(mainMethod.tok));
+                  hasMain = false;
+                }
+              }
+            }
+          }
+        }
+      }
+
       if (!hasMain) {
         // make sure "mainMethod" returns as null
         mainMethod = null;
@@ -1364,7 +1427,7 @@ namespace Microsoft.Dafny {
       return hasMain;
     }
 
-    public static bool IsMain(Method m) {
+    public static bool IsMain(Method m, bool checkName = false) {
       Contract.Requires(m.EnclosingClass is TopLevelDeclWithMembers);
       // In order to be a legal Main() method, the following must be true:
       //    The method is not a ghost method
@@ -1383,9 +1446,10 @@ namespace Microsoft.Dafny {
       if (!m.IsGhost && m.TypeArgs.Count == 0 && cl.TypeArgs.Count == 0) {
         if (m.Ins.TrueForAll(f => f.IsGhost) && m.Outs.TrueForAll(f => f.IsGhost)) {
           if (m.IsStatic || (cl is ClassDecl klass && !(klass is TraitDecl) && !klass.HasConstructor)) {
-            if (m.Name == "Main" && m.Req.Count == 0 && m.Mod.Expressions.Count == 0) {
+            if (Attributes.Contains(m.Attributes, "main")) {
               return true;
-            } else if (Attributes.Contains(m.Attributes, "main")) {
+            }
+            if (m.Req.Count == 0 && m.Mod.Expressions.Count == 0) {
               return true;
             }
           }
@@ -2085,7 +2149,7 @@ namespace Microsoft.Dafny {
       }
 
       // allow the Main method to be an instance method
-      if (IsMain(m) && (!m.IsStatic || m.CompileName != "Main")) {
+      if (IsMain(m) && (!m.IsStatic || m.CompileName != DefaultNameMain)) {
         w = CreateStaticMain(cw);
         if (!m.IsStatic) {
           var c = m.EnclosingClass;

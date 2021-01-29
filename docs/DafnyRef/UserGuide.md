@@ -181,19 +181,46 @@ that are not legal identifiers in X or that conflict with reserved words in X.
 
 TODO - location of DafnyRuntime files
 
-### 24.9.1. Main method
+### 24.9.1. Main method {#sec-user-guide-main}
 
 To generate a stand-alone executable from a Dafny program, the
-Dafny program must contain exactly one method named `Main`, with no input arguments.
-This `Main` method is the entry point for the program.
-Without a `Main` method, `dafny` will still produce executable output files, but
+Dafny program must use a specific method as the executable entry point.
+That method is determined as follows:
+
+* If the /Main option is specified on the command-line, its argument is
+interpreted as the fully-qualified name of a method to be used as the entry point. If there is no matching method, an error message is issued.
+* Otherwise, the program is searched for a method with the attribute `{:main}`.
+If exactly one is found, that method is used as the entry point; if more
+than one method has the `{:main}` attribute, an error message is issued.
+* Otherwise, the program is searched for a method with the name `Main`.
+If more than one is found
+an error message is issued.
+
+Any abstract modules are not searched for candidate entry points,
+but otherwise the entry point may be in any module or class. In addition
+an entry point candidate must satisfy the following conditions:
+
+* The method takes no parameters or type parameters
+* The method is not a ghost method
+* The method has no requires or modifies clauses, unless it is marked `{:main}`
+* If the method is an instance (that is, non-static) method in a class,
+  then the enclosing class must not declare any constructor.
+  In this case, the runtime
+  system will allocate an object of the enclosing class and will invoke
+  the entry point method on it.
+
+Note, however, that the following are allowed:
+
+* The method is allowed to have `ensures` clauses
+* The method is allowed to have `decreases` clauses, including a
+  `decreases *`. (If Main() has a `decreases *`, then its execution may
+  go on forever, but in the absence of a `decreases *` on Main(), Dafny
+  will have verified that the entire execution will eventually
+  terminate.)
+
+If no legal candidate entry point is identified, `dafny` will still produce executable output files, but
 they will need to be linked with some other code in the target language that
 provides a `main` entry point.
-
-The Main method may be declared in any module or class. If it is not static,
-then the containing class may not have any constructors.
-The method itself may not take arguments and may not have `requires` clauses
-in its specification.
 
 ### 24.9.2. extern declarations
 

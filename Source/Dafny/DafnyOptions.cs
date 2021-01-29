@@ -69,6 +69,7 @@ namespace Microsoft.Dafny
     public bool CompileVerbose = true;
     public string DafnyPrintCompiledFile = null;
     public string CoverageLegendFile = null;
+    public string MainMethod = null;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
     public int SpillTargetCode = 0;  // [0..4]
@@ -191,12 +192,19 @@ namespace Microsoft.Dafny
           return true;
 
         case "compileVerbose": {
-            int verbosity = 0;
-            if (ps.GetNumericArgument(ref verbosity, 2)) {
-              CompileVerbose = verbosity == 1;
-            }
-            return true;
+          int verbosity = 0;
+          if (ps.GetNumericArgument(ref verbosity, 2)) {
+            CompileVerbose = verbosity == 1;
           }
+          return true;
+        }
+
+        case "Main": case "main": {
+          if (ps.ConfirmArgumentCount(1)) {
+            MainMethod = args[ps.i];
+          }
+          return true;
+        }
 
         case "dafnyVerify":
             {
@@ -710,6 +718,9 @@ namespace Microsoft.Dafny
     Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     This includes lack of support for BigIntegers (aka int), most higher order
     functions, and advanced features like traits or co-inductive types.
+/Main:<name>
+    The (fully-qualified) name of the method to use as the executable entry point.
+    Default is the method with the {:main} atrribute, or else the method named 'Main'.
 /compileVerbose:<n>
     0 - don't print status of compilation to the console
     1 (default) - print information such as files being written by
