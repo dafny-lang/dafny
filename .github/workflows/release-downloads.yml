@@ -84,9 +84,6 @@ jobs:
       if: runner.os == 'Windows'
       run: (dafny/Dafny.exe /compile:0 b.dfy || echo "EXPECTED FAILURE") ; exit 0
     ## Check that a simple program compiles and runs on each supported platform
-    - name: Print C++ version for debugging purposes
-      run: |
-        g++ --version
     - name: Check C# compile
       run: |
         dafny/dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
