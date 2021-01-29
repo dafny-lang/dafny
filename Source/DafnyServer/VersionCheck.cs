@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
+using System;
 
 namespace DafnyServer {
   public class VersionCheck {

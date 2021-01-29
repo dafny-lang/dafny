@@ -76,10 +76,6 @@ Then run
 
 This will install pre-commit hooks in your .git/hooks directory.
 
-# Code of Conduct
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
-
 # License
 
 Dafny itself is licensed under the MIT license. (See LICENSE.txt in the root directory for details.) The subdirectory `third_party` contains third party material; see NOTICES.txt for more details.
