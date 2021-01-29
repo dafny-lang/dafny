@@ -28,6 +28,7 @@ namespace Microsoft.Dafny {
     public List<ModuleDefinition> CompileModules; // filled in during resolution.
                                                   // Contains the definitions to be used for compilation.
 
+    public Method MainMethod; // Method to be used as main if compiled
     public readonly ModuleDecl DefaultModule;
     public readonly ModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;

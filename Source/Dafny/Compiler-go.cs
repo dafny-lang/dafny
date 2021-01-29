@@ -48,7 +48,7 @@ namespace Microsoft.Dafny {
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into Go", program.Name);
 
-      ModuleName = MainModuleName = HasMain(program, out _) ? "main" : Path.GetFileNameWithoutExtension(program.Name);
+      ModuleName = MainModuleName = program.MainMethod != null ? "main" : Path.GetFileNameWithoutExtension(program.Name);
 
       wr.WriteLine("package {0}", ModuleName);
       wr.WriteLine();

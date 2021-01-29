@@ -1,0 +1,16 @@
+
+Dafny program verifier finished with 0 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+git-issue-Main.dfy(13,9): Error: More than one method is declared as "main". First declaration appeared at git-issue-Main.dfy(9,9).
+
+Dafny program verifier did not attempt verification
+git-issue-Main.dfy(13,9): Error: More than one method is declared as "main". First declaration appeared at git-issue-Main.dfy(9,9).
+
+Dafny program verifier did not attempt verification
+git-issue-Main.dfy(13,9): Error: More than one method is declared as "main". First declaration appeared at git-issue-Main.dfy(9,9).
+Wrote textual form of partial target program to git-issue-Main-go/src/git-issue-Main.go
+
+Dafny program verifier did not attempt verification
+git-issue-Main.dfy(13,9): Error: More than one method is declared as "main". First declaration appeared at git-issue-Main.dfy(9,9).
+Wrote textual form of partial target program to git-issue-Main-java/git_issue_Main.java

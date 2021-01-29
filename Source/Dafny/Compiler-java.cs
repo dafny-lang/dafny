@@ -292,7 +292,7 @@ namespace Microsoft.Dafny{
 
     protected override void EmitHeader(Program program, TargetWriter wr){
       wr.WriteLine($"// Dafny program {program.Name} compiled into Java");
-      ModuleName = HasMain(program, out _) ? "main" : Path.GetFileNameWithoutExtension(program.Name);
+      ModuleName = program.MainMethod != null ? "main" : Path.GetFileNameWithoutExtension(program.Name);
       wr.WriteLine();
       // Keep the import writers so that we can import subsequent modules into the main one
       EmitImports(wr, out RootImportWriter);
