@@ -44,7 +44,7 @@ Note, however, that the following are allowed:
 An invocation of Dafny may specify a number of source files.
 Each Dafny file follows the grammar of the ``Dafny`` non-terminal.
 
-It consists of a sequence of optional _include_ directives followed by top
+A file consists of a sequence of optional _include_ directives followed by top
 level declarations followed by the end of the file.
 
 ## 3.1. Include Directives

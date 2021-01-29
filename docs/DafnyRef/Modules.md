@@ -133,17 +133,18 @@ present or absent.
 ## 4.3. Importing Modules
 ````grammar
 ModuleImport =
-    "import" ["opened" ]
+    "import"
+    [ "opened" ]
     ( QualifiedModuleExport
     | ModuleName "=" QualifiedModuleExport
     | ModuleName ":" QualifiedModuleExport
     )
 
-QualifiedModuleExport = ModuleQualifiedName [ "`" ModuleExportSuffix ]
+QualifiedModuleExport =
+    ModuleQualifiedName [ "`" ModuleExportSuffix ]
 
 ModuleExportSuffix =
-    (
-      ExportId
+    ( ExportId
     | "{" ExportId { "," ExportId } "}"
     )
 ````
@@ -156,7 +157,8 @@ The simplest form is the concrete import, which has
 the form `import A = B`. This declaration creates a reference to the
 module `B` (which must already exist), and binds it to the new name
 `A`. This form can also be used to create a reference to a nested
-module, as in `import A = B.C`.
+module, as in `import A = B.C`. The other form, using a `:`, is
+described in [Section 4.6](#sec-module-abstraction).
 
 As modules in the same scope must have different names, this ability
 to bind a module to a new name allows disambiguating separately developed
@@ -196,7 +198,7 @@ sometimes you have to use the = version to ensure the names do not
 clash. When importing nested modules, `import B.C` means `import C = B.C`;
 the implicit name is always the last name segment of the module designation.
 
-The ``ModuleQualifiedName`` in the ``ModuleImport_`` starts with a
+The ``ModuleQualifiedName`` in the ``ModuleImport`` starts with a
 sibling module of the importing module, or with a submodule of the
 importing module. There is no way to refer to the parent module, only
 sibling modules (and their submodules).
@@ -291,8 +293,6 @@ ModuleExport =
   | "reveals"  ( ExportSignature { "," ExportSignature } | "*" )
   | "extends"  ExportId { "," ExportId }
   }
-
-ExportId = NoUSIdentOrDigits
 
 ExportSignature = IdentOrDigits [ "." IdentOrDigits ]
 ````
@@ -688,7 +688,7 @@ the imported names in the refinement parent.
 Within each namespace, the local names are unique. Thus a module may
 not reuse a name that a refinement parent has declared (unless it is a
 refining declaration, which replaces both declarations, as described
-in [Section 22](#sec-module-refinement)).
+in [Section 21](#sec-module-refinement)).
 
 Local names take precedence over imported names. If a name is used more than
 once among imported names (coming from different imports), then it is
