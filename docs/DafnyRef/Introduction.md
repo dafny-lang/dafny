@@ -40,7 +40,7 @@ the built-in verification.
 The verifier is powered
 by [Boogie](http://research.microsoft.com/boogie)
 [@Boogie:Architecture;@Leino:Boogie2-RefMan;@LeinoRuemmer:Boogie2]
-and [Z3](https://github.com/z3prover)[@deMouraBjorner:Z3:overview].
+and [Z3](https://github.com/z3prover) [@deMouraBjorner:Z3:overview].
 
 From verified programs, the `dafny` compiler can produce code for a number
 of different backends:
@@ -51,16 +51,16 @@ However, there is no automatic FFI generator, so `:extern` stubs must be written
 
 This reference manual for the Dafny verification system is
 based on the following references:
-[@Leino:Dafny:LPAR16;@MSR:dafny:main;
-@MSR:dafny:source;@MSR:dafny:quickref; @LEINO:Dafny:Calc;
-@LEINO:Dafny:Coinduction;
-and the tutorials at @Rise4fun:dafny]
-[Co-induction Simply]: http://research.microsoft.com/en-us/um/people/leino/papers/krml230.pdf  "Co-induction Simply: Automatic Co-inductive Proofs in a Program Verifier"
+[@Leino:Dafny:LPAR16],
+[@MSR:dafny:main],
+[@LEINO:Dafny:Calc],
+[@LEINO:Dafny:Coinduction],
+[Co-induction Simply](http://research.microsoft.com/en-us/um/people/leino/papers/krml230.pdf).
 
 The main part of the reference manual is in top down order except for an
 initial section that deals with the lowest level constructs.
 
-The details of using (and contributing to) the dafny tool are described in the User Guide [Section 25](#sec-user-guide).
+The details of using (and contributing to) the dafny tool are described in the User Guide ([Section 24](#sec-user-guide)).
 
 ## 1.1. Dafny Example
 To give a flavor of Dafny, here is the solution to a competition problem.
