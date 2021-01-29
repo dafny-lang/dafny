@@ -50,7 +50,6 @@ namespace Microsoft.Dafny
 
     public bool UnicodeOutput = false;
     public bool DisallowSoundnessCheating = false;
-    public bool Dafnycc = false;
     public int Induction = 4;
     public int InductionHeuristic = 6;
     public bool TypeInferenceDebug = false;
@@ -227,13 +226,6 @@ namespace Microsoft.Dafny
           }
           return true;
         }
-
-        case "dafnycc":
-          Dafnycc = true;
-          Induction = 0;
-          Compile = false;
-          UseAbstractInterpretation = false; // /noinfer
-          return true;
 
         case "noCheating": {
             int cheat = 0; // 0 is default, allows cheating
@@ -735,7 +727,6 @@ namespace Microsoft.Dafny
     <file> a legend that gives a description of each
     source-location identifier used in the branch-coverage calls.
     (use - as <file> to print to console)
-/dafnycc      Disable features not supported by DafnyCC
 /noCheating:<n>
     0 (default) - allow assume statements and free invariants
     1 - treat all assumptions as asserts, and drop free.
