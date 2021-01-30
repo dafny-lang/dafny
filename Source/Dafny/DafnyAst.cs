@@ -1843,6 +1843,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(b != null);
       Contract.Requires(builtIns != null);
 
+      // As a special-case optimization, check for equality here, which will better preserve un-expanded type synonyms
+      if (a.Equals(b, true)) {
+        return a;
+      }
+
       // Before we do anything else, make a note of whether or not both "a" and "b" are non-null types.
       var abNonNullTypes = a.IsNonNullRefType && b.IsNonNullRefType;
 

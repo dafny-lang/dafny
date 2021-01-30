@@ -1,0 +1,8 @@
+git-issue-623.dfy(92,35): Error: the RHS value (a MyTrait) is not known to be an instance of the LHS type (MyClass)
+Execution trace:
+    (0,0): anon0
+git-issue-623.dfy(95,27): Error: the RHS value (a MyTrait) is not known to be an instance of the LHS type (MyClass)
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 3 verified, 2 errors
