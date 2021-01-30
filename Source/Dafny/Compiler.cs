@@ -1,6 +1,8 @@
 //-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
 using System;
@@ -2144,6 +2146,8 @@ namespace Microsoft.Dafny {
           DeclareLocalVar(tmp_name, rhsType, rhsTok, false, rhs_string, wr);
         }
 
+        var dtv = (DatatypeValue)pat.Expr;
+        var substMap = Resolver.TypeSubstitutionMap(ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs);
         var k = 0;  // number of non-ghost formals processed
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];
@@ -2153,9 +2157,8 @@ namespace Microsoft.Dafny {
             Contract.Assert(Contract.ForAll(arg.Vars, bv => bv.IsGhost));
           } else {
             var sw = new TargetWriter(wr.IndentLevel, true);
-            EmitDestructor(tmp_name, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw);
-            Type targetType = formal.Type;
-            if (targetType.IsTypeParameter) targetType = ((DatatypeValue) pat.Expr).InferredTypeArgs[0];
+            EmitDestructor(tmp_name, formal, k, ctor, dtv.InferredTypeArgs, arg.Expr.Type, sw);
+            Type targetType = Resolver.SubstType(formal.Type, substMap);
             TrCasePatternOpt(arg, null, sw.ToString(), targetType, pat.Expr.tok, wr, inLetExprBody);
             k++;
           }

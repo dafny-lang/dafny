@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 using System;
 using System.Numerics;
 using System.Globalization;

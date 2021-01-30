@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 const BigNumber = require('bignumber.js');
 BigNumber.config({ MODULO_MODE: BigNumber.EUCLID })
 let _dafny = (function() {

@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 package dafny;
 
 import java.lang.reflect.InvocationTargetException;

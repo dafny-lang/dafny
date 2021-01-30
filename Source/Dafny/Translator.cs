@@ -1,6 +1,8 @@
 ﻿//-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
 using System;
@@ -12234,7 +12236,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < s.Lhs.Count; i++) {
           var lhs = s.Lhs[i];
           lhsTypes.Add(lhs.Type);
-          builder.Add(new CommentCmd("TrCallStmt: Adding lhs " + lhs + " with type " + lhs.Type));
+          builder.Add(new CommentCmd("TrCallStmt: Adding lhs with type " + lhs.Type));
           if (bLhss[i] == null) {  // (in the current implementation, the second parameter "true" to ProcessLhss implies that all bLhss[*] will be null)
             // create temporary local and assign it to bLhss[i]
             string nm = CurrentIdGenerator.FreshId("$rhs##");
