@@ -30,6 +30,7 @@ namespace Microsoft.Dafny {
     public List<ModuleDefinition> CompileModules; // filled in during resolution.
                                                   // Contains the definitions to be used for compilation.
 
+    public Method MainMethod; // Method to be used as main if compiled
     public readonly ModuleDecl DefaultModule;
     public readonly ModuleDefinition DefaultModuleDef;
     public readonly BuiltIns BuiltIns;
@@ -3953,7 +3954,15 @@ namespace Microsoft.Dafny {
     public readonly IToken tok;
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
+    public readonly string DafnyName; // The (not-qualified) name as seen in Dafny source code
     public readonly string Name; // (Last segment of the) module name
+    public string FullDafnyName {
+      get {
+        if (EnclosingModule == null) return "";
+        string n = EnclosingModule.FullDafnyName;
+        return (n.Length == 0 ? n : (n + ".")) + DafnyName;
+      }
+    }
     public string FullName {
       get {
         if (EnclosingModule == null || EnclosingModule.IsDefaultModule) {
@@ -4000,6 +4009,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       this.tok = tok;
+      this.DafnyName = tok.val;
       this.Name = name;
       this.PrefixIds = prefixIds;
       this.Attributes = attributes;
@@ -4260,6 +4270,14 @@ namespace Microsoft.Dafny {
       TypeArgs = typeArgs;
     }
 
+    public string FullDafnyName {
+      get {
+        if (Name == "_module") return "";
+        if (Name == "_default") return EnclosingModuleDefinition.FullDafnyName;
+        string n = EnclosingModuleDefinition.FullDafnyName;
+        return (n.Length == 0 ? n : (n + ".")) + Name;
+      }
+    }
     public string FullName {
       get {
         return EnclosingModuleDefinition.FullName + "." + Name;
@@ -5128,6 +5146,14 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns className+"."+memberName.  Available only after resolution.
     /// </summary>
+    public virtual string FullDafnyName {
+      get {
+        Contract.Requires(EnclosingClass != null);
+        Contract.Ensures(Contract.Result<string>() != null);
+        string n = EnclosingClass.FullDafnyName;
+        return (n.Length == 0 ? n : (n + ".")) + Name;
+      }
+    }
     public virtual string FullName {
       get {
         Contract.Requires(EnclosingClass != null);
@@ -6441,6 +6467,7 @@ namespace Microsoft.Dafny {
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
     public readonly IToken SignatureEllipsis;
     public bool MustReverify;
+    public bool IsEntryPoint = false;
     public readonly List<TypeParameter> TypeArgs;
     public readonly List<Formal> Ins;
     public readonly List<Formal> Outs;
@@ -6554,7 +6581,7 @@ namespace Microsoft.Dafny {
     public override string CompileName {
       get {
         var nm = base.CompileName;
-        if (IsStatic && nm == "Main" && !Dafny.Compiler.IsMain(this)) {
+        if (nm == Dafny.Compiler.DefaultNameMain && IsStatic && !IsEntryPoint) {
           // for a static method that is named "Main" but is not a legal "Main" method,
           // change its name.
           nm = EnclosingClass.Name + "_" + nm;

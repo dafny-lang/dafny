@@ -2914,7 +2914,7 @@ namespace Microsoft.Dafny
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, TargetWriter wr) {
-      var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
+      var companion = TypeName_Companion(mainMethod.EnclosingClass as TopLevelDecl, wr, mainMethod.tok);
       var wClass = wr.NewNamedBlock("class __CallToMain");
       var wBody = wClass.NewNamedBlock("public static void Main(string[] args)");
       var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_module." : "";

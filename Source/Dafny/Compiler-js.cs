@@ -37,7 +37,7 @@ namespace Microsoft.Dafny {
 
     public override void EmitCallToMain(Method mainMethod, string baseName, TargetWriter wr) {
       Coverage.EmitSetup(wr);
-      wr.WriteLine("_dafny.HandleHaltExceptions({0}.{1});", mainMethod.EnclosingClass.FullCompileName, IdName(mainMethod));
+      wr.WriteLine("_dafny.HandleHaltExceptions({0}.{1});", mainMethod.EnclosingClass.FullCompileName, mainMethod.IsStatic ? IdName(mainMethod) : "Main");
       Coverage.EmitTearDown(wr);
     }
 
