@@ -27,7 +27,7 @@ jobs:
           osn: 'osx'
         - os:  'windows-latest'
           osn: 'win'
-          ver: '3.0.0-PreRelease3'
+          ver: '3.0.0-PreRelease4'
     # There is no hosted environment for Unbuntu 14.04 or for debian
 
     # Java is installed by default, but we need to select 1.8
