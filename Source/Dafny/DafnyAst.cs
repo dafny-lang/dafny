@@ -6462,6 +6462,7 @@ namespace Microsoft.Dafny {
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
     public readonly IToken SignatureEllipsis;
     public bool MustReverify;
+    public bool IsEntryPoint = false;
     public readonly List<TypeParameter> TypeArgs;
     public readonly List<Formal> Ins;
     public readonly List<Formal> Outs;
@@ -6575,7 +6576,7 @@ namespace Microsoft.Dafny {
     public override string CompileName {
       get {
         var nm = base.CompileName;
-        if (IsStatic && nm == Dafny.Compiler.DefaultNameMain && !Dafny.Compiler.IsMain(this)) {
+        if (IsStatic && nm == Dafny.Compiler.DefaultNameMain && !IsEntryPoint) {
           // for a static method that is named "Main" but is not a legal "Main" method,
           // change its name.
           nm = EnclosingClass.Name + "_" + nm;

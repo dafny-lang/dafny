@@ -650,7 +650,10 @@ namespace Microsoft.Dafny
       }
 
       var hasMain = compiler.HasMain(dafnyProgram, out var mainMethod);
-      if (hasMain) dafnyProgram.MainMethod = mainMethod;
+      if (hasMain) {
+        mainMethod.IsEntryPoint = true;
+        dafnyProgram.MainMethod = mainMethod;
+      }
       string targetProgramText;
       var otherFiles = new Dictionary<string, string>();
       {
