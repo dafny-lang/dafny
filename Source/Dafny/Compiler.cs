@@ -1156,7 +1156,7 @@ namespace Microsoft.Dafny {
             var nt = (NewtypeDecl)d;
             var w = DeclareNewtype(nt, wr);
             v.Visit(nt);
-            CompileClassMembers(nt, w);
+            CompileClassMembers(program, nt, w);
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             CheckForCapitalizationConflicts(dt.Ctors);
@@ -1165,7 +1165,7 @@ namespace Microsoft.Dafny {
             }
             var w = DeclareDatatype(dt, wr);
             if (w != null) {
-              CompileClassMembers(dt, w);
+              CompileClassMembers(program, dt, w);
             }
           } else if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
@@ -1183,7 +1183,7 @@ namespace Microsoft.Dafny {
           } else if (d is TraitDecl trait) {
             // writing the trait
             var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), trait.TypeArgs, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
-            CompileClassMembers(trait, w);
+            CompileClassMembers(program, trait, w);
           } else if (d is ClassDecl cl) {
             var include = true;
             if (cl.IsDefaultClass) {
@@ -1201,12 +1201,12 @@ namespace Microsoft.Dafny {
             if (include) {
               var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.CompileName), IdName(cl), classIsExtern, cl.FullName,
                 cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.tok, wr);
-              CompileClassMembers(cl, cw);
+              CompileClassMembers(program, cl, cw);
               cw.Finish();
             } else {
               // still check that given members satisfy compilation rules
               var abyss = new NullClassWriter();
-              CompileClassMembers(cl, abyss);
+              CompileClassMembers(program, cl, abyss);
             }
           } else if (d is ValuetypeDecl) {
             // nop
@@ -1343,14 +1343,20 @@ namespace Microsoft.Dafny {
             continue;
           }
           foreach (var decl in module.TopLevelDecls) {
-            var c = decl as ClassDecl;
+            var c = decl as TopLevelDeclWithMembers;
             if (c != null) {
               foreach (MemberDecl member in c.Members) {
                 var m = member as Method;
                 if (m == null) continue;
                 if (member.FullDafnyName == name) {
                   mainMethod = m;
-                  return true;
+                  if (!IsMain(mainMethod)) {
+                    Error(mainMethod.tok, "The method \"{0}\" is not permitted as a main method.", null, name);
+                    mainMethod = null;
+                    return false;
+                  } else {
+                    return true;
+                  }
                 }
               }
             }
@@ -1364,18 +1370,14 @@ namespace Microsoft.Dafny {
           continue;
         }
         foreach (var decl in module.TopLevelDecls) {
-          var c = decl as ClassDecl;
+          var c = decl as TopLevelDeclWithMembers;
           if (c != null) {
             foreach (var member in c.Members) {
               var m = member as Method;
               if (m != null && Attributes.Contains(m.Attributes, "main")) {
                 if (mainMethod == null) {
-                  if (!IsMain(m, true)) {
-                    Error(m.tok, "This method marked \"{:main}\" is not permitted as a main method.", null);
-                  } else {
-                    mainMethod = m;
-                    hasMain = true;
-                  }
+                  mainMethod = m;
+                  hasMain = true;
                 } else {
                   // more than one main in the program
                   Error(m.tok, "More than one method is marked \"{{:main}}\". First declaration appeared at {0}.", null,
@@ -1387,7 +1389,15 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      if (hasMain) return hasMain;
+      if (hasMain) {
+        if (!IsMain(mainMethod)) {
+          Error(mainMethod.tok, "This method marked \"{:main}\" is not permitted as a main method.", null);
+          mainMethod = null;
+          return false;
+        } else {
+          return true;
+        }
+      }
       if (mainMethod != null) {
         mainMethod = null;
         return false;
@@ -1400,7 +1410,7 @@ namespace Microsoft.Dafny {
           continue;
         }
         foreach (var decl in module.TopLevelDecls) {
-          var c = decl as ClassDecl;
+          var c = decl as TopLevelDeclWithMembers;
           if (c != null) {
             foreach (var member in c.Members) {
               var m = member as Method;
@@ -1420,14 +1430,21 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (!hasMain) {
+      if (hasMain) {
+        if (!IsMain(mainMethod)) {
+          Error(mainMethod.tok, "This method \"Main\" is not permitted as a main method.", null);
+          return false;
+        } else {
+          return true;
+        }
+      } else {
         // make sure "mainMethod" returns as null
         mainMethod = null;
+        return false;
       }
-      return hasMain;
     }
 
-    public static bool IsMain(Method m, bool checkName = false) {
+    public static bool IsMain(Method m) {
       Contract.Requires(m.EnclosingClass is TopLevelDeclWithMembers);
       // In order to be a legal Main() method, the following must be true:
       //    The method is not a ghost method
@@ -1445,7 +1462,7 @@ namespace Microsoft.Dafny {
       var cl = (TopLevelDeclWithMembers)m.EnclosingClass;
       if (!m.IsGhost && m.TypeArgs.Count == 0 && cl.TypeArgs.Count == 0) {
         if (m.Ins.TrueForAll(f => f.IsGhost) && m.Outs.TrueForAll(f => f.IsGhost)) {
-          if (m.IsStatic || (cl is ClassDecl klass && !(klass is TraitDecl) && !klass.HasConstructor)) {
+          if (m.IsStatic || (!(cl is ClassDecl) || !(cl as ClassDecl).HasConstructor)) {
             if (Attributes.Contains(m.Attributes, "main")) {
               return true;
             }
@@ -1488,7 +1505,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    void CompileClassMembers(TopLevelDeclWithMembers c, IClassWriter classWriter) {
+    void CompileClassMembers(Program program, TopLevelDeclWithMembers c, IClassWriter classWriter) {
       Contract.Requires(c != null);
       Contract.Requires(classWriter != null);
       Contract.Requires(thisContext == null);
@@ -1703,10 +1720,10 @@ namespace Microsoft.Dafny {
               RedeclareInheritedMember(m, classWriter);
             }
             if (m.Body != null) {
-              CompileMethod(m, classWriter, true);
+              CompileMethod(program, m, classWriter, true);
             }
           } else {
-            CompileMethod(m, classWriter, false);
+            CompileMethod(program, m, classWriter, false);
           }
           v.Visit(m);
         } else {
@@ -2114,7 +2131,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void CompileMethod(Method m, IClassWriter cw, bool lookasideBody) {
+    private void CompileMethod(Program program, Method m, IClassWriter cw, bool lookasideBody) {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
       Contract.Requires(m.Body != null || Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")));
@@ -2149,7 +2166,7 @@ namespace Microsoft.Dafny {
       }
 
       // allow the Main method to be an instance method
-      if (IsMain(m) && (!m.IsStatic || m.CompileName != DefaultNameMain)) {
+      if (m == program.MainMethod) {
         w = CreateStaticMain(cw);
         if (!m.IsStatic) {
           var c = m.EnclosingClass;
