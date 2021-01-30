@@ -4378,7 +4378,7 @@ namespace Microsoft.Dafny
       Contract.Requires(!(t is TypeProxy));
       Contract.Requires(!(t is ArtificialType));
 
-      t = keepConstraints ? t.NormalizeExpandKeepConstraints() : t.NormalizeExpand();
+      t = keepConstraints ? t.Normalize() : t.NormalizeExpand();
       // never violate the type constraint of a literal expression
       var followedRequestedAssignment = true;
       foreach (var su in proxy.Supertypes) {
@@ -6051,7 +6051,7 @@ namespace Microsoft.Dafny
       var meets = new List<Type>();
       foreach (var xc in AllXConstraints) {
         if (xc.ConstraintName == "Assignable" && xc.Types[1].Normalize() == proxy) {
-          var su = xc.Types[0].NormalizeExpandKeepConstraints();
+          var su = xc.Types[0].Normalize();
           if (su is TypeProxy) {
             continue;  // don't include proxies in the meet computation
           }
