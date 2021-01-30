@@ -1,4 +1,4 @@
-// UNSUPPORTED: *
+// XFAIL: *
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:cs /Main:A.T.Test "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /compileTarget:js /Main:A.T.Test "%s" >> "%t"
