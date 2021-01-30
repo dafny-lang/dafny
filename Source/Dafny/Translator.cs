@@ -15341,11 +15341,7 @@ namespace Microsoft.Dafny {
             }
 
             var ty = translator.TrType(e.Type);
-            var name = e.Function.FullSanitizedName;
-            if (DafnyOptions.O.IronDafny) {
-              name = e.Function.FullSanitizedRefinementName;
-            }
-            var id = new Bpl.IdentifierExpr(e.tok, name, ty);
+            var id = new Bpl.IdentifierExpr(e.tok, e.Function.FullSanitizedName, ty);
 
             bool argsAreLit;
             var args = FunctionInvocationArguments(e, layerArgument, false, out argsAreLit);
@@ -17305,11 +17301,6 @@ namespace Microsoft.Dafny {
 
       bool useFuelAsQuantifier = argsEtran.Statistics_CustomLayerFunctionCount > 0;
       bool useHeapAsQuantifier = argsEtran.Statistics_HeapAsQuantifierCount > 0;
-      Expr qly = null;
-      if (useFuelAsQuantifier && DafnyOptions.O.IronDafny) {
-        qly = BplBoundVar(CurrentIdGenerator.FreshId("tr$ly#"), predef.LayerType, bvars);
-        argsEtran = argsEtran.WithLayer(qly);
-      }
       if (useHeapAsQuantifier) {
         var heapExpr = BplBoundVar(CurrentIdGenerator.FreshId("tr$heap#"), predef.HeapType, bvars);
         argsEtran = new ExpressionTranslator(argsEtran, heapExpr);
@@ -17327,11 +17318,6 @@ namespace Microsoft.Dafny {
         }
         if (useHeapAsQuantifier) {
           tt.Add(FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, argsEtran.HeapExpr));
-        }
-        if (useFuelAsQuantifier && !fueledTrigger[trigger.Args] && DafnyOptions.O.IronDafny) {
-          // We quantified over fuel, but this particular trigger doesn't use it,
-          // so we need to add a dummy trigger.  Hopefully it will always be in scope when needed.
-          tt.Add(FunctionCall(tok, BuiltinFunction.AsFuelBottom, null, qly));
         }
         tr = new Bpl.Trigger(tok, true, tt, tr);
       }
