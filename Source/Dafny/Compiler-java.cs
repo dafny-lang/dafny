@@ -294,7 +294,7 @@ namespace Microsoft.Dafny{
 
     protected override void EmitHeader(Program program, TargetWriter wr){
       wr.WriteLine($"// Dafny program {program.Name} compiled into Java");
-      ModuleName = HasMain(program, out _) ? "main" : Path.GetFileNameWithoutExtension(program.Name);
+      ModuleName = program.MainMethod != null ? "main" : Path.GetFileNameWithoutExtension(program.Name);
       wr.WriteLine();
       // Keep the import writers so that we can import subsequent modules into the main one
       EmitImports(wr, out RootImportWriter);
@@ -313,7 +313,7 @@ namespace Microsoft.Dafny{
       var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_System." : "";
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling({companion}::{IdName(mainMethod)});");
+      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling({companion}::__Main);");
       Coverage.EmitTearDown(wBody);
     }
 
@@ -3811,9 +3811,12 @@ namespace Microsoft.Dafny{
       }
     }
 
+    protected override bool IssueCreateStaticMain(Method m) {
+      return true;
+    }
     protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
       var wr = ((ClassWriter) cw).StaticMemberWriter;
-      return wr.NewBlock("public static void Main(string[] args)");
+      return wr.NewBlock("public static void __Main()");
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, TargetWriter wr, out TargetWriter wrRhs, out TargetWriter wrBody) {

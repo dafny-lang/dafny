@@ -12,34 +12,11 @@ and functions.
 
 When asked to compile a program, Dafny looks for the existence of a
 Main() method. If a legal Main() method is found, the compiler will emit
-a `.EXE`; otherwise, it will emit a `.DLL`.
-
- (If there is more than one Main(), Dafny will try to emit an .EXE, but
- the compiler may complain. One could imagine improving
- this functionality so that Dafny will produce a polite error message in
- this case.)
-
-In order to be a legal Main() method, the following must be true:
-
-* The method takes no parameters
-* The method is not a ghost method
-* The method has no requires clause
-* The method has no modifies clause
-* If the method is an instance (that is, non-static) method in a class,
-  then the enclosing class must not declare any constructor
-
-Note, however, that the following are allowed:
-
-* The method is allowed to be an instance method as long as the enclosing
-  class does not declare any constructor. In this case, the runtime
-  system will allocate an object of the enclosing class and will invoke
-  Main() on it.
-* The method is allowed to have `ensures` clauses
-* The method is allowed to have `decreases` clauses, including a
-  `decreases *`. (If Main() has a `decreases *`, then its execution may
-  go on forever, but in the absence of a `decreases *` on Main(), Dafny
-  will have verified that the entire execution will eventually
-  terminate.)
+an executable appropriate to the target langauge; otherwise it will emit
+a library or individual files.
+The conditions for a legal Main() method are described in the User Guide
+([Section 0](#sec-user-guide-main)).
+If there is more than one Main(), Dafny will emit an error message.
 
 An invocation of Dafny may specify a number of source files.
 Each Dafny file follows the grammar of the ``Dafny`` non-terminal.
@@ -144,6 +121,5 @@ implicitly ghost (non-ghost).
  predicate method         | already-non-ghost static
  inductive predicate      | already-ghost static
  copredicate              | already-ghost static
-
 
 
