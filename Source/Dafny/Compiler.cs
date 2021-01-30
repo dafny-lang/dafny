@@ -2167,8 +2167,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // allow the Main method to be an instance method
-      if (m == program.MainMethod && (!m.IsStatic || m.Name != DefaultNameMain)) {
+      if (m == program.MainMethod && !m.IsStatic) {
         w = CreateStaticMain(cw);
         if (!m.IsStatic) {
           var c = m.EnclosingClass;
