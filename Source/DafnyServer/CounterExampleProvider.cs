@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;

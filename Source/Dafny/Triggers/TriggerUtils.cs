@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 #define DEBUG_AUTO_TRIGGERS
 
 using System;

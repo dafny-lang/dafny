@@ -2,6 +2,8 @@
 //-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
 using System;
@@ -7970,10 +7972,6 @@ namespace Microsoft.Dafny {
       this.Invariants = invariants;
       this.Decreases = decreases;
       this.Mod = mod;
-      if (DafnyOptions.O.Dafnycc) {
-        Decreases = new Specification<Expression>(
-          new List<Expression>() { new WildcardExpr(tok) }, null);
-      }
     }
     public override IEnumerable<Expression> SubExpressions {
       get {

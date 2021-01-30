@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 #if ISDAFNYRUNTIMELIB
 using System; // for Func
 using System.Numerics;

@@ -16,7 +16,7 @@ method Test1(t0:Example1)
   var t := { t0 };
 }
 
-method Test(name:string, b:bool) 
+method Test(name:string, b:bool)
   requires b
 {
   if b {

@@ -23,8 +23,8 @@
   /view:<view1, view2>
                 print the filtered views of a module after it is resolved (/rprint).
                 if print before the module is resolved (/dprint), then everthing in the module is printed
-                if no view is specified, then everything in the module is printed. 
-                
+                if no view is specified, then everything in the module is printed.
+
   /dafnyVerify:<n>
                 0 - stop after typechecking
                 1 - continue on to translation, verification, and compilation
@@ -63,7 +63,7 @@
                 such files on the command line implies /spillTargetCode:1 (or
                 higher, if manually specified).
   /out:<file>
-                filename and location for the generated .cs, .dll or .exe files 
+                filename and location for the generated .cs, .dll or .exe files
   /dafnycc      Disable features not supported by DafnyCC
   /noCheating:<n>
                 0 (default) - allow assume statements and free invariants
@@ -126,9 +126,9 @@
                 1 (default) - In the body of prefix lemmas, rewrite any use of a focal predicate
                               P to P#[_k-1].
   /optimize     Produce optimized C# code, meaning:
-                  - selects optimized C# prelude by passing 
-                    /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE to csc.exe (requires 
-                    System.Collections.Immutable.dll in the source directory to successfully 
+                  - selects optimized C# prelude by passing
+                    /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE to csc.exe (requires
+                    System.Collections.Immutable.dll in the source directory to successfully
                     compile).
                   - passes /optimize flag to csc.exe.
   /optimizeResolution:<n>
@@ -153,7 +153,7 @@
                 0 - don't give any warnings about deprecated features
                 1 (default) - show warnings about deprecated features
                 2 - also point out where there's new simpler syntax
-  /verifyAllModules 
+  /verifyAllModules
                 Verify modules that come from an include directive
   /separateModuleOutput
                 Output verification results for each module separately, rather than
@@ -186,8 +186,8 @@
                 these features may cause your code to become incompatible with future
                 releases of Dafny.
   /noIronDafny  Disable Ironclad/Ironfleet features, if enabled by default.
-  /printTooltips    
-                Dump additional positional information (displayed as mouse-over tooltips by 
+  /printTooltips
+                Dump additional positional information (displayed as mouse-over tooltips by
                 the VS plugin) to stdout as 'Info' messages.
   /printIncludes:<None|Immediate|Transitive>
                 None is the default.
@@ -241,7 +241,7 @@
                          expressions into templates with holes. By default, holes
                          are maximally large subexpressions that do not contain
                          bound variables. This option performs a form of lambda
-                         lifting in which holes are the lambda's free variables. 
+                         lifting in which holes are the lambda's free variables.
 
   /overlookTypeErrors : skip any implementation with resolution or type
                         checking errors
@@ -344,7 +344,7 @@
                 3 - use the more advanced caching and report errors according
                     to the new source locations for errors and their
                     related locations (but not /errorTrace and CaptureState
-                    locations) 
+                    locations)
   /traceCaching:<n>
                 0 (default) - none
                 1 - for testing
@@ -409,7 +409,7 @@
                    p = predicates (default)
                    a = arguments
                    m = monomorphic
-  /monomorphize   
+  /monomorphize
                 Do not abstract map types in the encoding (this is an
                 experimental feature that will not do the right thing if
                 the program uses polymorphism)
@@ -449,7 +449,7 @@
   /vcsPathCostMult:<f1>
   /vcsAssumeMult:<f2>
                 The cost of a block is
-                    (<assert-cost> + <f2>*<assume-cost>) * 
+                    (<assert-cost> + <f2>*<assume-cost>) *
                     (1.0 + <f1>*<entering-paths>)
                 <f1> defaults to 1.0, <f2> defaults to 0.01.
                 The cost of a single assertion or assumption is

@@ -15,7 +15,7 @@ module MB {
   module I {
     type T42 = x | 0 <= x < 42
     type T43 = x | 0 <= x < 43
-  } 
+  }
 }
 
 import M  // Error

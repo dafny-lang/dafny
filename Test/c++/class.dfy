@@ -12,7 +12,7 @@ class MyClass {
 
   var ar: array<uint32>
 
-  constructor (x: uint32) 
+  constructor (x: uint32)
     requires x < 100
     ensures this.a < 300
     ensures this.b < 300
@@ -67,7 +67,7 @@ method CallEm(c: MyClass, t: MyClass, i: MyClass)
   print u, " ";
   u := c.N();
   print u, "\n";
-  
+
   print t.b, " ";
   print t.c, " ";
   print t.d, " ";
@@ -130,7 +130,7 @@ class AClass {
   var x:uint32;
   var y:uint32;
 
-  constructor() 
+  constructor()
   {
     x := 0;
     y := 0;

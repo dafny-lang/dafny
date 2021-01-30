@@ -6,7 +6,7 @@ module ValueType {
     provides Value, Gimmie
 
   type Value = s: seq<bool> | |s| <= 10
-  
+
   function method Gimmie(): Value {
     [true, true, false]
   }
