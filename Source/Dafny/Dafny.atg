@@ -901,8 +901,7 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
   | SynonymTypeDecl<dmod, module, out td>      (. module.TopLevelDecls.Add(td); .)
   | IteratorDecl<dmod, module, out iter>       (. module.TopLevelDecls.Add(iter); .)
   | TraitDecl<dmod, module, out trait>         (. module.TopLevelDecls.Add(trait); .)
-  | ClassMemberDecl<dmod, membersDefaultClass, false, true, !DafnyOptions.O.AllowGlobals,
-                    !isTopLevel && DafnyOptions.O.IronDafny && isAbstract>
+  | ClassMemberDecl<dmod, membersDefaultClass, false, true, !DafnyOptions.O.AllowGlobals>
   )
   .
 
@@ -1104,7 +1103,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   "{"                                            (. bodyStart = t;  .)
     { (. dmod = new DeclModifierData(); .)
       { DeclModifier<ref dmod> }
-      ClassMemberDecl<dmod, members, true, false, false, false>
+      ClassMemberDecl<dmod, members, true, false, false>
     }
   "}"
   (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, isRefining, parentTraits);
@@ -1141,7 +1140,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   "{"                                            (. bodyStart = t; .)
     { (. dmod  = new DeclModifierData(); .)
       { DeclModifier<ref dmod> }
-      ClassMemberDecl<dmod, members, true, false, false, false>
+      ClassMemberDecl<dmod, members, true, false, false>
     }
   "}"
   (. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs, isRefining, parentTraits);
@@ -1151,7 +1150,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   .
 
 /*------------------------------------------------------------------------*/
-ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool isValueType, bool moduleLevelDecl, bool isWithinAbstractModule.>
+ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool isValueType, bool moduleLevelDecl.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
      Function/*!*/ f;
@@ -1169,13 +1168,13 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
          dmod.IsStatic = false;
        }
     .)
-    FunctionDecl<dmod, isWithinAbstractModule, out f>                   (. mm.Add(f); .)
+    FunctionDecl<dmod, out f>                   (. mm.Add(f); .)
   | (. if (moduleLevelDecl && dmod.StaticToken != null) {
          errors.Warning(dmod.StaticToken, "module-level methods are always non-instance, so the 'static' keyword is not allowed here");
          dmod.IsStatic = false;
        }
     .)
-    MethodDecl<dmod, allowConstructors, isWithinAbstractModule, out m>  (. mm.Add(m); .)
+    MethodDecl<dmod, allowConstructors, out m>  (. mm.Add(m); .)
   )
   .
 
@@ -1240,7 +1239,7 @@ TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members .>
   "{"
   { (. dmod = new DeclModifierData(); .)
     { DeclModifier<ref dmod> }
-    ClassMemberDecl<dmod, members, false, true, false, module.IsAbstract>
+    ClassMemberDecl<dmod, members, false, true, false>
   }
   "}"
   .
@@ -1613,7 +1612,7 @@ TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
   .
 
 /*------------------------------------------------------------------------*/
-MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractModule, out Method/*!*/ m>
+MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
      IToken/*!*/ id = Token.NoToken;
      bool hasName = false;  IToken keywordToken;
@@ -1697,12 +1696,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
     (. body = dividedBody; .)
   | BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
-  (.
-     if (!isWithinAbstractModule && DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 && !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported") && !Attributes.Contains(attrs, "decl") && theVerifyThisFile) {
-        SemErr(t, "a method with an ensures clause must have a body, unless given the :axiom attribute");
-     }
-
-     IToken tok = id;
+  (. IToken tok = id;
      if (isConstructor) {
        m = new Constructor(tok, hasName ? id.val : "_ctor", typeArgs, ins,
                            req, new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), (DividedBlockStmt)body, attrs, signatureEllipsis);
@@ -2043,7 +2037,7 @@ GenericInstantiation<.List<Type> gt.>
   .
 
 /*------------------------------------------------------------------------*/
-FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!*/ f>
+FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
 = (. Contract.Ensures(Contract.ValueAtReturn(out f)!=null);
      Attributes attrs = null;
      IToken/*!*/ id = Token.NoToken;  // to please compiler
@@ -2175,11 +2169,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
   FunctionSpec<reqs, reads, ens, decreases>
   [ FunctionBody<out body, out bodyStart, out bodyEnd>
   ]
-  (. if (!isWithinAbstractModule && DafnyOptions.O.DisallowSoundnessCheating && body == null && ens.Count > 0 &&
-         !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported")) {
-        SemErr(t, "a function with an ensures clause must have a body, unless given the :axiom attribute");
-     }
-     IToken tok = id;
+  (. IToken tok = id;
      if (isTwoState && isPredicate) {
         f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals,
                                   reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
