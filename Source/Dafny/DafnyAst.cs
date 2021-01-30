@@ -6576,7 +6576,7 @@ namespace Microsoft.Dafny {
     public override string CompileName {
       get {
         var nm = base.CompileName;
-        if (IsStatic && nm == Dafny.Compiler.DefaultNameMain && !IsEntryPoint) {
+        if (nm == Dafny.Compiler.DefaultNameMain && IsStatic && !IsEntryPoint) {
           // for a static method that is named "Main" but is not a legal "Main" method,
           // change its name.
           nm = EnclosingClass.Name + "_" + nm;

@@ -94,7 +94,7 @@ namespace Microsoft.Dafny {
       var wBody = wr.NewNamedBlock("func main()");
       wBody.WriteLine("defer _dafny.CatchHalt()");
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine("{0}.{1}()", companion, IdName(mainMethod));
+      wBody.WriteLine("{0}.{1}()", companion, mainMethod.IsStatic ? IdName(mainMethod) : "Main");
       Coverage.EmitTearDown(wBody);
     }
 

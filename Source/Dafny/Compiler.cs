@@ -1337,8 +1337,9 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<bool>() == (Contract.ValueAtReturn(out mainMethod) != null));
       mainMethod = null;
       bool hasMain = false;
-      if (DafnyOptions.O.MainMethod != null) {
-        string name = DafnyOptions.O.MainMethod;
+      string name = DafnyOptions.O.MainMethod;
+      if (name != null && name == "-") return false;
+      if (name != null && name != "") {
         foreach (var module in program.CompileModules) {
           if (module.IsAbstract) {
             // the purpose of an abstract module is to skip compilation
@@ -1352,8 +1353,8 @@ namespace Microsoft.Dafny {
                 if (m == null) continue;
                 if (member.FullDafnyName == name) {
                   mainMethod = m;
-                  if (!IsMain(mainMethod)) {
-                    Error(mainMethod.tok, "The method \"{0}\" is not permitted as a main method.", null, name);
+                  if (!IsPermittedAsMain(mainMethod, out string reason)) {
+                    Error(mainMethod.tok, "The method \"{0}\" is not permitted as a main method ({1}).", null, name, reason);
                     mainMethod = null;
                     return false;
                   } else {
@@ -1392,8 +1393,8 @@ namespace Microsoft.Dafny {
         }
       }
       if (hasMain) {
-        if (!IsMain(mainMethod)) {
-          Error(mainMethod.tok, "This method marked \"{:main}\" is not permitted as a main method.", null);
+        if (!IsPermittedAsMain(mainMethod, out string reason)) {
+          Error(mainMethod.tok, "This method marked \"{{:main}}\" is not permitted as a main method ({0}).", null, reason);
           mainMethod = null;
           return false;
         } else {
@@ -1433,8 +1434,8 @@ namespace Microsoft.Dafny {
       }
 
       if (hasMain) {
-        if (!IsMain(mainMethod)) {
-          Error(mainMethod.tok, "This method \"Main\" is not permitted as a main method.", null);
+        if (!IsPermittedAsMain(mainMethod, out string reason)) {
+          Error(mainMethod.tok, "This method \"Main\" is not permitted as a main method ({0}).", null, reason);
           return false;
         } else {
           return true;
@@ -1446,7 +1447,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static bool IsMain(Method m) {
+    public static bool IsPermittedAsMain(Method m, out String reason) {
       Contract.Requires(m.EnclosingClass is TopLevelDeclWithMembers);
       // In order to be a legal Main() method, the following must be true:
       //    The method is not a ghost method
@@ -1462,19 +1463,45 @@ namespace Microsoft.Dafny {
       // Note, in the case where the method is annotated with {:main}, the method is allowed to have preconditions and modifies clauses.
       // This lets the programmer add some explicit assumptions about the outside world, modeled, for example, via ghost parameters.
       var cl = (TopLevelDeclWithMembers)m.EnclosingClass;
-      if (!m.IsGhost && m.TypeArgs.Count == 0 && cl.TypeArgs.Count == 0) {
-        if (m.Ins.TrueForAll(f => f.IsGhost) && m.Outs.TrueForAll(f => f.IsGhost)) {
-          if (m.IsStatic || (!(cl is ClassDecl) || !(cl as ClassDecl).HasConstructor)) {
-            if (Attributes.Contains(m.Attributes, "main")) {
-              return true;
-            }
-            if (m.Req.Count == 0 && m.Mod.Expressions.Count == 0) {
-              return true;
-            }
-          }
-        }
+      if (m.IsGhost) {
+        reason = "the method is ghost";
+        return false;
       }
-      return false;
+      if (m.TypeArgs.Count != 0) {
+        reason = "the method has type parameters";
+        return false;
+      }
+      if (cl.TypeArgs.Count != 0) {
+        reason = "the enclosing class has type parameters";
+        return false;
+      }
+      if (!m.IsStatic && !cl.Members.TrueForAll(f => !(f is Constructor))) {
+        reason = "the method is not static and the enclosing class has constructors";
+        return false;
+      }
+      if (!m.Ins.TrueForAll(f => f.IsGhost)) {
+        reason = "the method has non-ghost parameters";
+        return false;
+      }
+      if (!m.Outs.TrueForAll(f => f.IsGhost)) {
+        reason = "the method has non-ghost out parameters";
+        return false;
+      }
+      if (Attributes.Contains(m.Attributes, "main")) {
+        reason = "";
+        return true;
+      }
+      if (m.Req.Count != 0)
+      {
+        reason = "the method has requires clauses";
+        return false;
+      }
+      if (m.Mod.Expressions.Count != 0) {
+        reason = "the method has modifies clauses";
+        return false;
+      }
+      reason = "";
+      return true;
     }
 
     void OrderedBySCC(List<MemberDecl> decls, TopLevelDeclWithMembers c) {
@@ -2167,7 +2194,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (m == program.MainMethod && !m.IsStatic) {
+      if (m == program.MainMethod && IssueCreateStaticMain(m)) {
         w = CreateStaticMain(cw);
         if (!m.IsStatic) {
           var c = m.EnclosingClass;
@@ -2181,6 +2208,11 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    protected virtual bool IssueCreateStaticMain(Method m) {
+      return !m.IsStatic;
+    }
+
 
     void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, TargetWriter wr, bool inLetExprBody) where VT: IVariable {
       TrCasePatternOpt(pat, rhs, null, rhs.Type, rhs.tok, wr, inLetExprBody);

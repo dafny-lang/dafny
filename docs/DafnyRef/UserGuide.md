@@ -187,7 +187,9 @@ To generate a stand-alone executable from a Dafny program, the
 Dafny program must use a specific method as the executable entry point.
 That method is determined as follows:
 
-* If the /Main option is specified on the command-line, its argument is
+* If the /Main option is specified on the command-line with an argument of "-", then no entry point is used at all
+* If the /Main option is specified on the command-line and its argument is
+not an empty string, then its argument is
 interpreted as the fully-qualified name of a method to be used as the entry point. If there is no matching method, an error message is issued.
 * Otherwise, the program is searched for a method with the attribute `{:main}`.
 If exactly one is found, that method is used as the entry point; if more
