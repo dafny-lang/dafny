@@ -22,11 +22,7 @@ namespace Microsoft.Dafny
 
     public override string VersionNumber {
       get {
-        return System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion
-#if ENABLE_IRONDAFNY
-          + "[IronDafny]"
-#endif
-          ;
+        return System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion;
       }
     }
     public override string Version {
@@ -103,13 +99,6 @@ namespace Microsoft.Dafny
     public bool UseRuntimeLib = false;
     public bool DisableScopes = false;
     public int Allocated = 3;
-    public bool IronDafny =
-#if ENABLE_IRONDAFNY
-      true
-#else
-      false
-#endif
-    ;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -359,16 +348,6 @@ namespace Microsoft.Dafny
 
         case "allocated": {
             ps.GetNumericArgument(ref Allocated, 5);
-            return true;
-        }
-
-        case "noIronDafny": {
-            IronDafny = false;
-            return true;
-        }
-
-        case "ironDafny": {
-            IronDafny = true;
             return true;
         }
 
@@ -855,10 +834,6 @@ namespace Microsoft.Dafny
     3 - (default) Frugal use of heap parameters.
     4 - mode 3 but with alloc antecedents when ranges don't imply
         allocatedness.
-/ironDafny    Enable experimental features needed to support Ironclad/Ironfleet. Use of
-    these features may cause your code to become incompatible with future
-    releases of Dafny.
-/noIronDafny  Disable Ironclad/Ironfleet features, if enabled by default.
 /printTooltips
     Dump additional positional information (displayed as mouse-over tooltips by
     the VS plugin) to stdout as 'Info' messages.

@@ -1766,17 +1766,12 @@ namespace Microsoft.Dafny
 
       importedSigs.Add(s);
 
-      if (useImports || DafnyOptions.O.IronDafny) {
+      if (useImports) {
         // classes:
         foreach (var kv in s.TopLevels) {
           if (!kv.Value.CanBeExported())
             continue;
 
-          if (kv.Value is ModuleDecl && ((ModuleDecl)kv.Value).Opened && DafnyOptions.O.IronDafny) {
-            ResolveOpenedImportsWorker(sig, moduleDef, (ModuleDecl)kv.Value, importedSigs, useCompileSignatures);
-          }
-
-          // IronDafny: we need to pull the members of the opened module's _default class in so that they can be merged.
           if (useImports || string.Equals(kv.Key, "_default", StringComparison.InvariantCulture)) {
             TopLevelDecl d;
             if (sig.TopLevels.TryGetValue(kv.Key, out d)) {
@@ -1823,7 +1818,7 @@ namespace Microsoft.Dafny
           }
         }
 
-        if (useImports || DafnyOptions.O.IronDafny) {
+        if (useImports) {
           // static members:
           foreach (var kv in s.StaticMembers) {
             if (!kv.Value.CanBeExported())

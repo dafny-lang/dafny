@@ -1,16 +1,17 @@
-// RUN: %dafny /ironDafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
+// XFAIL: *
 
-// In one version of opaque + fuel, the following failed to verify
+// With the default version of opaque + fuel, the following fails to verify
 // because the quantifier in the requires used a trigger that included
 // StartFuel_P, while the assert used StartFuelAssert_P.  Since P is
 // opaque, we can't tell that those fuels are the same, and hence the
-// trigger never fires
+// trigger never fires. A wish would be to fix this.
 
 predicate {:opaque} P(x:int)
 
 method test(y:int)
-    requires forall x :: P(x);
+  requires forall x :: P(x)
 {
-    assert P(y);
+  assert P(y);
 }
