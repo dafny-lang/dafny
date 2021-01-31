@@ -501,12 +501,12 @@ TODO: what about multi-dimensional arrays
 
 ## 20.17. Object Allocation
 ````grammar
-ObjectAllocation_ = "new" Type [ "." ( Ident | digits ) ]
+ObjectAllocation_ = "new" Type [ "." TypeNameOrCtorSuffix ]
                                [ "(" [ Expressions ] ")" ]
 ````
 
 This allocated a new object of a class type as explained
-in section [Class Types](#sec-class-types)].
+in section [Class Types](#sec-class-types).
 
 ## 20.18. Havoc Right-Hand-Side
 ````grammar

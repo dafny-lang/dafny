@@ -294,7 +294,7 @@ ModuleExport =
   | "extends"  ExportId { "," ExportId }
   }
 
-ExportSignature = IdentOrDigits [ "." IdentOrDigits ]
+ExportSignature = TypeNameOrCtorSuffix [ "." TypeNameOrCtorSuffix ]
 ````
 
 In some programming languages, keywords such as `public`, `private`, and `protected`
