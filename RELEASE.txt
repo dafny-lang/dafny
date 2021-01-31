@@ -3,15 +3,18 @@ This is the procedure for generating a new Dafny release.
 
 0) Write release notes about changes since the last release.
 
-1) In an up-to-date repository, with the master branch checked out,
+1) In an up-to-date repository, with the master branch checked out
+   and up-to-date (e.g., git pull upstream)
    cd to the repo root (i.e., dafny, which contains Source, Binaries, etc.)
+   create and checkout a new branch: e.g. git checkout -b release
 
 2) Select a version number (descriptor) $VER (e.g., "3.0.0-alpha")
    Edit it into Source/version.cs
-   Commit and push this change into the master branch
+   Also edit the release name into .github/workflows/release-downloads.yml
+   for the 'ver' variable for Windows
 
 3) Run 'Scripts/package.py "$VER"' (in a Linux or Mac system)
-   Warnings about missing pdb files can be ignored.
+   Warnings about missing fonts can be ignored.
 
 4) Run 'Scripts/publish-release.sh $VER' to create the github release
    and upload files to it. You will need to have a Github Personal
@@ -21,15 +24,20 @@ This is the procedure for generating a new Dafny release.
 
 6) Push the Publish button.
 
-7) Commit and merge the newly created DafnyRef.pdf
-   (in dafny/docs/DafnyRef.out) and Options.txt files. The creating of a
-   PR for this merge will cause the CI tests to be run, which includes
+7) Commit the modified files, such as Source/version.cs,
+   .github/workflows/release-downloads,yml, docs/DafnyRef/DafnyRef.pdf,
+   possibly docs/DafnyRef/Options.txt
+
+   'git push' the commit and create a PR. The creating of a
+   PR will cause the CI tests to be run, which includes
    downloading the most recent release (this one, once it is Published)
-   and running quick tests.
+   and running some quick tests.
 
-8) Update the brew formula for dafny (see below)
+8) If something goes wrong, delete the release in github, fix the problem and try again
 
-9) Announce the new release to the world.
+9) Update the brew formula for dafny (see below)
+
+10) Announce the new release to the world.
 
 
 --------------------------
