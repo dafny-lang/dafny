@@ -8,7 +8,7 @@ This is the procedure for generating a new Dafny release.
    cd to the repo root (i.e., dafny, which contains Source, Binaries, etc.)
 
 2) Select a version number (descriptor) $VER (e.g., "3.0.0-alpha")
-   Edit it into Source/version.cs. PUsh/merge that change to the master branch.
+   Edit it into Source/version.cs. Push/merge that change to the master branch.
 
 3) Run 'Scripts/package.py "$VER"' (in a Linux or Mac system)
    Warnings about missing fonts can be ignored.
