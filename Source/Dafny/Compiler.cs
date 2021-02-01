@@ -1346,12 +1346,9 @@ namespace Microsoft.Dafny {
             continue;
           }
           foreach (var decl in module.TopLevelDecls) {
-            var c = decl as TopLevelDeclWithMembers;
-            if (c != null) {
+            if (decl is TopLevelDeclWithMembers c) {
               foreach (MemberDecl member in c.Members) {
-                var m = member as Method;
-                if (m == null) continue;
-                if (member.FullDafnyName == name) {
+                if (member is Method m && member.FullDafnyName == name) {
                   mainMethod = m;
                   if (!IsPermittedAsMain(mainMethod, out string reason)) {
                     Error(mainMethod.tok, "The method \"{0}\" is not permitted as a main method ({1}).", null, name, reason);
