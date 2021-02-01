@@ -7,11 +7,11 @@
 
 ## Building
 
-Clone the DafnyLS repo and its submodules transitively.
+Clone the DafnyLS repo and its submodules.
 
 ```sh
 git clone https://github.com/dafny-lang/language-server-csharp
-git submodule update --init --recursive
+git submodule update --init
 ```
 
 When building DafnyLS from its source, the necessary build dependencies will be automatically downloaded from NuGet or built as a project reference.
