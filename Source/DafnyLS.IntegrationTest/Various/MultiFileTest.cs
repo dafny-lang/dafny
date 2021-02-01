@@ -47,8 +47,5 @@ method Test() {
       Assert.IsTrue(Documents.TryGetDocument(documentItem, out var document));
       Assert.AreEqual(1, document.Errors.AllMessages[ErrorLevel.Error].Count);
     }
-
-    // TODO The dafny resolver usually reports semantic errors from foreign files.
-    //      It is not the case for the name duplicates caused by including the same file twice.
   }
 }
