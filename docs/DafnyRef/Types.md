@@ -1608,8 +1608,8 @@ as explained below.
 MethodSignature_(isGhost, isExtreme) =
   [ GenericParameters ]
   [ KType ]    // permitted only if isExtreme == true
-  Formals(allowGhostKeyword: !isGhost)
-  [ "returns" Formals(allowGhostKeyword: !isGhost) ]
+  Formals(allowGhostKeyword: !isGhost, allowNewKeyword: isTwostateLemma))
+  [ "returns" Formals(allowGhostKeyword: !isGhost, allowNewKeyword: false) ]
 ````
 A method signature specifies the method generic parameters,
 input parameters and return parameters.
@@ -1819,14 +1819,19 @@ FunctionDecl(isWithinAbstractModule) =
   ( [ "twostate" ] "function" [ "method" ] { Attribute }
     MethodFunctionName
     FunctionSignatureOrEllipsis_(allowGhostKeyword:
-                                           ("method" present))
+                                           ("method" present),
+                                 allowNewKeyword:
+                                           "twostate" present)
   | "predicate" [ "method" ] { Attribute }
     MethodFunctionName
     PredicateSignatureOrEllipsis_(allowGhostKeyword:
-                                           ("method" present))
+                                           ("method" present),
+                                  allowNewKeyword:
+                                           "twostate" present)
   | ( "least" | "greatest" ) "predicate" { Attribute }
     MethodFunctionName
-    PredicateSignatureOrEllipsis_(allowGhostKeyword: false)
+    PredicateSignatureOrEllipsis_(allowGhostKeyword: false,
+                         allowNewKeyword: "twostate" present))
   )
   FunctionSpec
   [ FunctionBody ]
@@ -1834,15 +1839,22 @@ FunctionDecl(isWithinAbstractModule) =
 FunctionSignatureOrEllipsis_(allowGhostKeyword) =
   FunctionSignature_(allowGhostKeyword) | ellipsis
 
-FunctionSignature_(allowGhostKeyword) =
-  [ GenericParameters ] Formals(allowGhostKeyword)i
-  ":" ( Type | "(" GIdentType ")" )
+FunctionSignature_(allowGhostKeyword, allowNewKeyword) =
+  [ GenericParameters ]
+  Formals(allowGhostKeyword, allowNewKeyword)
+  ":"
+  ( Type
+  | "(" GIdentType(allowGhostKeyword: false,
+                   allowNewKeyword: false)
+    ")"
+  )
 
 PredicateSignatureOrEllipsis_(allowGhostKeyword) =
   PredicateSignature_(allowGhostKeyword) | ellipsis
 
 PredicateSignature_(allowGhostKeyword) =
-  [ GenericParameters ] [ KType ] Formals(allowGhostKeyword)
+  [ GenericParameters ] [ KType ] Formals(allowGhostKeyword,
+                                          allowNewKeyword)
 
 FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
                "}"
@@ -2368,8 +2380,8 @@ sequence.
 ````grammar
 IteratorDecl = "iterator" { Attribute } IteratorName
   ( [ GenericParameters ]
-    Formals(allowGhostKeyword: true)
-    [ "yields" Formals(allowGhostKeyword: true) ]
+    Formals(allowGhostKeyword: true, allowNewKeyword: false)
+    [ "yields" Formals(allowGhostKeyword: true, allowNewKeyword: false) ]
   | ellipsis
   )
   IteratorSpec
@@ -3296,4 +3308,3 @@ co-inductive proof in using a co-lemma with the inductive proof in using
 the lemma. Whereas the inductive proof is performing proofs for deeper
 and deeper equalities, the co-lemma can be understood as producing the
 infinite proof on demand.
-

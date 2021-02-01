@@ -607,7 +607,9 @@ VarDeclStatement =
   )
   ";"
 
-CasePatternLocal = "(" CasePattern { "," CasePattern } ")"  // TODO
+CasePatternLocal = ( [ Ident ] "(" CasePatternLocsl { "," CasePatternLocal } ")"
+                   | LocalIdentTypeOptional
+                   )
 ````
 
 A ``VarDeclStatement`` is used to declare one or more local variables in

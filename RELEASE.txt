@@ -6,12 +6,9 @@ This is the procedure for generating a new Dafny release.
 1) In an up-to-date repository, with the master branch checked out
    and up-to-date (e.g., git pull upstream)
    cd to the repo root (i.e., dafny, which contains Source, Binaries, etc.)
-   create and checkout a new branch: e.g. git checkout -b release
 
 2) Select a version number (descriptor) $VER (e.g., "3.0.0-alpha")
-   Edit it into Source/version.cs
-   Also edit the release name into .github/workflows/release-downloads.yml
-   for the 'ver' variable for Windows
+   Edit it into Source/version.cs. Push/merge that change to the master branch.
 
 3) Run 'Scripts/package.py "$VER"' (in a Linux or Mac system)
    Warnings about missing fonts can be ignored.
@@ -24,7 +21,10 @@ This is the procedure for generating a new Dafny release.
 
 6) Push the Publish button.
 
-7) Commit the modified files, such as Source/version.cs,
+7) Edit the release name into .github/workflows/release-downloads.yml
+   for the 'ver' variable for Windows
+
+   Commit the modified files, such as
    .github/workflows/release-downloads,yml, docs/DafnyRef/DafnyRef.pdf,
    possibly docs/DafnyRef/Options.txt
 

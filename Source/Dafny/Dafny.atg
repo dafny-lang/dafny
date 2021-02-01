@@ -1030,7 +1030,8 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
   .
 
 /*------------------------------------------------------------------------*/
-// TODO - this is somewhat a hack because it relies on TypeNameOrCtorSuffix
+// Note - before the "." only Type names are permitted (no 'digits'), but name resolution sorts that
+// out, since the parser does not know (without adding lookahead) when it has seen the last dot
 // matching any permitted member name
 
 ExportSignature<bool opaque, out ExportSignature exsig>

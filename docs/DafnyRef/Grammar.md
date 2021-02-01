@@ -470,7 +470,10 @@ MethodFunctionName = NoUSIdentOrDigits
 LabelName = NoUSIdentOrDigits
 AttributeName = NoUSIdent
 ExportId = NoUSIdentOrDigits
+TypeNameOrCtorSuffix = NoUSIdentOrDigits
 ````
+
+Some parsing constexts
 
 ### 2.6.3. Qualified Names
 ```grammar
