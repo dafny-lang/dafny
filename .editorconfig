@@ -21,3 +21,6 @@ csharp_style_pattern_matching_over_as_with_null_check = true:none
 
 # IDE0063: Use simple 'using' statement
 dotnet_diagnostic.IDE0063.severity = silent
+
+[dafny/**.cs]
+dotnet_analyzer_diagnostic.severity = silent
