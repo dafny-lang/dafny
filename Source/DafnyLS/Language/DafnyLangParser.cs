@@ -81,7 +81,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     //      It could be convenient to adapt them in the main-repo so location info could be extracted.
     public bool TryParseIncludesOfModule(ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter) {
       var errors = new Errors(errorReporter);
-      var resolvedIncludes = new HashSet<Include>();
+      // Issue #40:
+      // A HashSet must not be used here since equals treats A included by B not equal to A included by C.
+      // In contrast, the compareTo-Method treats them as the same.
+      var resolvedIncludes = new SortedSet<Include>();
       var dependencyMap = new DependencyMap();
       dependencyMap.AddIncludes(resolvedIncludes);
 

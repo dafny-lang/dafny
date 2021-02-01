@@ -5,7 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Stability {
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   /// <summary>
   /// These integration tests involve various complex programs that are used
   /// to ensure that the language server is capable to load. It helps to ensure
