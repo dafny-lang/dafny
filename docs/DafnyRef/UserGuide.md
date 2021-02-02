@@ -199,17 +199,24 @@ If more than one is found
 an error message is issued.
 
 Any abstract modules are not searched for candidate entry points,
-but otherwise the entry point may be in any module or class. In addition
-an entry point candidate must satisfy the following conditions:
+but otherwise the entry point may be in any module or type. In addition,
+an entry-point candidate must satisfy the following conditions:
 
 * The method takes no parameters or type parameters
 * The method is not a ghost method
 * The method has no requires or modifies clauses, unless it is marked `{:main}`
-* If the method is an instance (that is, non-static) method in a class,
-  then the enclosing class must not declare any constructor.
-  In this case, the runtime
-  system will allocate an object of the enclosing class and will invoke
-  the entry point method on it.
+* If the method is an instance (that is, non-static) method and the
+  enclosing type is a class,
+  then that class must not declare any constructor.
+  In this case, the runtime system will
+  allocate an object of the enclosing class and will invoke
+  the entry-point method on it.
+* If the method is an instance (that is, non-static) method and the
+  enclosing type is not a class,
+  then the enclosing type must, when instantiated with auto-initializing
+  type parameters, be an auto-initialing type.
+  In this case, the runtime system will
+  invoke the entry-point method on a value of the enclosing type.
 
 Note, however, that the following are allowed:
 
