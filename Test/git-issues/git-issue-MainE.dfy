@@ -11,14 +11,7 @@
 // RUN: %dafny /noVerify /compile:4 /Main:K.Test "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /Main:       "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /Main:-      "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /Main:Tr.Static   "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /Main:Tr.Instance "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /Main:Dt.Static   "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /Main:Dt.Instance "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /Main:Co.Static   "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /Main:Co.Instance "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /Main:Nt.Static   "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /Main:Nt.Instance "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /Main:Opaque.Static   "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /Main:Opaque.Instance "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
@@ -58,6 +51,9 @@ class K {
 class Z {
   method Main() { print "Main\n"; }
 }
+
+// Of the remaining methods, this file tests only the error cases.
+// The cases that compile are tested in Test/comp/MainMethod.dfy.
 
 trait Tr {
   static method Static() { print "OK-Tr\n"; }

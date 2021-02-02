@@ -89,7 +89,7 @@ namespace Microsoft.Dafny {
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, TargetWriter wr) {
-      var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
+      var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
 
       var wBody = wr.NewNamedBlock("func main()");
       wBody.WriteLine("defer _dafny.CatchHalt()");

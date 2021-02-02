@@ -11,7 +11,7 @@ Dafny program verifier did not attempt verification
 git-issue-MainE.dfy(33,9): Error: The method "C.Test" is not permitted as a main method (the enclosing type has type parameters).
 
 Dafny program verifier did not attempt verification
-git-issue-MainE.dfy(37,9): Error: The method "D.Test" is not permitted as a main method (the method is not static and the enclosing class has constructors).
+git-issue-MainE.dfy(30,9): Error: The method "D.Test" is not permitted as a main method (the method is not static and the enclosing class has constructors).
 
 Dafny program verifier did not attempt verification
 OK-E
@@ -20,16 +20,16 @@ Dafny program verifier did not attempt verification
 OK-G
 
 Dafny program verifier did not attempt verification
-git-issue-MainE.dfy(47,9): Error: The method "H.Test" is not permitted as a main method (the method has non-ghost out parameters).
+git-issue-MainE.dfy(40,9): Error: The method "H.Test" is not permitted as a main method (the method has non-ghost out parameters).
 
 Dafny program verifier did not attempt verification
 OK-I
 
 Dafny program verifier did not attempt verification
-git-issue-MainE.dfy(53,9): Error: The method "J.Test" is not permitted as a main method (the method has requires clauses).
+git-issue-MainE.dfy(46,9): Error: The method "J.Test" is not permitted as a main method (the method has requires clauses).
 
 Dafny program verifier did not attempt verification
-git-issue-MainE.dfy(56,9): Error: The method "K.Test" is not permitted as a main method (the method has modifies clauses).
+git-issue-MainE.dfy(49,9): Error: The method "K.Test" is not permitted as a main method (the method has modifies clauses).
 
 Dafny program verifier did not attempt verification
 Main
@@ -37,31 +37,10 @@ Main
 Dafny program verifier did not attempt verification
 
 Dafny program verifier did not attempt verification
-OK-Tr
+git-issue-MainE.dfy(60,9): Error: The method "Tr.Instance" is not permitted as a main method (the method is not static and the enclosing type does not support auto-initialization).
 
 Dafny program verifier did not attempt verification
-git-issue-MainE.dfy(64,9): Error: The method "Tr.Instance" is not permitted as a main method (the method is not static and the enclosing type does not support auto-initialization).
+git-issue-MainE.dfy(79,16): Error: The method "Opaque.Static" is not permitted as a main method (the enclosing type is an opaque type).
 
 Dafny program verifier did not attempt verification
-OK-Dt: static
-
-Dafny program verifier did not attempt verification
-OK-Dt: Dt.Dt0(0)
-
-Dafny program verifier did not attempt verification
-OK-Co: static
-
-Dafny program verifier did not attempt verification
-OK-Co: Co.CoMore
-
-Dafny program verifier did not attempt verification
-OK-Nt: static
-
-Dafny program verifier did not attempt verification
-OK-Nt: 0
-
-Dafny program verifier did not attempt verification
-git-issue-MainE.dfy(83,16): Error: The method "Opaque.Static" is not permitted as a main method (the enclosing type is an opaque type).
-
-Dafny program verifier did not attempt verification
-git-issue-MainE.dfy(84,9): Error: The method "Opaque.Instance" is not permitted as a main method (the enclosing type is an opaque type).
+git-issue-MainE.dfy(80,9): Error: The method "Opaque.Instance" is not permitted as a main method (the enclosing type is an opaque type).

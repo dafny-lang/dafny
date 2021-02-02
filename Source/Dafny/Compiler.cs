@@ -2228,6 +2228,9 @@ namespace Microsoft.Dafny {
 
         if (receiver != null && !customReceiver) {
           w.Write("{0}.", IdName(receiver));
+        } else if (receiver != null && customReceiver) {
+          var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(m.EnclosingClass), w, m.tok, m);
+          w.Write("{0}.", companion);
         }
         EmitNameAndActualTypeArgs(IdName(m), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, m, false)), m.tok, w);
         w.Write("(");
