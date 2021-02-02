@@ -8,14 +8,15 @@ jobs:
     outputs:
       upload_url: ${{steps.draft_release.outputs.upload_url}}
     steps:
-      name: Create Release Draft
-      if: ${{github.event_name == 'push' && contains(github.ref, 'refs/tags/')}}
+    - name: Create Release Draft
+      id: draft_release
       uses: actions/create-release@v1
+      if: ${{github.event_name == 'push' && contains(github.ref, 'refs/tags/')}}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: {{ github.ref }}
-        release_name: ${{ github.ref }}
+        tag_name: {{github.ref}}
+        release_name: ${{github.ref}}
         draft: true
   build:
     needs: [draft_release]
@@ -110,7 +111,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ needs.draft_release.outputs.upload_url }}
+        upload_url: ${{needs.draft_release.outputs.upload_url}}
         asset_path: ${{env.publishPath}}/${{artifactName}}.zip
         asset_name: ${{artifactName}}.zip
         asset_content_type: application/zip
