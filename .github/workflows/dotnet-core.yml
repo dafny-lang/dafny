@@ -15,7 +15,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: {{github.ref}}
+        tag_name: ${{github.ref}}
         release_name: ${{github.ref}}
         draft: true
   build:
@@ -99,12 +99,12 @@ jobs:
       if: ${{github.ref == 'refs/heads/master'}}
       uses: actions/upload-artifact@v2
       with:
-        name: ${{artifactName}}
+        name: ${{env.artifactName}}
         path: ${{env.publishPath}}/
     - name: Prepare Release Artifact
       if: ${{github.event_name == 'push' && contains(github.ref, 'refs/tags/')}}
       shell: pwsh
-      run: Compress-Archive ${{env.publishPath}}/* ${{env.publishPath}}/${{artifactName}}.zip
+      run: Compress-Archive ${{env.publishPath}}/* ${{env.publishPath}}/${{env.artifactName}}.zip
     - name: Upload Release Artifact
       if: ${{github.event_name == 'push' && contains(github.ref, 'refs/tags/')}}
       uses: actions/upload-release-asset@v1
@@ -112,6 +112,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{needs.draft_release.outputs.upload_url}}
-        asset_path: ${{env.publishPath}}/${{artifactName}}.zip
-        asset_name: ${{artifactName}}.zip
+        asset_path: ${{env.publishPath}}/${{env.artifactName}}.zip
+        asset_name: ${{env.artifactName}}.zip
         asset_content_type: application/zip
