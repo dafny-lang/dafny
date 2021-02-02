@@ -3,7 +3,22 @@ name: .NET Core
 on: [ push, pull_request ]
 
 jobs:
+  draft_release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{steps.draft_release.outputs.upload_url}}
+    steps:
+      name: Create Release Draft
+      if: ${{github.event_name == 'push' && contains(github.ref, 'refs/tags/')}}
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: {{ github.ref }}
+        release_name: ${{ github.ref }}
+        draft: true
   build:
+    needs: [draft_release]
     runs-on: ${{matrix.os}}
     name: ${{matrix.suffix}}
     strategy:
@@ -30,6 +45,7 @@ jobs:
       solutionPath: Source/DafnyLS.sln
       z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
       coverageFile: coverage.cobertura.xml
+      artifactName: DafnyLS-${{matrix.suffix}}
     outputs:
       binaries: ${{env.publishPath}}
     steps:
@@ -82,5 +98,19 @@ jobs:
       if: ${{github.ref == 'refs/heads/master'}}
       uses: actions/upload-artifact@v2
       with:
-        name: DafnyLS-${{matrix.suffix}}
+        name: ${{artifactName}}
         path: ${{env.publishPath}}/
+    - name: Prepare Release Artifact
+      if: ${{github.event_name == 'push' && contains(github.ref, 'refs/tags/')}}
+      shell: pwsh
+      run: Compress-Archive ${{env.publishPath}}/* ${{env.publishPath}}/${{artifactName}}.zip
+    - name: Upload Release Artifact
+      if: ${{github.event_name == 'push' && contains(github.ref, 'refs/tags/')}}
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.draft_release.outputs.upload_url }}
+        asset_path: ${{env.publishPath}}/${{artifactName}}.zip
+        asset_name: ${{artifactName}}.zip
+        asset_content_type: application/zip
