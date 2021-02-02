@@ -1468,10 +1468,6 @@ namespace Microsoft.Dafny {
         reason = "the method has type parameters";
         return false;
       }
-      if (cl.TypeArgs.Count != 0) {
-        reason = "the enclosing type has type parameters";
-        return false;
-      }
       if (cl is OpaqueTypeDecl) {
         reason = "the enclosing type is an opaque type";
         return false;
@@ -2228,7 +2224,7 @@ namespace Microsoft.Dafny {
 
         if (receiver != null && !customReceiver) {
           w.Write("{0}.", IdName(receiver));
-        } else if (receiver != null && customReceiver) {
+        } else {
           var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(m.EnclosingClass), w, m.tok, m);
           w.Write("{0}.", companion);
         }
@@ -2246,7 +2242,7 @@ namespace Microsoft.Dafny {
     }
 
     protected virtual bool IssueCreateStaticMain(Method m) {
-      return !m.IsStatic;
+      return !m.IsStatic || m.EnclosingClass.TypeArgs.Count != 0;
     }
 
 

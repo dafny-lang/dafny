@@ -5,7 +5,7 @@ Dafny program verifier did not attempt verification
 Cl: static
 
 Dafny program verifier did not attempt verification
-Cl: 2 0.0
+Cl: 2 0.0 false
 
 Dafny program verifier did not attempt verification
 Tr: static
@@ -14,7 +14,7 @@ Dafny program verifier did not attempt verification
 Dt: static
 
 Dafny program verifier did not attempt verification
-Dt: Dt.Dt0(2)
+Dt: Dt.Dt0(2, false)
 
 Dafny program verifier did not attempt verification
 Co: static
@@ -32,7 +32,7 @@ Dafny program verifier did not attempt verification
 Cl: static
 
 Dafny program verifier did not attempt verification
-Cl: 2 0.0
+Cl: 2 0.0 false
 
 Dafny program verifier did not attempt verification
 Tr: static
@@ -41,7 +41,7 @@ Dafny program verifier did not attempt verification
 Dt: static
 
 Dafny program verifier did not attempt verification
-Dt: Dt.Dt0(2)
+Dt: Dt.Dt0(2, false)
 
 Dafny program verifier did not attempt verification
 Co: static
@@ -59,7 +59,7 @@ Dafny program verifier did not attempt verification
 Cl: static
 
 Dafny program verifier did not attempt verification
-Cl: 2 0.0
+Cl: 2 0.0 false
 
 Dafny program verifier did not attempt verification
 Tr: static
@@ -68,7 +68,7 @@ Dafny program verifier did not attempt verification
 Dt: static
 
 Dafny program verifier did not attempt verification
-Dt: Dt.Dt0(2)
+Dt: Dt.Dt0(2, false)
 
 Dafny program verifier did not attempt verification
 Co: static
@@ -86,7 +86,7 @@ Dafny program verifier did not attempt verification
 Cl: static
 
 Dafny program verifier did not attempt verification
-Cl: 2 0.0
+Cl: 2 0.0 false
 
 Dafny program verifier did not attempt verification
 Tr: static
@@ -95,7 +95,7 @@ Dafny program verifier did not attempt verification
 Dt: static
 
 Dafny program verifier did not attempt verification
-Dt: Dt.Dt0(2)
+Dt: Dt.Dt0(2, false)
 
 Dafny program verifier did not attempt verification
 Co: static

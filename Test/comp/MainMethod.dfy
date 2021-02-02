@@ -44,23 +44,24 @@
 
 type plural = x | 2 <= x witness 2
 
-class Cl {
-  var x: plural
+class Cl<X(0)> {
+  var p: plural
   var c: real
+  var x: X
   static method Static() { print "Cl: static\n"; }
-  method Instance() { print "Cl: ", x, " ", c, "\n"; }
+  method Instance() { print "Cl: ", p, " ", c, " ", x, "\n"; }
 }
 
-trait Tr {
+trait Tr<X> {
   static method Static() { print "Tr: static\n"; }
 }
 
-datatype Dt = Dt0(plural) | Dt1(real) {
+datatype Dt<X> = Dt0(plural, X) | Dt1(real, X) {
   static method Static() { print "Dt: static\n"; }
   method Instance() { print "Dt: ", this, "\n"; }
 }
 
-codatatype Co = CoMore(plural, Co) {
+codatatype Co<X> = CoMore(plural, X, Co) {
   static method Static() { print "Co: static\n"; }
   method Instance() { print "Co: ", this, "\n"; }
 }

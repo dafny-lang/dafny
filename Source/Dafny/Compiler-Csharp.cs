@@ -119,10 +119,6 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override bool IssueCreateStaticMain(Method m) {
-      return !m.IsStatic || m.EnclosingClass.TypeArgs.Count != 0 || m.TypeArgs.Count != 0;
-    }
-
     protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
       var wr = (cw as CsharpCompiler.ClassWriter).StaticMemberWriter;
       // See EmitCallToMain() - this is named differently because otherwise C# tries
@@ -2924,7 +2920,7 @@ namespace Microsoft.Dafny
       var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_module." : "";
       companion = modName + companion;
 
-      var idName = mainMethod.IsStatic ? IdName(mainMethod) : "_StaticMain";
+      var idName = IssueCreateStaticMain(mainMethod) ? "_StaticMain" : IdName(mainMethod);
 
       Coverage.EmitSetup(wBody);
       wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling({companion}.{idName});");
