@@ -481,12 +481,12 @@ module MiscAgain {
     }
     method Test() {
       var i := new Y(5);
-      i := new Y._ctor(7);  // but, in fact, it is also possible to use the underlying name
+      i := new Y(7);
       i := new Y;  // error: the class has a constructor, so one must be used
       var s := new Luci.Init(5);
       s := new Luci.FromArray(null);
       s := new Luci(false);
-      s := new Luci._ctor(false);
+      s := new Luci(true);
       s := new Luci.M();  // error: there is a constructor, so one must be called
       s := new Luci;  // error: there is a constructor, so one must be called
       var l := new Lamb;
