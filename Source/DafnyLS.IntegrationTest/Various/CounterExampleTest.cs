@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     public async Task GetCounterExampleForFileWithBodylessMethodReturnsSingleCounterExampleForPostconditions() {
       var source = @"
 method Abs(x: int) returns (y: int)
-    ensures y >= 0
+    ensures y > 0
 {
 }
 ".TrimStart();
@@ -38,7 +38,6 @@ method Abs(x: int) returns (y: int)
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual((2, 0), counterExamples[0].Position);
-      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("x"));
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("y"));
     }
 
@@ -86,7 +85,7 @@ method Abs(x: int) returns (y: int)
     public async Task GetCounterExampleWithMultipleMethodsWithErrorsReturnsCounterExamplesForEveryMethod() {
       var source = @"
 method Abs(x: int) returns (y: int)
-    ensures y >= 0
+    ensures y > 0
 {
 }
 
@@ -100,7 +99,6 @@ method Negate(a: int) returns (b: int)
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual((2, 0), counterExamples[0].Position);
-      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("x"));
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("y"));
       Assert.AreEqual((7, 0), counterExamples[1].Position);
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("a"));

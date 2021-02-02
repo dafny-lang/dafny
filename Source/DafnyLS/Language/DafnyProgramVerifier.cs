@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -39,9 +38,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public static DafnyProgramVerifier Create(ILogger<DafnyProgramVerifier> logger) {
       lock(_initializationSyncObject) {
         if(!_initialized) {
-          // TODO This may be subject to change. See Microsoft.Boogie.ConditionGeneration.Counterexample
+          // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
           //      A dash means write to the textwriter instead of a file.
-          // https://github.com/keyboardDrummer/boogie/blob/54b0192f54f7bac353502e2b61bab530ee722a2d/Source/VCGeneration/ConditionGeneration.cs#L213
+          // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
           DafnyOptions.O.ModelViewFile = "-";
           _initialized = true;
           logger.LogTrace("initialized the boogie verifier...");
