@@ -2835,6 +2835,14 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static UserDefinedType FromTopLevelDeclWithAllBooleanTypeParameters(TopLevelDecl cd) {
+      Contract.Requires(cd != null);
+      Contract.Requires(!(cd is ArrowTypeDecl));
+
+      var typeArgs = cd.TypeArgs.ConvertAll(tp => (Type)Type.Bool);
+      return new UserDefinedType(cd.tok, cd.Name, cd, typeArgs);
+    }
+
     /// <summary>
     /// If "member" is non-null, then:
     ///   Return the upcast of "receiverType" that has base type "member.EnclosingClass".

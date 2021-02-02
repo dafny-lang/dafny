@@ -10,17 +10,17 @@
 // RUN: %dafny /noVerify /compile:4 /Main:J.Test "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /Main:K.Test "%s" >> "%t"
 // RUN: %dafny /noVerify /compile:4 /Main:       "%s" >> "%t"
-// %dafny /noVerify /compile:4 /Main:-      "%s" >> "%t"
-// %dafny /noVerify /compile:4 /Main:Tr.Static   "%s" >> "%t"
-// %dafny /noVerify /compile:4 /Main:Tr.Instance "%s" >> "%t"
-// %dafny /noVerify /compile:4 /Main:Dt.Static   "%s" >> "%t"
-// %dafny /noVerify /compile:4 /Main:Dt.Instance "%s" >> "%t"
-// %dafny /noVerify /compile:4 /Main:Co.Static   "%s" >> "%t"
-// %dafny /noVerify /compile:4 /Main:Co.Instance "%s" >> "%t"
-// %dafny /noVerify /compile:4 /Main:Nt.Static   "%s" >> "%t"
-// %dafny /noVerify /compile:4 /Main:Nt.Instance "%s" >> "%t"
-// %dafny /noVerify /compile:4 /Main:Opaque.Static   "%s" >> "%t"
-// %dafny /noVerify /compile:4 /Main:Opaque.Instance "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:-      "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Tr.Static   "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Tr.Instance "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Dt.Static   "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Dt.Instance "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Co.Static   "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Co.Instance "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Nt.Static   "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Nt.Instance "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Opaque.Static   "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /Main:Opaque.Instance "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class A {
@@ -60,27 +60,26 @@ class Z {
 }
 
 trait Tr {
-  static method Static() { print "Main\n"; }
+  static method Static() { print "OK-Tr\n"; }
   method Instance() { print "Bad\n"; }
 }
 
-datatype Dt = DtValue {
-  static method Static() { print "Main\n"; }
-  method Instance() { print "Bad\n"; }
+datatype Dt = Dt0(int) | Dt1(real) {
+  static method Static() { print "OK-Dt: static\n"; }
+  method Instance() { print "OK-Dt: ", this, "\n"; }
 }
 
-codatatype Co = CoValue {
-  static method Static() { print "Main\n"; }
-  method Instance() { print "Bad\n"; }
+codatatype Co = CoMore(Co) {
+  static method Static() { print "OK-Co: static\n"; }
+  method Instance() { print "OK-Co: ", this, "\n"; }
 }
 
 newtype Nt = x | -0x8000_0000 <= x <= 0x8000_0000 {
-  static method Static() { print "Main\n"; }
+  static method Static() { print "OK-Nt: static\n"; }
+  method Instance() { print "OK-Nt: ", this, "\n"; }
+}
+
+type {:extern "OpaqueX"} Opaque {
+  static method Static() { print "Bad\n"; }
   method Instance() { print "Bad\n"; }
 }
-/*
-type {:extern "ClassForOpaque"} Opaque {
-  static method Static() { print "Main\n"; }
-  method Instance() { print "Bad\n"; }
-}
-*/

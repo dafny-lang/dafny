@@ -119,6 +119,10 @@ namespace Microsoft.Dafny
       }
     }
 
+    protected override bool IssueCreateStaticMain(Method m) {
+      return !m.IsStatic || m.EnclosingClass.TypeArgs.Count != 0 || m.TypeArgs.Count != 0;
+    }
+
     protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
       var wr = (cw as CsharpCompiler.ClassWriter).StaticMemberWriter;
       // See EmitCallToMain() - this is named differently because otherwise C# tries
@@ -2914,7 +2918,7 @@ namespace Microsoft.Dafny
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, TargetWriter wr) {
-      var companion = TypeName_Companion(mainMethod.EnclosingClass as TopLevelDecl, wr, mainMethod.tok);
+      var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
       var wClass = wr.NewNamedBlock("class __CallToMain");
       var wBody = wClass.NewNamedBlock("public static void Main(string[] args)");
       var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_module." : "";

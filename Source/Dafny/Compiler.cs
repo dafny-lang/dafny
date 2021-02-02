@@ -1469,12 +1469,29 @@ namespace Microsoft.Dafny {
         return false;
       }
       if (cl.TypeArgs.Count != 0) {
-        reason = "the enclosing class has type parameters";
+        reason = "the enclosing type has type parameters";
         return false;
       }
-      if (!m.IsStatic && !cl.Members.TrueForAll(f => !(f is Constructor))) {
-        reason = "the method is not static and the enclosing class has constructors";
+      if (cl is OpaqueTypeDecl) {
+        reason = "the enclosing type is an opaque type";
         return false;
+      }
+      if (!m.IsStatic) {
+        if (cl is TraitDecl) {
+          reason = "the method is not static and the enclosing type does not support auto-initialization";
+          return false;
+        } else if (cl is ClassDecl) {
+          if (cl.Members.Exists(f => f is Constructor)) {
+            reason = "the method is not static and the enclosing class has constructors";
+            return false;
+          }
+        } else {
+          var ty = UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(cl);
+          if (!ty.HasCompilableValue) {
+            reason = "the method is not static and the enclosing type does not support auto-initialization";
+            return false;
+          }
+        }
       }
       if (!m.Ins.TrueForAll(f => f.IsGhost)) {
         reason = "the method has non-ghost parameters";
@@ -2193,16 +2210,35 @@ namespace Microsoft.Dafny {
 
       if (m == program.MainMethod && IssueCreateStaticMain(m)) {
         w = CreateStaticMain(cw);
+        var ty = UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(m.EnclosingClass);
+        LocalVariable receiver = null;
         if (!m.IsStatic) {
-          var c = m.EnclosingClass;
-          var typeArgs = c.TypeArgs.ConvertAll(tp => (Type)Type.Bool);
-          var ty = new UserDefinedType(m.tok, c.Name, c, typeArgs);
-          var wRhs = DeclareLocalVar("b", ty, m.tok, w);
-          EmitNew(ty, m.tok, null, wRhs);
-          w.WriteLine("b.{0}();", IdName(m));
-        } else {
-          w.WriteLine("{0}();", IdName(m));
+          receiver = new LocalVariable(m.tok, m.tok, "b", ty, false) {
+            type = ty
+          };
+          if (m.EnclosingClass is ClassDecl) {
+            var wRhs = DeclareLocalVar(IdName(receiver), ty, m.tok, w);
+            EmitNew(ty, m.tok, null, wRhs);
+          } else {
+            TrLocalVar(receiver, true, w);
+          }
         }
+        var typeArgs = CombineAllTypeArguments(m, ty.TypeArgs, m.TypeArgs.ConvertAll(tp => (Type)Type.Bool));
+        bool customReceiver = !(m.EnclosingClass is TraitDecl) && NeedsCustomReceiver(m);
+
+        if (receiver != null && !customReceiver) {
+          w.Write("{0}.", IdName(receiver));
+        }
+        EmitNameAndActualTypeArgs(IdName(m), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, m, false)), m.tok, w);
+        w.Write("(");
+        var sep = "";
+        if (receiver != null && customReceiver) {
+          w.Write("{0}", IdName(receiver));
+          sep = ", ";
+        }
+        EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, m, false), m.tok, w, ref sep);
+        w.Write(")");
+        EndStmt(w);
       }
     }
 
