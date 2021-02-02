@@ -57,10 +57,6 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 5.0.x
-    - name: Setup .NET Core 3.1 # Required by the coco-runner
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 3.1.x
     - name: Install dependencies
       run: dotnet restore ${{env.solutionPath}}
     - name: Build
