@@ -23,7 +23,7 @@ class B {
   method Test<T>() { print "Bad\n"; }
 }
 class C<T> {
-  method Test() { print "Bad\n"; }
+  method Test() { print "OK-C\n"; }
 }
 class D {
   constructor() {}
