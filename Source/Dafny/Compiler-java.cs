@@ -308,7 +308,7 @@ namespace Microsoft.Dafny{
       var className = TransformToClassName(baseName);
       wr = wr.NewBlock($"public class {className}");
 
-      var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
+      var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
       var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_System." : "";
       companion = modName + companion;
