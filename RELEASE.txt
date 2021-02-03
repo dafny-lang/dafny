@@ -7,15 +7,23 @@ This is the procedure for generating a new Dafny release.
    and up-to-date (e.g., git pull upstream)
    cd to the repo root (i.e., dafny, which contains Source, Binaries, etc.)
 
-2) Select a version number (descriptor) $VER (e.g., "3.0.0-alpha")
-   Edit it into Source/version.cs. Push/merge that change to the master branch.
+2) Select a version number (descriptor) $VER (e.g., "3.0.0" or "3.0.0-alpha")
+   and select an internal version number (e.g., "3.0.0.30203")
+   Edit the internal version number in Source/version.cs.
+   Push/merge that change to the master branch.
 
 3) Run 'Scripts/package.py "$VER"' (in a Linux or Mac system)
    Warnings about missing fonts can be ignored.
+   Note: This step requires that you have installed pandoc, see the
+   https://github.com/dafny-lang/dafny/wiki/INSTALL#building-the-reference-manual.
 
 4) Run 'Scripts/publish-release.sh $VER' to create the github release
    and upload files to it. You will need to have a Github Personal
    Authorization token stored in ~/github.token.
+   Also, this step requires the "jq" utility, which you can install
+   by "brew install jq" on a Mac (see https://stedolan.github.io/jq/download/).
+   Note: Each upload of this step can take a couple of minutes, so
+   be patient.
 
 5) In the Github releases, edit the new release to add in the release notes.
 
