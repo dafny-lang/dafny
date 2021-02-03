@@ -21,20 +21,17 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// </summary>
     public string? SerializedCounterExamples { get; }
 
-    public DafnyDocument(
-        TextDocumentItem textDocument,
-        ErrorReporter errors,
-        Dafny.Program program,
-        SymbolTable symbolTable,
-        string? serializedCounterExamples
-    ) {
+    public DafnyDocument(TextDocumentItem textDocument,  ErrorReporter errors, Dafny.Program program, SymbolTable symbolTable) {
       Text = textDocument;
-      Program = program;
       Errors = errors;
+      Program = program;
       SymbolTable = symbolTable;
-      SerializedCounterExamples = serializedCounterExamples;
     }
 
+    public DafnyDocument(DafnyDocument document, string? serializedCounterExamples)
+      : this(document.Text, document.Errors, document.Program, document.SymbolTable) {
+      SerializedCounterExamples = serializedCounterExamples;
+    }
 
     /// <summary>
     /// Checks if the specified token is part of this document.
