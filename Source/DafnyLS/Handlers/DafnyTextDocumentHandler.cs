@@ -1,9 +1,8 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
+﻿using MediatR;
+using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
@@ -65,9 +64,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return Unit.Value;
     }
 
-    public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
+    public override async Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received save notification {}", notification.TextDocument.Uri);
-      return Unit.Task;
+      var document = await _documents.SaveDocumentAsync(notification.TextDocument, cancellationToken);
+      if(document != null) {
+        _diagnosticPublisher.PublishDiagnostics(document, cancellationToken);
+      }
+      return Unit.Value;
     }
   }
 }

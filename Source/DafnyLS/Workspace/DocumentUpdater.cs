@@ -3,6 +3,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Threading;
@@ -11,10 +12,14 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class DocumentUpdater : IDocumentUpdater {
     private readonly ILogger _logger;
+    private readonly DocumentOptions _options;
     private readonly ITextDocumentLoader _documentLoader;
 
-    public DocumentUpdater(ILogger<DocumentUpdater> logger, ITextDocumentLoader documentLoader) {
+    private bool Verify => _options.Verify == AutoVerification.OnChange;
+
+    public DocumentUpdater(ILogger<DocumentUpdater> logger, IOptions<DocumentOptions> options, ITextDocumentLoader documentLoader) {
       _logger = logger;
+      _options = options.Value;
       _documentLoader = documentLoader;
     }
 
@@ -26,14 +31,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Version = documentChange.TextDocument.Version,
         Text = changeProcessor.MigrateText()
       };
-      var loadedDocument = await _documentLoader.LoadAndVerifyAsync(mergedItem, cancellationToken);
+      var loadedDocument = await _documentLoader.LoadAsync(mergedItem, Verify, cancellationToken);
       if(!loadedDocument.SymbolTable.Resolved) {
         return new DafnyDocument(
           loadedDocument.Text,
           loadedDocument.Errors,
           loadedDocument.Program,
-          changeProcessor.MigrateSymbolTable()
+          changeProcessor.MigrateSymbolTable(),
           // TODO migrate counterexamples?
+          null
         );
       }
       return loadedDocument;

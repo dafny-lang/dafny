@@ -18,18 +18,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       _symbolTableFactory = symbolTableFactory;
     }
 
-    public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+    public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
       var errorReporter = new BuildErrorReporter();
       var program = await _parser.ParseAsync(textDocument, errorReporter, cancellationToken);
       var compilationUnit = await _symbolResolver.ResolveSymbolsAsync(textDocument, program, cancellationToken);
       var symbolTable = _symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
-      return new DafnyDocument(textDocument, errorReporter, program, symbolTable);
-    }
-
-    public async Task<DafnyDocument> LoadAndVerifyAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
-      var document = await LoadAsync(textDocument, cancellationToken);
-      var serializedCounterExamples = await _verifier.VerifyAsync(document.Program, cancellationToken);
-      return new DafnyDocument(document, serializedCounterExamples);
+      var serializedCounterExamples = verify ? await _verifier.VerifyAsync(program, cancellationToken) : null;
+      return new DafnyDocument(textDocument, errorReporter, program, symbolTable, serializedCounterExamples);
     }
   }
 }
