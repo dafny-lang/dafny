@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Boogie.ExecutionEngine" Version="2.8.26" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.8" />
     <PackageReference Include="Microsoft.Extensions.Logging.Configuration" Version="3.1.8" />
     <PackageReference Include="NLog" Version="4.7.5" />
