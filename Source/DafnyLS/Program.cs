@@ -1,6 +1,4 @@
-﻿using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Web;
@@ -21,9 +19,8 @@ namespace Microsoft.Dafny.LanguageServer {
             .WithOutput(Console.OpenStandardOutput())
             .ConfigureConfiguration(builder => builder.AddConfiguration(configuration))
             .ConfigureLogging(SetupLogging)
-            .WithServices(services => SetupOptions(services, configuration))
             .WithUnhandledExceptionHandler(LogException)
-            .WithDafnyLanguageServer()
+            .WithDafnyLanguageServer(configuration)
         );
         await server.WaitForExit;
       } finally {
@@ -46,10 +43,6 @@ namespace Microsoft.Dafny.LanguageServer {
         .AddNLog("nlog.config")
         // The log-level is managed by NLog.
         .SetMinimumLevel(Extensions.Logging.LogLevel.Trace);
-    }
-
-    private static void SetupOptions(IServiceCollection services, IConfiguration configuration) {
-      services.Configure<DocumentOptions>(configuration.GetSection("documents"));
     }
   }
 }
