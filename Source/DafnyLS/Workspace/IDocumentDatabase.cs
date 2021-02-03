@@ -44,6 +44,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     Task<DafnyDocument?> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Notifies the document database that the given document was saved.
+    /// </summary>
+    /// <param name="documentId">The ID of the document that was saved.</param>
+    /// <param name="cancellationToken">A token to cancel the save operation before its completion.</param>
+    /// <returns>The saved document.</returns>
+    /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
+    Task<DafnyDocument?> SaveDocumentAsync(TextDocumentIdentifier documentId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Enforces the document database to verify the given document.
+    /// </summary>
+    /// <param name="documentId">The ID of the document to verify.</param>
+    /// <param name="cancellationToken">A token to cancel the verification before its completion.</param>
+    /// <returns>The verified document.</returns>
+    /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
+    Task<DafnyDocument?> VerifyDocumentAsync(TextDocumentIdentifier documentId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Tries to resolve a document with the specified identifier.
     /// </summary>
     /// <param name="documentId">The ID of the document to resolve.</param>

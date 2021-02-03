@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
-      var dafnyDocument = await _documentLoader.LoadAsync(textDocument, cancellationToken);
+      var dafnyDocument = await _documentLoader.LoadAndVerifyAsync(textDocument, cancellationToken);
       var databaseDocument = _documents.AddOrUpdate(textDocument.Uri, dafnyDocument, (uri, old) => dafnyDocument.Version > old.Version ? dafnyDocument : old);
       if (databaseDocument != dafnyDocument) {
         _logger.LogDebug("a newer version of {} was already loaded", textDocument.Uri);
@@ -60,6 +60,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         }
       }
       _logger.LogWarning("received update for untracked document {}", documentId.Uri);
+      return null;
+    }
+
+    public Task<DafnyDocument?> SaveDocumentAsync(TextDocumentIdentifier documentId, CancellationToken cancellationToken) {
+      return VerifyDocumentAsync(documentId, cancellationToken);
+    }
+
+    public async Task<DafnyDocument?> VerifyDocumentAsync(TextDocumentIdentifier documentId, CancellationToken cancellationToken) {
+      while(_documents.TryGetValue(documentId.Uri, out var oldDocument)) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var verifiedDocument = await _documentLoader.LoadAndVerifyAsync(oldDocument.Text, cancellationToken);
+        // We do not update the document if the symbol resolution failed. Otherwise we'd lose
+        // the previous semantic model migrations.
+        var newDocument = verifiedDocument.SymbolTable.Resolved ? verifiedDocument : oldDocument;
+        if(_documents.TryUpdate(documentId.Uri, newDocument, oldDocument)) {
+          return newDocument;
+        }
+      }
       return null;
     }
 

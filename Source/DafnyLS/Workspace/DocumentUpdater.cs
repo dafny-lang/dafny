@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Version = documentChange.TextDocument.Version,
         Text = changeProcessor.MigrateText()
       };
-      var loadedDocument = await _documentLoader.LoadAsync(mergedItem, cancellationToken);
+      var loadedDocument = await _documentLoader.LoadAndVerifyAsync(mergedItem, cancellationToken);
       if(!loadedDocument.SymbolTable.Resolved) {
         return new DafnyDocument(
           loadedDocument.Text,
