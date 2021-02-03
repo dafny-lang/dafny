@@ -1773,6 +1773,7 @@ namespace Microsoft.Dafny {
 
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
       var w = wr.ForkSection();
+      wr.WriteLine("goto L{0};", label);
       wr.IndentLess();
       wr.WriteLine("L{0}:", label);
       return w;
