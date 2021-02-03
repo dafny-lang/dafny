@@ -12353,8 +12353,8 @@ namespace Microsoft.Dafny
 
       // We need to figure out whether we are using a status type that has Extract or not,
       // as that determines how the AssignOrReturnStmt is desugared. Thus if the Rhs is a
-      // method call we need to know which one (to inpsectx its first output); if RHs is a
-      // list of expressions, we need to know the type of the first one. FOr all of this we have
+      // method call we need to know which one (to inspect its first output); if RHs is a
+      // list of expressions, we need to know the type of the first one. For all of this we have
       // to do some partial type resolution.
 
       bool expectExtract = s.Lhss.Count != 0; // default value if we cannot determine and inspect the type
@@ -12514,13 +12514,20 @@ namespace Microsoft.Dafny
         }
         s.ResolvedStatements.Add(ss);
       } else {
+        var enclosingOutParameter = ((Method)codeContext).Outs[0];
+        var ident = new IdentifierExpr(s.Tok, enclosingOutParameter.Name);
+        // resolve it here to avoid capture into more closely declared local variables
+        Contract.Assert(enclosingOutParameter.Type != null);  // this confirms our belief that the out-parameter has already been resolved
+        ident.Var = enclosingOutParameter;
+        ident.Type = ident.Var.Type;
+
         s.ResolvedStatements.Add(
           // "if temp.IsFailure()"
           new IfStmt(s.Tok, s.Tok, false, VarDotMethod(s.Tok, temp, "IsFailure"),
             // THEN: { out := temp.PropagateFailure(); return; }
             new BlockStmt(s.Tok, s.Tok, new List<Statement>() {
               new UpdateStmt(s.Tok, s.Tok,
-                new List<Expression>() {new IdentifierExpr(s.Tok, (codeContext as Method).Outs[0].CompileName)},
+                new List<Expression>() { ident },
                 new List<AssignmentRhs>() {new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}
                 ),
               new ReturnStmt(s.Tok, s.Tok, null),
