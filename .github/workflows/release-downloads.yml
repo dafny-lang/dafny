@@ -1,6 +1,6 @@
 name: Test Release Downloads
 
-#### For a new release: Change 'ver' and 'rel' in the strategy
+#### For a new release: Change 'ver' in the strategy
 
 on:
   workflow_dispatch:
@@ -27,7 +27,7 @@ jobs:
           osn: 'osx'
         - os:  'windows-latest'
           osn: 'win'
-          ver: '3.0.0-Prerelease4'
+          ver: '3.0.0'
     # There is no hosted environment for Unbuntu 14.04 or for debian
 
     # Java is installed by default, but we need to select 1.8
