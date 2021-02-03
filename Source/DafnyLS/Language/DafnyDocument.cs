@@ -22,19 +22,18 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     public string? SerializedCounterExamples { get; }
 
     public DafnyDocument(
-        TextDocumentItem textDocument,
-        ErrorReporter errors,
-        Dafny.Program program,
-        SymbolTable symbolTable,
-        string? serializedCounterExamples
+      TextDocumentItem textDocument,
+      ErrorReporter errors,
+      Dafny.Program program,
+      SymbolTable symbolTable,
+      string? serializedCounterExamples
     ) {
       Text = textDocument;
-      Program = program;
       Errors = errors;
+      Program = program;
       SymbolTable = symbolTable;
       SerializedCounterExamples = serializedCounterExamples;
     }
-
 
     /// <summary>
     /// Checks if the specified token is part of this document.

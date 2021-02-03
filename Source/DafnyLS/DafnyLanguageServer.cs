@@ -1,6 +1,7 @@
 ﻿using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -18,10 +19,10 @@ namespace Microsoft.Dafny.LanguageServer {
       }
     }
 
-    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options) {
+    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options, IConfiguration configuration) {
       return options
         .WithDafnyLanguage()
-        .WithDafnyWorkspace()
+        .WithDafnyWorkspace(configuration)
         .WithDafnyHandlers()
         .OnInitialize(Initialize)
         .OnStarted(Started);

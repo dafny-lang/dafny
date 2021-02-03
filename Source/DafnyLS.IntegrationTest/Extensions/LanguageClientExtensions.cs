@@ -21,6 +21,17 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions {
       return client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
     }
 
+    public static void SaveDocument(this ILanguageClient client, TextDocumentItem documentItem) {
+      client.DidSaveTextDocument(new DidSaveTextDocumentParams {
+        TextDocument = documentItem
+      });
+    }
+
+    public static Task SaveDocumentAndWaitAsync(this ILanguageClient client, TextDocumentItem documentItem, CancellationToken cancellationToken) {
+      client.SaveDocument(documentItem);
+      return client.WaitForNotificationCompletionAsync(documentItem.Uri, cancellationToken);
+    }
+
     public static Task WaitForNotificationCompletionAsync(this ILanguageClient client, DocumentUri documentUri, CancellationToken cancellationToken) {
       // The underlying implementation of OpenDocument is non-blocking (DidOpenTextDocument).
       // Since we query the document database directly, we use a placeholder request to ensure
