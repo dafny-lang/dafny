@@ -38,9 +38,9 @@ dotnet DafnyLS.dll
 
 It is possible to change the moment when a document is verified by providing the `--documents:verify` command-line argument. The options are:
 
-- *never*: Never verifies the document.
-- *onchange* (default): Verifies the document with each change.
-- *onsave*: Verifies the document each time it is saved.
+- *never* - Never verifies the document.
+- *onchange* (default) - Verifies the document with each change.
+- *onsave* - Verifies the document each time it is saved.
 
 For example, to launch DafnyLS to only verify upon saving the document, use the following command:
 
