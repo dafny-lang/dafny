@@ -96,6 +96,23 @@ There are 0 occurrences of 58 in the multiset
 There are 536870912 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of null in the multiset
+Map===
+|s|=1 |u|=1
+s[1]=123 u[1]=40
+|S|=1 |U|=1
+S[1]=123 U[1]=41
+Seq===
+|s|=2 |u|=2
+123 42, 123 42, 123 42
+|s|=2 |u|=2
+123 43, 123 43, 123 43
+|s|=2 |u|=2
+123 44, 123 44, 123 44
+Multiset===
+|s|=2 |u|=4
+1 3
+|s|=2 |u|=4
+1 3
 
 Dafny program verifier did not attempt verification
 Sets: {} {17, 82} {12, 17}
@@ -194,6 +211,23 @@ There are 0 occurrences of 58 in the multiset
 There are 536870912 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of null in the multiset
+Map===
+|s|=1 |u|=1
+s[1]=123 u[1]=40
+|S|=1 |U|=1
+S[1]=123 U[1]=41
+Seq===
+|s|=2 |u|=2
+123 42, 123 42, 123 42
+|s|=2 |u|=2
+123 43, 123 43, 123 43
+|s|=2 |u|=2
+123 44, 123 44, 123 44
+Multiset===
+|s|=2 |u|=4
+1 3
+|s|=2 |u|=4
+1 3
 
 Dafny program verifier did not attempt verification
 Sets: {} {17, 82} {12, 17}
@@ -292,6 +326,23 @@ There are 0 occurrences of 58 in the multiset
 There are 536870912 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of null in the multiset
+Map===
+|s|=1 |u|=1
+s[1]=123 u[1]=40
+|S|=1 |U|=1
+S[1]=123 U[1]=41
+Seq===
+|s|=2 |u|=2
+123 42, 123 42, 123 42
+|s|=2 |u|=2
+123 43, 123 43, 123 43
+|s|=2 |u|=2
+123 44, 123 44, 123 44
+Multiset===
+|s|=2 |u|=4
+1 3
+|s|=2 |u|=4
+1 3
 
 Dafny program verifier did not attempt verification
 Sets: {} {17, 82} {17, 12}
@@ -390,3 +441,20 @@ There are 0 occurrences of 58 in the multiset
 There are 536870912 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of null in the multiset
+Map===
+|s|=1 |u|=1
+s[1]=123 u[1]=40
+|S|=1 |U|=1
+S[1]=123 U[1]=41
+Seq===
+|s|=2 |u|=2
+123 42, 123 42, 123 42
+|s|=2 |u|=2
+123 43, 123 43, 123 43
+|s|=2 |u|=2
+123 44, 123 44, 123 44
+Multiset===
+|s|=2 |u|=4
+1 3
+|s|=2 |u|=4
+1 3

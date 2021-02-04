@@ -2565,15 +2565,19 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, TargetWriter wr) {
-      EmitIndexCollectionUpdate(out var wSource, out var wIndex, out var wValue, wr);
+      EmitIndexCollectionUpdate(out var wSource, out var wIndex, out var wValue, wr, false);
       TrParenExpr(source, wSource, inLetExprBody);
-      TrExprToBigInt(index, wIndex, inLetExprBody);
+      if (source.Type.AsSeqType != null) {
+        TrExprToBigInt(index, wIndex, inLetExprBody);
+      } else {
+        TrExpr(index, wIndex, inLetExprBody);
+      }
       TrExpr(value, wValue, inLetExprBody);
     }
 
-    protected override void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr, bool nativeIndex = false) {
+    protected override void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr, bool nativeIndex) {
       wSource = wr.Fork();
-      wr.Write(nativeIndex ? ".UpdateInt(" : ".Update(");
+      wr.Write(".Update(");
       wIndex = wr.Fork();
       wr.Write(", ");
       wValue = wr.Fork();

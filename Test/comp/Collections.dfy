@@ -14,6 +14,7 @@ method Main() {
   Maps();
   MultiSetForming();
   TestExplosiveUnion();
+  Regressions.Test();
 }
 
 // -------------------------------------------------------------------------------------------
@@ -403,4 +404,63 @@ method TestExplosiveUnion() {
   TestExplosiveUnion1(multiset{58}, 100, 58);  // this requires BigInteger multiplicities in multisets
   var m: multiset<MyClass?> := multiset{null};
   TestExplosiveUnion1(m, 100, null);  // also test null, since the C# implementation does something different for null
+}
+
+// -------------------------------------------------------------------------------------------
+
+module Regressions {
+  newtype uint32 = i:int | 0 <= i < 0x1_0000_0000
+
+  method Test() {
+    TestMap();
+    TestSeq();
+    TestMultiset();
+  }
+
+  method TestMap() {
+    print "Map===\n";
+    var s: map<uint32, uint32> := map[1 := 123];
+    var u := s[1 := 40];
+    print "|s|=", |s|, " |u|=", |u|, "\n";  // 1 1
+    print "s[1]=", s[1], " u[1]=", u[1], "\n";  // 123 40
+
+    var S: map<int, uint32> := map[1 := 123];
+    var U := S[1 := 41];
+    print "|S|=", |S|, " |U|=", |U|, "\n";  // 1 1
+    print "S[1]=", S[1], " U[1]=", U[1], "\n";  // 123 41
+  }
+
+  method TestSeq() {
+    print "Seq===\n";
+    var s: seq<uint32> := [14, 123];
+    var u := s[1 := 42];
+    print "|s|=", |s|, " |u|=", |u|, "\n";  // 2 2
+    print s[1], " ", u[1], ", ";  // 123 42
+    print s[1 as int], " ", u[1 as int], ", ";  // 123 42
+    print s[1 as bv3], " ", u[1 as bv3], "\n";  // 123 42
+
+    u := s[1 as uint32 := 43];
+    print "|s|=", |s|, " |u|=", |u|, "\n";  // 2 2
+    print s[1], " ", u[1], ", ";  // 123 43
+    print s[1 as int], " ", u[1 as int], ", ";  // 123 43
+    print s[1 as bv3], " ", u[1 as bv3], "\n";  // 123 43
+
+    u := s[1 as bv3 := 44];
+    print "|s|=", |s|, " |u|=", |u|, "\n";  // 2 2
+    print s[1], " ", u[1], ", ";  // 123 44
+    print s[1 as int], " ", u[1 as int], ", ";  // 123 44
+    print s[1 as bv3], " ", u[1 as bv3], "\n";  // 123 44
+  }
+
+  method TestMultiset() {
+    print "Multiset===\n";
+    var s: multiset<uint32> := multiset{14, 123};
+    var u := s[123 := 3];
+    print "|s|=", |s|, " |u|=", |u|, "\n";  // 2 4
+    print s[123], " ", u[123], "\n";  // 1 3
+
+    u := s[123 := 3 /*as uint32*/];
+    print "|s|=", |s|, " |u|=", |u|, "\n";  // 2 4
+    print s[123], " ", u[123], "\n";  // 1 3
+  }
 }
