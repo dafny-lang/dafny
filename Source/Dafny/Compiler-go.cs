@@ -2565,7 +2565,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, TargetWriter wr) {
-      EmitIndexCollectionUpdate(out var wSource, out var wIndex, out var wValue, wr);
+      EmitIndexCollectionUpdate(out var wSource, out var wIndex, out var wValue, wr, false);
       TrParenExpr(source, wSource, inLetExprBody);
       if (source.Type.AsSeqType != null) {
         TrExprToBigInt(index, wIndex, inLetExprBody);
@@ -2575,7 +2575,7 @@ namespace Microsoft.Dafny {
       TrExpr(value, wValue, inLetExprBody);
     }
 
-    protected override void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr) {
+    protected override void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr, bool nativeIndex) {
       wSource = wr.Fork();
       wr.Write(".Update(");
       wIndex = wr.Fork();
