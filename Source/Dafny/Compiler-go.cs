@@ -2577,7 +2577,7 @@ namespace Microsoft.Dafny {
 
     protected override void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr, bool nativeIndex) {
       wSource = wr.Fork();
-      wr.Write(".Update(");
+      wr.Write(nativeIndex ? ".UpdateInt(" : ".Update(");
       wIndex = wr.Fork();
       wr.Write(", ");
       wValue = wr.Fork();
