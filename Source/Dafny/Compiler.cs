@@ -912,7 +912,7 @@ namespace Microsoft.Dafny {
     protected abstract void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, TargetWriter wr);
-    protected virtual void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr, bool nativeIndex = false) {
+    protected virtual void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr, bool nativeIndex) {
       wSource = wr.Fork();
       wr.Write('[');
       wIndex = wr.Fork();
