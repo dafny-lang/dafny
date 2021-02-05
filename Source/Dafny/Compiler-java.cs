@@ -1873,9 +1873,6 @@ namespace Microsoft.Dafny{
           }
         }
       }
-      if (ctor.Formals.Count > 0){
-        wr.WriteLine($"public {DtCtorDeclarationName(ctor)}() {{ }}");
-      }
       if (dt is CoDatatypeDecl) {
         string typeParams = TypeParameters(dt.TypeArgs);
         wr.WriteLine($"public {dt.CompileName}{typeParams} Get() {{ return this; }}");
@@ -1887,27 +1884,23 @@ namespace Microsoft.Dafny{
         w.WriteLine("if (this == other) return true;");
         w.WriteLine("if (other == null) return false;");
         w.WriteLine("if (getClass() != other.getClass()) return false;");
-        if(ctor.Formals.Count > 0){string typeParams = TypeParameters(dt.TypeArgs);
-          w.WriteLine("{0} o = ({0})other;", DtCtorDeclarationName(ctor, dt.TypeArgs));
-          w.Write("return ");
-          i = 0;
-          foreach (Formal arg in ctor.Formals) {
-            if (!arg.IsGhost) {
-              string nm = FormalName(arg, i);
-              if(i!= 0)
-                w.Write(" && ");
-              if (IsDirectlyComparable(arg.Type)) {
-                w.Write($"this.{nm} == o.{nm}");
-              } else {
-                w.Write($"java.util.Objects.equals(this.{nm}, o.{nm})");
-              }
-              i++;
+        string typeParams = TypeParameters(dt.TypeArgs);
+        w.WriteLine("{0} o = ({0})other;", DtCtorDeclarationName(ctor, dt.TypeArgs));
+        w.Write("return true");
+        i = 0;
+        foreach (Formal arg in ctor.Formals) {
+          if (!arg.IsGhost) {
+            string nm = FormalName(arg, i);
+            w.Write(" && ");
+            if (IsDirectlyComparable(arg.Type)) {
+              w.Write($"this.{nm} == o.{nm}");
+            } else {
+              w.Write($"java.util.Objects.equals(this.{nm}, o.{nm})");
             }
+            i++;
           }
-          w.WriteLine(";");
-        } else {
-          w.WriteLine("return true;");
         }
+        w.WriteLine(";");
       }
       // GetHashCode method (Uses the djb2 algorithm)
       wr.WriteLine("@Override");
