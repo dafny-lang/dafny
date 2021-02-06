@@ -52,7 +52,7 @@ namespace Microsoft.Dafny {
       // cf. IncludeComparer.CompareTo
       CanonicalPath = Canonicalize(filePath);
 
-      if (!Path.IsPathRooted(filePath))
+      if (filePath != "stdin.dfy" && !Path.IsPathRooted(filePath))
         filePath = Path.GetFullPath(filePath);
 
       if (extension == ".dfy" || extension == ".dfyi") {
