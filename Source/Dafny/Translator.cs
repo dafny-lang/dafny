@@ -7727,7 +7727,7 @@ namespace Microsoft.Dafny {
         // Anything read inside the 'old' expressions depends only on the old heap, which isn't included in the
         // frame axiom.  In other words, 'old' expressions have no dependencies on the current heap.  Therefore,
         // we turn off any reads checks for "e.E".
-        CheckWellformed(e.E, new WFOptions(options), locals, builder, etran.Old);
+        CheckWellformed(e.E, new WFOptions(options), locals, builder, e.AtLabel == null ? etran.Old : etran.OldAt(e.AtLabel));
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
         foreach (var fe in e.Frame) {
@@ -14820,7 +14820,7 @@ namespace Microsoft.Dafny {
 
       public bool UsesOldHeap {
         get {
-          return HeapExpr is Bpl.OldExpr;
+          return HeapExpr is Bpl.OldExpr || (HeapExpr is Bpl.IdentifierExpr ide && ide.Name.StartsWith("$Heap_at_"));
         }
       }
 

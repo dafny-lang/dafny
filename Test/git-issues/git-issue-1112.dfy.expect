@@ -1,0 +1,76 @@
+git-issue-1112.dfy(22,29): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Then
+    (0,0): anon11_Then
+    (0,0): anon4
+    (0,0): anon12_Then
+git-issue-1112.dfy(24,21): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Then
+    (0,0): anon11_Then
+    (0,0): anon4
+    (0,0): anon13_Then
+git-issue-1112.dfy(24,38): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Then
+    (0,0): anon11_Then
+    (0,0): anon4
+    (0,0): anon13_Then
+    (0,0): anon14_Then
+git-issue-1112.dfy(36,32): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+    (0,0): anon4
+    (0,0): anon11_Then
+git-issue-1112.dfy(38,24): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+    (0,0): anon4
+    (0,0): anon11_Else
+git-issue-1112.dfy(38,44): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+    (0,0): anon4
+    (0,0): anon11_Else
+    (0,0): anon12_Then
+git-issue-1112.dfy(51,33): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+    (0,0): anon4
+    (0,0): anon11_Then
+git-issue-1112.dfy(53,25): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+    (0,0): anon4
+    (0,0): anon11_Else
+git-issue-1112.dfy(53,46): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+    (0,0): anon4
+    (0,0): anon11_Else
+    (0,0): anon12_Then
+git-issue-1112.dfy(64,26): Error: receiver must be allocated in the state in which its fields are accessed
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+git-issue-1112.dfy(66,28): Error: receiver must be allocated in the state in which its fields are accessed
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+
+Dafny program verifier finished with 3 verified, 11 errors
