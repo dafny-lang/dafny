@@ -61,8 +61,49 @@ method AllocField(c: C)
   label L:
   var nd := new D;
   if * {
-    ghost var x := old(nd.b);  // error: receiver must be allocated in state L
+    ghost var x := old(nd.b);  // error: receiver must be allocated in old state
   } else {
     ghost var x := old@L(nd.b);  // error: receiver must be allocated in state L
   }
+}
+
+method AllocArray(c: C)
+  modifies c
+{
+  c.d := null;
+  label L:
+  var arr := new real[5];
+  if * {
+    ghost var x := old(arr[2]);  // error: array must be allocated in old state
+  } else {
+    ghost var x := old@L(arr[2]);  // error: array must be allocated in state L
+  }
+}
+
+method AllocMatrix(c: C)
+  modifies c
+{
+  c.d := null;
+  label L:
+  var m := new real[5, 5];
+  if * {
+    ghost var x := old(m[2, 0]);  // error: array must be allocated in old state
+  } else {
+    ghost var x := old@L(m[2, 0]);  // error: array must be allocated in state L
+  }
+}
+
+method ArrayNullCheckRegression0(arr: array?<real>, m: array2?<real>, a10: Array10, m1010: Matrix1010)
+{
+  var x := arr[2];  // error (x2): array may be null, index out of bounds
+  var y := m[2, 3];  // error (x3): array may be null, indices out of bounds
+}
+
+type Array10 = a: array?<real> | a == null || a.Length == 10
+type Matrix1010 = a: array2?<real> | a == null || (a.Length0 == a.Length1 == 10)
+
+method ArrayNullCheckRegression1(arr: Array10, m: Matrix1010)
+{
+  var x := arr[2];  // error: array may be null
+  var y := m[2, 3];  // error: array may be null
 }

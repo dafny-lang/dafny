@@ -72,5 +72,42 @@ git-issue-1112.dfy(66,28): Error: receiver must be allocated in the state in whi
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
+git-issue-1112.dfy(77,23): Error: array may not be allocated
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+git-issue-1112.dfy(79,25): Error: array may not be allocated
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+git-issue-1112.dfy(90,23): Error: array may not be allocated
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+git-issue-1112.dfy(92,25): Error: array may not be allocated
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+git-issue-1112.dfy(98,11): Error: array may be null
+Execution trace:
+    (0,0): anon0
+git-issue-1112.dfy(98,14): Error: index out of range
+Execution trace:
+    (0,0): anon0
+git-issue-1112.dfy(99,11): Error: array may be null
+Execution trace:
+    (0,0): anon0
+git-issue-1112.dfy(99,13): Error: index 0 out of range
+Execution trace:
+    (0,0): anon0
+git-issue-1112.dfy(99,16): Error: index 1 out of range
+Execution trace:
+    (0,0): anon0
+git-issue-1112.dfy(107,11): Error: array may be null
+Execution trace:
+    (0,0): anon0
+git-issue-1112.dfy(108,11): Error: array may be null
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 3 verified, 11 errors
+Dafny program verifier finished with 5 verified, 22 errors
