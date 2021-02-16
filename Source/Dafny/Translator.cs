@@ -7332,7 +7332,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr seq = etran.TrExpr(e.Seq);
         if (eSeqType.IsArrayType) {
           builder.Add(Assert(e.Seq.tok, Bpl.Expr.Neq(seq, predef.Null), "array may be null"));
-          if (!CommonHeapUse) {
+          if (!CommonHeapUse || etran.UsesOldHeap) {
             builder.Add(Assert(e.Seq.tok, MkIsAlloc(seq, eSeqType, etran.HeapExpr), "array may not be allocated"));
           }
         }
@@ -7391,6 +7391,10 @@ namespace Microsoft.Dafny {
         MultiSelectExpr e = (MultiSelectExpr)expr;
         CheckWellformed(e.Array, options, locals, builder, etran);
         Bpl.Expr array = etran.TrExpr(e.Array);
+        builder.Add(Assert(e.Array.tok, Bpl.Expr.Neq(array, predef.Null), "array may be null"));
+        if (!CommonHeapUse || etran.UsesOldHeap) {
+          builder.Add(Assert(e.Array.tok, MkIsAlloc(array, e.Array.Type, etran.HeapExpr), "array may not be allocated"));
+        }
         for (int idxId = 0; idxId < e.Indices.Count; idxId++) {
           var idx = e.Indices[idxId];
           CheckWellformed(idx, options, locals, builder, etran);
@@ -7727,7 +7731,7 @@ namespace Microsoft.Dafny {
         // Anything read inside the 'old' expressions depends only on the old heap, which isn't included in the
         // frame axiom.  In other words, 'old' expressions have no dependencies on the current heap.  Therefore,
         // we turn off any reads checks for "e.E".
-        CheckWellformed(e.E, new WFOptions(options), locals, builder, etran.Old);
+        CheckWellformed(e.E, new WFOptions(options), locals, builder, e.AtLabel == null ? etran.Old : etran.OldAt(e.AtLabel));
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
         foreach (var fe in e.Frame) {
@@ -14820,7 +14824,7 @@ namespace Microsoft.Dafny {
 
       public bool UsesOldHeap {
         get {
-          return HeapExpr is Bpl.OldExpr;
+          return HeapExpr is Bpl.OldExpr || (HeapExpr is Bpl.IdentifierExpr ide && ide.Name.StartsWith("$Heap_at_"));
         }
       }
 
