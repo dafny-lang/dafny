@@ -53,7 +53,7 @@ jobs:
     - name: Choose the right C++ for ubuntu 16.04
       if: matrix.os == 'ubuntu-16.04'
       run: |
-        update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
     - uses: actions/setup-python@v1
     - name: Set up JDK 1.8
       uses: actions/setup-java@v1
