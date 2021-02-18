@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Target Name="RunCoco" BeforeTargets="PreBuildEvent">
+  <Target Name="RunCoco" BeforeTargets="PreBuildEvent" Outputs="$(ProjectDir)Parser.cs;$(ProjectDir)Scanner.cs" Inputs="$(ProjectDir)Dafny.atg">
     <Exec Command="dotnet tool restore" />
     <Exec Command="dotnet --info" />
     <Exec Command="dotnet tool run coco $(ProjectDir)Dafny.atg -namespace Microsoft.Dafny -frames $(ProjectDir)../../third_party/Coco/src" />
