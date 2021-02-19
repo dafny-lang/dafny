@@ -2346,7 +2346,7 @@ namespace Microsoft.Dafny {
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
       var exeName = ComputeExeName(targetFilename);
-      var args = $"-g -Wall -Wextra -Wpedantic -Wno-unused-variable -Wdeprecated-copy -std=c++17 -I{codebase} -o {exeName} {targetFilename}";
+      var args = $"-g -Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-deprecated-copy -std=c++17 -I{codebase} -o {exeName} {targetFilename}";
       compilationResult = null;
       var psi = new ProcessStartInfo("g++", args) {
         CreateNoWindow = true,
