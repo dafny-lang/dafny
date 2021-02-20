@@ -7629,7 +7629,6 @@ namespace Microsoft.Dafny {
     public static bool LhsIsToGhostOrAutoGhost(Expression lhs) {
       Contract.Requires(lhs != null);
       return LhsIsToGhost_Which(lhs) == NonGhostKind.IsGhost || lhs.Resolved is AutoGhostIdentifierExpr;
-        ;
     }
     public enum NonGhostKind { IsGhost, Variable, Field, ArrayElement }
     public static string NonGhostKind_To_String(NonGhostKind gk) {
