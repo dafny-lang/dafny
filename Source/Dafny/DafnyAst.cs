@@ -4890,6 +4890,13 @@ namespace Microsoft.Dafny {
     public bool MustReverify => inner.MustReverify;
     public string FullSanitizedName => inner.FullSanitizedName;
     public bool AllowsNontermination => inner.AllowsNontermination;
+
+    public static ICodeContext Unwrap(ICodeContext codeContext) {
+      while (codeContext is CodeContextWrapper ccw) {
+        codeContext = ccw.inner;
+      }
+      return codeContext;
+    }
   }
 
   /// <summary>
@@ -5862,6 +5869,7 @@ namespace Microsoft.Dafny {
     bool IsGhost {
       get;
     }
+    void MakeGhost();
     IToken Tok {
       get;
     }
@@ -5918,6 +5926,9 @@ namespace Microsoft.Dafny {
       get {
         throw new NotImplementedException();
       }
+    }
+    public void MakeGhost() {
+      throw new NotImplementedException();
     }
     public IToken Tok {
       get {
@@ -6041,6 +6052,9 @@ namespace Microsoft.Dafny {
         isGhost = value;
       }
     }
+    public void MakeGhost() {
+      IsGhost = true;
+    }
     public IToken Tok {
       get {
         return tok;
@@ -6124,10 +6138,6 @@ namespace Microsoft.Dafny {
       get {
         return false;
       }
-    }
-
-    public void MakeGhost() {
-      IsGhost = true;
     }
 
     public BoundVar(IToken tok, string name, Type type)

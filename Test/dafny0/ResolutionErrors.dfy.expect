@@ -464,4 +464,8 @@ ResolutionErrors.dfy(3032,4): Error: method 'M0' expects 0 type arguments (got 1
 ResolutionErrors.dfy(3034,4): Error: method 'M2' expects 2 type arguments (got 1)
 ResolutionErrors.dfy(3035,4): Error: method 'M0' expects 0 type arguments (got 2)
 ResolutionErrors.dfy(3036,4): Error: method 'M1' expects 1 type argument (got 2)
-461 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(3049,10): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(3053,14): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(3058,10): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(3059,10): Error: ghost variables are allowed only in specification contexts
+465 resolution/type errors detected in ResolutionErrors.dfy

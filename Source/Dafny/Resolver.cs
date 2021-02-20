@@ -2624,7 +2624,7 @@ namespace Microsoft.Dafny
             scope.PushMarker();
             var added = scope.Push(dd.Var.Name, dd.Var);
             Contract.Assert(added == Scope<IVariable>.PushResult.Success);
-            ResolveExpression(dd.Constraint, new ResolveOpts(dd, false));
+            ResolveExpression(dd.Constraint, new ResolveOpts(new CodeContextWrapper(dd, true), false));
             Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
             ConstrainTypeExprBool(dd.Constraint, "newtype constraint must be of type bool (instead got {0})");
             SolveAllTypeConstraints();
@@ -2646,7 +2646,7 @@ namespace Microsoft.Dafny
           scope.PushMarker();
           var added = scope.Push(dd.Var.Name, dd.Var);
           Contract.Assert(added == Scope<IVariable>.PushResult.Success);
-          ResolveExpression(dd.Constraint, new ResolveOpts(dd, false));
+          ResolveExpression(dd.Constraint, new ResolveOpts(new CodeContextWrapper(dd, true), false));
           Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypeExprBool(dd.Constraint, "subset-type constraint must be of type bool (instead got {0})");
           SolveAllTypeConstraints();
@@ -2715,7 +2715,7 @@ namespace Microsoft.Dafny
           var dd = (RedirectingTypeDecl)d;
           if (dd.Witness != null) {
             var prevErrCnt = reporter.Count(ErrorLevel.Error);
-            ResolveExpression(dd.Witness, new ResolveOpts(dd, false));
+            ResolveExpression(dd.Witness, new ResolveOpts(new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost), false));
             ConstrainSubtypeRelation(dd.Var.Type, dd.Witness.Type, dd.Witness, "witness expression must have type '{0}' (got '{1}')", dd.Var.Type, dd.Witness.Type);
             SolveAllTypeConstraints();
             if (reporter.Count(ErrorLevel.Error) == prevErrCnt) {
@@ -3500,7 +3500,7 @@ namespace Microsoft.Dafny
     private void AddTypeDependencyEdges(ICodeContext context, Type type) {
       Contract.Requires(type != null);
       Contract.Requires(context != null);
-      var caller = context as ICallable;
+      var caller = CodeContextWrapper.Unwrap(context) as ICallable;
       if (caller != null && type is NonProxyType) {
         type.ForeachTypeComponent(ty => {
           var udt = ty as UserDefinedType;
@@ -6497,7 +6497,7 @@ namespace Microsoft.Dafny
           }
           if (whereToLookForBounds != null) {
             e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity, ComprehensionExpr.BoundedPool.PoolVirtues.None);
-            if (2 <= DafnyOptions.O.Allocated && (codeContext is Function || codeContext is ConstantField || codeContext is RedirectingTypeDecl)) {
+            if (2 <= DafnyOptions.O.Allocated && (codeContext is Function || codeContext is ConstantField || CodeContextWrapper.Unwrap(codeContext) is RedirectingTypeDecl)) {
               // functions are not allowed to depend on the set of allocated objects
               foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
                 var msgFormat = "a {0} involved in a {3} definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of '{1}'";
@@ -6505,7 +6505,7 @@ namespace Microsoft.Dafny
                   var tp = bv.Type.AsTypeParameter;
                   msgFormat += " (perhaps declare its type, '{2}', as '{2}(!new)')";
                 }
-                var declKind = codeContext is RedirectingTypeDecl ? ((RedirectingTypeDecl)codeContext).WhatKind : ((MemberDecl)codeContext).WhatKind;
+                var declKind = CodeContextWrapper.Unwrap(codeContext) is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)codeContext).WhatKind;
                 resolver.reporter.Error(MessageSource.Resolver, e, msgFormat, what, bv.Name, bv.Type, declKind);
               }
             }
@@ -7676,7 +7676,9 @@ namespace Microsoft.Dafny
         } else if (stmt is VarDeclPattern) {
           var s = (VarDeclPattern)stmt;
           foreach (var v in s.LocalVars) {
-            CheckEqualityTypes_Type(v.Tok, v.Type);
+            if (!v.IsGhost) {
+              CheckEqualityTypes_Type(v.Tok, v.Type);
+            }
           }
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
@@ -10287,7 +10289,7 @@ namespace Microsoft.Dafny
               t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
             } else if (d is SubsetTypeDecl || d is NewtypeDecl) {
               var dd = (RedirectingTypeDecl)d;
-              var caller = context as ICallable;
+              var caller = CodeContextWrapper.Unwrap(context) as ICallable;
               if (caller != null && !(d is SubsetTypeDecl && caller is SpecialFunction)) {
                 caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
                 if (caller == d) {
@@ -10298,7 +10300,7 @@ namespace Microsoft.Dafny
               t.ResolvedClass = d;
             } else if (d is DatatypeDecl) {
               var dd = (DatatypeDecl)d;
-              var caller = context as ICallable;
+              var caller = CodeContextWrapper.Unwrap(context) as ICallable;
               if (caller != null) {
                 caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
               }
@@ -12721,7 +12723,7 @@ namespace Microsoft.Dafny
         ModuleDefinition calleeModule = ((ICodeContext)callee).EnclosingModule;
         if (callerModule == calleeModule) {
           // intra-module call; add edge in module's call graph
-          var caller = codeContext as ICallable;
+          var caller = CodeContextWrapper.Unwrap(codeContext) as ICallable;
           if (caller == null) {
             // don't add anything to the call graph after all
           } else if (caller is IteratorDecl) {
@@ -14390,8 +14392,8 @@ namespace Microsoft.Dafny
             // the argument is allowed to have any type at all
             expr.Type = Type.Bool;
             if (2 <= DafnyOptions.O.Allocated &&
-              ((opts.codeContext is Function && !opts.InsideOld) || opts.codeContext is ConstantField || opts.codeContext is RedirectingTypeDecl)) {
-              var declKind = opts.codeContext is RedirectingTypeDecl ? ((RedirectingTypeDecl)opts.codeContext).WhatKind : ((MemberDecl)opts.codeContext).WhatKind;
+              ((opts.codeContext is Function && !opts.InsideOld) || opts.codeContext is ConstantField || CodeContextWrapper.Unwrap(opts.codeContext) is RedirectingTypeDecl)) {
+              var declKind = CodeContextWrapper.Unwrap(opts.codeContext) is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)opts.codeContext).WhatKind;
               reporter.Error(MessageSource.Resolver, expr, "a {0} definition is not allowed to depend on the set of allocated references", declKind);
             }
             break;
@@ -15277,6 +15279,9 @@ namespace Microsoft.Dafny
       if (pat.Var != null) {
         // this is a simple resolution
         var v = pat.Var;
+        if (context.IsGhost) {
+          v.MakeGhost();
+        }
         ResolveType(v.Tok, v.Type, context, ResolveTypeOptionEnum.InferTypeProxies, null);
         AddTypeDependencyEdges(context, v.Type);
         // Note, the following type constraint checks that the RHS type can be assigned to the new variable on the left. In particular, it
@@ -15329,7 +15334,7 @@ namespace Microsoft.Dafny
             if (j < ctor.Formals.Count) {
               var formal = ctor.Formals[j];
               Type st = SubstType(formal.Type, subst);
-              ResolveCasePattern(arg, st, context);
+              ResolveCasePattern(arg, st, new CodeContextWrapper(context, context.IsGhost || formal.IsGhost));
             }
             j++;
           }
@@ -16553,7 +16558,7 @@ namespace Microsoft.Dafny
       ModuleDefinition calleeModule = function is SpecialFunction ? null : function.EnclosingModule;
       if (callerModule == calleeModule) {
         // intra-module call; add edge in module's call graph
-        var caller = callingContext as ICallable;
+        var caller = CodeContextWrapper.Unwrap(callingContext) as ICallable;
         if (caller == null) {
           // don't add anything to the call graph after all
         } else if (caller is IteratorDecl) {

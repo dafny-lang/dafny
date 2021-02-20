@@ -3037,3 +3037,29 @@ module TypeParameterCount {
     M2<int, real>();
   }
 }
+
+module AutoGhostRegressions {
+  datatype Quad<T, U> = Quad(0: T, 1: T, ghost 2: U, ghost 3: U)
+
+  method Test() {
+    var q := Quad(20, 30, 40, 50);
+    print q, "\n";
+
+    var Quad(a, b, c, d) := q;
+    print c, "\n";  // error: c is ghost (this was once not handled correctly)
+
+    match q {
+      case Quad(r, s, t, u) =>
+        print t, "\n";  // error: t is ghost
+    }
+
+    ghost var p := Quad(20, 30, 40, 50);
+    var Quad(a', b', c', d') := p;
+    print a', "\n";  // error: a' is ghost
+    print c', "\n";  // error: c' is ghost
+  }
+
+  datatype NoEquality = NoEquality(ghost u: int)
+  newtype NT = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
+  type ST = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
+}

@@ -873,7 +873,7 @@ namespace Microsoft.Dafny
       call.Type = Type.Bool;
       call.TypeApplication_AtEnclosingClass = receiver.Type.TypeArgs;
       call.TypeApplication_JustFunction = new List<Type>();
-      callingContext.EnclosingModule.CallGraph.AddEdge(callingContext, Valid);
+      callingContext.EnclosingModule.CallGraph.AddEdge((ICallable)CodeContextWrapper.Unwrap(callingContext), Valid);
       return call;
     }
 
