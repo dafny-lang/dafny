@@ -7693,7 +7693,6 @@ namespace Microsoft.Dafny
           if (s.Guard != null) {
             Visit(s.Guard, st);
           }
-          // don't recurse on the body, if it's a dirty loop
           if (s.Body != null) {
             Visit(s.Body, st);
           }
@@ -10638,7 +10637,7 @@ namespace Microsoft.Dafny
         if (s.Update is AssignSuchThatStmt) {
           ResolveConcreteUpdateStmt(s.Update, codeContext);
         }
-        // Update the VarDeclStmt's ghost status according to its components
+        // Check on "assumption" variables
         foreach (var local in s.Locals) {
           if (Attributes.Contains(local.Attributes, "assumption")) {
             if (currentMethod != null) {
