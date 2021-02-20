@@ -3003,3 +3003,37 @@ module MoreAutoInitAndNonempty {
     u := FR(z);
   }
 }
+
+module TypeParameterCount {
+  function F0(): int
+  function F1<A>(): int
+  function F2<A, B>(): int
+  method M0()
+  method M1<A>()
+  method M2<A, B>()
+
+  method TestFunction() {
+    var x;
+    x := F0();
+    x := F1();  // type argument inferred
+    x := F2();  // type arguments inferred
+    x := F0<int>();  // error: wrong number of type parameters
+    x := F1<int>();
+    x := F2<int>();  // error: wrong number of type parameters
+    x := F0<int, real>();  // error: wrong number of type parameters
+    x := F1<int, real>();  // error: wrong number of type parameters
+    x := F2<int, real>();
+  }
+
+  method TestMethods() {
+    M0();
+    M1();  // type argument inferred
+    M2();  // type arguments inferred
+    M0<int>();  // error: wrong number of type parameters
+    M1<int>();
+    M2<int>();  // error: wrong number of type parameters
+    M0<int, real>();  // error: wrong number of type parameters
+    M1<int, real>();  // error: wrong number of type parameters
+    M2<int, real>();
+  }
+}
