@@ -3063,3 +3063,113 @@ module AutoGhostRegressions {
   newtype NT = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
   type ST = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
 }
+
+module TypeCharacteristicsInGhostCode {
+  function method MustBeNonempty<T(00)>(): int { 5 }
+  function method MustBeAutoInit<T(0)>(): int { 5 }
+  function method MustSupportEquality<T(==)>(): int { 5 }
+  function method NoReferences<T(!new)>(): int { 5 }
+
+  type PossiblyEmpty = x: int | true witness *
+  type Nonempty = x: int | true ghost witness 0
+  datatype NoEquality = NoEquality(ghost u: int)
+  class Class { }
+  type Good = bool
+
+  method TestCompiled()
+  {
+    var w;
+
+    w := MustBeNonempty<PossiblyEmpty>();  // error
+    w := MustBeNonempty<Nonempty>();
+    w := MustBeNonempty<NoEquality>();
+    w := MustBeNonempty<Class?>();
+    w := MustBeNonempty<Good>();
+
+    w := MustBeAutoInit<PossiblyEmpty>();  // error
+    w := MustBeAutoInit<Nonempty>();  // error
+    w := MustBeAutoInit<NoEquality>();
+    w := MustBeAutoInit<Class?>();
+    w := MustBeAutoInit<Good>();
+
+    w := MustSupportEquality<PossiblyEmpty>();
+    w := MustSupportEquality<Nonempty>();
+    w := MustSupportEquality<NoEquality>();  // error
+    w := MustSupportEquality<Class?>();
+    w := MustSupportEquality<Good>();
+
+    w := NoReferences<PossiblyEmpty>();
+    w := NoReferences<Nonempty>();
+    w := NoReferences<NoEquality>();
+    w := NoReferences<Class?>();  // error
+    w := NoReferences<Good>();
+  }
+
+  method TestGhost()
+  {
+    ghost var w;
+
+//SOON:    w := MustBeNonempty<PossiblyEmpty>();  // error (BOGUS: TODO)
+    w := MustBeNonempty<Nonempty>();
+    w := MustBeNonempty<NoEquality>();
+    w := MustBeNonempty<Class?>();
+    w := MustBeNonempty<Good>();
+
+//SOON:    w := MustBeAutoInit<PossiblyEmpty>();  // error (BOGUS: TODO)
+//SOON:    w := MustBeAutoInit<Nonempty>();  // error (BOGUS: TODO)
+    w := MustBeAutoInit<NoEquality>();
+    w := MustBeAutoInit<Class?>();
+    w := MustBeAutoInit<Good>();
+
+    w := MustSupportEquality<PossiblyEmpty>();
+    w := MustSupportEquality<Nonempty>();
+    w := MustSupportEquality<NoEquality>();
+    w := MustSupportEquality<Class?>();
+    w := MustSupportEquality<Good>();
+
+    w := NoReferences<PossiblyEmpty>();
+    w := NoReferences<Nonempty>();
+    w := NoReferences<NoEquality>();
+//SOON:    w := NoReferences<Class?>();  // error (BOGUS: TODO)
+    w := NoReferences<Good>();
+  }
+
+  function method FF(a: bool, ghost b: bool): int { 5 }
+  method MM(a: bool, ghost b: bool) { }
+  function method GetInt<T(==)>(): int { 2 }
+  method GhostContexts<T>(x: T, y: T) {
+    var r;
+    r := FF(x == y, true);  // error: T must support equality
+    r := FF(true, x == y);  // no problem, since this is a ghost context
+    MM(x == y, true);  // error: T must support equality
+    MM(true, x == y);  // no problem, since this is a ghost context
+
+    r := FF(GetInt<NoEquality>() == 0, true);  // error: type argument must support equality
+    r := FF(true, GetInt<NoEquality>() == 0);  // okay, since this is a ghost context
+    MM(GetInt<NoEquality>() == 0, true);  // error: type argument must support equality
+    MM(true, GetInt<NoEquality>() == 0);  // okay, since this is a ghost context
+
+    var q0 := Quad(GetInt<NoEquality>() == 0, true, true, true);  // error: type argument must support equality
+    var q1 := Quad(true, true, GetInt<NoEquality>() == 0, true);  // fine, since in a ghost context
+  }
+
+  datatype Quad<T, U> = Quad(0: T, 1: T, ghost 2: U, ghost 3: U)
+  datatype QuadEq<T(==), U(==)> = QuadEq(0: T, 1: T, ghost 2: U, ghost 3: U)
+
+  method VarDecls<T>(x: T, y: T) {
+    var a := x == y;  // error: this requires T to support equality
+    ghost var b := x == y;  // fine
+
+    var q := Quad(x, y, x, y);
+    var Quad(k, l, m, n) := q;  // k,l are compiled; m,n are ghost
+    var c := k == l;  // error: this requires T to support equality
+    var d := m == n;  // fine, since d is implicitly ghost
+    d, c, d := m == n, k == l, m == n;  // error: "k == l" requires T to support equality
+
+    var q' := QuadEq([x], [x], [0], [0]);  // error: seq<T> requires T to support equality
+    var q'' := QuadEq([0], [0], [x], [x]); // error: seq<T> requires T to support equality
+  }
+
+  newtype NT = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
+  type ST = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
+}

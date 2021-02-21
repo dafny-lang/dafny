@@ -468,4 +468,19 @@ ResolutionErrors.dfy(3049,10): Error: ghost variables are allowed only in specif
 ResolutionErrors.dfy(3053,14): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(3058,10): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(3059,10): Error: ghost variables are allowed only in specification contexts
-465 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(3083,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3089,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
+ResolutionErrors.dfy(3090,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Nonempty)
+ResolutionErrors.dfy(3097,9): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
+ResolutionErrors.dfy(3104,9): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
+ResolutionErrors.dfy(3142,12): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3140 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3144,7): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3140 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3147,12): Error: type parameter (T) passed to function GetInt must support equality (got NoEquality)
+ResolutionErrors.dfy(3149,7): Error: type parameter (T) passed to function GetInt must support equality (got NoEquality)
+ResolutionErrors.dfy(3152,19): Error: type parameter (T) passed to function GetInt must support equality (got NoEquality)
+ResolutionErrors.dfy(3160,13): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3159 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3165,13): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3159 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3167,23): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3159 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3169,14): Error: type parameter 0 (T) passed to type QuadEq must support equality (got seq<T>)
+ResolutionErrors.dfy(3170,15): Error: type parameter 1 (U) passed to type QuadEq must support equality (got seq<T>)
+480 resolution/type errors detected in ResolutionErrors.dfy
