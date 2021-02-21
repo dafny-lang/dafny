@@ -8152,8 +8152,17 @@ namespace Microsoft.Dafny
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
           var lhs = s.Lhs.Resolved;
+
+          // Make an auto-ghost variable a ghost if the RHS is a ghost
+          if (lhs.Resolved is AutoGhostIdentifierExpr && s.Rhs is ExprRhs) {
+            var rhs = (ExprRhs)s.Rhs;
+            if (resolver.UsesSpecFeatures(rhs.Expr)) {
+              var autoGhostIdExpr = (AutoGhostIdentifierExpr)lhs.Resolved;
+              autoGhostIdExpr.Var.MakeGhost();
+            }
+          }
+
           var gk = AssignStmt.LhsIsToGhost_Which(lhs);
-          var isAutoGhost = AssignStmt.LhsIsToGhostOrAutoGhost(lhs);
           if (gk == AssignStmt.NonGhostKind.IsGhost) {
             s.IsGhost = true;
             if (s.Rhs is TypeRhs) {
@@ -8172,18 +8181,11 @@ namespace Microsoft.Dafny
               resolver.CheckIsCompilable(lhs);
             }
 
-
             if (s.Rhs is ExprRhs) {
               var rhs = (ExprRhs)s.Rhs;
-              if (isAutoGhost) {
-                if (resolver.UsesSpecFeatures(rhs.Expr)) {
-                  // TODO: Is this the proper way to determine if an expression is ghost?
-                  ((lhs as AutoGhostIdentifierExpr).Var as LocalVariable).MakeGhost();
-                }
-              } else {
+              if (!AssignStmt.LhsIsToGhost(lhs)) {
                 resolver.CheckIsCompilable(rhs.Expr);
               }
-
             } else if (s.Rhs is HavocRhs) {
               // cool
             } else {
