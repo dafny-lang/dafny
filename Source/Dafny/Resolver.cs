@@ -7859,6 +7859,16 @@ namespace Microsoft.Dafny
             }
           }
           return false;  // we've done what there is to be done
+        } else if (expr is DatatypeValue) {
+          var e = (DatatypeValue)expr;
+          // recursively visit all subexpressions (which are all actual parameters) passed in for non-ghost formal parameters
+          Contract.Assert(e.Arguments.Count == e.Ctor.Formals.Count);
+          for (var i = 0; i < e.Arguments.Count; i++) {
+            if (!e.Ctor.Formals[i].IsGhost) {
+              Visit(e.Arguments[i], st);
+            }
+          }
+          return false;  // we've done what there is to be done
         } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is SeqConstructionExpr || expr is MultiSetFormingExpr || expr is StaticReceiverExpr) {
           // This catches other expressions whose type may potentially be illegal
           CheckEqualityTypes_Type(expr.tok, expr.Type);
