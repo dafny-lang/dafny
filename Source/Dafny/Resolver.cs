@@ -7657,6 +7657,11 @@ namespace Microsoft.Dafny
     // ----- CheckEqualityTypes -----------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
 #region CheckEqualityTypes
+    /// <summary>
+    /// The CheckEqualityTypes_Visitor checks that types have equality support when so required.
+    /// Since this equality support matters only in compiled contexts, ghost statements are not visited,
+    /// which makes these checks different from the checks of other type characteristics.
+    /// </summary>
     class CheckEqualityTypes_Visitor : ResolverTopDownVisitor<bool>
     {
       public CheckEqualityTypes_Visitor(Resolver resolver)
