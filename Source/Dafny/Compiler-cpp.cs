@@ -2346,7 +2346,7 @@ namespace Microsoft.Dafny {
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
       var exeName = ComputeExeName(targetFilename);
-      var args = $"-g -Wall -Wextra -Wpedantic -Wno-unused-variable -std=c++17 -I{codebase} -o {exeName} {targetFilename}";
+      var args = $"-g -Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-deprecated-copy -std=c++17 -I{codebase} -o {exeName} {targetFilename}";
       compilationResult = null;
       var psi = new ProcessStartInfo("g++", args) {
         CreateNoWindow = true,
@@ -2372,12 +2372,14 @@ namespace Microsoft.Dafny {
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
       var exeName = ComputeExeName(targetFilename);
-      var psi = new ProcessStartInfo(exeName) {
+      var dir = Path.GetDirectoryName(Path.GetFullPath(targetFilename));
+      var exePath = Path.Combine(dir, exeName);
+      var psi = new ProcessStartInfo(exePath) {
         CreateNoWindow = true,
         UseShellExecute = false,
         RedirectStandardOutput = true,
         RedirectStandardError = true,
-        WorkingDirectory = Path.GetDirectoryName(Path.GetFullPath(targetFilename))
+        WorkingDirectory = dir
       };
       var proc = Process.Start(psi);
       while (!proc.StandardOutput.EndOfStream) {
