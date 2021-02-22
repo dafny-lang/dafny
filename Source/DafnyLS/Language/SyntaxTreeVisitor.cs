@@ -430,6 +430,9 @@
       case SeqDisplayExpr sequenceDisplayExpression:
         Visit(sequenceDisplayExpression);
         break;
+      case StmtExpr statementExpression:
+        Visit(statementExpression);
+        break;
       default:
         VisitUnknown(expression, expression.tok);
         break;
@@ -589,6 +592,11 @@
 
     public virtual void Visit(ExtendedPattern extendedPattern) {
       // TODO Visit the various pattern types.
+    }
+
+    public virtual void Visit(StmtExpr statementExpression) {
+      Visit(statementExpression.S);
+      Visit(statementExpression.E);
     }
   }
 }
