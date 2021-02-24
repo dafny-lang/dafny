@@ -7667,29 +7667,23 @@ namespace Microsoft.Dafny
       Contract.Requires(stmt != null);
       var v0 = new CheckTypeCharacteristics_Visitor(this);
       v0.Visit(stmt, false);
-      if (!isGhost) {
-        var v1 = new CheckEqualityTypes_Visitor(this);
-        v1.Visit(stmt, false);
-      }
+      var v1 = new CheckEqualityTypes_Visitor(this);
+      v1.Visit(stmt, isGhost);
     }
     void CheckTypeCharacteristics_Expr(Expression expr, bool isGhost) {
       Contract.Requires(expr != null);
       var v0 = new CheckTypeCharacteristics_Visitor(this);
       v0.Visit(expr, false);
-      if (!isGhost) {
-        var v1 = new CheckEqualityTypes_Visitor(this);
-        v1.Visit(expr, false);
-      }
+      var v1 = new CheckEqualityTypes_Visitor(this);
+      v1.Visit(expr, isGhost);
     }
     public void CheckTypeCharacteristics_Type(IToken tok, Type type, bool isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(type != null);
       var v0 = new CheckTypeCharacteristics_Visitor(this);
       v0.VisitType(tok, type);
-      if (!isGhost) {
-        var v1 = new CheckEqualityTypes_Visitor(this);
-        v1.VisitType(tok, type);
-      }
+      var v1 = new CheckEqualityTypes_Visitor(this);
+      v1.VisitType(tok, type, isGhost);
     }
 
     /// <summary>
@@ -7853,87 +7847,103 @@ namespace Microsoft.Dafny
         : base(resolver) {
         Contract.Requires(resolver != null);
       }
-      protected override bool VisitOneStmt(Statement stmt, ref bool st) {
+      protected override bool VisitOneStmt(Statement stmt, ref bool inGhostContext) {
         if (stmt.IsGhost) {
-          return false;  // no need to recurse to sub-parts, since all sub-parts must be ghost as well
-        } else if (stmt is VarDeclStmt) {
+          inGhostContext = true;
+        }
+        // In the sequel, do two things:
+        //  * Call VisitType on any type that occurs in the statement
+        //  * If the statement introduces ghost components, handle those components here
+        //    rather than letting the default visitor handle them
+        if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;
           foreach (var v in s.Locals) {
-            if (!v.IsGhost) {
-              VisitType(v.Tok, v.Type);
-            }
+            VisitType(v.Tok, v.Type, inGhostContext || v.IsGhost);
           }
         } else if (stmt is VarDeclPattern) {
           var s = (VarDeclPattern)stmt;
           foreach (var v in s.LocalVars) {
-            if (!v.IsGhost) {
-              VisitType(v.Tok, v.Type);
-            }
+            VisitType(v.Tok, v.Type, inGhostContext || v.IsGhost);
           }
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
-          var tRhs = s.Rhs as TypeRhs;
-          if (tRhs != null && tRhs.Type is UserDefinedType) {
-            var udt = (UserDefinedType)tRhs.Type;
-            CheckTypeInstantiation(tRhs.Tok, "type", udt.ResolvedClass.Name, udt.ResolvedClass.TypeArgs, tRhs.Type.TypeArgs);
+          if (s.Rhs is TypeRhs tRhs) {
+            VisitType(tRhs.Tok, tRhs.Type, inGhostContext);
           }
+        } else if (stmt is AssignSuchThatStmt) {
+          var s = (AssignSuchThatStmt)stmt;
+          Visit(Attributes.SubExpressions(s.Attributes), true);
+          Visit(s.Expr, inGhostContext);
+          foreach (var lhs in s.Lhss) {
+            Visit(lhs, inGhostContext);
+          }
+          return false;
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
-          // don't recurse on the specification parts, which are ghost
+          // all subexpressions are ghost, except the guard
+          Visit(s.LoopSpecificationExpressions, true);
           if (s.Guard != null) {
-            Visit(s.Guard, st);
+            Visit(s.Guard, inGhostContext);
           }
-          if (s.Body != null) {
-            Visit(s.Body, st);
-          }
+          Visit(s.SubStatements, inGhostContext);
           return false;
         } else if (stmt is AlternativeLoopStmt) {
           var s = (AlternativeLoopStmt)stmt;
-          // don't recurse on the specification parts, which are ghost
+          // all subexpressions are ghost, except the guards
+          Visit(s.LoopSpecificationExpressions, true);
           foreach (var alt in s.Alternatives) {
-            Visit(alt.Guard, st);
-            foreach (var ss in alt.Body) {
-              Visit(ss, st);
-            }
+            Visit(alt.Guard, inGhostContext);
           }
+          Visit(s.SubStatements, inGhostContext);
           return false;
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
-          CheckTypeInstantiation(s.Tok, s.Method.WhatKind, s.Method.Name, s.Method.TypeArgs, s.MethodSelect.TypeApplication_JustMember);
-          // recursively visit all subexpressions (which are all actual parameters) passed in for non-ghost formal parameters
+          CheckTypeInstantiation(s.Tok, s.Method.WhatKind, s.Method.Name, s.Method.TypeArgs, s.MethodSelect.TypeApplication_JustMember, inGhostContext);
+          // recursively visit all subexpressions, noting that some of them may correspond to ghost formal parameters
           Contract.Assert(s.Lhs.Count == s.Method.Outs.Count);
           for (var i = 0; i < s.Method.Outs.Count; i++) {
-            if (!s.Method.Outs[i].IsGhost) {
-              Visit(s.Lhs[i], st);
-            }
+            Visit(s.Lhs[i], inGhostContext || s.Method.Outs[i].IsGhost);
           }
-          Visit(s.Receiver, st);
+          Visit(s.Receiver, inGhostContext);
           Contract.Assert(s.Args.Count == s.Method.Ins.Count);
           for (var i = 0; i < s.Method.Ins.Count; i++) {
-            if (!s.Method.Ins[i].IsGhost) {
-              Visit(s.Args[i], st);
-            }
+            Visit(s.Args[i], inGhostContext || s.Method.Ins[i].IsGhost);
           }
-          return false;  // we've done what there is to be done
+          return false;
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           foreach (var v in s.BoundVars) {
-            VisitType(v.Tok, v.Type);
+            VisitType(v.Tok, v.Type, inGhostContext);
           }
-          // do substatements and subexpressions, except attributes and ensures clauses, since they are not compiled
-          foreach (var ss in s.SubStatements) {
-            Visit(ss, st);
-          }
+          // do substatements and subexpressions, noting that ensures clauses are ghost
+          Visit(Attributes.SubExpressions(s.Attributes), true);
           if (s.Range != null) {
-            Visit(s.Range, st);
+            Visit(s.Range, inGhostContext);
           }
-          return false;  // we're done
+          foreach (var ee in s.Ens) {
+            Visit(Attributes.SubExpressions(ee.Attributes), true);
+            Visit(ee.E, true);
+          }
+          Visit(s.SubStatements, inGhostContext);
+          return false;
+        } else if (stmt is ExpectStmt) {
+          var s = (ExpectStmt)stmt;
+          Visit(Attributes.SubExpressions(s.Attributes), true);
+          Visit(s.Expr, inGhostContext);
+          if (s.Message != null) {
+            Visit(s.Message, inGhostContext);
+          }
+          return false;
         }
         return true;
       }
 
-      protected override bool VisitOneExpr(Expression expr, ref bool st) {
-        if (expr is BinaryExpr) {
+      protected override bool VisitOneExpr(Expression expr, ref bool inGhostContext) {
+        // Do two things:
+        //  * Call VisitType on any type that occurs in the statement
+        //  * If the expression introduces ghost components, handle those components here
+        //    rather than letting the default visitor handle them
+        if (expr is BinaryExpr && !inGhostContext) {
           var e = (BinaryExpr)expr;
           var t0 = e.E0.Type.NormalizeExpand();
           var t1 = e.E1.Type.NormalizeExpand();
@@ -7978,33 +7988,36 @@ namespace Microsoft.Dafny
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
           foreach (var bv in e.BoundVars) {
-            VisitType(bv.tok, bv.Type);
+            VisitType(bv.tok, bv.Type, inGhostContext);
           }
         } else if (expr is LetExpr) {
           var e = (LetExpr)expr;
+          Visit(Attributes.SubExpressions(e.Attributes), true);
           if (e.Exact) {
             Contract.Assert(e.LHSs.Count == e.RHSs.Count);
             for (var i = 0; i < e.LHSs.Count; i++) {
               // The VisitPattern function visits all BoundVar's in a pattern and returns
               // "true" if all variables are ghost.
-              bool VisitPattern(CasePattern<BoundVar> pat) {
+              bool VisitPattern(CasePattern<BoundVar> pat, bool patternGhostContext) {
                 if (pat.Var != null) {
-                  VisitType(pat.tok, pat.Var.Type);
+                  VisitType(pat.tok, pat.Var.Type, patternGhostContext || pat.Var.IsGhost);
                   return pat.Var.IsGhost;
                 } else {
                   var allGhost = true;
-                  foreach (var arg in pat.Arguments) {
+                  Contract.Assert(pat.Ctor != null);
+                  Contract.Assert(pat.Ctor.Formals.Count == pat.Arguments.Count);
+                  for (var i = 0; i < pat.Ctor.Formals.Count; i++) {
+                    var formal = pat.Ctor.Formals[i];
+                    var arg = pat.Arguments[i];
                     // don't use short-circuit booleans in the following line, because we want to visit all nested patterns
-                    allGhost &= VisitPattern(arg);
+                    allGhost &= VisitPattern(arg, patternGhostContext || formal.IsGhost);
                   }
                   return allGhost;
                 }
               }
 
-              var allGhosts = VisitPattern(e.LHSs[i]);
-              if (!allGhosts) {
-                Visit(e.RHSs[i], st);
-              }
+              var allGhosts = VisitPattern(e.LHSs[i], inGhostContext);
+              Visit(e.RHSs[i], inGhostContext || allGhosts);
             }
           } else {
             Contract.Assert(e.RHSs.Count == 1);
@@ -8012,51 +8025,45 @@ namespace Microsoft.Dafny
             foreach (var bv in e.BoundVars) {
               if (!bv.IsGhost) {
                 allGhost = false;
-                VisitType(bv.tok, bv.Type);
               }
+              VisitType(bv.tok, bv.Type, inGhostContext || bv.IsGhost);
             }
-            if (!allGhost) {
-              Visit(e.RHSs[0], st);
-            }
+            Visit(e.RHSs[0], inGhostContext || allGhost);
           }
-          Visit(e.Body, st);
+          Visit(e.Body, inGhostContext);
           return false;
         } else if (expr is MemberSelectExpr) {
           var e = (MemberSelectExpr)expr;
           if (e.Member is Function || e.Member is Method) {
-            CheckTypeInstantiation(e.tok, e.Member.WhatKind, e.Member.Name, ((ICallable)e.Member).TypeArgs, e.TypeApplication_JustMember);
+            CheckTypeInstantiation(e.tok, e.Member.WhatKind, e.Member.Name, ((ICallable)e.Member).TypeArgs, e.TypeApplication_JustMember, inGhostContext);
           }
         } else if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
-          CheckTypeInstantiation(e.tok, e.Function.WhatKind, e.Function.Name, e.Function.TypeArgs, e.TypeApplication_JustFunction);
-          // recursively visit all subexpressions (which are all actual parameters) passed in for non-ghost formal parameters
-          Visit(e.Receiver, st);
+          CheckTypeInstantiation(e.tok, e.Function.WhatKind, e.Function.Name, e.Function.TypeArgs, e.TypeApplication_JustFunction, inGhostContext);
+          // recursively visit all subexpressions (all actual parameters), noting which ones correspond to ghost formal parameters
+          Visit(e.Receiver, inGhostContext);
           Contract.Assert(e.Args.Count == e.Function.Formals.Count);
           for (var i = 0; i < e.Args.Count; i++) {
-            if (!e.Function.Formals[i].IsGhost) {
-              Visit(e.Args[i], st);
-            }
+            Visit(e.Args[i], inGhostContext || e.Function.Formals[i].IsGhost);
           }
           return false;  // we've done what there is to be done
         } else if (expr is DatatypeValue) {
           var e = (DatatypeValue)expr;
-          // recursively visit all subexpressions (which are all actual parameters) passed in for non-ghost formal parameters
+          // recursively visit all subexpressions (all actual parameters), noting which ones correspond to ghost formal parameters
           Contract.Assert(e.Arguments.Count == e.Ctor.Formals.Count);
           for (var i = 0; i < e.Arguments.Count; i++) {
-            if (!e.Ctor.Formals[i].IsGhost) {
-              Visit(e.Arguments[i], st);
-            }
+            Visit(e.Arguments[i], inGhostContext || e.Ctor.Formals[i].IsGhost);
           }
           return false;  // we've done what there is to be done
         } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is SeqConstructionExpr ||
                    expr is MultiSetFormingExpr || expr is StaticReceiverExpr) {
           // This catches other expressions whose type may potentially be illegal
-          VisitType(expr.tok, expr.Type);
+          VisitType(expr.tok, expr.Type, inGhostContext);
         } else if (expr is StmtExpr) {
           var e = (StmtExpr)expr;
-          var stx = st;
-          e.SubExpressions.Iter(ee => Visit(ee, stx));
-          return false;  // don't visit e.S, which is always ghost
+          Visit(e.S, true);
+          Visit(e.E, inGhostContext);
+          return false;
         }
         return true;
       }
@@ -8087,7 +8094,7 @@ namespace Microsoft.Dafny
         return false;
       }
 
-      public void VisitType(IToken tok, Type type) {
+      public void VisitType(IToken tok, Type type, bool inGhostContext) {
         Contract.Requires(tok != null);
         Contract.Requires(type != null);
         type = type.Normalize();  // we only do a .Normalize() here, because we want to keep stop at any type synonym or subset type
@@ -8096,29 +8103,29 @@ namespace Microsoft.Dafny
         } else if (type is SetType) {
           var st = (SetType)type;
           var argType = st.Arg;
-          if (!argType.SupportsEquality) {
+          if (!inGhostContext && !argType.SupportsEquality) {
             resolver.reporter.Error(MessageSource.Resolver, tok, "{2}set argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType), st.Finite ? "" : "i");
           }
-          VisitType(tok, argType);
+          VisitType(tok, argType, inGhostContext);
 
         } else if (type is MultiSetType) {
           var argType = ((MultiSetType)type).Arg;
-          if (!argType.SupportsEquality) {
+          if (!inGhostContext && !argType.SupportsEquality) {
             resolver.reporter.Error(MessageSource.Resolver, tok, "multiset argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType));
           }
-          VisitType(tok, argType);
+          VisitType(tok, argType, inGhostContext);
 
         } else if (type is MapType) {
           var mt = (MapType)type;
-          if (!mt.Domain.SupportsEquality) {
+          if (!inGhostContext && !mt.Domain.SupportsEquality) {
             resolver.reporter.Error(MessageSource.Resolver, tok, "{2}map domain type must support equality (got {0}){1}", mt.Domain, TypeEqualityErrorMessageHint(mt.Domain), mt.Finite ? "" : "i");
           }
-          VisitType(tok, mt.Domain);
-          VisitType(tok, mt.Range);
+          VisitType(tok, mt.Domain, inGhostContext);
+          VisitType(tok, mt.Range, inGhostContext);
 
         } else if (type is SeqType) {
           Type argType = ((SeqType)type).Arg;
-          VisitType(tok, argType);
+          VisitType(tok, argType, inGhostContext);
 
         } else if (type is UserDefinedType) {
           var udt = (UserDefinedType)type;
@@ -8132,7 +8139,7 @@ namespace Microsoft.Dafny
           if (formalTypeArgs == null) {
             Contract.Assert(udt.TypeArgs.Count == 0);
           } else {
-            CheckTypeInstantiation(udt.tok, "type", udt.ResolvedClass.Name, formalTypeArgs, udt.TypeArgs);
+            CheckTypeInstantiation(udt.tok, "type", udt.ResolvedClass.Name, formalTypeArgs, udt.TypeArgs, inGhostContext);
           }
 
         } else if (type is TypeProxy) {
@@ -8142,7 +8149,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      void CheckTypeInstantiation(IToken tok, string what, string className, List<TypeParameter> formalTypeArgs, List<Type> actualTypeArgs) {
+      void CheckTypeInstantiation(IToken tok, string what, string className, List<TypeParameter> formalTypeArgs, List<Type> actualTypeArgs, bool inGhostContext) {
         Contract.Requires(tok != null);
         Contract.Requires(what != null);
         Contract.Requires(className != null);
@@ -8153,13 +8160,15 @@ namespace Microsoft.Dafny
         for (var i = 0; i < formalTypeArgs.Count; i++) {
           var formal = formalTypeArgs[i];
           var actual = actualTypeArgs[i];
-          if (formal.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified && !actual.SupportsEquality) {
-            var whatIsWrong = "equality";
-            var hint = TypeEqualityErrorMessageHint(actual);
-            resolver.reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to {2} {3} must support {4} (got {5}){6}",
-              actualTypeArgs.Count == 1 ? "" : " " + i, formal.Name, what, className, whatIsWrong, actual, hint);
+          if (!inGhostContext) {
+            if (formal.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified && !actual.SupportsEquality) {
+              var whatIsWrong = "equality";
+              var hint = TypeEqualityErrorMessageHint(actual);
+              resolver.reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to {2} {3} must support {4} (got {5}){6}",
+                actualTypeArgs.Count == 1 ? "" : " " + i, formal.Name, what, className, whatIsWrong, actual, hint);
+            }
           }
-          VisitType(tok, actual);
+          VisitType(tok, actual, inGhostContext);
         }
       }
 
