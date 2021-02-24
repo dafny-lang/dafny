@@ -7996,9 +7996,9 @@ namespace Microsoft.Dafny {
       this.Decreases = decreases;
       this.Mod = mod;
     }
-    public override IEnumerable<Expression> SubExpressions {
+
+    public IEnumerable<Expression> LoopSpecificationExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
         foreach (var mfe in Invariants) {
           foreach (var e in Attributes.SubExpressions(mfe.Attributes)) { yield return e; }
           yield return mfe.E;
@@ -8014,6 +8014,17 @@ namespace Microsoft.Dafny {
           foreach (var fe in Mod.Expressions) {
             yield return fe.E;
           }
+        }
+      }
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in base.SubExpressions) {
+          yield return e;
+        }
+        foreach (var e in LoopSpecificationExpressions) {
+          yield return e;
         }
       }
     }
