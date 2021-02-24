@@ -3109,14 +3109,14 @@ module TypeCharacteristicsInGhostCode {
   {
     ghost var w;
 
-//SOON:    w := MustBeNonempty<PossiblyEmpty>();  // error (BOGUS: TODO)
+    w := MustBeNonempty<PossiblyEmpty>();  // error
     w := MustBeNonempty<Nonempty>();
     w := MustBeNonempty<NoEquality>();
     w := MustBeNonempty<Class?>();
     w := MustBeNonempty<Good>();
 
-//SOON:    w := MustBeAutoInit<PossiblyEmpty>();  // error (BOGUS: TODO)
-//SOON:    w := MustBeAutoInit<Nonempty>();  // error (BOGUS: TODO)
+    w := MustBeAutoInit<PossiblyEmpty>();  // error
+    w := MustBeAutoInit<Nonempty>();  // error
     w := MustBeAutoInit<NoEquality>();
     w := MustBeAutoInit<Class?>();
     w := MustBeAutoInit<Good>();
@@ -3130,7 +3130,7 @@ module TypeCharacteristicsInGhostCode {
     w := NoReferences<PossiblyEmpty>();
     w := NoReferences<Nonempty>();
     w := NoReferences<NoEquality>();
-//SOON:    w := NoReferences<Class?>();  // error (BOGUS: TODO)
+    w := NoReferences<Class?>();  // error
     w := NoReferences<Good>();
   }
 
@@ -3172,4 +3172,55 @@ module TypeCharacteristicsInGhostCode {
 
   newtype NT = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
   type ST = x | var s: set<NoEquality> := {}; |s| <= x  // fine, since constraint is a ghost context
+
+  method LetVarDecls<T>(x: T, y: T) {
+    var lhs;
+    lhs :=
+      var a := x == y;  // error: this requires T to support equality
+      0;
+    lhs :=
+      ghost var b := x == y;  // fine
+      0;
+
+    var q := Quad(x, y, x, y);
+    var Quad(k, l, m, n) := q;  // k,l are compiled; m,n are ghost
+    lhs :=
+      var c := k == l;  // error: this requires T to support equality
+      0;
+    lhs :=
+      ghost var d := m == n;  // fine, since d is implicitly ghost (BOGUS: should not need explicit "ghost" keyword here)
+      0;
+
+    ghost var ghostLhs;
+    ghostLhs :=
+      var a := x == y;  // fine
+      0;
+    ghostLhs :=
+      ghost var b := x == y;  // fine
+      0;
+  }
+
+  datatype DatatypeHasMembersToo = Abc | Def {
+    method Test() {
+      var w;
+      w := MustBeNonempty<PossiblyEmpty>();  // error
+      w := MustBeAutoInit<PossiblyEmpty>();  // error
+      w := MustBeAutoInit<Nonempty>();  // error
+      w := MustSupportEquality<NoEquality>();  // error
+      w := NoReferences<Class?>();  // error
+    }
+  }
+
+  newtype NewtypeHasMembersToo = x: int | x == MustBeNonempty<PossiblyEmpty>()  // error: constraint has bad type instantiation (BOGUS: no error)
+    witness MustBeNonempty<PossiblyEmpty>()  // error: witness expression has bad type instantiation (BOGUS: no error)
+  {
+    method Test() {
+      var w;
+      w := MustBeNonempty<PossiblyEmpty>();  // error
+      w := MustBeAutoInit<PossiblyEmpty>();  // error
+      w := MustBeAutoInit<Nonempty>();  // error
+      w := MustSupportEquality<NoEquality>();  // error
+      w := NoReferences<Class?>();  // error
+    }
+  }
 }

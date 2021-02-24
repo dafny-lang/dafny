@@ -99,7 +99,7 @@ type DirectTotalArrow<!A(!new),B> = f: EffectlessArrow<A,B>
   | forall a :: f.requires(a)
   ghost witness TotalWitness<A,B>
 
-lemma DirectTotalWitnessIsTotal<A,B>(f: DirectTotalArrow<A,B>)
+lemma DirectTotalWitnessIsTotal<A(!new),B>(f: DirectTotalArrow<A,B>)
   ensures Total(TotalWitness<A,B>)
 {
 }
