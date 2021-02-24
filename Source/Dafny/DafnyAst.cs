@@ -8168,7 +8168,7 @@ namespace Microsoft.Dafny {
     }
 
     public ForallStmt(IToken tok, IToken endTok, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
-      : base(tok, endTok) {
+      : base(tok, endTok, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(cce.NonNullElements(boundVars));
@@ -8176,7 +8176,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(boundVars.Count != 0 || LiteralExpr.IsTrue(range));
       Contract.Requires(cce.NonNullElements(ens));
       this.BoundVars = boundVars;
-      this.Attributes = attrs;
       this.Range = range;
       this.Ens = ens;
       this.Body = body;
