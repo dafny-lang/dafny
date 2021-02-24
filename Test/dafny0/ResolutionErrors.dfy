@@ -3211,8 +3211,8 @@ module TypeCharacteristicsInGhostCode {
     }
   }
 
-  newtype NewtypeHasMembersToo = x: int | x == MustBeNonempty<PossiblyEmpty>()  // error: constraint has bad type instantiation (BOGUS: no error)
-    witness MustBeNonempty<PossiblyEmpty>()  // error: witness expression has bad type instantiation (BOGUS: no error)
+  newtype NewtypeHasMembersToo = x: int | x == MustBeNonempty<PossiblyEmpty>()  // error: constraint has bad type instantiation
+    witness MustBeNonempty<PossiblyEmpty>()  // error: witness expression has bad type instantiation
   {
     method Test() {
       var w;
@@ -3223,4 +3223,16 @@ module TypeCharacteristicsInGhostCode {
       w := NoReferences<Class?>();  // error
     }
   }
+
+  type SubsetTypeHasExpressionToo = x: int | x == MustBeNonempty<PossiblyEmpty>()  // error: constraint has bad type instantiation
+    witness MustBeNonempty<PossiblyEmpty>()  // error: witness expression has bad type instantiation
+
+  newtype NT_CompiledWitness = x | 0 <= x
+    witness MustSupportEquality<NoEquality>()  // error
+  newtype NT_GhostWitness = x | 0 <= x
+    ghost witness MustSupportEquality<NoEquality>()  // fine, since it's ghost
+  type ST_CompiledWitness = x | 0 <= x
+    witness MustSupportEquality<NoEquality>()  // error
+  type ST_GhostWitness = x | 0 <= x
+    ghost witness MustSupportEquality<NoEquality>()  // fine, since it's ghost
 }

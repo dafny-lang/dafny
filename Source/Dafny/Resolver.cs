@@ -3225,6 +3225,16 @@ namespace Microsoft.Dafny
             }
           }
 
+          if (d is RedirectingTypeDecl) {
+            var rtd = (RedirectingTypeDecl)d;
+            if (rtd.Constraint != null) {
+              CheckTypeCharacteristics_Expr(rtd.Constraint, true);
+            }
+            if (rtd.Witness != null) {
+              CheckTypeCharacteristics_Expr(rtd.Witness, rtd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+            }
+          }
+
           if (d is TopLevelDeclWithMembers) {
             var cl = (TopLevelDeclWithMembers)d;
             foreach (var member in cl.Members) {
