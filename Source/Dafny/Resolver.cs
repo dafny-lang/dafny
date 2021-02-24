@@ -3247,7 +3247,7 @@ namespace Microsoft.Dafny
                   CheckTypeCharacteristics_Type(p.tok, p.Type, f.IsGhost || p.IsGhost);
                 }
                 if (f.Body != null) {
-                  CheckEqualityTypes(f.Body, f.IsGhost);
+                  CheckTypeCharacteristics_Expr(f.Body, f.IsGhost);
                 }
               } else if (member is Method) {
                 var m = (Method)member;
@@ -7806,7 +7806,7 @@ namespace Microsoft.Dafny
         v1.Visit(stmt, false);
       }
     }
-    void CheckEqualityTypes(Expression expr, bool isGhost) {
+    void CheckTypeCharacteristics_Expr(Expression expr, bool isGhost) {
       Contract.Requires(expr != null);
       var v0 = new CheckTypeCharacteristics_Visitor(this);
       v0.Visit(expr, false);
