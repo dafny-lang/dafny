@@ -7660,6 +7660,35 @@ namespace Microsoft.Dafny
     // ----- CheckTypeCharacteristics -----------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
 #region CheckTypeCharacteristics
+    void CheckTypeCharacteristics_Stmt(Statement stmt, bool isGhost) {
+      Contract.Requires(stmt != null);
+      var v0 = new CheckTypeCharacteristics_Visitor(this);
+      v0.Visit(stmt, false);
+      if (!isGhost) {
+        var v1 = new CheckEqualityTypes_Visitor(this);
+        v1.Visit(stmt, false);
+      }
+    }
+    void CheckTypeCharacteristics_Expr(Expression expr, bool isGhost) {
+      Contract.Requires(expr != null);
+      var v0 = new CheckTypeCharacteristics_Visitor(this);
+      v0.Visit(expr, false);
+      if (!isGhost) {
+        var v1 = new CheckEqualityTypes_Visitor(this);
+        v1.Visit(expr, false);
+      }
+    }
+    public void CheckTypeCharacteristics_Type(IToken tok, Type type, bool isGhost) {
+      Contract.Requires(tok != null);
+      Contract.Requires(type != null);
+      var v0 = new CheckTypeCharacteristics_Visitor(this);
+      v0.VisitType(tok, type);
+      if (!isGhost) {
+        var v1 = new CheckEqualityTypes_Visitor(this);
+        v1.VisitType(tok, type);
+      }
+    }
+
     /// <summary>
     /// This visitor checks that type characteristics are respected in all (implicitly or explicitly)
     /// declared types.
@@ -7799,34 +7828,6 @@ namespace Microsoft.Dafny
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
         }
-      }
-    }
-    void CheckTypeCharacteristics_Stmt(Statement stmt, bool isGhost) {
-      Contract.Requires(stmt != null);
-      var v0 = new CheckTypeCharacteristics_Visitor(this);
-      v0.Visit(stmt, false);
-      if (!isGhost) {
-        var v1 = new CheckEqualityTypes_Visitor(this);
-        v1.Visit(stmt, false);
-      }
-    }
-    void CheckTypeCharacteristics_Expr(Expression expr, bool isGhost) {
-      Contract.Requires(expr != null);
-      var v0 = new CheckTypeCharacteristics_Visitor(this);
-      v0.Visit(expr, false);
-      if (!isGhost) {
-        var v1 = new CheckEqualityTypes_Visitor(this);
-        v1.Visit(expr, false);
-      }
-    }
-    public void CheckTypeCharacteristics_Type(IToken tok, Type type, bool isGhost) {
-      Contract.Requires(tok != null);
-      Contract.Requires(type != null);
-      var v0 = new CheckTypeCharacteristics_Visitor(this);
-      v0.VisitType(tok, type);
-      if (!isGhost) {
-        var v1 = new CheckEqualityTypes_Visitor(this);
-        v1.VisitType(tok, type);
       }
     }
 
