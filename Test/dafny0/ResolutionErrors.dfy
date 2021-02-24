@@ -3240,5 +3240,7 @@ module TypeCharacteristicsInGhostCode {
     {:MyAttribute MustSupportEquality<NoEquality>(), MustBeNonempty<PossiblyEmpty>()}  // error: about MustBeNonempty (no prob with (==))
     MyTrait
   {
+    const x := (CallMyLemma(MustSupportEquality<NoEquality>(), MustBeNonempty<PossiblyEmpty>()); 23)  // error: about MustBeNonempty (no prob with (==))
   }
+  lemma CallMyLemma(x: int, y: int)
 }

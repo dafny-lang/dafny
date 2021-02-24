@@ -3245,6 +3245,9 @@ namespace Microsoft.Dafny
               if (member is Field) {
                 var f = (Field)member;
                 CheckTypeCharacteristics_Type(f.tok, f.Type, f.IsGhost);
+                if (f is ConstantField cf && cf.Rhs != null) {
+                  CheckTypeCharacteristics_Expr(cf.Rhs, cf.IsGhost);
+                }
               } else if (member is Function) {
                 var f = (Function)member;
                 foreach (var p in f.Formals) {
@@ -8045,9 +8048,15 @@ namespace Microsoft.Dafny
             }
           }
           return false;  // we've done what there is to be done
-        } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is SeqConstructionExpr || expr is MultiSetFormingExpr || expr is StaticReceiverExpr) {
+        } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is SeqConstructionExpr ||
+                   expr is MultiSetFormingExpr || expr is StaticReceiverExpr) {
           // This catches other expressions whose type may potentially be illegal
           VisitType(expr.tok, expr.Type);
+        } else if (expr is StmtExpr) {
+          var e = (StmtExpr)expr;
+          var stx = st;
+          e.SubExpressions.Iter(ee => Visit(ee, stx));
+          return false;  // don't visit e.S, which is always ghost
         }
         return true;
       }

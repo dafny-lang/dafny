@@ -485,6 +485,7 @@ ResolutionErrors.dfy(3228,12): Error: type parameter (T) passed to function Must
 ResolutionErrors.dfy(3231,12): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
 ResolutionErrors.dfy(3235,12): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
 ResolutionErrors.dfy(3240,53): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3243,63): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
 ResolutionErrors.dfy(3083,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
 ResolutionErrors.dfy(3089,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
 ResolutionErrors.dfy(3090,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Nonempty)
@@ -506,4 +507,4 @@ ResolutionErrors.dfy(3169,14): Error: type parameter 0 (T) passed to type QuadEq
 ResolutionErrors.dfy(3170,15): Error: type parameter 1 (U) passed to type QuadEq must support equality (got seq<T>)
 ResolutionErrors.dfy(3179,15): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3176 as 'T(==)', which says it can only be instantiated with a type that supports equality)
 ResolutionErrors.dfy(3188,15): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3176 as 'T(==)', which says it can only be instantiated with a type that supports equality)
-503 resolution/type errors detected in ResolutionErrors.dfy
+504 resolution/type errors detected in ResolutionErrors.dfy
