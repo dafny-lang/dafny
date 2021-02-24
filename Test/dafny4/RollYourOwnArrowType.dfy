@@ -123,7 +123,7 @@ predicate TruePre<A(!new),B>(f: A ~> B)  // (is this (!new) really necessary?)
   forall a :: f.requires(a)
 }
 
-type TwoPred_TotalArrow<!A,B> = f: A ~> B
+type TwoPred_TotalArrow<!A(!new),B> = f: A ~> B
   | EmptyReads(f) && TruePre(f)
   ghost witness TotalWitness<A,B>
 
@@ -135,7 +135,7 @@ function PartialFunction<A, B(00)>(a: A): B
   var b: B :| true; b
 }
 
-type Bad_TwoPred_TotalArrow<!A,B> = f: A ~> B
+type Bad_TwoPred_TotalArrow<!A(!new),B> = f: A ~> B
   | EmptyReads(f) && TruePre(f)
   // cool: the type instantiation of "PartialFunction" below is inferred
   ghost witness PartialFunction  // error: the second conjunct of the constraint is not satisfied
