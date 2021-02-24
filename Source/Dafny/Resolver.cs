@@ -3180,6 +3180,10 @@ namespace Microsoft.Dafny
         // Check that all == and != operators in non-ghost contexts are applied to equality-supporting types.
         // Note that this check can only be done after determining which expressions are ghosts.
         foreach (var d in declarations) {
+          for (var attr = d.Attributes; attr != null; attr = attr.Prev) {
+            attr.Args.Iter(e => CheckTypeCharacteristics_Expr(e, true));
+          }
+
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             foreach (var p in iter.Ins) {

@@ -3235,4 +3235,10 @@ module TypeCharacteristicsInGhostCode {
     witness MustSupportEquality<NoEquality>()  // error
   type ST_GhostWitness = x | 0 <= x
     ghost witness MustSupportEquality<NoEquality>()  // fine, since it's ghost
+
+  trait
+    {:MyAttribute MustSupportEquality<NoEquality>(), MustBeNonempty<PossiblyEmpty>()}  // error: about MustBeNonempty (no prob with (==))
+    MyTrait
+  {
+  }
 }
