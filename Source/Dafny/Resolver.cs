@@ -16130,7 +16130,7 @@ namespace Microsoft.Dafny
         if (ri.TypeParamDecl != null) {
           ty = new UserDefinedType(ri.TypeParamDecl);
         } else {
-          ty = new UserDefinedType(expr.tok, ri.Decl.Name, ri.Decl, ri.TypeArgs);
+          ty = new UserDefinedType(ri.tok, ri.Decl.Name, ri.Decl, ri.TypeArgs);
         }
         if (allowDanglingDotName && ty.IsRefType) {
           return new ResolveTypeReturn(ty, expr);
