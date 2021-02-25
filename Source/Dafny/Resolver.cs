@@ -16105,30 +16105,11 @@ namespace Microsoft.Dafny
           if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
             reporter.Error(MessageSource.Resolver, e.tok, "name of module ({0}) is used as a function", ((Resolver_IdentifierExpr)lhs).Decl.Name);
           } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
-            // It may be a conversion expression
             var ri = (Resolver_IdentifierExpr)lhs;
             if (ri.TypeParamDecl != null) {
               reporter.Error(MessageSource.Resolver, e.tok, "name of type parameter ({0}) is used as a function", ri.TypeParamDecl.Name);
             } else {
-              var decl = ri.Decl;
-              var ty = new UserDefinedType(e.tok, decl.Name, decl, ri.TypeArgs);
-              if (ty.AsNewtype != null) {
-                reporter.Deprecated(MessageSource.Resolver, e.tok, "the syntax \"{0}(expr)\" for type conversions has been deprecated; the new syntax is \"expr as {0}\"", decl.Name);
-                if (e.Args.Count != 1) {
-                  reporter.Error(MessageSource.Resolver, e.tok, "conversion operation to {0} got wrong number of arguments (expected 1, got {1})", decl.Name, e.Args.Count);
-                }
-                var conversionArg = 1 <= e.Args.Count ? e.Args[0] :
-                  ty.IsNumericBased(Type.NumericPersuasion.Int) ? LiteralExpr.CreateIntLiteral(e.tok, 0) :
-                  LiteralExpr.CreateRealLiteral(e.tok, BaseTypes.BigDec.ZERO);
-                r = new ConversionExpr(e.tok, conversionArg, ty);
-                ResolveExpression(r, opts);
-                // resolve the rest of the arguments, if any
-                for (int i = 1; i < e.Args.Count; i++) {
-                  ResolveExpression(e.Args[i], opts);
-                }
-              } else {
-                reporter.Error(MessageSource.Resolver, e.tok, "name of type ({0}) is used as a function", decl.Name);
-              }
+              reporter.Error(MessageSource.Resolver, e.tok, "name of type ({0}) is used as a function", ri.Decl.Name);
             }
           } else {
             if (lhs is MemberSelectExpr && ((MemberSelectExpr)lhs).Member is Method) {
