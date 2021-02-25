@@ -3,12 +3,8 @@ name: Test Release Downloads
 #### For a new release: Change 'ver' in the strategy
 
 on:
-  workflow_dispatch:
-    branches: [ master ]
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  release:
+    types: [ published ]
 
 jobs:
   build:
