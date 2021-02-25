@@ -7665,182 +7665,28 @@ namespace Microsoft.Dafny
 #region CheckTypeCharacteristics
     void CheckTypeCharacteristics_Stmt(Statement stmt, bool isGhost) {
       Contract.Requires(stmt != null);
-      var v0 = new CheckTypeCharacteristics_Visitor(this);
-      v0.Visit(stmt, false);
-      var v1 = new CheckEqualityTypes_Visitor(this);
-      v1.Visit(stmt, isGhost);
+      var v = new CheckEqualityTypes_Visitor(this);
+      v.Visit(stmt, isGhost);
     }
     void CheckTypeCharacteristics_Expr(Expression expr, bool isGhost) {
       Contract.Requires(expr != null);
-      var v0 = new CheckTypeCharacteristics_Visitor(this);
-      v0.Visit(expr, false);
-      var v1 = new CheckEqualityTypes_Visitor(this);
-      v1.Visit(expr, isGhost);
+      var v = new CheckEqualityTypes_Visitor(this);
+      v.Visit(expr, isGhost);
     }
     public void CheckTypeCharacteristics_Type(IToken tok, Type type, bool isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(type != null);
-      var v0 = new CheckTypeCharacteristics_Visitor(this);
-      v0.VisitType(tok, type);
-      var v1 = new CheckEqualityTypes_Visitor(this);
-      v1.VisitType(tok, type, isGhost);
+      var v = new CheckEqualityTypes_Visitor(this);
+      v.VisitType(tok, type, isGhost);
     }
 
     /// <summary>
     /// This visitor checks that type characteristics are respected in all (implicitly or explicitly)
-    /// declared types.
-    /// Note, equality support is not checked here, because equality-support is restricted only in
-    /// compiled contexts. Instead, equality support is checked in CheckEqualityTypes_Visitor.
+    /// declared types. Note that equality-support is checked only in compiled contexts.
+    /// In addition, this visitor checks that operations that require equality are applied to
+    /// types that really do support equality; this, too, is checked only in compiled contexts.
     /// </summary>
-    class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool>
-    {
-      public CheckTypeCharacteristics_Visitor(Resolver resolver)
-        : base(resolver) {
-        Contract.Requires(resolver != null);
-      }
-      protected override bool VisitOneStmt(Statement stmt, ref bool st) {
-        if (stmt is VarDeclStmt) {
-          var s = (VarDeclStmt)stmt;
-          foreach (var v in s.Locals) {
-            VisitType(v.Tok, v.Type);
-          }
-        } else if (stmt is VarDeclPattern) {
-          var s = (VarDeclPattern)stmt;
-          foreach (var v in s.LocalVars) {
-            VisitType(v.Tok, v.Type);
-          }
-        } else if (stmt is AssignStmt) {
-          var s = (AssignStmt)stmt;
-          if (s.Rhs is TypeRhs tRhs && tRhs.Type is UserDefinedType) {
-            var udt = (UserDefinedType)tRhs.Type;
-            CheckTypeInstantiation(tRhs.Tok, "type", udt.ResolvedClass.Name, udt.ResolvedClass.TypeArgs, tRhs.Type.TypeArgs);
-          }
-        } else if (stmt is CallStmt) {
-          var s = (CallStmt)stmt;
-          CheckTypeInstantiation(s.Tok, s.Method.WhatKind, s.Method.Name, s.Method.TypeArgs, s.MethodSelect.TypeApplication_JustMember);
-        } else if (stmt is ForallStmt) {
-          var s = (ForallStmt)stmt;
-          foreach (var v in s.BoundVars) {
-            VisitType(v.Tok, v.Type);
-          }
-        }
-        return true;
-      }
-
-      protected override bool VisitOneExpr(Expression expr, ref bool st) {
-        if (expr is ComprehensionExpr) {
-          var e = (ComprehensionExpr)expr;
-          foreach (var bv in e.BoundVars) {
-            VisitType(bv.tok, bv.Type);
-          }
-        } else if (expr is LetExpr) {
-          var e = (LetExpr)expr;
-          foreach (var bv in e.BoundVars) {
-            VisitType(bv.tok, bv.Type);
-          }
-        } else if (expr is ConversionExpr) {
-          var e = (ConversionExpr)expr;
-          VisitType(e.tok, e.ToType);
-        } else if (expr is FunctionCallExpr) {
-          var e = (FunctionCallExpr)expr;
-          CheckTypeInstantiation(e.tok, e.Function.WhatKind, e.Function.Name, e.Function.TypeArgs, e.TypeApplication_JustFunction);
-        } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is SeqConstructionExpr || expr is MultiSetFormingExpr || expr is StaticReceiverExpr) {
-          // This catches other expressions whose type may potentially be illegal
-          VisitType(expr.tok, expr.Type);
-        }
-        return true;
-      }
-
-      void CheckTypeInstantiation(IToken tok, string what, string className, List<TypeParameter> formalTypeArgs, List<Type> actualTypeArgs) {
-        Contract.Requires(tok != null);
-        Contract.Requires(what != null);
-        Contract.Requires(className != null);
-        Contract.Requires(formalTypeArgs != null);
-        Contract.Requires(actualTypeArgs != null);
-        Contract.Requires(formalTypeArgs.Count == actualTypeArgs.Count);
-
-        for (var i = 0; i < formalTypeArgs.Count; i++) {
-          var formal = formalTypeArgs[i];
-          var actual = actualTypeArgs[i];
-          string whatIsWrong, hint;
-          if (!CheckCharacteristics(formal.Characteristics, actual, out whatIsWrong, out hint)) {
-            resolver.reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to {2} {3} must support {4} (got {5}){6}",
-              actualTypeArgs.Count == 1 ? "" : " " + i, formal.Name, what, className, whatIsWrong, actual, hint);
-          }
-          VisitType(tok, actual);
-        }
-      }
-
-      bool CheckCharacteristics(TypeParameter.TypeParameterCharacteristics formal, Type actual, out string whatIsWrong, out string hint) {
-        Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out whatIsWrong) != null && Contract.ValueAtReturn(out hint) != null));
-        if (formal.HasCompiledValue && !actual.HasCompilableValue) {
-          whatIsWrong = "auto-initialization";
-          hint = "";
-          return false;
-        }
-        if (formal.IsNonempty && !actual.IsNonempty) {
-          whatIsWrong = "nonempty";
-          hint = "";
-          return false;
-        }
-        if (formal.ContainsNoReferenceTypes && !actual.IsAllocFree) {
-          whatIsWrong = "no references";
-          hint = "";
-          return false;
-        }
-        whatIsWrong = null;
-        hint = null;
-        return true;
-      }
-
-      public void VisitType(IToken tok, Type type) {
-        Contract.Requires(tok != null);
-        Contract.Requires(type != null);
-        type = type.Normalize();  // we only do a .Normalize() here, because we want to keep stop at any type synonym or subset type
-        if (type is BasicType) {
-          // fine
-        } else if (type is CollectionType) {
-          var ct = (CollectionType)type;
-          foreach (var argType in ct.TypeArgs) {
-            VisitType(tok, argType);
-          }
-
-        } else if (type is UserDefinedType) {
-          var udt = (UserDefinedType)type;
-          List<TypeParameter> formalTypeArgs = null;
-          if (udt.ResolvedClass != null) {
-            formalTypeArgs = udt.ResolvedClass.TypeArgs;
-          } else if (udt.ResolvedParam is OpaqueType_AsParameter) {
-            var t = (OpaqueType_AsParameter)udt.ResolvedParam;
-            formalTypeArgs = t.TypeArgs;
-          }
-          if (formalTypeArgs == null) {
-            Contract.Assert(udt.TypeArgs.Count == 0);
-          } else {
-            CheckTypeInstantiation(udt.tok, "type", udt.ResolvedClass.Name, formalTypeArgs, udt.TypeArgs);
-          }
-
-        } else if (type is TypeProxy) {
-          // the type was underconstrained; this is checked elsewhere, but it is not in violation of the type-characteristic tests
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
-        }
-      }
-    }
-
-#endregion CheckTypeCharacteristics
-
-    // ------------------------------------------------------------------------------------------------------
-    // ----- CheckEqualityTypes -----------------------------------------------------------------------------
-    // ------------------------------------------------------------------------------------------------------
-#region CheckEqualityTypes
-    /// <summary>
-    /// The CheckEqualityTypes_Visitor checks that operations that require equality are applied to
-    /// types that really do support equality. In addition, it checks that a formal type parameter
-    /// marked with (==) is only instantiated with equality-supporting types. Both of these checks
-    /// apply only in compiled contexts, so the visitor ignores ghost statements and expressions in
-    /// ghost contexts.
-    /// </summary>
+    /// TODO: Rename CheckEqualityTypes_Visitor to CheckTypeCharacteristics_Visitor
     class CheckEqualityTypes_Visitor : ResolverTopDownVisitor<bool>
     {
       public CheckEqualityTypes_Visitor(Resolver resolver)
@@ -8160,16 +8006,39 @@ namespace Microsoft.Dafny
         for (var i = 0; i < formalTypeArgs.Count; i++) {
           var formal = formalTypeArgs[i];
           var actual = actualTypeArgs[i];
-          if (!inGhostContext) {
-            if (formal.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified && !actual.SupportsEquality) {
-              var whatIsWrong = "equality";
-              var hint = TypeEqualityErrorMessageHint(actual);
-              resolver.reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to {2} {3} must support {4} (got {5}){6}",
-                actualTypeArgs.Count == 1 ? "" : " " + i, formal.Name, what, className, whatIsWrong, actual, hint);
-            }
+          if (!CheckCharacteristics(formal.Characteristics, actual, inGhostContext, out var whatIsWrong, out var hint)) {
+            resolver.reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to {2} {3} must support {4} (got {5}){6}",
+              actualTypeArgs.Count == 1 ? "" : " " + i, formal.Name, what, className, whatIsWrong, actual, hint);
           }
           VisitType(tok, actual, inGhostContext);
         }
+      }
+
+      bool CheckCharacteristics(TypeParameter.TypeParameterCharacteristics formal, Type actual, bool inGhostContext, out string whatIsWrong, out string hint) {
+        Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out whatIsWrong) != null && Contract.ValueAtReturn(out hint) != null));
+        if (!inGhostContext && formal.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified && !actual.SupportsEquality) {
+          whatIsWrong = "equality";
+          hint = TypeEqualityErrorMessageHint(actual);
+          return false;
+        }
+        if (formal.HasCompiledValue && !actual.HasCompilableValue) {
+          whatIsWrong = "auto-initialization";
+          hint = "";
+          return false;
+        }
+        if (formal.IsNonempty && !actual.IsNonempty) {
+          whatIsWrong = "nonempty";
+          hint = "";
+          return false;
+        }
+        if (formal.ContainsNoReferenceTypes && !actual.IsAllocFree) {
+          whatIsWrong = "no references";
+          hint = "";
+          return false;
+        }
+        whatIsWrong = null;
+        hint = null;
+        return true;
       }
 
       string TypeEqualityErrorMessageHint(Type argType) {
@@ -8182,7 +8051,7 @@ namespace Microsoft.Dafny
       }
     }
 
-#endregion CheckEqualityTypes
+#endregion CheckTypeCharacteristics
 
     // ------------------------------------------------------------------------------------------------------
     // ----- ComputeGhostInterest ---------------------------------------------------------------------------
