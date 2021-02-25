@@ -803,7 +803,7 @@ module GhostLetExpr {
     var x;
     var g := G(x, y);
     ghost var h := ghost var ta := F(); 5;
-    var j; j := var tb := F(); 5;  // tb is ghost, j is not
+    var j; j := var tb := F(); 5;  // fine (tb is ghost, j is not, but RHS body doesn't depend on tb)
     assert h == j;
   }
 
@@ -833,7 +833,7 @@ module GhostLetExpr {
     if e then
       G(5, F())
     else
-      var xyz := F();  // error: 'xyz' needs to be declared ghost to allow this
+      var xyz := F();  // fine, because 'xyz' becomes ghost automatically
       G(5, xyz)
   }
 }
@@ -3188,7 +3188,7 @@ module TypeCharacteristicsInGhostCode {
       var c := k == l;  // error: this requires T to support equality
       0;
     lhs :=
-      ghost var d := m == n;  // fine, since d is implicitly ghost (BOGUS: should not need explicit "ghost" keyword here)
+      var d := m == n;  // fine, since d is implicitly ghost
       0;
 
     ghost var ghostLhs;
@@ -3243,4 +3243,29 @@ module TypeCharacteristicsInGhostCode {
     const x := (CallMyLemma(MustSupportEquality<NoEquality>(), MustBeNonempty<PossiblyEmpty>()); 23)  // error: about MustBeNonempty (no prob with (==))
   }
   lemma CallMyLemma(x: int, y: int)
+}
+
+module MoreAutoGhostTests {
+  datatype Quad<T, U> = Quad(0: T, 1: T, ghost 2: U, ghost 3: U)
+
+  method SomeLetVarsAreGhost0(q: Quad<int, int>) returns (r: int) {
+    r :=
+      var Quad(k, l, m, n) := q;  // k,l are compiled; m,n are ghost
+      k + l;
+  }
+
+  method SomeLetVarsAreGhost1(q: Quad<int, int>) returns (r: int) {
+    r :=
+      var Quad(k, l, m, n) := q;  // k,l are compiled; m,n are ghost
+      m;  // error: m is ghost
+  }
+
+  method AssignSuchThat(ghost m: int) {
+    var d :| d == m;  // error: LHS is not inferred to be ghost for :|
+  }
+
+  function method LetSuchThat(ghost m: int): int {
+    var d :| d == m;  // error: LHS is not inferred to be ghost for :|
+    0
+  }
 }

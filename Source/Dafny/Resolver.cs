@@ -16506,7 +16506,9 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Generate an error for every ghost feature used in "expr".
+    /// Try to make "expr" compilable (in particular, mark LHSs of a let-expression as ghosts if
+    /// the corresponding RHS is ghost), and then report errors for every part that would prevent
+    /// compilation.
     /// Requires "expr" to have been successfully resolved.
     /// </summary>
     void CheckIsCompilable(Expression expr) {
@@ -16603,7 +16605,17 @@ namespace Microsoft.Dafny
           Contract.Assert(e.LHSs.Count == e.RHSs.Count);
           var i = 0;
           foreach (var ee in e.RHSs) {
-            if (!e.LHSs[i].Vars.All(bv => bv.IsGhost)) {
+            var lhs = e.LHSs[i];
+            // Make LHS vars ghost if the RHS is a ghost
+            if (UsesSpecFeatures(ee)) {
+              foreach (var bv in lhs.Vars) {
+                if (!bv.IsGhost) {
+                  bv.MakeGhost();
+                }
+              }
+            }
+
+            if (!lhs.Vars.All(bv => bv.IsGhost)) {
               CheckIsCompilable(ee);
             }
             i++;
