@@ -7665,18 +7665,18 @@ namespace Microsoft.Dafny
 #region CheckTypeCharacteristics
     void CheckTypeCharacteristics_Stmt(Statement stmt, bool isGhost) {
       Contract.Requires(stmt != null);
-      var v = new CheckEqualityTypes_Visitor(this);
+      var v = new CheckTypeCharacteristics_Visitor(this);
       v.Visit(stmt, isGhost);
     }
     void CheckTypeCharacteristics_Expr(Expression expr, bool isGhost) {
       Contract.Requires(expr != null);
-      var v = new CheckEqualityTypes_Visitor(this);
+      var v = new CheckTypeCharacteristics_Visitor(this);
       v.Visit(expr, isGhost);
     }
     public void CheckTypeCharacteristics_Type(IToken tok, Type type, bool isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(type != null);
-      var v = new CheckEqualityTypes_Visitor(this);
+      var v = new CheckTypeCharacteristics_Visitor(this);
       v.VisitType(tok, type, isGhost);
     }
 
@@ -7686,10 +7686,9 @@ namespace Microsoft.Dafny
     /// In addition, this visitor checks that operations that require equality are applied to
     /// types that really do support equality; this, too, is checked only in compiled contexts.
     /// </summary>
-    /// TODO: Rename CheckEqualityTypes_Visitor to CheckTypeCharacteristics_Visitor
-    class CheckEqualityTypes_Visitor : ResolverTopDownVisitor<bool>
+    class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool>
     {
-      public CheckEqualityTypes_Visitor(Resolver resolver)
+      public CheckTypeCharacteristics_Visitor(Resolver resolver)
         : base(resolver) {
         Contract.Requires(resolver != null);
       }
