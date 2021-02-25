@@ -102,7 +102,7 @@ TraitResolution1.dfy(536,28): Error: set argument type must support equality (go
 TraitResolution1.dfy(537,41): Error: type parameter (X) passed to type RequiresZero must support auto-initialization (got Forever)
 TraitResolution1.dfy(538,41): Error: type parameter (X) passed to type RequiresZero must support auto-initialization (got Forever)
 TraitResolution1.dfy(504,18): Error: type parameter (Y) passed to type ClassRequiresZero must support auto-initialization (got Forever)
-TraitResolution1.dfy(504,14): Error: type parameter (Y) passed to type ClassRequiresZero must support auto-initialization (got Forever)
+TraitResolution1.dfy(504,18): Error: type parameter (Y) passed to type ClassRequiresZero must support auto-initialization (got Forever)
 TraitResolution1.dfy(507,44): Error: type parameter (Y) passed to type ClassRequiresZero must support auto-initialization (got Forever)
 TraitResolution1.dfy(543,18): Error: a trait can only extend traits (found 'object?')
 TraitResolution1.dfy(545,18): Error: a class can only extend traits (found 'object?')
