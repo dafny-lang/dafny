@@ -8020,19 +8020,23 @@ namespace Microsoft.Dafny
           hint = TypeEqualityErrorMessageHint(actual);
           return false;
         }
+        var tp = actual.AsTypeParameter;
         if (formal.HasCompiledValue && (inGhostContext ? !actual.IsNonempty : !actual.HasCompilableValue)) {
           whatIsWrong = "auto-initialization";
-          hint = "";
+          hint = tp == null ? "" :
+            string.Format(" (perhaps try declaring type parameter '{0}' on line {1} as '{0}(0)', which says it can only be instantiated with a type that supports auto-initialization)", tp.Name, tp.tok.line);
           return false;
         }
         if (formal.IsNonempty && !actual.IsNonempty) {
           whatIsWrong = "nonempty";
-          hint = "";
+          hint = tp == null ? "" :
+            string.Format(" (perhaps try declaring type parameter '{0}' on line {1} as '{0}(00)', which says it can only be instantiated with a nonempty type)", tp.Name, tp.tok.line);
           return false;
         }
         if (formal.ContainsNoReferenceTypes && !actual.IsAllocFree) {
           whatIsWrong = "no references";
-          hint = "";
+          hint = tp == null ? "" :
+            string.Format(" (perhaps try declaring type parameter '{0}' on line {1} as '{0}(!new)', which says it can only be instantiated with a type that contains no references)", tp.Name, tp.tok.line);
           return false;
         }
         whatIsWrong = null;

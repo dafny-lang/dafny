@@ -3076,7 +3076,7 @@ module TypeCharacteristicsInGhostCode {
   class Class { }
   type Good = bool
 
-  method TestCompiled()
+  method TestCompiled<Z>()
   {
     var w;
 
@@ -3085,24 +3085,28 @@ module TypeCharacteristicsInGhostCode {
     w := MustBeNonempty<NoEquality>();
     w := MustBeNonempty<Class?>();
     w := MustBeNonempty<Good>();
+    w := MustBeNonempty<Z>();  // error (a hint is given)
 
     w := MustBeAutoInit<PossiblyEmpty>();  // error
     w := MustBeAutoInit<Nonempty>();  // error
     w := MustBeAutoInit<NoEquality>();
     w := MustBeAutoInit<Class?>();
     w := MustBeAutoInit<Good>();
+    w := MustBeAutoInit<Z>();  // error (a hint is given)
 
     w := MustSupportEquality<PossiblyEmpty>();
     w := MustSupportEquality<Nonempty>();
     w := MustSupportEquality<NoEquality>();  // error
     w := MustSupportEquality<Class?>();
     w := MustSupportEquality<Good>();
+    w := MustSupportEquality<Z>();  // error (a hint is given)
 
     w := NoReferences<PossiblyEmpty>();
     w := NoReferences<Nonempty>();
     w := NoReferences<NoEquality>();
     w := NoReferences<Class?>();  // error
     w := NoReferences<Good>();
+    w := NoReferences<Z>();  // error (a hint is given)
   }
 
   method TestGhost()
