@@ -8020,7 +8020,7 @@ namespace Microsoft.Dafny
           hint = TypeEqualityErrorMessageHint(actual);
           return false;
         }
-        if (formal.HasCompiledValue && !actual.HasCompilableValue) {
+        if (formal.HasCompiledValue && (inGhostContext ? !actual.IsNonempty : !actual.HasCompilableValue)) {
           whatIsWrong = "auto-initialization";
           hint = "";
           return false;

@@ -3116,7 +3116,7 @@ module TypeCharacteristicsInGhostCode {
     w := MustBeNonempty<Good>();
 
     w := MustBeAutoInit<PossiblyEmpty>();  // error
-    w := MustBeAutoInit<Nonempty>();  // error
+    w := MustBeAutoInit<Nonempty>();  // fine, because the call appears in a ghost context
     w := MustBeAutoInit<NoEquality>();
     w := MustBeAutoInit<Class?>();
     w := MustBeAutoInit<Good>();
@@ -3267,5 +3267,79 @@ module MoreAutoGhostTests {
   function method LetSuchThat(ghost m: int): int {
     var d :| d == m;  // error: LHS is not inferred to be ghost for :|
     0
+  }
+}
+
+module RelaxedAutoInitChecking {
+  // In a ghost context, the (==) is never relevant. Therefore, checking of adherence to (==) for
+  // type arguments is suppressed in ghost contexts.
+  // Similarly, in a ghost context, there's no difference between (0) and (00). Therefore, a
+  // formal parameter that expects (0) can take either a (0) or a (00) in a ghost context.
+
+  function method MustBeNonempty<T(00)>(): int { 5 }
+  function method MustBeAutoInit<T(0)>(): int { 5 }
+  function method MustSupportEquality<T(==)>(): int { 5 }
+  function method NoReferences<T(!new)>(): int { 5 }
+
+  type PossiblyEmpty = x: int | true witness *
+  type Nonempty = x: int | true ghost witness 0
+  datatype NoEquality = NoEquality(ghost u: int)
+  class Class { }
+  type Good = bool
+
+  method M(compiledValue: int, ghost ghostValue: int)
+
+  method TestCompiled()
+  {
+    M(MustBeNonempty<PossiblyEmpty>(), 0);  // error
+    M(MustBeNonempty<Nonempty>(), 0);
+    M(MustBeNonempty<NoEquality>(), 0);
+    M(MustBeNonempty<Class?>(), 0);
+    M(MustBeNonempty<Good>(), 0);
+
+    M(MustBeAutoInit<PossiblyEmpty>(), 0);  // error
+    M(MustBeAutoInit<Nonempty>(), 0);  // error
+    M(MustBeAutoInit<NoEquality>(), 0);
+    M(MustBeAutoInit<Class?>(), 0);
+    M(MustBeAutoInit<Good>(), 0);
+
+    M(MustSupportEquality<PossiblyEmpty>(), 0);
+    M(MustSupportEquality<Nonempty>(), 0);
+    M(MustSupportEquality<NoEquality>(), 0);  // error
+    M(MustSupportEquality<Class?>(), 0);
+    M(MustSupportEquality<Good>(), 0);
+
+    M(NoReferences<PossiblyEmpty>(), 0);
+    M(NoReferences<Nonempty>(), 0);
+    M(NoReferences<NoEquality>(), 0);
+    M(NoReferences<Class?>(), 0);  // error
+    M(NoReferences<Good>(), 0);
+  }
+
+  method TestGhost()
+  {
+    M(0, MustBeNonempty<PossiblyEmpty>());  // error
+    M(0, MustBeNonempty<Nonempty>());
+    M(0, MustBeNonempty<NoEquality>());
+    M(0, MustBeNonempty<Class?>());
+    M(0, MustBeNonempty<Good>());
+
+    M(0, MustBeAutoInit<PossiblyEmpty>());  // error
+    M(0, MustBeAutoInit<Nonempty>());  // this is fine in a ghost context
+    M(0, MustBeAutoInit<NoEquality>());
+    M(0, MustBeAutoInit<Class?>());
+    M(0, MustBeAutoInit<Good>());
+
+    M(0, MustSupportEquality<PossiblyEmpty>());
+    M(0, MustSupportEquality<Nonempty>());
+    M(0, MustSupportEquality<NoEquality>());  // this is fine in a ghost context
+    M(0, MustSupportEquality<Class?>());
+    M(0, MustSupportEquality<Good>());
+
+    M(0, NoReferences<PossiblyEmpty>());
+    M(0, NoReferences<Nonempty>());
+    M(0, NoReferences<NoEquality>());
+    M(0, NoReferences<Class?>());  // error
+    M(0, NoReferences<Good>());
   }
 }
