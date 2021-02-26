@@ -83,7 +83,7 @@ This can be made clearer in the program text by declaring the method with `lemma
 
 Here is an example method that takes 3 integers as in-parameters and returns these in 3 out-parameters in sorted order:
 ```
-method Sort(a: int b: int, c: int) returns (x: int, y: int, z: int)
+method Sort(a: int, b: int, c: int) returns (x: int, y: int, z: int)
   ensures x <= y <= z && multiset{a, b, c} == multiset{x, y, z}
 {
   x, y, z := a, b, c;
@@ -324,7 +324,7 @@ Finally, to make a sequence from some elements, enclose them in square brackets.
 For example, `[x,y]` is the sequence consisting of the two elements `x` and `y` such that `[x,y][0] == x` and `[x,y][1] == y`, `[x]` is the singleton sequence whose only element is `x`, and `[]` is the empty sequence.
 
 
-The if-then-else expression has the form: `if BoolExpr then Expr0 else Else1`
+The if-then-else expression has the form: `if BoolExpr then Expr0 else Expr1`
 
 where Expr0 and Expr1 are any expressions of the same type.
 Unlike the if statement, the if-then-else expression uses the `then` keyword, and must include an explicit `else` branch.
