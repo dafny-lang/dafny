@@ -386,10 +386,10 @@ namespace Microsoft.Dafny
         Console.WriteLine();
         Console.Write("{0} did not attempt verification", CommandLineOptions.Clo.DescriptiveToolName);
         if (stats.InconclusiveCount != 0) {
-          Console.Write(", {0} inconclusive{1}", stats.InconclusiveCount, stats.InconclusiveCount == 1 ? "" : "s");
+          Console.Write(", {0} inconclusive{1}", stats.InconclusiveCount, Util.Plural(stats.InconclusiveCount));
         }
         if (stats.TimeoutCount != 0) {
-          Console.Write(", {0} time out{1}", stats.TimeoutCount, stats.TimeoutCount == 1 ? "" : "s");
+          Console.Write(", {0} time out{1}", stats.TimeoutCount, Util.Plural(stats.TimeoutCount));
         }
         if (stats.OutOfMemoryCount != 0) {
           Console.Write(", {0} out of memory", stats.OutOfMemoryCount);

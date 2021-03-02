@@ -12403,7 +12403,7 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < callee.Ins.Count; i++) {
         var formal = callee.Ins[i];
-        var local = new LocalVariable(formal.tok, formal.tok, formal.Name + "#", formal.Type, formal.IsGhost);
+        var local = new LocalVariable(formal.tok, formal.tok, formal.Name + "#", Resolver.SubstType(formal.Type, tySubst), formal.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -12435,11 +12435,11 @@ namespace Microsoft.Dafny {
           // Check the subrange without boxing
           var beforeBox = etran.TrExpr(actual);
           CheckSubrange(actual.tok, beforeBox, actual.Type, Resolver.SubstType(formal.Type, tySubst), builder);
-          bActual = CondApplyBox(actual.tok, beforeBox, actual.Type, formal.Type);
+          bActual = CondApplyBox(actual.tok, beforeBox, actual.Type, Resolver.SubstType(formal.Type, tySubst));
         }
         Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.tok, param, bActual);
         builder.Add(cmd);
-        ins.Add(param);
+        ins.Add(CondApplyBox(param.tok, param, Resolver.SubstType(formal.Type, tySubst), formal.Type));
       }
 
       // Check that every parameter is available in the state in which the method is invoked; this means checking that it has
