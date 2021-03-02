@@ -72,7 +72,7 @@ jobs:
         path: dafny
     - name: Create release
       run: |
-        python dafny/Scripts/package.py 0.0.0-CI --os ${{ matrix.os_for_build }} --skip_manual=true --trial=true --out=CI.zip
+        python dafny/Scripts/package.py 0.0.0-CI --os ${{ matrix.os_for_build }} --skip_manual=true --trial=true --github_secret=${{ secrets.GITHUB_TOKEN }} --out=CI.zip
     - if: runner.os == 'Windows'
       shell: pwsh
       run: |
