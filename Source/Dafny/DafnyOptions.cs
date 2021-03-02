@@ -844,6 +844,11 @@ namespace Microsoft.Dafny
     Immediate and Transitive will exit after printing.
 /disableScopes
     Treat all export sets as 'export reveal *'. i.e. don't hide function bodies
-    or type definitions during translation.";
+    or type definitions during translation.
+
+Dafny generally accepts Boogie options and passes these on to Boogie. However,
+some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
+have the same meaning for a Dafny program as it would for a similar Boogie
+program.";
   }
 }

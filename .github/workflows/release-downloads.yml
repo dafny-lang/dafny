@@ -3,12 +3,8 @@ name: Test Release Downloads
 #### For a new release: Change 'ver' in the strategy
 
 on:
-  workflow_dispatch:
-    branches: [ master ]
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  release:
+    types: [ published ]
 
 jobs:
   build:
@@ -43,7 +39,10 @@ jobs:
     - name: Download ${{matrix.os}} releases
       if: runner.os != 'Windows'
       run: |
-        wget -q `curl --silent "https://api.github.com/repos/dafny-lang/dafny/releases/latest" | grep 'browser_download_url' |  grep "${{matrix.osn}}" | sed -e 's@"browser_download_url":@@' -e 's@"@@g'`
+        curl --silent "https://api.github.com/repos/dafny-lang/dafny/releases/latest" \
+          --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+          | grep 'browser_download_url' > tmp.curl.out
+        wget -q `grep "${{matrix.osn}}" tmp.curl.out | sed -e 's@"browser_download_url":@@' -e 's@"@@g'`
         unzip dafny*.zip && rm dafny*.zip
     - if: runner.os == 'Windows'
       shell: pwsh
