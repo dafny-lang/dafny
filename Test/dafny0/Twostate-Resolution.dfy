@@ -339,3 +339,180 @@ module PrintTest {
     var rr := 2; x % rr == 0
     ghost witness var ww := 2; ww + 8
 }
+
+module TwoStateAt {
+  class Cell {
+    var data: int
+    constructor (x: int)
+      ensures data == x
+    {
+      data := x;
+    }
+
+    static twostate function Sum<Y>(c: Cell, y: Y): int
+      reads c
+    {
+      c.Plus<Y>(y)
+    }
+
+    twostate function Plus<Y>(y: Y): int
+      reads this
+    {
+      SP<Y>(this, y)
+    }
+
+    twostate lemma LL<Y>(y: Y)
+      ensures old(data) < data
+    {
+      var g := data;
+      IdentityLemma<Y>(this, y);
+      Cell.IdentityLemma<int>(this, 0);
+      this.IdentityLemma<Y>(this, y);
+      assert data == g;
+    }
+
+    static twostate lemma IdentityLemma<Y>(c: Cell, y: Y) {
+      assert old(c.data) == c.data;
+    }
+
+    function method G(): int { 32 }
+    lemma Theorem() { }
+  }
+
+  twostate function SP<Y>(c: Cell, y: Y): int
+    reads c
+  {
+    old(c.data) + c.data
+  }
+
+  function F(): int { 9 }
+
+  method Test<Y>(c: Cell, b: bool, y: Y)
+    requires c.data == 2
+    modifies c
+  {
+    assert c.Plus(0) == 4;
+    c.data := c.data + 3;
+    label Five:
+    assert Cell.Sum(c, y) == 7;
+    assert Cell.Sum<int>@Five(c, 0) == 10;
+    assert Cell.Sum@Five(c, 0) == 10;
+    assert Cell.Sum<Y>@Five(c, y) == 10;
+    assert Cell.Sum@Five(c, y) == 10;
+
+    c.data := c.data + 1;
+    assert SP<bv3>(c, 0) == 8;
+    assert SP<Y>@DoesNotExist(c, y) == 11;  // error: label does not exist
+
+    if b {
+      label OnlyB:
+      c.data := c.data + 10;
+    } else {
+      c.data := c.data + 20;
+    }
+    label PostIf:
+
+    assert c.Plus<Y>@OnlyB(y) == 16 || c.Plus<int>@Five(0) == 26;  // error: usage is not dominated by OnlyB
+    assert b ==> Cell.Sum@PostIf(c, y) == 32;
+
+    ghost var z := F@Five();  // error: F is not a two-state function
+  }
+
+  twostate lemma TwoLemma<Y>(c: Cell, y: Y)
+    requires 2 * old(c.data) <= Cell.Sum<Y>(c, y)
+    ensures old(c.data) <= SP<int>(c, 0) == SP<Y>(c, y) == c.Plus(0)
+  {
+  }
+
+  method CallLemmas<Y>(c: Cell, b: bool, y: Y)
+    modifies c
+  {
+    c.data := c.data + 1;
+    label OneMore:
+    if -1 <= old(c.data) {
+      TwoLemma<Y>(c, y);
+    }
+
+    c.data := c.data + 4;
+    label FiveMore:
+    TwoLemma<int>@OneMore(c, 0);
+
+    if b {
+      c.data := c.data - 10;
+      TwoLemma<Y>@FiveMore(c, y);
+    } else {
+      c.data := c.data + 2;
+      TwoLemma<int>@After(c, 0);  // error: After is not in scope
+    }
+    c.LL(y);
+    c.LL<Y>(y);
+    c.LL<bv3>(0);
+    label After:
+
+    var g := c.G@FiveMore();  // error: G is not a two-state lemma
+    c.Theorem@OneMore();  // error: Theorem is not a two-state lemma
+  }
+
+  method ExprAt(c: Cell, f: int -> int, g: int -> int, b: bool) {
+    label L:
+    var plus := c.Plus<int>;
+    var xL := plus@L(0);  // error: cannot apply @L to an expression LHS
+    // Note, the following two lines are rejected by the parser
+    // var plusL := c.Plus<int>@L; // error (this could be allowed, but isn't supported yet)
+    // var e := (if b then f else g)@L(0); // error (this never makes sense)
+  }
+
+  twostate lemma ReturnSomething(c: Cell) returns (x: int, d: Cell) {
+    d := c;
+  }
+
+  method CallTwo(c: Cell)
+    modifies c
+  {
+    c.data := 16;
+    label L:
+    var x, d := ReturnSomething@L(c);
+  }
+
+  function {:opaque} OrdinaryOpaque(): int { 12 }
+  method UseOrdinaryOpaque() {
+    label L:
+    reveal OrdinaryOpaque();
+    reveal OrdinaryOpaque;  // error (admittedly, a poor error message)
+    reveal OrdinaryOpaque@K();  // error: label K not in scope
+    reveal OrdinaryOpaque@L();  // error: @ can only be applied to something two-state (error message can be improved)
+  }
+  function FuncUseOrdinaryOpaque(): int {
+    reveal OrdinaryOpaque();
+    reveal OrdinaryOpaque;  // error (admittedly, a poor error message)
+    reveal OrdinaryOpaque@K();  // error: label K not in scope
+    10
+  }
+  twostate function {:opaque} Opaque(): int { 12 }
+  method UseOpaque() {
+    label L:
+    reveal Opaque();
+    reveal Opaque;  // error (admittedly, a poor error message)
+    reveal Opaque@K();  // error: label K not in scope
+    reveal Opaque@L();  // error: all parameters in a reveal must be implicit, including labels
+  }
+  function FuncUseOpaque(): int {
+    reveal Opaque();  // error: cannot call two-state lemma in one-state function
+    reveal Opaque;  // error (admittedly, a poor error message)
+    reveal Opaque@K();  // error: label K not in scope
+    10
+  }
+  twostate function TwoFuncUseOpaque(): int {
+    reveal Opaque();
+    reveal Opaque;  // error (admittedly, a poor error message)
+    reveal Opaque@K();  // error: label K not in scope
+    10
+  }
+
+  twostate lemma EasyTwo()
+    ensures true
+  function CallEasy(): int {
+    EasyTwo();  // error: two-state lemma cannot be called from one-state function
+    9
+  }
+}

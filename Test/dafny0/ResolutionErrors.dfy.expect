@@ -456,4 +456,10 @@ ResolutionErrors.dfy(2989,5): Error: type parameter (G) passed to method P must 
 ResolutionErrors.dfy(2998,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Y)
 ResolutionErrors.dfy(3001,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Z)
 ResolutionErrors.dfy(3002,9): Error: type parameter (G) passed to function FP must support nonempty (got Z)
-453 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(3019,9): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(3020,9): Error: predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')
+ResolutionErrors.dfy(3021,9): Error: a call to a least predicate is allowed only in specification contexts
+ResolutionErrors.dfy(3022,9): Error: a call to a greatest predicate is allowed only in specification contexts
+ResolutionErrors.dfy(3023,9): Error: a call to a twostate function is allowed only in specification contexts
+ResolutionErrors.dfy(3024,9): Error: a call to a twostate predicate is allowed only in specification contexts
+459 resolution/type errors detected in ResolutionErrors.dfy

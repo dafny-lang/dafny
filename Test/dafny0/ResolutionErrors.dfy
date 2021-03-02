@@ -3003,3 +3003,24 @@ module MoreAutoInitAndNonempty {
     u := FR(z);
   }
 }
+
+// --------------- ghost function error messages ------------------------------
+
+module GhostFunctionErrorMessages {
+  function GhostFunction(): int
+  predicate GhostPredicate()
+  least predicate LeastPredicate()
+  greatest predicate GreatestPredicate()
+  twostate function TwoFunction(): int
+  twostate predicate TwoPredicate()
+
+  method GhostsUsedInCompiledContexts() {
+    var x, b;
+    x := GhostFunction(); // error
+    b := GhostPredicate(); // error
+    b := LeastPredicate(); // error
+    b := GreatestPredicate(); // error
+    x := TwoFunction(); // error
+    b := TwoPredicate(); // error
+  }
+}

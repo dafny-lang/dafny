@@ -472,6 +472,7 @@ bool IsGenericInstantiation(bool inExpressionContext) {
     case _openparen:  // it was probably a type instantiation of a function/method
     case _lbracket:  // it is possible that it was a type instantiation
     case _lbrace:  // it was probably a type instantiation of a function/method
+    case _at:
     // In the following cases, we're sure we must have read a type instantiation that just ended an expression
     case _closeparen:
     case _rbracket:
@@ -810,6 +811,7 @@ TOKENS
   neq = "!=".
   neqAlt = '\u2260'.
   star = '*'.
+  at = '@'.
   notIn = "!in" CONTEXT (nonidchar).
   ellipsis = "...".
   reveal = "reveal".
@@ -4073,19 +4075,23 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
 /*------------------------------------------------------------------------*/
 NameSegment<out Expression e>
 = (. IToken id;
-     IToken openParen = null;  List<Type> typeArgs = null;  List<Expression> args = null;
+     IToken openParen = null; IToken atLabel = null;
+     List<Type> typeArgs = null; List<Expression> args = null;
   .)
   Ident<out id>
   ( IF(IsGenericInstantiation(true))
     (. typeArgs = new List<Type>(); .)
     GenericInstantiation<typeArgs>
+    [ AtCall<out atLabel, out openParen, out args> ]
   | HashCall<id, out openParen, out typeArgs, out args>
-  | /* empty */
+  | [ AtCall<out atLabel, out openParen, out args> ]
   )
   /* Note, since HashCall updates id.val, we make sure not to use id.val until after the possibility of calling HashCall. */
   (. e = new NameSegment(id, id.val, typeArgs);
      if (openParen != null) {
-       e = new ApplySuffix(openParen, e, args);
+       e = new ApplySuffix(openParen, atLabel, e, args);
+     } else {
+       Contract.Assert(atLabel == null);
      }
   .)
   .
@@ -4123,6 +4129,18 @@ HashCall<.IToken id, out IToken openParen, out List<Type> typeArgs, out List<Exp
   .
 
 /*------------------------------------------------------------------------*/
+AtCall<.out IToken atLabel, out IToken openParen, out List<Expression> args.>
+= (. atLabel = null;
+     openParen = null;
+     args = new List<Expression>();
+  .)
+  "@" LabelName<out atLabel>
+  "("                                      (. openParen = t; .)
+    [ Expressions<args> ]
+  ")"
+  .
+
+/*------------------------------------------------------------------------*/
 Suffix<ref Expression e>
 = (. Contract.Requires(e != null); Contract.Ensures(e!=null);
      IToken id, x;
@@ -4145,18 +4163,21 @@ Suffix<ref Expression e>
                                                     id = x;  // move to the next Suffix
                                                   }
                                                   IToken openParen = null;  List<Type> typeArgs = null;  List<Expression> args = null;
+                                                  IToken atLabel = null;
                                                .)
-
 
       ( IF(IsGenericInstantiation(true))
         (. typeArgs = new List<Type>(); .)
         GenericInstantiation<typeArgs>
+        [ AtCall<out atLabel, out openParen, out args> ]
       | HashCall<id, out openParen, out typeArgs, out args>
-      | /* empty */
+      | [ AtCall<out atLabel, out openParen, out args> ]
       )
       (. e = new ExprDotName(id, e, id.val, typeArgs);
          if (openParen != null) {
-           e = new ApplySuffix(openParen, e, args);
+           e = new ApplySuffix(openParen, atLabel, e, args);
+         } else {
+           Contract.Assert(atLabel == null);
          }
       .)
     )
@@ -4228,7 +4249,7 @@ Suffix<ref Expression e>
     "]"
   | "("                                    (. IToken openParen = t; var args = new List<Expression>(); .)
     [ Expressions<args> ]
-    ")"                                    (. e = new ApplySuffix(openParen, e, args); .)
+    ")"                                    (. e = new ApplySuffix(openParen, null, e, args); .)
   )
   .
 
