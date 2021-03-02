@@ -40,9 +40,9 @@ jobs:
       if: runner.os != 'Windows'
       run: |
         curl --silent "https://api.github.com/repos/dafny-lang/dafny/releases/latest" \
-          --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' > tmp.curl.out
-        cat tmp.curl.out
-        wget -q `grep 'browser_download_url' tmp.curl.out |  grep "${{matrix.osn}}" | sed -e 's@"browser_download_url":@@' -e 's@"@@g'`
+          --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+          | grep 'browser_download_url' > tmp.curl.out
+        wget -q `grep "${{matrix.osn}}" tmp.curl.out | sed -e 's@"browser_download_url":@@' -e 's@"@@g'`
         unzip dafny*.zip && rm dafny*.zip
     - if: runner.os == 'Windows'
       shell: pwsh
