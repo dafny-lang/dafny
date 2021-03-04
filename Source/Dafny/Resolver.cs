@@ -9899,7 +9899,7 @@ namespace Microsoft.Dafny
         }
 
         // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for greatest lemmas)
-        ResolveAttributes(m.Attributes, m, new ResolveOpts(m, false));
+        ResolveAttributes(m.Attributes, m, new ResolveOpts(m, m is TwoStateLemma));
 
         DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
         scope.PopMarker();  // for the out-parameters and outermost-level locals
@@ -10562,12 +10562,17 @@ namespace Microsoft.Dafny
           if (labeledAssert != null) {
             s.LabeledAsserts.Add(labeledAssert);
           } else {
-            var opts = new ResolveOpts(codeContext, false, true, false, false);
+            var opts = new ResolveOpts(codeContext, codeContext is Method || codeContext is TwoStateFunction, true, false, false);
             if (expr is ApplySuffix) {
               var e = (ApplySuffix)expr;
               var methodCallInfo = ResolveApplySuffix(e, opts, true);
               if (methodCallInfo == null) {
                 reporter.Error(MessageSource.Resolver, expr.tok, "expression has no reveal lemma");
+              } else if (methodCallInfo.Callee.Member is TwoStateLemma && !opts.twoState) {
+                reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
+              } else if (methodCallInfo.Callee.AtLabel != null) {
+                Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
+                reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
               } else {
                 var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.Args);
                 s.ResolvedStatements.Add(call);
@@ -12388,7 +12393,7 @@ namespace Microsoft.Dafny
     }
 
     private Expression VarDotMethod(IToken tok, string varname, string methodname) {
-      return new ApplySuffix(tok, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<Expression>() { });
+      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<Expression>() { });
     }
 
     private Expression makeTemp(String prefix, AssignOrReturnStmt s, ICodeContext codeContext, Expression ex) {
@@ -14897,7 +14902,7 @@ namespace Microsoft.Dafny
     }
 
     private Expression VarDotFunction(IToken tok, string varname, string functionname) {
-      return new ApplySuffix(tok, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<Expression>() { });
+      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<Expression>() { });
     }
 
     // TODO search for occurrences of "new LetExpr" which could benefit from this helper
@@ -16183,6 +16188,13 @@ namespace Microsoft.Dafny
         // some error had been detected during the attempted resolution of e.Lhs
         e.Lhs.Type = new InferredTypeProxy();
       }
+      Label atLabel = null;
+      if (e.AtTok != null) {
+        atLabel = dominatingStatementLabels.Find(e.AtTok.val);
+        if (atLabel == null) {
+          reporter.Error(MessageSource.Resolver, e.AtTok, "no label '{0}' in scope at this time", e.AtTok.val);
+        }
+      }
       if (r == null) {
         foreach (var arg in e.Args) {
           ResolveExpression(arg, opts);
@@ -16201,8 +16213,15 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, e.tok, "name of type ({0}) is used as a function", ri.Decl.Name);
             }
           } else {
-            if (lhs is MemberSelectExpr && ((MemberSelectExpr)lhs).Member is Method) {
-              var mse = (MemberSelectExpr)lhs;
+            if (lhs is MemberSelectExpr mse && mse.Member is Method) {
+              if (atLabel != null) {
+                Contract.Assert(mse != null); // assured by the parser
+                if (mse.Member is TwoStateLemma) {
+                  mse.AtLabel = atLabel;
+                } else {
+                  reporter.Error(MessageSource.Resolver, e.AtTok, "an @-label can only be applied to a two-state lemma");
+                }
+              }
               if (allowMethodCall) {
                 var cRhs = new MethodCallInformation(e.tok, mse, e.Args);
                 return cRhs;
@@ -16220,6 +16239,10 @@ namespace Microsoft.Dafny
             var what = callee != null ? string.Format("function '{0}'", callee.Name) : string.Format("function type '{0}'", fnType);
             reporter.Error(MessageSource.Resolver, e.tok, "wrong number of arguments to function application ({0} expects {1}, got {2})", what, fnType.Arity, e.Args.Count);
           } else {
+            if (atLabel != null && !(callee is TwoStateFunction)) {
+              reporter.Error(MessageSource.Resolver, e.AtTok, "an @-label can only be applied to a two-state function");
+              atLabel = null;
+            }
             for (var i = 0; i < fnType.Arity; i++) {
               AddAssignableConstraint(e.Args[i].tok, fnType.Args[i], e.Args[i].Type, "type mismatch for argument" + (fnType.Arity == 1 ? "" : " " + i) + " (function expects {0}, got {1})");
             }
@@ -16227,7 +16250,7 @@ namespace Microsoft.Dafny
               // do nothing else; error has been reported
             } else if (callee != null) {
               // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-              var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.Args);
+              var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.Args, atLabel);
               // resolve it here:
               rr.Function = callee;
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
@@ -16386,7 +16409,15 @@ namespace Microsoft.Dafny
         var e = (FunctionCallExpr)expr;
         if (e.Function != null) {
           if (e.Function.IsGhost) {
-            reporter.Error(MessageSource.Resolver, expr, "function calls are allowed only in specification contexts (consider declaring the function a 'function method')");
+            string msg;
+            if (e.Function is TwoStateFunction || e.Function is ExtremePredicate || e.Function is PrefixPredicate) {
+              msg = $"a call to a {e.Function.WhatKind} is allowed only in specification contexts";
+            } else if (e.Function is Predicate) {
+              msg = "predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')";
+            } else {
+              msg = "function calls are allowed only in specification contexts (consider declaring the function a 'function method')";
+            }
+            reporter.Error(MessageSource.Resolver, expr, msg);
             return;
           }
           // function is okay, so check all NON-ghost arguments

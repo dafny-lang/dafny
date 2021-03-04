@@ -3004,6 +3004,27 @@ module MoreAutoInitAndNonempty {
   }
 }
 
+// --------------- ghost function error messages ------------------------------
+
+module GhostFunctionErrorMessages {
+  function GhostFunction(): int
+  predicate GhostPredicate()
+  least predicate LeastPredicate()
+  greatest predicate GreatestPredicate()
+  twostate function TwoFunction(): int
+  twostate predicate TwoPredicate()
+
+  method GhostsUsedInCompiledContexts() {
+    var x, b;
+    x := GhostFunction(); // error
+    b := GhostPredicate(); // error
+    b := LeastPredicate(); // error
+    b := GreatestPredicate(); // error
+    x := TwoFunction(); // error
+    b := TwoPredicate(); // error
+  }
+}
+
 module TypeParameterCount {
   function F0(): int
   function F1<A>(): int
