@@ -18112,7 +18112,10 @@ namespace Microsoft.Dafny {
       var FVsHeapAt = new HashSet<Label>();
       Type usesThis = null;
       ComputeFreeVariables(expr, new HashSet<IVariable>(), ref usesHeap, ref usesOldHeap, FVsHeapAt, ref usesThis);
-      return usesHeap || usesOldHeap || FVsHeapAt.Count != 0 || usesThis != null;
+      if (usesHeap || usesOldHeap || FVsHeapAt.Count != 0) {
+        return true;
+      }
+      return usesThis != null && usesThis.IsRefType;
     }
 
     class UsesHeapVisitor : BottomUpVisitor
