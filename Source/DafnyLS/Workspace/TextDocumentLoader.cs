@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       _notificationPublisher.Started(textDocument);
       var serializedCounterExamples = await _verifier.VerifyAsync(program, cancellationToken);
-      _notificationPublisher.Completed(textDocument, serializedCounterExamples != null);
+      _notificationPublisher.Completed(textDocument, serializedCounterExamples == null);
       return serializedCounterExamples;
     }
   }
