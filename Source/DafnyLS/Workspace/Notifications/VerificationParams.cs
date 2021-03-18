@@ -9,17 +9,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// <summary>
     /// Gets the URI of the document whose verification completed.
     /// </summary>
-    public DocumentUri Uri { get; }
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+    public DocumentUri Uri { get; set; }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
     /// <summary>
     /// Gets the version of the document.
     /// </summary>
-    public long Version { get; }
-
-
-    public VerificationParams(DocumentUri documentUri, long version) {
-      Uri = documentUri;
-      Version = version;
-    }
+    public long Version { get; set; }
   }
 }

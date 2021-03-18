@@ -11,11 +11,18 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public void Started(TextDocumentItem textDocument) {
-      _languageServer.SendNotification(new VerificationStartedParams(textDocument.Uri, textDocument.Version));
+      _languageServer.SendNotification(new VerificationStartedParams {
+        Uri = textDocument.Uri,
+        Version = textDocument.Version,
+      });
     }
 
     public void Completed(TextDocumentItem textDocument, bool verified) {
-      _languageServer.SendNotification(new VerificationCompletedParams(textDocument.Uri, textDocument.Version, verified));
+      _languageServer.SendNotification(new VerificationCompletedParams {
+        Uri = textDocument.Uri,
+        Version = textDocument.Version,
+        Verified = verified
+      });
     }
   }
 }

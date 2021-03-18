@@ -1,5 +1,4 @@
 ﻿using OmniSharp.Extensions.JsonRpc;
-using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   /// <summary>
@@ -7,7 +6,5 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   /// </summary>
   [Method(DafnyRequestNames.VerificationStarted, Direction.ServerToClient)]
   public class VerificationStartedParams : VerificationParams {
-    public VerificationStartedParams(DocumentUri documentUri, long version) : base(documentUri, version) {
-    }
   }
 }

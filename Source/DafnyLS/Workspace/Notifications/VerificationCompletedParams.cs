@@ -1,5 +1,4 @@
 ﻿using OmniSharp.Extensions.JsonRpc;
-using OmniSharp.Extensions.LanguageServer.Protocol;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
   /// <summary>
@@ -10,10 +9,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// <summary>
     /// <c>True</c> if the document has no verification errors.
     /// </summary>
-    public bool? Verified { get; }
-
-    public VerificationCompletedParams(DocumentUri documentUri, long version, bool? verified) : base(documentUri, version) {
-      Verified = verified;
-    }
+    public bool Verified { get; set; }
   }
 }
