@@ -119,12 +119,19 @@ struct get_default<std::shared_ptr<U>> {
  *********************************************************/
 
 template <typename... Types>
-struct TupleBase {
+struct Tuple{
  public:
-  TupleBase() : TupleBase(get_default<Types>::call()...) {}
-  TupleBase(Types... values) : values_(values...) {}
+  Tuple() : Tuple(get_default<Types>::call()...) {}
+  Tuple(Types... values) : values_(values...) {}
 
-  std::tuple<Types...> values_;
+  using StdTuple = std::tuple<Types...>;
+
+  template <std::size_t Index>
+  std::tuple_element_t<Index, StdTuple> get() {
+    return std::get<Index>(values_);
+  }
+
+  StdTuple values_;
 };
 
 template <typename TupleType, int Index = TupleType::size() - 1 >
@@ -135,48 +142,13 @@ std::ostream& PrintElements(const TupleType& tuple, std::ostream& out) {
   return out << std::get<Index>(tuple);
 }
 
+// Use a separate head template parameter to force Tuple to have at least one
+// element. This prevents the compiler from eagerly expanding Tail as an empty
+// list and causing compilation errors.
 template <typename Head, typename... Tail>
-inline std::ostream& operator<<(std::ostream& out, const TupleBase<Head, Tail...>& val){
+inline std::ostream& operator<<(std::ostream& out, const Tuple<Head, Tail...>& val){
   return PrintElements(val.values_);
 }
-
-template <typename T0, typename T1>
-struct Tuple2 : public TupleBase<T0, T1> {
-  using TupleBase<T0, T1>::TupleBase;
-  T0 get_0() const { return std::get<0>(this->values_); }
-  T1 get_1() const { return std::get<1>(this->values_); }
-};
-
-template <typename T0, typename T1, typename T2>
-struct Tuple3 : public TupleBase<T0, T1, T2> {
-  using TupleBase<T0, T1, T2>::TupleBase;
-
-  T0 get_0() const { return std::get<0>(this->values_); }
-  T1 get_1() const { return std::get<1>(this->values_); }
-  T2 get_2() const { return std::get<2>(this->values_); }
-};
-
-template <typename T0, typename T1, typename T2, typename T3>
-struct Tuple4 : public TupleBase<T0, T1, T2, T3> {
-  using TupleBase<T0, T1, T2, T3>::TupleBase;
-
-  T0 get_0() const { return std::get<0>(this->values_); }
-  T1 get_1() const { return std::get<1>(this->values_); }
-  T2 get_2() const { return std::get<2>(this->values_); }
-  T3 get_3() const { return std::get<3>(this->values_); }
-};
-
-template <typename T0, typename T1, typename T2, typename T3, typename T4>
-struct Tuple5 : public TupleBase<T0, T1, T2, T3, T4> {
-  using TupleBase<T0, T1, T2, T3>::TupleBase;
-
-  T0 get_0() const { return std::get<0>(this->values_); }
-  T1 get_1() const { return std::get<1>(this->values_); }
-  T2 get_2() const { return std::get<2>(this->values_); }
-  T3 get_3() const { return std::get<3>(this->values_); }
-  T4 get_4() const { return std::get<4>(this->values_); }
-};
-
 
 /*********************************************************
  *  MATH                                                 *
@@ -759,4 +731,3 @@ struct std::hash<DafnyMap<T,U>> {
         return seed;
     }
 };
-
