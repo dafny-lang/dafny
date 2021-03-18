@@ -76,7 +76,7 @@ The method body is the code contained within the braces,
 which until now has been cleverly represented as "`...`"
 (which is *not* Dafny syntax). The body consists of a
 series of *statements*, such as the familiar imperative
-assignments, if statements, loops, other method calls, return statements, etc.
+assignments, `if` statements, loops, other method calls, `return` statements, etc.
 For example, the `MultipleReturns` method may be
 implemented as:
 
@@ -104,13 +104,13 @@ rather "`:=`". (In fact, as Dafny uses "`==`"
 for equality, there is no use of a single equals sign in Dafny expressions.) Simple statements
 must be followed by a semicolon, and whitespace and comments (`//` and `/**/`) are ignored. To
 return a value from a method, the value is assigned to one of the named return
-values sometime before a return statement. In fact, the return values act very
+values sometime before a `return` statement. In fact, the return values act very
 much like local variables, and can be assigned to more than once. The input
-parameters, however, are read only. Return statements are used when one wants
+parameters, however, are read only. `return` statements are used when one wants
 to return before reaching the end of the body block of the method. Return
-statements can be just the return keyword (where the current value of the out
+statements can be just the `return` keyword (where the current value of the out
 parameters are used), or they can take a list of values to return. There are
-also compound statements, such as if statements. If statements do not require
+also compound statements, such as `if` statements. `if` statements do not require
 parentheses around the boolean condition, and act as one would expect:
 
 ``` {.edit}
@@ -153,7 +153,7 @@ non-negative, is an example of a postcondition: it is something that is true
 after the method returns. Postconditions, declared with the `ensures`
 keyword, are given as part of the method's declaration, after the return values
 (if present) and before the method body. The keyword is followed by the boolean
-expression. Like an if or while
+expression. Like an `if` or `while`
 condition and most specifications, a postcondition is always a boolean
 expression: something that can be *true* or *false*. In
 the case of the `Abs` method, a reasonable postcondition is the following:
@@ -188,7 +188,7 @@ always at least zero.
 
 Sometimes there are multiple properties that we would like
 to establish about our code. In this case, we have two options. We can either
-join the two conditions together with the boolean and operator (`&&`), or
+join the two conditions together with the boolean "and" operator (`&&`), or
 we can write multiple `ensures` specifications. The
 latter is basically the same as the former, but it seperates distinct
 properties. For example, the return value names from the `MultipleReturns`
@@ -236,7 +236,7 @@ method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 
 because of the chaining comparison operator syntax in Dafny.
 (In general, most of the comparison operators can be chained, but only "in one
-direction", i.e. not mixing greater than and less than. See the reference for
+direction", i.e. not mixing "greater than" and "less than". See the reference for
 details.)
 
 The first way of expressing the postconditions separates
@@ -284,10 +284,10 @@ method MultipleReturns(x: int, y: int) returns (more: int, less: int)
 ```
 
 Like postconditions, multiple preconditions can be written
-either with the boolean and operator (`&&`), or
-by multiple `requires` keywords. Traditionally, requires
-precede ensures in the source code, though this is not strictly necessary
-(although the order of the requires and ensures annotations with respect to
+either with the boolean "and" operator (`&&`), or
+by multiple `requires` keywords. Traditionally, `requires`
+precede `ensures` in the source code, though this is not strictly necessary
+(although the order of the `requires` and `ensures` annotations with respect to
 others of the same type can sometimes matter, as we will see later). With the
 addition of this condition, Dafny now verifies the code as correct, because
 this assumption is all that is needed to guarantee the code in the method body
@@ -299,7 +299,7 @@ is correct.
   verifies.*
 
 ``` {.editonly}
-method Max(a: int, b:int) returns (c: int)
+method Max(a: int, b: int) returns (c: int)
   // What postcondition should go here, so that the function operates as expected?
   // Hint: there are many ways to write this.
 {
@@ -308,7 +308,7 @@ method Max(a: int, b:int) returns (c: int)
 ```
 
 ```
-method Max(a: int, b:int) returns (c: int)
+method Max(a: int, b: int) returns (c: int)
 ```
 
 
@@ -345,8 +345,8 @@ method Testing()
 }
 ```
 
-Dafny proves this method correct, as 2 is always less than
-3. Asserts have several uses, but chief among them is checking whether your
+Dafny proves this method correct, as `2` is always less than
+`3`. Asserts have several uses, but chief among them is checking whether your
 expectations of what is true at various points is actually true. You can use this
 to check basic arithmetical facts, as above, but they can also be used in more
 complex situations. Assertions are a powerful tool for debugging annotations,
@@ -728,7 +728,7 @@ which takes a single integer, and returns an integer (the second `int`).
 Unlike a method, which can have all sorts of statements
 in its body, a function body must consist of exactly one expression, with the
 correct type. Here our body must be an integer expression. In order to
-implement the absolute value function, we need to use an *if expression*. An if
+implement the absolute value function, we need to use an *`if` expression*. An `if`
 expression is like the ternary operator in other languages.
 
 ``` {.edit}
@@ -765,8 +765,8 @@ postconditions that we did with the method (though functions can and do have
 pre- and postconditions in general). The limitations of functions are
 precisely what let Dafny do this. Unlike methods, Dafny does not forget the
 body of a function when considering other functions. So it can expand the
-definition of abs in the above assertion and determine that the result is
-actually 3.
+definition of `abs` in the above assertion and determine that the result is
+actually `3`.
 
 **Exercise 4.**
   *Write a **function** `max` that returns the larger of two given
@@ -903,7 +903,7 @@ We haven't written the body yet, so Dafny will complain that
 our postcondition doesn't hold. We need an algorithm to calculate the `n`<sup>th</sup>
 Fibonacci number. The basic idea is to keep a counter, and repeatedly calculate adjacent pairs
 of Fibonacci numbers until the desired number is reached. To do this, we need a loop. In Dafny, this is done
-via a *while loop*. A while loop looks like the following:
+via a *`while` loop*. A while loop looks like the following:
 
 ``` {.editonly}
 method m(n: nat)
@@ -929,7 +929,7 @@ the core of our loop to calculate Fibonacci numbers.
 
 ## Loop Invariants
 
-While loops present a problem for Dafny. There is no way for
+`while` loops present a problem for Dafny. There is no way for
 Dafny to know in advance how many times the code will go around the loop. But
 Dafny needs to consider all paths through a program, which could include going
 around the loop any number of times. To make it possible for Dafny to work with
@@ -1339,16 +1339,16 @@ at some point, which gives us a stronger correctness guarantee
 ## Termination
 
 Dafny proves that code terminates, i.e. does not loop forever, by
-using decreases annotations. For many things, Dafny is able to guess the right
+using `decreases` annotations. For many things, Dafny is able to guess the right
 annotations, but sometimes it needs to be made explicit. In fact, for all of the
 code we have seen so far, Dafny has been able to do this proof on its own,
-which is why we haven't seen the decreases annotation explicitly yet. There
+which is why we haven't seen the `decreases` annotation explicitly yet. There
 are two places Dafny proves termination: loops and recursion. Both of these
 situations require either an explicit annotation or a correct guess by Dafny.
 
-A decreases annotation, as its name suggests, gives Dafny
+A `decreases` annotation, as its name suggests, gives Dafny
 and expression that decreases with every loop iteration or recursive call.
-There are two conditions that Dafny needs to verify when using a decreases
+There are two conditions that Dafny needs to verify when using a `decreases`
 expression: that the expression actually gets smaller, and that it is bounded.
 Many times, an integral value (natural or plain integer) is the quantity that
 decreases, but other things that can be used as well. (See the reference for
@@ -1636,7 +1636,7 @@ method Find(a: array<int>, key: int) returns (index: int)
 ```
 
 As you can see, we have omitted the loop invariants on the
-while loop, so Dafny gives us a verification error on one of the
+`while` loop, so Dafny gives us a verification error on one of the
 postconditions. The reason we get an error is that Dafny does not know that
 the loop actually covers all the elements. In order to convince Dafny of this,
 we have to write an invariant that says that everything before the current
@@ -1667,7 +1667,7 @@ This says that everything before, but excluding, the current
 index is not the key. Notice that upon entering the loop, `i`
 is zero, so the first part of the implication is always false, and thus the
 quantified property is always true. This common situation is known as
-vacuous truth*: the
+*vacuous truth*: the
 quantifier holds because it is quantifying over an empty set of objects. This
 means that it is true when entering the loop. We test the value of the array
 before we extend the non-key part of the array, so Dafny can prove that this
@@ -1675,7 +1675,7 @@ invariant is preserved. One problem arises when we try to add this invariant:
 Dafny complains about the index being out of range for the array access within
 the invariant.
 
-This is code does not verify because there is no invariant on `index`, so
+This code does not verify because there is no invariant on `index`, so
 it could be greater than the length of the array. Then the bound variable, `k`,
 could exceed the length of the array. To fix this, we put the standard bounds on `index`,
 `0 <= index <= a.Length`. Note that because we say `k < index`, the
@@ -1735,14 +1735,14 @@ is through a *predicate*.
 
 A predicate is a function which returns a boolean. It is a
 simple but powerful idea that occurs throughout Dafny programs. For example, we
-define the *sorted
+define the *`sorted`
 predicate* over arrays of integers as a function that takes an array
 as an argument, and returns `true` if and only if that array is
 sorted in increasing order. The use of predicates makes our code shorter, as we
 do not need to write out a long property over and over. It can also make our
 code easier to read by giving a common property a name.
 
-There are a number of ways we could write the sorted
+There are a number of ways we could write the `sorted`
 predicate, but the easiest is to use a quantifier over the indices of the
 array. We can write a quantifier that expresses the property, "if `x` is before
 `y` in the array, then `x <= y`," as a quantifier over two bound variables:
@@ -1804,7 +1804,7 @@ predicate sorted(a: array<int>)
    ...
 ```
 
-A reads annotation is not a boolean expression, like the
+A `reads` annotation is not a boolean expression, like the
 other annotations we have seen, and can appear anywhere along with the pre- and
 postconditions. Instead of a property that should be true, it specifies a set
 of memory locations that the function is allowed to access. The name of an
@@ -1819,14 +1819,14 @@ function that are not memory locations do not need to be declared.
 
 Frames also affect methods. As you might have guessed, they
 are not required to list the things they read, as we have written a method
-which accesses an array with no reads annotation. Methods are allowed to read
+which accesses an array with no `reads` annotation. Methods are allowed to read
 whatever memory they like, but they are required to list which parts of memory
 they modify, with a *modifies annotation*. They are almost identical
 to their `reads` cousins,
 except they say what can be changed, rather than what the value of the function
 depends on. In combination with reads, modification
 restrictions allow Dafny to prove properties of code that would otherwise be
-very difficult or impossible. Reads and modifies are one of the tools that
+very difficult or impossible. `reads` and `modifies` are one of the tools that
 allow Dafny to work on one method at a time, because they restrict what would
 otherwise be arbitrary modifications of memory to something that Dafny can
 reason about.
@@ -1977,16 +1977,16 @@ method BinarySearch(a: array<int>, value: int) returns (index: int)
 This is a fairly standard binary search implementation. First we
 declare our range to search over. This can be
 thought of as the remaining space where the key could possibly be. The range is
-inclusive-exclusive, meaning it encompasses indices [`low`, `high`). The first
+inclusive-exclusive, meaning it encompasses indices \[`low`, `high`). The first
 invariant expresses the fact that this range is within the array. The second
 says that the key is not anywhere outside of this range. In the first two
-branches of the if chain, we find the element in the middle of our range is not
+branches of the `if` chain, we find the element in the middle of our range is not
 the key, and so we move the range to exclude that element and all the other
 elements on the appropriate side of it. We need the addition of one when moving
 the lower end of the range because it is inclusive on the low side. If we do not add one, then
 the loop may continue forever when `mid == low`, which
 happens when `low + 1 == high`. We could change this to
-say that the loop exits when low and high are one apart, but this would mean we
+say that the loop exits when `low` and `high` are one apart, but this would mean we
 would need an extra check after the loop to determine if the key was found at
 the one remaining index. In the above formulation, this is unnecessary because
 when `low == high`, the loop exits. But this means that
