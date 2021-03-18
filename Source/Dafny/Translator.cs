@@ -16372,10 +16372,12 @@ namespace Microsoft.Dafny {
             Statistics_HeapAsQuantifierCount++;
           }
         }
-        if (!e.Function.IsStatic) {
-          args.Add(TrExpr(e.Receiver));
-        }
         argsAreLit = true;
+        if (!e.Function.IsStatic) {
+          var tr_ee = TrExpr(e.Receiver);
+          argsAreLit = argsAreLit && translator.IsLit(tr_ee);
+          args.Add(tr_ee);
+        }
         for (int i = 0; i < e.Args.Count; i++) {
           Expression ee = e.Args[i];
           Type t = e.Function.Formals[i].Type;
