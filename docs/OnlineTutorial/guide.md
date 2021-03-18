@@ -106,7 +106,7 @@ must be followed by a semicolon, and whitespace and comments (`//` and `/**/`) a
 return a value from a method, the value is assigned to one of the named return
 values sometime before a `return` statement. In fact, the return values act very
 much like local variables, and can be assigned to more than once. The input
-parameters, however, are read only. `Return` statements are used when one wants
+parameters, however, are read only. `return` statements are used when one wants
 to return before reaching the end of the body block of the method. Return
 statements can be just the `return` keyword (where the current value of the out
 parameters are used), or they can take a list of values to return. There are
