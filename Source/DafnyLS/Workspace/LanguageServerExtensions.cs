@@ -27,7 +27,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         .AddSingleton<ITextDocumentLoader, TextDocumentLoader>()
         .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>()
         .AddSingleton<IDocumentUpdater, DocumentUpdater>()
-        .AddSingleton<ISymbolGuesser, SymbolGuesser>();
+        .AddSingleton<ISymbolGuesser, SymbolGuesser>()
+        .AddSingleton<IVerificationNotificationPublisher, VerificationNotificationPublisher>();
     }
   }
 }
