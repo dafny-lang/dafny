@@ -110,7 +110,7 @@ parameters, however, are read only. `return` statements are used when one wants
 to return before reaching the end of the body block of the method. Return
 statements can be just the `return` keyword (where the current value of the out
 parameters are used), or they can take a list of values to return. There are
-also compound statements, such as `if` statements. `If` statements do not require
+also compound statements, such as `if` statements. `if` statements do not require
 parentheses around the boolean condition, and act as one would expect:
 
 ``` {.edit}
