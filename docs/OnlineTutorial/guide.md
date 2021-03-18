@@ -929,7 +929,7 @@ the core of our loop to calculate Fibonacci numbers.
 
 ## Loop Invariants
 
-`While` loops present a problem for Dafny. There is no way for
+`while` loops present a problem for Dafny. There is no way for
 Dafny to know in advance how many times the code will go around the loop. But
 Dafny needs to consider all paths through a program, which could include going
 around the loop any number of times. To make it possible for Dafny to work with
