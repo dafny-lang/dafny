@@ -3367,15 +3367,24 @@ namespace Microsoft.Dafny
         // and that a class without any constructor only has fields with known initializers.
         // Also check that static fields (which are necessarily const) have initializers.
         var cdci = new CheckDividedConstructorInit_Visitor(this);
-        foreach (var cl in ModuleDefinition.AllClasses(declarations)) {
+        foreach (var cl in ModuleDefinition.AllTypesWithMembers(declarations)) {
+          if (!(cl is ClassDecl)) {
+            if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
+              // non-reference types (datatype, newtype, opaque) don't have constructors that can initialize fields
+              foreach (var member in cl.Members) {
+                if (member is ConstantField f && f.Rhs == null && !f.IsExtern(out _, out _)) {
+                  CheckIsOkayWithoutRHS(f);
+                }
+              }
+            }
+            continue;
+          }
           if (cl is TraitDecl) {
-            // traits never have constructors, but check for static consts
-            foreach (var member in cl.Members) {
-              if (member is ConstantField && member.IsStatic && !member.IsGhost) {
-                var f = (ConstantField)member;
-                if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !f.Type.HasCompilableValue && !f.IsExtern(out _, out _)) {
-                  reporter.Error(MessageSource.Resolver, f.tok, "static non-ghost const field '{0}' of type '{1}' (which does not have a default compiled value) must give a defining value",
-                    f.Name, f.Type);
+            if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
+              // traits never have constructors, but check for static consts
+              foreach (var member in cl.Members) {
+                if (member is ConstantField f && f.IsStatic && f.Rhs == null && !f.IsExtern(out _, out _)) {
+                  CheckIsOkayWithoutRHS(f);
                 }
               }
             }
@@ -3390,17 +3399,16 @@ namespace Microsoft.Dafny
               if (constructor.BodyInit != null) {
                 cdci.CheckInit(constructor.BodyInit);
               }
-            } else if (member is ConstantField && member.IsStatic && !member.IsGhost) {
+            } else if (member is ConstantField && member.IsStatic) {
               var f = (ConstantField)member;
-              if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !f.Type.HasCompilableValue && !f.IsExtern(out _, out _)) {
-                reporter.Error(MessageSource.Resolver, f.tok, "static non-ghost const field '{0}' of type '{1}' (which does not have a default compiled value) must give a defining value",
-                  f.Name, f.Type);
+              if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !f.IsExtern(out _, out _)) {
+                CheckIsOkayWithoutRHS(f);
               }
-            } else if (member is Field && !member.IsGhost && fieldWithoutKnownInitializer == null) {
+            } else if (member is Field && fieldWithoutKnownInitializer == null) {
               var f = (Field)member;
               if (f is ConstantField && ((ConstantField)f).Rhs != null) {
                 // fine
-              } else if (!f.Type.HasCompilableValue) {
+              } else if (!f.Type.KnownToHaveToAValue(f.IsGhost)) {
                 fieldWithoutKnownInitializer = f;
               }
             }
@@ -3409,11 +3417,11 @@ namespace Microsoft.Dafny
             if (fieldWithoutKnownInitializer == null) {
               // time to check inherited members
               foreach (var member in cl.InheritedMembers) {
-                if (member is Field && !member.IsGhost) {
+                if (member is Field) {
                   var f = (Field)member;
                   if (f is ConstantField && ((ConstantField)f).Rhs != null) {
                     // fine
-                  } else if (!Resolver.SubstType(f.Type, cl.ParentFormalTypeParametersToActuals).HasCompilableValue) {
+                  } else if (!Resolver.SubstType(f.Type, cl.ParentFormalTypeParametersToActuals).KnownToHaveToAValue(f.IsGhost)) {
                     fieldWithoutKnownInitializer = f;
                     break;
                   }
@@ -3427,6 +3435,18 @@ namespace Microsoft.Dafny
             }
           }
         }
+      }
+    }
+
+    private void CheckIsOkayWithoutRHS(ConstantField f) {
+      if (f.IsGhost && !f.Type.IsNonempty) {
+        reporter.Error(MessageSource.Resolver, f.tok,
+          "{0}ghost const field '{1}' of type '{2}' (which may be empty) must give a defining value",
+          f.IsStatic ? "static " : "", f.Name, f.Type);
+      } else if (!f.IsGhost && !f.Type.HasCompilableValue) {
+        reporter.Error(MessageSource.Resolver, f.tok,
+          "{0}non-ghost const field '{1}' of type '{2}' (which does not have a default compiled value) must give a defining value",
+          f.IsStatic ? "static " : "", f.Name, f.Type);
       }
     }
 

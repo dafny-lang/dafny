@@ -4144,8 +4144,15 @@ namespace Microsoft.Dafny {
 
     public static IEnumerable<ClassDecl> AllClasses(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
-        var cl = d as ClassDecl;
-        if (cl != null) {
+        if (d is ClassDecl cl) {
+          yield return cl;
+        }
+      }
+    }
+
+    public static IEnumerable<TopLevelDeclWithMembers> AllTypesWithMembers(List<TopLevelDecl> declarations) {
+      foreach (var d in declarations) {
+        if (d is TopLevelDeclWithMembers cl) {
           yield return cl;
         }
       }
