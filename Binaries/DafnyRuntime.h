@@ -147,7 +147,7 @@ std::ostream& PrintElements(const TupleType& tuple, std::ostream& out) {
 // list and causing compilation errors.
 template <typename Head, typename... Tail>
 inline std::ostream& operator<<(std::ostream& out, const Tuple<Head, Tail...>& val){
-  return PrintElements(val.values_);
+  return PrintElements(val.values_, out);
 }
 
 /*********************************************************
