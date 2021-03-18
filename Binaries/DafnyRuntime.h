@@ -5,6 +5,8 @@
 
 #include <iostream>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 #include <memory>
 #include <unordered_set>
@@ -116,139 +118,65 @@ struct get_default<std::shared_ptr<U>> {
  *  TUPLES                                               *
  *********************************************************/
 
-template <typename T0, typename T1>
-struct Tuple2 {
-  T0 t0;
-  T1 t1;
+template <typename... Types>
+struct TupleBase {
+ public:
+  TupleBase() : TupleBase(get_default<Types>::call()...) {}
+  TupleBase(Types... values) : values_(values...) {}
 
-  Tuple2() {
-    t0 = get_default<T0>::call();
-    t1 = get_default<T1>::call();
-  }
-
-  Tuple2(T0 _t0, T1 _t1) {
-    t0 = _t0;
-    t1 = _t1;
-  }
-
-  T0 get_0() const { return t0; }
-  T1 get_1() const { return t1; }
+  std::tuple<Types...> values_;
 };
 
-template <typename T0, typename T1>
-inline std::ostream& operator<<(std::ostream& out, const Tuple2<T0, T1>& val){
-  out << val.get_0();
-  out << val.get_1();
-  return out;
+template <typename TupleType, int Index = TupleType::size() - 1 >
+std::ostream& PrintElements(const TupleType& tuple, std::ostream& out) {
+  if (Index != 0) {
+    PrintElements<TupleType, Index - 1>(tuple, out);
+  }
+  return out << std::get<Index>(tuple);
 }
 
-template <typename T0, typename T1, typename T2>
-struct Tuple3 {
-  T0 t0;
-  T1 t1;
-  T2 t2;
+template <typename Head, typename... Tail>
+inline std::ostream& operator<<(std::ostream& out, const TupleBase<Head, Tail...>& val){
+  return PrintElements(val.values_);
+}
 
-  Tuple3() {
-    t0 = get_default<T0>::call();
-    t1 = get_default<T1>::call();
-    t2 = get_default<T2>::call();
-  }
-
-  Tuple3(T0 _t0, T1 _t1, T2 _t2) {
-    t0 = _t0;
-    t1 = _t1;
-    t2 = _t2;
-  }
-
-  T0 get_0() const { return t0; }
-  T1 get_1() const { return t1; }
-  T2 get_2() const { return t2; }
+template <typename T0, typename T1>
+struct Tuple2 : public TupleBase<T0, T1> {
+  using TupleBase<T0, T1>::TupleBase;
+  T0 get_0() const { return std::get<0>(this->values_); }
+  T1 get_1() const { return std::get<1>(this->values_); }
 };
 
 template <typename T0, typename T1, typename T2>
-inline std::ostream& operator<<(std::ostream& out, const Tuple3<T0, T1, T2>& val){
-  out << val.get_0();
-  out << val.get_1();
-  out << val.get_2();
-  return out;
-}
+struct Tuple3 : public TupleBase<T0, T1, T2> {
+  using TupleBase<T0, T1, T2>::TupleBase;
 
-template <typename T0, typename T1, typename T2, typename T3>
-struct Tuple4 {
-  T0 t0;
-  T1 t1;
-  T2 t2;
-  T3 t3;
-
-  Tuple4() {
-    t0 = get_default<T0>::call();
-    t1 = get_default<T1>::call();
-    t2 = get_default<T2>::call();
-    t3 = get_default<T3>::call();
-  }
-
-  Tuple4(T0 _t0, T1 _t1, T2 _t2, T3 _t3) {
-    t0 = _t0;
-    t1 = _t1;
-    t2 = _t2;
-    t3 = _t3;
-  }
-
-  T0 get_0() const { return t0; }
-  T1 get_1() const { return t1; }
-  T2 get_2() const { return t2; }
-  T3 get_3() const { return t3; }
+  T0 get_0() const { return std::get<0>(this->values_); }
+  T1 get_1() const { return std::get<1>(this->values_); }
+  T2 get_2() const { return std::get<2>(this->values_); }
 };
 
 template <typename T0, typename T1, typename T2, typename T3>
-inline std::ostream& operator<<(std::ostream& out, const Tuple4<T0, T1, T2, T3>& val){
-  out << val.get_0();
-  out << val.get_1();
-  out << val.get_2();
-  out << val.get_3();
-  return out;
-}
+struct Tuple4 : public TupleBase<T0, T1, T2, T3> {
+  using TupleBase<T0, T1, T2, T3>::TupleBase;
 
-template <typename T0, typename T1, typename T2, typename T3, typename T4>
-struct Tuple5 {
-  T0 t0;
-  T1 t1;
-  T2 t2;
-  T3 t3;
-  T4 t4;
-
-  Tuple5() {
-    t0 = get_default<T0>::call();
-    t1 = get_default<T1>::call();
-    t2 = get_default<T2>::call();
-    t3 = get_default<T3>::call();
-    t4 = get_default<T4>::call();
-  }
-
-  Tuple5(T0 _t0, T1 _t1, T2 _t2, T3 _t3, T4 _t4) {
-    t0 = _t0;
-    t1 = _t1;
-    t2 = _t2;
-    t3 = _t3;
-    t4 = _t4;
-  }
-
-  T0 get_0() const { return t0; }
-  T1 get_1() const { return t1; }
-  T2 get_2() const { return t2; }
-  T3 get_3() const { return t3; }
-  T4 get_4() const { return t4; }
+  T0 get_0() const { return std::get<0>(this->values_); }
+  T1 get_1() const { return std::get<1>(this->values_); }
+  T2 get_2() const { return std::get<2>(this->values_); }
+  T3 get_3() const { return std::get<3>(this->values_); }
 };
 
 template <typename T0, typename T1, typename T2, typename T3, typename T4>
-inline std::ostream& operator<<(std::ostream& out, const Tuple5<T0, T1, T2, T3, T4>& val){
-  out << val.get_0();
-  out << val.get_1();
-  out << val.get_2();
-  out << val.get_3();
-  out << val.get_4();
-  return out;
-}
+struct Tuple5 : public TupleBase<T0, T1, T2, T3, T4> {
+  using TupleBase<T0, T1, T2, T3>::TupleBase;
+
+  T0 get_0() const { return std::get<0>(this->values_); }
+  T1 get_1() const { return std::get<1>(this->values_); }
+  T2 get_2() const { return std::get<2>(this->values_); }
+  T3 get_3() const { return std::get<3>(this->values_); }
+  T4 get_4() const { return std::get<4>(this->values_); }
+};
+
 
 /*********************************************************
  *  MATH                                                 *
