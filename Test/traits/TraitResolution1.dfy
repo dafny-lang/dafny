@@ -451,7 +451,7 @@ module ProvidingModule {
     const M := 100
     ghost const N: BB
   }
-  datatype Dt<CC> = X | Y | More(u: int) {
+  datatype Dt<CC(00)> = X | Y | More(u: int) {
     const M := 100
     ghost const N: CC
   }

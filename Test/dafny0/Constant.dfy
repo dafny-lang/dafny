@@ -170,7 +170,7 @@ class MyOnePurposeClass {
   static const self: MyOnePurposeClass?
 }
 
-class MyGenericClass<X,Y> {
+class MyGenericClass<X(00), Y(00)> {
   ghost static const x: X
   ghost static const y: Y
   static const z: int
