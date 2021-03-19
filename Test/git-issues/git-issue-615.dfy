@@ -3,6 +3,9 @@
 
 class MyClass {
   ghost const repr: object
+  constructor (ghost r: object) {
+    repr := r;
+  }
 }
 
 datatype D1 = D1(o: MyClass)
