@@ -7548,6 +7548,12 @@ namespace Microsoft.Dafny {
           } else if (e.Receiver.Type.IsArrowType) {
             CheckFunctionSelectWF("function specification", builder, etran, e.Receiver, "");
           }
+          if (!e.Function.IsStatic && CommonHeapUse && !etran.UsesOldHeap) {
+            // the argument can't be assumed to be allocated for the old heap
+            Type et = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(e.tok, e.Function.EnclosingClass), e.GetTypeArgumentSubstitutions());
+            builder.Add(new Bpl.CommentCmd("assume allocatedness for receiver argument to function"));
+            builder.Add(TrAssumeCmd(e.Receiver.tok, MkIsAlloc(etran.TrExpr(e.Receiver), et, etran.HeapExpr)));
+          }
           // check well-formedness of the other parameters
           foreach (Expression arg in e.Args) {
             CheckWellformed(arg, options, locals, builder, etran);
@@ -16372,10 +16378,12 @@ namespace Microsoft.Dafny {
             Statistics_HeapAsQuantifierCount++;
           }
         }
-        if (!e.Function.IsStatic) {
-          args.Add(TrExpr(e.Receiver));
-        }
         argsAreLit = true;
+        if (!e.Function.IsStatic) {
+          var tr_ee = TrExpr(e.Receiver);
+          argsAreLit = argsAreLit && translator.IsLit(tr_ee);
+          args.Add(tr_ee);
+        }
         for (int i = 0; i < e.Args.Count; i++) {
           Expression ee = e.Args[i];
           Type t = e.Function.Formals[i].Type;
@@ -18104,7 +18112,7 @@ namespace Microsoft.Dafny {
       var FVsHeapAt = new HashSet<Label>();
       Type usesThis = null;
       ComputeFreeVariables(expr, new HashSet<IVariable>(), ref usesHeap, ref usesOldHeap, FVsHeapAt, ref usesThis);
-      return usesHeap || usesOldHeap || FVsHeapAt.Count != 0 || usesThis != null;
+      return usesHeap || usesOldHeap || FVsHeapAt.Count != 0;
     }
 
     class UsesHeapVisitor : BottomUpVisitor

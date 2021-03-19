@@ -839,7 +839,7 @@ namespace Dafny
     ISequence<U> DowncastClone<U>(Func<T, U> converter);
   }
 
-  public abstract class Sequence<T>: ISequence<T>
+  public abstract class Sequence<T> : ISequence<T>
   {
     public static readonly ISequence<T> Empty = new ArraySequence<T>(new T[0]);
 
@@ -1148,7 +1148,7 @@ namespace Dafny
       while (toVisit.Count != 0) {
         var seq = toVisit.Pop();
         var cs = seq as ConcatSequence<T>;
-        if (cs != null && cs.elmts == null) {
+        if (cs != null && cs.elmts.IsDefault) {
           toVisit.Push(cs.right);
           toVisit.Push(cs.left);
         } else {
