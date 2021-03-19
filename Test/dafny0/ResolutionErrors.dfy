@@ -2254,7 +2254,7 @@ module UninterpretedModuleLevelConst {
 
   class MyClass { }
   const Y: MyClass  // error: the type of a non-ghost static const must have a known (non-ghost) initializer
-  ghost const Y': MyClass  // fine, Y' is ghost
+  ghost const Y': MyClass  // error: the type of a ghost static const must be known to be nonempty
 
   class AnotherClass {  // fine, the class itself is not required to have a constructor, because the bad fields are static
     static const k := 18
@@ -2280,10 +2280,10 @@ module UninterpretedModuleLevelConst {
   }
 
   trait GhostTr {
-    ghost const w: MyClass  // ghost, so no prob
+    ghost const w: MyClass  // the responsibility to initialize "w" lies with any class that implements "GhostTr"
   }
-  class GhostCl extends GhostTr {
-    ghost const z: MyClass  // ghost, so no prob
+  class GhostCl extends GhostTr {  // error: w and z need initialization, so GhostCl must have a constructor
+    ghost const z: MyClass
   }
 }
 
