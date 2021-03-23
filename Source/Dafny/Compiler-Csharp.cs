@@ -44,7 +44,20 @@ namespace Microsoft.Dafny
     static string FormatTypeDescriptorVariable(string typeVarName) => $"_td_{typeVarName}";
     static string FormatTypeDescriptorVariable(TypeParameter tp) => FormatTypeDescriptorVariable(tp.CompileName);
     const string TypeDescriptorMethodName = "_TypeDescriptor";
-    static string FormatDefaultTypeParameterValue(TypeParameter tp) => $"_default_{tp.CompileName}";
+    static string FormatDefaultTypeParameterValue(TypeParameter tp) {
+      if (tp is OpaqueType_AsParameter) {
+        // This is unusual. Typically, the compiler never needs to compile an opaque type, but this opaque type
+        // is apparently an :extern. It's difficult to say what the compiler could do in this situation, since
+        // it doesn't know how to generate code that produces a legal value of the opaque type. If we don't do
+        // anything different from the common case (the "else" branch below), then the code emitted will not
+        // compile (see github issue #1151). So, to do something a wee bit better, we emit a placebo value. This
+        // will only work when the opaque type is in the same module and has no type parameters.
+        return $"default({tp.CompileName})";
+      } else {
+        // this is the common case
+        return $"_default_{tp.CompileName}";
+      }
+    }
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
