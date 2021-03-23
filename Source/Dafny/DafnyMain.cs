@@ -18,6 +18,7 @@ namespace Microsoft.Dafny {
   public class IllegalDafnyFile : Exception { }
 
   public class DafnyFile {
+    public bool UseStdin { get; private set; }
     public string FilePath { get; private set; }
     public string CanonicalPath { get; private set; }
     public string BaseName { get; private set; }
@@ -39,11 +40,12 @@ namespace Microsoft.Dafny {
       }
       return sourceFiles;
     }
-    public DafnyFile(string filePath) {
+    public DafnyFile(string filePath, bool useStdin = false) {
+      UseStdin = useStdin;
       FilePath = filePath;
       BaseName = Path.GetFileName(filePath);
 
-      var extension = Path.GetExtension(filePath);
+      var extension = useStdin ? ".dfy" : Path.GetExtension(filePath);
       if (extension != null) { extension = extension.ToLower(); }
 
       // Normalizing symbolic links appears to be not
@@ -52,8 +54,9 @@ namespace Microsoft.Dafny {
       // cf. IncludeComparer.CompareTo
       CanonicalPath = Canonicalize(filePath);
 
-      if (filePath != "stdin.dfy" && !Path.IsPathRooted(filePath))
+      if (!useStdin && !Path.IsPathRooted(filePath)) {
         filePath = Path.GetFullPath(filePath);
+      }
 
       if (extension == ".dfy" || extension == ".dfyi") {
         isPrecompiled = false;
@@ -121,9 +124,10 @@ namespace Microsoft.Dafny {
       program = null;
       ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
       BuiltIns builtIns = new BuiltIns();
+
       foreach (DafnyFile dafnyFile in files){
         Contract.Assert(dafnyFile != null);
-        if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen) {
+        if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen && !dafnyFile.UseStdin) {
           Bpl.CommandLineOptions.Clo.XmlSink.WriteFileFragment(dafnyFile.FilePath);
         }
         if (Bpl.CommandLineOptions.Clo.Trace)
@@ -224,7 +228,7 @@ namespace Microsoft.Dafny {
     private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true, bool compileThisFile = true) {
       var fn = DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
-        int errorCount = Dafny.Parser.Parse(dafnyFile.SourceFileName, include, module, builtIns, errs, verifyThisFile, compileThisFile);
+        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, dafnyFile.SourceFileName, include, module, builtIns, errs, verifyThisFile, compileThisFile);
         if (errorCount != 0) {
           return string.Format("{0} parse errors detected in {1}", errorCount, fn);
         }
