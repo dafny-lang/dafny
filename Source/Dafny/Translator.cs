@@ -16457,12 +16457,15 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
         var elmtBox = BoxIfNecessary(tok, elmt, elmtType);
-        return TrInSet_Aux(tok, elmt, elmtBox, s, out performedRewrite);
+        var r = TrInSet_Aux(tok, elmt, elmtBox, s, out performedRewrite);
+        Contract.Assert(performedRewrite == RewriteInExpr(s)); // sanity check
+        return r;
       }
       /// <summary>
       /// The worker routine for TrInSet.  This method takes both "elmt" and "elmtBox" as parameters,
       /// using the former when the unboxed form is needed and the latter when the boxed form is needed.
       /// This gives the caller the flexibility to pass in either "o, Box(o)" or "Unbox(bx), bx".
+      /// Note: This method must be kept in synch with RewriteInExpr.
       /// </summary>
       public Bpl.Expr TrInSet_Aux(IToken tok, Bpl.Expr elmt, Bpl.Expr elmtBox, Expression s, out bool performedRewrite) {
         Contract.Requires(tok != null);
@@ -16534,6 +16537,7 @@ namespace Microsoft.Dafny {
       /// <summary>
       /// Translate like 0 < s[Box(elmt)], but try to avoid as many set functions as possible in the
       /// translation, because such functions can mess up triggering.
+      /// Note: This method must be kept in synch with RewriteInExpr.
       /// </summary>
       public Bpl.Expr TrInMultiSet(IToken tok, Bpl.Expr elmt, Expression s, Type elmtType) {
         Contract.Requires(tok != null);
@@ -16581,6 +16585,33 @@ namespace Microsoft.Dafny {
           }
         }
         return Bpl.Expr.Gt(Bpl.Expr.SelectTok(tok, TrExpr(s), elmtBox), Bpl.Expr.Literal(0));
+      }
+
+      /// <summary>
+      /// This method returns "true" iff TrInSet_Aux/TrInMultiSet_Aux will rewrite an expression "x in s".
+      /// Note: This method must be kept in synch with TrInSet_Aux/TrInMultiSet_Aux.
+      /// </summary>
+      public static bool RewriteInExpr(Expression s) {
+        Contract.Requires(s != null);
+
+        if (s is BinaryExpr) {
+          BinaryExpr bin = (BinaryExpr)s;
+          switch (bin.ResolvedOp) {
+            case BinaryExpr.ResolvedOpcode.Union:
+            case BinaryExpr.ResolvedOpcode.Intersection:
+            case BinaryExpr.ResolvedOpcode.SetDifference:
+            case BinaryExpr.ResolvedOpcode.MultiSetUnion:
+            case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
+              return true;
+            default:
+              break;
+          }
+        } else if (s is SetDisplayExpr || s is MultiSetDisplayExpr) {
+          return true;
+        } else if (s is SetComprehension) {
+          return true;
+        }
+        return false;
       }
 
       public Bpl.QKeyValue TrAttributes(Attributes attrs, string skipThisAttribute) {
