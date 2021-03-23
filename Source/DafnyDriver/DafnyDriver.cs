@@ -337,7 +337,7 @@ namespace Microsoft.Dafny
       bplFilename = BoogieProgramSuffix(bplFilename, moduleName);
       stats = null;
       oc = BoogiePipelineWithRerun(boogieProgram, bplFilename, out stats, 1 < Dafny.DafnyOptions.Clo.VerifySnapshots ? programId : null);
-      return (oc == PipelineOutcome.Done || oc == PipelineOutcome.VerificationCompleted) && stats.ErrorCount == 0 && stats.InconclusiveCount == 0 && stats.TimeoutCount == 0 && stats.OutOfMemoryCount == 0;
+      return (oc == PipelineOutcome.Done || oc == PipelineOutcome.VerificationCompleted) && stats.ErrorCount == 0 && stats.InconclusiveCount == 0 && stats.TimeoutCount == 0 && stats.OutOfResourceCount == 0 && stats.OutOfMemoryCount == 0;
     }
 
     public static bool Boogie(string baseName, IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms, string programId, out Dictionary<string, PipelineStatistics> statss, out PipelineOutcome oc) {
@@ -386,10 +386,10 @@ namespace Microsoft.Dafny
         Console.WriteLine();
         Console.Write("{0} did not attempt verification", CommandLineOptions.Clo.DescriptiveToolName);
         if (stats.InconclusiveCount != 0) {
-          Console.Write(", {0} inconclusive{1}", stats.InconclusiveCount, stats.InconclusiveCount == 1 ? "" : "s");
+          Console.Write(", {0} inconclusive{1}", stats.InconclusiveCount, Util.Plural(stats.InconclusiveCount));
         }
         if (stats.TimeoutCount != 0) {
-          Console.Write(", {0} time out{1}", stats.TimeoutCount, stats.TimeoutCount == 1 ? "" : "s");
+          Console.Write(", {0} time out{1}", stats.TimeoutCount, Util.Plural(stats.TimeoutCount));
         }
         if (stats.OutOfMemoryCount != 0) {
           Console.Write(", {0} out of memory", stats.OutOfMemoryCount);
@@ -411,11 +411,13 @@ namespace Microsoft.Dafny
         statSum.VerifiedCount += stats.Value.VerifiedCount;
         statSum.ErrorCount += stats.Value.ErrorCount;
         statSum.TimeoutCount += stats.Value.TimeoutCount;
+        statSum.OutOfResourceCount += stats.Value.OutOfResourceCount;
         statSum.OutOfMemoryCount += stats.Value.OutOfMemoryCount;
         statSum.CachedErrorCount += stats.Value.CachedErrorCount;
         statSum.CachedInconclusiveCount += stats.Value.CachedInconclusiveCount;
         statSum.CachedOutOfMemoryCount += stats.Value.CachedOutOfMemoryCount;
         statSum.CachedTimeoutCount += stats.Value.CachedTimeoutCount;
+        statSum.CachedOutOfResourceCount += stats.Value.CachedOutOfResourceCount;
         statSum.CachedVerifiedCount += stats.Value.CachedVerifiedCount;
         statSum.InconclusiveCount += stats.Value.InconclusiveCount;
       }

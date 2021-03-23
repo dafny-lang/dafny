@@ -10,7 +10,7 @@ import re
 import subprocess
 import sys
 import time
-import urllib.request
+from urllib import request
 import zipfile
 import shutil
 import ntpath
@@ -108,7 +108,7 @@ class Release:
             print("cached!")
         else:
             flush("downloading {:.2f}MB...".format(self.MB), end=' ')
-            with urllib.request.urlopen(self.url) as reader:
+            with request.urlopen(self.url) as reader:
                 with open(self.z3_zip, mode="wb") as writer:
                     writer.write(reader.read())
             flush("done!")
@@ -185,7 +185,9 @@ class Release:
 
 def discover(args):
     flush("  - Getting information about latest release")
-    with urllib.request.urlopen(Z3_RELEASES_URL) as reader:
+    options = {"Authorization": "Bearer " + args.github_secret} if args.github_secret else {}
+    req = request.Request(Z3_RELEASES_URL, None, options)
+    with request.urlopen(req) as reader:
         js = json.loads(reader.read().decode("utf-8"))
 
         for release_js in js["assets"]:
@@ -261,6 +263,7 @@ def parse_arguments():
     parser.add_argument("--os", help="operating system name for which to make a release")
     parser.add_argument("--skip_manual", help="do not create the reference manual")
     parser.add_argument("--trial", help="ignore version.cs discrepancies")
+    parser.add_argument("--github_secret", help="access token for making an authenticated GitHub call, to prevent being rate limited.")
     parser.add_argument("--out", help="output zip file")
     return parser.parse_args()
 

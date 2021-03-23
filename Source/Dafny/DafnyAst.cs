@@ -4144,8 +4144,15 @@ namespace Microsoft.Dafny {
 
     public static IEnumerable<ClassDecl> AllClasses(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
-        var cl = d as ClassDecl;
-        if (cl != null) {
+        if (d is ClassDecl cl) {
+          yield return cl;
+        }
+      }
+    }
+
+    public static IEnumerable<TopLevelDeclWithMembers> AllTypesWithMembers(List<TopLevelDecl> declarations) {
+      foreach (var d in declarations) {
+        if (d is TopLevelDeclWithMembers cl) {
           yield return cl;
         }
       }
@@ -4890,6 +4897,13 @@ namespace Microsoft.Dafny {
     public bool MustReverify => inner.MustReverify;
     public string FullSanitizedName => inner.FullSanitizedName;
     public bool AllowsNontermination => inner.AllowsNontermination;
+
+    public static ICodeContext Unwrap(ICodeContext codeContext) {
+      while (codeContext is CodeContextWrapper ccw) {
+        codeContext = ccw.inner;
+      }
+      return codeContext;
+    }
   }
 
   /// <summary>
@@ -5862,6 +5876,7 @@ namespace Microsoft.Dafny {
     bool IsGhost {
       get;
     }
+    void MakeGhost();
     IToken Tok {
       get;
     }
@@ -5918,6 +5933,9 @@ namespace Microsoft.Dafny {
       get {
         throw new NotImplementedException();
       }
+    }
+    public void MakeGhost() {
+      throw new NotImplementedException();
     }
     public IToken Tok {
       get {
@@ -6041,6 +6059,9 @@ namespace Microsoft.Dafny {
         isGhost = value;
       }
     }
+    public void MakeGhost() {
+      IsGhost = true;
+    }
     public IToken Tok {
       get {
         return tok;
@@ -6124,10 +6145,6 @@ namespace Microsoft.Dafny {
       get {
         return false;
       }
-    }
-
-    public void MakeGhost() {
-      IsGhost = true;
     }
 
     public BoundVar(IToken tok, string name, Type type)
@@ -7619,7 +7636,6 @@ namespace Microsoft.Dafny {
     public static bool LhsIsToGhostOrAutoGhost(Expression lhs) {
       Contract.Requires(lhs != null);
       return LhsIsToGhost_Which(lhs) == NonGhostKind.IsGhost || lhs.Resolved is AutoGhostIdentifierExpr;
-        ;
     }
     public enum NonGhostKind { IsGhost, Variable, Field, ArrayElement }
     public static string NonGhostKind_To_String(NonGhostKind gk) {
@@ -7987,9 +8003,9 @@ namespace Microsoft.Dafny {
       this.Decreases = decreases;
       this.Mod = mod;
     }
-    public override IEnumerable<Expression> SubExpressions {
+
+    public IEnumerable<Expression> LoopSpecificationExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
         foreach (var mfe in Invariants) {
           foreach (var e in Attributes.SubExpressions(mfe.Attributes)) { yield return e; }
           yield return mfe.E;
@@ -8005,6 +8021,17 @@ namespace Microsoft.Dafny {
           foreach (var fe in Mod.Expressions) {
             yield return fe.E;
           }
+        }
+      }
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in base.SubExpressions) {
+          yield return e;
+        }
+        foreach (var e in LoopSpecificationExpressions) {
+          yield return e;
         }
       }
     }
@@ -8148,7 +8175,7 @@ namespace Microsoft.Dafny {
     }
 
     public ForallStmt(IToken tok, IToken endTok, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
-      : base(tok, endTok) {
+      : base(tok, endTok, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(cce.NonNullElements(boundVars));
@@ -8156,7 +8183,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(boundVars.Count != 0 || LiteralExpr.IsTrue(range));
       Contract.Requires(cce.NonNullElements(ens));
       this.BoundVars = boundVars;
-      this.Attributes = attrs;
       this.Range = range;
       this.Ens = ens;
       this.Body = body;
@@ -9727,7 +9753,8 @@ namespace Microsoft.Dafny {
   public class MemberSelectExpr : Expression {
     public readonly Expression Obj;
     public readonly string MemberName;
-    public MemberDecl Member;          // filled in by resolution, will be a Field or Function
+    public MemberDecl Member;    // filled in by resolution, will be a Field or Function
+    public Label /*?*/ AtLabel;  // determined by resolution; non-null for a two-state selection
 
     /// <summary>
     /// TypeApplication_AtEnclosingClass is the list of type arguments used to instantiate the type that
@@ -10081,6 +10108,7 @@ namespace Microsoft.Dafny {
     public readonly string Name;
     public readonly Expression Receiver;
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
+    public readonly Label/*?*/ AtLabel;
     public readonly List<Expression> Args;
     public List<Type> TypeApplication_AtEnclosingClass;  // filled in during resolution
     public List<Type> TypeApplication_JustFunction;  // filled in during resolution
@@ -10145,7 +10173,7 @@ namespace Microsoft.Dafny {
     public Function Function;  // filled in by resolution
 
     [Captured]
-    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<Expression> args)
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<Expression> args, Label/*?*/ atLabel = null)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(fn != null);
@@ -10159,6 +10187,7 @@ namespace Microsoft.Dafny {
       cce.Owner.AssignSame(this, receiver);
       this.Receiver = receiver;
       this.OpenParen = openParen;
+      this.AtLabel = atLabel;
       this.Args = args;
     }
 
@@ -12432,8 +12461,8 @@ namespace Microsoft.Dafny {
   /// <summary>
   /// An ApplySuffix desugars into either an ApplyExpr or a FunctionCallExpr
   /// </summary>
-  public class ApplySuffix : SuffixExpr
-  {
+  public class ApplySuffix : SuffixExpr {
+    public readonly IToken/*?*/ AtTok;
     public readonly List<Expression> Args;
 
     [ContractInvariantMethod]
@@ -12441,11 +12470,12 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Args != null);
     }
 
-    public ApplySuffix(IToken tok, Expression lhs, List<Expression> args)
+    public ApplySuffix(IToken tok, IToken/*?*/ atLabel, Expression lhs, List<Expression> args)
       : base(tok, lhs) {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(cce.NonNullElements(args));
+      AtTok = atLabel;
       Args = args;
     }
   }

@@ -6605,7 +6605,7 @@ namespace Microsoft.Dafny {
         return CanCallAssumption(e.E, etran);
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
-        return CanCallAssumption(e.E, e.AtLabel == null ? etran.Old : etran.OldAt(e.AtLabel));
+        return CanCallAssumption(e.E, etran.OldAt(e.AtLabel));
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
         Bpl.Expr be = Bpl.Expr.True;
@@ -7302,12 +7302,6 @@ namespace Microsoft.Dafny {
           } else {
             CheckNonNull(expr.tok, e.Obj, builder, etran, options.AssertKv);
             // Check that the receiver is available in the state in which the dereference occurs
-            if (etran.UsesOldHeap) {
-              Bpl.Expr wh = GetWhereClause(expr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran, ISALLOC, true);
-              if (wh != null) {
-                builder.Add(Assert(expr.tok, wh, "receiver must be allocated in the state in which its fields are accessed"));
-              }
-            }
           }
         } else if (e.Member is DatatypeDestructor) {
           var dtor = (DatatypeDestructor)e.Member;
@@ -7319,6 +7313,19 @@ namespace Microsoft.Dafny {
           } else {
             builder.Add(Assert(expr.tok, correctConstructor,
               string.Format("destructor '{0}' can only be applied to datatype values constructed by {1}", dtor.Name, dtor.EnclosingCtorNames("or"))));
+          }
+        }
+        if (!e.Member.IsStatic) {
+          if (e.Member is TwoStateFunction) {
+            Bpl.Expr wh = GetWhereClause(expr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
+            if (wh != null) {
+              builder.Add(Assert(expr.tok, wh, "receiver argument must be allocated in the two-state function's previous state"));
+            }
+          } else if (etran.UsesOldHeap) {
+            Bpl.Expr wh = GetWhereClause(expr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran, ISALLOC, true);
+            if (wh != null) {
+              builder.Add(Assert(expr.tok, wh, $"receiver must be allocated in the state in which its {(e.Member is Field ? "fields" : "members")} are accessed"));
+            }
           }
         }
         if (options.DoReadsChecks && e.Member is Field && ((Field)e.Member).IsMutable) {
@@ -7541,6 +7548,12 @@ namespace Microsoft.Dafny {
           } else if (e.Receiver.Type.IsArrowType) {
             CheckFunctionSelectWF("function specification", builder, etran, e.Receiver, "");
           }
+          if (!e.Function.IsStatic && CommonHeapUse && !etran.UsesOldHeap) {
+            // the argument can't be assumed to be allocated for the old heap
+            Type et = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(e.tok, e.Function.EnclosingClass), e.GetTypeArgumentSubstitutions());
+            builder.Add(new Bpl.CommentCmd("assume allocatedness for receiver argument to function"));
+            builder.Add(TrAssumeCmd(e.Receiver.tok, MkIsAlloc(etran.TrExpr(e.Receiver), et, etran.HeapExpr)));
+          }
           // check well-formedness of the other parameters
           foreach (Expression arg in e.Args) {
             CheckWellformed(arg, options, locals, builder, etran);
@@ -7591,9 +7604,9 @@ namespace Microsoft.Dafny {
             }
           } else if (e.Function is TwoStateFunction) {
             if (!e.Function.IsStatic) {
-              Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran.Old, ISALLOC, true);
+              Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
               if (wh != null) {
-                builder.Add(Assert(e.Receiver.tok, wh, "receiver argument must be allocated in the two-state functions's previous state"));
+                builder.Add(Assert(e.Receiver.tok, wh, "receiver argument must be allocated in the two-state function's previous state"));
               }
             }
             Contract.Assert(e.Function.Formals.Count == e.Args.Count);
@@ -7601,7 +7614,7 @@ namespace Microsoft.Dafny {
               var formal = e.Function.Formals[i];
               if (formal.IsOld) {
                 Expression ee = e.Args[i];
-                Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.Old, ISALLOC, true);
+                Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
                 if (wh != null) {
                   builder.Add(Assert(ee.tok, wh, string.Format("argument{0} ('{1}') must be allocated in the two-state function's previous state",
                     e.Args.Count == 1 ? "" : " " + i, formal.Name)));
@@ -7731,7 +7744,7 @@ namespace Microsoft.Dafny {
         // Anything read inside the 'old' expressions depends only on the old heap, which isn't included in the
         // frame axiom.  In other words, 'old' expressions have no dependencies on the current heap.  Therefore,
         // we turn off any reads checks for "e.E".
-        CheckWellformed(e.E, new WFOptions(options), locals, builder, e.AtLabel == null ? etran.Old : etran.OldAt(e.AtLabel));
+        CheckWellformed(e.E, new WFOptions(options), locals, builder, etran.OldAt(e.AtLabel));
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
         foreach (var fe in e.Frame) {
@@ -8506,12 +8519,7 @@ namespace Microsoft.Dafny {
 
 
     void CheckFunctionSelectWF(string what, BoogieStmtListBuilder builder, ExpressionTranslator etran, Expression e, string hint) {
-      Function fn = null;
-      var sel = e as MemberSelectExpr;
-      if (sel != null) {
-        fn = sel.Member as Function;
-      }
-      if (fn != null) {
+      if (e is MemberSelectExpr sel && sel.Member is Function fn) {
         Bpl.Expr assertion = !InVerificationScope(fn) ? Bpl.Expr.True : Bpl.Expr.Not(etran.HeightContext(fn));
         builder.Add(Assert(e.tok, assertion,
           "cannot use " + what + " in recursive setting." + hint));
@@ -12264,7 +12272,7 @@ namespace Microsoft.Dafny {
         builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, initHeap, etran.HeapExpr));
       }
       builder.Add(new CommentCmd("TrCallStmt: Before ProcessCallStmt"));
-      ProcessCallStmt(s.Tok, tySubst, GetTypeParams(s.Method), s.Receiver, actualReceiver, s.Method, s.Args, bLhss, lhsTypes, builder, locals, etran);
+      ProcessCallStmt(s.Tok, tySubst, GetTypeParams(s.Method), s.Receiver, actualReceiver, s.Method, s.MethodSelect.AtLabel, s.Args, bLhss, lhsTypes, builder, locals, etran);
       builder.Add(new CommentCmd("TrCallStmt: After ProcessCallStmt"));
       for (int i = 0; i < lhsBuilders.Count; i++) {
         var lhs = s.Lhs[i];
@@ -12315,7 +12323,7 @@ namespace Microsoft.Dafny {
     void ProcessCallStmt(IToken tok,
       Dictionary<TypeParameter, Type> tySubst, List<TypeParameter> tyArgs,
       Expression dafnyReceiver, Bpl.Expr bReceiver,
-      Method method, List<Expression> Args,
+      Method method, Label/*?*/ atLabel, List<Expression> Args,
       List<Bpl.IdentifierExpr> Lhss, List<Type> LhsTypes,
       BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
 
@@ -12323,6 +12331,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(dafnyReceiver != null || bReceiver != null);
       Contract.Requires(method != null);
       Contract.Requires(VisibleInScope(method));
+      Contract.Requires(method is TwoStateLemma || atLabel == null);
       Contract.Requires(Args != null);
       Contract.Requires(Lhss != null);
       Contract.Requires(LhsTypes != null);
@@ -12371,7 +12380,7 @@ namespace Microsoft.Dafny {
 
       var ins = new List<Bpl.Expr>();
       if (callee is TwoStateLemma) {
-        ins.Add(etran.Old.HeapExpr);
+        ins.Add(etran.OldAt(atLabel).HeapExpr);
         ins.Add(etran.HeapExpr);
       }
       // Add type arguments
@@ -12400,7 +12409,7 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < callee.Ins.Count; i++) {
         var formal = callee.Ins[i];
-        var local = new LocalVariable(formal.tok, formal.tok, formal.Name + "#", formal.Type, formal.IsGhost);
+        var local = new LocalVariable(formal.tok, formal.tok, formal.Name + "#", Resolver.SubstType(formal.Type, tySubst), formal.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -12432,11 +12441,11 @@ namespace Microsoft.Dafny {
           // Check the subrange without boxing
           var beforeBox = etran.TrExpr(actual);
           CheckSubrange(actual.tok, beforeBox, actual.Type, Resolver.SubstType(formal.Type, tySubst), builder);
-          bActual = CondApplyBox(actual.tok, beforeBox, actual.Type, formal.Type);
+          bActual = CondApplyBox(actual.tok, beforeBox, actual.Type, Resolver.SubstType(formal.Type, tySubst));
         }
         Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.tok, param, bActual);
         builder.Add(cmd);
-        ins.Add(param);
+        ins.Add(CondApplyBox(param.tok, param, Resolver.SubstType(formal.Type, tySubst), formal.Type));
       }
 
       // Check that every parameter is available in the state in which the method is invoked; this means checking that it has
@@ -12460,7 +12469,7 @@ namespace Microsoft.Dafny {
         }
       } else if (method is TwoStateLemma) {
         if (!method.IsStatic) {
-          Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.Old, ISALLOC, true);
+          Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
           if (wh != null) {
             builder.Add(Assert(receiver.tok, wh, "receiver argument must be allocated in the two-state lemma's previous state"));
           }
@@ -12470,7 +12479,7 @@ namespace Microsoft.Dafny {
           var formal = callee.Ins[i];
           if (formal.IsOld) {
             Expression ee = Args[i];
-            Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.Old, ISALLOC, true);
+            Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
             if (wh != null) {
               builder.Add(Assert(ee.tok, wh, string.Format("parameter{0} ('{1}') must be allocated in the two-state lemma's previous state",
                 Args.Count == 1 ? "" : " " + i, formal.Name)));
@@ -14815,9 +14824,11 @@ namespace Microsoft.Dafny {
         }
       }
 
-      public ExpressionTranslator OldAt(Label label) {
-        Contract.Requires(label != null);
+      public ExpressionTranslator OldAt(Label/*?*/ label) {
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
+        if (label == null) {
+          return Old;
+        }
         var heapAt = new Bpl.IdentifierExpr(Token.NoToken, "$Heap_at_" + label.AssignUniqueId(translator.CurrentIdGenerator), predef.HeapType);
         return new ExpressionTranslator(translator, predef, heapAt, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, modifiesFrame, stripLits);
       }
@@ -15400,11 +15411,11 @@ namespace Microsoft.Dafny {
 
         } else if (expr is OldExpr) {
           var e = (OldExpr)expr;
-          return e.AtLabel == null ? Old.TrExpr(e.E) : OldAt(e.AtLabel).TrExpr(e.E);
+          return OldAt(e.AtLabel).TrExpr(e.E);
 
         } else if (expr is UnchangedExpr) {
           var e = (UnchangedExpr)expr;
-          return translator.FrameCondition(e.tok, e.Frame, false, Resolver.FrameExpressionUse.Unchanged, e.AtLabel == null ? Old : OldAt(e.AtLabel), this, this, true);
+          return translator.FrameCondition(e.tok, e.Frame, false, Resolver.FrameExpressionUse.Unchanged, OldAt(e.AtLabel), this, this, true);
 
         } else if (expr is UnaryOpExpr) {
           var e = (UnaryOpExpr)expr;
@@ -16346,7 +16357,7 @@ namespace Microsoft.Dafny {
           args.Add(layerArgument);
         }
         if (e.Function is TwoStateFunction) {
-          args.Add(Old.HeapExpr);
+          args.Add(OldAt(e.AtLabel).HeapExpr);
         }
         if (!omitHeapArgument && (AlwaysUseHeap || e.Function.ReadsHeap)) {
           Contract.Assert(HeapExpr != null);
@@ -16367,10 +16378,12 @@ namespace Microsoft.Dafny {
             Statistics_HeapAsQuantifierCount++;
           }
         }
-        if (!e.Function.IsStatic) {
-          args.Add(TrExpr(e.Receiver));
-        }
         argsAreLit = true;
+        if (!e.Function.IsStatic) {
+          var tr_ee = TrExpr(e.Receiver);
+          argsAreLit = argsAreLit && translator.IsLit(tr_ee);
+          args.Add(tr_ee);
+        }
         for (int i = 0; i < e.Args.Count; i++) {
           Expression ee = e.Args[i];
           Type t = e.Function.Formals[i].Type;
@@ -17544,7 +17557,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
-        return TrSplitExpr(e.E, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, e.AtLabel == null ? etran.Old : etran.OldAt(e.AtLabel));
+        return TrSplitExpr(e.E, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran.OldAt(e.AtLabel));
 
       } else if (expr is FunctionCallExpr && position) {
         var fexp = (FunctionCallExpr)expr;
@@ -18099,7 +18112,7 @@ namespace Microsoft.Dafny {
       var FVsHeapAt = new HashSet<Label>();
       Type usesThis = null;
       ComputeFreeVariables(expr, new HashSet<IVariable>(), ref usesHeap, ref usesOldHeap, FVsHeapAt, ref usesThis);
-      return usesHeap || usesOldHeap || FVsHeapAt.Count != 0 || usesThis != null;
+      return usesHeap || usesOldHeap || FVsHeapAt.Count != 0;
     }
 
     class UsesHeapVisitor : BottomUpVisitor
@@ -18172,7 +18185,7 @@ namespace Microsoft.Dafny {
           FunctionCallExpr e = (FunctionCallExpr)expr;
           Expression receiver = Substitute(e.Receiver);
           List<Expression> newArgs = SubstituteExprList(e.Args);
-          FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs);
+          FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs, e.AtLabel);
           if (e.Function == A) {
             newFce.Function = B;
             newFce.Type = e.Type; // TODO: this may not work with type parameters.
@@ -18365,6 +18378,7 @@ namespace Microsoft.Dafny {
           fseNew.Member = fse.Member;
           fseNew.TypeApplication_AtEnclosingClass = fse.TypeApplication_AtEnclosingClass.ConvertAll(t => Resolver.SubstType(t, typeMap));
           fseNew.TypeApplication_JustMember = fse.TypeApplication_JustMember.ConvertAll(t => Resolver.SubstType(t, typeMap));
+          fseNew.AtLabel = fse.AtLabel;
           newExpr = fseNew;
         } else if (expr is SeqSelectExpr) {
           SeqSelectExpr sse = (SeqSelectExpr)expr;
@@ -18405,7 +18419,7 @@ namespace Microsoft.Dafny {
           if (receiver != e.Receiver || newArgs != e.Args ||
               newTypeApplicationAtEnclosingClass != e.TypeApplication_AtEnclosingClass ||
               newTypeApplicationJustFunction != e.TypeApplication_JustFunction) {
-            FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs);
+            FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs, e.AtLabel);
             newFce.Function = e.Function;  // resolve on the fly (and set newFce.Type below, at end)
             newFce.CoCall = e.CoCall;  // also copy the co-call status
             newFce.CoCallHint = e.CoCallHint;  // and any co-call hint

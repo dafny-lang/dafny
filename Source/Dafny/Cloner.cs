@@ -351,7 +351,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        return new FunctionCallExpr(Tok(e.tok), e.Name, CloneExpr(e.Receiver), e.OpenParen == null ? null : Tok(e.OpenParen), e.Args.ConvertAll(CloneExpr));
+        return new FunctionCallExpr(Tok(e.tok), e.Name, CloneExpr(e.Receiver), e.OpenParen == null ? null : Tok(e.OpenParen), e.Args.ConvertAll(CloneExpr), e.AtLabel);
 
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;
@@ -478,7 +478,7 @@ namespace Microsoft.Dafny
     }
 
     public virtual Expression CloneApplySuffix(ApplySuffix e) {
-        return new ApplySuffix(Tok(e.tok), CloneExpr(e.Lhs), e.Args.ConvertAll(CloneExpr));
+        return new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), CloneExpr(e.Lhs), e.Args.ConvertAll(CloneExpr));
     }
 
     public virtual CasePattern<VT> CloneCasePattern<VT>(CasePattern<VT> pat) where VT: IVariable {
@@ -812,6 +812,7 @@ namespace Microsoft.Dafny
     }
 
     public virtual IToken Tok(IToken tok) {
+      Contract.Requires(tok != null);
       return tok;
     }
   }
@@ -1120,7 +1121,7 @@ namespace Microsoft.Dafny
       foreach (var arg in e.Args) {
         args.Add(CloneExpr(arg));
       }
-      var apply = new ApplySuffix(Tok(e.tok), lhs, args);
+      var apply = new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), lhs, args);
       reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
       return apply;
     }
@@ -1133,7 +1134,7 @@ namespace Microsoft.Dafny
       foreach (var arg in e.Args) {
         args.Add(CloneExpr(arg));
       }
-      var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, args);
+      var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, args, e.AtLabel);
       reporter.Info(MessageSource.Cloner, e.tok, e.Name + suffix);
       return fexp;
     }
@@ -1325,7 +1326,7 @@ namespace Microsoft.Dafny
           var args = new List<Expression>();
           args.Add(k);
           apply.Args.ForEach(arg => args.Add(CloneExpr(arg)));
-          var applyClone = new ApplySuffix(Tok(apply.tok), lhsClone, args);
+          var applyClone = new ApplySuffix(Tok(apply.tok), apply.AtTok == null ? null : Tok(apply.AtTok), lhsClone, args);
           var c = new ExprRhs(applyClone);
           reporter.Info(MessageSource.Cloner, apply.Lhs.tok, mse.Member.Name + suffix);
           return c;

@@ -97,10 +97,8 @@ ResolutionErrors.dfy(729,22): Error: a possibly infinite loop is allowed only if
 ResolutionErrors.dfy(762,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(793,19): Error: calls to methods with side-effects are not allowed inside a statement expression
 ResolutionErrors.dfy(794,20): Error: wrong number of method result arguments (got 0, expected 1)
-ResolutionErrors.dfy(806,26): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(816,4): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(827,40): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(836,17): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(850,6): Error: RHS (of type B) not assignable to LHS (of type object)
 ResolutionErrors.dfy(852,6): Error: RHS (of type B) not assignable to LHS (of type object)
 ResolutionErrors.dfy(857,6): Error: RHS (of type G) not assignable to LHS (of type object)
@@ -283,8 +281,8 @@ ResolutionErrors.dfy(1860,14): Error: in the first division of the constructor b
 ResolutionErrors.dfy(1891,15): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(1893,16): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(1909,8): Error: return statement is not allowed before 'new;' in a constructor
-ResolutionErrors.dfy(1935,5): Error: type parameter (G) passed to method P must support auto-initialization (got F)
-ResolutionErrors.dfy(1937,5): Error: type parameter (G) passed to method P must support auto-initialization (got Y)
+ResolutionErrors.dfy(1935,5): Error: type parameter (G) passed to method P must support auto-initialization (got F) (perhaps try declaring type parameter 'F' on line 1928 as 'F(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(1937,5): Error: type parameter (G) passed to method P must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 1925 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
 ResolutionErrors.dfy(1974,5): Error: type parameter (G) passed to method P must support auto-initialization (got SixOrMore)
 ResolutionErrors.dfy(1975,5): Error: type parameter (G) passed to method P must support auto-initialization (got AnotherSixOrMore)
 ResolutionErrors.dfy(1976,5): Error: type parameter (G) passed to method P must support auto-initialization (got MySixOrMore)
@@ -340,8 +338,10 @@ ResolutionErrors.dfy(2263,17): Error: static non-ghost const field 'O' of type '
 ResolutionErrors.dfy(2269,17): Error: static non-ghost const field 'W' of type 'MyClass' (which does not have a default compiled value) must give a defining value
 ResolutionErrors.dfy(2271,17): Error: static non-ghost const field 'O' of type 'Odd' (which does not have a default compiled value) must give a defining value
 ResolutionErrors.dfy(2279,8): Error: class 'Instance' with fields without known initializers, like 'w' of type 'MyClass', must declare a constructor
+ResolutionErrors.dfy(2285,8): Error: class 'GhostCl' with fields without known initializers, like 'z' of type 'MyClass', must declare a constructor
 ResolutionErrors.dfy(2253,8): Error: static non-ghost const field 'X' of type 'Odd' (which does not have a default compiled value) must give a defining value
 ResolutionErrors.dfy(2256,8): Error: static non-ghost const field 'Y' of type 'MyClass' (which does not have a default compiled value) must give a defining value
+ResolutionErrors.dfy(2257,14): Error: static ghost const field 'Y'' of type 'MyClass' (which may be empty) must give a defining value
 ResolutionErrors.dfy(2295,6): Error: LHS of assignment must denote a mutable field
 ResolutionErrors.dfy(2296,10): Error: LHS of assignment must denote a mutable field
 ResolutionErrors.dfy(2303,6): Error: LHS of assignment must denote a mutable field
@@ -450,10 +450,81 @@ ResolutionErrors.dfy(2949,16): Error: sequence update requires the value to have
 ResolutionErrors.dfy(2953,11): Error: multiset update requires domain element to be of type Elem (got Trait)
 ResolutionErrors.dfy(2958,13): Error: map update requires domain element to be of type Elem (got Trait)
 ResolutionErrors.dfy(2960,18): Error: map update requires the value to have the range type Elem (got Trait)
-ResolutionErrors.dfy(2985,5): Error: type parameter (F) passed to method Q must support auto-initialization (got Y)
-ResolutionErrors.dfy(2988,5): Error: type parameter (F) passed to method Q must support auto-initialization (got Z)
-ResolutionErrors.dfy(2989,5): Error: type parameter (G) passed to method P must support nonempty (got Z)
-ResolutionErrors.dfy(2998,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Y)
-ResolutionErrors.dfy(3001,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Z)
-ResolutionErrors.dfy(3002,9): Error: type parameter (G) passed to function FP must support nonempty (got Z)
-453 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2985,5): Error: type parameter (F) passed to method Q must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 2980 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(2988,5): Error: type parameter (F) passed to method Q must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 2980 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(2989,5): Error: type parameter (G) passed to method P must support nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 2980 as 'Z(00)', which says it can only be instantiated with a nonempty type)
+ResolutionErrors.dfy(2998,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 2993 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(3001,9): Error: type parameter (F) passed to function FQ must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 2993 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(3002,9): Error: type parameter (G) passed to function FP must support nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 2993 as 'Z(00)', which says it can only be instantiated with a nonempty type)
+ResolutionErrors.dfy(3019,9): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(3020,9): Error: predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')
+ResolutionErrors.dfy(3021,9): Error: a call to a least predicate is allowed only in specification contexts
+ResolutionErrors.dfy(3022,9): Error: a call to a greatest predicate is allowed only in specification contexts
+ResolutionErrors.dfy(3023,9): Error: a call to a twostate function is allowed only in specification contexts
+ResolutionErrors.dfy(3024,9): Error: a call to a twostate predicate is allowed only in specification contexts
+ResolutionErrors.dfy(3041,9): Error: function 'F0' expects 0 type arguments (got 1)
+ResolutionErrors.dfy(3043,9): Error: function 'F2' expects 2 type arguments (got 1)
+ResolutionErrors.dfy(3044,9): Error: function 'F0' expects 0 type arguments (got 2)
+ResolutionErrors.dfy(3045,9): Error: function 'F1' expects 1 type argument (got 2)
+ResolutionErrors.dfy(3053,4): Error: method 'M0' expects 0 type arguments (got 1)
+ResolutionErrors.dfy(3055,4): Error: method 'M2' expects 2 type arguments (got 1)
+ResolutionErrors.dfy(3056,4): Error: method 'M0' expects 0 type arguments (got 2)
+ResolutionErrors.dfy(3057,4): Error: method 'M1' expects 1 type argument (got 2)
+ResolutionErrors.dfy(3070,10): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(3074,14): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(3079,10): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(3080,10): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(3231,11): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3232,11): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
+ResolutionErrors.dfy(3233,11): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Nonempty)
+ResolutionErrors.dfy(3234,11): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
+ResolutionErrors.dfy(3235,11): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
+ResolutionErrors.dfy(3239,47): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3240,12): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3244,11): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3245,11): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
+ResolutionErrors.dfy(3246,11): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Nonempty)
+ResolutionErrors.dfy(3247,11): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
+ResolutionErrors.dfy(3248,11): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
+ResolutionErrors.dfy(3252,50): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3253,12): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3256,12): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
+ResolutionErrors.dfy(3260,12): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
+ResolutionErrors.dfy(3265,53): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3268,63): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3104,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3109,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 3100 as 'Z(00)', which says it can only be instantiated with a nonempty type)
+ResolutionErrors.dfy(3111,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
+ResolutionErrors.dfy(3112,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Nonempty)
+ResolutionErrors.dfy(3116,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 3100 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(3120,9): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
+ResolutionErrors.dfy(3123,9): Error: type parameter (T) passed to function MustSupportEquality must support equality (got Z) (perhaps try declaring type parameter 'Z' on line 3100 as 'Z(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3128,9): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
+ResolutionErrors.dfy(3130,9): Error: type parameter (T) passed to function NoReferences must support no references (got Z) (perhaps try declaring type parameter 'Z' on line 3100 as 'Z(!new)', which says it can only be instantiated with a type that contains no references)
+ResolutionErrors.dfy(3137,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3143,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
+ResolutionErrors.dfy(3158,9): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
+ResolutionErrors.dfy(3167,12): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3165 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3169,7): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3165 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3172,12): Error: type parameter (T) passed to function GetInt must support equality (got NoEquality)
+ResolutionErrors.dfy(3174,7): Error: type parameter (T) passed to function GetInt must support equality (got NoEquality)
+ResolutionErrors.dfy(3177,19): Error: type parameter (T) passed to function GetInt must support equality (got NoEquality)
+ResolutionErrors.dfy(3185,13): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3184 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3190,13): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3184 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3192,23): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3184 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3194,14): Error: type parameter 0 (T) passed to type QuadEq must support equality (got seq<T>)
+ResolutionErrors.dfy(3195,15): Error: type parameter 1 (U) passed to type QuadEq must support equality (got seq<T>)
+ResolutionErrors.dfy(3204,15): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3201 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3213,15): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 3201 as 'T(==)', which says it can only be instantiated with a type that supports equality)
+ResolutionErrors.dfy(3285,6): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(3289,8): Error: non-ghost variable cannot be assigned a value that depends on a ghost
+ResolutionErrors.dfy(3293,18): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(3319,6): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3325,6): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
+ResolutionErrors.dfy(3326,6): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got Nonempty)
+ResolutionErrors.dfy(3333,6): Error: type parameter (T) passed to function MustSupportEquality must support equality (got NoEquality)
+ResolutionErrors.dfy(3340,6): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
+ResolutionErrors.dfy(3346,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
+ResolutionErrors.dfy(3352,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
+ResolutionErrors.dfy(3367,9): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
+524 resolution/type errors detected in ResolutionErrors.dfy

@@ -2624,7 +2624,7 @@ namespace Microsoft.Dafny
             scope.PushMarker();
             var added = scope.Push(dd.Var.Name, dd.Var);
             Contract.Assert(added == Scope<IVariable>.PushResult.Success);
-            ResolveExpression(dd.Constraint, new ResolveOpts(dd, false));
+            ResolveExpression(dd.Constraint, new ResolveOpts(new CodeContextWrapper(dd, true), false));
             Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
             ConstrainTypeExprBool(dd.Constraint, "newtype constraint must be of type bool (instead got {0})");
             SolveAllTypeConstraints();
@@ -2646,7 +2646,7 @@ namespace Microsoft.Dafny
           scope.PushMarker();
           var added = scope.Push(dd.Var.Name, dd.Var);
           Contract.Assert(added == Scope<IVariable>.PushResult.Success);
-          ResolveExpression(dd.Constraint, new ResolveOpts(dd, false));
+          ResolveExpression(dd.Constraint, new ResolveOpts(new CodeContextWrapper(dd, true), false));
           Contract.Assert(dd.Constraint.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainTypeExprBool(dd.Constraint, "subset-type constraint must be of type bool (instead got {0})");
           SolveAllTypeConstraints();
@@ -2715,7 +2715,7 @@ namespace Microsoft.Dafny
           var dd = (RedirectingTypeDecl)d;
           if (dd.Witness != null) {
             var prevErrCnt = reporter.Count(ErrorLevel.Error);
-            ResolveExpression(dd.Witness, new ResolveOpts(dd, false));
+            ResolveExpression(dd.Witness, new ResolveOpts(new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost), false));
             ConstrainSubtypeRelation(dd.Var.Type, dd.Witness.Type, dd.Witness, "witness expression must have type '{0}' (got '{1}')", dd.Var.Type, dd.Witness.Type);
             SolveAllTypeConstraints();
             if (reporter.Count(ErrorLevel.Error) == prevErrCnt) {
@@ -2902,7 +2902,7 @@ namespace Microsoft.Dafny
             }
           }
           reporter.Info(MessageSource.Resolver, com.tok,
-            string.Format("{0} with focal predicate{2} {1}", com.PrefixLemma.Name, Util.Comma(focalPredicates, p => p.Name), focalPredicates.Count == 1 ? "" : "s"));
+            string.Format("{0} with focal predicate{2} {1}", com.PrefixLemma.Name, Util.Comma(focalPredicates, p => p.Name), Util.Plural(focalPredicates.Count)));
           // Compute the statement body of the prefix lemma
           Contract.Assume(prefixLemma.Body == null);  // this is not supposed to have been filled in before
           if (com.Body != null) {
@@ -3180,72 +3180,36 @@ namespace Microsoft.Dafny
         // Check that all == and != operators in non-ghost contexts are applied to equality-supporting types.
         // Note that this check can only be done after determining which expressions are ghosts.
         foreach (var d in declarations) {
+          for (var attr = d.Attributes; attr != null; attr = attr.Prev) {
+            attr.Args.Iter(e => CheckTypeCharacteristics_Expr(e, true));
+          }
+
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             foreach (var p in iter.Ins) {
-              if (!p.IsGhost) {
-                CheckEqualityTypes_Type(p.tok, p.Type);
-              }
+              CheckTypeCharacteristics_Type(p.tok, p.Type, p.IsGhost);
             }
             foreach (var p in iter.Outs) {
-              if (!p.IsGhost) {
-                CheckEqualityTypes_Type(p.tok, p.Type);
-              }
+              CheckTypeCharacteristics_Type(p.tok, p.Type, p.IsGhost);
             }
             if (iter.Body != null) {
-              CheckEqualityTypes_Stmt(iter.Body);
+              CheckTypeCharacteristics_Stmt(iter.Body, false);
             }
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             foreach (var parentTrait in cl.ParentTraits) {
-              CheckEqualityTypes_Type(cl.tok, parentTrait);
-            }
-            foreach (var member in cl.Members) {
-              if (!member.IsGhost) {
-                if (member is Field) {
-                  var f = (Field)member;
-                  CheckEqualityTypes_Type(f.tok, f.Type);
-                } else if (member is Function) {
-                  var f = (Function)member;
-                  foreach (var p in f.Formals) {
-                    if (!p.IsGhost) {
-                      CheckEqualityTypes_Type(p.tok, p.Type);
-                    }
-                  }
-                  CheckEqualityTypes_Type(f.tok, f.ResultType);
-                  if (f.Body != null) {
-                    CheckEqualityTypes(f.Body);
-                  }
-                } else if (member is Method) {
-                  var m = (Method)member;
-                  foreach (var p in m.Ins) {
-                    if (!p.IsGhost) {
-                      CheckEqualityTypes_Type(p.tok, p.Type);
-                    }
-                  }
-                  foreach (var p in m.Outs) {
-                    if (!p.IsGhost) {
-                      CheckEqualityTypes_Type(p.tok, p.Type);
-                    }
-                  }
-                  if (m.Body != null) {
-                    CheckEqualityTypes_Stmt(m.Body);
-                  }
-                }
-              }
+              CheckTypeCharacteristics_Type(cl.tok, parentTrait, false);
             }
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             foreach (var ctor in dt.Ctors) {
               foreach (var p in ctor.Formals) {
-                if (!p.IsGhost) {
-                  CheckEqualityTypes_Type(p.tok, p.Type);
-                }
+                CheckTypeCharacteristics_Type(p.tok, p.Type, p.IsGhost);
               }
             }
           } else if (d is TypeSynonymDecl) {
             var syn = (TypeSynonymDecl)d;
-            CheckEqualityTypes_Type(syn.tok, syn.Rhs);
+            CheckTypeCharacteristics_Type(syn.tok, syn.Rhs, false);
             if (!isAnExport) {
               if (syn.SupportsEquality && !syn.Rhs.SupportsEquality) {
                 reporter.Error(MessageSource.Resolver, syn.tok, "type '{0}' declared as supporting equality, but the RHS type ({1}) might not",
@@ -3261,6 +3225,48 @@ namespace Microsoft.Dafny
               if (syn.Characteristics.ContainsNoReferenceTypes && !syn.Rhs.IsAllocFree) {
                 reporter.Error(MessageSource.Resolver, syn.tok,
                   "type '{0}' declared as containing no reference types, but the RHS type ({1}) may contain reference types", syn.Name, syn.Rhs);
+              }
+            }
+          }
+
+          if (d is RedirectingTypeDecl) {
+            var rtd = (RedirectingTypeDecl)d;
+            if (rtd.Constraint != null) {
+              CheckTypeCharacteristics_Expr(rtd.Constraint, true);
+            }
+            if (rtd.Witness != null) {
+              CheckTypeCharacteristics_Expr(rtd.Witness, rtd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+            }
+          }
+
+          if (d is TopLevelDeclWithMembers) {
+            var cl = (TopLevelDeclWithMembers)d;
+            foreach (var member in cl.Members) {
+              if (member is Field) {
+                var f = (Field)member;
+                CheckTypeCharacteristics_Type(f.tok, f.Type, f.IsGhost);
+                if (f is ConstantField cf && cf.Rhs != null) {
+                  CheckTypeCharacteristics_Expr(cf.Rhs, cf.IsGhost);
+                }
+              } else if (member is Function) {
+                var f = (Function)member;
+                foreach (var p in f.Formals) {
+                  CheckTypeCharacteristics_Type(p.tok, p.Type, f.IsGhost || p.IsGhost);
+                }
+                if (f.Body != null) {
+                  CheckTypeCharacteristics_Expr(f.Body, f.IsGhost);
+                }
+              } else if (member is Method) {
+                var m = (Method)member;
+                foreach (var p in m.Ins) {
+                  CheckTypeCharacteristics_Type(p.tok, p.Type, m.IsGhost || p.IsGhost);
+                }
+                foreach (var p in m.Outs) {
+                  CheckTypeCharacteristics_Type(p.tok, p.Type, m.IsGhost || p.IsGhost);
+                }
+                if (m.Body != null) {
+                  CheckTypeCharacteristics_Stmt(m.Body, m.IsGhost);
+                }
               }
             }
           }
@@ -3361,15 +3367,24 @@ namespace Microsoft.Dafny
         // and that a class without any constructor only has fields with known initializers.
         // Also check that static fields (which are necessarily const) have initializers.
         var cdci = new CheckDividedConstructorInit_Visitor(this);
-        foreach (var cl in ModuleDefinition.AllClasses(declarations)) {
+        foreach (var cl in ModuleDefinition.AllTypesWithMembers(declarations)) {
+          if (!(cl is ClassDecl)) {
+            if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
+              // non-reference types (datatype, newtype, opaque) don't have constructors that can initialize fields
+              foreach (var member in cl.Members) {
+                if (member is ConstantField f && f.Rhs == null && !f.IsExtern(out _, out _)) {
+                  CheckIsOkayWithoutRHS(f);
+                }
+              }
+            }
+            continue;
+          }
           if (cl is TraitDecl) {
-            // traits never have constructors, but check for static consts
-            foreach (var member in cl.Members) {
-              if (member is ConstantField && member.IsStatic && !member.IsGhost) {
-                var f = (ConstantField)member;
-                if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !f.Type.HasCompilableValue && !f.IsExtern(out _, out _)) {
-                  reporter.Error(MessageSource.Resolver, f.tok, "static non-ghost const field '{0}' of type '{1}' (which does not have a default compiled value) must give a defining value",
-                    f.Name, f.Type);
+            if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract) {
+              // traits never have constructors, but check for static consts
+              foreach (var member in cl.Members) {
+                if (member is ConstantField f && f.IsStatic && f.Rhs == null && !f.IsExtern(out _, out _)) {
+                  CheckIsOkayWithoutRHS(f);
                 }
               }
             }
@@ -3384,17 +3399,16 @@ namespace Microsoft.Dafny
               if (constructor.BodyInit != null) {
                 cdci.CheckInit(constructor.BodyInit);
               }
-            } else if (member is ConstantField && member.IsStatic && !member.IsGhost) {
+            } else if (member is ConstantField && member.IsStatic) {
               var f = (ConstantField)member;
-              if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !f.Type.HasCompilableValue && !f.IsExtern(out _, out _)) {
-                reporter.Error(MessageSource.Resolver, f.tok, "static non-ghost const field '{0}' of type '{1}' (which does not have a default compiled value) must give a defining value",
-                  f.Name, f.Type);
+              if (!isAnExport && !cl.EnclosingModuleDefinition.IsAbstract && f.Rhs == null && !f.IsExtern(out _, out _)) {
+                CheckIsOkayWithoutRHS(f);
               }
-            } else if (member is Field && !member.IsGhost && fieldWithoutKnownInitializer == null) {
+            } else if (member is Field && fieldWithoutKnownInitializer == null) {
               var f = (Field)member;
               if (f is ConstantField && ((ConstantField)f).Rhs != null) {
                 // fine
-              } else if (!f.Type.HasCompilableValue) {
+              } else if (!f.Type.KnownToHaveToAValue(f.IsGhost)) {
                 fieldWithoutKnownInitializer = f;
               }
             }
@@ -3403,11 +3417,11 @@ namespace Microsoft.Dafny
             if (fieldWithoutKnownInitializer == null) {
               // time to check inherited members
               foreach (var member in cl.InheritedMembers) {
-                if (member is Field && !member.IsGhost) {
+                if (member is Field) {
                   var f = (Field)member;
                   if (f is ConstantField && ((ConstantField)f).Rhs != null) {
                     // fine
-                  } else if (!Resolver.SubstType(f.Type, cl.ParentFormalTypeParametersToActuals).HasCompilableValue) {
+                  } else if (!Resolver.SubstType(f.Type, cl.ParentFormalTypeParametersToActuals).KnownToHaveToAValue(f.IsGhost)) {
                     fieldWithoutKnownInitializer = f;
                     break;
                   }
@@ -3421,6 +3435,18 @@ namespace Microsoft.Dafny
             }
           }
         }
+      }
+    }
+
+    private void CheckIsOkayWithoutRHS(ConstantField f) {
+      if (f.IsGhost && !f.Type.IsNonempty) {
+        reporter.Error(MessageSource.Resolver, f.tok,
+          "{0}ghost const field '{1}' of type '{2}' (which may be empty) must give a defining value",
+          f.IsStatic ? "static " : "", f.Name, f.Type);
+      } else if (!f.IsGhost && !f.Type.HasCompilableValue) {
+        reporter.Error(MessageSource.Resolver, f.tok,
+          "{0}non-ghost const field '{1}' of type '{2}' (which does not have a default compiled value) must give a defining value",
+          f.IsStatic ? "static " : "", f.Name, f.Type);
       }
     }
 
@@ -3500,7 +3526,7 @@ namespace Microsoft.Dafny
     private void AddTypeDependencyEdges(ICodeContext context, Type type) {
       Contract.Requires(type != null);
       Contract.Requires(context != null);
-      var caller = context as ICallable;
+      var caller = CodeContextWrapper.Unwrap(context) as ICallable;
       if (caller != null && type is NonProxyType) {
         type.ForeachTypeComponent(ty => {
           var udt = ty as UserDefinedType;
@@ -6497,7 +6523,7 @@ namespace Microsoft.Dafny
           }
           if (whereToLookForBounds != null) {
             e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity, ComprehensionExpr.BoundedPool.PoolVirtues.None);
-            if (2 <= DafnyOptions.O.Allocated && (codeContext is Function || codeContext is ConstantField || codeContext is RedirectingTypeDecl)) {
+            if (2 <= DafnyOptions.O.Allocated && (codeContext is Function || codeContext is ConstantField || CodeContextWrapper.Unwrap(codeContext) is RedirectingTypeDecl)) {
               // functions are not allowed to depend on the set of allocated objects
               foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
                 var msgFormat = "a {0} involved in a {3} definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of '{1}'";
@@ -6505,7 +6531,7 @@ namespace Microsoft.Dafny
                   var tp = bv.Type.AsTypeParameter;
                   msgFormat += " (perhaps declare its type, '{2}', as '{2}(!new)')";
                 }
-                var declKind = codeContext is RedirectingTypeDecl ? ((RedirectingTypeDecl)codeContext).WhatKind : ((MemberDecl)codeContext).WhatKind;
+                var declKind = CodeContextWrapper.Unwrap(codeContext) is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)codeContext).WhatKind;
                 resolver.reporter.Error(MessageSource.Resolver, e, msgFormat, what, bv.Name, bv.Type, declKind);
               }
             }
@@ -7654,142 +7680,135 @@ namespace Microsoft.Dafny
 #endregion ExtremeLemmaChecks
 
     // ------------------------------------------------------------------------------------------------------
-    // ----- CheckEqualityTypes -----------------------------------------------------------------------------
+    // ----- CheckTypeCharacteristics -----------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
-#region CheckEqualityTypes
-    class CheckEqualityTypes_Visitor : ResolverTopDownVisitor<bool>
+#region CheckTypeCharacteristics
+    void CheckTypeCharacteristics_Stmt(Statement stmt, bool isGhost) {
+      Contract.Requires(stmt != null);
+      var v = new CheckTypeCharacteristics_Visitor(this);
+      v.Visit(stmt, isGhost);
+    }
+    void CheckTypeCharacteristics_Expr(Expression expr, bool isGhost) {
+      Contract.Requires(expr != null);
+      var v = new CheckTypeCharacteristics_Visitor(this);
+      v.Visit(expr, isGhost);
+    }
+    public void CheckTypeCharacteristics_Type(IToken tok, Type type, bool isGhost) {
+      Contract.Requires(tok != null);
+      Contract.Requires(type != null);
+      var v = new CheckTypeCharacteristics_Visitor(this);
+      v.VisitType(tok, type, isGhost);
+    }
+
+    /// <summary>
+    /// This visitor checks that type characteristics are respected in all (implicitly or explicitly)
+    /// declared types. Note that equality-support is checked only in compiled contexts.
+    /// In addition, this visitor checks that operations that require equality are applied to
+    /// types that really do support equality; this, too, is checked only in compiled contexts.
+    /// </summary>
+    class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool>
     {
-      public CheckEqualityTypes_Visitor(Resolver resolver)
+      public CheckTypeCharacteristics_Visitor(Resolver resolver)
         : base(resolver) {
         Contract.Requires(resolver != null);
       }
-      protected override bool VisitOneStmt(Statement stmt, ref bool st) {
+      protected override bool VisitOneStmt(Statement stmt, ref bool inGhostContext) {
         if (stmt.IsGhost) {
-          return false;  // no need to recurse to sub-parts, since all sub-parts must be ghost as well
-        } else if (stmt is VarDeclStmt) {
+          inGhostContext = true;
+        }
+        // In the sequel, do two things:
+        //  * Call VisitType on any type that occurs in the statement
+        //  * If the statement introduces ghost components, handle those components here
+        //    rather than letting the default visitor handle them
+        if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;
           foreach (var v in s.Locals) {
-            if (!v.IsGhost) {
-              CheckEqualityTypes_Type(v.Tok, v.Type);
-            }
+            VisitType(v.Tok, v.Type, inGhostContext || v.IsGhost);
           }
         } else if (stmt is VarDeclPattern) {
           var s = (VarDeclPattern)stmt;
           foreach (var v in s.LocalVars) {
-            CheckEqualityTypes_Type(v.Tok, v.Type);
+            VisitType(v.Tok, v.Type, inGhostContext || v.IsGhost);
           }
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
-          var tRhs = s.Rhs as TypeRhs;
-          if (tRhs != null && tRhs.Type is UserDefinedType) {
-            var udt = (UserDefinedType)tRhs.Type;
-            CheckTypeArgumentCharacteristics(tRhs.Tok, "type", udt.ResolvedClass.Name, udt.ResolvedClass.TypeArgs, tRhs.Type.TypeArgs);
+          if (s.Rhs is TypeRhs tRhs) {
+            VisitType(tRhs.Tok, tRhs.Type, inGhostContext);
           }
+        } else if (stmt is AssignSuchThatStmt) {
+          var s = (AssignSuchThatStmt)stmt;
+          Visit(Attributes.SubExpressions(s.Attributes), true);
+          Visit(s.Expr, inGhostContext);
+          foreach (var lhs in s.Lhss) {
+            Visit(lhs, inGhostContext);
+          }
+          return false;
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
-          // don't recurse on the specification parts, which are ghost
+          // all subexpressions are ghost, except the guard
+          Visit(s.LoopSpecificationExpressions, true);
           if (s.Guard != null) {
-            Visit(s.Guard, st);
+            Visit(s.Guard, inGhostContext);
           }
-          // don't recurse on the body, if it's a dirty loop
-          if (s.Body != null) {
-            Visit(s.Body, st);
-          }
+          Visit(s.SubStatements, inGhostContext);
           return false;
         } else if (stmt is AlternativeLoopStmt) {
           var s = (AlternativeLoopStmt)stmt;
-          // don't recurse on the specification parts, which are ghost
+          // all subexpressions are ghost, except the guards
+          Visit(s.LoopSpecificationExpressions, true);
           foreach (var alt in s.Alternatives) {
-            Visit(alt.Guard, st);
-            foreach (var ss in alt.Body) {
-              Visit(ss, st);
-            }
+            Visit(alt.Guard, inGhostContext);
           }
+          Visit(s.SubStatements, inGhostContext);
           return false;
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
-          CheckTypeArgumentCharacteristics(s.Tok, s.Method.WhatKind, s.Method.Name, s.Method.TypeArgs, s.MethodSelect.TypeApplication_JustMember);
-          // recursively visit all subexpressions (which are all actual parameters) passed in for non-ghost formal parameters
+          CheckTypeInstantiation(s.Tok, s.Method.WhatKind, s.Method.Name, s.Method.TypeArgs, s.MethodSelect.TypeApplication_JustMember, inGhostContext);
+          // recursively visit all subexpressions, noting that some of them may correspond to ghost formal parameters
           Contract.Assert(s.Lhs.Count == s.Method.Outs.Count);
           for (var i = 0; i < s.Method.Outs.Count; i++) {
-            if (!s.Method.Outs[i].IsGhost) {
-              Visit(s.Lhs[i], st);
-            }
+            Visit(s.Lhs[i], inGhostContext || s.Method.Outs[i].IsGhost);
           }
-          Visit(s.Receiver, st);
+          Visit(s.Receiver, inGhostContext);
           Contract.Assert(s.Args.Count == s.Method.Ins.Count);
           for (var i = 0; i < s.Method.Ins.Count; i++) {
-            if (!s.Method.Ins[i].IsGhost) {
-              Visit(s.Args[i], st);
-            }
+            Visit(s.Args[i], inGhostContext || s.Method.Ins[i].IsGhost);
           }
-          return false;  // we've done what there is to be done
+          return false;
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           foreach (var v in s.BoundVars) {
-            CheckEqualityTypes_Type(v.Tok, v.Type);
+            VisitType(v.Tok, v.Type, inGhostContext);
           }
-          // do substatements and subexpressions, except attributes and ensures clauses, since they are not compiled
-          foreach (var ss in s.SubStatements) {
-            Visit(ss, st);
-          }
+          // do substatements and subexpressions, noting that ensures clauses are ghost
+          Visit(Attributes.SubExpressions(s.Attributes), true);
           if (s.Range != null) {
-            Visit(s.Range, st);
+            Visit(s.Range, inGhostContext);
           }
-          return false;  // we're done
+          foreach (var ee in s.Ens) {
+            Visit(Attributes.SubExpressions(ee.Attributes), true);
+            Visit(ee.E, true);
+          }
+          Visit(s.SubStatements, inGhostContext);
+          return false;
+        } else if (stmt is ExpectStmt) {
+          var s = (ExpectStmt)stmt;
+          Visit(Attributes.SubExpressions(s.Attributes), true);
+          Visit(s.Expr, inGhostContext);
+          if (s.Message != null) {
+            Visit(s.Message, inGhostContext);
+          }
+          return false;
         }
         return true;
       }
 
-      void CheckTypeArgumentCharacteristics(IToken tok, string what, string className, List<TypeParameter> formalTypeArgs, List<Type> actualTypeArgs) {
-        Contract.Requires(tok != null);
-        Contract.Requires(what != null);
-        Contract.Requires(className != null);
-        Contract.Requires(formalTypeArgs != null);
-        Contract.Requires(actualTypeArgs != null);
-        Contract.Requires(formalTypeArgs.Count == actualTypeArgs.Count);
-
-        for (var i = 0; i < formalTypeArgs.Count; i++) {
-          var formal = formalTypeArgs[i];
-          var actual = actualTypeArgs[i];
-          string whatIsWrong, hint;
-          if (!CheckCharacteristics(formal.Characteristics, actual, out whatIsWrong, out hint)) {
-            resolver.reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to {2} {3} must support {4} (got {5}){6}",
-              actualTypeArgs.Count == 1 ? "" : " " + i, formal.Name, what, className, whatIsWrong, actual, hint);
-          }
-          CheckEqualityTypes_Type(tok, actual);
-        }
-      }
-
-      bool CheckCharacteristics(TypeParameter.TypeParameterCharacteristics formal, Type actual, out string whatIsWrong, out string hint) {
-        Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out whatIsWrong) != null && Contract.ValueAtReturn(out hint) != null));
-        if (formal.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified && !actual.SupportsEquality) {
-          whatIsWrong = "equality";
-          hint = TypeEqualityErrorMessageHint(actual);
-          return false;
-        }
-        if (formal.HasCompiledValue && !actual.HasCompilableValue) {
-          whatIsWrong = "auto-initialization";
-          hint = "";
-          return false;
-        }
-        if (formal.IsNonempty && !actual.IsNonempty) {
-          whatIsWrong = "nonempty";
-          hint = "";
-          return false;
-        }
-        if (formal.ContainsNoReferenceTypes && !actual.IsAllocFree) {
-          whatIsWrong = "no references";
-          hint = "";
-          return false;
-        }
-        whatIsWrong = null;
-        hint = null;
-        return true;
-      }
-
-      protected override bool VisitOneExpr(Expression expr, ref bool st) {
-        if (expr is BinaryExpr) {
+      protected override bool VisitOneExpr(Expression expr, ref bool inGhostContext) {
+        // Do two things:
+        //  * Call VisitType on any type that occurs in the statement
+        //  * If the expression introduces ghost components, handle those components here
+        //    rather than letting the default visitor handle them
+        if (expr is BinaryExpr && !inGhostContext) {
           var e = (BinaryExpr)expr;
           var t0 = e.E0.Type.NormalizeExpand();
           var t1 = e.E1.Type.NormalizeExpand();
@@ -7834,33 +7853,82 @@ namespace Microsoft.Dafny
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
           foreach (var bv in e.BoundVars) {
-            CheckEqualityTypes_Type(bv.tok, bv.Type);
+            VisitType(bv.tok, bv.Type, inGhostContext);
           }
         } else if (expr is LetExpr) {
           var e = (LetExpr)expr;
-          foreach (var bv in e.BoundVars) {
-            CheckEqualityTypes_Type(bv.tok, bv.Type);
+          Visit(Attributes.SubExpressions(e.Attributes), true);
+          if (e.Exact) {
+            Contract.Assert(e.LHSs.Count == e.RHSs.Count);
+            for (var i = 0; i < e.LHSs.Count; i++) {
+              // The VisitPattern function visits all BoundVar's in a pattern and returns
+              // "true" if all variables are ghost.
+              bool VisitPattern(CasePattern<BoundVar> pat, bool patternGhostContext) {
+                if (pat.Var != null) {
+                  VisitType(pat.tok, pat.Var.Type, patternGhostContext || pat.Var.IsGhost);
+                  return pat.Var.IsGhost;
+                } else {
+                  var allGhost = true;
+                  Contract.Assert(pat.Ctor != null);
+                  Contract.Assert(pat.Ctor.Formals.Count == pat.Arguments.Count);
+                  for (var i = 0; i < pat.Ctor.Formals.Count; i++) {
+                    var formal = pat.Ctor.Formals[i];
+                    var arg = pat.Arguments[i];
+                    // don't use short-circuit booleans in the following line, because we want to visit all nested patterns
+                    allGhost &= VisitPattern(arg, patternGhostContext || formal.IsGhost);
+                  }
+                  return allGhost;
+                }
+              }
+
+              var allGhosts = VisitPattern(e.LHSs[i], inGhostContext);
+              Visit(e.RHSs[i], inGhostContext || allGhosts);
+            }
+          } else {
+            Contract.Assert(e.RHSs.Count == 1);
+            var allGhost = true;
+            foreach (var bv in e.BoundVars) {
+              if (!bv.IsGhost) {
+                allGhost = false;
+              }
+              VisitType(bv.tok, bv.Type, inGhostContext || bv.IsGhost);
+            }
+            Visit(e.RHSs[0], inGhostContext || allGhost);
           }
+          Visit(e.Body, inGhostContext);
+          return false;
         } else if (expr is MemberSelectExpr) {
           var e = (MemberSelectExpr)expr;
           if (e.Member is Function || e.Member is Method) {
-            CheckTypeArgumentCharacteristics(e.tok, e.Member.WhatKind, e.Member.Name, ((ICallable)e.Member).TypeArgs, e.TypeApplication_JustMember);
+            CheckTypeInstantiation(e.tok, e.Member.WhatKind, e.Member.Name, ((ICallable)e.Member).TypeArgs, e.TypeApplication_JustMember, inGhostContext);
           }
         } else if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
-          CheckTypeArgumentCharacteristics(e.tok, e.Function.WhatKind, e.Function.Name, e.Function.TypeArgs, e.TypeApplication_JustFunction);
-          // recursively visit all subexpressions (which are all actual parameters) passed in for non-ghost formal parameters
-          Visit(e.Receiver, st);
+          CheckTypeInstantiation(e.tok, e.Function.WhatKind, e.Function.Name, e.Function.TypeArgs, e.TypeApplication_JustFunction, inGhostContext);
+          // recursively visit all subexpressions (all actual parameters), noting which ones correspond to ghost formal parameters
+          Visit(e.Receiver, inGhostContext);
           Contract.Assert(e.Args.Count == e.Function.Formals.Count);
           for (var i = 0; i < e.Args.Count; i++) {
-            if (!e.Function.Formals[i].IsGhost) {
-              Visit(e.Args[i], st);
-            }
+            Visit(e.Args[i], inGhostContext || e.Function.Formals[i].IsGhost);
           }
           return false;  // we've done what there is to be done
-        } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is SeqConstructionExpr || expr is MultiSetFormingExpr || expr is StaticReceiverExpr) {
+        } else if (expr is DatatypeValue) {
+          var e = (DatatypeValue)expr;
+          // recursively visit all subexpressions (all actual parameters), noting which ones correspond to ghost formal parameters
+          Contract.Assert(e.Arguments.Count == e.Ctor.Formals.Count);
+          for (var i = 0; i < e.Arguments.Count; i++) {
+            Visit(e.Arguments[i], inGhostContext || e.Ctor.Formals[i].IsGhost);
+          }
+          return false;  // we've done what there is to be done
+        } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is SeqConstructionExpr ||
+                   expr is MultiSetFormingExpr || expr is StaticReceiverExpr) {
           // This catches other expressions whose type may potentially be illegal
-          CheckEqualityTypes_Type(expr.tok, expr.Type);
+          VisitType(expr.tok, expr.Type, inGhostContext);
+        } else if (expr is StmtExpr) {
+          var e = (StmtExpr)expr;
+          Visit(e.S, true);
+          Visit(e.E, inGhostContext);
+          return false;
         }
         return true;
       }
@@ -7891,7 +7959,7 @@ namespace Microsoft.Dafny
         return false;
       }
 
-      public void CheckEqualityTypes_Type(IToken tok, Type type) {
+      public void VisitType(IToken tok, Type type, bool inGhostContext) {
         Contract.Requires(tok != null);
         Contract.Requires(type != null);
         type = type.Normalize();  // we only do a .Normalize() here, because we want to keep stop at any type synonym or subset type
@@ -7900,29 +7968,29 @@ namespace Microsoft.Dafny
         } else if (type is SetType) {
           var st = (SetType)type;
           var argType = st.Arg;
-          if (!argType.SupportsEquality) {
+          if (!inGhostContext && !argType.SupportsEquality) {
             resolver.reporter.Error(MessageSource.Resolver, tok, "{2}set argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType), st.Finite ? "" : "i");
           }
-          CheckEqualityTypes_Type(tok, argType);
+          VisitType(tok, argType, inGhostContext);
 
         } else if (type is MultiSetType) {
           var argType = ((MultiSetType)type).Arg;
-          if (!argType.SupportsEquality) {
+          if (!inGhostContext && !argType.SupportsEquality) {
             resolver.reporter.Error(MessageSource.Resolver, tok, "multiset argument type must support equality (got {0}){1}", argType, TypeEqualityErrorMessageHint(argType));
           }
-          CheckEqualityTypes_Type(tok, argType);
+          VisitType(tok, argType, inGhostContext);
 
         } else if (type is MapType) {
           var mt = (MapType)type;
-          if (!mt.Domain.SupportsEquality) {
+          if (!inGhostContext && !mt.Domain.SupportsEquality) {
             resolver.reporter.Error(MessageSource.Resolver, tok, "{2}map domain type must support equality (got {0}){1}", mt.Domain, TypeEqualityErrorMessageHint(mt.Domain), mt.Finite ? "" : "i");
           }
-          CheckEqualityTypes_Type(tok, mt.Domain);
-          CheckEqualityTypes_Type(tok, mt.Range);
+          VisitType(tok, mt.Domain, inGhostContext);
+          VisitType(tok, mt.Range, inGhostContext);
 
         } else if (type is SeqType) {
           Type argType = ((SeqType)type).Arg;
-          CheckEqualityTypes_Type(tok, argType);
+          VisitType(tok, argType, inGhostContext);
 
         } else if (type is UserDefinedType) {
           var udt = (UserDefinedType)type;
@@ -7936,7 +8004,7 @@ namespace Microsoft.Dafny
           if (formalTypeArgs == null) {
             Contract.Assert(udt.TypeArgs.Count == 0);
           } else {
-            CheckTypeArgumentCharacteristics(udt.tok, "type", udt.ResolvedClass.Name, formalTypeArgs, udt.TypeArgs);
+            CheckTypeInstantiation(udt.tok, "type", udt.ResolvedClass.Name, formalTypeArgs, udt.TypeArgs, inGhostContext);
           }
 
         } else if (type is TypeProxy) {
@@ -7944,6 +8012,56 @@ namespace Microsoft.Dafny
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
         }
+      }
+
+      void CheckTypeInstantiation(IToken tok, string what, string className, List<TypeParameter> formalTypeArgs, List<Type> actualTypeArgs, bool inGhostContext) {
+        Contract.Requires(tok != null);
+        Contract.Requires(what != null);
+        Contract.Requires(className != null);
+        Contract.Requires(formalTypeArgs != null);
+        Contract.Requires(actualTypeArgs != null);
+        Contract.Requires(formalTypeArgs.Count == actualTypeArgs.Count);
+
+        for (var i = 0; i < formalTypeArgs.Count; i++) {
+          var formal = formalTypeArgs[i];
+          var actual = actualTypeArgs[i];
+          if (!CheckCharacteristics(formal.Characteristics, actual, inGhostContext, out var whatIsWrong, out var hint)) {
+            resolver.reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to {2} {3} must support {4} (got {5}){6}",
+              actualTypeArgs.Count == 1 ? "" : " " + i, formal.Name, what, className, whatIsWrong, actual, hint);
+          }
+          VisitType(tok, actual, inGhostContext);
+        }
+      }
+
+      bool CheckCharacteristics(TypeParameter.TypeParameterCharacteristics formal, Type actual, bool inGhostContext, out string whatIsWrong, out string hint) {
+        Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out whatIsWrong) != null && Contract.ValueAtReturn(out hint) != null));
+        if (!inGhostContext && formal.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified && !actual.SupportsEquality) {
+          whatIsWrong = "equality";
+          hint = TypeEqualityErrorMessageHint(actual);
+          return false;
+        }
+        var tp = actual.AsTypeParameter;
+        if (formal.HasCompiledValue && (inGhostContext ? !actual.IsNonempty : !actual.HasCompilableValue)) {
+          whatIsWrong = "auto-initialization";
+          hint = tp == null ? "" :
+            string.Format(" (perhaps try declaring type parameter '{0}' on line {1} as '{0}(0)', which says it can only be instantiated with a type that supports auto-initialization)", tp.Name, tp.tok.line);
+          return false;
+        }
+        if (formal.IsNonempty && !actual.IsNonempty) {
+          whatIsWrong = "nonempty";
+          hint = tp == null ? "" :
+            string.Format(" (perhaps try declaring type parameter '{0}' on line {1} as '{0}(00)', which says it can only be instantiated with a nonempty type)", tp.Name, tp.tok.line);
+          return false;
+        }
+        if (formal.ContainsNoReferenceTypes && !actual.IsAllocFree) {
+          whatIsWrong = "no references";
+          hint = tp == null ? "" :
+            string.Format(" (perhaps try declaring type parameter '{0}' on line {1} as '{0}(!new)', which says it can only be instantiated with a type that contains no references)", tp.Name, tp.tok.line);
+          return false;
+        }
+        whatIsWrong = null;
+        hint = null;
+        return true;
       }
 
       string TypeEqualityErrorMessageHint(Type argType) {
@@ -7955,24 +8073,8 @@ namespace Microsoft.Dafny
         return "";
       }
     }
-    void CheckEqualityTypes_Stmt(Statement stmt) {
-      Contract.Requires(stmt != null);
-      var v = new CheckEqualityTypes_Visitor(this);
-      v.Visit(stmt, false);
-    }
-    void CheckEqualityTypes(Expression expr) {
-      Contract.Requires(expr != null);
-      var v = new CheckEqualityTypes_Visitor(this);
-      v.Visit(expr, false);
-    }
-    public void CheckEqualityTypes_Type(IToken tok, Type type) {
-      Contract.Requires(tok != null);
-      Contract.Requires(type != null);
-      var v = new CheckEqualityTypes_Visitor(this);
-      v.CheckEqualityTypes_Type(tok, type);
-    }
 
-#endregion CheckEqualityTypes
+#endregion CheckTypeCharacteristics
 
     // ------------------------------------------------------------------------------------------------------
     // ----- ComputeGhostInterest ---------------------------------------------------------------------------
@@ -8151,8 +8253,17 @@ namespace Microsoft.Dafny
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
           var lhs = s.Lhs.Resolved;
+
+          // Make an auto-ghost variable a ghost if the RHS is a ghost
+          if (lhs.Resolved is AutoGhostIdentifierExpr && s.Rhs is ExprRhs) {
+            var rhs = (ExprRhs)s.Rhs;
+            if (resolver.UsesSpecFeatures(rhs.Expr)) {
+              var autoGhostIdExpr = (AutoGhostIdentifierExpr)lhs.Resolved;
+              autoGhostIdExpr.Var.MakeGhost();
+            }
+          }
+
           var gk = AssignStmt.LhsIsToGhost_Which(lhs);
-          var isAutoGhost = AssignStmt.LhsIsToGhostOrAutoGhost(lhs);
           if (gk == AssignStmt.NonGhostKind.IsGhost) {
             s.IsGhost = true;
             if (s.Rhs is TypeRhs) {
@@ -8171,18 +8282,11 @@ namespace Microsoft.Dafny
               resolver.CheckIsCompilable(lhs);
             }
 
-
             if (s.Rhs is ExprRhs) {
               var rhs = (ExprRhs)s.Rhs;
-              if (isAutoGhost) {
-                if (resolver.UsesSpecFeatures(rhs.Expr)) {
-                  // TODO: Is this the proper way to determine if an expression is ghost?
-                  ((lhs as AutoGhostIdentifierExpr).Var as LocalVariable).MakeGhost();
-                }
-              } else {
+              if (!AssignStmt.LhsIsToGhost(lhs)) {
                 resolver.CheckIsCompilable(rhs.Expr);
               }
-
             } else if (s.Rhs is HavocRhs) {
               // cool
             } else {
@@ -9815,7 +9919,7 @@ namespace Microsoft.Dafny
         }
 
         // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for greatest lemmas)
-        ResolveAttributes(m.Attributes, m, new ResolveOpts(m, false));
+        ResolveAttributes(m.Attributes, m, new ResolveOpts(m, m is TwoStateLemma));
 
         DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
         scope.PopMarker();  // for the out-parameters and outermost-level locals
@@ -10287,7 +10391,7 @@ namespace Microsoft.Dafny
               t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
             } else if (d is SubsetTypeDecl || d is NewtypeDecl) {
               var dd = (RedirectingTypeDecl)d;
-              var caller = context as ICallable;
+              var caller = CodeContextWrapper.Unwrap(context) as ICallable;
               if (caller != null && !(d is SubsetTypeDecl && caller is SpecialFunction)) {
                 caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
                 if (caller == d) {
@@ -10298,7 +10402,7 @@ namespace Microsoft.Dafny
               t.ResolvedClass = d;
             } else if (d is DatatypeDecl) {
               var dd = (DatatypeDecl)d;
-              var caller = context as ICallable;
+              var caller = CodeContextWrapper.Unwrap(context) as ICallable;
               if (caller != null) {
                 caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
               }
@@ -10478,12 +10582,17 @@ namespace Microsoft.Dafny
           if (labeledAssert != null) {
             s.LabeledAsserts.Add(labeledAssert);
           } else {
-            var opts = new ResolveOpts(codeContext, false, true, false, false);
+            var opts = new ResolveOpts(codeContext, codeContext is Method || codeContext is TwoStateFunction, true, false, false);
             if (expr is ApplySuffix) {
               var e = (ApplySuffix)expr;
               var methodCallInfo = ResolveApplySuffix(e, opts, true);
               if (methodCallInfo == null) {
                 reporter.Error(MessageSource.Resolver, expr.tok, "expression has no reveal lemma");
+              } else if (methodCallInfo.Callee.Member is TwoStateLemma && !opts.twoState) {
+                reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
+              } else if (methodCallInfo.Callee.AtLabel != null) {
+                Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
+                reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
               } else {
                 var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.Args);
                 s.ResolvedStatements.Add(call);
@@ -10636,7 +10745,7 @@ namespace Microsoft.Dafny
         if (s.Update is AssignSuchThatStmt) {
           ResolveConcreteUpdateStmt(s.Update, codeContext);
         }
-        // Update the VarDeclStmt's ghost status according to its components
+        // Check on "assumption" variables
         foreach (var local in s.Locals) {
           if (Attributes.Contains(local.Attributes, "assumption")) {
             if (currentMethod != null) {
@@ -12304,7 +12413,7 @@ namespace Microsoft.Dafny
     }
 
     private Expression VarDotMethod(IToken tok, string varname, string methodname) {
-      return new ApplySuffix(tok, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<Expression>() { });
+      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<Expression>() { });
     }
 
     private Expression makeTemp(String prefix, AssignOrReturnStmt s, ICodeContext codeContext, Expression ex) {
@@ -12721,7 +12830,7 @@ namespace Microsoft.Dafny
         ModuleDefinition calleeModule = ((ICodeContext)callee).EnclosingModule;
         if (callerModule == calleeModule) {
           // intra-module call; add edge in module's call graph
-          var caller = codeContext as ICallable;
+          var caller = CodeContextWrapper.Unwrap(codeContext) as ICallable;
           if (caller == null) {
             // don't add anything to the call graph after all
           } else if (caller is IteratorDecl) {
@@ -14390,8 +14499,8 @@ namespace Microsoft.Dafny
             // the argument is allowed to have any type at all
             expr.Type = Type.Bool;
             if (2 <= DafnyOptions.O.Allocated &&
-              ((opts.codeContext is Function && !opts.InsideOld) || opts.codeContext is ConstantField || opts.codeContext is RedirectingTypeDecl)) {
-              var declKind = opts.codeContext is RedirectingTypeDecl ? ((RedirectingTypeDecl)opts.codeContext).WhatKind : ((MemberDecl)opts.codeContext).WhatKind;
+              ((opts.codeContext is Function && !opts.InsideOld) || opts.codeContext is ConstantField || CodeContextWrapper.Unwrap(opts.codeContext) is RedirectingTypeDecl)) {
+              var declKind = CodeContextWrapper.Unwrap(opts.codeContext) is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)opts.codeContext).WhatKind;
               reporter.Error(MessageSource.Resolver, expr, "a {0} definition is not allowed to depend on the set of allocated references", declKind);
             }
             break;
@@ -14813,7 +14922,7 @@ namespace Microsoft.Dafny
     }
 
     private Expression VarDotFunction(IToken tok, string varname, string functionname) {
-      return new ApplySuffix(tok, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<Expression>() { });
+      return new ApplySuffix(tok, null, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<Expression>() { });
     }
 
     // TODO search for occurrences of "new LetExpr" which could benefit from this helper
@@ -15277,6 +15386,9 @@ namespace Microsoft.Dafny
       if (pat.Var != null) {
         // this is a simple resolution
         var v = pat.Var;
+        if (context.IsGhost) {
+          v.MakeGhost();
+        }
         ResolveType(v.Tok, v.Type, context, ResolveTypeOptionEnum.InferTypeProxies, null);
         AddTypeDependencyEdges(context, v.Type);
         // Note, the following type constraint checks that the RHS type can be assigned to the new variable on the left. In particular, it
@@ -15329,7 +15441,7 @@ namespace Microsoft.Dafny
             if (j < ctor.Formals.Count) {
               var formal = ctor.Formals[j];
               Type st = SubstType(formal.Type, subst);
-              ResolveCasePattern(arg, st, context);
+              ResolveCasePattern(arg, st, new CodeContextWrapper(context, context.IsGhost || formal.IsGhost));
             }
             j++;
           }
@@ -15924,7 +16036,7 @@ namespace Microsoft.Dafny
         if (ri.TypeParamDecl != null) {
           ty = new UserDefinedType(ri.TypeParamDecl);
         } else {
-          ty = new UserDefinedType(expr.tok, ri.Decl.Name, ri.Decl, ri.TypeArgs);
+          ty = new UserDefinedType(ri.tok, ri.Decl.Name, ri.Decl, ri.TypeArgs);
         }
         if (allowDanglingDotName && ty.IsRefType) {
           return new ResolveTypeReturn(ty, expr);
@@ -15995,7 +16107,8 @@ namespace Microsoft.Dafny
         }
         int suppliedTypeArguments = optTypeArguments == null ? 0 : optTypeArguments.Count;
         if (optTypeArguments != null && suppliedTypeArguments != fn.TypeArgs.Count) {
-          reporter.Error(MessageSource.Resolver, tok, "function '{0}' expects {1} type arguments (got {2})", member.Name, fn.TypeArgs.Count, suppliedTypeArguments);
+          reporter.Error(MessageSource.Resolver, tok, "function '{0}' expects {1} type argument{2} (got {3})",
+            member.Name, fn.TypeArgs.Count, Util.Plural(fn.TypeArgs.Count), suppliedTypeArguments);
         }
         for (int i = 0; i < fn.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
@@ -16017,7 +16130,8 @@ namespace Microsoft.Dafny
         }
         int suppliedTypeArguments = optTypeArguments == null ? 0 : optTypeArguments.Count;
         if (optTypeArguments != null && suppliedTypeArguments != m.TypeArgs.Count) {
-          reporter.Error(MessageSource.Resolver, tok, "method '{0}' expects {1} type arguments (got {2})", member.Name, m.TypeArgs.Count, suppliedTypeArguments);
+          reporter.Error(MessageSource.Resolver, tok, "method '{0}' expects {1} type argument{2} (got {3})",
+            member.Name, m.TypeArgs.Count, Util.Plural(m.TypeArgs.Count), suppliedTypeArguments);
         }
         for (int i = 0; i < m.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
@@ -16094,6 +16208,13 @@ namespace Microsoft.Dafny
         // some error had been detected during the attempted resolution of e.Lhs
         e.Lhs.Type = new InferredTypeProxy();
       }
+      Label atLabel = null;
+      if (e.AtTok != null) {
+        atLabel = dominatingStatementLabels.Find(e.AtTok.val);
+        if (atLabel == null) {
+          reporter.Error(MessageSource.Resolver, e.AtTok, "no label '{0}' in scope at this time", e.AtTok.val);
+        }
+      }
       if (r == null) {
         foreach (var arg in e.Args) {
           ResolveExpression(arg, opts);
@@ -16105,34 +16226,22 @@ namespace Microsoft.Dafny
           if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Module) {
             reporter.Error(MessageSource.Resolver, e.tok, "name of module ({0}) is used as a function", ((Resolver_IdentifierExpr)lhs).Decl.Name);
           } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
-            // It may be a conversion expression
             var ri = (Resolver_IdentifierExpr)lhs;
             if (ri.TypeParamDecl != null) {
               reporter.Error(MessageSource.Resolver, e.tok, "name of type parameter ({0}) is used as a function", ri.TypeParamDecl.Name);
             } else {
-              var decl = ri.Decl;
-              var ty = new UserDefinedType(e.tok, decl.Name, decl, ri.TypeArgs);
-              if (ty.AsNewtype != null) {
-                reporter.Deprecated(MessageSource.Resolver, e.tok, "the syntax \"{0}(expr)\" for type conversions has been deprecated; the new syntax is \"expr as {0}\"", decl.Name);
-                if (e.Args.Count != 1) {
-                  reporter.Error(MessageSource.Resolver, e.tok, "conversion operation to {0} got wrong number of arguments (expected 1, got {1})", decl.Name, e.Args.Count);
-                }
-                var conversionArg = 1 <= e.Args.Count ? e.Args[0] :
-                  ty.IsNumericBased(Type.NumericPersuasion.Int) ? LiteralExpr.CreateIntLiteral(e.tok, 0) :
-                  LiteralExpr.CreateRealLiteral(e.tok, BaseTypes.BigDec.ZERO);
-                r = new ConversionExpr(e.tok, conversionArg, ty);
-                ResolveExpression(r, opts);
-                // resolve the rest of the arguments, if any
-                for (int i = 1; i < e.Args.Count; i++) {
-                  ResolveExpression(e.Args[i], opts);
-                }
-              } else {
-                reporter.Error(MessageSource.Resolver, e.tok, "name of type ({0}) is used as a function", decl.Name);
-              }
+              reporter.Error(MessageSource.Resolver, e.tok, "name of type ({0}) is used as a function", ri.Decl.Name);
             }
           } else {
-            if (lhs is MemberSelectExpr && ((MemberSelectExpr)lhs).Member is Method) {
-              var mse = (MemberSelectExpr)lhs;
+            if (lhs is MemberSelectExpr mse && mse.Member is Method) {
+              if (atLabel != null) {
+                Contract.Assert(mse != null); // assured by the parser
+                if (mse.Member is TwoStateLemma) {
+                  mse.AtLabel = atLabel;
+                } else {
+                  reporter.Error(MessageSource.Resolver, e.AtTok, "an @-label can only be applied to a two-state lemma");
+                }
+              }
               if (allowMethodCall) {
                 var cRhs = new MethodCallInformation(e.tok, mse, e.Args);
                 return cRhs;
@@ -16150,6 +16259,10 @@ namespace Microsoft.Dafny
             var what = callee != null ? string.Format("function '{0}'", callee.Name) : string.Format("function type '{0}'", fnType);
             reporter.Error(MessageSource.Resolver, e.tok, "wrong number of arguments to function application ({0} expects {1}, got {2})", what, fnType.Arity, e.Args.Count);
           } else {
+            if (atLabel != null && !(callee is TwoStateFunction)) {
+              reporter.Error(MessageSource.Resolver, e.AtTok, "an @-label can only be applied to a two-state function");
+              atLabel = null;
+            }
             for (var i = 0; i < fnType.Arity; i++) {
               AddAssignableConstraint(e.Args[i].tok, fnType.Args[i], e.Args[i].Type, "type mismatch for argument" + (fnType.Arity == 1 ? "" : " " + i) + " (function expects {0}, got {1})");
             }
@@ -16157,7 +16270,7 @@ namespace Microsoft.Dafny
               // do nothing else; error has been reported
             } else if (callee != null) {
               // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-              var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.Args);
+              var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.Args, atLabel);
               // resolve it here:
               rr.Function = callee;
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
@@ -16289,7 +16402,9 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Generate an error for every ghost feature used in "expr".
+    /// Try to make "expr" compilable (in particular, mark LHSs of a let-expression as ghosts if
+    /// the corresponding RHS is ghost), and then report errors for every part that would prevent
+    /// compilation.
     /// Requires "expr" to have been successfully resolved.
     /// </summary>
     void CheckIsCompilable(Expression expr) {
@@ -16314,7 +16429,15 @@ namespace Microsoft.Dafny
         var e = (FunctionCallExpr)expr;
         if (e.Function != null) {
           if (e.Function.IsGhost) {
-            reporter.Error(MessageSource.Resolver, expr, "function calls are allowed only in specification contexts (consider declaring the function a 'function method')");
+            string msg;
+            if (e.Function is TwoStateFunction || e.Function is ExtremePredicate || e.Function is PrefixPredicate) {
+              msg = $"a call to a {e.Function.WhatKind} is allowed only in specification contexts";
+            } else if (e.Function is Predicate) {
+              msg = "predicate calls are allowed only in specification contexts (consider declaring the predicate a 'predicate method')";
+            } else {
+              msg = "function calls are allowed only in specification contexts (consider declaring the function a 'function method')";
+            }
+            reporter.Error(MessageSource.Resolver, expr, msg);
             return;
           }
           // function is okay, so check all NON-ghost arguments
@@ -16386,7 +16509,17 @@ namespace Microsoft.Dafny
           Contract.Assert(e.LHSs.Count == e.RHSs.Count);
           var i = 0;
           foreach (var ee in e.RHSs) {
-            if (!e.LHSs[i].Vars.All(bv => bv.IsGhost)) {
+            var lhs = e.LHSs[i];
+            // Make LHS vars ghost if the RHS is a ghost
+            if (UsesSpecFeatures(ee)) {
+              foreach (var bv in lhs.Vars) {
+                if (!bv.IsGhost) {
+                  bv.MakeGhost();
+                }
+              }
+            }
+
+            if (!lhs.Vars.All(bv => bv.IsGhost)) {
               CheckIsCompilable(ee);
             }
             i++;
@@ -16551,7 +16684,7 @@ namespace Microsoft.Dafny
       ModuleDefinition calleeModule = function is SpecialFunction ? null : function.EnclosingModule;
       if (callerModule == calleeModule) {
         // intra-module call; add edge in module's call graph
-        var caller = callingContext as ICallable;
+        var caller = CodeContextWrapper.Unwrap(callingContext) as ICallable;
         if (caller == null) {
           // don't add anything to the call graph after all
         } else if (caller is IteratorDecl) {

@@ -49,6 +49,11 @@ namespace Microsoft.Dafny {
       return res;
     }
 
+    public static string Plural(int n) {
+      Contract.Requires(0 <= n);
+      return n == 1 ? "" : "s";
+    }
+
     public static string Repeat(string str, int times) {
       Contract.Requires(times >= 0);
       Contract.Requires(str != null);

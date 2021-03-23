@@ -450,14 +450,14 @@ A RHS with a method call cannot be mixed with a RHS containing multiple expressi
 For example, the desugaring of
 ```dafny
 method m(Status r) returns (rr: Status) {
-  var j, k;
-  j, k :- r, 7;
+  var k;
+  k :- r, 7;
   ...
 }
 ```
 is
 ```dafny
-var j, k;
+var k;
 var tmp;
 tmp, k := r, 7;
 if tmp.IsFailure() {
@@ -1010,10 +1010,10 @@ method Sum(x: Tree) returns (r: int)
 {
   match x {
     case Empty => r := 0;
-	case Node(t1, d, t2) =>
-	  var v1 := Sum(t1);
-	  var v2 := Sum(t2);
-	  r := v1 + d + v2;
+    case Node(t1, d, t2) =>
+      var v1 := Sum(t1);
+      var v2 := Sum(t2);
+      r := v1 + d + v2;
   }
 }
 ```
