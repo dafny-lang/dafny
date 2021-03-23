@@ -338,8 +338,10 @@ ResolutionErrors.dfy(2263,17): Error: static non-ghost const field 'O' of type '
 ResolutionErrors.dfy(2269,17): Error: static non-ghost const field 'W' of type 'MyClass' (which does not have a default compiled value) must give a defining value
 ResolutionErrors.dfy(2271,17): Error: static non-ghost const field 'O' of type 'Odd' (which does not have a default compiled value) must give a defining value
 ResolutionErrors.dfy(2279,8): Error: class 'Instance' with fields without known initializers, like 'w' of type 'MyClass', must declare a constructor
+ResolutionErrors.dfy(2285,8): Error: class 'GhostCl' with fields without known initializers, like 'z' of type 'MyClass', must declare a constructor
 ResolutionErrors.dfy(2253,8): Error: static non-ghost const field 'X' of type 'Odd' (which does not have a default compiled value) must give a defining value
 ResolutionErrors.dfy(2256,8): Error: static non-ghost const field 'Y' of type 'MyClass' (which does not have a default compiled value) must give a defining value
+ResolutionErrors.dfy(2257,14): Error: static ghost const field 'Y'' of type 'MyClass' (which may be empty) must give a defining value
 ResolutionErrors.dfy(2295,6): Error: LHS of assignment must denote a mutable field
 ResolutionErrors.dfy(2296,10): Error: LHS of assignment must denote a mutable field
 ResolutionErrors.dfy(2303,6): Error: LHS of assignment must denote a mutable field
@@ -525,4 +527,4 @@ ResolutionErrors.dfy(3340,6): Error: type parameter (T) passed to function NoRef
 ResolutionErrors.dfy(3346,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
 ResolutionErrors.dfy(3352,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
 ResolutionErrors.dfy(3367,9): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
-522 resolution/type errors detected in ResolutionErrors.dfy
+524 resolution/type errors detected in ResolutionErrors.dfy
