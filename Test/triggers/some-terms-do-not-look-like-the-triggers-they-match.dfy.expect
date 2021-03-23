@@ -3,5 +3,89 @@ some-terms-do-not-look-like-the-triggers-they-match.dfy(15,17): Info: For expres
    Selected triggers: {s[_t#0], s[x]}
 some-terms-do-not-look-like-the-triggers-they-match.dfy(15,17): Info: For expression "x in s ==> _t#0 !in s":
    Selected triggers: {s[_t#0], s[x]}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(24,18): Warning: /!\ No terms found to trigger on.
+some-terms-do-not-look-like-the-triggers-they-match.dfy(25,18): Info: Selected triggers:
+   {x in t}, {x in s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(26,18): Warning: /!\ No terms found to trigger on.
+some-terms-do-not-look-like-the-triggers-they-match.dfy(27,18): Info: Selected triggers:
+   {x in t}, {x in s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(31,18): Warning: /!\ No terms found to trigger on.
+some-terms-do-not-look-like-the-triggers-they-match.dfy(32,18): Info: Selected triggers:
+   {x in t}, {x in s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(36,18): Warning: /!\ No terms found to trigger on.
+some-terms-do-not-look-like-the-triggers-they-match.dfy(37,18): Info: Selected triggers:
+   {x in t}, {x in s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(41,18): Warning: /!\ No terms found to trigger on.
+some-terms-do-not-look-like-the-triggers-they-match.dfy(42,18): Info: Selected triggers: {x in {2, 3, 5}}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(46,18): Warning: /!\ No terms found to trigger on.
+some-terms-do-not-look-like-the-triggers-they-match.dfy(46,36): Info: Selected triggers: {y in s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(47,18): Warning: /!\ No terms found to trigger on.
+some-terms-do-not-look-like-the-triggers-they-match.dfy(47,39): Info: Selected triggers: {y in s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(49,18): Warning: /!\ No terms found to trigger on.
+some-terms-do-not-look-like-the-triggers-they-match.dfy(49,41): Info: Selected triggers: {y in s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(50,18): Info: Selected triggers: {x in s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(51,18): Info: Selected triggers: {x in F(s)}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(58,18): Warning: /!\ No terms found to trigger on.
+some-terms-do-not-look-like-the-triggers-they-match.dfy(59,18): Info: Selected triggers:
+   {t[x]}, {s[x]}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(63,18): Warning: /!\ No terms found to trigger on.
+some-terms-do-not-look-like-the-triggers-they-match.dfy(64,18): Info: Selected triggers:
+   {t[x]}, {s[x]}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(68,18): Info: Selected triggers: {(s - t)[x]}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(69,18): Info: Selected triggers:
+   {t[x]}, {s[x]}, {(s - t)[x]}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(73,18): Warning: /!\ No terms found to trigger on.
+some-terms-do-not-look-like-the-triggers-they-match.dfy(74,18): Info: Selected triggers: {multiset{2, 3, 5}[x]}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(80,18): Info: Selected triggers: {x in s + t}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(81,18): Info: Selected triggers:
+   {x in t}, {x in s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(84,6): Info: Selected triggers:
+   {x in t}, {x in s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(95,18): Info: Selected triggers: {x in [2, 3, 5]}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(96,18): Info: Selected triggers: {x in [2, 3, 5]}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(102,18): Info: Selected triggers: {x in s + t}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(103,18): Info: Selected triggers:
+   {x in t}, {x in s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(107,18): Info: Selected triggers: {x in s - u}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(108,18): Info: Selected triggers:
+   {x in u}, {x in s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(111,6): Info: Selected triggers:
+   {x in u}, {x in s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(122,18): Info: Selected triggers: {x in map[2 := 20, 3 := 30, 5 := 50]}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(123,18): Info: Selected triggers: {x in F(map[2 := 20, 3 := 30, 5 := 50])}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(130,12): Info: Selected triggers: {x < s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(131,12): Info: Selected triggers: {x <= s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(132,12): Info: Selected triggers: {x >= s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(133,12): Info: Selected triggers: {x > s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(135,12): Info: Selected triggers: {x < ms}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(136,12): Info: Selected triggers: {x <= ms}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(137,12): Info: Selected triggers: {x >= ms}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(138,12): Info: Selected triggers: {x > ms}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(140,12): Warning: /!\ No terms found to trigger on.
+some-terms-do-not-look-like-the-triggers-they-match.dfy(141,12): Warning: /!\ No terms found to trigger on.
+some-terms-do-not-look-like-the-triggers-they-match.dfy(126,9): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon35_Then
+    (0,0): anon36_Then
+    (0,0): anon3
+    (0,0): anon37_Then
+    (0,0): anon38_Then
+    (0,0): anon39_Then
+    (0,0): anon8
+    (0,0): anon40_Then
+    (0,0): anon41_Then
+    (0,0): anon11
+    (0,0): anon42_Then
+    (0,0): anon43_Then
+    (0,0): anon44_Then
+    (0,0): anon16
+    some-terms-do-not-look-like-the-triggers-they-match.dfy(109,3): anon45_Else
+    (0,0): anon50_Then
+    (0,0): anon51_Then
+    (0,0): anon31
+    (0,0): anon52_Then
+    (0,0): anon53_Then
+    (0,0): anon34
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 3 verified, 1 error
