@@ -116,7 +116,10 @@ namespace Microsoft.Dafny
         return CommandLineArgumentsResult.OK_EXIT_EARLY;
       }
 
-      if (CommandLineOptions.Clo.Files.Count == 0)
+      if (DafnyOptions.O.UseStdin) {
+        dafnyFiles.Add(new DafnyFile("<stdin>", true));
+      }
+      else if (CommandLineOptions.Clo.Files.Count == 0)
       {
         ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: No input files were specified.");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
