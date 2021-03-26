@@ -10137,6 +10137,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     ///   If the expression is boxed, but the type is not boxed, this unboxes it.
     ///   For lambda functions.
+    /// KRML: The name of this method is really confusing. It seems it should be named something like UnboxUnlessInherentlyBoxed.
     /// </summary>
     public Bpl.Expr UnboxIfBoxed(Bpl.Expr e, Type t) {
       if (!ModeledAsBoxType(t)) {
@@ -16056,19 +16057,21 @@ namespace Microsoft.Dafny {
           Bpl.Expr keys, values;
           if (!e.IsGeneralMapComprehension) {
             var bv = e.BoundVars[0];
-            Bpl.Expr unboxw = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, wVar), bv.Type);
-            Bpl.Expr typeAntecedent = translator.GetWhereClause(bv.tok, unboxw, bv.Type, this, NOALLOC);
+            var w = new Bpl.IdentifierExpr(expr.tok, wVar);
+            Bpl.Expr unboxw = translator.UnboxIfBoxed(w, bv.Type);
+            Bpl.Expr typeAntecedent = translator.MkIsBox(w, bv.Type);
             var subst = new Dictionary<IVariable,Expression>();
             subst.Add(bv, new BoogieWrapper(unboxw, bv.Type));
 
-            var ebody = BplAnd(typeAntecedent ?? Bpl.Expr.True, TrExpr(Translator.Substitute(e.Range, null, subst)));
+            var ebody = BplAnd(typeAntecedent, TrExpr(Translator.Substitute(e.Range, null, subst)));
             keys = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, ebody);
             ebody = TrExpr(Translator.Substitute(e.Term, null, subst));
             values = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, BoxIfNecessary(expr.tok, ebody, e.Term.Type));
           } else {
             var t = e.TermLeft;
-            Bpl.Expr unboxw = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, wVar), t.Type);
-            Bpl.Expr typeAntecedent = translator.GetWhereClause(t.tok, unboxw, t.Type, this, NOALLOC);
+            var w = new Bpl.IdentifierExpr(expr.tok, wVar);
+            Bpl.Expr unboxw = translator.UnboxIfBoxed(w, t.Type);
+            Bpl.Expr typeAntecedent = translator.MkIsBox(w, t.Type);
             List<Bpl.Variable> bvs;
             List<Bpl.Expr> args;
             translator.CreateBoundVariables(e.BoundVars, out bvs, out args);
@@ -16080,7 +16083,7 @@ namespace Microsoft.Dafny {
             var rr = TrExpr(Translator.Substitute(e.Range, null, subst));
             var ff = TrExpr(Translator.Substitute(t, null, subst));
             var exst_body = BplAnd(rr, Bpl.Expr.Eq(unboxw, ff));
-            var ebody = BplAnd(typeAntecedent ?? Bpl.Expr.True, new Bpl.ExistsExpr(e.tok, bvs, exst_body));
+            var ebody = BplAnd(typeAntecedent, new Bpl.ExistsExpr(e.tok, bvs, exst_body));
             keys = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, ebody);
 
             translator.CreateMapComprehensionProjectionFunctions(e);
