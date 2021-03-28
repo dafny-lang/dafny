@@ -99,6 +99,7 @@ namespace Microsoft.Dafny
     public bool UseRuntimeLib = false;
     public bool DisableScopes = false;
     public int Allocated = 3;
+    public bool UseStdin = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -395,6 +396,11 @@ namespace Microsoft.Dafny
             }
           }
           return true;
+
+        case "stdin": {
+            UseStdin = true;
+            return true;
+          }
 
         default:
           break;
@@ -845,6 +851,8 @@ namespace Microsoft.Dafny
 /disableScopes
     Treat all export sets as 'export reveal *'. i.e. don't hide function bodies
     or type definitions during translation.
+/stdin
+    Read standard input and treat it as an input .dfy file.
 
 Dafny generally accepts Boogie options and passes these on to Boogie. However,
 some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
