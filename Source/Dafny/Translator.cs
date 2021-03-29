@@ -10137,6 +10137,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     ///   If the expression is boxed, but the type is not boxed, this unboxes it.
     ///   For lambda functions.
+    /// KRML: The name of this method is really confusing. It seems it should be named something like UnboxUnlessInherentlyBoxed.
     /// </summary>
     public Bpl.Expr UnboxIfBoxed(Bpl.Expr e, Type t) {
       if (!ModeledAsBoxType(t)) {
@@ -16056,19 +16057,21 @@ namespace Microsoft.Dafny {
           Bpl.Expr keys, values;
           if (!e.IsGeneralMapComprehension) {
             var bv = e.BoundVars[0];
-            Bpl.Expr unboxw = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, wVar), bv.Type);
-            Bpl.Expr typeAntecedent = translator.GetWhereClause(bv.tok, unboxw, bv.Type, this, NOALLOC);
+            var w = new Bpl.IdentifierExpr(expr.tok, wVar);
+            Bpl.Expr unboxw = translator.UnboxIfBoxed(w, bv.Type);
+            Bpl.Expr typeAntecedent = translator.MkIsBox(w, bv.Type);
             var subst = new Dictionary<IVariable,Expression>();
             subst.Add(bv, new BoogieWrapper(unboxw, bv.Type));
 
-            var ebody = BplAnd(typeAntecedent ?? Bpl.Expr.True, TrExpr(Translator.Substitute(e.Range, null, subst)));
+            var ebody = BplAnd(typeAntecedent, TrExpr(Translator.Substitute(e.Range, null, subst)));
             keys = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, ebody);
             ebody = TrExpr(Translator.Substitute(e.Term, null, subst));
             values = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, BoxIfNecessary(expr.tok, ebody, e.Term.Type));
           } else {
             var t = e.TermLeft;
-            Bpl.Expr unboxw = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, wVar), t.Type);
-            Bpl.Expr typeAntecedent = translator.GetWhereClause(t.tok, unboxw, t.Type, this, NOALLOC);
+            var w = new Bpl.IdentifierExpr(expr.tok, wVar);
+            Bpl.Expr unboxw = translator.UnboxIfBoxed(w, t.Type);
+            Bpl.Expr typeAntecedent = translator.MkIsBox(w, t.Type);
             List<Bpl.Variable> bvs;
             List<Bpl.Expr> args;
             translator.CreateBoundVariables(e.BoundVars, out bvs, out args);
@@ -16080,7 +16083,7 @@ namespace Microsoft.Dafny {
             var rr = TrExpr(Translator.Substitute(e.Range, null, subst));
             var ff = TrExpr(Translator.Substitute(t, null, subst));
             var exst_body = BplAnd(rr, Bpl.Expr.Eq(unboxw, ff));
-            var ebody = BplAnd(typeAntecedent ?? Bpl.Expr.True, new Bpl.ExistsExpr(e.tok, bvs, exst_body));
+            var ebody = BplAnd(typeAntecedent, new Bpl.ExistsExpr(e.tok, bvs, exst_body));
             keys = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, ebody);
 
             translator.CreateMapComprehensionProjectionFunctions(e);
@@ -16457,12 +16460,15 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
         var elmtBox = BoxIfNecessary(tok, elmt, elmtType);
-        return TrInSet_Aux(tok, elmt, elmtBox, s, out performedRewrite);
+        var r = TrInSet_Aux(tok, elmt, elmtBox, s, out performedRewrite);
+        Contract.Assert(performedRewrite == RewriteInExpr(s)); // sanity check
+        return r;
       }
       /// <summary>
       /// The worker routine for TrInSet.  This method takes both "elmt" and "elmtBox" as parameters,
       /// using the former when the unboxed form is needed and the latter when the boxed form is needed.
       /// This gives the caller the flexibility to pass in either "o, Box(o)" or "Unbox(bx), bx".
+      /// Note: This method must be kept in synch with RewriteInExpr.
       /// </summary>
       public Bpl.Expr TrInSet_Aux(IToken tok, Bpl.Expr elmt, Bpl.Expr elmtBox, Expression s, out bool performedRewrite) {
         Contract.Requires(tok != null);
@@ -16534,6 +16540,7 @@ namespace Microsoft.Dafny {
       /// <summary>
       /// Translate like 0 < s[Box(elmt)], but try to avoid as many set functions as possible in the
       /// translation, because such functions can mess up triggering.
+      /// Note: This method must be kept in synch with RewriteInExpr.
       /// </summary>
       public Bpl.Expr TrInMultiSet(IToken tok, Bpl.Expr elmt, Expression s, Type elmtType) {
         Contract.Requires(tok != null);
@@ -16581,6 +16588,33 @@ namespace Microsoft.Dafny {
           }
         }
         return Bpl.Expr.Gt(Bpl.Expr.SelectTok(tok, TrExpr(s), elmtBox), Bpl.Expr.Literal(0));
+      }
+
+      /// <summary>
+      /// This method returns "true" iff TrInSet_Aux/TrInMultiSet_Aux will rewrite an expression "x in s".
+      /// Note: This method must be kept in synch with TrInSet_Aux/TrInMultiSet_Aux.
+      /// </summary>
+      public static bool RewriteInExpr(Expression s) {
+        Contract.Requires(s != null);
+
+        if (s is BinaryExpr) {
+          BinaryExpr bin = (BinaryExpr)s;
+          switch (bin.ResolvedOp) {
+            case BinaryExpr.ResolvedOpcode.Union:
+            case BinaryExpr.ResolvedOpcode.Intersection:
+            case BinaryExpr.ResolvedOpcode.SetDifference:
+            case BinaryExpr.ResolvedOpcode.MultiSetUnion:
+            case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
+              return true;
+            default:
+              break;
+          }
+        } else if (s is SetDisplayExpr || s is MultiSetDisplayExpr) {
+          return true;
+        } else if (s is SetComprehension) {
+          return true;
+        }
+        return false;
       }
 
       public Bpl.QKeyValue TrAttributes(Attributes attrs, string skipThisAttribute) {
