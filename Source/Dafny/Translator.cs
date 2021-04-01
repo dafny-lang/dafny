@@ -7912,7 +7912,7 @@ namespace Microsoft.Dafny {
               // Havoc heap
               locals.Add(BplLocalVar(CurrentIdGenerator.FreshId("$oldHeap#"), predef.HeapType, out var oldHeap));
               newBuilder.Add(BplSimplestAssign(oldHeap, etran.HeapExpr));
-              locals.Add(BplLocalVar(CurrentIdGenerator.FreshId("$lambdaHeap#"), predef.HeapType, out var lambdaHeap));
+              locals.Add(BplLocalVar(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), predef.HeapType, out var lambdaHeap));
               newEtran = new ExpressionTranslator(newEtran, lambdaHeap);
               newBuilder.Add(new HavocCmd(expr.tok, Singleton((Bpl.IdentifierExpr)newEtran.HeapExpr)));
               newBuilder.Add(new AssumeCmd(expr.tok,
