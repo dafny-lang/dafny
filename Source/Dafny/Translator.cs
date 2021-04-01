@@ -7896,38 +7896,37 @@ namespace Microsoft.Dafny {
 
         builder.Add(new Bpl.CommentCmd("Begin Comprehension WF check"));
         BplIfIf(e.tok, lam != null, null, builder, nextBuilder => {
-          var substMap = SetupBoundVarsAsLocals(e.BoundVars, out var typeAntecedents, nextBuilder, locals, etran, typeMap);
+          var comprehensionEtran = etran;
+          if (lam != null) {
+            // Havoc heap
+            locals.Add(BplLocalVar(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), predef.HeapType, out var lambdaHeap));
+            comprehensionEtran = new ExpressionTranslator(comprehensionEtran, lambdaHeap);
+            nextBuilder.Add(new HavocCmd(expr.tok, Singleton((Bpl.IdentifierExpr)comprehensionEtran.HeapExpr)));
+            nextBuilder.Add(new AssumeCmd(expr.tok, FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, comprehensionEtran.HeapExpr)));
+            nextBuilder.Add(new AssumeCmd(expr.tok, HeapSameOrSucc(etran.HeapExpr, comprehensionEtran.HeapExpr)));
+          }
+
+          var substMap = SetupBoundVarsAsLocals(e.BoundVars, out var typeAntecedents, nextBuilder, locals, comprehensionEtran, typeMap);
           BplIfIf(e.tok, true, typeAntecedents, nextBuilder, newBuilder => {
             var s = new Substituter(null, substMap, typeMap);
             var body = Substitute(e.Term, null, substMap, typeMap);
             var bodyLeft = mc != null ? Substitute(mc.TermLeft, null, substMap, typeMap) : null;
-            var substMapPrime = mc != null ? SetupBoundVarsAsLocals(e.BoundVars, newBuilder, locals, etran, typeMap, "#prime") : null;
+            var substMapPrime = mc != null ? SetupBoundVarsAsLocals(e.BoundVars, newBuilder, locals, comprehensionEtran, typeMap, "#prime") : null;
             var bodyLeftPrime = mc != null ? Substitute(mc.TermLeft, null, substMapPrime, typeMap) : null;
             var bodyPrime = mc != null ? Substitute(e.Term, null, substMapPrime, typeMap) : null;
             List<FrameExpression> reads = null;
 
             var newOptions = options;
-            var newEtran = etran;
             if (lam != null) {
-              // Havoc heap
-              locals.Add(BplLocalVar(CurrentIdGenerator.FreshId("$oldHeap#"), predef.HeapType, out var oldHeap));
-              newBuilder.Add(BplSimplestAssign(oldHeap, etran.HeapExpr));
-              locals.Add(BplLocalVar(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), predef.HeapType, out var lambdaHeap));
-              newEtran = new ExpressionTranslator(newEtran, lambdaHeap);
-              newBuilder.Add(new HavocCmd(expr.tok, Singleton((Bpl.IdentifierExpr)newEtran.HeapExpr)));
-              newBuilder.Add(new AssumeCmd(expr.tok,
-                FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, newEtran.HeapExpr)));
-              newBuilder.Add(new AssumeCmd(expr.tok, HeapSameOrSucc(oldHeap, newEtran.HeapExpr)));
-
               // Set up a new frame
               var frameName = CurrentIdGenerator.FreshId("$_Frame#l");
               reads = lam.Reads.ConvertAll(s.SubstFrameExpr);
-              DefineFrame(e.tok, reads, newBuilder, locals, frameName, newEtran);
-              newEtran = new ExpressionTranslator(newEtran, frameName);
+              DefineFrame(e.tok, reads, newBuilder, locals, frameName, comprehensionEtran);
+              comprehensionEtran = new ExpressionTranslator(comprehensionEtran, frameName);
 
               // Check frame WF and that it read covers itself
               newOptions = new WFOptions(options.SelfCallsAllowance, true /* check reads clauses */, true /* delay reads checks */);
-              CheckFrameWellFormed(newOptions, reads, locals, newBuilder, newEtran);
+              CheckFrameWellFormed(newOptions, reads, locals, newBuilder, comprehensionEtran);
               // new options now contains the delayed reads checks
               newOptions.ProcessSavedReadsChecks(locals, builder, newBuilder);
 
@@ -7939,13 +7938,13 @@ namespace Microsoft.Dafny {
             Bpl.Expr guard = null;
             if (e.Range != null) {
               var range = Substitute(e.Range, null, substMap);
-              CheckWellformed(range, newOptions, locals, newBuilder, newEtran);
-              guard = etran.TrExpr(range);
+              CheckWellformed(range, newOptions, locals, newBuilder, comprehensionEtran);
+              guard = comprehensionEtran.TrExpr(range);
             }
 
             if (mc != null) {
               Contract.Assert(bodyLeft != null);
-              BplIfIf(e.tok, guard != null, guard, newBuilder, b => { CheckWellformed(bodyLeft, newOptions, locals, b, newEtran); });
+              BplIfIf(e.tok, guard != null, guard, newBuilder, b => { CheckWellformed(bodyLeft, newOptions, locals, b, comprehensionEtran); });
             }
             BplIfIf(e.tok, guard != null, guard, newBuilder, b => {
               Bpl.Expr resultIe = null;
@@ -7957,7 +7956,7 @@ namespace Microsoft.Dafny {
                 resultIe = new Bpl.IdentifierExpr(body.tok, resultVar);
                 rangeType = lam.Type.AsArrowType.Result;
               }
-              CheckWellformedWithResult(body, newOptions, resultIe, rangeType, locals, b, newEtran);
+              CheckWellformedWithResult(body, newOptions, resultIe, rangeType, locals, b, comprehensionEtran);
             });
 
             if (mc != null) {
@@ -7968,12 +7967,12 @@ namespace Microsoft.Dafny {
               if (guard != null) {
                 Contract.Assert(e.Range != null);
                 var rangePrime = Substitute(e.Range, null, substMapPrime);
-                guardPrime = etran.TrExpr(rangePrime);
+                guardPrime = comprehensionEtran.TrExpr(rangePrime);
               }
               BplIfIf(e.tok, guard != null, BplAnd(guard, guardPrime), newBuilder, b => {
                 var different = BplOr(
-                  Bpl.Expr.Neq(etran.TrExpr(bodyLeft), etran.TrExpr(bodyLeftPrime)),
-                  Bpl.Expr.Eq(etran.TrExpr(body), etran.TrExpr(bodyPrime)));
+                  Bpl.Expr.Neq(comprehensionEtran.TrExpr(bodyLeft), comprehensionEtran.TrExpr(bodyLeftPrime)),
+                  Bpl.Expr.Eq(comprehensionEtran.TrExpr(body), comprehensionEtran.TrExpr(bodyPrime)));
                 b.Add(Assert(mc.TermLeft.tok, different, "key expressions may be referring to the same value"));
               });
             }
