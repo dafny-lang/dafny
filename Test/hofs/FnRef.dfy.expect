@@ -2,6 +2,7 @@ FnRef.dfy(17,44): Error: possible violation of function precondition
 Execution trace:
     (0,0): anon0
     FnRef.dfy(15,12): anon9_Else
+    (0,0): anon11_Then
     (0,0): anon12_Then
 FnRef.dfy(32,7): Error: possible violation of function precondition
 Execution trace:

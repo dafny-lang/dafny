@@ -16,6 +16,7 @@ Comprehensions.dfy(115,40): Error: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
+    (0,0): anon11_Then
     (0,0): anon12_Then
     (0,0): anon13_Else
 Comprehensions.dfy(118,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
@@ -56,12 +57,14 @@ Comprehensions.dfy(180,38): Error: value does not satisfy the subset constraints
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
+    (0,0): anon11_Then
     (0,0): anon12_Then
     (0,0): anon13_Else
 Comprehensions.dfy(186,30): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
+    (0,0): anon11_Then
     (0,0): anon12_Then
     (0,0): anon13_Then
 Comprehensions.dfy(189,16): Error: value does not satisfy the subset constraints of 'nat'
