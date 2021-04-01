@@ -40,6 +40,24 @@ class MyClass {
       );
   }
 
+  method Q()
+    modifies this
+  {
+    // The following uses of p in R(p) should be allowed. In particular, they should not
+    // produce "p not allocated in function state" errors.
+    if * {
+      ghost var h := old((p: MyClass) reads R(p) => 5);
+    } else if * {
+      ghost var s := old(iset p: MyClass | R(p) == p);
+    } else if * {
+      ghost var m := old(imap p: MyClass | R(p) == p :: 12);
+    } else if * {
+      ghost var m := old(var p: MyClass :| R(p) == p; p.y);
+    } else {
+      ghost var m := old(forall p: MyClass :: R(p) == p);
+    }
+  }
+
   function R(c: MyClass): MyClass
     reads this
   {

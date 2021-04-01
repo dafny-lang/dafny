@@ -16,10 +16,5 @@ Execution trace:
     (0,0): anon29_Else
     (0,0): anon32_Then
     (0,0): anon33_Then
-git-issue-1163.dfy(38,32): Error: receiver must be allocated in the state in which its fields are accessed
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
-    (0,0): anon7_Then
 
-Dafny program verifier finished with 1 verified, 4 errors
+Dafny program verifier finished with 3 verified, 3 errors
