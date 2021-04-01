@@ -5681,7 +5681,8 @@ namespace Microsoft.Dafny {
       return CaptureState(stmt.EndTok, true, null);
     }
 
-    void DefineFrame(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frameClause, BoogieStmtListBuilder/*!*/ builder, List<Variable>/*!*/ localVariables, string name)
+    void DefineFrame(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frameClause,
+      BoogieStmtListBuilder/*!*/ builder, List<Variable>/*!*/ localVariables, string name, ExpressionTranslator/*?*/ etran = null)
     {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(frameClause));
@@ -5689,7 +5690,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(localVariables));
       Contract.Requires(predef != null);
 
-      var etran = new ExpressionTranslator(this, predef, tok);
+      if (etran == null) {
+        // This is the common case. It means that the frame will be defined in terms of the usual variable $Heap.
+        // The one case where a frame is needed for a different heap is for lambda expressions, because they may
+        // sit inside of an "old" expression.
+        etran = new ExpressionTranslator(this, predef, tok);
+      }
       // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
       Bpl.IdentifierExpr theFrame = etran.TheFrame(tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
       Contract.Assert(theFrame.Type != null);  // follows from the postcondition of TheFrame
@@ -7915,7 +7921,7 @@ namespace Microsoft.Dafny {
               // Set up a new frame
               var frameName = CurrentIdGenerator.FreshId("$_Frame#l");
               reads = lam.Reads.ConvertAll(s.SubstFrameExpr);
-              DefineFrame(e.tok, reads, newBuilder, locals, frameName);
+              DefineFrame(e.tok, reads, newBuilder, locals, frameName, newEtran);
               newEtran = new ExpressionTranslator(newEtran, frameName);
 
               // Check frame WF and that it read covers itself
