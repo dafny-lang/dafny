@@ -7910,13 +7910,14 @@ namespace Microsoft.Dafny {
             var newEtran = etran;
             if (lam != null) {
               // Havoc heap
-              Bpl.Expr oldHeap;
-              locals.Add(BplLocalVar(CurrentIdGenerator.FreshId("$oldHeap#"), predef.HeapType, out oldHeap));
+              locals.Add(BplLocalVar(CurrentIdGenerator.FreshId("$oldHeap#"), predef.HeapType, out var oldHeap));
               newBuilder.Add(BplSimplestAssign(oldHeap, etran.HeapExpr));
-              newBuilder.Add(new HavocCmd(expr.tok, Singleton((Bpl.IdentifierExpr)etran.HeapExpr)));
+              locals.Add(BplLocalVar(CurrentIdGenerator.FreshId("$lambdaHeap#"), predef.HeapType, out var lambdaHeap));
+              newEtran = new ExpressionTranslator(newEtran, lambdaHeap);
+              newBuilder.Add(new HavocCmd(expr.tok, Singleton((Bpl.IdentifierExpr)newEtran.HeapExpr)));
               newBuilder.Add(new AssumeCmd(expr.tok,
-                FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr)));
-              newBuilder.Add(new AssumeCmd(expr.tok, HeapSameOrSucc(oldHeap, etran.HeapExpr)));
+                FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, newEtran.HeapExpr)));
+              newBuilder.Add(new AssumeCmd(expr.tok, HeapSameOrSucc(oldHeap, newEtran.HeapExpr)));
 
               // Set up a new frame
               var frameName = CurrentIdGenerator.FreshId("$_Frame#l");
