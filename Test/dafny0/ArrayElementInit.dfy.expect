@@ -1,6 +1,7 @@
 ArrayElementInit.dfy(13,31): Error: possible division by zero
 Execution trace:
     (0,0): anon0
+    (0,0): anon5_Then
     (0,0): anon6_Then
 ArrayElementInit.dfy(19,11): Error: all array indices must be in the domain of the initialization function
 Execution trace:
