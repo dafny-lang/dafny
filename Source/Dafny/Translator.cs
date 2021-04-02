@@ -5955,10 +5955,10 @@ namespace Microsoft.Dafny {
         } else if (eType is SetType) {
           // e[Box(o)]
           bool pr;
-          disjunct = etran.TrInSet_Aux(tok, o, boxO, e, out pr);
+          disjunct = etran.TrInSet_Aux(tok, o, boxO, e, true, out pr);
         } else if (eType is MultiSetType) {
           // e[Box(o)] > 0
-          disjunct = etran.TrInMultiSet_Aux(tok, o, boxO, e);
+          disjunct = etran.TrInMultiSet_Aux(tok, o, boxO, e, true);
         } else if (eType is SeqType) {
           // (exists i: int :: 0 <= i && i < Seq#Length(e) && Seq#Index(e,i) == Box(o))
           Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
@@ -15464,7 +15464,7 @@ namespace Microsoft.Dafny {
                 Bpl.Expr o = new Bpl.IdentifierExpr(expr.tok, oVar);
                 Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
                 bool performedInSetRewrite;
-                Bpl.Expr oInSet = TrInSet(expr.tok, o, e.E, ((SetType)eeType).Arg, out performedInSetRewrite);
+                Bpl.Expr oInSet = TrInSet(expr.tok, o, e.E, ((SetType)eeType).Arg, true, out performedInSetRewrite);
                 Bpl.Expr oNotFresh = Old.IsAlloced(expr.tok, o);
                 Bpl.Expr oIsFresh = Bpl.Expr.Not(oNotFresh);
                 Bpl.Expr body = Bpl.Expr.Imp(oInSet, Bpl.Expr.And(oNotNull, oIsFresh));
@@ -15510,15 +15510,15 @@ namespace Microsoft.Dafny {
           Bpl.Expr e0 = TrExpr(e.E0);
           if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
             bool pr;
-            return TrInSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type), out pr);  // let TrInSet translate e.E1
+            return TrInSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type), false, out pr);  // let TrInSet translate e.E1
           } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSet) {
             bool pr;
-            Bpl.Expr arg = TrInSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type), out pr);  // let TrInSet translate e.E1
+            Bpl.Expr arg = TrInSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type), false, out pr);  // let TrInSet translate e.E1
             return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, arg);
           } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
-            return TrInMultiSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type)); // let TrInMultiSet translate e.E1
+            return TrInMultiSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type), false); // let TrInMultiSet translate e.E1
           } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInMultiSet) {
-            Bpl.Expr arg = TrInMultiSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type));  // let TrInMultiSet translate e.E1
+            Bpl.Expr arg = TrInMultiSet(expr.tok, e0, e.E1, cce.NonNull(e.E0.Type), false);  // let TrInMultiSet translate e.E1
             return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, arg);
           }
           Bpl.Expr e1 = TrExpr(e.E1);
@@ -16458,7 +16458,7 @@ namespace Microsoft.Dafny {
       /// Translate like s[Box(elmt)], but try to avoid as many set functions as possible in the
       /// translation, because such functions can mess up triggering.
       /// </summary>
-      public Bpl.Expr TrInSet(IToken tok, Bpl.Expr elmt, Expression s, Type elmtType, out bool performedRewrite) {
+      public Bpl.Expr TrInSet(IToken tok, Bpl.Expr elmt, Expression s, Type elmtType, bool aggressive, out bool performedRewrite) {
         Contract.Requires(tok != null);
         Contract.Requires(elmt != null);
         Contract.Requires(s != null);
@@ -16466,8 +16466,8 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
         var elmtBox = BoxIfNecessary(tok, elmt, elmtType);
-        var r = TrInSet_Aux(tok, elmt, elmtBox, s, out performedRewrite);
-        Contract.Assert(performedRewrite == RewriteInExpr(s)); // sanity check
+        var r = TrInSet_Aux(tok, elmt, elmtBox, s, aggressive, out performedRewrite);
+        Contract.Assert(performedRewrite == RewriteInExpr(s, aggressive)); // sanity check
         return r;
       }
       /// <summary>
@@ -16476,7 +16476,7 @@ namespace Microsoft.Dafny {
       /// This gives the caller the flexibility to pass in either "o, Box(o)" or "Unbox(bx), bx".
       /// Note: This method must be kept in synch with RewriteInExpr.
       /// </summary>
-      public Bpl.Expr TrInSet_Aux(IToken tok, Bpl.Expr elmt, Bpl.Expr elmtBox, Expression s, out bool performedRewrite) {
+      public Bpl.Expr TrInSet_Aux(IToken tok, Bpl.Expr elmt, Bpl.Expr elmtBox, Expression s, bool aggressive, out bool performedRewrite) {
         Contract.Requires(tok != null);
         Contract.Requires(elmt != null);
         Contract.Requires(elmtBox != null);
@@ -16486,15 +16486,15 @@ namespace Microsoft.Dafny {
         performedRewrite = true;  // assume a rewrite will happen
         s = s.Resolved;
         bool pr;
-        if (s is BinaryExpr) {
+        if (s is BinaryExpr && aggressive) {
           BinaryExpr bin = (BinaryExpr)s;
           switch (bin.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.Union:
-              return Bpl.Expr.Or(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, out pr), TrInSet_Aux(tok, elmt, elmtBox, bin.E1, out pr));
+              return Bpl.Expr.Or(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive, out pr), TrInSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive, out pr));
             case BinaryExpr.ResolvedOpcode.Intersection:
-              return Bpl.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, out pr), TrInSet_Aux(tok, elmt, elmtBox, bin.E1, out pr));
+              return Bpl.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive, out pr), TrInSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive, out pr));
             case BinaryExpr.ResolvedOpcode.SetDifference:
-              return Bpl.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, out pr), Bpl.Expr.Not(TrInSet_Aux(tok, elmt, elmtBox, bin.E1, out pr)));
+              return Bpl.Expr.And(TrInSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive, out pr), Bpl.Expr.Not(TrInSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive, out pr)));
             default:
               break;
           }
@@ -16549,7 +16549,7 @@ namespace Microsoft.Dafny {
       /// translation, because such functions can mess up triggering.
       /// Note: This method must be kept in synch with RewriteInExpr.
       /// </summary>
-      public Bpl.Expr TrInMultiSet(IToken tok, Bpl.Expr elmt, Expression s, Type elmtType) {
+      public Bpl.Expr TrInMultiSet(IToken tok, Bpl.Expr elmt, Expression s, Type elmtType, bool aggressive) {
         Contract.Requires(tok != null);
         Contract.Requires(elmt != null);
         Contract.Requires(s != null);
@@ -16557,9 +16557,9 @@ namespace Microsoft.Dafny {
 
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
         var elmtBox = BoxIfNecessary(tok, elmt, elmtType);
-        return TrInMultiSet_Aux(tok, elmt, elmtBox, s);
+        return TrInMultiSet_Aux(tok, elmt, elmtBox, s, aggressive);
       }
-      public Bpl.Expr TrInMultiSet_Aux(IToken tok, Bpl.Expr elmt, Bpl.Expr elmtBox, Expression s) {
+      public Bpl.Expr TrInMultiSet_Aux(IToken tok, Bpl.Expr elmt, Bpl.Expr elmtBox, Expression s, bool aggressive) {
         Contract.Requires(tok != null);
         Contract.Requires(elmt != null);
         Contract.Requires(s != null);
@@ -16568,13 +16568,13 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
         s = s.Resolved;
-        if (s is BinaryExpr) {
+        if (s is BinaryExpr && aggressive) {
           BinaryExpr bin = (BinaryExpr)s;
           switch (bin.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-              return Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Or, TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E0), TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E1));
+              return Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Or, TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive), TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive));
             case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
-              return Bpl.Expr.Binary(tok, BinaryOperator.Opcode.And, TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E0), TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E1));
+              return Bpl.Expr.Binary(tok, BinaryOperator.Opcode.And, TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive), TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive));
             default:
               break;
           }
@@ -16602,11 +16602,11 @@ namespace Microsoft.Dafny {
       /// This method returns "true" iff TrInSet_Aux/TrInMultiSet_Aux will rewrite an expression "x in s".
       /// Note: This method must be kept in synch with TrInSet_Aux/TrInMultiSet_Aux.
       /// </summary>
-      public static bool RewriteInExpr(Expression s) {
+      public static bool RewriteInExpr(Expression s, bool aggressive) {
         Contract.Requires(s != null);
 
         s = s.Resolved;
-        if (s is BinaryExpr) {
+        if (s is BinaryExpr && aggressive) {
           BinaryExpr bin = (BinaryExpr)s;
           switch (bin.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.Union:
