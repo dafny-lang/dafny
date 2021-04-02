@@ -1,0 +1,18 @@
+git-issue-1165.dfy(8,7): Warning: /!\ No terms found to trigger on.
+git-issue-1165.dfy(9,7): Warning: /!\ No terms found to trigger on.
+git-issue-1165.dfy(10,7): Warning: /!\ No terms found to trigger on.
+git-issue-1165.dfy(11,7): Warning: /!\ No terms found to trigger on.
+git-issue-1165.dfy(19,12): Warning: /!\ No terms found to trigger on.
+git-issue-1165.dfy(20,12): Warning: /!\ No terms found to trigger on.
+git-issue-1165.dfy(21,12): Warning: /!\ No terms found to trigger on.
+git-issue-1165.dfy(22,12): Warning: /!\ No terms found to trigger on.
+git-issue-1165.dfy(27,12): Warning: /!\ No terms found to trigger on.
+git-issue-1165.dfy(28,12): Warning: /!\ No terms found to trigger on.
+git-issue-1165.dfy(29,12): Warning: /!\ No terms found to trigger on.
+git-issue-1165.dfy(30,12): Warning: /!\ No terms found to trigger on.
+git-issue-1165.dfy(35,12): Warning: /!\ No terms found to trigger on.
+git-issue-1165.dfy(36,12): Warning: /!\ No terms found to trigger on.
+git-issue-1165.dfy(37,12): Warning: /!\ No terms found to trigger on.
+git-issue-1165.dfy(38,12): Warning: /!\ No terms found to trigger on.
+
+Dafny program verifier finished with 4 verified, 0 errors

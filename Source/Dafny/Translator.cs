@@ -16484,6 +16484,7 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
         performedRewrite = true;  // assume a rewrite will happen
+        s = s.Resolved;
         bool pr;
         if (s is BinaryExpr) {
           BinaryExpr bin = (BinaryExpr)s;
@@ -16566,6 +16567,7 @@ namespace Microsoft.Dafny {
 
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
+        s = s.Resolved;
         if (s is BinaryExpr) {
           BinaryExpr bin = (BinaryExpr)s;
           switch (bin.ResolvedOp) {
@@ -16603,6 +16605,7 @@ namespace Microsoft.Dafny {
       public static bool RewriteInExpr(Expression s) {
         Contract.Requires(s != null);
 
+        s = s.Resolved;
         if (s is BinaryExpr) {
           BinaryExpr bin = (BinaryExpr)s;
           switch (bin.ResolvedOp) {
