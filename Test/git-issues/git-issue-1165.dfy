@@ -38,3 +38,47 @@ function TestInMultiset(s0: multiset<int>, s1: multiset<int>): bool {
   var t3 := set key | key in s0 + s1 :: key;
   true
 }
+
+class Cell { var data: int }
+
+method ModifiesClauses(S: set<object>, T: set<object>, p: Cell, q: Cell, n: int)
+  requires p in S + T
+  requires q in S
+  modifies S + T
+{
+  p.data := n;
+  q.data := n;
+}
+
+function Id(S: set<object>): set<object> { S }
+
+method Fresh0(p: Cell, q: Cell, n: int) returns (S: set<object>, T: set<object>)
+  ensures fresh(S - T)
+{
+  S, T := {p}, {p};
+}
+
+method Fresh1(p: Cell, q: Cell, n: int) returns (S: set<object>, T: set<object>)
+  ensures fresh(Id(S) - Id(T))
+{
+  S, T := {p}, {p};
+}
+
+method Fresh2(p: Cell, q: Cell, n: int) returns (S: set<object>, T: set<object>)
+  ensures fresh(Id(S - T))
+{
+  S, T := {p}, {p};
+}
+
+function ReadsClauses(S: set<object>, T: set<object>, p: Cell, q: Cell, n: int): int
+  requires p in S + T
+  requires q in S
+  reads S + T
+{
+  p.data + q.data + n
+}
+
+twostate predicate FreshInFunction(S: set<object>, T: set<object>)
+{
+  fresh(S + T)
+}

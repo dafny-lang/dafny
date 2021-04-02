@@ -17859,7 +17859,7 @@ namespace Microsoft.Dafny {
     }
 
     // Using an empty set of old expressions is ok here; the only uses of the triggersCollector will be to check for trigger killers.
-    Triggers.TriggersCollector triggersCollector = new  Triggers.TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>());
+    Triggers.TriggersCollector triggersCollector = new Triggers.TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>());
 
     private bool CanSafelySubstitute(ISet<IVariable> protectedVariables, IVariable variable, Expression substitution) {
       return !(protectedVariables.Contains(variable) && triggersCollector.IsTriggerKiller(substitution));
