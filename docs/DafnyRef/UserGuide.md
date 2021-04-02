@@ -93,7 +93,7 @@ text editor. However, some tools provide syntax-aware features:
 - There is a [Dafny mode for
     Emacs](https://github.com/boogie-org/boogie-friends).
 
-- VSCode, a cross-platform editor for many programming languages has an extension for dafny, installed from within VSCode. VSCode is available [her](http://code.visualstudio.com). The extension provides syntax highlighting, in-line parser, type and verification errors, and code navigation.
+- VSCode, a cross-platform editor for many programming languages has an extension for dafny, installed from within VSCode. VSCode is available [here](http://code.visualstudio.com). The extension provides syntax highlighting, in-line parser, type and verification errors, and code navigation.
 
 - An old Visual Studio plugin is no longer supported
 
@@ -326,7 +326,7 @@ TO BE WRITTEN
    * 0 - do not compile the program
    * 1 (default) - upon successful verification, compile the program to the target language
    * 2 - always compile, regardless of verification success
-   * 3 - if verification is successful, compile the programi (like option 1), and then if there is a `Main` method, attempt to run the program
+   * 3 - if verification is successful, compile the program (like option 1), and then if there is a `Main` method, attempt to run the program
    * 4 - always compile (like option 2), and then if there is a `Main` method, attempt to run the program
 
 * `-compileTarget:<s>` - sets the target programming language for the compiler
