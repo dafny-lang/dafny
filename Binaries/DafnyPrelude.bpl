@@ -1213,16 +1213,19 @@ axiom (forall<U, V> u: U ::
         { Map#Domain(Map#Empty(): Map U V)[u] }
         !Map#Domain(Map#Empty(): Map U V)[u]);
 
-function Map#Glue<U, V>([U] bool, [U]V, Ty): Map U V;
-axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
-        { Map#Domain(Map#Glue(a, b, t)) }
-        Map#Domain(Map#Glue(a, b, t)) == a);
-axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
-        { Map#Elements(Map#Glue(a, b, t)) }
-        Map#Elements(Map#Glue(a, b, t)) == b);
-axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
-        { $Is(Map#Glue(a, b, t), t) }
-        $Is(Map#Glue(a, b, t), t));
+function Map#Glue<U, V>([U]bool, [U]V, Ty): Map U V;
+axiom (forall<U, V> a: [U]bool, b: [U]V, t: Ty ::
+  { Map#Domain(Map#Glue(a, b, t)) }
+  Map#Domain(Map#Glue(a, b, t)) == a);
+axiom (forall<U, V> a: [U]bool, b: [U]V, t: Ty ::
+  { Map#Elements(Map#Glue(a, b, t)) }
+  Map#Elements(Map#Glue(a, b, t)) == b);
+axiom (forall a: [Box]bool, b: [Box]Box, t0, t1: Ty ::
+  { Map#Glue(a, b, TMap(t0, t1)) }
+  // In the following line, no trigger needed, since the quantifier only gets used in negative contexts
+  (forall bx: Box :: a[bx] ==> $IsBox(bx, t0) && $IsBox(b[bx], t1))
+  ==>
+  $Is(Map#Glue(a, b, TMap(t0, t1)), TMap(t0, t1)));
 
 
 //Build is used in displays, and for map updates
@@ -1346,15 +1349,18 @@ axiom (forall<U, V> u: U ::
         !IMap#Domain(IMap#Empty(): IMap U V)[u]);
 
 function IMap#Glue<U, V>([U] bool, [U]V, Ty): IMap U V;
-axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
-        { IMap#Domain(IMap#Glue(a, b, t)) }
-        IMap#Domain(IMap#Glue(a, b, t)) == a);
-axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
-        { IMap#Elements(IMap#Glue(a, b, t)) }
-        IMap#Elements(IMap#Glue(a, b, t)) == b);
-axiom (forall<U, V> a: [U] bool, b:[U]V, t:Ty ::
-        { $Is(IMap#Glue(a, b, t), t) }
-        $Is(IMap#Glue(a, b, t), t));
+axiom (forall<U, V> a: [U]bool, b: [U]V, t: Ty ::
+  { IMap#Domain(IMap#Glue(a, b, t)) }
+  IMap#Domain(IMap#Glue(a, b, t)) == a);
+axiom (forall<U, V> a: [U]bool, b: [U]V, t: Ty ::
+  { IMap#Elements(IMap#Glue(a, b, t)) }
+  IMap#Elements(IMap#Glue(a, b, t)) == b);
+axiom (forall a: [Box]bool, b: [Box]Box, t0, t1: Ty ::
+  { IMap#Glue(a, b, TIMap(t0, t1)) }
+  // In the following line, no trigger needed, since the quantifier only gets used in negative contexts
+  (forall bx: Box :: a[bx] ==> $IsBox(bx, t0) && $IsBox(b[bx], t1))
+  ==>
+  $Is(Map#Glue(a, b, TIMap(t0, t1)), TIMap(t0, t1)));
 
 //Build is used in displays
 function IMap#Build<U, V>(IMap U V, U, V): IMap U V;

@@ -4895,10 +4895,11 @@ namespace Microsoft.Dafny
               var proxy = (TypeProxy)t;
               Type meet = null;
               if (resolver.MeetOfAllSubtypes(proxy, ref meet, new HashSet<TypeProxy>()) && meet != null) {
-                var tt = Type.HeadWithProxyArgs(meet);
+                var headWithProxyArgs = Type.HeadWithProxyArgs(meet);
+                var tt = headWithProxyArgs.NormalizeExpand();
                 satisfied = tt is SeqType || tt is MultiSetType || tt is MapType || (tt.IsArrayType && tt.AsArrayType.Dims == 1);
                 if (satisfied) {
-                  resolver.AssignProxyAndHandleItsConstraints(proxy, tt, true);
+                  resolver.AssignProxyAndHandleItsConstraints(proxy, headWithProxyArgs, true);
                   convertedIntoOtherTypeConstraints = true;
                 }
               } else {
@@ -4915,10 +4916,11 @@ namespace Microsoft.Dafny
               var proxy = (TypeProxy)t;
               Type meet = null;
               if (resolver.MeetOfAllSubtypes(proxy, ref meet, new HashSet<TypeProxy>()) && meet != null) {
-                var tt = Type.HeadWithProxyArgs(meet);
+                var headWithProxyArgs = Type.HeadWithProxyArgs(meet);
+                var tt = headWithProxyArgs.NormalizeExpand();
                 satisfied = tt is SeqType || (tt.IsArrayType && tt.AsArrayType.Dims == 1);
                 if (satisfied) {
-                  resolver.AssignProxyAndHandleItsConstraints(proxy, tt, true);
+                  resolver.AssignProxyAndHandleItsConstraints(proxy, headWithProxyArgs, true);
                   convertedIntoOtherTypeConstraints = true;
                 }
               } else {

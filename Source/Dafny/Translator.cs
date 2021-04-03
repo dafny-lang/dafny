@@ -5681,7 +5681,8 @@ namespace Microsoft.Dafny {
       return CaptureState(stmt.EndTok, true, null);
     }
 
-    void DefineFrame(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frameClause, BoogieStmtListBuilder/*!*/ builder, List<Variable>/*!*/ localVariables, string name)
+    void DefineFrame(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frameClause,
+      BoogieStmtListBuilder/*!*/ builder, List<Variable>/*!*/ localVariables, string name, ExpressionTranslator/*?*/ etran = null)
     {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(frameClause));
@@ -5689,7 +5690,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(localVariables));
       Contract.Requires(predef != null);
 
-      var etran = new ExpressionTranslator(this, predef, tok);
+      if (etran == null) {
+        // This is the common case. It means that the frame will be defined in terms of the usual variable $Heap.
+        // The one case where a frame is needed for a different heap is for lambda expressions, because they may
+        // sit inside of an "old" expression.
+        etran = new ExpressionTranslator(this, predef, tok);
+      }
       // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
       Bpl.IdentifierExpr theFrame = etran.TheFrame(tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
       Contract.Assert(theFrame.Type != null);  // follows from the postcondition of TheFrame
@@ -7890,37 +7896,37 @@ namespace Microsoft.Dafny {
 
         builder.Add(new Bpl.CommentCmd("Begin Comprehension WF check"));
         BplIfIf(e.tok, lam != null, null, builder, nextBuilder => {
-          var substMap = SetupBoundVarsAsLocals(e.BoundVars, out var typeAntecedents, nextBuilder, locals, etran, typeMap);
+          var comprehensionEtran = etran;
+          if (lam != null) {
+            // Havoc heap
+            locals.Add(BplLocalVar(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), predef.HeapType, out var lambdaHeap));
+            comprehensionEtran = new ExpressionTranslator(comprehensionEtran, lambdaHeap);
+            nextBuilder.Add(new HavocCmd(expr.tok, Singleton((Bpl.IdentifierExpr)comprehensionEtran.HeapExpr)));
+            nextBuilder.Add(new AssumeCmd(expr.tok, FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, comprehensionEtran.HeapExpr)));
+            nextBuilder.Add(new AssumeCmd(expr.tok, HeapSameOrSucc(etran.HeapExpr, comprehensionEtran.HeapExpr)));
+          }
+
+          var substMap = SetupBoundVarsAsLocals(e.BoundVars, out var typeAntecedents, nextBuilder, locals, comprehensionEtran, typeMap);
           BplIfIf(e.tok, true, typeAntecedents, nextBuilder, newBuilder => {
             var s = new Substituter(null, substMap, typeMap);
             var body = Substitute(e.Term, null, substMap, typeMap);
             var bodyLeft = mc != null ? Substitute(mc.TermLeft, null, substMap, typeMap) : null;
-            var substMapPrime = mc != null ? SetupBoundVarsAsLocals(e.BoundVars, newBuilder, locals, etran, typeMap, "#prime") : null;
+            var substMapPrime = mc != null ? SetupBoundVarsAsLocals(e.BoundVars, newBuilder, locals, comprehensionEtran, typeMap, "#prime") : null;
             var bodyLeftPrime = mc != null ? Substitute(mc.TermLeft, null, substMapPrime, typeMap) : null;
             var bodyPrime = mc != null ? Substitute(e.Term, null, substMapPrime, typeMap) : null;
             List<FrameExpression> reads = null;
 
             var newOptions = options;
-            var newEtran = etran;
             if (lam != null) {
-              // Havoc heap
-              Bpl.Expr oldHeap;
-              locals.Add(BplLocalVar(CurrentIdGenerator.FreshId("$oldHeap#"), predef.HeapType, out oldHeap));
-              newBuilder.Add(BplSimplestAssign(oldHeap, etran.HeapExpr));
-              newBuilder.Add(new HavocCmd(expr.tok, Singleton((Bpl.IdentifierExpr)etran.HeapExpr)));
-              newBuilder.Add(new AssumeCmd(expr.tok,
-                FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr)));
-              newBuilder.Add(new AssumeCmd(expr.tok, HeapSameOrSucc(oldHeap, etran.HeapExpr)));
-
               // Set up a new frame
               var frameName = CurrentIdGenerator.FreshId("$_Frame#l");
               reads = lam.Reads.ConvertAll(s.SubstFrameExpr);
-              DefineFrame(e.tok, reads, newBuilder, locals, frameName);
-              newEtran = new ExpressionTranslator(newEtran, frameName);
+              DefineFrame(e.tok, reads, newBuilder, locals, frameName, comprehensionEtran);
+              comprehensionEtran = new ExpressionTranslator(comprehensionEtran, frameName);
 
               // Check frame WF and that it read covers itself
               newOptions = new WFOptions(options.SelfCallsAllowance, true /* check reads clauses */, true /* delay reads checks */);
-              CheckFrameWellFormed(newOptions, reads, locals, newBuilder, newEtran);
+              CheckFrameWellFormed(newOptions, reads, locals, newBuilder, comprehensionEtran);
               // new options now contains the delayed reads checks
               newOptions.ProcessSavedReadsChecks(locals, builder, newBuilder);
 
@@ -7932,13 +7938,13 @@ namespace Microsoft.Dafny {
             Bpl.Expr guard = null;
             if (e.Range != null) {
               var range = Substitute(e.Range, null, substMap);
-              CheckWellformed(range, newOptions, locals, newBuilder, newEtran);
-              guard = etran.TrExpr(range);
+              CheckWellformed(range, newOptions, locals, newBuilder, comprehensionEtran);
+              guard = comprehensionEtran.TrExpr(range);
             }
 
             if (mc != null) {
               Contract.Assert(bodyLeft != null);
-              BplIfIf(e.tok, guard != null, guard, newBuilder, b => { CheckWellformed(bodyLeft, newOptions, locals, b, newEtran); });
+              BplIfIf(e.tok, guard != null, guard, newBuilder, b => { CheckWellformed(bodyLeft, newOptions, locals, b, comprehensionEtran); });
             }
             BplIfIf(e.tok, guard != null, guard, newBuilder, b => {
               Bpl.Expr resultIe = null;
@@ -7950,7 +7956,7 @@ namespace Microsoft.Dafny {
                 resultIe = new Bpl.IdentifierExpr(body.tok, resultVar);
                 rangeType = lam.Type.AsArrowType.Result;
               }
-              CheckWellformedWithResult(body, newOptions, resultIe, rangeType, locals, b, newEtran);
+              CheckWellformedWithResult(body, newOptions, resultIe, rangeType, locals, b, comprehensionEtran);
             });
 
             if (mc != null) {
@@ -7961,12 +7967,12 @@ namespace Microsoft.Dafny {
               if (guard != null) {
                 Contract.Assert(e.Range != null);
                 var rangePrime = Substitute(e.Range, null, substMapPrime);
-                guardPrime = etran.TrExpr(rangePrime);
+                guardPrime = comprehensionEtran.TrExpr(rangePrime);
               }
               BplIfIf(e.tok, guard != null, BplAnd(guard, guardPrime), newBuilder, b => {
                 var different = BplOr(
-                  Bpl.Expr.Neq(etran.TrExpr(bodyLeft), etran.TrExpr(bodyLeftPrime)),
-                  Bpl.Expr.Eq(etran.TrExpr(body), etran.TrExpr(bodyPrime)));
+                  Bpl.Expr.Neq(comprehensionEtran.TrExpr(bodyLeft), comprehensionEtran.TrExpr(bodyLeftPrime)),
+                  Bpl.Expr.Eq(comprehensionEtran.TrExpr(body), comprehensionEtran.TrExpr(bodyPrime)));
                 b.Add(Assert(mc.TermLeft.tok, different, "key expressions may be referring to the same value"));
               });
             }
@@ -10137,6 +10143,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     ///   If the expression is boxed, but the type is not boxed, this unboxes it.
     ///   For lambda functions.
+    /// KRML: The name of this method is really confusing. It seems it should be named something like UnboxUnlessInherentlyBoxed.
     /// </summary>
     public Bpl.Expr UnboxIfBoxed(Bpl.Expr e, Type t) {
       if (!ModeledAsBoxType(t)) {
@@ -12583,7 +12590,7 @@ namespace Microsoft.Dafny {
         locals.Add(bvar);
         var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
         builder.Add(new Bpl.HavocCmd(bv.tok, new List<Bpl.IdentifierExpr> { bIe }));
-        Bpl.Expr wh = GetWhereClause(bv.tok, bIe, local.Type, etran, NOALLOC);
+        Bpl.Expr wh = GetWhereClause(bv.tok, bIe, local.Type, etran, CommonHeapUse ? IsAllocType.ISALLOC : IsAllocType.NOALLOC);
         if (wh != null) {
           typeAntecedent = BplAnd(typeAntecedent, wh);
         }
@@ -16056,19 +16063,21 @@ namespace Microsoft.Dafny {
           Bpl.Expr keys, values;
           if (!e.IsGeneralMapComprehension) {
             var bv = e.BoundVars[0];
-            Bpl.Expr unboxw = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, wVar), bv.Type);
-            Bpl.Expr typeAntecedent = translator.GetWhereClause(bv.tok, unboxw, bv.Type, this, NOALLOC);
+            var w = new Bpl.IdentifierExpr(expr.tok, wVar);
+            Bpl.Expr unboxw = translator.UnboxIfBoxed(w, bv.Type);
+            Bpl.Expr typeAntecedent = translator.MkIsBox(w, bv.Type);
             var subst = new Dictionary<IVariable,Expression>();
             subst.Add(bv, new BoogieWrapper(unboxw, bv.Type));
 
-            var ebody = BplAnd(typeAntecedent ?? Bpl.Expr.True, TrExpr(Translator.Substitute(e.Range, null, subst)));
+            var ebody = BplAnd(typeAntecedent, TrExpr(Translator.Substitute(e.Range, null, subst)));
             keys = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, ebody);
             ebody = TrExpr(Translator.Substitute(e.Term, null, subst));
             values = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, BoxIfNecessary(expr.tok, ebody, e.Term.Type));
           } else {
             var t = e.TermLeft;
-            Bpl.Expr unboxw = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, wVar), t.Type);
-            Bpl.Expr typeAntecedent = translator.GetWhereClause(t.tok, unboxw, t.Type, this, NOALLOC);
+            var w = new Bpl.IdentifierExpr(expr.tok, wVar);
+            Bpl.Expr unboxw = translator.UnboxIfBoxed(w, t.Type);
+            Bpl.Expr typeAntecedent = translator.MkIsBox(w, t.Type);
             List<Bpl.Variable> bvs;
             List<Bpl.Expr> args;
             translator.CreateBoundVariables(e.BoundVars, out bvs, out args);
@@ -16080,7 +16089,7 @@ namespace Microsoft.Dafny {
             var rr = TrExpr(Translator.Substitute(e.Range, null, subst));
             var ff = TrExpr(Translator.Substitute(t, null, subst));
             var exst_body = BplAnd(rr, Bpl.Expr.Eq(unboxw, ff));
-            var ebody = BplAnd(typeAntecedent ?? Bpl.Expr.True, new Bpl.ExistsExpr(e.tok, bvs, exst_body));
+            var ebody = BplAnd(typeAntecedent, new Bpl.ExistsExpr(e.tok, bvs, exst_body));
             keys = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, ebody);
 
             translator.CreateMapComprehensionProjectionFunctions(e);
@@ -16457,12 +16466,15 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
         var elmtBox = BoxIfNecessary(tok, elmt, elmtType);
-        return TrInSet_Aux(tok, elmt, elmtBox, s, out performedRewrite);
+        var r = TrInSet_Aux(tok, elmt, elmtBox, s, out performedRewrite);
+        Contract.Assert(performedRewrite == RewriteInExpr(s)); // sanity check
+        return r;
       }
       /// <summary>
       /// The worker routine for TrInSet.  This method takes both "elmt" and "elmtBox" as parameters,
       /// using the former when the unboxed form is needed and the latter when the boxed form is needed.
       /// This gives the caller the flexibility to pass in either "o, Box(o)" or "Unbox(bx), bx".
+      /// Note: This method must be kept in synch with RewriteInExpr.
       /// </summary>
       public Bpl.Expr TrInSet_Aux(IToken tok, Bpl.Expr elmt, Bpl.Expr elmtBox, Expression s, out bool performedRewrite) {
         Contract.Requires(tok != null);
@@ -16534,6 +16546,7 @@ namespace Microsoft.Dafny {
       /// <summary>
       /// Translate like 0 < s[Box(elmt)], but try to avoid as many set functions as possible in the
       /// translation, because such functions can mess up triggering.
+      /// Note: This method must be kept in synch with RewriteInExpr.
       /// </summary>
       public Bpl.Expr TrInMultiSet(IToken tok, Bpl.Expr elmt, Expression s, Type elmtType) {
         Contract.Requires(tok != null);
@@ -16581,6 +16594,33 @@ namespace Microsoft.Dafny {
           }
         }
         return Bpl.Expr.Gt(Bpl.Expr.SelectTok(tok, TrExpr(s), elmtBox), Bpl.Expr.Literal(0));
+      }
+
+      /// <summary>
+      /// This method returns "true" iff TrInSet_Aux/TrInMultiSet_Aux will rewrite an expression "x in s".
+      /// Note: This method must be kept in synch with TrInSet_Aux/TrInMultiSet_Aux.
+      /// </summary>
+      public static bool RewriteInExpr(Expression s) {
+        Contract.Requires(s != null);
+
+        if (s is BinaryExpr) {
+          BinaryExpr bin = (BinaryExpr)s;
+          switch (bin.ResolvedOp) {
+            case BinaryExpr.ResolvedOpcode.Union:
+            case BinaryExpr.ResolvedOpcode.Intersection:
+            case BinaryExpr.ResolvedOpcode.SetDifference:
+            case BinaryExpr.ResolvedOpcode.MultiSetUnion:
+            case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
+              return true;
+            default:
+              break;
+          }
+        } else if (s is SetDisplayExpr || s is MultiSetDisplayExpr) {
+          return true;
+        } else if (s is SetComprehension) {
+          return true;
+        }
+        return false;
       }
 
       public Bpl.QKeyValue TrAttributes(Attributes attrs, string skipThisAttribute) {
