@@ -18,11 +18,13 @@ Frame.dfy(66,18): Error: insufficient reads clause to read array element
 Execution trace:
     (0,0): anon0
     (0,0): anon23_Then
+    (0,0): anon24_Then
     (0,0): anon25_Then
 Frame.dfy(68,27): Error: insufficient reads clause to read array element
 Execution trace:
     (0,0): anon0
     (0,0): anon23_Else
+    (0,0): anon26_Then
     (0,0): anon27_Then
 Frame.dfy(123,13): Error: possible violation of function precondition
 Execution trace:
