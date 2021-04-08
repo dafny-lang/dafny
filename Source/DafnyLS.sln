@@ -1,0 +1,68 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30516.212
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyLS", "DafnyLS\DafnyLS.csproj", "{C571C947-069C-4014-B224-E885EF6D7012}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B19C5FAA-3965-4D4B-A311-57923811EBB3}"
+	ProjectSection(SolutionItems) = preProject
+		..\.editorconfig = ..\.editorconfig
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyPipeline", "..\dafny\Source\Dafny\DafnyPipeline.csproj", "{AB07AB7E-B034-4BFA-88D7-F97E8525FDB4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyRuntime", "..\dafny\Source\DafnyRuntime\DafnyRuntime.csproj", "{FFD516E8-1DEC-47D9-B6C4-FC13DBA159E8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "External", "External", "{E6CE9485-D1CA-403D-B476-68E3396DD364}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyLS.IntegrationTest", "DafnyLS.IntegrationTest\DafnyLS.IntegrationTest.csproj", "{F7C19658-AA08-4AB9-9D72-D741DB7404BB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyDriver", "..\dafny\Source\DafnyDriver\DafnyDriver.csproj", "{1B265434-5E37-4ECA-AF5D-3B4490EAA8B5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyServer", "..\dafny\Source\DafnyServer\DafnyServer.csproj", "{6CCACE89-A4E3-4ABD-A69A-73147D6666A7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C571C947-069C-4014-B224-E885EF6D7012}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C571C947-069C-4014-B224-E885EF6D7012}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C571C947-069C-4014-B224-E885EF6D7012}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C571C947-069C-4014-B224-E885EF6D7012}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AB07AB7E-B034-4BFA-88D7-F97E8525FDB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB07AB7E-B034-4BFA-88D7-F97E8525FDB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB07AB7E-B034-4BFA-88D7-F97E8525FDB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AB07AB7E-B034-4BFA-88D7-F97E8525FDB4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FFD516E8-1DEC-47D9-B6C4-FC13DBA159E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FFD516E8-1DEC-47D9-B6C4-FC13DBA159E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FFD516E8-1DEC-47D9-B6C4-FC13DBA159E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FFD516E8-1DEC-47D9-B6C4-FC13DBA159E8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7C19658-AA08-4AB9-9D72-D741DB7404BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7C19658-AA08-4AB9-9D72-D741DB7404BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7C19658-AA08-4AB9-9D72-D741DB7404BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7C19658-AA08-4AB9-9D72-D741DB7404BB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B265434-5E37-4ECA-AF5D-3B4490EAA8B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B265434-5E37-4ECA-AF5D-3B4490EAA8B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B265434-5E37-4ECA-AF5D-3B4490EAA8B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B265434-5E37-4ECA-AF5D-3B4490EAA8B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6CCACE89-A4E3-4ABD-A69A-73147D6666A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6CCACE89-A4E3-4ABD-A69A-73147D6666A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6CCACE89-A4E3-4ABD-A69A-73147D6666A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6CCACE89-A4E3-4ABD-A69A-73147D6666A7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{AB07AB7E-B034-4BFA-88D7-F97E8525FDB4} = {E6CE9485-D1CA-403D-B476-68E3396DD364}
+		{FFD516E8-1DEC-47D9-B6C4-FC13DBA159E8} = {E6CE9485-D1CA-403D-B476-68E3396DD364}
+		{1B265434-5E37-4ECA-AF5D-3B4490EAA8B5} = {E6CE9485-D1CA-403D-B476-68E3396DD364}
+		{6CCACE89-A4E3-4ABD-A69A-73147D6666A7} = {E6CE9485-D1CA-403D-B476-68E3396DD364}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0F06B0CB-18B7-4086-A7C0-A78CF517FBF9}
+	EndGlobalSection
+EndGlobal
