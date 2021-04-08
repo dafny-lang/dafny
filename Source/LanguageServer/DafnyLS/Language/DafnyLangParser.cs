@@ -112,6 +112,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       try {
         var dafnyFile = new DafnyFile(include.includedFilename);
         int errorCount = Parser.Parse(
+          useStdin: false,
           dafnyFile.SourceFileName,
           include,
           module,
