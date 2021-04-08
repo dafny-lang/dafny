@@ -29,7 +29,7 @@
     <None Update="nlog.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\..\dafny\Binaries\DafnyPrelude.bpl" Link="DafnyPrelude.bpl">
+    <None Include="..\..\..\Binaries\DafnyPrelude.bpl" Link="DafnyPrelude.bpl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
