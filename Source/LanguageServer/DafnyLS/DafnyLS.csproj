@@ -21,8 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\dafny\Source\DafnyServer\DafnyServer.csproj" />
-    <ProjectReference Include="..\..\dafny\Source\Dafny\DafnyPipeline.csproj" />
+    <ProjectReference Include="..\..\DafnyServer\DafnyServer.csproj" />
+    <ProjectReference Include="..\..\Dafny\DafnyPipeline.csproj" />
   </ItemGroup>
 
   <ItemGroup>

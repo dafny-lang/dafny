@@ -10,17 +10,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\.editorconfig = ..\.editorconfig
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyPipeline", "..\dafny\Source\Dafny\DafnyPipeline.csproj", "{AB07AB7E-B034-4BFA-88D7-F97E8525FDB4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyPipeline", "..\Dafny\DafnyPipeline.csproj", "{AB07AB7E-B034-4BFA-88D7-F97E8525FDB4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyRuntime", "..\dafny\Source\DafnyRuntime\DafnyRuntime.csproj", "{FFD516E8-1DEC-47D9-B6C4-FC13DBA159E8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyRuntime", "..\DafnyRuntime\DafnyRuntime.csproj", "{FFD516E8-1DEC-47D9-B6C4-FC13DBA159E8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "External", "External", "{E6CE9485-D1CA-403D-B476-68E3396DD364}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyLS.IntegrationTest", "DafnyLS.IntegrationTest\DafnyLS.IntegrationTest.csproj", "{F7C19658-AA08-4AB9-9D72-D741DB7404BB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyDriver", "..\dafny\Source\DafnyDriver\DafnyDriver.csproj", "{1B265434-5E37-4ECA-AF5D-3B4490EAA8B5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyDriver", "..\DafnyDriver\DafnyDriver.csproj", "{1B265434-5E37-4ECA-AF5D-3B4490EAA8B5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyServer", "..\dafny\Source\DafnyServer\DafnyServer.csproj", "{6CCACE89-A4E3-4ABD-A69A-73147D6666A7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyServer", "..\DafnyServer\DafnyServer.csproj", "{6CCACE89-A4E3-4ABD-A69A-73147D6666A7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
