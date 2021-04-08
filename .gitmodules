@@ -1,3 +1,0 @@
-[submodule "dafny"]
-	path = dafny
-	url = https://github.com/dafny-lang/dafny.git
