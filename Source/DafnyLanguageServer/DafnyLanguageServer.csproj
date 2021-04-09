@@ -21,15 +21,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\DafnyServer\DafnyServer.csproj" />
-    <ProjectReference Include="..\..\Dafny\DafnyPipeline.csproj" />
+    <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
+    <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="nlog.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\..\..\Binaries\DafnyPrelude.bpl" Link="DafnyPrelude.bpl">
+    <None Include="..\..\Binaries\DafnyPrelude.bpl" Link="DafnyPrelude.bpl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

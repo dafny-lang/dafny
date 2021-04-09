@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DafnyLS\DafnyLS.csproj" />
+    <ProjectReference Include="..\DafnyLanguageServer\DafnyLanguageServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -37,10 +37,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\..\Test\dafny3\GenericSort.dfy" Link="Various\TestFiles\GenericSort.dfy">
+    <None Include="..\..\Test\dafny3\GenericSort.dfy" Link="Various\TestFiles\GenericSort.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\..\..\Test\dafny4\GHC-MergeSort.dfy" Link="Various\TestFiles\GHC-MergeSort.dfy">
+    <None Include="..\..\Test\dafny4\GHC-MergeSort.dfy" Link="Various\TestFiles\GHC-MergeSort.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
