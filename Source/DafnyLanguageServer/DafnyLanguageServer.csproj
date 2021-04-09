@@ -6,6 +6,12 @@
     <Nullable>enable</Nullable>
     <RootNamespace>Microsoft.Dafny.LanguageServer</RootNamespace>
     <Version>3.0.0</Version>
+    <OutputPath>..\..\Binaries\</OutputPath>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net5.0|AnyCPU'">
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
