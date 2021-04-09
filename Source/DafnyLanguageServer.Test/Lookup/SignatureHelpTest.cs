@@ -3,11 +3,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup
+{
   [TestClass]
   public class SignatureHelpTest : DafnyLanguageServerTestBase {
     // At this time, the main logic happens within ISymbolGuesser since we have to primarily work
@@ -59,7 +59,7 @@ method Multiply(x: int, y: int) returns (p: int)
 }
 
 method Main() {
-
+  //
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
@@ -88,7 +88,7 @@ function Multiply(x: int, y: int): int
 }
 
 method Main() {
-
+  //
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
@@ -112,7 +112,7 @@ method Main() {
     public async Task SignatureHelpOnOpeningParenthesesReturnsNoSignatureIfNoSuchMethodOrFunctionExists() {
       var source = @"
 method Main() {
-
+  //
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
@@ -152,7 +152,7 @@ module Mod {
     method GetProduct(x: int, y: int) returns (p: int)
       ensures p == x * y
     {
-
+      //
     }
   }
 }".TrimStart();
@@ -202,7 +202,7 @@ class B {
   method GetProduct(x: int, y: int) returns (p: int)
     ensures p == x * y
   {
-
+    //
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
