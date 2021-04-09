@@ -997,7 +997,7 @@ namespace Microsoft.Dafny {
       var r = BplFormalVar(null, resultType ?? t, false);
       Bpl.QKeyValue attr;
       if (w == 0) {
-        attr = new QKeyValue(tok, "inline", new List<object>(), null);
+        attr = InlineAttribute(tok);
       } else {
         attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
       }
@@ -1025,7 +1025,7 @@ namespace Microsoft.Dafny {
       var r = BplFormalVar(null, t, false);
       Bpl.QKeyValue attr;
       if (w == 0) {
-        attr = new QKeyValue(tok, "inline", new List<object>(), null);
+        attr = InlineAttribute(tok);
       } else {
         attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
       }
@@ -1047,7 +1047,7 @@ namespace Microsoft.Dafny {
       // OR:
       // function {:inline} nat_to_bv0(int) : Bv0 { ZERO }
       if (w == 0) {
-        attr = new QKeyValue(tok, "inline", new List<object>(), null);
+        attr = InlineAttribute(tok);
       } else {
         var smt_int2bv = string.Format("(_ int2bv {0})", w);
         attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smt_int2bv }, null);  // SMT-LIB 2 calls this function nat2bv, but Z3 apparently calls it int2bv
@@ -1062,7 +1062,7 @@ namespace Microsoft.Dafny {
 
       if (w == 0) {
         // function {:inline} nat_from_bv0_smt(Bv0) : int { 0 }
-        attr = new QKeyValue(tok, "inline", new List<object>(), null);
+        attr = InlineAttribute(tok);
         func = new Bpl.Function(tok, "nat_from_bv" + w, new List<TypeVariable>(),
           new List<Variable>() { BplFormalVar(null, bv, true) }, BplFormalVar(null, Bpl.Type.Int, false),
           null, attr);
@@ -2784,6 +2784,11 @@ namespace Microsoft.Dafny {
             new Bpl.IdentifierExpr(iter.tok, GetField(ys))))));
       }
       return wh;
+    }
+
+    public static Bpl.QKeyValue InlineAttribute(Bpl.IToken tok, Bpl.QKeyValue/*?*/ next = null) {
+      Contract.Requires(tok != null);
+      return new QKeyValue(tok, "inline", new List<object>(), next);
     }
 
     class Specialization
@@ -8853,7 +8858,7 @@ namespace Microsoft.Dafny {
           sink.AddTopLevelDeclaration(
             new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", new List<TypeVariable>(), formals,
               BplFormalVar(null, Bpl.Type.Bool, false), null,
-              new QKeyValue(f.tok, "inline", new List<object>(), null)) {
+              InlineAttribute(f.tok)) {
                 Body = Bpl.Expr.True
               });
         };
@@ -9424,7 +9429,7 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, f is ConstantField ? "this" : Bpl.TypedIdent.NoName, receiverType), true));
         }
         Bpl.Formal result = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.Type)), false);
-        var inlineAttribute = f.IsInstanceIndependentConstant ? new QKeyValue(f.tok, "inline", new List<object>(), null) : null;
+        var inlineAttribute = f.IsInstanceIndependentConstant ? InlineAttribute(f.tok) : null;
         ff = new Bpl.Function(f.tok, f.FullSanitizedName, new List<TypeVariable>(), formals, result, null, inlineAttribute);
 
         if (InsertChecksums) {
