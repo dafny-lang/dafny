@@ -37,6 +37,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\Binaries\DafnyPrelude.bpl" Link="DafnyPrelude.bpl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="..\..\Test\dafny3\GenericSort.dfy" Link="Various\TestFiles\GenericSort.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
