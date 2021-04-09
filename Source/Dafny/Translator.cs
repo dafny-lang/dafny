@@ -18368,8 +18368,18 @@ namespace Microsoft.Dafny {
         if (expr is StaticReceiverExpr) {
           var e = (StaticReceiverExpr)expr;
           var ty = Resolver.SubstType(e.Type, typeMap);
-          return new StaticReceiverExpr(e.tok, ty, e.IsImplicit) {Type = ty};
-        } else if (expr is LiteralExpr || expr is WildcardExpr || expr is BoogieWrapper) {
+          return new StaticReceiverExpr(e.tok, ty, e.IsImplicit) { Type = ty };
+        } else if (expr is LiteralExpr) {
+          var e = (LiteralExpr)expr;
+          if (e.Value == null) {
+            return new LiteralExpr(e.tok) { Type = Resolver.SubstType(e.Type, typeMap) };
+          } else {
+            // nothing to substitute
+          }
+        } else if (expr is BoogieWrapper) {
+          var e = (BoogieWrapper)expr;
+          return new BoogieWrapper(e.Expr, Resolver.SubstType(e.Type, typeMap));
+        } else if (expr is WildcardExpr) {
           // nothing to substitute
         } else if (expr is ThisExpr) {
           return receiverReplacement == null ? expr : receiverReplacement;
