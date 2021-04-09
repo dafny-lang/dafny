@@ -254,7 +254,7 @@ class B {
   }
 }
 
-class C { 
+class C {
   var x: X;
 
   constructor() {
@@ -262,7 +262,7 @@ class C {
   }
 }
 
-class X { 
+class X {
   method GetConstant() returns (c: int) {
     return 1;
   }

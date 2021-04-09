@@ -12,7 +12,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// Gets the syntax node of the AST> that declared this symbol.
     /// </summary>
     AstNode Node { get; }
-    
+
     /// <summary>
     /// Gets the text representation of the symbol.
     /// </summary>

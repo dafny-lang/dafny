@@ -66,7 +66,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         if(!TryParseIncludesOfModule(module, builtIns, errorReporter)) {
           _logger.LogDebug("encountered error while parsing the includes of {}", document.Uri);
         }
-        // TODO Remove PoC workaround: the file system path is used as a program name to 
+        // TODO Remove PoC workaround: the file system path is used as a program name to
         return new Dafny.Program(document.Uri.GetFileSystemPath(), module, builtIns, errorReporter);
       } finally {
         _mutex.Release();

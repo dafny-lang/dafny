@@ -54,7 +54,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
       return document;
     }
-    
+
     // TODO refresh loaded documents that depend on this document? Maybe at least when saving?
     public async Task<DafnyDocument?> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
       var documentId = documentChange.TextDocument;

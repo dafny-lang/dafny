@@ -59,7 +59,7 @@ method Multiply(x: int, y: int) returns (p: int)
 }
 
 method Main() {
-  
+
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
@@ -88,7 +88,7 @@ function Multiply(x: int, y: int): int
 }
 
 method Main() {
-  
+
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
@@ -112,7 +112,7 @@ method Main() {
     public async Task SignatureHelpOnOpeningParenthesesReturnsNoSignatureIfNoSuchMethodOrFunctionExists() {
       var source = @"
 method Main() {
-  
+
 }".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
@@ -152,7 +152,7 @@ module Mod {
     method GetProduct(x: int, y: int) returns (p: int)
       ensures p == x * y
     {
-      
+
     }
   }
 }".TrimStart();
@@ -202,7 +202,7 @@ class B {
   method GetProduct(x: int, y: int) returns (p: int)
     ensures p == x * y
   {
-    
+
   }
 }".TrimStart();
       var documentItem = CreateTestDocument(source);

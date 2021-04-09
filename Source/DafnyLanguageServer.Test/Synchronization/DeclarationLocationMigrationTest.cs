@@ -42,7 +42,7 @@ class C {
       var change = @"
 class B {
   var x: int;
-  
+
   function GetX()
 }";
       var documentItem = CreateTestDocument(source);
@@ -101,7 +101,7 @@ class C {
       var change = @"
 class B {
   var x: int;
-  
+
   function GetX()
 }";
       var documentItem = CreateTestDocument(source);

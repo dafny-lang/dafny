@@ -41,7 +41,7 @@ class Test {
 
 
 
-  
+
 
 ";
       var documentItem = CreateTestDocument(source);
@@ -127,7 +127,7 @@ class Test {
 
 
 
-  
+
 
 ";
       var documentItem = CreateTestDocument(source);
