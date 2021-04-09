@@ -74,3 +74,33 @@ method Main()
   }
   var x := 1 / 0;  // no error, because all postconditions of the called methods/functions imply "false"
 }
+
+// ---------------------- other decreases related errors ----------------------
+
+least predicate Min(x: int)
+  decreases x  // error: decreases not allowed on extreme predicates
+{
+  true
+}
+
+greatest predicate Max(x: int)
+  decreases x  // error: decreases not allowed on extreme predicates
+{
+  true
+}
+
+least lemma MinLemma(x: int)
+  decreases x  // fine
+{
+  if 0 < x {
+    MinLemma(x - 1);
+  }
+}
+
+greatest lemma MaxLemma(x: int)
+  decreases x  // fine
+{
+  if 0 < x {
+    MaxLemma(x - 1);
+  }
+}

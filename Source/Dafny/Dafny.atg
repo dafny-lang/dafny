@@ -2214,12 +2214,12 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
   { RequiresClause<reqs, true>
   | ReadsClause<reads, false, false, true>
   | EnsuresClause<ens, false>
-  | DecreasesClause<decreases, ref attrs, false, false>
-                                              (. if (decreases == null) {
-                                                   SemErr(t, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
-                                                   decreases = new List<Expression/*!*/>();
-                                                 }
-                                              .)
+  | (. if (decreases == null) {
+         SemErr(t, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
+         decreases = new List<Expression/*!*/>();
+       }
+    .)
+    DecreasesClause<decreases, ref attrs, false, false>
   }
   .
 
