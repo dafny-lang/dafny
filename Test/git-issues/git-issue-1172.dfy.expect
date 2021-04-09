@@ -1,0 +1,8 @@
+git-issue-1172.dfy(9,12): Error: A '*' expression is not allowed here
+git-issue-1172.dfy(16,12): Error: A '*' expression is not allowed here
+git-issue-1172.dfy(23,12): Error: A '*' expression is not allowed here
+git-issue-1172.dfy(30,12): Error: A '*' expression is not allowed here
+git-issue-1172.dfy(37,12): Error: A '*' expression is not allowed here
+git-issue-1172.dfy(44,12): Error: A '*' expression is not allowed here
+git-issue-1172.dfy(51,12): Error: A '*' expression is not allowed here
+7 parse errors detected in git-issue-1172.dfy

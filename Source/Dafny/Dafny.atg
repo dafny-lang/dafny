@@ -1692,7 +1692,8 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
     ]
   | ellipsis                                    (. signatureEllipsis = t; .)
   )
-  MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs, caption, isConstructor>
+  MethodSpec<dmod.IsGhost || isLemma || isTwoStateLemma || isLeastLemma || isGreatestLemma,
+             req, mod, ens, dec, ref decAttrs, ref modAttrs, caption, isConstructor>
   [ IF(isConstructor)
     (. DividedBlockStmt dividedBody; .)
     DividedBlockStmt<out dividedBody, out bodyStart, out bodyEnd>
@@ -1804,7 +1805,7 @@ InvariantClause<. List<AttributedExpression> invariants.> =
   .
 
 /*------------------------------------------------------------------------*/
-MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<AttributedExpression> ens,
+MethodSpec<.bool isGhost, List<AttributedExpression> req, List<FrameExpression> mod, List<AttributedExpression> ens,
             List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, string caption, bool performThisDeprecatedCheck.>
 = (. Contract.Requires(cce.NonNullElements(req));
      Contract.Requires(cce.NonNullElements(mod));
@@ -1815,7 +1816,7 @@ MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<Attr
   { ModifiesClause<ref mod, ref modAttrs, false, performThisDeprecatedCheck>
   | RequiresClause<req, true>
   | EnsuresClause<ens, false>
-  | DecreasesClause<decreases, ref decAttrs, true, false>
+  | DecreasesClause<decreases, ref decAttrs, !isGhost, false>
   }
   .
 
