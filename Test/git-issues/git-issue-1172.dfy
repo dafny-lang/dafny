@@ -104,3 +104,86 @@ greatest lemma MaxLemma(x: int)
     MaxLemma(x - 1);
   }
 }
+
+// ---------------------- duplicate *'s ----------------------
+
+method Recursive0(x: int, y: int)
+  decreases x, y, *  // error: * can only be mentioned alone in a decreases clause
+
+method Recursive1(x: int, y: int)
+  decreases *, x, y  // error: * can only be mentioned alone in a decreases clause
+
+method Recursive2(x: int, y: int)
+  decreases x, y
+  decreases *  // error: * can only be mentioned alone in a decreases clause
+
+method Recursive3(x: int, y: int)
+  decreases *
+  decreases x, y  // error: * can only be mentioned alone in a decreases clause
+
+method Recursive4(x: int, y: int)
+  decreases x, *, y  // error: * can only be mentioned alone in a decreases clause
+
+method Recursive5(x: int, y: int)
+  decreases x, *, y, *  // error: * can only be mentioned alone in a decreases clause
+
+method Recursive6(x: int, y: int)
+  decreases *
+  decreases x  // error: * can only be mentioned alone in a decreases clause
+  decreases *  // error: * can only be mentioned alone in a decreases clause
+  decreases y  // error: * can only be mentioned alone in a decreases clause
+  decreases *  // error: * can only be mentioned alone in a decreases clause
+
+method Loops(M: int, N: int, O: int, P: int) {
+  var i, j, k, l := M, N, O,  P;
+  while i != 0
+    decreases i, *  // error: * can only be mentioned alone in a decreases clause
+  {
+    i := i - 1;
+  }
+  while j != 0
+    decreases *, j  // error: * can only be mentioned alone in a decreases clause
+  {
+    j := j - 1;
+  }
+  while k != 0
+    decreases k
+    decreases *  // error: * can only be mentioned alone in a decreases clause
+    decreases *  // error: * can only be mentioned alone in a decreases clause
+  {
+    k := k - 1;
+  }
+  while l != 0
+    decreases *, k  // error: * can only be mentioned alone in a decreases clause
+    decreases l, *  // error: * can only be mentioned alone in a decreases clause
+  {
+    l := l - 1;
+  }
+}
+
+function Function0(x: object, y: object): int
+  reads x, y, *  // error: * can only be mentioned alone in a reads clause
+
+function Function1(x: object, y: object): int
+  reads *, x, y  // error: * can only be mentioned alone in a reads clause
+
+function Function2(x: object, y: object): int
+  reads x, y
+  reads *  // error: * can only be mentioned alone in a reads clause
+
+function Function3(x: object, y: object): int
+  reads *
+  reads x, y  // error: * can only be mentioned alone in a reads clause
+
+function Function4(x: object, y: object): int
+  reads x, *, y  // error: * can only be mentioned alone in a reads clause
+
+function Function5(x: object, y: object): int
+  reads x, *, y, *  // error: * can only be mentioned alone in a reads clause
+
+function Function6(x: object, y: object): int
+  reads *
+  reads x  // error: * can only be mentioned alone in a reads clause
+  reads *  // error: * can only be mentioned alone in a reads clause
+  reads y  // error: * can only be mentioned alone in a reads clause
+  reads *  // error: * can only be mentioned alone in a reads clause

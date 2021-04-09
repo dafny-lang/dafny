@@ -1791,6 +1791,10 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads,
   PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>          (. reads.Add(fe); .)
   { "," PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
   }
+  (. if (allowWild && reads.Count > 1 && reads.Exists(fe => fe.E is WildcardExpr)) {
+       SemErr(fe.tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
+     }
+  .)
   OldSemi
   .
 
@@ -2802,6 +2806,11 @@ DecreasesList<.List<Expression> decreases, bool allowWildcard, bool allowLambda.
   PossiblyWildExpression<out e, allowLambda, allowWildcard>       (. decreases.Add(e); .)
   { "," PossiblyWildExpression<out e, allowLambda, allowWildcard> (. decreases.Add(e); .)
   }
+  (. if (allowWildcard && decreases.Count > 1 && decreases.Exists(e => e is WildcardExpr)) {
+       SemErr(e.tok, "A 'decreases' clause that contains '*' is not allowed to contain any other expressions");
+
+     }
+  .)
   .
 
 /*------------------------------------------------------------------------*/
