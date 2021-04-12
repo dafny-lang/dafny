@@ -5133,12 +5133,12 @@ namespace Microsoft.Dafny {
     }
     protected readonly bool isGhost;
     public bool IsGhost { get { return isGhost; } }
-    public bool IsInstanceIndependentConstant {
-      get {
-        var cf = this as ConstantField;
-        return cf != null && cf.Rhs != null;
-      }
-    }
+
+    /// <summary>
+    /// The term "instance independent" can be confusing. It means that the constant does not get its value in
+    /// a constructor. (But the RHS of the const's declaration may mention "this".)
+    /// </summary>
+    public bool IsInstanceIndependentConstant => this is ConstantField cf && cf.Rhs != null;
 
     public TopLevelDecl EnclosingClass;  // filled in during resolution
     public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
