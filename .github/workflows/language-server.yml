@@ -8,7 +8,6 @@ on:
 
 jobs:
   build:
-    needs: [draft_release]
     runs-on: ubuntu-16.04
     strategy:
       fail-fast: false
