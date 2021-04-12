@@ -9429,8 +9429,7 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, f is ConstantField ? "this" : Bpl.TypedIdent.NoName, receiverType), true));
         }
         Bpl.Formal result = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.Type)), false);
-        var inlineAttribute = f.IsInstanceIndependentConstant ? InlineAttribute(f.tok) : null;
-        ff = new Bpl.Function(f.tok, f.FullSanitizedName, new List<TypeVariable>(), formals, result, null, inlineAttribute);
+        ff = new Bpl.Function(f.tok, f.FullSanitizedName, new List<TypeVariable>(), formals, result, null, null);
 
         if (InsertChecksums) {
           var dt = f.EnclosingClass as DatatypeDecl;
@@ -9450,7 +9449,7 @@ namespace Microsoft.Dafny {
           var cf = (ConstantField)f;
           if (cf.Rhs != null && RevealedInScope(cf)) {
             var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(f.tok));
-            ff.Body = etran.TrExpr(cf.Rhs);
+            sink.AddTopLevelDeclaration(ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs)));
           }
           sink.AddTopLevelDeclaration(ff);
 
