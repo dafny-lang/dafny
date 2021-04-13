@@ -8167,6 +8167,48 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class ForLoopStmt : LoopStmt {
+    public readonly LocalVariable Local;
+    public readonly Expression Lo;
+    public readonly Expression Hi;
+    public readonly bool GoingUp;
+    public readonly BlockStmt/*?*/ Body;
+
+    public ForLoopStmt(IToken tok, IToken endTok, LocalVariable local, Expression lo, Expression hi, bool goingUp,
+      List<AttributedExpression> invariants, Specification<FrameExpression> mod,
+      BlockStmt /*?*/ body)
+      : base(tok, endTok, invariants, new Specification<Expression>(new List<Expression>(), null), mod)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(local != null);
+      Contract.Requires(lo != null);
+      Contract.Requires(hi != null);
+      Contract.Requires(invariants != null);
+      Contract.Requires(mod != null);
+      Local = local;
+      Lo = lo;
+      Hi = hi;
+      GoingUp = goingUp;
+      Body = body;
+    }
+
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        if (Body != null) {
+          yield return Body;
+        }
+      }
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in base.SubExpressions) { yield return e; }
+        yield return Lo;
+        yield return Hi;
+      }
+    }
+  }
+
   public class ForallStmt : Statement
   {
     public readonly List<BoundVar> BoundVars;  // note, can be the empty list, in which case Range denotes "true"
