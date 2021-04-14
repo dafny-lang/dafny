@@ -254,7 +254,7 @@ namespace Microsoft.Dafny.Triggers {
         return true;
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
-        if ((e.Op == BinaryExpr.Opcode.NotIn || e.Op == BinaryExpr.Opcode.In) && !Translator.ExpressionTranslator.RewriteInExpr(e.E1)) {
+        if ((e.Op == BinaryExpr.Opcode.NotIn || e.Op == BinaryExpr.Opcode.In) && !Translator.ExpressionTranslator.RewriteInExpr(e.E1, false)) {
           return true;
         } else if (CandidateCollectionOperation(e)) {
           return true;
