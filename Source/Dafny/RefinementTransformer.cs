@@ -107,13 +107,14 @@ namespace Microsoft.Dafny
           }
         }
         PreResolveWorker(m);
+      } else {
+        // do this also for non-refining modules
+        CheckSuperflousRefiningMarks(m.TopLevelDecls, new List<string>());
       }
     }
 
     void PreResolveWorker(ModuleDefinition m) {
       Contract.Requires(m != null);
-
-      if (m.RefinementQId?.Def == null) return;
 
       if (moduleUnderConstruction != null) {
         postTasks.Clear();
@@ -144,22 +145,23 @@ namespace Microsoft.Dafny
           m.TopLevelDecls.Add(refinementCloner.CloneDeclaration(d, m));
         } else {
           var nw = m.TopLevelDecls[index];
-          if (d.Name == "_default" || m.TopLevelDecls[index].IsRefining
-                                   || d is OpaqueTypeDecl) {
+          if (d.Name == "_default" || nw.IsRefining || d is OpaqueTypeDecl) {
             MergeTopLevelDecls(m, nw, d, index);
-          } else if (d is TypeSynonymDecl) {
-            reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} may not redeclare a non-opaque type name {d.Name} from module {m.RefinementQId.ToString()}, even with the same type, unless refining (...)");
+          } else if (nw is TypeSynonymDecl) {
+            var msg = $"a type synonym ({nw.Name}) is not allowed to replace a {d.WhatKind} from the refined module ({m.RefinementQId}), even if it denotes the same type";
+            reporter.Error(MessageSource.RefinementTransformer, nw.tok, msg);
           } else if (!(d is AbstractModuleDecl)) {
-            reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} redeclares a name {d.Name} from module {m.RefinementQId.ToString()} without indicating refining");
+            reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"to redeclare and refine declaration '{d.Name}' from module '{m.RefinementQId}', you must use the refining (`...`) notation");
           }
         }
       }
+      CheckSuperflousRefiningMarks(m.TopLevelDecls, processedDecl);
 
       // Merge the imports of prev
       var prevTopLevelDecls = RefinedSig.TopLevels.Values;
       foreach (var d in prevTopLevelDecls) {
         int index;
-        if (!processedDecl.Contains(d.Name) && (declaredNames.TryGetValue(d.Name, out index))) {
+        if (!processedDecl.Contains(d.Name) && declaredNames.TryGetValue(d.Name, out index)) {
           // if it is redefined, we need to merge them.
           var nw = m.TopLevelDecls[index];
           MergeTopLevelDecls(m, nw, d, index);
@@ -168,6 +170,16 @@ namespace Microsoft.Dafny
       m.RefinementQId.Sig = RefinedSig;
 
       Contract.Assert(moduleUnderConstruction == m);  // this should be as it was set earlier in this method
+    }
+
+    private void CheckSuperflousRefiningMarks(List<TopLevelDecl> topLevelDecls, List<string> excludeList) {
+      Contract.Requires(topLevelDecls != null);
+      Contract.Requires(excludeList != null);
+      foreach (var d in topLevelDecls) {
+        if (d.IsRefining && !excludeList.Contains(d.Name)) {
+          reporter.Error(MessageSource.RefinementTransformer, d.tok, $"declaration '{d.Name}' indicates refining (notation `...`), but does not refine anything");
+        }
+      }
     }
 
     private void MergeModuleExports(ModuleExportDecl nw, ModuleExportDecl d) {
@@ -180,6 +192,8 @@ namespace Microsoft.Dafny
     }
 
     private void MergeTopLevelDecls(ModuleDefinition m, TopLevelDecl nw, TopLevelDecl d, int index) {
+      var commonMsg = "a {0} declaration ({1}) in a refinement module can only refine a {0} declaration or replace an opaque type declaration";
+
       if (d is ModuleDecl) {
         if (!(nw is ModuleDecl)) {
           reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
@@ -248,31 +262,46 @@ namespace Microsoft.Dafny
               });
             }
           }
-          CheckAgreement_TypeParameters(nw.tok, d.TypeArgs, nw.TypeArgs, nw.Name, "type", false);
+          if (nw is TopLevelDeclWithMembers) {
+            m.TopLevelDecls[index] = MergeClass((TopLevelDeclWithMembers)nw, od);
+          } else if (od.Members.Count != 0) {
+            reporter.Error(MessageSource.RefinementTransformer, nw,
+              "a {0} ({1}) cannot declare members, so it cannot refine an opaque type with members",
+              nw.WhatKind, nw.Name);
+          } else {
+            CheckAgreement_TypeParameters(nw.tok, d.TypeArgs, nw.TypeArgs, nw.Name, "type", false);
+          }
         }
       } else if (nw is OpaqueTypeDecl) {
-        reporter.Error(MessageSource.RefinementTransformer, nw, "an opaque type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
+        reporter.Error(MessageSource.RefinementTransformer, nw,
+          "an opaque type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
+      } else if ((d is IndDatatypeDecl && nw is IndDatatypeDecl) || (d is CoDatatypeDecl && nw is CoDatatypeDecl)) {
+        m.TopLevelDecls[index] = MergeClass((DatatypeDecl)nw, (DatatypeDecl)d);
       } else if (nw is DatatypeDecl) {
-        reporter.Error(MessageSource.RefinementTransformer, nw, "a datatype declaration ({0}) in a refinement module can only replace an opaque type declaration", nw.Name);
+        reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
+      } else if (d is NewtypeDecl && nw is NewtypeDecl) {
+        m.TopLevelDecls[index] = MergeClass((NewtypeDecl)nw, (NewtypeDecl)d);
       } else if (nw is NewtypeDecl) {
-        reporter.Error(MessageSource.RefinementTransformer, nw, "a newtype declaration ({0}) in a refinement module can only replace an opaque type declaration", nw.Name);
+        reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
       } else if (nw is IteratorDecl) {
         if (d is IteratorDecl) {
           m.TopLevelDecls[index] = MergeIterator((IteratorDecl)nw, (IteratorDecl)d);
         } else {
           reporter.Error(MessageSource.RefinementTransformer, nw, "an iterator declaration ({0}) is a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
         }
+      } else if (nw is TraitDecl) {
+        if (d is TraitDecl) {
+          m.TopLevelDecls[index] = MergeClass((TraitDecl) nw, (TraitDecl) d);
+        } else {
+          reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
+        }
       } else if (nw is ClassDecl) {
-        if (d is ClassDecl) {
+        if (d is ClassDecl && !(d is TraitDecl)) {
           m.TopLevelDecls[index] = MergeClass((ClassDecl) nw, (ClassDecl) d);
         } else {
-          reporter.Error(MessageSource.RefinementTransformer, nw,
-            "a class declaration ({0}) in a refining module cannot replace a different kind of declaration in the refinement base",
-            nw.Name);
+          reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
         }
-      } else if (nw is TypeSynonymDecl && d is TypeSynonymDecl
-                                       && ((TypeSynonymDecl)nw).Rhs != null
-                                       && ((TypeSynonymDecl)d).Rhs != null) {
+      } else if (nw is TypeSynonymDecl && d is TypeSynonymDecl && ((TypeSynonymDecl)nw).Rhs != null && ((TypeSynonymDecl)d).Rhs != null) {
         reporter.Error(MessageSource.RefinementTransformer, d,
           "a type ({0}) in a refining module may not replace an already defined type (even with the same value)",
           d.Name);
@@ -550,8 +579,8 @@ namespace Microsoft.Dafny
         null);
     }
 
-    ClassDecl MergeClass(ClassDecl nw, ClassDecl prev) {
-      CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, "class");
+    TopLevelDeclWithMembers MergeClass(TopLevelDeclWithMembers nw, TopLevelDeclWithMembers prev) {
+      CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, nw.WhatKind);
 
       prev.ParentTraits.ForEach(item => nw.ParentTraits.Add(item));
       nw.Attributes = refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes);

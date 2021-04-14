@@ -1356,6 +1356,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      Expression witness = null;
      var kind = "opaque type";
      var members = new List<MemberDecl>();
+     var isRefining = false;
   .)
   "type"
   { Attribute<ref attrs> }
@@ -1387,6 +1388,8 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
          kind = "type synonym";
       .)
     )
+  | ellipsis                               (. isRefining = true; .)
+    [ TypeMembers<module, members> ]
   | TypeMembers<module, members>
   ]
   (. if (td == null) {
@@ -1394,7 +1397,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
          // opaque type declarations at the very outermost program scope get an automatic (!new)
          characteristics.ContainsNoReferenceTypes = true;
        }
-       td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, members, attrs);
+       td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, members, attrs, isRefining);
      }
   .)
   (. CheckDeclModifiers(dmod, kind, AllowedDeclModifiers.None); .)
