@@ -1692,7 +1692,8 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
     ]
   | ellipsis                                    (. signatureEllipsis = t; .)
   )
-  MethodSpec<req, mod, ens, dec, ref decAttrs, ref modAttrs, caption, isConstructor>
+  MethodSpec<dmod.IsGhost || isLemma || isTwoStateLemma || isLeastLemma || isGreatestLemma,
+             req, mod, ens, dec, ref decAttrs, ref modAttrs, caption, isConstructor>
   [ IF(isConstructor)
     (. DividedBlockStmt dividedBody; .)
     DividedBlockStmt<out dividedBody, out bodyStart, out bodyEnd>
@@ -1790,6 +1791,10 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads,
   PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>          (. reads.Add(fe); .)
   { "," PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
   }
+  (. if (allowWild && reads.Count > 1 && reads.Exists(fe => fe.E is WildcardExpr)) {
+       SemErr(fe.tok, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
+     }
+  .)
   OldSemi
   .
 
@@ -1804,7 +1809,7 @@ InvariantClause<. List<AttributedExpression> invariants.> =
   .
 
 /*------------------------------------------------------------------------*/
-MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<AttributedExpression> ens,
+MethodSpec<.bool isGhost, List<AttributedExpression> req, List<FrameExpression> mod, List<AttributedExpression> ens,
             List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, string caption, bool performThisDeprecatedCheck.>
 = (. Contract.Requires(cce.NonNullElements(req));
      Contract.Requires(cce.NonNullElements(mod));
@@ -1815,7 +1820,7 @@ MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<Attr
   { ModifiesClause<ref mod, ref modAttrs, false, performThisDeprecatedCheck>
   | RequiresClause<req, true>
   | EnsuresClause<ens, false>
-  | DecreasesClause<decreases, ref decAttrs, true, false>
+  | DecreasesClause<decreases, ref decAttrs, !isGhost, false>
   }
   .
 
@@ -2213,12 +2218,12 @@ FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!
   { RequiresClause<reqs, true>
   | ReadsClause<reads, false, false, true>
   | EnsuresClause<ens, false>
-  | DecreasesClause<decreases, ref attrs, false, false>
-                                              (. if (decreases == null) {
-                                                   SemErr(t, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
-                                                   decreases = new List<Expression/*!*/>();
-                                                 }
-                                              .)
+  | (. if (decreases == null) {
+         SemErr(t, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
+         decreases = new List<Expression/*!*/>();
+       }
+    .)
+    DecreasesClause<decreases, ref attrs, false, false>
   }
   .
 
@@ -2801,6 +2806,11 @@ DecreasesList<.List<Expression> decreases, bool allowWildcard, bool allowLambda.
   PossiblyWildExpression<out e, allowLambda, allowWildcard>       (. decreases.Add(e); .)
   { "," PossiblyWildExpression<out e, allowLambda, allowWildcard> (. decreases.Add(e); .)
   }
+  (. if (allowWildcard && decreases.Count > 1 && decreases.Exists(e => e is WildcardExpr)) {
+       SemErr(e.tok, "A 'decreases' clause that contains '*' is not allowed to contain any other expressions");
+
+     }
+  .)
   .
 
 /*------------------------------------------------------------------------*/
