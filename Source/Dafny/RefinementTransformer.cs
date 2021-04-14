@@ -107,13 +107,14 @@ namespace Microsoft.Dafny
           }
         }
         PreResolveWorker(m);
+      } else {
+        // do this also for non-refining modules
+        CheckSuperflousRefiningMarks(m.TopLevelDecls, new List<string>());
       }
     }
 
     void PreResolveWorker(ModuleDefinition m) {
       Contract.Requires(m != null);
-
-      if (m.RefinementQId?.Def == null) return;
 
       if (moduleUnderConstruction != null) {
         postTasks.Clear();
@@ -154,6 +155,7 @@ namespace Microsoft.Dafny
           }
         }
       }
+      CheckSuperflousRefiningMarks(m.TopLevelDecls, processedDecl);
 
       // Merge the imports of prev
       var prevTopLevelDecls = RefinedSig.TopLevels.Values;
@@ -168,6 +170,16 @@ namespace Microsoft.Dafny
       m.RefinementQId.Sig = RefinedSig;
 
       Contract.Assert(moduleUnderConstruction == m);  // this should be as it was set earlier in this method
+    }
+
+    private void CheckSuperflousRefiningMarks(List<TopLevelDecl> topLevelDecls, List<string> excludeList) {
+      Contract.Requires(topLevelDecls != null);
+      Contract.Requires(excludeList != null);
+      foreach (var d in topLevelDecls) {
+        if (d.IsRefining && !excludeList.Contains(d.Name)) {
+          reporter.Error(MessageSource.RefinementTransformer, d.tok, $"declaration '{d.Name}' indicates refining (notation `...`), but does not refine anything");
+        }
+      }
     }
 
     private void MergeModuleExports(ModuleExportDecl nw, ModuleExportDecl d) {
