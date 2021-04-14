@@ -107,8 +107,14 @@ Note that changing the order of multiple `decreases` clauses will change
 the order of the expressions within the equivalent single `decreases`
 clause, and will therefore have different semantics.
 
-If any of the expressions in the `decreases` clause are wild (i.e., `*`)
-then the proof of termination will be skipped.
+Loops and compiled methods (but not functions and not ghost methods,
+including lemmas) can be specified to be possibly non-terminating.
+This is done by declaring the method or loop with `decreases *`, which
+causes the proof of termination to be skipped. If a `*` is present
+in a `decreases` clause, no other expressions are allowed in the
+`decreases` clause. A method that contains a possibly non-terminating
+loop or a call to a possibly non-terminating method must itself be
+declared as possibly non-terminating.
 
 Termination metrics in Dafny, which are declared by `decreases` clauses,
 are lexicographic tuples of expressions. At each recursive (or mutually
@@ -374,7 +380,8 @@ function to read anything. In many cases, and in particular in all cases
 where the function is defined recursively, this makes it next to
 impossible to make any use of the function. Nevertheless, as an
 experimental feature, the language allows it (and it is sound).
-Note that a `*` makes the rest of the frame expression irrelevant.
+If a `reads` clause uses `*`, then the `reads` clause is not allowed to
+mention anything else (since anything else would be irrelevant, anyhow).
 
 A `reads` clause specifies the set of memory locations that a function,
 lambda, or iterator may read. If more than one `reads` clause is given
