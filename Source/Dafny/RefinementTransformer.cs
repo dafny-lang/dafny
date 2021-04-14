@@ -145,8 +145,7 @@ namespace Microsoft.Dafny
           m.TopLevelDecls.Add(refinementCloner.CloneDeclaration(d, m));
         } else {
           var nw = m.TopLevelDecls[index];
-          if (d.Name == "_default" || m.TopLevelDecls[index].IsRefining
-                                   || d is OpaqueTypeDecl) {
+          if (d.Name == "_default" || nw.IsRefining || d is OpaqueTypeDecl) {
             MergeTopLevelDecls(m, nw, d, index);
           } else if (d is TypeSynonymDecl) {
             reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} may not redeclare a non-opaque type name {d.Name} from module {m.RefinementQId.ToString()}, even with the same type, unless refining (...)");
@@ -161,7 +160,7 @@ namespace Microsoft.Dafny
       var prevTopLevelDecls = RefinedSig.TopLevels.Values;
       foreach (var d in prevTopLevelDecls) {
         int index;
-        if (!processedDecl.Contains(d.Name) && (declaredNames.TryGetValue(d.Name, out index))) {
+        if (!processedDecl.Contains(d.Name) && declaredNames.TryGetValue(d.Name, out index)) {
           // if it is redefined, we need to merge them.
           var nw = m.TopLevelDecls[index];
           MergeTopLevelDecls(m, nw, d, index);
@@ -282,9 +281,7 @@ namespace Microsoft.Dafny
             "a class declaration ({0}) in a refining module cannot replace a different kind of declaration in the refinement base",
             nw.Name);
         }
-      } else if (nw is TypeSynonymDecl && d is TypeSynonymDecl
-                                       && ((TypeSynonymDecl)nw).Rhs != null
-                                       && ((TypeSynonymDecl)d).Rhs != null) {
+      } else if (nw is TypeSynonymDecl && d is TypeSynonymDecl && ((TypeSynonymDecl)nw).Rhs != null && ((TypeSynonymDecl)d).Rhs != null) {
         reporter.Error(MessageSource.RefinementTransformer, d,
           "a type ({0}) in a refining module may not replace an already defined type (even with the same value)",
           d.Name);
