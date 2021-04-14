@@ -8001,7 +8001,7 @@ namespace Microsoft.Dafny
             formalTypeArgs = udt.ResolvedClass.TypeArgs;
           } else if (udt.ResolvedParam is OpaqueType_AsParameter) {
             var t = (OpaqueType_AsParameter)udt.ResolvedParam;
-            formalTypeArgs = t.TypeArgs;
+            formalTypeArgs = t.OpaqueTypeArgs;
           }
           if (formalTypeArgs == null) {
             Contract.Assert(udt.TypeArgs.Count == 0);
@@ -8707,7 +8707,7 @@ namespace Microsoft.Dafny
           formalTypeArgs = udt.ResolvedClass.TypeArgs;
         } else if (udt.ResolvedParam is OpaqueType_AsParameter) {
           var t = (OpaqueType_AsParameter)udt.ResolvedParam;
-          formalTypeArgs = t.TypeArgs;
+          formalTypeArgs = t.OpaqueTypeArgs;
         }
         if (formalTypeArgs == null) {
           Contract.Assert(udt.TypeArgs.Count == 0);

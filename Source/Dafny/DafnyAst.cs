@@ -3486,20 +3486,23 @@ namespace Microsoft.Dafny {
   }
 
   public class OpaqueType_AsParameter : TypeParameter {
-    public readonly List<TypeParameter> TypeArgs;
+    public readonly List<TypeParameter> OpaqueTypeArgs;
     public OpaqueType_AsParameter(IToken tok, string name, TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs)
       : base(tok, name, TypeParameter.TPVarianceSyntax.NonVariant_Strict, characteristics) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);
-      TypeArgs = typeArgs;
+      OpaqueTypeArgs = typeArgs;
     }
   }
 
-  public class TypeParameter : Declaration {
+  public class TypeParameter : TopLevelDecl {
     public interface ParentType {
       string FullName { get; }
     }
+
+    public override string WhatKind => "type parameter";
+
     ParentType parent;
     public ParentType Parent {
       get {
@@ -3625,7 +3628,7 @@ namespace Microsoft.Dafny {
     public int PositionalIndex; // which type parameter this is (ie. in C<S, T, U>, S is 0, T is 1 and U is 2).
 
     public TypeParameter(IToken tok, string name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics)
-      : base(tok, name, null, false) {
+      : base(tok, name, null, new List<TypeParameter>(), null, false) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Characteristics = characteristics;
@@ -3645,9 +3648,11 @@ namespace Microsoft.Dafny {
       Parent = parent;
     }
 
-    public string FullName() {
-      // when debugging, print it all:
-      return /* Parent.FullName + "." + */ Name;
+    public override string FullName {
+      get {
+        // when debugging, print it all:
+        return /* Parent.FullName + "." + */ Name;
+      }
     }
 
     public static TypeParameterCharacteristics GetExplicitCharacteristics(TopLevelDecl d) {
@@ -4293,7 +4298,7 @@ namespace Microsoft.Dafny {
         return (n.Length == 0 ? n : (n + ".")) + Name;
       }
     }
-    public string FullName {
+    public virtual string FullName {
       get {
         return EnclosingModuleDefinition.FullName + "." + Name;
       }
