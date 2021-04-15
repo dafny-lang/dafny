@@ -17655,9 +17655,14 @@ namespace Microsoft.Dafny
         if (e.Exact) {
           MakeGhostAsNeeded(e.LHSs);
           return UsesSpecFeatures(e.Body);
-          //return Contract.Exists(e.RHSs, ee => UsesSpecFeatures(ee)) || UsesSpecFeatures(e.Body);
         } else {
-          return true;  // let-such-that is always ghost
+          Contract.Assert(e.RHSs.Count == 1);
+          if (UsesSpecFeatures(e.RHSs[0])) {
+            foreach (var bv in e.BoundVars) {
+              bv.MakeGhost();
+            }
+          }
+          return UsesSpecFeatures(e.Body);
         }
       } else if (expr is QuantifierExpr) {
         var e = (QuantifierExpr)expr;

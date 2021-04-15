@@ -3368,3 +3368,50 @@ module RelaxedAutoInitChecking {
     M(0, NoReferences<Good>());
   }
 }
+
+// --------------- let-such-that ghost regressions ------------------------------
+
+module LetSuchThatGhost {
+  predicate True<T>(t: T) { true }
+
+  function method F<T>(s: set<T>): int
+    requires s != {}
+  {
+    // once, the RHS for p was (bogusly) considered ghost, which made p ghost,
+    // which made this body illegal
+    var p :=
+      var e :| e in s;
+      true;
+    if p then 6 else 8
+  }
+
+  function method G<T>(s: set<T>): int
+    requires s != {}
+  {
+    // again, e and p are both non-ghost
+    var p :=
+      var e :| e in s;
+      e == e;
+    if p then 6 else 8
+  }
+
+  function method H<T>(s: set<T>): int
+    requires s != {}
+  {
+    // here, e is ghost, but p is still not
+    var p :=
+      var e :| e in s && True(e);
+      true;
+    if p then 6 else 8
+  }
+
+  function method I<T>(s: set<T>): int
+    requires s != {}
+  {
+    // here, e is ghost, and therefore so is p
+    var p :=
+      var e :| e in s && True(e);
+      e == e;
+    if p then 6 else 8  // error: p is ghost
+  }
+}
