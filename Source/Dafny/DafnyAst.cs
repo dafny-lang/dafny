@@ -2922,7 +2922,6 @@ namespace Microsoft.Dafny {
     public UserDefinedType(IToken tok, TypeParameter tp) {
       Contract.Requires(tok != null);
       Contract.Requires(tp != null);
-      Contract.Requires(!(tp is OpaqueType_AsParameter));
       this.tok = tok;
       this.Name = tp.Name;
       this.TypeArgs = new List<Type>();
@@ -3459,17 +3458,6 @@ namespace Microsoft.Dafny {
     }
 
     internal FreshIdGenerator IdGenerator = new FreshIdGenerator();
-  }
-
-  public class OpaqueType_AsParameter : TypeParameter {
-    public readonly List<TypeParameter> OpaqueTypeArgs;
-    public OpaqueType_AsParameter(IToken tok, string name, TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs)
-      : base(tok, name, TypeParameter.TPVarianceSyntax.NonVariant_Strict, characteristics) {
-      Contract.Requires(tok != null);
-      Contract.Requires(name != null);
-      Contract.Requires(typeArgs != null);
-      OpaqueTypeArgs = typeArgs;
-    }
   }
 
   public class TypeParameter : TopLevelDecl {
