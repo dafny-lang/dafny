@@ -159,8 +159,8 @@ ResolutionErrors.dfy(1137,13): Error: arguments must have comparable types (got 
 ResolutionErrors.dfy(1138,13): Error: arguments must have comparable types (got P<bool> and P<X>)
 ResolutionErrors.dfy(1139,13): Error: arguments must have comparable types (got P<int> and P<bool>)
 ResolutionErrors.dfy(1150,10): Error: new can be applied only to class types (got JJ)
-ResolutionErrors.dfy(1158,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
-ResolutionErrors.dfy(1160,38): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
+ResolutionErrors.dfy(1158,31): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references
+ResolutionErrors.dfy(1160,38): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references, but values of 'o' may contain references
 ResolutionErrors.dfy(1165,27): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
 ResolutionErrors.dfy(1173,15): Error: arguments to / must be numeric or bitvector types (got set<bool>)
 ResolutionErrors.dfy(1180,20): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
@@ -282,7 +282,7 @@ ResolutionErrors.dfy(1891,15): Error: 'this' is not allowed in a 'static' contex
 ResolutionErrors.dfy(1893,16): Error: 'this' is not allowed in a 'static' context
 ResolutionErrors.dfy(1909,8): Error: return statement is not allowed before 'new;' in a constructor
 ResolutionErrors.dfy(1935,5): Error: type parameter (G) passed to method P must support auto-initialization (got F) (perhaps try declaring type parameter 'F' on line 1928 as 'F(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors.dfy(1937,5): Error: type parameter (G) passed to method P must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 1925 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors.dfy(1937,5): Error: type parameter (G) passed to method P must support auto-initialization (got Y) (perhaps try declaring opaque type 'Y' on line 1925 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
 ResolutionErrors.dfy(1974,5): Error: type parameter (G) passed to method P must support auto-initialization (got SixOrMore)
 ResolutionErrors.dfy(1975,5): Error: type parameter (G) passed to method P must support auto-initialization (got AnotherSixOrMore)
 ResolutionErrors.dfy(1976,5): Error: type parameter (G) passed to method P must support auto-initialization (got MySixOrMore)
@@ -350,13 +350,13 @@ ResolutionErrors.dfy(2324,20): Error: ghost fields are allowed only in specifica
 ResolutionErrors.dfy(2327,18): Error: ghost fields are allowed only in specification contexts
 ResolutionErrors.dfy(2343,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
 ResolutionErrors.dfy(2346,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
-ResolutionErrors.dfy(2352,24): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+ResolutionErrors.dfy(2352,24): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references
 ResolutionErrors.dfy(2352,24): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
-ResolutionErrors.dfy(2355,36): Error: a set comprehension involved in a newtype definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
-ResolutionErrors.dfy(2356,34): Error: a set comprehension involved in a subset type definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
-ResolutionErrors.dfy(2354,22): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+ResolutionErrors.dfy(2355,36): Error: a set comprehension involved in a newtype definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references
+ResolutionErrors.dfy(2356,34): Error: a set comprehension involved in a subset type definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references
+ResolutionErrors.dfy(2354,22): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references
 ResolutionErrors.dfy(2354,22): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
-ResolutionErrors.dfy(2361,19): Error: a set comprehension involved in a predicate definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
+ResolutionErrors.dfy(2361,19): Error: a set comprehension involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'c' may contain references
 ResolutionErrors.dfy(2367,37): Error: a const field definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2367,10): Error: const field's type is not fully determined
 ResolutionErrors.dfy(2370,49): Error: a newtype definition is not allowed to depend on the set of allocated references
