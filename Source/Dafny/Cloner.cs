@@ -39,7 +39,7 @@ namespace Microsoft.Dafny
 
       if (d is OpaqueTypeDecl) {
         var dd = (OpaqueTypeDecl)d;
-        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, CloneTPChar(dd.TheType.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
+        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, CloneTPChar(dd.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
       } else if (d is SubsetTypeDecl) {
         Contract.Assume(!(d is NonNullTypeDecl));  // don't clone the non-null type declaration; close the class, which will create a new non-null type declaration
         var dd = (SubsetTypeDecl)d;

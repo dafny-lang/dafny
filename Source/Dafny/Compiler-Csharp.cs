@@ -44,8 +44,9 @@ namespace Microsoft.Dafny
     static string FormatTypeDescriptorVariable(string typeVarName) => $"_td_{typeVarName}";
     static string FormatTypeDescriptorVariable(TypeParameter tp) => FormatTypeDescriptorVariable(tp.CompileName);
     const string TypeDescriptorMethodName = "_TypeDescriptor";
-    static string FormatDefaultTypeParameterValue(TypeParameter tp) {
-      if (tp is OpaqueType_AsParameter) {
+    static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
+      Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
+      if (tp is OpaqueTypeDecl) {
         // This is unusual. Typically, the compiler never needs to compile an opaque type, but this opaque type
         // is apparently an :extern (or a compiler error has already been reported and we're just trying to get to
         // the end of compilation without crashing). It's difficult to say what the compiler could do in this situation, since
@@ -1135,7 +1136,7 @@ namespace Microsoft.Dafny
           return FormatDefaultTypeParameterValue(tp);
         }
       } else if (cl is OpaqueTypeDecl opaque) {
-        return FormatDefaultTypeParameterValue(opaque.TheType);
+        return FormatDefaultTypeParameterValue(opaque);
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {

@@ -226,7 +226,7 @@ namespace Microsoft.Dafny {
           var at = (OpaqueTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
-          PrintClassMethodHelper("type", at.Attributes, at.Name + TPCharacteristicsSuffix(at.TheType.Characteristics), d.TypeArgs);
+          PrintClassMethodHelper("type", at.Attributes, at.Name + TPCharacteristicsSuffix(at.Characteristics), d.TypeArgs);
           if (at.Members.Count == 0) {
             wr.WriteLine();
           } else {

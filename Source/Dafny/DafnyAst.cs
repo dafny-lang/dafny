@@ -5450,16 +5450,9 @@ namespace Microsoft.Dafny {
   {
     public override string WhatKind { get { return "opaque type"; } }
     public override bool CanBeRevealed() { return true; }
-    public readonly TypeParameter TheType;
-    public TypeParameter.TypeParameterCharacteristics Characteristics {
-      get { return TheType.Characteristics; }
-    }
+    public readonly TypeParameter.TypeParameterCharacteristics Characteristics;
     public bool SupportsEquality {
-      get { return TheType.SupportsEquality; }
-    }
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(TheType != null && Name == TheType.Name);
+      get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
     }
 
     public OpaqueTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, bool isRefining)
@@ -5468,7 +5461,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(typeArgs != null);
-      TheType = new OpaqueType_AsParameter(tok, name, characteristics, TypeArgs);
+      Characteristics = characteristics;
       this.NewSelfSynonym();
     }
 

@@ -3011,7 +3011,7 @@ namespace Microsoft.Dafny{
           return FormatDefaultTypeParameterValue(tp);
         }
       } else if (cl is OpaqueTypeDecl opaque) {
-        return FormatDefaultTypeParameterValue(opaque.TheType);
+        return FormatDefaultTypeParameterValueName(opaque.CompileName);
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {

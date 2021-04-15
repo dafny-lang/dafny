@@ -27,7 +27,10 @@ namespace Microsoft.Dafny {
 
     public override string TargetLanguage => "Go";
 
-    static string FormatDefaultTypeParameterValue(TypeParameter tp) => $"_default_{tp.CompileName}";
+    static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
+      Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
+      return $"_default_{tp.CompileName}";
+    }
 
     private readonly List<Import> Imports = new List<Import>(StandardImports);
     private string ModuleName;
@@ -1441,7 +1444,7 @@ namespace Microsoft.Dafny {
           return FormatDefaultTypeParameterValue(tp);
         }
       } else if (cl is OpaqueTypeDecl opaque) {
-        return FormatDefaultTypeParameterValue(opaque.TheType);
+        return FormatDefaultTypeParameterValue(opaque);
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {

@@ -28,7 +28,10 @@ namespace Microsoft.Dafny {
     const string DafnySeqClass = "_dafny.Seq";
     const string DafnyMapClass = "_dafny.Map";
 
-    static string FormatDefaultTypeParameterValue(TypeParameter tp) => $"_default_{tp.CompileName}";
+    static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
+      Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
+      return $"_default_{tp.CompileName}";
+    }
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into JavaScript", program.Name);
@@ -895,7 +898,7 @@ namespace Microsoft.Dafny {
           return FormatDefaultTypeParameterValue((TypeParameter)udt.ResolvedClass);
         }
       } else if (cl is OpaqueTypeDecl opaque) {
-        return FormatDefaultTypeParameterValue(opaque.TheType);
+        return FormatDefaultTypeParameterValue(opaque);
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {

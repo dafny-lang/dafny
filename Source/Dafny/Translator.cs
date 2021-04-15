@@ -1240,7 +1240,7 @@ namespace Microsoft.Dafny {
 
     void AddTypeDecl(OpaqueTypeDecl td) {
       Contract.Requires(td != null);
-      AddTypeDecl_Aux(td.tok, nameTypeParam(td.TheType), td.TypeArgs);
+      AddTypeDecl_Aux(td.tok, nameTypeParam(td), td.TypeArgs);
     }
 
 
@@ -13075,10 +13075,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    static string nameTypeParam(TypeParameter x) {
-      Contract.Requires(x != null);
-      if (x.Parent != null) {
-        return x.Parent.FullName + "$" + x.Name;
+    static string nameTypeParam(TopLevelDecl x) {
+      Contract.Requires(x is TypeParameter || x is OpaqueTypeDecl);
+      if (x is TypeParameter tp && tp.Parent != null) {
+        return tp.Parent.FullName + "$" + x.Name;
       } else {
         // This happens for builtins, like arrays, that don't have a parent
         return "#$" + x.Name;
@@ -13096,7 +13096,7 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(x.tok, nm, predef.Ty);
       } else {
         var ot = (OpaqueTypeDecl)x;
-        var nm = nameTypeParam(ot.TheType);
+        var nm = nameTypeParam(ot);
         if (tyArguments.Count != 0) {
           List<Bpl.Expr> args = tyArguments.ConvertAll(TypeToTy);
           return FunctionCall(x.tok, nm, predef.Ty, args);
