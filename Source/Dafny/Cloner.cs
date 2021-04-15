@@ -1347,7 +1347,6 @@ namespace Microsoft.Dafny
         var new_tt = (UserDefinedType)new_t;
 
         new_tt.ResolvedClass = tt.ResolvedClass;
-        new_tt.ResolvedParam = tt.ResolvedParam;
       }
 
       return new_t;

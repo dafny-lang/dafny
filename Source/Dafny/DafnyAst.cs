@@ -846,7 +846,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Returns whether or not "this" and "that" denote the same type, module proxies and type synonyms and subset types.
+    /// Returns whether or not "this" and "that" denote the same type, modulo proxies and type synonyms and subset types.
     /// </summary>
     [Pure]
     public abstract bool Equals(Type that, bool keepConstraints = false);
@@ -932,14 +932,14 @@ namespace Microsoft.Dafny {
       }
 
       var udt = (UserDefinedType)t;
-      if (udt.ResolvedParam != null) {
-        return CharacteristicToAutoInitInfo(udt.ResolvedParam.Characteristics);
-      }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
       if (cl is OpaqueTypeDecl) {
         var otd = (OpaqueTypeDecl)cl;
         return CharacteristicToAutoInitInfo(otd.Characteristics);
+      } else if (cl is TypeParameter) {
+        var tp = (TypeParameter)cl;
+        return CharacteristicToAutoInitInfo(tp.Characteristics);
       } else if (cl is InternalTypeSynonymDecl) {
         var isyn = (InternalTypeSynonymDecl)cl;
         return CharacteristicToAutoInitInfo(isyn.Characteristics);
@@ -1055,6 +1055,8 @@ namespace Microsoft.Dafny {
           return false;
         } else if (IsTypeParameter) {
           return AsTypeParameter.Characteristics.ContainsNoReferenceTypes;
+        } else if (IsOpaqueType) {
+          return AsOpaqueType.Characteristics.ContainsNoReferenceTypes;
         } else {
           return TypeArgs.All(ta => ta.IsAllocFree);
         }
@@ -1070,8 +1072,7 @@ namespace Microsoft.Dafny {
     public bool IsRefType {
       get {
         var udt = NormalizeExpand() as UserDefinedType;
-        return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is ClassDecl
-          && !(udt.ResolvedClass is ArrowTypeDecl);
+        return udt != null && udt.ResolvedClass is ClassDecl && !(udt.ResolvedClass is ArrowTypeDecl);
       }
     }
 
@@ -1083,7 +1084,7 @@ namespace Microsoft.Dafny {
     public TopLevelDeclWithMembers/*?*/ AsTopLevelTypeWithMembers {
       get {
         var udt = NormalizeExpand() as UserDefinedType;
-        return udt != null && udt.ResolvedParam == null ? udt.ResolvedClass as TopLevelDeclWithMembers : null;
+        return udt?.ResolvedClass as TopLevelDeclWithMembers;
       }
     }
     public TopLevelDeclWithMembers/*?*/ AsTopLevelTypeWithMembersBypassInternalSynonym {
@@ -1396,13 +1397,16 @@ namespace Microsoft.Dafny {
     public TypeParameter AsTypeParameter {
       get {
         var ct = NormalizeExpandKeepConstraints() as UserDefinedType;
-        return ct == null ? null : ct.ResolvedParam;
+        return ct?.ResolvedClass as TypeParameter;
       }
     }
     public bool IsOpaqueType {
+      get { return AsOpaqueType != null; }
+    }
+    public OpaqueTypeDecl AsOpaqueType {
       get {
         var udt = this.Normalize() as UserDefinedType;  // note, it is important to use 'this.Normalize()' here, not 'this.NormalizeExpand()'
-        return udt != null && udt.ResolvedClass is OpaqueTypeDecl;
+        return udt?.ResolvedClass as OpaqueTypeDecl;
       }
     }
     public virtual bool SupportsEquality {
@@ -1624,10 +1628,10 @@ namespace Microsoft.Dafny {
         return sub.IsObjectQ || (clSub != null && clSub.ResolvedClass is ClassDecl);
       } else if (super is UserDefinedType) {
         var udtSuper = (UserDefinedType)super;
-        if (udtSuper.ResolvedParam != null) {
-          return udtSuper.ResolvedParam == sub.AsTypeParameter;
+        Contract.Assert(udtSuper.ResolvedClass != null);
+        if (udtSuper.ResolvedClass is TypeParameter) {
+          return udtSuper.ResolvedClass == sub.AsTypeParameter;
         } else {
-          Contract.Assert(udtSuper.ResolvedClass != null);
           sub = origSub;  // get back to the starting point
           while (true) {
             sub = sub.NormalizeExpandKeepConstraints();  // skip past proxies and type synonyms
@@ -1698,7 +1702,11 @@ namespace Microsoft.Dafny {
         return asub != null && asuper.Arity == asub.Arity;
       } else if (a is UserDefinedType) {
         var udtA = (UserDefinedType)a;
-        if (udtA.ResolvedClass != null) {
+        Contract.Assert(udtA.ResolvedClass != null);
+        if (udtA.ResolvedClass is TypeParameter) {
+          Contract.Assert(udtA.TypeArgs.Count == 0);
+          return udtA.ResolvedClass == b.AsTypeParameter;
+        } else {
           while (true) {
             var udtB = b as UserDefinedType;
             if (udtB == null) {
@@ -1715,10 +1723,6 @@ namespace Microsoft.Dafny {
               return true;
             }
           }
-        } else {
-          Contract.Assert(udtA.ResolvedParam != null);
-          Contract.Assert(udtA.TypeArgs.Count == 0);
-          return udtA.ResolvedParam == b.AsTypeParameter;
         }
       } else if (a is Resolver_IdentifierExpr.ResolverType_Module) {
         return b is Resolver_IdentifierExpr.ResolverType_Module;
@@ -2769,7 +2773,7 @@ namespace Microsoft.Dafny {
     public string CompileName {
       get {
         if (compileName == null) {
-          compileName = ResolvedParam != null ? ResolvedParam.CompileName : ResolvedClass.CompileName;
+          compileName = ResolvedClass.CompileName;
         }
         return compileName;
       }
@@ -2784,7 +2788,6 @@ namespace Microsoft.Dafny {
     }
 
     public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype/iterator and TypeArgs match the type parameters of that class/datatype/iterator
-    public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
 
     public UserDefinedType(IToken tok, string name, List<Type> optTypeArgs)
       : this(tok, new NameSegment(tok, name, optTypeArgs))
@@ -2923,26 +2926,7 @@ namespace Microsoft.Dafny {
       this.tok = tok;
       this.Name = tp.Name;
       this.TypeArgs = new List<Type>();
-      this.ResolvedParam = tp;
-      var ns = new NameSegment(tok, tp.Name, null);
-      var r = new Resolver_IdentifierExpr(tok, tp);
-      ns.ResolvedExpression = r;
-      ns.Type = r.Type;
-      this.NamePath = ns;
-    }
-
-    /// <summary>
-    /// Constructs a resolved type for an opaque type.
-    /// </summary>
-    public UserDefinedType(OpaqueType_AsParameter tp, OpaqueTypeDecl decl, List<Type> typeArgs) {
-      Contract.Requires(tp != null);
-      Contract.Requires(decl != null && decl.TheType == tp);
-      Contract.Requires(typeArgs != null);
-      this.tok = tp.tok;
-      this.Name = tp.Name;
-      this.ResolvedParam = tp;
-      this.ResolvedClass = decl;
-      this.TypeArgs = typeArgs;
+      this.ResolvedClass = tp;
       var ns = new NameSegment(tok, tp.Name, null);
       var r = new Resolver_IdentifierExpr(tok, tp);
       ns.ResolvedExpression = r;
@@ -2956,16 +2940,6 @@ namespace Microsoft.Dafny {
         var ii = (UserDefinedType)i;
         var t = that.NormalizeExpand(keepConstraints) as UserDefinedType;
         if (t == null || ii.ResolvedClass != t.ResolvedClass || ii.TypeArgs.Count != t.TypeArgs.Count) {
-          return false;
-        } else if (ii.TypeArgs.Count == 0 && ii.ResolvedClass is OpaqueTypeDecl) {
-          // Check for the special case in which ResolvedParam holds a (non-unique) copy of
-          // the type, for OpaqueTypeDecl, likely a hold over from prior to adding ResolvedClass
-          if (ii.ResolvedParam == t.ResolvedParam) return true;
-          if (ii.ResolvedParam == null || ii.ResolvedParam == ((OpaqueTypeDecl)ii.ResolvedClass).TheType) {
-            if (t.ResolvedParam == null || t.ResolvedParam == ((OpaqueTypeDecl)t.ResolvedClass).TheType) return true;
-          }
-          return false;
-        } else if (ii.ResolvedParam != t.ResolvedParam) {
           return false;
         } else {
           for (int j = 0; j < ii.TypeArgs.Count; j++) {
@@ -3067,8 +3041,10 @@ namespace Microsoft.Dafny {
           } else {
             return false;
           }
-        } else if (ResolvedParam != null) {
-          return ResolvedParam.SupportsEquality;
+        } else if (ResolvedClass is TypeParameter) {
+          return ((TypeParameter)ResolvedClass).SupportsEquality;
+        } else if (ResolvedClass is OpaqueTypeDecl) {
+          return ((OpaqueTypeDecl)ResolvedClass).SupportsEquality;
         }
         Contract.Assume(false);  // the SupportsEquality getter requires the Type to have been successfully resolved
         return true;
@@ -3096,7 +3072,7 @@ namespace Microsoft.Dafny {
           } else {
             return true;
           }
-        } else if (ResolvedParam != null) {
+        } else if (ResolvedClass is TypeParameter || ResolvedClass is OpaqueTypeDecl) {
           // (Note, if type parameters/opaque types could have a may-involve-references characteristic, then it would be consulted here)
           return true;
         }
@@ -3619,9 +3595,6 @@ namespace Microsoft.Dafny {
 
     public bool NecessaryForEqualitySupportOfSurroundingInductiveDatatype = false;  // computed during resolution; relevant only when Parent denotes an IndDatatypeDecl
 
-    public bool IsAbstractTypeDeclaration { // true if this type parameter represents t in type t;
-      get { return parent == null; }
-    }
     public bool IsToplevelScope { // true if this type parameter is on a toplevel (ie. class C<T>), and false if it is on a member (ie. method m<T>(...))
       get { return parent is TopLevelDecl; }
     }
@@ -5546,9 +5519,6 @@ namespace Microsoft.Dafny {
       var d = rtd.AsTopLevelDecl;
       Contract.Assert(!tsdMap.ContainsKey(d));
       var thisType = UserDefinedType.FromTopLevelDecl(d.tok, d);
-      if (d is OpaqueTypeDecl) {
-        thisType.ResolvedParam = ((OpaqueTypeDecl)d).TheType;
-      }
       var tsd = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.GetExplicitCharacteristics(d), d.TypeArgs, d.EnclosingModuleDefinition, thisType, d.Attributes);
       tsd.InheritVisibility(d, false);
       tsdMap.Add(d, tsd);
@@ -9637,17 +9607,14 @@ namespace Microsoft.Dafny {
   /// </summary>
   class Resolver_IdentifierExpr : Expression
   {
-    // The Resolver_IdentifierExpr either uses Decl and TypeArgs:
     public readonly TopLevelDecl Decl;
     public readonly List<Type> TypeArgs;
-    // ... or it uses TypeParamDecl:
-    public readonly TypeParameter TypeParamDecl;
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant((Decl != null) != (TypeParamDecl != null));  // The Decl / TypeParamDecl fields are exclusive
-      Contract.Invariant((Decl != null) == (TypeArgs != null));  // The Decl / TypeArgs fields are used together
-      Contract.Invariant(TypeArgs == null || TypeArgs.Count == Decl.TypeArgs.Count);
-      Contract.Invariant(Type == null || (Type is ResolverType_Module && TypeParamDecl == null) || Type is ResolverType_Type);
+      Contract.Invariant(Decl != null);
+      Contract.Invariant(TypeArgs != null);
+      Contract.Invariant(TypeArgs.Count == Decl.TypeArgs.Count);
+      Contract.Invariant(Type is ResolverType_Module || Type is ResolverType_Type);
     }
 
     public abstract class ResolverType : Type
@@ -9685,11 +9652,9 @@ namespace Microsoft.Dafny {
       Type = decl is ModuleDecl ? (Type)new ResolverType_Module() : new ResolverType_Type();
     }
     public Resolver_IdentifierExpr(IToken tok, TypeParameter tp)
-      : base(tok) {
+      : this(tok, tp, new List<Type>()) {
       Contract.Requires(tok != null);
       Contract.Requires(tp != null);
-      TypeParamDecl = tp;
-      Type = new ResolverType_Type();
     }
   }
 

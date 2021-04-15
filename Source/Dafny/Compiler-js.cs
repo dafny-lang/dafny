@@ -723,8 +723,7 @@ namespace Microsoft.Dafny {
         return "_dafny.Rtd_ref";  // null suffices as a default value, since the function will never be called
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;
-        var tp = udt.ResolvedParam;
-        if (tp != null) {
+        if (udt.ResolvedClass is TypeParameter tp) {
           return string.Format("{0}rtd$_{1}", thisContext != null && tp.Parent is ClassDecl && !(tp.Parent is TraitDecl) ? "this." : "", tp.CompileName);
         }
         var cl = udt.ResolvedClass;
@@ -887,16 +886,17 @@ namespace Microsoft.Dafny {
       }
 
       var udt = (UserDefinedType)xType;
-      if (udt.ResolvedParam != null) {
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is TypeParameter) {
         if (constructTypeParameterDefaultsFromTypeDescriptors) {
           return string.Format("{0}.Default", TypeDescriptor(udt, wr, udt.tok));
         } else {
-          return FormatDefaultTypeParameterValue(udt.ResolvedParam);
+          return FormatDefaultTypeParameterValue((TypeParameter)udt.ResolvedClass);
         }
-      }
-      var cl = udt.ResolvedClass;
-      Contract.Assert(cl != null);
-      if (cl is NewtypeDecl) {
+      } else if (cl is OpaqueTypeDecl opaque) {
+        return FormatDefaultTypeParameterValue(opaque.TheType);
+      } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
           return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Witness";
@@ -1402,7 +1402,7 @@ namespace Microsoft.Dafny {
         return ArrowType.Arrow_FullCompileName;
       }
       var cl = udt.ResolvedClass;
-      if (cl == null) {
+      if (cl is TypeParameter) {
         return IdProtect(udt.CompileName);
       } else if (cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
         member != null && Attributes.Contains(member.Attributes, "extern")) {

@@ -1800,7 +1800,7 @@ namespace Microsoft.Dafny
         }
       }
       foreach (IVariable n in boundVars) {
-        if (!(n.Type.IsTypeParameter || n.Type.IsInternalTypeSynonym) && (args != null || searchExprs.Exists(expr => VarOccursInArgumentToRecursiveFunction(expr, n)))) {
+        if (!(n.Type.IsTypeParameter || n.Type.IsOpaqueType || n.Type.IsInternalTypeSynonym) && (args != null || searchExprs.Exists(expr => VarOccursInArgumentToRecursiveFunction(expr, n)))) {
           inductionVariables.Add(new IdentifierExpr(n.Tok, n));
         }
       }
