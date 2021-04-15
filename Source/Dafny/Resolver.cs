@@ -9321,9 +9321,9 @@ namespace Microsoft.Dafny
 
       // Stated differently, check that there is some constuctor where no argument type goes to the same stratum.
       DatatypeCtor groundingCtor = null;
-      List<TypeParameter> lastTypeParametersUsed = null;
+      ISet<TypeParameter> lastTypeParametersUsed = null;
       foreach (DatatypeCtor ctor in dt.Ctors) {
-        List<TypeParameter> typeParametersUsed = new List<TypeParameter>();
+        var typeParametersUsed = new HashSet<TypeParameter>();
         foreach (Formal p in ctor.Formals) {
           if (!CheckCanBeConstructed(p.Type, typeParametersUsed)) {
             // the argument type (has a component which) is not yet known to be constructable
@@ -9354,7 +9354,7 @@ namespace Microsoft.Dafny
       return false;
     }
 
-    bool CheckCanBeConstructed(Type type, List<TypeParameter> typeParametersUsed) {
+    bool CheckCanBeConstructed(Type type, ISet<TypeParameter> typeParametersUsed) {
       type = type.NormalizeExpandKeepConstraints();
       if (type is BasicType) {
         // values of primitive types can always be constructed

@@ -703,7 +703,7 @@ namespace Microsoft.Dafny {
     /// Add to "tps" the free type parameters in "this".
     /// Requires the type to be resolved.
     /// </summary>
-    public void AddFreeTypeParameters(List<TypeParameter> tps) {
+    public void AddFreeTypeParameters(ISet<TypeParameter> tps) {
       Contract.Requires(tps != null);
       var ty = this.NormalizeExpandKeepConstraints();
       var tp = ty.AsTypeParameter;
