@@ -527,4 +527,5 @@ ResolutionErrors.dfy(3340,6): Error: type parameter (T) passed to function NoRef
 ResolutionErrors.dfy(3346,9): Error: type parameter (T) passed to function MustBeNonempty must support nonempty (got PossiblyEmpty)
 ResolutionErrors.dfy(3352,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
 ResolutionErrors.dfy(3367,9): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
-524 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(3415,7): Error: ghost variables are allowed only in specification contexts
+525 resolution/type errors detected in ResolutionErrors.dfy

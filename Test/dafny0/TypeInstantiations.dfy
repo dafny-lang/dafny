@@ -49,12 +49,12 @@ module M1 refines M0 {
   type O<U'(==)> = List<U'>  // error: change in (==)
   type P<U'> = List<U'>  // fine
   class R { }  // error: wrong number of type arguments
-  class S<T> { }
+  class S<T> { }  // error: not allowed to rename type parameter (U -> T)
   class T<T> { }  // error: wrong number of type arguments
 
   type TP0<E0>  // error: wrong number of type arguments
   type TP1  // error: wrong number of type arguments
-  type TP2<E0,E1>
+  type TP2<Y0, E1>  // error: not allowed to rename type parameter (Y1 -> E1)
 }
 
 module ListLibrary {

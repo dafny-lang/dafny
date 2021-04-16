@@ -21,26 +21,35 @@ method M() {
 
 method RewriteSet(s: set<int>, t: set<int>) {
   // set union
-  ghost var u0 := forall x | x in s + t :: x < 200; // warning: no trigger
+  ghost var u0 := forall x | x in s + t :: x < 200;
   ghost var u1 := forall x | x in s || x in t :: x < 200;
-  ghost var u2 := set x | x in s + t; // warning: no trigger
+  ghost var u2 := set x | x in s + t;
   ghost var u3 := set x | x in s + t && (x in s || x in t);
   assert u0 == u1 && u2 == u3;
 
   // set intersection
-  ghost var i0 := forall x | x in s * t :: x < 200; // warning: no trigger
+  ghost var i0 := forall x | x in s * t :: x < 200;
   ghost var i1 := forall x | x in s * t && x in s && x in t :: x < 200;
   assert i0 == i1;
 
   // set difference
-  ghost var d0 := forall x | x in s - t :: x < 200; // warning: no trigger
+  ghost var d0 := forall x | x in s - t :: x < 200;
   ghost var d1 := forall x | x in s - t && x in s && x !in t :: x < 200;
   assert d0 == d1;
 
   // set display
-  ghost var c0 := forall x | x in {2, 3, 5} :: x < 200; // warning: no trigger
-  ghost var c1 := forall x | x in ({2, 3, 5}) :: x < 200;
-  assert c0 == c1;
+  if * {
+    // bad, since these quantifiers have no triggers
+    ghost var c0 := forall x | x in {2, 3, 5} :: x < 200; // warning: no trigger
+    ghost var c1 := forall x | x in ({2, 3, 5}) :: x < 200; // warning: no trigger
+    assert c0 == c1;
+  } else {
+    // good
+    var s := {2, 3, 5};
+    ghost var c0 := forall x | x in s :: x < 200;
+    ghost var c1 := forall x | x in (s) :: x < 200;
+    assert c0 == c1;
+  }
 
   // set comprehension
   ghost var h0 := forall x :: (x in set y | y in s) ==> x < 200; // warning: no trigger
@@ -55,24 +64,41 @@ function F<X>(s: X): X { s }
 
 method RewriteMultiSet(s: multiset<int>, t: multiset<int>) {
   // multiset union
-  ghost var u0 := forall x | x in s + t :: x < 200; // warning: no trigger
+  ghost var u0 := forall x | x in s + t :: x < 200;
   ghost var u1 := forall x | x in s || x in t :: x < 200;
-  assert u0 == u1;
+  assert u0 == u1 by {
+    // here's one way to prove it
+    assert forall x :: x in s + t <==> x in s || x in t;
+  }
 
   // multiset intersection
-  ghost var i0 := forall x | x in s * t :: x < 200; // warning: no trigger
-  ghost var i1 := forall x | x in s * t && x in s && x in t :: x < 200;
-  assert i0 == i1;
+  ghost var i0 := forall x | x in s * t :: x < 200;
+  ghost var i1 := forall x | x in s && x in t :: x < 200;
+  assert i0 == i1 by {
+    // here's a different way to prove this one
+    assert i0 == forall x | x in s * t && x in s && x in t :: x < 200;
+  }
 
   // multiset difference
   ghost var d0 := forall x | x in s - t :: x < 200; // fine (multiset difference is not rewritten)
-  ghost var d1 := forall x | x in s - t && x in s && s[x] > t[x] :: x < 200;
-  assert d0 == d1;
+  ghost var d1 := forall x | x in s && s[x] > t[x] :: x < 200;
+  assert d0 == d1 by {
+    assert forall x :: x in s - t <==> x in s && s[x] > t[x];
+  }
 
   // multiset display
-  ghost var c0 := forall x | x in multiset{2, 3, 5} :: x < 200; // warning: no trigger
-  ghost var c1 := forall x | x in (multiset{2, 3, 5}) :: x < 200;
-  assert c0 == c1;
+  if * {
+    // bad, since these quantifiers have no triggers
+    ghost var c0 := forall x | x in multiset{2, 3, 5} :: x < 200; // warning: no trigger
+    ghost var c1 := forall x | x in (multiset{2, 3, 5}) :: x < 200; // warning: no trigger
+    assert c0 == c1;
+  } else {
+    // good
+    var ms := multiset{2, 3, 5};
+    ghost var c0 := forall x | x in ms :: x < 200;
+    ghost var c1 := forall x | x in (ms) :: x < 200;
+    assert c0 == c1;
+  }
 }
 
 method RewriteSeq(s: seq<int>, t: seq<int>) {
