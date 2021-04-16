@@ -2188,7 +2188,8 @@ namespace Microsoft.Dafny{
       }
       proc.WaitForExit();
       if (proc.ExitCode != 0) {
-        throw new Exception($"Error while compiling Java files. Process exited with exit code {proc.ExitCode}");
+        outputWriter.WriteLine($"Error while compiling Java files. Process exited with exit code {proc.ExitCode}");
+        return false;
       }
       return true;
     }
@@ -2212,7 +2213,8 @@ namespace Microsoft.Dafny{
       }
       proc.WaitForExit();
       if (proc.ExitCode != 0) {
-        throw new Exception($"Error while running Java file {targetFilename}. Process exited with exit code {proc.ExitCode}");
+        outputWriter.WriteLine($"Error while running Java file {targetFilename}. Process exited with exit code {proc.ExitCode}");
+        return false;
       }
       return true;
     }
