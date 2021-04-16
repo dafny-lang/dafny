@@ -12,17 +12,11 @@
 // RUN: javac ManualCompile-java/ManualCompile.java ManualCompile-java/*/*.java
 // RUN: java ManualCompile >> "%t"
 
-// RUN: %diff "%s.expect" "%t"
+// RUN: %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:cpp "%s" >> "%t"
+// RUN: g++ -g -Wall -Wextra -Wpedantic -Wno-unused-variable -std=c++17 -I %binaryDir -o ManualCompile.exe ManualCompile.cpp
+// RUN: ./ManualCompile.exe >> "%t"
 
-/* In the future (when we've figured out how to obtain the right version of g++ on github),
- * C++ can be added by including these commands above:
- *
- *     %dafny /compileVerbose:1 /compile:0 /spillTargetCode:2 /compileTarget:cpp "%s" >> "%t"
- *     g++ -g -Wall -Wextra -Wpedantic -Wno-unused-variable -std=c++17 -I %binaryDir -o ManualCompile.exe ManualCompile.cpp
- *     ./ManualCompile.exe >> "%t"
- *
- * and adding "g++" to lit.local.cfg in this folder.
- */
+// RUN: %diff "%s.expect" "%t"
 
 method Main() {
   print "hello, Dafny\n";
