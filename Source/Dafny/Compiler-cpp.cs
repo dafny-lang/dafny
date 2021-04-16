@@ -2363,7 +2363,8 @@ namespace Microsoft.Dafny {
       }
       proc.WaitForExit();
       if (proc.ExitCode != 0) {
-        throw new Exception($"Error while compiling C++ files. Process exited with exit code {proc.ExitCode}");
+        outputWriter.WriteLine($"Error while compiling C++ files. Process exited with exit code {proc.ExitCode}");
+        return false;
       }
       return true;
     }
@@ -2389,7 +2390,8 @@ namespace Microsoft.Dafny {
       }
       proc.WaitForExit();
       if (proc.ExitCode != 0) {
-        throw new Exception($"Error while running C++ file {targetFilename}. Process exited with exit code {proc.ExitCode}");
+        outputWriter.WriteLine($"Error while running C++ file {targetFilename}. Process exited with exit code {proc.ExitCode}");
+        return false;
       }
       return true;
     }
