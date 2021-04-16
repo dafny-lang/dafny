@@ -44,10 +44,12 @@ namespace Microsoft.Dafny
     static string FormatTypeDescriptorVariable(string typeVarName) => $"_td_{typeVarName}";
     static string FormatTypeDescriptorVariable(TypeParameter tp) => FormatTypeDescriptorVariable(tp.CompileName);
     const string TypeDescriptorMethodName = "_TypeDescriptor";
-    static string FormatDefaultTypeParameterValue(TypeParameter tp) {
-      if (tp is OpaqueType_AsParameter) {
+    static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
+      Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
+      if (tp is OpaqueTypeDecl) {
         // This is unusual. Typically, the compiler never needs to compile an opaque type, but this opaque type
-        // is apparently an :extern. It's difficult to say what the compiler could do in this situation, since
+        // is apparently an :extern (or a compiler error has already been reported and we're just trying to get to
+        // the end of compilation without crashing). It's difficult to say what the compiler could do in this situation, since
         // it doesn't know how to generate code that produces a legal value of the opaque type. If we don't do
         // anything different from the common case (the "else" branch below), then the code emitted will not
         // compile (see github issue #1151). So, to do something a wee bit better, we emit a placebo value. This
@@ -1039,8 +1041,8 @@ namespace Microsoft.Dafny
         TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
         return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
       } else if (xType is UserDefinedType udt) {
-        if (udt.ResolvedParam != null) {
-          if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(udt.ResolvedParam, out var instantiatedTypeParameter)) {
+        if (udt.ResolvedClass is TypeParameter tp) {
+          if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
             return TypeName(instantiatedTypeParameter, wr, tok, member);
           }
         }
@@ -1125,16 +1127,17 @@ namespace Microsoft.Dafny
       }
 
       var udt = (UserDefinedType)xType;
-      if (udt.ResolvedParam != null) {
-        if (constructTypeParameterDefaultsFromTypeDescriptors) {
-          return $"{FormatTypeDescriptorVariable(udt.ResolvedParam.CompileName)}.Default()";
-        } else {
-          return FormatDefaultTypeParameterValue(udt.ResolvedParam);
-        }
-      }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is NewtypeDecl) {
+      if (cl is TypeParameter tp) {
+        if (constructTypeParameterDefaultsFromTypeDescriptors) {
+          return $"{FormatTypeDescriptorVariable(tp.CompileName)}.Default()";
+        } else {
+          return FormatDefaultTypeParameterValue(tp);
+        }
+      } else if (cl is OpaqueTypeDecl opaque) {
+        return FormatDefaultTypeParameterValue(opaque);
+      } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
           return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Witness";
@@ -1619,9 +1622,6 @@ namespace Microsoft.Dafny
       }
 
       var udt = (UserDefinedType)t;
-      if (udt.ResolvedParam != null) {
-        return false;
-      }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
       if (cl is NewtypeDecl) {
@@ -1932,7 +1932,7 @@ namespace Microsoft.Dafny
         return qualification;
       }
       var cl = udt.ResolvedClass;
-      if (cl == null) {
+      if (cl is TypeParameter) {
         return IdProtect(udt.CompileName);
       } else if (cl.EnclosingModuleDefinition.IsDefaultModule) {
         return IdProtect(cl.CompileName);

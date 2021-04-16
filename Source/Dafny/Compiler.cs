@@ -255,12 +255,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
       Contract.Requires(udt.TypeArgs.Count == (udt.ResolvedClass == null ? 0 : udt.ResolvedClass.TypeArgs.Count));
-      if (udt.ResolvedClass == null) {
-        Contract.Assert(udt.ResolvedParam != null);
-        return TypeName_UDT(fullCompileName, new List<TypeParameter.TPVariance>(), udt.TypeArgs, wr, tok);
-      } else {
-        return TypeName_UDT(fullCompileName, udt.ResolvedClass.TypeArgs.ConvertAll(tp => tp.Variance), udt.TypeArgs, wr, tok);
-      }
+      return TypeName_UDT(fullCompileName, udt.ResolvedClass.TypeArgs.ConvertAll(tp => tp.Variance), udt.TypeArgs, wr, tok);
     }
     protected abstract string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok);
     protected abstract string/*?*/ TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member);

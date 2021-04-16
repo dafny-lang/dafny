@@ -4311,7 +4311,12 @@ namespace Microsoft.Dafny
         var udt = (UserDefinedType)t;
         var cl = udt.ResolvedClass;
         if (cl != null) {
-          if (cl is SubsetTypeDecl) {
+          if (cl is TypeParameter) {
+            var tp = udt.AsTypeParameter;
+            Contract.Assert(tp != null);
+            isRoot = true; isLeaf = true;  // all type parameters are invariant
+            headIsRoot = true; headIsLeaf = true;
+          } else if (cl is SubsetTypeDecl) {
             headIsRoot = false; headIsLeaf = true;
           } else if (cl is TraitDecl) {
             headIsRoot = false; headIsLeaf = false;
@@ -4341,11 +4346,6 @@ namespace Microsoft.Dafny
               }
             }
           }
-        } else if (t.IsTypeParameter) {
-          var tp = udt.AsTypeParameter;
-          Contract.Assert(tp != null);
-          isRoot = true; isLeaf = true;  // all type parameters are invariant
-          headIsRoot = true; headIsLeaf = true;
         } else {
           isRoot = false; isLeaf = false;  // don't know
           headIsRoot = false; headIsLeaf = false;
@@ -5098,7 +5098,7 @@ namespace Microsoft.Dafny
                   return false;  // not enough information
                 }
               }
-              if (moreExactThis.TreatTypeParamAsWild && (t.IsTypeParameter || u.IsTypeParameter)) {
+              if (moreExactThis.TreatTypeParamAsWild && (t.IsTypeParameter || u.IsTypeParameter || t.IsOpaqueType || u.IsOpaqueType)) {
                 return true;
               } else if (!moreExactThis.AllowSuperSub) {
                 resolver.ConstrainSubtypeRelation_Equal(t, u, errorMsg);
@@ -6528,9 +6528,8 @@ namespace Microsoft.Dafny
             if (2 <= DafnyOptions.O.Allocated && (codeContext is Function || codeContext is ConstantField || CodeContextWrapper.Unwrap(codeContext) is RedirectingTypeDecl)) {
               // functions are not allowed to depend on the set of allocated objects
               foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
-                var msgFormat = "a {0} involved in a {3} definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of '{1}'";
-                if (bv.Type.IsTypeParameter) {
-                  var tp = bv.Type.AsTypeParameter;
+                var msgFormat = "a {0} involved in a {3} definition is not allowed to depend on the set of allocated references, but values of '{1}' may contain references";
+                if (bv.Type.IsTypeParameter || bv.Type.IsOpaqueType) {
                   msgFormat += " (perhaps declare its type, '{2}', as '{2}(!new)')";
                 }
                 var declKind = CodeContextWrapper.Unwrap(codeContext) is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)codeContext).WhatKind;
@@ -7996,18 +7995,10 @@ namespace Microsoft.Dafny
 
         } else if (type is UserDefinedType) {
           var udt = (UserDefinedType)type;
-          List<TypeParameter> formalTypeArgs = null;
-          if (udt.ResolvedClass != null) {
-            formalTypeArgs = udt.ResolvedClass.TypeArgs;
-          } else if (udt.ResolvedParam is OpaqueType_AsParameter) {
-            var t = (OpaqueType_AsParameter)udt.ResolvedParam;
-            formalTypeArgs = t.TypeArgs;
-          }
-          if (formalTypeArgs == null) {
-            Contract.Assert(udt.TypeArgs.Count == 0);
-          } else {
-            CheckTypeInstantiation(udt.tok, "type", udt.ResolvedClass.Name, formalTypeArgs, udt.TypeArgs, inGhostContext);
-          }
+          Contract.Assert(udt.ResolvedClass != null);
+          var formalTypeArgs = udt.ResolvedClass.TypeArgs;
+          Contract.Assert(formalTypeArgs != null);
+          CheckTypeInstantiation(udt.tok, "type", udt.ResolvedClass.Name, formalTypeArgs, udt.TypeArgs, inGhostContext);
 
         } else if (type is TypeProxy) {
           // the type was underconstrained; this is checked elsewhere, but it is not in violation of the equality-type test
@@ -8042,23 +8033,24 @@ namespace Microsoft.Dafny
           hint = TypeEqualityErrorMessageHint(actual);
           return false;
         }
-        var tp = actual.AsTypeParameter;
+        var cl = (actual.Normalize() as UserDefinedType)?.ResolvedClass;
+        var tp = (TopLevelDecl)(cl as TypeParameter) ?? cl as OpaqueTypeDecl;
         if (formal.HasCompiledValue && (inGhostContext ? !actual.IsNonempty : !actual.HasCompilableValue)) {
           whatIsWrong = "auto-initialization";
           hint = tp == null ? "" :
-            string.Format(" (perhaps try declaring type parameter '{0}' on line {1} as '{0}(0)', which says it can only be instantiated with a type that supports auto-initialization)", tp.Name, tp.tok.line);
+            string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(0)', which says it can only be instantiated with a type that supports auto-initialization)", tp.Name, tp.tok.line, tp.WhatKind);
           return false;
         }
         if (formal.IsNonempty && !actual.IsNonempty) {
           whatIsWrong = "nonempty";
           hint = tp == null ? "" :
-            string.Format(" (perhaps try declaring type parameter '{0}' on line {1} as '{0}(00)', which says it can only be instantiated with a nonempty type)", tp.Name, tp.tok.line);
+            string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(00)', which says it can only be instantiated with a nonempty type)", tp.Name, tp.tok.line, tp.WhatKind);
           return false;
         }
         if (formal.ContainsNoReferenceTypes && !actual.IsAllocFree) {
           whatIsWrong = "no references";
           hint = tp == null ? "" :
-            string.Format(" (perhaps try declaring type parameter '{0}' on line {1} as '{0}(!new)', which says it can only be instantiated with a type that contains no references)", tp.Name, tp.tok.line);
+            string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(!new)', which says it can only be instantiated with a type that contains no references)", tp.Name, tp.tok.line, tp.WhatKind);
           return false;
         }
         whatIsWrong = null;
@@ -8068,9 +8060,10 @@ namespace Microsoft.Dafny
 
       string TypeEqualityErrorMessageHint(Type argType) {
         Contract.Requires(argType != null);
-        var tp = argType.AsTypeParameter;
+        var cl = (argType.Normalize() as UserDefinedType)?.ResolvedClass;
+        var tp = (TopLevelDecl)(cl as TypeParameter) ?? cl as OpaqueTypeDecl;
         if (tp != null) {
-          return string.Format(" (perhaps try declaring type parameter '{0}' on line {1} as '{0}(==)', which says it can only be instantiated with a type that supports equality)", tp.Name, tp.tok.line);
+          return string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(==)', which says it can only be instantiated with a type that supports equality)", tp.Name, tp.tok.line, tp.WhatKind);
         }
         return "";
       }
@@ -8702,25 +8695,16 @@ namespace Microsoft.Dafny
         return InferRequiredEqualitySupport(tp, sq.Arg);
       } else if (type is UserDefinedType) {
         var udt = (UserDefinedType)type;
-        List<TypeParameter> formalTypeArgs = null;
-        if (udt.ResolvedClass != null) {
-          formalTypeArgs = udt.ResolvedClass.TypeArgs;
-        } else if (udt.ResolvedParam is OpaqueType_AsParameter) {
-          var t = (OpaqueType_AsParameter)udt.ResolvedParam;
-          formalTypeArgs = t.TypeArgs;
-        }
-        if (formalTypeArgs == null) {
-          Contract.Assert(udt.TypeArgs.Count == 0);
-        } else {
-          Contract.Assert(formalTypeArgs.Count == udt.TypeArgs.Count);
-          var i = 0;
-          foreach (var argType in udt.TypeArgs) {
-            var formalTypeArg = formalTypeArgs[i];
-            if ((formalTypeArg.SupportsEquality && argType.AsTypeParameter == tp) || InferRequiredEqualitySupport(tp, argType)) {
-              return true;
-            }
-            i++;
+        List<TypeParameter> formalTypeArgs = udt.ResolvedClass.TypeArgs;
+        Contract.Assert(formalTypeArgs != null);
+        Contract.Assert(formalTypeArgs.Count == udt.TypeArgs.Count);
+        var i = 0;
+        foreach (var argType in udt.TypeArgs) {
+          var formalTypeArg = formalTypeArgs[i];
+          if ((formalTypeArg.SupportsEquality && argType.AsTypeParameter == tp) || InferRequiredEqualitySupport(tp, argType)) {
+            return true;
           }
+          i++;
         }
         if (udt.ResolvedClass is TypeSynonymDecl) {
           var syn = (TypeSynonymDecl)udt.ResolvedClass;
@@ -9337,9 +9321,9 @@ namespace Microsoft.Dafny
 
       // Stated differently, check that there is some constuctor where no argument type goes to the same stratum.
       DatatypeCtor groundingCtor = null;
-      List<TypeParameter> lastTypeParametersUsed = null;
+      ISet<TypeParameter> lastTypeParametersUsed = null;
       foreach (DatatypeCtor ctor in dt.Ctors) {
-        List<TypeParameter> typeParametersUsed = new List<TypeParameter>();
+        var typeParametersUsed = new HashSet<TypeParameter>();
         foreach (Formal p in ctor.Formals) {
           if (!CheckCanBeConstructed(p.Type, typeParametersUsed)) {
             // the argument type (has a component which) is not yet known to be constructable
@@ -9370,7 +9354,7 @@ namespace Microsoft.Dafny
       return false;
     }
 
-    bool CheckCanBeConstructed(Type type, List<TypeParameter> typeParametersUsed) {
+    bool CheckCanBeConstructed(Type type, ISet<TypeParameter> typeParametersUsed) {
       type = type.NormalizeExpandKeepConstraints();
       if (type is BasicType) {
         // values of primitive types can always be constructed
@@ -9381,16 +9365,16 @@ namespace Microsoft.Dafny
       }
 
       var udt = (UserDefinedType)type;
-      if (type.IsTypeParameter) {
-        // a value can be constructed, if the type parameter stands for a type that can be constructed
-        Contract.Assert(udt.ResolvedParam != null);
-        typeParametersUsed.Add(udt.ResolvedParam);
-        return true;
-      }
-
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is InternalTypeSynonymDecl) {
+      if (cl is TypeParameter) {
+        // treat a type parameter like a ground type
+        typeParametersUsed.Add((TypeParameter)cl);
+        return true;
+      } else if (cl is OpaqueTypeDecl) {
+        // an opaque is like a ground type
+        return true;
+      } else if (cl is InternalTypeSynonymDecl) {
         // a type exported as opaque from another module is like a ground type
         return true;
       } else if (cl is NewtypeDecl) {
@@ -10364,7 +10348,7 @@ namespace Microsoft.Dafny
 
       } else if (type is UserDefinedType) {
         var t = (UserDefinedType)type;
-        if (t.ResolvedClass != null || t.ResolvedParam != null) {
+        if (t.ResolvedClass != null) {
           // Apparently, this type has already been resolved
           return null;
         }
@@ -10382,13 +10366,9 @@ namespace Microsoft.Dafny
           var r = t.NamePath.Resolved as Resolver_IdentifierExpr;
           if (r == null || !(r.Type is Resolver_IdentifierExpr.ResolverType_Type)) {
             reporter.Error(MessageSource.Resolver, t.tok, "expected type");
-          } else if (r.Type is Resolver_IdentifierExpr.ResolverType_Type && r.TypeParamDecl != null) {
-            t.ResolvedParam = r.TypeParamDecl;
           } else if (r.Type is Resolver_IdentifierExpr.ResolverType_Type) {
             var d = r.Decl;
             if (d is OpaqueTypeDecl) {
-              var dd = (OpaqueTypeDecl)d;
-              t.ResolvedParam = dd.TheType;
               // resolve like a type parameter, and it may have type parameters if it's an opaque type
               t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
             } else if (d is SubsetTypeDecl || d is NewtypeDecl) {
@@ -10410,7 +10390,7 @@ namespace Microsoft.Dafny
               }
               t.ResolvedClass = d;
             } else {
-              // d is a coinductive datatype or a class, and it may have type parameters
+              // d is a type parameter, coinductive datatype, or class, and it may have type parameters
               t.ResolvedClass = d;
             }
             if (option.Opt == ResolveTypeOptionEnum.DontInfer) {
@@ -10425,8 +10405,8 @@ namespace Microsoft.Dafny
 
           }
         }
-        if (t.ResolvedClass == null && t.ResolvedParam == null) {
-          // There was some error. Still, we will set one of them to some value to prevent some crashes in the downstream resolution.  The
+        if (t.ResolvedClass == null) {
+          // There was some error. Still, we will set .ResolvedClass to some value to prevent some crashes in the downstream resolution.  The
           // 0-tuple is convenient, because it is always in scope.
           t.ResolvedClass = builtIns.TupleType(t.tok, 0, false);
           // clear out the TypeArgs since 0-tuple doesn't take TypeArg
@@ -13944,20 +13924,12 @@ namespace Microsoft.Dafny
         return new ArrowType(t.tok, (ArrowTypeDecl)t.ResolvedClass, t.Args.ConvertAll(u => SubstType(u, subst)), SubstType(t.Result, subst));
       } else if (type is UserDefinedType) {
         var t = (UserDefinedType)type;
-        if (t.ResolvedParam != null) {
-          Type s;
-          if (subst.TryGetValue(t.ResolvedParam, out s)) {
-            Contract.Assert(t.TypeArgs.Count == 0); // what to do?
+        if (t.ResolvedClass is TypeParameter tp) {
+          if (subst.TryGetValue(tp, out var s)) {
+            Contract.Assert(t.TypeArgs.Count == 0);
             return cce.NonNull(s);
           } else {
-            if (t.TypeArgs.Count == 0) {
-              return type;
-            } else {
-              // a type parameter with type arguments--must be an opaque type
-              var otp = (OpaqueType_AsParameter)t.ResolvedParam;
-              var ocl = (OpaqueTypeDecl)t.ResolvedClass;
-              return new UserDefinedType(otp, ocl, t.TypeArgs.ConvertAll(u => SubstType(u, subst)));
-            }
+            return type;
           }
         } else if (t.ResolvedClass != null) {
           List<Type> newArgs = null;  // allocate it lazily
@@ -14040,18 +14012,18 @@ namespace Microsoft.Dafny
         CheckVariance(t.Arg, enclosingTypeDefinition, context, leftOfArrow);
       } else if (type is UserDefinedType) {
         var t = (UserDefinedType)type;
-        if (t.ResolvedParam != null) {
-          if (t.ResolvedParam.Variance != TypeParameter.TPVariance.Non && t.ResolvedParam.Variance != context) {
-            reporter.Error(MessageSource.Resolver, t.tok, "formal type parameter '{0}' is not used according to its variance specification", t.ResolvedParam.Name);
-          } else if (t.ResolvedParam.StrictVariance && leftOfArrow) {
+        if (t.ResolvedClass is TypeParameter tp) {
+          if (tp.Variance != TypeParameter.TPVariance.Non && tp.Variance != context) {
+            reporter.Error(MessageSource.Resolver, t.tok, "formal type parameter '{0}' is not used according to its variance specification", tp.Name);
+          } else if (tp.StrictVariance && leftOfArrow) {
             string hint;
-            if (t.ResolvedParam.VarianceSyntax == TypeParameter.TPVarianceSyntax.NonVariant_Strict) {
-              hint = string.Format(" (perhaps try declaring '{0}' as '!{0}')", t.ResolvedParam.Name);
+            if (tp.VarianceSyntax == TypeParameter.TPVarianceSyntax.NonVariant_Strict) {
+              hint = string.Format(" (perhaps try declaring '{0}' as '!{0}')", tp.Name);
             } else {
-              Contract.Assert(t.ResolvedParam.VarianceSyntax == TypeParameter.TPVarianceSyntax.Covariant_Strict);
-              hint = string.Format(" (perhaps try changing the declaration from '+{0}' to '*{0}')", t.ResolvedParam.Name);
+              Contract.Assert(tp.VarianceSyntax == TypeParameter.TPVarianceSyntax.Covariant_Strict);
+              hint = string.Format(" (perhaps try changing the declaration from '+{0}' to '*{0}')", tp.Name);
             }
-            reporter.Error(MessageSource.Resolver, t.tok, "formal type parameter '{0}' is not used according to its variance specification (it is used left of an arrow){1}", t.ResolvedParam.Name, hint);
+            reporter.Error(MessageSource.Resolver, t.tok, "formal type parameter '{0}' is not used according to its variance specification (it is used left of an arrow){1}", tp.Name, hint);
           }
         } else {
           var resolvedClass = t.ResolvedClass;
@@ -15889,13 +15861,8 @@ namespace Microsoft.Dafny
       } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
         var ri = (Resolver_IdentifierExpr)lhs;
         // ----- 3. Look up name in type
-        Type ty;
-        if (ri.TypeParamDecl != null) {
-          ty = new UserDefinedType(ri.TypeParamDecl);
-        } else {
-          // expand any synonyms
-          ty = new UserDefinedType(expr.tok, ri.Decl.Name, ri.Decl, ri.TypeArgs).NormalizeExpand();
-        }
+        // expand any synonyms
+        var ty = new UserDefinedType(expr.tok, ri.Decl.Name, ri.Decl, ri.TypeArgs).NormalizeExpand();
         if (ty.IsDatatype) {
           // ----- LHS is a datatype
           var dt = ty.AsDatatype;
@@ -15932,8 +15899,7 @@ namespace Microsoft.Dafny
           }
         }
         if (r == null) {
-          reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in {2} '{1}'", name, ri.TypeParamDecl != null ? ri.TypeParamDecl.Name : ri.Decl.Name,
-            ri.TypeParamDecl != null ? "type" : ri.Decl.WhatKind);
+          reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in {2} '{1}'", name, ri.Decl.Name, ri.Decl.WhatKind);
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
@@ -16034,17 +16000,12 @@ namespace Microsoft.Dafny
       } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
         var ri = (Resolver_IdentifierExpr)lhs;
         // ----- 2. Look up name in type
-        Type ty;
-        if (ri.TypeParamDecl != null) {
-          ty = new UserDefinedType(ri.TypeParamDecl);
-        } else {
-          ty = new UserDefinedType(ri.tok, ri.Decl.Name, ri.Decl, ri.TypeArgs);
-        }
+        var ty = new UserDefinedType(ri.tok, ri.Decl.Name, ri.Decl, ri.TypeArgs);
         if (allowDanglingDotName && ty.IsRefType) {
           return new ResolveTypeReturn(ty, expr);
         }
         if (r == null) {
-          reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in type '{1}' or cannot be part of type name", expr.SuffixName, ri.TypeParamDecl != null ? ri.TypeParamDecl.Name : ri.Decl.Name);
+          reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in type '{1}' or cannot be part of type name", expr.SuffixName, ri.Decl.Name);
         }
       }
 
@@ -16229,11 +16190,7 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, e.tok, "name of module ({0}) is used as a function", ((Resolver_IdentifierExpr)lhs).Decl.Name);
           } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
             var ri = (Resolver_IdentifierExpr)lhs;
-            if (ri.TypeParamDecl != null) {
-              reporter.Error(MessageSource.Resolver, e.tok, "name of type parameter ({0}) is used as a function", ri.TypeParamDecl.Name);
-            } else {
-              reporter.Error(MessageSource.Resolver, e.tok, "name of type ({0}) is used as a function", ri.Decl.Name);
-            }
+            reporter.Error(MessageSource.Resolver, e.tok, "name of {0} ({1}) is used as a function", ri.Decl.WhatKind, ri.Decl.Name);
           } else {
             if (lhs is MemberSelectExpr mse && mse.Member is Method) {
               if (atLabel != null) {
@@ -16734,7 +16691,7 @@ namespace Microsoft.Dafny
         // that work out in the opposite order. It also covers one more case for the (probably rare) case of there being more
         // than two bound variables.
         var bvarsMissyElliott = new List<VT>(bvars);  // make a copy
-        bvarsMissyElliott.Reverse();  // and then flip it and reverse it, Ti esrever dna ti pilf nwod gniht ym tup I
+        bvarsMissyElliott.Reverse();  // and then flip it and reverse it, Ti esrever dna ti pilf nwod gnaht ym tup I
         var boundsMissyElliott = DiscoverBestBounds_MultipleVars(bvarsMissyElliott, expr, polarity, requiredVirtues);
         // Figure out which one seems best
         var meBetter = 0;

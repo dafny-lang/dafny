@@ -371,22 +371,21 @@ namespace Microsoft.Dafny
         }
         UserDefinedType aa = (UserDefinedType)prev;
         UserDefinedType bb = (UserDefinedType)next;
-        if (aa.ResolvedClass != null && bb.ResolvedClass != null && aa.ResolvedClass == bb.ResolvedClass) {
+        if (aa.ResolvedClass is TypeParameter && bb.ResolvedClass is TypeParameter) {
+          // these are both resolved type parameters
+          var tpa = (TypeParameter)aa.ResolvedClass;
+          var tpb = (TypeParameter)bb.ResolvedClass;
+          Contract.Assert(aa.TypeArgs.Count == 0 && bb.TypeArgs.Count == 0);
+          // Note that this is only correct if the two types occur in the same context, ie. both from the same method
+          // or class field.
+          return tpa.PositionalIndex == tpb.PositionalIndex && tpa.IsToplevelScope == tpb.IsToplevelScope;
+        } else if (aa.ResolvedClass == bb.ResolvedClass) {
           // these are both resolved class/datatype types
           Contract.Assert(aa.TypeArgs.Count == bb.TypeArgs.Count);
           for (int i = 0; i < aa.TypeArgs.Count; i++)
             if (!ResolvedTypesAreTheSame(aa.TypeArgs[i], bb.TypeArgs[i]))
               return false;
           return true;
-        } else if (aa.ResolvedParam != null && bb.ResolvedParam != null) {
-          // these are both resolved type parameters
-          Contract.Assert(aa.TypeArgs.Count == 0 && bb.TypeArgs.Count == 0);
-          // Note that this is only correct if the two types occur in the same context, ie. both from the same method
-          // or class field.
-          return aa.ResolvedParam.PositionalIndex == bb.ResolvedParam.PositionalIndex &&
-                 aa.ResolvedParam.IsToplevelScope == bb.ResolvedParam.IsToplevelScope;
-        } else if (aa.ResolvedParam != null && aa.ResolvedParam.IsAbstractTypeDeclaration && bb.ResolvedClass != null) {
-          return (aa.ResolvedParam.Name == bb.ResolvedClass.Name);
         } else {
           // something is wrong; either aa or bb wasn't properly resolved, or they aren't the same
           return false;

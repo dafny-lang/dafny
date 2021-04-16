@@ -387,3 +387,29 @@ module NonEmpty {
     }  // error: x was never assigned
   }
 }
+
+module Regression {
+  class Class { }
+
+  // The resolver didn't always compute the smallest set of used type parameters. That made
+  // it pick "Large" as the grounding constructor instead of "Small".
+  datatype D<X, Y> = Small(X, X, X, X) | Large(X, Y)
+
+  // The following method detects if Large is picked as the grounding constructor. If it
+  // is (and it once was), then a definite-assignment error would be generated. However,
+  // if it properly picks Small as the ground constructor, then there is no error.
+  method M() returns (d: D<int, Class>) {
+  }
+
+  // Similarly, the following should pick "Little" as the ground constructor, because it
+  // does not make use of any type parameters.
+  type Opaque(0)
+  datatype E<Z> = Little(Opaque, Opaque, Opaque) | Big(Z)
+
+  // If Big is picked as the grounding constructor, then a definite-assignment error
+  // would be generated for the following method. This was once the case. But if the
+  // grounding constructor is picked to be Little (as it should be), then there is no
+  // error in method N.
+  method N() returns (e: E<Class>) {
+  }
+}

@@ -187,8 +187,8 @@ namespace Microsoft.Dafny {
 
     [Pure]
     bool VisibleInScope(Type t) {
-      if (t is UserDefinedType && ((UserDefinedType)t).ResolvedClass != null) {
-        return VisibleInScope(((UserDefinedType)t).ResolvedClass);
+      if (t is UserDefinedType udt && udt.ResolvedClass != null && !t.IsTypeParameter) {
+        return VisibleInScope(udt.ResolvedClass);
       }
       return true;
     }
@@ -1240,7 +1240,7 @@ namespace Microsoft.Dafny {
 
     void AddTypeDecl(OpaqueTypeDecl td) {
       Contract.Requires(td != null);
-      AddTypeDecl_Aux(td.tok, nameTypeParam(td.TheType), td.TypeArgs);
+      AddTypeDecl_Aux(td.tok, nameTypeParam(td), td.TypeArgs);
     }
 
 
@@ -6138,7 +6138,7 @@ namespace Microsoft.Dafny {
       {
         var args = new List<Bpl.Expr>();
         foreach (var p in GetTypeParams(f)) {
-          args.Add(trTypeParam(p, null));
+          args.Add(trTypeParamOrOpaqueType(p));
         }
         if (f.IsFuelAware()) {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
@@ -6177,7 +6177,7 @@ namespace Microsoft.Dafny {
         Bpl.FunctionCall funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
         List<Bpl.Expr> args = new List<Bpl.Expr>();
         foreach (var p in GetTypeParams(f)) {
-          args.Add(trTypeParam(p, null));
+          args.Add(trTypeParamOrOpaqueType(p));
         }
         if (f.IsFuelAware()) {
           args.Add(etran.layerInterCluster.GetFunctionFuel(f));
@@ -9791,6 +9791,9 @@ namespace Microsoft.Dafny {
       }
       if (includeInParams) {
         foreach (Formal p in m.Ins) {
+          if (!VisibleInScope(p.Type)) {
+            Contract.Assert(false);
+          }
           Contract.Assert(VisibleInScope(p.Type));
           Bpl.Type varType = TrType(p.Type);
           Bpl.Expr wh = GetExtendedWhereClause(p.tok,
@@ -10164,7 +10167,7 @@ namespace Microsoft.Dafny {
         // unresolved proxy
         return false;
       }
-      var res = t.IsTypeParameter || t.IsInternalTypeSynonym;
+      var res = t.IsTypeParameter || t.IsOpaqueType || t.IsInternalTypeSynonym;
       Contract.Assert(t.IsArrowType ? !res : true);
       return res;
     }
@@ -12842,7 +12845,7 @@ namespace Microsoft.Dafny {
       } else if (t is BigOrdinalType) {
         return u is BigOrdinalType;
       } else {
-        Contract.Assert(t.IsTypeParameter || t.IsInternalTypeSynonym);
+        Contract.Assert(t.IsTypeParameter || t.IsOpaqueType || t.IsInternalTypeSynonym);
         return false;  // don't consider any type parameters to be the same (since we have no comparison function for them anyway)
       }
     }
@@ -12978,7 +12981,7 @@ namespace Microsoft.Dafny {
         less = FunctionCall(tok, "ORD#Less", Bpl.Type.Bool, e0, e1);
         atmost = BplOr(eq, less);
 
-      } else if (ty0.IsTypeParameter) {
+      } else if (ty0.IsTypeParameter || ty0.IsOpaqueType) {
         eq = Bpl.Expr.Eq(e0, e1);
         less = Bpl.Expr.False;
         atmost = BplOr(less, eq);
@@ -13033,8 +13036,9 @@ namespace Microsoft.Dafny {
 
       var normType = type.NormalizeExpandKeepConstraints();
 
-      if (normType.IsTypeParameter) {
-        return trTypeParam(normType.AsTypeParameter, normType.TypeArgs);
+      if (normType.IsTypeParameter || normType.IsOpaqueType) {
+        var udt = (UserDefinedType)normType;
+        return trTypeParamOrOpaqueType(udt.ResolvedClass, udt.TypeArgs);
       } else if (normType is UserDefinedType) {
         // Classes, (co-)datatypes, newtypes, subset types, ...
         var args = normType.TypeArgs.ConvertAll(TypeToTy);
@@ -13065,32 +13069,41 @@ namespace Microsoft.Dafny {
       } else if (normType is BigOrdinalType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TORDINAL", predef.Ty);
       } else if (normType is ParamTypeProxy) {
-        return trTypeParam(((ParamTypeProxy)normType).orig, null);
+        return trTypeParamOrOpaqueType(((ParamTypeProxy)normType).orig);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
     }
 
-    static string nameTypeParam(TypeParameter x) {
-      Contract.Requires(x != null);
-      if (x.Parent != null) {
-        return x.Parent.FullName + "$" + x.Name;
+    static string nameTypeParam(TopLevelDecl x) {
+      Contract.Requires(x is TypeParameter || x is OpaqueTypeDecl);
+      if (x is TypeParameter tp && tp.Parent != null) {
+        return tp.Parent.FullName + "$" + x.Name;
       } else {
         // This happens for builtins, like arrays, that don't have a parent
         return "#$" + x.Name;
       }
     }
 
-    Bpl.Expr trTypeParam(TypeParameter x, List<Type> tyArguments) {
-      Contract.Requires(x != null);
-      var nm = nameTypeParam(x);
-      var opaqueType = x as OpaqueType_AsParameter;
-      if (tyArguments != null && tyArguments.Count != 0) {
-          List<Bpl.Expr> args = tyArguments.ConvertAll(TypeToTy);
-          return FunctionCall(x.tok, nm, predef.Ty, args);
-      } else {
+    Bpl.Expr trTypeParamOrOpaqueType(TopLevelDecl x, List<Type>/*?*/ tyArguments = null) {
+      Contract.Requires(x is TypeParameter || x is OpaqueTypeDecl);
+      Contract.Requires(!(x is TypeParameter) || tyArguments == null || tyArguments.Count == 0);
+      Contract.Requires(!(x is OpaqueTypeDecl) || tyArguments != null);
+      if (x is TypeParameter tp) {
+        Contract.Assert(tyArguments == null || tyArguments.Count == 0);
+        var nm = nameTypeParam(tp);
         // return an identifier denoting a constant
         return new Bpl.IdentifierExpr(x.tok, nm, predef.Ty);
+      } else {
+        var ot = (OpaqueTypeDecl)x;
+        var nm = nameTypeParam(ot);
+        if (tyArguments.Count != 0) {
+          List<Bpl.Expr> args = tyArguments.ConvertAll(TypeToTy);
+          return FunctionCall(x.tok, nm, predef.Ty, args);
+        } else {
+          // return an identifier denoting a constant
+          return new Bpl.IdentifierExpr(x.tok, nm, predef.Ty);
+        }
       }
     }
 
@@ -18016,11 +18029,14 @@ namespace Microsoft.Dafny {
     }
 
     static void ComputeFreeTypeVariables(Type ty, ISet<TypeParameter> fvs) {
-      // Add type parameters, unless they are abstract type declarations: they are in scope
-      if (ty.IsTypeParameter && ! ty.AsTypeParameter.IsAbstractTypeDeclaration) {
-        fvs.Add(ty.AsTypeParameter);
+      // Add type parameters
+      var tp = ty.AsTypeParameter;
+      if (tp != null) {
+        Contract.Assert(ty.TypeArgs.Count == 0);
+        fvs.Add(tp);
+      } else {
+        ty.NormalizeExpand().TypeArgs.Iter(tt => ComputeFreeTypeVariables(tt, fvs));
       }
-      ty.NormalizeExpand().TypeArgs.Iter(tt => ComputeFreeTypeVariables(tt, fvs));
     }
 
     static void ComputeFreeTypeVariables_All(Type ty, ISet<TypeParameter> fvs) {
