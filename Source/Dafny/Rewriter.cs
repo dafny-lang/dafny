@@ -1511,9 +1511,17 @@ namespace Microsoft.Dafny
                       var arg = attr.Args[0] as LiteralExpr;
                       System.Numerics.BigInteger value = (System.Numerics.BigInteger)arg.Value;
                       if (value.Sign > 0) {
-                        int current_limit = DafnyOptions.O.TimeLimit > 0 ? DafnyOptions.O.TimeLimit : 10;  // Default to 10 seconds
-                        attr.Args[0] = new LiteralExpr(attr.Args[0].tok, value * current_limit);
-                        attr.Name = "timeLimit";
+                        if (DafnyOptions.O.ResourceLimit > 0) {
+                          // Interpret this as multiplying the resource limit
+                          int current_limit = DafnyOptions.O.ResourceLimit;
+                          attr.Args[0] = new LiteralExpr(attr.Args[0].tok, value * current_limit);
+                          attr.Name = "rlimit";
+                        } else {
+                          // Interpret this as multiplying the time limit
+                          int current_limit = DafnyOptions.O.TimeLimit > 0 ? DafnyOptions.O.TimeLimit : 10;  // Default to 10 seconds
+                          attr.Args[0] = new LiteralExpr(attr.Args[0].tok, value * current_limit);
+                          attr.Name = "timeLimit";
+                        }
                       }
                     }
                   }
