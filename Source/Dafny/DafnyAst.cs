@@ -8895,6 +8895,62 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Create a resolved expression of the form "e0 - e1".
+    /// Optimization: If either "e0" or "e1" is the literal denoting the empty set, then just return "e0".
+    /// </summary>
+    public static Expression CreateSetDifference(Expression e0, Expression e1) {
+      Contract.Requires(e0 != null);
+      Contract.Requires(e0.Type != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires(e1.Type != null);
+      Contract.Requires(e0.Type.AsSetType != null && e1.Type.AsSetType != null);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      if (LiteralExpr.IsEmptySet(e0) || LiteralExpr.IsEmptySet(e1)) {
+        return e0;
+      }
+      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1) {
+        ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference,
+        Type = e0.Type
+      };
+      return s;
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "e0 - e1".
+    /// Optimization: If either "e0" or "e1" is the literal denoting the empty multiset, then just return "e0".
+    /// </summary>
+    public static Expression CreateMultisetDifference(Expression e0, Expression e1) {
+      Contract.Requires(e0 != null);
+      Contract.Requires(e0.Type != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires(e1.Type != null);
+      Contract.Requires(e0.Type.AsMultiSetType != null && e1.Type.AsMultiSetType != null);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      if (LiteralExpr.IsEmptyMultiset(e0) || LiteralExpr.IsEmptyMultiset(e1)) {
+        return e0;
+      }
+      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1) {
+        ResolvedOp = BinaryExpr.ResolvedOpcode.MultiSetDifference,
+        Type = e0.Type
+      };
+      return s;
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "|e|"
+    /// </summary>
+    public static Expression CreateCardinality(Expression e, BuiltIns builtIns) {
+      Contract.Requires(e != null);
+      Contract.Requires(e.Type != null);
+      Contract.Requires(e.Type.AsSetType != null || e.Type.AsMultiSetType != null || e.Type.AsSeqType != null);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      var s = new UnaryOpExpr(e.tok, UnaryOpExpr.Opcode.Cardinality, e) {
+        Type = builtIns.Nat()
+      };
+      return s;
+    }
+
+    /// <summary>
     /// Create a resolved expression of the form "e + n"
     /// </summary>
     public static Expression CreateIncrement(Expression e, int n) {
