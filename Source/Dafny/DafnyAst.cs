@@ -7938,7 +7938,7 @@ namespace Microsoft.Dafny {
   {
     public readonly List<AttributedExpression> Invariants;
     public readonly Specification<Expression> Decreases;
-    public bool InferredDecreases;  // filled in by resolution
+    public bool InferredDecreases;  // filled in by resolution; says that no explicit "decreases" clause was given and an attempt was made to find one automatically (which may or may not have produced anything)
     public readonly Specification<FrameExpression> Mod;
     [ContractInvariantMethod]
     void ObjectInvariant() {
