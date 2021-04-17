@@ -9435,6 +9435,16 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static bool IsEmptySet(Expression e) {
+      Contract.Requires(e != null);
+      return StripParens(e) is SetDisplayExpr display && display.Elements.Count == 0;
+    }
+
+    public static bool IsEmptyMultiset(Expression e) {
+      Contract.Requires(e != null);
+      return StripParens(e) is MultiSetDisplayExpr display && display.Elements.Count == 0;
+    }
+
     public LiteralExpr(IToken tok)
       : base(tok) {  // represents the Dafny literal "null"
       Contract.Requires(tok != null);
