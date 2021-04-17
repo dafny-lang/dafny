@@ -602,3 +602,240 @@ method GoodLoop<Y>(x: int, y: Y, z0: ZOT, z1: SubZOT, f: int -> int, forever: Fo
     i := i + 1;
   }
 }
+
+// ------------------ sets -----------------------
+
+method Sets0(S: set) {
+  var s := S;
+  while s != {} {
+    var x :| x in s;
+    s := s - {x};
+  }
+}
+
+method Sets1(S: set) {
+  var s := S;
+  while {} != s {
+    var x :| x in s;
+    s := s - {x};
+  }
+}
+
+method Sets2(S: set) {
+  var s := S;
+  while {} < s {
+    var x :| x in s;
+    s := s - {x};
+  }
+}
+
+method Sets3(S: set) {
+  var s := S;
+  while s > {} {
+    var x :| x in s;
+    s := s - {x};
+  }
+}
+
+method SetsST0<Y>(S: set, y: Y) {
+  var s := S;
+  var t := {y};
+  while t < s {
+    var x :| x in s && x != y;
+    s := s - {x};
+  }
+}
+
+method SetsST1<Y>(S: set, y: Y) {
+  var s := S;
+  var t := {y};
+  while t <= s {
+    var x :| x in s && (x != y || s == t);
+    s := s - {x};
+    if s == {} { break; }
+  }
+}
+
+method SetsST2<Y>(S: set, y: Y) {
+  var s := S;
+  var t := {y};
+  while s != t && s != {} {
+    var x :| x in s;
+    if x == y { break; }
+    s := s - {x};
+  }
+}
+
+method SetsST3<Y>(S: set, y: Y)
+  requires y in S
+{
+  var s := S;
+  var t := {y};
+  while s != t // error: cannot prove termination
+    invariant t <= s
+  {
+    var x :| x in s;
+    s := s - {x};
+  }
+}
+
+method SetsST4<Y>(S: set, y: Y)
+  requires y in S
+{
+  var s := S;
+  var t := {y};
+  while s != t
+    invariant t <= s
+  {
+    var x :| x in s && x != y;
+    s := s - {x};
+  }
+}
+
+method SetsST5<Y>(S: set, y: Y, P: set)
+  requires y in S && P != {} && S !! P
+{
+  var s := S;
+  var t := {y};
+  while s != t
+    invariant s * P <= t <= s && y in t
+  {
+    var z :| z in P;
+    assert s - t == (s + {z}) - (t + {z});
+    s, t := s + {z}, t + {z};
+
+    var x :| x in s && x !in t;
+    s := s - {x};
+  }
+}
+
+method ISets0(S: iset) {
+  var s := S;
+  while s != iset{} { // error: cannot prove termination
+    var x :| x in s;
+    s := s - iset{x};
+  }
+}
+
+method ISets1(S: iset) {
+  var s := S;
+  while s > iset{} { // error: cannot prove termination
+    var x :| x in s;
+    s := s - iset{x};
+  }
+}
+
+method ISets2(S: iset) {
+  var s := S;
+  while s != iset{} // error: cannot prove termination
+    decreases s // the well-founded relation for an iset is "false"
+  {
+    var x :| x in s;
+    s := s - iset{x};
+  }
+}
+
+// ------------------ multisets -----------------------
+
+method Multisets0(S: multiset) {
+  var s := S;
+  while s != multiset{} {
+    var x :| x in s;
+    s := s - multiset{x};
+  }
+}
+
+method Multisets1(S: multiset) {
+  var s := S;
+  while multiset{} != s {
+    var x :| x in s;
+    s := s - multiset{x};
+  }
+}
+
+method Multisets2(S: multiset) {
+  var s := S;
+  while multiset{} < s {
+    var x :| x in s;
+    s := s - multiset{x};
+  }
+}
+
+method Multisets3(S: multiset) {
+  var s := S;
+  while s > multiset{} {
+    var x :| x in s;
+    s := s - multiset{x};
+  }
+}
+
+method MultisetsST0<Y>(S: multiset, y: Y) {
+  var s := S;
+  var t := multiset{y};
+  while t < s {
+    var x :| x in s && (x != y || 2 <= s[y]); // don't pick the last y
+    s := s - multiset{x};
+  }
+}
+
+method MultisetsST1<Y>(S: multiset, y: Y) {
+  var s := S;
+  var t := multiset{y};
+  while t <= s {
+    var x :| x in s && (x != y || 2 <= s[y] || s == t);
+    s := s - multiset{x};
+    if s == multiset{} { break; }
+  }
+}
+
+method MultisetsST2<Y>(S: multiset, y: Y) {
+  var s := S;
+  var t := multiset{y};
+  while s != t && s != multiset{} {
+    var x :| x in s;
+    if x == y { break; }
+    s := s - multiset{x};
+  }
+}
+
+method MultisetsST3<Y>(S: multiset, y: Y)
+  requires y in S
+{
+  var s := S;
+  var t := multiset{y};
+  while s != t // error: cannot prove termination
+    invariant t <= s
+  {
+    var x :| x in s;
+    s := s - multiset{x};
+  }
+}
+
+method MultisetsST4<Y>(S: multiset, y: Y)
+  requires S[y] == 1
+{
+  var s := S;
+  var t := multiset{y};
+  while s != t
+    invariant t <= s && s[y] <= 1
+  {
+    var x :| x in s && x != y;
+    s := s - multiset{x};
+  }
+}
+
+method MultisetsST5<Y>(S: multiset, y: Y, P: multiset)
+  requires S[y] == 1 && P != multiset{} && S !! P
+{
+  var s := S;
+  var t := multiset{y};
+  while s != t
+    invariant s * P <= t <= s && s[y] <= t[y]
+  {
+    var z :| z in P;
+    s, t := s + multiset{z}, t + multiset{z};
+
+    var x :| x in s && t[x] < s[x];
+    s := s - multiset{x};
+  }
+}

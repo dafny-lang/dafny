@@ -108,5 +108,47 @@ Execution trace:
     (0,0): anon6_LoopBody
     Termination.dfy(589,3): anon7_Else
     Termination.dfy(589,3): anon8_Else
+Termination.dfy(674,2): Error: cannot prove termination; try supplying a decreases clause for the loop
+Execution trace:
+    (0,0): anon0
+    Termination.dfy(674,3): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    Termination.dfy(674,3): anon9_Else
+    Termination.dfy(674,3): anon10_Else
+    (0,0): anon11_Then
+    (0,0): anon7
+Termination.dfy(714,2): Error: cannot prove termination; try supplying a decreases clause for the loop
+Execution trace:
+    Termination.dfy(714,3): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    Termination.dfy(714,3): anon9_Else
+    Termination.dfy(714,3): anon10_Else
+    (0,0): anon11_Then
+    (0,0): anon7
+Termination.dfy(722,2): Error: cannot prove termination; try supplying a decreases clause for the loop
+Execution trace:
+    Termination.dfy(722,3): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    Termination.dfy(722,3): anon9_Else
+    Termination.dfy(722,3): anon10_Else
+    (0,0): anon11_Then
+    (0,0): anon7
+Termination.dfy(730,2): Error: decreases expression might not decrease
+Execution trace:
+    Termination.dfy(730,3): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    Termination.dfy(730,3): anon9_Else
+    Termination.dfy(730,3): anon10_Else
+    (0,0): anon11_Then
+    (0,0): anon7
+Termination.dfy(806,2): Error: cannot prove termination; try supplying a decreases clause for the loop
+Execution trace:
+    (0,0): anon0
+    Termination.dfy(806,3): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    Termination.dfy(806,3): anon9_Else
+    Termination.dfy(806,3): anon10_Else
+    (0,0): anon11_Then
+    (0,0): anon7
 
-Dafny program verifier finished with 44 verified, 17 errors
+Dafny program verifier finished with 62 verified, 22 errors

@@ -12196,6 +12196,30 @@ namespace Microsoft.Dafny
                 // for A >= B and A > B, use the decreases A - B
                 guess = Expression.CreateSubtract_TypeConvert(bin.E0, bin.E1);
                 break;
+              case BinaryExpr.ResolvedOpcode.ProperSubset:
+              case BinaryExpr.ResolvedOpcode.Subset:
+                if (bin.E0.Type.AsSetType.Finite) {
+                  // for A < B and A <= B, use the decreases |B - A|
+                  guess = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E1, bin.E0), builtIns);
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.Superset:
+              case BinaryExpr.ResolvedOpcode.ProperSuperset:
+                if (bin.E0.Type.AsSetType.Finite) {
+                  // for A >= B and A > B, use the decreases |A - B|
+                  guess = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E0, bin.E1), builtIns);
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
+              case BinaryExpr.ResolvedOpcode.MultiSubset:
+                // for A < B and A <= B, use the decreases |B - A|
+                guess = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E1, bin.E0), builtIns);
+                break;
+              case BinaryExpr.ResolvedOpcode.MultiSuperset:
+              case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
+                // for A >= B and A > B, use the decreases |A - B|
+                guess = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E0, bin.E1), builtIns);
+                break;
               case BinaryExpr.ResolvedOpcode.NeqCommon:
                 if (bin.E0.Type.IsNumericBased()) {
                   // for A != B where A and B are numeric, use the absolute difference between A and B (that is: if A <= B then B-A else A-B)
@@ -12203,6 +12227,32 @@ namespace Microsoft.Dafny
                   var BminusA = Expression.CreateSubtract_TypeConvert(bin.E1, bin.E0);
                   var test = Expression.CreateAtMost(bin.E0, bin.E1);
                   guess = Expression.CreateITE(test, BminusA, AminusB);
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.SetNeq:
+                if (bin.E0.Type.AsSetType.Finite) {
+                  // use |A - B| + |B - A|, but specialize it for the case where A or B is the empty set
+                  if (LiteralExpr.IsEmptySet(bin.E0)) {
+                    guess = bin.E1;
+                  } else if (LiteralExpr.IsEmptySet(bin.E1)) {
+                    guess = bin.E0;
+                  } else {
+                    var x = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E0, bin.E1), builtIns);
+                    var y = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E1, bin.E0), builtIns);
+                    guess = Expression.CreateAdd(x, y);
+                  }
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.MultiSetNeq:
+                // use |A - B| + |B - A|, but specialize it for the case where A or B is the empty multiset
+                if (LiteralExpr.IsEmptyMultiset(bin.E0)) {
+                  guess = bin.E1;
+                } else if (LiteralExpr.IsEmptyMultiset(bin.E1)) {
+                  guess = bin.E0;
+                } else {
+                  var x = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E0, bin.E1), builtIns);
+                  var y = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E1, bin.E0), builtIns);
+                  guess = Expression.CreateAdd(x, y);
                 }
                 break;
               default:
