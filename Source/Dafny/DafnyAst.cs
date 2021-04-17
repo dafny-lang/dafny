@@ -8898,10 +8898,20 @@ namespace Microsoft.Dafny {
       Contract.Requires(e1 != null);
       Contract.Requires(
         (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)) ||
+        (e0.Type.IsBitVectorType && e1.Type.IsBitVectorType) ||
+        (e0.Type.IsCharType && e1.Type.IsCharType));
       Contract.Ensures(Contract.Result<Expression>() != null);
 
-      Type toType = e0.Type.IsNumericBased(Type.NumericPersuasion.Int) ? (Type)Type.Int : Type.Real;
+      Type toType;
+      if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
+        toType = Type.Int;
+      } else if (e0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+        toType = Type.Real;
+      } else {
+        Contract.Assert(e0.Type.IsBitVectorType || e0.Type.IsCharType);
+        toType = Type.Int; // convert char and bitvectors to int
+      }
       e0 = CastIfNeeded(e0, toType);
       e1 = CastIfNeeded(e1, toType);
       return CreateSubtract(e0, e1);
@@ -9177,34 +9187,42 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Create a resolved expression of the form "e0 LESS e1"
+    /// Works for integers, reals, bitvectors, chars, and ORDINALs.
     /// </summary>
     public static Expression CreateLess(Expression e0, Expression e1) {
-      Contract.Requires(e0 != null);
-      Contract.Requires(e1 != null);
+      Contract.Requires(e0 != null && e0.Type != null);
+      Contract.Requires(e1 != null && e1.Type != null);
       Contract.Requires(
         (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)) ||
+        (e0.Type.IsBitVectorType && e1.Type.IsBitVectorType) ||
+        (e0.Type.IsCharType && e1.Type.IsCharType) ||
         (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1);
-      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Lt;  // resolve here
-      s.Type = Type.Bool;  // resolve here
-      return s;
+      return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1) {
+        ResolvedOp = e0.Type.IsCharType ? BinaryExpr.ResolvedOpcode.LtChar : BinaryExpr.ResolvedOpcode.Lt,
+        Type = Type.Bool
+      };
     }
 
     /// <summary>
-    /// Create a resolved expression of the form "e0 ATMOST e1"
+    /// Create a resolved expression of the form "e0 ATMOST e1".
+    /// Works for integers, reals, bitvectors, chars, and ORDINALs.
     /// </summary>
     public static Expression CreateAtMost(Expression e0, Expression e1) {
-      Contract.Requires(e0 != null);
-      Contract.Requires(e1 != null);
+      Contract.Requires(e0 != null && e0.Type != null);
+      Contract.Requires(e1 != null && e1.Type != null);
       Contract.Requires(
         (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)) ||
+        (e0.Type.IsBitVectorType && e1.Type.IsBitVectorType) ||
+        (e0.Type.IsCharType && e1.Type.IsCharType) ||
+        (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1);
-      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;  // resolve here
-      s.Type = Type.Bool;  // resolve here
-      return s;
+      return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1) {
+        ResolvedOp = e0.Type.IsCharType ? BinaryExpr.ResolvedOpcode.LeChar : BinaryExpr.ResolvedOpcode.Le,
+        Type = Type.Bool
+      };
     }
 
     public static Expression CreateEq(Expression e0, Expression e1, Type ty) {

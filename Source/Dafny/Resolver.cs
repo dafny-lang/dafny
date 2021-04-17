@@ -12189,13 +12189,27 @@ namespace Microsoft.Dafny
             switch (bin.ResolvedOp) {
               case BinaryExpr.ResolvedOpcode.Lt:
               case BinaryExpr.ResolvedOpcode.Le:
-                // for A < B and A <= B, use the decreases B - A
-                guess = Expression.CreateSubtract_TypeConvert(bin.E1, bin.E0);
+              case BinaryExpr.ResolvedOpcode.LtChar:
+              case BinaryExpr.ResolvedOpcode.LeChar:
+                if (bin.E0.Type.IsBigOrdinalType) {
+                  // we can't rely on subtracting ORDINALs, so let's just pick the upper bound and hope that works
+                  guess = bin.E1;
+                } else {
+                  // for A < B and A <= B, use the decreases B - A
+                  guess = Expression.CreateSubtract_TypeConvert(bin.E1, bin.E0);
+                }
                 break;
               case BinaryExpr.ResolvedOpcode.Ge:
               case BinaryExpr.ResolvedOpcode.Gt:
-                // for A >= B and A > B, use the decreases A - B
-                guess = Expression.CreateSubtract_TypeConvert(bin.E0, bin.E1);
+              case BinaryExpr.ResolvedOpcode.GeChar:
+              case BinaryExpr.ResolvedOpcode.GtChar:
+                if (bin.E0.Type.IsBigOrdinalType) {
+                  // we can't rely on subtracting ORDINALs, so let's just pick the upper bound and hope that works
+                  guess = bin.E0;
+                } else {
+                  // for A >= B and A > B, use the decreases A - B
+                  guess = Expression.CreateSubtract_TypeConvert(bin.E0, bin.E1);
+                }
                 break;
               case BinaryExpr.ResolvedOpcode.ProperSubset:
               case BinaryExpr.ResolvedOpcode.Subset:
@@ -12229,12 +12243,19 @@ namespace Microsoft.Dafny
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.NeqCommon:
-                if (bin.E0.Type.IsNumericBased()) {
+                if (bin.E0.Type.IsNumericBased() || bin.E0.Type.IsBitVectorType || bin.E0.Type.IsCharType) {
                   // for A != B where A and B are numeric, use the absolute difference between A and B (that is: if A <= B then B-A else A-B)
                   var AminusB = Expression.CreateSubtract_TypeConvert(bin.E0, bin.E1);
                   var BminusA = Expression.CreateSubtract_TypeConvert(bin.E1, bin.E0);
                   var test = Expression.CreateAtMost(bin.E0, bin.E1);
                   guess = Expression.CreateITE(test, BminusA, AminusB);
+                } else if (bin.E0.Type.IsBigOrdinalType) {
+                  // if either of the operands is a literal, pick the other; otherwise, don't make any guess
+                  if (Expression.StripParens(bin.E0) is LiteralExpr) {
+                    guess = bin.E1;
+                  } else if (Expression.StripParens(bin.E1) is LiteralExpr) {
+                    guess = bin.E0;
+                  }
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.SetNeq:
@@ -12287,7 +12308,7 @@ namespace Microsoft.Dafny
                 Type = bin.E0.Type.NormalizeExpand()
               };
             } else if (bin.E0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-              neutralValue = Expression.CreateRealLiteral(prefix.tok, BaseTypes.BigDec.FromInt(-1));
+              neutralValue = Expression.CreateRealLiteral(bin.tok, BaseTypes.BigDec.FromInt(-1));
             }
           }
           if (guess != null) {

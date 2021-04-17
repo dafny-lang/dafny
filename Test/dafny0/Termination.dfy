@@ -1062,3 +1062,124 @@ method NegationNormalForm4(S: set, Q: seq, A: nat) {
       a := a + 1;
   }
 }
+
+// -------- some other types -----------
+
+method Bitvectors0(A: bv3, B: bv3) {
+  var a, b := A, B;
+  while a < b {
+    if * {
+      b := b - 1;
+    } else {
+      a := a + 1;
+    }
+  }
+}
+
+method Bitvectors1(A: bv3, B: bv3)
+  requires A <= B
+{
+  var a, b := A, B;
+  while a != b
+    invariant a <= b
+  {
+    if * {
+      b := b - 1;
+    } else {
+      a := a + 1;
+    }
+  }
+}
+
+method Chars0(A: char, B: char) {
+  var a, b := A, B;
+  while a < b {
+    if * {
+      b := b - 1 as char;
+    } else {
+      a := a + 1 as char;
+    }
+  }
+}
+
+method Chars1(A: char, B: char)
+  requires A <= B
+{
+  var a, b := A, B;
+  while a != b
+    invariant a <= b
+  {
+    if * {
+      b := b - 1 as char;
+    } else {
+      a := a + 1 as char;
+    }
+  }
+}
+
+method BigOrdinals0(B: ORDINAL)
+{
+  var b := B;
+  while 0 < b
+  {
+    if b.IsLimit {
+      var c :| c < b;
+      b := c;
+    } else {
+      b := b - 1;
+    }
+  }
+}
+
+method BigOrdinals1(B: ORDINAL)
+{
+  var b := B;
+  while b != 0
+  {
+    assert 0 < b;
+    if b.IsLimit {
+      var c :| c < b;
+      b := c;
+    } else {
+      b := b - 1;
+    }
+  }
+}
+
+method BigOrdinals2(B: ORDINAL)
+{
+  var b, zero := B, 0;
+  while b != zero // error: cannot prove termination (there's no auto-decreases guess)
+  {
+    assert 0 < b;
+    if b.IsLimit {
+      var c :| c < b;
+      b := c;
+    } else {
+      b := b - 1;
+    }
+  }
+}
+
+method BigOrdinals3(A: ORDINAL, B: ORDINAL)
+  requires A <= B
+{
+  var a, b := A, B;
+  while a < b // error: this loop may go forever
+  {
+    a := a + 1;
+  }
+}
+
+method BigOrdinals4(A: ORDINAL, B: ORDINAL) {
+  var a, b := A, B;
+  while a < b
+  {
+    if b.IsLimit {
+      var c :| c < b;
+      b := c;
+    } else {
+      b := b - 1;
+    }
+  }
+}

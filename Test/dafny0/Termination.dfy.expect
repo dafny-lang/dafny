@@ -141,5 +141,21 @@ Execution trace:
     Termination.dfy(806,3): anon10_Else
     (0,0): anon11_Then
     (0,0): anon7
+Termination.dfy(1152,2): Error: cannot prove termination; try supplying a decreases clause for the loop
+Execution trace:
+    Termination.dfy(1152,3): anon11_LoopHead
+    (0,0): anon11_LoopBody
+    Termination.dfy(1152,3): anon12_Else
+    Termination.dfy(1152,3): anon13_Else
+    (0,0): anon14_Then
+    (0,0): anon15_Then
+    (0,0): anon10
+Termination.dfy(1168,2): Error: cannot prove termination; try supplying a decreases clause for the loop
+Execution trace:
+    (0,0): anon0
+    Termination.dfy(1168,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Termination.dfy(1168,3): anon7_Else
+    Termination.dfy(1168,3): anon8_Else
 
-Dafny program verifier finished with 88 verified, 21 errors
+Dafny program verifier finished with 95 verified, 23 errors
