@@ -110,10 +110,10 @@ method FailureToProveTermination0(N: int)
   }
 }
 
-method FailureToProveTermination1(x: int, y: int, N: int)
-{
+method ImprovedHeuristicsMakeThisVerify(x: int, y: int, N: int)
+{ // when auto-decreases used only one expression, this failed to prove termination, but now it works!
   var n := N;
-  while x < y && n < 100  // error: cannot prove termination from the heuristically chosen termination metric
+  while x < y && n < 100
   {
     n := n + 1;
   }
@@ -955,5 +955,55 @@ method MultipleGuardConjuncts6(S: seq) {
   while b && s != [] {
     assert s[..0] == [];
     s, b := s[1..], true;
+  }
+}
+
+method LexicographicTuples0(A: int) {
+  var a, b := A, *;
+  while 0 < a && 0 < b {
+    if 0 < b {
+      b := b - 1;
+    } else {
+      a, b := a - 1, *;
+    }
+  }
+}
+
+method LexicographicTuples1(A: int) {
+  var a, b := A, *;
+  while 0 < a && 10 / a < b {
+    if 0 < b {
+      b := b - 1;
+    } else {
+      a, b := a - 1, *;
+    }
+  }
+}
+
+method LexicographicTuples2(A: int) {
+  var a, b, c := A, *, *;
+  while 0 < a && 0 < b && 0 < c {
+    if 0 < c {
+      c := c - 1;
+    } else if 0 < b {
+      b := b - 1;
+    } else {
+      a, b := a - 1, *;
+    }
+  }
+}
+
+method LexicographicTuples3(A: int) {
+  var a, b, c := A, *, *;
+  var u, v, w, x, y, z, omega;
+  while u && v && 0 < a && w && x && 0 < b && y && z && 0 < c && omega {
+    if 0 < c {
+      c := c - 1;
+    } else if 0 < b {
+      b := b - 1;
+    } else {
+      a, b := a - 1, *;
+    }
+    u, v, w, x, y, z, omega := *, *, *, *, *, *, *;
   }
 }

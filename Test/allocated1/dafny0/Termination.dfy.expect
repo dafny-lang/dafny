@@ -8,15 +8,6 @@ Execution trace:
     (0,0): anon6_LoopBody
     Termination.dfy(108,3): anon7_Else
     Termination.dfy(108,3): anon8_Else
-Termination.dfy(116,2): Error: cannot prove termination; try supplying a decreases clause for the loop
-Execution trace:
-    (0,0): anon0
-    Termination.dfy(116,3): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    Termination.dfy(116,3): anon9_Else
-    (0,0): anon10_Then
-    (0,0): anon5
-    Termination.dfy(116,3): anon11_Else
 Termination.dfy(125,2): Error: decreases expression might not decrease
 Execution trace:
     (0,0): anon0
@@ -151,4 +142,4 @@ Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
 
-Dafny program verifier finished with 78 verified, 22 errors
+Dafny program verifier finished with 83 verified, 21 errors
