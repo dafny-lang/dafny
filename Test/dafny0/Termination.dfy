@@ -899,3 +899,61 @@ method Negation1(S: set) {
     s := s - {x};
   }
 }
+
+// ------------------ multiple conjuncts in the guard -----------------------
+
+method MultipleGuardConjuncts0(N: nat) {
+  var s, b := N, *;
+  while b && s != 0 {
+    s, b := s - 1, *;
+  }
+}
+
+newtype QuitePositive = x | 23 <= x witness 29
+
+method MultipleGuardConjuncts1(N: QuitePositive) {
+  var s, b := N, *;
+  while b && s != 23 { // decreases if b then AbsDiff(s as int, 23 as int) else -1
+    s, b := (s as int - 1) as QuitePositive, *;
+  }
+}
+
+method MultipleGuardConjuncts2(S: real) {
+  var s, b := 0.0, *;
+  while b && s < S {
+    s := s + 1.0;
+  }
+}
+
+newtype SoReal = r | 10.0 <= r witness 12.2
+
+method MultipleGuardConjuncts3(S: SoReal) {
+  var s, b := 13.0, *;
+  while b && s < S { // decreases if b then S as real - s as real else -1.0
+    s := s + s;
+  }
+}
+
+method MultipleGuardConjuncts4(S: set) {
+  var s, b := S, *;
+  while b && s != {} {
+    var x :| x in s;
+    s, b := s - {x}, *;
+  }
+}
+
+method MultipleGuardConjuncts5(S: multiset) {
+  var s, b := S, *;
+  while b && s != multiset{} {
+    var x :| x in s;
+    s, b := s - multiset{x}, *;
+  }
+}
+
+method MultipleGuardConjuncts6(S: seq) {
+  var s, b := S, *;
+  while b && s != [] {
+    assert s[..0] == [];
+    s, b := s[1..], true;
+  }
+}

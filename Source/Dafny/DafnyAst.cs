@@ -8932,7 +8932,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
-      s.Type = e0.Type.NormalizeExpand();  // resolve here
+      s.Type = e0.Type.NormalizeExpand();  // resolve here (and it's important to remove any constraints)
       return s;
     }
 
@@ -8952,7 +8952,7 @@ namespace Microsoft.Dafny {
       }
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1) {
         ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference,
-        Type = e0.Type
+        Type = e0.Type.NormalizeExpand() // important to remove any constraints
       };
       return s;
     }
@@ -8973,7 +8973,7 @@ namespace Microsoft.Dafny {
       }
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1) {
         ResolvedOp = BinaryExpr.ResolvedOpcode.MultiSetDifference,
-        Type = e0.Type
+        Type = e0.Type.NormalizeExpand() // important to remove any constraints
       };
       return s;
     }
