@@ -1007,3 +1007,58 @@ method LexicographicTuples3(A: int) {
     u, v, w, x, y, z, omega := *, *, *, *, *, *, *;
   }
 }
+
+method NegationNormalForm0(A: nat) {
+  var a: nat, b: nat := A, *;
+  while !(a == 0 || b == 0) {
+    if 0 < b {
+      b := b - 1;
+    } else {
+      a, b := a - 1, *;
+    }
+  }
+}
+
+method NegationNormalForm1(S: set) {
+  var s := S;
+  while !(s == {}) {
+    var x :| x in s;
+    s := s - {x};
+  }
+}
+
+method NegationNormalForm2(S: multiset) {
+  var s := S;
+  while !(|s| == 0) {
+    var x :| x in s;
+    s := s - multiset{x};
+  }
+}
+
+method NegationNormalForm3(S: set, Q: seq, A: nat) {
+  var s, q, b, a := S, Q, *, A;
+  while !({} < s ==> q != []) && b && !!(a < 1000)  {
+    b := *;
+    if
+    case x :| x in s =>
+      s := s - {x};
+    case |q| > 0 =>
+      q := q[1..];
+    case a < 123_456 =>
+      a := a + 1;
+  }
+}
+
+method NegationNormalForm4(S: set, Q: seq, A: nat) {
+  var s, q, b, a := S, Q, *, A;
+  while !({} < s ==> !(q != [])) && b && !!(a < 1000)  {
+    b := *;
+    if
+    case x :| x in s =>
+      s := s - {x};
+    case |q| > 0 =>
+      q := q[1..];
+    case a < 123_456 =>
+      a := a + 1;
+  }
+}

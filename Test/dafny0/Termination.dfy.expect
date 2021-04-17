@@ -142,4 +142,4 @@ Execution trace:
     (0,0): anon11_Then
     (0,0): anon7
 
-Dafny program verifier finished with 83 verified, 21 errors
+Dafny program verifier finished with 88 verified, 21 errors
