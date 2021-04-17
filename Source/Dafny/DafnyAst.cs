@@ -8801,17 +8801,59 @@ namespace Microsoft.Dafny {
       Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
 
       expr = StripParens(expr);
-
-      var bin = expr as BinaryExpr;
-      if (bin != null && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
-        foreach (Expression e in Conjuncts(bin.E0)) {
-          yield return e;
-        }
-        foreach (Expression e in Conjuncts(bin.E1)) {
-          yield return e;
+      if (expr is UnaryOpExpr unary && unary.Op == UnaryOpExpr.Opcode.Not) {
+        foreach (Expression e in Disjuncts(unary.E)) {
+          yield return Expression.CreateNot(e.tok, e);
         }
         yield break;
+
+      } else if (expr is BinaryExpr bin) {
+        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
+          foreach (Expression e in Conjuncts(bin.E0)) {
+            yield return e;
+          }
+          foreach (Expression e in Conjuncts(bin.E1)) {
+            yield return e;
+          }
+          yield break;
+        }
       }
+
+      yield return expr;
+    }
+
+    public static IEnumerable<Expression> Disjuncts(Expression expr) {
+      Contract.Requires(expr != null);
+      Contract.Requires(expr.Type.IsBoolType);
+      Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
+
+      expr = StripParens(expr);
+      if (expr is UnaryOpExpr unary && unary.Op == UnaryOpExpr.Opcode.Not) {
+        foreach (Expression e in Conjuncts(unary.E)) {
+          yield return Expression.CreateNot(e.tok, e);
+        }
+        yield break;
+
+      } else if (expr is BinaryExpr bin) {
+        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
+          foreach (Expression e in Conjuncts(bin.E0)) {
+            yield return e;
+          }
+          foreach (Expression e in Conjuncts(bin.E1)) {
+            yield return e;
+          }
+          yield break;
+        } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
+          foreach (Expression e in Conjuncts(bin.E0)) {
+            yield return Expression.CreateNot(e.tok, e);
+          }
+          foreach (Expression e in Conjuncts(bin.E1)) {
+            yield return e;
+          }
+          yield break;
+        }
+      }
+
       yield return expr;
     }
 
@@ -9077,10 +9119,60 @@ namespace Microsoft.Dafny {
 
     public static Expression CreateNot(IToken tok, Expression e) {
       Contract.Requires(tok != null);
-      Contract.Requires(e.Type.IsBoolType);
-      var un = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Not, e);
-      un.Type = Type.Bool;  // resolve here
-      return un;
+      Contract.Requires(e != null && e.Type != null && e.Type.IsBoolType);
+
+      e = StripParens(e);
+      if (e is UnaryOpExpr unary && unary.Op == UnaryOpExpr.Opcode.Not) {
+        return unary.E;
+      }
+
+      if (e is BinaryExpr bin) {
+        var negatedOp = BinaryExpr.ResolvedOpcode.Add; // let "Add" stand for "no negated operator"
+        switch (bin.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.EqCommon:
+            negatedOp = BinaryExpr.ResolvedOpcode.NeqCommon;
+            break;
+          case BinaryExpr.ResolvedOpcode.SetEq:
+            negatedOp = BinaryExpr.ResolvedOpcode.SetNeq;
+            break;
+          case BinaryExpr.ResolvedOpcode.MultiSetEq:
+            negatedOp = BinaryExpr.ResolvedOpcode.MultiSetNeq;
+            break;
+          case BinaryExpr.ResolvedOpcode.SeqEq:
+            negatedOp = BinaryExpr.ResolvedOpcode.SeqNeq;
+            break;
+          case BinaryExpr.ResolvedOpcode.MapEq:
+            negatedOp = BinaryExpr.ResolvedOpcode.MapNeq;
+            break;
+          case BinaryExpr.ResolvedOpcode.NeqCommon:
+            negatedOp = BinaryExpr.ResolvedOpcode.EqCommon;
+            break;
+          case BinaryExpr.ResolvedOpcode.SetNeq:
+            negatedOp = BinaryExpr.ResolvedOpcode.SetEq;
+            break;
+          case BinaryExpr.ResolvedOpcode.MultiSetNeq:
+            negatedOp = BinaryExpr.ResolvedOpcode.MultiSetEq;
+            break;
+          case BinaryExpr.ResolvedOpcode.SeqNeq:
+            negatedOp = BinaryExpr.ResolvedOpcode.SeqEq;
+            break;
+          case BinaryExpr.ResolvedOpcode.MapNeq:
+            negatedOp = BinaryExpr.ResolvedOpcode.MapEq;
+            break;
+          default:
+            break;
+        }
+        if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {
+          return new BinaryExpr(bin.tok, BinaryExpr.ResolvedOp2SyntacticOp(negatedOp), bin.E0, bin.E1) {
+            ResolvedOp = negatedOp,
+            Type = bin.Type
+          };
+        }
+      }
+
+      return new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Not, e) {
+        Type = Type.Bool
+      };
     }
 
     /// <summary>

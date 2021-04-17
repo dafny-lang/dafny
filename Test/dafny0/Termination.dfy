@@ -881,3 +881,21 @@ method Sequences4(S: seq) {
     i := i + 1;
   }
 }
+
+// ------------------ negations -----------------------
+
+method Negation0(S: set) {
+  var s := S;
+  while !(s == {}) {
+    var x :| x in s;
+    s := s - {x};
+  }
+}
+
+method Negation1(S: set) {
+  var s := S;
+  while !!(s != {}) {
+    var x :| x in s;
+    s := s - {x};
+  }
+}
