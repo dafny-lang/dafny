@@ -12220,6 +12220,13 @@ namespace Microsoft.Dafny
                 // for A >= B and A > B, use the decreases |A - B|
                 guess = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E0, bin.E1), builtIns);
                 break;
+              case BinaryExpr.ResolvedOpcode.Prefix:
+              case BinaryExpr.ResolvedOpcode.ProperPrefix:
+                // for "[] < B" and "[] <= B", use B
+                if (LiteralExpr.IsEmptySequence(bin.E0)) {
+                  guess = bin.E1;
+                }
+                break;
               case BinaryExpr.ResolvedOpcode.NeqCommon:
                 if (bin.E0.Type.IsNumericBased()) {
                   // for A != B where A and B are numeric, use the absolute difference between A and B (that is: if A <= B then B-A else A-B)
@@ -12253,6 +12260,14 @@ namespace Microsoft.Dafny
                   var x = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E0, bin.E1), builtIns);
                   var y = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E1, bin.E0), builtIns);
                   guess = Expression.CreateAdd(x, y);
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.SeqNeq:
+                // if either operand is [], then use the other
+                if (LiteralExpr.IsEmptySequence(bin.E0)) {
+                  guess = bin.E1;
+                } else if (LiteralExpr.IsEmptySequence(bin.E1)) {
+                  guess = bin.E0;
                 }
                 break;
               default:

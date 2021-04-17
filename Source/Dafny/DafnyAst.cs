@@ -9445,6 +9445,11 @@ namespace Microsoft.Dafny {
       return StripParens(e) is MultiSetDisplayExpr display && display.Elements.Count == 0;
     }
 
+    public static bool IsEmptySequence(Expression e) {
+      Contract.Requires(e != null);
+      return StripParens(e) is SeqDisplayExpr display && display.Elements.Count == 0;
+    }
+
     public LiteralExpr(IToken tok)
       : base(tok) {  // represents the Dafny literal "null"
       Contract.Requires(tok != null);

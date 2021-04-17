@@ -839,3 +839,45 @@ method MultisetsST5<Y>(S: multiset, y: Y, P: multiset)
     s := s - multiset{x};
   }
 }
+
+// ------------------ sequences -----------------------
+
+method Sequences0(S: seq) {
+  var s := S;
+  while s != [] {
+    var i :| 0 <= i < |s|;
+    s := s[..i] + s[i + 1..];
+  }
+}
+
+method Sequences1(S: seq) {
+  var s := S;
+  while [] != s {
+    s := s[1..];
+  }
+}
+
+method Sequences2<T(==)>(S: seq) {
+  var s := S;
+  while [] < s {
+    s := s[..|s| - 1];
+  }
+}
+
+method Sequences3<T(==)>(S: seq) {
+  var s := S;
+  while [] <= s {
+    if s == [] { break; }
+    s := s[..|s| / 2];
+  }
+}
+
+method Sequences4(S: seq) {
+  var i := 0;
+  while S[i..] != []
+    invariant 0 <= i <= |S|
+  {
+    assert S[i + 1..] == S[i..][1..];
+    i := i + 1;
+  }
+}
