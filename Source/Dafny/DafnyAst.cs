@@ -7938,7 +7938,7 @@ namespace Microsoft.Dafny {
   {
     public readonly List<AttributedExpression> Invariants;
     public readonly Specification<Expression> Decreases;
-    public bool InferredDecreases;  // filled in by resolution
+    public bool InferredDecreases;  // filled in by resolution; says that no explicit "decreases" clause was given and an attempt was made to find one automatically (which may or may not have produced anything)
     public readonly Specification<FrameExpression> Mod;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -8801,17 +8801,59 @@ namespace Microsoft.Dafny {
       Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
 
       expr = StripParens(expr);
-
-      var bin = expr as BinaryExpr;
-      if (bin != null && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
-        foreach (Expression e in Conjuncts(bin.E0)) {
-          yield return e;
-        }
-        foreach (Expression e in Conjuncts(bin.E1)) {
-          yield return e;
+      if (expr is UnaryOpExpr unary && unary.Op == UnaryOpExpr.Opcode.Not) {
+        foreach (Expression e in Disjuncts(unary.E)) {
+          yield return Expression.CreateNot(e.tok, e);
         }
         yield break;
+
+      } else if (expr is BinaryExpr bin) {
+        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
+          foreach (Expression e in Conjuncts(bin.E0)) {
+            yield return e;
+          }
+          foreach (Expression e in Conjuncts(bin.E1)) {
+            yield return e;
+          }
+          yield break;
+        }
       }
+
+      yield return expr;
+    }
+
+    public static IEnumerable<Expression> Disjuncts(Expression expr) {
+      Contract.Requires(expr != null);
+      Contract.Requires(expr.Type.IsBoolType);
+      Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
+
+      expr = StripParens(expr);
+      if (expr is UnaryOpExpr unary && unary.Op == UnaryOpExpr.Opcode.Not) {
+        foreach (Expression e in Conjuncts(unary.E)) {
+          yield return Expression.CreateNot(e.tok, e);
+        }
+        yield break;
+
+      } else if (expr is BinaryExpr bin) {
+        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
+          foreach (Expression e in Conjuncts(bin.E0)) {
+            yield return e;
+          }
+          foreach (Expression e in Conjuncts(bin.E1)) {
+            yield return e;
+          }
+          yield break;
+        } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
+          foreach (Expression e in Conjuncts(bin.E0)) {
+            yield return Expression.CreateNot(e.tok, e);
+          }
+          foreach (Expression e in Conjuncts(bin.E1)) {
+            yield return e;
+          }
+          yield break;
+        }
+      }
+
       yield return expr;
     }
 
@@ -8856,10 +8898,20 @@ namespace Microsoft.Dafny {
       Contract.Requires(e1 != null);
       Contract.Requires(
         (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)) ||
+        (e0.Type.IsBitVectorType && e1.Type.IsBitVectorType) ||
+        (e0.Type.IsCharType && e1.Type.IsCharType));
       Contract.Ensures(Contract.Result<Expression>() != null);
 
-      Type toType = e0.Type.IsNumericBased(Type.NumericPersuasion.Int) ? (Type)Type.Int : Type.Real;
+      Type toType;
+      if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
+        toType = Type.Int;
+      } else if (e0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+        toType = Type.Real;
+      } else {
+        Contract.Assert(e0.Type.IsBitVectorType || e0.Type.IsCharType);
+        toType = Type.Int; // convert char and bitvectors to int
+      }
       e0 = CastIfNeeded(e0, toType);
       e1 = CastIfNeeded(e1, toType);
       return CreateSubtract(e0, e1);
@@ -8890,7 +8942,63 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
-      s.Type = e0.Type.NormalizeExpand();  // resolve here
+      s.Type = e0.Type.NormalizeExpand();  // resolve here (and it's important to remove any constraints)
+      return s;
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "e0 - e1".
+    /// Optimization: If either "e0" or "e1" is the literal denoting the empty set, then just return "e0".
+    /// </summary>
+    public static Expression CreateSetDifference(Expression e0, Expression e1) {
+      Contract.Requires(e0 != null);
+      Contract.Requires(e0.Type != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires(e1.Type != null);
+      Contract.Requires(e0.Type.AsSetType != null && e1.Type.AsSetType != null);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      if (LiteralExpr.IsEmptySet(e0) || LiteralExpr.IsEmptySet(e1)) {
+        return e0;
+      }
+      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1) {
+        ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference,
+        Type = e0.Type.NormalizeExpand() // important to remove any constraints
+      };
+      return s;
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "e0 - e1".
+    /// Optimization: If either "e0" or "e1" is the literal denoting the empty multiset, then just return "e0".
+    /// </summary>
+    public static Expression CreateMultisetDifference(Expression e0, Expression e1) {
+      Contract.Requires(e0 != null);
+      Contract.Requires(e0.Type != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires(e1.Type != null);
+      Contract.Requires(e0.Type.AsMultiSetType != null && e1.Type.AsMultiSetType != null);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      if (LiteralExpr.IsEmptyMultiset(e0) || LiteralExpr.IsEmptyMultiset(e1)) {
+        return e0;
+      }
+      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1) {
+        ResolvedOp = BinaryExpr.ResolvedOpcode.MultiSetDifference,
+        Type = e0.Type.NormalizeExpand() // important to remove any constraints
+      };
+      return s;
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "|e|"
+    /// </summary>
+    public static Expression CreateCardinality(Expression e, BuiltIns builtIns) {
+      Contract.Requires(e != null);
+      Contract.Requires(e.Type != null);
+      Contract.Requires(e.Type.AsSetType != null || e.Type.AsMultiSetType != null || e.Type.AsSeqType != null);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      var s = new UnaryOpExpr(e.tok, UnaryOpExpr.Opcode.Cardinality, e) {
+        Type = builtIns.Nat()
+      };
       return s;
     }
 
@@ -9021,42 +9129,100 @@ namespace Microsoft.Dafny {
 
     public static Expression CreateNot(IToken tok, Expression e) {
       Contract.Requires(tok != null);
-      Contract.Requires(e.Type.IsBoolType);
-      var un = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Not, e);
-      un.Type = Type.Bool;  // resolve here
-      return un;
+      Contract.Requires(e != null && e.Type != null && e.Type.IsBoolType);
+
+      e = StripParens(e);
+      if (e is UnaryOpExpr unary && unary.Op == UnaryOpExpr.Opcode.Not) {
+        return unary.E;
+      }
+
+      if (e is BinaryExpr bin) {
+        var negatedOp = BinaryExpr.ResolvedOpcode.Add; // let "Add" stand for "no negated operator"
+        switch (bin.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.EqCommon:
+            negatedOp = BinaryExpr.ResolvedOpcode.NeqCommon;
+            break;
+          case BinaryExpr.ResolvedOpcode.SetEq:
+            negatedOp = BinaryExpr.ResolvedOpcode.SetNeq;
+            break;
+          case BinaryExpr.ResolvedOpcode.MultiSetEq:
+            negatedOp = BinaryExpr.ResolvedOpcode.MultiSetNeq;
+            break;
+          case BinaryExpr.ResolvedOpcode.SeqEq:
+            negatedOp = BinaryExpr.ResolvedOpcode.SeqNeq;
+            break;
+          case BinaryExpr.ResolvedOpcode.MapEq:
+            negatedOp = BinaryExpr.ResolvedOpcode.MapNeq;
+            break;
+          case BinaryExpr.ResolvedOpcode.NeqCommon:
+            negatedOp = BinaryExpr.ResolvedOpcode.EqCommon;
+            break;
+          case BinaryExpr.ResolvedOpcode.SetNeq:
+            negatedOp = BinaryExpr.ResolvedOpcode.SetEq;
+            break;
+          case BinaryExpr.ResolvedOpcode.MultiSetNeq:
+            negatedOp = BinaryExpr.ResolvedOpcode.MultiSetEq;
+            break;
+          case BinaryExpr.ResolvedOpcode.SeqNeq:
+            negatedOp = BinaryExpr.ResolvedOpcode.SeqEq;
+            break;
+          case BinaryExpr.ResolvedOpcode.MapNeq:
+            negatedOp = BinaryExpr.ResolvedOpcode.MapEq;
+            break;
+          default:
+            break;
+        }
+        if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {
+          return new BinaryExpr(bin.tok, BinaryExpr.ResolvedOp2SyntacticOp(negatedOp), bin.E0, bin.E1) {
+            ResolvedOp = negatedOp,
+            Type = bin.Type
+          };
+        }
+      }
+
+      return new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Not, e) {
+        Type = Type.Bool
+      };
     }
 
     /// <summary>
     /// Create a resolved expression of the form "e0 LESS e1"
+    /// Works for integers, reals, bitvectors, chars, and ORDINALs.
     /// </summary>
     public static Expression CreateLess(Expression e0, Expression e1) {
-      Contract.Requires(e0 != null);
-      Contract.Requires(e1 != null);
+      Contract.Requires(e0 != null && e0.Type != null);
+      Contract.Requires(e1 != null && e1.Type != null);
       Contract.Requires(
         (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)) ||
+        (e0.Type.IsBitVectorType && e1.Type.IsBitVectorType) ||
+        (e0.Type.IsCharType && e1.Type.IsCharType) ||
         (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1);
-      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Lt;  // resolve here
-      s.Type = Type.Bool;  // resolve here
-      return s;
+      return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1) {
+        ResolvedOp = e0.Type.IsCharType ? BinaryExpr.ResolvedOpcode.LtChar : BinaryExpr.ResolvedOpcode.Lt,
+        Type = Type.Bool
+      };
     }
 
     /// <summary>
-    /// Create a resolved expression of the form "e0 ATMOST e1"
+    /// Create a resolved expression of the form "e0 ATMOST e1".
+    /// Works for integers, reals, bitvectors, chars, and ORDINALs.
     /// </summary>
     public static Expression CreateAtMost(Expression e0, Expression e1) {
-      Contract.Requires(e0 != null);
-      Contract.Requires(e1 != null);
+      Contract.Requires(e0 != null && e0.Type != null);
+      Contract.Requires(e1 != null && e1.Type != null);
       Contract.Requires(
         (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)) ||
+        (e0.Type.IsBitVectorType && e1.Type.IsBitVectorType) ||
+        (e0.Type.IsCharType && e1.Type.IsCharType) ||
+        (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1);
-      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;  // resolve here
-      s.Type = Type.Bool;  // resolve here
-      return s;
+      return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1) {
+        ResolvedOp = e0.Type.IsCharType ? BinaryExpr.ResolvedOpcode.LeChar : BinaryExpr.ResolvedOpcode.Le,
+        Type = Type.Bool
+      };
     }
 
     public static Expression CreateEq(Expression e0, Expression e1, Type ty) {
@@ -9377,6 +9543,21 @@ namespace Microsoft.Dafny {
       } else {
         return false;
       }
+    }
+
+    public static bool IsEmptySet(Expression e) {
+      Contract.Requires(e != null);
+      return StripParens(e) is SetDisplayExpr display && display.Elements.Count == 0;
+    }
+
+    public static bool IsEmptyMultiset(Expression e) {
+      Contract.Requires(e != null);
+      return StripParens(e) is MultiSetDisplayExpr display && display.Elements.Count == 0;
+    }
+
+    public static bool IsEmptySequence(Expression e) {
+      Contract.Requires(e != null);
+      return StripParens(e) is SeqDisplayExpr display && display.Elements.Count == 0;
     }
 
     public LiteralExpr(IToken tok)

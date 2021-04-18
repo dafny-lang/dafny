@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny
@@ -12183,39 +12184,139 @@ namespace Microsoft.Dafny
         Expression prefix = null;
         foreach (Expression guardConjunct in Expression.Conjuncts(guard)) {
           Expression guess = null;
-          BinaryExpr bin = guardConjunct as BinaryExpr;
-          if (bin != null) {
+          var neutralValue = Expression.CreateIntLiteral(guardConjunct.tok, -1);
+          if (guardConjunct is BinaryExpr bin) {
             switch (bin.ResolvedOp) {
               case BinaryExpr.ResolvedOpcode.Lt:
               case BinaryExpr.ResolvedOpcode.Le:
-                // for A < B and A <= B, use the decreases B - A
-                guess = Expression.CreateSubtract_TypeConvert(bin.E1, bin.E0);
+              case BinaryExpr.ResolvedOpcode.LtChar:
+              case BinaryExpr.ResolvedOpcode.LeChar:
+                if (bin.E0.Type.IsBigOrdinalType) {
+                  // we can't rely on subtracting ORDINALs, so let's just pick the upper bound and hope that works
+                  guess = bin.E1;
+                } else {
+                  // for A < B and A <= B, use the decreases B - A
+                  guess = Expression.CreateSubtract_TypeConvert(bin.E1, bin.E0);
+                }
                 break;
               case BinaryExpr.ResolvedOpcode.Ge:
               case BinaryExpr.ResolvedOpcode.Gt:
-                // for A >= B and A > B, use the decreases A - B
-                guess = Expression.CreateSubtract_TypeConvert(bin.E0, bin.E1);
+              case BinaryExpr.ResolvedOpcode.GeChar:
+              case BinaryExpr.ResolvedOpcode.GtChar:
+                if (bin.E0.Type.IsBigOrdinalType) {
+                  // we can't rely on subtracting ORDINALs, so let's just pick the upper bound and hope that works
+                  guess = bin.E0;
+                } else {
+                  // for A >= B and A > B, use the decreases A - B
+                  guess = Expression.CreateSubtract_TypeConvert(bin.E0, bin.E1);
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.ProperSubset:
+              case BinaryExpr.ResolvedOpcode.Subset:
+                if (bin.E0.Type.AsSetType.Finite) {
+                  // for A < B and A <= B, use the decreases |B - A|
+                  guess = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E1, bin.E0), builtIns);
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.Superset:
+              case BinaryExpr.ResolvedOpcode.ProperSuperset:
+                if (bin.E0.Type.AsSetType.Finite) {
+                  // for A >= B and A > B, use the decreases |A - B|
+                  guess = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E0, bin.E1), builtIns);
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
+              case BinaryExpr.ResolvedOpcode.MultiSubset:
+                // for A < B and A <= B, use the decreases |B - A|
+                guess = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E1, bin.E0), builtIns);
+                break;
+              case BinaryExpr.ResolvedOpcode.MultiSuperset:
+              case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
+                // for A >= B and A > B, use the decreases |A - B|
+                guess = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E0, bin.E1), builtIns);
+                break;
+              case BinaryExpr.ResolvedOpcode.Prefix:
+              case BinaryExpr.ResolvedOpcode.ProperPrefix:
+                // for "[] < B" and "[] <= B", use B
+                if (LiteralExpr.IsEmptySequence(bin.E0)) {
+                  guess = bin.E1;
+                }
                 break;
               case BinaryExpr.ResolvedOpcode.NeqCommon:
-                if (bin.E0.Type.IsNumericBased()) {
+                if (bin.E0.Type.IsNumericBased() || bin.E0.Type.IsBitVectorType || bin.E0.Type.IsCharType) {
                   // for A != B where A and B are numeric, use the absolute difference between A and B (that is: if A <= B then B-A else A-B)
                   var AminusB = Expression.CreateSubtract_TypeConvert(bin.E0, bin.E1);
                   var BminusA = Expression.CreateSubtract_TypeConvert(bin.E1, bin.E0);
                   var test = Expression.CreateAtMost(bin.E0, bin.E1);
                   guess = Expression.CreateITE(test, BminusA, AminusB);
+                } else if (bin.E0.Type.IsBigOrdinalType) {
+                  // if either of the operands is a literal, pick the other; otherwise, don't make any guess
+                  if (Expression.StripParens(bin.E0) is LiteralExpr) {
+                    guess = bin.E1;
+                  } else if (Expression.StripParens(bin.E1) is LiteralExpr) {
+                    guess = bin.E0;
+                  }
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.SetNeq:
+                if (bin.E0.Type.AsSetType.Finite) {
+                  // use |A - B| + |B - A|, but specialize it for the case where A or B is the empty set
+                  if (LiteralExpr.IsEmptySet(bin.E0)) {
+                    guess = bin.E1;
+                  } else if (LiteralExpr.IsEmptySet(bin.E1)) {
+                    guess = bin.E0;
+                  } else {
+                    var x = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E0, bin.E1), builtIns);
+                    var y = Expression.CreateCardinality(Expression.CreateSetDifference(bin.E1, bin.E0), builtIns);
+                    guess = Expression.CreateAdd(x, y);
+                  }
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.MultiSetNeq:
+                // use |A - B| + |B - A|, but specialize it for the case where A or B is the empty multiset
+                if (LiteralExpr.IsEmptyMultiset(bin.E0)) {
+                  guess = bin.E1;
+                } else if (LiteralExpr.IsEmptyMultiset(bin.E1)) {
+                  guess = bin.E0;
+                } else {
+                  var x = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E0, bin.E1), builtIns);
+                  var y = Expression.CreateCardinality(Expression.CreateMultisetDifference(bin.E1, bin.E0), builtIns);
+                  guess = Expression.CreateAdd(x, y);
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.SeqNeq:
+                // if either operand is [], then use the other
+                if (LiteralExpr.IsEmptySequence(bin.E0)) {
+                  guess = bin.E1;
+                } else if (LiteralExpr.IsEmptySequence(bin.E1)) {
+                  guess = bin.E0;
                 }
                 break;
               default:
                 break;
             }
+            if (bin.E0.Type.AsSetType != null) {
+              neutralValue = new SetDisplayExpr(bin.tok, bin.E0.Type.AsSetType.Finite, new List<Expression>()) {
+                Type = bin.E0.Type.NormalizeExpand()
+              };
+            } else if (bin.E0.Type.AsMultiSetType != null) {
+              neutralValue = new MultiSetDisplayExpr(bin.tok, new List<Expression>()) {
+                Type = bin.E0.Type.NormalizeExpand()
+              };
+            } else if (bin.E0.Type.AsSeqType != null) {
+              neutralValue = new SeqDisplayExpr(bin.tok, new List<Expression>()) {
+                Type = bin.E0.Type.NormalizeExpand()
+              };
+            } else if (bin.E0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+              neutralValue = Expression.CreateRealLiteral(bin.tok, BaseTypes.BigDec.FromInt(-1));
+            }
           }
           if (guess != null) {
             if (prefix != null) {
-              // Make the following guess:  if prefix then guess else -1
-              guess = Expression.CreateITE(prefix, guess, Expression.CreateIntLiteral(prefix.tok, -1));
+              // Make the following guess:  if prefix then guess else neutralValue
+              guess = Expression.CreateITE(prefix, guess, neutralValue);
             }
             theDecreases.Add(AutoGeneratedExpression.Create(guess));
-            break;  // ignore any further conjuncts
           }
           if (prefix == null) {
             prefix = guardConjunct;
@@ -12232,7 +12333,7 @@ namespace Microsoft.Dafny
         theDecreases.Insert(0, AutoGeneratedExpression.Create(ie));
         loopStmt.InferredDecreases = true;
       }
-      if (loopStmt.InferredDecreases) {
+      if (loopStmt.InferredDecreases && theDecreases.Count != 0) {
         string s = "decreases " + Util.Comma(theDecreases, Printer.ExprToString);
         reporter.Info(MessageSource.Resolver, loopStmt.Tok, s);
       }
@@ -14406,8 +14507,7 @@ namespace Microsoft.Dafny
         ResolveExpression(e.N, opts);
         ConstrainToIntegerType(e.N, false, "sequence construction must use an integer-based expression for the sequence size (got {0})");
         ResolveExpression(e.Initializer, opts);
-        UserDefinedType t = builtIns.Nat() as UserDefinedType;
-        var arrowType = new ArrowType(e.tok, builtIns.ArrowTypeDecls[1], new List<Type>() { t }, elementType);
+        var arrowType = new ArrowType(e.tok, builtIns.ArrowTypeDecls[1], new List<Type>() { builtIns.Nat() }, elementType);
         var hintString = " (perhaps write '_ =>' in front of the expression you gave in order to make it an arrow type)";
         ConstrainSubtypeRelation(arrowType, e.Initializer.Type, e.Initializer, "sequence-construction initializer expression expected to have type '{0}' (instead got '{1}'){2}",
           arrowType, e.Initializer.Type, new LazyString_OnTypeEquals(elementType, e.Initializer.Type, hintString));
