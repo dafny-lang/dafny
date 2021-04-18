@@ -655,8 +655,8 @@ namespace Microsoft.Dafny{
         Type elType = UserDefinedType.ArrayElementType(xType);
         return ArrayTypeName(elType, at.Dims, wr, tok);
       } else if (xType is UserDefinedType udt) {
-        if (udt.ResolvedParam != null) {
-          if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(udt.ResolvedParam, out var instantiatedTypeParameter)) {
+        if (udt.ResolvedClass is TypeParameter tp) {
+          if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
             return TypeName(instantiatedTypeParameter, wr, tok, true, member);
           }
         }
@@ -752,7 +752,7 @@ namespace Microsoft.Dafny{
       if (cl is NonNullTypeDecl nntd) {
         cl = nntd.Class;
       }
-      if (cl == null) {
+      if (cl is TypeParameter) {
         return IdProtect(udt.CompileName);
       } else if (cl is TupleTypeDecl tupleDecl) {
         return DafnyTupleClass(tupleDecl.TypeArgs.Count);
@@ -2188,7 +2188,8 @@ namespace Microsoft.Dafny{
       }
       proc.WaitForExit();
       if (proc.ExitCode != 0) {
-        throw new Exception($"Error while compiling Java files. Process exited with exit code {proc.ExitCode}");
+        outputWriter.WriteLine($"Error while compiling Java files. Process exited with exit code {proc.ExitCode}");
+        return false;
       }
       return true;
     }
@@ -2212,7 +2213,8 @@ namespace Microsoft.Dafny{
       }
       proc.WaitForExit();
       if (proc.ExitCode != 0) {
-        throw new Exception($"Error while running Java file {targetFilename}. Process exited with exit code {proc.ExitCode}");
+        outputWriter.WriteLine($"Error while running Java file {targetFilename}. Process exited with exit code {proc.ExitCode}");
+        return false;
       }
       return true;
     }
@@ -3000,18 +3002,19 @@ namespace Microsoft.Dafny{
       }
 
       var udt = (UserDefinedType)xType;
-      if (udt.ResolvedParam != null) {
-        if (usePlaceboValue && !udt.ResolvedParam.Characteristics.HasCompiledValue) {
-          return "null";
-        } else if (constructTypeParameterDefaultsFromTypeDescriptors) {
-          return $"{FormatTypeDescriptorVariable(udt.ResolvedParam.CompileName)}.defaultValue()";
-        } else {
-          return FormatDefaultTypeParameterValue(udt.ResolvedParam);
-        }
-      }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is NewtypeDecl) {
+      if (cl is TypeParameter tp) {
+        if (usePlaceboValue && !tp.Characteristics.HasCompiledValue) {
+          return "null";
+        } else if (constructTypeParameterDefaultsFromTypeDescriptors) {
+          return $"{FormatTypeDescriptorVariable(tp.CompileName)}.defaultValue()";
+        } else {
+          return FormatDefaultTypeParameterValue(tp);
+        }
+      } else if (cl is OpaqueTypeDecl opaque) {
+        return FormatDefaultTypeParameterValueName(opaque.CompileName);
+      } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
           return FullTypeName(udt) + ".Witness";

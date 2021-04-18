@@ -10,16 +10,10 @@
 // RUN: %dafny /compileTarget:java "%s" >> "%t"
 // RUN: java CompileRunQuietly >> "%t"
 
-// RUN: %diff "%s.expect" "%t"
+// RUN: %dafny /compileTarget:cpp "%s" >> "%t"
+// RUN: ./CompileRunQuietly.exe >> "%t"
 
-/* In the future (when we've figured out how to obtain the right version of g++ on github),
- * C++ can be added by including these commands above:
- *
- *     %dafny /compileTarget:cpp "%s" >> "%t"
- *     ./CompileRunQuietly.exe >> "%t"
- *
- * and adding "g++" to lit.local.cfg in this folder.
- */
+ // RUN: %diff "%s.expect" "%t"
 
 method Main() {
   print "hello, Dafny\n";

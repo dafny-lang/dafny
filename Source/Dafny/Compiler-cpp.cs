@@ -898,7 +898,7 @@ namespace Microsoft.Dafny {
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return "ulong";
         }
-        if (class_name || xType.IsTypeParameter || xType.IsDatatype) {  // Don't add pointer decorations to class names or type parameters
+        if (class_name || xType.IsTypeParameter || xType.IsOpaqueType || xType.IsDatatype) {  // Don't add pointer decorations to class names or type parameters
           return IdProtect(s) + ActualTypeArgs(xType.TypeArgs);
         } else {
           return TypeName_UDT(s, udt, wr, udt.tok);
@@ -972,19 +972,19 @@ namespace Microsoft.Dafny {
       }
 
       var udt = (UserDefinedType)xType;
-      if (udt.ResolvedParam != null) {
-        if (udt.ResolvedClass != null && Attributes.Contains(udt.ResolvedClass.Attributes, "extern")) {
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is TypeParameter || cl is OpaqueTypeDecl) {
+        var hasCompiledValue = (cl is TypeParameter ? ((TypeParameter)cl).Characteristics : ((OpaqueTypeDecl)cl).Characteristics).HasCompiledValue;
+        if (Attributes.Contains(udt.ResolvedClass.Attributes, "extern")) {
           // Assume the external definition includes a default value
           return String.Format("{1}::get_{0}_default()", IdProtect(udt.Name), udt.ResolvedClass.EnclosingModuleDefinition.CompileName);
-        } else if (usePlaceboValue && !udt.ResolvedParam.Characteristics.HasCompiledValue) {
+        } else if (usePlaceboValue && !hasCompiledValue) {
           return String.Format("get_default<{0}>::call()", IdProtect(udt.Name));
         } else {
           return String.Format("get_default<{0}>::call()", IdProtect(udt.Name));
         }
-      }
-      var cl = udt.ResolvedClass;
-      Contract.Assert(cl != null);
-      if (cl is NewtypeDecl) {
+      } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
           return td.EnclosingModuleDefinition.CompileName + "::class_" + td.CompileName + "::Witness";
@@ -1544,7 +1544,7 @@ namespace Microsoft.Dafny {
         //return ArrowType.Arrow_FullCompileName;
       }
       var cl = udt.ResolvedClass;
-      if (cl == null) {
+      if (cl is TypeParameter) {
         return IdProtect(udt.CompileName);
       } else if (cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cl.EnclosingModuleDefinition.Attributes, "extern") &&
                  member != null && Attributes.Contains(member.Attributes, "extern")) {
@@ -2363,7 +2363,8 @@ namespace Microsoft.Dafny {
       }
       proc.WaitForExit();
       if (proc.ExitCode != 0) {
-        throw new Exception($"Error while compiling C++ files. Process exited with exit code {proc.ExitCode}");
+        outputWriter.WriteLine($"Error while compiling C++ files. Process exited with exit code {proc.ExitCode}");
+        return false;
       }
       return true;
     }
@@ -2389,7 +2390,8 @@ namespace Microsoft.Dafny {
       }
       proc.WaitForExit();
       if (proc.ExitCode != 0) {
-        throw new Exception($"Error while running C++ file {targetFilename}. Process exited with exit code {proc.ExitCode}");
+        outputWriter.WriteLine($"Error while running C++ file {targetFilename}. Process exited with exit code {proc.ExitCode}");
+        return false;
       }
       return true;
     }

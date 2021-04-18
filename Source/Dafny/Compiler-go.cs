@@ -27,7 +27,10 @@ namespace Microsoft.Dafny {
 
     public override string TargetLanguage => "Go";
 
-    static string FormatDefaultTypeParameterValue(TypeParameter tp) => $"_default_{tp.CompileName}";
+    static string FormatDefaultTypeParameterValue(TopLevelDecl tp) {
+      Contract.Requires(tp is TypeParameter || tp is OpaqueTypeDecl);
+      return $"_default_{tp.CompileName}";
+    }
 
     private readonly List<Import> Imports = new List<Import>(StandardImports);
     private string ModuleName;
@@ -1426,8 +1429,10 @@ namespace Microsoft.Dafny {
       }
 
       var udt = (UserDefinedType)xType;
-      if (udt.ResolvedParam != null) {
-        if (usePlaceboValue && !udt.ResolvedParam.Characteristics.HasCompiledValue) {
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is TypeParameter tp) {
+        if (usePlaceboValue && !tp.Characteristics.HasCompiledValue) {
           return nil();
         } else if (constructTypeParameterDefaultsFromTypeDescriptors) {
           var w = new TargetWriter(0, true);
@@ -1436,12 +1441,11 @@ namespace Microsoft.Dafny {
           w.Write(".Default()");
           return w.ToString();
         } else {
-          return FormatDefaultTypeParameterValue(udt.ResolvedParam);
+          return FormatDefaultTypeParameterValue(tp);
         }
-      }
-      var cl = udt.ResolvedClass;
-      Contract.Assert(cl != null);
-      if (cl is NewtypeDecl) {
+      } else if (cl is OpaqueTypeDecl opaque) {
+        return FormatDefaultTypeParameterValue(opaque);
+      } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
           return TypeName_Companion(cl, wr, tok) + ".Witness()";
@@ -2221,7 +2225,7 @@ namespace Microsoft.Dafny {
         return ArrowType.Arrow_FullCompileName;
       }
       var cl = udt.ResolvedClass;
-      if (cl == null) {
+      if (cl is TypeParameter) {
         return IdProtect(udt.CompileName);
       } else {
         return UserDefinedTypeName(cl, full, member);

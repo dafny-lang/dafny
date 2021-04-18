@@ -39,7 +39,7 @@ namespace Microsoft.Dafny
 
       if (d is OpaqueTypeDecl) {
         var dd = (OpaqueTypeDecl)d;
-        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, CloneTPChar(dd.TheType.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes));
+        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, CloneTPChar(dd.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
       } else if (d is SubsetTypeDecl) {
         Contract.Assume(!(d is NonNullTypeDecl));  // don't clone the non-null type declaration; close the class, which will create a new non-null type declaration
         var dd = (SubsetTypeDecl)d;
@@ -925,7 +925,7 @@ namespace Microsoft.Dafny
         var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
         var characteristics = TypeParameter.GetExplicitCharacteristics(d);
         var members = based is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
-        var otd = new OpaqueTypeDecl(Tok(d.tok), d.Name, m, characteristics, tps, members, CloneAttributes(d.Attributes));
+        var otd = new OpaqueTypeDecl(Tok(d.tok), d.Name, m, characteristics, tps, members, CloneAttributes(d.Attributes), d.IsRefining);
         based = otd;
         if (d is ClassDecl) {
           reverseMap.Add(based, ((ClassDecl)d).NonNullTypeDecl);
@@ -1347,7 +1347,6 @@ namespace Microsoft.Dafny
         var new_tt = (UserDefinedType)new_t;
 
         new_tt.ResolvedClass = tt.ResolvedClass;
-        new_tt.ResolvedParam = tt.ResolvedParam;
       }
 
       return new_t;

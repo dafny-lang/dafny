@@ -703,7 +703,7 @@ namespace Microsoft.Dafny {
     /// Add to "tps" the free type parameters in "this".
     /// Requires the type to be resolved.
     /// </summary>
-    public void AddFreeTypeParameters(List<TypeParameter> tps) {
+    public void AddFreeTypeParameters(ISet<TypeParameter> tps) {
       Contract.Requires(tps != null);
       var ty = this.NormalizeExpandKeepConstraints();
       var tp = ty.AsTypeParameter;
@@ -846,7 +846,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Returns whether or not "this" and "that" denote the same type, module proxies and type synonyms and subset types.
+    /// Returns whether or not "this" and "that" denote the same type, modulo proxies and type synonyms and subset types.
     /// </summary>
     [Pure]
     public abstract bool Equals(Type that, bool keepConstraints = false);
@@ -932,14 +932,14 @@ namespace Microsoft.Dafny {
       }
 
       var udt = (UserDefinedType)t;
-      if (udt.ResolvedParam != null) {
-        return CharacteristicToAutoInitInfo(udt.ResolvedParam.Characteristics);
-      }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
       if (cl is OpaqueTypeDecl) {
         var otd = (OpaqueTypeDecl)cl;
         return CharacteristicToAutoInitInfo(otd.Characteristics);
+      } else if (cl is TypeParameter) {
+        var tp = (TypeParameter)cl;
+        return CharacteristicToAutoInitInfo(tp.Characteristics);
       } else if (cl is InternalTypeSynonymDecl) {
         var isyn = (InternalTypeSynonymDecl)cl;
         return CharacteristicToAutoInitInfo(isyn.Characteristics);
@@ -1055,6 +1055,8 @@ namespace Microsoft.Dafny {
           return false;
         } else if (IsTypeParameter) {
           return AsTypeParameter.Characteristics.ContainsNoReferenceTypes;
+        } else if (IsOpaqueType) {
+          return AsOpaqueType.Characteristics.ContainsNoReferenceTypes;
         } else {
           return TypeArgs.All(ta => ta.IsAllocFree);
         }
@@ -1070,8 +1072,7 @@ namespace Microsoft.Dafny {
     public bool IsRefType {
       get {
         var udt = NormalizeExpand() as UserDefinedType;
-        return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is ClassDecl
-          && !(udt.ResolvedClass is ArrowTypeDecl);
+        return udt != null && udt.ResolvedClass is ClassDecl && !(udt.ResolvedClass is ArrowTypeDecl);
       }
     }
 
@@ -1083,7 +1084,7 @@ namespace Microsoft.Dafny {
     public TopLevelDeclWithMembers/*?*/ AsTopLevelTypeWithMembers {
       get {
         var udt = NormalizeExpand() as UserDefinedType;
-        return udt != null && udt.ResolvedParam == null ? udt.ResolvedClass as TopLevelDeclWithMembers : null;
+        return udt?.ResolvedClass as TopLevelDeclWithMembers;
       }
     }
     public TopLevelDeclWithMembers/*?*/ AsTopLevelTypeWithMembersBypassInternalSynonym {
@@ -1396,13 +1397,16 @@ namespace Microsoft.Dafny {
     public TypeParameter AsTypeParameter {
       get {
         var ct = NormalizeExpandKeepConstraints() as UserDefinedType;
-        return ct == null ? null : ct.ResolvedParam;
+        return ct?.ResolvedClass as TypeParameter;
       }
     }
     public bool IsOpaqueType {
+      get { return AsOpaqueType != null; }
+    }
+    public OpaqueTypeDecl AsOpaqueType {
       get {
         var udt = this.Normalize() as UserDefinedType;  // note, it is important to use 'this.Normalize()' here, not 'this.NormalizeExpand()'
-        return udt != null && udt.ResolvedClass is OpaqueTypeDecl;
+        return udt?.ResolvedClass as OpaqueTypeDecl;
       }
     }
     public virtual bool SupportsEquality {
@@ -1624,10 +1628,10 @@ namespace Microsoft.Dafny {
         return sub.IsObjectQ || (clSub != null && clSub.ResolvedClass is ClassDecl);
       } else if (super is UserDefinedType) {
         var udtSuper = (UserDefinedType)super;
-        if (udtSuper.ResolvedParam != null) {
-          return udtSuper.ResolvedParam == sub.AsTypeParameter;
+        Contract.Assert(udtSuper.ResolvedClass != null);
+        if (udtSuper.ResolvedClass is TypeParameter) {
+          return udtSuper.ResolvedClass == sub.AsTypeParameter;
         } else {
-          Contract.Assert(udtSuper.ResolvedClass != null);
           sub = origSub;  // get back to the starting point
           while (true) {
             sub = sub.NormalizeExpandKeepConstraints();  // skip past proxies and type synonyms
@@ -1698,7 +1702,11 @@ namespace Microsoft.Dafny {
         return asub != null && asuper.Arity == asub.Arity;
       } else if (a is UserDefinedType) {
         var udtA = (UserDefinedType)a;
-        if (udtA.ResolvedClass != null) {
+        Contract.Assert(udtA.ResolvedClass != null);
+        if (udtA.ResolvedClass is TypeParameter) {
+          Contract.Assert(udtA.TypeArgs.Count == 0);
+          return udtA.ResolvedClass == b.AsTypeParameter;
+        } else {
           while (true) {
             var udtB = b as UserDefinedType;
             if (udtB == null) {
@@ -1715,10 +1723,6 @@ namespace Microsoft.Dafny {
               return true;
             }
           }
-        } else {
-          Contract.Assert(udtA.ResolvedParam != null);
-          Contract.Assert(udtA.TypeArgs.Count == 0);
-          return udtA.ResolvedParam == b.AsTypeParameter;
         }
       } else if (a is Resolver_IdentifierExpr.ResolverType_Module) {
         return b is Resolver_IdentifierExpr.ResolverType_Module;
@@ -2769,7 +2773,7 @@ namespace Microsoft.Dafny {
     public string CompileName {
       get {
         if (compileName == null) {
-          compileName = ResolvedParam != null ? ResolvedParam.CompileName : ResolvedClass.CompileName;
+          compileName = ResolvedClass.CompileName;
         }
         return compileName;
       }
@@ -2784,7 +2788,6 @@ namespace Microsoft.Dafny {
     }
 
     public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype/iterator and TypeArgs match the type parameters of that class/datatype/iterator
-    public TypeParameter ResolvedParam;  // filled in by resolution, if Name denotes an enclosing type parameter and TypeArgs is the empty list
 
     public UserDefinedType(IToken tok, string name, List<Type> optTypeArgs)
       : this(tok, new NameSegment(tok, name, optTypeArgs))
@@ -2919,30 +2922,10 @@ namespace Microsoft.Dafny {
     public UserDefinedType(IToken tok, TypeParameter tp) {
       Contract.Requires(tok != null);
       Contract.Requires(tp != null);
-      Contract.Requires(!(tp is OpaqueType_AsParameter));
       this.tok = tok;
       this.Name = tp.Name;
       this.TypeArgs = new List<Type>();
-      this.ResolvedParam = tp;
-      var ns = new NameSegment(tok, tp.Name, null);
-      var r = new Resolver_IdentifierExpr(tok, tp);
-      ns.ResolvedExpression = r;
-      ns.Type = r.Type;
-      this.NamePath = ns;
-    }
-
-    /// <summary>
-    /// Constructs a resolved type for an opaque type.
-    /// </summary>
-    public UserDefinedType(OpaqueType_AsParameter tp, OpaqueTypeDecl decl, List<Type> typeArgs) {
-      Contract.Requires(tp != null);
-      Contract.Requires(decl != null && decl.TheType == tp);
-      Contract.Requires(typeArgs != null);
-      this.tok = tp.tok;
-      this.Name = tp.Name;
-      this.ResolvedParam = tp;
-      this.ResolvedClass = decl;
-      this.TypeArgs = typeArgs;
+      this.ResolvedClass = tp;
       var ns = new NameSegment(tok, tp.Name, null);
       var r = new Resolver_IdentifierExpr(tok, tp);
       ns.ResolvedExpression = r;
@@ -2956,16 +2939,6 @@ namespace Microsoft.Dafny {
         var ii = (UserDefinedType)i;
         var t = that.NormalizeExpand(keepConstraints) as UserDefinedType;
         if (t == null || ii.ResolvedClass != t.ResolvedClass || ii.TypeArgs.Count != t.TypeArgs.Count) {
-          return false;
-        } else if (ii.TypeArgs.Count == 0 && ii.ResolvedClass is OpaqueTypeDecl) {
-          // Check for the special case in which ResolvedParam holds a (non-unique) copy of
-          // the type, for OpaqueTypeDecl, likely a hold over from prior to adding ResolvedClass
-          if (ii.ResolvedParam == t.ResolvedParam) return true;
-          if (ii.ResolvedParam == null || ii.ResolvedParam == ((OpaqueTypeDecl)ii.ResolvedClass).TheType) {
-            if (t.ResolvedParam == null || t.ResolvedParam == ((OpaqueTypeDecl)t.ResolvedClass).TheType) return true;
-          }
-          return false;
-        } else if (ii.ResolvedParam != t.ResolvedParam) {
           return false;
         } else {
           for (int j = 0; j < ii.TypeArgs.Count; j++) {
@@ -3067,8 +3040,10 @@ namespace Microsoft.Dafny {
           } else {
             return false;
           }
-        } else if (ResolvedParam != null) {
-          return ResolvedParam.SupportsEquality;
+        } else if (ResolvedClass is TypeParameter) {
+          return ((TypeParameter)ResolvedClass).SupportsEquality;
+        } else if (ResolvedClass is OpaqueTypeDecl) {
+          return ((OpaqueTypeDecl)ResolvedClass).SupportsEquality;
         }
         Contract.Assume(false);  // the SupportsEquality getter requires the Type to have been successfully resolved
         return true;
@@ -3096,7 +3071,7 @@ namespace Microsoft.Dafny {
           } else {
             return true;
           }
-        } else if (ResolvedParam != null) {
+        } else if (ResolvedClass is TypeParameter || ResolvedClass is OpaqueTypeDecl) {
           // (Note, if type parameters/opaque types could have a may-involve-references characteristic, then it would be consulted here)
           return true;
         }
@@ -3485,21 +3460,13 @@ namespace Microsoft.Dafny {
     internal FreshIdGenerator IdGenerator = new FreshIdGenerator();
   }
 
-  public class OpaqueType_AsParameter : TypeParameter {
-    public readonly List<TypeParameter> TypeArgs;
-    public OpaqueType_AsParameter(IToken tok, string name, TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs)
-      : base(tok, name, TypeParameter.TPVarianceSyntax.NonVariant_Strict, characteristics) {
-      Contract.Requires(tok != null);
-      Contract.Requires(name != null);
-      Contract.Requires(typeArgs != null);
-      TypeArgs = typeArgs;
-    }
-  }
-
-  public class TypeParameter : Declaration {
+  public class TypeParameter : TopLevelDecl {
     public interface ParentType {
       string FullName { get; }
     }
+
+    public override string WhatKind => "type parameter";
+
     ParentType parent;
     public ParentType Parent {
       get {
@@ -3616,16 +3583,13 @@ namespace Microsoft.Dafny {
 
     public bool NecessaryForEqualitySupportOfSurroundingInductiveDatatype = false;  // computed during resolution; relevant only when Parent denotes an IndDatatypeDecl
 
-    public bool IsAbstractTypeDeclaration { // true if this type parameter represents t in type t;
-      get { return parent == null; }
-    }
     public bool IsToplevelScope { // true if this type parameter is on a toplevel (ie. class C<T>), and false if it is on a member (ie. method m<T>(...))
       get { return parent is TopLevelDecl; }
     }
     public int PositionalIndex; // which type parameter this is (ie. in C<S, T, U>, S is 0, T is 1 and U is 2).
 
     public TypeParameter(IToken tok, string name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics)
-      : base(tok, name, null, false) {
+      : base(tok, name, null, new List<TypeParameter>(), null, false) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Characteristics = characteristics;
@@ -3645,9 +3609,11 @@ namespace Microsoft.Dafny {
       Parent = parent;
     }
 
-    public string FullName() {
-      // when debugging, print it all:
-      return /* Parent.FullName + "." + */ Name;
+    public override string FullName {
+      get {
+        // when debugging, print it all:
+        return /* Parent.FullName + "." + */ Name;
+      }
     }
 
     public static TypeParameterCharacteristics GetExplicitCharacteristics(TopLevelDecl d) {
@@ -4293,7 +4259,7 @@ namespace Microsoft.Dafny {
         return (n.Length == 0 ? n : (n + ".")) + Name;
       }
     }
-    public string FullName {
+    public virtual string FullName {
       get {
         return EnclosingModuleDefinition.FullName + "." + Name;
       }
@@ -5133,12 +5099,12 @@ namespace Microsoft.Dafny {
     }
     protected readonly bool isGhost;
     public bool IsGhost { get { return isGhost; } }
-    public bool IsInstanceIndependentConstant {
-      get {
-        var cf = this as ConstantField;
-        return cf != null && cf.Rhs != null;
-      }
-    }
+
+    /// <summary>
+    /// The term "instance independent" can be confusing. It means that the constant does not get its value in
+    /// a constructor. (But the RHS of the const's declaration may mention "this".)
+    /// </summary>
+    public bool IsInstanceIndependentConstant => this is ConstantField cf && cf.Rhs != null;
 
     public TopLevelDecl EnclosingClass;  // filled in during resolution
     public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
@@ -5472,25 +5438,18 @@ namespace Microsoft.Dafny {
   {
     public override string WhatKind { get { return "opaque type"; } }
     public override bool CanBeRevealed() { return true; }
-    public readonly TypeParameter TheType;
-    public TypeParameter.TypeParameterCharacteristics Characteristics {
-      get { return TheType.Characteristics; }
-    }
+    public readonly TypeParameter.TypeParameterCharacteristics Characteristics;
     public bool SupportsEquality {
-      get { return TheType.SupportsEquality; }
-    }
-    [ContractInvariantMethod]
-    void ObjectInvariant() {
-      Contract.Invariant(TheType != null && Name == TheType.Name);
+      get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
     }
 
-    public OpaqueTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes)
-      : base(tok, name, module, typeArgs, members, attributes, false) {
+    public OpaqueTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, bool isRefining)
+      : base(tok, name, module, typeArgs, members, attributes, isRefining) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(typeArgs != null);
-      TheType = new OpaqueType_AsParameter(tok, name, characteristics, TypeArgs);
+      Characteristics = characteristics;
       this.NewSelfSynonym();
     }
 
@@ -5541,9 +5500,6 @@ namespace Microsoft.Dafny {
       var d = rtd.AsTopLevelDecl;
       Contract.Assert(!tsdMap.ContainsKey(d));
       var thisType = UserDefinedType.FromTopLevelDecl(d.tok, d);
-      if (d is OpaqueTypeDecl) {
-        thisType.ResolvedParam = ((OpaqueTypeDecl)d).TheType;
-      }
       var tsd = new InternalTypeSynonymDecl(d.tok, d.Name, TypeParameter.GetExplicitCharacteristics(d), d.TypeArgs, d.EnclosingModuleDefinition, thisType, d.Attributes);
       tsd.InheritVisibility(d, false);
       tsdMap.Add(d, tsd);
@@ -7982,7 +7938,7 @@ namespace Microsoft.Dafny {
   {
     public readonly List<AttributedExpression> Invariants;
     public readonly Specification<Expression> Decreases;
-    public bool InferredDecreases;  // filled in by resolution
+    public bool InferredDecreases;  // filled in by resolution; says that no explicit "decreases" clause was given and an attempt was made to find one automatically (which may or may not have produced anything)
     public readonly Specification<FrameExpression> Mod;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -8845,17 +8801,59 @@ namespace Microsoft.Dafny {
       Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
 
       expr = StripParens(expr);
-
-      var bin = expr as BinaryExpr;
-      if (bin != null && bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
-        foreach (Expression e in Conjuncts(bin.E0)) {
-          yield return e;
-        }
-        foreach (Expression e in Conjuncts(bin.E1)) {
-          yield return e;
+      if (expr is UnaryOpExpr unary && unary.Op == UnaryOpExpr.Opcode.Not) {
+        foreach (Expression e in Disjuncts(unary.E)) {
+          yield return Expression.CreateNot(e.tok, e);
         }
         yield break;
+
+      } else if (expr is BinaryExpr bin) {
+        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
+          foreach (Expression e in Conjuncts(bin.E0)) {
+            yield return e;
+          }
+          foreach (Expression e in Conjuncts(bin.E1)) {
+            yield return e;
+          }
+          yield break;
+        }
       }
+
+      yield return expr;
+    }
+
+    public static IEnumerable<Expression> Disjuncts(Expression expr) {
+      Contract.Requires(expr != null);
+      Contract.Requires(expr.Type.IsBoolType);
+      Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
+
+      expr = StripParens(expr);
+      if (expr is UnaryOpExpr unary && unary.Op == UnaryOpExpr.Opcode.Not) {
+        foreach (Expression e in Conjuncts(unary.E)) {
+          yield return Expression.CreateNot(e.tok, e);
+        }
+        yield break;
+
+      } else if (expr is BinaryExpr bin) {
+        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
+          foreach (Expression e in Conjuncts(bin.E0)) {
+            yield return e;
+          }
+          foreach (Expression e in Conjuncts(bin.E1)) {
+            yield return e;
+          }
+          yield break;
+        } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp) {
+          foreach (Expression e in Conjuncts(bin.E0)) {
+            yield return Expression.CreateNot(e.tok, e);
+          }
+          foreach (Expression e in Conjuncts(bin.E1)) {
+            yield return e;
+          }
+          yield break;
+        }
+      }
+
       yield return expr;
     }
 
@@ -8900,10 +8898,20 @@ namespace Microsoft.Dafny {
       Contract.Requires(e1 != null);
       Contract.Requires(
         (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)) ||
+        (e0.Type.IsBitVectorType && e1.Type.IsBitVectorType) ||
+        (e0.Type.IsCharType && e1.Type.IsCharType));
       Contract.Ensures(Contract.Result<Expression>() != null);
 
-      Type toType = e0.Type.IsNumericBased(Type.NumericPersuasion.Int) ? (Type)Type.Int : Type.Real;
+      Type toType;
+      if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
+        toType = Type.Int;
+      } else if (e0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+        toType = Type.Real;
+      } else {
+        Contract.Assert(e0.Type.IsBitVectorType || e0.Type.IsCharType);
+        toType = Type.Int; // convert char and bitvectors to int
+      }
       e0 = CastIfNeeded(e0, toType);
       e1 = CastIfNeeded(e1, toType);
       return CreateSubtract(e0, e1);
@@ -8934,7 +8942,63 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
       s.ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;  // resolve here
-      s.Type = e0.Type.NormalizeExpand();  // resolve here
+      s.Type = e0.Type.NormalizeExpand();  // resolve here (and it's important to remove any constraints)
+      return s;
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "e0 - e1".
+    /// Optimization: If either "e0" or "e1" is the literal denoting the empty set, then just return "e0".
+    /// </summary>
+    public static Expression CreateSetDifference(Expression e0, Expression e1) {
+      Contract.Requires(e0 != null);
+      Contract.Requires(e0.Type != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires(e1.Type != null);
+      Contract.Requires(e0.Type.AsSetType != null && e1.Type.AsSetType != null);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      if (LiteralExpr.IsEmptySet(e0) || LiteralExpr.IsEmptySet(e1)) {
+        return e0;
+      }
+      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1) {
+        ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference,
+        Type = e0.Type.NormalizeExpand() // important to remove any constraints
+      };
+      return s;
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "e0 - e1".
+    /// Optimization: If either "e0" or "e1" is the literal denoting the empty multiset, then just return "e0".
+    /// </summary>
+    public static Expression CreateMultisetDifference(Expression e0, Expression e1) {
+      Contract.Requires(e0 != null);
+      Contract.Requires(e0.Type != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires(e1.Type != null);
+      Contract.Requires(e0.Type.AsMultiSetType != null && e1.Type.AsMultiSetType != null);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      if (LiteralExpr.IsEmptyMultiset(e0) || LiteralExpr.IsEmptyMultiset(e1)) {
+        return e0;
+      }
+      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1) {
+        ResolvedOp = BinaryExpr.ResolvedOpcode.MultiSetDifference,
+        Type = e0.Type.NormalizeExpand() // important to remove any constraints
+      };
+      return s;
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "|e|"
+    /// </summary>
+    public static Expression CreateCardinality(Expression e, BuiltIns builtIns) {
+      Contract.Requires(e != null);
+      Contract.Requires(e.Type != null);
+      Contract.Requires(e.Type.AsSetType != null || e.Type.AsMultiSetType != null || e.Type.AsSeqType != null);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      var s = new UnaryOpExpr(e.tok, UnaryOpExpr.Opcode.Cardinality, e) {
+        Type = builtIns.Nat()
+      };
       return s;
     }
 
@@ -9065,42 +9129,100 @@ namespace Microsoft.Dafny {
 
     public static Expression CreateNot(IToken tok, Expression e) {
       Contract.Requires(tok != null);
-      Contract.Requires(e.Type.IsBoolType);
-      var un = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Not, e);
-      un.Type = Type.Bool;  // resolve here
-      return un;
+      Contract.Requires(e != null && e.Type != null && e.Type.IsBoolType);
+
+      e = StripParens(e);
+      if (e is UnaryOpExpr unary && unary.Op == UnaryOpExpr.Opcode.Not) {
+        return unary.E;
+      }
+
+      if (e is BinaryExpr bin) {
+        var negatedOp = BinaryExpr.ResolvedOpcode.Add; // let "Add" stand for "no negated operator"
+        switch (bin.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.EqCommon:
+            negatedOp = BinaryExpr.ResolvedOpcode.NeqCommon;
+            break;
+          case BinaryExpr.ResolvedOpcode.SetEq:
+            negatedOp = BinaryExpr.ResolvedOpcode.SetNeq;
+            break;
+          case BinaryExpr.ResolvedOpcode.MultiSetEq:
+            negatedOp = BinaryExpr.ResolvedOpcode.MultiSetNeq;
+            break;
+          case BinaryExpr.ResolvedOpcode.SeqEq:
+            negatedOp = BinaryExpr.ResolvedOpcode.SeqNeq;
+            break;
+          case BinaryExpr.ResolvedOpcode.MapEq:
+            negatedOp = BinaryExpr.ResolvedOpcode.MapNeq;
+            break;
+          case BinaryExpr.ResolvedOpcode.NeqCommon:
+            negatedOp = BinaryExpr.ResolvedOpcode.EqCommon;
+            break;
+          case BinaryExpr.ResolvedOpcode.SetNeq:
+            negatedOp = BinaryExpr.ResolvedOpcode.SetEq;
+            break;
+          case BinaryExpr.ResolvedOpcode.MultiSetNeq:
+            negatedOp = BinaryExpr.ResolvedOpcode.MultiSetEq;
+            break;
+          case BinaryExpr.ResolvedOpcode.SeqNeq:
+            negatedOp = BinaryExpr.ResolvedOpcode.SeqEq;
+            break;
+          case BinaryExpr.ResolvedOpcode.MapNeq:
+            negatedOp = BinaryExpr.ResolvedOpcode.MapEq;
+            break;
+          default:
+            break;
+        }
+        if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {
+          return new BinaryExpr(bin.tok, BinaryExpr.ResolvedOp2SyntacticOp(negatedOp), bin.E0, bin.E1) {
+            ResolvedOp = negatedOp,
+            Type = bin.Type
+          };
+        }
+      }
+
+      return new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Not, e) {
+        Type = Type.Bool
+      };
     }
 
     /// <summary>
     /// Create a resolved expression of the form "e0 LESS e1"
+    /// Works for integers, reals, bitvectors, chars, and ORDINALs.
     /// </summary>
     public static Expression CreateLess(Expression e0, Expression e1) {
-      Contract.Requires(e0 != null);
-      Contract.Requires(e1 != null);
+      Contract.Requires(e0 != null && e0.Type != null);
+      Contract.Requires(e1 != null && e1.Type != null);
       Contract.Requires(
         (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)) ||
+        (e0.Type.IsBitVectorType && e1.Type.IsBitVectorType) ||
+        (e0.Type.IsCharType && e1.Type.IsCharType) ||
         (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1);
-      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Lt;  // resolve here
-      s.Type = Type.Bool;  // resolve here
-      return s;
+      return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Lt, e0, e1) {
+        ResolvedOp = e0.Type.IsCharType ? BinaryExpr.ResolvedOpcode.LtChar : BinaryExpr.ResolvedOpcode.Lt,
+        Type = Type.Bool
+      };
     }
 
     /// <summary>
-    /// Create a resolved expression of the form "e0 ATMOST e1"
+    /// Create a resolved expression of the form "e0 ATMOST e1".
+    /// Works for integers, reals, bitvectors, chars, and ORDINALs.
     /// </summary>
     public static Expression CreateAtMost(Expression e0, Expression e1) {
-      Contract.Requires(e0 != null);
-      Contract.Requires(e1 != null);
+      Contract.Requires(e0 != null && e0.Type != null);
+      Contract.Requires(e1 != null && e1.Type != null);
       Contract.Requires(
         (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && e1.Type.IsNumericBased(Type.NumericPersuasion.Int)) ||
-        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)));
+        (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && e1.Type.IsNumericBased(Type.NumericPersuasion.Real)) ||
+        (e0.Type.IsBitVectorType && e1.Type.IsBitVectorType) ||
+        (e0.Type.IsCharType && e1.Type.IsCharType) ||
+        (e0.Type.IsBigOrdinalType && e1.Type.IsBigOrdinalType));
       Contract.Ensures(Contract.Result<Expression>() != null);
-      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1);
-      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Le;  // resolve here
-      s.Type = Type.Bool;  // resolve here
-      return s;
+      return new BinaryExpr(e0.tok, BinaryExpr.Opcode.Le, e0, e1) {
+        ResolvedOp = e0.Type.IsCharType ? BinaryExpr.ResolvedOpcode.LeChar : BinaryExpr.ResolvedOpcode.Le,
+        Type = Type.Bool
+      };
     }
 
     public static Expression CreateEq(Expression e0, Expression e1, Type ty) {
@@ -9423,6 +9545,21 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static bool IsEmptySet(Expression e) {
+      Contract.Requires(e != null);
+      return StripParens(e) is SetDisplayExpr display && display.Elements.Count == 0;
+    }
+
+    public static bool IsEmptyMultiset(Expression e) {
+      Contract.Requires(e != null);
+      return StripParens(e) is MultiSetDisplayExpr display && display.Elements.Count == 0;
+    }
+
+    public static bool IsEmptySequence(Expression e) {
+      Contract.Requires(e != null);
+      return StripParens(e) is SeqDisplayExpr display && display.Elements.Count == 0;
+    }
+
     public LiteralExpr(IToken tok)
       : base(tok) {  // represents the Dafny literal "null"
       Contract.Requires(tok != null);
@@ -9632,17 +9769,14 @@ namespace Microsoft.Dafny {
   /// </summary>
   class Resolver_IdentifierExpr : Expression
   {
-    // The Resolver_IdentifierExpr either uses Decl and TypeArgs:
     public readonly TopLevelDecl Decl;
     public readonly List<Type> TypeArgs;
-    // ... or it uses TypeParamDecl:
-    public readonly TypeParameter TypeParamDecl;
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant((Decl != null) != (TypeParamDecl != null));  // The Decl / TypeParamDecl fields are exclusive
-      Contract.Invariant((Decl != null) == (TypeArgs != null));  // The Decl / TypeArgs fields are used together
-      Contract.Invariant(TypeArgs == null || TypeArgs.Count == Decl.TypeArgs.Count);
-      Contract.Invariant(Type == null || (Type is ResolverType_Module && TypeParamDecl == null) || Type is ResolverType_Type);
+      Contract.Invariant(Decl != null);
+      Contract.Invariant(TypeArgs != null);
+      Contract.Invariant(TypeArgs.Count == Decl.TypeArgs.Count);
+      Contract.Invariant(Type is ResolverType_Module || Type is ResolverType_Type);
     }
 
     public abstract class ResolverType : Type
@@ -9680,11 +9814,9 @@ namespace Microsoft.Dafny {
       Type = decl is ModuleDecl ? (Type)new ResolverType_Module() : new ResolverType_Type();
     }
     public Resolver_IdentifierExpr(IToken tok, TypeParameter tp)
-      : base(tok) {
+      : this(tok, tp, new List<Type>()) {
       Contract.Requires(tok != null);
       Contract.Requires(tp != null);
-      TypeParamDecl = tp;
-      Type = new ResolverType_Type();
     }
   }
 

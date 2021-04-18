@@ -20,7 +20,7 @@ EqualityTypesModuleExports.dfy(121,11): Error: type parameter (A) passed to type
 EqualityTypesModuleExports.dfy(123,11): Error: type parameter (A) passed to type Subset2 must support equality (got M) (perhaps try declaring type parameter 'M' on line 94 as 'M(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(133,11): Error: type parameter (A) passed to type Syn5 must support equality (got ListWithALittlExtra<int>)
 EqualityTypesModuleExports.dfy(134,11): Error: type parameter (A) passed to type Syn5 must support equality (got Co2<int, int>)
-EqualityTypesModuleExports.dfy(135,11): Error: type parameter (A) passed to type Syn5 must support equality (got Opaque0) (perhaps try declaring type parameter 'Opaque0' on line 73 as 'Opaque0(==)', which says it can only be instantiated with a type that supports equality)
+EqualityTypesModuleExports.dfy(135,11): Error: type parameter (A) passed to type Syn5 must support equality (got Opaque0) (perhaps try declaring opaque type 'Opaque0' on line 73 as 'Opaque0(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(139,11): Error: type parameter (A) passed to type Syn5 must support equality (got Syn1<int -> int>)
 EqualityTypesModuleExports.dfy(153,11): Error: type parameter (A) passed to type MyClass must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(154,11): Error: type parameter (A) passed to type Dt must support equality (got Noeq)
@@ -39,7 +39,7 @@ EqualityTypesModuleExports.dfy(189,24): Error: iset argument type must support e
 EqualityTypesModuleExports.dfy(195,11): Error: type parameter (A) passed to type MyClass must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(191,7): Error: recursive constraint dependency involving a subset type: SubsetCo -> Co
 EqualityTypesModuleExports.dfy(214,7): Error: type 'Opa', which does not support equality, is used to refine an opaque type with equality support
-EqualityTypesModuleExports.dfy(230,12): Error: type parameter (A) passed to type S must support equality (got GGG.Opa'<int>)
+EqualityTypesModuleExports.dfy(230,12): Error: type parameter (A) passed to type S must support equality (got GGG.Opa'<int>) (perhaps try declaring opaque type 'Opa'' on line 208 as 'Opa'(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(231,12): Error: type parameter (A) passed to type S must support equality (got GGG.Syn'<int>)
 EqualityTypesModuleExports.dfy(232,12): Error: type parameter (A) passed to type S must support equality (got GGG.Sub'<int>)
 EqualityTypesModuleExports.dfy(249,7): Error: == can only be applied to expressions of types that support equality (got WWW0.XT)
