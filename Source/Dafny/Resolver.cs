@@ -13580,14 +13580,6 @@ namespace Microsoft.Dafny
           memberName == null ? "" : " (" + memberName + ")");
       }
 
-      var artificialSuper = proxy.InClusterOfArtificial(AllXConstraints);
-      if (artificialSuper != null) {
-        if (DafnyOptions.O.TypeInferenceDebug) {
-          Console.WriteLine("  ----> use artificial supertype: {0}", artificialSuper);
-        }
-        return artificialSuper;
-      }
-
       // Look for a meet of head symbols among the proxy's subtypes
       Type meet = null;
       if (MeetOfAllSubtypes(proxy, ref meet, new HashSet<TypeProxy>()) && meet != null) {
@@ -13692,15 +13684,26 @@ namespace Microsoft.Dafny
             return PartiallyResolveTypeForMemberSelection(tok, t, memberName, strength + 1);
           }
         }
+        if (!(join is ArtificialType)) {
+          if (DafnyOptions.O.TypeInferenceDebug) {
+            Console.WriteLine("  ----> improved to {0} through join", join);
+          }
+          if (memberName != null) {
+            AssignProxyAndHandleItsConstraints(proxy, join, true);
+            return proxy.NormalizeExpand(); // we return proxy.T instead of join, in case the assignment gets hijacked
+          } else {
+            return join;
+          }
+        }
+      }
+
+      // as a last resort, act on any artificial type nearby the proxy
+      var artificialSuper = proxy.InClusterOfArtificial(AllXConstraints);
+      if (artificialSuper != null) {
         if (DafnyOptions.O.TypeInferenceDebug) {
-          Console.WriteLine("  ----> improved to {0} through join", join);
+          Console.WriteLine("  ----> use artificial supertype: {0}", artificialSuper);
         }
-        if (memberName != null) {
-          AssignProxyAndHandleItsConstraints(proxy, join, true);
-          return proxy.NormalizeExpand();  // we return proxy.T instead of join, in case the assignment gets hijacked
-        } else {
-          return join;
-        }
+        return artificialSuper;
       }
 
       // we weren't able to do it
