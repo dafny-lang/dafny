@@ -46,9 +46,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public async Task<Microsoft.Dafny.Program> ParseAsync(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+    public async Task<Dafny.Program> ParseAsync(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
       await _mutex.WaitAsync(cancellationToken);
       try {
+        // Ensure that the statically kept scopes are empty when parsing a new document.
+        Type.ResetScopes();
         var module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
         var builtIns = new BuiltIns();
         var parseErrors = Parser.Parse(
