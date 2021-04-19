@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer {
     private static string DafnyVersion {
       get {
         var version = typeof(DafnyLanguageServer).Assembly.GetName().Version!;
-        return $"{version.Major}.{version.Minor}.{version.Build}";
+        return $"{version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
       }
     }
 
