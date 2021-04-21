@@ -54,3 +54,4 @@ Notes for Dafny contributors:
    * [Go](Compilation/Go)
    * [C++](Compilation/Cpp)
    * [Reference values](Compilation/ReferenceTypes)
+   * [Automatic Initialization of Variables](Compilation/AutoInitialization.md)
