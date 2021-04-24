@@ -38,3 +38,32 @@ module B refines A {
     }
   }
 }
+
+module C {
+  method For() {
+    var a := new int[100];
+    for i := 0 to 100 {
+      a[i] := i;
+    }
+    for i := 100 downto 0 {
+      a[i] := i;
+    }
+    for i: nat := 0 to 100
+    for i: nat := 100 downto 0
+    for i := 0 to 100
+      invariant a[5] == 5
+      invariant a[12] == 12
+    for i := 100 downto 0
+      invariant a[5] == 5
+    for i := 0 to 100
+      invariant a[5] == 5
+      invariant a[12] == 12
+    {
+    }
+    for i := 100 downto 0
+      invariant a[5] == 5
+    {
+      assert true;
+    }
+  }
+}

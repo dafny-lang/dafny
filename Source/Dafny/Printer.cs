@@ -1290,6 +1290,10 @@ namespace Microsoft.Dafny {
           wr.Write("}");
         }
 
+      } else if (stmt is ForLoopStmt) {
+        var s = (ForLoopStmt)stmt;
+        PrintForLoopStatement(indent, s);
+
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
         if (DafnyOptions.O.DafnyPrintResolvedFile != null && s.ForallExpressions != null) {
@@ -1668,6 +1672,37 @@ namespace Microsoft.Dafny {
           Indent(indent + IndentAmount);
           PrintStatement(s, indent + IndentAmount);
         }
+      }
+    }
+
+    void PrintForLoopStatement(int indent, ForLoopStmt s) {
+      Contract.Requires(0 <= indent);
+      Contract.Requires(s != null);
+      wr.Write($"for {s.Local.Name}");
+      PrintType(": ", s.Local.OptionalType);
+      wr.Write(" := ");
+      if (s.GoingUp) {
+        PrintExpression(s.Lo, false);
+        wr.Write(" to ");
+        PrintExpression(s.Hi, false);
+      } else {
+        PrintExpression(s.Hi, false);
+        wr.Write(" downto ");
+        PrintExpression(s.Lo, false);
+      }
+
+      PrintSpec("invariant", s.Invariants, indent + IndentAmount);
+      if (s.Mod.Expressions != null) {
+        PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.HasAttributes() ? s.Mod.Attributes : null);
+      }
+      if (s.Body != null) {
+        if (s.Invariants.Count == 0 && (s.Mod.Expressions == null || s.Mod.Expressions.Count == 0)) {
+          wr.Write(" ");
+        } else {
+          wr.WriteLine();
+          Indent(indent);
+        }
+        PrintStatement(s.Body, indent);
       }
     }
 

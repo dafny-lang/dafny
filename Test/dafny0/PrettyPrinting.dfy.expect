@@ -39,6 +39,36 @@ module B refines A {
     }
   }
 }
+
+module C {
+  method For()
+  {
+    var a := new int[100];
+    for i := 0 to 100 {
+      a[i] := i;
+    }
+    for i := 0 downto 100 {
+      a[i] := i;
+    }
+    for i: nat := 0 to 100
+    for i: nat := 0 downto 100
+    for i := 0 to 100
+      invariant a[5] == 5
+      invariant a[12] == 12
+    for i := 0 downto 100
+      invariant a[5] == 5
+    for i := 0 to 100
+      invariant a[5] == 5
+      invariant a[12] == 12
+    {
+    }
+    for i := 0 downto 100
+      invariant a[5] == 5
+    {
+      assert true;
+    }
+  }
+}
 PrettyPrinting.dfy(10,4): Warning: note, this loop has no body
 PrettyPrinting.dfy(11,4): Warning: note, this loop has no body
 PrettyPrinting.dfy(14,4): Warning: note, this loop has no body
