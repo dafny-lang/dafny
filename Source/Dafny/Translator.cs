@@ -5534,8 +5534,8 @@ namespace Microsoft.Dafny {
         printer.PrintFrameSpecLine("", m.Mod.Expressions, 0, null);
         printer.PrintSpec("", m.Ens, 0);
         printer.PrintDecreasesSpec(m.Decreases, 0);
-        if (!specificationOnly && m.Body != null && RevealedInScope(m))
-        {
+        writer.WriteLine();
+        if (!specificationOnly && m.Body != null && RevealedInScope(m)) {
           printer.PrintStatement(m.Body, 0);
         }
         data = Encoding.UTF8.GetBytes(writer.ToString());
@@ -5589,8 +5589,8 @@ namespace Microsoft.Dafny {
         printer.PrintFrameSpecLine("", f.Reads, 0, null);
         printer.PrintSpec("", f.Ens, 0);
         printer.PrintDecreasesSpec(f.Decreases, 0);
-        if (!specificationOnly && f.Body != null && RevealedInScope(f))
-        {
+        writer.WriteLine();
+        if (!specificationOnly && f.Body != null && RevealedInScope(f)) {
           printer.PrintExpression(f.Body, false);
         }
         data = Encoding.UTF8.GetBytes(writer.ToString());

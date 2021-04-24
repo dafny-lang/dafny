@@ -416,42 +416,42 @@ DirtyLoops.dfy.tmp.dprint.dfy(77,6): Warning: note, this loop has no body (loop 
 DirtyLoops.dfy.tmp.dprint.dfy(88,2): Warning: note, this loop has no body (loop frame: i)
 DirtyLoops.dfy.tmp.dprint.dfy(98,2): Warning: note, this loop has no body (loop frame: i)
 DirtyLoops.dfy.tmp.dprint.dfy(109,2): Warning: note, this loop has no body (loop frame: i)
-DirtyLoops.dfy.tmp.dprint.dfy(119,2): Warning: note, this loop has no body (loop frame: i, s)
-DirtyLoops.dfy.tmp.dprint.dfy(134,2): Warning: note, this loop has no body (loop frame: i, s, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(147,2): Warning: note, this loop has no body (loop frame: i, s, r)
-DirtyLoops.dfy.tmp.dprint.dfy(156,2): Warning: note, this loop has no body
-DirtyLoops.dfy.tmp.dprint.dfy(167,2): Warning: note, this loop has no body (loop frame: i)
-DirtyLoops.dfy.tmp.dprint.dfy(179,2): Warning: note, this loop has no body (loop frame: i)
-DirtyLoops.dfy.tmp.dprint.dfy(191,2): Warning: note, this loop has no body (loop frame: i, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(205,2): Warning: note, this loop has no body (loop frame: i, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(218,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(118,2): Warning: note, this loop has no body (loop frame: i, s)
+DirtyLoops.dfy.tmp.dprint.dfy(132,2): Warning: note, this loop has no body (loop frame: i, s, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(145,2): Warning: note, this loop has no body (loop frame: i, s, r)
+DirtyLoops.dfy.tmp.dprint.dfy(154,2): Warning: note, this loop has no body
+DirtyLoops.dfy.tmp.dprint.dfy(164,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy.tmp.dprint.dfy(176,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy.tmp.dprint.dfy(188,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(203,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(217,2): Warning: note, this loop has no body (loop frame: i, $Heap)
 DirtyLoops.dfy.tmp.dprint.dfy(231,2): Warning: note, this loop has no body (loop frame: i, $Heap)
 DirtyLoops.dfy.tmp.dprint.dfy(247,2): Warning: note, this loop has no body (loop frame: i, $Heap)
 DirtyLoops.dfy.tmp.dprint.dfy(261,2): Warning: note, this loop has no body (loop frame: i, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(273,2): Warning: note, this loop has no body (loop frame: i, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(285,2): Warning: note, this loop has no body (loop frame: i, k)
-DirtyLoops.dfy.tmp.dprint.dfy(297,2): Warning: note, this loop has no body (loop frame: i, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(306,2): Warning: note, this loop has no body (loop frame: i)
-DirtyLoops.dfy.tmp.dprint.dfy(316,2): Warning: note, this loop has no body (loop frame: i, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(325,2): Warning: note, this loop has no body (loop frame: i, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(335,2): Warning: note, this loop has no body (loop frame: i, k)
-DirtyLoops.dfy.tmp.dprint.dfy(348,2): Warning: note, this loop has no body (loop frame: i, k)
-DirtyLoops.dfy.tmp.dprint.dfy(361,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(375,2): Warning: note, this loop has no body (loop frame: i, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(388,2): Warning: note, this loop has no body (loop frame: i)
-DirtyLoops.dfy.tmp.dprint.dfy(399,2): Warning: note, this loop has no body (loop frame: i)
-DirtyLoops.dfy.tmp.dprint.dfy(410,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(421,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(433,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(444,2): Warning: note, this loop has no body (loop frame: i, k)
-DirtyLoops.dfy.tmp.dprint.dfy(454,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(465,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(471,2): Warning: note, this forall statement has no body
-DirtyLoops.dfy.tmp.dprint.dfy(478,2): Warning: note, this forall statement has no body
-DirtyLoops.dfy.tmp.dprint.dfy(487,2): Warning: note, this forall statement has no body
-DirtyLoops.dfy.tmp.dprint.dfy(489,2): Warning: note, this forall statement has no body
-DirtyLoops.dfy.tmp.dprint.dfy(489,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
-DirtyLoops.dfy.tmp.dprint.dfy(495,2): Warning: note, this loop has no body (loop frame: x)
-DirtyLoops.dfy.tmp.dprint.dfy(489,2): Warning: /!\ No terms found to trigger on.
+DirtyLoops.dfy.tmp.dprint.dfy(274,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(287,2): Warning: note, this loop has no body (loop frame: i, k)
+DirtyLoops.dfy.tmp.dprint.dfy(300,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(309,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy.tmp.dprint.dfy(318,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(326,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(336,2): Warning: note, this loop has no body (loop frame: i, k)
+DirtyLoops.dfy.tmp.dprint.dfy(349,2): Warning: note, this loop has no body (loop frame: i, k)
+DirtyLoops.dfy.tmp.dprint.dfy(362,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(376,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(389,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy.tmp.dprint.dfy(400,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy.tmp.dprint.dfy(411,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(422,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(434,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(445,2): Warning: note, this loop has no body (loop frame: i, k)
+DirtyLoops.dfy.tmp.dprint.dfy(455,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(466,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(472,2): Warning: note, this forall statement has no body
+DirtyLoops.dfy.tmp.dprint.dfy(479,2): Warning: note, this forall statement has no body
+DirtyLoops.dfy.tmp.dprint.dfy(488,2): Warning: note, this forall statement has no body
+DirtyLoops.dfy.tmp.dprint.dfy(490,2): Warning: note, this forall statement has no body
+DirtyLoops.dfy.tmp.dprint.dfy(490,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
+DirtyLoops.dfy.tmp.dprint.dfy(496,2): Warning: note, this loop has no body (loop frame: x)
+DirtyLoops.dfy.tmp.dprint.dfy(490,2): Warning: /!\ No terms found to trigger on.
 
 Dafny program verifier did not attempt verification

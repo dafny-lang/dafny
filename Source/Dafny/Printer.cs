@@ -547,7 +547,7 @@ namespace Microsoft.Dafny {
       Indent(indent);
       PrintClassMethodHelper("iterator", iter.Attributes, iter.Name, iter.TypeArgs);
       if (iter.IsRefining) {
-        wr.WriteLine(" ... ");
+        wr.Write(" ... ");
       } else {
         PrintFormals(iter.Ins, iter);
         if (iter.Outs.Count != 0) {
@@ -560,7 +560,6 @@ namespace Microsoft.Dafny {
           }
           PrintFormals(iter.Outs, iter);
         }
-        wr.WriteLine();
       }
 
       int ind = indent + IndentAmount;
@@ -575,6 +574,7 @@ namespace Microsoft.Dafny {
       PrintSpec("yield ensures", iter.YieldEnsures, ind);
       PrintSpec("ensures", iter.Ensures, ind);
       PrintDecreasesSpec(iter.Decreases, ind);
+      wr.WriteLine();
     }
 
     private void PrintIteratorClass(IteratorDecl iter, int indent, string fileBeingPrinted) {
@@ -850,7 +850,7 @@ namespace Microsoft.Dafny {
       if (!f.IsGhost) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
       if (f.SignatureIsOmitted) {
-        wr.WriteLine(" ...");
+        wr.Write(" ...");
       } else {
         if (f is ExtremePredicate) {
           PrintKTypeIndication(((ExtremePredicate)f).TypeOfK);
@@ -866,7 +866,6 @@ namespace Microsoft.Dafny {
             PrintType(f.ResultType);
           }
         }
-        wr.WriteLine();
       }
 
       int ind = indent + IndentAmount;
@@ -874,6 +873,7 @@ namespace Microsoft.Dafny {
       PrintFrameSpecLine("reads", f.Reads, ind, null);
       PrintSpec("ensures", f.Ens, ind);
       PrintDecreasesSpec(f.Decreases, ind);
+      wr.WriteLine();
       if (f.Body != null && !printSignatureOnly) {
         Indent(indent);
         wr.WriteLine("{");
@@ -931,7 +931,7 @@ namespace Microsoft.Dafny {
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
       PrintClassMethodHelper(k, method.Attributes, nm, method.TypeArgs);
       if (method.SignatureIsOmitted) {
-        wr.WriteLine(" ...");
+        wr.Write(" ...");
       } else {
         if (method is ExtremeLemma) {
           PrintKTypeIndication(((ExtremeLemma)method).TypeOfK);
@@ -947,7 +947,6 @@ namespace Microsoft.Dafny {
           }
           PrintFormals(method.Outs, method);
         }
-        wr.WriteLine();
       }
 
       int ind = indent + IndentAmount;
@@ -957,6 +956,7 @@ namespace Microsoft.Dafny {
       }
       PrintSpec("ensures", method.Ens, ind);
       PrintDecreasesSpec(method.Decreases, ind);
+      wr.WriteLine();
 
       if (method.Body != null && !printSignatureOnly) {
         Indent(indent);
@@ -1014,22 +1014,11 @@ namespace Microsoft.Dafny {
       PrintType(f.Type);
     }
 
-    internal void PrintSpec(string kind, List<Expression> ee, int indent) {
-      Contract.Requires(kind != null);
-      Contract.Requires(ee != null);
-      foreach (Expression e in ee) {
-        Contract.Assert(e != null);
-        Indent(indent);
-        wr.Write("{0} ", kind);
-        PrintExpression(e, true);
-        wr.WriteLine();
-      }
-    }
-
-    internal void PrintDecreasesSpec(Specification<Expression> decs, int indent, bool newLine = true) {
+    internal void PrintDecreasesSpec(Specification<Expression> decs, int indent) {
       Contract.Requires(decs != null);
       if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }
       if (decs.Expressions != null && decs.Expressions.Count != 0) {
+        wr.WriteLine();
         Indent(indent);
         wr.Write("decreases");
         if (decs.HasAttributes())
@@ -1038,18 +1027,14 @@ namespace Microsoft.Dafny {
         }
         wr.Write(" ");
         PrintExpressionList(decs.Expressions, true);
-        if (newLine) {
-          wr.WriteLine();
-        } else {
-          wr.Write(" ");
-        }
       }
     }
 
-    internal void PrintFrameSpecLine(string kind, List<FrameExpression/*!*/> ee, int indent, Attributes attrs, bool newLine = true) {
+    internal void PrintFrameSpecLine(string kind, List<FrameExpression> ee, int indent, Attributes attrs) {
       Contract.Requires(kind != null);
       Contract.Requires(cce.NonNullElements(ee));
       if (ee != null && ee.Count != 0) {
+        wr.WriteLine();
         Indent(indent);
         wr.Write("{0}", kind);
         if (attrs != null) {
@@ -1057,20 +1042,16 @@ namespace Microsoft.Dafny {
         }
         wr.Write(" ");
         PrintFrameExpressionList(ee);
-        if (newLine) {
-          wr.WriteLine();
-        } else {
-          wr.Write(" ");
-        }
       }
     }
 
-    internal void PrintSpec(string kind, List<AttributedExpression> ee, int indent, bool newLine = true) {
+    internal void PrintSpec(string kind, List<AttributedExpression> ee, int indent) {
       Contract.Requires(kind != null);
       Contract.Requires(ee != null);
       if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }
       foreach (AttributedExpression e in ee) {
         Contract.Assert(e != null);
+        wr.WriteLine();
         Indent(indent);
         wr.Write("{0}", kind);
 
@@ -1083,11 +1064,6 @@ namespace Microsoft.Dafny {
           wr.Write("{0}: ", e.Label.Name);
         }
         PrintExpression(e.E, true);
-        if (newLine) {
-          wr.WriteLine();
-        } else {
-          wr.Write(" ");
-        }
       }
     }
 
@@ -1289,19 +1265,17 @@ namespace Microsoft.Dafny {
         }
 
       } else if (stmt is WhileStmt) {
-        WhileStmt s = (WhileStmt)stmt;
+        var s = (WhileStmt)stmt;
         PrintWhileStatement(indent, s, false, false);
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         wr.Write("while");
         if (s.Invariants.Count != 0) {
-          wr.WriteLine();
-          PrintSpec("invariant", s.Invariants, indent + IndentAmount, false);
+          PrintSpec("invariant", s.Invariants, indent + IndentAmount);
         }
         if (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) {
-          wr.WriteLine();
-          PrintDecreasesSpec(s.Decreases, indent + IndentAmount, false);
+          PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
         }
 
         if (s.UsesOptionalBraces) {
@@ -1332,12 +1306,14 @@ namespace Microsoft.Dafny {
             wr.Write(" ");
             PrintQuantifierDomain(s.BoundVars, s.Attributes, s.Range);
           }
-          if (s.Ens.Count == 0) {
-            wr.Write(" ");
-          } else {
-            wr.WriteLine();
-            PrintSpec("ensures", s.Ens, indent + IndentAmount, s.Body != null);
-            Indent(indent);
+          PrintSpec("ensures", s.Ens, indent + IndentAmount);
+          if (s.Body != null) {
+            if (s.Ens.Count == 0) {
+              wr.Write(" ");
+            } else {
+              wr.WriteLine();
+              Indent(indent);
+            }
           }
         }
         if (s.Body != null) {
@@ -1649,22 +1625,28 @@ namespace Microsoft.Dafny {
     void PrintWhileStatement(int indent, WhileStmt s, bool omitGuard, bool omitBody) {
       Contract.Requires(0 <= indent);
       if (omitGuard) {
-        wr.WriteLine("while ...");
+        wr.Write("while ...");
       } else {
         wr.Write("while ");
         PrintGuard(false, s.Guard);
-        wr.WriteLine();
       }
 
-      PrintSpec("invariant", s.Invariants, indent + IndentAmount, s.Body != null || omitBody || (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) || (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0));
-      PrintDecreasesSpec(s.Decreases, indent + IndentAmount, s.Body != null || omitBody || (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0));
+      PrintSpec("invariant", s.Invariants, indent + IndentAmount);
+      PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
       if (s.Mod.Expressions != null) {
-        PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.HasAttributes() ? s.Mod.Attributes : null, s.Body != null || omitBody);
+        PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.HasAttributes() ? s.Mod.Attributes : null);
       }
-      Indent(indent);
       if (omitBody) {
-        wr.WriteLine("...;");
+        wr.WriteLine();
+        Indent(indent + IndentAmount);
+        wr.Write("...;");
       } else if (s.Body != null) {
+        if (s.Invariants.Count == 0 && s.Decreases.Expressions.Count == 0 && (s.Mod.Expressions == null || s.Mod.Expressions.Count == 0)) {
+          wr.Write(" ");
+        } else {
+          wr.WriteLine();
+          Indent(indent);
+        }
         PrintStatement(s.Body, indent);
       }
     }

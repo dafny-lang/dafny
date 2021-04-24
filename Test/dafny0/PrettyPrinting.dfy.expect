@@ -1,0 +1,50 @@
+// PrettyPrinting.dfy
+
+
+module A {
+  method M()
+}
+
+module B refines A {
+  method M ...
+  {
+    while true
+    while true
+      invariant true
+      invariant true
+    while true
+      decreases 5
+    while true
+      modifies {}
+    while ...
+    while true
+      ...;
+    while true {
+      var u := 0;
+    }
+    var x := 10;
+  }
+
+  method P(a: array<int>)
+    modifies a
+  {
+    forall i | 0 <= i < 100 {
+      a[i] := 200;
+    }
+    forall i | 0 <= i < 100
+      ensures true
+    forall i | 0 <= i < 100
+      ensures true
+    {
+    }
+  }
+}
+PrettyPrinting.dfy(10,4): Warning: note, this loop has no body
+PrettyPrinting.dfy(11,4): Warning: note, this loop has no body
+PrettyPrinting.dfy(14,4): Warning: note, this loop has no body
+PrettyPrinting.dfy(16,4): Warning: note, this loop has no body (loop frame: $Heap)
+PrettyPrinting.dfy(18,4): Error: skeleton statements are allowed only in refining methods
+PrettyPrinting.dfy(18,4): Warning: note, this loop has no body
+PrettyPrinting.dfy(19,4): Error: skeleton statements are allowed only in refining methods
+PrettyPrinting.dfy(33,4): Warning: note, this forall statement has no body
+2 resolution/type errors detected in PrettyPrinting.dfy
