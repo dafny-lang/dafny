@@ -1503,7 +1503,7 @@ module GhostTests {
         { SideEffect(); }  // error: cannot call (ghost) method with a modifies clause
         { var x := 8;
           while x != 0
-            modifies this;  // error: cannot use a modifies clause on a loop
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
           {
             x := x - 1;
           }
@@ -1532,7 +1532,7 @@ module GhostTests {
         { M(); }  // error: cannot call (ghost) method with a modifies clause
         { var x := 8;
           while x != 0
-            modifies this;  // error: cannot use a modifies clause on a loop
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
           {
             x := x - 1;
           }

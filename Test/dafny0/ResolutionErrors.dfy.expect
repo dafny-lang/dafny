@@ -216,13 +216,13 @@ ResolutionErrors.dfy(1479,20): Error: calls to methods with side-effects are not
 ResolutionErrors.dfy(1501,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1502,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1503,20): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(1506,21): Error: a while statement used inside a hint is not allowed to have a modifies clause
+ResolutionErrors.dfy(1506,21): Error: a loop statement used inside a hint is not allowed to have a modifies clause
 ResolutionErrors.dfy(1488,24): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(1501,18): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 ResolutionErrors.dfy(1530,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1531,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1532,11): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(1535,21): Error: a while statement used inside a hint is not allowed to have a modifies clause
+ResolutionErrors.dfy(1535,21): Error: a loop statement used inside a hint is not allowed to have a modifies clause
 ResolutionErrors.dfy(1523,24): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(1530,18): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 ResolutionErrors.dfy(1559,20): Error: only ghost methods can be called from this context

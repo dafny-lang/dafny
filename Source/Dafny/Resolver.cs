@@ -7045,8 +7045,8 @@ namespace Microsoft.Dafny
           }
         }
         return status;
-      } else if (stmt is WhileStmt) {
-        var s = (WhileStmt)stmt;
+      } else if (stmt is OneBodyLoopStmt) {
+        var s = (OneBodyLoopStmt)stmt;
         var status = TailRecursionStatus.NotTailRecursive;
         if (s.Body != null) {
           status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
@@ -8208,7 +8208,7 @@ namespace Microsoft.Dafny
           var s = (BreakStmt)stmt;
           s.IsGhost = mustBeErasable;
           if (s.IsGhost && !s.TargetStmt.IsGhost) {
-            var targetIsLoop = s.TargetStmt is WhileStmt || s.TargetStmt is AlternativeLoopStmt;
+            var targetIsLoop = s.TargetStmt is LoopStmt;
             Error(stmt, "ghost-context break statement is not allowed to break out of non-ghost " + (targetIsLoop ? "loop" : "structure"));
           }
 
@@ -13146,8 +13146,8 @@ namespace Microsoft.Dafny
           }
         }
 
-      } else if (stmt is WhileStmt) {
-        WhileStmt s = (WhileStmt)stmt;
+      } else if (stmt is OneBodyLoopStmt) {
+        var s = (OneBodyLoopStmt)stmt;
         if (s.Body != null) {
           CheckForallStatementBodyRestrictions(s.Body, kind);
         }
@@ -13280,10 +13280,10 @@ namespace Microsoft.Dafny
           }
         }
 
-      } else if (stmt is WhileStmt) {
-        var s = (WhileStmt)stmt;
+      } else if (stmt is OneBodyLoopStmt) {
+        var s = (OneBodyLoopStmt)stmt;
         if (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-          reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a while statement used inside {0} is not allowed to have a modifies clause", where);
+          reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a loop statement used inside {0} is not allowed to have a modifies clause", where);
         }
         if (s.Body != null) {
           CheckHintRestrictions(s.Body, localsAllowedInUpdates, where);

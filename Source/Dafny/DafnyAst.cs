@@ -8070,11 +8070,29 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class WhileStmt : LoopStmt
+  public abstract class OneBodyLoopStmt : LoopStmt {
+    public readonly BlockStmt/*?*/ Body;
+    public WhileStmt.LoopBodySurrogate/*?*/ BodySurrogate;  // set by Resolver; remains null unless Body==null
+
+    public OneBodyLoopStmt(IToken tok, IToken endTok,
+      List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
+      BlockStmt /*?*/ body)
+      : base(tok, endTok, invariants, decreases, mod) {
+      Body = body;
+    }
+
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        if (Body != null) {
+          yield return Body;
+        }
+      }
+    }
+  }
+
+  public class WhileStmt : OneBodyLoopStmt
   {
     public readonly Expression/*?*/ Guard;
-    public readonly BlockStmt/*?*/ Body;
-    public LoopBodySurrogate/*?*/ BodySurrogate;  // set by Resolver; remains null unless Body==null
 
     public class LoopBodySurrogate
     {
@@ -8090,20 +8108,12 @@ namespace Microsoft.Dafny {
     public WhileStmt(IToken tok, IToken endTok, Expression guard,
                      List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
                      BlockStmt body)
-      : base(tok, endTok, invariants, decreases, mod) {
+      : base(tok, endTok, invariants, decreases, mod, body) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       this.Guard = guard;
-      this.Body = body;
     }
 
-    public override IEnumerable<Statement> SubStatements {
-      get {
-        if (Body != null) {
-          yield return Body;
-        }
-      }
-    }
     public override IEnumerable<Expression> SubExpressions {
       get {
         foreach (var e in base.SubExpressions) { yield return e; }
@@ -8127,6 +8137,39 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(body != null);
+    }
+  }
+
+  public class ForLoopStmt : OneBodyLoopStmt {
+    public readonly LocalVariable Local;
+    public readonly Expression Lo;
+    public readonly Expression Hi;
+    public readonly bool GoingUp;
+
+    public ForLoopStmt(IToken tok, IToken endTok, LocalVariable local, Expression lo, Expression hi, bool goingUp,
+      List<AttributedExpression> invariants, Specification<FrameExpression> mod,
+      BlockStmt /*?*/ body)
+      : base(tok, endTok, invariants, new Specification<Expression>(new List<Expression>(), null), mod, body)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(local != null);
+      Contract.Requires(lo != null);
+      Contract.Requires(hi != null);
+      Contract.Requires(invariants != null);
+      Contract.Requires(mod != null);
+      Local = local;
+      Lo = lo;
+      Hi = hi;
+      GoingUp = goingUp;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in base.SubExpressions) { yield return e; }
+        yield return Lo;
+        yield return Hi;
+      }
     }
   }
 
@@ -8163,48 +8206,6 @@ namespace Microsoft.Dafny {
         foreach (var alt in Alternatives) {
           yield return alt.Guard;
         }
-      }
-    }
-  }
-
-  public class ForLoopStmt : LoopStmt {
-    public readonly LocalVariable Local;
-    public readonly Expression Lo;
-    public readonly Expression Hi;
-    public readonly bool GoingUp;
-    public readonly BlockStmt/*?*/ Body;
-
-    public ForLoopStmt(IToken tok, IToken endTok, LocalVariable local, Expression lo, Expression hi, bool goingUp,
-      List<AttributedExpression> invariants, Specification<FrameExpression> mod,
-      BlockStmt /*?*/ body)
-      : base(tok, endTok, invariants, new Specification<Expression>(new List<Expression>(), null), mod)
-    {
-      Contract.Requires(tok != null);
-      Contract.Requires(endTok != null);
-      Contract.Requires(local != null);
-      Contract.Requires(lo != null);
-      Contract.Requires(hi != null);
-      Contract.Requires(invariants != null);
-      Contract.Requires(mod != null);
-      Local = local;
-      Lo = lo;
-      Hi = hi;
-      GoingUp = goingUp;
-      Body = body;
-    }
-
-    public override IEnumerable<Statement> SubStatements {
-      get {
-        if (Body != null) {
-          yield return Body;
-        }
-      }
-    }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        yield return Lo;
-        yield return Hi;
       }
     }
   }
