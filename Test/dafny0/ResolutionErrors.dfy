@@ -3415,3 +3415,31 @@ module LetSuchThatGhost {
     if p then 6 else 8  // error: p is ghost
   }
 }
+
+// --------------- hint restrictions in non-while loops ------------------------------
+
+module HintRestrictionsOtherLoops {
+  class C {
+    function F(): int
+    {
+      calc {
+        6;
+        { var x := 8;
+          while
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
+          {
+            case x != 0 => x := x - 1;
+          }
+        }
+        6;
+        { for i := 0 to 8
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
+          {
+          }
+        }
+        6;
+      }
+      5
+    }
+  }
+}

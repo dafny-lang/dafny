@@ -13291,6 +13291,9 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
+        if (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
+          reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a loop statement used inside {0} is not allowed to have a modifies clause", where);
+        }
         foreach (var alt in s.Alternatives) {
           foreach (var ss in alt.Body) {
             CheckHintRestrictions(ss, localsAllowedInUpdates, where);

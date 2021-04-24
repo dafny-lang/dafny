@@ -526,4 +526,6 @@ ResolutionErrors.dfy(3346,9): Error: type parameter (T) passed to function MustB
 ResolutionErrors.dfy(3352,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
 ResolutionErrors.dfy(3367,9): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
 ResolutionErrors.dfy(3415,7): Error: ghost variables are allowed only in specification contexts
-523 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(3429,21): Error: a loop statement used inside a hint is not allowed to have a modifies clause
+ResolutionErrors.dfy(3436,21): Error: a loop statement used inside a hint is not allowed to have a modifies clause
+525 resolution/type errors detected in ResolutionErrors.dfy
