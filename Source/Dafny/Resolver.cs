@@ -7803,6 +7803,14 @@ namespace Microsoft.Dafny
           }
           Visit(s.SubStatements, inGhostContext);
           return false;
+        } else if (stmt is ForLoopStmt) {
+          var s = (ForLoopStmt)stmt;
+          // all subexpressions are ghost, except the bounds
+          Visit(s.LoopSpecificationExpressions, true);
+          Visit(s.Lo, inGhostContext);
+          Visit(s.Hi, inGhostContext);
+          Visit(s.SubStatements, inGhostContext);
+          return false;
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
           CheckTypeInstantiation(s.Tok, s.Method.WhatKind, s.Method.Name, s.Method.TypeArgs, s.MethodSelect.TypeApplication_JustMember, inGhostContext);
@@ -8459,6 +8467,23 @@ namespace Microsoft.Dafny
           }
           s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost)));
           s.IsGhost = s.IsGhost || (!s.Decreases.Expressions.Exists(e => e is WildcardExpr) && s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost)));
+
+        } else if (stmt is ForLoopStmt) {
+          var s = (ForLoopStmt)stmt;
+          s.IsGhost = mustBeErasable || resolver.UsesSpecFeatures(s.Lo) || resolver.UsesSpecFeatures(s.Hi);
+          if (!mustBeErasable && s.IsGhost) {
+            resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
+          }
+          Contract.Assert(s.Decreases.Expressions.Count == 0);
+          if (s.IsGhost && s.Mod.Expressions != null) {
+            s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
+          }
+          if (s.Body != null) {
+            Visit(s.Body, s.IsGhost);
+            if (s.Body.IsGhost) {
+              s.IsGhost = true;
+            }
+          }
 
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
@@ -10911,15 +10936,39 @@ namespace Microsoft.Dafny
         var s = (AlternativeStmt)stmt;
         ResolveAlternatives(s.Alternatives, null, codeContext);
 
-      } else if (stmt is WhileStmt) {
-        WhileStmt s = (WhileStmt)stmt;
+      } else if (stmt is OneBodyLoopStmt) {
+        var s = (OneBodyLoopStmt)stmt;
         var fvs = new HashSet<IVariable>();
         var usesHeap = false;
-        if (s.Guard != null) {
-          ResolveExpression(s.Guard, new ResolveOpts(codeContext, true));
-          Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
-          Translator.ComputeFreeVariables(s.Guard, fvs, ref usesHeap);
-          ConstrainTypeExprBool(s.Guard, "condition is expected to be of type bool, but is {0}");
+        if (s is WhileStmt whileS && whileS.Guard != null) {
+          ResolveExpression(whileS.Guard, new ResolveOpts(codeContext, true));
+          Contract.Assert(whileS.Guard.Type != null);  // follows from postcondition of ResolveExpression
+          Translator.ComputeFreeVariables(whileS.Guard, fvs, ref usesHeap);
+          ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
+        } else if (s is ForLoopStmt forS) {
+          var local = forS.Local;
+          int prevErrorCount = reporter.Count(ErrorLevel.Error);
+          ResolveType(local.Tok, local.OptionalType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+            local.type = local.OptionalType;
+          } else {
+            local.type = new InferredTypeProxy();
+          }
+          var err = new TypeConstraint.ErrorMsgWithToken(local.Tok, "index variable is expected to be of an integer type (got {0})", local.Type);
+          ConstrainToIntegerType(local.Tok, local.Type, false, err);
+          fvs.Add(local);
+
+          ResolveExpression(forS.Lo, new ResolveOpts(codeContext, true));
+          ResolveExpression(forS.Hi, new ResolveOpts(codeContext, true));
+          Translator.ComputeFreeVariables(forS.Lo, fvs, ref usesHeap);
+          Translator.ComputeFreeVariables(forS.Hi, fvs, ref usesHeap);
+          AddAssignableConstraint(forS.Lo.tok, forS.Local.Type, forS.Lo.Type, "lower bound (of type {1}) not assignable to index variable (of type {0})");
+          AddAssignableConstraint(forS.Hi.tok, forS.Local.Type, forS.Hi.Type, "upper bound (of type {1}) not assignable to index variable (of type {0})");
+
+          // Create a new scope, add the local to the scope, and resolve the local's attributes
+          scope.PushMarker();
+          ScopePushAndReport(scope, local, "index-variable");
+          ResolveAttributes(local.Attributes, local, new ResolveOpts(codeContext, true));
         }
 
         ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, fvs, ref usesHeap);
@@ -10939,6 +10988,10 @@ namespace Microsoft.Dafny
           }
           text = string.Format("note, this loop has no body{0}", text.Length == 0 ? "" : " (loop frame: " + text + ")");
           reporter.Warning(MessageSource.Resolver, s.Tok, text);
+        }
+
+        if (s is ForLoopStmt) {
+          scope.PopMarker();
         }
 
       } else if (stmt is AlternativeLoopStmt) {

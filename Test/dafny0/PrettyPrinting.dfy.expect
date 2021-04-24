@@ -77,4 +77,8 @@ PrettyPrinting.dfy(18,4): Error: skeleton statements are allowed only in refinin
 PrettyPrinting.dfy(18,4): Warning: note, this loop has no body
 PrettyPrinting.dfy(19,4): Error: skeleton statements are allowed only in refining methods
 PrettyPrinting.dfy(33,4): Warning: note, this forall statement has no body
+PrettyPrinting.dfy(51,4): Warning: note, this loop has no body (loop frame: i)
+PrettyPrinting.dfy(52,4): Warning: note, this loop has no body (loop frame: i)
+PrettyPrinting.dfy(53,4): Warning: note, this loop has no body (loop frame: i, a)
+PrettyPrinting.dfy(56,4): Warning: note, this loop has no body (loop frame: i, a)
 2 resolution/type errors detected in PrettyPrinting.dfy
