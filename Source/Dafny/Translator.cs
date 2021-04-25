@@ -8317,7 +8317,7 @@ namespace Microsoft.Dafny {
         } else if (toType.IsBitVectorType) {
           r = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, r);
           r = IntToBV(tok, r, toType);
-       } else if (toType.IsBigOrdinalType) {
+        } else if (toType.IsBigOrdinalType) {
           // do nothing
         } else {
           Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");

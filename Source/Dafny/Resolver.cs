@@ -6494,9 +6494,9 @@ namespace Microsoft.Dafny
                 if (t is InferredTypeProxy && ((InferredTypeProxy)t).T == null) {
                   resolver.reporter.Error(MessageSource.Resolver, stexpr.tok, "type of type parameter could not be determined; please specify the type explicitly");
                 }
+              }
             }
           }
-        }
 
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
