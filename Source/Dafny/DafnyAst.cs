@@ -4331,7 +4331,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Return the list of parent types of "this", where there type parameters
+    /// Return the list of parent types of "this", where the type parameters
     /// of "this" have been instantiated by "typeArgs". For example, for a subset
     /// type, the return value is the RHS type, appropriately instantiated. As
     /// two other examples, given
