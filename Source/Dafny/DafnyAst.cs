@@ -1550,6 +1550,15 @@ namespace Microsoft.Dafny {
     /// Returns true if t and u have the same head type.
     /// It is assumed that t and u have been normalized and expanded by the caller, according
     /// to its purposes.
+    /// The value of "allowNonNull" matters only if both "t" and "u" denote reference types.
+    /// If "t" is a non-null reference type "T" or a possibly-null type "T?"
+    /// and "u" is a non-null reference type "U" or a possibly-null type "U?", then
+    /// SameHead returns:
+    ///            !allowNonNull     allowNonNull
+    ///   T?  U?        true           true
+    ///   T?  U         false          true
+    ///   T   U?        false          false
+    ///   T   U         true           true
     /// </summary>
     public static bool SameHead(Type t, Type u, bool allowNonNull = false) {
       Contract.Requires(t != null);
