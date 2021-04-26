@@ -1560,7 +1560,7 @@ namespace Microsoft.Dafny {
     ///   T   U?        false          false
     ///   T   U         true           true
     /// </summary>
-    public static bool SameHead(Type t, Type u, bool allowNonNull = false) {
+    public static bool SameHead(Type t, Type u) {
       Contract.Requires(t != null);
       Contract.Requires(u != null);
       if (t is TypeProxy) {
@@ -1578,8 +1578,7 @@ namespace Microsoft.Dafny {
       } else {
         var udtT = (UserDefinedType)t;
         var udtU = u as UserDefinedType;
-        return udtU != null && (udtT.ResolvedClass == udtU.ResolvedClass
-                   || (allowNonNull && udtU.ResolvedClass is NonNullTypeDecl nudtU && udtT.ResolvedClass == nudtU.Class));
+        return udtU != null && udtT.ResolvedClass == udtU.ResolvedClass;
       }
     }
 

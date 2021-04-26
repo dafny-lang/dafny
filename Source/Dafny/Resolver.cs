@@ -4125,10 +4125,17 @@ namespace Microsoft.Dafny
         var lhsWithProxyArgs = Type.HeadWithProxyArgs(lhs);
         ConstrainSubtypeRelation(lhsWithProxyArgs, rhs, errMsg, false, allowDecisions);
         ConstrainAssignableTypeArgs(lhs, lhsWithProxyArgs.TypeArgs, lhs.TypeArgs, errMsg, out moreXConstraints);
-        if (Type.SameHead(lhs, rhs, true) && lhs.AsCollectionType == null) {
-          bool more2;
-          ConstrainAssignableTypeArgs(lhs, lhs.TypeArgs, rhs.TypeArgs, errMsg, out more2);
-          moreXConstraints = moreXConstraints || more2;
+        if (lhs.AsCollectionType == null) {
+          var sameHead = Type.SameHead(lhs, rhs);
+          if (!sameHead && lhs is UserDefinedType udtLhs && rhs is UserDefinedType udtRhs) {
+            // also allow the case where lhs is a possibly-null type and rhs is a non-null type
+            sameHead = udtLhs.ResolvedClass == (udtRhs.ResolvedClass as NonNullTypeDecl)?.Class;
+          }
+          if (sameHead) {
+            bool more2;
+            ConstrainAssignableTypeArgs(lhs, lhs.TypeArgs, rhs.TypeArgs, errMsg, out more2);
+            moreXConstraints = moreXConstraints || more2;
+          }
         }
       }
     }
