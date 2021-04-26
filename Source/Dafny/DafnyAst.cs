@@ -5813,10 +5813,9 @@ namespace Microsoft.Dafny {
       List<Type> result = new List<Type>(base.ParentTypes(typeArgs));
 
       foreach (var rhsParentType in Class.ParentTypes(typeArgs)) {
-        var rhsParentUdt = rhsParentType as UserDefinedType;
-        if (rhsParentUdt != null && rhsParentUdt.ResolvedClass is ClassDecl) {
-          result.Add(UserDefinedType.CreateNonNullType(rhsParentUdt));
-        }
+        var rhsParentUdt = (UserDefinedType)rhsParentType; // all parent types of .Class are expected to be possibly-null class types
+        Contract.Assert(rhsParentUdt.ResolvedClass is ClassDecl);
+        result.Add(UserDefinedType.CreateNonNullType(rhsParentUdt));
       }
 
       return result;
