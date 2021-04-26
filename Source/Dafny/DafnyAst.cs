@@ -1472,10 +1472,10 @@ namespace Microsoft.Dafny {
     /// Returns "true" iff "sub" is a subtype of "super".
     /// Expects that neither "super" nor "sub" is an unresolved proxy.
     /// </summary>
-    public static bool IsSupertype(Type super, Type sub, bool ignoreTypeParameters = false) {
+    public static bool IsSupertype(Type super, Type sub) {
       Contract.Requires(super != null);
       Contract.Requires(sub != null);
-      return sub.IsSubtypeOf(super, ignoreTypeParameters);
+      return sub.IsSubtypeOf(super, false);
     }
 
     /// <summary>
