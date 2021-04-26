@@ -6613,6 +6613,18 @@ namespace Microsoft.Dafny
         } else if (expr is IdentifierExpr) {
           // by specializing for IdentifierExpr, error messages will be clearer
           CheckTypeIsDetermined(expr.tok, expr.Type, "variable");
+        } else if (expr is ConversionExpr) {
+          var e = (ConversionExpr)expr;
+          if (e.ToType.IsRefType) {
+            var fromType = e.E.Type;
+            Contract.Assert(fromType.IsRefType);
+            if (fromType.IsSubtypeOf(e.ToType, false, true) || e.ToType.IsSubtypeOf(fromType, false, true)) {
+              // looks good
+            } else {
+              resolver.reporter.Error(MessageSource.Resolver, e.tok,
+                "a type cast to a reference type ({0}) must be from a compatible type (got {1}); this cast could never succeed", e.ToType, fromType);
+            }
+          }
         } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
           if (expr is BinaryExpr) {
             var e = (BinaryExpr)expr;
@@ -14608,6 +14620,8 @@ namespace Microsoft.Dafny
             AddXConstraint(expr.tok, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (e.ToType.IsBigOrdinalType) {
             AddXConstraint(expr.tok, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+          } else if (e.ToType.IsRefType) {
+            AddXConstraint(expr.tok, "IsRefType", e.E.Type, "type cast to a reference type is allowed only from reference types (got {0})");
           } else {
             reporter.Error(MessageSource.Resolver, expr, "type conversions are not supported to this type (got {0})", e.ToType);
           }

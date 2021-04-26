@@ -254,8 +254,6 @@ ResolutionErrors.dfy(1732,23): Error: the type of the bound variable 'u' could n
 ResolutionErrors.dfy(1735,27): Error: the type of the bound variable 'u' could not be determined
 ResolutionErrors.dfy(1739,40): Error: the type of the bound variable 'u' could not be determined
 ResolutionErrors.dfy(1741,38): Error: the type of the bound variable 'u' could not be determined
-ResolutionErrors.dfy(1781,11): Error: type conversions are not supported to this type (got J)
-ResolutionErrors.dfy(1784,11): Error: type conversions are not supported to this type (got C)
 ResolutionErrors.dfy(1785,19): Error: Undeclared top-level type or type parameter: realint (did you forget to qualify a name or declare a module import 'opened'?)
 ResolutionErrors.dfy(1793,44): Error: range of comprehension must be of type bool (instead got C)
 ResolutionErrors.dfy(1800,21): Error: Duplicate member name: P
@@ -528,4 +526,4 @@ ResolutionErrors.dfy(3346,9): Error: type parameter (T) passed to function MustB
 ResolutionErrors.dfy(3352,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
 ResolutionErrors.dfy(3367,9): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
 ResolutionErrors.dfy(3415,7): Error: ghost variables are allowed only in specification contexts
-525 resolution/type errors detected in ResolutionErrors.dfy
+523 resolution/type errors detected in ResolutionErrors.dfy
