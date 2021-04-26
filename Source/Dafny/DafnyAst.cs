@@ -1716,21 +1716,19 @@ namespace Microsoft.Dafny {
           Contract.Assert(udtA.TypeArgs.Count == 0);
           return udtA.ResolvedClass == b.AsTypeParameter;
         } else {
-          while (true) {
-            var udtB = b as UserDefinedType;
-            if (udtB == null) {
-              return false;
-            } else if (udtA.ResolvedClass != udtB.ResolvedClass) {
-              return false;
-            } else {
-              Contract.Assert(udtA.TypeArgs.Count == udtB.TypeArgs.Count);
-              for (int i = 0; i < udtA.TypeArgs.Count; i++) {
-                if (!Equal_Improved(udtA.TypeArgs[i], udtB.TypeArgs[i])) {
-                  return false;
-                }
+          var udtB = b as UserDefinedType;
+          if (udtB == null) {
+            return false;
+          } else if (udtA.ResolvedClass != udtB.ResolvedClass) {
+            return false;
+          } else {
+            Contract.Assert(udtA.TypeArgs.Count == udtB.TypeArgs.Count);
+            for (int i = 0; i < udtA.TypeArgs.Count; i++) {
+              if (!Equal_Improved(udtA.TypeArgs[i], udtB.TypeArgs[i])) {
+                return false;
               }
-              return true;
             }
+            return true;
           }
         }
       } else if (a is Resolver_IdentifierExpr.ResolverType_Module) {
