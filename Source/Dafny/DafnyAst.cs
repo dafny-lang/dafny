@@ -1448,8 +1448,9 @@ namespace Microsoft.Dafny {
         target = target.NormalizeExpand(); // also lop off non-null constraint
       }
 
-      if (source.IsSubtypeOf(target, false)) {
-        // Every value of "source" is also a member of type "target", so no run-time test is needed.
+      if (source.IsSubtypeOf(target, false, true)) {
+        // Every value of "source" (except possibly "null") is also a member of type "target",
+        // so no run-time test is needed (except possibly a null check).
         return true;
 #if SOON  // include in a coming PR that sorts this one in the compilers
       } else if (target is UserDefinedType udt && (udt.ResolvedClass is SubsetTypeDecl || udt.ResolvedClass is NewtypeDecl)) {
@@ -1475,7 +1476,7 @@ namespace Microsoft.Dafny {
     public static bool IsSupertype(Type super, Type sub) {
       Contract.Requires(super != null);
       Contract.Requires(sub != null);
-      return sub.IsSubtypeOf(super, false);
+      return sub.IsSubtypeOf(super, false, false);
     }
 
     /// <summary>
@@ -2260,16 +2261,30 @@ namespace Microsoft.Dafny {
       return new List<Type>();
     }
 
-    public virtual bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+    /// <summary>
+    /// Return whether or not "this" is a subtype of "super".
+    /// If "ignoreTypeArguments" is "true", then proceed as if the type arguments were equal.
+    /// If "ignoreNullity" is "true", then the difference between a non-null reference type C
+    /// and the corresponding nullable reference type C? is ignored.
+    /// </summary>
+    public virtual bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       Contract.Requires(super != null);
 
       super = super.NormalizeExpandKeepConstraints();
       var sub = NormalizeExpandKeepConstraints();
-      if (SameHead(sub, super)) {
+      bool equivalentHeads = SameHead(sub, super);
+      if (!equivalentHeads && ignoreNullity) {
+        if (super is UserDefinedType a && sub is UserDefinedType b) {
+          var clA = (a.ResolvedClass as NonNullTypeDecl)?.Class ?? a.ResolvedClass;
+          var clB = (b.ResolvedClass as NonNullTypeDecl)?.Class ?? b.ResolvedClass;
+          equivalentHeads = clA == clB;
+        }
+      }
+      if (equivalentHeads) {
         return ignoreTypeArguments || CompatibleTypeArgs(super, sub);
       }
 
-      return ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments));
+      return ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
     }
 
     public static bool CompatibleTypeArgs(Type super, Type sub) {
@@ -2368,11 +2383,11 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.NormalizeExpand(keepConstraints) is IntType;
     }
-    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       if (super is IntVarietiesSupertype) {
         return true;
       }
-      return base.IsSubtypeOf(super, ignoreTypeArguments);
+      return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
     }
   }
 
@@ -2384,11 +2399,11 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.NormalizeExpand(keepConstraints) is RealType;
     }
-    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       if (super is RealVarietiesSupertype) {
         return true;
       }
-      return base.IsSubtypeOf(super, ignoreTypeArguments);
+      return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
     }
   }
 
@@ -2401,11 +2416,11 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.NormalizeExpand(keepConstraints) is BigOrdinalType;
     }
-    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       if (super is IntVarietiesSupertype) {
         return true;
       }
-      return base.IsSubtypeOf(super, ignoreTypeArguments);
+      return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
     }
   }
 
@@ -2433,11 +2448,11 @@ namespace Microsoft.Dafny {
       var bv = that.NormalizeExpand(keepConstraints) as BitvectorType;
       return bv != null && bv.Width == Width;
     }
-    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       if (super is IntVarietiesSupertype) {
         return true;
       }
-      return base.IsSubtypeOf(super, ignoreTypeArguments);
+      return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
     }
   }
 
@@ -3092,19 +3107,19 @@ namespace Microsoft.Dafny {
       return ResolvedClass != null ? ResolvedClass.ParentTypes(TypeArgs) : base.ParentTypes();
     }
 
-    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       super = super.NormalizeExpandKeepConstraints();
 
       // Specifically handle object as the implicit supertype of classes and traits.
       // "object?" is handled by Builtins rather than the Type hierarchy, so unfortunately
       // it can't be returned in ParentTypes().
-      if (IsRefType && super.IsObjectQ) {
-        return true;
-      } else if (IsNonNullRefType && super.IsObject) {
-        return true;
+      if (super.IsObjectQ) {
+        return IsRefType;
+      } else if (super.IsObject) {
+        return ignoreNullity ? IsRefType : IsNonNullRefType;
       }
 
-      return base.IsSubtypeOf(super, ignoreTypeArguments);
+      return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
     }
   }
 

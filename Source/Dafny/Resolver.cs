@@ -4773,7 +4773,7 @@ namespace Microsoft.Dafny
                    || !ProxyWithNoSubTypeConstraint(u, resolver)
                    || (Types[0].NormalizeExpandKeepConstraints().IsNonNullRefType && u is TypeProxy && resolver.HasApplicableNullableRefTypeConstraint(new HashSet<TypeProxy>() {(TypeProxy)u})))) {
                 // This is the best case.  We convert Assignable(t, u) to the subtype constraint base(t) :> u.
-                if (CheckTypeInference_Visitor.IsDetermined(u) && t.IsSubtypeOf(u, false) && t.IsRefType) {
+                if (CheckTypeInference_Visitor.IsDetermined(u) && t.IsSubtypeOf(u, false, true) && t.IsRefType) {
                   // But we also allow cases where the rhs is a proper supertype of the lhs, and let the verifier
                   // determine whether the rhs is provably an instance of the lhs.
                   resolver.ConstrainAssignable((NonProxyType)u, (NonProxyType)t, errorMsg, out moreXConstraints, fullstrength);
