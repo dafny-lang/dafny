@@ -1,25 +1,25 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-module ParameterLessTypes {
-  trait A { }
-  trait B { }
-  trait C extends A { }
-  trait D extends B, C { }
-  class K { }
-  class L extends A { }
-  class M extends D { }
+module Types {
+  trait A<X> { }
+  trait B<X> { }
+  trait C<Y> extends A<seq<Y>> { }
+  trait D<Z> extends B<int>, C<Z> { }
+  class K<X> { }
+  class L<Y> extends A<Y> { }
+  class M<W> extends D<(W, W)> { }
   type Opaque
-  type RefSyn = L
-  type RefSyn? = L?
+  type RefSyn = L<int>
+  type RefSyn? = L?<int>
   type ValSyn = ORDINAL
-  type RefSubset = d: D | true
+  type RefSubset = d: D<int> | true
 }
 
 module NoReferenceTypes {
-  import opened ParameterLessTypes
+  import opened Types
 
-  method Assignment(m: M, m0: M?) {
+  method Assignment<V>(m: M, m0: M?) {
     var i: int := m; // error: M not assignable to int
     var o: Opaque := m; // error: M not assignable to Opaque
     var vs: ValSyn := m; // error: M not assignable to ValSyn
@@ -39,9 +39,9 @@ module NoReferenceTypes {
 }
 
 module Assignments {
-  import opened ParameterLessTypes
+  import opened Types
 
-  method AssignmentToSupertype(m: M, m0: M?) {
+  method AssignmentToSupertype<V>(m: M, m0: M?) {
     var a: A := m;
     var b: B := m;
     var c: C := m;
@@ -81,9 +81,9 @@ module Assignments {
 }
 
 module As {
-  import opened ParameterLessTypes
+  import opened Types
 
-  method AsToSupertype(m: M, m0: M?) {
+  method AsToSupertype<V>(m: M, m0: M?) {
     var a := m as A;
     var b := m as B;
     var c := m as C;
@@ -119,7 +119,7 @@ module As {
     m0' := m0 as M?;
   }
 
-  method AsToSubtype(o: object, a: A, b: B, c: C, d: D, k: K, l: L, rs: RefSyn) returns (m: M, m0: M?) {
+  method AsToSubtype<V>(o: object, a: A<seq<(V, V)>>, b: B<int>, c: C<(V, V)>, d: D<(V, V)>, k: K, l: L, rs: RefSyn) returns (m: M, m0: M?) {
     m := o as M;
     m := a as M;
     m := b as M;
@@ -139,7 +139,7 @@ module As {
     m0 := rs as M?; // error: RefSyn is not assignable to M?
   }
 
-  method AsToSubtype?(o0: object?, a0: A?, b0: B?, c0: C?, d0: D?, k0: K?, l0: L?, rs0: RefSyn?) returns (m: M, m0: M?) {
+  method AsToSubtype?<V>(o0: object?, a0: A?<seq<(V, V)>>, b0: B?<int>, c0: C?<(V, V)>, d0: D?<(V, V)>, k0: K?, l0: L?, rs0: RefSyn?) returns (m: M, m0: M?) {
     m := o0 as M;
     m := a0 as M;
     m := b0 as M;
