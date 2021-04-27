@@ -3443,6 +3443,9 @@ namespace Microsoft.Dafny {
         RedirectStandardError = false,
       };
       psi.EnvironmentVariables["GOPATH"] = GoPath(targetFilename);
+      // Dafny compiles to the old Go package system, whereas Go has moved on to a module
+      // system. Until Dafny's Go compiler catches up, the GO111MODULE variable has to be set.
+      psi.EnvironmentVariables["GO111MODULE"] = "auto";
 
       try {
         using (var process = Process.Start(psi)) {
