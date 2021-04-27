@@ -63,14 +63,14 @@ some-terms-do-not-look-like-the-triggers-they-match.dfy(137,6): Info: Selected t
    {x in u}, {x in s}
 some-terms-do-not-look-like-the-triggers-they-match.dfy(148,18): Info: Selected triggers: {x in map[2 := 20, 3 := 30, 5 := 50]}
 some-terms-do-not-look-like-the-triggers-they-match.dfy(149,18): Info: Selected triggers: {x in F(map[2 := 20, 3 := 30, 5 := 50])}
-some-terms-do-not-look-like-the-triggers-they-match.dfy(156,12): Info: Selected triggers: {x < s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(156,12): Info: Selected triggers: {x <= s}
 some-terms-do-not-look-like-the-triggers-they-match.dfy(157,12): Info: Selected triggers: {x <= s}
 some-terms-do-not-look-like-the-triggers-they-match.dfy(158,12): Info: Selected triggers: {x >= s}
-some-terms-do-not-look-like-the-triggers-they-match.dfy(159,12): Info: Selected triggers: {x > s}
-some-terms-do-not-look-like-the-triggers-they-match.dfy(161,12): Info: Selected triggers: {x < ms}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(159,12): Info: Selected triggers: {x >= s}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(161,12): Info: Selected triggers: {x <= ms}
 some-terms-do-not-look-like-the-triggers-they-match.dfy(162,12): Info: Selected triggers: {x <= ms}
 some-terms-do-not-look-like-the-triggers-they-match.dfy(163,12): Info: Selected triggers: {x >= ms}
-some-terms-do-not-look-like-the-triggers-they-match.dfy(164,12): Info: Selected triggers: {x > ms}
+some-terms-do-not-look-like-the-triggers-they-match.dfy(164,12): Info: Selected triggers: {x >= ms}
 some-terms-do-not-look-like-the-triggers-they-match.dfy(166,12): Warning: /!\ No terms found to trigger on.
 some-terms-do-not-look-like-the-triggers-they-match.dfy(167,12): Warning: /!\ No terms found to trigger on.
 some-terms-do-not-look-like-the-triggers-they-match.dfy(152,9): Error: assertion violation
@@ -98,4 +98,4 @@ Execution trace:
     (0,0): anon53_Then
     (0,0): anon34
 
-Dafny program verifier finished with 3 verified, 1 error
+Dafny program verifier finished with 4 verified, 1 error
