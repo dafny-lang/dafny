@@ -8323,6 +8323,8 @@ namespace Microsoft.Dafny {
           Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
         }
         return r;
+      } else if (fromType.IsRefType) {
+        return r;
       } else {
         Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
       }
@@ -8369,6 +8371,13 @@ namespace Microsoft.Dafny {
           builder.Add(Bpl.Cmd.SimpleAssign(tok, o, rhs));
         }
       };
+
+      Contract.Assert(expr.Type.IsRefType == toType.IsRefType);
+      if (toType.IsRefType) {
+        PutSourceIntoLocal();
+        CheckSubrange(tok, o, expr.Type, toType, builder);
+        return;
+      }
 
       if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsNumericBased(Type.NumericPersuasion.Real)) {
         // this operation is well-formed only if the real-based number represents an integer
