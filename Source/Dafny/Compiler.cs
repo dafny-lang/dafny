@@ -4346,7 +4346,14 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        EmitConversionExpr(e, inLetExprBody, wr);
+        Contract.Assert(e.ToType.IsRefType == e.E.Type.IsRefType);
+        if (e.ToType.IsRefType) {
+          var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.tok, wr);
+          w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, w);
+          TrExpr(e.E, w, inLetExprBody);
+        } else {
+          EmitConversionExpr(e, inLetExprBody, wr);
+        }
 
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;

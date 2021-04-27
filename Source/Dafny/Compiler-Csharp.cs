@@ -2292,25 +2292,34 @@ namespace Microsoft.Dafny
     protected override TargetWriter EmitDowncast(Type from, Type to, Bpl.IToken tok, TargetWriter wr) {
       from = from.NormalizeExpand();
       to = to.NormalizeExpand();
-      Contract.Assert(Type.SameHead(from, to));
+      Contract.Assert(from.IsRefType == to.IsRefType);
 
-      wr.Write("(");
-      var w = wr.Fork();
-      wr.Write(").DowncastClone<");
-      var wTypeArgs = wr.Fork();
-      wr.Write(">(");
-      var wConverters = wr.Fork();
-      wr.Write(")");
-      Contract.Assert(from.TypeArgs.Count == to.TypeArgs.Count);
-      var sep = "";
-      for (var i = 0; i < to.TypeArgs.Count; i++) {
-        var ta = to.TypeArgs[i];
-        var fa = from.TypeArgs[i];
-        wTypeArgs.Write("{0}{1}", sep, TypeName(ta, wTypeArgs, tok));
-        wConverters.Write("{0}{1}", sep, DowncastConverter(fa, ta, wConverters, tok));
-        sep = ", ";
+      if (to.IsRefType) {
+        wr.Write($"({TypeName(to, wr, tok)})(");
+        var w = wr.Fork();
+        wr.Write(")");
+        return w;
+      } else {
+        Contract.Assert(Type.SameHead(from, to));
+
+        wr.Write("(");
+        var w = wr.Fork();
+        wr.Write(").DowncastClone<");
+        var wTypeArgs = wr.Fork();
+        wr.Write(">(");
+        var wConverters = wr.Fork();
+        wr.Write(")");
+        Contract.Assert(from.TypeArgs.Count == to.TypeArgs.Count);
+        var sep = "";
+        for (var i = 0; i < to.TypeArgs.Count; i++) {
+          var ta = to.TypeArgs[i];
+          var fa = from.TypeArgs[i];
+          wTypeArgs.Write("{0}{1}", sep, TypeName(ta, wTypeArgs, tok));
+          wConverters.Write("{0}{1}", sep, DowncastConverter(fa, ta, wConverters, tok));
+          sep = ", ";
+        }
+        return w;
       }
-      return w;
     }
 
     string DowncastConverter(Type from, Type to, TargetWriter errorWr, Bpl.IToken tok) {
