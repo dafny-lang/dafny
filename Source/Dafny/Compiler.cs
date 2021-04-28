@@ -3996,7 +3996,7 @@ namespace Microsoft.Dafny {
         wr = wrOrig;
         EndStmt(wr);
         if (returnStyleOutCollector != null) {
-          EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outFormalTypes, outLhsTypes, s.Tok);
+          EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outFormalTypes, outTypes, s.Tok);
         }
 
         // assign to the actual LHSs
