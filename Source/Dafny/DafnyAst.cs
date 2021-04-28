@@ -10491,15 +10491,35 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ConversionExpr : UnaryExpr
+  public abstract class TypeUnaryExpr : UnaryExpr
   {
     public readonly Type ToType;
-    public ConversionExpr(IToken tok, Expression expr, Type toType)
+    public TypeUnaryExpr(IToken tok, Expression expr, Type toType)
       : base(tok, expr) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
       Contract.Requires(toType != null);
       ToType = toType;
+    }
+  }
+
+  public class ConversionExpr : TypeUnaryExpr
+  {
+    public ConversionExpr(IToken tok, Expression expr, Type toType)
+      : base(tok, expr, toType) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expr != null);
+      Contract.Requires(toType != null);
+    }
+  }
+
+  public class TypeTestExpr : TypeUnaryExpr
+  {
+    public TypeTestExpr(IToken tok, Expression expr, Type toType)
+      : base(tok, expr, toType) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expr != null);
+      Contract.Requires(toType != null);
     }
   }
 

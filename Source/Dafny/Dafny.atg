@@ -302,8 +302,8 @@ bool IsBitwiseXorOp() {
 bool IsBitwiseOp() {
   return IsBitwiseAndOp() || IsBitwiseOrOp() || IsBitwiseXorOp();
 }
-bool IsAs() {
-  return la.kind == _as;
+bool IsAsOrIs() {
+  return la.kind == _as || la.kind == _is;
 }
 bool IsRelOp() {
   return la.val == "=="
@@ -486,6 +486,7 @@ bool IsGenericInstantiation(bool inExpressionContext) {
     case _neq:
     case _neqAlt:
     case _as:
+    case _is:
     case _by:
     case _in:
     case _openAngleBracket:
@@ -764,6 +765,7 @@ TOKENS
   then = "then".
   else = "else".
   as = "as".
+  is = "is".
   by = "by".
   in = "in".
   decreases = "decreases".
@@ -3550,9 +3552,12 @@ BitvectorFactor<out Expression e0, bool allowLemma, bool allowLambda, bool allow
 AsExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. IToken tok; IToken x; Type toType; .)
   UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
-  { IF(IsAs())
-    ( "as" | "is" )                         (. tok = t; .)
-    TypeAndToken<out x, out toType, true>   (. e = new ConversionExpr(tok, e, toType); .)
+  { IF(IsAsOrIs())
+    ( "as"                                  (. tok = t; .)
+      TypeAndToken<out x, out toType, true> (. e = new ConversionExpr(tok, e, toType); .)
+    | "is"                                  (. tok = t; .)
+      TypeAndToken<out x, out toType, true> (. e = new TypeTestExpr(tok, e, toType); .)
+    )
   }
   .
 

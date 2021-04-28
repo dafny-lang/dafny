@@ -18588,6 +18588,9 @@ namespace Microsoft.Dafny {
             } else if (e is ConversionExpr) {
               var ee = (ConversionExpr)e;
               newExpr = new ConversionExpr(expr.tok, se, ee.ToType);
+            } else if (e is TypeTestExpr) {
+              var ee = (TypeTestExpr)e;
+              newExpr = new TypeTestExpr(expr.tok, se, ee.ToType);
             } else {
               Contract.Assert(false);  // unexpected UnaryExpr subtype
             }
