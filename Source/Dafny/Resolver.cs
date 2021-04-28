@@ -6246,6 +6246,9 @@ namespace Microsoft.Dafny
         public abstract IToken Tok { get; }
         bool reported;
         public void FlagAsError() {
+          if (DafnyOptions.O.TypeInferenceDebug) {
+            Console.WriteLine($"DEBUG: flagging error: {ApproximateErrorMessage()}");
+          }
           TypeConstraint.ErrorsToBeReported.Add(this);
         }
         internal void ReportAsError(ErrorReporter reporter) {
@@ -6267,6 +6270,8 @@ namespace Microsoft.Dafny
           }
           reported = true;
         }
+
+        protected abstract string ApproximateErrorMessage();
       }
       public class ErrorMsgWithToken : ErrorMsg
       {
@@ -6284,6 +6289,8 @@ namespace Microsoft.Dafny
           this.Msg = msg;
           this.MsgArgs = msgArgs;
         }
+
+        protected override string ApproximateErrorMessage() => string.Format(Msg, MsgArgs);
       }
       public class ErrorMsgWithBase : ErrorMsg
       {
@@ -6301,6 +6308,8 @@ namespace Microsoft.Dafny
           Msg = msg;
           MsgArgs = msgArgs;
         }
+
+        protected override string ApproximateErrorMessage() => string.Format(Msg, MsgArgs);
       }
       public readonly ErrorMsg errorMsg;
       public TypeConstraint(Type super, Type sub, ErrorMsg errMsg, bool keepConstraints) {
