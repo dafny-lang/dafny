@@ -2266,10 +2266,12 @@ namespace Microsoft.Dafny {
           if (c == program.BuiltIns.ObjectDecl) {
             rhs = Bpl.Expr.True;
           } else if (c is TraitDecl) {
-            //generating $o == null || implements$J(dtype(x))
+            //generating $o == null || implements$J(dtype(x), typeArgs)
             var t = (TraitDecl)c;
             var dtypeFunc = FunctionCall(o.tok, BuiltinFunction.DynamicType, null, o);
-            Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.FullSanitizedName, Bpl.Type.Bool, new List<Expr> { dtypeFunc });
+            var implementsJ_Arguments = new List<Expr> { dtypeFunc }; // TODO: also needs type parameters
+            implementsJ_Arguments.AddRange(tyexprs);
+            Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.FullSanitizedName, Bpl.Type.Bool, implementsJ_Arguments);
             rhs = BplOr(o_null, implementsFunc);
           } else {
             rhs = BplOr(o_null, DType(o, o_ty));
@@ -2281,19 +2283,25 @@ namespace Microsoft.Dafny {
       });
 
       if (c is TraitDecl) {
-        //this adds: function implements$J(Ty): bool;
+        //this adds: function implements$J(Ty, typeArgs): bool;
+        var vars = MkTyParamFormals(GetTypeParams(c));
         var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.Ty), true);
+        vars.Add(arg_ref);
         var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        var implement_intr = new Bpl.Function(c.tok, "implements$" + c.FullSanitizedName, new List<Variable> { arg_ref }, res);
+        var implement_intr = new Bpl.Function(c.tok, "implements$" + c.FullSanitizedName, vars, res);
         sink.AddTopLevelDeclaration(implement_intr);
       } else if (c is ClassDecl) {
-        //this adds: axiom implements$J(class.C);
-        List<Bpl.Expr> tyexprs;
-        var vars = MkTyParamBinders(GetTypeParams(c), out tyexprs);
+        //this adds: axiom implements$J(class.C, typeInstantiations);
+        var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
-        foreach (var trait in ((ClassDecl)c).ParentTraitHeads) {
+        foreach (var parent in ((ClassDecl)c).ParentTraits) {
+          var trait = (TraitDecl)((NonNullTypeDecl)((UserDefinedType)parent).ResolvedClass).ViewAsClass;
           var arg = ClassTyCon(c, tyexprs);
-          var expr = FunctionCall(c.tok, "implements$" + trait.FullSanitizedName, Bpl.Type.Bool, arg);
+          var args = new List<Bpl.Expr> { arg };
+          foreach (var targ in parent.TypeArgs) {
+            args.Add(TypeToTy(targ));
+          }
+          var expr = FunctionCall(c.tok, "implements$" + trait.FullSanitizedName, Bpl.Type.Bool, args);
           var implements_axiom = new Bpl.Axiom(c.tok, BplForall(vars, null, expr));
           sink.AddTopLevelDeclaration(implements_axiom);
         }
