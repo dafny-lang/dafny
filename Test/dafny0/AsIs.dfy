@@ -98,3 +98,52 @@ method ParsingSuccessors<U>(t: TraitA<U>) {
   b := t is ClassQ<U> <==> t is ClassQ<U>;
   assert b;
 }
+
+class SupersetClass {
+  const n: int
+  constructor (n: int)
+    ensures this.n == n
+  {
+    this.n := n;
+  }
+}
+
+type SubsetClass = s: SupersetClass | s.n == 10 witness *
+
+method SubsetConstraints() {
+  var a: SupersetClass := new SupersetClass(8);
+  var b: SupersetClass := new SupersetClass(10);
+  var aa: SupersetClass?, bb: SupersetClass? := a, b;
+  if
+  case true =>
+    assert a is SubsetClass; // error
+  case true =>
+    assert b is SubsetClass;
+  case true =>
+    assert aa is SubsetClass; // error
+  case true =>
+    assert bb is SubsetClass;
+  case true =>
+    var aa: SupersetClass? := null;
+    assert aa is SubsetClass; // error
+}
+
+type Array = a: array<int> | a.Length == 10 witness *
+
+method SubsetConstraintsArrays() {
+  var arr := new int[8];
+  var brr := new int[10];
+  var aar: array?<int>, bbr: array?<int> := arr, brr;
+  if
+  case true =>
+    assert arr is Array; // error
+  case true =>
+    assert brr is Array;
+  case true =>
+    assert aar is Array; // error
+  case true =>
+    assert bbr is Array;
+  case true =>
+    var xrr: array?<int> := null;
+    assert xrr is Array; // error
+}

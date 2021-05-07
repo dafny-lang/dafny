@@ -18,5 +18,29 @@ AsIs.dfy(68,15): Error: value of expression (of type 'object') is not known to b
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
+AsIs.dfy(119,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+AsIs.dfy(123,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+AsIs.dfy(128,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
+AsIs.dfy(139,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+AsIs.dfy(143,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+AsIs.dfy(148,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
 
-Dafny program verifier finished with 4 verified, 5 errors
+Dafny program verifier finished with 7 verified, 11 errors
