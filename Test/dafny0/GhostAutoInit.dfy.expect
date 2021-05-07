@@ -149,7 +149,7 @@ Execution trace:
 GhostAutoInit.dfy(257,32): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
-GhostAutoInit.dfy(282,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
+GhostAutoInit.dfy(282,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

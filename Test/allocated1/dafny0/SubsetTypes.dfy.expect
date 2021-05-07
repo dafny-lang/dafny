@@ -282,21 +282,21 @@ Execution trace:
 SubsetTypes.dfy(335,20): Error: result of operation might violate newtype constraint for 'Nat'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(340,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
+SubsetTypes.dfy(340,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
 SubsetTypes.dfy(341,18): Error: value does not satisfy the subset constraints of 'Nat'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(345,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
+SubsetTypes.dfy(345,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
 SubsetTypes.dfy(346,18): Error: result of operation might violate newtype constraint for 'Nat'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(350,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
+SubsetTypes.dfy(350,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
@@ -349,11 +349,11 @@ Execution trace:
 SubsetTypes.dfy(399,9): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(409,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause
+SubsetTypes.dfy(409,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-SubsetTypes.dfy(411,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause
+SubsetTypes.dfy(411,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

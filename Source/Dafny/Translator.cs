@@ -6335,16 +6335,16 @@ namespace Microsoft.Dafny {
         witnessErrorMsg = "the given witness expression might not satisfy constraint";
       } else if (decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero) {
         var witness = Zero(decl.tok, decl.Var.Type);
+        var errMsg = "cannot find witness that shows type is inhabited";
+        var hintMsg = "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type";
         if (witness == null) {
-          witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, "cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause"));
+          witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, $"{errMsg}{hintMsg}"));
         } else {
           // before trying 0 as a witness, check that 0 can be assigned to decl.Var
-          CheckResultToBeInType(decl.tok, witness, decl.Var.Type, locals, witnessCheckBuilder, etran, string.Format("trying witness {0}: ", Printer.ExprToString(witness)));
-
+          var witnessString = Printer.ExprToString(witness);
+          CheckResultToBeInType(decl.tok, witness, decl.Var.Type, locals, witnessCheckBuilder, etran, $"trying witness {witnessString}: ");
           witnessExpr = Substitute(decl.Constraint, decl.Var, witness);
-          witnessErrorMsg =
-            string.Format("cannot find witness that shows type is inhabited (only tried {0}); try giving a hint through a 'witness' or 'ghost witness' clause",
-            Printer.ExprToString(witness));
+          witnessErrorMsg = $"{errMsg} (only tried {witnessString}){hintMsg}";
         }
       }
       if (witnessExpr != null) {
