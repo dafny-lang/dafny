@@ -487,6 +487,7 @@ bool IsGenericInstantiation(bool inExpressionContext) {
     case _neqAlt:
     case _as:
     case _is:
+    case _darrow:
     case _by:
     case _in:
     case _openAngleBracket:

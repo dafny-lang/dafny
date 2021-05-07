@@ -71,17 +71,17 @@ method BadCasts<W>(k: K<W>, l: L<W>) {
 method CastsAfterTypeTests<W>(k: K<W>, l: L<W>) {
   var o: object := k as object;
   if
-  case (l as object is K<W>) =>
-    var p' := l as object as K<W>; // this works
+  case l as object is K<W> =>
+    var p' := l as object as K<W>; // this verifies
     assert false; // and so does this
-  case (o is B<real, W>) =>
+  case o is B<real, W> =>
     var b := o as B<real, W>;
-  case (o is B<W, int>) =>
+  case o is B<W, int> =>
     var b := o as B<W, int>;
-  case (k as object is B<int, int>) =>
+  case k as object is B<int, int> =>
     var b := k as object as B<int, int>;
-  case (o is A<W>) =>
+  case o is A<W> =>
     var b := o as A<W>;
-  case (k is K<W>) =>
+  case k is K<W> =>
     assert k == k as K<W>;
 }
