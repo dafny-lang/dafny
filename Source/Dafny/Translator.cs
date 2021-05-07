@@ -8383,7 +8383,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(expr.Type.IsRefType == toType.IsRefType);
       if (toType.IsRefType) {
         PutSourceIntoLocal();
-        CheckSubrange(tok, o, expr.Type, toType, builder);
+        CheckSubrange(tok, o, expr.Type, toType, builder, errorMsgPrefix);
         return;
       }
 
@@ -8394,13 +8394,13 @@ namespace Microsoft.Dafny {
         Bpl.Expr from = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         Bpl.Expr e = FunctionCall(tok, BuiltinFunction.IntToReal, null, from);
         e = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, e, o);
-        builder.Add(Assert(tok, e, errorMsgPrefix + "the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)"));
+        builder.Add(Assert(tok, e, $"{errorMsgPrefix}the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)"));
       }
 
       if (expr.Type.IsBigOrdinalType && !toType.IsBigOrdinalType) {
         PutSourceIntoLocal();
         Bpl.Expr boundsCheck = FunctionCall(tok, "ORD#IsNat", Bpl.Type.Bool, o);
-        builder.Add(Assert(tok, boundsCheck, string.Format("{0}value to be converted might be bigger than every natural number", errorMsgPrefix)));
+        builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}value to be converted might be bigger than every natural number"));
       }
 
       if (toType.IsBitVectorType) {
@@ -8433,7 +8433,7 @@ namespace Microsoft.Dafny {
         }
 
         if (boundsCheck != null) {
-          builder.Add(Assert(tok, boundsCheck, string.Format("{0}value to be converted might not fit in {1}", errorMsgPrefix, toType)));
+          builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}value to be converted might not fit in {toType}"));
         }
       }
 
@@ -8442,15 +8442,13 @@ namespace Microsoft.Dafny {
           PutSourceIntoLocal();
           Bpl.Expr boundsCheck =
             Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, Bpl.Expr.Literal(65536)));
-          builder.Add(Assert(tok, boundsCheck,
-            string.Format("{0}value to be converted might not fit in {1}", errorMsgPrefix, toType)));
+          builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}value to be converted might not fit in {toType}"));
         } else if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
           PutSourceIntoLocal();
           var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
           var boundsCheck =
             Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), oi), Bpl.Expr.Lt(oi, Bpl.Expr.Literal(65536)));
-          builder.Add(Assert(tok, boundsCheck,
-            string.Format("{0}real value to be converted might not fit in {1}", errorMsgPrefix, toType)));
+          builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}real value to be converted might not fit in {toType}"));
         } else if (expr.Type.IsBitVectorType) {
           PutSourceIntoLocal();
           var fromWidth = expr.Type.AsBitVectorType.Width;
@@ -8461,8 +8459,7 @@ namespace Microsoft.Dafny {
             var toBound = BaseTypes.BigNum.FromBigInt(BigInteger.One << toWidth); // 1 << toWidth
             var bound = BplBvLiteralExpr(tok, toBound, expr.Type.AsBitVectorType);
             var boundsCheck = FunctionCall(expr.tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
-            builder.Add(Assert(tok, boundsCheck,
-              string.Format("{0}bit-vector value to be converted might not fit in {1}", errorMsgPrefix, toType)));
+            builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}bit-vector value to be converted might not fit in {toType}"));
           }
         } else if (expr.Type.IsBigOrdinalType) {
           PutSourceIntoLocal();
@@ -8471,22 +8468,19 @@ namespace Microsoft.Dafny {
           var toBound = BaseTypes.BigNum.FromBigInt(BigInteger.One << toWidth); // 1 << toWidth
           var bound = Bpl.Expr.Literal(toBound);
           var boundsCheck = Bpl.Expr.Lt(oi, bound);
-          builder.Add(Assert(tok, boundsCheck,
-            string.Format("{0}ordinal value to be converted might not fit in {1}", errorMsgPrefix, toType)));
+          builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}ORDINAL value to be converted might not fit in {toType}"));
         }
       } else if (toType.IsBigOrdinalType) {
         if (expr.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
           PutSourceIntoLocal();
           Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), o);
-          builder.Add(Assert(tok, boundsCheck,
-            string.Format("{0}a negative integer cannot be converted to an {1}", errorMsgPrefix, toType)));
+          builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}a negative integer cannot be converted to an {toType}"));
         }
         if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
           PutSourceIntoLocal();
           var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
           Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), oi);
-          builder.Add(Assert(tok, boundsCheck,
-            string.Format("{0}a negative real cannot be converted to an {1}", errorMsgPrefix, toType)));
+          builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}a negative real cannot be converted to an {toType}"));
         }
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         // already checked that BigOrdinal or real inputs are integral
@@ -13943,7 +13937,7 @@ namespace Microsoft.Dafny {
       return cre;
     }
 
-    void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType, BoogieStmtListBuilder builder) {
+    void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType, BoogieStmtListBuilder builder, string errorMsgPrefix = "") {
       Contract.Requires(tok != null);
       Contract.Requires(bSource != null);
       Contract.Requires(sourceType != null);
@@ -13953,7 +13947,7 @@ namespace Microsoft.Dafny {
       string msg;
       var cre = GetSubrangeCheck(bSource, sourceType, targetType, out msg);
       if (cre != null) {
-        builder.Add(Assert(tok, cre, msg));
+        builder.Add(Assert(tok, cre, errorMsgPrefix + msg));
       }
     }
 

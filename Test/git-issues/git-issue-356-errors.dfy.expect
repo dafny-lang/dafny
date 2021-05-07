@@ -46,13 +46,13 @@ Execution trace:
 git-issue-356-errors.dfy(153,14): Error: value to be converted might not fit in bv8
 Execution trace:
     (0,0): anon0
-git-issue-356-errors.dfy(170,14): Error: ordinal value to be converted might not fit in char
+git-issue-356-errors.dfy(170,14): Error: ORDINAL value to be converted might not fit in char
 Execution trace:
     (0,0): anon0
 git-issue-356-errors.dfy(170,14): Error: value to be converted might be bigger than every natural number
 Execution trace:
     (0,0): anon0
-git-issue-356-errors.dfy(176,14): Error: ordinal value to be converted might not fit in char
+git-issue-356-errors.dfy(176,14): Error: ORDINAL value to be converted might not fit in char
 Execution trace:
     (0,0): anon0
 git-issue-356-errors.dfy(189,13): Error: value to be converted might be bigger than every natural number
