@@ -15531,6 +15531,10 @@ namespace Microsoft.Dafny {
           var e = (ConversionExpr)expr;
           return translator.ConvertExpression(e.tok, TrExpr(e.E), e.E.Type, e.ToType);
 
+        } else if (expr is TypeTestExpr) {
+          var e = (TypeTestExpr)expr;
+          return translator.GetSubrangeCheck(TrExpr(e.E), e.E.Type, e.ToType, out var _) ?? Bpl.Expr.True;
+
         } else if (expr is BinaryExpr) {
           BinaryExpr e = (BinaryExpr)expr;
           bool isReal = e.E0.Type.IsNumericBased(Type.NumericPersuasion.Real);
