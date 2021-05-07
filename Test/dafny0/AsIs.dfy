@@ -85,3 +85,16 @@ method CastsAfterTypeTests<W>(k: K<W>, l: L<W>) {
   case k is K<W> =>
     assert k == k as K<W>;
 }
+
+trait TraitA<X> { }
+class ClassQ<Y> extends TraitA<Y> { }
+method ParsingSuccessors<U>(t: TraitA<U>) {
+  var b;
+  b := if t is ClassQ<U> then true else false;
+  b := t is ClassQ<U> && t is ClassQ<U>;
+  b := t is ClassQ<U> || t is ClassQ<U>;
+  b := t is ClassQ<U> ==> t is ClassQ<U>;
+  b := t is ClassQ<U> <== t is ClassQ<U>;
+  b := t is ClassQ<U> <==> t is ClassQ<U>;
+  assert b;
+}
