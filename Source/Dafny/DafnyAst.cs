@@ -2224,13 +2224,9 @@ namespace Microsoft.Dafny {
           var udt = (UserDefinedType)a;
           return new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
         } else if (aa is ClassDecl && bb is ClassDecl) {
-          var A = (ClassDecl)aa;
-          var B = (ClassDecl)bb;
-          if (A.HeadDerivesFrom(B)) {
-            Contract.Assert(B is TraitDecl && b.TypeArgs.Count == 0);
+          if (a.IsSubtypeOf(b, false, false)) {
             return a;
-          } else if (B.HeadDerivesFrom(A)) {
-            Contract.Assert(A is TraitDecl && a.TypeArgs.Count == 0);
+          } else if (b.IsSubtypeOf(a, false, false)) {
             return b;
           } else {
             return null;

@@ -6634,6 +6634,18 @@ namespace Microsoft.Dafny
                 "a type cast to a reference type ({0}) must be from a compatible type (got {1}); this cast could never succeed", e.ToType, fromType);
             }
           }
+        } else if (expr is TypeTestExpr) {
+          var e = (TypeTestExpr)expr;
+          var fromType = e.E.Type;
+          if (fromType.IsSubtypeOf(e.ToType, false, true)) {
+            // This is a no-op (except maybe for a null check), and it is allowed
+          } else if (!e.ToType.IsSubtypeOf(fromType, false, true)) {
+            resolver.reporter.Error(MessageSource.Resolver, e.tok,
+              "a type test to '{0}' must be from a compatible type (got '{1}')", e.ToType, fromType);
+          } else if (!e.ToType.IsRefType) {
+            resolver.reporter.Error(MessageSource.Resolver, e.tok,
+              "a non-trivial type test is allowed only for reference types (got '{0}')", e.ToType);
+          }
         } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
           if (expr is BinaryExpr) {
             var e = (BinaryExpr)expr;
@@ -14639,6 +14651,14 @@ namespace Microsoft.Dafny
           e.Type = new InferredTypeProxy();
         }
 
+      } else if (expr is TypeTestExpr) {
+        var e = (TypeTestExpr)expr;
+        ResolveExpression(e.E, opts);
+        var prevErrorCount = reporter.Count(ErrorLevel.Error);
+        ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
+        AddAssignableConstraint(expr.tok, e.ToType, e.E.Type, "type test for type '{0}' must be from an expression assignable to it (got '{1}')");
+        e.Type = Type.Bool;
+
       } else if (expr is BinaryExpr) {
 
         BinaryExpr e = (BinaryExpr)expr;
@@ -16557,6 +16577,13 @@ namespace Microsoft.Dafny
         reporter.Error(MessageSource.Resolver, expr, "old expressions are allowed only in specification and ghost contexts");
         return;
 
+      } else if (expr is TypeTestExpr) {
+        var e = (TypeTestExpr)expr;
+        if (!IsTypeTestCompilable(e)) {
+          reporter.Error(MessageSource.Resolver, expr, $"an expression of type '{e.E.Type}' is not run-time checkable to be a '{e.ToType}'");
+          return;
+        }
+
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
         if (e.Op == UnaryOpExpr.Opcode.Fresh) {
@@ -17718,8 +17745,10 @@ namespace Microsoft.Dafny
         return true;
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
-        var unaryOpExpr = e as UnaryOpExpr;
-        if (unaryOpExpr != null && (unaryOpExpr.Op == UnaryOpExpr.Opcode.Fresh || unaryOpExpr.Op == UnaryOpExpr.Opcode.Allocated)) {
+        if (e is UnaryOpExpr unaryOpExpr && (unaryOpExpr.Op == UnaryOpExpr.Opcode.Fresh || unaryOpExpr.Op == UnaryOpExpr.Opcode.Allocated)) {
+          return true;
+        }
+        if (expr is TypeTestExpr tte && !IsTypeTestCompilable(tte)) {
           return true;
         }
         return UsesSpecFeatures(e.E);
@@ -17797,6 +17826,44 @@ namespace Microsoft.Dafny
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    public static bool IsTypeTestCompilable(TypeTestExpr tte) {
+      Contract.Requires(tte != null);
+      var fromType = tte.E.Type;
+      if (fromType.IsSubtypeOf(tte.ToType, false, true)) {
+        // this is a no-op, so it can trivially be compiled
+        return true;
+      }
+      // The operation can be performed at run time if the mapping of .ToType's type parameters are injective in fromType's type parameters.
+      // For illustration, suppose the "is"-operation is testing whether or not the given expression of type A<X> has type B<Y>, where
+      // X and Y are some type expressions. At run time, we can check if the expression has type B<...>, but we can't on all target platforms
+      // be certain about the "...". So, if both B<Y> and B<Y'> are possible subtypes of A<X>, we can't perform the type test at run time.
+      // In other words, we CAN perform the type test at run time if the type parameters of A uniquely determine the type parameters of B.
+      // Let T be a list of type parameters (in particular, we will use the formal TypeParameter's declared in type B). Then, represent
+      // B<T> in parent type A, and let's say the result is A<U> for some type expression U. If U contains all type parameters from T,
+      // then the mapping from B<T> to A<U> is unique, which means the mapping frmo B<Y> to A<X> is unique, which means we can check if an
+      // A<X> value is a B<Y> value by checking if the value is of type B<...>.
+      var B = ((UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints()).ResolvedClass; // important to keep constraints here, so no type parameters are lost
+      var B_T = UserDefinedType.FromTopLevelDecl(tte.tok, B);
+      var tps = new HashSet<TypeParameter>(); // There are going to be the type parameters of fromType (that is, T in the discussion above)
+      if (fromType.TypeArgs.Count != 0) {
+        // we need this "if" statement, because if "fromType" is "object" or "object?", then it isn't a UserDefinedType
+        var A = (UserDefinedType)fromType.NormalizeExpand(); // important to NOT keep constraints here, since they won't be evident at run time
+        var A_U = B_T.AsParentType(A.ResolvedClass);
+        // the type test can be performed at run time if all the type parameters of "B_T" are free type parameters of "A_U".
+        A_U.AddFreeTypeParameters(tps);
+      }
+      foreach (var tp in B.TypeArgs) {
+        if (!tps.Contains(tp)) {
+          // type test cannot be performed at run time, so this is a ghost operation
+          // TODO: If "tp" is a type parameter for which there is a run-time type descriptor, then we would still be able to perform
+          // the type test at run time.
+          return false;
+        }
+      }
+      // type test can be performed at run time
+      return true;
     }
 
     void MakeGhostAsNeeded(List<CasePattern<BoundVar>> lhss) {

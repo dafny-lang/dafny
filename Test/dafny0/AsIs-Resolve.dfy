@@ -159,3 +159,147 @@ module As {
     m0 := rs0 as M?; // error: RefSyn? is not assignable to M?
   }
 }
+
+module IsTests {
+  import opened Types
+
+  newtype Odd = x | x % 2 == 1
+  type True = b: bool | b
+  datatype List<T> = Nil | Cons(T, List<T>)
+  type VeryShortList<T> = xs: List<T> | xs == Nil
+  codatatype Stream<T> = More(T, Stream<T>)
+
+  method Test(m: M<string>) returns (b: bool) {
+    b := 3 is int;
+    b := 3 is bv7;
+    b := 3 is ORDINAL;
+    b := 3 is nat;
+    b := 3 is Odd;
+    b := 3 as char is char;
+    b := 'A' is char;
+    b := false is True;
+
+    b := m is object;
+    b := m is A<bv10>; // error: M<string> not assignable to A<bv10>
+    b := m is C<(string, string)>;
+    b := m as C<(int, real)> is C<(int, real)>; // error: "as" is not allowed, but "is" is
+    b := null is C<(int, real)>;
+    var n: object? := null;
+    b := n is C<(int, real)>;
+    b := n is M<array<bv3>>;
+
+    b := Nil is List<int>;
+    b := Nil is List<real>;
+    b := List<real>.Nil is List<int>; // error: LHS not assignable to List<int>
+    b := List<real>.Nil is List<real>;
+    b := Cons(5, Nil) is List<int>;
+    b := Cons(5, Nil) is List<real>; // error: LHS not assignable to List<real>
+    b := Cons(5.0, Nil) is List<real>;
+    b := Cons(5, Nil) is VeryShortList<int>;
+    var veryShort: VeryShortList<int> := Nil;
+    b := veryShort is List<int>;
+    b := veryShort is VeryShortList<real>; // error: LHS not assignable to VeryShortList<real>
+
+    b := From(16) is Stream<int>;
+    b := From(16) is Stream<char>; // error: LHS not assignable to Stream<char>
+
+    var f: int -> nat := x => 15;
+    b := f is int -> nat;
+    b := f is int -> int;
+    b := f is nat -> int;
+    b := f is nat -> nat;
+    b := f is real -> nat; // error: LHS not assignable to type
+    b := f is int -> real; // error: LHS not assignable to type
+    b := f is int -> Odd; // error: LHS not assignable to type
+    b := f is int --> nat;
+    b := f is int ~> nat;
+    var g: int ~> nat := x => 15;
+    b := g is int -> nat;
+    b := g is int --> nat;
+    b := g is int ~> nat;
+    b := g is int ~> real; // error: LHS not assignable to type
+    b := g is real --> nat; // error: LHS not assignable to type
+  }
+
+  function method From(x: int): Stream<int> {
+    More(x, From(x + 1))
+  }
+
+  method TypeParametersAreParametric<T>(t: T, a: array<T>) {
+    var o := t is object; // error: T not assignable to object
+    var arr0 := a is array<object>; // error: array<T> not assignable to array<object>
+    var arr1 := a is array<int>; // error: array<T> not assignable to array<int>
+  }
+
+  trait TraitX { }
+  class ClassX extends TraitX { }
+
+  method NonVariant(t0: TraitX, c0: ClassX, at0: array<TraitX>, ac0: array<ClassX>) {
+    var t := c0 is TraitX;
+    var c := t0 is ClassX;
+    var at := ac0 is array<TraitX>; // error: not assignable
+    var ac := at0 is array<ClassX>; // error: not assignable
+  }
+}
+
+module IsRuntimeTestable {
+  trait T<X> { }
+  // can be reconstructed from a T<X>:
+  class C<X0> extends T<X0> { }
+  class D<X1> extends T<(int, seq<X1>)> { }
+  type E<X2, X3> = D<X2>
+  // cannot be reconstructed from a T<X>:
+  type F<X2, X3> = d: D<X2> | true witness *
+  // can be reconstructed from a T<X>:
+  type G<X4, X5> = D<(X4, X5)>
+  type H<X4, X5> = d: D<(X4, X5)> | true witness *
+  // cannot be reconstructed from a T<X>:
+  class I<X6> extends T<int> { }
+
+  method Test0<X>(tx: T<X>, ty: T<(int, seq<X>)>, ti: T<int>, d1: D<X>, d2: D<(X, X)>) returns (b: bool) {
+    b := tx is C<X>;
+    b := ty is D<X>;
+    b := d1 is E<X, X>;
+    b := d1 is F<X, X>; // error: cannot be tested at run time, so this is a ghost expression
+    b := d2 is G<X, X>;
+    b := d2 is H<X, X>;
+    b := ti is I<X>; // error: cannot be tested at run time, so this is a ghost expression
+  }
+
+  method Test1(tx: T<real>, ty: T<(int, seq<real>)>, ti: T<int>, d1: D<real>, d2: D<(real, real)>) returns (b: bool) {
+    b := tx is C<real>;
+    b := ty is D<real>;
+    b := d1 is E<real, real>;
+    b := d1 is F<real, real>; // error: cannot be tested at run time, so this is a ghost expression
+    b := d2 is G<real, real>;
+    b := d2 is H<real, real>;
+    b := ti is I<real>; // error: cannot be tested at run time, so this is a ghost expression
+  }
+
+  // simple synonym
+  type Object<Unused> = object
+
+  method Test2(o: object, r: Object<real>, i: Object<int>) returns (b: bool) {
+    // these are all okay, because synonyms are just that--synonyms
+    b := o is object;
+    b := r is object;
+    b := i is object;
+    b := o is Object<real>;
+    b := r is Object<real>;
+    b := i is Object<real>;
+  }
+
+  // simple subset type
+  type TriviallyObject<Unused> = o: object? | o == o
+
+  method Test3(o: object, r: TriviallyObject<real>, i: TriviallyObject<int>) returns (b: bool) {
+    b := o is object;
+    b := r is object;
+    b := i is object;
+    b := o is TriviallyObject<real>; // error: cannot be tested at run time, so this is a ghost expression
+    b := r is TriviallyObject<real>;
+    b := i as object is TriviallyObject<real>; // error: cannot be tested at run time, so this is a ghost expression
+  }
+
+  // TODO: also look at any type constraints, to make sure they are testable at run time
+}
