@@ -225,10 +225,17 @@ module IsTests {
     More(x, From(x + 1))
   }
 
-  method TypeParametersAreParametric<T>(t: T, a: array<T>) {
+  method TypeParametersAreParametric<T, U>(t: T, a: array<T>, obj: object, u: U) {
     var o := t is object; // error: T not assignable to object
     var arr0 := a is array<object>; // error: array<T> not assignable to array<object>
     var arr1 := a is array<int>; // error: array<T> not assignable to array<int>
+    var u0 := u is T; // error: U not assignable to T
+    var u1 := u is U;
+    var u2 := u is object; // error: U not assignable to object
+    var u3 := u is object?; // error: U not assignable to object?
+    var obj0 := obj is object?;
+    var obj1 := obj is object;
+    var obj2 := obj is U; // error: object not assignable to U
   }
 
   trait TraitX { }
