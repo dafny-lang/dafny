@@ -44,7 +44,7 @@ namespace Microsoft.Dafny {
       Coverage.EmitTearDown(wr);
     }
 
-    protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
+    protected override TargetWriter CreateStaticMain(IClassWriter cw) {
       var wr = (cw as JavaScriptCompiler.ClassWriter).MethodWriter;
       return wr.NewBlock("static Main()");
     }
@@ -53,19 +53,22 @@ namespace Microsoft.Dafny {
       if (!isExtern || libraryName != null) {
         wr.Write("let {0} = ", moduleName);
       }
-      var w = wr.NewBigBlock("(function()", ")(); // end of module " + moduleName);
+
+      string footer = ")(); // end of module " + moduleName;
+      var block = wr.NewBlock("(function()", footer);
+      var beforeReturnBody = block.Fork(0);
       if (!isExtern) {
         // create new module here
-        w.WriteLine("let $module = {};");
+        beforeReturnBody.WriteLine("let $module = {};");
       } else if (libraryName == null) {
         // extend a module provided in another .js file
-        w.WriteLine("let $module = {0};", moduleName);
+        beforeReturnBody.WriteLine("let $module = {0};", moduleName);
       } else {
         // require a library
-        w.WriteLine("let $module = require(\"{0}\");", libraryName);
+        beforeReturnBody.WriteLine("let $module = require(\"{0}\");", libraryName);
       }
-      w.BodySuffix = string.Format("{0}return $module;{1}", w.IndentString, w.NewLine);
-      return w;
+      block.WriteLine("return $module;");
+      return beforeReturnBody;
     }
 
     protected override string GetHelperModuleName() => "_dafny";
@@ -111,7 +114,7 @@ namespace Microsoft.Dafny {
       return new ClassWriter(this, methodWriter, fieldWriter);
     }
 
-    protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr) {
+    protected override TargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr) {
       // An iterator is compiled as follows:
       //   public class MyIteratorExample
       //   {
@@ -517,7 +520,7 @@ namespace Microsoft.Dafny {
         EmitIncrementVar("lo", wLoopBody);
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var witness = new TargetWriter(w.IndentLevel, true);
+        var witness = new TargetWriter(w.IndentLevel);
         if (nt.NativeType == null) {
           TrExpr(nt.Witness, witness, false);
         } else {
@@ -542,7 +545,7 @@ namespace Microsoft.Dafny {
       var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
       string d;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var sw = new TargetWriter(w.IndentLevel, true);
+        var sw = new TargetWriter(w.IndentLevel);
         TrExpr(sst.Witness, sw, false);
         DeclareField("Witness", true, true, sst.Rhs, sst.tok, sw.ToString(), w);
         d = TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Witness";
@@ -567,10 +570,10 @@ namespace Microsoft.Dafny {
 
     protected class ClassWriter : IClassWriter {
       public readonly JavaScriptCompiler Compiler;
-      public readonly BlockTargetWriter MethodWriter;
-      public readonly BlockTargetWriter FieldWriter;
+      public readonly TargetWriter MethodWriter;
+      public readonly TargetWriter FieldWriter;
 
-      public ClassWriter(JavaScriptCompiler compiler, BlockTargetWriter methodWriter, BlockTargetWriter fieldWriter) {
+      public ClassWriter(JavaScriptCompiler compiler, TargetWriter methodWriter, TargetWriter fieldWriter) {
         Contract.Requires(compiler != null);
         Contract.Requires(methodWriter != null);
         Contract.Requires(fieldWriter != null);
@@ -579,16 +582,16 @@ namespace Microsoft.Dafny {
         this.FieldWriter = fieldWriter;
       }
 
-      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+      public TargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateMethod(m, typeArgs, createBody, MethodWriter, forBodyInheritance, lookasideBody);
       }
-      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
+      public TargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, MethodWriter, forBodyInheritance, lookasideBody);
       }
-      public BlockTargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
+      public TargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
         return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, MethodWriter);
       }
-      public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance) {
+      public TargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance) {
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, MethodWriter);
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, Field field) {
@@ -603,7 +606,7 @@ namespace Microsoft.Dafny {
 
     protected override bool SupportsStaticsInGenericClasses => false;
 
-    protected BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, TargetWriter wr, bool forBodyInheritance, bool lookasideBody) {
+    protected TargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, TargetWriter wr, bool forBodyInheritance, bool lookasideBody) {
       if (!createBody) {
         return null;
       }
@@ -627,14 +630,14 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override BlockTargetWriter EmitMethodReturns(Method m, BlockTargetWriter wr) {
-      var r = new TargetWriter(wr.IndentLevel);
-      EmitReturn(m.Outs, r);
-      wr.BodySuffix = r.ToString();
-      return wr;
+    protected override TargetWriter EmitMethodReturns(Method m, TargetWriter wr)
+    {
+      var beforeReturnBlock = wr.Fork(0);
+      EmitReturn(m.Outs, wr);
+      return beforeReturnBlock;
     }
 
-    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr, bool forBodyInheritance, bool lookasideBody) {
+    protected TargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr, bool forBodyInheritance, bool lookasideBody) {
       if (!createBody) {
         return null;
       }
@@ -755,7 +758,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr) {
+    protected TargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr) {
       if (createBody) {
         wr.Write("{0}get {1}()", isStatic ? "static " : "", name);
         var w = wr.NewBlock("", ";");
@@ -768,7 +771,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, out TargetWriter setterWriter, TargetWriter wr) {
+    protected TargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, out TargetWriter setterWriter, TargetWriter wr) {
       if (createBody) {
         wr.Write("{0}get {1}()", isStatic ? "static " : "", name);
         var wGet = wr.NewBlock("", ";");
@@ -790,14 +793,15 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override BlockTargetWriter EmitTailCallStructure(MemberDecl member, BlockTargetWriter wr) {
-      var w = wr.NewBlock("TAIL_CALL_START: while (true)");
-      if (member is Method m) {
-        var r = new TargetWriter(w.IndentLevel);
-        EmitReturn(m.Outs, r);
-        w.BodySuffix = r.ToString();
+    protected override TargetWriter EmitTailCallStructure(MemberDecl member, TargetWriter wr) {
+      var block = wr.NewBlock("TAIL_CALL_START: while (true)");
+      if (member is Method m)
+      {
+        var beforeReturnBlock = block.Fork(0);
+        EmitReturn(m.Outs, block);
+        return beforeReturnBlock;
       }
-      return w;
+      return block;
     }
 
     protected override void EmitJumpToTailCallStart(TargetWriter wr) {
@@ -1121,11 +1125,11 @@ namespace Microsoft.Dafny {
       wr.WriteLine(");");
     }
 
-    protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
+    protected override TargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
       return wr.NewNamedBlock("for (let {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
     }
 
-    protected override BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr) {
+    protected override TargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr) {
       return wr.NewNamedBlock("for (let {0} = new BigNumber({1}); ; {0} = {0}.multipliedBy(2))", indexVar, start);
     }
 
@@ -1141,7 +1145,7 @@ namespace Microsoft.Dafny {
       return string.Format("_dafny.Quantifier");
     }
 
-    protected override BlockTargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
+    protected override TargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
       Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
 
       wr.Write("for (const {0} of ", tmpVarName);
@@ -1168,7 +1172,7 @@ namespace Microsoft.Dafny {
       return wwr;
     }
 
-    protected override BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr) {
+    protected override TargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr) {
       wr.Write("for (const {0} of ", boundVarName);
       collectionWriter = wr.Fork();
       return wr.NewBlock(")");
@@ -1737,7 +1741,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
+    protected override TargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
       wr.Write("function (");
       Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
       for (var i = 0; i < inNames.Count; i++) {
@@ -1757,12 +1761,12 @@ namespace Microsoft.Dafny {
       wr.Write(")");
     }
 
-    protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
+    protected override TargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
       var w = wr.NewBigExprBlock("function ()", "()");
       return w;
     }
 
-    protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+    protected override TargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
       var w = wr.NewExprBlock("function ({0})", bvName);
       wr.Write("({0})", source);
       return w;

@@ -17,7 +17,6 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.SymbolStore;
 using System.Net.Security;
 using System.Reflection.Metadata.Ecma335;
-using System.Text;
 using Microsoft.BaseTypes;
 
 
@@ -69,9 +68,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(args != null);
 
       Reporter.Error(MessageSource.Compiler, tok, msg, args);
-      if (wr is TargetWriter tw) {
-        tw.WriteError("/* {0} */", string.Format("Compilation error: " + msg, args));
-      } else if (wr != null) {
+      if (wr != null)
+      {
         wr.WriteLine("/* {0} */", string.Format("Compilation error: " + msg, args));
       }
     }
@@ -91,15 +89,15 @@ namespace Microsoft.Dafny {
     /// Creates a static Main method. The caller will fill the body of this static Main with a
     /// call to the instance Main method in the enclosing class.
     /// </summary>
-    protected abstract BlockTargetWriter CreateStaticMain(IClassWriter wr);
+    protected abstract TargetWriter CreateStaticMain(IClassWriter wr);
     protected abstract TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, TargetWriter wr);
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
-      BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
-      BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody,
+      TargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody);
+      TargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody,
         MemberDecl member, bool forBodyInheritance, bool lookasideBody);
-      BlockTargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance);  // returns null iff !createBody
-      BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance);  // if createBody, then result and setterWriter are non-null, else both are null
+      TargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance);  // returns null iff !createBody
+      TargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance);  // if createBody, then result and setterWriter are non-null, else both are null
       void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, Field/*?*/ field);
       /// <summary>
       /// InitializeField is called for inherited fields. It is in lieu of calling DeclareField and is called only if
@@ -136,7 +134,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr);
     protected virtual bool SupportsProperties { get => true; }
-    protected abstract BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr);
+    protected abstract TargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr);
     /// <summary>
     /// Returns an IClassWriter that can be used to write additional members. If "dt" is already written
     /// in the DafnyRuntime.targetlanguage file, then returns "null".
@@ -231,7 +229,7 @@ namespace Microsoft.Dafny {
     /// The precondition of the method is:
     ///     (member is Method m0 && m0.IsTailRecursive) || (member is Function f0 && f0.IsTailRecursive)
     /// </summary>
-    protected abstract BlockTargetWriter EmitTailCallStructure(MemberDecl member, BlockTargetWriter wr);
+    protected abstract TargetWriter EmitTailCallStructure(MemberDecl member, TargetWriter wr);
     protected abstract void EmitJumpToTailCallStart(TargetWriter wr);
     protected abstract string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null);
     // For cases where a type looks different when it's an argument, such as (*sigh*) Java primitives
@@ -308,7 +306,7 @@ namespace Microsoft.Dafny {
     protected virtual void DeclareOutCollector(string collectorVarName, TargetWriter wr) { }  // called only for return-style calls
     protected virtual void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, List<Type> formalTypes, List<Type> lhsTypes) { DeclareOutCollector(collectorVarName, wr); } // for languages that don't allow "let" or "var" expressions
     protected virtual bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => false;
-    protected virtual BlockTargetWriter EmitMethodReturns(Method m, BlockTargetWriter wr) { return wr; } // for languages that need explicit return statements not provided by Dafny
+    protected virtual TargetWriter EmitMethodReturns(Method m, TargetWriter wr) { return wr; } // for languages that need explicit return statements not provided by Dafny
     protected virtual bool SupportsMultipleReturns { get => false; }
     protected virtual bool SupportsAmbiguousTypeDecl { get => true; }
     protected virtual bool ClassesRedeclareInheritedFields => true;
@@ -488,7 +486,7 @@ namespace Microsoft.Dafny {
       wr.Write("if (");
       guardWriter = wr.Fork();
       if (hasElse) {
-        var thn = wr.NewBlock(")", " else", BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Space);
+        var thn = wr.NewBlock(")", " else", TargetWriter.BraceStyle.Space, TargetWriter.BraceStyle.Space);
         return thn;
       } else {
         var thn = wr.NewBlock(")");
@@ -503,14 +501,14 @@ namespace Microsoft.Dafny {
       return guardWriter;
     }
 
-    protected virtual BlockTargetWriter CreateWhileLoop(out TargetWriter guardWriter, TargetWriter wr) {
+    protected virtual TargetWriter CreateWhileLoop(out TargetWriter guardWriter, TargetWriter wr) {
       wr.Write("while (");
       guardWriter = wr.Fork();
       var wBody = wr.NewBlock(")");
       return wBody;
     }
-    protected abstract BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr);
-    protected abstract BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr);
+    protected abstract TargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr);
+    protected abstract TargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr);
     protected abstract void EmitIncrementVar(string varName, TargetWriter wr);  // increments a BigInteger by 1
     protected abstract void EmitDecrementVar(string varName, TargetWriter wr);  // decrements a BigInteger by 1
 
@@ -531,7 +529,7 @@ namespace Microsoft.Dafny {
     ///   * "introduceBoundVar" can be "false", which says to do the assignment to "boundVarName" as
     ///     shown above, but without also declaring the variable "boundVarName".
     /// </summary>
-    protected abstract BlockTargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
+    protected abstract TargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
       Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr);
 
     /// <summary>
@@ -546,7 +544,7 @@ namespace Microsoft.Dafny {
     /// be inferred from the ingredients emitted by EmitIngredients, then "L" and "tupleTypeArgs" can be ignored and
     /// "boundVarType" be replaced by some target-language way of saying "please infer the type" (like "var" in C#).
     /// </summary>
-    protected abstract BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr);
+    protected abstract TargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr);
 
     /// <summary>
     /// If "initCall" is non-null, then "initCall.Method is Constructor".
@@ -890,7 +888,7 @@ namespace Microsoft.Dafny {
       return w;
     }
     protected TargetWriter EmitArrayUpdate(List<string> indices, Expression rhs, TargetWriter wr) {
-      var w = new TargetWriter(wr.IndentLevel, true);
+      var w = new TargetWriter(wr.IndentLevel);
       TrExpr(rhs, w, false);
       return EmitArrayUpdate(indices, w.ToString(), rhs.Type, wr);
     }
@@ -933,7 +931,7 @@ namespace Microsoft.Dafny {
     /// Furthermore, EmitDestructor also needs to work for anonymous destructors.
     /// </summary>
     protected abstract void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr);
-    protected abstract BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false);
+    protected abstract TargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false);
 
     /// <summary>
     /// Emit an "Immediately Invoked Function Expression" with the semantics of
@@ -948,8 +946,8 @@ namespace Microsoft.Dafny {
       return wrBody;
     }
 
-    protected abstract BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr);  // Immediately Invoked Function Expression
-    protected abstract BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr);  // Immediately Invoked Function Expression
+    protected abstract TargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr);  // Immediately Invoked Function Expression
+    protected abstract TargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr);  // Immediately Invoked Function Expression
     public enum ResolvedUnaryOp { BoolNot, BitwiseNot, Cardinality }
     protected abstract void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, TargetWriter wr);
 
@@ -1219,22 +1217,22 @@ namespace Microsoft.Dafny {
 
     protected class NullClassWriter : IClassWriter {
       private readonly TargetWriter abyss = new TargetWriter();
-      private readonly BlockTargetWriter block;
+      private readonly TargetWriter block;
 
       public NullClassWriter() {
         block = abyss.NewBlock("");
       }
 
-      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+      public TargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return createBody ? block : null;
       }
-      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
+      public TargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
         return createBody ? block : null;
       }
-      public BlockTargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
+      public TargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
         return createBody ? block : null;
       }
-      public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance) {
+      public TargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance) {
         if (createBody) {
           setterWriter = block;
           return block;
@@ -1254,7 +1252,7 @@ namespace Microsoft.Dafny {
       public void Finish() { }
     }
 
-    protected void ReadRuntimeSystem(string filename, TextWriter wr) {
+    protected void ReadRuntimeSystem(string filename, TargetWriter wr) {
       Contract.Requires(filename != null);
       Contract.Requires(wr != null);
 
@@ -1646,7 +1644,7 @@ namespace Microsoft.Dafny {
                 EmitReturnExpr(PlaceboValue(cf.Type, wBody, cf.tok, true), wBody);
               }
             } else {
-              BlockTargetWriter wBody;
+              TargetWriter wBody;
               if (cf.IsStatic) {
                 wBody = CreateFunctionOrGetter(cf, IdName(cf), c, true, true, false, classWriter);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
@@ -1768,7 +1766,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected BlockTargetWriter /*?*/ CreateFunctionOrGetter(ConstantField cf, string name, TopLevelDecl enclosingDecl, bool isStatic,
+    protected TargetWriter /*?*/ CreateFunctionOrGetter(ConstantField cf, string name, TopLevelDecl enclosingDecl, bool isStatic,
       bool createBody, bool forBodyInheritance, IClassWriter classWriter) {
       var typeArgs = CombineAllTypeArguments(cf);
       var typeDescriptors = ForTypeDescriptors(typeArgs, cf, false);
@@ -1880,7 +1878,7 @@ namespace Microsoft.Dafny {
       wr.Write(")");
     }
 
-    protected void EmitCallToInheritedMethod(Method method, BlockTargetWriter wr) {
+    protected void EmitCallToInheritedMethod(Method method, TargetWriter wr) {
       Contract.Requires(method != null);
       Contract.Requires(!method.IsStatic);
       Contract.Requires(method.EnclosingClass is TraitDecl);
@@ -2295,7 +2293,7 @@ namespace Microsoft.Dafny {
             // nothing to compile, but do a sanity check
             Contract.Assert(Contract.ForAll(arg.Vars, bv => bv.IsGhost));
           } else {
-            var sw = new TargetWriter(wr.IndentLevel, true);
+            var sw = new TargetWriter(wr.IndentLevel);
             EmitDestructor(tmp_name, formal, k, ctor, dtv.InferredTypeArgs, arg.Expr.Type, sw);
             Type targetType = Resolver.SubstType(formal.Type, substMap);
             TrCasePatternOpt(arg, null, sw.ToString(), targetType, pat.Expr.tok, wr, inLetExprBody);
@@ -2336,7 +2334,7 @@ namespace Microsoft.Dafny {
         TrExprOpt(e.Thn, resultType, thn, accumulatorVar);
         TargetWriter els = wr;
         if (!(e.Els is ITEExpr)) {
-          els = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing);
+          els = wr.NewBlock("", null, TargetWriter.BraceStyle.Nothing);
           Coverage.Instrument(e.Thn.tok, "else branch", els);
         }
         TrExprOpt(e.Els, resultType, els, accumulatorVar);
@@ -2679,7 +2677,7 @@ namespace Microsoft.Dafny {
             }
           }
 
-          var wStmts = wr.ForkSection();
+          var wStmts = wr.Fork();
           var lvalues = new List<ILvalue>();
           foreach (Expression lhs in lhss) {
             lvalues.Add(CreateLvalue(lhs, wStmts));
@@ -2699,7 +2697,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           var lvalue = CreateLvalue(s.Lhs, wr);
-          var wStmts = wr.ForkSection();
+          var wStmts = wr.Fork();
           var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(s.Rhs), wr);
           TrRhs(s.Rhs, wRhs, wStmts);
         }
@@ -2747,7 +2745,7 @@ namespace Microsoft.Dafny {
         TrCallStmt(s, null, wr);
 
       } else if (stmt is BlockStmt) {
-        var w = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing, BlockTargetWriter.BraceStyle.Newline);
+        var w = wr.NewBlock("", null, TargetWriter.BraceStyle.Nothing, TargetWriter.BraceStyle.Newline);
         TrStmtList(((BlockStmt)stmt).Body, w);
 
       } else if (stmt is IfStmt) {
@@ -2788,7 +2786,7 @@ namespace Microsoft.Dafny {
           TrStmtList(s.Thn.Body, thenWriter);
 
           if (coverageForElse) {
-            wr = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing);
+            wr = wr.NewBlock("", null, TargetWriter.BraceStyle.Nothing);
             if (s.Els == null) {
               Coverage.Instrument(s.Tok, "implicit else branch", wr);
             } else {
@@ -2815,7 +2813,7 @@ namespace Microsoft.Dafny {
           Coverage.Instrument(alternative.Tok, "if-case branch", thn);
           TrStmtList(alternative.Body, thn);
         }
-        using (var wElse = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing)) {
+        using (var wElse = wr.NewBlock("", null, TargetWriter.BraceStyle.Nothing)) {
           EmitAbsurd("unreachable alternative", wElse);
         }
 
@@ -2967,7 +2965,7 @@ namespace Microsoft.Dafny {
           wr = CreateForeachIngredientLoop(tup, L, tupleTypeArgs, out collWriter, wrOuter);
           collWriter.Write(ingredients);
           {
-            var wTup = new TargetWriter(wr.IndentLevel, true);
+            var wTup = new TargetWriter(wr.IndentLevel);
             var wCoerceTup = EmitCoercionToArbitraryTuple(wTup);
             wCoerceTup.Write(tup);
             tup = wTup.ToString();
@@ -3110,7 +3108,7 @@ namespace Microsoft.Dafny {
 
     protected virtual void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup, int L){
       var lhs = (MultiSelectExpr) s0.Lhs;
-      var wArray = new TargetWriter(wr.IndentLevel, true);
+      var wArray = new TargetWriter(wr.IndentLevel);
       var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
       EmitTupleSelect(tup, 0, wCoerced);
       var array = wArray.ToString();
@@ -4051,7 +4049,7 @@ namespace Microsoft.Dafny {
         if (ss.Labels != null) {
           w = CreateLabeledCode(ss.Labels.Data.AssignUniqueId(idGenerator), w);
         }
-        var prelude = w.ForkSection();
+        var prelude = w.Fork();
         copyInstrWriters.Push(prelude);
         TrStmt(ss, w);
         copyInstrWriters.Pop();
@@ -4082,7 +4080,7 @@ namespace Microsoft.Dafny {
         // Need to avoid if (true) because some languages (Go, someday Java)
         // pretend that an if (true) isn't a certainty, leading to a complaint
         // about a missing return statement
-        w = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing);
+        w = wr.NewBlock("", null, TargetWriter.BraceStyle.Nothing);
       } else {
         TargetWriter guardWriter;
         w = EmitIf(out guardWriter, !lastCase, wr);
@@ -4793,7 +4791,7 @@ namespace Microsoft.Dafny {
             // nothing to compile, but do a sanity check
             Contract.Assert(!Contract.Exists(arg.Vars, bv => !bv.IsGhost));
           } else {
-            var sw = new TargetWriter(wr.IndentLevel, true);
+            var sw = new TargetWriter(wr.IndentLevel);
             EmitDestructor(rhsString, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw);
             wr = TrCasePattern(arg, sw.ToString(), Resolver.SubstType(formal.Type, typeSubst), bodyType, wr);
             k++;
@@ -5060,286 +5058,6 @@ namespace Microsoft.Dafny {
         }
         legend = null;
       }
-    }
-  }
-
-  public class TargetWriter : TextWriter {
-    public TargetWriter(int indent = 0, bool suppressInitialIndent = false) {
-      Contract.Requires(0 <= indent);
-      IndentLevel = indent;
-      IndentString = new string(' ', indent);
-      indentPending = !suppressInitialIndent;
-    }
-    public override Encoding Encoding {
-      get { return Encoding.Default; }
-    }
-
-    // ----- Indention ------------------------------
-
-    public readonly int IndentLevel;
-    public const int IndentAmount = 2;
-    const string IndentAmountString = "  ";  // this should have the length IndentAmount
-    public readonly string IndentString;
-    public string UnIndentString => new string(' ', Math.Max(IndentLevel - IndentAmount, 0));
-    public void IndentLess() {
-      indentPending = false;
-      Write(UnIndentString);
-    }
-
-    // ----- Things ------------------------------
-
-    private readonly List<object> things = new List<object>();
-
-    private void AddThing(object thing) {
-      if (indentPending) {
-        indentPending = false;
-        things.Add(IndentString);
-      }
-      things.Add(thing);
-      if (thing is BlockTargetWriter btw && btw.EndsWithNewLine) {
-        indentPending = true;
-      } else {
-        indentPending = false;
-      }
-    }
-
-    public void Append(TargetWriter wr) {
-      Contract.Requires(wr != null);
-      AddThing(wr);
-    }
-
-    // ----- Writing ------------------------------
-
-    bool indentPending; // generally, true iff the last char written was '\n'
-
-    public override void Write(char[] buffer, int index, int count) {
-      if (indentPending && count == 1 && buffer[index] == '\n') {
-        // avoid writing whitespace-only line
-        indentPending = false;
-      }
-      AddThing(new string(buffer, index, count));
-      indentPending = count > 0 && buffer[index + count - 1] == '\n';
-    }
-    public override void Write(string value) {
-      if (indentPending && value == "\n") {
-        indentPending = false;
-      }
-      AddThing(value);
-      indentPending = value.EndsWith("\n");
-    }
-    public override void Write(char value) {
-      if (indentPending && value == '\n') {
-        indentPending = false;
-      }
-      AddThing(new string(value, 1));
-      indentPending = value == '\n';
-    }
-
-    public void RepeatWrite(int times, string template, string separator) {
-      Contract.Requires(1 <= times);
-      Contract.Requires(template != null);
-      Contract.Requires(separator != null);
-      string sep = "";
-      for (int i = 0; i < times; i++) {
-        Write(sep);
-        Write(template, i);
-        sep = separator;
-      }
-    }
-
-    public void WriteError(string format, params string[] args) {
-      var oldIndentPending = indentPending;
-      WriteLine(format, args);
-      indentPending = oldIndentPending;
-    }
-
-    /// <summary>
-    /// Fork() is to be used when the new TargetWriter will not start with an indent
-    /// and will not end with a newline. (However, contrary to what the name of this parameter may
-    /// suggest, the new TargetWriter may choose to add its own newlines and indents in the middele.)
-    /// See also ForkSection().
-    /// </summary>
-    public TargetWriter Fork() {
-      var ans = new TargetWriter(IndentLevel, true);
-      AddThing(ans);
-      return ans;
-    }
-
-    /// <summary>
-    /// ForkSection() says that the new TargetWriter will form a block of complete lines,
-    /// each beginning with an indent and ending with a newline.
-    /// </summary>
-    public TargetWriter ForkSection(bool indentMore = false) {
-      indentPending = false;
-      var ans = new TargetWriter(IndentLevel + (indentMore ? IndentAmount : 0));
-      AddThing(ans);
-      indentPending = true;
-      return ans;
-    }
-
-    // ----- Nested blocks ------------------------------
-
-    public BlockTargetWriter NewBlock(string header, string/*?*/ footer = null,
-      BlockTargetWriter.BraceStyle open = BlockTargetWriter.BraceStyle.Space,
-      BlockTargetWriter.BraceStyle close = BlockTargetWriter.BraceStyle.Newline) {
-      Contract.Requires(header != null);
-      var btw = new BlockTargetWriter(IndentLevel + IndentAmount, header, footer);
-      btw.SetBraceStyle(open, close);
-      AddThing(btw);
-      return btw;
-    }
-    public BlockTargetWriter NewNamedBlock(string headerFormat, params object[] headerArgs) {
-      Contract.Requires(headerFormat != null);
-      return NewBigBlock(string.Format(headerFormat, headerArgs), null);
-    }
-    public BlockTargetWriter NewBigBlock(string header, string/*?*/ footer) {
-      Contract.Requires(header != null);
-      var btw = new BlockTargetWriter(IndentLevel + IndentAmount, header, footer);
-      btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline);
-      AddThing(btw);
-      return btw;
-    }
-    public BlockTargetWriter NewExprBlock(string headerFormat, params object[] headerArgs) {
-      Contract.Requires(headerFormat != null);
-      return NewBigExprBlock(string.Format(headerFormat, headerArgs), null);
-    }
-    public BlockTargetWriter NewBigExprBlock(string header, string/*?*/ footer) {
-      Contract.Requires(header != null);
-      var btw = new BlockTargetWriter(IndentLevel + IndentAmount, header, footer);
-      btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
-      AddThing(btw);
-      return btw;
-    }
-    public BlockTargetWriter NewBlockWithPrefix(string headerFormat, string prefixFormat, params object[] headerArgs) {
-      Contract.Requires(headerFormat != null);
-      Contract.Requires(prefixFormat != null);
-      var btw = new BlockTargetWriter(IndentLevel + IndentAmount, string.Format(headerFormat, headerArgs), null);
-      btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline);
-      btw.BodyPrefix = string.Format(prefixFormat, headerArgs);
-      AddThing(btw);
-      return btw;
-    }
-
-    public TargetWriter NewSection() {
-      var w = new TargetWriter(IndentLevel);
-      AddThing(w);
-      return w;
-    }
-
-    public FileTargetWriter NewFile(string filename) {
-      var w = new FileTargetWriter(filename);
-      AddThing(w);
-      return w;
-    }
-
-    // ----- Collection ------------------------------
-
-    public override string ToString() {
-      var sw = new StringWriter();
-      var q = new Queue<FileTargetWriter>();
-      Collect(sw, q);
-      while (q.Count != 0) {
-        var ftw = q.Dequeue();
-        sw.WriteLine("#file {0}", ftw.Filename);
-        ftw.Collect(sw, q);
-      }
-      return sw.ToString();
-    }
-    public virtual void Collect(TextWriter wr, Queue<FileTargetWriter> files) {
-      Contract.Requires(wr != null);
-      Contract.Requires(files != null);
-
-      Contract.Assert(things != null);
-      CollectThings(wr, files);
-    }
-    protected void CollectThings(TextWriter wr, Queue<FileTargetWriter> files) {
-      Contract.Requires(wr != null);
-      Contract.Requires(files != null);
-
-      foreach (var o in things) {
-        if (o is string s) {
-          wr.Write(s);
-        } else if (o is FileTargetWriter ftw) {
-          files.Enqueue(ftw);
-        } else if (o is TargetWriter tw) {
-          tw.Collect(wr, files);
-        } else {
-          wr.Write(o.ToString());
-        }
-      }
-    }
-  }
-  public class BlockTargetWriter : TargetWriter {
-    string header;
-    public enum BraceStyle { Nothing, Space, Newline }
-    BraceStyle openBraceStyle = BraceStyle.Space;
-    BraceStyle closeBraceStyle = BraceStyle.Newline;  // must be set to its final value before the BlockTargetWriter is .Add'ed to an enclosing TargetWriter
-    public string BodyPrefix;  // just inside the open curly (before the newline)
-    public string BodySuffix;  // just before the close curly
-    public string Footer;  // just after the close curly
-    public BlockTargetWriter(int indentInsideBraces, string header, string/*?*/ footer)
-    : base(indentInsideBraces) {
-      Contract.Requires(IndentAmount <= indentInsideBraces);
-      Contract.Requires(header != null);
-      this.header = header;
-      this.Footer = footer;
-    }
-    public void SetBraceStyle(BraceStyle open, BraceStyle close) {
-      this.openBraceStyle = open;
-      this.closeBraceStyle = close;
-    }
-    public bool EndsWithNewLine {
-      get => closeBraceStyle == BraceStyle.Newline;
-    }
-    public void AppendHeader(string format, params object[] args) {
-      Contract.Requires(format != null);
-      header += args.Length == 0 ? format : string.Format(format, args);
-    }
-
-    public override void Collect(TextWriter wr, Queue<FileTargetWriter> files) {
-      wr.Write(header);
-      switch (openBraceStyle) {
-        case BraceStyle.Nothing:
-        default:
-          break;
-        case BraceStyle.Space:
-          wr.Write(" ");
-          break;
-        case BraceStyle.Newline:
-          wr.WriteLine();
-          wr.Write(UnIndentString);
-          break;
-      }
-      wr.WriteLine("{{{0}", BodyPrefix != null ? " " + BodyPrefix : "");
-      CollectThings(wr, files);
-      if (BodySuffix != null) {
-        wr.Write(BodySuffix);
-      }
-      wr.Write(UnIndentString);
-      wr.Write("}");
-      if (Footer != null) {
-        wr.Write(Footer);
-      }
-      switch (closeBraceStyle) {
-        case BraceStyle.Nothing:
-        default:
-          break;
-        case BraceStyle.Space:
-          wr.Write(" ");
-          break;
-        case BraceStyle.Newline:
-          wr.WriteLine();
-          break;
-      }
-    }
-  }
-
-  public class FileTargetWriter : TargetWriter {
-    public readonly string Filename;
-
-    public FileTargetWriter(string filename) {
-      Contract.Requires(filename != null);
-      Filename = filename;
     }
   }
 }

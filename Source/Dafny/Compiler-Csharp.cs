@@ -77,14 +77,14 @@ namespace Microsoft.Dafny
       }
     }
 
-    void EmitDafnySourceAttribute(Program program, TextWriter wr) {
+    void EmitDafnySourceAttribute(Program program, TargetWriter wr) {
       Contract.Requires(program != null);
       Contract.Requires(wr != null);
 
       wr.WriteLine("[assembly: DafnyAssembly.DafnySourceAttribute(@\"");
 
       var strwr = new StringWriter();
-      strwr.NewLine = wr.NewLine;
+      strwr.NewLine = Environment.NewLine;
       new Printer(strwr, DafnyOptions.PrintModes.DllEmbed).PrintProgram(program, true);
 
       wr.Write(strwr.GetStringBuilder().Replace("\"", "\"\"").ToString());
@@ -134,7 +134,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
+    protected override TargetWriter CreateStaticMain(IClassWriter cw) {
       var wr = (cw as CsharpCompiler.ClassWriter).StaticMemberWriter;
       // See EmitCallToMain() - this is named differently because otherwise C# tries
       // to resolve the reference to the instance-level Main method
@@ -143,7 +143,7 @@ namespace Microsoft.Dafny
 
     protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
       var s = string.Format("namespace {0}", IdProtect(moduleName));
-      return wr.NewBigBlock(s, " // end of " + s);
+      return wr.NewBlock(s, " // end of " + s);
     }
 
     protected override string GetHelperModuleName() => DafnyHelpersClass;
@@ -178,11 +178,11 @@ namespace Microsoft.Dafny
       if (cls is ClassDecl cl && !(cl is TraitDecl) && !cl.IsDefaultClass) {
         if (cl.Members.TrueForAll(member => !(member is Constructor ctor) || !ctor.IsExtern(out var _, out var _))) {
           // This is a (non-default) class with no :extern constructor, so emit a C# constructor for the target class
-          var wTypeFields = wBody.ForkSection();
+          var wTypeFields = wBody.Fork();
 
           wBody.Write($"public {name}(");
           var wCtorParams = wBody.Fork();
-          wCtorBody = wBody.NewBigBlock(")", "");
+          wCtorBody = wBody.NewBlock(")", "");
 
           if (typeParameters != null) {
             var sep = "";
@@ -233,7 +233,7 @@ namespace Microsoft.Dafny
       if (typeDescriptorParams.Count != 0) {
         wr.Write(Util.Comma(typeDescriptorParams, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
       }
-      var wTypeMethodBody = wr.NewBigBlock(")", "");
+      var wTypeMethodBody = wr.NewBlock(")", "");
       wTypeMethodBody.WriteLine($"return {typeDescriptorExpr};");
     }
 
@@ -257,7 +257,7 @@ namespace Microsoft.Dafny
       return new ClassWriter(this, instanceMemberWriter, null, staticMemberWriter);
     }
 
-    protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr) {
+    protected override TargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr) {
       // An iterator is compiled as follows:
       //   public class MyIteratorExample<T>
       //   {
@@ -318,10 +318,9 @@ namespace Microsoft.Dafny
       // here are the enumerator methods
       w.WriteLine("public bool MoveNext() { return _iter.MoveNext(); }");
       var wIter = w.NewBlock("private System.Collections.Generic.IEnumerator<object> TheIterator()");
-      var suffix = new TargetWriter(wIter.IndentLevel);
-      suffix.WriteLine("yield break;");
-      wIter.BodySuffix = suffix.ToString();
-      return wIter;
+      var beforeYield = wIter.Fork();
+      wIter.WriteLine("yield break;");
+      return beforeYield;
     }
 
     protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
@@ -720,7 +719,7 @@ namespace Microsoft.Dafny
         wEnum.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", GetNativeTypeName(nt.NativeType));
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var wrWitness = new TargetWriter(w.IndentLevel, true);
+        var wrWitness = new TargetWriter();
         TrExpr(nt.Witness, wrWitness, false);
         var witness = wrWitness.ToString();
         string typeName;
@@ -739,7 +738,7 @@ namespace Microsoft.Dafny
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
       var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
+        var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel);
         TrExpr(sst.Witness, sw, false);
         var witness = sw.ToString();
         var typeName = TypeName(sst.Rhs, cw.StaticMemberWriter, sst.tok);
@@ -792,11 +791,11 @@ namespace Microsoft.Dafny
     protected class ClassWriter : IClassWriter
     {
       public readonly CsharpCompiler Compiler;
-      public readonly BlockTargetWriter InstanceMemberWriter;
-      public readonly BlockTargetWriter StaticMemberWriter;
+      public readonly TargetWriter InstanceMemberWriter;
+      public readonly TargetWriter StaticMemberWriter;
       public readonly TargetWriter CtorBodyWriter;
 
-      public ClassWriter(CsharpCompiler compiler, BlockTargetWriter instanceMemberWriter, TargetWriter/*?*/ ctorBodyWriter, BlockTargetWriter staticMemberWriter = null) {
+      public ClassWriter(CsharpCompiler compiler, TargetWriter instanceMemberWriter, TargetWriter/*?*/ ctorBodyWriter, TargetWriter staticMemberWriter = null) {
         Contract.Requires(compiler != null);
         Contract.Requires(instanceMemberWriter != null);
         this.Compiler = compiler;
@@ -805,7 +804,7 @@ namespace Microsoft.Dafny
         this.StaticMemberWriter = staticMemberWriter ?? instanceMemberWriter;
       }
 
-      public BlockTargetWriter Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
+      public TargetWriter Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
         if (createBody) {
           if (isStatic || (member != null && member.EnclosingClass is TraitDecl && NeedsCustomReceiver(member))) {
             return StaticMemberWriter;
@@ -814,16 +813,16 @@ namespace Microsoft.Dafny
         return InstanceMemberWriter;
       }
 
-      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+      public TargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
       }
-      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
+      public TargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, createBody, member), forBodyInheritance, lookasideBody);
       }
-      public BlockTargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
+      public TargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
         return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, createBody, member));
       }
-      public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance) {
+      public TargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance) {
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic, createBody, member));
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, Field field) {
@@ -838,7 +837,7 @@ namespace Microsoft.Dafny
       public void Finish() { }
     }
 
-    protected BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, TargetWriter wr, bool forBodyInheritance, bool lookasideBody) {
+    protected TargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, TargetWriter wr, bool forBodyInheritance, bool lookasideBody) {
       var hasDllImportAttribute = ProcessDllImport(m, wr);
       string targetReturnTypeReplacement = null;
       foreach (var p in m.Outs) {
@@ -881,17 +880,18 @@ namespace Microsoft.Dafny
         wr.WriteLine(");");
         return null;
       } else {
-        var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
-        if (targetReturnTypeReplacement != null && !forBodyInheritance) {
-          var r = new TargetWriter(w.IndentLevel);
-          EmitReturn(m.Outs, r);
-          w.BodySuffix = r.ToString();
+        var block = wr.NewBlock(")", null, TargetWriter.BraceStyle.Newline, TargetWriter.BraceStyle.Newline);
+        if (targetReturnTypeReplacement != null && !forBodyInheritance)
+        {
+          var beforeReturnBlock = block.Fork(0);
+          EmitReturn(m.Outs, block);
+          return beforeReturnBlock;
         }
-        return w;
+        return block;
       }
     }
 
-    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr, bool forBodyInheritance, bool lookasideBody) {
+    protected TargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr, bool forBodyInheritance, bool lookasideBody) {
       var hasDllImportAttribute = ProcessDllImport(member, wr);
 
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(member);
@@ -917,9 +917,9 @@ namespace Microsoft.Dafny
         wr.WriteLine(");");
         return null;
       } else {
-        BlockTargetWriter w;
+        TargetWriter w;
         if (formals.Count > 1) {
-          w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+          w = wr.NewBlock(")", null, TargetWriter.BraceStyle.Newline, TargetWriter.BraceStyle.Newline);
         } else {
           w = wr.NewBlock(")");
         }
@@ -927,7 +927,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr) {
+    protected TargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr) {
       wr.Write("{0}{1}{2} {3} {{ get", createBody ? "public " : "", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       if (createBody) {
         var w = wr.NewBlock("", " }");
@@ -938,7 +938,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, out TargetWriter setterWriter, TargetWriter wr) {
+    protected TargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, out TargetWriter setterWriter, TargetWriter wr) {
       wr.Write("{0}{1}{2} {3}", createBody ? "public " : "", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       if (createBody) {
         var w = wr.NewBlock("");
@@ -991,12 +991,12 @@ namespace Microsoft.Dafny
       return false;
     }
 
-    protected override BlockTargetWriter EmitTailCallStructure(MemberDecl member, BlockTargetWriter wr) {
+    protected override TargetWriter EmitTailCallStructure(MemberDecl member, TargetWriter wr) {
       Contract.Assume((member is Method m0 && m0.IsTailRecursive) || (member is Function f0 && f0.IsTailRecursive)); // precondition
       if (!member.IsStatic && !NeedsCustomReceiver(member)) {
         wr.WriteLine("var _this = this;");
       }
-      wr.IndentLess(); wr.WriteLine("TAIL_CALL_START: ;");
+      wr.Fork(-1).WriteLine("TAIL_CALL_START: ;");
       return wr;
     }
 
@@ -1450,9 +1450,8 @@ namespace Microsoft.Dafny
     }
 
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
-      var w = wr.ForkSection();
-      wr.IndentLess();
-      wr.WriteLine("after_{0}: ;", label);
+      var w = wr.Fork();
+      wr.Fork(-1).WriteLine("after_{0}: ;", label);
       return w;
     }
 
@@ -1482,11 +1481,11 @@ namespace Microsoft.Dafny
       wr.WriteLine(");");
     }
 
-    protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
+    protected override TargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
       return wr.NewNamedBlock("for (var {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
     }
 
-    protected override BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr) {
+    protected override TargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr) {
       return wr.NewNamedBlock("for (var {0} = new BigInteger({1}); ; {0} *= 2)", indexVar, start);
     }
 
@@ -1502,7 +1501,7 @@ namespace Microsoft.Dafny
       return string.Format($"{DafnyHelpersClass}.Quantifier<{bvType}>");
     }
 
-    protected override BlockTargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
+    protected override TargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
       Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
 
       wr.Write("foreach ({1} {0} in ", tmpVarName, TypeName(collectionElementType, wr, tok));
@@ -1528,7 +1527,7 @@ namespace Microsoft.Dafny
       return wwr;
     }
 
-    protected override BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr) {
+    protected override TargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr) {
       wr.Write($"foreach (var {boundVarName} in ");
       collectionWriter = wr.Fork();
       return wr.NewBlock(")");
@@ -2257,7 +2256,7 @@ namespace Microsoft.Dafny
       wrLamBody.WriteLine(";");
 
       var intIxVar = FreshId("i");
-      var wrLoopBody = wrLamBody.NewBlockWithPrefix("for (int {0} = 0; {0} < {1}; {0}++)", "", intIxVar, lengthVar);
+      var wrLoopBody = wrLamBody.NewBlock(string.Format("for (int {0} = 0; {0} < {1}; {0}++)", intIxVar, lengthVar));
       var ixVar = IdName(boundVar);
       wrLoopBody.WriteLine("var {0} = ({1}) {2};",
         ixVar, TypeName(indexType, wrLoopBody, body.tok), intIxVar);
@@ -2348,7 +2347,7 @@ namespace Microsoft.Dafny
       wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? "._Get()" : "", dtorName);
     }
 
-    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
+    protected override TargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
       // (
       //   (System.Func<inTypes,resultType>)  // cast, which tells C# what the various types involved are
       //   (
@@ -2374,7 +2373,7 @@ namespace Microsoft.Dafny
       wr.Write(")");
     }
 
-    protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
+    protected override TargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
       // (
       //   (System.Func<resultType>)(() => <<body>>)
       // )()
@@ -2383,7 +2382,7 @@ namespace Microsoft.Dafny
       return w;
     }
 
-    protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+    protected override TargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
       wr.Write($"{DafnyHelpersClass}.Let<int, {TypeName(resultType, wr, resultTok)}>(");
       wr.Write("{0}, {1} => ", source, bvName);
       var w = wr.NewBigExprBlock("", ")");
