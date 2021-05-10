@@ -9090,7 +9090,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Create a resolved expression for a bool b
     /// </summary>
-    public static Expression CreateBoolLiteral(IToken tok, bool b) {
+    public static LiteralExpr CreateBoolLiteral(IToken tok, bool b) {
       Contract.Requires(tok != null);
       var lit = new LiteralExpr(tok, b);
       lit.Type = Type.Bool;  // resolve here

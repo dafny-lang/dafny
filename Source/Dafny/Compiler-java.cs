@@ -3807,6 +3807,37 @@ namespace Microsoft.Dafny{
       }
     }
 
+    protected override void EmitTypeTest(string localName, Type fromType, Type toType, Bpl.IToken tok, TargetWriter wr) {
+      Contract.Requires(fromType.IsRefType);
+      Contract.Requires(toType.IsRefType);
+
+      // from T to U:   t instanceof U && ...
+      // from T to U?:  t instanceof U && ...                 // since t is known to be non-null, this is fine
+      // from T? to U:  t instanceof U && ...                 // note, "instanceof" implies non-null, so no need for explicit null check
+      // from T? to U?: t == null || (t instanceof U && ...)
+      if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
+        wr.Write($"{localName} == null || (");
+      }
+
+      if (toType.IsObjectQ) {
+        wr.Write("true");
+      } else {
+        var typeName = toType.IsObject ? "Object" : FullTypeName((UserDefinedType)toType.NormalizeExpand());
+        wr.Write($"{localName} instanceof {typeName}");
+        localName = $"(({typeName}){localName})";
+      }
+
+      var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
+      if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+        // TODO: test constraints
+        throw new NotImplementedException();
+      }
+
+      if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
+        wr.Write(")");
+      }
+    }
+
     protected override bool IssueCreateStaticMain(Method m) {
       return true;
     }

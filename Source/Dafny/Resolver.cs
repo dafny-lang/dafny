@@ -6638,7 +6638,7 @@ namespace Microsoft.Dafny
           var e = (TypeTestExpr)expr;
           var fromType = e.E.Type;
           if (fromType.IsSubtypeOf(e.ToType, false, true)) {
-            // This is a no-op (except maybe for a null check), and it is allowed
+            // This test is allowed and it always returns true
           } else if (!e.ToType.IsSubtypeOf(fromType, false, true)) {
             resolver.reporter.Error(MessageSource.Resolver, e.tok,
               "a type test to '{0}' must be from a compatible type (got '{1}')", e.ToType, fromType);

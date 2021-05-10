@@ -4360,6 +4360,17 @@ namespace Microsoft.Dafny {
           EmitConversionExpr(e, inLetExprBody, wr);
         }
 
+      } else if (expr is TypeTestExpr) {
+        var e = (TypeTestExpr)expr;
+        var fromType = e.E.Type;
+        if (fromType.IsSubtypeOf(e.ToType, false, false)) {
+          TrExpr(Expression.CreateBoolLiteral(e.tok, true), wr, inLetExprBody);
+        } else {
+          var name = $"_is_{GetUniqueAstNumber(e)}";
+          wr = CreateIIFE_ExprBody(name, fromType, e.tok, e.E, inLetExprBody, Type.Bool, e.tok, wr);
+          EmitTypeTest(name, e.E.Type, e.ToType, e.tok, wr);
+        }
+
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
 
