@@ -895,7 +895,7 @@ namespace Microsoft.Dafny {
       var cw = CreateClass(IdName(sst), false, null, sst.TypeArgs, null, null, wr, includeRtd: false, includeEquals: false);
       var w = cw.ConcreteMethodWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var witness = new ConcreteSyntaxTree(w.IndentLevel);
+        var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
         TrExpr(sst.Witness, witness, false);
         DeclareField("Witness", false, true, true, sst.Rhs, sst.tok, witness.ToString(), cw.ClassName, cw.StaticFieldWriter, cw.StaticFieldInitWriter, cw.ConcreteMethodWriter);
       }

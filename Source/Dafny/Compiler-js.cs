@@ -520,7 +520,7 @@ namespace Microsoft.Dafny {
         EmitIncrementVar("lo", wLoopBody);
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var witness = new ConcreteSyntaxTree(w.IndentLevel);
+        var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
         if (nt.NativeType == null) {
           TrExpr(nt.Witness, witness, false);
         } else {
@@ -545,7 +545,7 @@ namespace Microsoft.Dafny {
       var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
       string d;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var sw = new ConcreteSyntaxTree(w.IndentLevel);
+        var sw = new ConcreteSyntaxTree(w.RelativeIndentLevel);
         TrExpr(sst.Witness, sw, false);
         DeclareField("Witness", true, true, sst.Rhs, sst.tok, sw.ToString(), w);
         d = TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok) + ".Witness";

@@ -7,11 +7,11 @@ namespace Microsoft.Dafny
 {
     public class ConcreteSyntaxTree : TextWriter, ICanRender {
         
-        public ConcreteSyntaxTree(int indent = 0) {
-            IndentLevel = indent;
+        public ConcreteSyntaxTree(int relativeIndent = 0) {
+            RelativeIndentLevel = relativeIndent;
         }
 
-        public readonly int IndentLevel;
+        public readonly int RelativeIndentLevel;
 
         private readonly IList<ICanRender> _nodes = new List<ICanRender>();
 
@@ -20,9 +20,9 @@ namespace Microsoft.Dafny
             Write(string.Format(format, arg0));
         }
 
-        public ConcreteSyntaxTree Fork(int indentOffset = 0)
+        public ConcreteSyntaxTree Fork(int relativeIndent = 0)
         {
-            var result = new ConcreteSyntaxTree(indentOffset);
+            var result = new ConcreteSyntaxTree(relativeIndent);
             _nodes.Add(result);
             return result;
         }
@@ -166,7 +166,7 @@ namespace Microsoft.Dafny
         {
             foreach (var node in _nodes)
             {
-                node.Render(writer, indentation + IndentLevel * 2, writerState, files);
+                node.Render(writer, indentation + RelativeIndentLevel * 2, writerState, files);
             }
         }
     }

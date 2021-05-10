@@ -888,7 +888,7 @@ namespace Microsoft.Dafny {
       return w;
     }
     protected ConcreteSyntaxTree EmitArrayUpdate(List<string> indices, Expression rhs, ConcreteSyntaxTree wr) {
-      var w = new ConcreteSyntaxTree(wr.IndentLevel);
+      var w = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
       TrExpr(rhs, w, false);
       return EmitArrayUpdate(indices, w.ToString(), rhs.Type, wr);
     }
@@ -2293,7 +2293,7 @@ namespace Microsoft.Dafny {
             // nothing to compile, but do a sanity check
             Contract.Assert(Contract.ForAll(arg.Vars, bv => bv.IsGhost));
           } else {
-            var sw = new ConcreteSyntaxTree(wr.IndentLevel);
+            var sw = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
             EmitDestructor(tmp_name, formal, k, ctor, dtv.InferredTypeArgs, arg.Expr.Type, sw);
             Type targetType = Resolver.SubstType(formal.Type, substMap);
             TrCasePatternOpt(arg, null, sw.ToString(), targetType, pat.Expr.tok, wr, inLetExprBody);
@@ -2965,7 +2965,7 @@ namespace Microsoft.Dafny {
           wr = CreateForeachIngredientLoop(tup, L, tupleTypeArgs, out collWriter, wrOuter);
           collWriter.Write(ingredients);
           {
-            var wTup = new ConcreteSyntaxTree(wr.IndentLevel);
+            var wTup = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
             var wCoerceTup = EmitCoercionToArbitraryTuple(wTup);
             wCoerceTup.Write(tup);
             tup = wTup.ToString();
@@ -3108,7 +3108,7 @@ namespace Microsoft.Dafny {
 
     protected virtual void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L){
       var lhs = (MultiSelectExpr) s0.Lhs;
-      var wArray = new ConcreteSyntaxTree(wr.IndentLevel);
+      var wArray = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
       var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
       EmitTupleSelect(tup, 0, wCoerced);
       var array = wArray.ToString();
@@ -4791,7 +4791,7 @@ namespace Microsoft.Dafny {
             // nothing to compile, but do a sanity check
             Contract.Assert(!Contract.Exists(arg.Vars, bv => !bv.IsGhost));
           } else {
-            var sw = new ConcreteSyntaxTree(wr.IndentLevel);
+            var sw = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
             EmitDestructor(rhsString, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw);
             wr = TrCasePattern(arg, sw.ToString(), Resolver.SubstType(formal.Type, typeSubst), bodyType, wr);
             k++;

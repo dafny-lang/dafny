@@ -577,7 +577,7 @@ namespace Microsoft.Dafny {
       var cw = CreateClass(nt.EnclosingModuleDefinition.CompileName, className, nt, wr) as CppCompiler.ClassWriter;
       var w = cw.MethodDeclWriter;
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var witness = new ConcreteSyntaxTree(w.IndentLevel);
+        var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
         if (nt.NativeType == null) {
           TrExpr(nt.Witness, witness, false);
         } else {
@@ -618,7 +618,7 @@ namespace Microsoft.Dafny {
       var w = cw.MethodDeclWriter;
 
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var witness = new ConcreteSyntaxTree(w.IndentLevel);
+        var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
         TrExpr(sst.Witness, witness, false);
         DeclareField(className, sst.TypeArgs, "Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w, wr);
       }

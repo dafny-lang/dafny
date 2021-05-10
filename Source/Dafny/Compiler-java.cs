@@ -232,7 +232,7 @@ namespace Microsoft.Dafny{
     protected override void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L){
       wr.Write("(");
       var lhs = (MultiSelectExpr) s0.Lhs;
-      var wArray = new ConcreteSyntaxTree(wr.IndentLevel);
+      var wArray = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
       var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
         wCoerced.Write($"({TypeName(tupleTypeArgsList[0].NormalizeExpand(), wCoerced, s0.Tok)})");
         EmitTupleSelect(tup, 0, wCoerced);
@@ -362,7 +362,7 @@ namespace Microsoft.Dafny{
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr){
       var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.IndentLevel);
+        var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.RelativeIndentLevel);
         TrExpr(sst.Witness, sw, false);
         var witness = sw.ToString();
         var typeName = TypeName(sst.Rhs, cw.StaticMemberWriter, sst.tok);
@@ -3377,7 +3377,7 @@ namespace Microsoft.Dafny{
         wEnum.WriteLine("return arr;");
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var witness = new ConcreteSyntaxTree(w.IndentLevel);
+        var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
         TrExpr(nt.Witness, witness, false);
         if (nt.NativeType == null) {
           cw.DeclareField("Witness", nt, true, true, nt.BaseType, nt.tok, witness.ToString(), null);
