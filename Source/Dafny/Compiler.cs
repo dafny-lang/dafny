@@ -1059,6 +1059,11 @@ namespace Microsoft.Dafny {
 
     protected abstract void EmitIsZero(string varName, TargetWriter wr);
     protected abstract void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr);
+    /// <summary>
+    /// "fromType" is assignable to "toType", "fromType" is not a subtype of "toType", and both "fromType" and "toType" refer to
+    /// reference types or subset types thereof.
+    /// </summary>
+    protected abstract void EmitTypeTest(string localName, Type fromType, Type toType, Bpl.IToken tok, TargetWriter wr);
     protected abstract void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr);  // used for sets, multisets, and sequences
     protected abstract void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr);
 

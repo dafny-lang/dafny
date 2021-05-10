@@ -2169,6 +2169,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected override void EmitTypeTest(string localName, Type fromType, Type toType, Bpl.IToken tok, TargetWriter wr) {
+      throw new NotImplementedException();
+    }
+
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
       if (ct is SetType) {
         wr.Write($"{DafnySetClass}.fromElements");

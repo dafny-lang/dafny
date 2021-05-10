@@ -3155,6 +3155,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected override void EmitTypeTest(string localName, Type fromType, Type toType, Bpl.IToken tok, TargetWriter wr) {
+      throw new NotImplementedException();
+    }
+
     private static bool EqualsUpToParameters(Type type1, Type type2) {
       // TODO Consider whether Type.SameHead should return true in this case
       return Type.SameHead(type1, type2) || type1.IsArrayType && type1.IsArrayType;
