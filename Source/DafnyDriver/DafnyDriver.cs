@@ -662,7 +662,7 @@ namespace Microsoft.Dafny
       string targetProgramText;
       var otherFiles = new Dictionary<string, string>();
       {
-        var output = new TargetWriter();
+        var output = new ConcreteSyntaxTree();
         compiler.Compile(dafnyProgram, output);
         var writerOptions = new WriterState();
         var targetProgramTextWriter = new StringWriter();
@@ -682,7 +682,7 @@ namespace Microsoft.Dafny
       string callToMain = null;
       if (hasMain)
       {
-        var callToMainTree = new TargetWriter();
+        var callToMainTree = new ConcreteSyntaxTree();
         string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
         compiler.EmitCallToMain(mainMethod, baseName, callToMainTree);
         callToMain = callToMainTree.ToString(); // assume there aren't multiple files just to call main

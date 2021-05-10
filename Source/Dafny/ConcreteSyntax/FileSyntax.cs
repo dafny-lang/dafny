@@ -10,10 +10,10 @@ namespace Microsoft.Dafny
         public FileSyntax(string filename) {
             Contract.Requires(filename != null);
             Filename = filename;
-            Tree = new TargetWriter();
+            Tree = new ConcreteSyntaxTree();
         }
 
-        public TargetWriter Tree { get; }
+        public ConcreteSyntaxTree Tree { get; }
 
         public void Render(TextWriter writer, int indentation, WriterState writerState, Queue<FileSyntax> files)
         {

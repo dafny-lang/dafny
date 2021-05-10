@@ -5,9 +5,9 @@ using System.Text;
 
 namespace Microsoft.Dafny
 {
-    public class TargetWriter : TextWriter, ICanRender {
+    public class ConcreteSyntaxTree : TextWriter, ICanRender {
         
-        public TargetWriter(int indent = 0) {
+        public ConcreteSyntaxTree(int indent = 0) {
             IndentLevel = indent;
         }
 
@@ -20,9 +20,9 @@ namespace Microsoft.Dafny
             Write(string.Format(format, arg0));
         }
 
-        public TargetWriter Fork(int indentOffset = 0)
+        public ConcreteSyntaxTree Fork(int indentOffset = 0)
         {
-            var result = new TargetWriter(indentOffset);
+            var result = new ConcreteSyntaxTree(indentOffset);
             _nodes.Add(result);
             return result;
         }
@@ -81,9 +81,18 @@ namespace Microsoft.Dafny
 
         // ----- Nested blocks ------------------------------
 
+        public ConcreteSyntaxTree AppendChildInParenthesis()
+        {
+            var result = new ConcreteSyntaxTree();
+            Write("(");
+            Append(result);
+            Write(")");
+            return result;
+        }
+        
         public enum BraceStyle { Nothing, Space, Newline }
         
-        public TargetWriter NewBlock(string header, string/*?*/ footer = null,
+        public ConcreteSyntaxTree NewBlock(string header, string/*?*/ footer = null,
             BraceStyle open = BraceStyle.Space,
             BraceStyle close = BraceStyle.Newline) {
             Contract.Requires(header != null);
@@ -115,23 +124,24 @@ namespace Microsoft.Dafny
             }
             return result;
         }
-        
-        public TargetWriter NewNamedBlock(string headerFormat, params object[] headerArgs) {
+
+        public ConcreteSyntaxTree NewNamedBlock(string headerFormat, params object[] headerArgs)
+        {
             Contract.Requires(headerFormat != null);
             return NewBlock(string.Format(headerFormat, headerArgs), null);
         }
-        
-        public TargetWriter NewExprBlock(string headerFormat, params object[] headerArgs) {
+
+        public ConcreteSyntaxTree NewExprBlock(string headerFormat, params object[] headerArgs) {
             Contract.Requires(headerFormat != null);
             return NewBigExprBlock(string.Format(headerFormat, headerArgs), null);
         }
         
-        public TargetWriter NewBigExprBlock(string header, string/*?*/ footer)
+        public ConcreteSyntaxTree NewBigExprBlock(string header, string/*?*/ footer)
         {
             return NewBlock(header, footer, BraceStyle.Space, BraceStyle.Nothing);
         }
 
-        public TargetWriter NewFile(string filename) {
+        public ConcreteSyntaxTree NewFile(string filename) {
             var result = new FileSyntax(filename);
             _nodes.Add(result);
             return result.Tree;
