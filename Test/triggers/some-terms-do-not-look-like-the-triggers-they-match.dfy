@@ -153,16 +153,17 @@ method RewriteMap(s: map<int, int>, t: map<int, int>, u: set<int>) {
 }
 
 method Orderings(s: set<int>, ms: multiset<int>, q: seq<int>) {
-  var a0 := exists x :: x < s;
+  var a0 := exists x :: x < s; // trigger: x <= s
   var a1 := exists x :: x <= s;
   var a2 := exists x :: x >= s;
-  var a3 := exists x :: x > s;
+  var a3 := exists x :: x > s; // trigger: x >= s
 
-  var b0 := exists x :: x < ms;
+  var b0 := exists x :: x < ms; // trigger: x <= ms
   var b1 := exists x :: x <= ms;
   var b2 := exists x :: x >= ms;
-  var b3 := exists x :: x > ms;
+  var b3 := exists x :: x > ms; // trigger: x >= ms
 
   var c0 := exists x :: x < q; // warning: no trigger
   var c1 := exists x :: x <= q; // warning: no trigger
+  assert true; // make sure all this gets sent to Boogie
 }
