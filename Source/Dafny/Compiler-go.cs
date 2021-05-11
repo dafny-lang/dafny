@@ -3153,7 +3153,34 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, Bpl.IToken tok, TargetWriter wr) {
-      throw new NotImplementedException();
+      Contract.Requires(fromType.IsRefType);
+      Contract.Requires(toType.IsRefType);
+
+      if (!fromType.IsNonNullRefType) {
+        if (toType.IsNonNullRefType) {
+          wr.Write($"!_dafny.IsDafnyNull({localName}) && ");
+        } else {
+          wr.Write($"_dafny.IsDafnyNull({localName}) || (");
+        }
+      }
+
+      if (toType.IsObject || toType.IsObjectQ) {
+        wr.Write("true");
+      } else if (toType.IsTraitType) {
+        wr.Write($"_dafny.InstanceOfTrait({localName}.(_dafny.TraitOffspring), {TypeName_Companion(toType.AsTraitType, wr, tok)}.TraitID_)");
+      } else {
+        wr.Write($"{localName} instanceof {TypeName(toType, wr, tok)}");
+      }
+
+      var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
+      if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+        // TODO: test constraints
+        throw new NotImplementedException();
+      }
+
+      if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
+        wr.Write(")");
+      }
     }
 
     private static bool EqualsUpToParameters(Type type1, Type type2) {

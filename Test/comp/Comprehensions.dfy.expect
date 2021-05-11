@@ -41,6 +41,15 @@ true true true
 false false false
 true true true
 false false false
+4 3 2 1
+true true true true
+4 3 2 1
+true true true true
+false false false false
+false false false false
+true true true true
+false false false false
+true true true true
 false true
 false true
 null
@@ -89,6 +98,15 @@ true true true
 false false false
 true true true
 false false false
+4 3 2 1
+true true true true
+4 3 2 1
+true true true true
+false false false false
+false false false false
+true true true true
+false false false false
+true true true true
 false true
 false true
 null
@@ -137,6 +155,15 @@ true true true
 false false false
 true true true
 false false false
+4 3 2 1
+true true true true
+4 3 2 1
+true true true true
+false false false false
+false false false false
+true true true true
+false false false false
+true true true true
 false true
 false true
 null
@@ -185,6 +212,15 @@ true true true
 false false false
 true true true
 false false false
+4 3 2 1
+true true true true
+4 3 2 1
+true true true true
+false false false false
+false false false false
+true true true true
+false false false false
+true true true true
 false true
 false true
 null

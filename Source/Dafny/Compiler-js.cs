@@ -2170,7 +2170,34 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, Bpl.IToken tok, TargetWriter wr) {
-      throw new NotImplementedException();
+      Contract.Requires(fromType.IsRefType);
+      Contract.Requires(toType.IsRefType);
+
+      if (!fromType.IsNonNullRefType) {
+        if (toType.IsNonNullRefType) {
+          wr.Write($"{localName} != null && ");
+        } else {
+          wr.Write($"{localName} == null || (");
+        }
+      }
+
+      if (toType.IsObject || toType.IsObjectQ) {
+        wr.Write("true");
+      } else if (toType.IsTraitType) {
+        wr.Write($"_dafny.InstanceOfTrait({localName}, {TypeName(toType, wr, tok)})");
+      } else {
+        wr.Write($"{localName} instanceof {TypeName(toType, wr, tok)}");
+      }
+
+      var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
+      if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+        // TODO: test constraints
+        throw new NotImplementedException();
+      }
+
+      if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
+        wr.Write(")");
+      }
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
