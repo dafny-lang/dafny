@@ -4,25 +4,24 @@ using System.IO;
 namespace Microsoft.Dafny
 {
     
-    class LineSegment : ICanRender
+  class LineSegment : ICanRender
+  {
+    private readonly string _value;
+
+    public LineSegment(string value)
     {
-        private readonly string _value;
-
-        public LineSegment(string value)
-        {
-            this._value = value;
-        }
-
-        public void Render(TextWriter writer, int indentation, WriterState writerState,
-            Queue<FileSyntax> files)
-        {
-            if (writerState.HasNewLine)
-            {
-                writer.Write(new string(' ', indentation));
-                writerState.HasNewLine = false;
-            }
-                
-            writer.Write(_value);
-        }
+      this._value = value;
     }
+
+    public void Render(TextWriter writer, int indentation, WriterState writerState, Queue<FileSyntax> files)
+    {
+      if (writerState.HasNewLine)
+      {
+        writer.Write(new string(' ', indentation));
+        writerState.HasNewLine = false;
+      }
+                
+      writer.Write(_value);
+    }
+  }
 }

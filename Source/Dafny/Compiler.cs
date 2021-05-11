@@ -412,7 +412,7 @@ namespace Microsoft.Dafny {
               targetIndex = ArrayIndexToNativeInt(targetIndex, seqExpr.E0.Type);
             }
             ILvalue newLhs = EmitArraySelectAsLvalue(targetArray,
-                            new List<string>() { targetIndex }, lhsTypes[i]);
+              new List<string>() { targetIndex }, lhsTypes[i]);
             lhssn.Add(newLhs);
           } else if (lexpr is MultiSelectExpr) {
             var seqExpr = (MultiSelectExpr)lexpr;
@@ -3179,8 +3179,8 @@ namespace Microsoft.Dafny {
     }
 
     void CompileCollection(ComprehensionExpr.BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates, Translator.Substituter/*?*/ su,
-        ConcreteSyntaxTree collectionWriter,
-        List<ComprehensionExpr.BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
+      ConcreteSyntaxTree collectionWriter,
+      List<ComprehensionExpr.BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
       Contract.Requires(bound != null);
       Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
       Contract.Requires(collectionWriter != null);

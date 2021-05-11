@@ -4,20 +4,20 @@ using System.IO;
 
 namespace Microsoft.Dafny
 {
-    public class FileSyntax : ICanRender {
-        public readonly string Filename;
+  public class FileSyntax : ICanRender {
+    public readonly string Filename;
 
-        public FileSyntax(string filename) {
-            Contract.Requires(filename != null);
-            Filename = filename;
-            Tree = new ConcreteSyntaxTree();
-        }
-
-        public ConcreteSyntaxTree Tree { get; }
-
-        public void Render(TextWriter writer, int indentation, WriterState writerState, Queue<FileSyntax> files)
-        {
-            files.Enqueue(this);
-        }
+    public FileSyntax(string filename) {
+      Contract.Requires(filename != null);
+      Filename = filename;
+      Tree = new ConcreteSyntaxTree();
     }
+
+    public ConcreteSyntaxTree Tree { get; }
+
+    public void Render(TextWriter writer, int indentation, WriterState writerState, Queue<FileSyntax> files)
+    {
+      files.Enqueue(this);
+    }
+  }
 }
