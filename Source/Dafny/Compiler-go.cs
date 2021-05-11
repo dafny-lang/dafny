@@ -3164,7 +3164,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (toType.IsObject || toType.IsObjectQ) {
+      if (fromType.IsSubtypeOf(toType, true, true)) {
         wr.Write("true");
       } else if (toType.IsTraitType) {
         wr.Write($"_dafny.InstanceOfTrait({localName}.(_dafny.TraitOffspring), {TypeName_Companion(toType.AsTraitType, wr, tok)}.TraitID_)");
@@ -3241,10 +3241,10 @@ namespace Microsoft.Dafny {
       } else if (to.IsTypeParameter || (from != null && EqualsUpToParameters(from, to))) {
         // do nothing
         return wr;
-      } else if (from != null && Type.IsSupertype(to, from)) {
+      } else if (from != null && from.IsSubtypeOf(to, true, true)) {
         // upcast
         return wr;
-      } else if (from == null || from.IsTypeParameter || Type.IsSupertype(from, to)) {
+      } else if (from == null || from.IsTypeParameter || to.IsSubtypeOf(from, true, true)) {
         // downcast (allowed?) or implicit cast from parameter
         if (to.IsObjectQ || to.IsObject) {
           // a cast to interface{} can be omitted
