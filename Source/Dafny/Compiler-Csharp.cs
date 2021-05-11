@@ -1716,32 +1716,30 @@ namespace Microsoft.Dafny
       }
 
       // --- Before
-      if (bvType.NativeType == null) {
-        wr.Write("((");
-      } else {
+      if (bvType.NativeType != null) {
         if (surroundByUnchecked) {
           // Unfortunately, the following will apply "unchecked" to all subexpressions as well.  There
           // shouldn't ever be any problem with this, but stylistically it would have been nice to have
           // applied the "unchecked" only to the actual operation that may overflow.
-          wr.Write("unchecked(");
+          wr = wr.Write("unchecked").AppendChildInParenthesis();
         }
-        wr.Write("({0})((", nativeName);
+
+        wr.Write("({0})", nativeName);
       }
+
+      wr = wr.AppendChildInParenthesis();
+      
       // --- Middle
-      var middle = wr.Fork();
+      var middle = wr.AppendChildInParenthesis();
+      
       // --- After
       // do the truncation, if needed
       if (bvType.NativeType == null) {
-        wr.Write(") & ((new BigInteger(1) << {0}) - 1))", bvType.Width);
+        wr.Write(" & ((new BigInteger(1) << {0}) - 1)", bvType.Width);
       } else {
         if (bvType.NativeType.Bitwidth != bvType.Width) {
           // print in hex, because that looks nice
-          wr.Write(") & ({2})0x{0:X}{1})", (1UL << bvType.Width) - 1, literalSuffix, nativeName);
-        } else {
-          wr.Write("))");  // close the parentheses for the cast
-        }
-        if (surroundByUnchecked) {
-          wr.Write(")");  // close the parentheses for the "unchecked"
+          wr.Write(" & ({2})0x{0:X}{1}", (1UL << bvType.Width) - 1, literalSuffix, nativeName);
         }
       }
 
@@ -1758,21 +1756,13 @@ namespace Microsoft.Dafny
 
       // ( e0 op1 e1) | (e0 op2 (width - e1))
       if (needsCast) {
-        wr.Write("(" + nativeName + ")(");
+        wr = wr.Write("(" + nativeName + ")").AppendChildInParenthesis();
       }
-      wr.Write("(");
-      EmitShift(e0, e1, isRotateLeft ? "<<" : ">>", isRotateLeft, nativeType, true, wr, inLetExprBody, tr);
-      wr.Write(")");
+      EmitShift(e0, e1, isRotateLeft ? "<<" : ">>", isRotateLeft, nativeType, true, wr.AppendChildInParenthesis(), inLetExprBody, tr);
 
       wr.Write(" | ");
 
-      wr.Write("(");
-      EmitShift(e0, e1, isRotateLeft ? ">>" : "<<", !isRotateLeft, nativeType, false, wr, inLetExprBody, tr);
-      wr.Write(")");
-
-      if (needsCast) {
-        wr.Write(")");
-      }
+      EmitShift(e0, e1, isRotateLeft ? ">>" : "<<", !isRotateLeft, nativeType, false, wr.AppendChildInParenthesis(), inLetExprBody, tr);
     }
 
     void EmitShift(Expression e0, Expression e1, string op, bool truncate, NativeType/*?*/ nativeType, bool firstOp, ConcreteSyntaxTree wr, bool inLetExprBody, FCE_Arg_Translator tr) {
@@ -1783,16 +1773,11 @@ namespace Microsoft.Dafny
       tr(e0, wr, inLetExprBody);
       wr.Write(" {0} ", op);
       if (!firstOp) {
-        wr.Write("({0} - ", bv.Width);
+        wr = wr.AppendChildInParenthesis().Write("{0} - ", bv.Width);
       }
 
-      wr.Write("(int)(");
-      tr(e1, wr, inLetExprBody);
-      wr.Write(")");
-
-      if (!firstOp) {
-        wr.Write(")");
-      }
+      wr.Write("(int)");
+      tr(e1, wr.AppendChildInParenthesis(), inLetExprBody);
     }
 
     protected override bool CompareZeroUsingSign(Type type) {
@@ -1814,9 +1799,9 @@ namespace Microsoft.Dafny
     }
 
     protected override ConcreteSyntaxTree EmitAddTupleToList(string ingredients, string tupleTypeArgs, ConcreteSyntaxTree wr) {
-      wr.Write("{0}.Add(new System.Tuple<{1}>(", ingredients, tupleTypeArgs);
-      var wrTuple = wr.Fork();
-      wr.WriteLine("));");
+      wr.Write("{0}.Add(new System.Tuple<{1}>", ingredients, tupleTypeArgs);
+      var wrTuple = wr.AppendChildInParenthesis();
+      wr.WriteLine(");");
       return wrTuple;
     }
 

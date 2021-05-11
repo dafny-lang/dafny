@@ -15,10 +15,6 @@ namespace Microsoft.Dafny
 
     private readonly IList<ICanRender> _nodes = new List<ICanRender>();
 
-    public void Write(string format, object arg0)
-    {
-      Write(string.Format(format, arg0));
-    }
 
     public ConcreteSyntaxTree Fork(int relativeIndent = 0)
     {
@@ -34,37 +30,44 @@ namespace Microsoft.Dafny
       return node;
     }
 
-    public void Write(object value) {
+    public ConcreteSyntaxTree Write(object value) {
       Write(value.ToString());
+      return this;
     }
         
-    public void Write(string value) {
+    public ConcreteSyntaxTree Write(string value) {
       _nodes.Add(new LineSegment(value));
+      return this;
     }
 
-    public void WriteLine(string format, params object[] args)
+    public ConcreteSyntaxTree WriteLine(string format, params object[] args)
     {
       WriteLine(string.Format(format, args));
+      return this;
     }
 
-    public void WriteLine(string value)
+    public ConcreteSyntaxTree WriteLine(string value)
     {
       Write(value);
       WriteLine();
+      return this;
     }
         
-    public void WriteLine()
+    public ConcreteSyntaxTree WriteLine()
     {
       _nodes.Add(new NewLine());
+      return this;
     }
 
-    public void Write(string format, params object[] args)
+    public ConcreteSyntaxTree Write(string format, params object[] args)
     {
       Write(string.Format(format, args));
+      return this;
     }
         
-    public void Write(char value) {
+    public ConcreteSyntaxTree Write(char value) {
       Write(new string(value, 1));
+      return this;
     }
 
     public void RepeatWrite(int times, string template, string separator) {
