@@ -1870,7 +1870,7 @@ namespace Microsoft.Dafny {
           wIf.WriteLine($"if !_dafny.InstanceOfTrait({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wBody, tok)}.TraitID_) {{ continue }}");
           wIf.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wIf, tok));
         } else {
-          typeTest = $"{tmpVarName} instanceof {TypeName(boundVarType, wBody, tok)}";
+          typeTest = $"_dafny.InstanceOf({tmpVarName}, ({TypeName(boundVarType, wBody, tok)})(nil))";
           wIf.WriteLine("{0}, {1} = {2}.({3})", boundVarName, okVar, tmpVarName, TypeName(boundVarType, wIf, tok));
           wIf.WriteLine("if !{0} {{ continue }}", okVar);
         }
@@ -3169,7 +3169,7 @@ namespace Microsoft.Dafny {
       } else if (toType.IsTraitType) {
         wr.Write($"_dafny.InstanceOfTrait({localName}.(_dafny.TraitOffspring), {TypeName_Companion(toType.AsTraitType, wr, tok)}.TraitID_)");
       } else {
-        wr.Write($"{localName} instanceof {TypeName(toType, wr, tok)}");
+        wr.Write($"_dafny.InstanceOf({localName}, ({TypeName(toType, wr, tok)})(nil))");
       }
 
       var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();

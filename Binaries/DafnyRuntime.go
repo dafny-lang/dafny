@@ -189,6 +189,14 @@ func InstanceOfTrait(obj TraitOffspring, trait *TraitID) bool {
   return false
 }
 
+// Use this method to test if an object "p" has a given class type (denoted by the
+// type of "q"). More generally, this method returns true if p and q are of the
+// same type. It is assumed that neither "p" nor "q" denotes a Dafny "null" value.
+
+func InstanceOf(p interface{}, q interface{}) bool {
+  return refl.TypeOf(p) == refl.TypeOf(q)
+}
+
 /******************************************************************************
  * Object
  ******************************************************************************/
