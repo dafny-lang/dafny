@@ -70,9 +70,11 @@ AsIs-Resolve.dfy(248,18): Error: type test for type 'array<ClassX>' must be from
 AsIs-Resolve.dfy(247,18): Error: type test for type 'array<TraitX>' must be from an expression assignable to it (got 'array<ClassX>') (non-variant type parameter would require TraitX = ClassX)
 AsIs-Resolve.dfy(248,18): Error: type test for type 'array<ClassX>' must be from an expression assignable to it (got 'array<TraitX>') (non-variant type parameter would require ClassX = TraitX)
 AsIs-Resolve.dfy(270,12): Error: an expression of type 'D<X>' is not run-time checkable to be a 'F<X, X>'
+AsIs-Resolve.dfy(272,12): Error: an expression of type 'D<(X, X)>' is not run-time checkable to be a 'H<X, X>'
 AsIs-Resolve.dfy(273,12): Error: an expression of type 'T<int>' is not run-time checkable to be a 'I<X>'
 AsIs-Resolve.dfy(280,12): Error: an expression of type 'D<real>' is not run-time checkable to be a 'F<real, real>'
+AsIs-Resolve.dfy(282,12): Error: an expression of type 'D<(real, real)>' is not run-time checkable to be a 'H<real, real>'
 AsIs-Resolve.dfy(283,12): Error: an expression of type 'T<int>' is not run-time checkable to be a 'I<real>'
 AsIs-Resolve.dfy(306,11): Error: an expression of type 'object' is not run-time checkable to be a 'TriviallyObject<real>'
 AsIs-Resolve.dfy(308,21): Error: an expression of type 'object' is not run-time checkable to be a 'TriviallyObject<real>'
-77 resolution/type errors detected in AsIs-Resolve.dfy
+79 resolution/type errors detected in AsIs-Resolve.dfy

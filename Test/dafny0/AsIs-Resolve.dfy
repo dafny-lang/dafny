@@ -259,8 +259,8 @@ module IsRuntimeTestable {
   type F<X2, X3> = d: D<X2> | true witness *
   // can be reconstructed from a T<X>:
   type G<X4, X5> = D<(X4, X5)>
-  type H<X4, X5> = d: D<(X4, X5)> | true witness *
   // cannot be reconstructed from a T<X>:
+  type H<X4, X5> = d: D<(X4, X5)> | true witness *
   class I<X6> extends T<int> { }
 
   method Test0<X>(tx: T<X>, ty: T<(int, seq<X>)>, ti: T<int>, d1: D<X>, d2: D<(X, X)>) returns (b: bool) {
@@ -269,7 +269,7 @@ module IsRuntimeTestable {
     b := d1 is E<X, X>;
     b := d1 is F<X, X>; // error: cannot be tested at run time, so this is a ghost expression
     b := d2 is G<X, X>;
-    b := d2 is H<X, X>;
+    b := d2 is H<X, X>; // error: subset types are not tested at run time, so this is a ghost expression
     b := ti is I<X>; // error: cannot be tested at run time, so this is a ghost expression
   }
 
@@ -279,7 +279,7 @@ module IsRuntimeTestable {
     b := d1 is E<real, real>;
     b := d1 is F<real, real>; // error: cannot be tested at run time, so this is a ghost expression
     b := d2 is G<real, real>;
-    b := d2 is H<real, real>;
+    b := d2 is H<real, real>; // error: subset types are not tested at run time, so this is a ghost expression
     b := ti is I<real>; // error: cannot be tested at run time, so this is a ghost expression
   }
 

@@ -17835,6 +17835,14 @@ namespace Microsoft.Dafny
         // this is a no-op, so it can trivially be compiled
         return true;
       }
+
+      // TODO: It would be nice to allow some subset types in test tests in compiled code. But for now, such cases
+      // are allowed only in ghost contexts.
+      var udtTo = (UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints();
+      if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+        return false;
+      }
+
       // The operation can be performed at run time if the mapping of .ToType's type parameters are injective in fromType's type parameters.
       // For illustration, suppose the "is"-operation is testing whether or not the given expression of type A<X> has type B<Y>, where
       // X and Y are some type expressions. At run time, we can check if the expression has type B<...>, but we can't on all target platforms
