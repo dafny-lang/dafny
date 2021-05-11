@@ -17,6 +17,7 @@ method Main() {
   EnumerationsMaybeNull();
   GoNil();
   Containment({}, {}, {});
+  ObjectTests.Test();
 }
 
 predicate method Thirteen(x: int) { x == 13 }
@@ -409,4 +410,26 @@ method Containment(s: set<CellA>, t: set<ICell>, u: set<SomethingElse>) {
   b1 := t > s;
   c := t > u;
   print b0, " ", b1, " ", c, "\n";  // false false false
+}
+
+module ObjectTests {
+  method Test() {
+    var o, p := new object, new object;
+    print o == p, " ", p == p, "\n"; // false true
+    print GenEqual(o, p), " ", GenEqual(p, p), "\n"; // false true
+    AutoInit<object?>(); // null
+    var o': object?, p': object? := o, p;
+    print GenEqual(o', p'), " ", GenEqual(p', p'), "\n"; // false true
+    o', p' := null, null;
+    print GenEqual(o', p'), " ", GenEqual(p', p'), "\n"; // true true
+  }
+
+  predicate method GenEqual<X(==)>(x: X, y: X) {
+    x == y
+  }
+
+  method AutoInit<X(0)>() {
+    var x: X;
+    print x, "\n";
+  }
 }

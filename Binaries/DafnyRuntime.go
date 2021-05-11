@@ -187,6 +187,37 @@ func InstanceOfTrait(obj TraitOffspring, trait *TraitID) bool {
 }
 
 /******************************************************************************
+ * Object
+ ******************************************************************************/
+
+type Object struct {
+  dummy byte
+}
+
+func New_Object() *Object {
+  _this := Object{}
+  return &_this
+}
+
+func (_this *Object) Equals(other *Object) bool {
+  return _this == other
+}
+
+func (_this *Object) EqualsGeneric(x interface{}) bool {
+  other, ok := x.(*Object)
+  return ok && _this.Equals(other)
+}
+
+func (*Object) String() string {
+  return "object"
+}
+
+func (_this *Object) ParentTraits_() []*TraitID {
+  return [](*TraitID){};
+}
+var _ TraitOffspring = &Object{}
+
+/******************************************************************************
  * Characters
  ******************************************************************************/
 

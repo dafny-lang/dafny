@@ -41,6 +41,11 @@ true true true
 false false false
 true true true
 false false false
+false true
+false true
+null
+false true
+true true
 
 Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
@@ -84,6 +89,11 @@ true true true
 false false false
 true true true
 false false false
+false true
+false true
+null
+false true
+true true
 
 Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
@@ -127,6 +137,11 @@ true true true
 false false false
 true true true
 false false false
+false true
+false true
+null
+false true
+true true
 
 Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
@@ -170,3 +185,8 @@ true true true
 false false false
 true true true
 false false false
+false true
+false true
+null
+false true
+true true

@@ -1897,7 +1897,7 @@ namespace Microsoft.Dafny {
       var cl = ((UserDefinedType)type.NormalizeExpand()).ResolvedClass;
       if (cl != null) {
         if (cl.Name == "object") {
-          wr.Write("new(struct{})");
+          wr.Write("_dafny.New_Object()");
         } else {
           wr.Write("{0}(", TypeName_Initializer(type, wr, tok));
           EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, wr);
