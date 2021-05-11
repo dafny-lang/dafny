@@ -16962,7 +16962,7 @@ namespace Microsoft.Dafny
           }
           continue;
         }
-        if (conjunct is UnaryExpr || conjunct is OldExpr) {
+        if (conjunct is UnaryOpExpr || conjunct is OldExpr) {
           // we also consider a unary expression sitting immediately inside an old
           var unary = conjunct as UnaryOpExpr ?? ((OldExpr)conjunct).E.Resolved as UnaryOpExpr;
           if (unary != null) {
