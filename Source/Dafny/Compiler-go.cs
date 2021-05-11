@@ -1895,16 +1895,13 @@ namespace Microsoft.Dafny {
 
     protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt/*?*/ initCall, TargetWriter wr) {
       var cl = ((UserDefinedType)type.NormalizeExpand()).ResolvedClass;
-      if (cl != null) {
-        if (cl.Name == "object") {
-          wr.Write("_dafny.New_Object()");
-        } else {
-          wr.Write("{0}(", TypeName_Initializer(type, wr, tok));
-          EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, wr);
-          wr.Write(")");
-        }
+      Contract.Assert(cl != null);
+      if (cl is ClassDecl clsDecl && clsDecl.IsObjectTrait) {
+        wr.Write("_dafny.New_Object()");
       } else {
-        wr.Write("new({0})", TypeName(type, wr, tok));
+        wr.Write("{0}(", TypeName_Initializer(type, wr, tok));
+        EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, wr);
+        wr.Write(")");
       }
     }
 
