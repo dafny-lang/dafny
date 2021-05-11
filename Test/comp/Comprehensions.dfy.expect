@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 19 verified, 0 errors
+Dafny program verifier finished with 20 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
 true false
@@ -56,7 +56,7 @@ null
 false true
 true true
 
-Dafny program verifier finished with 19 verified, 0 errors
+Dafny program verifier finished with 20 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
 true false
@@ -113,7 +113,7 @@ null
 false true
 true true
 
-Dafny program verifier finished with 19 verified, 0 errors
+Dafny program verifier finished with 20 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
 true false
@@ -170,7 +170,7 @@ null
 false true
 true true
 
-Dafny program verifier finished with 19 verified, 0 errors
+Dafny program verifier finished with 20 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
 true false

@@ -169,8 +169,11 @@ var MapType = CreateStandardTypeDescriptor(EmptyMap)
 //   var s: set<UberTrait> := ...
 //   // the following line requires run-time check that t (of type UberTrait) is a Trait
 //   var ts := set t: Trait | t in s;
+// A more straightforward situation is the expression
+//   x is Trait
 
 type TraitID struct {
+  dummy byte
 }
 
 type TraitOffspring interface {
