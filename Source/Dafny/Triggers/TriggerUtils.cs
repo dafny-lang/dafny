@@ -216,7 +216,7 @@ namespace Microsoft.Dafny.Triggers {
       return (!Attributes.ContainsBool(quantifier.Attributes, "matchinglooprewrite", ref wantsMatchingLoopRewrite) || wantsMatchingLoopRewrite) && WantsAutoTriggers(quantifier);
     }
 
-    internal static BinaryExpr.ResolvedOpcode RemoveNotInBinaryExprIn(BinaryExpr.ResolvedOpcode opcode) {
+    private static BinaryExpr.ResolvedOpcode RemoveNotInBinaryExprIn(BinaryExpr.ResolvedOpcode opcode) {
       switch (opcode) {
         case BinaryExpr.ResolvedOpcode.NotInMap:
           return BinaryExpr.ResolvedOpcode.InMap;
@@ -232,37 +232,49 @@ namespace Microsoft.Dafny.Triggers {
       throw new ArgumentException();
     }
 
+    private static BinaryExpr.ResolvedOpcode ChangeProperToInclusiveContainment(BinaryExpr.ResolvedOpcode opcode) {
+      return opcode switch {
+        BinaryExpr.ResolvedOpcode.ProperSubset => BinaryExpr.ResolvedOpcode.Subset,
+        BinaryExpr.ResolvedOpcode.ProperMultiSubset => BinaryExpr.ResolvedOpcode.MultiSubset,
+        BinaryExpr.ResolvedOpcode.ProperSuperset => BinaryExpr.ResolvedOpcode.Superset,
+        BinaryExpr.ResolvedOpcode.ProperMultiSuperset => BinaryExpr.ResolvedOpcode.MultiSuperset,
+        _ => opcode
+      };
+    }
+
     internal static Expression PrepareExprForInclusionInTrigger(Expression expr, out bool isKiller) {
       isKiller = false;
 
-      var ret = expr;
-      if (ret is BinaryExpr) {
-        ret = PrepareInMultisetForInclusionInTrigger(PrepareNotInForInclusionInTrigger((BinaryExpr)ret), ref isKiller);
-      }
+      Expression ret;
+      do {
+        ret = expr;
+        if (expr is BinaryExpr bin) {
+          if (bin.Op == BinaryExpr.Opcode.NotIn) {
+            expr = new BinaryExpr(bin.tok, BinaryExpr.Opcode.In, bin.E0, bin.E1) {
+              ResolvedOp = RemoveNotInBinaryExprIn(bin.ResolvedOp),
+              Type = bin.Type
+            };
+          } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
+            expr = new SeqSelectExpr(bin.tok, true, bin.E1, bin.E0, null) {
+              Type = bin.Type
+            };
+            isKiller = true; // [a in s] becomes [s[a] > 0], which is a trigger killer
+          } else {
+            var newOpcode = ChangeProperToInclusiveContainment(bin.ResolvedOp);
+            if (newOpcode != bin.ResolvedOp) {
+              // For sets, isets, and multisets, change < to <= in triggers (and analogously
+              // > to >=), since "a < b" translates as "a <= b && !(b <= a)" or
+              // "a <= b && !(a == b)".
+              expr = new BinaryExpr(bin.tok, BinaryExpr.ResolvedOp2SyntacticOp(newOpcode), bin.E0, bin.E1) {
+                ResolvedOp = newOpcode,
+                Type = bin.Type
+              };
+            }
+          }
+        }
+      } while (ret != expr);
 
       return ret;
-    }
-
-    private static BinaryExpr PrepareNotInForInclusionInTrigger(BinaryExpr bexpr) {
-      if (bexpr.Op == BinaryExpr.Opcode.NotIn) {
-        var new_expr = new BinaryExpr(bexpr.tok, BinaryExpr.Opcode.In, bexpr.E0, bexpr.E1);
-        new_expr.ResolvedOp = RemoveNotInBinaryExprIn(bexpr.ResolvedOp);
-        new_expr.Type = bexpr.Type;
-        return new_expr;
-      } else {
-        return bexpr;
-      }
-    }
-
-    private static Expression PrepareInMultisetForInclusionInTrigger(BinaryExpr bexpr, ref bool isKiller) {
-      if (bexpr.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
-        var new_expr = new SeqSelectExpr(bexpr.tok, true, bexpr.E1, bexpr.E0, null);
-        new_expr.Type = bexpr.Type;
-        isKiller = true; // [a in s] becomes [s[a] > 0], which is a trigger killer
-        return new_expr;
-      } else {
-        return bexpr;
-      }
     }
 
     internal static Expression PrepareExprForInclusionInTrigger(Expression expr) {
