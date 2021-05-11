@@ -711,20 +711,22 @@ namespace Microsoft.Dafny {
       Contract.Requires(wr != null);
 
       resultType = resultType.NormalizeExpand();
-      wr.Write("((");
-      TrExpr(guard, wr, inLetExprBody);
-      wr.Write(") ? (");
-      TrExpr(thn, resultType.Equals(thn.Type.NormalizeExpand()) ? wr : EmitCast(resultType, wr), inLetExprBody);
-      wr.Write(") : (");
-      TrExpr(els, resultType.Equals(els.Type.NormalizeExpand()) ? wr : EmitCast(resultType, wr), inLetExprBody);
-      wr.Write("))");
+      var thenExpr = Expr(thn, inLetExprBody);
+      var castedThenExpr = resultType.Equals(thn.Type.NormalizeExpand()) ? thenExpr : Cast(resultType, thenExpr);
+      var elseExpr = Expr(els, inLetExprBody);
+      var castedElseExpr = resultType.Equals(els.Type.NormalizeExpand()) ? elseExpr : Cast(resultType, elseExpr);
+      wr.Format($"(({Expr(guard, inLetExprBody)}) ? ({castedThenExpr}) : ({castedElseExpr}))");
     }
 
+    public ConcreteSyntaxTree Cast(Type toType, ConcreteSyntaxTree expr) {
+      var result = new ConcreteSyntaxTree();
+      EmitCast(toType, result).Append(expr);
+      return result;
+    }
+    
     protected virtual ConcreteSyntaxTree EmitCast(Type toType, ConcreteSyntaxTree wr) {
-      wr.Write("({0})(", TypeName(toType, wr, Bpl.Token.NoToken));
-      var exprWr = wr.Fork();
-      wr.Write(")");
-      return exprWr;
+      wr.Write("({0})", TypeName(toType, wr, Bpl.Token.NoToken));
+      return wr.ForkInParens();
     }
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType, out string compiledName, out string preString, out string postString);
@@ -4141,9 +4143,7 @@ namespace Microsoft.Dafny {
     protected void TrParenExpr(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody) {
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
-      wr.Write("(");
-      TrExpr(expr, wr, inLetExprBody);
-      wr.Write(")");
+      TrExpr(expr, wr.ForkInParens(), inLetExprBody);
     }
 
     /// <summary>
@@ -4169,6 +4169,13 @@ namespace Microsoft.Dafny {
     }
 
     protected virtual void WriteCast(string s, ConcreteSyntaxTree wr) { }
+
+    protected ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody)
+    {
+      var result = new ConcreteSyntaxTree();
+      TrExpr(expr, result, inLetExprBody);
+      return result;
+    }
 
     /// <summary>
     /// Before calling TrExpr(expr), the caller must have spilled the let variables declared in "expr".
@@ -4229,10 +4236,8 @@ namespace Microsoft.Dafny {
             Contract.Assert(typeArgs.Count == sf.EnclosingClass.TypeArgs.Count);
             wr.Write("{0}.", TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
             EmitNameAndActualTypeArgs(IdName(e.Member), typeArgs, e.tok, wr);
-            wr.Write("(");
             var tas = TypeArgumentInstantiation.ListFromClass(sf.EnclosingClass, typeArgs);
-            EmitTypeDescriptorsActuals(tas, e.tok, wr);
-            wr.Write(")");
+            EmitTypeDescriptorsActuals(tas, e.tok, wr.ForkInParens());
           } else {
             void writeObj(ConcreteSyntaxTree w) {
               //Contract.Assert(!sf.IsStatic);
@@ -4421,19 +4426,18 @@ namespace Microsoft.Dafny {
             if (nativeType != null) {
               GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
             }
+
+            var inner = wr;
             if (needsCast) {
-              wr.Write("(" + nativeName + ")(");
+              inner = wr.Write("(" + nativeName + ")").ForkInParens();
             }
-            wr.Write(preOpString);
-            TrParenExpr(e0, wr, inLetExprBody);
-            wr.Write(" {0} ", opString);
+            inner.Write(preOpString);
+            TrParenExpr(e0, inner, inLetExprBody);
+            inner.Write(" {0} ", opString);
             if (convertE1_to_int) {
-              EmitExprAsInt(e1, inLetExprBody, wr);
+              EmitExprAsInt(e1, inLetExprBody, inner);
             } else {
-              TrParenExpr(e1, wr, inLetExprBody);
-            }
-            if (needsCast) {
-              wr.Write(")");
+              TrParenExpr(e1, inner, inLetExprBody);
             }
             wr.Write(postOpString);
           } else if (callString != null) {
@@ -4750,6 +4754,12 @@ namespace Microsoft.Dafny {
         Error(tok, "Comparison of a handle can only be with another handle", errorWr);
       }
       return false;
+    }
+
+    protected ConcreteSyntaxTree StringLiteral(StringLiteralExpr str) {
+      var result = new ConcreteSyntaxTree();
+      TrStringLiteral(str, result);
+      return result;
     }
 
     protected void TrStringLiteral(StringLiteralExpr str, ConcreteSyntaxTree wr) {

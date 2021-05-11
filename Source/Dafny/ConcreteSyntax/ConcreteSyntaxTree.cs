@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Linq;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny
 {
@@ -14,6 +17,8 @@ namespace Microsoft.Dafny
 
     private readonly IList<ICanRender> _nodes = new List<ICanRender>();
 
+    public IEnumerable<ICanRender> Nodes => _nodes;
+
     public ConcreteSyntaxTree Fork(int relativeIndent = 0)
     {
       var result = new ConcreteSyntaxTree(relativeIndent);
@@ -21,6 +26,12 @@ namespace Microsoft.Dafny
       return result;
     }
 
+    public T Prepend<T>(T node) 
+      where T : ICanRender {
+      _nodes.Add(node);
+      return node;
+    }
+    
     public T Append<T>(T node) 
       where T : ICanRender {
       Contract.Requires(node != null);
@@ -28,51 +39,79 @@ namespace Microsoft.Dafny
       return node;
     }
 
-    public void Write(object value) {
+    public ConcreteSyntaxTree Write(object value) {
       Write(value.ToString());
+      return this;
     }
         
-    public void Write(string value) {
+    public ConcreteSyntaxTree Write(string value) {
       _nodes.Add(new LineSegment(value));
+      return this;
     }
 
-    public void WriteLine(string format, params object[] args) {
-      Write(format, args);
-      WriteLine();
+    [StringFormatMethod("format")]
+    public ConcreteSyntaxTree WriteLine(string format, params object[] args)
+    {
+      WriteLine(string.Format(format, args));
+      return this;
     }
-    
-    public void WriteLine(string value) {
+
+    public ConcreteSyntaxTree WriteLine(string value)
+    {
       Write(value);
       WriteLine();
+      return this;
     }
         
-    public void WriteLine() {
+    public ConcreteSyntaxTree WriteLine()
+    {
       _nodes.Add(new NewLine());
+      return this;
     }
 
-    public void Write(string format, params object[] args) {
+    [StringFormatMethod("format")]
+    public ConcreteSyntaxTree Write(string format, params object[] args)
+    {
       Write(string.Format(format, args));
-    }
-        
-    public void Write(char value) {
-      Write(new string(value, 1));
+      return this;
     }
 
-    public void RepeatWrite(int times, string template, string separator) {
-      Contract.Requires(1 <= times);
-      Contract.Requires(template != null);
-      Contract.Requires(separator != null);
-      string sep = "";
-      for (int i = 0; i < times; i++) {
-        Write(sep);
-        Write(template, i);
-        sep = separator;
+    public ConcreteSyntaxTree FormatLine(FormattableString input)
+    {
+      Format(input);
+      return WriteLine();
+    }
+
+    public ConcreteSyntaxTree Format(FormattableString input)
+    {
+      var anchorString = string.Format(input.Format, Enumerable.Range(0, input.ArgumentCount).
+        Select(index => $"magicAnchor${index}").ToArray<object>());
+      for (int argIndex = 0; argIndex < input.ArgumentCount; argIndex++) {
+        var split = anchorString.Split($"magicAnchor${argIndex}");
+        anchorString = split.Length > 0 ? split[1] : "";
+        Write(split[0]);
+        var argument = input.GetArgument(argIndex)!;
+        if (argument is string stringArg) {
+          Write(stringArg);
+        } else {
+          Append((ConcreteSyntaxTree)input.GetArgument(argIndex)!);
+        }
       }
+      if (anchorString != "") {
+        Write(anchorString);
+      }
+
+      return this;
+    }
+    
+    public ConcreteSyntaxTree Write(char value) {
+      Write(new string(value, 1));
+      return this;
     }
 
     // ----- Nested blocks ------------------------------
 
-    public ConcreteSyntaxTree AppendChildInParenthesis()
+    public ConcreteSyntaxTree ForkInParens()
     {
       var result = new ConcreteSyntaxTree();
       Write("(");
@@ -82,52 +121,29 @@ namespace Microsoft.Dafny
     }
         
     public enum BraceStyle { Nothing, Space, Newline }
-        
-    public ConcreteSyntaxTree NewBlock(string header, string/*?*/ footer = null,
+    
+    public ConcreteSyntaxTree NewBlock(string header = "", string footer = "",
       BraceStyle open = BraceStyle.Space,
       BraceStyle close = BraceStyle.Newline) {
       Contract.Requires(header != null);
-      Write(header);
-            
-      switch (open) {
-        case BraceStyle.Space:
-          Write(" ");
-          break;
-        case BraceStyle.Newline:
-          WriteLine();
-          break;
-      }
-            
-      WriteLine("{");
-      var result = Fork(1);
-      Write("}");
-            
-      if (footer != null) {
-        Write(footer);
-      }
-      switch (close) {
-        case BraceStyle.Space:
-          Write(" ");
-          break;
-        case BraceStyle.Newline:
-          WriteLine();
-          break;
-      }
+      Append(Util.Block(out ConcreteSyntaxTree result, header, footer, open, close));
       return result;
     }
 
+    [StringFormatMethod("headerFormat")]
     public ConcreteSyntaxTree NewNamedBlock(string headerFormat, params object[] headerArgs)
     {
       Contract.Requires(headerFormat != null);
       return NewBlock(string.Format(headerFormat, headerArgs), null);
     }
 
+    [StringFormatMethod("headerFormat")]
     public ConcreteSyntaxTree NewExprBlock(string headerFormat, params object[] headerArgs) {
       Contract.Requires(headerFormat != null);
       return NewBigExprBlock(string.Format(headerFormat, headerArgs), null);
     }
         
-    public ConcreteSyntaxTree NewBigExprBlock(string header, string/*?*/ footer)
+    public ConcreteSyntaxTree NewBigExprBlock(string header = "", string/*?*/ footer = "")
     {
       return NewBlock(header, footer, BraceStyle.Space, BraceStyle.Nothing);
     }

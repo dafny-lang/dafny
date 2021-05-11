@@ -6,28 +6,101 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
-
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 
 
 namespace Microsoft.Dafny {
-  public class Util
+  public static class Util
   {
-    public static string Comma(IEnumerable<string> l) {
+    public static ConcreteSyntaxTree BracketList(params ICanRender[] elements)
+    {
+      var result = List(elements);
+      result.Prepend<LineSegment>("<");
+      result.Write(">");
+      return result;
+    }
+    
+    public static ConcreteSyntaxTree ParensList(params ICanRender[] elements)
+    {
+      var result = List(elements);
+      result.Prepend<LineSegment>("(");
+      result.Write(")");
+      return result;
+    }
+    public static ConcreteSyntaxTree List(params ICanRender[] elements)
+    {
+      var result = new ConcreteSyntaxTree();
+      if (elements.Length > 0) {
+        result.Write(elements[0]);
+        for (int i = 1; i < elements.Length; i++) {
+          result.Write(",");
+          result.Write(elements[i]);
+        }
+      }
+      return result;
+    }
+    
+    public static ConcreteSyntaxTree Block(out ConcreteSyntaxTree body, string header = "", string footer = "",
+      ConcreteSyntaxTree.BraceStyle open = ConcreteSyntaxTree.BraceStyle.Space,
+      ConcreteSyntaxTree.BraceStyle close = ConcreteSyntaxTree.BraceStyle.Newline)
+    {
+      var outer = new ConcreteSyntaxTree();
+      
+      outer.Write(header);
+      switch (open) {
+        case ConcreteSyntaxTree.BraceStyle.Space:
+          outer.Write(" ");
+          break;
+        case ConcreteSyntaxTree.BraceStyle.Newline:
+          outer.WriteLine();
+          break;
+      }
+            
+      outer.WriteLine("{");
+      body = outer.Fork(1);
+      outer.Write("}");
+            
+      if (footer != "") {
+        outer.Write(footer);
+      }
+      switch (close) {
+        case ConcreteSyntaxTree.BraceStyle.Space:
+          outer.Write(" ");
+          break;
+        case ConcreteSyntaxTree.BraceStyle.Newline:
+          outer.WriteLine();
+          break;
+      }
+      return outer;
+    }
+    
+    public static string Comma(this IEnumerable<string> l) {
       return Comma(l, s => s);
     }
 
-    public static string Comma<T>(IEnumerable<T> l, Func<T, string> f) {
+    public static string Comma<T>(this IEnumerable<T> l, Func<T, string> f) {
+      return Comma(", ", l, (element, index) => f(element));
+    }
+    
+    public static string Comma<T>(this IEnumerable<T> l, Func<T, int, string> f) {
       return Comma(", ", l, f);
     }
 
-    public static string Comma<T>(string comma, IEnumerable<T> l, Func<T, string> f) {
+    public static string Comma<T>(string comma, IEnumerable<T> l, Func<T, string> f)
+    {
+      return Comma(comma, l, (element, index) => f(element));
+    }
+
+    public static string Comma<T>(string comma, IEnumerable<T> l, Func<T, int, string> f) {
       Contract.Requires(comma != null);
       string res = "";
       string c = "";
+      int index = 0;
       foreach (var t in l) {
-        res += c + f(t);
+        res += c + f(t, index);
         c = comma;
+        index++;
       }
       return res;
     }
@@ -53,16 +126,20 @@ namespace Microsoft.Dafny {
       Contract.Requires(0 <= n);
       return n == 1 ? "" : "s";
     }
-
-    public static string Repeat(string str, int times) {
+    
+    public static string Repeat(string template, int times, string separator = "")
+    {
       Contract.Requires(times >= 0);
-      Contract.Requires(str != null);
-
-      var ans = "";
-      for (var i = 0; i < times; i++) {
-        ans += str;
+      
+      var builder = new StringBuilder();
+      string sep = "";
+      for (int i = 0; i < times; i++) {
+        builder.Append(sep);
+        builder.Append(string.Format(template, i));
+        sep = separator;
       }
-      return ans;
+
+      return builder.ToString();
     }
 
     public static List<B> Map<A, B>(IEnumerable<A> xs, Func<A, B> f)

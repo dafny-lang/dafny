@@ -18,9 +18,11 @@
     <DefineConstants>TRACE</DefineConstants>
     <PackageVersion>1.1.0</PackageVersion>
     <TargetFramework>net5.0</TargetFramework>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
+      <PackageReference Include="JetBrains.Annotations" Version="2021.2.0-eap3" />
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
       <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
