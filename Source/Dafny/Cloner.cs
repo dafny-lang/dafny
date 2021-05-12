@@ -258,6 +258,10 @@ namespace Microsoft.Dafny
       return mfe;
     }
 
+    public virtual ActualBinding CloneActualBinding(ActualBinding binding) {
+      return new ActualBinding(binding.FormalParameterName == null ? null : Tok(binding.FormalParameterName), CloneExpr(binding.Actual));
+    }
+
     public virtual Expression CloneExpr(Expression expr) {
       if (expr == null) {
         return null;
@@ -300,7 +304,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is DatatypeValue) {
         var e = (DatatypeValue)expr;
-        return new DatatypeValue(Tok(e.tok), e.DatatypeName, e.MemberName, e.Arguments.ConvertAll(CloneExpr));
+        return new DatatypeValue(Tok(e.tok), e.DatatypeName, e.MemberName, e.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding));
 
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
@@ -482,7 +486,7 @@ namespace Microsoft.Dafny
     }
 
     public virtual Expression CloneApplySuffix(ApplySuffix e) {
-        return new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), CloneExpr(e.Lhs), e.Args.ConvertAll(CloneExpr));
+        return new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), CloneExpr(e.Lhs), e.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding));
     }
 
     public virtual CasePattern<VT> CloneCasePattern<VT>(CasePattern<VT> pat) where VT: IVariable {
@@ -517,10 +521,10 @@ namespace Microsoft.Dafny
           } else {
             c = new TypeRhs(Tok(r.Tok), CloneType(r.EType), r.ArrayDimensions.ConvertAll(CloneExpr), CloneExpr(r.ElementInit));
           }
-        } else if (r.Arguments == null) {
+        } else if (r.Bindings == null) {
           c = new TypeRhs(Tok(r.Tok), CloneType(r.EType));
         } else {
-          c = new TypeRhs(Tok(r.Tok), CloneType(r.Path), r.Arguments.ConvertAll(CloneExpr), false);
+          c = new TypeRhs(Tok(r.Tok), CloneType(r.Path), r.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding));
         }
       }
       c.Attributes = CloneAttributes(rhs.Attributes);
@@ -1120,10 +1124,10 @@ namespace Microsoft.Dafny
         name = edn.SuffixName;
         lhs = new ExprDotName(Tok(edn.tok), CloneExpr(edn.Lhs), name + "#", edn.OptTypeArguments == null ? null : edn.OptTypeArguments.ConvertAll(CloneType));
       }
-      var args = new List<Expression>();
-      args.Add(k);
-      foreach (var arg in e.Args) {
-        args.Add(CloneExpr(arg));
+      var args = new List<ActualBinding>();
+      args.Add(new ActualBinding(null, k));
+      foreach (var arg in e.Bindings.ArgumentBindings) {
+        args.Add(CloneActualBinding(arg));
       }
       var apply = new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), lhs, args);
       reporter.Info(MessageSource.Cloner, e.tok, name + suffix);
@@ -1327,9 +1331,9 @@ namespace Microsoft.Dafny
             var lhs = (ExprDotName)apply.Lhs;
             lhsClone = new ExprDotName(Tok(lhs.tok), CloneExpr(lhs.Lhs), lhs.SuffixName + "#", lhs.OptTypeArguments == null ? null : lhs.OptTypeArguments.ConvertAll(CloneType));
           }
-          var args = new List<Expression>();
-          args.Add(k);
-          apply.Args.ForEach(arg => args.Add(CloneExpr(arg)));
+          var args = new List<ActualBinding>();
+          args.Add(new ActualBinding(null, k));
+          apply.Bindings.ArgumentBindings.ForEach(arg => args.Add(CloneActualBinding(arg)));
           var applyClone = new ApplySuffix(Tok(apply.tok), apply.AtTok == null ? null : Tok(apply.AtTok), lhsClone, args);
           var c = new ExprRhs(applyClone);
           reporter.Info(MessageSource.Cloner, apply.Lhs.tok, mse.Member.Name + suffix);
