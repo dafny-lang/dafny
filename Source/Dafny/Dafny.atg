@@ -2497,7 +2497,7 @@ Rhs<out AssignmentRhs r>
      IToken/*!*/ x, newToken;  Expression/*!*/ e;
      Type ty = new InferredTypeProxy();
      List<Expression> ee = null;
-     List<Expression> args = null;
+     List<ActualBinding> args = null;
      Expression arrayElementInit = null;
      List<Expression> display = null;
      r = dummyRhs;  // to please compiler
@@ -2507,9 +2507,9 @@ Rhs<out AssignmentRhs r>
     ( NewArray<out ee, out arrayElementInit, out display>  // "ty" is set to InferredTypeProxy above
     | TypeAndToken<out x, out ty, false>
       [ NewArray<out ee, out arrayElementInit, out display>
-      |                                (. x = null; args = new List<Expression/*!*/>(); .)
+      |                                (. x = null; args = new List<ActualBinding>(); .)
         "("
-          [ Expressions<args> ]
+          [ ActualBindings<args> ]
         ")"
       ]
     )
@@ -2520,7 +2520,7 @@ Rhs<out AssignmentRhs r>
            r = new TypeRhs(newToken, ty, ee, arrayElementInit);
          }
        } else if (args != null) {
-         r = new TypeRhs(newToken, ty, args, false);
+         r = new TypeRhs(newToken, ty, args);
        } else {
          r = new TypeRhs(newToken, ty);
        }
@@ -3699,13 +3699,16 @@ LambdaSpec<.ref List<FrameExpression> reads, ref Expression req.>
 /*------------------------------------------------------------------------*/
 ParensExpression<out Expression e>
 = (. IToken x;
-     var args = new List<Expression>();
+     var args = new List<ActualBinding>();
   .)
   "("                                        (. x = t; .)
-  [ Expressions<args> ]
+  [ ActualBindings<args> ]
   ")"
   (. if (args.Count == 1) {
-       e = new ParensExpression(x, args[0]);
+       if (args[0].FormalParameterName != null) {
+         SemErr(args[0].FormalParameterName, "binding not allowed in parenthesized expression");
+       }
+       e = new ParensExpression(x, args[0].Actual);
      } else {
        // make sure the corresponding tuple type exists
        var tmp = theBuiltIns.TupleType(x, args.Count, true);
@@ -4089,7 +4092,7 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
 NameSegment<out Expression e>
 = (. IToken id;
      IToken openParen = null; IToken atLabel = null;
-     List<Type> typeArgs = null; List<Expression> args = null;
+     List<Type> typeArgs = null; List<ActualBinding> args = null;
   .)
   Ident<out id>
   ( IF(IsGenericInstantiation(true))
@@ -4129,27 +4132,27 @@ NameSegmentForTypeName<out Expression e, bool inExpressionContext>
  * expression, just like for other function applications.
  * Note: This grammar production mutates the id.val field to append the hash sign.
  */
-HashCall<.IToken id, out IToken openParen, out List<Type> typeArgs, out List<Expression> args.>
-= (. Expression k; args = new List<Expression>(); typeArgs = null; .)
+HashCall<.IToken id, out IToken openParen, out List<Type> typeArgs, out List<ActualBinding> args.>
+= (. Expression k; args = new List<ActualBinding>(); typeArgs = null; .)
   "#"                                      (. id.val = id.val + "#"; .)
   [                                        (. typeArgs = new List<Type>(); .)
     GenericInstantiation<typeArgs>
   ]
-  "[" Expression<out k, true, true> "]"    (. args.Add(k); .)
+  "[" Expression<out k, true, true> "]"    (. args.Add(new ActualBinding(null, k)); .)
   "("                                      (. openParen = t; .)
-    [ Expressions<args> ]
+    [ ActualBindings<args> ]
   ")"
   .
 
 /*------------------------------------------------------------------------*/
-AtCall<.out IToken atLabel, out IToken openParen, out List<Expression> args.>
+AtCall<.out IToken atLabel, out IToken openParen, out List<ActualBinding> args.>
 = (. atLabel = null;
      openParen = null;
-     args = new List<Expression>();
+     args = new List<ActualBinding>();
   .)
   "@" LabelName<out atLabel>
   "("                                      (. openParen = t; .)
-    [ Expressions<args> ]
+    [ ActualBindings<args> ]
   ")"
   .
 
@@ -4175,7 +4178,8 @@ Suffix<ref Expression e>
                                                     e = new ExprDotName(id, e, id.val, null);
                                                     id = x;  // move to the next Suffix
                                                   }
-                                                  IToken openParen = null;  List<Type> typeArgs = null;  List<Expression> args = null;
+                                                  IToken openParen = null;  List<Type> typeArgs = null;
+                                                  List<ActualBinding> args = null;
                                                   IToken atLabel = null;
                                                .)
 
@@ -4260,10 +4264,17 @@ Suffix<ref Expression e>
          }
       .)
     "]"
-  | "("                                    (. IToken openParen = t; var args = new List<Expression>(); .)
-    [ Expressions<args> ]
+  | "("                                    (. IToken openParen = t; var args = new List<ActualBinding>(); .)
+    [ ActualBindings<args> ]
     ")"                                    (. e = new ApplySuffix(openParen, null, e, args); .)
   )
+  .
+
+/*------------------------------------------------------------------------*/
+ActualBindings<.List<ActualBinding> bindings.>
+= (. var exprs = new List<Expression>(); .)
+  Expressions<exprs>
+  (. bindings.AddRange(exprs.ConvertAll(e => new ActualBinding(null, e))); .)
   .
 
 /*------------------------------------------------------------------------*/

@@ -6111,6 +6111,42 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class ActualBinding {
+    public readonly IToken /*?*/ FormalParameterName;
+    public readonly Expression Actual;
+
+    public ActualBinding(IToken /*?*/ formalParameterName, Expression actual) {
+      Contract.Requires(actual != null);
+      FormalParameterName = formalParameterName;
+      Actual = actual;
+    }
+  }
+
+  public class ActualBindings {
+    public readonly List<ActualBinding> ArgumentBindings;
+
+    public ActualBindings(List<ActualBinding> argumentBindings) {
+      Contract.Requires(argumentBindings != null);
+      ArgumentBindings = argumentBindings;
+    }
+
+    public ActualBindings(List<Expression> actuals) {
+      Contract.Requires(actuals != null);
+      ArgumentBindings = actuals.ConvertAll(actual => new ActualBinding(null, actual));
+    }
+
+    private List<Expression> arguments;
+
+    public List<Expression> Arguments {
+      get {
+        if (arguments == null) {
+          arguments = ArgumentBindings.ConvertAll(binding => binding.Actual);
+        }
+        return arguments;
+      }
+    }
+  }
+
   public class Function : MemberDecl, TypeParameter.ParentType, ICallable {
     public override string WhatKind { get { return "function"; } }
     public override bool CanBeRevealed() { return true; }
@@ -7249,18 +7285,25 @@ namespace Microsoft.Dafny {
     public readonly List<Expression> ArrayDimensions;
     public readonly Expression ElementInit;
     public readonly List<Expression> InitDisplay;
-    public readonly List<Expression> Arguments;
+    public readonly ActualBindings/*?*/ Bindings;
+    public List<Expression> Arguments {
+      get {
+        Contract.Requires(Bindings != null);
+        return Bindings.Arguments;
+      }
+    }
+
     public Type Path;
     public CallStmt InitCall;  // may be null (and is definitely null for arrays), may be filled in during resolution
     public Type Type;  // filled in during resolution
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(EType != null || Arguments != null);
+      Contract.Invariant(EType != null || Bindings != null);
       Contract.Invariant(ElementInit == null || InitDisplay == null);
       Contract.Invariant(InitDisplay == null || ArrayDimensions.Count == 1);
-      Contract.Invariant(ArrayDimensions == null || (Arguments == null && Path == null && InitCall == null && 1 <= ArrayDimensions.Count));
-      Contract.Invariant(Arguments == null || (Path != null && ArrayDimensions == null && ElementInit == null && InitDisplay == null));
-      Contract.Invariant(!(ArrayDimensions == null && Arguments == null) || (Path == null && InitCall == null && ElementInit == null && InitDisplay == null));
+      Contract.Invariant(ArrayDimensions == null || (Bindings == null && Path == null && InitCall == null && 1 <= ArrayDimensions.Count));
+      Contract.Invariant(Bindings == null || (Path != null && ArrayDimensions == null && ElementInit == null && InitDisplay == null));
+      Contract.Invariant(!(ArrayDimensions == null && Bindings == null) || (Path == null && InitCall == null && ElementInit == null && InitDisplay == null));
     }
 
     public TypeRhs(IToken tok, Type type, List<Expression> arrayDimensions, Expression elementInit)
@@ -7289,14 +7332,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       EType = type;
     }
-    public TypeRhs(IToken tok, Type path, List<Expression> arguments, bool disambiguatingDummy)
+    public TypeRhs(IToken tok, Type path, List<ActualBinding> arguments)
       : base(tok)
     {
       Contract.Requires(tok != null);
       Contract.Requires(path != null);
       Contract.Requires(arguments != null);
       Path = path;
-      Arguments = arguments;
+      Bindings = new ActualBindings(arguments);
     }
     public override bool CanAffectPreviouslyKnownExpressions {
       get {
@@ -7757,13 +7800,18 @@ namespace Microsoft.Dafny {
 
     public readonly List<Expression> Lhs;
     public readonly MemberSelectExpr MethodSelect;
-    public readonly List<Expression> Args;
+    public readonly ActualBindings Bindings;
+    public List<Expression> Args => Bindings.Arguments;
     public Expression OriginalInitialLhs = null;
 
     public Expression Receiver { get { return MethodSelect.Obj; } }
     public Method Method { get { return (Method)MethodSelect.Member; } }
 
     public CallStmt(IToken tok, IToken endTok, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
+      : this(tok, endTok, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
+    }
+
+    public CallStmt(IToken tok, IToken endTok, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
@@ -7774,7 +7822,7 @@ namespace Microsoft.Dafny {
 
       this.Lhs = lhs;
       this.MethodSelect = memSel;
-      this.Args = args;
+      this.Bindings = new ActualBindings(args);
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -9627,7 +9675,8 @@ namespace Microsoft.Dafny {
   public class DatatypeValue : Expression {
     public readonly string DatatypeName;
     public readonly string MemberName;
-    public readonly List<Expression> Arguments;
+    public readonly ActualBindings Bindings;
+    public List<Expression> Arguments => Bindings.Arguments;
     public DatatypeCtor Ctor;  // filled in by resolution
     public List<Type> InferredTypeArgs = new List<Type>();  // filled in by resolution
     public bool IsCoCall;  // filled in by resolution
@@ -9640,7 +9689,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Ctor == null || InferredTypeArgs.Count == Ctor.EnclosingDatatype.TypeArgs.Count);
     }
 
-    public DatatypeValue(IToken tok, string datatypeName, string memberName, [Captured] List<Expression> arguments)
+    public DatatypeValue(IToken tok, string datatypeName, string memberName, [Captured] List<ActualBinding> arguments)
       : base(tok) {
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(tok != null);
@@ -9648,7 +9697,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(memberName != null);
       this.DatatypeName = datatypeName;
       this.MemberName = memberName;
-      this.Arguments = arguments;
+      this.Bindings = new ActualBindings(arguments);
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -10241,7 +10290,8 @@ namespace Microsoft.Dafny {
     public readonly Expression Receiver;
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
     public readonly Label/*?*/ AtLabel;
-    public readonly List<Expression> Args;
+    public readonly ActualBindings Bindings;
+    public List<Expression> Args => Bindings.Arguments;
     public List<Type> TypeApplication_AtEnclosingClass;  // filled in during resolution
     public List<Type> TypeApplication_JustFunction;  // filled in during resolution
 
@@ -10304,8 +10354,13 @@ namespace Microsoft.Dafny {
 
     public Function Function;  // filled in by resolution
 
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<Expression> args,
+      Label /*?*/ atLabel = null)
+      : this(tok, fn, receiver, openParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
+    }
+
     [Captured]
-    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<Expression> args, Label/*?*/ atLabel = null)
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(fn != null);
@@ -10320,7 +10375,7 @@ namespace Microsoft.Dafny {
       this.Receiver = receiver;
       this.OpenParen = openParen;
       this.AtLabel = atLabel;
-      this.Args = args;
+      this.Bindings = new ActualBindings(args);
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -11771,7 +11826,8 @@ namespace Microsoft.Dafny {
         Contract.Assert(this.Id == this.Var.Name);
         this.Expr = new IdentifierExpr(this.tok, this.Var);
       } else {
-        var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id, this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr));
+        var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id,
+          this.Arguments == null ? new List<ActualBinding>() : this.Arguments.ConvertAll(arg => new ActualBinding(null, arg.Expr)));
         dtValue.Ctor = this.Ctor;  // resolve here
         dtValue.InferredTypeArgs.AddRange(dtvTypeArgs);  // resolve here
         dtValue.Type = new UserDefinedType(this.tok, this.Ctor.EnclosingDatatype.Name, this.Ctor.EnclosingDatatype, dtvTypeArgs);
@@ -12595,20 +12651,21 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class ApplySuffix : SuffixExpr {
     public readonly IToken/*?*/ AtTok;
-    public readonly List<Expression> Args;
+    public readonly ActualBindings Bindings;
+    public List<Expression> Args => Bindings.Arguments;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Args != null);
     }
 
-    public ApplySuffix(IToken tok, IToken/*?*/ atLabel, Expression lhs, List<Expression> args)
+    public ApplySuffix(IToken tok, IToken/*?*/ atLabel, Expression lhs, List<ActualBinding> args)
       : base(tok, lhs) {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(cce.NonNullElements(args));
       AtTok = atLabel;
-      Args = args;
+      Bindings = new ActualBindings(args);
     }
   }
 

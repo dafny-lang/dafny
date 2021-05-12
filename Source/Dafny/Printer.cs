@@ -1728,12 +1728,12 @@ namespace Microsoft.Dafny {
             PrintExpressionList(t.InitDisplay, false);
             wr.Write("]");
           }
-        } else if (t.Arguments == null) {
+        } else if (t.Bindings == null) {
           PrintType(t.EType);
         } else {
           PrintType(t.Path);
           wr.Write("(");
-          PrintExpressionList(t.Arguments, false);
+          PrintBindings(t.Bindings, false);
           wr.Write(")");
         }
       } else {
@@ -2805,6 +2805,19 @@ namespace Microsoft.Dafny {
       wr.Write("(");
       PrintExpressionList(args, false);
       wr.Write(")");
+    }
+
+    void PrintBindings(ActualBindings bindings, bool isFollowedBySemicolon) {
+      Contract.Requires(bindings != null);
+      string sep = "";
+      foreach (var binding in bindings.ArgumentBindings) {
+        wr.Write(sep);
+        sep = ", ";
+        if (binding.FormalParameterName != null) {
+          wr.Write($"{binding.FormalParameterName.val} := ");
+        }
+        PrintExpression(binding.Actual, isFollowedBySemicolon);
+      }
     }
 
     void PrintExpressionList(List<Expression> exprs, bool isFollowedBySemicolon) {
