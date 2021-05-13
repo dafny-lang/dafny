@@ -202,6 +202,12 @@ bool IsLabel(bool allowLabel) {
   return (IsIdentifier(la.kind) || la.kind == _digits) && x.kind == _colon;
 }
 
+bool IsBinding() {
+  scanner.ResetPeek();
+  IToken x = scanner.Peek();
+  return (IsIdentifier(la.kind) || la.kind == _digits) && x.kind == _gets;
+}
+
 bool IsAlternative() {
   IToken x = scanner.Peek();
   return (la.kind == _lbrace && x.kind == _case)
@@ -4287,9 +4293,20 @@ Suffix<ref Expression e>
 
 /*------------------------------------------------------------------------*/
 ActualBindings<.List<ActualBinding> bindings.>
-= (. var exprs = new List<Expression>(); .)
-  Expressions<exprs>
-  (. bindings.AddRange(exprs.ConvertAll(e => new ActualBinding(null, e))); .)
+= (. ActualBinding binding; .)
+  ActualBinding<out binding>                      (. bindings.Add(binding); .)
+  { "," ActualBinding<out binding>                (. bindings.Add(binding); .)
+  }
+  .
+
+ActualBinding<out ActualBinding binding>
+= (. IToken id = null; Expression e; .)
+  [ IF(IsBinding())
+    NoUSIdentOrDigits<out id>
+    ":="
+  ]
+  Expression<out e, true, true>
+  (. binding = new ActualBinding(id, e); .)
   .
 
 /*------------------------------------------------------------------------*/
