@@ -58,3 +58,7 @@ Source/.vs
 /Source/DafnyRuntime/DafnyRuntimeJava/.gradle
 /Source/DafnyRuntime/DafnyRuntimeJava/build
 *.class
+
+node_modules/
+package.json
+package-lock.json
