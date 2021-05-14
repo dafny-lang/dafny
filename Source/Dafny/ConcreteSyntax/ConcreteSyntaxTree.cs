@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.Text;
 
 namespace Microsoft.Dafny
 {
@@ -14,11 +13,6 @@ namespace Microsoft.Dafny
     public readonly int RelativeIndentLevel;
 
     private readonly IList<ICanRender> _nodes = new List<ICanRender>();
-
-    public void Write(string format, object arg0)
-    {
-      Write(string.Format(format, arg0));
-    }
 
     public ConcreteSyntaxTree Fork(int relativeIndent = 0)
     {
@@ -42,24 +36,21 @@ namespace Microsoft.Dafny
       _nodes.Add(new LineSegment(value));
     }
 
-    public void WriteLine(string format, params object[] args)
-    {
-      WriteLine(string.Format(format, args));
+    public void WriteLine(string format, params object[] args) {
+      Write(format, args);
+      WriteLine();
     }
-
-    public void WriteLine(string value)
-    {
+    
+    public void WriteLine(string value) {
       Write(value);
       WriteLine();
     }
         
-    public void WriteLine()
-    {
+    public void WriteLine() {
       _nodes.Add(new NewLine());
     }
 
-    public void Write(string format, params object[] args)
-    {
+    public void Write(string format, params object[] args) {
       Write(string.Format(format, args));
     }
         

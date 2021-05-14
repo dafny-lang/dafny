@@ -2813,9 +2813,8 @@ namespace Microsoft.Dafny {
           Coverage.Instrument(alternative.Tok, "if-case branch", thn);
           TrStmtList(alternative.Body, thn);
         }
-        var wElse = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Nothing); {
-          EmitAbsurd("unreachable alternative", wElse);
-        }
+        var wElse = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Nothing);
+        EmitAbsurd("unreachable alternative", wElse);
 
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;

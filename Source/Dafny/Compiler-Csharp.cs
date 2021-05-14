@@ -886,7 +886,7 @@ namespace Microsoft.Dafny
         wr.WriteLine(");");
         return null;
       } else {
-        var block = wr.NewBlock(")", null, ConcreteSyntaxTree.BraceStyle.Newline, ConcreteSyntaxTree.BraceStyle.Newline);
+        var block = wr.NewBlock(")", null, ConcreteSyntaxTree.BraceStyle.Newline);
         if (targetReturnTypeReplacement != null && !forBodyInheritance) {
           var beforeReturnBlock = block.Fork(0);
           EmitReturn(m.Outs, block);
