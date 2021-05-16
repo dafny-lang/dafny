@@ -19,6 +19,7 @@
 
     <ItemGroup>
         <EmbeddedResource Include="XUnitExtensions\YamlDataTests\*.yml" />
-        <EmbeddedResource Include="..\..\Test\comp\**\*.*" LinkBase="DafnyTests\Test" />
+        <EmbeddedResource Include="..\..\Test\comp\**\*.*" LinkBase="DafnyTests\Test\comp" />
+        <EmbeddedResource Include="..\..\Test\c++\**\*.*" LinkBase="DafnyTests\Test\c++" />
     </ItemGroup>
 </Project>

@@ -15,11 +15,12 @@ using XUnitExtensions;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
+using YamlDotNet.Serialization.NodeDeserializers;
 using YamlDotNet.Serialization.ObjectFactories;
 
 namespace DafnyTests {
   
-  public class DafnyTestSpec : IEnumerable<DafnyTestCase> {
+  public class DafnyTestSpec: IEnumerable<DafnyTestCase> {
 
     private static DirectoryInfo OUTPUT_ROOT = new DirectoryInfo(Directory.GetCurrentDirectory());
     
@@ -31,7 +32,6 @@ namespace DafnyTests {
       OUTPUT_ROOT.Parent.Parent.Parent.Parent.Parent.FullName;
 
     public static readonly string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
-    public static readonly string COMP_DIR = Path.Combine(TEST_ROOT, "comp") + Path.DirectorySeparatorChar;
     public static readonly string OUTPUT_DIR = Path.Combine(TEST_ROOT, "Output") + Path.DirectorySeparatorChar;
     
     public static readonly string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/dafny");
@@ -70,6 +70,11 @@ namespace DafnyTests {
         .GetEnumerator();
     }
 
+    IEnumerator IEnumerable.GetEnumerator() {
+      return GetEnumerator();
+    }
+
+    [YamlIgnore]
     public int? Compile {
       get {
         if (DafnyArguments.TryGetValue(DAFNY_COMPILE_OPTION, out var compile)) {
@@ -85,6 +90,8 @@ namespace DafnyTests {
         }
       }
     }
+    
+    [YamlIgnore]
     public string CompileTarget {
       get {
         if (DafnyArguments.TryGetValue(DAFNY_COMPILE_TARGET_OPTION, out var compileTarget)) {
@@ -94,21 +101,13 @@ namespace DafnyTests {
       }
     }
 
-    public bool NoVerify {
-      get {
-        if (DafnyArguments.TryGetValue(DAFNY_NO_VERIFY_OPTION, out var noVerify)) {
-          return (string)noVerify == "yes";
-        }
-        return false;
-      }
-    }
-
     private IEnumerable<DafnyTestSpec> ResolveCompile() {
       if (Compile == null) {
         Compile = 3;
       }
       
-      if (Compile > 0) {
+      if (Compile > 0 && CompileTarget == null) {
+        // TODO: Include c++ but flag as special case by default?
         var compileTargets = new[] {"cs", "java", "go", "js"};
 
         var justVerify = new Dictionary<string, object>(DafnyArguments) {
@@ -152,10 +151,9 @@ namespace DafnyTests {
     }
     
     private DafnyTestCase ToTestCase() {
-      var arguments = new []{ Path.GetRelativePath(TEST_ROOT, SourcePath) }
-        .Concat(DafnyArguments.Select(ConfigPairToArgument))
-        .Concat(OtherFiles.Select(otherFile => "comp/" + otherFile));
-      return new DafnyTestCase(arguments, Expected.Adjust());
+      var arguments = new []{ SourcePath }
+        .Concat(DafnyArguments.Select(ConfigPairToArgument));
+      return new DafnyTestCase(arguments, Expected);
     }
     
     private static string ConfigPairToArgument(KeyValuePair<string, object> pair) {
@@ -166,10 +164,6 @@ namespace DafnyTests {
       }
     }
 
-    IEnumerator IEnumerable.GetEnumerator() {
-      return GetEnumerator();
-    }
-    
     private IEnumerable<DafnyTestSpec> ExpandArguments() {
       return DafnyArguments.Select(ExpandValue)
                            .CartesianProduct()
@@ -369,15 +363,18 @@ dafnyArguments: {}
           return GetPathsForResourceNames(assemblyName, fileProvider, childName);
         } else {
           var result = new Dictionary<string, string>();
-          result[assemblyName + "." + childName.Replace("/", ".")] = childName;
+          result[ResourceNameForFilePath(assemblyName, childName)] = childName;
           return result;
         }
       }).ToDictionary(pair => pair.Key, pair => pair.Value);
     }
 
+    private static string ResourceNameForFilePath(string assemblyName, string filePath) {
+      return assemblyName + "." + filePath.Replace("/", ".").Replace("+", "_");
+    }
+    
     private static DafnyTestSpec SpecForResourceName(string manifestResourceName) {
-      string filePath = DafnyTestSpec.COMP_DIR +
-                        PathsForResourceNames[manifestResourceName].Substring("DafnyTests/Test".Length + 1);
+      string filePath = PathsForResourceNames[manifestResourceName].Substring("DafnyTests/Test".Length + 1);
       return new DafnyTestSpec(filePath);
     }
     
@@ -419,10 +416,10 @@ dafnyArguments: {}
         .Build();
     }
   }
-
+  
   [DataDiscoverer("DafnyTests.DafnyTestYamlDataDiscoverer", "DafnyTests")]
   public class DafnyTestDataAttribute : YamlDataAttribute {
-    public DafnyTestDataAttribute(bool withParameterNames = true) : base(withParameterNames) {
+    public DafnyTestDataAttribute(bool withParameterNames) : base(withParameterNames) {
     }
   }
   
@@ -432,7 +429,8 @@ dafnyArguments: {}
     public static void MetaTest() {
       var discoverer = new DafnyTestYamlDataDiscoverer();
       var testMethod = typeof(DafnyTests).GetMethod(nameof(Test));
-      discoverer.GetData(testMethod, false).ToList();
+      var testData = discoverer.GetData(testMethod, false).ToList();
+      Assert.True(testData.Any());
     }
 
     [ParallelTheory]

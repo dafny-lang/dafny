@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
+using YamlDotNet.Serialization.ObjectGraphTraversalStrategies;
 
 namespace DafnyTests {
   
@@ -23,8 +25,7 @@ namespace DafnyTests {
     private static readonly string[] DAFNY_IGNORED_OPTIONS = {
       "print",
       "dprint",
-      "rprint",
-      "spillTargetCode"
+      "rprint"
     };
     
     private int count = 0;
@@ -34,7 +35,7 @@ namespace DafnyTests {
     private int invalidCount = 0;
 
     public void ConvertLitTest(string filePath) {
-      IEnumerable<DafnyTestCase> testSpec;
+      object testSpec;
       IEnumerable<string> testContent;
       
       if (filePath.Contains("/Inputs/")) {
@@ -59,20 +60,29 @@ namespace DafnyTests {
         testSpec = ConvertLitCommands(filePath, litCommands);
       }
 
+      ISerializer serializer = new SerializerBuilder()
+        .WithNamingConvention(CamelCaseNamingConvention.Instance)
+        .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults)
+        .WithObjectGraphTraversalStrategyFactory((inspector, resolver, converters, recursion) => 
+        new Foo(inspector, resolver, converters, recursion))
+        .WithTagMapping("!dafnyTestSpec", typeof(DafnyTestSpec))
+        .WithTagMapping("!foreach", typeof(ForEachArgumentList))
+        .Build();
+      
       using (StreamWriter file = new StreamWriter(filePath)) {
         if (testSpec != null) {
           file.WriteLine("/*");
           file.WriteLine("---");
-          new Serializer().Serialize(file, testSpec);
+          serializer.Serialize(file, testSpec);
           file.WriteLine("*/");
-          foreach(var line in testContent) {
-            file.WriteLine(line);
-          }
+        }
+        foreach (var line in testContent) {
+          file.WriteLine(line);
         }
       }
     }
 
-    private IEnumerable<DafnyTestCase> ConvertLitCommands(string filePath, List<string> litCommands) {
+    private object ConvertLitCommands(string filePath, List<string> litCommands) {
       if (litCommands.Count == 1 && litCommands.Single().StartsWith("echo")) {
         // This is an idiom for Dafny files used elsewhere
         return Enumerable.Empty<DafnyTestCase>();
@@ -188,6 +198,10 @@ namespace DafnyTests {
 
     public void Run(string root) {
       // TODO-RS: Search for "*.transcript" too
+      if (!Directory.Exists(root)) {
+        ConvertLitTest(root);
+        return;
+      }
       foreach (var file in Directory.GetFiles(root, "*.dfy", SearchOption.AllDirectories)) {
         try {
           count++;
@@ -203,6 +217,23 @@ namespace DafnyTests {
       Console.WriteLine("Default: " + defaultCount + "/" + count);
       Console.WriteLine("Verify only: " + verifyOnlyCount + "/" + count);
       Console.WriteLine("Invalid: " + invalidCount + "/" + count);
+    }
+
+    private class Foo : FullObjectGraphTraversalStrategy {
+      public Foo(
+        ITypeInspector typeDescriptor,
+        ITypeResolver typeResolver,
+        int maxRecursion,
+        INamingConvention namingConvention): base(typeDescriptor, typeResolver, maxRecursion, namingConvention) {
+      }
+
+      protected override void TraverseObject<TContext>(IObjectDescriptor value, IObjectGraphVisitor<TContext> visitor, TContext context, Stack<ObjectPathSegment> path) {
+        if (value.Value is DafnyTestSpec) {
+          TraverseProperties(value, visitor, context, path);
+        } else {
+          base.TraverseObject(value, visitor, context, path);
+        }
+      }
     }
     
     public static void Main(string[] args) { 
