@@ -315,10 +315,8 @@ namespace Microsoft.Dafny {
       if (dt is CoDatatypeDecl) {
         var w0 = wr.NewBlock("_D()");
         var w1 = EmitIf("this._d === undefined", false, w0);
-        {
-          w1.WriteLine("this._d = this._initializer(this);");
-          w1.WriteLine("delete this._initializer;");
-        }
+        w1.WriteLine("this._d = this._initializer(this);");
+        w1.WriteLine("delete this._initializer;");
         w0.WriteLine("return this._d");
       }
 

@@ -2946,8 +2946,7 @@ namespace Microsoft.Dafny{
       wrEquals.WriteLine($"Tuple{i} o = (Tuple{i}) obj;");
       if (i != 0) {
         wrEquals.WriteLine("return {0};", Util.Comma(" && ", i, j => $"java.util.Objects.equals(this._{j}, o._{j})"));
-      }
-      else {
+      } else {
         wrEquals.WriteLine("return true;");
       }
 
@@ -2956,8 +2955,7 @@ namespace Microsoft.Dafny{
       var wrToString = wr.NewBlock("public String toString()");
       wrToString.WriteLine("StringBuilder sb = new StringBuilder();");
       wrToString.WriteLine("sb.append(\"(\");");
-      for (int j = 0; j < i; j++)
-      {
+      for (int j = 0; j < i; j++) {
         wrToString.WriteLine($"sb.append(_{j} == null ? \"null\" : _{j}.toString());");
         if (j != i - 1)
           wrToString.WriteLine("sb.append(\", \");");
