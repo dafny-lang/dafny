@@ -507,12 +507,10 @@ namespace Microsoft.Dafny {
       var wRtd = wr.NewBlock(")");
       var wClass = wRtd.NewBlock("return class", ";");
       {
-        {
-          var wDefault = wClass.NewBlock("static get Default()");
-          var arguments = Util.Comma(UsedTypeParameters(dt),
-            tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, true));
-          wDefault.WriteLine($"return {DtT_protected}.Default({arguments});");
-        }
+        var wDefault = wClass.NewBlock("static get Default()");
+        var arguments = Util.Comma(UsedTypeParameters(dt),
+          tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, true));
+        wDefault.WriteLine($"return {DtT_protected}.Default({arguments});");
       }
 
       return new ClassWriter(this, btw, btw);
@@ -2296,8 +2294,7 @@ namespace Microsoft.Dafny {
         RedirectStandardError = false,
       };
 
-      try
-      {
+      try {
         using var nodeProcess = Process.Start(psi);
         foreach (var filename in otherFileNames) {
           WriteFromFile(filename, nodeProcess.StandardInput);
