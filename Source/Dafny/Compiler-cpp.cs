@@ -427,16 +427,14 @@ namespace Microsoft.Dafny {
         ws.WriteLine("std::variant<{0}> v;", Util.Comma(dt.Ctors, ctor => DatatypeSubStructName(ctor, true)));
 
         // Declare static "constructors" for each Dafny constructor
-        foreach (var ctor in dt.Ctors)
-        {
+        foreach (var ctor in dt.Ctors) {
           var wc = ws.NewNamedBlock("static {0} create_{1}({2};",
             DtT_protected, ctor.CompileName,
             DeclareFormals(ctor.Formals));
           wc.WriteLine("{0}{1} COMPILER_result;", DtT_protected, InstantiateTemplate(dt.TypeArgs));
           wc.WriteLine("{0} COMPILER_result_subStruct;", DatatypeSubStructName(ctor, true));
 
-          foreach (Formal arg in ctor.Formals)
-          {
+          foreach (Formal arg in ctor.Formals) {
             if (!arg.IsGhost) {
               if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
                 // This is a recursive destuctor, so we need to allocate space and copy the input in
@@ -458,8 +456,7 @@ namespace Microsoft.Dafny {
         var wd = wdef.NewNamedBlock(String.Format("{1}\n{0}{2}::{0}()", DtT_protected, DeclareTemplate(dt.TypeArgs), InstantiateTemplate(dt.TypeArgs)));
         var default_ctor = dt.Ctors[0]; // Arbitrarily choose the first one
         wd.WriteLine("{0} COMPILER_result_subStruct;", DatatypeSubStructName(default_ctor, true));
-        foreach (Formal arg in default_ctor.Formals)
-        {
+        foreach (Formal arg in default_ctor.Formals) {
           if (!arg.IsGhost) {
             wd.WriteLine("COMPILER_result_subStruct.{0} = {1};", arg.CompileName,
               DefaultValue(arg.Type, wd, arg.tok));
@@ -516,8 +513,7 @@ namespace Microsoft.Dafny {
                 }
                 else {
                   var n = dtor.EnclosingCtors.Count;
-                  for (int i = 0; i < n - 1; i++)
-                  {
+                  for (int i = 0; i < n - 1; i++) {
                     var ctor_i = dtor.EnclosingCtors[i];
                     var ctor_name = DatatypeSubStructName(ctor_i);
                     Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);

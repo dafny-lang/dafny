@@ -418,8 +418,7 @@ namespace Microsoft.Dafny {
         // toString method
         var w = wr.NewBlock("toString()");
         i = 0;
-        foreach (var ctor in dt.Ctors)
-        {
+        foreach (var ctor in dt.Ctors) {
           var cw = EmitIf(string.Format("this.$tag === {0}", i), true, w);
           var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") +
                    dt.Name + "." + ctor.Name;
@@ -427,8 +426,7 @@ namespace Microsoft.Dafny {
           var sep = " + \"(\" + ";
           var anyFormals = false;
           var k = 0;
-          foreach (var arg in ctor.Formals)
-          {
+          foreach (var arg in ctor.Formals) {
             if (!arg.IsGhost) {
               anyFormals = true;
               cw.Write("{0}_dafny.toString(this.{1})", sep, FormalName(arg, k));

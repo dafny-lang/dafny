@@ -308,8 +308,7 @@ namespace Microsoft.Dafny
         }
       }
       var wBody = w.NewBlock(")");
-      foreach (var p in ct.Ins)
-      {
+      foreach (var p in ct.Ins) {
         if (!p.IsGhost) {
           wBody.WriteLine("this.{0} = {0};", IdName(p));
         }
@@ -491,8 +490,7 @@ namespace Microsoft.Dafny
                 }
 
                 var n = dtor.EnclosingCtors.Count;
-                for (int i = 0; i < n - 1; i++)
-                {
+                for (int i = 0; i < n - 1; i++) {
                   var ctor_i = dtor.EnclosingCtors[i];
                   Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
                   wGet.WriteLine("if (d is {0}_{1}{2}) {{ return (({0}_{1}{2})d).{3}; }}", dt.CompileName,

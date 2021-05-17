@@ -1786,8 +1786,7 @@ namespace Microsoft.Dafny{
               else {
                 wDtor.WriteLine("{0} d = this{1};", DtT_protected, dt is CoDatatypeDecl ? ".Get()" : "");
                 var n = dtor.EnclosingCtors.Count;
-                for (int i = 0; i < n - 1; i++)
-                {
+                for (int i = 0; i < n - 1; i++) {
                   var ctor_i = dtor.EnclosingCtors[i];
                   Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
                   wDtor.WriteLine("if (d instanceof {0}_{1}) {{ return (({0}_{1}{2})d).{3}; }}", dt.CompileName,
@@ -2895,8 +2894,7 @@ namespace Microsoft.Dafny{
 
       wr.Write("public Tuple{0}({1}", i, Util.Comma(i, j => $"T{j} _{j}"));
       var wrCtor = wr.NewBlock(")");
-      for (var j = 0; j < i; j++)
-      {
+      for (var j = 0; j < i; j++) {
         wrCtor.WriteLine("this._{0} = _{0};", j);
       }
 
@@ -2973,8 +2971,7 @@ namespace Microsoft.Dafny{
       wrHashCode.WriteLine("long hash = 5381;");
       wrHashCode.WriteLine(
         "hash = ((hash << 5) + hash) + 0;"); // this is constructor 0 (in fact, it's the only constructor)
-      for (int j = 0; j < i; j++)
-      {
+      for (int j = 0; j < i; j++) {
         wrHashCode.WriteLine("hash = ((hash << 5) + hash) + java.util.Objects.hashCode(this._" + j + ");");
       }
 
