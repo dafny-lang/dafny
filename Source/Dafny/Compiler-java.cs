@@ -279,8 +279,7 @@ namespace Microsoft.Dafny{
       {
         var lhs = (MultiSelectExpr) s0.Lhs;
         TrExpr(lhs.Array, wrTuple, false);
-        foreach (var t in lhs.Indices)
-        {
+        foreach (var t in lhs.Indices) {
           wrTuple.Write(", ");
           TrParenExpr(t, wrTuple, false);
         }
