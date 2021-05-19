@@ -16645,11 +16645,16 @@ namespace Microsoft.Dafny {
 
       public Bpl.QKeyValue TrAttributes(Attributes attrs, string skipThisAttribute) {
         Bpl.QKeyValue kv = null;
+        bool hasNewTimeLimit = Attributes.Contains(attrs, "_timeLimit");
+        bool hasNewRLimit = Attributes.Contains(attrs, "_rlimit");
         foreach (var attr in attrs.AsEnumerable()) {
           if (attr.Name == skipThisAttribute
            || attr.Name == "axiom"  // Dafny's axiom attribute clashes with Boogie's axiom keyword
            || attr.Name == "fuel"   // Fuel often uses function names as arguments, which adds extra axioms unnecessarily
            || (DafnyOptions.O.DisallowExterns && (attr.Name == "extern" || attr.Name == "dllimport")) // omit the extern attribute when /noExterns option is specified.
+           || attr.Name == "timeLimitMultiplier"  // This is a Dafny-specific attribute
+           || (attr.Name == "timeLimit" && hasNewTimeLimit)
+           || (attr.Name == "rlimit" && hasNewRLimit)
              ) {
             continue;
           }
@@ -16665,7 +16670,14 @@ namespace Microsoft.Dafny {
               parms.Add(e);
             }
           }
-          kv = new Bpl.QKeyValue(Token.NoToken, attr.Name, parms, kv);
+
+          var name = attr.Name;
+          if (name == "_timeLimit") {
+            name = "timeLimit";
+          } else if (name == "_rlimit") {
+            name = "rlimit";
+          }
+          kv = new Bpl.QKeyValue(Token.NoToken, name, parms, kv);
         }
         return kv;
       }
