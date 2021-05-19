@@ -427,55 +427,55 @@ namespace Microsoft.Dafny {
         ws.WriteLine("std::variant<{0}> v;", Util.Comma(dt.Ctors, ctor => DatatypeSubStructName(ctor, true)));
 
         // Declare static "constructors" for each Dafny constructor
-        foreach (var ctor in dt.Ctors)
-        {
-          using (var wc = ws.NewNamedBlock("static {0} create_{1}({2})",
-                                           DtT_protected, ctor.CompileName,
-                                           DeclareFormals(ctor.Formals))) {
-            wc.WriteLine("{0}{1} COMPILER_result;", DtT_protected, InstantiateTemplate(dt.TypeArgs));
-            wc.WriteLine("{0} COMPILER_result_subStruct;", DatatypeSubStructName(ctor, true));
+        foreach (var ctor in dt.Ctors) {
+          var wc = ws.NewNamedBlock("static {0} create_{1}({2};",
+            DtT_protected, ctor.CompileName,
+            DeclareFormals(ctor.Formals));
+          wc.WriteLine("{0}{1} COMPILER_result;", DtT_protected, InstantiateTemplate(dt.TypeArgs));
+          wc.WriteLine("{0} COMPILER_result_subStruct;", DatatypeSubStructName(ctor, true));
 
-            foreach (Formal arg in ctor.Formals)
-            {
-              if (!arg.IsGhost) {
-                if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
-                  // This is a recursive destuctor, so we need to allocate space and copy the input in
-                  wc.WriteLine("COMPILER_result_subStruct.{0} = std::make_shared<{1}>({0});", arg.CompileName, DtT_protected);
-                } else {
-                  wc.WriteLine("COMPILER_result_subStruct.{0} = {0};", arg.CompileName);
-                }
+          foreach (Formal arg in ctor.Formals) {
+            if (!arg.IsGhost) {
+              if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
+                // This is a recursive destuctor, so we need to allocate space and copy the input in
+                wc.WriteLine("COMPILER_result_subStruct.{0} = std::make_shared<{1}>({0});", arg.CompileName,
+                  DtT_protected);
+              }
+              else {
+                wc.WriteLine("COMPILER_result_subStruct.{0} = {0};", arg.CompileName);
               }
             }
-            wc.WriteLine("COMPILER_result.v = COMPILER_result_subStruct;");
-            wc.WriteLine("return COMPILER_result;");
           }
+
+          wc.WriteLine("COMPILER_result.v = COMPILER_result_subStruct;");
+          wc.WriteLine("return COMPILER_result;");
         }
 
         // Declare a default constructor
         ws.WriteLine("{0}();", DtT_protected);
-        using (var wd = wdef.NewNamedBlock(String.Format("{1}\n{0}{2}::{0}()", DtT_protected, DeclareTemplate(dt.TypeArgs), InstantiateTemplate(dt.TypeArgs)))) {
-          var default_ctor = dt.Ctors[0];   // Arbitrarily choose the first one
-          wd.WriteLine("{0} COMPILER_result_subStruct;", DatatypeSubStructName(default_ctor, true));
-          foreach (Formal arg in default_ctor.Formals)
-          {
-            if (!arg.IsGhost) {
-              wd.WriteLine("COMPILER_result_subStruct.{0} = {1};", arg.CompileName,
-                DefaultValue(arg.Type, wd, arg.tok));
-            }
+        var wd = wdef.NewNamedBlock(String.Format("{1}\n{0}{2}::{0}()", DtT_protected, DeclareTemplate(dt.TypeArgs), InstantiateTemplate(dt.TypeArgs)));
+        var default_ctor = dt.Ctors[0]; // Arbitrarily choose the first one
+        wd.WriteLine("{0} COMPILER_result_subStruct;", DatatypeSubStructName(default_ctor, true));
+        foreach (Formal arg in default_ctor.Formals) {
+          if (!arg.IsGhost) {
+            wd.WriteLine("COMPILER_result_subStruct.{0} = {1};", arg.CompileName,
+              DefaultValue(arg.Type, wd, arg.tok));
           }
-          wd.WriteLine("v = COMPILER_result_subStruct;");
         }
+
+        wd.WriteLine("v = COMPILER_result_subStruct;");
 
         // Declare a default destructor
         ws.WriteLine("~{0}() {{}}", DtT_protected);
 
-        // Declare a default copy constructor (just in case any of our components are non-trivial, i.e., contain smart_ptr)
-        using (var wcc = ws.NewNamedBlock(String.Format("{0}(const {0} &other)", DtT_protected))) {
+        {
+          // Declare a default copy constructor (just in case any of our components are non-trivial, i.e., contain smart_ptr)
+          var wcc = ws.NewNamedBlock(String.Format("{0}(const {0} &other)", DtT_protected)); 
           wcc.WriteLine("v = other.v;");
         }
-
-        // Declare a default copy assignment operator (just in case any of our components are non-trivial, i.e., contain smart_ptr)
-        using (var wcc = ws.NewNamedBlock(String.Format("{0}& operator=(const {0} other)", DtT_protected))) {
+        {
+          // Declare a default copy assignment operator (just in case any of our components are non-trivial, i.e., contain smart_ptr)
+          var wcc = ws.NewNamedBlock(String.Format("{0}& operator=(const {0} other)", DtT_protected));
           wcc.WriteLine("v = other.v;");
           wcc.WriteLine("return *this;");
         }
@@ -505,25 +505,26 @@ namespace Microsoft.Dafny {
                   // This is a recursive destuctor, so return a pointer
                   returnType = String.Format("std::shared_ptr<{0}>", returnType);
                 }
-                using (var wDtor = ws.NewNamedBlock("{0} dtor_{1}()", returnType,
-                  arg.CompileName)) {
-                  if (dt.IsRecordType) {
-                    wDtor.WriteLine("return this.{0};", IdName(arg));
-                  } else {
-                    var n = dtor.EnclosingCtors.Count;
-                    for (int i = 0; i < n - 1; i++) {
-                      var ctor_i = dtor.EnclosingCtors[i];
-                      var ctor_name = DatatypeSubStructName(ctor_i);
-                      Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
-                      wDtor.WriteLine("if (is_{0}()) {{ return std::get<{0}{1}>(v).{2}; }}",
-                        ctor_name, InstantiateTemplate(dt.TypeArgs), IdName(arg));
-                    }
 
-                    Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n - 1].CompileName);
-                    var final_ctor_name = DatatypeSubStructName(dtor.EnclosingCtors[n - 1], true);
-                    wDtor.WriteLine("return std::get<{0}>(v).{1}; ",
-                      final_ctor_name, IdName(arg));
+                var wDtor = ws.NewNamedBlock("{0} dtor_{1}(;", returnType,
+                  arg.CompileName);
+                if (dt.IsRecordType) {
+                  wDtor.WriteLine("return this.{0};", IdName(arg));
+                }
+                else {
+                  var n = dtor.EnclosingCtors.Count;
+                  for (int i = 0; i < n - 1; i++) {
+                    var ctor_i = dtor.EnclosingCtors[i];
+                    var ctor_name = DatatypeSubStructName(ctor_i);
+                    Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
+                    wDtor.WriteLine("if (is_{0}()) {{ return std::get<{0}{1}>(v).{2}; }}",
+                      ctor_name, InstantiateTemplate(dt.TypeArgs), IdName(arg));
                   }
+
+                  Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n - 1].CompileName);
+                  var final_ctor_name = DatatypeSubStructName(dtor.EnclosingCtors[n - 1], true);
+                  wDtor.WriteLine("return std::get<{0}>(v).{1}; ",
+                    final_ctor_name, IdName(arg));
                 }
               }
             }
@@ -590,11 +591,10 @@ namespace Microsoft.Dafny {
       string nt_name, literalSuffice;
       bool needsCastAfterArithmetic;
       GetNativeInfo(nt.NativeType.Sel, out nt_name, out literalSuffice, out needsCastAfterArithmetic);
-      using (var wDefault = w.NewBlock(string.Format("static {0} get_Default()", nt_name))) {
-        var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
-        var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
-        wDefault.WriteLine("return {0};", d);
-      }
+      var wDefault = w.NewBlock(string.Format("static {0} get_Default()", nt_name));
+      var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
+      var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
+      wDefault.WriteLine("return {0};", d);
 
       return cw;
     }
@@ -623,11 +623,11 @@ namespace Microsoft.Dafny {
         DeclareField(className, sst.TypeArgs, "Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w, wr);
       }
 
-      using (var wDefault = w.NewBlock(String.Format("static {0}{1} get_Default()", IdName(sst), InstantiateTemplate(sst.TypeArgs)))) {
-        var udt = new UserDefinedType(sst.tok, sst.Name, sst, sst.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
-        var d = TypeInitializationValue(udt, wr, sst.tok, false, false);
-        wDefault.WriteLine("return {0};", d);
-      }
+      var wDefault = w.NewBlock(String.Format("static {0}{1} get_Default()", IdName(sst), InstantiateTemplate(sst.TypeArgs)));
+      var udt = new UserDefinedType(sst.tok, sst.Name, sst,
+        sst.TypeArgs.ConvertAll(tp => (Type) new UserDefinedType(tp)));
+      var d = TypeInitializationValue(udt, wr, sst.tok, false, false);
+      wDefault.WriteLine("return {0};", d);
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
@@ -704,7 +704,7 @@ namespace Microsoft.Dafny {
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
         throw new NotSupportedException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
       }
-      public TextWriter/*?*/ ErrorWriter() => MethodWriter;
+      public ConcreteSyntaxTree/*?*/ ErrorWriter() => MethodWriter;
       public void Finish() { }
     }
 
@@ -754,8 +754,7 @@ namespace Microsoft.Dafny {
 
       var block = wr.NewBlock(")", null, ConcreteSyntaxTree.BraceStyle.Newline, ConcreteSyntaxTree.BraceStyle.Newline);
 
-      if (targetReturnTypeReplacement != null)
-      {
+      if (targetReturnTypeReplacement != null) {
         var beforeReturnBlock = block.Fork(0);
         EmitReturn(m.Outs, block);
         return beforeReturnBlock;
@@ -803,7 +802,7 @@ namespace Microsoft.Dafny {
       needsTypeDescriptor = false;
     }
 
-    protected override string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       Contract.Requires(type != null);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
@@ -855,7 +854,7 @@ namespace Microsoft.Dafny {
     // Because we use reference counting (via shared_ptr), the TypeName of a class differs
     // depending on whether we are declaring a variable or talking about the class itself.
     // Use class_name = true if you want the actual name of the class, not the type used when declaring variables/arguments/etc.
-    protected string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null, bool class_name=false) {
+    protected string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null, bool class_name=false) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -938,13 +937,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+    protected override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
       return TypeName(type, wr, tok, member, false);
     }
 
-    protected override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
+    protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is BoolType) {
         return "false";
@@ -1063,14 +1062,14 @@ namespace Microsoft.Dafny {
         ? String.Format(" <{0}> ", Util.Comma(typeArgs, tp => TypeName(tp, null, null))) : "";
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
       string s = IdProtect(fullCompileName);
       return String.Format("std::shared_ptr<{0}{1}>", s, ActualTypeArgs(typeArgs));
     }
 
-    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
+    protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
       // There are no companion classes for Cpp
       var t = TypeName(type, wr, tok, member, true);
       return t;
@@ -1104,7 +1103,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
+    protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, ConcreteSyntaxTree wr) {
       var formal_str = DeclareFormalString(prefix, name, type, tok, isInParam);
       if (formal_str != null) {
         wr.Write(formal_str);
@@ -1180,15 +1179,15 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
+    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       wr.Write(ActualTypeArgs(typeArgs));
     }
 
-    protected override string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok) {
+    protected override string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       return "auto " + target;
     }
 
-    protected void EmitNullText(Type type, TextWriter wr) {
+    protected void EmitNullText(Type type, ConcreteSyntaxTree wr) {
       var xType = type.NormalizeExpand();
       if (xType.IsArrayType) {
         ArrayClassDecl at = xType.AsArrayType;
@@ -1355,7 +1354,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
+    protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
       } else if (e.Value == null) {
@@ -1383,12 +1382,12 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
     }
-    void EmitIntegerLiteral(BigInteger i, TextWriter wr) {
+    void EmitIntegerLiteral(BigInteger i, ConcreteSyntaxTree wr) {
       Contract.Requires(wr != null);
       wr.Write(i);
     }
 
-    protected override void EmitStringLiteral(string str, bool isVerbatim, TextWriter wr) {
+    protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       wr.Write("DafnySequenceFromString(");
       if (!isVerbatim) {
@@ -1943,7 +1942,7 @@ namespace Microsoft.Dafny {
       out bool reverseArguments,
       out bool truncateResult,
       out bool convertE1_to_int,
-      TextWriter errorWr) {
+      ConcreteSyntaxTree errorWr) {
 
       opString = null;
       preOpString = "";

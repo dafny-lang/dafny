@@ -336,11 +336,10 @@ namespace Microsoft.Dafny {
 
       var staticFieldWriter = wr.NewNamedBlock("type {0} struct", FormatCompanionTypeName(name));
       var staticFieldInitWriter = wr.NewNamedBlock("var {0} = {1}", FormatCompanionName(name), FormatCompanionTypeName(name));
-      using (var wCastTo = wr.NewNamedBlock("func ({0}) CastTo_(x interface{{}}) {1}", FormatCompanionTypeName(name), name)) {
-        wCastTo.WriteLine("var t {0}", name);
-        wCastTo.WriteLine("t, _ = x.({0})", name);
-        wCastTo.WriteLine("return t");
-      }
+      var wCastTo = wr.NewNamedBlock("func ({0}) CastTo_(x interface{{}}) {1}", FormatCompanionTypeName(name), name);
+      wCastTo.WriteLine("var t {0}", name);
+      wCastTo.WriteLine("t, _ = x.({0})", name);
+      wCastTo.WriteLine("return t");
 
       var cw = new ClassWriter(this, name, isExtern, abstractMethodWriter, concreteMethodWriter, null, null, null, staticFieldWriter, staticFieldInitWriter);
       staticFieldWriter.WriteLine("TraitID_ *_dafny.TraitID");
@@ -710,7 +709,8 @@ namespace Microsoft.Dafny {
       wr.WriteLine();
       wr.Write($"func ({companionTypeName}) Default(");
       wr.Write(Util.Comma(UsedTypeParameters(dt), tp => $"{FormatDefaultTypeParameterValue(tp)} interface{{}}"));
-      using (var wDefault = wr.NewBlock($") {name}")) {
+      {
+        var wDefault = wr.NewBlock($") {name}"); 
         wDefault.Write("return ");
         var groundingCtor = dt.GetGroundingCtor();
         var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
@@ -1030,7 +1030,7 @@ namespace Microsoft.Dafny {
         wRHS.Write(Compiler.PlaceboValue(instantiatedFieldType, ErrorWriter(), tok));
       }
 
-      public TextWriter/*?*/ ErrorWriter() => ConcreteMethodWriter;
+      public ConcreteSyntaxTree/*?*/ ErrorWriter() => ConcreteMethodWriter;
 
       public void Finish() {
         Compiler.FinishClass(this);
@@ -1125,8 +1125,7 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(overriddenInParams == null);
         }
-        if (outParams.Any() && !forBodyInheritance)
-        {
+        if (outParams.Any() && !forBodyInheritance) {
           var beforeReturn = w.Fork(0);
           EmitReturnWithCoercions(outParams, overriddenOutParams, thisContext?.ParentFormalTypeParametersToActuals, w);
           return beforeReturn;
@@ -1224,7 +1223,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is BoolType) {
         return "_dafny.BoolType";
@@ -1324,7 +1323,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("goto TAIL_CALL_START");
     }
 
-    protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+    protected override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -1401,7 +1400,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
+    protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       // When returning nil, explicitly cast the nil so that type assertions work
       string nil() {
         return string.Format("({0})(nil)", TypeName(type, wr, tok));
@@ -1501,7 +1500,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
       string s = "*" + IdProtect(fullCompileName);
@@ -1533,7 +1532,7 @@ namespace Microsoft.Dafny {
     protected static string FormatRTDName(string formalName) =>
       string.Format("Type_{0}_", formalName);
 
-    protected string TypeName_Related(Func<string, string> formatter, Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+    protected string TypeName_Related(Func<string, string> formatter, Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Requires(formatter != null);
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
@@ -1554,12 +1553,12 @@ namespace Microsoft.Dafny {
       return prefix + formatter(baseName);
     }
 
-    protected string TypeName_Constructor(DatatypeCtor ctor, TextWriter wr) {
+    protected string TypeName_Constructor(DatatypeCtor ctor, ConcreteSyntaxTree wr) {
       var ptr = ctor.EnclosingDatatype is CoDatatypeDecl ? "*" : "";
       return string.Format("{0}{1}_{2}", ptr, TypeName(UserDefinedType.FromTopLevelDecl(ctor.tok, ctor.EnclosingDatatype), wr, ctor.tok), ctor.CompileName);
     }
 
-    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
+    protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       // XXX This duplicates some of the logic in UserDefinedTypeName, but if we
       // don't do it here, we end up passing the name of the module to
@@ -1572,23 +1571,23 @@ namespace Microsoft.Dafny {
       return TypeName_Related(FormatCompanionName, type, wr, tok, member);
     }
 
-    protected string TypeName_CompanionType(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected string TypeName_CompanionType(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       return TypeName_Related(FormatCompanionTypeName, type, wr, tok);
     }
 
-    protected string TypeName_Initializer(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected string TypeName_Initializer(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       return TypeName_Related(FormatInitializerName, type, wr, tok);
     }
 
-    protected string TypeName_RTD(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected string TypeName_RTD(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       return TypeName_Related(FormatRTDName, type, wr, tok);
     }
 
-    protected string ClassName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+    protected string ClassName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
       return type is UserDefinedType udt ? FullTypeName(udt, member) : TypeName(type, wr, tok, member);
     }
 
-    protected string UnqualifiedClassName(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected string UnqualifiedClassName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       return type is UserDefinedType udt ? UnqualifiedTypeName(udt) : TypeName(type, wr, tok);
     }
 
@@ -1640,7 +1639,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
+    protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, ConcreteSyntaxTree wr) {
       if (isInParam) {
         wr.Write("{0}{1} {2}", prefix, name, TypeName(type, wr, tok));
         return true;
@@ -1703,11 +1702,11 @@ namespace Microsoft.Dafny {
       DeclareLocalVar(name, type, tok, false, rhs, wr);
     }
 
-    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
+    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       // emit nothing; this is only for actual parametric polymorphism, not RTDs
     }
 
-    protected override string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok) {
+    protected override string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       return "var " + target;
     }
 
@@ -1929,7 +1928,7 @@ namespace Microsoft.Dafny {
       wr.Write(")");
     }
 
-    protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
+    protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {
         wr.Write("{0}", TypeName_Companion(((UserDefinedType) e.Type).ResolvedClass, wr, e.tok));
       } else if (e.Value == null) {
@@ -1961,7 +1960,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
     }
-    void EmitIntegerLiteral(BigInteger i, TextWriter wr) {
+    void EmitIntegerLiteral(BigInteger i, ConcreteSyntaxTree wr) {
       Contract.Requires(wr != null);
       if (i.IsZero) {
         wr.Write("_dafny.Zero");
@@ -1974,7 +1973,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitStringLiteral(string str, bool isVerbatim, TextWriter wr) {
+    protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       if (!isVerbatim) {
         wr.Write("\"{0}\"", TranslateEscapes(str, isChar:false));
@@ -2787,7 +2786,7 @@ namespace Microsoft.Dafny {
       out bool reverseArguments,
       out bool truncateResult,
       out bool convertE1_to_int,
-      TextWriter errorWr) {
+      ConcreteSyntaxTree errorWr) {
 
       opString = null;
       preOpString = "";
@@ -3447,14 +3446,14 @@ namespace Microsoft.Dafny {
       // system. Until Dafny's Go compiler catches up, the GO111MODULE variable has to be set.
       psi.EnvironmentVariables["GO111MODULE"] = "auto";
 
-      try {
-        using (var process = Process.Start(psi)) {
-          if (process == null) {
-            return false;
-          }
-          process.WaitForExit();
-          return process.ExitCode == 0;
+      try
+      {
+        using var process = Process.Start(psi);
+        if (process == null) {
+          return false;
         }
+        process.WaitForExit();
+        return process.ExitCode == 0;
       } catch (System.ComponentModel.Win32Exception e) {
         outputWriter.WriteLine("Error: Unable to start go ({0}): {1}", psi.FileName, e.Message);
         return false;
@@ -3506,16 +3505,16 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    private static string FindPackageName(string externFilename) {
-      using (var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read))) {
-        while (rd.ReadLine() is string line) {
-          var match = PackageLine.Match(line);
-          if (match.Success) {
-            return match.Groups[1].Value;
-          }
+    private static string FindPackageName(string externFilename)
+    {
+      using var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read));
+      while (rd.ReadLine() is string line) {
+        var match = PackageLine.Match(line);
+        if (match.Success) {
+          return match.Groups[1].Value;
         }
-        return null;
       }
+      return null;
     }
 
     private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+)\s*$");

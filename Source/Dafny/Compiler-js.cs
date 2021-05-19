@@ -165,7 +165,8 @@ namespace Microsoft.Dafny {
           sep = ", ";
         }
       }
-      using (var wBody = w.NewBlock(")")) {
+      {
+        var wBody = w.NewBlock(")"); 
         foreach (var p in ct.Ins) {
           if (!p.IsGhost) {
             wBody.WriteLine("this.{0} = {0};", IdName(p));
@@ -174,7 +175,8 @@ namespace Microsoft.Dafny {
         wBody.WriteLine("this.__iter = this.TheIterator();");
       }
       // here are the enumerator methods
-      using (var wBody = w.NewBlock("MoveNext()")) {
+      {
+        var wBody = w.NewBlock("MoveNext()");
         wBody.WriteLine("let r = this.__iter.next();");
         wBody.WriteLine("return !r.done;");
       }
@@ -311,13 +313,11 @@ namespace Microsoft.Dafny {
       wr.WriteLine("constructor(tag) { this.$tag = tag; }");
 
       if (dt is CoDatatypeDecl) {
-        using (var w0 = wr.NewBlock("_D()")) {
-          using (var w1 = EmitIf("this._d === undefined", false, w0)) {
-            w1.WriteLine("this._d = this._initializer(this);");
-            w1.WriteLine("delete this._initializer;");
-          }
-          w0.WriteLine("return this._d");
-        }
+        var w0 = wr.NewBlock("_D()");
+        var w1 = EmitIf("this._d === undefined", false, w0);
+        w1.WriteLine("this._d = this._initializer(this);");
+        w1.WriteLine("delete this._initializer;");
+        w0.WriteLine("return this._d");
       }
 
       // query properties
@@ -373,10 +373,12 @@ namespace Microsoft.Dafny {
 
       if (dt.HasFinitePossibleValues) {
         Contract.Assert(dt.TypeArgs.Count == 0);
-        using (var w = wr.NewNamedBlock("static get AllSingletonConstructors()")) {
+        {
+          var w = wr.NewNamedBlock("static get AllSingletonConstructors()"); 
           w.WriteLine("return this.AllSingletonConstructors_();");
         }
-        using (var w = wr.NewNamedBlock("static *AllSingletonConstructors_()")) {
+        {
+          var w = wr.NewNamedBlock("static *AllSingletonConstructors_()"); 
           foreach (var ctor in dt.Ctors) {
             Contract.Assert(ctor.Formals.Count == 0);
             w.WriteLine("yield {0}.create_{1}({2});", DtT_protected, ctor.CompileName, dt is CoDatatypeDecl ? "null" : "");
@@ -403,49 +405,53 @@ namespace Microsoft.Dafny {
         var w = wr.NewBlock("toString()");
         i = 0;
         foreach (var ctor in dt.Ctors) {
-          using (var thn = EmitIf(string.Format("this.$tag === {0}", i), true, w)) {
-            var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
-            thn.WriteLine("return \"{0}\";", nm);
-          }
+          var thn = EmitIf(string.Format("this.$tag === {0}", i), true, w);
+          var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") +
+                   dt.Name + "." + ctor.Name;
+          thn.WriteLine("return \"{0}\";", nm);
           i++;
         }
-        using (var els = w.NewBlock("")) {
-          els.WriteLine("return \"{0}.{1}.unexpected\";", dt.EnclosingModuleDefinition.CompileName, DtT);
-        }
+        var els = w.NewBlock("");
+        els.WriteLine("return \"{0}.{1}.unexpected\";", dt.EnclosingModuleDefinition.CompileName, DtT);
 
       } else if (dt is IndDatatypeDecl && !(dt is TupleTypeDecl)) {
         // toString method
-        using (var w = wr.NewBlock("toString()")) {
-          i = 0;
-          foreach (var ctor in dt.Ctors) {
-            var cw = EmitIf(string.Format("this.$tag === {0}", i), true, w);
-            var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
-            cw.Write("return \"{0}\"", nm);
-            var sep = " + \"(\" + ";
-            var anyFormals = false;
-            var k = 0;
-            foreach (var arg in ctor.Formals) {
-              if (!arg.IsGhost) {
-                anyFormals = true;
-                cw.Write("{0}_dafny.toString(this.{1})", sep, FormalName(arg, k));
-                sep = " + \", \" + ";
-                k++;
-              }
+        var w = wr.NewBlock("toString()");
+        i = 0;
+        foreach (var ctor in dt.Ctors) {
+          var cw = EmitIf(string.Format("this.$tag === {0}", i), true, w);
+          var nm = (dt.EnclosingModuleDefinition.IsDefaultModule ? "" : dt.EnclosingModuleDefinition.Name + ".") +
+                   dt.Name + "." + ctor.Name;
+          cw.Write("return \"{0}\"", nm);
+          var sep = " + \"(\" + ";
+          var anyFormals = false;
+          var k = 0;
+          foreach (var arg in ctor.Formals) {
+            if (!arg.IsGhost) {
+              anyFormals = true;
+              cw.Write("{0}_dafny.toString(this.{1})", sep, FormalName(arg, k));
+              sep = " + \", \" + ";
+              k++;
             }
-            if (anyFormals) {
-              cw.Write(" + \")\"");
-            }
-            cw.WriteLine(";");
-            i++;
           }
-          var wElse = w.NewBlock("");
-          wElse.WriteLine("return \"<unexpected>\";");
+
+          if (anyFormals) {
+            cw.Write(" + \")\"");
+          }
+
+          cw.WriteLine(";");
+          i++;
         }
+
+        var wElse = w.NewBlock("");
+        wElse.WriteLine("return \"<unexpected>\";");
       }
 
       // equals method
-      using (var w = wr.NewBlock("equals(other)")) {
-        using (var thn = EmitIf("this === other", true, w)) {
+      {
+        var w = wr.NewBlock("equals(other)"); 
+        {
+          var thn = EmitIf("this === other", true, w); 
           EmitReturnExpr("true", thn);
         }
         i = 0;
@@ -467,9 +473,8 @@ namespace Microsoft.Dafny {
           }
           i++;
         }
-        using (var els = w.NewBlock("")) {
-          els.WriteLine("return false; // unexpected");
-        }
+        var els = w.NewBlock("");
+        els.WriteLine("return false; // unexpected");
       }
 
       // static Default(defaultValues...) {  // where defaultValues are the parameters to the grounding constructor
@@ -477,7 +482,8 @@ namespace Microsoft.Dafny {
       // }
       wr.Write("static Default(");
       wr.Write(Util.Comma(UsedTypeParameters(dt), FormatDefaultTypeParameterValue));
-      using (var wDefault = wr.NewBlock(")")) {
+      {
+        var wDefault = wr.NewBlock(")"); 
         wDefault.Write("return ");
         var groundingCtor = dt.GetGroundingCtor();
         var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
@@ -498,13 +504,13 @@ namespace Microsoft.Dafny {
       // }
       wr.Write("static Rtd(");
       WriteRuntimeTypeDescriptorsFormals(UsedTypeParameters(dt), true, wr);
-      using (var wRtd = wr.NewBlock(")")) {
-        using (var wClass = wRtd.NewBlock("return class", ";")) {
-          using (var wDefault = wClass.NewBlock("static get Default()")) {
-            var arguments = Util.Comma(UsedTypeParameters(dt), tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, true));
-            wDefault.WriteLine($"return {DtT_protected}.Default({arguments});");
-          }
-        }
+      var wRtd = wr.NewBlock(")");
+      var wClass = wRtd.NewBlock("return class", ";");
+      {
+        var wDefault = wClass.NewBlock("static get Default()");
+        var arguments = Util.Comma(UsedTypeParameters(dt),
+          tp => DefaultValue(new UserDefinedType(tp), wDefault, dt.tok, true));
+        wDefault.WriteLine($"return {DtT_protected}.Default({arguments});");
       }
 
       return new ClassWriter(this, btw, btw);
@@ -531,11 +537,10 @@ namespace Microsoft.Dafny {
       }
       // In JavaScript, the companion class of a newtype (which is what is being declared here) doubles as a
       // type descriptor for the newtype. The Default() method for that type descriptor is declared here.
-      using (var wDefault = w.NewBlock("static get Default()")) {
-        var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
-        var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
-        wDefault.WriteLine("return {0};", d);
-      }
+      var wDefault = w.NewBlock("static get Default()");
+      var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
+      var d = TypeInitializationValue(udt, wr, nt.tok, false, false);
+      wDefault.WriteLine("return {0};", d);
       return cw;
     }
 
@@ -600,7 +605,7 @@ namespace Microsoft.Dafny {
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
         throw new NotSupportedException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
       }
-      public TextWriter/*?*/ ErrorWriter() => MethodWriter;
+      public ConcreteSyntaxTree/*?*/ ErrorWriter() => MethodWriter;
       public void Finish() { }
     }
 
@@ -689,7 +694,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       Contract.Requires(type != null);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
@@ -795,8 +800,7 @@ namespace Microsoft.Dafny {
 
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
       var block = wr.NewBlock("TAIL_CALL_START: while (true)");
-      if (member is Method m)
-      {
+      if (member is Method m) {
         var beforeReturnBlock = block.Fork(0);
         EmitReturn(m.Outs, block);
         return beforeReturnBlock;
@@ -808,7 +812,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("continue TAIL_CALL_START;");
     }
 
-    protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl /*?*/ member = null) {
+    protected override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl /*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -864,7 +868,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
+    protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       var xType = type.NormalizeExpandKeepConstraints();
 
       if (usePlaceboValue) {
@@ -960,14 +964,14 @@ namespace Microsoft.Dafny {
 
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
       string s = IdProtect(fullCompileName);
       return s;
     }
 
-    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
+    protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
       // Companion classes in JavaScript are just the same as the type
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       return TypeName(type, wr, tok, member);
@@ -984,7 +988,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
+    protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, ConcreteSyntaxTree wr) {
       if (isInParam) {
         wr.Write("{0}{1}", prefix, name);
         return true;
@@ -1031,11 +1035,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
+    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       // emit nothing
     }
 
-    protected override string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok) {
+    protected override string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       return "let " + target;
     }
 
@@ -1213,7 +1217,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
+    protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
       } else if (e.Value == null) {
@@ -1263,7 +1267,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitStringLiteral(string str, bool isVerbatim, TextWriter wr) {
+    protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       var n = str.Length;
       if (!isVerbatim) {
         wr.Write("\"{0}\"", str);
@@ -1819,7 +1823,7 @@ namespace Microsoft.Dafny {
       out bool reverseArguments,
       out bool truncateResult,
       out bool convertE1_to_int,
-      TextWriter errorWr) {
+      ConcreteSyntaxTree errorWr) {
 
       opString = null;
       preOpString = "";
@@ -2291,19 +2295,18 @@ namespace Microsoft.Dafny {
       };
 
       try {
-        using (var nodeProcess = Process.Start(psi)) {
-          foreach (var filename in otherFileNames) {
-            WriteFromFile(filename, nodeProcess.StandardInput);
-          }
-          nodeProcess.StandardInput.Write(targetProgramText);
-          if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
-            nodeProcess.StandardInput.Write(callToMain);
-          }
-          nodeProcess.StandardInput.Flush();
-          nodeProcess.StandardInput.Close();
-          nodeProcess.WaitForExit();
-          return nodeProcess.ExitCode == 0;
+        using var nodeProcess = Process.Start(psi);
+        foreach (var filename in otherFileNames) {
+          WriteFromFile(filename, nodeProcess.StandardInput);
         }
+        nodeProcess.StandardInput.Write(targetProgramText);
+        if (callToMain != null && DafnyOptions.O.RunAfterCompile) {
+          nodeProcess.StandardInput.Write(callToMain);
+        }
+        nodeProcess.StandardInput.Flush();
+        nodeProcess.StandardInput.Close();
+        nodeProcess.WaitForExit();
+        return nodeProcess.ExitCode == 0;
       } catch (System.ComponentModel.Win32Exception e) {
         outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
         return false;
