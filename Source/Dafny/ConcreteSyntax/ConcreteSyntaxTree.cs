@@ -1,11 +1,10 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.Text;
 
 namespace Microsoft.Dafny
 {
-  public class ConcreteSyntaxTree : TextWriter, ICanRender {
+  public class ConcreteSyntaxTree : ICanRender {
         
     public ConcreteSyntaxTree(int relativeIndent = 0) {
       RelativeIndentLevel = relativeIndent;
@@ -15,11 +14,6 @@ namespace Microsoft.Dafny
 
     private readonly IList<ICanRender> _nodes = new List<ICanRender>();
 
-    public override void Write(string format, object arg0)
-    {
-      Write(string.Format(format, arg0));
-    }
-
     public ConcreteSyntaxTree Fork(int relativeIndent = 0)
     {
       var result = new ConcreteSyntaxTree(relativeIndent);
@@ -27,43 +21,40 @@ namespace Microsoft.Dafny
       return result;
     }
 
-    public void Append(ICanRender node) {
+    public T Append<T>(T node) 
+      where T : ICanRender {
       Contract.Requires(node != null);
       _nodes.Add(node);
+      return node;
     }
 
-    public override void Write(object value) {
+    public void Write(object value) {
       Write(value.ToString());
     }
         
-    public override void Write(string value) {
+    public void Write(string value) {
       _nodes.Add(new LineSegment(value));
     }
 
-    public override void WriteLine(string format, params object[] args)
-    {
-      WriteLine(string.Format(format, args));
+    public void WriteLine(string format, params object[] args) {
+      Write(format, args);
+      WriteLine();
     }
-
-    public override Encoding Encoding => Encoding.Default;
-
-    public override void WriteLine(string value)
-    {
+    
+    public void WriteLine(string value) {
       Write(value);
       WriteLine();
     }
         
-    public override void WriteLine()
-    {
+    public void WriteLine() {
       _nodes.Add(new NewLine());
     }
 
-    public override void Write(string format, params object[] args)
-    {
+    public void Write(string format, params object[] args) {
       Write(string.Format(format, args));
     }
         
-    public override void Write(char value) {
+    public void Write(char value) {
       Write(new string(value, 1));
     }
 

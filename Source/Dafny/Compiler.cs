@@ -63,7 +63,7 @@ namespace Microsoft.Dafny {
 
     public CoverageInstrumenter Coverage;
 
-    protected void Error(Bpl.IToken tok, string msg, TextWriter/*?*/ wr, params object[] args) {
+    protected void Error(Bpl.IToken tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
 
@@ -104,7 +104,7 @@ namespace Microsoft.Dafny {
       /// ClassesRedeclareInheritedFields==false for the compiler.
       /// </summary>
       void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass);
-      TextWriter/*?*/ ErrorWriter();
+      ConcreteSyntaxTree/*?*/ ErrorWriter();
       void Finish();
     }
     protected virtual bool IncludeExternMembers { get => false; }
@@ -202,7 +202,7 @@ namespace Microsoft.Dafny {
       return tp.Characteristics.HasCompiledValue;
     }
 
-    protected abstract string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok);
+    protected abstract string TypeDescriptor(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok);
 
     protected void EmitTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, ConcreteSyntaxTree wr, bool useAllTypeArgs = false) {
       var prefix = "";
@@ -231,9 +231,9 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected abstract ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr);
     protected abstract void EmitJumpToTailCallStart(ConcreteSyntaxTree wr);
-    protected abstract string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null);
+    protected abstract string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null);
     // For cases where a type looks different when it's an argument, such as (*sigh*) Java primitives
-    protected virtual string TypeArgumentName(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected virtual string TypeArgumentName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       return TypeName(type, wr, tok);
     }
     /// <summary>
@@ -245,9 +245,9 @@ namespace Microsoft.Dafny {
     ///                  that the Dafny program will not use the value (for example, when a field is automatically initialized
     ///                  but the Dafny program will soon assign a new value).
     /// </summary>
-    protected abstract string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors);
+    protected abstract string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors);
 
-    protected string TypeName_UDT(string fullCompileName, UserDefinedType udt, TextWriter wr, Bpl.IToken tok) {
+    protected string TypeName_UDT(string fullCompileName, UserDefinedType udt, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       Contract.Requires(fullCompileName != null);
       Contract.Requires(udt != null);
       Contract.Requires(wr != null);
@@ -255,9 +255,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(udt.TypeArgs.Count == (udt.ResolvedClass == null ? 0 : udt.ResolvedClass.TypeArgs.Count));
       return TypeName_UDT(fullCompileName, udt.ResolvedClass.TypeArgs.ConvertAll(tp => tp.Variance), udt.TypeArgs, wr, tok);
     }
-    protected abstract string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok);
-    protected abstract string/*?*/ TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member);
-    protected string TypeName_Companion(TopLevelDecl cls, TextWriter wr, Bpl.IToken tok) {
+    protected abstract string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, ConcreteSyntaxTree wr, Bpl.IToken tok);
+    protected abstract string/*?*/ TypeName_Companion(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member);
+    protected string TypeName_Companion(TopLevelDecl cls, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       Contract.Requires(cls != null);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
@@ -268,7 +268,7 @@ namespace Microsoft.Dafny {
       return type;
     }
 
-    protected abstract bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr);
+    protected abstract bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, ConcreteSyntaxTree wr);
     /// <summary>
     /// If "leaveRoomForRhs" is false and "rhs" is null, then generates:
     ///     type name;
@@ -317,18 +317,18 @@ namespace Microsoft.Dafny {
     protected virtual string StmtTerminator { get => ";"; }
     public void EndStmt(ConcreteSyntaxTree wr) { wr.WriteLine(StmtTerminator); }
     protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, ConcreteSyntaxTree wr);
-    protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
+    protected virtual void EmitActualOutArg(string actualOutParamName, ConcreteSyntaxTree wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, ConcreteSyntaxTree wr) { }  // called only for return-style calls
     protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, ConcreteSyntaxTree wr, List<Type> formalOutParamTypes, List<Type> lhsTypes, Bpl.IToken tok) {
       EmitOutParameterSplits(outCollector, actualOutParamNames, wr); }
 
-    protected abstract void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr);
+    protected abstract void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, ConcreteSyntaxTree wr);
 
-    protected virtual void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
+    protected virtual void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       wr.Write(protectedName);
       EmitActualTypeArgs(typeArgs, tok, wr);
     }
-    protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok);
+    protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, ConcreteSyntaxTree wr, Bpl.IToken tok);
 
     protected virtual ConcreteSyntaxTree EmitAssignment(ILvalue wLhs, Type/*?*/ lhsType, Type/*?*/ rhsType, ConcreteSyntaxTree wr) {
       var w = wLhs.EmitWrite(wr);
@@ -552,8 +552,8 @@ namespace Microsoft.Dafny {
     protected abstract void EmitNew(Type type, Bpl.IToken tok, CallStmt/*?*/ initCall, ConcreteSyntaxTree wr);
     protected abstract void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, ConcreteSyntaxTree wr);
 
-    protected abstract void EmitLiteralExpr(TextWriter wr, LiteralExpr e);
-    protected abstract void EmitStringLiteral(string str, bool isVerbatim, TextWriter wr);
+    protected abstract void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e);
+    protected abstract void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr);
     protected delegate void FCE_Arg_Translator(Expression e, ConcreteSyntaxTree wr, bool inLetExpr=false);
 
@@ -961,7 +961,7 @@ namespace Microsoft.Dafny {
       out bool reverseArguments,
       out bool truncateResult,
       out bool convertE1_to_int,
-      TextWriter errorWr) {
+      ConcreteSyntaxTree errorWr) {
 
       // This default implementation does not handle all cases. It handles some cases that look the same
       // in C-like languages. It also handles cases that can be solved by another operator, but reversing
@@ -1245,7 +1245,7 @@ namespace Microsoft.Dafny {
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) { }
 
-      public TextWriter/*?*/ ErrorWriter() {
+      public ConcreteSyntaxTree/*?*/ ErrorWriter() {
         return null; // match the old behavior of Compile() where this is used
       }
 
@@ -1264,11 +1264,11 @@ namespace Microsoft.Dafny {
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
       string path = System.IO.Path.Combine(codebase, filename);
-      WriteFromFile(path, wr);
+      WriteFromFile(path, wr.Append(new Verbatim()));
     }
 
     protected void WriteFromFile(string inputFilename, TextWriter outputWriter) {
-      using (var rd = new StreamReader(new FileStream(inputFilename, System.IO.FileMode.Open, System.IO.FileAccess.Read))) {
+      var rd = new StreamReader(new FileStream(inputFilename, FileMode.Open, FileAccess.Read)); {
         while (true) {
           string s = rd.ReadLine();
           if (s == null) {
@@ -1299,7 +1299,7 @@ namespace Microsoft.Dafny {
       return root;
     }
 
-    protected int WriteFormals(string sep, List<Formal> formals, TextWriter wr, List<Formal>/*?*/ useTheseNamesForFormals = null) {
+    protected int WriteFormals(string sep, List<Formal> formals, ConcreteSyntaxTree wr, List<Formal>/*?*/ useTheseNamesForFormals = null) {
       Contract.Requires(sep != null);
       Contract.Requires(formals != null);
       Contract.Requires(wr != null);
@@ -2018,7 +2018,7 @@ namespace Microsoft.Dafny {
       return c;
     }
 
-    void CheckHandleWellformed(ClassDecl cl, TextWriter/*?*/ errorWr) {
+    void CheckHandleWellformed(ClassDecl cl, ConcreteSyntaxTree/*?*/ errorWr) {
       Contract.Requires(cl != null);
       var isHandle = true;
       if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
@@ -2519,7 +2519,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Note, C# reverses the order of brackets in array type names.
     /// </summary>
-    protected void TypeName_SplitArrayName(Type type, TextWriter wr, Bpl.IToken tok, out string typeNameSansBrackets, out string brackets) {
+    protected void TypeName_SplitArrayName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, out string typeNameSansBrackets, out string brackets) {
       Contract.Requires(type != null);
 
       var xType = type.NormalizeExpand();
@@ -2549,13 +2549,13 @@ namespace Microsoft.Dafny {
       return v != TypeParameter.TPVariance.Non && t.IsTraitType;
     }
 
-    protected string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types, TextWriter wr, Bpl.IToken tok) {
+    protected string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       Contract.Requires(cce.NonNullElements(types));
       Contract.Ensures(Contract.Result<string>() != null);
       return Util.Comma(types, ty => TypeName(ty, wr, tok));
     }
 
-    protected string PlaceboValue(Type type, TextWriter wr, Bpl.IToken tok, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
+    protected string PlaceboValue(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
       Contract.Requires(type != null);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
@@ -2567,7 +2567,7 @@ namespace Microsoft.Dafny {
       return TypeInitializationValue(type, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
-    protected string DefaultValue(Type type, TextWriter wr, Bpl.IToken tok, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
+    protected string DefaultValue(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, bool constructTypeParameterDefaultsFromTypeDescriptors = false) {
       Contract.Requires(type != null);
       Contract.Requires(type.HasCompilableValue);
       Contract.Requires(wr != null);
@@ -2584,8 +2584,8 @@ namespace Microsoft.Dafny {
     public class CheckHasNoAssumes_Visitor : BottomUpVisitor
     {
       readonly Compiler compiler;
-      TextWriter wr;
-      public CheckHasNoAssumes_Visitor(Compiler c, TextWriter wr) {
+      ConcreteSyntaxTree wr;
+      public CheckHasNoAssumes_Visitor(Compiler c, ConcreteSyntaxTree wr) {
         Contract.Requires(c != null);
         compiler = c;
         this.wr = wr;
@@ -2813,9 +2813,8 @@ namespace Microsoft.Dafny {
           Coverage.Instrument(alternative.Tok, "if-case branch", thn);
           TrStmtList(alternative.Body, thn);
         }
-        using (var wElse = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Nothing)) {
-          EmitAbsurd("unreachable alternative", wElse);
-        }
+        var wElse = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Nothing);
+        EmitAbsurd("unreachable alternative", wElse);
 
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
@@ -2855,7 +2854,7 @@ namespace Microsoft.Dafny {
             Coverage.Instrument(alternative.Tok, "while-case branch", thn);
             TrStmtList(alternative.Body, thn);
           }
-          using (var wElse = w.NewBlock("")) {
+          var wElse = w.NewBlock(""); {
             EmitBreak(null, wElse);
           }
         }
@@ -3046,14 +3045,14 @@ namespace Microsoft.Dafny {
 
     protected virtual ConcreteSyntaxTree EmitIngredients(ConcreteSyntaxTree wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs){
 
-      using (var wrVarInit = DeclareLocalVar(ingredients, null, null, wr)){
+      var wrVarInit = DeclareLocalVar(ingredients, null, null, wr);{
         EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
       }
 
       var wrOuter = wr;
       wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
 
-      using (var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr)){
+      var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr);{
         if (s0.Lhs is MemberSelectExpr){
           var lhs = (MemberSelectExpr) s0.Lhs;
           TrExpr(lhs.Obj, wrTuple, false);
@@ -4690,7 +4689,7 @@ namespace Microsoft.Dafny {
       su = new Translator.Substituter(null, sm, new Dictionary<TypeParameter, Type>());
     }
 
-    protected bool IsHandleComparison(Bpl.IToken tok, Expression e0, Expression e1, TextWriter errorWr) {
+    protected bool IsHandleComparison(Bpl.IToken tok, Expression e0, Expression e1, ConcreteSyntaxTree errorWr) {
       Contract.Requires(tok != null);
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
@@ -4713,7 +4712,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    protected void TrStringLiteral(StringLiteralExpr str, TextWriter wr) {
+    protected void TrStringLiteral(StringLiteralExpr str, ConcreteSyntaxTree wr) {
       Contract.Requires(str != null);
       Contract.Requires(wr != null);
       EmitStringLiteral((string)str.Value, str.IsVerbatim, wr);
@@ -5050,7 +5049,7 @@ namespace Microsoft.Dafny {
       if (legend != null) {
         var filename = DafnyOptions.O.CoverageLegendFile;
         Contract.Assert(filename != null);
-        using (TextWriter wr = filename == "-" ? System.Console.Out : new StreamWriter(new FileStream(Path.GetFullPath(filename), System.IO.FileMode.Create))) {
+        TextWriter wr = filename == "-" ? System.Console.Out : new StreamWriter(new FileStream(Path.GetFullPath(filename), System.IO.FileMode.Create)); {
           for (var i = 0; i < legend.Count; i++) {
             var e = legend[i];
             wr.WriteLine("{0}: {1}({2},{3}): {4}", i, e.Item1.filename, e.Item1.line, e.Item1.col, e.Item2);
