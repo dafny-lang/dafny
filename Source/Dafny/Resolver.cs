@@ -10583,10 +10583,10 @@ namespace Microsoft.Dafny
             } else {
               ResolveExpression(expr, opts);
             }
-            foreach (var a in s.ResolvedStatements) {
-              ResolveStatement(a, codeContext);
-            }
           }
+        }
+        foreach (var a in s.ResolvedStatements) {
+          ResolveStatement(a, codeContext);
         }
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
