@@ -16352,7 +16352,7 @@ namespace Microsoft.Dafny
             }
           }
           // resolve the arguments, even in the presence of the errors above
-          ResolveActualParameters(e.Bindings, null, null, null, opts);
+          ResolveActualParameters(e.Bindings, null, e.tok, null, opts);
         } else {
           var mse = e.Lhs is NameSegment || e.Lhs is ExprDotName ? e.Lhs.Resolved as MemberSelectExpr : null;
           var callee = mse == null ? null : mse.Member as Function;
@@ -16417,7 +16417,7 @@ namespace Microsoft.Dafny
     void ResolveActualParameters(ActualBindings bindings, List<Formal>/*?*/ formals, IToken callTok, object/*?*/ context, ResolveOpts opts,
       Dictionary<TypeParameter, Type> subst = null) {
       Contract.Requires(bindings != null);
-      Contract.Requires(formals == null || callTok != null);
+      Contract.Requires(callTok != null);
       Contract.Requires(formals == null || context != null);
       Contract.Requires(context == null || context is Method || context is Function || context is DatatypeCtor || context is ArrowType);
       Contract.Requires(!bindings.WasResolved);
