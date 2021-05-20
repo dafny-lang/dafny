@@ -5,7 +5,7 @@ ResolutionErrors.dfy(88,16): Error: the name 'Benny' denotes a datatype construc
 ResolutionErrors.dfy(93,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors.dfy(94,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
 ResolutionErrors.dfy(96,16): Error: the name 'David' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Abc.David')
-ResolutionErrors.dfy(98,20): Error: wrong number of arguments to datatype constructor (datatype constructor 'David' expects 1, got 2)
+ResolutionErrors.dfy(98,20): Error: wrong number of arguments (datatype constructor 'David' expects 1, got 2)
 ResolutionErrors.dfy(13,18): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(25,13): Error: array selection requires an array2 (got array3<T>)
 ResolutionErrors.dfy(27,13): Error: array selection requires an array4 (got array<T>)

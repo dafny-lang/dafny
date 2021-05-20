@@ -16391,8 +16391,8 @@ namespace Microsoft.Dafny
 
       if (formals != null && formals.Count != bindings.ArgumentBindings.Count) {
         Contract.Assert(whatKind != null);
-        reporter.Error(MessageSource.Resolver, callTok, "wrong number of arguments to {0} ({1} expects {2}, got {3})",
-          whatKind, name, formals.Count, bindings.ArgumentBindings.Count);
+        reporter.Error(MessageSource.Resolver, callTok, "wrong number of arguments ({0} expects {1}, got {2})",
+          name, formals.Count, bindings.ArgumentBindings.Count);
       }
 
       int j = 0;
