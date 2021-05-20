@@ -9020,10 +9020,12 @@ namespace Microsoft.Dafny
           // the overridden member is a fully defined function or method, so the class is not allowed to do anything with it other than silently inherit it
           reporter.Error(MessageSource.Resolver, member.tok, "fully defined {0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared",
             traitMember.WhatKind, traitMember.Name, trait.Name);
-        } else if (member is Lemma != traitMember is Lemma ||
+        } else if (member is Method != traitMember is Method ||
+                   member is Lemma != traitMember is Lemma ||
                    member is TwoStateLemma != traitMember is TwoStateLemma ||
                    member is LeastLemma != traitMember is LeastLemma ||
                    member is GreatestLemma != traitMember is GreatestLemma ||
+                   member is Function != traitMember is Function ||
                    member is TwoStateFunction != traitMember is TwoStateFunction ||
                    member is LeastPredicate != traitMember is LeastPredicate ||
                    member is GreatestPredicate != traitMember is GreatestPredicate) {
