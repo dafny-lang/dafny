@@ -355,7 +355,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        return new FunctionCallExpr(Tok(e.tok), e.Name, CloneExpr(e.Receiver), e.OpenParen == null ? null : Tok(e.OpenParen), e.Args.ConvertAll(CloneExpr), e.AtLabel);
+        return new FunctionCallExpr(Tok(e.tok), e.Name, CloneExpr(e.Receiver), e.OpenParen == null ? null : Tok(e.OpenParen), e.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding), e.AtLabel);
 
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;
@@ -1133,10 +1133,10 @@ namespace Microsoft.Dafny
       Contract.Requires(e != null);
       Contract.Requires(e.Function is ExtremePredicate);
       var receiver = CloneExpr(e.Receiver);
-      var args = new List<Expression>();
-      args.Add(k);
-      foreach (var arg in e.Args) {
-        args.Add(CloneExpr(arg));
+      var args = new List<ActualBinding>();
+      args.Add(new ActualBinding(null, k));
+      foreach (var binding in e.Bindings.ArgumentBindings) {
+        args.Add(CloneActualBinding(binding));
       }
       var fexp = new FunctionCallExpr(Tok(e.tok), e.Name + "#", receiver, e.OpenParen, args, e.AtLabel);
       reporter.Info(MessageSource.Cloner, e.tok, e.Name + suffix);

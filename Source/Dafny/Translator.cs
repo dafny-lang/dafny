@@ -2822,7 +2822,7 @@ namespace Microsoft.Dafny {
           rArgs.Add(ie);
         }
         // create and resolve datatype value
-        var r = new DatatypeValue(mc.tok, mc.Ctor.EnclosingDatatype.Name, mc.Ctor.Name, rArgs.ConvertAll(e => new ActualBinding(null, e)));
+        var r = new DatatypeValue(mc.tok, mc.Ctor.EnclosingDatatype.Name, mc.Ctor.Name, rArgs);
         r.Ctor = mc.Ctor;
         r.Type = new UserDefinedType(mc.tok, mc.Ctor.EnclosingDatatype.Name, new List<Type>()/*this is not right, but it seems like it won't matter here*/);
 
@@ -11313,7 +11313,7 @@ namespace Microsoft.Dafny {
         }
         foreach (var ctor in dt.Ctors) {
           if (ctor.Formals.Count == 0) {
-            var v = new DatatypeValue(x.tok, dt.Name, ctor.Name, new List<ActualBinding>());
+            var v = new DatatypeValue(x.tok, dt.Name, ctor.Name, new List<Expression>());
             v.Ctor = ctor;  // resolve here
             v.InferredTypeArgs = xType.TypeArgs; // resolved here.
             v.Type = xType;  // resolve here
@@ -18509,9 +18509,9 @@ namespace Microsoft.Dafny {
 
         } else if (expr is DatatypeValue) {
           DatatypeValue dtv = (DatatypeValue)expr;
-          var newBindings = SubstituteActualBindings(dtv.Bindings);
-          if (newBindings != dtv.Bindings) {
-            DatatypeValue newDtv = new DatatypeValue(dtv.tok, dtv.DatatypeName, dtv.MemberName, newBindings.ArgumentBindings);
+          var newArguments = SubstituteExprList(dtv.Bindings.Arguments); // substitute into the expressions, but drop any binding names (since those are no longer needed)
+          if (newArguments != dtv.Bindings.Arguments) {
+            DatatypeValue newDtv = new DatatypeValue(dtv.tok, dtv.DatatypeName, dtv.MemberName, newArguments);
             newDtv.Ctor = dtv.Ctor;  // resolve on the fly (and set newDtv.Type below, at end)
             newDtv.InferredTypeArgs = Map(dtv.InferredTypeArgs, tt => Resolver.SubstType(tt, typeMap));
                                      // ^ Set the correct type arguments to the constructor
@@ -18928,19 +18928,6 @@ namespace Microsoft.Dafny {
         return pat;
       }
 
-      protected ActualBindings SubstituteActualBindings(ActualBindings bindings) {
-        Contract.Requires(bindings != null);
-        var actuals = new List<ActualBinding>();
-        var somethingNew = false;
-        foreach (var binding in bindings.ArgumentBindings) {
-          var newE = Substitute(binding.Actual);
-          if (newE != binding.Actual) {
-            somethingNew = true;
-          }
-          actuals.Add(new ActualBinding(binding.FormalParameterName, newE));
-        }
-        return somethingNew ? new ActualBindings(actuals) : bindings;
-      }
       protected List<Expression/*!*/>/*!*/ SubstituteExprList(List<Expression/*!*/>/*!*/ elist) {
         Contract.Requires(cce.NonNullElements(elist));
         Contract.Ensures(cce.NonNullElements(Contract.Result<List<Expression>>()));
