@@ -10125,7 +10125,7 @@ namespace Microsoft.Dafny
           new MemberSelectExpr(p.tok, new ThisExpr(p.tok), p.Name), new SeqDisplayExpr(p.tok, new List<Expression>()))));
       }
       // ensures this.Valid();
-      var valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>());
+      var valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<ActualBinding>());
       ens.Add(new AttributedExpression(valid_call));
       // ensures this._reads == old(ReadsClause);
       var modSetSingletons = new List<Expression>();
@@ -10179,7 +10179,7 @@ namespace Microsoft.Dafny
       // ---------- here comes method MoveNext() ----------
       // requires this.Valid();
       var req = iter.Member_MoveNext.Req;
-      valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>());
+      valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<ActualBinding>());
       req.Add(new AttributedExpression(valid_call));
       // requires YieldRequires;
       req.AddRange(iter.YieldRequires);
@@ -10199,7 +10199,7 @@ namespace Microsoft.Dafny
         new LiteralExpr(iter.tok),
         new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))));
       // ensures more ==> this.Valid();
-      valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>());
+      valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<ActualBinding>());
       ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
         new IdentifierExpr(iter.tok, "more"),
         valid_call)));
@@ -10619,7 +10619,7 @@ namespace Microsoft.Dafny
                 Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
                 reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
               } else {
-                var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.Args);
+                var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
                 s.ResolvedStatements.Add(call);
               }
             } else {
@@ -12501,7 +12501,7 @@ namespace Microsoft.Dafny
           foreach (var ll in update.Lhss) {
             resolvedLhss.Add(ll.Resolved);
           }
-          CallStmt a = new CallStmt(methodCallInfo.Tok, update.EndTok, resolvedLhss, methodCallInfo.Callee, methodCallInfo.Args);
+          CallStmt a = new CallStmt(methodCallInfo.Tok, update.EndTok, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters);
           a.OriginalInitialLhs = update.OriginalInitialLhs;
           update.ResolvedStatements.Add(a);
         }
@@ -12885,21 +12885,13 @@ namespace Microsoft.Dafny
         reporter.Error(MessageSource.Resolver, s, "a constructor is allowed to be called only when an object is being allocated");
       }
 
-      // resolve left-hand sides
+      // resolve left-hand sides (the right-hand sides are resolved below)
       foreach (var lhs in s.Lhs) {
         Contract.Assume(lhs.Type != null);  // a sanity check that LHSs have already been resolved
       }
-      // resolve arguments
-      int j = 0;
-      foreach (Expression e in s.Args) {
-        ResolveExpression(e, new ResolveOpts(codeContext, true));
-        j++;
-      }
 
       bool tryToResolve = false;
-      if (callee.Ins.Count != s.Args.Count) {
-        reporter.Error(MessageSource.Resolver, s, "wrong number of method arguments (got {0}, expected {1})", s.Args.Count, callee.Ins.Count);
-      } else if (callee.Outs.Count != s.Lhs.Count) {
+      if (callee.Outs.Count != s.Lhs.Count) {
         if (isInitCall) {
           reporter.Error(MessageSource.Resolver, s, "a method called as an initialization method must not have any result arguments");
         } else {
@@ -12909,8 +12901,7 @@ namespace Microsoft.Dafny
       } else {
         if (isInitCall) {
           if (callee.IsStatic) {
-            reporter.Error(MessageSource.Resolver, s.Tok,
-              "a method called as an initialization method must not be 'static'");
+            reporter.Error(MessageSource.Resolver, s.Tok, "a method called as an initialization method must not be 'static'");
           } else {
             tryToResolve = true;
           }
@@ -12931,13 +12922,10 @@ namespace Microsoft.Dafny
       }
 
       if (tryToResolve) {
-        // type check the arguments
         var subst = s.MethodSelect.TypeArgumentSubstitutionsAtMemberDeclaration();
-        for (int i = 0; i < callee.Ins.Count; i++) {
-          var it = callee.Ins[i].Type;
-          Type st = SubstType(it, subst);
-          AddAssignableConstraint(s.Tok, st, s.Args[i].Type, "incorrect type of method in-parameter" + (callee.Ins.Count == 1 ? "" : " " + i) + " (expected {0}, got {1})");
-        }
+        // resolve arguments
+        ResolveActualParameters(s.Bindings, callee.Ins, s.Tok, callee, new ResolveOpts(codeContext, true), subst);
+        // type check the out-parameter arguments (in-parameters were type checked as part of ResolveActualParameters)
         for (int i = 0; i < callee.Outs.Count && i < s.Lhs.Count; i++) {
           var it = callee.Outs[i].Type;
           Type st = SubstType(it, subst);
@@ -16285,24 +16273,24 @@ namespace Microsoft.Dafny
     {
       public readonly IToken Tok;
       public readonly MemberSelectExpr Callee;
-      public readonly List<Expression> Args;
+      public readonly List<ActualBinding> ActualParameters;
 
       [ContractInvariantMethod]
       void ObjectInvariant() {
         Contract.Invariant(Tok != null);
         Contract.Invariant(Callee != null);
         Contract.Invariant(Callee.Member is Method);
-        Contract.Invariant(cce.NonNullElements(Args));
+        Contract.Invariant(ActualParameters != null);
       }
 
-      public MethodCallInformation(IToken tok, MemberSelectExpr callee, List<Expression> args) {
+      public MethodCallInformation(IToken tok, MemberSelectExpr callee, List<ActualBinding> actualParameters) {
         Contract.Requires(tok != null);
         Contract.Requires(callee != null);
         Contract.Requires(callee.Member is Method);
-        Contract.Requires(cce.NonNullElements(args));
+        Contract.Requires(actualParameters != null);
         this.Tok = tok;
         this.Callee = callee;
-        this.Args = args;
+        this.ActualParameters = actualParameters;
       }
     }
 
@@ -16333,9 +16321,6 @@ namespace Microsoft.Dafny
         }
       }
       if (r == null) {
-        foreach (var arg in e.Args) {
-          ResolveExpression(arg, opts);
-        }
         var improvedType = PartiallyResolveTypeForMemberSelection(e.Lhs.tok, e.Lhs.Type, "_#apply");
         var fnType = improvedType.AsArrowType;
         if (fnType == null) {
@@ -16356,7 +16341,8 @@ namespace Microsoft.Dafny
                 }
               }
               if (allowMethodCall) {
-                var cRhs = new MethodCallInformation(e.tok, mse, e.Args);
+                Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
+                var cRhs = new MethodCallInformation(e.tok, mse, e.Bindings.ArgumentBindings);
                 return cRhs;
               } else {
                 reporter.Error(MessageSource.Resolver, e.tok, "{0} call is not allowed to be used in an expression context ({1})", mse.Member.WhatKind, mse.Member.Name);
@@ -16365,56 +16351,49 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, e.tok, "non-function expression (of type {0}) is called with parameters", e.Lhs.Type);
             }
           }
+          // resolve the arguments, even in the presence of the errors above
+          ResolveActualParameters(e.Bindings, null, null, null, opts);
         } else {
           var mse = e.Lhs is NameSegment || e.Lhs is ExprDotName ? e.Lhs.Resolved as MemberSelectExpr : null;
           var callee = mse == null ? null : mse.Member as Function;
-          if (fnType.Arity != e.Args.Count) {
-            var what = callee != null ? string.Format("function '{0}'", callee.Name) : string.Format("function type '{0}'", fnType);
-            reporter.Error(MessageSource.Resolver, e.tok, "wrong number of arguments to function application ({0} expects {1}, got {2})", what, fnType.Arity, e.Args.Count);
-          } else {
-            if (atLabel != null && !(callee is TwoStateFunction)) {
-              reporter.Error(MessageSource.Resolver, e.AtTok, "an @-label can only be applied to a two-state function");
-              atLabel = null;
-            }
-            for (var i = 0; i < fnType.Arity; i++) {
-              AddAssignableConstraint(e.Args[i].tok, fnType.Args[i], e.Args[i].Type, "type mismatch for argument" + (fnType.Arity == 1 ? "" : " " + i) + " (function expects {0}, got {1})");
-            }
-            if (errorCount != reporter.Count(ErrorLevel.Error)) {
-              // do nothing else; error has been reported
-            } else if (callee != null) {
-              // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-              var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.Args, atLabel);
-              // resolve it here:
-              rr.Function = callee;
+          if (atLabel != null && !(callee is TwoStateFunction)) {
+            reporter.Error(MessageSource.Resolver, e.AtTok, "an @-label can only be applied to a two-state function");
+            atLabel = null;
+          }
+          if (callee != null) {
+            // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
+            var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.Bindings.ArgumentBindings, atLabel);
+            rr.Function = callee;
+            rr.TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass;
+            rr.TypeApplication_JustFunction = mse.TypeApplication_JustMember;
+            var subst = BuildTypeArgumentSubstitute(mse.TypeArgumentSubstitutionsAtMemberDeclaration());
+            ResolveActualParameters(rr.Bindings, callee.Formals, e.tok, callee, opts, subst);
+            rr.Type = SubstType(callee.ResultType, subst);
+            if (errorCount == reporter.Count(ErrorLevel.Error)) {
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
               Contract.Assert(callee.Formals.Count == rr.Args.Count);  // this should have been checked already
-              rr.TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass;
-              rr.TypeApplication_JustFunction = mse.TypeApplication_JustMember;
-              var subst = BuildTypeArgumentSubstitute(mse.TypeArgumentSubstitutionsAtMemberDeclaration());
-
-              // type check the arguments
-#if DEBUG
-              Contract.Assert(callee.Formals.Count == fnType.Arity);
-              for (int i = 0; i < callee.Formals.Count; i++) {
-                Expression farg = rr.Args[i];
-                Contract.Assert(farg.WasResolved());
-                Contract.Assert(farg.Type != null);
-                Type s = SubstType(callee.Formals[i].Type, subst);
-                Contract.Assert(s.Equals(fnType.Args[i]));
-                Contract.Assert(farg.Type.Equals(e.Args[i].Type));
-              }
-#endif
-              rr.Type = SubstType(callee.ResultType, subst);
-              // further bookkeeping
-              if (callee is ExtremePredicate) {
-                ((ExtremePredicate)callee).Uses.Add(rr);
-              }
-              AddCallGraphEdge(opts.codeContext, callee, rr, IsFunctionReturnValue(callee, e.Bindings.ArgumentBindings, opts));
-              r = rr;
-            } else {
-              r = new ApplyExpr(e.Lhs.tok, e.Lhs, e.Args);
-              r.Type = fnType.Result;
             }
+            // further bookkeeping
+            if (callee is ExtremePredicate) {
+              ((ExtremePredicate)callee).Uses.Add(rr);
+            }
+            AddCallGraphEdge(opts.codeContext, callee, rr, IsFunctionReturnValue(callee, e.Bindings.ArgumentBindings, opts));
+            r = rr;
+          } else {
+            List<Formal> formals;
+            if (callee != null) {
+              formals = callee.Formals;
+            } else {
+              formals = new List<Formal>();
+              for (var i = 0; i < fnType.Args.Count; i++) {
+                var argType = fnType.Args[i];
+                var formal = new Formal(e.tok, "_#p" + i, argType, true, false);
+                formals.Add(formal);
+              }
+            }
+            ResolveActualParameters(e.Bindings, formals, e.tok, fnType, opts, null);
+            r = new ApplyExpr(e.Lhs.tok, e.Lhs, e.Args);
+            r.Type = fnType.Result;
           }
         }
       }
@@ -16426,6 +16405,65 @@ namespace Microsoft.Dafny
         e.Type = r.Type;
       }
       return null;
+    }
+
+    /// <summary>
+    /// Resolve the actual arguments given in "bindings". Then, check that there is exactly one
+    /// actual for each formal, and impose assignable constraints.
+    /// If "subst" is non-null, it applied to the types of each formal.
+    /// If "formals" is null, then this method will just resolve the arguments and return. In that case, "context" can also be null.
+    /// This method should be called only once. That is, bindings.arguments is required to be null on entry to this method.
+    /// </summary>
+    void ResolveActualParameters(ActualBindings bindings, List<Formal>/*?*/ formals, IToken callTok, object/*?*/ context, ResolveOpts opts,
+      Dictionary<TypeParameter, Type> subst = null) {
+      Contract.Requires(bindings != null);
+      Contract.Requires(formals == null || callTok != null);
+      Contract.Requires(formals == null || context != null);
+      Contract.Requires(context == null || context is Method || context is Function || context is DatatypeCtor || context is ArrowType);
+      Contract.Requires(!bindings.WasResolved);
+
+      string whatKind;
+      string name;
+      if (context is Method cMethod) {
+        whatKind = cMethod.WhatKind;
+        name = $"{whatKind} '{cMethod.Name}'";
+      } else if (context is Function cFunction) {
+        whatKind = cFunction.WhatKind;
+        name = $"{whatKind} '{cFunction.Name}'";
+      } else if (context is DatatypeCtor cCtor) {
+        whatKind = "datatype constructor";
+        name = $"{whatKind} '{cCtor.Name}'";
+      } else if (context is ArrowType cArrowType) {
+        whatKind = "function application";
+        name = $"function type '{cArrowType}'";
+      } else {
+        whatKind = null; // not used below
+        name = null; // not used below
+      }
+
+      if (formals != null && formals.Count != bindings.ArgumentBindings.Count) {
+        Contract.Assert(whatKind != null);
+        reporter.Error(MessageSource.Resolver, callTok, "wrong number of arguments to {0} ({1} expects {2}, got {3})",
+          whatKind, name, formals.Count, bindings.ArgumentBindings.Count);
+      }
+
+      int j = 0;
+      foreach (var binding in bindings.ArgumentBindings) {
+        var arg = binding.Actual;
+        ResolveExpression(arg, opts);
+        if (formals != null && j < formals.Count) {
+          var formal = formals[j];
+          Type st = subst == null ? formal.Type : SubstType(formal.Type, subst);
+          var what = whatKind + (context is Method ? " in-parameter" : " argument");
+          if (formals.Count != 1) {
+            what += " " + j;
+          }
+          AddAssignableConstraint(callTok, st, arg.Type, "incorrect type of " + what + " (expected {0}, found {1})");
+        }
+        j++;
+      }
+
+      bindings.AcceptArgumentExpressionsAsExactParameterList();
     }
 
     private Dictionary<TypeParameter, Type> BuildTypeArgumentSubstitute(Dictionary<TypeParameter, Type> typeArgumentSubstitutions, Type/*?*/ receiverTypeBound = null) {
@@ -16493,25 +16531,9 @@ namespace Microsoft.Dafny
       } else {
         Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
         dtv.Ctor = ctor;
-        if (ctor.Formals.Count != dtv.Arguments.Count) {
-          ok = false;
-          if (complain) {
-            reporter.Error(MessageSource.Resolver, dtv.tok, "wrong number of arguments to datatype constructor {0} (found {1}, expected {2})", ctor.Name, dtv.Arguments.Count, ctor.Formals.Count);
-          }
-        }
       }
-      int j = 0;
-      foreach (var arg in dtv.Arguments) {
-        Formal formal = ctor != null && j < ctor.Formals.Count ? ctor.Formals[j] : null;
-        ResolveExpression(arg, opts);
-        Contract.Assert(arg.Type != null);  // follows from postcondition of ResolveExpression
-        if (formal != null) {
-          Type st = SubstType(formal.Type, subst);
-          AddAssignableConstraint(arg.tok, st, arg.Type, "incorrect type of datatype constructor argument (found {1}, expected {0})");
-        }
-        j++;
-      }
-      return ok;
+      ResolveActualParameters(dtv.Bindings, complain && ctor != null ? ctor.Formals : null, dtv.tok, ctor, opts, subst);
+      return ok && ctor.Formals.Count == dtv.Arguments.Count;
     }
 
     /// <summary>
@@ -16730,52 +16752,44 @@ namespace Microsoft.Dafny
         if (e.Receiver is StaticReceiverExpr && !function.IsStatic) {
           reporter.Error(MessageSource.Resolver, e, "an instance function must be selected via an object, not just a class name");
         }
-        if (function.Formals.Count != e.Args.Count) {
-          reporter.Error(MessageSource.Resolver, e, "wrong number of function arguments (got {0}, expected {1})", e.Args.Count, function.Formals.Count);
-        } else {
-          Contract.Assert(ctype != null);  // follows from postcondition of ResolveMember
-          if (!function.IsStatic) {
-            if (!scope.AllowInstance && e.Receiver is ThisExpr) {
-              // The call really needs an instance, but that instance is given as 'this', which is not
-              // available in this context.  In most cases, occurrences of 'this' inside e.Receiver would
-              // have been caught in the recursive call to resolve e.Receiver, but not the specific case
-              // of e.Receiver being 'this' (explicitly or implicitly), for that case needs to be allowed
-              // in the event that a static function calls another static function (and note that we need the
-              // type of the receiver in order to find the method, so we could not have made this check
-              // earlier).
-              reporter.Error(MessageSource.Resolver, e.Receiver, "'this' is not allowed in a 'static' context");
-            } else if (e.Receiver is StaticReceiverExpr) {
-              reporter.Error(MessageSource.Resolver, e.Receiver, "call to instance function requires an instance");
-            }
+        Contract.Assert(ctype != null);  // follows from postcondition of ResolveMember
+        if (!function.IsStatic) {
+          if (!scope.AllowInstance && e.Receiver is ThisExpr) {
+            // The call really needs an instance, but that instance is given as 'this', which is not
+            // available in this context.  In most cases, occurrences of 'this' inside e.Receiver would
+            // have been caught in the recursive call to resolve e.Receiver, but not the specific case
+            // of e.Receiver being 'this' (explicitly or implicitly), for that case needs to be allowed
+            // in the event that a static function calls another static function (and note that we need the
+            // type of the receiver in order to find the method, so we could not have made this check
+            // earlier).
+            reporter.Error(MessageSource.Resolver, e.Receiver, "'this' is not allowed in a 'static' context");
+          } else if (e.Receiver is StaticReceiverExpr) {
+            reporter.Error(MessageSource.Resolver, e.Receiver, "call to instance function requires an instance");
           }
-          // build the type substitution map
-          var typeMap = new Dictionary<TypeParameter, Type>();
-          for (int i = 0; i < ctype.TypeArgs.Count; i++) {
-            typeMap.Add(ctype.ResolvedClass.TypeArgs[i], ctype.TypeArgs[i]);
-          }
-          var typeThatEnclosesMember = ctype.AsParentType(member.EnclosingClass);
-          e.TypeApplication_AtEnclosingClass = new List<Type>();
-          for (int i = 0; i < typeThatEnclosesMember.TypeArgs.Count; i++) {
-            e.TypeApplication_AtEnclosingClass.Add(typeThatEnclosesMember.TypeArgs[i]);
-          }
-          e.TypeApplication_JustFunction = new List<Type>();
-          foreach (TypeParameter p in function.TypeArgs) {
-            var ty = new ParamTypeProxy(p);
-            typeMap.Add(p, ty);
-            e.TypeApplication_JustFunction.Add(ty);
-          }
-          Dictionary<TypeParameter, Type> subst = BuildTypeArgumentSubstitute(typeMap);
-
-          // type check the arguments
-          for (int i = 0; i < function.Formals.Count; i++) {
-            Expression farg = e.Args[i];
-            ResolveExpression(farg, opts);
-            Contract.Assert(farg.Type != null);  // follows from postcondition of ResolveExpression
-            Type s = SubstType(function.Formals[i].Type, subst);
-            AddAssignableConstraint(e.tok, s, farg.Type, "incorrect type of function argument" + (function.Formals.Count == 1 ? "" : " " + i) + " (expected {0}, got {1})");
-          }
-          e.Type = SubstType(function.ResultType, subst).NormalizeExpand();
         }
+        // build the type substitution map
+        var typeMap = new Dictionary<TypeParameter, Type>();
+        for (int i = 0; i < ctype.TypeArgs.Count; i++) {
+          typeMap.Add(ctype.ResolvedClass.TypeArgs[i], ctype.TypeArgs[i]);
+        }
+        var typeThatEnclosesMember = ctype.AsParentType(member.EnclosingClass);
+        e.TypeApplication_AtEnclosingClass = new List<Type>();
+        for (int i = 0; i < typeThatEnclosesMember.TypeArgs.Count; i++) {
+          e.TypeApplication_AtEnclosingClass.Add(typeThatEnclosesMember.TypeArgs[i]);
+        }
+        e.TypeApplication_JustFunction = new List<Type>();
+        foreach (TypeParameter p in function.TypeArgs) {
+          var ty = new ParamTypeProxy(p);
+          typeMap.Add(p, ty);
+          e.TypeApplication_JustFunction.Add(ty);
+        }
+        Dictionary<TypeParameter, Type> subst = BuildTypeArgumentSubstitute(typeMap);
+
+        // type check the arguments
+        ResolveActualParameters(e.Bindings, function.Formals, e.tok, function, opts, subst);
+
+        e.Type = SubstType(function.ResultType, subst).NormalizeExpand();
+
         AddCallGraphEdge(opts.codeContext, function, e, IsFunctionReturnValue(function, e.Bindings.ArgumentBindings, opts));
       }
     }

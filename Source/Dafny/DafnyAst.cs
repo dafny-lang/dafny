@@ -6152,15 +6152,21 @@ namespace Microsoft.Dafny {
       ArgumentBindings = actuals.ConvertAll(actual => new ActualBinding(null, actual));
     }
 
-    private List<Expression> arguments;
+    private List<Expression> arguments; // set by ResolveActualParameters during resolution
+
+    public bool WasResolved => arguments != null;
 
     public List<Expression> Arguments {
       get {
-        if (arguments == null) {
-          arguments = ArgumentBindings.ConvertAll(binding => binding.Actual);
-        }
+        Contract.Requires(WasResolved);
         return arguments;
       }
+    }
+
+    public void AcceptArgumentExpressionsAsExactParameterList() {
+      Contract.Requires(!WasResolved); // this operation should be done at most once
+      Contract.Assume(ArgumentBindings.TrueForAll(arg => arg.Actual.WasResolved()));
+      arguments = ArgumentBindings.ConvertAll(binding => binding.Actual);
     }
   }
 
@@ -7824,10 +7830,6 @@ namespace Microsoft.Dafny {
     public Expression Receiver { get { return MethodSelect.Obj; } }
     public Method Method { get { return (Method)MethodSelect.Member; } }
 
-    public CallStmt(IToken tok, IToken endTok, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
-      : this(tok, endTok, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
-    }
-
     public CallStmt(IToken tok, IToken endTok, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
@@ -7840,6 +7842,15 @@ namespace Microsoft.Dafny {
       this.Lhs = lhs;
       this.MethodSelect = memSel;
       this.Bindings = new ActualBindings(args);
+    }
+
+    /// <summary>
+    /// This constructor is intended to be used when constructing a resolved CallStmt. The "args" are expected
+    /// to be already resolved, and are all given positionally.
+    /// </summary>
+    public CallStmt(IToken tok, IToken endTok, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
+      : this(tok, endTok, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
+      Bindings.AcceptArgumentExpressionsAsExactParameterList();
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -9717,6 +9728,15 @@ namespace Microsoft.Dafny {
       this.Bindings = new ActualBindings(arguments);
     }
 
+    /// <summary>
+    /// This constructor is intended to be used when constructing a resolved DatatypeValue. The "args" are expected
+    /// to be already resolved, and are all given positionally.
+    /// </summary>
+    public DatatypeValue(IToken tok, string datatypeName, string memberName, List<Expression> arguments)
+      : this(tok, datatypeName, memberName, arguments.ConvertAll(e => new ActualBinding(null, e))) {
+      Bindings.AcceptArgumentExpressionsAsExactParameterList();
+    }
+
     public override IEnumerable<Expression> SubExpressions {
       get { return Arguments; }
     }
@@ -10371,11 +10391,6 @@ namespace Microsoft.Dafny {
 
     public Function Function;  // filled in by resolution
 
-    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<Expression> args,
-      Label /*?*/ atLabel = null)
-      : this(tok, fn, receiver, openParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
-    }
-
     [Captured]
     public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
       : base(tok) {
@@ -10393,6 +10408,16 @@ namespace Microsoft.Dafny {
       this.OpenParen = openParen;
       this.AtLabel = atLabel;
       this.Bindings = new ActualBindings(args);
+    }
+
+    /// <summary>
+    /// This constructor is intended to be used when constructing a resolved FunctionCallExpr. The "args" are expected
+    /// to be already resolved, and are all given positionally.
+    /// </summary>
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<Expression> args,
+      Label /*?*/ atLabel = null)
+      : this(tok, fn, receiver, openParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
+      Bindings.AcceptArgumentExpressionsAsExactParameterList();
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -11864,7 +11889,7 @@ namespace Microsoft.Dafny {
         this.Expr = new IdentifierExpr(this.tok, this.Var);
       } else {
         var dtValue = new DatatypeValue(this.tok, this.Ctor.EnclosingDatatype.Name, this.Id,
-          this.Arguments == null ? new List<ActualBinding>() : this.Arguments.ConvertAll(arg => new ActualBinding(null, arg.Expr)));
+          this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr));
         dtValue.Ctor = this.Ctor;  // resolve here
         dtValue.InferredTypeArgs.AddRange(dtvTypeArgs);  // resolve here
         dtValue.Type = new UserDefinedType(this.tok, this.Ctor.EnclosingDatatype.Name, this.Ctor.EnclosingDatatype, dtvTypeArgs);

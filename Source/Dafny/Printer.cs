@@ -2025,9 +2025,7 @@ namespace Microsoft.Dafny {
           printParens = dtv.Arguments.Count != 0;
         }
         if (printParens) {
-          wr.Write("(");
-          PrintExpressionList(dtv.Arguments, false);
-          wr.Write(")");
+          PrintActualArguments(dtv.Bindings, null, null);
         }
 
       } else if (expr is DisplayExpression) {
@@ -2792,7 +2790,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintActualArguments(ActualBindings bindings, string name, Bpl.IToken/*?*/ atLabel) {
+    void PrintActualArguments(ActualBindings bindings, string/*?*/ name, Bpl.IToken/*?*/ atLabel) {
       Contract.Requires(bindings != null);
       var i = 0;
       if (name != null && name.EndsWith("#")) {
