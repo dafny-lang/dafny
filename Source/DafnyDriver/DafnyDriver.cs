@@ -662,28 +662,30 @@ namespace Microsoft.Dafny
       string targetProgramText;
       var otherFiles = new Dictionary<string, string>();
       {
-        var fileQueue = new Queue<FileTargetWriter>();
-        using (var wr = new TargetWriter(0)) {
-          compiler.Compile(dafnyProgram, wr);
-          var sw = new StringWriter();
-          wr.Collect(sw, fileQueue);
-          targetProgramText = sw.ToString();
-        }
+        var output = new ConcreteSyntaxTree();
+        compiler.Compile(dafnyProgram, output);
+        var writerOptions = new WriterState();
+        var targetProgramTextWriter = new StringWriter();
+        var files = new Queue<FileSyntax>();
+        output.Render(targetProgramTextWriter, 0, writerOptions, files);
+        targetProgramText = targetProgramTextWriter.ToString();
 
-        while (fileQueue.Count > 0) {
-          var wr = fileQueue.Dequeue();
-          var sw = new StringWriter();
-          wr.Collect(sw, fileQueue);
-          otherFiles.Add(wr.Filename, sw.ToString());
+        while(files.Count > 0)
+        {
+          var file = files.Dequeue();
+          var otherFileWriter = new StringWriter();
+          writerOptions.HasNewLine = false;
+          file.Tree.Render(otherFileWriter, 0, writerOptions, files);
+          otherFiles.Add(file.Filename, otherFileWriter.ToString());
         }
       }
       string callToMain = null;
-      if (hasMain) {
-        using (var wr = new TargetWriter(0)) {
-          string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
-          compiler.EmitCallToMain(mainMethod, baseName, wr);
-          callToMain = wr.ToString(); // assume there aren't multiple files just to call main
-        }
+      if (hasMain)
+      {
+        var callToMainTree = new ConcreteSyntaxTree();
+        string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
+        compiler.EmitCallToMain(mainMethod, baseName, callToMainTree);
+        callToMain = callToMainTree.ToString(); // assume there aren't multiple files just to call main
       }
       Contract.Assert(hasMain == (callToMain != null));
       bool targetProgramHasErrors = dafnyProgram.reporter.Count(ErrorLevel.Error) != oldErrorCount;

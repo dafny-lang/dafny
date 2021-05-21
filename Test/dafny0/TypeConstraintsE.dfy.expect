@@ -1,7 +1,7 @@
-TypeConstraintsE.dfy(9,9): Error: the RHS value (a array<nat>) is not known to be an instance of the LHS type (array<int>)
+TypeConstraintsE.dfy(9,9): Error: value of expression (of type 'array<nat>') is not known to be an instance of type 'array<int>'
 Execution trace:
     (0,0): anon0
-TypeConstraintsE.dfy(27,13): Error: the RHS value (a array<nat>) is not known to be an instance of the LHS type (array<int>)
+TypeConstraintsE.dfy(27,13): Error: value of expression (of type 'array<nat>') is not known to be an instance of type 'array<int>'
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then

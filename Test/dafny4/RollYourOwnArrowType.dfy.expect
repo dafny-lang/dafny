@@ -1,4 +1,4 @@
-RollYourOwnArrowType.dfy(6,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause
+RollYourOwnArrowType.dfy(6,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

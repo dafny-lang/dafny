@@ -2314,14 +2314,15 @@ namespace Microsoft.Dafny {
           if (parensNeeded) { wr.Write(")"); }
         }
 
-      } else if (expr is ConversionExpr) {
-        var e = (ConversionExpr)expr;
+      } else if (expr is TypeUnaryExpr) {
+        var e = (TypeUnaryExpr)expr;
         int opBindingStrength = 0x70;
         bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
         if (parensNeeded) { wr.Write("("); }
         PrintExpr(e.E, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1, keyword);
-        wr.Write(" as ");
+        Contract.Assert(e is ConversionExpr || e is TypeTestExpr);
+        wr.Write(e is ConversionExpr ? " as " : " is ");
         PrintType(e.ToType);
         if (parensNeeded) { wr.Write(")"); }
 

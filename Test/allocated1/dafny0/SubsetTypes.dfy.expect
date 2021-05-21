@@ -193,13 +193,13 @@ Execution trace:
     (0,0): anon0
     (0,0): anon37_Then
     SubsetTypes.dfy(182,12): anon38_Else
-SubsetTypes.dfy(199,25): Error: the RHS value (a Person?) is not known to be an instance of the LHS type (Person), because it may be null
+SubsetTypes.dfy(199,25): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon28_Then
     SubsetTypes.dfy(198,26): anon29_Else
     SubsetTypes.dfy(199,26): anon31_Else
-SubsetTypes.dfy(204,23): Error: the RHS value (a Person?) is not known to be an instance of the LHS type (Person), because it may be null
+SubsetTypes.dfy(204,23): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon28_Then
@@ -210,11 +210,11 @@ Execution trace:
     SubsetTypes.dfy(202,25): anon35_Else
     SubsetTypes.dfy(203,24): anon37_Else
     SubsetTypes.dfy(204,24): anon39_Else
-SubsetTypes.dfy(213,11): Error: the RHS value (a array<Person>) is not known to be an instance of the LHS type (array<Person?>)
+SubsetTypes.dfy(213,11): Error: value of expression (of type 'array<Person>') is not known to be an instance of type 'array<Person?>'
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
-SubsetTypes.dfy(216,11): Error: the RHS value (a array<Person?>) is not known to be an instance of the LHS type (array<Person>)
+SubsetTypes.dfy(216,11): Error: value of expression (of type 'array<Person?>') is not known to be an instance of type 'array<Person>'
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Then
@@ -282,21 +282,21 @@ Execution trace:
 SubsetTypes.dfy(335,20): Error: result of operation might violate newtype constraint for 'Nat'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(340,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
+SubsetTypes.dfy(340,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
 SubsetTypes.dfy(341,18): Error: value does not satisfy the subset constraints of 'Nat'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(345,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
+SubsetTypes.dfy(345,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
 SubsetTypes.dfy(346,18): Error: result of operation might violate newtype constraint for 'Nat'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(350,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
+SubsetTypes.dfy(350,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
@@ -322,7 +322,7 @@ SubsetTypes.dfy(381,19): Error: value does not satisfy the subset constraints of
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
-SubsetTypes.dfy(383,19): Error: the RHS value (a C?) is not known to be an instance of the LHS type (C), because it may be null
+SubsetTypes.dfy(383,19): Error: value of expression (of type 'C?') is not known to be an instance of type 'C', because it may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
@@ -349,11 +349,11 @@ Execution trace:
 SubsetTypes.dfy(399,9): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-SubsetTypes.dfy(409,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause
+SubsetTypes.dfy(409,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-SubsetTypes.dfy(411,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause
+SubsetTypes.dfy(411,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

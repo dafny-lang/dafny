@@ -1778,10 +1778,10 @@ module TypeConversions {
     n := x as nat;  // yes, this is allowed now
     o := j;
     j := o;  // OK for type resolution, but must be proved
-    j := o as J;  // error: not allowed to convert to 'J'
+    j := o as J;  // yes, this is allowed now
     j := c;
     c := j;  // OK for type resolution, but must be proved
-    c := j as C;  // error: not allowed to convert to 'C'
+    c := j as C;  // yes, this is allowed now
     var oo := o as realint;  // error: there's no such type as "realint" (this once used to crash Dafny)
   }
 }

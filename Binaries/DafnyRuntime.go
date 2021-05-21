@@ -169,8 +169,11 @@ var MapType = CreateStandardTypeDescriptor(EmptyMap)
 //   var s: set<UberTrait> := ...
 //   // the following line requires run-time check that t (of type UberTrait) is a Trait
 //   var ts := set t: Trait | t in s;
+// A more straightforward situation is the expression
+//   x is Trait
 
 type TraitID struct {
+  dummy byte
 }
 
 type TraitOffspring interface {
@@ -185,6 +188,45 @@ func InstanceOfTrait(obj TraitOffspring, trait *TraitID) bool {
   }
   return false
 }
+
+// Use this method to test if an object "p" has a given class type (denoted by the
+// type of "q"). More generally, this method returns true if p and q are of the
+// same type. It is assumed that neither "p" nor "q" denotes a Dafny "null" value.
+
+func InstanceOf(p interface{}, q interface{}) bool {
+  return refl.TypeOf(p) == refl.TypeOf(q)
+}
+
+/******************************************************************************
+ * Object
+ ******************************************************************************/
+
+type Object struct {
+  dummy byte
+}
+
+func New_Object() *Object {
+  _this := Object{}
+  return &_this
+}
+
+func (_this *Object) Equals(other *Object) bool {
+  return _this == other
+}
+
+func (_this *Object) EqualsGeneric(x interface{}) bool {
+  other, ok := x.(*Object)
+  return ok && _this.Equals(other)
+}
+
+func (*Object) String() string {
+  return "object"
+}
+
+func (_this *Object) ParentTraits_() []*TraitID {
+  return [](*TraitID){};
+}
+var _ TraitOffspring = &Object{}
 
 /******************************************************************************
  * Characters

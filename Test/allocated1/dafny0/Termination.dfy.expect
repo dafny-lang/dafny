@@ -153,7 +153,7 @@ Execution trace:
     (0,0): anon9_Else
     (0,0): anon10_Then
     (0,0): anon11_Else
-Termination.dfy(577,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause
+Termination.dfy(577,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

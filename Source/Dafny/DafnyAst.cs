@@ -1448,8 +1448,9 @@ namespace Microsoft.Dafny {
         target = target.NormalizeExpand(); // also lop off non-null constraint
       }
 
-      if (source.IsSubtypeOf(target, false)) {
-        // Every value of "source" is also a member of type "target", so no run-time test is needed.
+      if (source.IsSubtypeOf(target, false, true)) {
+        // Every value of "source" (except possibly "null") is also a member of type "target",
+        // so no run-time test is needed (except possibly a null check).
         return true;
 #if SOON  // include in a coming PR that sorts this one in the compilers
       } else if (target is UserDefinedType udt && (udt.ResolvedClass is SubsetTypeDecl || udt.ResolvedClass is NewtypeDecl)) {
@@ -1472,10 +1473,10 @@ namespace Microsoft.Dafny {
     /// Returns "true" iff "sub" is a subtype of "super".
     /// Expects that neither "super" nor "sub" is an unresolved proxy.
     /// </summary>
-    public static bool IsSupertype(Type super, Type sub, bool ignoreTypeParameters = false) {
+    public static bool IsSupertype(Type super, Type sub) {
       Contract.Requires(super != null);
       Contract.Requires(sub != null);
-      return sub.IsSubtypeOf(super, ignoreTypeParameters);
+      return sub.IsSubtypeOf(super, false, false);
     }
 
     /// <summary>
@@ -1550,8 +1551,17 @@ namespace Microsoft.Dafny {
     /// Returns true if t and u have the same head type.
     /// It is assumed that t and u have been normalized and expanded by the caller, according
     /// to its purposes.
+    /// The value of "allowNonNull" matters only if both "t" and "u" denote reference types.
+    /// If "t" is a non-null reference type "T" or a possibly-null type "T?"
+    /// and "u" is a non-null reference type "U" or a possibly-null type "U?", then
+    /// SameHead returns:
+    ///            !allowNonNull     allowNonNull
+    ///   T?  U?        true           true
+    ///   T?  U         false          true
+    ///   T   U?        false          false
+    ///   T   U         true           true
     /// </summary>
-    public static bool SameHead(Type t, Type u, bool allowNonNull = false) {
+    public static bool SameHead(Type t, Type u) {
       Contract.Requires(t != null);
       Contract.Requires(u != null);
       if (t is TypeProxy) {
@@ -1569,8 +1579,7 @@ namespace Microsoft.Dafny {
       } else {
         var udtT = (UserDefinedType)t;
         var udtU = u as UserDefinedType;
-        return udtU != null && (udtT.ResolvedClass == udtU.ResolvedClass
-                   || (allowNonNull && udtU.ResolvedClass is NonNullTypeDecl nudtU && udtT.ResolvedClass == nudtU.Class));
+        return udtU != null && udtT.ResolvedClass == udtU.ResolvedClass;
       }
     }
 
@@ -1707,21 +1716,19 @@ namespace Microsoft.Dafny {
           Contract.Assert(udtA.TypeArgs.Count == 0);
           return udtA.ResolvedClass == b.AsTypeParameter;
         } else {
-          while (true) {
-            var udtB = b as UserDefinedType;
-            if (udtB == null) {
-              return false;
-            } else if (udtA.ResolvedClass != udtB.ResolvedClass) {
-              return false;
-            } else {
-              Contract.Assert(udtA.TypeArgs.Count == udtB.TypeArgs.Count);
-              for (int i = 0; i < udtA.TypeArgs.Count; i++) {
-                if (!Equal_Improved(udtA.TypeArgs[i], udtB.TypeArgs[i])) {
-                  return false;
-                }
+          var udtB = b as UserDefinedType;
+          if (udtB == null) {
+            return false;
+          } else if (udtA.ResolvedClass != udtB.ResolvedClass) {
+            return false;
+          } else {
+            Contract.Assert(udtA.TypeArgs.Count == udtB.TypeArgs.Count);
+            for (int i = 0; i < udtA.TypeArgs.Count; i++) {
+              if (!Equal_Improved(udtA.TypeArgs[i], udtB.TypeArgs[i])) {
+                return false;
               }
-              return true;
             }
+            return true;
           }
         }
       } else if (a is Resolver_IdentifierExpr.ResolverType_Module) {
@@ -2217,13 +2224,9 @@ namespace Microsoft.Dafny {
           var udt = (UserDefinedType)a;
           return new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
         } else if (aa is ClassDecl && bb is ClassDecl) {
-          var A = (ClassDecl)aa;
-          var B = (ClassDecl)bb;
-          if (A.HeadDerivesFrom(B)) {
-            Contract.Assert(B is TraitDecl && b.TypeArgs.Count == 0);
+          if (a.IsSubtypeOf(b, false, false)) {
             return a;
-          } else if (B.HeadDerivesFrom(A)) {
-            Contract.Assert(A is TraitDecl && a.TypeArgs.Count == 0);
+          } else if (b.IsSubtypeOf(a, false, false)) {
             return b;
           } else {
             return null;
@@ -2252,16 +2255,30 @@ namespace Microsoft.Dafny {
       return new List<Type>();
     }
 
-    public virtual bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+    /// <summary>
+    /// Return whether or not "this" is a subtype of "super".
+    /// If "ignoreTypeArguments" is "true", then proceed as if the type arguments were equal.
+    /// If "ignoreNullity" is "true", then the difference between a non-null reference type C
+    /// and the corresponding nullable reference type C? is ignored.
+    /// </summary>
+    public virtual bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       Contract.Requires(super != null);
 
       super = super.NormalizeExpandKeepConstraints();
       var sub = NormalizeExpandKeepConstraints();
-      if (SameHead(sub, super)) {
+      bool equivalentHeads = SameHead(sub, super);
+      if (!equivalentHeads && ignoreNullity) {
+        if (super is UserDefinedType a && sub is UserDefinedType b) {
+          var clA = (a.ResolvedClass as NonNullTypeDecl)?.Class ?? a.ResolvedClass;
+          var clB = (b.ResolvedClass as NonNullTypeDecl)?.Class ?? b.ResolvedClass;
+          equivalentHeads = clA == clB;
+        }
+      }
+      if (equivalentHeads) {
         return ignoreTypeArguments || CompatibleTypeArgs(super, sub);
       }
 
-      return ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments));
+      return ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
     }
 
     public static bool CompatibleTypeArgs(Type super, Type sub) {
@@ -2360,11 +2377,11 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.NormalizeExpand(keepConstraints) is IntType;
     }
-    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       if (super is IntVarietiesSupertype) {
         return true;
       }
-      return base.IsSubtypeOf(super, ignoreTypeArguments);
+      return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
     }
   }
 
@@ -2376,11 +2393,11 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.NormalizeExpand(keepConstraints) is RealType;
     }
-    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       if (super is RealVarietiesSupertype) {
         return true;
       }
-      return base.IsSubtypeOf(super, ignoreTypeArguments);
+      return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
     }
   }
 
@@ -2393,11 +2410,11 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that, bool keepConstraints = false) {
       return that.NormalizeExpand(keepConstraints) is BigOrdinalType;
     }
-    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       if (super is IntVarietiesSupertype) {
         return true;
       }
-      return base.IsSubtypeOf(super, ignoreTypeArguments);
+      return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
     }
   }
 
@@ -2425,11 +2442,11 @@ namespace Microsoft.Dafny {
       var bv = that.NormalizeExpand(keepConstraints) as BitvectorType;
       return bv != null && bv.Width == Width;
     }
-    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       if (super is IntVarietiesSupertype) {
         return true;
       }
-      return base.IsSubtypeOf(super, ignoreTypeArguments);
+      return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
     }
   }
 
@@ -3084,19 +3101,19 @@ namespace Microsoft.Dafny {
       return ResolvedClass != null ? ResolvedClass.ParentTypes(TypeArgs) : base.ParentTypes();
     }
 
-    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
       super = super.NormalizeExpandKeepConstraints();
 
       // Specifically handle object as the implicit supertype of classes and traits.
       // "object?" is handled by Builtins rather than the Type hierarchy, so unfortunately
       // it can't be returned in ParentTypes().
-      if (IsRefType && super.IsObjectQ) {
-        return true;
-      } else if (IsNonNullRefType && super.IsObject) {
-        return true;
+      if (super.IsObjectQ) {
+        return IsRefType;
+      } else if (super.IsObject) {
+        return ignoreNullity ? IsRefType : IsNonNullRefType;
       }
 
-      return base.IsSubtypeOf(super, ignoreTypeArguments);
+      return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
     }
   }
 
@@ -4310,7 +4327,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Return the list of parent types of "this", where there type parameters
+    /// Return the list of parent types of "this", where the type parameters
     /// of "this" have been instantiated by "typeArgs". For example, for a subset
     /// type, the return value is the RHS type, appropriately instantiated. As
     /// two other examples, given
@@ -4330,7 +4347,7 @@ namespace Microsoft.Dafny {
 
     // The following fields keep track of parent traits
     public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance members declared in parent traits
-    public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, there are UserDefinedType's where .ResolvedClas is NonNullTypeDecl
+    public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClas is NonNullTypeDecl
     public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
 
     /// <summary>
@@ -5758,6 +5775,7 @@ namespace Microsoft.Dafny {
 
   public class NonNullTypeDecl : SubsetTypeDecl
   {
+    public override string WhatKind { get { return "non-null type"; } }
     public readonly ClassDecl Class;
     /// <summary>
     /// The public constructor is NonNullTypeDecl(ClassDecl cl). The rest is pretty crazy: There are stages of "this"-constructor calls
@@ -5792,10 +5810,9 @@ namespace Microsoft.Dafny {
       List<Type> result = new List<Type>(base.ParentTypes(typeArgs));
 
       foreach (var rhsParentType in Class.ParentTypes(typeArgs)) {
-        var rhsParentUdt = rhsParentType as UserDefinedType;
-        if (rhsParentUdt != null && rhsParentUdt.ResolvedClass is ClassDecl) {
-          result.Add(UserDefinedType.CreateNonNullType(rhsParentUdt));
-        }
+        var rhsParentUdt = (UserDefinedType)rhsParentType; // all parent types of .Class are expected to be possibly-null class types
+        Contract.Assert(rhsParentUdt.ResolvedClass is ClassDecl);
+        result.Add(UserDefinedType.CreateNonNullType(rhsParentUdt));
       }
 
       return result;
@@ -9133,7 +9150,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Create a resolved expression for a bool b
     /// </summary>
-    public static Expression CreateBoolLiteral(IToken tok, bool b) {
+    public static LiteralExpr CreateBoolLiteral(IToken tok, bool b) {
       Contract.Requires(tok != null);
       var lit = new LiteralExpr(tok, b);
       lit.Type = Type.Bool;  // resolve here
@@ -10551,15 +10568,35 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ConversionExpr : UnaryExpr
+  public abstract class TypeUnaryExpr : UnaryExpr
   {
     public readonly Type ToType;
-    public ConversionExpr(IToken tok, Expression expr, Type toType)
+    public TypeUnaryExpr(IToken tok, Expression expr, Type toType)
       : base(tok, expr) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
       Contract.Requires(toType != null);
       ToType = toType;
+    }
+  }
+
+  public class ConversionExpr : TypeUnaryExpr
+  {
+    public ConversionExpr(IToken tok, Expression expr, Type toType)
+      : base(tok, expr, toType) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expr != null);
+      Contract.Requires(toType != null);
+    }
+  }
+
+  public class TypeTestExpr : TypeUnaryExpr
+  {
+    public TypeTestExpr(IToken tok, Expression expr, Type toType)
+      : base(tok, expr, toType) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expr != null);
+      Contract.Requires(toType != null);
     }
   }
 
