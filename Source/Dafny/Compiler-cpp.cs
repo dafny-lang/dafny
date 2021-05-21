@@ -470,7 +470,7 @@ namespace Microsoft.Dafny {
 
         {
           // Declare a default copy constructor (just in case any of our components are non-trivial, i.e., contain smart_ptr)
-          var wcc = ws.NewNamedBlock(String.Format("{0}(const {0} &other)", DtT_protected)); 
+          var wcc = ws.NewNamedBlock(String.Format("{0}(const {0} &other)", DtT_protected));
           wcc.WriteLine("v = other.v;");
         }
         {
@@ -2256,6 +2256,10 @@ namespace Microsoft.Dafny {
         // identity will do
         TrExpr(e.E, wr, inLetExprBody);
       }
+    }
+
+    protected override void EmitTypeTest(string localName, Type fromType, Type toType, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+      throw new NotImplementedException();
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, ConcreteSyntaxTree wr) {

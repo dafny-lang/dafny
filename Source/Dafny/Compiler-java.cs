@@ -517,7 +517,7 @@ namespace Microsoft.Dafny{
       if (!m.Body.Body.OfType<ReturnStmt>().Any() && (nonGhostOuts > 0 || m.IsTailRecursive)) { // If method has out parameters or is tail-recursive but no explicit return statement in Dafny
         var beforeReturn = wr.NewBlock("if(true)"); // Ensure no unreachable error is thrown for the return statement
         EmitReturn(m.Outs, wr);
-        return beforeReturn; 
+        return beforeReturn;
       }
       return wr;
     }
@@ -1866,7 +1866,7 @@ namespace Microsoft.Dafny{
       wr.Write($"public {DtCtorDeclarationName(ctor)} (");
       WriteFormals("", ctor.Formals, wr);
       {
-        var w = wr.NewBlock(")"); 
+        var w = wr.NewBlock(")");
         i = 0;
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
@@ -1883,7 +1883,7 @@ namespace Microsoft.Dafny{
       wr.WriteLine();
       wr.WriteLine("@Override");
       {
-        var w = wr.NewBlock("public boolean equals(Object other)"); 
+        var w = wr.NewBlock("public boolean equals(Object other)");
         w.WriteLine("if (this == other) return true;");
         w.WriteLine("if (other == null) return false;");
         w.WriteLine("if (getClass() != other.getClass()) return false;");
@@ -1908,7 +1908,7 @@ namespace Microsoft.Dafny{
       // GetHashCode method (Uses the djb2 algorithm)
       wr.WriteLine("@Override");
       {
-        var w = wr.NewBlock("public int hashCode()"); 
+        var w = wr.NewBlock("public int hashCode()");
         w.WriteLine("long hash = 5381;");
         w.WriteLine($"hash = ((hash << 5) + hash) + {constructorIndex};");
         i = 0;
@@ -1930,7 +1930,7 @@ namespace Microsoft.Dafny{
       wr.WriteLine();
       wr.WriteLine("@Override");
       {
-        var w = wr.NewBlock("public String toString()"); 
+        var w = wr.NewBlock("public String toString()");
         string nm;
         if (dt is TupleTypeDecl) {
           nm = "";
@@ -2917,7 +2917,7 @@ namespace Microsoft.Dafny{
       }
       wr.Write(" Default({0})", Util.Comma(i, j => $"T{j} {FormatDefaultTypeParameterValueName($"T{j}")}"));
       {
-        var w = wr.NewBlock(""); 
+        var w = wr.NewBlock("");
         w.WriteLine("return create({0});", Util.Comma(i, j => $"{FormatDefaultTypeParameterValueName($"T{j}")}"));
       }
 
@@ -2930,7 +2930,7 @@ namespace Microsoft.Dafny{
       }
       wr.Write(" create({0})", Util.Comma(i, j => $"T{j} _{j}"));
       {
-        var w = wr.NewBlock(""); 
+        var w = wr.NewBlock("");
         w.WriteLine("return new Tuple{0}({1});", i, Util.Comma(i, j => $"_{j}"));
       }
 
@@ -3220,7 +3220,7 @@ namespace Microsoft.Dafny{
         wr.WriteLine($"public final int dim{j};");
       }
       {
-        var wrBody = wr.NewBlock($"public Array{i}({DafnyTypeDescriptor}<T> elmtType, {Util.Comma(dims, j => $"int dim{j}")}, Object{outerBrackets} elmts)"); 
+        var wrBody = wr.NewBlock($"public Array{i}({DafnyTypeDescriptor}<T> elmtType, {Util.Comma(dims, j => $"int dim{j}")}, Object{outerBrackets} elmts)");
         wrBody.WriteLine("assert elmts.getClass().isArray();");
         wrBody.WriteLine("this.elmtType = elmtType;");
         foreach (var j in dims) {
@@ -3230,7 +3230,7 @@ namespace Microsoft.Dafny{
       }
 
       {
-        var wrBody = wr.NewBlock($"public T get({Util.Comma(dims, j => $"int i{j}")})"); 
+        var wrBody = wr.NewBlock($"public T get({Util.Comma(dims, j => $"int i{j}")})");
         wrBody.Write("return elmtType.getArrayElement(elmts");
         foreach (var j in outerDims) {
           wrBody.Write($"[i{j}]");
@@ -3239,7 +3239,7 @@ namespace Microsoft.Dafny{
       }
 
       {
-        var wrBody = wr.NewBlock($"public void set({Util.Comma(dims, j => $"int i{j}")}, T value)"); 
+        var wrBody = wr.NewBlock($"public void set({Util.Comma(dims, j => $"int i{j}")}, T value)");
         wrBody.Write("elmtType.setArrayElement(elmts");
         foreach (var j in outerDims) {
           wrBody.Write($"[i{j}]");
@@ -3248,7 +3248,7 @@ namespace Microsoft.Dafny{
       }
 
       {
-        var body = wr.NewBlock("public void fill(T z)"); 
+        var body = wr.NewBlock("public void fill(T z)");
         var forBodyWr = body;
         for (int j = 0; j < i - 1; j++) {
           forBodyWr = forBodyWr.NewBlock($"for(int i{j} = 0; i{j} < dim{j}; i{j}++)");
@@ -3261,7 +3261,7 @@ namespace Microsoft.Dafny{
       }
 
       {
-        var body = wr.NewBlock($"public Array{i} fillThenReturn(T z)"); 
+        var body = wr.NewBlock($"public Array{i} fillThenReturn(T z)");
         body.WriteLine("fill(z);");
         body.WriteLine("return this;");
       }
@@ -3815,6 +3815,37 @@ namespace Microsoft.Dafny{
         }
       } else {
         Contract.Assert(false, $"not implemented for java: {fromType} -> {toType}");
+      }
+    }
+
+    protected override void EmitTypeTest(string localName, Type fromType, Type toType, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+      Contract.Requires(fromType.IsRefType);
+      Contract.Requires(toType.IsRefType);
+
+      // from T to U:   t instanceof U && ...
+      // from T to U?:  t instanceof U && ...                 // since t is known to be non-null, this is fine
+      // from T? to U:  t instanceof U && ...                 // note, "instanceof" implies non-null, so no need for explicit null check
+      // from T? to U?: t == null || (t instanceof U && ...)
+      if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
+        wr.Write($"{localName} == null || (");
+      }
+
+      if (toType.IsObjectQ) {
+        wr.Write("true");
+      } else {
+        var typeName = toType.IsObject ? "Object" : FullTypeName((UserDefinedType)toType.NormalizeExpand());
+        wr.Write($"{localName} instanceof {typeName}");
+        localName = $"(({typeName}){localName})";
+      }
+
+      var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
+      if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+        // TODO: test constraints
+        throw new NotImplementedException();
+      }
+
+      if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
+        wr.Write(")");
       }
     }
 

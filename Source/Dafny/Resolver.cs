@@ -4125,10 +4125,17 @@ namespace Microsoft.Dafny
         var lhsWithProxyArgs = Type.HeadWithProxyArgs(lhs);
         ConstrainSubtypeRelation(lhsWithProxyArgs, rhs, errMsg, false, allowDecisions);
         ConstrainAssignableTypeArgs(lhs, lhsWithProxyArgs.TypeArgs, lhs.TypeArgs, errMsg, out moreXConstraints);
-        if (Type.SameHead(lhs, rhs, true) && lhs.AsCollectionType == null) {
-          bool more2;
-          ConstrainAssignableTypeArgs(lhs, lhs.TypeArgs, rhs.TypeArgs, errMsg, out more2);
-          moreXConstraints = moreXConstraints || more2;
+        if (lhs.AsCollectionType == null) {
+          var sameHead = Type.SameHead(lhs, rhs);
+          if (!sameHead && lhs is UserDefinedType udtLhs && rhs is UserDefinedType udtRhs) {
+            // also allow the case where lhs is a possibly-null type and rhs is a non-null type
+            sameHead = udtLhs.ResolvedClass == (udtRhs.ResolvedClass as NonNullTypeDecl)?.Class;
+          }
+          if (sameHead) {
+            bool more2;
+            ConstrainAssignableTypeArgs(lhs, lhs.TypeArgs, rhs.TypeArgs, errMsg, out more2);
+            moreXConstraints = moreXConstraints || more2;
+          }
         }
       }
     }
@@ -4766,7 +4773,7 @@ namespace Microsoft.Dafny
                    || !ProxyWithNoSubTypeConstraint(u, resolver)
                    || (Types[0].NormalizeExpandKeepConstraints().IsNonNullRefType && u is TypeProxy && resolver.HasApplicableNullableRefTypeConstraint(new HashSet<TypeProxy>() {(TypeProxy)u})))) {
                 // This is the best case.  We convert Assignable(t, u) to the subtype constraint base(t) :> u.
-                if (CheckTypeInference_Visitor.IsDetermined(u) && t.IsSubtypeOf(u, false) && t.IsRefType) {
+                if (CheckTypeInference_Visitor.IsDetermined(u) && t.IsSubtypeOf(u, false, true) && t.IsRefType) {
                   // But we also allow cases where the rhs is a proper supertype of the lhs, and let the verifier
                   // determine whether the rhs is provably an instance of the lhs.
                   resolver.ConstrainAssignable((NonProxyType)u, (NonProxyType)t, errorMsg, out moreXConstraints, fullstrength);
@@ -6239,6 +6246,9 @@ namespace Microsoft.Dafny
         public abstract IToken Tok { get; }
         bool reported;
         public void FlagAsError() {
+          if (DafnyOptions.O.TypeInferenceDebug) {
+            Console.WriteLine($"DEBUG: flagging error: {ApproximateErrorMessage()}");
+          }
           TypeConstraint.ErrorsToBeReported.Add(this);
         }
         internal void ReportAsError(ErrorReporter reporter) {
@@ -6260,6 +6270,8 @@ namespace Microsoft.Dafny
           }
           reported = true;
         }
+
+        protected abstract string ApproximateErrorMessage();
       }
       public class ErrorMsgWithToken : ErrorMsg
       {
@@ -6277,6 +6289,8 @@ namespace Microsoft.Dafny
           this.Msg = msg;
           this.MsgArgs = msgArgs;
         }
+
+        protected override string ApproximateErrorMessage() => string.Format(Msg, MsgArgs);
       }
       public class ErrorMsgWithBase : ErrorMsg
       {
@@ -6294,6 +6308,8 @@ namespace Microsoft.Dafny
           Msg = msg;
           MsgArgs = msgArgs;
         }
+
+        protected override string ApproximateErrorMessage() => string.Format(Msg, MsgArgs);
       }
       public readonly ErrorMsg errorMsg;
       public TypeConstraint(Type super, Type sub, ErrorMsg errMsg, bool keepConstraints) {
@@ -6494,9 +6510,9 @@ namespace Microsoft.Dafny
                 if (t is InferredTypeProxy && ((InferredTypeProxy)t).T == null) {
                   resolver.reporter.Error(MessageSource.Resolver, stexpr.tok, "type of type parameter could not be determined; please specify the type explicitly");
                 }
+              }
             }
           }
-        }
 
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
@@ -6606,6 +6622,30 @@ namespace Microsoft.Dafny
         } else if (expr is IdentifierExpr) {
           // by specializing for IdentifierExpr, error messages will be clearer
           CheckTypeIsDetermined(expr.tok, expr.Type, "variable");
+        } else if (expr is ConversionExpr) {
+          var e = (ConversionExpr)expr;
+          if (e.ToType.IsRefType) {
+            var fromType = e.E.Type;
+            Contract.Assert(fromType.IsRefType);
+            if (fromType.IsSubtypeOf(e.ToType, false, true) || e.ToType.IsSubtypeOf(fromType, false, true)) {
+              // looks good
+            } else {
+              resolver.reporter.Error(MessageSource.Resolver, e.tok,
+                "a type cast to a reference type ({0}) must be from a compatible type (got {1}); this cast could never succeed", e.ToType, fromType);
+            }
+          }
+        } else if (expr is TypeTestExpr) {
+          var e = (TypeTestExpr)expr;
+          var fromType = e.E.Type;
+          if (fromType.IsSubtypeOf(e.ToType, false, true)) {
+            // This test is allowed and it always returns true
+          } else if (!e.ToType.IsSubtypeOf(fromType, false, true)) {
+            resolver.reporter.Error(MessageSource.Resolver, e.tok,
+              "a type test to '{0}' must be from a compatible type (got '{1}')", e.ToType, fromType);
+          } else if (!e.ToType.IsRefType) {
+            resolver.reporter.Error(MessageSource.Resolver, e.tok,
+              "a non-trivial type test is allowed only for reference types (got '{0}')", e.ToType);
+          }
         } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
           if (expr is BinaryExpr) {
             var e = (BinaryExpr)expr;
@@ -14591,7 +14631,7 @@ namespace Microsoft.Dafny
         var e = (ConversionExpr)expr;
         ResolveExpression(e.E, opts);
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
-        ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
+        ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
           if (e.ToType.IsNumericBased(Type.NumericPersuasion.Int)) {
             AddXConstraint(expr.tok, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
@@ -14603,6 +14643,8 @@ namespace Microsoft.Dafny
             AddXConstraint(expr.tok, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (e.ToType.IsBigOrdinalType) {
             AddXConstraint(expr.tok, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+          } else if (e.ToType.IsRefType) {
+            AddAssignableConstraint(expr.tok, e.ToType, e.E.Type, "type cast to reference type '{0}' must be from an expression assignable to it (got '{1}')");
           } else {
             reporter.Error(MessageSource.Resolver, expr, "type conversions are not supported to this type (got {0})", e.ToType);
           }
@@ -14610,6 +14652,14 @@ namespace Microsoft.Dafny
         } else {
           e.Type = new InferredTypeProxy();
         }
+
+      } else if (expr is TypeTestExpr) {
+        var e = (TypeTestExpr)expr;
+        ResolveExpression(e.E, opts);
+        var prevErrorCount = reporter.Count(ErrorLevel.Error);
+        ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
+        AddAssignableConstraint(expr.tok, e.ToType, e.E.Type, "type test for type '{0}' must be from an expression assignable to it (got '{1}')");
+        e.Type = Type.Bool;
 
       } else if (expr is BinaryExpr) {
 
@@ -16529,6 +16579,13 @@ namespace Microsoft.Dafny
         reporter.Error(MessageSource.Resolver, expr, "old expressions are allowed only in specification and ghost contexts");
         return;
 
+      } else if (expr is TypeTestExpr) {
+        var e = (TypeTestExpr)expr;
+        if (!IsTypeTestCompilable(e)) {
+          reporter.Error(MessageSource.Resolver, expr, $"an expression of type '{e.E.Type}' is not run-time checkable to be a '{e.ToType}'");
+          return;
+        }
+
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
         if (e.Op == UnaryOpExpr.Opcode.Fresh) {
@@ -16907,7 +16964,7 @@ namespace Microsoft.Dafny
           }
           continue;
         }
-        if (conjunct is UnaryExpr || conjunct is OldExpr) {
+        if (conjunct is UnaryOpExpr || conjunct is OldExpr) {
           // we also consider a unary expression sitting immediately inside an old
           var unary = conjunct as UnaryOpExpr ?? ((OldExpr)conjunct).E.Resolved as UnaryOpExpr;
           if (unary != null) {
@@ -17690,8 +17747,10 @@ namespace Microsoft.Dafny
         return true;
       } else if (expr is UnaryExpr) {
         var e = (UnaryExpr)expr;
-        var unaryOpExpr = e as UnaryOpExpr;
-        if (unaryOpExpr != null && (unaryOpExpr.Op == UnaryOpExpr.Opcode.Fresh || unaryOpExpr.Op == UnaryOpExpr.Opcode.Allocated)) {
+        if (e is UnaryOpExpr unaryOpExpr && (unaryOpExpr.Op == UnaryOpExpr.Opcode.Fresh || unaryOpExpr.Op == UnaryOpExpr.Opcode.Allocated)) {
+          return true;
+        }
+        if (expr is TypeTestExpr tte && !IsTypeTestCompilable(tte)) {
           return true;
         }
         return UsesSpecFeatures(e.E);
@@ -17769,6 +17828,52 @@ namespace Microsoft.Dafny
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    public static bool IsTypeTestCompilable(TypeTestExpr tte) {
+      Contract.Requires(tte != null);
+      var fromType = tte.E.Type;
+      if (fromType.IsSubtypeOf(tte.ToType, false, true)) {
+        // this is a no-op, so it can trivially be compiled
+        return true;
+      }
+
+      // TODO: It would be nice to allow some subset types in test tests in compiled code. But for now, such cases
+      // are allowed only in ghost contexts.
+      var udtTo = (UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints();
+      if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+        return false;
+      }
+
+      // The operation can be performed at run time if the mapping of .ToType's type parameters are injective in fromType's type parameters.
+      // For illustration, suppose the "is"-operation is testing whether or not the given expression of type A<X> has type B<Y>, where
+      // X and Y are some type expressions. At run time, we can check if the expression has type B<...>, but we can't on all target platforms
+      // be certain about the "...". So, if both B<Y> and B<Y'> are possible subtypes of A<X>, we can't perform the type test at run time.
+      // In other words, we CAN perform the type test at run time if the type parameters of A uniquely determine the type parameters of B.
+      // Let T be a list of type parameters (in particular, we will use the formal TypeParameter's declared in type B). Then, represent
+      // B<T> in parent type A, and let's say the result is A<U> for some type expression U. If U contains all type parameters from T,
+      // then the mapping from B<T> to A<U> is unique, which means the mapping frmo B<Y> to A<X> is unique, which means we can check if an
+      // A<X> value is a B<Y> value by checking if the value is of type B<...>.
+      var B = ((UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints()).ResolvedClass; // important to keep constraints here, so no type parameters are lost
+      var B_T = UserDefinedType.FromTopLevelDecl(tte.tok, B);
+      var tps = new HashSet<TypeParameter>(); // There are going to be the type parameters of fromType (that is, T in the discussion above)
+      if (fromType.TypeArgs.Count != 0) {
+        // we need this "if" statement, because if "fromType" is "object" or "object?", then it isn't a UserDefinedType
+        var A = (UserDefinedType)fromType.NormalizeExpand(); // important to NOT keep constraints here, since they won't be evident at run time
+        var A_U = B_T.AsParentType(A.ResolvedClass);
+        // the type test can be performed at run time if all the type parameters of "B_T" are free type parameters of "A_U".
+        A_U.AddFreeTypeParameters(tps);
+      }
+      foreach (var tp in B.TypeArgs) {
+        if (!tps.Contains(tp)) {
+          // type test cannot be performed at run time, so this is a ghost operation
+          // TODO: If "tp" is a type parameter for which there is a run-time type descriptor, then we would still be able to perform
+          // the type test at run time.
+          return false;
+        }
+      }
+      // type test can be performed at run time
+      return true;
     }
 
     void MakeGhostAsNeeded(List<CasePattern<BoundVar>> lhss) {

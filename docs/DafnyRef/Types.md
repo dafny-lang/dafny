@@ -1411,12 +1411,15 @@ The `as N` conversion operation is grammatically a suffix operation like
 `.`field and array indexing, but binds less tightly than unary operations:
 `- x as int` is `(- x) as int`; `a + b as int` is `a + (b as int)`.
 
-There is also a corresponding `is` operation ([Section 20.10](#sec-as-expression)) that
-tests whether a value is valid for a given type. For example, `-5 is nat` is
-false. So `e as T` is well-defined exactly when `e is T` is true.
-For a newtype or subset type, the `is` operation is the predicate that defines
-the type.
-**The `is` operation is not yet implemented**.
+The `as N` conversion can also be used with reference types. For example,
+if `C` is a class, `c` is an expression of type `C`, and `o` is an expression
+of type `object`, then `c as object` and `c as object?` are upcasts
+and `o is C` is a downcast. A downcast requires the LHS expression to
+have the RHS type, as is enforced by the verifier.
+
+For some types (in particular, reference types), there is also a
+corresponding `is` operation ([Section 20.10](#sec-as-expression)) that
+tests whether a value is valid for a given type.
 
 <!--PDF NEWPAGE-->
 # 13. Class Types {#sec-class-types}

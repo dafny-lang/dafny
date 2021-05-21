@@ -710,7 +710,7 @@ namespace Microsoft.Dafny {
       wr.Write($"func ({companionTypeName}) Default(");
       wr.Write(Util.Comma(UsedTypeParameters(dt), tp => $"{FormatDefaultTypeParameterValue(tp)} interface{{}}"));
       {
-        var wDefault = wr.NewBlock($") {name}"); 
+        var wDefault = wr.NewBlock($") {name}");
         wDefault.Write("return ");
         var groundingCtor = dt.GetGroundingCtor();
         var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
@@ -1869,7 +1869,7 @@ namespace Microsoft.Dafny {
           wIf.WriteLine($"if !_dafny.InstanceOfTrait({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wBody, tok)}.TraitID_) {{ continue }}");
           wIf.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wIf, tok));
         } else {
-          typeTest = $"{tmpVarName} instanceof {TypeName(boundVarType, wBody, tok)}";
+          typeTest = $"_dafny.InstanceOf({tmpVarName}, ({TypeName(boundVarType, wBody, tok)})(nil))";
           wIf.WriteLine("{0}, {1} = {2}.({3})", boundVarName, okVar, tmpVarName, TypeName(boundVarType, wIf, tok));
           wIf.WriteLine("if !{0} {{ continue }}", okVar);
         }
@@ -1894,16 +1894,13 @@ namespace Microsoft.Dafny {
 
     protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt/*?*/ initCall, ConcreteSyntaxTree wr) {
       var cl = ((UserDefinedType)type.NormalizeExpand()).ResolvedClass;
-      if (cl != null) {
-        if (cl.Name == "object") {
-          wr.Write("new(struct{})");
-        } else {
-          wr.Write("{0}(", TypeName_Initializer(type, wr, tok));
-          EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, wr);
-          wr.Write(")");
-        }
+      Contract.Assert(cl != null);
+      if (cl is ClassDecl clsDecl && clsDecl.IsObjectTrait) {
+        wr.Write("_dafny.New_Object()");
       } else {
-        wr.Write("new({0})", TypeName(type, wr, tok));
+        wr.Write("{0}(", TypeName_Initializer(type, wr, tok));
+        EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, wr);
+        wr.Write(")");
       }
     }
 
@@ -3154,6 +3151,37 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected override void EmitTypeTest(string localName, Type fromType, Type toType, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+      Contract.Requires(fromType.IsRefType);
+      Contract.Requires(toType.IsRefType);
+
+      if (!fromType.IsNonNullRefType) {
+        if (toType.IsNonNullRefType) {
+          wr.Write($"!_dafny.IsDafnyNull({localName}) && ");
+        } else {
+          wr.Write($"_dafny.IsDafnyNull({localName}) || (");
+        }
+      }
+
+      if (fromType.IsSubtypeOf(toType, true, true)) {
+        wr.Write("true");
+      } else if (toType.IsTraitType) {
+        wr.Write($"_dafny.InstanceOfTrait({localName}.(_dafny.TraitOffspring), {TypeName_Companion(toType.AsTraitType, wr, tok)}.TraitID_)");
+      } else {
+        wr.Write($"_dafny.InstanceOf({localName}, ({TypeName(toType, wr, tok)})(nil))");
+      }
+
+      var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
+      if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+        // TODO: test constraints
+        throw new NotImplementedException();
+      }
+
+      if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
+        wr.Write(")");
+      }
+    }
+
     private static bool EqualsUpToParameters(Type type1, Type type2) {
       // TODO Consider whether Type.SameHead should return true in this case
       return Type.SameHead(type1, type2) || type1.IsArrayType && type1.IsArrayType;
@@ -3212,10 +3240,10 @@ namespace Microsoft.Dafny {
       } else if (to.IsTypeParameter || (from != null && EqualsUpToParameters(from, to))) {
         // do nothing
         return wr;
-      } else if (from != null && Type.IsSupertype(to, from)) {
+      } else if (from != null && from.IsSubtypeOf(to, true, true)) {
         // upcast
         return wr;
-      } else if (from == null || from.IsTypeParameter || Type.IsSupertype(from, to)) {
+      } else if (from == null || from.IsTypeParameter || to.IsSubtypeOf(from, true, true)) {
         // downcast (allowed?) or implicit cast from parameter
         if (to.IsObjectQ || to.IsObject) {
           // a cast to interface{} can be omitted

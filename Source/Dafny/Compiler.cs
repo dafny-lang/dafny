@@ -1057,6 +1057,11 @@ namespace Microsoft.Dafny {
 
     protected abstract void EmitIsZero(string varName, ConcreteSyntaxTree wr);
     protected abstract void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr);
+    /// <summary>
+    /// "fromType" is assignable to "toType", "fromType" is not a subtype of "toType", and both "fromType" and "toType" refer to
+    /// reference types or subset types thereof.
+    /// </summary>
+    protected abstract void EmitTypeTest(string localName, Type fromType, Type toType, Bpl.IToken tok, ConcreteSyntaxTree wr);
     protected abstract void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, ConcreteSyntaxTree wr);  // used for sets, multisets, and sequences
     protected abstract void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, ConcreteSyntaxTree wr);
 
@@ -3993,7 +3998,7 @@ namespace Microsoft.Dafny {
         wr = wrOrig;
         EndStmt(wr);
         if (returnStyleOutCollector != null) {
-          EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outFormalTypes, outLhsTypes, s.Tok);
+          EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outFormalTypes, outTypes, s.Tok);
         }
 
         // assign to the actual LHSs
@@ -4343,7 +4348,25 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        EmitConversionExpr(e, inLetExprBody, wr);
+        Contract.Assert(e.ToType.IsRefType == e.E.Type.IsRefType);
+        if (e.ToType.IsRefType) {
+          var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.tok, wr);
+          w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, w);
+          TrExpr(e.E, w, inLetExprBody);
+        } else {
+          EmitConversionExpr(e, inLetExprBody, wr);
+        }
+
+      } else if (expr is TypeTestExpr) {
+        var e = (TypeTestExpr)expr;
+        var fromType = e.E.Type;
+        if (fromType.IsSubtypeOf(e.ToType, false, false)) {
+          TrExpr(Expression.CreateBoolLiteral(e.tok, true), wr, inLetExprBody);
+        } else {
+          var name = $"_is_{GetUniqueAstNumber(e)}";
+          wr = CreateIIFE_ExprBody(name, fromType, e.tok, e.E, inLetExprBody, Type.Bool, e.tok, wr);
+          EmitTypeTest(name, e.E.Type, e.ToType, e.tok, wr);
+        }
 
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;

@@ -2266,10 +2266,12 @@ namespace Microsoft.Dafny {
           if (c == program.BuiltIns.ObjectDecl) {
             rhs = Bpl.Expr.True;
           } else if (c is TraitDecl) {
-            //generating $o == null || implements$J(dtype(x))
+            //generating $o == null || implements$J(dtype(x), typeArgs)
             var t = (TraitDecl)c;
             var dtypeFunc = FunctionCall(o.tok, BuiltinFunction.DynamicType, null, o);
-            Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.FullSanitizedName, Bpl.Type.Bool, new List<Expr> { dtypeFunc });
+            var implementsJ_Arguments = new List<Expr> { dtypeFunc }; // TODO: also needs type parameters
+            implementsJ_Arguments.AddRange(tyexprs);
+            Bpl.Expr implementsFunc = FunctionCall(t.tok, "implements$" + t.FullSanitizedName, Bpl.Type.Bool, implementsJ_Arguments);
             rhs = BplOr(o_null, implementsFunc);
           } else {
             rhs = BplOr(o_null, DType(o, o_ty));
@@ -2281,19 +2283,25 @@ namespace Microsoft.Dafny {
       });
 
       if (c is TraitDecl) {
-        //this adds: function implements$J(Ty): bool;
+        //this adds: function implements$J(Ty, typeArgs): bool;
+        var vars = MkTyParamFormals(GetTypeParams(c));
         var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.Ty), true);
+        vars.Add(arg_ref);
         var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        var implement_intr = new Bpl.Function(c.tok, "implements$" + c.FullSanitizedName, new List<Variable> { arg_ref }, res);
+        var implement_intr = new Bpl.Function(c.tok, "implements$" + c.FullSanitizedName, vars, res);
         sink.AddTopLevelDeclaration(implement_intr);
       } else if (c is ClassDecl) {
-        //this adds: axiom implements$J(class.C);
-        List<Bpl.Expr> tyexprs;
-        var vars = MkTyParamBinders(GetTypeParams(c), out tyexprs);
+        //this adds: axiom implements$J(class.C, typeInstantiations);
+        var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
-        foreach (var trait in ((ClassDecl)c).ParentTraitHeads) {
+        foreach (var parent in ((ClassDecl)c).ParentTraits) {
+          var trait = (TraitDecl)((NonNullTypeDecl)((UserDefinedType)parent).ResolvedClass).ViewAsClass;
           var arg = ClassTyCon(c, tyexprs);
-          var expr = FunctionCall(c.tok, "implements$" + trait.FullSanitizedName, Bpl.Type.Bool, arg);
+          var args = new List<Bpl.Expr> { arg };
+          foreach (var targ in parent.TypeArgs) {
+            args.Add(TypeToTy(targ));
+          }
+          var expr = FunctionCall(c.tok, "implements$" + trait.FullSanitizedName, Bpl.Type.Bool, args);
           var implements_axiom = new Bpl.Axiom(c.tok, BplForall(vars, null, expr));
           sink.AddTopLevelDeclaration(implements_axiom);
         }
@@ -6327,16 +6335,16 @@ namespace Microsoft.Dafny {
         witnessErrorMsg = "the given witness expression might not satisfy constraint";
       } else if (decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero) {
         var witness = Zero(decl.tok, decl.Var.Type);
+        var errMsg = "cannot find witness that shows type is inhabited";
+        var hintMsg = "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type";
         if (witness == null) {
-          witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, "cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause"));
+          witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, $"{errMsg}{hintMsg}"));
         } else {
           // before trying 0 as a witness, check that 0 can be assigned to decl.Var
-          CheckResultToBeInType(decl.tok, witness, decl.Var.Type, locals, witnessCheckBuilder, etran, string.Format("trying witness {0}: ", Printer.ExprToString(witness)));
-
+          var witnessString = Printer.ExprToString(witness);
+          CheckResultToBeInType(decl.tok, witness, decl.Var.Type, locals, witnessCheckBuilder, etran, $"trying witness {witnessString}: ");
           witnessExpr = Substitute(decl.Constraint, decl.Var, witness);
-          witnessErrorMsg =
-            string.Format("cannot find witness that shows type is inhabited (only tried {0}); try giving a hint through a 'witness' or 'ghost witness' clause",
-            Printer.ExprToString(witness));
+          witnessErrorMsg = $"{errMsg} (only tried {witnessString}){hintMsg}";
         }
       }
       if (witnessExpr != null) {
@@ -8317,11 +8325,13 @@ namespace Microsoft.Dafny {
         } else if (toType.IsBitVectorType) {
           r = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, r);
           r = IntToBV(tok, r, toType);
-       } else if (toType.IsBigOrdinalType) {
+        } else if (toType.IsBigOrdinalType) {
           // do nothing
         } else {
           Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
         }
+        return r;
+      } else if (fromType.IsRefType) {
         return r;
       } else {
         Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
@@ -8370,6 +8380,13 @@ namespace Microsoft.Dafny {
         }
       };
 
+      Contract.Assert(expr.Type.IsRefType == toType.IsRefType);
+      if (toType.IsRefType) {
+        PutSourceIntoLocal();
+        CheckSubrange(tok, o, expr.Type, toType, builder, errorMsgPrefix);
+        return;
+      }
+
       if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsNumericBased(Type.NumericPersuasion.Real)) {
         // this operation is well-formed only if the real-based number represents an integer
         //   assert Real(Int(o)) == o;
@@ -8377,13 +8394,13 @@ namespace Microsoft.Dafny {
         Bpl.Expr from = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         Bpl.Expr e = FunctionCall(tok, BuiltinFunction.IntToReal, null, from);
         e = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, e, o);
-        builder.Add(Assert(tok, e, errorMsgPrefix + "the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)"));
+        builder.Add(Assert(tok, e, $"{errorMsgPrefix}the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)"));
       }
 
       if (expr.Type.IsBigOrdinalType && !toType.IsBigOrdinalType) {
         PutSourceIntoLocal();
         Bpl.Expr boundsCheck = FunctionCall(tok, "ORD#IsNat", Bpl.Type.Bool, o);
-        builder.Add(Assert(tok, boundsCheck, string.Format("{0}value to be converted might be bigger than every natural number", errorMsgPrefix)));
+        builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}value to be converted might be bigger than every natural number"));
       }
 
       if (toType.IsBitVectorType) {
@@ -8416,7 +8433,7 @@ namespace Microsoft.Dafny {
         }
 
         if (boundsCheck != null) {
-          builder.Add(Assert(tok, boundsCheck, string.Format("{0}value to be converted might not fit in {1}", errorMsgPrefix, toType)));
+          builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}value to be converted might not fit in {toType}"));
         }
       }
 
@@ -8425,15 +8442,13 @@ namespace Microsoft.Dafny {
           PutSourceIntoLocal();
           Bpl.Expr boundsCheck =
             Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, Bpl.Expr.Literal(65536)));
-          builder.Add(Assert(tok, boundsCheck,
-            string.Format("{0}value to be converted might not fit in {1}", errorMsgPrefix, toType)));
+          builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}value to be converted might not fit in {toType}"));
         } else if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
           PutSourceIntoLocal();
           var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
           var boundsCheck =
             Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), oi), Bpl.Expr.Lt(oi, Bpl.Expr.Literal(65536)));
-          builder.Add(Assert(tok, boundsCheck,
-            string.Format("{0}real value to be converted might not fit in {1}", errorMsgPrefix, toType)));
+          builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}real value to be converted might not fit in {toType}"));
         } else if (expr.Type.IsBitVectorType) {
           PutSourceIntoLocal();
           var fromWidth = expr.Type.AsBitVectorType.Width;
@@ -8444,8 +8459,7 @@ namespace Microsoft.Dafny {
             var toBound = BaseTypes.BigNum.FromBigInt(BigInteger.One << toWidth); // 1 << toWidth
             var bound = BplBvLiteralExpr(tok, toBound, expr.Type.AsBitVectorType);
             var boundsCheck = FunctionCall(expr.tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
-            builder.Add(Assert(tok, boundsCheck,
-              string.Format("{0}bit-vector value to be converted might not fit in {1}", errorMsgPrefix, toType)));
+            builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}bit-vector value to be converted might not fit in {toType}"));
           }
         } else if (expr.Type.IsBigOrdinalType) {
           PutSourceIntoLocal();
@@ -8454,22 +8468,19 @@ namespace Microsoft.Dafny {
           var toBound = BaseTypes.BigNum.FromBigInt(BigInteger.One << toWidth); // 1 << toWidth
           var bound = Bpl.Expr.Literal(toBound);
           var boundsCheck = Bpl.Expr.Lt(oi, bound);
-          builder.Add(Assert(tok, boundsCheck,
-            string.Format("{0}ordinal value to be converted might not fit in {1}", errorMsgPrefix, toType)));
+          builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}ORDINAL value to be converted might not fit in {toType}"));
         }
       } else if (toType.IsBigOrdinalType) {
         if (expr.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
           PutSourceIntoLocal();
           Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), o);
-          builder.Add(Assert(tok, boundsCheck,
-            string.Format("{0}a negative integer cannot be converted to an {1}", errorMsgPrefix, toType)));
+          builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}a negative integer cannot be converted to an {toType}"));
         }
         if (expr.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
           PutSourceIntoLocal();
           var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
           Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), oi);
-          builder.Add(Assert(tok, boundsCheck,
-            string.Format("{0}a negative real cannot be converted to an {1}", errorMsgPrefix, toType)));
+          builder.Add(Assert(tok, boundsCheck, $"{errorMsgPrefix}a negative real cannot be converted to an {toType}"));
         }
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         // already checked that BigOrdinal or real inputs are integral
@@ -13910,7 +13921,7 @@ namespace Microsoft.Dafny {
       var cre = MkIs(bSource, targetType);
       var udt = targetType as UserDefinedType;
       if (udt != null && udt.IsRefType) {
-        msg = string.Format("the RHS value (a {0}) is not known to be an instance of the LHS type ({1})", sourceType, targetType);
+        msg = string.Format("value of expression (of type '{0}') is not known to be an instance of type '{1}'", sourceType, targetType);
         var s = sourceType.NormalizeExpandKeepConstraints();
         if (s is UserDefinedType sudt && udt.ResolvedClass is NonNullTypeDecl nntd && nntd.Class == sudt.ResolvedClass) {
           var certain = udt.ResolvedClass.TypeArgs.Count == 0;
@@ -13926,7 +13937,7 @@ namespace Microsoft.Dafny {
       return cre;
     }
 
-    void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType, BoogieStmtListBuilder builder) {
+    void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType, BoogieStmtListBuilder builder, string errorMsgPrefix = "") {
       Contract.Requires(tok != null);
       Contract.Requires(bSource != null);
       Contract.Requires(sourceType != null);
@@ -13936,7 +13947,7 @@ namespace Microsoft.Dafny {
       string msg;
       var cre = GetSubrangeCheck(bSource, sourceType, targetType, out msg);
       if (cre != null) {
-        builder.Add(Assert(tok, cre, msg));
+        builder.Add(Assert(tok, cre, errorMsgPrefix + msg));
       }
     }
 
@@ -15519,6 +15530,10 @@ namespace Microsoft.Dafny {
         } else if (expr is ConversionExpr) {
           var e = (ConversionExpr)expr;
           return translator.ConvertExpression(e.tok, TrExpr(e.E), e.E.Type, e.ToType);
+
+        } else if (expr is TypeTestExpr) {
+          var e = (TypeTestExpr)expr;
+          return translator.GetSubrangeCheck(TrExpr(e.E), e.E.Type, e.ToType, out var _) ?? Bpl.Expr.True;
 
         } else if (expr is BinaryExpr) {
           BinaryExpr e = (BinaryExpr)expr;
@@ -18583,6 +18598,9 @@ namespace Microsoft.Dafny {
             } else if (e is ConversionExpr) {
               var ee = (ConversionExpr)e;
               newExpr = new ConversionExpr(expr.tok, se, ee.ToType);
+            } else if (e is TypeTestExpr) {
+              var ee = (TypeTestExpr)e;
+              newExpr = new TypeTestExpr(expr.tok, se, ee.ToType);
             } else {
               Contract.Assert(false);  // unexpected UnaryExpr subtype
             }

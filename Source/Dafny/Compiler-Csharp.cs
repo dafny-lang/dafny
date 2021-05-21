@@ -588,7 +588,7 @@ namespace Microsoft.Dafny
       wr.Write("public {0}(", DtCtorDeclarationName(ctor));
       WriteFormals("", ctor.Formals, wr);
       {
-        var w = wr.NewBlock(")"); 
+        var w = wr.NewBlock(")");
         i = 0;
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
@@ -605,7 +605,7 @@ namespace Microsoft.Dafny
 
       // Equals method
       {
-        var w = wr.NewBlock("public override bool Equals(object other)"); 
+        var w = wr.NewBlock("public override bool Equals(object other)");
         w.WriteLine("var oth = other as {0}{1};", DtCtorName(ctor), TypeParameters(dt.TypeArgs));
         w.Write("return oth != null");
         i = 0;
@@ -625,7 +625,7 @@ namespace Microsoft.Dafny
 
       // GetHashCode method (Uses the djb2 algorithm)
       {
-        var w = wr.NewBlock("public override int GetHashCode()"); 
+        var w = wr.NewBlock("public override int GetHashCode()");
         w.WriteLine("ulong hash = 5381;");
         w.WriteLine("hash = ((hash << 5) + hash) + {0};", constructorIndex);
         i = 0;
@@ -640,7 +640,7 @@ namespace Microsoft.Dafny
       }
 
       {
-        var w = wr.NewBlock("public override string ToString()"); 
+        var w = wr.NewBlock("public override string ToString()");
         string nm;
         if (dt is TupleTypeDecl) {
           nm = "";
@@ -2293,25 +2293,34 @@ namespace Microsoft.Dafny
     protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       from = from.NormalizeExpand();
       to = to.NormalizeExpand();
-      Contract.Assert(Type.SameHead(from, to));
+      Contract.Assert(from.IsRefType == to.IsRefType);
 
-      wr.Write("(");
-      var w = wr.Fork();
-      wr.Write(").DowncastClone<");
-      var wTypeArgs = wr.Fork();
-      wr.Write(">(");
-      var wConverters = wr.Fork();
-      wr.Write(")");
-      Contract.Assert(from.TypeArgs.Count == to.TypeArgs.Count);
-      var sep = "";
-      for (var i = 0; i < to.TypeArgs.Count; i++) {
-        var ta = to.TypeArgs[i];
-        var fa = from.TypeArgs[i];
-        wTypeArgs.Write("{0}{1}", sep, TypeName(ta, wTypeArgs, tok));
-        wConverters.Write("{0}{1}", sep, DowncastConverter(fa, ta, wConverters, tok));
-        sep = ", ";
+      if (to.IsRefType) {
+        wr.Write($"({TypeName(to, wr, tok)})(");
+        var w = wr.Fork();
+        wr.Write(")");
+        return w;
+      } else {
+        Contract.Assert(Type.SameHead(from, to));
+
+        wr.Write("(");
+        var w = wr.Fork();
+        wr.Write(").DowncastClone<");
+        var wTypeArgs = wr.Fork();
+        wr.Write(">(");
+        var wConverters = wr.Fork();
+        wr.Write(")");
+        Contract.Assert(from.TypeArgs.Count == to.TypeArgs.Count);
+        var sep = "";
+        for (var i = 0; i < to.TypeArgs.Count; i++) {
+          var ta = to.TypeArgs[i];
+          var fa = from.TypeArgs[i];
+          wTypeArgs.Write("{0}{1}", sep, TypeName(ta, wTypeArgs, tok));
+          wConverters.Write("{0}{1}", sep, DowncastConverter(fa, ta, wConverters, tok));
+          sep = ", ";
+        }
+        return w;
       }
-      return w;
     }
 
     string DowncastConverter(Type from, Type to, ConcreteSyntaxTree errorWr, Bpl.IToken tok) {
@@ -2671,6 +2680,33 @@ namespace Microsoft.Dafny
         }
       } else {
         Contract.Assert(false, $"not implemented for C#: {e.E.Type} -> {e.ToType}");
+      }
+    }
+
+    protected override void EmitTypeTest(string localName, Type fromType, Type toType, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+      Contract.Requires(fromType.IsRefType);
+      Contract.Requires(toType.IsRefType);
+
+      // from T to U:   t is U && ...
+      // from T to U?:  t is U && ...                 // since t is known to be non-null, this is fine
+      // from T? to U:  t is U && ...                 // note, "is" implies non-null, so no need for explicit null check
+      // from T? to U?: t == null || (t is U && ...)
+      if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
+        wr.Write($"{localName} == null || (");
+      }
+
+      var toClass = toType.NormalizeExpand();
+      wr.Write($"{localName} is {TypeName(toClass, wr, tok)}");
+
+      localName = $"(({TypeName(toClass, wr, tok)}){localName})";
+      var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
+      if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+        // TODO: test constraints
+        throw new NotImplementedException();
+      }
+
+      if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
+        wr.Write(")");
       }
     }
 

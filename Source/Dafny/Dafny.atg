@@ -275,19 +275,24 @@ bool IsParenStar() {
   return la.kind == _openparen && x.kind == _star;
 }
 
-bool IsEquivOp() {
+bool IsEquivOp() => IsEquivOp(la);
+bool IsImpliesOp() => IsImpliesOp(la);
+bool IsExpliesOp() => IsExpliesOp(la);
+bool IsAndOp() => IsAndOp(la);
+bool IsOrOp() => IsOrOp(la);
+static bool IsEquivOp(IToken la) {
   return la.val == "<==>" || la.val == "\u21d4";
 }
-bool IsImpliesOp() {
+static bool IsImpliesOp(IToken la) {
   return la.val == "==>" || la.val == "\u21d2";
 }
-bool IsExpliesOp() {
+static bool IsExpliesOp(IToken la) {
   return la.val == "<==" || la.val == "\u21d0";
 }
-bool IsAndOp() {
+static bool IsAndOp(IToken la) {
   return la.val == "&&" || la.val == "\u2227";
 }
-bool IsOrOp() {
+static bool IsOrOp(IToken la) {
   return la.val == "||" || la.val == "\u2228";
 }
 bool IsBitwiseAndOp() {
@@ -302,8 +307,8 @@ bool IsBitwiseXorOp() {
 bool IsBitwiseOp() {
   return IsBitwiseAndOp() || IsBitwiseOrOp() || IsBitwiseXorOp();
 }
-bool IsAs() {
-  return la.kind == _as;
+bool IsAsOrIs() {
+  return la.kind == _as || la.kind == _is;
 }
 bool IsRelOp() {
   return la.val == "=="
@@ -467,6 +472,10 @@ bool IsGenericInstantiation(bool inExpressionContext) {
    * parentheses, like:
    *     F( a < b , (c > (d)) )
    */
+  // In the following cases, we're sure we must have read a type instantiation that just ended an expression
+  if (IsEquivOp(pt) || IsImpliesOp(pt) || IsExpliesOp(pt) || IsAndOp(pt) || IsOrOp(pt)) {
+    return true;
+  }
   switch (pt.kind) {
     case _dot:  // here, we're sure it must have been a type instantiation we saw, because an expression cannot begin with dot
     case _openparen:  // it was probably a type instantiation of a function/method
@@ -486,6 +495,8 @@ bool IsGenericInstantiation(bool inExpressionContext) {
     case _neq:
     case _neqAlt:
     case _as:
+    case _is:
+    case _darrow:
     case _by:
     case _in:
     case _openAngleBracket:
@@ -764,6 +775,7 @@ TOKENS
   then = "then".
   else = "else".
   as = "as".
+  is = "is".
   by = "by".
   in = "in".
   decreases = "decreases".
@@ -3550,9 +3562,12 @@ BitvectorFactor<out Expression e0, bool allowLemma, bool allowLambda, bool allow
 AsExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. IToken tok; IToken x; Type toType; .)
   UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
-  { IF(IsAs())
-    ( "as" | "is" )                         (. tok = t; .)
-    TypeAndToken<out x, out toType, true>   (. e = new ConversionExpr(tok, e, toType); .)
+  { IF(IsAsOrIs())
+    ( "as"                                  (. tok = t; .)
+      TypeAndToken<out x, out toType, true> (. e = new ConversionExpr(tok, e, toType); .)
+    | "is"                                  (. tok = t; .)
+      TypeAndToken<out x, out toType, true> (. e = new TypeTestExpr(tok, e, toType); .)
+    )
   }
   .
 

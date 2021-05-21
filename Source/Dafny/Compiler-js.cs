@@ -166,7 +166,7 @@ namespace Microsoft.Dafny {
         }
       }
       {
-        var wBody = w.NewBlock(")"); 
+        var wBody = w.NewBlock(")");
         foreach (var p in ct.Ins) {
           if (!p.IsGhost) {
             wBody.WriteLine("this.{0} = {0};", IdName(p));
@@ -374,11 +374,11 @@ namespace Microsoft.Dafny {
       if (dt.HasFinitePossibleValues) {
         Contract.Assert(dt.TypeArgs.Count == 0);
         {
-          var w = wr.NewNamedBlock("static get AllSingletonConstructors()"); 
+          var w = wr.NewNamedBlock("static get AllSingletonConstructors()");
           w.WriteLine("return this.AllSingletonConstructors_();");
         }
         {
-          var w = wr.NewNamedBlock("static *AllSingletonConstructors_()"); 
+          var w = wr.NewNamedBlock("static *AllSingletonConstructors_()");
           foreach (var ctor in dt.Ctors) {
             Contract.Assert(ctor.Formals.Count == 0);
             w.WriteLine("yield {0}.create_{1}({2});", DtT_protected, ctor.CompileName, dt is CoDatatypeDecl ? "null" : "");
@@ -449,9 +449,9 @@ namespace Microsoft.Dafny {
 
       // equals method
       {
-        var w = wr.NewBlock("equals(other)"); 
+        var w = wr.NewBlock("equals(other)");
         {
-          var thn = EmitIf("this === other", true, w); 
+          var thn = EmitIf("this === other", true, w);
           EmitReturnExpr("true", thn);
         }
         i = 0;
@@ -483,7 +483,7 @@ namespace Microsoft.Dafny {
       wr.Write("static Default(");
       wr.Write(Util.Comma(UsedTypeParameters(dt), FormatDefaultTypeParameterValue));
       {
-        var wDefault = wr.NewBlock(")"); 
+        var wDefault = wr.NewBlock(")");
         wDefault.Write("return ");
         var groundingCtor = dt.GetGroundingCtor();
         var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
@@ -2174,6 +2174,37 @@ namespace Microsoft.Dafny {
         if (e.ToType.IsCharType) wr.Write(").toNumber())");
       } else {
         Contract.Assert(false, $"not implemented for javascript: {e.E.Type} -> {e.ToType}");
+      }
+    }
+
+    protected override void EmitTypeTest(string localName, Type fromType, Type toType, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+      Contract.Requires(fromType.IsRefType);
+      Contract.Requires(toType.IsRefType);
+
+      if (!fromType.IsNonNullRefType) {
+        if (toType.IsNonNullRefType) {
+          wr.Write($"{localName} != null && ");
+        } else {
+          wr.Write($"{localName} == null || (");
+        }
+      }
+
+      if (toType.IsObject || toType.IsObjectQ) {
+        wr.Write("true");
+      } else if (toType.IsTraitType) {
+        wr.Write($"_dafny.InstanceOfTrait({localName}, {TypeName(toType, wr, tok)})");
+      } else {
+        wr.Write($"{localName} instanceof {TypeName(toType, wr, tok)}");
+      }
+
+      var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
+      if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+        // TODO: test constraints
+        throw new NotImplementedException();
+      }
+
+      if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
+        wr.Write(")");
       }
     }
 

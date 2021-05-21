@@ -116,34 +116,46 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 10:
+ * SCC at height 12:
  *   M5
- * SCC at height 9:
+ * SCC at height 11:
  *   M4
- * SCC at height 8:
+ * SCC at height 10:
  *   M3
- * SCC at height 7:
+ * SCC at height 9:
  *   M2'
- * SCC at height 6:
+ * SCC at height 8:
  *   M2
- * SCC at height 5:
+ * SCC at height 7:
  *   M1
- * SCC at height 4:
+ * SCC at height 6:
  *   M0
- * SCC at height 3:
+ * SCC at height 5:
  *   UseTheVars
- * SCC at height 2:
+ * SCC at height 4:
  *   SmallReal
- * SCC at height 1:
+ * SCC at height 3:
  *   EvenInt
- * SCC at height 0:
+ * SCC at height 2:
  *   nat
+ * SCC at height 1:
+ *   ClassSubset
+ * SCC at height 0:
+ *   Class
  */
 newtype EvenInt = x: int
   | x % 2 == 0
 
 newtype SmallReal = r: real
   | -4.0 <= r < 300.0
+
+class Class { }
+/*-- non-null type
+type {:axiom} Class(==) = c: Class? | c != null /*special witness*/
+*/
+
+type ClassSubset = c: Class
+  | true
 
 predicate UseTheVars(x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
   decreases x, n, r, even, small, b67, w, seven, noll
@@ -329,6 +341,10 @@ method M5()
       seven := (if 0.0 <= small < 100.0 then small else 100.0) as bv7;
   }
 }
+TypeConversions.dfy(126,5): Error: trying witness null: value of expression (of type 'Class?') is not known to be an instance of type 'Class', because it may be null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
 TypeConversions.dfy(14,40): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
@@ -394,4 +410,4 @@ Execution trace:
     (0,0): anon0
     (0,0): anon21_Then
 
-Dafny program verifier finished with 3 verified, 16 errors
+Dafny program verifier finished with 3 verified, 17 errors

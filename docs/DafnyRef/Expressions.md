@@ -302,34 +302,55 @@ of conversions are permitted:
 * Any base type to a subset or newtype with that base
 * Any subset or newtype or to its base type or a subset or newtype of the same base
 * Any type to a subset of newtype that has the type as its base
-* Any trait to another trait
-* Any trait to a class that extends that trait
-* Any class to a trait extended by that class
-
-*Only the numeric conversions in the above list are currently implemented.*
+* Any trait to a class or trait that extends that trait
+* Any class or trait to a trait extended by that class or trait
 
 Some of the conversions above are already implicitly allowed, without the
 `as` operation, such as from a subset type to its base. In any case, it
 must be able to be proved that the value of the given expression is a
-legal value of the given type. For example, `5 as MyType` is permited (by the verifier) only if `5` is a legitimate value of`MyType` (which must be a numeric txype).
+legal value of the given type. For example, `5 as MyType` is permited (by the verifier) only if `5` is a legitimate value of`MyType` (which must be a numeric type).
 
 The `as` operation is like a grammatical suffix or postfix operation.
-However, note that the unaray operations bind more tightly than does `as`.
+However, note that the unary operations bind more tightly than does `as`.
 That is `- 5 as nat` is `(- 5) as nat` (which fails), whereas `a * b as nat`
-is `a * (b as nat)`. On the other hand `- a[4]` is `- (a[4])`.
-
-*This `is` expression is not yet implemented. This description is proposed.*
+is `a * (b as nat)`. On the other hand, `- a[4]` is `- (a[4])`.
 
 The `is` expression is grammatically similar to the `as` expression, with the
-same binding power and constraints on types. However, the `is` expression
+same binding power. The `is` expression is a run-time type test that
 returns a `bool` value indicating whether the LHS expression is a legal
-value of the RHS type. Thus this expression can be used to check, for example,
-whether `int` values are permitted values of a subset type or newtype.
-It can also check the allocated type of a trait.
+value of the RHS type. The expression can be used to check
+whether a trait value is of a particular class type. That is, the expression
+in effect checks the allocated type of a trait.
+
+The RHS type of an `is` expression can always be a supertype of the type of the LHS
+expression. Other than that, the RHS must be based on a reference type and the
+LHS expression must be assignable to the RHS type. Furthermore, in order to be
+compilable, the RHS type must not be a subset type other than a non-null reference
+type, and the type parameters of the RHS must be uniquely determined from the
+type parameters of the LHS type. The last restriction is designed to make it
+possible to perform type tests without inspecting type parameters at run time.
+For example, consider the following types:
+
+```dafny
+trait A { }
+trait B<X> { }
+class C<Y> extends B<Y> { }
+class D<Y> extends B<set<Y>> { }
+class E extends B<int> { }
+class F<Z> extends A { }
+```
+
+A LHS expression of type `B<set<int>>` can be used in a type test where the RHS is
+`B<set<int>>`, `C<set<int>>`, or `D<int>`, and a LHS expression of type `B<int>`
+can be used in a type test where the RHS is `B<int>`, `C<int>`, or `E`. Those
+are always allowed in compiled (and ghost) contexts.
+For an expression `a` of type `A`, the expression `a is F<int>` is a ghost expression;
+it can be used in ghost contexts, but not in compiled contexts.
 
 For an expression `e` and type `t`, `e is t` is the condition determining whether
-`e as t` is well-defined.
+`e as t` is well-defined (but, as noted above, is not always a legal expression).
 
+*The repertoire of types allowed in `is` tests may be expanded in the future.*
 
 ## 20.11. Unary Expressions
 
