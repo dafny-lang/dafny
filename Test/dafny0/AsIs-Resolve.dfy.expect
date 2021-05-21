@@ -55,7 +55,7 @@ AsIs-Resolve.dfy(220,11): Error: type test for type 'int ~> real' must be from a
 AsIs-Resolve.dfy(221,11): Error: type test for type 'real --> nat' must be from an expression assignable to it (got 'int ~> nat') (contravariant type parameter 0 would require real <: int)
 AsIs-Resolve.dfy(185,11): Error: type cast to reference type 'C<(int, real)>' must be from an expression assignable to it (got 'M<string>') (non-variant type parameter would require (int, real) = (string, string)) (covariant type parameter 0 would require string <: int)
 AsIs-Resolve.dfy(185,11): Error: type cast to reference type 'C<(int, real)>' must be from an expression assignable to it (got 'M<string>') (non-variant type parameter would require (int, real) = (string, string)) (covariant type parameter 0 would require int <: string)
-AsIs-Resolve.dfy(196,14): Error: incorrect type of datatype constructor argument (found int, expected real)
+AsIs-Resolve.dfy(196,9): Error: incorrect type of datatype constructor argument 0 (expected real, found int)
 AsIs-Resolve.dfy(229,15): Error: type test for type 'object' must be from an expression assignable to it (got 'T')
 AsIs-Resolve.dfy(230,18): Error: type test for type 'array<object>' must be from an expression assignable to it (got 'array<T>') (nonvariance for type parameter expects object = T)
 AsIs-Resolve.dfy(231,18): Error: type test for type 'array<int>' must be from an expression assignable to it (got 'array<T>') (nonvariance for type parameter expects int = T)
