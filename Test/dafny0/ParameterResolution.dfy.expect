@@ -1,0 +1,6 @@
+ParameterResolution.dfy(16,13): Error: wrong number of arguments (function 'F' expects 3, got 2)
+ParameterResolution.dfy(17,13): Error: wrong number of arguments (function 'F' expects 3, got 4)
+ParameterResolution.dfy(18,25): Error: duplicate binding for parameter name 'y'
+ParameterResolution.dfy(19,17): Error: the parameter named 'x' is already given positionally
+ParameterResolution.dfy(20,25): Error: a positional argument is not allowed to follow named arguments
+5 resolution/type errors detected in ParameterResolution.dfy

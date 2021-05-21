@@ -6060,6 +6060,7 @@ namespace Microsoft.Dafny {
       }
     }
     public readonly bool IsOld;
+    public readonly Expression DefaultValue;
 
     public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, bool isOld = false)
       : base(tok, name, type, isGhost) {
@@ -6163,10 +6164,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void AcceptArgumentExpressionsAsExactParameterList() {
+    public void AcceptArgumentExpressionsAsExactParameterList(List<Expression> args = null) {
       Contract.Requires(!WasResolved); // this operation should be done at most once
       Contract.Assume(ArgumentBindings.TrueForAll(arg => arg.Actual.WasResolved()));
-      arguments = ArgumentBindings.ConvertAll(binding => binding.Actual);
+      arguments = args ?? ArgumentBindings.ConvertAll(binding => binding.Actual);
     }
   }
 
