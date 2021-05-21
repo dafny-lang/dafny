@@ -3,4 +3,7 @@ ParameterResolution.dfy(17,13): Error: wrong number of arguments (function 'F' e
 ParameterResolution.dfy(18,25): Error: duplicate binding for parameter name 'y'
 ParameterResolution.dfy(19,17): Error: the parameter named 'x' is already given positionally
 ParameterResolution.dfy(20,25): Error: a positional argument is not allowed to follow named arguments
-5 resolution/type errors detected in ParameterResolution.dfy
+ParameterResolution.dfy(26,20): Error: the binding named 'xyz' does not correspond to any formal parameter
+ParameterResolution.dfy(29,12): Error: wrong number of arguments (datatype constructor 'Record' expects 3, got 2)
+ParameterResolution.dfy(30,32): Error: the parameter named 'a' is already given positionally
+8 resolution/type errors detected in ParameterResolution.dfy
