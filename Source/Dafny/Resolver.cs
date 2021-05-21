@@ -16352,7 +16352,9 @@ namespace Microsoft.Dafny
             }
           }
           // resolve the arguments, even in the presence of the errors above
-          ResolveActualParameters(e.Bindings, null, e.tok, null, opts);
+          foreach (var binding in e.Bindings.ArgumentBindings) {
+            ResolveExpression(binding.Actual, opts);
+          }
         } else {
           var mse = e.Lhs is NameSegment || e.Lhs is ExprDotName ? e.Lhs.Resolved as MemberSelectExpr : null;
           var callee = mse == null ? null : mse.Member as Function;
@@ -16411,15 +16413,14 @@ namespace Microsoft.Dafny
     /// Resolve the actual arguments given in "bindings". Then, check that there is exactly one
     /// actual for each formal, and impose assignable constraints.
     /// If "subst" is non-null, it applied to the types of each formal.
-    /// If "formals" is null, then this method will just resolve the arguments and return. In that case, "context" can also be null.
     /// This method should be called only once. That is, bindings.arguments is required to be null on entry to this method.
     /// </summary>
-    void ResolveActualParameters(ActualBindings bindings, List<Formal>/*?*/ formals, IToken callTok, object/*?*/ context, ResolveOpts opts,
+    void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IToken callTok, object context, ResolveOpts opts,
       Dictionary<TypeParameter, Type> subst = null) {
       Contract.Requires(bindings != null);
+      Contract.Requires(formals != null);
       Contract.Requires(callTok != null);
-      Contract.Requires(formals == null || context != null);
-      Contract.Requires(context == null || context is Method || context is Function || context is DatatypeCtor || context is ArrowType);
+      Contract.Requires(context is Method || context is Function || context is DatatypeCtor || context is ArrowType);
       Contract.Requires(!bindings.WasResolved);
 
       string whatKind;
@@ -16433,25 +16434,24 @@ namespace Microsoft.Dafny
       } else if (context is DatatypeCtor cCtor) {
         whatKind = "datatype constructor";
         name = $"{whatKind} '{cCtor.Name}'";
-      } else if (context is ArrowType cArrowType) {
+      } else {
+        var cArrowType = (ArrowType)context;
         whatKind = "function application";
         name = $"function type '{cArrowType}'";
-      } else {
-        whatKind = null; // not used below
-        name = null; // not used below
       }
 
-      if (formals != null && formals.Count != bindings.ArgumentBindings.Count) {
-        Contract.Assert(whatKind != null);
+      var desugaredArguments = bindings.ArgumentBindings;
+
+      if (formals.Count != desugaredArguments.Count) {
         reporter.Error(MessageSource.Resolver, callTok, "wrong number of arguments ({0} expects {1}, got {2})",
           name, formals.Count, bindings.ArgumentBindings.Count);
       }
 
       int j = 0;
-      foreach (var binding in bindings.ArgumentBindings) {
+      foreach (var binding in desugaredArguments) {
         var arg = binding.Actual;
         ResolveExpression(arg, opts);
-        if (formals != null && j < formals.Count) {
+        if (j < formals.Count) {
           var formal = formals[j];
           Type st = subst == null ? formal.Type : SubstType(formal.Type, subst);
           var what = whatKind + (context is Method ? " in-parameter" : " argument");
@@ -16532,7 +16532,15 @@ namespace Microsoft.Dafny
         Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
         dtv.Ctor = ctor;
       }
-      ResolveActualParameters(dtv.Bindings, complain && ctor != null ? ctor.Formals : null, dtv.tok, ctor, opts, subst);
+      if (complain && ctor != null) {
+        ResolveActualParameters(dtv.Bindings, ctor.Formals, dtv.tok, ctor, opts, subst);
+      } else {
+        // still resolve the expressions
+        foreach (var binding in dtv.Bindings.ArgumentBindings) {
+          ResolveExpression(binding.Actual, opts);
+        }
+        dtv.Bindings.AcceptArgumentExpressionsAsExactParameterList();
+      }
       return ok && ctor.Formals.Count == dtv.Arguments.Count;
     }
 
