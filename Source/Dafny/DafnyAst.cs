@@ -215,7 +215,7 @@ namespace Microsoft.Dafny {
           new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
           new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
         var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
-        var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false));
+        var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
         var argExprs = args.ConvertAll(a =>
               (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
         var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, argExprs) {
@@ -4742,7 +4742,7 @@ namespace Microsoft.Dafny {
       var formals = new List<Formal>();
       for (int i = 0; i < typeArgs.Count; i++) {
         var tp = typeArgs[i];
-        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, false);
+        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, false, null);
         formals.Add(f);
       }
       var ctor = new DatatypeCtor(Token.NoToken, BuiltIns.TupleTypeCtorNamePrefix + typeArgs.Count, formals, null);
@@ -6062,13 +6062,15 @@ namespace Microsoft.Dafny {
     public readonly bool IsOld;
     public readonly Expression DefaultValue;
 
-    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, bool isOld = false)
+    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue, bool isOld = false)
       : base(tok, name, type, isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
+      Contract.Requires(inParam || defaultValue == null);
       InParam = inParam;
       IsOld = isOld;
+      DefaultValue = defaultValue;
     }
 
     public bool HasName {
@@ -6092,7 +6094,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class ImplicitFormal : Formal {
     public ImplicitFormal(IToken tok, string name, Type type, bool inParam, bool isGhost)
-      : base(tok, name, type, inParam, isGhost) {
+      : base(tok, name, type, inParam, isGhost, null) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
@@ -6220,6 +6222,9 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var formal in Formals.Where(f => f.DefaultValue != null)) {
+          yield return formal.DefaultValue;
+        }
         foreach (var e in Req) {
           yield return e.E;
         }
@@ -6527,6 +6532,9 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var formal in Ins.Where(f => f.DefaultValue != null)) {
+          yield return formal.DefaultValue;
+        }
         foreach (var e in Req) {
           yield return e.E;
         }

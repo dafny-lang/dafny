@@ -1012,6 +1012,10 @@ namespace Microsoft.Dafny {
         wr.Write("{0}: ", f.DisplayName);
       }
       PrintType(f.Type);
+      if (f.DefaultValue != null) {
+        wr.Write(" := ");
+        PrintExpression(f.DefaultValue, false);
+      }
     }
 
     internal void PrintSpec(string kind, List<Expression> ee, int indent) {
