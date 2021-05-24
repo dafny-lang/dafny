@@ -12553,6 +12553,38 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
+  /// When an actual parameter is omitted for a formal with a default value, the positional resolved
+  /// version of the actual parameter will have a DefaultValueExpression value. This has three
+  /// advantages:
+  /// * It allows the entire module to be resolved before any substitutions take place.
+  /// * It gives a good place to check for default-value expressions that would give rise to an
+  ///   infinite expansion.
+  /// * It preserves the pre-substitution form, which gives compilers a chance to avoid re-evaluation
+  ///   of actual parameters used in other default-valued expressions.
+  /// </summary>
+  public class DefaultValueExpression : ConcreteSyntaxExpression {
+    public readonly Formal Formal;
+    public readonly Expression Receiver;
+    public readonly Dictionary<IVariable, Expression> SubstMap;
+    public readonly Dictionary<TypeParameter, Type> TypeMap;
+
+    public DefaultValueExpression(IToken tok, Formal formal,
+      Expression/*?*/ receiver, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(formal != null);
+      Contract.Requires(formal.DefaultValue != null);
+      Contract.Requires(substMap != null);
+      Contract.Requires(typeMap != null);
+      Formal = formal;
+      Receiver = receiver;
+      SubstMap = substMap;
+      TypeMap = typeMap;
+      Type = Resolver.SubstType(formal.Type, typeMap);
+    }
+  }
+
+  /// <summary>
   /// A NegationExpression e represents the value -e and is syntactic shorthand
   /// for 0-e (for integers) or 0.0-e (for reals).
   /// </summary>
