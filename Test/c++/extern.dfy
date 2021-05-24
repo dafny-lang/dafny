@@ -21,6 +21,10 @@ module {:extern "Extern"} Extern {
 
 module TestMod {
   import opened Extern
+
+  // Test a templated extern declaration
+  type {:extern "struct"} DestructorFunction<A>
+
   class C {
     var s:state;
 
