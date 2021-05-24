@@ -984,9 +984,9 @@ namespace Microsoft.Dafny {
           // Assume the external definition includes a default value
           return String.Format("{1}::get_{0}_default()", IdProtect(udt.Name), udt.ResolvedClass.EnclosingModuleDefinition.CompileName);
         } else if (usePlaceboValue && !hasCompiledValue) {
-          return String.Format("get_default<{0}>::call()", IdProtect(udt.Name));
+          return String.Format("get_default<{0}>::call()", IdProtect(udt.CompileName));
         } else {
-          return String.Format("get_default<{0}>::call()", IdProtect(udt.Name));
+          return String.Format("get_default<{0}>::call()", IdProtect(udt.CompileName));
         }
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
@@ -1174,7 +1174,7 @@ namespace Microsoft.Dafny {
         EmitAssignment(actualOutParamNames[0], null, outCollector, null, wr);
       } else {
         for (var i = 0; i < actualOutParamNames.Count; i++) {
-          wr.WriteLine("{0} = {1}.get<{2}>();", actualOutParamNames[i], outCollector, i);
+          wr.WriteLine("{0} = {1}.template get<{2}>();", actualOutParamNames[i], outCollector, i);
         }
       }
     }
@@ -1868,7 +1868,7 @@ namespace Microsoft.Dafny {
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
-        wr.Write("({0}).get<{1}>()", source, formalNonGhostIndex);
+        wr.Write("({0}).template get<{1}>()", source, formalNonGhostIndex);
       } else {
         var dtorName = FormalName(dtor, formalNonGhostIndex);
         if (dtor.Type is UserDefinedType udt && udt.ResolvedClass == ctor.EnclosingDatatype) {
