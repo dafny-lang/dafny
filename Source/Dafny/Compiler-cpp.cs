@@ -1557,7 +1557,11 @@ namespace Microsoft.Dafny {
       } else if (Attributes.Contains(cl.Attributes, "extern")) {
         return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "::" + IdProtect(cl.Name);
       } else if (cl is TupleTypeDecl) {
-        return "Tuple";
+        if (udt.TypeArgs.Count > 0) {
+          return "Tuple";
+        } else {
+          return "Tuple0"; // Need to special case this, as C++ won't infer the correct type arguments
+        }
       } else {
         return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "::" + IdProtect(cl.CompileName);
       }
@@ -1582,7 +1586,12 @@ namespace Microsoft.Dafny {
         foreach (var arg in dtv.Arguments) {
           types.Add(arg.Type);
         }
-        wr.Write("Tuple{0}({1})", InstantiateTemplate(types), arguments);
+
+        if (types.Count == 0) {
+          wr.Write("Tuple0()");
+        } else {
+          wr.Write("Tuple{0}({1})", InstantiateTemplate(types), arguments);
+        }
       } else if (!isCoCall) {
         // Ordinary constructor (that is, one that does not guard any co-recursive calls)
         // Generate:  Dt.create_Ctor(arguments)
