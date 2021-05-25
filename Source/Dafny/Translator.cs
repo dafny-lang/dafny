@@ -2589,7 +2589,6 @@ namespace Microsoft.Dafny {
       var etran = new ExpressionTranslator(this, predef, iter.tok);
       var localVariables = new List<Variable>();
 
-      Bpl.StmtList stmts;
       // check well-formedness of the preconditions, and then assume each one of them
       foreach (var p in iter.Requires) {
         CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
@@ -2681,7 +2680,7 @@ namespace Microsoft.Dafny {
       }
       builder.Add(new Bpl.IfCmd(iter.tok, null, yeBuilder.Collect(iter.tok), null, endBuilder.Collect(iter.tok)));
 
-      stmts = builder.Collect(iter.tok);
+      Bpl.StmtList stmts = builder.Collect(iter.tok);
 
       if (EmitImplementation(iter.Attributes)) {
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
