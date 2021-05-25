@@ -9651,7 +9651,7 @@ namespace Microsoft.Dafny
         var d = formal.DefaultValue;
         if (d != null) {
           allowMoreRequiredParameters = false;
-          ResolveExpression(d, new ResolveOpts(codeContext, false));
+          ResolveExpression(d, new ResolveOpts(codeContext, codeContext is TwoStateFunction || codeContext is TwoStateLemma));
           AddAssignableConstraint(d.tok, formal.Type, d.Type, "default-value expression (of type '{1}') is not assignable to formal (of type '{0}')");
           foreach (var v in FreeVariables(d)) {
             dependencies.AddEdge(formal, v);

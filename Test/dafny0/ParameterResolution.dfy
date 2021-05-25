@@ -204,3 +204,15 @@ module RequiresBeforeOptional {
   lemma Lemma(x: int := y, y: int) // error: required parameters must precede optional parameters
   least predicate Least(x: int := y, y: int) // error: required parameters must precede optional parameters
 }
+
+module TwoState {
+  class C {
+    var x: int
+    method M(u: int := old(x)) // error: old not allowed in this context
+    twostate lemma N(u: int := old(x))
+    function method F(u: int := old(x)): int // error: old not allowed in this context
+    twostate function G(u: int := old(x)): int
+  }
+  iterator Iter(c: C, u: int := old(c.x)) // error: old not allowed in this context
+  datatype D = D(c: C, u: int := old(c.x)) // error: old not allowed in this context
+}
