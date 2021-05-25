@@ -1431,6 +1431,8 @@ namespace Microsoft.Dafny {
             sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, ax, "Questionmark and identifier"));
           }
 
+          // check well-formedness of any default-value expressions
+          AddWellformednessCheck(ctor);
         }
 
 
@@ -2589,6 +2591,10 @@ namespace Microsoft.Dafny {
       var etran = new ExpressionTranslator(this, predef, iter.tok);
       var localVariables = new List<Variable>();
 
+      // check well-formedness of any default-value expressions (before assuming preconditions)
+      foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
+        CheckWellformed(formal.DefaultValue, new WFOptions(), localVariables, builder, etran);
+      }
       // check well-formedness of the preconditions, and then assume each one of them
       foreach (var p in iter.Requires) {
         CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
@@ -4565,6 +4571,10 @@ namespace Microsoft.Dafny {
         m.Outs.Iter(RemoveDefiniteAssignmentTracker);
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
       } else {
+        // check well-formedness of any default-value expressions (before assuming preconditions)
+        foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
+          CheckWellformed(formal.DefaultValue, new WFOptions(), localVariables, builder, etran);
+        }
         // check well-formedness of the preconditions, and then assume each one of them
         foreach (AttributedExpression p in m.Req) {
           CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
@@ -6109,10 +6119,18 @@ namespace Microsoft.Dafny {
 
       DefineFrame(f.tok, f.Reads, builder, locals, null);
       InitializeFuelConstant(f.tok, builder, etran);
+
+      // Check well-formedness of any default-value expressions (before assuming preconditions).
+      var wfo = new WFOptions(null, true, true /* do delayed reads checks */);
+      foreach (var formal in f.Formals.Where(formal => formal.DefaultValue != null)) {
+        CheckWellformed(formal.DefaultValue, wfo, locals, builder, etran);
+      }
+      wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
+
       // Check well-formedness of the preconditions (including termination), and then
       // assume each one of them.  After all that (in particular, after assuming all
       // of them), do the postponed reads checks.
-      var wfo = new WFOptions(null, true, true /* do delayed reads checks */);
+      wfo = new WFOptions(null, true, true /* do delayed reads checks */);
       foreach (AttributedExpression p in f.Req) {
         CheckWellformedAndAssume(p.E, wfo, locals, builder, etran);
       }
@@ -6464,6 +6482,81 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(currentModule == decl.EnclosingModule);
       Contract.Assert(codeContext == decl);
+      isAllocContext = null;
+      fuelContext = null;
+      Reset();
+    }
+
+    void AddWellformednessCheck(DatatypeCtor ctor) {
+      Contract.Requires(ctor != null);
+      Contract.Requires(sink != null && predef != null);
+      Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
+      Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
+
+      if (!InVerificationScope(ctor)) {
+        // Checked in other file
+        return;
+      }
+
+      // If there are no parameters with default values, there's nothing to do
+      if (ctor.Formals.TrueForAll(f => f.DefaultValue == null)) {
+        return;
+      }
+
+      currentModule = ctor.EnclosingDatatype.EnclosingModuleDefinition;
+      codeContext = ctor.EnclosingDatatype;
+      fuelContext = FuelSetting.NewFuelContext(ctor.EnclosingDatatype);
+      var etran = new ExpressionTranslator(this, predef, ctor.tok);
+
+      // parameters of the procedure
+      List<Variable> inParams = MkTyParamFormals(GetTypeParams(ctor.EnclosingDatatype));
+      foreach (var p in ctor.Formals) {
+        Bpl.Type varType = TrType(p.Type);
+        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(ctor.IdGenerator), varType), p.Type, etran, NOALLOC);
+        inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(ctor.IdGenerator), varType, wh), true));
+      }
+
+      // the procedure itself
+      var req = new List<Bpl.Requires>();
+      // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
+      req.Add(Requires(ctor.tok, true, etran.HeightContext(ctor.EnclosingDatatype), null, null));
+      var heapVar = new Bpl.IdentifierExpr(ctor.tok, "$Heap", false);
+      var varlist = new List<Bpl.IdentifierExpr>();
+      varlist.Add(heapVar);
+      var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed$$" + ctor.FullName, new List<Bpl.TypeVariable>(),
+        inParams, new List<Variable>(),
+        req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));
+      sink.AddTopLevelDeclaration(proc);
+
+      var implInParams = Bpl.Formal.StripWhereClauses(inParams);
+      var locals = new List<Variable>();
+      var builder = new BoogieStmtListBuilder(this);
+      builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for datatype constructor {0}", ctor)));
+      builder.Add(CaptureState(ctor.tok, false, "initial state"));
+      isAllocContext = new IsAllocContext(true);
+
+      DefineFrame(ctor.tok, new List<FrameExpression>(), builder, locals, null);
+
+      // check well-formedness of each default-value expression
+      foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
+        var e = formal.DefaultValue;
+        CheckWellformed(e, new WFOptions(null, true), locals, builder, etran);
+        builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+      }
+
+      if (EmitImplementation(ctor.Attributes)) {
+        // emit the impl only when there are proof obligations.
+        QKeyValue kv = etran.TrAttributes(ctor.Attributes, null);
+        var implBody = builder.Collect(ctor.tok);
+        var impl = new Bpl.Implementation(ctor.tok, proc.Name,
+          new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
+          locals, implBody, kv);
+        sink.AddTopLevelDeclaration(impl);
+      }
+
+      Contract.Assert(currentModule == ctor.EnclosingDatatype.EnclosingModuleDefinition);
+      Contract.Assert(codeContext == ctor.EnclosingDatatype);
       isAllocContext = null;
       fuelContext = null;
       Reset();
