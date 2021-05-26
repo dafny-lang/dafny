@@ -4580,6 +4580,13 @@ namespace Microsoft.Dafny {
           CheckWellformed(e, new WFOptions(), localVariables, builder, etran);
           builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
           CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+
+          if (formal.IsOld) {
+            Bpl.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
+            if (wh != null) {
+              builder.Add(Assert(e.tok, wh, "default value must be allocated in the two-state lemma's previous state"));
+            }
+          }
         }
         // check well-formedness of the preconditions, and then assume each one of them
         foreach (AttributedExpression p in m.Req) {
@@ -6133,6 +6140,13 @@ namespace Microsoft.Dafny {
         CheckWellformed(e, wfo, locals, builder, etran);
         builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+
+        if (formal.IsOld) {
+          Bpl.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
+          if (wh != null) {
+            builder.Add(Assert(e.tok, wh, "default value must be allocated in the two-state function's previous state"));
+          }
+        }
       }
       wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
 

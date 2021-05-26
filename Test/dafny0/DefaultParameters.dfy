@@ -60,11 +60,11 @@ module TwoState {
 
   twostate predicate P0(a: C, b: C := a)
   twostate predicate P1(a: C, new b: C := a)
-  twostate predicate P2(new a: C, b: C := a) // error: 'b' needs to have been allocated already in the old state (TODO)
+  twostate predicate P2(new a: C, b: C := a) // error: 'b' needs to have been allocated already in the old state
   twostate predicate P3(new a: C, new b: C := a)
   twostate lemma L0(a: C, b: C := a)
   twostate lemma L1(a: C, new b: C := a)
-  twostate lemma L2(new a: C, b: C := a) // error: 'b' needs to have been allocated already in the old state (TODO)
+  twostate lemma L2(new a: C, b: C := a) // error: 'b' needs to have been allocated already in the old state
   twostate lemma L3(new a: C, new b: C := a)
 }
 
