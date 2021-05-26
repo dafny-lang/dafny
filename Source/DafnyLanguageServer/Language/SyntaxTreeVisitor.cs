@@ -462,9 +462,7 @@
 
     public virtual void Visit(ApplySuffix applySuffix) {
       Visit(applySuffix.Lhs);
-      foreach(var argument in applySuffix.Args) {
-        Visit(argument);
-      }
+      Visit(applySuffix.Bindings);
     }
 
     public virtual void Visit(NameSegment nameSegment) {
