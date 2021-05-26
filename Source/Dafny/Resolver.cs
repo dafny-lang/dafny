@@ -10322,6 +10322,8 @@ namespace Microsoft.Dafny
         iter.Member_MoveNext.Decreases.Expressions.Add(new MemberSelectExpr(p.tok, new ThisExpr(p.tok), iter.DecreasesFields[i].Name));
       }
       iter.Member_MoveNext.Decreases.Attributes = iter.Decreases.Attributes;
+
+      iter.EnclosingModuleDefinition.CallGraph.AddEdge(iter.Member_MoveNext, iter);
     }
 
     // Like the ResolveTypeOptionEnum, but iff the case of AllowPrefixExtend, it also
@@ -17027,8 +17029,6 @@ namespace Microsoft.Dafny
         var caller = CodeContextWrapper.Unwrap(callingContext) as ICallable;
         if (caller == null) {
           // don't add anything to the call graph after all
-        } else if (caller is IteratorDecl) {
-          callerModule.CallGraph.AddEdge(((IteratorDecl)callingContext).Member_MoveNext, function);
         } else {
           callerModule.CallGraph.AddEdge(caller, function);
           if (caller is Function && e is FunctionCallExpr ee) {

@@ -47,4 +47,7 @@ method ParsingActualBindings() {
   assert x0 == x1;
   assert c0.value == c1.value;
   assert iter0.a == iter1.a && iter0.b == iter1.b;
+  iterator DependencyRegression(x: nat)
+    // if the call graph dependencies are set up correctly, then
+    requires assert 0 <= Nat(); 3 < 10  // there should be no complaints about this assertion
 }
