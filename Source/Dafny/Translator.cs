@@ -2593,7 +2593,10 @@ namespace Microsoft.Dafny {
 
       // check well-formedness of any default-value expressions (before assuming preconditions)
       foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
-        CheckWellformed(formal.DefaultValue, new WFOptions(), localVariables, builder, etran);
+        var e = formal.DefaultValue;
+        CheckWellformed(e, new WFOptions(), localVariables, builder, etran);
+        builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
       }
       // check well-formedness of the preconditions, and then assume each one of them
       foreach (var p in iter.Requires) {
@@ -4573,7 +4576,10 @@ namespace Microsoft.Dafny {
       } else {
         // check well-formedness of any default-value expressions (before assuming preconditions)
         foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
-          CheckWellformed(formal.DefaultValue, new WFOptions(), localVariables, builder, etran);
+          var e = formal.DefaultValue;
+          CheckWellformed(e, new WFOptions(), localVariables, builder, etran);
+          builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+          CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
         }
         // check well-formedness of the preconditions, and then assume each one of them
         foreach (AttributedExpression p in m.Req) {
@@ -6123,7 +6129,10 @@ namespace Microsoft.Dafny {
       // Check well-formedness of any default-value expressions (before assuming preconditions).
       var wfo = new WFOptions(null, true, true /* do delayed reads checks */);
       foreach (var formal in f.Formals.Where(formal => formal.DefaultValue != null)) {
-        CheckWellformed(formal.DefaultValue, wfo, locals, builder, etran);
+        var e = formal.DefaultValue;
+        CheckWellformed(e, wfo, locals, builder, etran);
+        builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
       }
       wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
 
