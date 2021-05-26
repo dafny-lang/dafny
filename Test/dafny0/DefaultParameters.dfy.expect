@@ -1,2 +1,89 @@
+DefaultParameters.dfy(55,30): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(92,2): Error: A postcondition might not hold on this return path.
+DefaultParameters.dfy(91,16): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(102,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Then
+DefaultParameters.dfy(110,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon15_Then
+DefaultParameters.dfy(124,31): Error: insufficient reads clause to read field
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(131,34): Error: insufficient reads clause to read field
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(135,43): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(137,37): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(140,28): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(145,17): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(160,43): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(160,43): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(162,38): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(162,38): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(165,29): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(165,29): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(170,15): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(170,15): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(172,45): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(180,35): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(180,35): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(181,40): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(148,38): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(150,33): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(153,24): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(158,15): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(178,35): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(179,33): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 4 verified, 0 errors
+Dafny program verifier finished with 26 verified, 28 errors
