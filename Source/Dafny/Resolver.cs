@@ -14140,28 +14140,36 @@ namespace Microsoft.Dafny
     /// "context == Co" says that "type" is allowed to vary in the positive direction.
     /// "context == Contra" says that "type" is allowed to vary in the negative direction.
     /// "context == Inv" says that "type" must not vary at all.
-    /// * "leftOfArrow" says that the context is to the left of some arrow
+    /// * "lax" says that the context is not strict -- type parameters declared to be strict must not be used in a lax context
     /// </summary>
-    public void CheckVariance(Type type, ICallable enclosingTypeDefinition, TypeParameter.TPVariance context, bool leftOfArrow) {
+    public void CheckVariance(Type type, ICallable enclosingTypeDefinition, TypeParameter.TPVariance context, bool lax) {
       Contract.Requires(type != null);
       Contract.Requires(enclosingTypeDefinition != null);
 
       type = type.Normalize();  // we keep constraints, since subset types have their own type-parameter variance specifications; we also keep synonys, since that gives rise to better error messages
+
       if (type is BasicType) {
         // fine
       } else if (type is MapType) {
         var t = (MapType)type;
-        CheckVariance(t.Domain, enclosingTypeDefinition, context, leftOfArrow);
-        CheckVariance(t.Range, enclosingTypeDefinition, context, leftOfArrow);
+        // If its an infinite map, the domain's context is lax
+        CheckVariance(t.Domain, enclosingTypeDefinition, context,
+          lax || !t.Finite);
+        CheckVariance(t.Range, enclosingTypeDefinition, context, lax);
+      } else if(type is SetType){
+        var t = (SetType)type;
+        // If its an infinite set, the argument's context is lax
+        CheckVariance(t.Arg, enclosingTypeDefinition, context,
+          lax || !t.Finite);
       } else if (type is CollectionType) {
         var t = (CollectionType)type;
-        CheckVariance(t.Arg, enclosingTypeDefinition, context, leftOfArrow);
+        CheckVariance(t.Arg, enclosingTypeDefinition, context, lax);
       } else if (type is UserDefinedType) {
         var t = (UserDefinedType)type;
         if (t.ResolvedClass is TypeParameter tp) {
           if (tp.Variance != TypeParameter.TPVariance.Non && tp.Variance != context) {
             reporter.Error(MessageSource.Resolver, t.tok, "formal type parameter '{0}' is not used according to its variance specification", tp.Name);
-          } else if (tp.StrictVariance && leftOfArrow) {
+          } else if (tp.StrictVariance && lax) {
             string hint;
             if (tp.VarianceSyntax == TypeParameter.TPVarianceSyntax.NonVariant_Strict) {
               hint = string.Format(" (perhaps try declaring '{0}' as '!{0}')", tp.Name);
@@ -14175,7 +14183,8 @@ namespace Microsoft.Dafny
           var resolvedClass = t.ResolvedClass;
           Contract.Assert(resolvedClass != null);  // follows from that the given type was successfully resolved
           Contract.Assert(resolvedClass.TypeArgs.Count == t.TypeArgs.Count);
-          if (leftOfArrow) {
+
+          if (lax) {
             // we have to be careful about uses of the type being defined
             var cg = enclosingTypeDefinition.EnclosingModule.CallGraph;
             var t0 = resolvedClass as ICallable;
@@ -14190,7 +14199,7 @@ namespace Microsoft.Dafny
               context == TypeParameter.TPVariance.Non ? context :
               context == TypeParameter.TPVariance.Co ? tpFormal.Variance :
               TypeParameter.Negate(tpFormal.Variance),
-              leftOfArrow || !tpFormal.StrictVariance);
+              lax || !tpFormal.StrictVariance);
           }
         }
       } else {
