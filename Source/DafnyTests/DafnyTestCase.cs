@@ -34,7 +34,7 @@ namespace DafnyTests {
     public static readonly string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
     public static readonly string OUTPUT_DIR = Path.Combine(TEST_ROOT, "Output") + Path.DirectorySeparatorChar;
     
-    public static readonly string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/dafny");
+    public static readonly string DAFNY_PROJ = Path.Combine(DAFNY_ROOT, "Source/DafnyDriver/DafnyDriver.csproj");
 
     // Dafny options with special handling
     public const string DAFNY_COMPILE_OPTION = "compile";
@@ -282,11 +282,13 @@ namespace DafnyTests {
       dafnyArguments.AddRange(arguments);
 
       using (Process dafnyProcess = new Process()) {
-        dafnyProcess.StartInfo.FileName = DafnyTestSpec.DAFNY_EXE;
+        dafnyProcess.StartInfo.FileName = "dotnet";
+        dafnyProcess.StartInfo.Arguments = "run --no-build --project ";
+        dafnyProcess.StartInfo.Arguments += DafnyTestSpec.DAFNY_PROJ;
         foreach(var argument in dafnyArguments) {
           dafnyProcess.StartInfo.Arguments += " " + argument;
         }
-
+        
         dafnyProcess.StartInfo.UseShellExecute = false;
         dafnyProcess.StartInfo.RedirectStandardOutput = true;
         dafnyProcess.StartInfo.RedirectStandardError = true;
