@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -65,8 +68,8 @@ namespace Microsoft.Boogie.ModelViewer
       return elt.ToString();
     }
 
-    // Elements (other than integers and Booleans) get canonical names of the form 
-    // "<base>'<idx>", where <base> is returned by this function, and <idx> is given 
+    // Elements (other than integers and Booleans) get canonical names of the form
+    // "<base>'<idx>", where <base> is returned by this function, and <idx> is given
     // starting with 0, and incrementing when there are conflicts between bases.
     //
     // This function needs to return an appropriate base name for the element. It is given
@@ -75,8 +78,8 @@ namespace Microsoft.Boogie.ModelViewer
     // A reasonable strategy is to check if it's a name of the local, and if so return it,
     // and otherwise use the type of element (e.g., return "seq" for elements representing
     // sequences). It is also possible to return "" in such cases.
-    // 
-    // The suff output parameter specifies whether the number sequence suffix should be 
+    //
+    // The suff output parameter specifies whether the number sequence suffix should be
     // always added, only when it's non-zero, or never.
     protected virtual string CanonicalBaseName(Model.Element elt, out NameSeqSuffix suff)
     {
@@ -208,7 +211,7 @@ namespace Microsoft.Boogie.ModelViewer
           case '[':
           case '<':
           case '>':
-          case ']': 
+          case ']':
           case '#':
           case '\\':
           case '(':

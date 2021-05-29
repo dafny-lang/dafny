@@ -92,9 +92,9 @@ git-issue-663.dfy(221,11): Error: an assume statement cannot be compiled
 git-issue-663.dfy(222,10): Error: an assume statement cannot be compiled
 git-issue-663.dfy(223,12): Error: an assume statement cannot be compiled
 git-issue-663.dfy(225,2): Error: an assume statement cannot be compiled
-git-issue-663.dfy(228,20): Error: Function _module._default.ExtremePredicateWithoutBody has no body
+git-issue-663.dfy(228,16): Error: Function _module._default.ExtremePredicateWithoutBody has no body
 git-issue-663.dfy(229,11): Error: an assume statement cannot be compiled
-git-issue-663.dfy(231,16): Error: Method _module._default.ExtremeLemmaWithoutBody has no body
+git-issue-663.dfy(231,12): Error: Method _module._default.ExtremeLemmaWithoutBody has no body
 git-issue-663.dfy(232,11): Error: an assume statement cannot be compiled
 git-issue-663.dfy(233,10): Error: an assume statement cannot be compiled
 git-issue-663.dfy(234,12): Error: an assume statement cannot be compiled

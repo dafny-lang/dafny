@@ -58,6 +58,12 @@ method Main() {
   Index();
   More();
   MoreWithDefaults();
+
+  Coercions();
+
+  CharValues();
+
+  TypeSynonym.Test();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -160,6 +166,8 @@ method Index() {
 method More() {
   var aa := new lowercase[3];
   forall i | 0 <= i < aa.Length {
+    // aa[i] should not be '\0', but in case erroneous code causes it to get a zero-equivalent
+    // value to be produced, then the following if-then-else will give better test output
     aa[i] := if aa[i] == '\0' then 'a' else aa[i];  // don't print ugly '\0' characters into test output
   }
   PrintArray(aa);
@@ -183,16 +191,14 @@ method More() {
   var a3 := new nLong[5];
   PrintArray(a3);
 
-  /**** TODO: Include this when this has been fixed for C#
   var kitchenSink: (lowercase, BV10, Yes, nByte, nShort, nInt, nLong);
   if kitchenSink.0 == '\0' {
     kitchenSink := kitchenSink.(0 := 'a');  // don't print ugly '\0' characters into test output
   }
   print kitchenSink, "\n";  // (d, 8, true, 1, 2, 3, 4)
-  ****/
 }
 
-type xlowercase = ch | '\0' <= ch <= 'z' && ch != 'D'
+type xchar = ch | '\0' <= ch <= 'z'
 type xBV10 = x: bv10 | x != 999
 type xYes = b | !b
 newtype xnByte = x | -10 <= x < 100
@@ -201,13 +207,11 @@ newtype xnInt = x | -10 <= x < 1_000_000
 newtype xnLong = x | -10 <= x < 0x100_0000_0000_0000
 
 method MoreWithDefaults() {
-  var aa := new xlowercase[3];
+  var aa := new xchar[3];
   forall i | 0 <= i < aa.Length {
     aa[i] := if aa[i] == '\0' then 'a' else aa[i];  // don't print ugly '\0' characters into test output
   }
-  /**** TODO: Include this when this has been fixed for C#
   PrintArray(aa);  // D D D
-  ****/
 
   var vv := new xBV10[4];
   PrintArray(vv);
@@ -224,11 +228,134 @@ method MoreWithDefaults() {
   var a3 := new xnLong[5];
   PrintArray(a3);
 
-  /**** TODO: Include this when this has been fixed for C#
-  var kitchenSink: (xlowercase, xBV10, xYes, xnByte, xnShort, xnInt, xnLong);
+  var kitchenSink: (xchar, xBV10, xYes, xnByte, xnShort, xnInt, xnLong);
   if kitchenSink.0 == '\0' {
     kitchenSink := kitchenSink.(0 := 'a');  // don't print ugly '\0' characters into test output
   }
   print kitchenSink, "\n";  // (D, 0, false, 0, 0, 0, 0)
-  ****/
+}
+
+method Coercions() {
+  // fields
+  var cell := new Cell(8 as short);
+  var a := cell.arr;
+  var x := a[0];
+
+  var b := new short[22];
+  var y := b[0];
+
+  print x, " ", y, "\n";  // 8 0
+
+  // different types of arrays, where coercions may not be needed
+  var c := new bool[22];
+  var d := new int[22];
+  var e := new object?[22];
+  var f := new Cell?<real>[22];
+  var c0, d0, e0, f0 := c[0], d[0], e[0], f[0];
+  print c0, " ", d0, " ", e0, " ", f0, "\n";
+
+  // function
+  a := cell.FArray();
+  // method with one out-parameter
+  b := cell.MArray();
+  x, y := a[0], b[0];
+  print x, " ", y, "\n";
+  // method with two out-parameters (which may need different compilation scheme)
+  a, b := cell.MArray2();
+  x, y := a[0], b[0];
+  print x, " ", y, "\n";
+
+  // lambda expression
+  b := (sa => sa)(b);
+  // array element
+  var barray := new array<short>[9](_ => b);
+  x, y := b[0], barray[3][0];
+  print x, " ", y, "\n";
+
+  // multi-dimensional arrays
+  var marray := new array<short>[9, 2]((_, _) => b);
+  x, y := marray[3, 1][0], cell.mat[7, 6];
+  print x, " ", y, "\n";
+}
+
+newtype short = x | -10 <= x < 12_000
+
+class Cell<T> {
+  var arr: array<T>
+  const crr: array<T>
+  var mat: array2<T>
+  constructor (t: T)
+    ensures arr.Length == 15 && arr == crr
+    ensures mat.Length0 == mat.Length1 == 15
+  {
+    arr := new T[15](_ => t);
+    crr := arr;
+    mat := new T[15, 15]((_, _) => t);
+  }
+  function method FArray(): array<T>
+    reads this
+  {
+    arr
+  }
+  method MArray() returns (x: array<T>)
+    ensures x == arr
+  {
+    x := arr;
+  }
+  method MArray2() returns (x: array<T>, y: array<T>)
+    ensures x == y == arr
+  {
+    x, y := arr, arr;
+  }
+}
+
+type ychar = ch | '\0' <= ch <= 'z'
+type zchar = ch | '\0' <= ch <= 'z' witness 'r'
+
+method CharValues() {
+  var aa := new char[3];
+  forall i | 0 <= i < aa.Length {
+    aa[i] := if aa[i] == '\0' then 'a' else aa[i];  // don't print ugly '\0' characters into test output
+  }
+  PrintArray(aa);  // D D D
+
+  var bb := new ychar[3];
+  forall i | 0 <= i < bb.Length {
+    bb[i] := if bb[i] == '\0' then 'a' else bb[i];  // don't print ugly '\0' characters into test output
+  }
+  PrintArray(bb);  // D D D
+
+  var cc := new char[3];
+  forall i | 0 <= i < cc.Length {
+    cc[i] := if cc[i] == '\0' then 'a' else cc[i];  // don't print ugly '\0' characters into test output
+  }
+  PrintArray(cc);  // r r r
+
+  var e0: char, e1: ychar, e2: zchar, ee: (char, ychar, zchar);
+  print e0, " ", e1, " ", e2, " ", ee, "\n";  // D D r (D, D, r)
+
+  var mm := new char[3, 3];
+  var mx := new ychar[3, 3];
+  var my := new zchar[3, 3];
+  print mm[1, 2], " ", mx[1, 2], " ", my[1, 2], "\n";  // D D r
+}
+
+module TypeSynonym {
+  export
+    provides Test
+
+  newtype uint8 = i:int | 0 <= i < 0x100
+
+  type buffer<T> = a: array<T> | a.Length < 0x1_0000_0000 witness *
+  type buffer_t = buffer<uint8>
+
+  method BufferTest(b: buffer_t) {
+    var t := b[..];
+    print t, "\n";
+  }
+
+  method Test() {
+    var b := new uint8[] [19, 18, 9, 8];
+    BufferTest(b);
+  }
 }

@@ -62,13 +62,19 @@ method M2() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b
     case true => seven := w as bv7;  // error: w may be too big
     case true => seven := seven as bv7;
     case true => seven := noll as bv7;
+  }
+}
+
+method M2'() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
+  ensures UseTheVars(x, n, r, even, small, b67, w, seven, noll)
+{
+  if {
     case true => noll := b67 as bv0;  // error: b67 may be too big
     case true => noll := w as bv0;  // error: w may be too big
     case true => noll := seven as bv0;  // error: seven may be too big
     case true => noll := noll as bv0;
   }
 }
-
 
 method M3() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
   ensures UseTheVars(x, n, r, even, small, b67, w, seven, noll)
@@ -115,3 +121,6 @@ method M5() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b
     case small as real == small.Floor as real => seven := (if 0.0 <= small < 100.0 then small else 100.0) as bv7;
   }
 }
+
+class Class { }
+type ClassSubset = c: Class | true // error: the witness guess "null" is not good enough

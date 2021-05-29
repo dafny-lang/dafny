@@ -103,12 +103,10 @@ SmallTests.dfy(255,30): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
-SmallTests.dfy(303,23): Error BP5002: A precondition for this call might not hold.
+SmallTests.dfy(303,23): Error: A precondition for this call might not hold.
 SmallTests.dfy(281,16): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Then
-    (0,0): anon2
 SmallTests.dfy(408,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -129,24 +127,26 @@ Execution trace:
 SmallTests.dfy(754,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon7_Then
-    (0,0): anon8_Then
-    (0,0): anon3
-SmallTests.dfy(338,2): Error BP5003: A postcondition might not hold on this return path.
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+    (0,0): anon11_Then
+    (0,0): anon4
+SmallTests.dfy(338,2): Error: A postcondition might not hold on this return path.
 SmallTests.dfy(332,10): Related location: This is the postcondition that might not hold.
 SmallTests.dfy(332,40): Related location
 Execution trace:
     (0,0): anon0
-    (0,0): anon18_Else
-    (0,0): anon23_Then
-    (0,0): anon24_Then
-    (0,0): anon15
-    (0,0): anon25_Else
+    (0,0): anon20_Else
+    (0,0): anon26_Then
+    (0,0): anon27_Then
+    (0,0): anon28_Then
+    (0,0): anon17
+    (0,0): anon29_Else
 SmallTests.dfy(379,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon7_Then
-    (0,0): anon6
+    (0,0): anon8_Then
+    (0,0): anon7
 SmallTests.dfy(386,9): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -154,7 +154,7 @@ SmallTests.dfy(396,3): Error: cannot prove termination; try supplying a decrease
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-SmallTests.dfy(440,9): Error BP5003: A postcondition might not hold on this return path.
+SmallTests.dfy(440,9): Error: A postcondition might not hold on this return path.
 SmallTests.dfy(443,40): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -162,68 +162,104 @@ Execution trace:
 SmallTests.dfy(604,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon3_Then
-    (0,0): anon2
-SmallTests.dfy(618,19): Error: left-hand sides 0 and 1 may refer to the same location
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+    (0,0): anon3
+    (0,0): anon11_Then
+    (0,0): anon12_Then
+    (0,0): anon8
+SmallTests.dfy(618,19): Error: left-hand sides n.next and n.next.next may refer to the same location
 Execution trace:
     (0,0): anon0
-    (0,0): anon23_Then
-    (0,0): anon24_Then
-    (0,0): anon4
-    (0,0): anon25_Then
-    (0,0): anon7
-    (0,0): anon26_Then
-    (0,0): anon27_Then
-    (0,0): anon10
-SmallTests.dfy(620,14): Error: left-hand sides 1 and 2 may refer to the same location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon23_Then
-    SmallTests.dfy(613,18): anon24_Else
-    (0,0): anon4
-    (0,0): anon25_Else
-    (0,0): anon7
-    (0,0): anon26_Else
     (0,0): anon29_Then
     (0,0): anon30_Then
+    (0,0): anon4
     (0,0): anon31_Then
-    (0,0): anon18
     (0,0): anon32_Then
+    (0,0): anon7
+    (0,0): anon9
+    (0,0): anon33_Then
+    (0,0): anon34_Then
+    (0,0): anon12
+SmallTests.dfy(620,14): Error: left-hand sides a[j] and a[i] may refer to the same location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon29_Then
+    SmallTests.dfy(613,18): anon30_Else
+    (0,0): anon4
+    (0,0): anon31_Else
+    (0,0): anon9
+    (0,0): anon33_Else
+    (0,0): anon37_Then
+    (0,0): anon38_Then
+    (0,0): anon39_Then
+    (0,0): anon22
+    (0,0): anon40_Then
 SmallTests.dfy(627,24): Error: target object may be null
 Execution trace:
     (0,0): anon0
-SmallTests.dfy(627,24): Error: target object may not be allocated
-Execution trace:
-    (0,0): anon0
+    (0,0): anon3_Then
 SmallTests.dfy(640,9): Error: assertion violation
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
 SmallTests.dfy(664,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon19_Then
+    (0,0): anon20_Then
+    (0,0): anon21_Then
+    (0,0): anon22_Then
+    (0,0): anon8
+    (0,0): anon23_Then
+    (0,0): anon10
+    (0,0): anon24_Then
+    (0,0): anon25_Then
+    (0,0): anon26_Then
+    (0,0): anon27_Then
 SmallTests.dfy(687,22): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon8_Then
-    (0,0): anon9_Then
-    (0,0): anon4
-    (0,0): anon10_Then
-    (0,0): anon7
+    (0,0): anon13_Then
+    (0,0): anon14_Then
+    (0,0): anon15_Then
+    (0,0): anon16_Then
+    (0,0): anon17_Then
+    (0,0): anon9
+    (0,0): anon18_Then
+    (0,0): anon12
 SmallTests.dfy(701,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon6_Then
-    (0,0): anon3
+    (0,0): anon10_Then
+    (0,0): anon11_Then
+    (0,0): anon12_Then
+    (0,0): anon13_Then
+    (0,0): anon6
 SmallTests.dfy(703,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
-    (0,0): anon5_Else
+    (0,0): anon10_Then
+    (0,0): anon11_Else
+    (0,0): anon14_Then
+    (0,0): anon9
 SmallTests.dfy(716,8): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 Execution trace:
     (0,0): anon0
+    (0,0): anon19_Then
+    (0,0): anon20_Then
+    (0,0): anon21_Then
+    (0,0): anon22_Then
+    (0,0): anon8
+    (0,0): anon23_Then
+    (0,0): anon10
+    (0,0): anon24_Then
+    (0,0): anon25_Then
+    (0,0): anon26_Then
+    (0,0): anon27_Then
 
-Dafny program verifier finished with 51 verified, 46 errors
+Dafny program verifier finished with 51 verified, 45 errors
 SmallTests.dfy.tmp.dprint.dfy(451,4): Warning: /!\ No trigger covering all quantified variables found.
 
 Dafny program verifier did not attempt verification

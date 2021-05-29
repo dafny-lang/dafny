@@ -30,7 +30,7 @@ NonZeroInitialization.dfy(19,8): Error: trying witness 0: result of operation mi
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-NonZeroInitialization.dfy(37,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause
+NonZeroInitialization.dfy(37,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
@@ -38,7 +38,7 @@ NonZeroInitialization.dfy(38,70): Error: result of operation might violate subse
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-NonZeroInitialization.dfy(39,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause
+NonZeroInitialization.dfy(39,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else

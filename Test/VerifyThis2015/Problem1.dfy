@@ -172,9 +172,7 @@ lemma Same2<T>(pat: seq<T>, a: seq<T>)
         [x] + (pat[1..][..k] + pat[k+2..]) <= [x] + a[1..];
       ==  { assert [x] + a[1..] == a; }
         [x] + (pat[1..][..k] + pat[k+2..]) <= a;
-      ==
-        ([x] + pat[1..][..k]) + pat[k+2..] <= a;
-      ==  { assert [x] + pat[1..][..k] == pat[..k+1]; }
+      ==  { assert [x] + (pat[1..][..k] + pat[k+2..]) == pat[..k+1] + pat[k+2..]; }
         pat[..k+1] + pat[k+2..] <= a;
       }
     }

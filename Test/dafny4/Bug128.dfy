@@ -1,4 +1,4 @@
-// RUN: %dafny /noNLarith /z3opt:pi.warnings=true /proverWarnings:1 /compile:0 "%s" > "%t"
+// RUN: %dafny /noNLarith /proverOpt:O:pi.warnings=true /proverWarnings:1 /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function GetIndexInSequence<T>(s:seq<T>, x:T) : int

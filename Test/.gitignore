@@ -1,6 +1,34 @@
+**/Output/
+
+# C# output
+**/*.cs
+**/*.dll
+**/*.runtimeconfig.json
+**/*.mdb
+**/*.pdb
+**/bin
+**/obj
+
+# JavaScript output
+**/*.js
+
+# Go output
+**/*-go
+
+# Java output
+**/*-java
+
+# C++ output
+**/*.h
+**/*.cpp
+**/*.dSYM
+**/*.exe
+
+node_modules/
+package-lock.json
+packages
+
+server/model.bvd
 git-issues/git-issue-622$f/**
-*/*-go
-*/*.js
-*/*.cs
-*/Output/
-c++/*
+comp/compile1verbose/CompileAndThenRun
+comp/compile1quiet/CompileRunQuietly

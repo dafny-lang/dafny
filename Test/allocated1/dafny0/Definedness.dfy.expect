@@ -24,18 +24,18 @@ Execution trace:
 Definedness.dfy(53,17): Error: target object may be null
 Execution trace:
     (0,0): anon0
-Definedness.dfy(54,2): Error BP5003: A postcondition might not hold on this return path.
+Definedness.dfy(54,2): Error: A postcondition might not hold on this return path.
 Definedness.dfy(53,21): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
 Definedness.dfy(60,17): Error: target object may be null
 Execution trace:
     (0,0): anon0
-Definedness.dfy(61,2): Error BP5003: A postcondition might not hold on this return path.
+Definedness.dfy(61,2): Error: A postcondition might not hold on this return path.
 Definedness.dfy(60,21): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-Definedness.dfy(68,2): Error BP5003: A postcondition might not hold on this return path.
+Definedness.dfy(68,2): Error: A postcondition might not hold on this return path.
 Definedness.dfy(67,21): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -98,7 +98,7 @@ Execution trace:
     Definedness.dfy(132,5): anon6_LoopHead
     (0,0): anon6_LoopBody
     (0,0): anon7_Then
-Definedness.dfy(133,21): Error BP5004: This loop invariant might not hold on entry.
+Definedness.dfy(133,21): Error: This loop invariant might not hold on entry.
 Definedness.dfy(133,21): Related message: loop invariant violation
 Execution trace:
     (0,0): anon0
@@ -127,7 +127,7 @@ Execution trace:
     Definedness.dfy(162,5): anon20_LoopHead
     (0,0): anon20_LoopBody
     Definedness.dfy(162,5): anon21_Else
-Definedness.dfy(175,27): Error BP5004: This loop invariant might not hold on entry.
+Definedness.dfy(175,27): Error: This loop invariant might not hold on entry.
 Definedness.dfy(175,27): Related message: loop invariant violation
 Execution trace:
     (0,0): anon0
@@ -150,7 +150,7 @@ Execution trace:
     Definedness.dfy(194,5): anon6_LoopHead
     (0,0): anon6_LoopBody
     (0,0): anon7_Then
-Definedness.dfy(196,22): Error BP5004: This loop invariant might not hold on entry.
+Definedness.dfy(196,22): Error: This loop invariant might not hold on entry.
 Definedness.dfy(196,22): Related message: loop invariant violation
 Execution trace:
     (0,0): anon0
@@ -160,7 +160,7 @@ Execution trace:
     Definedness.dfy(194,5): anon6_LoopHead
     (0,0): anon6_LoopBody
     (0,0): anon7_Then
-Definedness.dfy(215,9): Error BP5003: A postcondition might not hold on this return path.
+Definedness.dfy(215,9): Error: A postcondition might not hold on this return path.
 Definedness.dfy(217,48): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -173,7 +173,7 @@ Definedness.dfy(224,21): Error: target object may not be allocated
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
-Definedness.dfy(237,9): Error BP5003: A postcondition might not hold on this return path.
+Definedness.dfy(237,9): Error: A postcondition might not hold on this return path.
 Definedness.dfy(240,23): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0

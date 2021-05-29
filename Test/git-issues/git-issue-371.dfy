@@ -14,7 +14,7 @@ module MA {
 module MB {
   module I {
     type T42 = x | 0 <= x < 42
-  } 
+  }
 }
 
 module A {

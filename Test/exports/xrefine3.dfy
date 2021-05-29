@@ -7,7 +7,7 @@ module AlphaImpl {
 
     export Spec provides Alpha, IsValid, Init
 
-    type Alpha = bool
+    type Alpha(00) = bool
 
     predicate IsValid(a:Alpha) {
         a

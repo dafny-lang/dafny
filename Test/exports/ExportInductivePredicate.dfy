@@ -2,12 +2,12 @@
 // RUN: %diff "%s.expect" "%t"
 
 module M {
-  inductive predicate P(x: int)
+  least predicate P(x: int)
   {
     x < 100
   }
 
-  copredicate Q(x: int)
+  greatest predicate Q(x: int)
   {
     x < 100
   }
@@ -73,20 +73,20 @@ module M' {
   {
   }
 
-  inductive lemma V(x: int)
+  least lemma V(x: int)
     requires P(x)
   {
   }
-  inductive lemma W(x: int)
+  least lemma W(x: int)
     requires M.P(x)
   {
   }
-  colemma CoV(x: int)
+  greatest lemma CoV(x: int)
     requires x < 100
     ensures Q(x)
   {
   }
-  colemma CoW(x: int)
+  greatest lemma CoW(x: int)
     requires x < 100
     ensures M.Q(x)
   {

@@ -25,7 +25,7 @@ module Library {
     AutoGhostRegression.Q();
     ExternCode.C();
   }
-  
+
   module AmbiguousNestedModule {
     method EntryPoint() {
       print "hello from a nested module\n";

@@ -61,5 +61,5 @@ ensures c == t;
 method Bad2() returns (c: C1, t: T1)
 ensures c == t;
 {
-    c := t;  //error, can not assign a trait to a class
+    c := t;  // OK for type resolution, but must be proved
 }

@@ -20,6 +20,8 @@ method Main() {
   EnumerationsMaybeNull();
   GoNil();
   Containment({}, {}, {});
+  TestImplicitTypeTests.Test();
+  ObjectTests.Test();
 }
 
 predicate method Thirteen(x: int) { x == 13 }
@@ -39,9 +41,9 @@ method AssignSuchThat() {
 method LetSuchThat() {
   assert Thirteen(13);
   var p := var x, y :| 12 <= x < y < 15 && Thirteen(x); (x, y);
-  print "p=", p, "\n";
+  assert p == (13, 14);
   var q := var x, b, y :| 12 <= x < y < 15 && Thirteen(x) && b; (x, y, if b then "yes" else "no");
-  print "q=", q, "\n";
+  assert q == (13, 14, "yes");
 }
 
 method Quantifier() {
@@ -412,4 +414,80 @@ method Containment(s: set<CellA>, t: set<ICell>, u: set<SomethingElse>) {
   b1 := t > s;
   c := t > u;
   print b0, " ", b1, " ", c, "\n";  // false false false
+}
+
+module TestImplicitTypeTests {
+  trait A {}
+  trait B extends A {}
+  class C extends B {}
+  class A' extends A {}
+  class B' extends B {}
+
+  method Test() {
+    var o, a, b, c := new object, new A', new B', new C;
+    var r: set<object> := {o, a, b, c};
+    var s: set<A> := set x: A | x in r;
+    var t: set<B> := set x: B | x in s;
+    var u: set<C> := set x: C | x in s;
+    print |r|, " ", |s|, " ", |t|, " ", |u|, "\n"; // 4 3 2 1
+    print r == set x | x in r && x is object, " "; // true
+    print s == set x | x in r && x is A, " "; // true
+    print t == set x | x in r && x is B, " "; // true
+    print u == set x | x in r && x is C, "\n"; // true
+
+    var r': set<object?> := r;
+    var s': set<A?> := s;
+    var t': set<B?> := t;
+    var u': set<C?> := u;
+    print |r'|, " ", |s'|, " ", |t'|, " ", |u'|, "\n"; // 4 3 2 1
+    print r' == set x | x in r && x is object, " "; // true
+    print s' == set x | x in r && x is A, " "; // true
+    print t' == set x | x in r && x is B, " "; // true
+    print u' == set x | x in r && x is C, "\n"; // true
+
+    r', s', t', u' := r' + {null}, s' + {null}, t' + {null}, u' + {null};
+    print r' == set x | x in r && x is object, " "; // false
+    print s' == set x | x in r && x is A, " "; // false
+    print t' == set x | x in r && x is B, " "; // false
+    print u' == set x | x in r && x is C, "\n"; // false
+    print r' == set x | x in r && x is object?, " "; // false
+    print s' == set x | x in r && x is A?, " "; // false
+    print t' == set x | x in r && x is B?, " "; // false
+    print u' == set x | x in r && x is C?, "\n"; // false
+
+    print r == set x | x in r' && x is object, " "; // true
+    print s == set x | x in r' && x is A, " "; // true
+    print t == set x | x in r' && x is B, " "; // true
+    print u == set x | x in r' && x is C, "\n"; // true
+    print r == set x | x in r' && x is object?, " "; // false
+    print s == set x | x in r' && x is A?, " "; // false
+    print t == set x | x in r' && x is B?, " "; // false
+    print u == set x | x in r' && x is C?, "\n"; // false
+    print r == set x | x in r' && x is object? && x != null, " "; // true
+    print s == set x | x in r' && x is A? && x != null, " "; // true
+    print t == set x | x in r' && x is B? && x != null, " "; // true
+    print u == set x | x in r' && x is C? && x != null, "\n"; // true
+  }
+}
+
+module ObjectTests {
+  method Test() {
+    var o, p := new object, new object;
+    print o == p, " ", p == p, "\n"; // false true
+    print GenEqual(o, p), " ", GenEqual(p, p), "\n"; // false true
+    AutoInit<object?>(); // null
+    var o': object?, p': object? := o, p;
+    print GenEqual(o', p'), " ", GenEqual(p', p'), "\n"; // false true
+    o', p' := null, null;
+    print GenEqual(o', p'), " ", GenEqual(p', p'), "\n"; // true true
+  }
+
+  predicate method GenEqual<X(==)>(x: X, y: X) {
+    x == y
+  }
+
+  method AutoInit<X(0)>() {
+    var x: X;
+    print x, "\n";
+  }
 }

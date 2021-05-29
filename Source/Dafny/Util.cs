@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,14 +18,14 @@ namespace Microsoft.Dafny {
     }
 
     public static string Comma<T>(IEnumerable<T> l, Func<T, string> f) {
-      return Comma(",", l, f);
+      return Comma(", ", l, f);
     }
 
-    public static string Comma<T>(string comma, IEnumerable<T> l, Func<T,string> f) {
+    public static string Comma<T>(string comma, IEnumerable<T> l, Func<T, string> f) {
       Contract.Requires(comma != null);
       string res = "";
       string c = "";
-      foreach(var t in l) {
+      foreach (var t in l) {
         res += c + f(t);
         c = comma;
       }
@@ -31,7 +34,7 @@ namespace Microsoft.Dafny {
 
     public static string Comma(int count, Func<int, string> f) {
       Contract.Requires(0 <= count);
-      return Comma(",", count, f);
+      return Comma(", ", count, f);
     }
 
     public static string Comma(string comma, int count, Func<int, string> f) {
@@ -44,6 +47,11 @@ namespace Microsoft.Dafny {
         c = comma;
       }
       return res;
+    }
+
+    public static string Plural(int n) {
+      Contract.Requires(0 <= n);
+      return n == 1 ? "" : "s";
     }
 
     public static string Repeat(string str, int times) {
@@ -224,14 +232,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(errors != null);
       if (performThisDeprecationCheck) {
         if (fe.E is ThisExpr) {
-          errors.Deprecated(fe.E.tok, "Dafny's constructors no longer need 'this' to be listed in modifies clauses");
+          errors.Deprecated(fe.E.tok, "constructors no longer need 'this' to be listed in modifies clauses");
           return;
         } else if (fe.E is SetDisplayExpr) {
           var s = (SetDisplayExpr)fe.E;
           var deprecated = s.Elements.FindAll(e => e is ThisExpr);
           if (deprecated.Count != 0) {
             foreach (var e in deprecated) {
-              errors.Deprecated(e.tok, "Dafny's constructors no longer need 'this' to be listed in modifies clauses");
+              errors.Deprecated(e.tok, "constructors no longer need 'this' to be listed in modifies clauses");
             }
             s.Elements.RemoveAll(e => e is ThisExpr);
             if (s.Elements.Count == 0) {
@@ -295,7 +303,7 @@ namespace Microsoft.Dafny {
 
       foreach (var vertex in functionCallGraph.GetVertices()) {
         var func = vertex.N;
-        Console.Write("{0},{1}=", func.CompileName, func.EnclosingClass.Module.CompileName);
+        Console.Write("{0},{1}=", func.CompileName, func.EnclosingClass.EnclosingModuleDefinition.CompileName);
         foreach (var callee in vertex.Successors) {
           Console.Write("{0} ", callee.N.CompileName);
         }
@@ -405,9 +413,9 @@ namespace Microsoft.Dafny {
       string key = include.includerFilename == null ? "roots" : include.includerFilename;
       bool found = dependencies.TryGetValue(key, out existingDependencies);
       if (found) {
-        existingDependencies.Add(include.includedFullPath);
+        existingDependencies.Add(include.canonicalPath);
       } else {
-        dependencies[key] = new SortedSet<string>() { include.includedFullPath };
+        dependencies[key] = new SortedSet<string>() { include.canonicalPath };
       }
     }
 

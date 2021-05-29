@@ -16,7 +16,7 @@ function length(xs: List): nat
 
 // If "0 <= n < length(xs)", then return the element of "xs" that is preceded by
 // "n" elements; otherwise, return an arbitrary value.
-function nth<T>(n: int, xs: List<T>): T
+function nth<T(00)>(n: int, xs: List<T>): T
 {
   if 0 <= n < length(xs) then
     nthWorker(n, xs)
@@ -49,14 +49,14 @@ function nats(n: nat): List<int>
   if n == 0 then Nil else Cons(n-1, nats(n-1))
 }
 
-function xtr(mp: List<int>, lst: List): List
+function xtr<T(00)>(mp: List<int>, lst: List): List
 {
   match mp
   case Nil => Nil
   case Cons(n, rest) => Cons(nth(n, lst), xtr(rest, lst))
 }
 
-lemma ExtractorTheorem(xs: List)
+lemma ExtractorTheorem<T(00)>(xs: List)
   ensures xtr(nats(length(xs)), xs) == rev(xs);
 {
   var a, b := xtr(nats(length(xs)), xs), rev(xs);
@@ -116,7 +116,7 @@ lemma RevLength(xs: List)
 
 // you can prove two lists equal by proving their elements equal
 
-lemma EqualElementsMakeEqualLists(xs: List, ys: List)
+lemma EqualElementsMakeEqualLists<T(00)>(xs: List, ys: List)
   requires length(xs) == length(ys)
   requires forall i :: 0 <= i < length(xs) ==> nth(i, xs) == nth(i, ys)
   ensures xs == ys
@@ -139,7 +139,7 @@ lemma EqualElementsMakeEqualLists(xs: List, ys: List)
 
 // here is the theorem, but applied to the ith element
 
-lemma ExtractorLemma(i: int, xs: List)
+lemma ExtractorLemma<T(00)>(i: int, xs: List)
   requires 0 <= i < length(xs);
   ensures nth(i, xtr(nats(length(xs)), xs)) == nth(i, rev(xs));
 {
@@ -157,7 +157,7 @@ lemma ExtractorLemma(i: int, xs: List)
 
 // lemmas about what nth gives on certain lists
 
-lemma NthXtr(i: int, mp: List<int>, lst: List)
+lemma NthXtr<T(00)>(i: int, mp: List<int>, lst: List<T>)
   requires 0 <= i < length(mp);
   ensures nth(i, xtr(mp, lst)) == nth(nth(i, mp), lst);
 {
@@ -189,7 +189,7 @@ lemma NthNatsWorker(i: int, n: nat)
 {
 }
 
-lemma NthRev(i: int, xs: List)
+lemma NthRev<T(00)>(i: int, xs: List)
   requires 0 <= i < length(xs) == length(rev(xs));
   ensures nthWorker(i, rev(xs)) == nthWorker(length(xs) - 1 - i, xs);
 {
@@ -230,7 +230,7 @@ lemma NthRev(i: int, xs: List)
   }
 }
 
-lemma NthAppendA(i: int, xs: List, ys: List)
+lemma NthAppendA<T(00)>(i: int, xs: List, ys: List)
   requires 0 <= i < length(xs);
   ensures nth(i, append(xs, ys)) == nth(i, xs);
 {
@@ -251,7 +251,7 @@ lemma NthAppendA(i: int, xs: List, ys: List)
   }
 }
 
-lemma NthAppendB(i: int, xs: List, ys: List)
+lemma NthAppendB<T(00)>(i: int, xs: List, ys: List)
   requires length(xs) <= i < length(xs) + length(ys);
   ensures nth(i, append(xs, ys)) == nth(i - length(xs), ys);
 {

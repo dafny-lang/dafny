@@ -1,4 +1,4 @@
-<p></p> <!-- avoids duplicate title -->  
+<p></p> <!-- avoids duplicate title -->
 
 # Dafny compilation to C++
 
@@ -15,8 +15,6 @@ implementation.
 - Very limited support for higher order functions even for array init.  Use
   extern definitions like newArrayFill (see extern.dfy) or similar.  See also
   the example in `functions.dfy`.
-- We currently only support tuples up to arity 5.  A common place where you
-  might go over that limit is print statements, which tuple the arguments.
 - The current backend also assumes the use of C++17 in order to cleanly and
   performantly implement datatypes.
 

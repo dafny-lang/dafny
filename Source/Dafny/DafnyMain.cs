@@ -1,6 +1,8 @@
 //-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
 using System;
@@ -16,11 +18,21 @@ namespace Microsoft.Dafny {
   public class IllegalDafnyFile : Exception { }
 
   public class DafnyFile {
+    public bool UseStdin { get; private set; }
     public string FilePath { get; private set; }
+    public string CanonicalPath { get; private set; }
     public string BaseName { get; private set; }
     public bool isPrecompiled { get; private set; }
     public string SourceFileName { get; private set; }
 
+    // Returns a canonical string for the given file path, namely one which is the same
+    // for all paths to a given file and different otherwise. The best we can do is to
+    // make the path absolute -- detecting case and canoncializing symbolic and hard
+    // links are difficult across file systems (which may mount parts of other filesystems,
+    // with different characteristics) and is not supported by .Net libraries
+    public static string Canonicalize(String filePath) {
+      return Path.GetFullPath(filePath);
+    }
     public static List<string> fileNames(IList<DafnyFile> dafnyFiles) {
       var sourceFiles = new List<string>();
       foreach (DafnyFile f in dafnyFiles) {
@@ -28,16 +40,23 @@ namespace Microsoft.Dafny {
       }
       return sourceFiles;
     }
-
-    public DafnyFile(string filePath) {
+    public DafnyFile(string filePath, bool useStdin = false) {
+      UseStdin = useStdin;
       FilePath = filePath;
       BaseName = Path.GetFileName(filePath);
 
-      var extension = Path.GetExtension(filePath);
+      var extension = useStdin ? ".dfy" : Path.GetExtension(filePath);
       if (extension != null) { extension = extension.ToLower(); }
 
-      if (!Path.IsPathRooted(filePath))
+      // Normalizing symbolic links appears to be not
+      // supported in .Net APIs, because it is very difficult in general
+      // So we will just use the absolute path, lowercased for all file systems.
+      // cf. IncludeComparer.CompareTo
+      CanonicalPath = Canonicalize(filePath);
+
+      if (!useStdin && !Path.IsPathRooted(filePath)) {
         filePath = Path.GetFullPath(filePath);
+      }
 
       if (extension == ".dfy" || extension == ".dfyi") {
         isPrecompiled = false;
@@ -105,9 +124,10 @@ namespace Microsoft.Dafny {
       program = null;
       ModuleDecl module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
       BuiltIns builtIns = new BuiltIns();
+
       foreach (DafnyFile dafnyFile in files){
         Contract.Assert(dafnyFile != null);
-        if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen) {
+        if (Bpl.CommandLineOptions.Clo.XmlSink != null && Bpl.CommandLineOptions.Clo.XmlSink.IsOpen && !dafnyFile.UseStdin) {
           Bpl.CommandLineOptions.Clo.XmlSink.WriteFileFragment(dafnyFile.FilePath);
         }
         if (Bpl.CommandLineOptions.Clo.Trace)
@@ -159,7 +179,7 @@ namespace Microsoft.Dafny {
     // Lower-case file names before comparing them, since Windows uses case-insensitive file names
     private class IncludeComparer : IComparer<Include> {
       public int Compare(Include x, Include y) {
-        return x.includedFullPath.ToLower().CompareTo(y.includedFullPath.ToLower());
+        return x.CompareTo(y);
       }
     }
 
@@ -167,7 +187,7 @@ namespace Microsoft.Dafny {
       SortedSet<Include> includes = new SortedSet<Include>(new IncludeComparer());
       DependencyMap dmap = new DependencyMap();
       foreach (string fileName in excludeFiles) {
-        includes.Add(new Include(null, null, fileName, Path.GetFullPath(fileName)));
+        includes.Add(new Include(null, null, fileName));
       }
       dmap.AddIncludes(includes);
       bool newlyIncluded;
@@ -208,7 +228,7 @@ namespace Microsoft.Dafny {
     private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true, bool compileThisFile = true) {
       var fn = DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
-        int errorCount = Dafny.Parser.Parse(dafnyFile.SourceFileName, include, module, builtIns, errs, verifyThisFile, compileThisFile);
+        int errorCount = Dafny.Parser.Parse(dafnyFile.UseStdin, dafnyFile.SourceFileName, include, module, builtIns, errs, verifyThisFile, compileThisFile);
         if (errorCount != 0) {
           return string.Format("{0} parse errors detected in {1}", errorCount, fn);
         }

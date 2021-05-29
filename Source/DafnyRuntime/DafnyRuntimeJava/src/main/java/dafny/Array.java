@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 package dafny;
 
 import java.util.List;
@@ -19,25 +22,25 @@ import java.util.List;
  *            for int).
  */
 public final class Array<T> implements Cloneable {
-    private final Type<T> eltType;
+    private final TypeDescriptor<T> eltType;
     private final Object array;
 
-    private Array(Type<T> eltType, Object array) {
+    private Array(TypeDescriptor<T> eltType, Object array) {
         assert eltType.arrayType().isInstance(array);
 
         this.eltType = eltType;
         this.array = array;
     }
 
-    public static <T> Array<T> newArray(Type<T> eltType, int length) {
+    public static <T> Array<T> newArray(TypeDescriptor<T> eltType, int length) {
         return new Array<T>(eltType, eltType.newArray(length));
     }
 
-    public static <T> Array<T> fromList(Type<T> eltType, List<T> elements) {
+    public static <T> Array<T> fromList(TypeDescriptor<T> eltType, List<T> elements) {
         return new Array<T>(eltType, eltType.toArray(elements));
     }
 
-    public Type<T> elementType() {
+    public TypeDescriptor<T> elementType() {
         return eltType;
     }
 
@@ -80,7 +83,7 @@ public final class Array<T> implements Cloneable {
         return eltType.arrayDeepEquals(this.array, other.array);
     }
 
-    public static <T> Array<T> wrap(Type<T> eltType, Object array) {
+    public static <T> Array<T> wrap(TypeDescriptor<T> eltType, Object array) {
         assert eltType.arrayType().isInstance(array);
 
         return new Array<T>(eltType, array);
@@ -89,32 +92,32 @@ public final class Array<T> implements Cloneable {
     // Note: We need the element type passed in here because otherwise the
     // actual type of the array might not be T[] but S[] where S is a subclass
     // of T.
-    public static <T> Array<T> wrap(Type<T> eltType, T[] array) {
+    public static <T> Array<T> wrap(TypeDescriptor<T> eltType, T[] array) {
         return new Array<T>(eltType, array);
     }
 
     public static Array<Byte> wrap(byte[] array) {
-        return new Array<Byte>(Type.BYTE, array);
+        return new Array<Byte>(TypeDescriptor.BYTE, array);
     }
 
     public static Array<Short> wrap(short[] array) {
-        return new Array<Short>(Type.SHORT, array);
+        return new Array<Short>(TypeDescriptor.SHORT, array);
     }
 
     public static Array<Integer> wrap(int[] array) {
-        return new Array<Integer>(Type.INT, array);
+        return new Array<Integer>(TypeDescriptor.INT, array);
     }
 
     public static Array<Long> wrap(long[] array) {
-        return new Array<Long>(Type.LONG, array);
+        return new Array<Long>(TypeDescriptor.LONG, array);
     }
 
     public static Array<Boolean> wrap(boolean[] array) {
-        return new Array<Boolean>(Type.BOOLEAN, array);
+        return new Array<Boolean>(TypeDescriptor.BOOLEAN, array);
     }
 
     public static Array<Character> wrap(char[] array) {
-        return new Array<Character>(Type.CHAR, array);
+        return new Array<Character>(TypeDescriptor.CHAR, array);
     }
 
     public static Object unwrap(Array<?> array) {

@@ -1,0 +1,3 @@
+git-issue-659e.dfy(17,13): Error: unresolved identifier: a
+git-issue-659e.dfy(30,11): Error: module A does not exist (position 1 in path Z.A) because Z does not have a default export
+2 resolution/type errors detected in git-issue-659e.dfy

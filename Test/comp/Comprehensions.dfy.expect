@@ -2,8 +2,6 @@
 Dafny program verifier did not attempt verification
 x=13 y=14
 x=13 y=14 b=yes
-p=(13, 14)
-q=(13, 14, yes)
 true false
 true false
 map[12 := 6, 13 := 6, 14 := 7]

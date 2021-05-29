@@ -169,7 +169,7 @@ module Implementation refines Specification {
   const Mar25 := 325
   const Dec20 := 1220
 
-  class BirthdayBook {
+  class BirthdayBook ... {
     method AddBirthday...
     {
       known := known + {name};

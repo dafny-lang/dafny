@@ -1,10 +1,10 @@
-TraitVerify.dfy(21,7): Error: value does not satisfy the subset constraints of 'Tr<int>' (possible cause: it may be null)
+TraitVerify.dfy(21,7): Error: value of expression (of type 'C?<int>') is not known to be an instance of type 'Tr<int>'
 Execution trace:
     (0,0): anon0
-TraitVerify.dfy(25,7): Error: value does not satisfy the subset constraints of 'Tr<int>' (possible cause: it may be null)
+TraitVerify.dfy(25,7): Error: value of expression (of type 'A?') is not known to be an instance of type 'Tr<int>'
 Execution trace:
     (0,0): anon0
-TraitVerify.dfy(30,7): Error: value does not satisfy the subset constraints of 'A' (it may be null)
+TraitVerify.dfy(30,7): Error: value of expression (of type 'A?') is not known to be an instance of type 'A', because it may be null
 Execution trace:
     (0,0): anon0
 

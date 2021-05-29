@@ -10,9 +10,9 @@ module _System {
    * SCC at height 0:
    *   nat
    */
-  type string(==) = seq<char>
+  type string(==,0) = seq<char>
 
-  type {:axiom} nat(==) = x: int
+  type {:axiom} nat(==,0) = x: int
     | 0 <= x
 
   trait {:compile false} object { }
@@ -116,32 +116,46 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 9:
+ * SCC at height 12:
  *   M5
- * SCC at height 8:
+ * SCC at height 11:
  *   M4
- * SCC at height 7:
+ * SCC at height 10:
  *   M3
- * SCC at height 6:
+ * SCC at height 9:
+ *   M2'
+ * SCC at height 8:
  *   M2
- * SCC at height 5:
+ * SCC at height 7:
  *   M1
- * SCC at height 4:
+ * SCC at height 6:
  *   M0
- * SCC at height 3:
+ * SCC at height 5:
  *   UseTheVars
- * SCC at height 2:
+ * SCC at height 4:
  *   SmallReal
- * SCC at height 1:
+ * SCC at height 3:
  *   EvenInt
- * SCC at height 0:
+ * SCC at height 2:
  *   nat
+ * SCC at height 1:
+ *   ClassSubset
+ * SCC at height 0:
+ *   Class
  */
 newtype EvenInt = x: int
   | x % 2 == 0
 
 newtype SmallReal = r: real
   | -4.0 <= r < 300.0
+
+class Class { }
+/*-- non-null type
+type {:axiom} Class(==) = c: Class? | c != null /*special witness*/
+*/
+
+type ClassSubset = c: Class
+  | true
 
 predicate UseTheVars(x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
   decreases x, n, r, even, small, b67, w, seven, noll
@@ -245,6 +259,14 @@ method M2()
       seven := seven as bv7;
     case true =>
       seven := noll as bv7;
+  }
+}
+
+method M2'()
+    returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)
+  ensures UseTheVars(x, n, r, even, small, b67, w, seven, noll)
+{
+  if {
     case true =>
       noll := b67 as bv0;
     case true =>
@@ -319,6 +341,10 @@ method M5()
       seven := (if 0.0 <= small < 100.0 then small else 100.0) as bv7;
   }
 }
+TypeConversions.dfy(126,5): Error: trying witness null: value of expression (of type 'Class?') is not known to be an instance of type 'Class', because it may be null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
 TypeConversions.dfy(14,40): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
@@ -342,42 +368,46 @@ Execution trace:
 TypeConversions.dfy(57,26): Error: value to be converted might not fit in bv32
 Execution trace:
     (0,0): anon0
-    (0,0): anon22_Then
+    (0,0): anon18_Then
 TypeConversions.dfy(61,30): Error: value to be converted might not fit in bv7
 Execution trace:
     (0,0): anon0
-    (0,0): anon26_Then
+    (0,0): anon22_Then
 TypeConversions.dfy(62,28): Error: value to be converted might not fit in bv7
 Execution trace:
     (0,0): anon0
-    (0,0): anon27_Then
-TypeConversions.dfy(65,29): Error: value to be converted might not fit in bv0
+    (0,0): anon23_Then
+TypeConversions.dfy(72,29): Error: value to be converted might not fit in bv0
 Execution trace:
     (0,0): anon0
-    (0,0): anon30_Then
-TypeConversions.dfy(66,27): Error: value to be converted might not fit in bv0
+    (0,0): anon6_Then
+TypeConversions.dfy(73,27): Error: value to be converted might not fit in bv0
 Execution trace:
     (0,0): anon0
-    (0,0): anon31_Then
-TypeConversions.dfy(94,20): Error: result of operation might violate newtype constraint for 'EvenInt'
+    (0,0): anon7_Then
+TypeConversions.dfy(74,31): Error: value to be converted might not fit in bv0
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+TypeConversions.dfy(100,20): Error: result of operation might violate newtype constraint for 'EvenInt'
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
-TypeConversions.dfy(94,20): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
+TypeConversions.dfy(100,20): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
-TypeConversions.dfy(96,20): Error: result of operation might violate newtype constraint for 'EvenInt'
+TypeConversions.dfy(102,20): Error: result of operation might violate newtype constraint for 'EvenInt'
 Execution trace:
     (0,0): anon0
     (0,0): anon14_Then
-TypeConversions.dfy(109,28): Error: value to be converted might not fit in bv7
+TypeConversions.dfy(115,28): Error: value to be converted might not fit in bv7
 Execution trace:
     (0,0): anon0
     (0,0): anon20_Then
-TypeConversions.dfy(110,27): Error: value to be converted might not fit in bv0
+TypeConversions.dfy(116,27): Error: value to be converted might not fit in bv0
 Execution trace:
     (0,0): anon0
     (0,0): anon21_Then
 
-Dafny program verifier finished with 3 verified, 15 errors
+Dafny program verifier finished with 3 verified, 17 errors

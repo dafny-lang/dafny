@@ -44,3 +44,11 @@ Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
   eq: true false true false true false
   eq: true true true true true true
   eq: true true true true true true
+set: {20, 30}
+multiset: {20, 30}
+seq: [20, 30]
+map: {20 := 30, 30 := 20}
+true
+true
+1 1
+1 1

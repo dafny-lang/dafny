@@ -3,22 +3,22 @@
 
 // ----- arrows with no read effects -------------------------------------
 
-type NoWitness_EffectlessArrow<!A(!new),B> = f: A ~> B  // error: cannot find witness
+type NoWitness_EffectlessArrow<!A(!new), B> = f: A ~> B  // error: cannot find witness
   | forall a :: f.reads(a) == {}
 
-type NonGhost_EffectlessArrow<!A(!new),B> = f: A ~> B
+type NonGhost_EffectlessArrow<!A(!new), B> = f: A ~> B
   | forall a :: f.reads(a) == {}
-  witness EffectlessArrowWitness<A,B>
+  witness EffectlessArrowWitness<A, B>
 
 // The following compilable function, which is used in the witness clause above, can never
 // be implemented, because there is no way to produce a B (for any B) in compiled code.
-function method EffectlessArrowWitness<A,B>(a: A): B
+function method EffectlessArrowWitness<A, B>(a: A): B
 
-type EffectlessArrow<!A(!new),B> = f: A ~> B
+type EffectlessArrow<!A(!new), B(00)> = f: A ~> B
   | forall a :: f.reads(a) == {}
-  ghost witness GhostEffectlessArrowWitness<A,B>
+  ghost witness GhostEffectlessArrowWitness<A, B>
 
-function GhostEffectlessArrowWitness<A,B>(a: A): B
+function GhostEffectlessArrowWitness<A, B(00)>(a: A): B
 {
   var b: B :| true; b
 }
@@ -68,23 +68,23 @@ method Main()
 
 // ----- totality constraint by predicate Total -------------------------------------
 
-predicate Total<A(!new),B>(f: A ~> B)  // (is this (!new) really necessary?)
+predicate Total<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
   reads f.reads
 {
   forall a :: f.reads(a) == {} && f.requires(a)
 }
 
-type TotalArrow<!A,B> = f: EffectlessArrow<A,B>
+type TotalArrow<!A(!new), B(00)> = f: EffectlessArrow<A, B>
   | Total(f)
-  ghost witness TotalWitness<A,B>
+  ghost witness TotalWitness<A, B>
 
-function TotalWitness<A,B>(a: A): B
+function TotalWitness<A, B(00)>(a: A): B
 {
   var b: B :| true; b
 }
 
-lemma TotalWitnessIsTotal<A,B>()
-  ensures Total(TotalWitness<A,B>)
+lemma TotalWitnessIsTotal<A, B>()
+  ensures Total(TotalWitness<A, B>)
 {
 }
 
@@ -95,12 +95,12 @@ function TotalClientTwice(f: TotalArrow<int,int>, x: int): int
 
 // ----- inlined totality constraint -------------------------------------
 
-type DirectTotalArrow<!A(!new),B> = f: EffectlessArrow<A,B>
+type DirectTotalArrow<!A(!new), B(00)> = f: EffectlessArrow<A, B>
   | forall a :: f.requires(a)
-  ghost witness TotalWitness<A,B>
+  ghost witness TotalWitness<A, B>
 
-lemma DirectTotalWitnessIsTotal<A,B>(f: DirectTotalArrow<A,B>)
-  ensures Total(TotalWitness<A,B>)
+lemma DirectTotalWitnessIsTotal<A(!new), B(00)>(f: DirectTotalArrow<A, B>)
+  ensures Total(TotalWitness<A, B>)
 {
 }
 
@@ -111,31 +111,31 @@ function DirectTotalClientTwice(f: DirectTotalArrow<int,int>, x: int): int
 
 // ----- using two predicates, and showing which conjunct of constraint is violated ------
 
-predicate EmptyReads<A(!new),B>(f: A ~> B)  // (is this (!new) really necessary?)
+predicate EmptyReads<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
   reads f.reads
 {
   forall a :: f.reads(a) == {}
 }
 
-predicate TruePre<A(!new),B>(f: A ~> B)  // (is this (!new) really necessary?)
+predicate TruePre<A(!new), B>(f: A ~> B)  // (is this (!new) really necessary?)
   reads f.reads
 {
   forall a :: f.requires(a)
 }
 
-type TwoPred_TotalArrow<!A,B> = f: A ~> B
+type TwoPred_TotalArrow<!A(!new), B(00)> = f: A ~> B
   | EmptyReads(f) && TruePre(f)
-  ghost witness TotalWitness<A,B>
+  ghost witness TotalWitness<A, B>
 
 predicate SomeCondition<A>(a: A)
 
-function PartialFunction<A,B>(a: A): B
+function PartialFunction<A, B(00)>(a: A): B
   requires SomeCondition(a)
 {
   var b: B :| true; b
 }
 
-type Bad_TwoPred_TotalArrow<!A,B> = f: A ~> B
+type Bad_TwoPred_TotalArrow<!A(!new), B(00)> = f: A ~> B
   | EmptyReads(f) && TruePre(f)
   // cool: the type instantiation of "PartialFunction" below is inferred
   ghost witness PartialFunction  // error: the second conjunct of the constraint is not satisfied

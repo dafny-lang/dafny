@@ -1,9 +1,9 @@
-CoPrefix.dfy(164,2): Error BP5003: A postcondition might not hold on this return path.
+CoPrefix.dfy(164,2): Error: A postcondition might not hold on this return path.
 CoPrefix.dfy(163,14): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Else
-CoPrefix.dfy(169,2): Error BP5003: A postcondition might not hold on this return path.
+CoPrefix.dfy(169,2): Error: A postcondition might not hold on this return path.
 CoPrefix.dfy(168,14): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -39,7 +39,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
     (0,0): anon8_Then
-CoPrefix.dfy(114,0): Error BP5003: A postcondition might not hold on this return path.
+CoPrefix.dfy(114,0): Error: A postcondition might not hold on this return path.
 CoPrefix.dfy(113,10): Related location: This is the postcondition that might not hold.
 CoPrefix.dfy(101,16): Related location
 Execution trace:
@@ -56,7 +56,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
     (0,0): anon12_Then
-CoPrefix.dfy(151,0): Error BP5003: A postcondition might not hold on this return path.
+CoPrefix.dfy(151,0): Error: A postcondition might not hold on this return path.
 CoPrefix.dfy(150,10): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0

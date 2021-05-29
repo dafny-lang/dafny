@@ -6,27 +6,27 @@ class C {
   var next: C?
 }
 
-copredicate P(c: C?)
+greatest predicate P(c: C?)
   requires c != null
   reads *
 {
   c.next != null && P(c.next)
 }
 
-copredicate Q(c: C?)
+greatest predicate Q(c: C?)
   requires c != null
   reads c
 {
   c.next != null && Q(c)
 }
 
-copredicate R(c: C?)
+greatest predicate R(c: C?)
   reads c  // gratuitous
 {
   R(c)
 }
 
-colemma RAlwaysHolds(c: C?)
+greatest lemma RAlwaysHolds(c: C?)
   ensures R(c)
 {
 }
@@ -83,13 +83,13 @@ method TestR(c: C?)
     assert R(c);  // error: can't tell it's still the same
 }
 
-inductive predicate V(c: C?)
+least predicate V(c: C?)
   reads c
 {
   V(c)
 }
 
-inductive lemma VNeverHolds(c: C?)
+least lemma VNeverHolds(c: C?)
   requires V(c)
   ensures false
 {
