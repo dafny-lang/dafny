@@ -144,10 +144,9 @@ namespace DafnyTests {
     private DafnyTestSpec ResolveExpected() {
       if (Expected == null) {
         return new DafnyTestSpec(SourcePath, DafnyArguments, OtherFiles, 
-                                 new DafnyTestCase.Expectation(0, Path.GetFileName(SourcePath) + ".expect", null));
-      } else {
-        return this;
+                                 new DafnyTestCase.Expectation(0, SourcePath + ".expect", null));
       }
+      return this;
     }
     
     private DafnyTestCase ToTestCase() {
@@ -268,8 +267,6 @@ namespace DafnyTests {
     public static ProcessResult RunDafny(IEnumerable<string> arguments) {
       // TODO-RS: Let these be overridden
       List<string> dafnyArguments = new List<string> {
-        // Expected output does not contain logo
-        "/nologo",
         "/countVerificationErrors:0",
 
         // We do not want absolute or relative paths in error messages, just the basename of the file
@@ -285,6 +282,7 @@ namespace DafnyTests {
         dafnyProcess.StartInfo.FileName = "dotnet";
         dafnyProcess.StartInfo.Arguments = "run --no-build --project ";
         dafnyProcess.StartInfo.Arguments += DafnyTestSpec.DAFNY_PROJ;
+        dafnyProcess.StartInfo.Arguments += " --";
         foreach(var argument in dafnyArguments) {
           dafnyProcess.StartInfo.Arguments += " " + argument;
         }

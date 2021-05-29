@@ -63,8 +63,6 @@ namespace DafnyTests {
       ISerializer serializer = new SerializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults)
-        .WithObjectGraphTraversalStrategyFactory((inspector, resolver, converters, recursion) => 
-        new Foo(inspector, resolver, converters, recursion))
         .WithTagMapping("!dafnyTestSpec", typeof(DafnyTestSpec))
         .WithTagMapping("!foreach", typeof(ForEachArgumentList))
         .Build();
@@ -219,23 +217,6 @@ namespace DafnyTests {
       Console.WriteLine("Invalid: " + invalidCount + "/" + count);
     }
 
-    private class Foo : FullObjectGraphTraversalStrategy {
-      public Foo(
-        ITypeInspector typeDescriptor,
-        ITypeResolver typeResolver,
-        int maxRecursion,
-        INamingConvention namingConvention): base(typeDescriptor, typeResolver, maxRecursion, namingConvention) {
-      }
-
-      protected override void TraverseObject<TContext>(IObjectDescriptor value, IObjectGraphVisitor<TContext> visitor, TContext context, Stack<ObjectPathSegment> path) {
-        if (value.Value is DafnyTestSpec) {
-          TraverseProperties(value, visitor, context, path);
-        } else {
-          base.TraverseObject(value, visitor, context, path);
-        }
-      }
-    }
-    
     public static void Main(string[] args) { 
       new LitTestConvertor().Run(args[0]);
     }
