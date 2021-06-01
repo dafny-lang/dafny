@@ -66,10 +66,10 @@ module VarianceChecks {
     type {:extern} abs<+A, *B, !C, D, -E>
 
     datatype CheckRec =
-    | IMapD(imap<CheckRec, int>)  //error: - recursive mentions must be used in a strict (and covariant) context
+    | IMapD(imap<CheckRec, int>)  // error: - recursive mentions must be used in a strict (and covariant) context
     | IMapR(imap<int, CheckRec>)
-    | ISet(iset <CheckRec>)  //error: - recursive mentions must be used in a strict (and covariant) context
-    | Set(set <CheckRec>)
+    | ISet(iset<CheckRec>)  // error: - recursive mentions must be used in a strict (and covariant) context
+    | Set(set<CheckRec>)
     | CheckA(abs<CheckRec, int, int, int, int>)
     | CheckB(abs<int, CheckRec, int, int, int>)  // error: - recursive mentions must be used in a strict (and covariant) context
     | CheckC(abs<int, int, CheckRec, int, int>)  // error: - recursive mentions must be used in a strict (and covariant) context
