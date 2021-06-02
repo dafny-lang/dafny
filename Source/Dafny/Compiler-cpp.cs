@@ -428,7 +428,7 @@ namespace Microsoft.Dafny {
 
         // Declare static "constructors" for each Dafny constructor
         foreach (var ctor in dt.Ctors) {
-          var wc = ws.NewNamedBlock("static {0} create_{1}({2};",
+          var wc = ws.NewNamedBlock("static {0} create_{1}({2})",
             DtT_protected, ctor.CompileName,
             DeclareFormals(ctor.Formals));
           wc.WriteLine("{0}{1} COMPILER_result;", DtT_protected, InstantiateTemplate(dt.TypeArgs));
@@ -506,7 +506,7 @@ namespace Microsoft.Dafny {
                   returnType = String.Format("std::shared_ptr<{0}>", returnType);
                 }
 
-                var wDtor = ws.NewNamedBlock("{0} dtor_{1}(;", returnType,
+                var wDtor = ws.NewNamedBlock("{0} dtor_{1}()", returnType,
                   arg.CompileName);
                 if (dt.IsRecordType) {
                   wDtor.WriteLine("return this.{0};", IdName(arg));
