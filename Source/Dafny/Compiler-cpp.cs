@@ -723,6 +723,10 @@ namespace Microsoft.Dafny {
 
       if (typeArgs.Count != 0) {
         var formalTypeParameters = TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, m, lookasideBody));
+        // Filter out type parameters we've already emitted at the class level, to avoid shadowing
+        // the class' template parameter (which C++ treats as an error)
+        formalTypeParameters = formalTypeParameters.Where(param =>
+          m.EnclosingClass.TypeArgs == null || !m.EnclosingClass.TypeArgs.Contains(param)).ToList();
         wdr.WriteLine(DeclareTemplate(formalTypeParameters));
         wr.WriteLine(DeclareTemplate(formalTypeParameters));
       }
@@ -769,6 +773,10 @@ namespace Microsoft.Dafny {
 
       if (typeArgs.Count != 0) {
         var formalTypeParameters = TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, member, lookasideBody));
+        // Filter out type parameters we've already emitted at the class level, to avoid shadowing
+        // the class' template parameter (which C++ treats as an error)
+        formalTypeParameters = formalTypeParameters.Where(param =>
+          !classArgs.Contains(param)).ToList();
         wdr.WriteLine(DeclareTemplate(formalTypeParameters));
         wr.WriteLine(DeclareTemplate(formalTypeParameters));
       }
@@ -798,7 +806,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
-      needsTypeParameter = isStatic;
+      needsTypeParameter = false;
       needsTypeDescriptor = false;
     }
 
@@ -984,9 +992,9 @@ namespace Microsoft.Dafny {
           // Assume the external definition includes a default value
           return String.Format("{1}::get_{0}_default()", IdProtect(udt.Name), udt.ResolvedClass.EnclosingModuleDefinition.CompileName);
         } else if (usePlaceboValue && !hasCompiledValue) {
-          return String.Format("get_default<{0}>::call()", IdProtect(udt.Name));
+          return String.Format("get_default<{0}>::call()", IdProtect(udt.CompileName));
         } else {
-          return String.Format("get_default<{0}>::call()", IdProtect(udt.Name));
+          return String.Format("get_default<{0}>::call()", IdProtect(udt.CompileName));
         }
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
@@ -1078,7 +1086,7 @@ namespace Microsoft.Dafny {
     // ----- Declarations -------------------------------------------------------------
     protected override void DeclareExternType(OpaqueTypeDecl d, Expression compileTypeHint, ConcreteSyntaxTree wr) {
       if (compileTypeHint.AsStringLiteral() == "struct") {
-        modDeclWr.WriteLine("// Extern declaration of {1}\n{0} struct {1} {2};", DeclareTemplate(d.TypeArgs), d.Name, InstantiateTemplate(d.TypeArgs));
+        modDeclWr.WriteLine("// Extern declaration of {1}\n{0} struct {1};", DeclareTemplate(d.TypeArgs), d.Name);
       } else {
         Error(d.tok, "Opaque type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
       }
@@ -1174,7 +1182,7 @@ namespace Microsoft.Dafny {
         EmitAssignment(actualOutParamNames[0], null, outCollector, null, wr);
       } else {
         for (var i = 0; i < actualOutParamNames.Count; i++) {
-          wr.WriteLine("{0} = {1}.get<{2}>();", actualOutParamNames[i], outCollector, i);
+          wr.WriteLine("{0} = {1}.template get<{2}>();", actualOutParamNames[i], outCollector, i);
         }
       }
     }
@@ -1557,7 +1565,11 @@ namespace Microsoft.Dafny {
       } else if (Attributes.Contains(cl.Attributes, "extern")) {
         return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "::" + IdProtect(cl.Name);
       } else if (cl is TupleTypeDecl) {
-        return "Tuple";
+        if (udt.TypeArgs.Count > 0) {
+          return "Tuple";
+        } else {
+          return "Tuple0"; // Need to special case this, as C++ won't infer the correct type arguments
+        }
       } else {
         return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "::" + IdProtect(cl.CompileName);
       }
@@ -1582,7 +1594,12 @@ namespace Microsoft.Dafny {
         foreach (var arg in dtv.Arguments) {
           types.Add(arg.Type);
         }
-        wr.Write("Tuple{0}({1})", InstantiateTemplate(types), arguments);
+
+        if (types.Count == 0) {
+          wr.Write("Tuple0()");
+        } else {
+          wr.Write("Tuple{0}({1})", InstantiateTemplate(types), arguments);
+        }
       } else if (!isCoCall) {
         // Ordinary constructor (that is, one that does not guard any co-recursive calls)
         // Generate:  Dt.create_Ctor(arguments)
@@ -1658,7 +1675,7 @@ namespace Microsoft.Dafny {
         // This used to work, but now obj comes in wanting to use TypeName on the class, which results in (std::shared_ptr<_module::MyClass>)::c;
         //return SuffixLvalue(obj, "::{0}", member.CompileName);
         return SimpleLvalue(wr => {
-          wr.Write("{0}::{1}", IdProtect(member.EnclosingClass.CompileName) , IdProtect(member.CompileName));
+          wr.Write("{0}::{1}::{2}", IdProtect(member.EnclosingClass.EnclosingModuleDefinition.CompileName), IdProtect(member.EnclosingClass.CompileName) , IdProtect(member.CompileName));
         });
       } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
         return SuffixLvalue(obj, ".get<{0}>()", dtor.Name);
@@ -1859,7 +1876,7 @@ namespace Microsoft.Dafny {
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
-        wr.Write("({0}).get<{1}>()", source, formalNonGhostIndex);
+        wr.Write("({0}).template get<{1}>()", source, formalNonGhostIndex);
       } else {
         var dtorName = FormalName(dtor, formalNonGhostIndex);
         if (dtor.Type is UserDefinedType udt && udt.ResolvedClass == ctor.EnclosingDatatype) {
