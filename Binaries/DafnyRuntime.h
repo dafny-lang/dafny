@@ -118,6 +118,8 @@ struct get_default<std::shared_ptr<U>> {
  *  TUPLES                                               *
  *********************************************************/
 
+struct Tuple0 {};
+
 template <typename... Types>
 struct Tuple{
  public:

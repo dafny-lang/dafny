@@ -18,7 +18,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
     // https://github.com/dafny-lang/language-server-csharp/issues/40
     [TestMethod]
-    public async Task ImplicitelyIncludingTheSameModuleTwiceDoesNotResultInDuplicateError() {
+    public async Task ImplicitlyIncludingTheSameModuleTwiceDoesNotResultInDuplicateError() {
       var source = @"
 include ""multi1.dfy""
 include ""multi2.dfy""
@@ -34,7 +34,7 @@ method Test() {
 
     // https://github.com/dafny-lang/language-server-csharp/issues/40
     [TestMethod]
-    public async Task ImplicitelyIncludingTheSameModuleTwiceDoesNotOverrideActualError() {
+    public async Task ImplicitlyIncludingTheSameModuleTwiceDoesNotOverrideActualError() {
       var source = @"
 include ""multi1.dfy""
 include ""multi2.dfy""
