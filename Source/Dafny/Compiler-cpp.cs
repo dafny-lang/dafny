@@ -723,6 +723,10 @@ namespace Microsoft.Dafny {
 
       if (typeArgs.Count != 0) {
         var formalTypeParameters = TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, m, lookasideBody));
+        // Filter out type parameters we've already emitted at the class level, to avoid shadowing
+        // the class' template parameter (which C++ treats as an error)
+        formalTypeParameters = formalTypeParameters.Where(param =>
+          m.EnclosingClass.TypeArgs == null || !m.EnclosingClass.TypeArgs.Contains(param)).ToList();
         wdr.WriteLine(DeclareTemplate(formalTypeParameters));
         wr.WriteLine(DeclareTemplate(formalTypeParameters));
       }
@@ -769,6 +773,10 @@ namespace Microsoft.Dafny {
 
       if (typeArgs.Count != 0) {
         var formalTypeParameters = TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, member, lookasideBody));
+        // Filter out type parameters we've already emitted at the class level, to avoid shadowing
+        // the class' template parameter (which C++ treats as an error)
+        formalTypeParameters = formalTypeParameters.Where(param =>
+          !classArgs.Contains(param)).ToList();
         wdr.WriteLine(DeclareTemplate(formalTypeParameters));
         wr.WriteLine(DeclareTemplate(formalTypeParameters));
       }
@@ -798,7 +806,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
-      needsTypeParameter = isStatic;
+      needsTypeParameter = false;
       needsTypeDescriptor = false;
     }
 
@@ -1078,7 +1086,7 @@ namespace Microsoft.Dafny {
     // ----- Declarations -------------------------------------------------------------
     protected override void DeclareExternType(OpaqueTypeDecl d, Expression compileTypeHint, ConcreteSyntaxTree wr) {
       if (compileTypeHint.AsStringLiteral() == "struct") {
-        modDeclWr.WriteLine("// Extern declaration of {1}\n{0} struct {1} {2};", DeclareTemplate(d.TypeArgs), d.Name, InstantiateTemplate(d.TypeArgs));
+        modDeclWr.WriteLine("// Extern declaration of {1}\n{0} struct {1};", DeclareTemplate(d.TypeArgs), d.Name);
       } else {
         Error(d.tok, "Opaque type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
       }
@@ -1667,7 +1675,7 @@ namespace Microsoft.Dafny {
         // This used to work, but now obj comes in wanting to use TypeName on the class, which results in (std::shared_ptr<_module::MyClass>)::c;
         //return SuffixLvalue(obj, "::{0}", member.CompileName);
         return SimpleLvalue(wr => {
-          wr.Write("{0}::{1}", IdProtect(member.EnclosingClass.CompileName) , IdProtect(member.CompileName));
+          wr.Write("{0}::{1}::{2}", IdProtect(member.EnclosingClass.EnclosingModuleDefinition.CompileName), IdProtect(member.EnclosingClass.CompileName) , IdProtect(member.CompileName));
         });
       } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
         return SuffixLvalue(obj, ".get<{0}>()", dtor.Name);
