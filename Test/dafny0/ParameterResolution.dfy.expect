@@ -56,4 +56,8 @@ ParameterResolution.dfy(211,23): Error: old expressions are not allowed in this 
 ParameterResolution.dfy(213,32): Error: old expressions are not allowed in this context
 ParameterResolution.dfy(216,32): Error: old expressions are not allowed in this context
 ParameterResolution.dfy(217,33): Error: old expressions are not allowed in this context
-58 resolution/type errors detected in ParameterResolution.dfy
+ParameterResolution.dfy(225,14): Error: the name 'Nothing' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Ax.Nothing')
+ParameterResolution.dfy(226,14): Error: the name 'Nothing' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Ax.Nothing')
+ParameterResolution.dfy(227,14): Error: the name 'Nothing' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Ax.Nothing')
+ParameterResolution.dfy(239,17): Error: wrong number of arguments (datatype constructor 'Create' expects at most 1, got 2)
+62 resolution/type errors detected in ParameterResolution.dfy

@@ -216,3 +216,26 @@ module TwoState {
   iterator Iter(c: C, u: int := old(c.x)) // error: old not allowed in this context
   datatype D = D(c: C, u: int := old(c.x)) // error: old not allowed in this context
 }
+
+module NullaryDatatypeConstructors0 {
+  datatype Ax = Nothing()
+  datatype Bx = Nothing(x: int := 500)
+
+  method M() {
+    var n0 := Nothing; // error: ambiguous
+    var n1 := Nothing(); // error: ambiguous
+    var n2 := Nothing(2); // error: ambiguous
+  }
+
+  datatype Dx = Create()
+  datatype Ex = Create(x: int := 500)
+
+  method P() {
+    var d0 := Dx.Create();
+    var d1 := Dx.Create; // fine without parentheses
+    var e0 := Ex.Create(); // gets default parameter
+    var e1 := Ex.Create; // this, too, gets the default parameter
+    var e2 := Ex.Create(2); // gets given parameter
+    var e3 := Ex.Create(2, 3); // error: too many arguments
+  }
+}
