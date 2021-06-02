@@ -1378,7 +1378,7 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 20.44](#sec-compile-time-constants).
+in [Section 20.45](#sec-compile-time-constants).
 
 ## 12.1. Conversion operations {#sec-conversion}
 

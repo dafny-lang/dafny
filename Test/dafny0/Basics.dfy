@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class Global {
@@ -74,9 +74,9 @@ method ChallengeTruth(j: int, k: int)
 method Explies(s: seq<int>, i: nat)
   requires forall x :: x in s ==> x > 0
 {
-  var a, b, c: bool;
+  var a, b, c;
   assert a <== b <== c <== false;   // OK, because <== is left-associative
-  assert s[i] > 0 <== i < |s|;      // OK, because <== is short-circuiting from the right
+  assert s[i] > 0 <== i < |s| by { assert i < |s| ==> s[i] in s; }      // OK, because <== is short-circuiting from the right
 }
 
 method ExpliesAssociativityM(A: bool, B: bool, C: bool) {

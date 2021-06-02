@@ -216,10 +216,8 @@
 
     public virtual void Visit(TypeRhs typeRhs) {
       VisitNullableAttributes(typeRhs.Attributes);
-      if(typeRhs.Arguments != null) {
-        foreach(var argument in typeRhs.Arguments) {
-          Visit(argument);
-        }
+      if (typeRhs.Bindings != null) {
+        Visit(typeRhs.Bindings);
       }
       if(typeRhs.ArrayDimensions != null) {
         foreach(var dimension in typeRhs.ArrayDimensions) {
@@ -368,6 +366,14 @@
       }
     }
 
+    public virtual void Visit(ActualBindings bindings) {
+      bindings.ArgumentBindings.ForEach(Visit);
+    }
+
+    public virtual void Visit(ActualBinding binding) {
+      Visit(binding.Actual);
+    }
+
     public virtual void Visit(Expression expression) {
       switch(expression) {
       case LiteralExpr literalExpression:
@@ -456,9 +462,7 @@
 
     public virtual void Visit(ApplySuffix applySuffix) {
       Visit(applySuffix.Lhs);
-      foreach(var argument in applySuffix.Args) {
-        Visit(argument);
-      }
+      Visit(applySuffix.Bindings);
     }
 
     public virtual void Visit(NameSegment nameSegment) {
