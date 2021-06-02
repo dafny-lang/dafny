@@ -984,9 +984,9 @@ namespace Microsoft.Dafny {
           // Assume the external definition includes a default value
           return String.Format("{1}::get_{0}_default()", IdProtect(udt.Name), udt.ResolvedClass.EnclosingModuleDefinition.CompileName);
         } else if (usePlaceboValue && !hasCompiledValue) {
-          return String.Format("get_default<{0}>::call()", IdProtect(udt.Name));
+          return String.Format("get_default<{0}>::call()", IdProtect(udt.CompileName));
         } else {
-          return String.Format("get_default<{0}>::call()", IdProtect(udt.Name));
+          return String.Format("get_default<{0}>::call()", IdProtect(udt.CompileName));
         }
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
@@ -1174,7 +1174,7 @@ namespace Microsoft.Dafny {
         EmitAssignment(actualOutParamNames[0], null, outCollector, null, wr);
       } else {
         for (var i = 0; i < actualOutParamNames.Count; i++) {
-          wr.WriteLine("{0} = {1}.get<{2}>();", actualOutParamNames[i], outCollector, i);
+          wr.WriteLine("{0} = {1}.template get<{2}>();", actualOutParamNames[i], outCollector, i);
         }
       }
     }
@@ -1557,7 +1557,11 @@ namespace Microsoft.Dafny {
       } else if (Attributes.Contains(cl.Attributes, "extern")) {
         return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "::" + IdProtect(cl.Name);
       } else if (cl is TupleTypeDecl) {
-        return "Tuple";
+        if (udt.TypeArgs.Count > 0) {
+          return "Tuple";
+        } else {
+          return "Tuple0"; // Need to special case this, as C++ won't infer the correct type arguments
+        }
       } else {
         return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "::" + IdProtect(cl.CompileName);
       }
@@ -1582,7 +1586,12 @@ namespace Microsoft.Dafny {
         foreach (var arg in dtv.Arguments) {
           types.Add(arg.Type);
         }
-        wr.Write("Tuple{0}({1})", InstantiateTemplate(types), arguments);
+
+        if (types.Count == 0) {
+          wr.Write("Tuple0()");
+        } else {
+          wr.Write("Tuple{0}({1})", InstantiateTemplate(types), arguments);
+        }
       } else if (!isCoCall) {
         // Ordinary constructor (that is, one that does not guard any co-recursive calls)
         // Generate:  Dt.create_Ctor(arguments)
@@ -1859,7 +1868,7 @@ namespace Microsoft.Dafny {
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
-        wr.Write("({0}).get<{1}>()", source, formalNonGhostIndex);
+        wr.Write("({0}).template get<{1}>()", source, formalNonGhostIndex);
       } else {
         var dtorName = FormalName(dtor, formalNonGhostIndex);
         if (dtor.Type is UserDefinedType udt && udt.ResolvedClass == ctor.EnclosingDatatype) {
