@@ -523,7 +523,7 @@ TODO: what about multi-dimensional arrays
 ## 20.17. Object Allocation
 ````grammar
 ObjectAllocation_ = "new" Type [ "." TypeNameOrCtorSuffix ]
-                               [ "(" [ Expressions ] ")" ]
+                               [ "(" [ Bindings ] ")" ]
 ````
 
 This allocated a new object of a class type as explained
@@ -1205,7 +1205,7 @@ followed by a ``HashCall``.
 ````grammar
 HashCall = "#" [ GenericInstantiation ]
   "[" Expression(allowLemma: true, allowLambda: true) "]"
-  "(" [ Expressions ] ")"
+  "(" [ Bindings ] ")"
 ````
 A ``HashCall`` is used to call the prefix for a copredicate or colemma.
 In the non-generic case, just insert `"#[k]"` before the call argument
@@ -1436,7 +1436,29 @@ Expressions =
 The ``Expressions`` non-terminal represents a list of
 one or more expressions separated by commas.
 
-## 20.44. Compile-Time Constants {#sec-compile-time-constants}
+## 20.44. Parameter Bindings
+
+Method calls, object-allocation calls (`new`), function calls, and
+datatype constructors can be called with both positional arguments
+and named arguments.
+````grammar
+ActualBindings =
+    ActualBinding
+    { "," ActualBinding }
+,,,,
+ActualBinding =
+    [ NoUSIdentOrDigits ":=" ]
+    Expression(allowLemma: true, allowLambda: true)
+````
+
+Positional arguments must be given before any named arguments.
+Positional arguments are passed to the formals in the corresponding
+position. Named arguments are passed to the formal of the given
+name. Named arguments can be given out of order from how the corresponding
+formal parameters are declared. The list of bindings for a call must
+provide exactly one value for each formal parameter.
+
+## 20.45. Compile-Time Constants {#sec-compile-time-constants}
 
 In certain situations in Dafny it is helpful to know what the value of a
 constant is during program analysis, before verification or execution takes

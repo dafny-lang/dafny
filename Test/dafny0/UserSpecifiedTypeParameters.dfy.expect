@@ -3,11 +3,11 @@ UserSpecifiedTypeParameters.dfy(26,24): Error: type of type parameter could not 
 UserSpecifiedTypeParameters.dfy(26,24): Error: type of type parameter could not be determined; please specify the type explicitly
 UserSpecifiedTypeParameters.dfy(26,24): Error: type parameter 'T' (inferred to be '?') in the function call to 'H' could not be determined
 UserSpecifiedTypeParameters.dfy(26,24): Error: type parameter 'U' (inferred to be '?') in the function call to 'H' could not be determined
+UserSpecifiedTypeParameters.dfy(46,16): Error: wrong number of arguments (function 'F' expects 2, got 1)
 UserSpecifiedTypeParameters.dfy(46,22): Error: Undeclared top-level type or type parameter: b (did you forget to qualify a name or declare a module import 'opened'?)
 UserSpecifiedTypeParameters.dfy(46,26): Error: Undeclared top-level type or type parameter: c (did you forget to qualify a name or declare a module import 'opened'?)
 UserSpecifiedTypeParameters.dfy(46,18): Error: variable 'a' does not take any type parameters
 UserSpecifiedTypeParameters.dfy(46,30): Error: non-function expression (of type int) is called with parameters
-UserSpecifiedTypeParameters.dfy(46,16): Error: wrong number of arguments to function application (function 'F' expects 2, got 1)
-UserSpecifiedTypeParameters.dfy(77,15): Error: incorrect type of method in-parameter (expected A, got int)
-UserSpecifiedTypeParameters.dfy(89,15): Error: type mismatch for argument (function expects A, got int)
+UserSpecifiedTypeParameters.dfy(77,15): Error: incorrect type of lemma in-parameter (expected A, found int)
+UserSpecifiedTypeParameters.dfy(89,14): Error: incorrect type of function argument (expected A, found int)
 12 resolution/type errors detected in UserSpecifiedTypeParameters.dfy

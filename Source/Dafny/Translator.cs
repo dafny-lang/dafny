@@ -18536,9 +18536,9 @@ namespace Microsoft.Dafny {
 
         } else if (expr is DatatypeValue) {
           DatatypeValue dtv = (DatatypeValue)expr;
-          List<Expression> newArgs = SubstituteExprList(dtv.Arguments);
-          if (newArgs != dtv.Arguments) {
-            DatatypeValue newDtv = new DatatypeValue(dtv.tok, dtv.DatatypeName, dtv.MemberName, newArgs);
+          var newArguments = SubstituteExprList(dtv.Bindings.Arguments); // substitute into the expressions, but drop any binding names (since those are no longer needed)
+          if (newArguments != dtv.Bindings.Arguments) {
+            DatatypeValue newDtv = new DatatypeValue(dtv.tok, dtv.DatatypeName, dtv.MemberName, newArguments);
             newDtv.Ctor = dtv.Ctor;  // resolve on the fly (and set newDtv.Type below, at end)
             newDtv.InferredTypeArgs = Map(dtv.InferredTypeArgs, tt => Resolver.SubstType(tt, typeMap));
                                      // ^ Set the correct type arguments to the constructor
