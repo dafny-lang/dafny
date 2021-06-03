@@ -14147,20 +14147,17 @@ namespace Microsoft.Dafny
       Contract.Requires(enclosingTypeDefinition != null);
 
       type = type.Normalize();  // we keep constraints, since subset types have their own type-parameter variance specifications; we also keep synonys, since that gives rise to better error messages
-
       if (type is BasicType) {
         // fine
       } else if (type is MapType) {
         var t = (MapType)type;
         // If its an infinite map, the domain's context is lax
-        CheckVariance(t.Domain, enclosingTypeDefinition, context,
-          lax || !t.Finite);
+        CheckVariance(t.Domain, enclosingTypeDefinition, context, lax || !t.Finite);
         CheckVariance(t.Range, enclosingTypeDefinition, context, lax);
-      } else if(type is SetType){
+      } else if (type is SetType){
         var t = (SetType)type;
         // If its an infinite set, the argument's context is lax
-        CheckVariance(t.Arg, enclosingTypeDefinition, context,
-          lax || !t.Finite);
+        CheckVariance(t.Arg, enclosingTypeDefinition, context, lax || !t.Finite);
       } else if (type is CollectionType) {
         var t = (CollectionType)type;
         CheckVariance(t.Arg, enclosingTypeDefinition, context, lax);
@@ -14183,7 +14180,6 @@ namespace Microsoft.Dafny
           var resolvedClass = t.ResolvedClass;
           Contract.Assert(resolvedClass != null);  // follows from that the given type was successfully resolved
           Contract.Assert(resolvedClass.TypeArgs.Count == t.TypeArgs.Count);
-
           if (lax) {
             // we have to be careful about uses of the type being defined
             var cg = enclosingTypeDefinition.EnclosingModule.CallGraph;
