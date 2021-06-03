@@ -1498,15 +1498,8 @@ namespace Microsoft.Dafny
 
     internal override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
-        List<MemberDecl> members = null;
-        if (d is ClassDecl c) {
-          members = c.Members;
-        } else if (d is IndDatatypeDecl dt) {
-          members = dt.Members;
-        }
-
-        if (members != null) {
-          foreach (MemberDecl member in members)  {
+        if (d is TopLevelDeclWithMembers tld) {
+          foreach (MemberDecl member in tld.Members)  {
             if (member is Function || member is Method) {
               // Check for the timeLimitMultiplier attribute
               if (Attributes.Contains(member.Attributes, "timeLimitMultiplier")) {
