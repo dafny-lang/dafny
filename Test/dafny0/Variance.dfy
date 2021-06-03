@@ -63,9 +63,9 @@ module VarianceChecks {
     | IMapBD(imap<B, D>)
     | IMapDB(imap<D, B>)  // error: - strict passed to context without strict restrictions
 
-    type {:extern} abs<+A, *B, !C, D, -E>
+  type {:extern} abs<+A, *B, !C, D, -E>
 
-    datatype CheckRec =
+  datatype CheckRec =
     | IMapD(imap<CheckRec, int>)  // error: - recursive mentions must be used in a strict (and covariant) context
     | IMapR(imap<int, CheckRec>)
     | ISet(iset<CheckRec>)  // error: - recursive mentions must be used in a strict (and covariant) context
@@ -76,7 +76,7 @@ module VarianceChecks {
     | CheckD(abs<int, int, int, CheckRec, int>)
     | CheckE(abs<int, int, int, int, CheckRec>)  // error: - recursive mentions must be used in a strict (and covariant) context
 
-    datatype CheckRec2 =
+  datatype CheckRec2 =
     | ArrowD(CheckRec2 -> int)  // error: - recursive mentions must be used in a strict (and covariant) context
     | ArrowR(int -> CheckRec2)
 
