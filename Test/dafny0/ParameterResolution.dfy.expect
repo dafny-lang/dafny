@@ -1,11 +1,16 @@
 ParameterResolution.dfy(17,15): Error: wrong number of arguments (function 'F' expects 3, got 2)
 ParameterResolution.dfy(18,15): Error: wrong number of arguments (function 'F' expects 3, got 4)
 ParameterResolution.dfy(19,27): Error: duplicate binding for parameter name 'y'
+ParameterResolution.dfy(19,15): Error: no actual argument passed for function argument 'z'
 ParameterResolution.dfy(20,19): Error: the parameter named 'x' is already given positionally
+ParameterResolution.dfy(20,15): Error: no actual argument passed for function argument 'z'
 ParameterResolution.dfy(21,27): Error: a positional argument is not allowed to follow named arguments
+ParameterResolution.dfy(21,15): Error: no actual argument passed for function argument 'z'
 ParameterResolution.dfy(27,22): Error: the binding named 'xyz' does not correspond to any formal parameter
-ParameterResolution.dfy(30,14): Error: wrong number of arguments (datatype constructor 'Record' expects 3, got 2)
+ParameterResolution.dfy(27,15): Error: no actual argument passed for function argument 'z'
+ParameterResolution.dfy(30,14): Error: no actual argument passed for datatype constructor argument 1
 ParameterResolution.dfy(31,34): Error: the parameter named 'a' is already given positionally
+ParameterResolution.dfy(31,14): Error: no actual argument passed for datatype constructor argument 1
 ParameterResolution.dfy(41,24): Error: default-value expression (of type 'bool') is not assignable to formal (of type 'int')
 ParameterResolution.dfy(51,34): Error: 'this' is not allowed in a 'static' context
 ParameterResolution.dfy(52,36): Error: 'this' is not allowed in a 'static' context
@@ -60,4 +65,9 @@ ParameterResolution.dfy(225,14): Error: the name 'Nothing' denotes a datatype co
 ParameterResolution.dfy(226,14): Error: the name 'Nothing' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Ax.Nothing')
 ParameterResolution.dfy(227,14): Error: the name 'Nothing' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Ax.Nothing')
 ParameterResolution.dfy(239,17): Error: wrong number of arguments (datatype constructor 'Create' expects at most 1, got 2)
-62 resolution/type errors detected in ParameterResolution.dfy
+ParameterResolution.dfy(246,5): Error: no actual argument passed for method in-parameter 'a'
+ParameterResolution.dfy(246,5): Error: no actual argument passed for method in-parameter 'b'
+ParameterResolution.dfy(247,5): Error: no actual argument passed for method in-parameter 'a'
+ParameterResolution.dfy(247,5): Error: no actual argument passed for method in-parameter 'b'
+ParameterResolution.dfy(252,21): Error: Duplicate parameter name: x
+72 resolution/type errors detected in ParameterResolution.dfy

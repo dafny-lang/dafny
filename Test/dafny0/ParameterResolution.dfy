@@ -239,3 +239,18 @@ module NullaryDatatypeConstructors0 {
     var e3 := Ex.Create(2, 3); // error: too many arguments
   }
 }
+
+module MissingParameters {
+  method M(a: int, b: int, c: int := 0, d: int := 2, e: int := 4)
+  method Caller() {
+    M(c := 2); // error (x2): missing parameters ("a" and "b")
+    M(c := 2, e := 7); // error (x2): missing parameters ("a" and "b")
+  }
+}
+
+module DuplicateFormal {
+  method Bad(x: int, x: int) // error: duplicate formal name
+  method GoodCallerOfBad() {
+    Bad(2, 3);
+  }
+}

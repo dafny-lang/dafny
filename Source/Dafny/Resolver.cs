@@ -16530,40 +16530,43 @@ namespace Microsoft.Dafny
         name = $"function type '{cArrowType}'";
       }
 
-      // Compare the number of actual bindings with the required/full number of parameters, and report an error
-      // if the counts look fishy. Users would expect such an error, despite the fact that almost any(*) such error
-      // will also generate some other error below when the named bindings and default parameter values are taken
-      // into consideration.
-      // (*) The one exception is: If all actuals are given positionally and there are more actuals than formals,
-      // then the fishy-count error we give here may be the only error the user gets.
-      var requiredParametersCount = formals.Count(f => f.DefaultValue == null);
-      var actualsCounts = bindings.ArgumentBindings.Count;
-      if (requiredParametersCount <= actualsCounts && actualsCounts <= formals.Count) {
-        // the situation is plausible
-      } else if (requiredParametersCount == formals.Count) {
-        // this is the common, classical case of no default parameter values; generate a straightforward error message
-        reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects {formals.Count}, got {actualsCounts})");
-      } else if (actualsCounts < requiredParametersCount) {
-        reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at least {requiredParametersCount}, got {actualsCounts})");
-      } else {
-        reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at most {formals.Count}, got {actualsCounts})");
+      // If all arguments are passed positionally, use simple error messages that talk about the count of arguments.
+      var onlyPositionalArguments = bindings.ArgumentBindings.TrueForAll(binding => binding.FormalParameterName == null);
+      var simpleErrorReported = false;
+      if (onlyPositionalArguments) {
+        var requiredParametersCount = formals.Count(f => f.DefaultValue == null);
+        var actualsCounts = bindings.ArgumentBindings.Count;
+        if (requiredParametersCount <= actualsCounts && actualsCounts <= formals.Count) {
+          // the situation is plausible
+        } else if (requiredParametersCount == formals.Count) {
+          // this is the common, classical case of no default parameter values; generate a straightforward error message
+          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects {formals.Count}, got {actualsCounts})");
+          simpleErrorReported = true;
+        } else if (actualsCounts < requiredParametersCount) {
+          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at least {requiredParametersCount}, got {actualsCounts})");
+          simpleErrorReported = true;
+        } else {
+          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at most {formals.Count}, got {actualsCounts})");
+          simpleErrorReported = true;
+        }
       }
 
       // resolve given arguments and populate the "namesToActuals" map
-      var formalNames = new HashSet<string>(formals.ConvertAll(f => f.Name));
-      var namesToActuals = new Dictionary<string, ActualBinding>(); // invariant: namesToActuals.Keys is a subset of formalNames
+      var namesToActuals = new Dictionary<string, ActualBinding>();
+      formals.ForEach(f => namesToActuals.Add(f.Name, null)); // a name mapping to "null" says it hasn't been filled in yet
       var stillAcceptingPositionalArguments = true;
+      var j = 0;
       foreach (var binding in bindings.ArgumentBindings) {
         var arg = binding.Actual;
         // insert the actual into "namesToActuals" under an appropriate name, unless there is an error
         if (binding.FormalParameterName != null) {
           var pname = binding.FormalParameterName.val;
           stillAcceptingPositionalArguments = false;
-          if (!formalNames.Contains(pname)) {
+          if (!namesToActuals.TryGetValue(pname, out var b)) {
             reporter.Error(MessageSource.Resolver, binding.FormalParameterName, $"the binding named '{pname}' does not correspond to any formal parameter");
-          } else if (!namesToActuals.TryGetValue(pname, out var b)) {
+          } else if (b == null) {
             // all is good
-            namesToActuals.Add(pname, binding);
+            namesToActuals[pname] = binding;
           } else if (b.FormalParameterName == null) {
             reporter.Error(MessageSource.Resolver, binding.FormalParameterName, $"the parameter named '{pname}' is already given positionally");
           } else {
@@ -16571,20 +16574,35 @@ namespace Microsoft.Dafny
           }
         } else if (!stillAcceptingPositionalArguments) {
           reporter.Error(MessageSource.Resolver, arg.tok, "a positional argument is not allowed to follow named arguments");
-        } else if (namesToActuals.Count < formals.Count) {
+        } else if (j < formals.Count) {
           // use the name of formal corresponding to this positional argument
-          namesToActuals.Add(formals[namesToActuals.Count].Name, binding);
+          var pname = formals[j].Name;
+          Contract.Assert(namesToActuals[pname] == null); // we expect this, since we've only filled parameters positionally so far
+          namesToActuals[pname] = binding;
+        } else {
+          // too many positional arguments
+          if (onlyPositionalArguments) {
+            // error was reported before the "foreach" loop
+            Contract.Assert(simpleErrorReported);
+          } else if (formals.Count < j) {
+            // error was reported on a previous iteration of this "foreach" loop
+          } else {
+            reporter.Error(MessageSource.Resolver, callTok,
+              $"wrong number of arguments ({name} expects {formals.Count}, got {bindings.ArgumentBindings.Count})");
+          }
         }
 
         // resolve argument
         ResolveExpression(arg, opts);
+        j++;
       }
 
       var actuals = new List<Expression>();
-      var j = 0;
+      j = 0;
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (var formal in formals) {
-        if (namesToActuals.TryGetValue(formal.Name, out var b)) {
+        var b = namesToActuals[formal.Name];
+        if (b != null) {
           actuals.Add(b.Actual);
           substMap.Add(formal, b.Actual);
           var what = whatKind + (context is Method ? " in-parameter" : " argument");
@@ -16600,6 +16618,22 @@ namespace Microsoft.Dafny
           allDefaultValueExpressions.Add(n);
           actuals.Add(n);
           substMap.Add(formal, n);
+        } else {
+          // parameter has no value
+          if (onlyPositionalArguments) {
+            // a simple error message has already been reported
+            Contract.Assert(simpleErrorReported);
+          } else {
+            var message = "no actual argument passed for " + whatKind + (context is Method ? " in-parameter" : " argument");
+            if (formals.Count != 1) {
+              if (formal.HasName) {
+                message += $" '{formal.Name}'";
+              } else {
+                message += " " + j;
+              }
+            }
+            reporter.Error(MessageSource.Resolver, callTok, message);
+          }
         }
         j++;
       }
