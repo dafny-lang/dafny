@@ -10400,7 +10400,6 @@ namespace Microsoft.Dafny {
 
     public Function Function;  // filled in by resolution
 
-    [Captured]
     public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
       : base(tok) {
       Contract.Requires(tok != null);
@@ -10417,6 +10416,24 @@ namespace Microsoft.Dafny {
       this.OpenParen = openParen;
       this.AtLabel = atLabel;
       this.Bindings = new ActualBindings(args);
+    }
+
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(fn != null);
+      Contract.Requires(receiver != null);
+      Contract.Requires(bindings != null);
+      Contract.Requires(openParen != null);
+      Contract.Ensures(type == null);
+      Contract.Ensures(cce.Owner.Same(this, receiver));
+
+      this.Name = fn;
+      cce.Owner.AssignSame(this, receiver);
+      this.Receiver = receiver;
+      this.OpenParen = openParen;
+      this.AtLabel = atLabel;
+      this.Bindings = bindings;
     }
 
     /// <summary>

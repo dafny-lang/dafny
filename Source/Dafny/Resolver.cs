@@ -16453,7 +16453,7 @@ namespace Microsoft.Dafny
           }
           if (callee != null) {
             // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-            var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.Bindings.ArgumentBindings, atLabel);
+            var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.Bindings, atLabel);
             rr.Function = callee;
             rr.TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass;
             rr.TypeApplication_JustFunction = mse.TypeApplication_JustMember;
