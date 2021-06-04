@@ -16659,6 +16659,7 @@ namespace Microsoft.Dafny
     void FillInDefaultValueExpression(DefaultValueExpression expr, Dictionary<DefaultValueExpression, WorkProgress> visited) {
       Contract.Requires(expr != null);
       Contract.Requires(visited != null);
+      Contract.Ensures(Contract.ValueAtReturn(out expr.ResolvedExpression) != null);
 
       if (visited.TryGetValue(expr, out var p)) {
         if (p == WorkProgress.Done) {
@@ -16666,6 +16667,8 @@ namespace Microsoft.Dafny
         } else {
           // there is a cycle
           reporter.Error(MessageSource.Resolver, expr, "default-valued expressions are cyclicly dependent; this is not allowed, since it would cause infinite expansion");
+          // nevertheless, to avoid any issues in the resolver, fill in the .ResolvedExpression field with something
+          expr.ResolvedExpression = Expression.CreateBoolLiteral(expr.tok, false);
         }
         return;
       }
@@ -16690,13 +16693,11 @@ namespace Microsoft.Dafny
       }
 
       public override Expression Substitute(Expression expr) {
-        if (expr is DefaultValueExpression) {
-          var e = (DefaultValueExpression)expr;
+        if (expr is DefaultValueExpression e) {
           resolver.FillInDefaultValueExpression(e, visited);
-          return e;
-        } else {
-          return base.Substitute(expr);
+          Contract.Assert(e.ResolvedExpression != null); // postcondition of FillInDefaultValueExpression
         }
+        return base.Substitute(expr);
       }
     }
 

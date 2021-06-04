@@ -18861,6 +18861,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is ConcreteSyntaxExpression) {
           var e = (ConcreteSyntaxExpression)expr;
+          Contract.Assert(e.ResolvedExpression != null);
           return Substitute(e.ResolvedExpression);
 
         } else if (expr is BoogieFunctionCall) {

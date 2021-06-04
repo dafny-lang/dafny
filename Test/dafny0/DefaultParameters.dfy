@@ -189,3 +189,18 @@ module Wellformedness {
     // if the call graph dependencies are set up correctly, then
     requires assert 0 <= Nat(); 3 < 10  // there should be no complaints about this assertion
 }
+
+module Nested {
+  function F(xt: int, yt: int := G(xt)): int // error: cannot prove termination (4 termination errors get reported here)
+  function G(x: int, y: int := x): int {
+    F(y) // should expand to: F(y, G(y, y))
+  }
+
+  function K(xt: nat, yt: nat := if xt == 0 then 6 else L(xt - 1)): nat // error: cannot prove termination
+    decreases xt, 0
+  function L(x: nat, y: nat := x): nat
+    decreases x, 1
+  {
+    K(y) // should expand to: K(y, L(y, if x == 0 then 6 else L(x - 1)))
+  }
+}

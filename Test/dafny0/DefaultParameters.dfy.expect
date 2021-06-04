@@ -91,5 +91,26 @@ Execution trace:
 DefaultParameters.dfy(179,33): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
+DefaultParameters.dfy(194,33): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(194,33): Error: decreases expression (component 1) must be bounded below by 0
+DefaultParameters.dfy(194,22): Related location
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(194,33): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+DefaultParameters.dfy(194,33): Error: decreases expression (component 0) must be bounded below by 0
+DefaultParameters.dfy(195,13): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+DefaultParameters.dfy(199,56): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Else
+    (0,0): anon8_Else
 
-Dafny program verifier finished with 28 verified, 30 errors
+Dafny program verifier finished with 29 verified, 35 errors
