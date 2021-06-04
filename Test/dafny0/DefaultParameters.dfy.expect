@@ -98,16 +98,18 @@ DefaultParameters.dfy(194,33): Error: decreases expression (component 1) must be
 DefaultParameters.dfy(194,22): Related location
 Execution trace:
     (0,0): anon0
-DefaultParameters.dfy(194,33): Error: cannot prove termination; try supplying a decreases clause
+DefaultParameters.dfy(196,5): Error: cannot prove termination; try supplying a decreases clause
+DefaultParameters.dfy(194,33): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-DefaultParameters.dfy(194,33): Error: decreases expression (component 0) must be bounded below by 0
+DefaultParameters.dfy(196,5): Error: decreases expression (component 0) must be bounded below by 0
 DefaultParameters.dfy(195,13): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-DefaultParameters.dfy(199,56): Error: failure to decrease termination measure
+DefaultParameters.dfy(204,5): Error: failure to decrease termination measure
+DefaultParameters.dfy(199,56): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else

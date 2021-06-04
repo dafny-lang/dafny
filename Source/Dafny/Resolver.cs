@@ -16675,20 +16675,23 @@ namespace Microsoft.Dafny
       Contract.Assert(expr.ResolvedExpression == null);
 
       visited.Add(expr, WorkProgress.BeingVisited);
-      var s = new DefaultValueSubstituter(this, visited, expr.Receiver, expr.SubstMap, expr.TypeMap);
+      var s = new DefaultValueSubstituter(this, expr.tok, visited, expr.Receiver, expr.SubstMap, expr.TypeMap);
       expr.ResolvedExpression = s.Substitute(expr.Formal.DefaultValue);
       visited[expr] = WorkProgress.Done;
     }
 
     class DefaultValueSubstituter : Translator.Substituter {
       private readonly Resolver resolver;
+      private readonly IToken callTok;
       private readonly Dictionary<DefaultValueExpression, WorkProgress> visited;
-      public DefaultValueSubstituter(Resolver resolver, Dictionary<DefaultValueExpression, WorkProgress> visited,
+      public DefaultValueSubstituter(Resolver resolver, IToken callTok, Dictionary<DefaultValueExpression, WorkProgress> visited,
         Expression /*?*/ receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
         : base(receiverReplacement, substMap, typeMap) {
         Contract.Requires(resolver != null);
+        Contract.Requires(callTok != null);
         Contract.Requires(visited != null);
         this.resolver = resolver;
+        this.callTok = callTok;
         this.visited = visited;
       }
 
@@ -16697,7 +16700,25 @@ namespace Microsoft.Dafny
           resolver.FillInDefaultValueExpression(e, visited);
           Contract.Assert(e.ResolvedExpression != null); // postcondition of FillInDefaultValueExpression
         }
-        return base.Substitute(expr);
+        expr = base.Substitute(expr);
+        if (expr is FunctionCallExpr) {
+          // because termination is checked at call sites, change the location information for function calls
+          if (expr.tok is NestedToken nestedTok && nestedTok.Outer == callTok) {
+            // it has already been replaced
+          } else {
+            var fce = (FunctionCallExpr)expr;
+            FunctionCallExpr newFce = new FunctionCallExpr(new NestedToken(callTok, expr.tok), fce.Name, fce.Receiver, fce.OpenParen, fce.Args, fce.AtLabel);
+            newFce.Type = fce.Type;
+            newFce.Function = fce.Function;
+            newFce.CoCall = fce.CoCall; // also copy the co-call status
+            newFce.CoCallHint = fce.CoCallHint; // and any co-call hint
+            newFce.TypeApplication_AtEnclosingClass = fce.TypeApplication_AtEnclosingClass;
+            newFce.TypeApplication_JustFunction = fce.TypeApplication_JustFunction;
+            expr = newFce;
+          }
+        }
+
+        return expr;
       }
     }
 
