@@ -203,4 +203,29 @@ module Nested {
   {
     K(y) // should expand to: K(y, L(y, if x == 0 then 6 else L(x - 1)))
   }
+
+  function A(x: nat := B()): nat
+  function B(x: nat := C()): nat
+  function C(): nat
+    decreases 7
+  {
+    ABC0() + ABC1() + ABC2()
+  }
+  function ABC0(): nat
+    decreases 6
+  {
+    A(B(C())) // error: call to C may not terminate
+  }
+  function ABC1(): nat
+    decreases 6
+  {
+    // the following expression expands to A(B(C()))
+    A(B()) // error: call to C may not terminate
+  }
+  function ABC2(): nat
+    decreases 6
+  {
+    // the following expression expands to A(B(C()))
+    A() // error: call to C may not terminate
+  }
 }

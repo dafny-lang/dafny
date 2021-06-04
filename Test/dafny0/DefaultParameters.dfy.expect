@@ -114,5 +114,30 @@ Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Else
+DefaultParameters.dfy(207,23): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(207,24): Error: cannot prove termination; try supplying a decreases clause
+DefaultParameters.dfy(208,23): Related location
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(208,23): Error: cannot prove termination; try supplying a decreases clause
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(217,8): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+DefaultParameters.dfy(223,7): Error: failure to decrease termination measure
+DefaultParameters.dfy(208,23): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+DefaultParameters.dfy(229,5): Error: failure to decrease termination measure
+DefaultParameters.dfy(207,24): Related location
+DefaultParameters.dfy(208,23): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
 
-Dafny program verifier finished with 29 verified, 35 errors
+Dafny program verifier finished with 30 verified, 41 errors
