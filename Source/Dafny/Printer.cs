@@ -2833,7 +2833,8 @@ namespace Microsoft.Dafny {
         }
       } else {
         // print arguments after incorporating default parameters
-        foreach (var arg in bindings.Arguments) {
+        for (; i < bindings.Arguments.Count; i++) {
+          var arg = bindings.Arguments[i];
           wr.Write(sep);
           sep = ", ";
           PrintExpression(arg, false);
