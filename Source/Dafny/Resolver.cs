@@ -16458,7 +16458,7 @@ namespace Microsoft.Dafny
             rr.TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass;
             rr.TypeApplication_JustFunction = mse.TypeApplication_JustMember;
             var typeMap = BuildTypeArgumentSubstitute(mse.TypeArgumentSubstitutionsAtMemberDeclaration());
-            ResolveActualParameters(rr.Bindings, callee.Formals, e.tok, callee, opts, typeMap, callee.IsStatic ? null : e.Lhs);
+            ResolveActualParameters(rr.Bindings, callee.Formals, e.tok, callee, opts, typeMap, callee.IsStatic ? null : mse.Obj);
             rr.Type = SubstType(callee.ResultType, typeMap);
             if (errorCount == reporter.Count(ErrorLevel.Error)) {
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
@@ -16696,25 +16696,46 @@ namespace Microsoft.Dafny
       }
 
       public override Expression Substitute(Expression expr) {
-        if (expr is DefaultValueExpression e) {
-          resolver.FillInDefaultValueExpression(e, visited);
-          Contract.Assert(e.ResolvedExpression != null); // postcondition of FillInDefaultValueExpression
+        if (expr is DefaultValueExpression dve) {
+          resolver.FillInDefaultValueExpression(dve, visited);
+          Contract.Assert(dve.ResolvedExpression != null); // postcondition of FillInDefaultValueExpression
         }
         expr = base.Substitute(expr);
-        if (expr is FunctionCallExpr) {
-          // because termination is checked at call sites, change the location information for function calls
-          if (expr.tok is NestedToken nestedTok && nestedTok.Outer == callTok) {
-            // it has already been replaced
-          } else {
-            var fce = (FunctionCallExpr)expr;
-            FunctionCallExpr newFce = new FunctionCallExpr(new NestedToken(callTok, expr.tok), fce.Name, fce.Receiver, fce.OpenParen, fce.Args, fce.AtLabel);
-            newFce.Type = fce.Type;
-            newFce.Function = fce.Function;
-            newFce.CoCall = fce.CoCall; // also copy the co-call status
-            newFce.CoCallHint = fce.CoCallHint; // and any co-call hint
-            newFce.TypeApplication_AtEnclosingClass = fce.TypeApplication_AtEnclosingClass;
-            newFce.TypeApplication_JustFunction = fce.TypeApplication_JustFunction;
-            expr = newFce;
+        // Ideally, we'd change the .tok everywhere inside the default-value expression, since the expression
+        // is being used at the call site. However, rather than rewriting the entire Substituter, we do
+        // the substitution where it matters the most, namely where reads- or decreases-checks are performed.
+        if (!(expr.tok is NestedToken nestedTok && nestedTok.Outer == callTok)) {
+          // because reads and termination is checked at call sites, change the location information for function calls
+          var ntok = new NestedToken(callTok, expr.tok);
+          if (expr is FunctionCallExpr) {
+            var e = (FunctionCallExpr)expr;
+            var newExpr = new FunctionCallExpr(ntok, e.Name, e.Receiver, e.OpenParen, e.Args, e.AtLabel);
+            newExpr.Type = e.Type;
+            newExpr.Function = e.Function;
+            newExpr.CoCall = e.CoCall; // also copy the co-call status
+            newExpr.CoCallHint = e.CoCallHint; // and any co-call hint
+            newExpr.TypeApplication_AtEnclosingClass = e.TypeApplication_AtEnclosingClass;
+            newExpr.TypeApplication_JustFunction = e.TypeApplication_JustFunction;
+            expr = newExpr;
+          } else if (expr is MemberSelectExpr) {
+            var e = (MemberSelectExpr)expr;
+            var newExpr = new MemberSelectExpr(ntok, e.Obj, e.MemberName);
+            newExpr.Type = e.Type;
+            newExpr.Member = e.Member;
+            newExpr.TypeApplication_AtEnclosingClass = e.TypeApplication_AtEnclosingClass.ConvertAll(t => Resolver.SubstType(t, typeMap));
+            newExpr.TypeApplication_JustMember = e.TypeApplication_JustMember.ConvertAll(t => Resolver.SubstType(t, typeMap));
+            newExpr.AtLabel = e.AtLabel;
+            expr = newExpr;
+          } else if (expr is SeqSelectExpr) {
+            var e = (SeqSelectExpr)expr;
+            var newExpr = new SeqSelectExpr(ntok, e.SelectOne, e.Seq, e.E0, e.E1);
+            newExpr.Type = e.Type;
+            expr = newExpr;
+          } else if (expr is MultiSelectExpr) {
+            var e = (MultiSelectExpr)expr;
+            var newExpr = new MultiSelectExpr(ntok, e.Array, e.Indices);
+            newExpr.Type = e.Type;
+            expr = newExpr;
           }
         }
 

@@ -2594,7 +2594,7 @@ namespace Microsoft.Dafny {
       // check well-formedness of any default-value expressions (before assuming preconditions)
       foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
-        CheckWellformed(e, new WFOptions(), localVariables, builder, etran);
+        CheckWellformed(e, new WFOptions(null, false, false, false), localVariables, builder, etran);
         builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
       }
@@ -4577,7 +4577,7 @@ namespace Microsoft.Dafny {
         // check well-formedness of any default-value expressions (before assuming preconditions)
         foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
           var e = formal.DefaultValue;
-          CheckWellformed(e, new WFOptions(), localVariables, builder, etran);
+          CheckWellformed(e, new WFOptions(null, false, false, false), localVariables, builder, etran);
           builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
           CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
 
@@ -6134,7 +6134,7 @@ namespace Microsoft.Dafny {
       InitializeFuelConstant(f.tok, builder, etran);
 
       // Check well-formedness of any default-value expressions (before assuming preconditions).
-      var wfo = new WFOptions(null, true, true /* do delayed reads checks */);
+      var wfo = new WFOptions(null, false, false, false); // no reads or termination checks
       foreach (var formal in f.Formals.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
         CheckWellformed(e, wfo, locals, builder, etran);
@@ -6148,7 +6148,6 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
 
       // Check well-formedness of the preconditions (including termination), and then
       // assume each one of them.  After all that (in particular, after assuming all
@@ -6563,7 +6562,7 @@ namespace Microsoft.Dafny {
       // check well-formedness of each default-value expression
       foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
-        CheckWellformed(e, new WFOptions(null, true), locals, builder, etran);
+        CheckWellformed(e, new WFOptions(null, false, false, false), locals, builder, etran);
         builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
       }
@@ -7140,18 +7139,21 @@ namespace Microsoft.Dafny {
     {
       public readonly Function SelfCallsAllowance;
       public readonly bool DoReadsChecks;
+      public readonly bool DoTerminationChecks;
       public readonly List<Bpl.Variable> Locals;
       public readonly List<Bpl.Cmd> Asserts;
       public readonly bool LValueContext;
       public readonly Bpl.QKeyValue AssertKv;
 
       public WFOptions() {
+        DoTerminationChecks = true;
       }
 
-      public WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool saveReadsChecks = false) {
+      public WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool saveReadsChecks = false, bool doTerminationChecks = true) {
         Contract.Requires(!saveReadsChecks || doReadsChecks);  // i.e., saveReadsChecks ==> doReadsChecks
         SelfCallsAllowance = selfCallsAllowance;
         DoReadsChecks = doReadsChecks;
+        DoTerminationChecks = doTerminationChecks;
         if (saveReadsChecks) {
           Locals = new List<Variable>();
           Asserts = new List<Bpl.Cmd>();
@@ -7160,6 +7162,7 @@ namespace Microsoft.Dafny {
 
       public WFOptions(Bpl.QKeyValue kv) {
         AssertKv = kv;
+        DoTerminationChecks = true;
       }
 
       /// <summary>
@@ -7170,6 +7173,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(options != null);
         SelfCallsAllowance = options.SelfCallsAllowance;
         DoReadsChecks = false;  // so just leave .Locals and .Asserts as null
+        DoTerminationChecks = options.DoTerminationChecks;
         LValueContext = options.LValueContext;
         AssertKv = options.AssertKv;
       }
@@ -7182,6 +7186,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(options != null);
         SelfCallsAllowance = options.SelfCallsAllowance;
         DoReadsChecks = options.DoReadsChecks;
+        DoTerminationChecks = options.DoTerminationChecks;
         Locals = options.Locals;
         Asserts = options.Asserts;
         LValueContext = lValueContext;
@@ -7786,7 +7791,7 @@ namespace Microsoft.Dafny {
           }
 
           Bpl.Expr allowance = null;
-          if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is ExtremePredicate)) {
+          if (codeContext != null && options.DoTerminationChecks && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is ExtremePredicate)) {
             // check that the decreases measure goes down
             if (ModuleDefinition.InSameSCC(e.Function, codeContext)) {
               List<Expression> contextDecreases = codeContext.Decreases.Expressions;

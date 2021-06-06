@@ -52,7 +52,7 @@ module Actuals {
 }
 
 module Termination {
-  function method R(n: nat := R(0)): nat { n } // error: failure to prove termination for R(0)
+  function method R(n: nat := R(0)): nat { n }
 }
 
 module TwoState {
@@ -121,14 +121,14 @@ module Wellformedness {
     var u: int
     const v: int
 
-    function T0(x: int := this.u): int // error: insufficient reads clause
+    function T0(x: int := this.u): int // reads clause is checked only at call sites
 
     function T1(x: int := this.v): int
 
     function T2(c: C, x: int := c.u): int
       reads c
 
-    function T3(c: C, x: int := c.u): int // error: insufficient reads clause (despite precondition)
+    function T3(c: C, x: int := c.u): int // reads clause is checked only at call sites
       requires c == this
       reads this
 
@@ -191,17 +191,29 @@ module Wellformedness {
 }
 
 module Nested {
-  function F(xt: int, yt: int := G(xt)): int // error: cannot prove termination (4 termination errors get reported here)
+  function F(xt: int, yt: int := G(xt)): int
   function G(x: int, y: int := x): int {
-    F(y) // should expand to: F(y, G(y, y))
+    if x <= 0 then 0 else
+      F(x - 1) // expands to F(x-1, G(x-1, x-1))
   }
 
-  function K(xt: nat, yt: nat := if xt == 0 then 6 else L(xt - 1)): nat // error: cannot prove termination
+  function F'(xt: int, yt: int := G'(xt)): int
+    decreases 5
+  {
+    G'(xt) // error: cannot prove termination
+  }
+  function G'(x: int, y: int := x): int
+    decreases 6
+  {
+    F'(y) // error: expands to F'(y, G'(y, y)), and cannot prove termination for call to G'
+  }
+
+  function K(xt: nat, yt: nat := if xt == 0 then 6 else L(xt - 1)): nat
     decreases xt, 0
   function L(x: nat, y: nat := x): nat
     decreases x, 1
   {
-    K(y) // should expand to: K(y, L(y, if x == 0 then 6 else L(x - 1)))
+    K(x) // should expand to: K(x, if x == 0 then 6 else L(x - 1))
   }
 
   function A(x: nat := B()): nat
@@ -227,5 +239,122 @@ module Nested {
   {
     // the following expression expands to A(B(C()))
     A() // error: call to C may not terminate
+  }
+}
+
+module ReadsAndDecreases {
+  // reads and decreases are not checked directly on default-valued expressions. Instead,
+  // those are checked at call sites.
+  class C {
+    var data: int
+    // The following function has an empty reads clause. Still, it's fine for the default
+    // value of the parameter to read "this.data".
+    function M(x: int := data): int { x }
+
+    // The following function has a decreases clause that would not allow recursive calls.
+    // Still, it's fine for the default value of the parameter to call N.
+    function NA(): int
+      decreases 3
+    {
+      NCaller1(2, this)
+    }
+    function NB(x: int, y: int := NA()): int
+      decreases x
+    {
+      NCaller0(x, this) + NCaller1(x, this)
+    }
+
+    // The following function has a division-by-zero error in the default-value expression
+    // for "y". That's not allowed (even if all call sites pass in "x" as non-0), and it's
+    // checked here.
+    function O(x: int, y: int := 3 / x): int // error: division by zero (reported twice, see comment below in OCaller1)
+    {
+      x + y
+    }
+  }
+
+  function MCaller0(c: C): int {
+    c.M() // error: reads violation
+  }
+  function MCaller1(c: C): int
+    reads c
+  {
+    c.M()
+  }
+  function MCaller2(c: C): int {
+    c.M(2)
+  }
+
+  function NCaller0(x: int, c: C): int
+    decreases x, 0
+  {
+    if x <= 0 then 0 else c.NB(x - 1, 0)
+  }
+  function NCaller1(x: int, c: C): int
+    decreases x, 0
+  {
+    if x <= 0 then 0 else c.NB(x - 1) // error: this defaults to c.NB(x - 1, NA()), and NA() may not terminate
+  }
+
+  function OCaller0(c: C): int {
+    c.O(1) + c.O(0, 2)
+  }
+  function OCaller1(c: C): int {
+    // The following line causes a division-by-zero error to be reported (again) at the default-value expression.
+    // It's unfortunate that the error is shown there. However, in a correct program, the default-value
+    // expression needs to be fixed anywhere, so this kind of double-error is not likely to be either common
+    // or too confusing.
+    c.O(0) // error: division by zero (reported at declaration of O)
+  }
+  function OCaller2(x: int, c: C): int
+    requires x != 0
+  {
+    c.O(x)
+  }
+
+  function method J(): int
+  lemma AboutJ()
+    ensures J() != 0
+  method Jx(x: int := AboutJ(); 2 / J()) // lemma ensures no div-by-zero
+  method Jy() {
+    Jx(); // no div-by-zero reported here, either (because lemma is copied as part of the default-value expression)
+  }
+
+  lemma Lemma(x: int)
+    requires x == 3
+  function BadLemmaCall(y: int := Lemma(2); 5): int // error: precondition violation in lemma call
+  method BadLemmaCaller() {
+    var z := BadLemmaCall(); // error: precondition violation in lemma call (reported at the position of the default value 2 lines above)
+  }
+
+  function MoreReads(a: array<int>, m: array2<int>,
+    x: int := if 0 < a.Length then a[0] else 3,
+    y: int := if 0 < m.Length0 && 0 < m.Length1 then m[0, 0] else 3): int
+  function ReadA0(a: array<int>, m: array2<int>): int
+    requires m.Length0 == 0
+  {
+    MoreReads(a, m) // error: reads violation for a
+  }
+  function ReadA1(a: array<int>, m: array2<int>): int
+    requires m.Length0 == 0
+    reads a
+  {
+    MoreReads(a, m)
+  }
+  function ReadM0(a: array<int>, m: array2<int>): int
+    requires a.Length == 0
+  {
+    MoreReads(a, m) // error: reads violation for m
+  }
+  function ReadM1(a: array<int>, m: array2<int>): int
+    requires a.Length == 0
+    reads m
+  {
+    MoreReads(a, m)
+  }
+  function ReadNeither(a: array<int>, m: array2<int>): int
+    requires a.Length == 0 == m.Length0
+  {
+    MoreReads(a, m)
   }
 }

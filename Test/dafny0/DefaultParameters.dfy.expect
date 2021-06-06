@@ -1,6 +1,3 @@
-DefaultParameters.dfy(55,30): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(63,42): Error: default value must be allocated in the two-state function's previous state
 Execution trace:
     (0,0): anon0
@@ -19,12 +16,6 @@ DefaultParameters.dfy(110,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon15_Then
-DefaultParameters.dfy(124,31): Error: insufficient reads clause to read field
-Execution trace:
-    (0,0): anon0
-DefaultParameters.dfy(131,34): Error: insufficient reads clause to read field
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(135,43): Error: possible division by zero
 Execution trace:
     (0,0): anon0
@@ -91,53 +82,71 @@ Execution trace:
 DefaultParameters.dfy(179,33): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
-DefaultParameters.dfy(194,33): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-DefaultParameters.dfy(194,33): Error: decreases expression (component 1) must be bounded below by 0
-DefaultParameters.dfy(194,22): Related location
-Execution trace:
-    (0,0): anon0
-DefaultParameters.dfy(196,5): Error: cannot prove termination; try supplying a decreases clause
-DefaultParameters.dfy(194,33): Related location
+DefaultParameters.dfy(203,4): Error: failure to decrease termination measure
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-DefaultParameters.dfy(196,5): Error: decreases expression (component 0) must be bounded below by 0
-DefaultParameters.dfy(195,13): Related location
+DefaultParameters.dfy(208,6): Error: failure to decrease termination measure
+DefaultParameters.dfy(200,34): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-DefaultParameters.dfy(204,5): Error: failure to decrease termination measure
-DefaultParameters.dfy(199,56): Related location
+DefaultParameters.dfy(229,8): Error: failure to decrease termination measure
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+DefaultParameters.dfy(235,7): Error: failure to decrease termination measure
+DefaultParameters.dfy(220,23): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+DefaultParameters.dfy(241,5): Error: failure to decrease termination measure
+DefaultParameters.dfy(219,24): Related location
+DefaultParameters.dfy(220,23): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+DefaultParameters.dfy(270,35): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+DefaultParameters.dfy(277,7): Error: insufficient reads clause to read field
+DefaultParameters.dfy(252,25): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+DefaultParameters.dfy(296,30): Error: failure to decrease termination measure
+DefaultParameters.dfy(261,34): Related location
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Else
-DefaultParameters.dfy(207,23): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-DefaultParameters.dfy(207,24): Error: cannot prove termination; try supplying a decreases clause
-DefaultParameters.dfy(208,23): Related location
-Execution trace:
-    (0,0): anon0
-DefaultParameters.dfy(208,23): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-DefaultParameters.dfy(217,8): Error: failure to decrease termination measure
+DefaultParameters.dfy(270,35): Error: possible division by zero
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-DefaultParameters.dfy(223,7): Error: failure to decrease termination measure
-DefaultParameters.dfy(208,23): Related location
+DefaultParameters.dfy(325,39): Error: A precondition for this call might not hold.
+DefaultParameters.dfy(324,15): Related location: This is the precondition that might not hold.
 Execution trace:
     (0,0): anon0
-    (0,0): anon4_Else
-DefaultParameters.dfy(229,5): Error: failure to decrease termination measure
-DefaultParameters.dfy(207,24): Related location
-DefaultParameters.dfy(208,23): Related location
+DefaultParameters.dfy(336,13): Error: insufficient reads clause to read array element
+DefaultParameters.dfy(331,36): Related location
 Execution trace:
     (0,0): anon0
-    (0,0): anon4_Else
+    (0,0): anon12_Else
+    (0,0): anon13_Then
+    (0,0): anon6
+    DefaultParameters.dfy(332,32): anon14_Else
+    (0,0): anon15_Else
+    (0,0): anon11
+DefaultParameters.dfy(347,13): Error: insufficient reads clause to read array element
+DefaultParameters.dfy(332,54): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Else
+    (0,0): anon13_Else
+    (0,0): anon6
+    (0,0): anon14_Then
+    (0,0): anon15_Then
+    (0,0): anon11
 
-Dafny program verifier finished with 30 verified, 41 errors
+Dafny program verifier finished with 47 verified, 39 errors
