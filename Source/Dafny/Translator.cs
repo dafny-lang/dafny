@@ -14507,6 +14507,16 @@ namespace Microsoft.Dafny {
         builder.Add(cmd);
         if (cmd is Bpl.AssertCmd) {
           tran.assertionCount++;
+        } else if (cmd is Bpl.CallCmd call) {
+          // A call command may involve a precondition, but we can't tell for sure until the callee
+          // procedure has been generated. Therefore, to be on the same side, we count this call
+          // as a possible assertion, unless it's a procedure that's part of the translation and
+          // known not to have any preconditions.
+          if (call.callee == "$IterHavoc0" || call.callee == "$IterHavoc1" || call.callee == "$YieldHavoc") {
+            // known not to have any preconditions
+          } else {
+            tran.assertionCount++;
+          }
         }
       }
       public void Add(StructuredCmd scmd) { builder.Add(scmd); }

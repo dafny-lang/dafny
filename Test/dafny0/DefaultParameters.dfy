@@ -366,3 +366,14 @@ module TickRegressions {
   const u: nat := (X(); -3) // error: -3 is not a nat
   datatype S = S(x: nat := X(); -3) // error: -3 is not a nat
 }
+
+module StmtExprCallPreconditionRegression {
+  function G(): int
+    // Amazingly, the well-formedness check for G was once omitted for this function.
+    requires (X(); true) // error: precondition violation
+
+  lemma X()
+    requires false
+  { }
+}
+
