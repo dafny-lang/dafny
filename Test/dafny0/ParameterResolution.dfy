@@ -254,3 +254,9 @@ module DuplicateFormal {
     Bad(2, 3);
   }
 }
+
+module MoreSimpleTests {
+  method M(x: int := x) // error: cycle among parameters and their default values
+  least predicate P[nat](x: int := _k) // error: _k not allowed
+  least lemma L(x: int := _k) // error: _k not allowed
+}

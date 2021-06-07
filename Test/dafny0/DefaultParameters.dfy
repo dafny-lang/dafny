@@ -544,4 +544,6 @@ module ReadsCheck {
     case true =>
       var z := new Class(c);
   }
+
+  datatype D = D(c: Cell, x: int := c.data) // error: no reads allowed
 }

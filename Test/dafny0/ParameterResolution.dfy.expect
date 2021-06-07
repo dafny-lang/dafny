@@ -70,4 +70,7 @@ ParameterResolution.dfy(246,5): Error: no actual argument passed for method in-p
 ParameterResolution.dfy(247,5): Error: no actual argument passed for method in-parameter 'a'
 ParameterResolution.dfy(247,5): Error: no actual argument passed for method in-parameter 'b'
 ParameterResolution.dfy(252,21): Error: Duplicate parameter name: x
-72 resolution/type errors detected in ParameterResolution.dfy
+ParameterResolution.dfy(259,11): Error: default-value expressions for parameters contain a cycle: x -> x
+ParameterResolution.dfy(260,35): Error: unresolved identifier: _k
+ParameterResolution.dfy(261,26): Error: unresolved identifier: _k
+75 resolution/type errors detected in ParameterResolution.dfy
