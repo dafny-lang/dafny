@@ -7693,7 +7693,9 @@ namespace Microsoft.Dafny {
           }
           // check well-formedness of the other parameters
           foreach (Expression arg in e.Args) {
-            CheckWellformed(arg, options, locals, builder, etran);
+            if (!(arg is DefaultValueExpression)) {
+              CheckWellformed(arg, options, locals, builder, etran);
+            }
           }
           // create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
           Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
@@ -7860,8 +7862,9 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < dtv.Ctor.Formals.Count; i++) {
           var formal = dtv.Ctor.Formals[i];
           var arg = dtv.Arguments[i];
-          CheckWellformed(arg, options, locals, builder, etran);
-
+          if (!(arg is DefaultValueExpression)) {
+            CheckWellformed(arg, options, locals, builder, etran);
+          }
           // Cannot use the datatype's formals, so we substitute the inferred type args:
           var su = new Dictionary<TypeParameter, Type>();
           foreach (var p in LinqExtender.Zip(dtv.Ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs)) {
@@ -12585,7 +12588,9 @@ namespace Microsoft.Dafny {
           } else {
             actual = Args[i];
           }
-          TrStmt_CheckWellformed(actual, builder, locals, etran, true);
+          if (!(actual is DefaultValueExpression)) {
+            TrStmt_CheckWellformed(actual, builder, locals, etran, true);
+          }
           builder.Add(new CommentCmd("ProcessCallStmt: CheckSubrange"));
           // Check the subrange without boxing
           var beforeBox = etran.TrExpr(actual);

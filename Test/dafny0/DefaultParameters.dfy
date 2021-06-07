@@ -359,6 +359,57 @@ module ReadsAndDecreases {
   }
 }
 
+// Test well-formedness, subtypes, reads, and decreases
+
+module WellformednessCheck {
+  datatype R = R(i: int, x: int := 10 / i) // error: division by zero
+  function F(i: int, x: int := 10 / i): int // error: division by zero
+  method M(i: int, x: int := 10 / i) // error: division by zero
+  iterator Iter(i: int, x: int := 10 / i) // error: division by zero (reported twice)
+  class Class {
+    constructor (i: int, x: int := 10 / i) // error: division by zero
+  }
+
+  method Caller(y: int) {
+    // No additional errors are reported at the use sites
+    if
+    case true =>
+      var z := R(y);
+    case true =>
+      var z := F(y);
+    case true =>
+      M(y);
+    case true =>
+      var z := new Iter(y);
+    case true =>
+      var z := new Class(y);
+  }
+}
+
+module SubtypeCheck {
+  datatype R = R(i: int, x: nat := i) // error: i is not a nat
+  function F(i: int, x: nat := i): int // error: i is not a nat
+  method M(i: int, x: nat := i) // error: i is not a nat
+  iterator Iter(i: int, x: nat := i) // error: i is not a nat (reported twice)
+  class Class {
+    constructor (i: int, x: nat := i) // error: i is not a nat
+  }
+
+  method Caller(y: int) {
+    // No additional errors are reported at the use sites
+    if
+    case true =>
+      var z := R(y);
+    case true =>
+      var z := F(y);
+    case true =>
+      M(y);
+    case true =>
+      var z := new Iter(y);
+    case true =>
+      var z := new Class(y);
+  }
+}
 
 module TerminationCheck {
   lemma X() {
@@ -467,3 +518,35 @@ module IteratorFrameRegression {
   iterator Iter'(x: int := X(); 3)
 }
 
+module ReadsCheck {
+  class Cell {
+    var data: int
+  }
+  datatype R = R(c: Cell, x: int := c.data) // error: reads violation
+  function F(c: Cell, x: int := c.data): int // error: reads violation
+  function G(c: Cell, x: int := c.data): int
+    reads c
+  function H(c: Cell, d: Cell, x: int := c.data): int // error: reads violation (check is done independent of preconditions)
+    requires c == d
+    reads d
+  method M(c: Cell, x: int := c.data)
+  iterator Iter(c: Cell, x: int := c.data)
+  class Class {
+    constructor (c: Cell, x: int := c.data)
+  }
+
+  method Caller(c: Cell) {
+    // No additional errors are reported at the use sites
+    if
+    case true =>
+      var z := R(c);
+    case true =>
+      var z := F(c);
+    case true =>
+      M(c);
+    case true =>
+      var z := new Iter(c);
+    case true =>
+      var z := new Class(c);
+  }
+}
