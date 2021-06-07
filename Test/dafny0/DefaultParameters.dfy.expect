@@ -237,5 +237,9 @@ Execution trace:
 DefaultParameters.dfy(524,43): Error: insufficient reads clause to read field
 Execution trace:
     (0,0): anon0
+DefaultParameters.dfy(601,11): Error: assertion violation
+DefaultParameters.dfy(582,18): Related location
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 71 verified, 73 errors
+Dafny program verifier finished with 73 verified, 74 errors

@@ -547,3 +547,57 @@ module ReadsCheck {
 
   datatype D = D(c: Cell, x: int := c.data) // error: no reads allowed
 }
+
+module ExtremeOrdinal {
+  greatest predicate P(x: int, u: int := x) {
+    x == u
+  }
+
+  least predicate Q(x: int, u: int := x) {
+    x == u
+  }
+
+  least lemma L(x: int, u: int := x)
+    requires x == u
+  {
+  }
+
+  lemma TestLeast(y: int, z: int, v: int, w: int, a: int, b: int, o: ORDINAL)
+    requires !o.IsLimit
+  {
+    assert P(y);
+    assert P#[o](z);
+    L(v);
+    L#[o](w);
+    assert Q(a);
+    assert Q#[o](b);
+  }
+}
+
+module ExtremeNat {
+  greatest predicate P[nat](x: int, u: int := x) {
+    x == u
+  }
+
+  least predicate Q[nat](x: int, u: int := x) {
+    x == u
+  }
+
+  least lemma L[nat](x: int, u: int := x)
+    requires x == u
+  {
+  }
+
+  lemma TestLeast(y: int, z: int, v: int, w: int, a: int, b: int, o: nat) {
+    assert P(y);
+    assert P#[o](z);
+    L(v);
+    L#[o](w);
+    assert Q(a);
+    assert o != 0 ==> Q#[o](b);
+  }
+
+  lemma TestLeastZero(y: int, z: int, v: int, w: int, a: int, b: int, o: nat) {
+    assert Q#[o](b); // error: does not hold for o == 0
+  }
+}
