@@ -377,3 +377,12 @@ module StmtExprCallPreconditionRegression {
   { }
 }
 
+module IteratorFrameRegression {
+  ghost method X()
+  // The following once caused malformed Boogie, because the $_Frame variable had not been declared.
+  iterator Iter()
+    requires (X(); 3) == 3
+  // The following once caused malformed Boogie, because the $_Frame variable had not been declared.
+  iterator Iter'(x: int := X(); 3)
+}
+

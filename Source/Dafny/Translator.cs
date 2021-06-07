@@ -2590,6 +2590,7 @@ namespace Microsoft.Dafny {
       var builder = new BoogieStmtListBuilder(this);
       var etran = new ExpressionTranslator(this, predef, iter.tok);
       var localVariables = new List<Variable>();
+      GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables);
 
       // check well-formedness of any default-value expressions (before assuming preconditions)
       foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
