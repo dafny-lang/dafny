@@ -6472,8 +6472,7 @@ namespace Microsoft.Dafny {
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
       req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null));
       var heapVar = new Bpl.IdentifierExpr(decl.tok, "$Heap", false);
-      var varlist = new List<Bpl.IdentifierExpr>();
-      varlist.Add(heapVar);
+      var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
       var proc = new Bpl.Procedure(decl.tok, "CheckWellformed$$" + decl.FullSanitizedName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
@@ -6544,8 +6543,7 @@ namespace Microsoft.Dafny {
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
       req.Add(Requires(ctor.tok, true, etran.HeightContext(ctor.EnclosingDatatype), null, null));
       var heapVar = new Bpl.IdentifierExpr(ctor.tok, "$Heap", false);
-      var varlist = new List<Bpl.IdentifierExpr>();
-      varlist.Add(heapVar);
+      var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
       var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed$$" + ctor.FullName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));

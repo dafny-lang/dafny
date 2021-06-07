@@ -358,3 +358,11 @@ module ReadsAndDecreases {
     MoreReads(a, m)
   }
 }
+
+module TickRegressions {
+  lemma X()
+  // The uses of X() in the following declarations once caused malformed Boogie, because
+  // the $Tick variable wasn't used in the necessary Boogie modifies clauess.
+  const u: nat := (X(); -3) // error: -3 is not a nat
+  datatype S = S(x: nat := X(); -3) // error: -3 is not a nat
+}
