@@ -359,6 +359,32 @@ module ReadsAndDecreases {
   }
 }
 
+
+module TerminationCheck {
+  lemma X() {
+    var r := R(5);
+    var f := F(5) + G(5);
+    M();
+  }
+
+  datatype R = R(x: int := X(); 3) // error: termination violation
+  function F(x: int := F(5)): int // error: termination violation
+  function G(x: int := X(); 3): int // error: termination violation
+  ghost method M(x: int := X(); 3) // error: termination violation
+
+  method Caller() {
+    // No additional errors are reported at the use sites
+    if
+    case true =>
+      var z := R();
+    case true =>
+      var z := F();
+    case true =>
+      var z := G();
+    case true =>
+      M();
+  }
+}
 module TickRegressions {
   lemma X()
   // The uses of X() in the following declarations once caused malformed Boogie, because

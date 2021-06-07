@@ -7139,21 +7139,20 @@ namespace Microsoft.Dafny {
     {
       public readonly Function SelfCallsAllowance;
       public readonly bool DoReadsChecks;
-      public readonly bool DoTerminationChecks;
+      public readonly bool DoOnlyCoarseGrainedTerminationChecks; // termination checks don't look at decreases clause, but reports errors for any intra-SCC call (this is used in default-value expressions)
       public readonly List<Bpl.Variable> Locals;
       public readonly List<Bpl.Cmd> Asserts;
       public readonly bool LValueContext;
       public readonly Bpl.QKeyValue AssertKv;
 
       public WFOptions() {
-        DoTerminationChecks = true;
       }
 
-      public WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool saveReadsChecks = false, bool doTerminationChecks = true) {
+      public WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool saveReadsChecks = false, bool doOnlyCoarseGrainedTerminationChecks = false) {
         Contract.Requires(!saveReadsChecks || doReadsChecks);  // i.e., saveReadsChecks ==> doReadsChecks
         SelfCallsAllowance = selfCallsAllowance;
         DoReadsChecks = doReadsChecks;
-        DoTerminationChecks = doTerminationChecks;
+        DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
         if (saveReadsChecks) {
           Locals = new List<Variable>();
           Asserts = new List<Bpl.Cmd>();
@@ -7162,7 +7161,6 @@ namespace Microsoft.Dafny {
 
       public WFOptions(Bpl.QKeyValue kv) {
         AssertKv = kv;
-        DoTerminationChecks = true;
       }
 
       /// <summary>
@@ -7173,7 +7171,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(options != null);
         SelfCallsAllowance = options.SelfCallsAllowance;
         DoReadsChecks = false;  // so just leave .Locals and .Asserts as null
-        DoTerminationChecks = options.DoTerminationChecks;
+        DoOnlyCoarseGrainedTerminationChecks = options.DoOnlyCoarseGrainedTerminationChecks;
         LValueContext = options.LValueContext;
         AssertKv = options.AssertKv;
       }
@@ -7186,7 +7184,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(options != null);
         SelfCallsAllowance = options.SelfCallsAllowance;
         DoReadsChecks = options.DoReadsChecks;
-        DoTerminationChecks = options.DoTerminationChecks;
+        DoOnlyCoarseGrainedTerminationChecks = options.DoOnlyCoarseGrainedTerminationChecks;
         Locals = options.Locals;
         Asserts = options.Asserts;
         LValueContext = lValueContext;
@@ -7791,51 +7789,57 @@ namespace Microsoft.Dafny {
           }
 
           Bpl.Expr allowance = null;
-          if (codeContext != null && options.DoTerminationChecks && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is ExtremePredicate)) {
+          if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is ExtremePredicate)) {
             // check that the decreases measure goes down
             if (ModuleDefinition.InSameSCC(e.Function, codeContext)) {
-              List<Expression> contextDecreases = codeContext.Decreases.Expressions;
-              List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
-              if (e.Function == options.SelfCallsAllowance) {
-                allowance = Bpl.Expr.True;
-                if (!e.Function.IsStatic) {
-                  allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This)));
+              if (options.DoOnlyCoarseGrainedTerminationChecks) {
+                builder.Add(Assert(expr.tok, Bpl.Expr.False, "default-value expression is not allowed to involve recursive or mutually recursive calls"));
+              } else {
+                List<Expression> contextDecreases = codeContext.Decreases.Expressions;
+                List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
+                if (e.Function == options.SelfCallsAllowance) {
+                  allowance = Bpl.Expr.True;
+                  if (!e.Function.IsStatic) {
+                    allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This)));
+                  }
+                  for (int i = 0; i < e.Args.Count; i++) {
+                    Expression ee = e.Args[i];
+                    Formal ff = e.Function.Formals[i];
+                    allowance = BplAnd(allowance,
+                      Bpl.Expr.Eq(etran.TrExpr(ee),
+                        new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration.IdGenerator), TrType(ff.Type))));
+                  }
                 }
-                for (int i = 0; i < e.Args.Count; i++) {
-                  Expression ee = e.Args[i];
-                  Formal ff = e.Function.Formals[i];
-                  allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(ee), new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration.IdGenerator), TrType(ff.Type))));
+                string hint;
+                switch (e.CoCall) {
+                  case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
+                    hint = "note that only functions without side effects can be called co-recursively";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition:
+                    hint = "note that only functions without any ensures clause can be called co-recursively";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded:
+                    hint = "note that the call is not sufficiently guarded to be used co-recursively";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext:
+                    hint = "note that calls cannot be co-recursive in this context";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext:
+                    hint = "note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.No:
+                    hint = null;
+                    break;
+                  default:
+                    Contract.Assert(false); // unexpected CoCallResolution
+                    goto case FunctionCallExpr.CoCallResolution.No; // please the compiler
                 }
+                if (e.CoCallHint != null) {
+                  hint = hint == null ? e.CoCallHint : string.Format("{0}; {1}", hint, e.CoCallHint);
+                }
+                CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.GetTypeArgumentSubstitutions(),
+                  etran, etran, builder, codeContext.InferredDecreases, hint);
               }
-              string hint;
-              switch (e.CoCall) {
-                case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
-                  hint = "note that only functions without side effects can be called co-recursively";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition:
-                  hint = "note that only functions without any ensures clause can be called co-recursively";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded:
-                  hint = "note that the call is not sufficiently guarded to be used co-recursively";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext:
-                  hint = "note that calls cannot be co-recursive in this context";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext:
-                  hint = "note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts";
-                  break;
-                case FunctionCallExpr.CoCallResolution.No:
-                  hint = null;
-                  break;
-                default:
-                  Contract.Assert(false);  // unexpected CoCallResolution
-                  goto case FunctionCallExpr.CoCallResolution.No;  // please the compiler
-              }
-              if (e.CoCallHint != null) {
-                hint = hint == null ? e.CoCallHint : string.Format("{0}; {1}", hint, e.CoCallHint);
-              }
-              CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.GetTypeArgumentSubstitutions(),
-                etran, etran, builder, codeContext.InferredDecreases, hint);
             }
           }
           // all is okay, so allow this function application access to the function's axiom, except if it was okay because of the self-call allowance.
