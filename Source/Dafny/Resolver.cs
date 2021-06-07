@@ -16675,23 +16675,20 @@ namespace Microsoft.Dafny
       Contract.Assert(expr.ResolvedExpression == null);
 
       visited.Add(expr, WorkProgress.BeingVisited);
-      var s = new DefaultValueSubstituter(this, expr.tok, visited, expr.Receiver, expr.SubstMap, expr.TypeMap);
+      var s = new DefaultValueSubstituter(this, visited, expr.Receiver, expr.SubstMap, expr.TypeMap);
       expr.ResolvedExpression = s.Substitute(expr.Formal.DefaultValue);
       visited[expr] = WorkProgress.Done;
     }
 
     class DefaultValueSubstituter : Translator.Substituter {
       private readonly Resolver resolver;
-      private readonly IToken callTok;
       private readonly Dictionary<DefaultValueExpression, WorkProgress> visited;
-      public DefaultValueSubstituter(Resolver resolver, IToken callTok, Dictionary<DefaultValueExpression, WorkProgress> visited,
+      public DefaultValueSubstituter(Resolver resolver, Dictionary<DefaultValueExpression, WorkProgress> visited,
         Expression /*?*/ receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
         : base(receiverReplacement, substMap, typeMap) {
         Contract.Requires(resolver != null);
-        Contract.Requires(callTok != null);
         Contract.Requires(visited != null);
         this.resolver = resolver;
-        this.callTok = callTok;
         this.visited = visited;
       }
 
@@ -16700,46 +16697,7 @@ namespace Microsoft.Dafny
           resolver.FillInDefaultValueExpression(dve, visited);
           Contract.Assert(dve.ResolvedExpression != null); // postcondition of FillInDefaultValueExpression
         }
-        expr = base.Substitute(expr);
-        // Ideally, we'd change the .tok everywhere inside the default-value expression, since the expression
-        // is being used at the call site. However, rather than rewriting the entire Substituter, we do
-        // the substitution where it matters the most, namely where reads- or decreases-checks are performed.
-        if (!(expr.tok is NestedToken nestedTok && nestedTok.Outer == callTok)) {
-          // because reads and termination is checked at call sites, change the location information for function calls
-          var ntok = new NestedToken(callTok, expr.tok);
-          if (expr is FunctionCallExpr) {
-            var e = (FunctionCallExpr)expr;
-            var newExpr = new FunctionCallExpr(ntok, e.Name, e.Receiver, e.OpenParen, e.Args, e.AtLabel);
-            newExpr.Type = e.Type;
-            newExpr.Function = e.Function;
-            newExpr.CoCall = e.CoCall; // also copy the co-call status
-            newExpr.CoCallHint = e.CoCallHint; // and any co-call hint
-            newExpr.TypeApplication_AtEnclosingClass = e.TypeApplication_AtEnclosingClass;
-            newExpr.TypeApplication_JustFunction = e.TypeApplication_JustFunction;
-            expr = newExpr;
-          } else if (expr is MemberSelectExpr) {
-            var e = (MemberSelectExpr)expr;
-            var newExpr = new MemberSelectExpr(ntok, e.Obj, e.MemberName);
-            newExpr.Type = e.Type;
-            newExpr.Member = e.Member;
-            newExpr.TypeApplication_AtEnclosingClass = e.TypeApplication_AtEnclosingClass.ConvertAll(t => Resolver.SubstType(t, typeMap));
-            newExpr.TypeApplication_JustMember = e.TypeApplication_JustMember.ConvertAll(t => Resolver.SubstType(t, typeMap));
-            newExpr.AtLabel = e.AtLabel;
-            expr = newExpr;
-          } else if (expr is SeqSelectExpr) {
-            var e = (SeqSelectExpr)expr;
-            var newExpr = new SeqSelectExpr(ntok, e.SelectOne, e.Seq, e.E0, e.E1);
-            newExpr.Type = e.Type;
-            expr = newExpr;
-          } else if (expr is MultiSelectExpr) {
-            var e = (MultiSelectExpr)expr;
-            var newExpr = new MultiSelectExpr(ntok, e.Array, e.Indices);
-            newExpr.Type = e.Type;
-            expr = newExpr;
-          }
-        }
-
-        return expr;
+        return base.Substitute(expr);
       }
     }
 

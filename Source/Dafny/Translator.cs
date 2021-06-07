@@ -2594,7 +2594,7 @@ namespace Microsoft.Dafny {
       // check well-formedness of any default-value expressions (before assuming preconditions)
       foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
-        CheckWellformed(e, new WFOptions(null, false, false, false), localVariables, builder, etran);
+        CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran);
         builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
       }
@@ -4577,7 +4577,7 @@ namespace Microsoft.Dafny {
         // check well-formedness of any default-value expressions (before assuming preconditions)
         foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
           var e = formal.DefaultValue;
-          CheckWellformed(e, new WFOptions(null, false, false, false), localVariables, builder, etran);
+          CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran);
           builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
           CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
 
@@ -6134,7 +6134,7 @@ namespace Microsoft.Dafny {
       InitializeFuelConstant(f.tok, builder, etran);
 
       // Check well-formedness of any default-value expressions (before assuming preconditions).
-      var wfo = new WFOptions(null, false, false, false); // no reads or termination checks
+      var wfo = new WFOptions(null, true, true, true); // no reads or termination checks
       foreach (var formal in f.Formals.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
         CheckWellformed(e, wfo, locals, builder, etran);
@@ -6148,6 +6148,7 @@ namespace Microsoft.Dafny {
           }
         }
       }
+      wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
 
       // Check well-formedness of the preconditions (including termination), and then
       // assume each one of them.  After all that (in particular, after assuming all
@@ -6562,7 +6563,7 @@ namespace Microsoft.Dafny {
       // check well-formedness of each default-value expression
       foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
-        CheckWellformed(e, new WFOptions(null, false, false, false), locals, builder, etran);
+        CheckWellformed(e, new WFOptions(null, true, false, true), locals, builder, etran);
         builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
       }
