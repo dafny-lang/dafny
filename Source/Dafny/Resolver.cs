@@ -9257,14 +9257,12 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(f.TypeArgs, false, f);
           ResolveFunction(f);
           allTypeParameters.PopMarker();
-          if (f is ExtremePredicate && ec == reporter.Count(ErrorLevel.Error)) {
-            var ff = ((ExtremePredicate)f).PrefixPredicate;
-            if (ff != null) {
-              allTypeParameters.PushMarker();
-              ResolveTypeParameters(ff.TypeArgs, false, ff);
-              ResolveFunction(ff);
-              allTypeParameters.PopMarker();
-            }
+          if (f is ExtremePredicate ef && ef.PrefixPredicate != null && ec == reporter.Count(ErrorLevel.Error)) {
+            var ff = ef.PrefixPredicate;
+            allTypeParameters.PushMarker();
+            ResolveTypeParameters(ff.TypeArgs, false, ff);
+            ResolveFunction(ff);
+            allTypeParameters.PopMarker();
           }
 
         } else if (member is Method) {
@@ -9274,6 +9272,13 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(m.TypeArgs, false, m);
           ResolveMethod(m);
           allTypeParameters.PopMarker();
+          if (m is ExtremeLemma em && em.PrefixLemma != null && ec == reporter.Count(ErrorLevel.Error)) {
+            var mm = em.PrefixLemma;
+            allTypeParameters.PushMarker();
+            ResolveTypeParameters(mm.TypeArgs, false, mm);
+            ResolveMethod(mm);
+            allTypeParameters.PopMarker();
+          }
 
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
