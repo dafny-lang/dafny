@@ -2482,7 +2482,7 @@ namespace Microsoft.Dafny {
       // wellformedness check for method specification
       Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
-      if(InVerificationScope(iter)){
+      if (InVerificationScope(iter)){
         AddIteratorWellformed(iter, proc);
       }
       // the method itself
