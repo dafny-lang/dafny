@@ -52,7 +52,7 @@ module Actuals {
 }
 
 module Termination {
-  function method R(n: nat := R(0)): nat { n }
+  function method R(n: nat := R(0)): nat { n } // error: default value cannot make recursive call
 }
 
 module TwoState {
@@ -121,14 +121,14 @@ module Wellformedness {
     var u: int
     const v: int
 
-    function T0(x: int := this.u): int // reads clause is checked only at call sites
+    function T0(x: int := this.u): int // error: insufficient reads clause
 
     function T1(x: int := this.v): int
 
     function T2(c: C, x: int := c.u): int
       reads c
 
-    function T3(c: C, x: int := c.u): int // reads clause is checked only at call sites
+    function T3(c: C, x: int := c.u): int // error: insufficient reads clause
       requires c == this
       reads this
 
@@ -191,24 +191,24 @@ module Wellformedness {
 }
 
 module Nested {
-  function F(xt: int, yt: int := G(xt)): int
+  function F(xt: int, yt: int := G(xt)): int // error: mutually recursive call not allowed in default-value expression
   function G(x: int, y: int := x): int {
     if x <= 0 then 0 else
       F(x - 1) // expands to F(x-1, G(x-1, x-1))
   }
 
-  function F'(xt: int, yt: int := G'(xt)): int
+  function F'(xt: int, yt: int := G'(xt)): int // error: mutually recursive call not allowed in default-value expression
     decreases 5
   {
-    G'(xt) // error: cannot prove termination
+    G'(xt) // there's a termination problem here, but the complaint is masked by the default value error 3 lines above
   }
   function G'(x: int, y: int := x): int
     decreases 6
   {
-    F'(y) // error: expands to F'(y, G'(y, y)), and cannot prove termination for call to G'
+    F'(y) // expands to F'(y, G'(y, y)), but there's no additional complaint about the non-terminating call to G' (complaint was given above)
   }
 
-  function K(xt: nat, yt: nat := if xt == 0 then 6 else L(xt - 1)): nat
+  function K(xt: nat, yt: nat := if xt == 0 then 6 else L(xt - 1)): nat // error: mutually recursive call not allowed in default value
     decreases xt, 0
   function L(x: nat, y: nat := x): nat
     decreases x, 1
@@ -216,8 +216,8 @@ module Nested {
     K(x) // should expand to: K(x, if x == 0 then 6 else L(x - 1))
   }
 
-  function A(x: nat := B()): nat
-  function B(x: nat := C()): nat
+  function A(x: nat := B()): nat // error: mutually recursive call not allowed in default value
+  function B(x: nat := C()): nat // error: mutually recursive call not allowed in default value
   function C(): nat
     decreases 7
   {
@@ -232,13 +232,13 @@ module Nested {
     decreases 6
   {
     // the following expression expands to A(B(C()))
-    A(B()) // error: call to C may not terminate
+    A(B()) // error (x2): calls to A and B may not terminate
   }
   function ABC2(): nat
     decreases 6
   {
     // the following expression expands to A(B(C()))
-    A() // error: call to C may not terminate
+    A() // error: call to A may not terminate
   }
 }
 
@@ -247,18 +247,15 @@ module ReadsAndDecreases {
   // those are checked at call sites.
   class C {
     var data: int
-    // The following function has an empty reads clause. Still, it's fine for the default
-    // value of the parameter to read "this.data".
-    function M(x: int := data): int { x }
 
-    // The following function has a decreases clause that would not allow recursive calls.
-    // Still, it's fine for the default value of the parameter to call N.
+    function M(x: int := data): int { x } // error: insufficient reads clause
+
     function NA(): int
       decreases 3
     {
       NCaller1(2, this)
     }
-    function NB(x: int, y: int := NA()): int
+    function NB(x: int, y: int := NA()): int // error: mutually recursive call not allowed in default-value expression
       decreases x
     {
       NCaller0(x, this) + NCaller1(x, this)
@@ -267,14 +264,14 @@ module ReadsAndDecreases {
     // The following function has a division-by-zero error in the default-value expression
     // for "y". That's not allowed (even if all call sites pass in "x" as non-0), and it's
     // checked here.
-    function O(x: int, y: int := 3 / x): int // error: division by zero (reported twice, see comment below in OCaller1)
+    function O(x: int, y: int := 3 / x): int // error: division by zero
     {
       x + y
     }
   }
 
   function MCaller0(c: C): int {
-    c.M() // error: reads violation
+    c.M() // no additional complaint
   }
   function MCaller1(c: C): int
     reads c
@@ -293,18 +290,16 @@ module ReadsAndDecreases {
   function NCaller1(x: int, c: C): int
     decreases x, 0
   {
-    if x <= 0 then 0 else c.NB(x - 1) // error: this defaults to c.NB(x - 1, NA()), and NA() may not terminate
+    // in the following line, c.NB(x - 1) expands to c.NB(x - 1, NA()), but the termination check for
+    // NB has already been done in the default-value expression itself
+    if x <= 0 then 0 else c.NB(x - 1)
   }
 
   function OCaller0(c: C): int {
     c.O(1) + c.O(0, 2)
   }
   function OCaller1(c: C): int {
-    // The following line causes a division-by-zero error to be reported (again) at the default-value expression.
-    // It's unfortunate that the error is shown there. However, in a correct program, the default-value
-    // expression needs to be fixed anywhere, so this kind of double-error is not likely to be either common
-    // or too confusing.
-    c.O(0) // error: division by zero (reported at declaration of O)
+    c.O(0) // no repeated warning about division-by-zero
   }
   function OCaller2(x: int, c: C): int
     requires x != 0
@@ -317,23 +312,23 @@ module ReadsAndDecreases {
     ensures J() != 0
   method Jx(x: int := AboutJ(); 2 / J()) // lemma ensures no div-by-zero
   method Jy() {
-    Jx(); // no div-by-zero reported here, either (because lemma is copied as part of the default-value expression)
+    Jx(); // no additional check here
   }
 
   lemma Lemma(x: int)
     requires x == 3
   function BadLemmaCall(y: int := Lemma(2); 5): int // error: precondition violation in lemma call
   method BadLemmaCaller() {
-    var z := BadLemmaCall(); // error: precondition violation in lemma call (reported at the position of the default value 2 lines above)
+    var z := BadLemmaCall(); // no repeated complaint here
   }
 
   function MoreReads(a: array<int>, m: array2<int>,
-    x: int := if 0 < a.Length then a[0] else 3,
-    y: int := if 0 < m.Length0 && 0 < m.Length1 then m[0, 0] else 3): int
+    x: int := if 0 < a.Length then a[0] else 3, // error: insufficient reads clause
+    y: int := if 0 < m.Length0 && 0 < m.Length1 then m[0, 0] else 3): int // error: insufficient reads clause
   function ReadA0(a: array<int>, m: array2<int>): int
     requires m.Length0 == 0
   {
-    MoreReads(a, m) // error: reads violation for a
+    MoreReads(a, m)
   }
   function ReadA1(a: array<int>, m: array2<int>): int
     requires m.Length0 == 0
@@ -344,7 +339,7 @@ module ReadsAndDecreases {
   function ReadM0(a: array<int>, m: array2<int>): int
     requires a.Length == 0
   {
-    MoreReads(a, m) // error: reads violation for m
+    MoreReads(a, m)
   }
   function ReadM1(a: array<int>, m: array2<int>): int
     requires a.Length == 0
@@ -440,22 +435,22 @@ module TerminationCheck {
 module TerminationCheck_datatype {
   datatype Q = Q(x: int := Q(5).x)
 
-  datatype R = R(x: int := F()) // error: termination violation
+  datatype R = R(x: int := F()) // error: mutual recursion not allowed in default values
   function method F(): int {
     R().x
   }
 
-  datatype S = S(x: nat := X(); -3) // error: termination violation
+  datatype S = S(x: nat := X(); -3) // error: mutual recursion not allowed in default values
   lemma X()
     ensures false
   {
-    X();
+    X(); // error: termination violation
     var s := S();
   }
 }
 
 module TerminationCheck_tricky {
-  datatype S = S(x: nat := False(); -3) // error: termination violation
+  datatype S = S(x: nat := False(); -3) // error: mutual recursion not allowed in default values
   lemma False()
     ensures false
   {
@@ -483,7 +478,7 @@ module TerminationCheck_tricky' {
     Nat(r.x);
   }
 
-  datatype R = R(x: nat := False(); -3) // error: termination violation
+  datatype R = R(x: nat := False(); -3) // error: mutual recursion not allowed in default values
 
   lemma Nat(n: nat)
     ensures 0 <= n
