@@ -16776,6 +16776,10 @@ namespace Microsoft.Dafny
         }
         dtv.Bindings.AcceptArgumentExpressionsAsExactParameterList();
       }
+
+      if (CodeContextWrapper.Unwrap(opts.codeContext) is ICallable caller && caller.EnclosingModule == dt.EnclosingModuleDefinition) {
+        caller.EnclosingModule.CallGraph.AddEdge(caller, dt);
+      }
       return ok && ctor.Formals.Count == dtv.Arguments.Count;
     }
 

@@ -12647,9 +12647,13 @@ namespace Microsoft.Dafny {
       // Check termination
       if (isRecursiveCall) {
         Contract.Assert(codeContext != null);
-        List<Expression> contextDecreases = codeContext.Decreases.Expressions;
-        List<Expression> calleeDecreases = callee.Decreases.Expressions;
-        CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, tySubst, etran, etran.Old, builder, codeContext.InferredDecreases, null);
+        if (codeContext is DatatypeDecl) {
+          builder.Add(Assert(tok, Bpl.Expr.False, "default-value expression is not allowed to involve recursive or mutually recursive calls"));
+        } else {
+          List<Expression> contextDecreases = codeContext.Decreases.Expressions;
+          List<Expression> calleeDecreases = callee.Decreases.Expressions;
+          CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, tySubst, etran, etran.Old, builder, codeContext.InferredDecreases, null);
+        }
       }
 
       // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.

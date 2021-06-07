@@ -385,6 +385,61 @@ module TerminationCheck {
       M();
   }
 }
+
+module TerminationCheck_datatype {
+  datatype Q = Q(x: int := Q(5).x)
+
+  datatype R = R(x: int := F()) // error: termination violation
+  function method F(): int {
+    R().x
+  }
+
+  datatype S = S(x: nat := X(); -3) // error: termination violation
+  lemma X()
+    ensures false
+  {
+    X();
+    var s := S();
+  }
+}
+
+module TerminationCheck_tricky {
+  datatype S = S(x: nat := False(); -3) // error: termination violation
+  lemma False()
+    ensures false
+  {
+    var s := S();
+    assert s.x == -3;
+    assert 0 <= Id(s).x;
+  }
+  function method Id(s: S): S
+    ensures 0 <= Id(s).x
+  {
+    var n: nat := s.x;
+    s
+  }
+}
+
+module TerminationCheck_tricky' {
+  lemma False()
+    ensures false
+  {
+    // Regression: With an explicit type ": R" for "r" in the following line, an error was
+    // reported in this module. Good. But it was once the case that no error was reported
+    // if the type ": R" was left implicit.
+    var r := R();
+    assert r.x == -3;
+    Nat(r.x);
+  }
+
+  datatype R = R(x: nat := False(); -3) // error: termination violation
+
+  lemma Nat(n: nat)
+    ensures 0 <= n
+  {
+  }
+}
+
 module TickRegressions {
   lemma X()
   // The uses of X() in the following declarations once caused malformed Boogie, because
