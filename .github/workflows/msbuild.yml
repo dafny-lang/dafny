@@ -44,7 +44,7 @@ jobs:
     - name: Setup dotnet 5.0
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '5.0.203' # See https://github.com/dafny-lang/dafny/issues/1238
+        dotnet-version: '5.0.x' # SDK Version for building Dafny; x will use the latest version of the 5.0 channel
     - name: C++ for ubuntu 16.04
       if: matrix.os == 'ubuntu-16.04'
       run: |
