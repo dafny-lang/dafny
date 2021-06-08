@@ -1494,7 +1494,7 @@ namespace Microsoft.Dafny {
         // prefix lemmas end up as CallStmt's by the end of resolution and they may need to be printed here.
         var s = (CallStmt)stmt;
         PrintExpression(s.MethodSelect, false);
-        PrintActualArguments(s.Args, s.Method.Name, null);
+        PrintActualArguments(s.Bindings, s.Method.Name, null);
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
@@ -1728,12 +1728,12 @@ namespace Microsoft.Dafny {
             PrintExpressionList(t.InitDisplay, false);
             wr.Write("]");
           }
-        } else if (t.Arguments == null) {
+        } else if (t.Bindings == null) {
           PrintType(t.EType);
         } else {
           PrintType(t.Path);
           wr.Write("(");
-          PrintExpressionList(t.Arguments, false);
+          PrintBindings(t.Bindings, false);
           wr.Write(")");
         }
       } else {
@@ -2025,9 +2025,7 @@ namespace Microsoft.Dafny {
           printParens = dtv.Arguments.Count != 0;
         }
         if (printParens) {
-          wr.Write("(");
-          PrintExpressionList(dtv.Arguments, false);
-          wr.Write(")");
+          PrintActualArguments(dtv.Bindings, null, null);
         }
 
       } else if (expr is DisplayExpression) {
@@ -2097,7 +2095,7 @@ namespace Microsoft.Dafny {
           PrintExpr(e.Lhs, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1, keyword);
         }
         string name = e.Lhs is NameSegment ? ((NameSegment)e.Lhs).Name : e.Lhs is ExprDotName ? ((ExprDotName)e.Lhs).SuffixName : null;
-        PrintActualArguments(e.Args, name, e.AtTok);
+        PrintActualArguments(e.Bindings, name, e.AtTok);
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is MemberSelectExpr) {
@@ -2238,7 +2236,7 @@ namespace Microsoft.Dafny {
         */
         if (e.OpenParen == null && e.Args.Count == 0) {
         } else {
-          PrintActualArguments(e.Args, e.Name, null);
+          PrintActualArguments(e.Bindings, e.Name, null);
         }
         if (parensNeeded) { wr.Write(")"); }
 
@@ -2792,20 +2790,45 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintActualArguments(List<Expression> args, string name, Bpl.IToken/*?*/ atLabel) {
-      Contract.Requires(args != null);
+    void PrintActualArguments(ActualBindings bindings, string/*?*/ name, Bpl.IToken/*?*/ atLabel) {
+      Contract.Requires(bindings != null);
+      var i = 0;
       if (name != null && name.EndsWith("#")) {
         Contract.Assert(atLabel == null);
+        Contract.Assert(1 <= bindings.ArgumentBindings.Count);
+        Contract.Assert(bindings.ArgumentBindings[0].FormalParameterName == null);
         wr.Write("[");
-        PrintExpression(args[0], false);
+        PrintExpression(bindings.ArgumentBindings[0].Actual, false);
         wr.Write("]");
-        args = new List<Expression>(args.Skip(1));
+        i++;
       } else if (atLabel != null) {
         wr.Write($"@{atLabel.val}");
       }
       wr.Write("(");
-      PrintExpressionList(args, false);
+      string sep = "";
+      for (; i < bindings.ArgumentBindings.Count; i++) {
+        var binding = bindings.ArgumentBindings[i];
+        wr.Write(sep);
+        sep = ", ";
+        if (binding.FormalParameterName != null) {
+          wr.Write($"{binding.FormalParameterName} := ");
+        }
+        PrintExpression(binding.Actual, false);
+      }
       wr.Write(")");
+    }
+
+    void PrintBindings(ActualBindings bindings, bool isFollowedBySemicolon) {
+      Contract.Requires(bindings != null);
+      string sep = "";
+      foreach (var binding in bindings.ArgumentBindings) {
+        wr.Write(sep);
+        sep = ", ";
+        if (binding.FormalParameterName != null) {
+          wr.Write($"{binding.FormalParameterName.val} := ");
+        }
+        PrintExpression(binding.Actual, isFollowedBySemicolon);
+      }
     }
 
     void PrintExpressionList(List<Expression> exprs, bool isFollowedBySemicolon) {

@@ -25,7 +25,6 @@ jobs:
             ]
         ## Size of the following array must match --num-shards in lit command
         shard: [1, 2, 3, 4, 5]
-        ##shard: [1, 2, 3]
         include:
         - os:                  'ubuntu-latest'
           os_for_build:        'ubuntu'
