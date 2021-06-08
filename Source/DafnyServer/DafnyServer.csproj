@@ -8,7 +8,6 @@
       <PackageVersion>1.1.0</PackageVersion>
       <TargetFramework>net5.0</TargetFramework>
       <OutputPath>..\..\Binaries\</OutputPath>
-      <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net5.0|AnyCPU'">
