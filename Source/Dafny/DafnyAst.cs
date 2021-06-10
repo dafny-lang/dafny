@@ -10401,21 +10401,13 @@ namespace Microsoft.Dafny {
     public Function Function;  // filled in by resolution
 
     public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
-      : base(tok) {
+      : this(tok, fn, receiver, openParen, new ActualBindings(args), atLabel) {
       Contract.Requires(tok != null);
       Contract.Requires(fn != null);
       Contract.Requires(receiver != null);
       Contract.Requires(cce.NonNullElements(args));
       Contract.Requires(openParen != null || args.Count == 0);
       Contract.Ensures(type == null);
-      Contract.Ensures(cce.Owner.Same(this, receiver));
-
-      this.Name = fn;
-      cce.Owner.AssignSame(this, receiver);
-      this.Receiver = receiver;
-      this.OpenParen = openParen;
-      this.AtLabel = atLabel;
-      this.Bindings = new ActualBindings(args);
     }
 
     public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
@@ -10426,10 +10418,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(bindings != null);
       Contract.Requires(openParen != null);
       Contract.Ensures(type == null);
-      Contract.Ensures(cce.Owner.Same(this, receiver));
 
       this.Name = fn;
-      cce.Owner.AssignSame(this, receiver);
       this.Receiver = receiver;
       this.OpenParen = openParen;
       this.AtLabel = atLabel;
