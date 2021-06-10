@@ -1,0 +1,13 @@
+// git-issue-1219.dfy
+
+datatype CheckRussell = ISet(s: iset<CheckRussell>)
+
+lemma russell_paradox()
+  ensures false
+{
+  var t := ISet(iset t: CheckRussell | t !in t.s);
+  assert t in t.s;
+  assert t !in t.s;
+}
+git-issue-1219.dfy(4,37): Error: using the type being defined ('CheckRussell') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+1 resolution/type errors detected in git-issue-1219.dfy
