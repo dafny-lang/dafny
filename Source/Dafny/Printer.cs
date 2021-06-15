@@ -1276,10 +1276,11 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
+        wr.Write("if");
+        PrintAttributes(s.Attributes);
+        wr.Write(" ");
         if (s.UsesOptionalBraces) {
-          wr.Write("if {");
-        } else {
-          wr.Write("if");
+          wr.Write("{");
         }
         PrintAlternatives(indent + (s.UsesOptionalBraces ? IndentAmount : 0), s.Alternatives);
         if (s.UsesOptionalBraces) {
@@ -1287,14 +1288,16 @@ namespace Microsoft.Dafny {
           Indent(indent);
           wr.Write("}");
         }
-
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
         PrintWhileStatement(indent, s, false, false);
-
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         wr.Write("while");
+        if (s.Attributes != null) {
+          PrintAttributes(s.Attributes);
+          wr.Write(" ");
+        }
         if (s.Invariants.Count != 0) {
           wr.WriteLine();
           PrintSpec("invariant", s.Invariants, indent + IndentAmount, false);
@@ -1632,30 +1635,39 @@ namespace Microsoft.Dafny {
     }
 
     void PrintIfStatement(int indent, IfStmt s, bool omitGuard) {
+      wr.Write("if");
+      PrintAttributes(s.Attributes);
+      wr.Write(" ");
       if (omitGuard) {
-        wr.Write("if ... ");
+        wr.WriteLine("...");
       } else {
-        wr.Write("if ");
         PrintGuard(s.IsBindingGuard, s.Guard);
         wr.Write(" ");
       }
       PrintStatement(s.Thn, indent);
       if (s.Els != null) {
-        wr.Write(" else ");
+        wr.Write(" else");
+        if (!(s.Els is IfStmt) && s.Els.Attributes != null) {
+          PrintAttributes(s.Els.Attributes);
+        }
+        wr.Write(" ");
         PrintStatement(s.Els, indent);
       }
     }
 
     void PrintWhileStatement(int indent, WhileStmt s, bool omitGuard, bool omitBody) {
       Contract.Requires(0 <= indent);
+      wr.Write("while");
+      if (s.Attributes != null) {
+        PrintAttributes(s.Attributes);
+        wr.Write(" ");
+      }
       if (omitGuard) {
-        wr.WriteLine("while ...");
+        wr.WriteLine("...");
       } else {
-        wr.Write("while ");
         PrintGuard(false, s.Guard);
         wr.WriteLine();
       }
-
       PrintSpec("invariant", s.Invariants, indent + IndentAmount, s.Body != null || omitBody || (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) || (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0));
       PrintDecreasesSpec(s.Decreases, indent + IndentAmount, s.Body != null || omitBody || (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0));
       if (s.Mod.Expressions != null) {

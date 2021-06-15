@@ -2675,16 +2675,19 @@ IfStmt<out Statement/*!*/ ifStmt>
      BlockStmt/*!*/ bs;
      Statement/*!*/ s;
      Statement els = null;
+     Attributes attrs = null;
+     Attributes elsattrs = null;
      IToken bodyStart, bodyEnd, endTok;
      List<GuardedAlternative> alternatives;
      ifStmt = dummyIfStmt;  // to please the compiler
      bool usesOptionalBraces;
   .)
   "if"                       (. x = t; .)
+  { Attribute<ref attrs> }
   (
     IF(IsAlternative())
     AlternativeBlock<true, out alternatives, out usesOptionalBraces, out endTok>
-    (. ifStmt = new AlternativeStmt(x, endTok, alternatives, usesOptionalBraces); .)
+    (. ifStmt = new AlternativeStmt(x, endTok, alternatives, usesOptionalBraces, attrs); .)
   |
     ( IF(IsBindingGuard())
       BindingGuard<out guard, true>      (. isBindingGuard = true; .)
@@ -2694,13 +2697,17 @@ IfStmt<out Statement/*!*/ ifStmt>
     BlockStmt<out thn, out bodyStart, out bodyEnd>    (. endTok = thn.EndTok; .)
     [ "else"
       ( IfStmt<out s>                                 (. els = s; endTok = s.EndTok; .)
-      | BlockStmt<out bs, out bodyStart, out bodyEnd> (. els = bs; endTok = bs.EndTok; .)
+      | { Attribute<ref elsattrs> } BlockStmt<out bs, out bodyStart, out bodyEnd> (. els = bs; endTok = bs.EndTok; .)
       )
     ]
-    (. if (guardEllipsis != null) {
+    (.
+       if (els != null && !(els is IfStmt)) {
+        els.Attributes = elsattrs;
+       }
+       if (guardEllipsis != null) {
          ifStmt = new SkeletonStatement(new IfStmt(x, endTok, isBindingGuard, guard, thn, els), guardEllipsis, null);
        } else {
-         ifStmt = new IfStmt(x, endTok, isBindingGuard, guard, thn, els);
+         ifStmt = new IfStmt(x, endTok, isBindingGuard, guard, thn, els, attrs);
        }
     .)
   )
@@ -2758,13 +2765,12 @@ AlternativeBlockCase<.bool allowBindingGuards, out GuardedAlternative alt.>
 WhileStmt<out Statement stmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken x;
      Expression guard = null;  IToken guardEllipsis = null;
-
+     Attributes attrs = null;
      List<AttributedExpression> invariants = new List<AttributedExpression>();
      List<Expression> decreases = new List<Expression>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
      List<FrameExpression> mod = null;
-
      BlockStmt body = null;  IToken bodyEllipsis = null;
      IToken bodyStart = null, bodyEnd = null, endTok = Token.NoToken;
      List<GuardedAlternative> alternatives;
@@ -2773,11 +2779,12 @@ WhileStmt<out Statement stmt>
      bool usesOptionalBraces;
   .)
   "while"                    (. x = t; .)
+  { Attribute<ref attrs> }
   (
     IF(IsLoopSpec() || IsAlternative())
     LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
     AlternativeBlock<false, out alternatives, out usesOptionalBraces, out endTok>
-    (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces); .)
+    (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces, attrs); .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
     | ellipsis                   (. guardEllipsis = t; .)
@@ -2797,14 +2804,14 @@ WhileStmt<out Statement stmt>
         if (body == null && !isDirtyLoop) {
           body = new BlockStmt(x, endTok, new List<Statement>());
         }
-        stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body);
+        stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body, attrs);
         stmt = new SkeletonStatement(stmt, guardEllipsis, bodyEllipsis);
       } else {
         // The following statement protects against crashes in case of parsing errors
         if (body == null && !isDirtyLoop) {
           body = new BlockStmt(x, endTok, new List<Statement>());
         }
-        stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body);
+        stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
       }
     .)
   )
@@ -2906,8 +2913,10 @@ MatchStmt<out Statement/*!*/ s>
      IToken x; Expression/*!*/ e; NestedMatchCaseStmt/*!*/ c;
      List<NestedMatchCaseStmt/*!*/> cases = new List<NestedMatchCaseStmt/*!*/>();
      bool usesOptionalBraces = false;
+     Attributes attrs = null;
   .)
   "match"                     (. x = t; .)
+  { Attribute<ref attrs> }
   Expression<out e, true, true>
   ( IF(la.kind == _lbrace)  /* always favor brace-enclosed match body to a case-less match */
     "{" (. usesOptionalBraces = true; .)
@@ -2917,7 +2926,7 @@ MatchStmt<out Statement/*!*/ s>
           CaseStmt<out c> (. cases.Add(c); .)
         }
   )
-  (. s = new NestedMatchStmt(x, t, e, cases, usesOptionalBraces); .)
+  (. s = new NestedMatchStmt(x, t, e, cases, usesOptionalBraces, attrs); .)
   .
 
 /*------------------------------------------------------------------------*/
