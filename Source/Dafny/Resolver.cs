@@ -12212,6 +12212,7 @@ namespace Microsoft.Dafny
     private void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms, ResolveOpts opts) {
       foreach(NestedMatchCaseStmt mc in ms.Cases) {
         scope.PushMarker();
+        ResolveAttributes(mc.Attributes, ms, opts);
         CheckLinearNestedMatchCase(dtd, mc, opts);
         scope.PopMarker();
       }
@@ -12859,6 +12860,7 @@ namespace Microsoft.Dafny
             ScopePushAndReport(scope, v, "bound-variable");
           }
         }
+        ResolveAttributes(alternative.Attributes, null, new ResolveOpts(codeContext, true));
         foreach (Statement ss in alternative.Body) {
           ResolveStatement(ss, codeContext);
         }

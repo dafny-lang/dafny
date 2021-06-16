@@ -9688,6 +9688,18 @@ namespace Microsoft.Dafny
     public readonly bool IsBindingGuard;
     public readonly Expression Guard;
     public readonly List<Statement> Body;
+    private Attributes attributes;
+    public Attributes Attributes
+    {
+      get
+      {
+        return attributes;
+      }
+      set
+      {
+        attributes = value;
+      }
+    }
     [ContractInvariantMethod]
     void ObjectInvariant()
     {
@@ -9706,6 +9718,18 @@ namespace Microsoft.Dafny
       this.IsBindingGuard = isBindingGuard;
       this.Guard = guard;
       this.Body = body;
+    }
+    public GuardedAlternative(IToken tok, bool isBindingGuard, Expression guard, List<Statement> body, Attributes attrs)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(guard != null);
+      Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
+      Contract.Requires(body != null);
+      this.Tok = tok;
+      this.IsBindingGuard = isBindingGuard;
+      this.Guard = guard;
+      this.Body = body;
+      this.attributes = attrs;
     }
   }
 

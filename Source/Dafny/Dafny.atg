@@ -2742,8 +2742,10 @@ AlternativeBlockCase<.bool allowBindingGuards, out GuardedAlternative alt.>
 = (. IToken x;
      Expression e; bool isBindingGuard;
      List<Statement> body;
+     Attributes attrs = null;
   .)
   "case"                             (. x = t; isBindingGuard = false; e = dummyExpr; .)
+  { Attribute<ref attrs> }
   ( IF(allowBindingGuards && IsBindingGuard())
     BindingGuard<out e, false >  (. isBindingGuard = true; .)  // NB: don't allow lambda here
   | Expression<out e, true, false> // NB: don't allow lambda here
@@ -2758,7 +2760,7 @@ AlternativeBlockCase<.bool allowBindingGuards, out GuardedAlternative alt.>
     Stmt<body>
     SYNC  /* see comment about SYNC above */
   }
-  (. alt = new GuardedAlternative(x, isBindingGuard, e, body); .)
+  (. alt = new GuardedAlternative(x, isBindingGuard, e, body, attrs); .)
   .
 
 /*------------------------------------------------------------------------*/

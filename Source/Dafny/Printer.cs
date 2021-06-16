@@ -1278,7 +1278,6 @@ namespace Microsoft.Dafny {
         var s = (AlternativeStmt)stmt;
         wr.Write("if");
         PrintAttributes(s.Attributes);
-        wr.Write(" ");
         if (s.UsesOptionalBraces) {
           wr.Write("{");
         }
@@ -1294,10 +1293,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         wr.Write("while");
-        if (s.Attributes != null) {
-          PrintAttributes(s.Attributes);
-          wr.Write(" ");
-        }
+        PrintAttributes(s.Attributes);
         if (s.Invariants.Count != 0) {
           wr.WriteLine();
           PrintSpec("invariant", s.Invariants, indent + IndentAmount, false);
@@ -1354,7 +1350,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is CalcStmt) {
         CalcStmt s = (CalcStmt)stmt;
         if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }   // Calcs don't get a "ghost" attribute, but they are.
-        wr.Write("calc ");
+        wr.Write("calc");
+        PrintAttributes(stmt.Attributes);
+        wr.Write(" ");
         if (s.UserSuppliedOp != null) {
           PrintCalcOp(s.UserSuppliedOp);
           wr.Write(" ");
@@ -1689,7 +1687,9 @@ namespace Microsoft.Dafny {
       foreach (var alternative in alternatives) {
         wr.WriteLine();
         Indent(indent);
-        wr.Write("case ");
+        wr.Write("case");
+        PrintAttributes(alternative.Attributes);
+        wr.Write(" ");
         if (alternative.IsBindingGuard) {
           var exists = (ExistsExpr)alternative.Guard;
           PrintBindingGuard(exists);
