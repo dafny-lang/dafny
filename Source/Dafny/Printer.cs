@@ -1279,7 +1279,7 @@ namespace Microsoft.Dafny {
         wr.Write("if");
         PrintAttributes(s.Attributes);
         if (s.UsesOptionalBraces) {
-          wr.Write("{");
+          wr.Write(" {");
         }
         PrintAlternatives(indent + (s.UsesOptionalBraces ? IndentAmount : 0), s.Alternatives);
         if (s.UsesOptionalBraces) {
@@ -1660,10 +1660,8 @@ namespace Microsoft.Dafny {
     void PrintWhileStatement(int indent, WhileStmt s, bool omitGuard, bool omitBody) {
       Contract.Requires(0 <= indent);
       wr.Write("while");
-      if (s.Attributes != null) {
-        PrintAttributes(s.Attributes);
-        wr.Write(" ");
-      }
+      PrintAttributes(s.Attributes);
+      wr.Write(" ");
       if (omitGuard) {
         wr.WriteLine("...");
       } else {
