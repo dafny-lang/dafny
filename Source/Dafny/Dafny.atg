@@ -2935,8 +2935,10 @@ CaseStmt<out NestedMatchCaseStmt/*!*/ c>
      IToken/*!*/ x;
      ExtendedPattern/*!*/ pat = null;
      var body = new List<Statement/*!*/>();
+     Attributes attrs = null;
   .)
   "case"                      (. x = t; .)
+  { Attribute<ref attrs> }
   ExtendedPattern<out pat>    (. .)
   "=>"
     SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
@@ -2947,7 +2949,7 @@ CaseStmt<out NestedMatchCaseStmt/*!*/ c>
       Stmt<body>
       SYNC  /* see comment about SYNC above */
     }
-  (. c = new NestedMatchCaseStmt(x, pat, body); .)
+  (. c = new NestedMatchCaseStmt(x, pat, body, attrs); .)
   .
 
 /*------------------------------------------------------------------------*/

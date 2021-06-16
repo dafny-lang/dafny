@@ -14681,11 +14681,32 @@ namespace Microsoft.Dafny
   public class NestedMatchCaseStmt : NestedMatchCase
   {
     public readonly List<Statement> Body;
+    private Attributes attributes;
+    public Attributes Attributes
+    {
+      get
+      {
+        return attributes;
+      }
+      set
+      {
+        attributes = value;
+      }
+    }
 
-    public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body) : base(tok, pat)
+    public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body)
+    : base(tok, pat)
     {
       Contract.Requires(body != null);
       this.Body = body;
+      attributes = null;
+    }
+    public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body, Attributes attrs)
+    : base(tok, pat)
+    {
+      Contract.Requires(body != null);
+      this.Body = body;
+      attributes = attrs;
     }
   }
 

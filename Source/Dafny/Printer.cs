@@ -1417,7 +1417,9 @@ namespace Microsoft.Dafny {
         }
 
         if (!printingDesugared) {
-          wr.Write("match ");
+          wr.Write("match");
+          PrintAttributes(s.Attributes);
+          wr.Write(" ");
           PrintExpression(s.Source, false);
           if (s.UsesOptionalBraces) {
             wr.Write(" {");
@@ -1426,7 +1428,9 @@ namespace Microsoft.Dafny {
           foreach (NestedMatchCaseStmt mc in s.Cases) {
             wr.WriteLine();
             Indent(caseInd);
-            wr.Write("case ");
+            wr.Write("case");
+            PrintAttributes(mc.Attributes);
+            wr.Write(" ");
             PrintExtendedPattern(mc.Pat);
             wr.Write(" =>");
             foreach (Statement bs in mc.Body) {
