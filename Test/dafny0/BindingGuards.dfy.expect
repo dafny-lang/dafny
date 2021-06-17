@@ -216,7 +216,7 @@ method AltSyntax3(X: int, Y: int, c: Color)
 {
   var x, y := X, Y;
   while
-    decreases y - x 
+    decreases y - x
   case x < y =>
     z := 10;
     x := x + 1;
@@ -230,8 +230,8 @@ method AltSyntax4(X: int, Y: int, c: Color)
 {
   var x, y := X, Y;
   while
-    invariant true 
-    decreases y - x 
+    invariant true
+    decreases y - x
   case x < y =>
     z := 10;
     x := x + 1;
@@ -242,7 +242,7 @@ method AltSyntax5(X: int, Y: int, c: Color)
 {
   var x, y := X, Y;
   while
-    invariant true 
+    invariant true
   case false =>
     z := 10;
     x := x + 1;
@@ -253,7 +253,7 @@ method AltSyntax6(X: int, Y: int, c: Color)
 {
   var x, y := X, Y;
   while
-    decreases y - x 
+    decreases y - x
   case x < y =>
     z := 10;
     x := x + 1;
@@ -293,8 +293,7 @@ method AltSyntax9(x: int, y: int, c: Color)
     case true =>
   }
   z := x + y;
-  while
-  {
+  while {
     case false =>
   }
   z := x + y;

@@ -1645,7 +1645,7 @@ namespace Microsoft.Dafny {
       PrintAttributes(s.Attributes);
       wr.Write(" ");
       if (omitGuard) {
-        wr.WriteLine("...");
+        wr.Write("... ");
       } else {
         PrintGuard(s.IsBindingGuard, s.Guard);
         wr.Write(" ");
