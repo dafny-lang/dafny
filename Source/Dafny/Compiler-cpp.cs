@@ -1218,7 +1218,7 @@ namespace Microsoft.Dafny {
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      wr.Write("std::cout << (");
+      wr.Write("dafny_print(");
       TrExpr(arg, wr, false);
       wr.WriteLine(");");
     }

@@ -32,10 +32,10 @@ Keys membership 4: This is expected
 0 2 0
 0 0 1
 0 1 1 1
-jack wendy 0x0
-jack 0x0 0x0
+jack wendy NULL
+jack NULL NULL
 ronald ronald 0
 1 1 1 0
-jack wendy 0x0
-jack 0x0 0x0
+jack wendy NULL
+jack NULL NULL
 ronald ronald 0
