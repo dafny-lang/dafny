@@ -12212,7 +12212,7 @@ namespace Microsoft.Dafny
     private void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms, ResolveOpts opts) {
       foreach(NestedMatchCaseStmt mc in ms.Cases) {
         scope.PushMarker();
-        ResolveAttributes(mc.Attributes, ms, opts);
+        ResolveAttributes(mc.Attributes, null, opts);
         CheckLinearNestedMatchCase(dtd, mc, opts);
         scope.PopMarker();
       }

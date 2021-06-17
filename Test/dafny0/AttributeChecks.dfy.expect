@@ -41,7 +41,7 @@ method WhileAlt(n: int) returns (k: int)
 {
   var i := 0;
   while {:split}
-    invariant forall u :: f(u) == u + i 
+    invariant forall u :: f(u) == u + i
   {
     case {:split 1 + true} i < n =>
       {

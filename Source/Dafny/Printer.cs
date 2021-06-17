@@ -1281,7 +1281,7 @@ namespace Microsoft.Dafny {
         if (s.UsesOptionalBraces) {
           wr.Write(" {");
         }
-        PrintAlternatives(indent + (s.UsesOptionalBraces ? IndentAmount : 0), s.Alternatives);
+        PrintAlternatives(indent + (s.UsesOptionalBraces ? IndentAmount : 0), s.Alternatives, true);
         if (s.UsesOptionalBraces) {
           wr.WriteLine();
           Indent(indent);
@@ -1294,21 +1294,25 @@ namespace Microsoft.Dafny {
         var s = (AlternativeLoopStmt)stmt;
         wr.Write("while");
         PrintAttributes(s.Attributes);
-        if (s.Invariants.Count != 0) {
+        bool hasSpecs = s.Invariants.Count != 0 || (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) || s.Mod.Expressions != null;
+        if (hasSpecs) {
           wr.WriteLine();
-          PrintSpec("invariant", s.Invariants, indent + IndentAmount, false);
         }
-        if (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) {
-          wr.WriteLine();
-          PrintDecreasesSpec(s.Decreases, indent + IndentAmount, false);
+        PrintSpec("invariant", s.Invariants, indent + IndentAmount, true);
+        PrintDecreasesSpec(s.Decreases, indent + IndentAmount, true);
+        if (s.Mod.Expressions != null) {
+          PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.HasAttributes() ? s.Mod.Attributes : null, true);
         }
-
         if (s.UsesOptionalBraces) {
-          wr.WriteLine();
-          Indent(indent);
+          if (hasSpecs){
+            Indent(indent);
+          } else {
+            wr.Write(" ");
+          }
           wr.Write("{");
         }
-        PrintAlternatives(indent + (s.UsesOptionalBraces ? IndentAmount : 0), s.Alternatives);
+        Contract.Assert(s.Alternatives.Count != 0);
+        PrintAlternatives(indent + (s.UsesOptionalBraces ? IndentAmount : 0), s.Alternatives, !hasSpecs || s.UsesOptionalBraces);
         if (s.UsesOptionalBraces) {
           wr.WriteLine();
           Indent(indent);
@@ -1681,9 +1685,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintAlternatives(int indent, List<GuardedAlternative> alternatives) {
+    void PrintAlternatives(int indent, List<GuardedAlternative> alternatives, bool startWithLine = true) {
+
       foreach (var alternative in alternatives) {
-        wr.WriteLine();
+        if (startWithLine)
+        {
+          wr.WriteLine();
+        }
+        else
+        {
+          startWithLine = true;
+        }
         Indent(indent);
         wr.Write("case");
         PrintAttributes(alternative.Attributes);
