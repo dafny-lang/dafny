@@ -23,7 +23,7 @@ method IfAlt(n: int) returns (k: int)
 
 method While(n: int) returns (k: int)
 {
-  var f : int -> int := x => x;
+  var f: int -> int := x => x;
   var i := 0;
   while {:split true} {:split true + k} i < n // error: true + k is ill-typed
     invariant forall u :: f(u) == u + i
@@ -35,6 +35,7 @@ method While(n: int) returns (k: int)
 method WhileAlt(n: int) returns (k: int)
 {
   var i := 0;
+  var f: int -> int := x => x;
   while {:split}
     invariant forall u :: f(u) == u + i
   {

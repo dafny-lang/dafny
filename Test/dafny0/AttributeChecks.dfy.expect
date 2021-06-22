@@ -40,6 +40,7 @@ method While(n: int) returns (k: int)
 method WhileAlt(n: int) returns (k: int)
 {
   var i := 0;
+  var f: int -> int := x => x;
   while {:split}
     invariant forall u :: f(u) == u + i
   {
@@ -92,15 +93,14 @@ AttributeChecks.dfy(18,17): Error: type of left argument to + (int) must agree w
 AttributeChecks.dfy(18,17): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 AttributeChecks.dfy(28,35): Error: type of right argument to + (int) must agree with the result type (bool)
 AttributeChecks.dfy(28,35): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-AttributeChecks.dfy(39,26): Error: unresolved identifier: f
-AttributeChecks.dfy(41,19): Error: type of left argument to + (int) must agree with the result type (bool)
-AttributeChecks.dfy(41,19): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-AttributeChecks.dfy(51,19): Error: type of left argument to + (int) must agree with the result type (bool)
-AttributeChecks.dfy(51,19): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-AttributeChecks.dfy(57,28): Error: type of left argument to + (int) must agree with the result type (bool)
-AttributeChecks.dfy(57,28): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-AttributeChecks.dfy(67,25): Error: type of left argument to + (int) must agree with the result type (bool)
-AttributeChecks.dfy(67,25): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-AttributeChecks.dfy(74,23): Error: type of right argument to + (int) must agree with the result type (bool)
-AttributeChecks.dfy(74,23): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-15 resolution/type errors detected in AttributeChecks.dfy
+AttributeChecks.dfy(42,19): Error: type of left argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(42,19): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(52,19): Error: type of left argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(52,19): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(58,28): Error: type of left argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(58,28): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(68,25): Error: type of left argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(68,25): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(75,23): Error: type of right argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(75,23): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+14 resolution/type errors detected in AttributeChecks.dfy
