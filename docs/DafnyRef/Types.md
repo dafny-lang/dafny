@@ -1436,7 +1436,7 @@ ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
 
 ClassMemberDecl(allowConstructors, isValueType,
                 moduleLevelDecl, isWithinAbstractModule) =
-  ( FieldDecl(isValueType) // allowed iff moduleLevelDecl is true
+  ( FieldDecl(isValueType) // allowed iff moduleLevelDecl is false
   | ConstantFieldDecl(moduleLevelDecl)
   | FunctionDecl(isWithinAbstractModule)
   | MethodDecl(isGhost: "ghost" was present,
@@ -1447,7 +1447,7 @@ The ``ClassMemberDecl`` parameter `moduleLevelDecl` will be true if
 the member declaration is at the top level or directly within a
 module declaration. It will be false for ``ClassMemberDecl``s
 that are part of a class or trait declaration. If `moduleLevelDecl` is
-false ``FieldDecl``s are not allowed.
+true ``FieldDecl``s are not allowed.
 
 A _class_ `C` is a reference type declared as follows:
 ```dafny

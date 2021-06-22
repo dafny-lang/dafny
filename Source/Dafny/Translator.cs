@@ -3755,7 +3755,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddLayerSynonymAxiom(Function f) {
+    void AddLayerSynonymAxiom(Function f, bool forHandle = false) {
       Contract.Requires(f != null);
       Contract.Requires(f.IsFuelAware());
       Contract.Requires(sink != null && predef != null);
@@ -3782,7 +3782,7 @@ namespace Microsoft.Dafny {
         args1.Add(s);
         args0.Add(s);
       }
-      if (AlwaysUseHeap || f.ReadsHeap) {
+      if (!forHandle && (AlwaysUseHeap || f.ReadsHeap)) {
         bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
         formals.Add(bv);
         s = new Bpl.IdentifierExpr(f.tok, bv);
@@ -3797,15 +3797,18 @@ namespace Microsoft.Dafny {
         args1.Add(s);
         args0.Add(s);
       }
-      foreach (var p in f.Formals) {
-        bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
-        formals.Add(bv);
-        s = new Bpl.IdentifierExpr(f.tok, bv);
-        args1.Add(s);
-        args0.Add(s);
+      if (!forHandle) {
+        foreach (var p in f.Formals) {
+          bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
+          formals.Add(bv);
+          s = new Bpl.IdentifierExpr(f.tok, bv);
+          args1.Add(s);
+          args0.Add(s);
+        }
       }
 
-      var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
+      var name = forHandle ? f.FullSanitizedName + "#Handle" : f.FullSanitizedName;
+      var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, name, TrType(f.ResultType)));
       var funcAppl1 = new Bpl.NAryExpr(f.tok, funcID, args1);
       var funcAppl0 = new Bpl.NAryExpr(f.tok, funcID, args0);
 
@@ -8758,6 +8761,7 @@ namespace Microsoft.Dafny {
         if (f.IsFuelAware()) {
           Bpl.Expr ly; vars.Add(BplBoundVar("$ly", predef.LayerType, out ly)); args.Add(ly);
           formals.Add(BplFormalVar(null, predef.LayerType, true));
+          AddLayerSynonymAxiom(f, true);
         }
 
         Func<List<Bpl.Expr>, List<Bpl.Expr>> SnocSelf = x => x;
