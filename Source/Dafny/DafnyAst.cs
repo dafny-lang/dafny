@@ -12568,6 +12568,14 @@ namespace Microsoft.Dafny {
   ///   infinite expansion.
   /// * It preserves the pre-substitution form, which gives compilers a chance to avoid re-evaluation
   ///   of actual parameters used in other default-valued expressions.
+  ///
+  /// Note. Since DefaultValueExpression is a wrapper around another expression and can in several
+  /// places be expanded according to its ResolvedExpression, it is convenient to make DefaultValueExpression
+  /// inherit from ConcreteSyntaxExpression. However, there are some places in the code where
+  /// one then needs to pay attention to DefaultValueExpression's. Such places would be more
+  /// conspicuous if DefaultValueExpression were not an Expression at all. At the time of this
+  /// writing, a change to a separate type has shown to be more hassle than the need for special
+  /// attention to DefaultValueExpression's in some places.
   /// </summary>
   public class DefaultValueExpression : ConcreteSyntaxExpression {
     public readonly Formal Formal;
