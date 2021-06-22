@@ -215,7 +215,7 @@ namespace Microsoft.Dafny {
           new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
           new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
         var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
-        var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false));
+        var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
         var argExprs = args.ConvertAll(a =>
               (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
         var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, argExprs) {
@@ -4742,7 +4742,7 @@ namespace Microsoft.Dafny {
       var formals = new List<Formal>();
       for (int i = 0; i < typeArgs.Count; i++) {
         var tp = typeArgs[i];
-        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, false);
+        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, false, null);
         formals.Add(f);
       }
       var ctor = new DatatypeCtor(Token.NoToken, BuiltIns.TupleTypeCtorNamePrefix + typeArgs.Count, formals, null);
@@ -6062,13 +6062,15 @@ namespace Microsoft.Dafny {
     public readonly bool IsOld;
     public readonly Expression DefaultValue;
 
-    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, bool isOld = false)
+    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue, bool isOld = false)
       : base(tok, name, type, isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
+      Contract.Requires(inParam || defaultValue == null);
       InParam = inParam;
       IsOld = isOld;
+      DefaultValue = defaultValue;
     }
 
     public bool HasName {
@@ -6092,7 +6094,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class ImplicitFormal : Formal {
     public ImplicitFormal(IToken tok, string name, Type type, bool inParam, bool isGhost)
-      : base(tok, name, type, inParam, isGhost) {
+      : base(tok, name, type, inParam, isGhost, null) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
@@ -6220,6 +6222,9 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var formal in Formals.Where(f => f.DefaultValue != null)) {
+          yield return formal.DefaultValue;
+        }
         foreach (var e in Req) {
           yield return e.E;
         }
@@ -6527,6 +6532,9 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var formal in Ins.Where(f => f.DefaultValue != null)) {
+          yield return formal.DefaultValue;
+        }
         foreach (var e in Req) {
           yield return e.E;
         }
@@ -10392,23 +10400,30 @@ namespace Microsoft.Dafny {
 
     public Function Function;  // filled in by resolution
 
-    [Captured]
     public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
-      : base(tok) {
+      : this(tok, fn, receiver, openParen, new ActualBindings(args), atLabel) {
       Contract.Requires(tok != null);
       Contract.Requires(fn != null);
       Contract.Requires(receiver != null);
       Contract.Requires(cce.NonNullElements(args));
       Contract.Requires(openParen != null || args.Count == 0);
       Contract.Ensures(type == null);
-      Contract.Ensures(cce.Owner.Same(this, receiver));
+    }
+
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(fn != null);
+      Contract.Requires(receiver != null);
+      Contract.Requires(bindings != null);
+      Contract.Requires(openParen != null);
+      Contract.Ensures(type == null);
 
       this.Name = fn;
-      cce.Owner.AssignSame(this, receiver);
       this.Receiver = receiver;
       this.OpenParen = openParen;
       this.AtLabel = atLabel;
-      this.Bindings = new ActualBindings(args);
+      this.Bindings = bindings;
     }
 
     /// <summary>
@@ -12541,6 +12556,46 @@ namespace Microsoft.Dafny {
       a.type = e.Type;
       a.ResolvedExpression = e;
       return a;
+    }
+  }
+
+  /// <summary>
+  /// When an actual parameter is omitted for a formal with a default value, the positional resolved
+  /// version of the actual parameter will have a DefaultValueExpression value. This has three
+  /// advantages:
+  /// * It allows the entire module to be resolved before any substitutions take place.
+  /// * It gives a good place to check for default-value expressions that would give rise to an
+  ///   infinite expansion.
+  /// * It preserves the pre-substitution form, which gives compilers a chance to avoid re-evaluation
+  ///   of actual parameters used in other default-valued expressions.
+  ///
+  /// Note. Since DefaultValueExpression is a wrapper around another expression and can in several
+  /// places be expanded according to its ResolvedExpression, it is convenient to make DefaultValueExpression
+  /// inherit from ConcreteSyntaxExpression. However, there are some places in the code where
+  /// one then needs to pay attention to DefaultValueExpression's. Such places would be more
+  /// conspicuous if DefaultValueExpression were not an Expression at all. At the time of this
+  /// writing, a change to a separate type has shown to be more hassle than the need for special
+  /// attention to DefaultValueExpression's in some places.
+  /// </summary>
+  public class DefaultValueExpression : ConcreteSyntaxExpression {
+    public readonly Formal Formal;
+    public readonly Expression Receiver;
+    public readonly Dictionary<IVariable, Expression> SubstMap;
+    public readonly Dictionary<TypeParameter, Type> TypeMap;
+
+    public DefaultValueExpression(IToken tok, Formal formal,
+      Expression/*?*/ receiver, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(formal != null);
+      Contract.Requires(formal.DefaultValue != null);
+      Contract.Requires(substMap != null);
+      Contract.Requires(typeMap != null);
+      Formal = formal;
+      Receiver = receiver;
+      SubstMap = substMap;
+      TypeMap = typeMap;
+      Type = Resolver.SubstType(formal.Type, typeMap);
     }
   }
 
