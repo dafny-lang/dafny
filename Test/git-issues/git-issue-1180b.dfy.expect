@@ -89,4 +89,4 @@ git-issue-1180b.dfy(138,18): Related location: This is the postcondition that mi
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 7 verified, 20 errors
+Dafny program verifier finished with 13 verified, 20 errors
