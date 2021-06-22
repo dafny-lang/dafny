@@ -1688,12 +1688,9 @@ namespace Microsoft.Dafny {
     void PrintAlternatives(int indent, List<GuardedAlternative> alternatives, bool startWithLine = true) {
 
       foreach (var alternative in alternatives) {
-        if (startWithLine)
-        {
+        if (startWithLine) {
           wr.WriteLine();
-        }
-        else
-        {
+        } else {
           startWithLine = true;
         }
         Indent(indent);
