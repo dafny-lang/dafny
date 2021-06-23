@@ -2378,7 +2378,7 @@ namespace Microsoft.Dafny {
         warnings += " -Wno-unknown-warning-option";
       }
       if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-        warnings += " -Wunused-but-set-variable";
+        warnings += " -Wno-unused-but-set-variable";
       }
       var args = warnings + $" -g -std=c++17 -I{codebase} -o {exeName} {targetFilename}";
       compilationResult = null;
