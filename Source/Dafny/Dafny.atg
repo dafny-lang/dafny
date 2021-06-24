@@ -2814,7 +2814,7 @@ WhileStmt<out Statement stmt>
 ForLoopStmt<out Statement stmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null);
      IToken x;
-     LocalVariable local;
+     BoundVar loopIndex;
      Expression lo;
      Expression hi;
      bool goingUp = true;
@@ -2830,7 +2830,7 @@ ForLoopStmt<out Statement stmt>
      bool isDirtyLoop = true;
   .)
   "for"                    (. x = t; .)
-  LocalIdentTypeOptional<out local, false, true>
+  IdentTypeOptional<out loopIndex>
   ":="
   Expression<out lo, false, false>
   ForLoopDirection<out goingUp>
@@ -2845,7 +2845,7 @@ ForLoopStmt<out Statement stmt>
     if (body == null && !isDirtyLoop) {
       body = new BlockStmt(x, endTok, new List<Statement>());
     }
-    stmt = new ForLoopStmt(x, endTok, local, lo, hi, goingUp, invariants, new Specification<FrameExpression>(mod, modAttrs), body);
+    stmt = new ForLoopStmt(x, endTok, loopIndex, lo, hi, goingUp, invariants, new Specification<FrameExpression>(mod, modAttrs), body);
   .)
   .
 

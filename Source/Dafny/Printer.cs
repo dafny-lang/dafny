@@ -1678,8 +1678,8 @@ namespace Microsoft.Dafny {
     void PrintForLoopStatement(int indent, ForLoopStmt s) {
       Contract.Requires(0 <= indent);
       Contract.Requires(s != null);
-      wr.Write($"for {s.Local.Name}");
-      PrintType(": ", s.Local.OptionalType);
+      wr.Write($"for {s.LoopIndex.Name}");
+      PrintType(": ", s.LoopIndex.Type);
       wr.Write(" := ");
       if (s.GoingUp) {
         PrintExpression(s.Lo, false);

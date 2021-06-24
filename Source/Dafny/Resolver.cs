@@ -10946,29 +10946,23 @@ namespace Microsoft.Dafny
           Translator.ComputeFreeVariables(whileS.Guard, fvs, ref usesHeap);
           ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
         } else if (s is ForLoopStmt forS) {
-          var local = forS.Local;
+          var loopIndex = forS.LoopIndex;
           int prevErrorCount = reporter.Count(ErrorLevel.Error);
-          ResolveType(local.Tok, local.OptionalType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-            local.type = local.OptionalType;
-          } else {
-            local.type = new InferredTypeProxy();
-          }
-          var err = new TypeConstraint.ErrorMsgWithToken(local.Tok, "index variable is expected to be of an integer type (got {0})", local.Type);
-          ConstrainToIntegerType(local.Tok, local.Type, false, err);
-          fvs.Add(local);
+          ResolveType(loopIndex.Tok, loopIndex.Type, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          var err = new TypeConstraint.ErrorMsgWithToken(loopIndex.Tok, "index variable is expected to be of an integer type (got {0})", loopIndex.Type);
+          ConstrainToIntegerType(loopIndex.Tok, loopIndex.Type, false, err);
+          fvs.Add(loopIndex);
 
           ResolveExpression(forS.Lo, new ResolveOpts(codeContext, true));
           ResolveExpression(forS.Hi, new ResolveOpts(codeContext, true));
           Translator.ComputeFreeVariables(forS.Lo, fvs, ref usesHeap);
           Translator.ComputeFreeVariables(forS.Hi, fvs, ref usesHeap);
-          AddAssignableConstraint(forS.Lo.tok, forS.Local.Type, forS.Lo.Type, "lower bound (of type {1}) not assignable to index variable (of type {0})");
-          AddAssignableConstraint(forS.Hi.tok, forS.Local.Type, forS.Hi.Type, "upper bound (of type {1}) not assignable to index variable (of type {0})");
+          AddAssignableConstraint(forS.Lo.tok, forS.LoopIndex.Type, forS.Lo.Type, "lower bound (of type {1}) not assignable to index variable (of type {0})");
+          AddAssignableConstraint(forS.Hi.tok, forS.LoopIndex.Type, forS.Hi.Type, "upper bound (of type {1}) not assignable to index variable (of type {0})");
 
           // Create a new scope, add the local to the scope, and resolve the local's attributes
           scope.PushMarker();
-          ScopePushAndReport(scope, local, "index-variable");
-          ResolveAttributes(local.Attributes, local, new ResolveOpts(codeContext, true));
+          ScopePushAndReport(scope, loopIndex, "index-variable");
         }
 
         ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, fvs, ref usesHeap);

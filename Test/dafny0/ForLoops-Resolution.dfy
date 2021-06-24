@@ -101,3 +101,14 @@ method BigOrdinal() {
   for i := 0 to 1000 as ORDINAL { // error: type must be an integer type
   }
 }
+
+method Mutation() {
+  for i := 0 to 1000 {
+    i := i + 3;  // error: i is not mutable
+  }
+}
+
+method Wild() {
+  for _ := 0 to 10 {
+  }
+}

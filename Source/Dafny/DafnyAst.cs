@@ -8141,24 +8141,24 @@ namespace Microsoft.Dafny {
   }
 
   public class ForLoopStmt : OneBodyLoopStmt {
-    public readonly LocalVariable Local;
+    public readonly BoundVar LoopIndex;
     public readonly Expression Lo;
     public readonly Expression Hi;
     public readonly bool GoingUp;
 
-    public ForLoopStmt(IToken tok, IToken endTok, LocalVariable local, Expression lo, Expression hi, bool goingUp,
+    public ForLoopStmt(IToken tok, IToken endTok, BoundVar loopIndexVariable, Expression lo, Expression hi, bool goingUp,
       List<AttributedExpression> invariants, Specification<FrameExpression> mod,
       BlockStmt /*?*/ body)
       : base(tok, endTok, invariants, new Specification<Expression>(new List<Expression>(), null), mod, body)
     {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
-      Contract.Requires(local != null);
+      Contract.Requires(loopIndexVariable != null);
       Contract.Requires(lo != null);
       Contract.Requires(hi != null);
       Contract.Requires(invariants != null);
       Contract.Requires(mod != null);
-      Local = local;
+      LoopIndex = loopIndexVariable;
       Lo = lo;
       Hi = hi;
       GoingUp = goingUp;

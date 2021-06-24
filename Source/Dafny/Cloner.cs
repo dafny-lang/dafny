@@ -614,7 +614,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is ForLoopStmt) {
         var s = (ForLoopStmt)stmt;
-        r = new ForLoopStmt(Tok(s.Tok), Tok(s.EndTok), CloneIVariable(s.Local), CloneExpr(s.Lo), CloneExpr(s.Hi), s.GoingUp, s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
+        r = new ForLoopStmt(Tok(s.Tok), Tok(s.EndTok), CloneBoundVar(s.LoopIndex), CloneExpr(s.Lo), CloneExpr(s.Hi), s.GoingUp, s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
