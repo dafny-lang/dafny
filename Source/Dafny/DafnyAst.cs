@@ -8642,7 +8642,6 @@ namespace Microsoft.Dafny {
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
     public readonly bool UsesOptionalBraces;
     public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it
-
     public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, MatchingContext context = null)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
@@ -8653,6 +8652,18 @@ namespace Microsoft.Dafny {
       this.cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
       this.Context = context is null? new HoleCtx() : context;
+    }
+    public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
+      : base(tok, endTok. attrs)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(source != null);
+      Contract.Requires(cce.NonNullElements(cases));
+      this.source = source;
+      this.cases = cases;
+      this.UsesOptionalBraces = usesOptionalBraces;
+      this.Context = context is null ? new HoleCtx() : context;
     }
 
     public Expression Source {
