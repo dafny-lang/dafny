@@ -1008,6 +1008,10 @@ namespace Microsoft.Dafny {
       if (f.IsGhost) {
         wr.Write("ghost ");
       }
+      if (f.IsNameOnly) {
+        Contract.Assert(f.HasName);
+        wr.Write("nameonly ");
+      }
       if (f.HasName) {
         wr.Write("{0}: ", f.DisplayName);
       }
