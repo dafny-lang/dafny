@@ -41,4 +41,10 @@ ParseErrors.dfy(156,22): Error: a set comprehension with more than one bound var
 ParseErrors.dfy(163,2): Error: mutable fields are not allowed in value types
 ParseErrors.dfy(167,2): Error: mutable fields are not allowed in value types
 ParseErrors.dfy(170,2): Error: mutable fields are not allowed in value types
-43 parse errors detected in ParseErrors.dfy
+ParseErrors.dfy(175,15): Error: invalid MethodDecl
+ParseErrors.dfy(177,14): Error: a 'for' loop is not allowed an explicit 'decreases' clause
+ParseErrors.dfy(179,14): Error: a 'for' loop is not allowed an explicit 'decreases' clause
+ParseErrors.dfy(183,16): Error: a 'for' loop is not allowed an explicit 'decreases' clause
+ParseErrors.dfy(187,16): Error: a 'for' loop is not allowed an explicit 'decreases' clause
+ParseErrors.dfy(192,14): Error: a 'for' loop is not allowed an explicit 'decreases' clause
+49 parse errors detected in ParseErrors.dfy

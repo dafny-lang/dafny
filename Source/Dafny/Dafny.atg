@@ -2820,6 +2820,7 @@ ForLoopStmt<out Statement stmt>
      bool goingUp = true;
 
      List<AttributedExpression> invariants = new List<AttributedExpression>();
+     List<Expression> decreases = new List<Expression>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
      List<FrameExpression> mod = null;
@@ -2835,7 +2836,11 @@ ForLoopStmt<out Statement stmt>
   Expression<out lo, false, false>
   ForLoopDirection<out goingUp>
   Expression<out hi, false, false>
-  LoopSpec<invariants, null, ref mod, ref decAttrs, ref modAttrs>
+  LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
+  (.  if (decreases.Count != 0) {
+        SemErr(decreases[0].tok, "a 'for' loop is not allowed an explicit 'decreases' clause");
+      }
+  .)
   ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
     BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
   | /* go body-less */

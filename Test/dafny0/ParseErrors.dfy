@@ -169,3 +169,27 @@ newtype Pos = x | 0 < x witness 1
 type Opaque {
   var x: int  // error: mutable field not allowed in opaque type
 }
+
+// ------------------------- for loops ------------------------------
+
+method ForLoop {
+  for i := 0 to 100
+    decreases i // error: for loop is not allowed (an explicit) 'decreases'
+  for i := 0 to 100
+    decreases i // error: for loop is not allowed (an explicit) 'decreases'
+  {
+  }
+  for i := 0 to 100
+    decreases i + 1, i // error: for loop is not allowed (an explicit) 'decreases'
+  {
+  }
+  for i := 0 to 100
+    decreases i + 1, i // error: for loop is not allowed (an explicit) 'decreases'
+    decreases i
+  {
+  }
+  for i := 0 to 100
+    decreases * // error: for loop is not allowed (an explicit) 'decreases'
+  {
+  }
+}
