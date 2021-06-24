@@ -2815,8 +2815,8 @@ ForLoopStmt<out Statement stmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null);
      IToken x;
      BoundVar loopIndex;
-     Expression lo;
-     Expression hi;
+     Expression start;
+     Expression end = null;
      bool goingUp = true;
 
      List<AttributedExpression> invariants = new List<AttributedExpression>();
@@ -2833,9 +2833,11 @@ ForLoopStmt<out Statement stmt>
   "for"                    (. x = t; .)
   IdentTypeOptional<out loopIndex>
   ":="
-  Expression<out lo, false, false>
+  Expression<out start, false, false>
   ForLoopDirection<out goingUp>
-  Expression<out hi, false, false>
+  ( Expression<out end, false, false>
+  | "*"
+  )
   LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
   (.  if (decreases.Count != 0) {
         SemErr(decreases[0].tok, "a 'for' loop is not allowed an explicit 'decreases' clause");
@@ -2850,7 +2852,7 @@ ForLoopStmt<out Statement stmt>
     if (body == null && !isDirtyLoop) {
       body = new BlockStmt(x, endTok, new List<Statement>());
     }
-    stmt = new ForLoopStmt(x, endTok, loopIndex, lo, hi, goingUp, invariants, new Specification<FrameExpression>(mod, modAttrs), body);
+    stmt = new ForLoopStmt(x, endTok, loopIndex, start, end, goingUp, invariants, new Specification<FrameExpression>(mod, modAttrs), body);
   .)
   .
 

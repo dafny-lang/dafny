@@ -1681,14 +1681,12 @@ namespace Microsoft.Dafny {
       wr.Write($"for {s.LoopIndex.Name}");
       PrintType(": ", s.LoopIndex.Type);
       wr.Write(" := ");
-      if (s.GoingUp) {
-        PrintExpression(s.Lo, false);
-        wr.Write(" to ");
-        PrintExpression(s.Hi, false);
+      PrintExpression(s.Start, false);
+      wr.Write(s.GoingUp ? " to " : " downto ");
+      if (s.End == null) {
+        wr.Write("*");
       } else {
-        PrintExpression(s.Hi, false);
-        wr.Write(" downto ");
-        PrintExpression(s.Lo, false);
+        PrintExpression(s.End, false);
       }
 
       PrintSpec("invariant", s.Invariants, indent + IndentAmount);

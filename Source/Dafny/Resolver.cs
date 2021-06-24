@@ -7807,8 +7807,10 @@ namespace Microsoft.Dafny
           var s = (ForLoopStmt)stmt;
           // all subexpressions are ghost, except the bounds
           Visit(s.LoopSpecificationExpressions, true);
-          Visit(s.Lo, inGhostContext);
-          Visit(s.Hi, inGhostContext);
+          Visit(s.Start, inGhostContext);
+          if (s.End != null) {
+            Visit(s.End, inGhostContext);
+          }
           Visit(s.SubStatements, inGhostContext);
           return false;
         } else if (stmt is CallStmt) {
@@ -8470,7 +8472,7 @@ namespace Microsoft.Dafny
 
         } else if (stmt is ForLoopStmt) {
           var s = (ForLoopStmt)stmt;
-          s.IsGhost = mustBeErasable || resolver.UsesSpecFeatures(s.Lo) || resolver.UsesSpecFeatures(s.Hi);
+          s.IsGhost = mustBeErasable || resolver.UsesSpecFeatures(s.Start) || (s.End != null && resolver.UsesSpecFeatures(s.End));
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
           }
@@ -10953,12 +10955,18 @@ namespace Microsoft.Dafny
           ConstrainToIntegerType(loopIndex.Tok, loopIndex.Type, false, err);
           fvs.Add(loopIndex);
 
-          ResolveExpression(forS.Lo, new ResolveOpts(codeContext, true));
-          ResolveExpression(forS.Hi, new ResolveOpts(codeContext, true));
-          Translator.ComputeFreeVariables(forS.Lo, fvs, ref usesHeap);
-          Translator.ComputeFreeVariables(forS.Hi, fvs, ref usesHeap);
-          AddAssignableConstraint(forS.Lo.tok, forS.LoopIndex.Type, forS.Lo.Type, "lower bound (of type {1}) not assignable to index variable (of type {0})");
-          AddAssignableConstraint(forS.Hi.tok, forS.LoopIndex.Type, forS.Hi.Type, "upper bound (of type {1}) not assignable to index variable (of type {0})");
+          ResolveExpression(forS.Start, new ResolveOpts(codeContext, true));
+          Translator.ComputeFreeVariables(forS.Start, fvs, ref usesHeap);
+          AddAssignableConstraint(forS.Start.tok, forS.LoopIndex.Type, forS.Start.Type, "lower bound (of type {1}) not assignable to index variable (of type {0})");
+          if (forS.End == null) {
+            if (!codeContext.AllowsNontermination) {
+              reporter.Error(MessageSource.Resolver, forS.Tok, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
+            }
+          } else {
+            ResolveExpression(forS.End, new ResolveOpts(codeContext, true));
+            Translator.ComputeFreeVariables(forS.End, fvs, ref usesHeap);
+            AddAssignableConstraint(forS.End.tok, forS.LoopIndex.Type, forS.End.Type, "upper bound (of type {1}) not assignable to index variable (of type {0})");
+          }
 
           // Create a new scope, add the local to the scope, and resolve the local's attributes
           scope.PushMarker();

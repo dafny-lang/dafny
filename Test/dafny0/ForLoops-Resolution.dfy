@@ -54,10 +54,10 @@ module Tests {
   function method Pow(b: nat, n: nat): nat {
     if n == 0 then 1 else b * Pow(b, n - 1)
   }
-  /* SOON:
+
   method DebunkFermatAndWiles()
     decreases *
-  { SOON:
+  {
     for i := 1 to * {
       for j := 1 to i {
         for k := 1 to i {
@@ -87,7 +87,7 @@ module Tests {
       s := s + i;
     }
   }
-  */
+
   method Real() {
     for i := 0.0 to 10.0 { // error (x2): type must be an integer type
     }

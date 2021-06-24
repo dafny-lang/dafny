@@ -8142,11 +8142,11 @@ namespace Microsoft.Dafny {
 
   public class ForLoopStmt : OneBodyLoopStmt {
     public readonly BoundVar LoopIndex;
-    public readonly Expression Lo;
-    public readonly Expression Hi;
+    public readonly Expression Start;
+    public readonly Expression/*?*/ End;
     public readonly bool GoingUp;
 
-    public ForLoopStmt(IToken tok, IToken endTok, BoundVar loopIndexVariable, Expression lo, Expression hi, bool goingUp,
+    public ForLoopStmt(IToken tok, IToken endTok, BoundVar loopIndexVariable, Expression start, Expression/*?*/ end, bool goingUp,
       List<AttributedExpression> invariants, Specification<FrameExpression> mod,
       BlockStmt /*?*/ body)
       : base(tok, endTok, invariants, new Specification<Expression>(new List<Expression>(), null), mod, body)
@@ -8154,21 +8154,22 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(loopIndexVariable != null);
-      Contract.Requires(lo != null);
-      Contract.Requires(hi != null);
+      Contract.Requires(start != null);
       Contract.Requires(invariants != null);
       Contract.Requires(mod != null);
       LoopIndex = loopIndexVariable;
-      Lo = lo;
-      Hi = hi;
+      Start = start;
+      End = end;
       GoingUp = goingUp;
     }
 
     public override IEnumerable<Expression> SubExpressions {
       get {
         foreach (var e in base.SubExpressions) { yield return e; }
-        yield return Lo;
-        yield return Hi;
+        yield return Start;
+        if (End != null) {
+          yield return End;
+        }
       }
     }
   }
