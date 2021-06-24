@@ -1,13 +1,19 @@
-ForLoops-Resolution.dfy(5,16): Error: unresolved identifier: i
-ForLoops-Resolution.dfy(10,11): Error: unresolved identifier: i
-ForLoops-Resolution.dfy(31,6): Error: RHS (of type Nat) not assignable to LHS (of type nat)
-ForLoops-Resolution.dfy(37,6): Error: RHS (of type int) not assignable to LHS (of type Nat)
-ForLoops-Resolution.dfy(91,11): Error: lower bound (of type real) not assignable to index variable (of type int)
-ForLoops-Resolution.dfy(91,18): Error: upper bound (of type real) not assignable to index variable (of type int)
-ForLoops-Resolution.dfy(96,6): Error: index variable is expected to be of an integer type (got real)
-ForLoops-Resolution.dfy(101,6): Error: index variable is expected to be of an integer type (got real)
-ForLoops-Resolution.dfy(101,17): Error: lower bound (of type int) not assignable to index variable (of type real)
-ForLoops-Resolution.dfy(106,6): Error: index variable is expected to be of an integer type (got bv8)
-ForLoops-Resolution.dfy(111,6): Error: index variable is expected to be of an integer type (got ORDINAL)
-ForLoops-Resolution.dfy(117,4): Error: LHS of assignment must denote a mutable variable
-12 resolution/type errors detected in ForLoops-Resolution.dfy
+ForLoops-Resolution.dfy(6,18): Error: unresolved identifier: i
+ForLoops-Resolution.dfy(11,13): Error: unresolved identifier: i
+ForLoops-Resolution.dfy(32,8): Error: RHS (of type Nat) not assignable to LHS (of type nat)
+ForLoops-Resolution.dfy(38,8): Error: RHS (of type int) not assignable to LHS (of type Nat)
+ForLoops-Resolution.dfy(92,13): Error: lower bound (of type real) not assignable to index variable (of type int)
+ForLoops-Resolution.dfy(92,20): Error: upper bound (of type real) not assignable to index variable (of type int)
+ForLoops-Resolution.dfy(97,8): Error: index variable is expected to be of an integer type (got real)
+ForLoops-Resolution.dfy(102,8): Error: index variable is expected to be of an integer type (got real)
+ForLoops-Resolution.dfy(102,19): Error: lower bound (of type int) not assignable to index variable (of type real)
+ForLoops-Resolution.dfy(107,8): Error: index variable is expected to be of an integer type (got bv8)
+ForLoops-Resolution.dfy(112,8): Error: index variable is expected to be of an integer type (got ORDINAL)
+ForLoops-Resolution.dfy(118,6): Error: LHS of assignment must denote a mutable variable
+ForLoops-Resolution.dfy(152,10): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ForLoops-Resolution.dfy(174,10): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ForLoops-Resolution.dfy(196,10): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ForLoops-Resolution.dfy(208,10): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ForLoops-Resolution.dfy(219,10): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ForLoops-Resolution.dfy(241,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+18 resolution/type errors detected in ForLoops-Resolution.dfy
