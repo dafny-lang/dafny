@@ -122,6 +122,195 @@ module Tests {
   method Wild() {
     for _ := 0 to 10 {
     }
+    for _ := 10 downto 0 {
+      for _ := 0 to 10 {
+      }
+    }
+  }
+
+  method Nested(i: real, a: array<bool>)
+    modifies a
+  {
+    for i := 0 to a.Length {
+      for i := a.Length downto 0 {
+        var i := 0;
+        while i < a.Length {
+          forall i | 0 <= i < a.Length {
+            a[i] := i < 27;
+          }
+          var b := forall i :: 0 <= i < a.Length ==> a[i];
+          for i := 0 to a.Length {
+          }
+        }
+      }
+    }
+  }
+
+  method BodyLessLoop(a: nat, b: nat) {
+    for i := a to b // body-less loop
+  }
+
+  method BodyLessLoop1(a: nat, b: nat) {
+    var x, y := a, b;
+    for i := a to b // body-less loop (loop frame: y)
+      invariant i <= y
+  }
+
+  method BodyLessLoop2(a: nat, b: nat) {
+    var arr := new int[25];
+    for i := a to b // body-less loop (loop frame: $Heap)
+      modifies arr
+  }
+
+  method LoopSpecs(a: array<int>, b: array<int>)
+    modifies a, b
+  {
+    // the body of this method resolves, but it wouldn't verify (for several reasons)
+    for n := 0 to a.Length
+      invariant forall i :: 0 <= i < n ==> old(a[n]) < a[n]
+    {
+      a[n] := a[n] + 1;
+    }
+    for n := 0 to a.Length
+      invariant forall i :: 0 <= i < n ==> old(a[n]) < a[n]
+      modifies a
+    {
+      for j := 0 to b.Length
+        modifies b
+      {
+      }
+      a[n] := a[n] + 1;
+    }
+  }
+
+  method Breaks(k: int) {
+    for i := 0 to 100 {
+      if i == 17 {
+        break;
+      }
+    }
+    for i := 0 to 100 {
+      if i == 17 {
+        break break; // error: there aren't two loop levels here
+      }
+    }
+    for i := 0 to 100 {
+      for j := 0 to 100 {
+        if i == 17 {
+          break break;
+        }
+      }
+    }
+    for i := 0 to 100 {
+      for j := 0 to 100 {
+        if i == 17 {
+          break break break; // error: there aren't 3 loop levels here
+        }
+      }
+    }
+    for i := 0 to 100 {
+      var j := 0;
+      while j < 100 {
+        if i == 17 {
+          break break;
+        } else if j == k {
+          break;
+        }
+      }
+    }
+    var m := 0;
+    while m < 100 {
+      for j := 0 to 100 {
+        if m == 17 {
+          break break;
+        } else if j == k {
+          break;
+        }
+      }
+    }
+  }
+
+  method BreakLabels(s: seq<int>)
+    requires |s| == 1000
+  {
+    label A:
+    for i := 0 to 100 {
+      label B:
+      label C:
+      for j := 100 downto 0 {
+        if i == s[0] {
+          break A;
+        } else if i == s[1] {
+          break B;
+        } else if i == s[2] {
+          break C;
+        } else if i == s[20] {
+          break D; // error: no label D in scope
+        } else if i == s[21] {
+          break XYZ; // error: no label XYZ in scope
+        }
+        var m := 0;
+        while m < 100 {
+          label D: {
+            assert m < 100;
+            for i := 0 to 100 {
+              if i == s[3] {
+                break D;
+              } else if i == s[4] {
+                break B;
+              } else if * {
+                break A;
+              }
+            }
+            var u := 25;
+            assert m < 4 * u;
+            if m == s[5] {
+              break D;
+            }
+          }
+          if m == s[6] {
+            break D; // error: no label D in scope
+          }
+          m := m + 1;
+        }
+      }
+    }
+  }
+
+  method MoreScopeThings(N: nat) {
+    for i := 0 to N {
+    }
+    assert i == N; // error: i is not in scope
+    var i := 0;
+    while i < N {
+      i := i + 1;
+    }
+    assert i == N;
+    for i := 0 to 3 {
+    }
+    assert i == N;
+  }
+
+  method IllegalBreaks(k: int, ghost g: int) {
+    label A: {
+      for j := 54 to 56 {
+        calc {
+          3;
+        ==  {
+              for i := 0 to 100 {
+                if i == 17 {
+                  break;
+                } else if i == k {
+                  break A; // error: label A not in scope
+                } else if * {
+                  break break; // error: there aren't 2 levels to break out of here
+                }
+              }
+            }
+          2 + 1;
+        }
+      }
+    }
   }
 }
 
@@ -239,6 +428,30 @@ module Ghosts {
     }
     for i := y downto 0 { // this is a ghost statement
       r := i; // error: cannot assign compiled field in ghost statement
+    }
+  }
+
+  method IllegalReturns(k: int, ghost g: int, h: int) {
+    label A: {
+      calc {
+        3;
+      ==  {
+            for i := 0 to 100 {
+              if i == 17 {
+                return; // error (x2): cannot return from inside calc hint
+              }
+            }
+          }
+        2 + 1;
+      }
+    }
+    for i := 0 to h {
+      if i == k {
+        return;
+      }
+    }
+    for i := 0 to g {
+      return; // error: return not allowed from inside ghost context
     }
   }
 }
