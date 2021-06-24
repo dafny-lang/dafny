@@ -1,0 +1,13 @@
+ForLoops-Resolution.dfy(5,16): Error: unresolved identifier: i
+ForLoops-Resolution.dfy(10,11): Error: unresolved identifier: i
+ForLoops-Resolution.dfy(31,6): Error: RHS (of type Nat) not assignable to LHS (of type nat)
+ForLoops-Resolution.dfy(37,6): Error: RHS (of type int) not assignable to LHS (of type Nat)
+ForLoops-Resolution.dfy(91,11): Error: lower bound (of type real) not assignable to index variable (of type int)
+ForLoops-Resolution.dfy(91,18): Error: upper bound (of type real) not assignable to index variable (of type int)
+ForLoops-Resolution.dfy(96,6): Error: index variable is expected to be of an integer type (got real)
+ForLoops-Resolution.dfy(101,6): Error: index variable is expected to be of an integer type (got real)
+ForLoops-Resolution.dfy(101,17): Error: lower bound (of type int) not assignable to index variable (of type real)
+ForLoops-Resolution.dfy(106,6): Error: index variable is expected to be of an integer type (got bv8)
+ForLoops-Resolution.dfy(111,6): Error: index variable is expected to be of an integer type (got ORDINAL)
+ForLoops-Resolution.dfy(117,4): Error: LHS of assignment must denote a mutable variable
+12 resolution/type errors detected in ForLoops-Resolution.dfy

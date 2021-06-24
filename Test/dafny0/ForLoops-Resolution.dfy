@@ -44,7 +44,7 @@ method P3(x: int) returns (r: Nat) {
   }
 }
 
-method P3(x: int) returns (r: Nat) {
+method P4(x: int) returns (r: Nat) {
   for i := 0 to 5 {
     r := i;
   }
@@ -53,10 +53,10 @@ method P3(x: int) returns (r: Nat) {
 function method Pow(b: nat, n: nat): nat {
   if n == 0 then 1 else b * Pow(b, n - 1)
 }
-
+/* SOON:
 method DebunkFermatAndWiles()
-  modifies *
-{
+  decreases *
+{ SOON:
   for i := 1 to * {
     for j := 1 to i {
       for k := 1 to i {
@@ -86,9 +86,19 @@ method TerminationProblem1()
     s := s + i;
   }
 }
-
+*/
 method Real() {
-  for i := 0.0 to 10.0 { // error: type must be an integer type
+  for i := 0.0 to 10.0 { // error (x2): type must be an integer type
+  }
+}
+
+method RealExplicit() {
+  for i: real := 0.0 to 10.0 { // error: index-variable type must be an integer type
+  }
+}
+
+method RealExplicit'() {
+  for i: real := 0 to 10.0 { // error (x2): index-variable type must be an integer type; int not assignable to real
   }
 }
 
