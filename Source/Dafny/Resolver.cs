@@ -16585,8 +16585,13 @@ namespace Microsoft.Dafny
         } else if (!stillAcceptingPositionalArguments) {
           reporter.Error(MessageSource.Resolver, arg.tok, "a positional argument is not allowed to follow named arguments");
         } else if (j < formals.Count) {
-          // use the name of formal corresponding to this positional argument
-          var pname = formals[j].Name;
+          // use the name of formal corresponding to this positional argument, unless the parameter is named-only
+          var formal = formals[j];
+          var pname = formal.Name;
+          if (formal.IsNameOnly) {
+            reporter.Error(MessageSource.Resolver, arg.tok,
+              $"parameter '{pname}' must be passed using a name bindings; it cannot be passed positionally");
+          }
           Contract.Assert(namesToActuals[pname] == null); // we expect this, since we've only filled parameters positionally so far
           namesToActuals[pname] = binding;
         } else {
