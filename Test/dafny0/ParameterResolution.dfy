@@ -1,4 +1,4 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %dafny "%s" /dprint:"%t.dprint" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Actuals {
@@ -259,4 +259,100 @@ module MoreSimpleTests {
   method M(x: int := x) // error: cycle among parameters and their default values
   least predicate P[nat](x: int := _k) // error: _k not allowed
   least lemma L(x: int := _k) // error: _k not allowed
+}
+
+module NameOnlyParameters {
+  class C {
+    var x: int
+    constructor (a: int, b: int := 8, nameonly c: int := 9)
+    constructor Init(a: int, b: int := 8, nameonly nameonly ghost nameonly c: int := 9)
+    constructor Create(a: int, nameonly b: int := 8, c: int := 9)
+    constructor Make(a: int, nameonly b: int := 8, c: int := 9)
+    method M(a: int, nameonly b: int, c: int := 100)
+    method P(a: int, nameonly b: int, c: int := 100)
+    twostate lemma N(a: int, nameonly b: int, c: int := 100)
+    function method F(a: int, nameonly b: int, c: int := 100): int
+    least predicate LP(a: int, nameonly b: int, c: int := 100)
+    static greatest predicate GP(a: int, nameonly b: int := 75, c: int := 100)
+  }
+  iterator Iter(nameonly u: int, x: int)
+  datatype D =
+    | DD(a: int, nameonly b: int)
+    | DE(int, 0: int, real, nameonly 1: int, c: int)
+    | DF(800: int, nameonly 900: int, 9_0_0: int := 100)
+  datatype E =
+    | E0(a: int, b: int := 6, int) // error: required parameters must preceded optional parameters
+    | E1(a: int, nameonly b: int := 6, u: int) // error: required parameters must preceded optional parameters
+    | E2(a: int, nameonly b: int, int) // error: after a 'nameonly' parameter, all remaining parameters must have names
+
+  method Test() {
+    var c: C;
+    c := new C(2, 3, 4); // error: c is nameonly
+    c := new C(2, 3, c := 4);
+    c := new C(2, b := 3, c := 4);
+    c := new C(2, c := 4, b := 3);
+    c := new C(a := 2, c := 4, b := 3);
+    c := new C(c := 4, b := 3, a := 2);
+
+    c := new C.Init(2, 3, 4); // error: c is nameonly
+    c := new C.Init(2, c := 4);
+    c := new C.Init(2);
+
+    c := new C.Create(2, b := 20, 200); // error: positional argument follows named argument
+    c := new C.Create(b := 20, a := 2);
+    c := new C.Create(c := 200, b := 20, a := 2);
+
+    c := new C.Make(2, 3, 4); // error: b is nameonly
+    c := new C.Make(2, b := 3, c := 4);
+    c := new C.Make(b := 3, c := 4, a := 2);
+    c := new C.Make(b := 3, unknown := 4, a := 2); // error: no parameter named 'unknown'
+    c := new C.Make(b := 900, a := 901);
+
+    c.M(2, b := 3);
+    c.M(2, b := 3, 102); // error: positional argument follows named argument
+    c.M(2, 102, b := 3); // error (x2): b is nameonly, b is duplicated
+    c.M(2, b := 102, b := 3); // error: b is duplicated
+    c.P(b := 2, a := 0);
+    c.P(a := 0, b := 2);
+    c.P(0, b := 2);
+    c.P(0, b := 2, c := 5);
+    c.N(b := 3, a := 2);
+    c.N(2, b := 3, c := 4);
+
+    var x;
+    x := c.F(2, 3, 4); // error: b is nameonly
+    x := c.F(a := 2, b := 3, c := 4);
+
+    assert c.LP(c := 20, b := 7, a := 2);
+    assert c.LP(2, b := 7);
+    assert c.LP(2); // error: parameter 'b' has no value
+    assert c.LP(2, c := 4); // error: parameter 'b' has no value
+    assert c.LP(2, b := 4);
+    assert c.GP(2, c := 4);
+    assert C.GP(2, c := 4, b := 12);
+    assert C.GP(2, c := 4, b := 12, a := 2); // error: parameter 'a' given twice
+
+    var iter;
+    iter := new Iter(3, 2); // error: u is nameonly
+    iter := new Iter(u := 3, 3); // error (x2): positional argument not allowed to follow named arguments
+    iter := new Iter(u := 3, x := 3);
+    iter := new Iter(x := 3, u := 3);
+    iter := new Iter(x := 3, u := 3, x := 3); // error: parameter 'x' given twice
+
+    var d;
+    d := DD(a, b := 3); // error: unidentified 'a'
+    d := DD(a := 0, b := 3);
+    d := DD(b := 3, a := 0);
+    d := DD(0, b := 3);
+
+    d := DE(0, 1, 0.0, 1 := 8, c := 9);
+    d := DE(0, 1, 0.0, c := 9, 1 := 8);
+
+    d := DF(2, 3, 4); // error: 900 is a nameonly
+    d := DF(2, 900 := 3, 9_0_0 := 4);
+    d := DF(2, 900 := 3);
+    d := DF(900 := 3, 9_0_0 := 4, 800 := 2);
+    d := DF(2, 0900 := 3, 9_0_0 := 4); // error (x2): no parameter is named '0900'; no argument passed for parameter '900'
+    d := DF(2, 900 := 3, 90_0 := 4); // error: no parameter is named '90_0'
+  }
 }
