@@ -9652,6 +9652,7 @@ namespace Microsoft.Dafny
 
       var dependencies = new Graph<IVariable>();
       var allowMoreRequiredParameters = true;
+      var allowNamelessParameters = true;
       foreach (var formal in formals) {
         var d = formal.DefaultValue;
         if (d != null) {
@@ -9662,7 +9663,13 @@ namespace Microsoft.Dafny
             dependencies.AddEdge(formal, v);
           }
         } else if (!allowMoreRequiredParameters) {
-          reporter.Error(MessageSource.Resolver, formal.tok, "all required parameters must precede any optional parameters");
+          reporter.Error(MessageSource.Resolver, formal.tok, "a required parameter must precede all optional parameters");
+        }
+        if (!allowNamelessParameters && !formal.HasName) {
+          reporter.Error(MessageSource.Resolver, formal.tok, "a nameless parameter must precede all nameonly parameters");
+        }
+        if (formal.IsNameOnly) {
+          allowNamelessParameters = false;
         }
       }
       SolveAllTypeConstraints();
@@ -16590,7 +16597,7 @@ namespace Microsoft.Dafny
           var pname = formal.Name;
           if (formal.IsNameOnly) {
             reporter.Error(MessageSource.Resolver, arg.tok,
-              $"parameter '{pname}' must be passed using a name bindings; it cannot be passed positionally");
+              $"nameonly parameter '{pname}' must be passed using a name binding; it cannot be passed positionally");
           }
           Contract.Assert(namesToActuals[pname] == null); // we expect this, since we've only filled parameters positionally so far
           namesToActuals[pname] = binding;
