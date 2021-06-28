@@ -3,6 +3,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
@@ -12,28 +13,23 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
-  public class DafnyCompletionHandler : CompletionHandler {
+  public class DafnyCompletionHandler : CompletionHandlerBase {
     private readonly ILogger _logger;
     private readonly IDocumentDatabase _documents;
     private readonly ISymbolGuesser _symbolGuesser;
 
-    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) : base(CreateRegistrationOptions()) {
+    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) {
       _logger = logger;
       _documents = documents;
       _symbolGuesser = symbolGuesser;
     }
 
-    private static CompletionRegistrationOptions CreateRegistrationOptions() {
+    protected override CompletionRegistrationOptions CreateRegistrationOptions(CompletionCapability capability, ClientCapabilities clientCapabilities) {
       return new CompletionRegistrationOptions {
         DocumentSelector = DocumentSelector.ForLanguage("dafny"),
         ResolveProvider = false,
         TriggerCharacters = new Container<string>(".")
       };
-    }
-
-    public override bool CanResolve(CompletionItem completionItem) {
-      // Never called since "ResolveProvider" is set to false.
-      throw new InvalidOperationException("method not implemented");
     }
 
     // Never called since "ResolveProvider" is set to false.

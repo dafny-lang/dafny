@@ -229,7 +229,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new VersionedTextDocumentIdentifier {
+        TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
         },
@@ -273,7 +273,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new VersionedTextDocumentIdentifier {
+        TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
         },
@@ -314,7 +314,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new VersionedTextDocumentIdentifier {
+        TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
         },
@@ -358,7 +358,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new VersionedTextDocumentIdentifier {
+        TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
         },
@@ -397,7 +397,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new VersionedTextDocumentIdentifier {
+        TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
         },

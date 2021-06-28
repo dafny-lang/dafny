@@ -24,17 +24,17 @@ namespace Microsoft.Dafny.LanguageServer {
         .WithDafnyLanguage()
         .WithDafnyWorkspace(configuration)
         .WithDafnyHandlers()
-        .OnInitialize(Initialize)
-        .OnStarted(Started);
+        .OnInitialize(InitializeAsync)
+        .OnStarted(StartedAsync);
     }
 
-    private static Task Initialize(ILanguageServer server, InitializeParams request, CancellationToken cancellationToken) {
+    private static Task InitializeAsync(ILanguageServer server, InitializeParams request, CancellationToken cancellationToken) {
       var logger = server.GetRequiredService<ILogger<Program>>();
       logger.LogTrace("initializing service");
       return Task.CompletedTask;
     }
 
-    private static Task Started(ILanguageServer server, InitializeResult result, CancellationToken cancellationToken) {
+    private static Task StartedAsync(ILanguageServer server, CancellationToken cancellationToken) {
       // TODO this currently only sent to get rid of the "Server answer pending" of the VSCode plugin.
       server.SendNotification("serverStarted", DafnyVersion);
       server.SendNotification("dafnyLanguageServerVersionReceived", DafnyVersion);

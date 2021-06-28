@@ -2,8 +2,10 @@
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using OmniSharp.Extensions.LanguageServer.Protocol.Serialization.Converters;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,18 +14,18 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
   /// LSP Synchronization handler for symbol based events, i.e. the client requests the symbols of the specified document.
   /// </summary>
-  public class DafnyDocumentSymbolHandler : DocumentSymbolHandler {
+  public class DafnyDocumentSymbolHandler : DocumentSymbolHandlerBase {
     private static readonly SymbolInformationOrDocumentSymbol[] _emptySymbols = new SymbolInformationOrDocumentSymbol[0];
 
     private readonly ILogger _logger;
     private readonly IDocumentDatabase _documents;
 
-    public DafnyDocumentSymbolHandler(ILogger<DafnyDocumentSymbolHandler> logger, IDocumentDatabase documents) : base(CreateRegistrationOptions()) {
+    public DafnyDocumentSymbolHandler(ILogger<DafnyDocumentSymbolHandler> logger, IDocumentDatabase documents) {
       _logger = logger;
       _documents = documents;
     }
 
-    private static DocumentSymbolRegistrationOptions CreateRegistrationOptions() {
+    protected override DocumentSymbolRegistrationOptions CreateRegistrationOptions(DocumentSymbolCapability capability, ClientCapabilities clientCapabilities) {
       return new DocumentSymbolRegistrationOptions {
         DocumentSelector = DocumentSelector.ForLanguage("dafny")
       };
@@ -36,7 +38,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(_emptySymbols);
       }
       var visitor = new LspSymbolGeneratingVisitor(document.SymbolTable, cancellationToken);
-      var symbols = visitor.Visit(document.SymbolTable.CompilationUnit).ToArray();
+      var symbols = visitor.Visit(document.SymbolTable.CompilationUnit)
+        .Select(symbol => new SymbolInformationOrDocumentSymbol(symbol))
+        .ToArray();
       return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(symbols);
     }
   }
