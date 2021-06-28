@@ -8643,8 +8643,8 @@ namespace Microsoft.Dafny {
     public readonly bool UsesOptionalBraces;
     public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it
 
-    public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, MatchingContext context = null)
-      : base(tok, endTok) {
+    public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, MatchingContext context = null, Attributes attributes = null)
+      : base(tok, endTok, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(source != null);
