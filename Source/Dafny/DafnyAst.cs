@@ -8654,7 +8654,7 @@ namespace Microsoft.Dafny {
       this.Context = context is null? new HoleCtx() : context;
     }
     public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
-      : base(tok, endTok. attrs)
+      : base(tok, endTok, attrs)
     {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
@@ -8703,13 +8703,14 @@ namespace Microsoft.Dafny {
   public class MatchCaseStmt : MatchCase
   {
     private List<Statement> body;
+    public Attributes Attributes;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Body));
     }
 
-    public MatchCaseStmt(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body)
+    public MatchCaseStmt(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
       : base(tok, ctor, arguments)
     {
       Contract.Requires(tok != null);
@@ -8717,6 +8718,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(cce.NonNullElements(body));
       this.body = body;
+      this.Attributes = attrs;
     }
 
     public List<Statement> Body {
@@ -12320,7 +12322,6 @@ namespace Microsoft.Dafny {
   {
     public readonly List<Statement> Body;
     public Attributes Attributes;
-
     public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body) : base(tok, pat) {
       Contract.Requires(body != null);
       this.Body = body;
@@ -12340,6 +12341,21 @@ namespace Microsoft.Dafny {
     public readonly List<NestedMatchCaseStmt> Cases;
     public readonly bool UsesOptionalBraces;
 
+    private void InitializeAttributes()
+    {
+      // Default case for match is false
+      bool splitMatch = Attributes.Contains(this.Attributes, "split");
+      Attributes.ContainsBool(this.Attributes, "split", ref splitMatch);
+      foreach (var c in this.Cases) {
+        if (!Attributes.Contains(c.Attributes, "split")){
+          List<Expression> args = new List<Expression>();
+          args.Add(new LiteralExpr(c.Tok, splitMatch));
+          Attributes attrs = new Attributes("split", args, c.Attributes);
+          c.Attributes = attrs;
+        }
+      }
+    }
+
     public override IEnumerable<Expression> SubExpressions {
       get {
         if (this.ResolvedStatement == null) {
@@ -12347,21 +12363,14 @@ namespace Microsoft.Dafny {
         }
       }
     }
-
-    public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces): base(tok, endTok) {
-      Contract.Requires(source != null);
-      Contract.Requires(cce.NonNullElements(cases));
-      this.Source = source;
-      this.Cases = cases;
-      this.UsesOptionalBraces = usesOptionalBraces;
-    }
-    public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs)
+    public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
       : base(tok, endTok, attrs) {
       Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
       this.Source = source;
       this.Cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
+      InitializeAttributes();
     }
   }
 

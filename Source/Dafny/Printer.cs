@@ -1458,7 +1458,9 @@ namespace Microsoft.Dafny {
         if (DafnyOptions.O.DafnyPrintResolvedFile == null && s.OrigUnresolved != null) {
           PrintStatement(s.OrigUnresolved, indent);
         } else {
-          wr.Write("match ");
+          wr.Write("match");
+          PrintAttributes(s.Attributes);
+          wr.Write(" ");
           PrintExpression(s.Source, false);
           if (s.UsesOptionalBraces) {
             wr.Write(" {");
@@ -1467,7 +1469,9 @@ namespace Microsoft.Dafny {
           foreach (MatchCaseStmt mc in s.Cases) {
             wr.WriteLine();
             Indent(caseInd);
-            wr.Write("case ");
+            wr.Write("case");
+            PrintAttributes(mc.Attributes);
+            wr.Write(" ");
             if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) wr.Write(mc.Ctor.Name);
             PrintMatchCaseArgument(mc);
             wr.Write(" =>");
