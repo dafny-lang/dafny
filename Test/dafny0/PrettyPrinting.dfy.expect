@@ -41,31 +41,54 @@ module B refines A {
 }
 
 module C {
+  class Cell {
+    var data: int
+  }
+
   method For()
   {
     var a := new int[100];
     for i := 0 to 100 {
       a[i] := i;
     }
-    for i := 0 downto 100 {
+    for i := 100 downto 0 {
       a[i] := i;
     }
     for i: nat := 0 to 100
-    for i: nat := 0 downto 100
+    for i: nat := 100 downto 0
     for i := 0 to 100
       invariant a[5] == 5
       invariant a[12] == 12
-    for i := 0 downto 100
+    for i := 100 downto 0
       invariant a[5] == 5
     for i := 0 to 100
       invariant a[5] == 5
       invariant a[12] == 12
     {
     }
-    for i := 0 downto 100
+    for i := 100 downto 0
       invariant a[5] == 5
     {
       assert true;
+    }
+    for i := 0 to *
+      invariant i <= 100
+      decreases 100 - i
+    for i := 0 to *
+      decreases *
+    {
+    }
+    var c := new Cell;
+    for i := 0 to 100
+      modifies c, {c}, {c}
+    {
+    }
+    for i := 100 downto *
+      invariant -68 <= i <= 68
+      invariant i != 3
+      decreases i
+      modifies c, {c}, {c}
+    {
     }
   }
 }
@@ -81,4 +104,6 @@ PrettyPrinting.dfy(51,4): Warning: note, this loop has no body (loop frame: i)
 PrettyPrinting.dfy(52,4): Warning: note, this loop has no body (loop frame: i)
 PrettyPrinting.dfy(53,4): Warning: note, this loop has no body (loop frame: i, a)
 PrettyPrinting.dfy(56,4): Warning: note, this loop has no body (loop frame: i, a)
-2 resolution/type errors detected in PrettyPrinting.dfy
+PrettyPrinting.dfy(68,4): Warning: note, this loop has no body (loop frame: i)
+PrettyPrinting.dfy(72,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
+3 resolution/type errors detected in PrettyPrinting.dfy

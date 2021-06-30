@@ -65,5 +65,27 @@ module C {
     {
       assert true;
     }
+    for i := 0 to *
+      decreases 100 - i
+      invariant i <= 100
+    for i := 0 to *
+      decreases *
+    {
+    }
+    var c := new Cell;
+    for i := 0 to 100
+      modifies c
+      modifies {c}, {c}
+    {
+    }
+    for i := 100 downto *
+      modifies c
+      decreases i
+      modifies {c}, {c}
+      invariant -68 <= i <= 68
+      invariant i != 3
+    {
+    }
   }
+  class Cell { var data: int }
 }

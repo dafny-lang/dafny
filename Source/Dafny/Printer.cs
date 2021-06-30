@@ -1695,7 +1695,7 @@ namespace Microsoft.Dafny {
         PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.HasAttributes() ? s.Mod.Attributes : null);
       }
       if (s.Body != null) {
-        if (s.Invariants.Count == 0 && (s.Mod.Expressions == null || s.Mod.Expressions.Count == 0)) {
+        if (s.Invariants.Count == 0 && s.Decreases.Expressions.Count == 0 && (s.Mod.Expressions == null || s.Mod.Expressions.Count == 0)) {
           wr.Write(" ");
         } else {
           wr.WriteLine();
