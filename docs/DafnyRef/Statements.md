@@ -6,7 +6,7 @@ Stmt =
   | LabeledStmt | MatchStmt | ModifyStmt
   | PrintStmt | ReturnStmt | RevealStmt | SkeletonStmt
   | UpdateStmt | UpdateFailureStmt
-  | VarDeclStatement | WhileStmt | YieldStmt
+  | VarDeclStatement | WhileStmt | ForLoopStmt | YieldStmt
   )
 ````
 <!--
@@ -852,6 +852,140 @@ If none of the guards evaluates to true, then the
 loop execution is terminated.
 
 TODO: Describe ... refinement
+
+## 19.12b. For Loops
+````grammar
+ForLoopStmt =
+  "for" IdentTypeOptional ":="
+    Expression(allowLemma: false, allowLambda: false)
+    ( "to" | "downto" )
+    ( Expression(allowLemma: false, allowLambda: false)
+    | "*"
+    )
+    LoopSpec
+    ( BlockStmt
+    | /* go body-less */
+    )
+  )
+````
+
+The `for` statement provides a convenient way to write some common loops.
+
+The statement introduces a local variable `IdentTypeOptional`, which is called
+the _loop index_. The loop index is in scope in the `LoopSpec` and `BlockStmt`,
+but not after the `for` loop. Assignments to the loop index are not allowed.
+The type of the loop index can typically be inferred, so it need not be given
+explicitly. If the identifier is not used, it can be written as `_`, as illustrated
+in this repeat-20-times loop:
+```dafny
+for _ := 0 to 20 {
+  Body
+}
+```
+
+There are four basic variations of the `for` loop:
+```dafny
+for i: T := lo to hi
+  LoopSpec
+{ Body }
+
+for i: T := hi downto lo
+  LoopSpec
+{ Body }
+
+for i: T := lo to *
+  LoopSpec
+{ Body }
+
+for i: T := hi downto *
+  LoopSpec
+{ Body }
+```
+Semantically, they are defined as the following respective `while` loops:
+```dafny
+{
+  var _lo, _hi := lo, hi;
+  assert _lo <= _hi && forall _i: int :: _lo <= _i <= _hi ==> _i is T;
+  var i := _lo;
+  while i != _hi
+    invariant _lo <= i <= _hi
+    LoopSpec
+    decreases _hi - i
+  {
+    Body
+    i := i + 1;
+  }
+}
+
+{
+  var _lo, _hi := lo, hi;
+  assert _lo <= _hi && forall _i: int :: _lo <= _i <= _hi ==> _i is T;
+  var i := _hi;
+  while i != lo
+    invariant _lo <= i <= _hi
+    LoopSpec
+    decreases i - _lo
+  {
+    i := i - 1;
+    Body
+  }
+}
+
+{
+  var _lo := lo;
+  assert forall _i: int :: _lo <= _i ==> _i is T;
+  var i := _lo;
+  while true
+    invariant _lo <= i
+    LoopSpec
+  {
+    Body
+    i := i + 1;
+  }
+}
+
+{
+  var _hi := hi;
+  assert forall _i: int :: _i <= _hi ==> _i is T;
+  var i := _hi;
+  while true
+    invariant i <= _hi
+    LoopSpec
+  {
+    i := i - 1;
+    Body
+  }
+}
+```
+
+Note that expressions ``lo` and `hi` are evaluated just once, before the loop
+iterations start.
+
+Also, note in all variations that the values of `i` in the body are the values
+from `lo` to, _but not including_, `hi`. This makes it convenient to
+write common loops, including these:
+
+```dafny
+for i := 0 to a.Length {
+  Process(a[i]);
+}
+for i := a.Length downto 0 {
+  Process(a[i]);
+}
+```
+Nevertheless, `hi` must be a legal value for the type of the index variable,
+since that is how the index variable is used in the invariant.
+
+If the end-expression is not `*`, then no explicit `decreases` is
+allowed, since such a loop is already known to terminate.
+If the end-expression is `*`, then the absence of an explicit `decreases`
+clause makes it default to `decreases *`. So, if the end-expression is `*` and no
+explicit `decreases` clause is given, the loop is allowed only in methods
+that are declared with `decreases *`.
+
+The directions `to` or `downto` are contextual keywords. That is, these two
+words are part of the syntax of the `for` loop, but they are not reserved
+keywords elsewhere.
 
 ## 19.13. Loop Specifications {#sec-loop-specification}
 For some simple loops, such as those mentioned previously, Dafny can figure
