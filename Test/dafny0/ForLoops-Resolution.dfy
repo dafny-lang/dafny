@@ -154,6 +154,14 @@ module Tests {
     }
   }
 
+  method Char() {
+    for ch := 'a' to 'z' { // error: type must be an integer type
+    }
+    for i := 'a' as int to 'z' as int {
+      var ch := i as char;
+    }
+  }
+
   method Mutation() {
     for i := 0 to 1000 {
       i := i + 3;  // error: i is not mutable
