@@ -369,9 +369,9 @@ namespace Microsoft.Dafny {
 
     protected virtual string EmitAssignmentLhs(Expression e, ConcreteSyntaxTree wr) {
       var target = idGenerator.FreshId("_lhs");
-      wr.Write(GenerateLhsDecl(target, e.Type, wr, null));
+      wr.Write(GenerateLhsDecl(target, e.Type, wr, e.tok));
       wr.Write(" = ");
-      TrExpr(e,wr,false);
+      TrExpr(e, wr, false);
       EndStmt(wr);
       return target;
     }
