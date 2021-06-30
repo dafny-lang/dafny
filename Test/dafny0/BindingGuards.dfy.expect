@@ -268,11 +268,11 @@ method AltSyntax7(X: int, Y: int, c: Color)
     returns (z: int)
 {
   match c
-  case Red =>
+  case {:split false} Red =>
     z := X + Y;
-  case Green =>
+  case {:split false} Green =>
     z := X + Y;
-  case Blue =>
+  case {:split false} Blue =>
     z := X + Y;
 }
 
@@ -280,10 +280,10 @@ method AltSyntax8(X: int, Y: int, c: Color)
     returns (z: int)
 {
   match c
-  case Red =>
+  case {:split false} Red =>
     z := X + Y;
-  case Green =>
-  case Blue =>
+  case {:split false} Green =>
+  case {:split false} Blue =>
 }
 
 method AltSyntax9(x: int, y: int, c: Color)
@@ -298,7 +298,7 @@ method AltSyntax9(x: int, y: int, c: Color)
   }
   z := x + y;
   match c {
-    case Red =>
+    case {:split false} Red =>
   }
   z := x + y;
 }
