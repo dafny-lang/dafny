@@ -1012,6 +1012,10 @@ namespace Microsoft.Dafny {
         wr.Write("{0}: ", f.DisplayName);
       }
       PrintType(f.Type);
+      if (f.DefaultValue != null) {
+        wr.Write(" := ");
+        PrintExpression(f.DefaultValue, false);
+      }
     }
 
     internal void PrintDecreasesSpec(Specification<Expression> decs, int indent) {
@@ -2708,8 +2712,19 @@ namespace Microsoft.Dafny {
             PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
             i++;
           }
-          if (e.UsesOptionalBraces) { wr.Write(" }"); } else if (parensNeeded) { wr.Write(")"); }
+          if (e.UsesOptionalBraces) {
+            wr.Write(" }");
+          } else if (parensNeeded) {
+            wr.Write(")");
+          }
         }
+
+      } else if (expr is DefaultValueExpression) {
+        var e = (DefaultValueExpression)expr;
+        // DefaultValueExpression's are introduced during resolution, so we expect .Resolved to be non-null
+        Contract.Assert(e.WasResolved());
+        Contract.Assert(e.Resolved != null);
+        PrintExpr(e.Resolved, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, keyword);
 
       } else if (expr is BoxingCastExpr) {
         // this is not expected for a parsed program, but we may be called for /trace purposes in the translator
@@ -2822,14 +2837,24 @@ namespace Microsoft.Dafny {
       }
       wr.Write("(");
       string sep = "";
-      for (; i < bindings.ArgumentBindings.Count; i++) {
-        var binding = bindings.ArgumentBindings[i];
-        wr.Write(sep);
-        sep = ", ";
-        if (binding.FormalParameterName != null) {
-          wr.Write($"{binding.FormalParameterName} := ");
+      if (DafnyOptions.O.DafnyPrintResolvedFile == null || !bindings.WasResolved) {
+        for (; i < bindings.ArgumentBindings.Count; i++) {
+          var binding = bindings.ArgumentBindings[i];
+          wr.Write(sep);
+          sep = ", ";
+          if (binding.FormalParameterName != null) {
+            wr.Write($"{binding.FormalParameterName} := ");
+          }
+          PrintExpression(binding.Actual, false);
         }
-        PrintExpression(binding.Actual, false);
+      } else {
+        // print arguments after incorporating default parameters
+        for (; i < bindings.Arguments.Count; i++) {
+          var arg = bindings.Arguments[i];
+          wr.Write(sep);
+          sep = ", ";
+          PrintExpression(arg, false);
+        }
       }
       wr.Write(")");
     }

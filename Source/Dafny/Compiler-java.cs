@@ -3386,7 +3386,7 @@ namespace Microsoft.Dafny{
         if (nativeType == "Byte" || nativeType == "Short") {
           numberval = $"{nativeType.ToLower()}Value()";
         }
-        wEnum.WriteLine($"for (java.math.BigInteger j = lo; j.compareTo(hi) < 0; j = j.add(java.math.BigInteger.ONE)) {{ arr.add(new {nativeType}(j.{numberval})); }}");
+        wEnum.WriteLine($"for (java.math.BigInteger j = lo; j.compareTo(hi) < 0; j = j.add(java.math.BigInteger.ONE)) {{ arr.add({nativeType}.valueOf(j.{numberval})); }}");
         wEnum.WriteLine("return arr;");
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {

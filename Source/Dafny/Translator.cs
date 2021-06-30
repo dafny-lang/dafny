@@ -1431,6 +1431,8 @@ namespace Microsoft.Dafny {
             sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, ax, "Questionmark and identifier"));
           }
 
+          // check well-formedness of any default-value expressions
+          AddWellformednessCheck(ctor);
         }
 
 
@@ -2480,7 +2482,7 @@ namespace Microsoft.Dafny {
       // wellformedness check for method specification
       Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
-      if(InVerificationScope(iter)){
+      if (InVerificationScope(iter)){
         AddIteratorWellformed(iter, proc);
       }
       // the method itself
@@ -2588,8 +2590,15 @@ namespace Microsoft.Dafny {
       var builder = new BoogieStmtListBuilder(this);
       var etran = new ExpressionTranslator(this, predef, iter.tok);
       var localVariables = new List<Variable>();
+      GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables);
 
-      Bpl.StmtList stmts;
+      // check well-formedness of any default-value expressions (before assuming preconditions)
+      foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
+        var e = formal.DefaultValue;
+        CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran);
+        builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+      }
       // check well-formedness of the preconditions, and then assume each one of them
       foreach (var p in iter.Requires) {
         CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
@@ -2681,7 +2690,7 @@ namespace Microsoft.Dafny {
       }
       builder.Add(new Bpl.IfCmd(iter.tok, null, yeBuilder.Collect(iter.tok), null, endBuilder.Collect(iter.tok)));
 
-      stmts = builder.Collect(iter.tok);
+      Bpl.StmtList stmts = builder.Collect(iter.tok);
 
       if (EmitImplementation(iter.Attributes)) {
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
@@ -3746,7 +3755,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddLayerSynonymAxiom(Function f) {
+    void AddLayerSynonymAxiom(Function f, bool forHandle = false) {
       Contract.Requires(f != null);
       Contract.Requires(f.IsFuelAware());
       Contract.Requires(sink != null && predef != null);
@@ -3773,7 +3782,7 @@ namespace Microsoft.Dafny {
         args1.Add(s);
         args0.Add(s);
       }
-      if (AlwaysUseHeap || f.ReadsHeap) {
+      if (!forHandle && (AlwaysUseHeap || f.ReadsHeap)) {
         bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
         formals.Add(bv);
         s = new Bpl.IdentifierExpr(f.tok, bv);
@@ -3788,15 +3797,18 @@ namespace Microsoft.Dafny {
         args1.Add(s);
         args0.Add(s);
       }
-      foreach (var p in f.Formals) {
-        bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
-        formals.Add(bv);
-        s = new Bpl.IdentifierExpr(f.tok, bv);
-        args1.Add(s);
-        args0.Add(s);
+      if (!forHandle) {
+        foreach (var p in f.Formals) {
+          bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
+          formals.Add(bv);
+          s = new Bpl.IdentifierExpr(f.tok, bv);
+          args1.Add(s);
+          args0.Add(s);
+        }
       }
 
-      var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
+      var name = forHandle ? f.FullSanitizedName + "#Handle" : f.FullSanitizedName;
+      var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, name, TrType(f.ResultType)));
       var funcAppl1 = new Bpl.NAryExpr(f.tok, funcID, args1);
       var funcAppl0 = new Bpl.NAryExpr(f.tok, funcID, args0);
 
@@ -4566,6 +4578,20 @@ namespace Microsoft.Dafny {
         m.Outs.Iter(RemoveDefiniteAssignmentTracker);
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
       } else {
+        // check well-formedness of any default-value expressions (before assuming preconditions)
+        foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
+          var e = formal.DefaultValue;
+          CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran);
+          builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+          CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+
+          if (formal.IsOld) {
+            Bpl.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
+            if (wh != null) {
+              builder.Add(Assert(e.tok, wh, "default value must be allocated in the two-state lemma's previous state"));
+            }
+          }
+        }
         // check well-formedness of the preconditions, and then assume each one of them
         foreach (AttributedExpression p in m.Req) {
           CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
@@ -4907,7 +4933,7 @@ namespace Microsoft.Dafny {
           } else {
             var pp = f.OverriddenFunction.Result;
             Contract.Assert(!pp.IsOld);
-            pOut = new Formal(pp.tok, pp.Name, f.ResultType, false, pp.IsGhost);
+            pOut = new Formal(pp.tok, pp.Name, f.ResultType, false, pp.IsGhost, null);
           }
           var varType = TrType(pOut.Type);
           var wh = GetWhereClause(pOut.tok, new Bpl.IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator), varType), pOut.Type, etran, NOALLOC);
@@ -6110,10 +6136,28 @@ namespace Microsoft.Dafny {
 
       DefineFrame(f.tok, f.Reads, builder, locals, null);
       InitializeFuelConstant(f.tok, builder, etran);
+
+      // Check well-formedness of any default-value expressions (before assuming preconditions).
+      var wfo = new WFOptions(null, true, true, true); // no reads or termination checks
+      foreach (var formal in f.Formals.Where(formal => formal.DefaultValue != null)) {
+        var e = formal.DefaultValue;
+        CheckWellformed(e, wfo, locals, builder, etran);
+        builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+
+        if (formal.IsOld) {
+          Bpl.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
+          if (wh != null) {
+            builder.Add(Assert(e.tok, wh, "default value must be allocated in the two-state function's previous state"));
+          }
+        }
+      }
+      wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
+
       // Check well-formedness of the preconditions (including termination), and then
       // assume each one of them.  After all that (in particular, after assuming all
       // of them), do the postponed reads checks.
-      var wfo = new WFOptions(null, true, true /* do delayed reads checks */);
+      wfo = new WFOptions(null, true, true /* do delayed reads checks */);
       foreach (AttributedExpression p in f.Req) {
         CheckWellformedAndAssume(p.E, wfo, locals, builder, etran);
       }
@@ -6432,8 +6476,7 @@ namespace Microsoft.Dafny {
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
       req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null));
       var heapVar = new Bpl.IdentifierExpr(decl.tok, "$Heap", false);
-      var varlist = new List<Bpl.IdentifierExpr>();
-      varlist.Add(heapVar);
+      var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
       var proc = new Bpl.Procedure(decl.tok, "CheckWellformed$$" + decl.FullSanitizedName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
@@ -6465,6 +6508,80 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(currentModule == decl.EnclosingModule);
       Contract.Assert(codeContext == decl);
+      isAllocContext = null;
+      fuelContext = null;
+      Reset();
+    }
+
+    void AddWellformednessCheck(DatatypeCtor ctor) {
+      Contract.Requires(ctor != null);
+      Contract.Requires(sink != null && predef != null);
+      Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
+      Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
+
+      if (!InVerificationScope(ctor)) {
+        // Checked in other file
+        return;
+      }
+
+      // If there are no parameters with default values, there's nothing to do
+      if (ctor.Formals.TrueForAll(f => f.DefaultValue == null)) {
+        return;
+      }
+
+      currentModule = ctor.EnclosingDatatype.EnclosingModuleDefinition;
+      codeContext = ctor.EnclosingDatatype;
+      fuelContext = FuelSetting.NewFuelContext(ctor.EnclosingDatatype);
+      var etran = new ExpressionTranslator(this, predef, ctor.tok);
+
+      // parameters of the procedure
+      List<Variable> inParams = MkTyParamFormals(GetTypeParams(ctor.EnclosingDatatype));
+      foreach (var p in ctor.Formals) {
+        Bpl.Type varType = TrType(p.Type);
+        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(ctor.IdGenerator), varType), p.Type, etran, NOALLOC);
+        inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(ctor.IdGenerator), varType, wh), true));
+      }
+
+      // the procedure itself
+      var req = new List<Bpl.Requires>();
+      // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
+      req.Add(Requires(ctor.tok, true, etran.HeightContext(ctor.EnclosingDatatype), null, null));
+      var heapVar = new Bpl.IdentifierExpr(ctor.tok, "$Heap", false);
+      var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
+      var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed$$" + ctor.FullName, new List<Bpl.TypeVariable>(),
+        inParams, new List<Variable>(),
+        req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));
+      sink.AddTopLevelDeclaration(proc);
+
+      var implInParams = Bpl.Formal.StripWhereClauses(inParams);
+      var locals = new List<Variable>();
+      var builder = new BoogieStmtListBuilder(this);
+      builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for datatype constructor {0}", ctor)));
+      builder.Add(CaptureState(ctor.tok, false, "initial state"));
+      isAllocContext = new IsAllocContext(true);
+
+      DefineFrame(ctor.tok, new List<FrameExpression>(), builder, locals, null);
+
+      // check well-formedness of each default-value expression
+      foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
+        var e = formal.DefaultValue;
+        CheckWellformed(e, new WFOptions(null, true, false, true), locals, builder, etran);
+        builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+      }
+
+      if (EmitImplementation(ctor.Attributes)) {
+        // emit the impl only when there are proof obligations.
+        QKeyValue kv = etran.TrAttributes(ctor.Attributes, null);
+        var implBody = builder.Collect(ctor.tok);
+        var impl = new Bpl.Implementation(ctor.tok, proc.Name,
+          new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
+          locals, implBody, kv);
+        sink.AddTopLevelDeclaration(impl);
+      }
+
+      Contract.Assert(currentModule == ctor.EnclosingDatatype.EnclosingModuleDefinition);
+      Contract.Assert(codeContext == ctor.EnclosingDatatype);
       isAllocContext = null;
       fuelContext = null;
       Reset();
@@ -7025,6 +7142,7 @@ namespace Microsoft.Dafny {
     {
       public readonly Function SelfCallsAllowance;
       public readonly bool DoReadsChecks;
+      public readonly bool DoOnlyCoarseGrainedTerminationChecks; // termination checks don't look at decreases clause, but reports errors for any intra-SCC call (this is used in default-value expressions)
       public readonly List<Bpl.Variable> Locals;
       public readonly List<Bpl.Cmd> Asserts;
       public readonly bool LValueContext;
@@ -7033,10 +7151,11 @@ namespace Microsoft.Dafny {
       public WFOptions() {
       }
 
-      public WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool saveReadsChecks = false) {
+      public WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool saveReadsChecks = false, bool doOnlyCoarseGrainedTerminationChecks = false) {
         Contract.Requires(!saveReadsChecks || doReadsChecks);  // i.e., saveReadsChecks ==> doReadsChecks
         SelfCallsAllowance = selfCallsAllowance;
         DoReadsChecks = doReadsChecks;
+        DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
         if (saveReadsChecks) {
           Locals = new List<Variable>();
           Asserts = new List<Bpl.Cmd>();
@@ -7055,6 +7174,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(options != null);
         SelfCallsAllowance = options.SelfCallsAllowance;
         DoReadsChecks = false;  // so just leave .Locals and .Asserts as null
+        DoOnlyCoarseGrainedTerminationChecks = options.DoOnlyCoarseGrainedTerminationChecks;
         LValueContext = options.LValueContext;
         AssertKv = options.AssertKv;
       }
@@ -7067,6 +7187,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(options != null);
         SelfCallsAllowance = options.SelfCallsAllowance;
         DoReadsChecks = options.DoReadsChecks;
+        DoOnlyCoarseGrainedTerminationChecks = options.DoOnlyCoarseGrainedTerminationChecks;
         Locals = options.Locals;
         Asserts = options.Asserts;
         LValueContext = lValueContext;
@@ -7575,7 +7696,9 @@ namespace Microsoft.Dafny {
           }
           // check well-formedness of the other parameters
           foreach (Expression arg in e.Args) {
-            CheckWellformed(arg, options, locals, builder, etran);
+            if (!(arg is DefaultValueExpression)) {
+              CheckWellformed(arg, options, locals, builder, etran);
+            }
           }
           // create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
           Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
@@ -7674,48 +7797,54 @@ namespace Microsoft.Dafny {
           if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is ExtremePredicate)) {
             // check that the decreases measure goes down
             if (ModuleDefinition.InSameSCC(e.Function, codeContext)) {
-              List<Expression> contextDecreases = codeContext.Decreases.Expressions;
-              List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
-              if (e.Function == options.SelfCallsAllowance) {
-                allowance = Bpl.Expr.True;
-                if (!e.Function.IsStatic) {
-                  allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This)));
+              if (options.DoOnlyCoarseGrainedTerminationChecks) {
+                builder.Add(Assert(expr.tok, Bpl.Expr.False, "default-value expression is not allowed to involve recursive or mutually recursive calls"));
+              } else {
+                List<Expression> contextDecreases = codeContext.Decreases.Expressions;
+                List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
+                if (e.Function == options.SelfCallsAllowance) {
+                  allowance = Bpl.Expr.True;
+                  if (!e.Function.IsStatic) {
+                    allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This)));
+                  }
+                  for (int i = 0; i < e.Args.Count; i++) {
+                    Expression ee = e.Args[i];
+                    Formal ff = e.Function.Formals[i];
+                    allowance = BplAnd(allowance,
+                      Bpl.Expr.Eq(etran.TrExpr(ee),
+                        new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration.IdGenerator), TrType(ff.Type))));
+                  }
                 }
-                for (int i = 0; i < e.Args.Count; i++) {
-                  Expression ee = e.Args[i];
-                  Formal ff = e.Function.Formals[i];
-                  allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(ee), new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration.IdGenerator), TrType(ff.Type))));
+                string hint;
+                switch (e.CoCall) {
+                  case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
+                    hint = "note that only functions without side effects can be called co-recursively";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition:
+                    hint = "note that only functions without any ensures clause can be called co-recursively";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded:
+                    hint = "note that the call is not sufficiently guarded to be used co-recursively";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext:
+                    hint = "note that calls cannot be co-recursive in this context";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext:
+                    hint = "note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.No:
+                    hint = null;
+                    break;
+                  default:
+                    Contract.Assert(false); // unexpected CoCallResolution
+                    goto case FunctionCallExpr.CoCallResolution.No; // please the compiler
                 }
+                if (e.CoCallHint != null) {
+                  hint = hint == null ? e.CoCallHint : string.Format("{0}; {1}", hint, e.CoCallHint);
+                }
+                CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.GetTypeArgumentSubstitutions(),
+                  etran, etran, builder, codeContext.InferredDecreases, hint);
               }
-              string hint;
-              switch (e.CoCall) {
-                case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
-                  hint = "note that only functions without side effects can be called co-recursively";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition:
-                  hint = "note that only functions without any ensures clause can be called co-recursively";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded:
-                  hint = "note that the call is not sufficiently guarded to be used co-recursively";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext:
-                  hint = "note that calls cannot be co-recursive in this context";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext:
-                  hint = "note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts";
-                  break;
-                case FunctionCallExpr.CoCallResolution.No:
-                  hint = null;
-                  break;
-                default:
-                  Contract.Assert(false);  // unexpected CoCallResolution
-                  goto case FunctionCallExpr.CoCallResolution.No;  // please the compiler
-              }
-              if (e.CoCallHint != null) {
-                hint = hint == null ? e.CoCallHint : string.Format("{0}; {1}", hint, e.CoCallHint);
-              }
-              CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.GetTypeArgumentSubstitutions(),
-                etran, etran, builder, codeContext.InferredDecreases, hint);
             }
           }
           // all is okay, so allow this function application access to the function's axiom, except if it was okay because of the self-call allowance.
@@ -7736,8 +7865,9 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < dtv.Ctor.Formals.Count; i++) {
           var formal = dtv.Ctor.Formals[i];
           var arg = dtv.Arguments[i];
-          CheckWellformed(arg, options, locals, builder, etran);
-
+          if (!(arg is DefaultValueExpression)) {
+            CheckWellformed(arg, options, locals, builder, etran);
+          }
           // Cannot use the datatype's formals, so we substitute the inferred type args:
           var su = new Dictionary<TypeParameter, Type>();
           foreach (var p in LinqExtender.Zip(dtv.Ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs)) {
@@ -8631,6 +8761,7 @@ namespace Microsoft.Dafny {
         if (f.IsFuelAware()) {
           Bpl.Expr ly; vars.Add(BplBoundVar("$ly", predef.LayerType, out ly)); args.Add(ly);
           formals.Add(BplFormalVar(null, predef.LayerType, true));
+          AddLayerSynonymAxiom(f, true);
         }
 
         Func<List<Bpl.Expr>, List<Bpl.Expr>> SnocSelf = x => x;
@@ -12575,7 +12706,9 @@ namespace Microsoft.Dafny {
           } else {
             actual = Args[i];
           }
-          TrStmt_CheckWellformed(actual, builder, locals, etran, true);
+          if (!(actual is DefaultValueExpression)) {
+            TrStmt_CheckWellformed(actual, builder, locals, etran, true);
+          }
           builder.Add(new CommentCmd("ProcessCallStmt: CheckSubrange"));
           // Check the subrange without boxing
           var beforeBox = etran.TrExpr(actual);
@@ -12637,9 +12770,13 @@ namespace Microsoft.Dafny {
       // Check termination
       if (isRecursiveCall) {
         Contract.Assert(codeContext != null);
-        List<Expression> contextDecreases = codeContext.Decreases.Expressions;
-        List<Expression> calleeDecreases = callee.Decreases.Expressions;
-        CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, tySubst, etran, etran.Old, builder, codeContext.InferredDecreases, null);
+        if (codeContext is DatatypeDecl) {
+          builder.Add(Assert(tok, Bpl.Expr.False, "default-value expression is not allowed to involve recursive or mutually recursive calls"));
+        } else {
+          List<Expression> contextDecreases = codeContext.Decreases.Expressions;
+          List<Expression> calleeDecreases = callee.Decreases.Expressions;
+          CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, tySubst, etran, etran.Old, builder, codeContext.InferredDecreases, null);
+        }
       }
 
       // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
@@ -14502,6 +14639,16 @@ namespace Microsoft.Dafny {
         builder.Add(cmd);
         if (cmd is Bpl.AssertCmd) {
           tran.assertionCount++;
+        } else if (cmd is Bpl.CallCmd call) {
+          // A call command may involve a precondition, but we can't tell for sure until the callee
+          // procedure has been generated. Therefore, to be on the same side, we count this call
+          // as a possible assertion, unless it's a procedure that's part of the translation and
+          // known not to have any preconditions.
+          if (call.callee == "$IterHavoc0" || call.callee == "$IterHavoc1" || call.callee == "$YieldHavoc") {
+            // known not to have any preconditions
+          } else {
+            tran.assertionCount++;
+          }
         }
       }
       public void Add(StructuredCmd scmd) { builder.Add(scmd); }
@@ -18860,6 +19007,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is ConcreteSyntaxExpression) {
           var e = (ConcreteSyntaxExpression)expr;
+          Contract.Assert(e.ResolvedExpression != null);
           return Substitute(e.ResolvedExpression);
 
         } else if (expr is BoogieFunctionCall) {
