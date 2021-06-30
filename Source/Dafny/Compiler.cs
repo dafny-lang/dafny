@@ -2608,11 +2608,10 @@ namespace Microsoft.Dafny {
           if (s.Body == null) {
             compiler.Error(stmt.Tok, "a forall statement without a body cannot be compiled", wr);
           }
-        } else if (stmt is WhileStmt) {
-          var s = (WhileStmt)stmt;
+        } else if (stmt is OneBodyLoopStmt) {
+          var s = (OneBodyLoopStmt)stmt;
           if (s.Body == null) {
-            // this checks ghost body-less while statements
-            compiler.Error(stmt.Tok, "a while statement without a body cannot be compiled", wr);
+            compiler.Error(stmt.Tok, "a loop without a body cannot be compiled", wr);
           }
         }
       }
