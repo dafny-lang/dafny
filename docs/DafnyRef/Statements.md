@@ -485,16 +485,16 @@ In any of the above described uses of `:-`, the `:-` token may be followed immed
 * `assert` means that the RHS evaluation is expected to be successful, but that
 the verifier should prove that this is so; that is, the verifier should prove
 `assert !r.IsFailure()` (where `r` is the status return from the callee)
-(cf. [Section 19.15](#sec-assert-statement))
+(cf. [Section 19.16](#sec-assert-statement))
 * `assume` means that the RHS evaluation should be assumed to be successful,
 as if the statement `assume !r.IsFailure()` followed the evaluation of the RHS
-(cf. [Section 19.16](#sec-assume-statement))
+(cf. [Section 19.17](#sec-assume-statement))
 * `expect` means that the RHS evaluation should be assumed to be successful
 (like using `assume` above), but that the compiler should include a
 run-time check for success. This is equivalent to including
 `expect !r.IsFailure()` after the RHS evaluation; that is, if the status
 return is a failure, the program halts.
-(cf. [Section 19.17](#sec-expect-statement))
+(cf. [Section 19.18](#sec-expect-statement))
 
 In each of these cases, there is no abrupt return from the caller. Thus
 there is no evaluation of `PropagateFailure`. Consequently the first
@@ -796,7 +796,7 @@ WhileStmt =
 Loops need _loop specifications_ (``LoopSpec`` in the grammar) in order for Dafny to prove that
 they obey expected behavior. In some cases Dafny can infer the loop specifications by analyzing the code,
 so the loop specifications need not always be explicit.
-These specifications are described in [Section 19.13](#sec-loop-specification).
+These specifications are described in [Section 19.14](#sec-loop-specification).
 
 The `while` statement is Dafny's only loop statement. It has two general
 forms.
@@ -853,7 +853,7 @@ loop execution is terminated.
 
 TODO: Describe ... refinement
 
-## 19.12b. For Loops
+## 19.13. For Loops
 ````grammar
 ForLoopStmt =
   "for" IdentTypeOptional ":="
@@ -987,7 +987,7 @@ The directions `to` or `downto` are contextual keywords. That is, these two
 words are part of the syntax of the `for` loop, but they are not reserved
 keywords elsewhere.
 
-## 19.13. Loop Specifications {#sec-loop-specification}
+## 19.14. Loop Specifications {#sec-loop-specification}
 For some simple loops, such as those mentioned previously, Dafny can figure
 out what the loop is doing without more help. However, in general the user
 must provide more information in order to help Dafny prove the effect of
@@ -997,7 +997,7 @@ what the loop modifies.
 For additional tutorial information see [@KoenigLeino:MOD2011] or the
 [online Dafny tutorial](http://rise4fun.com/Dafny/tutorial/Guide).
 
-### 19.13.1. Loop Invariants
+### 19.14.1. Loop Invariants
 
 Loops present a problem for specification-based reasoning. There is no way to
 know in advance how many times the code will go around the loop and
@@ -1034,7 +1034,7 @@ loop condition). Just as Dafny will not discover properties of a method
 on its own, it will not know that any but the most basic properties of a loop
 are preserved unless it is told via an invariant.
 
-### 19.13.2. Loop Termination
+### 19.14.2. Loop Termination
 
 Dafny proves that code terminates, i.e. does not loop forever, by using
 `decreases` annotations. For many things, Dafny is able to guess the right
@@ -1106,14 +1106,14 @@ If the `decreases` clause of a loop specifies `*`, then no
 termination check will be performed. Use of this feature is sound only with
 respect to partial correctness.
 
-### 19.13.3. Loop Framing
+### 19.14.3. Loop Framing
 In some cases we also must specify what memory locations the loop body
 is allowed to modify. This is done using a `modifies` clause.
 See the discussion of framing in methods for a fuller discussion.
 
 TO BE WRITTEN
 
-## 19.14. Match Statement {#sec-match-statement}
+## 19.15. Match Statement {#sec-match-statement}
 ````grammar
 MatchStmt =
   "match"
@@ -1158,7 +1158,7 @@ In this case it is not needed because Dafny is able to deduce that
 coinductive this would not have been possible since `x` might have been
 infinite.
 
-## 19.15. Assert Statement {#sec-assert-statement}
+## 19.16. Assert Statement {#sec-assert-statement}
 ````grammar
 AssertStmt =
     "assert"
@@ -1188,7 +1188,7 @@ Using `...` as the argument of the statement is part of module refinement, as de
 
 TO BE WRITTEN - assert by statements
 
-## 19.16. Assume Statement {#sec-assume-statement}
+## 19.17. Assume Statement {#sec-assume-statement}
 ````grammar
 AssumeStmt =
     "assume"
@@ -1215,7 +1215,7 @@ been replaced through a refinement step.
 
 Using `...` as the argument of the statement is part of module refinement, as described in [Section 21](#sec-module-refinement).
 
-## 19.17. Expect Statement {#sec-expect-statement}
+## 19.18. Expect Statement {#sec-expect-statement}
 
 ````grammar
 ExpectStmt =
@@ -1329,7 +1329,7 @@ Describe where refinement is described.
 If the proposition is `...` then (TODO: what does this mean?).
 -->
 
-## 19.18. Print Statement
+## 19.19. Print Statement
 ````grammar
 PrintStmt =
     "print"
@@ -1366,7 +1366,7 @@ Note that Dafny does not have method overriding and there is no mechanism to
 override the built-in value->string conversion.  Nor is there a way to
 explicitly invoke this conversion.
 
-## 19.19. Reveal Statement {#sec-reveal-statement}
+## 19.20. Reveal Statement {#sec-reveal-statement}
 ````grammar
 RevealStmt =
     "reveal"
@@ -1378,7 +1378,7 @@ RevealStmt =
 
 TODO
 
-## 19.20. Forall Statement {#sec-forall-statement}
+## 19.21. Forall Statement {#sec-forall-statement}
 ````grammar
 ForallStmt =
   "forall"
@@ -1479,7 +1479,7 @@ forall x :: P(x) ==> Q(x).
 The `forall` statement is also used extensively in the de-sugared forms of
 co-predicates and co-lemmas. See section [#sec-co-inductive-datatypes].
 
-## 19.21. Modify Statement {#sec-modify-statement}
+## 19.22. Modify Statement {#sec-modify-statement}
 ````grammar
 ModifyStmt =
   "modify"
@@ -1585,7 +1585,7 @@ that are heap-based.
 
 Using `...` as the argument of the statement is part of module refinement, as described in [Section 21](#sec-module-refinement).
 
-## 19.22. Calc Statement
+## 19.23. Calc Statement
 ````grammar
 CalcStmt = "calc" { Attribute } [ CalcOp ] "{" CalcBody_ "}"
 
@@ -1711,7 +1711,7 @@ step. As shown in the example, comments can also be used to aid
 the human reader in cases where Dafny can prove the step automatically.
 
 
-## 19.23. Skeleton Statement
+## 19.24. Skeleton Statement
 ````grammar
 SkeletonStmt =
   ellipsis

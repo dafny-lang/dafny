@@ -419,7 +419,7 @@ or within the scope of a `modifies` statement or a loop's `modifies` clause,
 
 It is also possible to frame what can be modified by a block statement
 by means of the block form of the
-`modify` statement (cf. [Section 19.21](#sec-modify-statement)).
+`modify` statement (cf. [Section 19.22](#sec-modify-statement)).
 
 A `modifies` clause specifies the set of memory locations that a
 method, iterator or loop body may modify. If more than one `modifies`

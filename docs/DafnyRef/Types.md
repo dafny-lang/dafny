@@ -1050,7 +1050,7 @@ For a sequence, the only difference is the length operator:
   }
 ```
 
-The `forall` statement ([Section 19.20](#sec-forall-statement)) can also be used
+The `forall` statement ([Section 19.21](#sec-forall-statement)) can also be used
 with arrays where parallel assigment is needed:
 ```dafny
   var rev := new int[s.Length];
