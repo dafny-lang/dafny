@@ -72,7 +72,7 @@ module Tests {
     }
   }
 
-  method TerminationProblem0()
+  method Termination0()
   {
     var s := 0;
     for i := 0 to * { // error: * is allowed only if method uses "modifies *"
@@ -80,10 +80,51 @@ module Tests {
     }
   }
 
-  method TerminationProblem1()
+  method Termination1()
   {
     var s := 0;
     for i := 0 downto * { // error: * is allowed only if method uses "modifies *"
+      s := s + i;
+    }
+  }
+
+  method Termination2()
+  {
+    var s := 0;
+    for i := 0 downto *
+      decreases * // error: * is allowed only if method uses "modifies *"
+    {
+      s := s + i;
+    }
+  }
+
+  method Termination3()
+  {
+    var s := 0;
+    for i := 0 downto * // fine, since there's a decreases clause
+      decreases 100 - i
+    {
+      if i == 20 { break; }
+      s := s + i;
+    }
+  }
+
+  method Termination4()
+    decreases *
+  {
+    var s := 0;
+    for i := 0 downto *
+      decreases * // fine, since method also says "decreases *"
+    {
+      s := s + i;
+    }
+  }
+
+  method Termination5()
+    decreases *
+  {
+    var s := 0;
+    for i := 0 downto * { // fine, since method also says "decreases *"
       s := s + i;
     }
   }
@@ -452,6 +493,38 @@ module Ghosts {
     }
     for i := 0 to g {
       return; // error: return not allowed from inside ghost context
+    }
+  }
+
+  method GhostTermination0(ghost start: int)
+    decreases *
+  {
+    for i := start to * { // error: ghost loop must be terminating
+    }
+  }
+
+  method GhostTermination1(ghost start: int)
+    decreases *
+  {
+    for i := start to * // error: ghost loop must be terminating
+      decreases *
+    {
+    }
+  }
+
+  method GhostTermination2(ghost start: int)
+    decreases *
+  {
+    for i := start to *
+      decreases start + 1000 - i
+    {
+    }
+  }
+
+  ghost method GhostTermination3(start: int) {
+    for i := start to *
+      decreases start + 1000 - i
+    {
     }
   }
 }

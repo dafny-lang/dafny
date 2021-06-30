@@ -8476,7 +8476,13 @@ namespace Microsoft.Dafny
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
           }
-          Contract.Assert(s.Decreases.Expressions.Count == 0);
+          if (s.IsGhost) {
+            if (s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
+              Error(s, "'decreases *' is not allowed on ghost loops");
+            } else if (s.End == null && s.Decreases.Expressions.Count == 0) {
+              Error(s, "a ghost loop must be terminating; make the end-expression specific or add a 'decreases' clause");
+            }
+          }
           if (s.IsGhost && s.Mod.Expressions != null) {
             s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
           }
@@ -10958,14 +10964,19 @@ namespace Microsoft.Dafny
           ResolveExpression(forS.Start, new ResolveOpts(codeContext, true));
           Translator.ComputeFreeVariables(forS.Start, fvs, ref usesHeap);
           AddAssignableConstraint(forS.Start.tok, forS.LoopIndex.Type, forS.Start.Type, "lower bound (of type {1}) not assignable to index variable (of type {0})");
-          if (forS.End == null) {
-            if (!codeContext.AllowsNontermination) {
-              reporter.Error(MessageSource.Resolver, forS.Tok, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
-            }
-          } else {
+          if (forS.End != null) {
             ResolveExpression(forS.End, new ResolveOpts(codeContext, true));
             Translator.ComputeFreeVariables(forS.End, fvs, ref usesHeap);
             AddAssignableConstraint(forS.End.tok, forS.LoopIndex.Type, forS.End.Type, "upper bound (of type {1}) not assignable to index variable (of type {0})");
+            if (forS.Decreases.Expressions.Count != 0) {
+              reporter.Error(MessageSource.Resolver, forS.Decreases.Expressions[0].tok,
+                "a 'for' loop is allowed an explicit 'decreases' clause only if the end-expression is '*'");
+            }
+          } else if (forS.Decreases.Expressions.Count == 0 && !codeContext.AllowsNontermination) {
+            // note, the following error message is also emitted elsewhere (if the loop bears a "decreases *")
+            reporter.Error(MessageSource.Resolver, forS.Tok,
+              "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating" +
+              " (or you can add a 'decreases' clause to this 'for' loop if you want to prove that it does indeed terminate)");
           }
 
           // Create a new scope, add the local to the scope, and resolve the local's attributes

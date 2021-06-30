@@ -101,5 +101,36 @@ Execution trace:
     ForLoops.dfy(369,3): anon11_Else
     (0,0): anon13_Then
     (0,0): anon14_Then
+ForLoops.dfy(415,28): Error: This loop invariant might not be maintained by the loop.
+ForLoops.dfy(415,28): Related message: loop invariant violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon49_Else
+    (0,0): anon54_Then
+    ForLoops.dfy(414,5): anon55_LoopHead
+    (0,0): anon55_LoopBody
+    ForLoops.dfy(414,5): anon56_Else
+    ForLoops.dfy(414,5): anon57_Else
+    (0,0): anon58_Else
+ForLoops.dfy(434,26): Error: decreases expression must be bounded below by 0 at end of loop iteration
+Execution trace:
+    (0,0): anon0
+    (0,0): anon49_Else
+    (0,0): anon64_Then
+    ForLoops.dfy(432,5): anon65_LoopHead
+    (0,0): anon65_LoopBody
+    ForLoops.dfy(432,5): anon66_Else
+    ForLoops.dfy(432,5): anon67_Else
+    (0,0): anon68_Else
+ForLoops.dfy(443,18): Error: decreases expression must be bounded below by 0 at end of loop iteration
+Execution trace:
+    (0,0): anon0
+    (0,0): anon49_Else
+    (0,0): anon64_Else
+    ForLoops.dfy(441,5): anon69_LoopHead
+    (0,0): anon69_LoopBody
+    ForLoops.dfy(441,5): anon70_Else
+    ForLoops.dfy(441,5): anon71_Else
+    (0,0): anon72_Else
 
-Dafny program verifier finished with 23 verified, 21 errors
+Dafny program verifier finished with 23 verified, 24 errors

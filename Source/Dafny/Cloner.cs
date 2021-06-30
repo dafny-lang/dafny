@@ -610,11 +610,13 @@ namespace Microsoft.Dafny
 
       } else if (stmt is WhileStmt) {
         var s = (WhileStmt)stmt;
-        r = new WhileStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Guard), s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
+        r = new WhileStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Guard),
+          s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
 
       } else if (stmt is ForLoopStmt) {
         var s = (ForLoopStmt)stmt;
-        r = new ForLoopStmt(Tok(s.Tok), Tok(s.EndTok), CloneBoundVar(s.LoopIndex), CloneExpr(s.Start), CloneExpr(s.End), s.GoingUp, s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
+        r = new ForLoopStmt(Tok(s.Tok), Tok(s.EndTok), CloneBoundVar(s.LoopIndex), CloneExpr(s.Start), CloneExpr(s.End), s.GoingUp,
+          s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;

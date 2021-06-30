@@ -2839,10 +2839,6 @@ ForLoopStmt<out Statement stmt>
   | "*"
   )
   LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
-  (.  if (decreases.Count != 0) {
-        SemErr(decreases[0].tok, "a 'for' loop is not allowed an explicit 'decreases' clause");
-      }
-  .)
   ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
     BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
   | /* go body-less */
@@ -2852,7 +2848,8 @@ ForLoopStmt<out Statement stmt>
     if (body == null && !isDirtyLoop) {
       body = new BlockStmt(x, endTok, new List<Statement>());
     }
-    stmt = new ForLoopStmt(x, endTok, loopIndex, start, end, goingUp, invariants, new Specification<FrameExpression>(mod, modAttrs), body);
+    stmt = new ForLoopStmt(x, endTok, loopIndex, start, end, goingUp,
+      invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body);
   .)
   .
 

@@ -8147,15 +8147,16 @@ namespace Microsoft.Dafny {
     public readonly bool GoingUp;
 
     public ForLoopStmt(IToken tok, IToken endTok, BoundVar loopIndexVariable, Expression start, Expression/*?*/ end, bool goingUp,
-      List<AttributedExpression> invariants, Specification<FrameExpression> mod,
+      List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
       BlockStmt /*?*/ body)
-      : base(tok, endTok, invariants, new Specification<Expression>(new List<Expression>(), null), mod, body)
+      : base(tok, endTok, invariants, decreases, mod, body)
     {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(loopIndexVariable != null);
       Contract.Requires(start != null);
       Contract.Requires(invariants != null);
+      Contract.Requires(decreases != null);
       Contract.Requires(mod != null);
       LoopIndex = loopIndexVariable;
       Start = start;

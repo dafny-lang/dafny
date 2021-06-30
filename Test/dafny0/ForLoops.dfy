@@ -372,4 +372,79 @@ method BodylessFor4(lo: int, hi: int)
   assert x == 6; // error
 }
 
-// TODO: allow decreases for to-* for-loops
+method NonTermination0(start: int, up: bool)
+  decreases *
+{
+  if up {
+    for i := start to * {
+    }
+  } else {
+    for i := start downto * {
+    }
+  }
+}
+
+method NonTermination1(start: int, up: bool)
+  decreases *
+{
+  if up {
+    for i := start to *
+      decreases *
+    {
+    }
+  } else {
+    for i := start downto *
+      decreases *
+    {
+    }
+  }
+}
+
+method Termination(start: int, up: bool) {
+  if up {
+    for i := start to *
+      invariant i <= start + 768
+      decreases start + 1000 - i
+    {
+      if i == start + 768 {
+        break;
+      }
+    }
+  } else if * {
+    for i := start downto *
+      invariant start - 768 <= i // error: invariant not maintained
+      decreases i - start + 1000
+    {
+      if i == start - 768 {
+        return;
+      }
+    }
+  } else if * {
+    for i := start downto *
+      invariant start - 768 < i
+      decreases i - start + 766
+    {
+      if i == start - 768 {
+        return;
+      }
+    }
+  } else if * {
+    for i := start downto *
+      invariant start - 768 < i
+      decreases i - start + 765 // error: not bounded below
+    {
+      if i == start - 768 {
+        return;
+      }
+    }
+  } else {
+    for i := start downto *
+      invariant start - 768 < i
+      decreases i + 1000 // error: not bounded below
+    {
+      if i == start - 768 {
+        return;
+      }
+    }
+  }
+}
