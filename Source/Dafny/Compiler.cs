@@ -501,6 +501,9 @@ namespace Microsoft.Dafny {
       return guardWriter;
     }
 
+    protected abstract ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
+      List<Statement> body, ConcreteSyntaxTree wr);
+
     protected virtual ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
       wr.Write("while (");
       guardWriter = wr.Fork();
@@ -2862,6 +2865,21 @@ namespace Microsoft.Dafny {
             EmitBreak(null, wElse);
           }
         }
+
+      } else if (stmt is ForLoopStmt) {
+        var s = (ForLoopStmt)stmt;
+        if (s.Body == null) {
+          return;
+        }
+        string endVarName = null;
+        if (s.End != null) {
+          // introduce a variable to hold the value of the end-expression
+          endVarName = idGenerator.FreshId(s.GoingUp ? "_hi" : "_lo");
+          wr.Write(GenerateLhsDecl(endVarName, s.End.Type, wr, s.End.tok));
+          EmitAssignmentRhs(s.End, false, wr);
+        }
+        var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, wr);
+        TrExpr(s.Start, startExprWriter, false);
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;

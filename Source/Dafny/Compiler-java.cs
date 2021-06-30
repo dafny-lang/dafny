@@ -3509,6 +3509,53 @@ namespace Microsoft.Dafny{
       return wr.NewNamedBlock($"for (java.math.BigInteger {indexVar} = java.math.BigInteger.ZERO; {indexVar}.compareTo({bound}) < 0; {indexVar} = {indexVar}.add(java.math.BigInteger.ONE))");
     }
 
+    protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
+      List<Statement> body, ConcreteSyntaxTree wr) {
+
+      var nativeType = AsNativeType(loopIndex.Type);
+
+      wr.Write($"for ({TypeName(loopIndex.Type,wr, tok)} {loopIndex.CompileName} = ");
+      var startWr = wr.Fork();
+      wr.Write($"; ");
+
+      ConcreteSyntaxTree bodyWr;
+      if (goingUp) {
+        if (endVarName == null) {
+          wr.Write("");
+        } else if (nativeType == null) {
+          wr.Write($"{loopIndex.CompileName}.compareTo({endVarName}) < 0");
+        } else if (0 <= nativeType.LowerBound) {
+          wr.Write($"{HelperClass(nativeType)}.compareUnsigned({loopIndex.CompileName}, {endVarName}) < 0");
+        } else {
+          wr.Write($"{loopIndex.CompileName} < {endVarName}");
+        }
+        if (nativeType == null) {
+          bodyWr = wr.NewBlock($"; {loopIndex.CompileName} = {loopIndex.CompileName}.add(java.math.BigInteger.ONE))");
+        } else {
+          bodyWr = wr.NewBlock($"; {loopIndex.CompileName}++)");
+        }
+      } else {
+        if (endVarName == null) {
+          wr.Write("");
+        } else if (nativeType == null) {
+          wr.Write($"{endVarName}.compareTo({loopIndex.CompileName}) < 0");
+        } else if (0 <= nativeType.LowerBound) {
+          wr.Write($"{HelperClass(nativeType)}.compareUnsigned({endVarName}, {loopIndex.CompileName}) < 0");
+        } else {
+          wr.Write($"{endVarName} < {loopIndex.CompileName}");
+        }
+        bodyWr = wr.NewBlock($"; )");
+        if (nativeType == null) {
+          bodyWr.WriteLine($"{loopIndex.CompileName} = {loopIndex.CompileName}.subtract(java.math.BigInteger.ONE);");
+        } else {
+          bodyWr.WriteLine($"{loopIndex.CompileName}--;");
+        }
+      }
+      TrStmtList(body, bodyWr);
+
+      return startWr;
+    }
+
     protected override string GetHelperModuleName() => DafnyHelpersClass;
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr){
