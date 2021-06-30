@@ -103,7 +103,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         case ValuetypeDecl valueTypeDeclaration:
           return ProcessValueType(moduleSymbol, valueTypeDeclaration);
         default:
-          _logger.LogWarning("encountered unknown top level declaration {Name} of type {Type}", topLevelDeclaration.Name, topLevelDeclaration.GetType());
+          _logger.LogDebug("encountered unknown top level declaration {Name} of type {Type}", topLevelDeclaration.Name, topLevelDeclaration.GetType());
           return null;
         }
       }
@@ -139,7 +139,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         default:
           // TODO The last missing member is AmbiguousMemberDecl which is created by the resolver.
           //      When is this class exactly used?
-          _logger.LogWarning("encountered unknown class member declaration {DeclarationType}", memberDeclaration.GetType());
+          _logger.LogDebug("encountered unknown class member declaration {DeclarationType}", memberDeclaration.GetType());
           return null;
         }
       }
@@ -204,7 +204,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public override void VisitUnknown(object node, Boogie.IToken token) {
-        _logger.LogWarning("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
+        _logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
           node.GetType(), Path.GetFileName(token.filename), token.line, token.col);
       }
 

@@ -85,7 +85,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       public override void VisitUnknown(object node, Boogie.IToken token) {
-        _logger.LogWarning("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
+        _logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
           node.GetType(), Path.GetFileName(token.filename), token.line, token.col);
       }
 
@@ -183,7 +183,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           SymbolLookup.Add(range.Start, range.End, symbol);
           _designators.Add(node, symbol);
         } else {
-          _logger.LogWarning("could not resolve the symbol of designator named {Identifier} in {Filename}@({Line},{Column})",
+          _logger.LogInformation("could not resolve the symbol of designator named {Identifier} in {Filename}@({Line},{Column})",
             identifier, Path.GetFileName(token.filename), token.line, token.col);
         }
       }
