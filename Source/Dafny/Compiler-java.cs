@@ -3383,9 +3383,10 @@ namespace Microsoft.Dafny{
         var wEnum = w.NewNamedBlock($"public static java.util.ArrayList<{nativeType}> IntegerRange(java.math.BigInteger lo, java.math.BigInteger hi)");
         wEnum.WriteLine($"java.util.ArrayList<{nativeType}> arr = new java.util.ArrayList<>();");
         var numberval = "intValue()";
-        if (nativeType == "Byte" || nativeType == "Short")
+        if (nativeType == "Byte" || nativeType == "Short") {
           numberval = $"{nativeType.ToLower()}Value()";
-        wEnum.WriteLine($"for (java.math.BigInteger j = lo; j.compareTo(hi) < 0; j.add(java.math.BigInteger.ONE)) {{ arr.add(new {nativeType}(j.{numberval})); }}");
+        }
+        wEnum.WriteLine($"for (java.math.BigInteger j = lo; j.compareTo(hi) < 0; j = j.add(java.math.BigInteger.ONE)) {{ arr.add(new {nativeType}(j.{numberval})); }}");
         wEnum.WriteLine("return arr;");
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
