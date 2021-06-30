@@ -1,9 +1,10 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Serilog;
 using System;
+using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
 using OmniSharpLanguageServer = OmniSharp.Extensions.LanguageServer.Server.LanguageServer;
 
@@ -11,7 +12,7 @@ namespace Microsoft.Dafny.LanguageServer {
   public class Program {
     private static async Task Main(string[] args) {
       var configuration = CreateConfiguration(args);
-      Log.Logger = CreateLogger(configuration);
+      InitializeLogger(configuration);
       try {
         var server = await OmniSharpLanguageServer.From(
           options => options
@@ -35,8 +36,10 @@ namespace Microsoft.Dafny.LanguageServer {
         .Build();
     }
 
-    private static Serilog.ILogger CreateLogger(IConfiguration configuration) {
-      return new LoggerConfiguration()
+    private static void InitializeLogger(IConfiguration configuration) {
+      // The environment variable is used so a log file can be explicitely created in the application dir.
+      Environment.SetEnvironmentVariable("DAFNYLS_APP_DIR", Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+      Log.Logger = new LoggerConfiguration()
         .ReadFrom.Configuration(configuration)
         .CreateLogger();
     }
