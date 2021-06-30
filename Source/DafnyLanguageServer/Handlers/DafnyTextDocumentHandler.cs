@@ -42,14 +42,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
-      _logger.LogTrace("received open notification {}", notification.TextDocument.Uri);
+      _logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
       var document = await _documents.LoadDocumentAsync(notification.TextDocument, cancellationToken);
       _diagnosticPublisher.PublishDiagnostics(document, cancellationToken);
       return Unit.Value;
     }
 
     public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
-      _logger.LogTrace("received close notification {}", notification.TextDocument.Uri);
+      _logger.LogTrace("received close notification {DocumentUri}", notification.TextDocument.Uri);
       var document = _documents.CloseDocument(notification.TextDocument);
       if(document != null) {
         _diagnosticPublisher.HideDiagnostics(document);
@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
-      _logger.LogTrace("received change notification {}", notification.TextDocument.Uri);
+      _logger.LogTrace("received change notification {DocumentUri}", notification.TextDocument.Uri);
       var document = await _documents.UpdateDocumentAsync(notification, cancellationToken);
       if(document != null) {
         _diagnosticPublisher.PublishDiagnostics(document, cancellationToken);
@@ -67,7 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
-      _logger.LogTrace("received save notification {}", notification.TextDocument.Uri);
+      _logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
       var document = await _documents.SaveDocumentAsync(notification.TextDocument, cancellationToken);
       if(document != null) {
         _diagnosticPublisher.PublishDiagnostics(document, cancellationToken);

@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var dafnyDocument = await _documentLoader.LoadAsync(textDocument, VerifyOnLoad, cancellationToken);
       var databaseDocument = _documents.AddOrUpdate(textDocument.Uri, dafnyDocument, (uri, old) => dafnyDocument.Version > old.Version ? dafnyDocument : old);
       if (databaseDocument != dafnyDocument) {
-        _logger.LogDebug("a newer version of {} was already loaded", textDocument.Uri);
+        _logger.LogDebug("a newer version of {DocumentUri} was already loaded", textDocument.Uri);
       }
       return databaseDocument;
     }
@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public DafnyDocument? CloseDocument(TextDocumentIdentifier documentId) {
       DafnyDocument? document;
       if(!_documents.TryRemove(documentId.Uri, out document)) {
-        _logger.LogTrace("the document {} was already closed", documentId);
+        _logger.LogTrace("the document {DocumentId} was already closed", documentId);
         return null;
       }
       return document;
@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       while (_documents.TryGetValue(documentId.Uri, out var oldDocument)) {
         cancellationToken.ThrowIfCancellationRequested();
         if (documentId.Version < oldDocument.Version) {
-          _logger.LogDebug("skipping update of {} since the current version is newer (old={} < new={})",
+          _logger.LogDebug("skipping update of {DocumentUri} since the current version is newer (old={OldVersion} > new={NewVersion})",
             documentId.Uri, oldDocument.Version, documentId.Version);
           return oldDocument;
         }
@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           return mergedDocument;
         }
       }
-      _logger.LogWarning("received update for untracked document {}", documentId.Uri);
+      _logger.LogWarning("received update for untracked document {DocumentUri}", documentId.Uri);
       return null;
     }
 

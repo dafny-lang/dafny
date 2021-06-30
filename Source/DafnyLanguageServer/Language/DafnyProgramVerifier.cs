@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private void CancelVerification(string requestId) {
-      _logger.LogDebug("requesting verification cancellation of {}", requestId);
+      _logger.LogDebug("requesting verification cancellation of {RequestId}", requestId);
       ExecutionEngine.CancelRequest(requestId);
     }
 

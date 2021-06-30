@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     public override Task<SymbolInformationOrDocumentSymbolContainer> Handle(DocumentSymbolParams request, CancellationToken cancellationToken) {
       DafnyDocument? document;
       if(!_documents.TryGetDocument(request.TextDocument, out document)) {
-        _logger.LogWarning("symbols requested for unloaded document {}", request.TextDocument.Uri);
+        _logger.LogWarning("symbols requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(_emptySymbols);
       }
       var visitor = new LspSymbolGeneratingVisitor(document.SymbolTable, cancellationToken);

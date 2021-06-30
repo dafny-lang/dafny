@@ -83,7 +83,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change, afterChangeEndOffset);
           migratedDeclarations = ApplyDeclarationsChange(migratedDeclarations, change, afterChangeEndOffset);
         }
-        _logger.LogTrace("migrated the lookup tree, lookup before={}, after={}", _originalDocument.SymbolTable.LookupTree.Count, migratedLookupTree.Count);
+        _logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
+          _originalDocument.SymbolTable.LookupTree.Count, migratedLookupTree.Count);
         return new SymbolTable(
           _originalDocument.SymbolTable.CompilationUnit,
           _originalDocument.SymbolTable.Declarations,

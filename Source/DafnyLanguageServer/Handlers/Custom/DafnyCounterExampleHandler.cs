@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
     public Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
       DafnyDocument? document;
       if(!_documents.TryGetDocument(request.TextDocument, out document)) {
-        _logger.LogWarning("counter-examples requested for unloaded document {}", request.TextDocument.Uri);
+        _logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return Task.FromResult(new CounterExampleList());
       }
       return Task.FromResult(new CounterExampleLoader(_logger, document, cancellationToken).GetCounterExamples());
@@ -52,7 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
       public CounterExampleList GetCounterExamples() {
         if(_document.SerializedCounterExamples == null) {
-          _logger.LogDebug("got no counter-examples for document {}", _document.Uri);
+          _logger.LogDebug("got no counter-examples for document {DocumentUri}", _document.Uri);
           return new CounterExampleList();
         }
         var counterExamples = GetLanguageSpecificModels(_document.SerializedCounterExamples)

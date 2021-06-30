@@ -63,10 +63,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           errorReporter
         );
         if(parseErrors != 0) {
-          _logger.LogDebug("encountered {} errors while parsing {}", parseErrors, document.Uri);
+          _logger.LogDebug("encountered {ErrorCount} errors while parsing {DocumentUri}", parseErrors, document.Uri);
         }
         if(!TryParseIncludesOfModule(module, builtIns, errorReporter)) {
-          _logger.LogDebug("encountered error while parsing the includes of {}", document.Uri);
+          _logger.LogDebug("encountered error while parsing the includes of {DocumentUri}", document.Uri);
         }
         // TODO Remove PoC workaround: the file system path is used as a program name to
         return new Dafny.Program(document.Uri.GetFileSystemPath(), module, builtIns, errorReporter);
@@ -129,11 +129,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
       } catch(IllegalDafnyFile e) {
         errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file {include.includedFilename} failed.");
-        _logger.LogDebug(e, "encountered include of illegal dafny file {}", include.includedFilename);
+        _logger.LogDebug(e, "encountered include of illegal dafny file {Filename}", include.includedFilename);
         return false;
       } catch(IOException e) {
         errorReporter.Error(MessageSource.Parser, include.tok, $"Unable to open the include {include.includedFilename}.");
-        _logger.LogDebug(e, "could not open file {}", include.includedFilename);
+        _logger.LogDebug(e, "could not open file {Filename}", include.includedFilename);
         return false;
       }
       return true;

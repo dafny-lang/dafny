@@ -40,12 +40,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       public (ISymbol? Designator, ISymbol? Type) GetSymbolAndItsTypeBefore(Position requestPosition) {
         var position = GetLinePositionBefore(requestPosition);
         if(position == null) {
-          _logger.LogTrace("the request position {} is at the beginning of the line, no chance to find a symbol there", requestPosition);
+          _logger.LogTrace("the request position {Position} is at the beginning of the line, no chance to find a symbol there", requestPosition);
           return (null, null);
         }
         var memberAccesses = GetMemberAccessChainEndingAt(position);
         if(memberAccesses.Length == 0) {
-          _logger.LogDebug("could not resolve the member access chain in front of of {}", requestPosition);
+          _logger.LogDebug("could not resolve the member access chain in front of of {Position}", requestPosition);
           return (null, null);
         }
         return GetSymbolAndTypeOfLastMember(position, memberAccesses);
@@ -77,7 +77,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             currentDesignator = FindSymbolWithName(currentDesignatorType!, currentDesignatorName);
           }
           if(currentDesignator == null || !_document.SymbolTable.TryGetTypeOf(currentDesignator, out currentDesignatorType)) {
-            _logger.LogDebug("could not resolve the type of the designator {} of the member access chain '{}'", currentMemberAccess, memberAccessChain);
+            _logger.LogDebug("could not resolve the type of the designator {MemberName} of the member access chain '{Chain}'",
+              currentMemberAccess, memberAccessChain);
             return (currentDesignator, null);
           }
         }
