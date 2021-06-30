@@ -16,6 +16,7 @@ method Main() {
   OrdinalTests();
   ZeroComparisonTests();
   TestConversions();
+  ComparisonRegressions();
 }
 
 method Print(description: string, x: int) {
@@ -444,11 +445,13 @@ method ZeroComparisonTests() {
   print "int:\n";
   ZCIntTests(-42);
   ZCIntTests(0);
+  ZCIntTests(-0);
   ZCIntTests(23);
 
   print "MyNumber:\n";
   ZCMyNumberTests(-42);
   ZCMyNumberTests(0);
+  ZCMyNumberTests(-0);
   ZCMyNumberTests(23);
 }
 
@@ -523,4 +526,22 @@ method ConvertFromChar(x: char)
 {
   // char doesn't (currently) support many type conversions
   print x as int, /** " ", x as real, " ", x as ORDINAL, " ", x as bv7,**/ " ", x as uint32, /** " ", x as char,**/ "\n";
+}
+
+newtype MyInt = int
+
+method ComparisonRegressions() {
+  {
+    var xx := 2_000_000_000_000_000_000_000;
+    var yy := 3;
+    print xx < yy, " ", yy < xx, " ", xx <= yy, " ", yy <= xx, "\n"; // false true false true
+    print xx > yy, " ", yy > xx, " ", xx >= yy, " ", yy >= xx, "\n"; // true false true false
+  }
+  {
+    var xx: MyInt := 2_000_000_000_000_000_000_000;
+    var yy: MyInt := 3;
+    // The following was once compiled incorrectly for JavaScript
+    print xx < yy, " ", yy < xx, " ", xx <= yy, " ", yy <= xx, "\n"; // false true false true
+    print xx > yy, " ", yy > xx, " ", xx >= yy, " ", yy >= xx, "\n"; // true false true false
+  }
 }

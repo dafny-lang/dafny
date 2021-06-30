@@ -1907,26 +1907,26 @@ namespace Microsoft.Dafny {
           }
 
         case BinaryExpr.ResolvedOpcode.Lt:
-          if (e0.Type.IsIntegerType || e0.Type.IsRealType) {
+          if (e0.Type.IsNumericBased() && AsNativeType(e0.Type) == null) {
             callString = "isLessThan";
           } else {
             opString = "<";
           }
           break;
         case BinaryExpr.ResolvedOpcode.Le:
-          if (e0.Type.IsIntegerType) {
+          if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && AsNativeType(e0.Type) == null) {
             callString = "isLessThanOrEqualTo";
-          } else if (e0.Type.IsRealType) {
+          } else if (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && AsNativeType(e0.Type) == null) {
             callString = "isAtMost";
           } else {
             opString = "<=";
           }
           break;
         case BinaryExpr.ResolvedOpcode.Ge:
-          if (e0.Type.IsIntegerType) {
+          if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int) && AsNativeType(e0.Type) == null) {
             callString = "isLessThanOrEqualTo";
             reverseArguments = true;
-          } else if (e0.Type.IsRealType) {
+          } else if (e0.Type.IsNumericBased(Type.NumericPersuasion.Real) && AsNativeType(e0.Type) == null) {
             callString = "isAtMost";
             reverseArguments = true;
           } else {
@@ -1934,7 +1934,7 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Gt:
-          if (e0.Type.IsIntegerType || e0.Type.IsRealType) {
+          if (e0.Type.IsNumericBased() && AsNativeType(e0.Type) == null) {
             callString = "isLessThan";
             reverseArguments = true;
           } else {

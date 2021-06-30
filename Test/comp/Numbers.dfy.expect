@@ -91,9 +91,11 @@ true false
 int:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 MyNumber:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 120 120.0 120 120 120 x
@@ -102,6 +104,10 @@ MyNumber:
 120 120.0 120 120 120 x
 120 120.0 120 120 120 x
 120 120
+false true false true
+true false true false
+false true false true
+true false true false
 
 Dafny program verifier did not attempt verification
 0
@@ -193,9 +199,11 @@ true false
 int:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 MyNumber:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 120 120.0 120 120 120 x
@@ -204,6 +212,10 @@ MyNumber:
 120 120.0 120 120 120 x
 120 120.0 120 120 120 x
 120 120
+false true false true
+true false true false
+false true false true
+true false true false
 
 Dafny program verifier did not attempt verification
 0
@@ -295,9 +307,11 @@ true false
 int:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 MyNumber:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 120 120.0 120 120 120 x
@@ -306,6 +320,10 @@ MyNumber:
 120 120.0 120 120 120 x
 120 120.0 120 120 120 x
 120 120
+false true false true
+true false true false
+false true false true
+true false true false
 
 Dafny program verifier did not attempt verification
 0
@@ -397,9 +415,11 @@ true false
 int:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 MyNumber:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 120 120.0 120 120 120 x
@@ -408,3 +428,7 @@ MyNumber:
 120 120.0 120 120 120 x
 120 120.0 120 120 120 x
 120 120
+false true false true
+true false true false
+false true false true
+true false true false
