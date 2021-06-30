@@ -10982,7 +10982,6 @@ namespace Microsoft.Dafny {
         var s = (MatchStmt)stmt;
         TrStmt_CheckWellformed(s.Source, builder, locals, etran, true);
         Bpl.Expr source = etran.TrExpr(s.Source);
-
         var b = new BoogieStmtListBuilder(this);
         b.Add(TrAssumeCmd(stmt.Tok, Bpl.Expr.False));
         Bpl.StmtList els = b.Collect(stmt.Tok);
