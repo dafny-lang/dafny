@@ -10790,10 +10790,104 @@ namespace Microsoft.Dafny {
         AddComment(builder, stmt, "alternative loop statement");
         var s = (AlternativeLoopStmt)stmt;
         var tru = new LiteralExpr(s.Tok, true);
-        tru.Type = Type.Bool;  // resolve here
+        tru.Type = Type.Bool; // resolve here
         TrLoop(s, tru,
-          delegate(BoogieStmtListBuilder bld, ExpressionTranslator e) { TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e, stmt.IsGhost); },
+          delegate(BoogieStmtListBuilder bld, ExpressionTranslator e) {
+            TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e, stmt.IsGhost);
+          },
           builder, locals, etran);
+
+      } else if (stmt is ForLoopStmt) {
+        var s = (ForLoopStmt)stmt;
+        AddComment(builder, stmt, "for-loop statement");
+
+        var indexVar = s.LoopIndex;
+        var indexVarName = indexVar.AssignUniqueName(currentDeclaration.IdGenerator);
+        var dIndex = new IdentifierExpr(indexVar.tok, indexVar);
+        var bIndexVar = new Bpl.LocalVariable(indexVar.tok, new Bpl.TypedIdent(indexVar.Tok, indexVarName, TrType(indexVar.Type)));
+        locals.Add(bIndexVar);
+        var bIndex = new Bpl.IdentifierExpr(indexVar.tok, indexVarName);
+
+        var lo = s.GoingUp ? s.Start : s.End;
+        var hi = s.GoingUp ? s.End : s.Start;
+        Expression dLo = null;
+        Expression dHi = null;
+        Bpl.IdentifierExpr bLo = null;
+        Bpl.IdentifierExpr bHi = null;
+        if (lo != null) {
+          var name = indexVarName + "#lo";
+          var bLoVar = new Bpl.LocalVariable(lo.tok, new Bpl.TypedIdent(lo.tok, name, Bpl.Type.Int));
+          locals.Add(bLoVar);
+          bLo = new Bpl.IdentifierExpr(lo.tok, name);
+          CheckWellformed(lo, new WFOptions(null, false), locals, builder, etran);
+          builder.Add(Bpl.Cmd.SimpleAssign(lo.tok, bLo, etran.TrExpr(lo)));
+          dLo = new BoogieWrapper(bLo, lo.Type);
+        }
+        if (hi != null) {
+          var name = indexVarName + "#hi";
+          var bHiVar = new Bpl.LocalVariable(hi.tok, new Bpl.TypedIdent(hi.tok, name, Bpl.Type.Int));
+          locals.Add(bHiVar);
+          bHi = new Bpl.IdentifierExpr(hi.tok, name);
+          CheckWellformed(hi, new WFOptions(null, false), locals, builder, etran);
+          builder.Add(Bpl.Cmd.SimpleAssign(hi.tok, bHi, etran.TrExpr(hi)));
+          dHi = new BoogieWrapper(bHi, hi.Type);
+        }
+
+        // check lo <= hi
+        if (lo != null && hi != null) {
+          builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), "lower bound must not exceed upper bound"));
+        }
+        // check forall x :: lo <= x <= hi ==> Is(x, typ)
+        {
+          // The check, if needed, is performed like this:
+          //   var x: int;
+          //   havoc x;
+          //   assume lo <= x <= hi;
+          //   assert Is(x, typ);
+          var tok = indexVar.tok;
+          var name = indexVarName + "#x";
+          var xVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, Bpl.Type.Int));
+          var x = new Bpl.IdentifierExpr(tok, name);
+          string msg;
+          var cre = GetSubrangeCheck(x, Type.Int, indexVar.Type, out msg);
+          if (cre != null) {
+            locals.Add(xVar);
+            builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
+            builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
+            builder.Add(Assert(tok, cre, "entire range must be assignable to index variable, but some " + msg));
+          }
+        }
+
+        // initialize the index variable
+        builder.Add(Bpl.Cmd.SimpleAssign(indexVar.tok, bIndex, s.GoingUp ? bLo : bHi));
+
+        // build the guard expression
+        Expression guard;
+        if (lo == null || hi == null) {
+          guard = LiteralExpr.CreateBoolLiteral(s.Tok, true);
+        } else {
+          guard = Expression.CreateNot(s.Tok, Expression.CreateEq(dIndex, s.GoingUp ? dHi : dLo, indexVar.Type));
+        }
+
+        // free invariant lo <= i <= hi
+        var freeInvariant = ForLoopBounds(bIndex, bLo, bHi);
+
+        BodyTranslator bodyTr = null;
+        if (s.Body != null) {
+          bodyTr = delegate(BoogieStmtListBuilder bld, ExpressionTranslator e) {
+            CurrentIdGenerator.Push();
+            if (!s.GoingUp) {
+              bld.Add(Bpl.Cmd.SimpleAssign(s.Tok, bIndex, Bpl.Expr.Sub(bIndex, Bpl.Expr.Literal(1))));
+            }
+            TrStmt(s.Body, bld, locals, e);
+            if (s.GoingUp) {
+              bld.Add(Bpl.Cmd.SimpleAssign(s.Tok, bIndex, Bpl.Expr.Add(bIndex, Bpl.Expr.Literal(1))));
+            }
+            CurrentIdGenerator.Pop();
+          };
+        }
+
+        TrLoop(s, guard, bodyTr, builder, locals, etran, freeInvariant, s.Decreases.Expressions.Count != 0);
 
       } else if (stmt is ModifyStmt) {
         AddComment(builder, stmt, "modify statement");
@@ -11113,6 +11207,20 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
+    }
+
+    /// <summary>
+    /// Generates a Boogie expression "lo <= x <= hi", but leaving the lo/hi bound if null.
+    /// </summary>
+    private static Bpl.Expr ForLoopBounds(Bpl.Expr x, Bpl.Expr/*?*/ lo, Bpl.Expr/*?*/ hi) {
+      Bpl.Expr r = Bpl.Expr.True;
+      if (lo != null) {
+        r = BplAnd(r, Bpl.Expr.Le(lo, x));
+      }
+      if (hi != null) {
+        r = BplAnd(r, Bpl.Expr.Le(x, hi));
+      }
+      return r;
     }
 
     private void GenerateAndCheckGuesses(IToken tok, List<BoundVar> bvars, List<ComprehensionExpr.BoundedPool> bounds, Expression expr, Trigger triggers, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
@@ -11982,7 +12090,8 @@ namespace Microsoft.Dafny {
 
 
     void TrLoop(LoopStmt s, Expression Guard, BodyTranslator/*?*/ bodyTr,
-                BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+                BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+                Bpl.Expr freeInvariant = null, bool includeTerminationCheck = true) {
       Contract.Requires(s != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -12011,7 +12120,7 @@ namespace Microsoft.Dafny {
       builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
 
       var daTrackersMonotonicity = new List<Tuple<Bpl.IdentifierExpr, Bpl.IdentifierExpr>>();
-      foreach (var dat in definiteAssignmentTrackers.Values) {  // TODO: the order is non-deterministic and may change been invocations of Dafny
+      foreach (var dat in definiteAssignmentTrackers.Values) {  // TODO: the order is non-deterministic and may change between invocations of Dafny
         var preLoopDat = new Bpl.LocalVariable(dat.tok, new Bpl.TypedIdent(dat.tok, "preLoop$" + suffix + "$" + dat.Name, dat.Type));
         locals.Add(preLoopDat);
         var ie = new Bpl.IdentifierExpr(s.Tok, preLoopDat);
@@ -12033,6 +12142,9 @@ namespace Microsoft.Dafny {
       builder.Add(new Bpl.HavocCmd(s.Tok, new List<Bpl.IdentifierExpr> { w }));
 
       List<Bpl.PredicateCmd> invariants = new List<Bpl.PredicateCmd>();
+      if (freeInvariant != null) {
+        invariants.Add(new Bpl.AssumeCmd(freeInvariant.tok, freeInvariant));
+      }
       BoogieStmtListBuilder invDefinednessBuilder = new BoogieStmtListBuilder(this);
       foreach (AttributedExpression loopInv in s.Invariants) {
         string errorMessage = CustomErrorMessage(loopInv.Attributes);
@@ -12123,7 +12235,7 @@ namespace Microsoft.Dafny {
       // on entry to the loop, and then Boogie wouldn't consider this a loop at all. (See also comment
       // in methods GuardAlwaysHoldsOnEntry_BodyLessLoop and GuardAlwaysHoldsOnEntry_LoopWithBody in
       // Test/dafny0/DirtyLoops.dfy.)
-      var isBodyLessLoop = s is WhileStmt && ((WhileStmt)s).BodySurrogate != null;
+      var isBodyLessLoop = s is OneBodyLoopStmt && ((OneBodyLoopStmt)s).BodySurrogate != null;
       var whereToBuildLoopGuard = isBodyLessLoop ? new BoogieStmtListBuilder(this) : loopBodyBuilder;
       Bpl.Expr guard = null;
       if (Guard != null) {
@@ -12155,18 +12267,20 @@ namespace Microsoft.Dafny {
             types.Add(e.Type.NormalizeExpand());
             decrs.Add(etran.TrExpr(e));
           }
-        AddComment(loopBodyBuilder, s, "loop termination check");
-          Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
-          string msg;
-          if (s.InferredDecreases) {
-            msg = "cannot prove termination; try supplying a decreases clause for the loop";
-          } else {
-            msg = "decreases expression might not decrease";
+          if (includeTerminationCheck) {
+            AddComment(loopBodyBuilder, s, "loop termination check");
+            Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
+            string msg;
+            if (s.InferredDecreases) {
+              msg = "cannot prove termination; try supplying a decreases clause for the loop";
+            } else {
+              msg = "decreases expression might not decrease";
+            }
+            loopBodyBuilder.Add(Assert(s.Tok, decrCheck, msg));
           }
-          loopBodyBuilder.Add(Assert(s.Tok, decrCheck, msg));
         }
       } else if (isBodyLessLoop) {
-        var bodySurrogate = ((WhileStmt)s).BodySurrogate;
+        var bodySurrogate = ((OneBodyLoopStmt)s).BodySurrogate;
         // This is a body-less loop. Havoc the targets and then set w to false, to make the loop-invariant
         // maintenance check vaccuous.
         var bplTargets = bodySurrogate.LocalLoopTargets.ConvertAll(v => TrVar(s.Tok, v));

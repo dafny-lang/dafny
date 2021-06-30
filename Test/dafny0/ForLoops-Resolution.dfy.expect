@@ -12,9 +12,9 @@ ForLoops-Resolution.dfy(102,19): Error: lower bound (of type int) not assignable
 ForLoops-Resolution.dfy(107,8): Error: index variable is expected to be of an integer type (got bv8)
 ForLoops-Resolution.dfy(112,8): Error: index variable is expected to be of an integer type (got ORDINAL)
 ForLoops-Resolution.dfy(118,6): Error: LHS of assignment must denote a mutable variable
-ForLoops-Resolution.dfy(150,4): Warning: note, this loop has no body
-ForLoops-Resolution.dfy(155,4): Warning: note, this loop has no body (loop frame: y)
-ForLoops-Resolution.dfy(161,4): Warning: note, this loop has no body (loop frame: $Heap)
+ForLoops-Resolution.dfy(150,4): Warning: note, this loop has no body (loop frame: i)
+ForLoops-Resolution.dfy(155,4): Warning: note, this loop has no body (loop frame: i, y)
+ForLoops-Resolution.dfy(161,4): Warning: note, this loop has no body (loop frame: i, $Heap)
 ForLoops-Resolution.dfy(194,8): Error: trying to break out of more loop levels than there are enclosing loops
 ForLoops-Resolution.dfy(207,10): Error: trying to break out of more loop levels than there are enclosing loops
 ForLoops-Resolution.dfy(248,10): Error: break label is undefined or not in scope: D

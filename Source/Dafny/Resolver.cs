@@ -10983,7 +10983,12 @@ namespace Microsoft.Dafny
           loopStack.RemoveAt(loopStack.Count - 1);  // pop
         } else {
           Contract.Assert(s.BodySurrogate == null);  // .BodySurrogate is set only once
-          s.BodySurrogate = new WhileStmt.LoopBodySurrogate(new List<IVariable>(fvs.Where(fv => fv.IsMutable)), usesHeap);
+          var loopFrame = new List<IVariable>();
+          if (s is ForLoopStmt forLoopStmt) {
+            loopFrame.Add(forLoopStmt.LoopIndex);
+          }
+          loopFrame.AddRange(fvs.Where(fv => fv.IsMutable));
+          s.BodySurrogate = new WhileStmt.LoopBodySurrogate(loopFrame, usesHeap);
           var text = Util.Comma(s.BodySurrogate.LocalLoopTargets, fv => fv.Name);
           if (s.BodySurrogate.UsesHeap) {
             text += text.Length == 0 ? "$Heap" : ", $Heap";
