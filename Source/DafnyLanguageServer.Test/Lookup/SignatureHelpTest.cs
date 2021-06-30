@@ -42,11 +42,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup
     }
 
     [TestMethod]
-    public async Task SignatureHelpForUnloadedDocumentReturnsNoSignatures() {
+    public async Task SignatureHelpForUnloadedDocumentReturnsNull() {
       var documentItem = CreateTestDocument("");
       var signatureHelp = await RequestSignatureHelpAsync(documentItem, (7, 11));
-      var signatures = signatureHelp.Signatures.ToArray();
-      Assert.AreEqual(0, signatures.Length);
+      Assert.IsNull(signatureHelp);
     }
 
     [TestMethod]
@@ -109,7 +108,7 @@ method Main() {
     }
 
     [TestMethod]
-    public async Task SignatureHelpOnOpeningParenthesesReturnsNoSignatureIfNoSuchMethodOrFunctionExists() {
+    public async Task SignatureHelpOnOpeningParenthesesReturnsNullIfNoSuchMethodOrFunctionExists() {
       var source = @"
 method Main() {
   //
@@ -125,8 +124,7 @@ method Main() {
       );
 
       var signatureHelp = await RequestSignatureHelpAsync(documentItem, (1, 11));
-      var signatures = signatureHelp.Signatures.ToArray();
-      Assert.AreEqual(0, signatures.Length);
+      Assert.IsNull(signatureHelp);
     }
 
     [TestMethod]
