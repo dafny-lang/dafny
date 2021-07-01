@@ -11428,8 +11428,9 @@ namespace Microsoft.Dafny
       public bool Debug;
       public readonly ICodeContext CodeContext;
       public List<ExtendedPattern> MissingCases;
+      public Attributes Attributes;
 
-      public MatchTempInfo(IToken tok, int branchidnum, ICodeContext codeContext, bool debug = false) {
+      public MatchTempInfo(IToken tok, int branchidnum, ICodeContext codeContext, bool debug = false, Attributes attrs = null) {
         int[] init = new int[branchidnum];
         for (int i = 0; i < branchidnum; i++) {
           init[i] = 1;
@@ -11442,9 +11443,9 @@ namespace Microsoft.Dafny
         this.Debug = debug;
         this.CodeContext = codeContext;
         this.MissingCases = new List<ExtendedPattern>();
+        this.Attributes = attrs;
       }
-
-      public MatchTempInfo(IToken tok, IToken endtok, int branchidnum, ICodeContext codeContext, bool debug = false) {
+      public MatchTempInfo(IToken tok, IToken endtok, int branchidnum, ICodeContext codeContext, bool debug = false, Attributes attrs = null) {
         int[] init = new int[branchidnum];
         for (int i = 0; i < branchidnum; i++) {
           init[i] = 1;
@@ -11457,6 +11458,7 @@ namespace Microsoft.Dafny
         this.Debug = debug;
         this.CodeContext = codeContext;
         this.MissingCases = new List<ExtendedPattern>();
+        this.Attributes = attrs;
       }
 
       public void UpdateBranchID(int branchID, int update) {
@@ -11489,9 +11491,11 @@ namespace Microsoft.Dafny
     private class CStmt : SyntaxContainer
     {
       public readonly Statement Body;
+      public Attributes Attributes;
 
-      public CStmt(IToken tok, Statement body) : base(tok) {
+      public CStmt(IToken tok, Statement body, Attributes attrs = null) : base(tok) {
         this.Body = body;
+        this.Attributes = attrs;
       }
     }
 
@@ -11525,13 +11529,16 @@ namespace Microsoft.Dafny
 
     private class RBranchStmt : RBranch {
       public List<Statement> Body;
+      public Attributes Attributes;
 
-      public RBranchStmt(IToken tok, int branchid, List<ExtendedPattern> patterns, List<Statement> body) : base(tok, branchid, patterns) {
+      public RBranchStmt(IToken tok, int branchid, List<ExtendedPattern> patterns, List<Statement> body, Attributes attrs = null) : base(tok, branchid, patterns) {
         this.Body = body;
+        this.Attributes = attrs;
       }
 
-      public RBranchStmt(int branchid, NestedMatchCaseStmt x) : base(x.Tok, branchid, new List<ExtendedPattern>()) {
+      public RBranchStmt(int branchid, NestedMatchCaseStmt x, Attributes attrs = null) : base(x.Tok, branchid, new List<ExtendedPattern>()) {
         this.Body = x.Body.ConvertAll((new Cloner()).CloneStmt);
+        this.Attributes = attrs;
         this.Patterns.Add(x.Pat);
       }
 
@@ -11565,7 +11572,7 @@ namespace Microsoft.Dafny
     // deep clone Patterns and Body
     private static RBranchStmt CloneRBranchStmt(RBranchStmt branch) {
       Cloner cloner = new Cloner();
-      return new RBranchStmt(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x=> cloner.CloneStmt(x)));
+      return new RBranchStmt(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x=> cloner.CloneStmt(x)), cloner.CloneAttributes(branch.Attributes));
     }
 
     private static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
@@ -11591,8 +11598,8 @@ namespace Microsoft.Dafny
     }
 
     private SyntaxContainer PackBody(IToken tok, RBranch branch) {
-      if (branch is RBranchStmt) {
-        return new CStmt(tok, new BlockStmt(tok, tok, ((RBranchStmt)branch).Body));
+      if (branch is RBranchStmt br) {
+        return new CStmt(tok, new BlockStmt(tok, tok, br.Body), br.Attributes);
       } else if (branch is RBranchExpr) {
         return new CExpr(tok, ((RBranchExpr)branch).Body);
       } else {
@@ -11707,9 +11714,9 @@ namespace Microsoft.Dafny
 
     private MatchCase MakeMatchCaseFromContainer(IToken tok, KeyValuePair<string, DatatypeCtor> ctor, List<BoundVar> freshPatBV, SyntaxContainer insideContainer) {
       MatchCase newMatchCase;
-      if (insideContainer is CStmt) {
+      if (insideContainer is CStmt c) {
         List<Statement> insideBranch = UnboxStmtContainer(insideContainer);
-        newMatchCase = new MatchCaseStmt(tok, ctor.Value,  freshPatBV, insideBranch);
+        newMatchCase = new MatchCaseStmt(tok, ctor.Value,  freshPatBV, insideBranch, c.Attributes);
       } else {
         var insideBranch = ((CExpr)insideContainer).Body;
         newMatchCase = new MatchCaseExpr(tok, ctor.Value,  freshPatBV, insideBranch);
@@ -11855,6 +11862,7 @@ namespace Microsoft.Dafny
 
         // rhs to bind to head-patterns that are bound variables
         var rhsExpr = currMatchee;
+        var ctorCounter = 0;
 
         // -- filter branches for each constructor
         for (int i = 0; i < pairPB.Count; i++) {
@@ -11873,6 +11881,7 @@ namespace Microsoft.Dafny
               }
               currBranch.Patterns.InsertRange(0, currPattern.Arguments);
               currBranches.Add(currBranch);
+              ctorCounter++;
             } else if (ctors.ContainsKey(currPattern.Id) && currPattern.Arguments != null) {
               // ==[3.2]== If the pattern is a different constructor, drop the branch
               mti.UpdateBranchID(PB.Item2.BranchID, -1);
@@ -11915,14 +11924,21 @@ namespace Microsoft.Dafny
           // Otherwise, add the case the new match created at [3]
           var tok = insideContainer.Tok is null ? currMatchee.tok : insideContainer.Tok;
           MatchCase newMatchCase = MakeMatchCaseFromContainer(tok, ctor, freshPatBV, insideContainer);
+          // newMatchCase.Attributes = (new Cloner()).CloneAttributes(mti.Attributes);
           newMatchCases.Add(newMatchCase);
-
         }
       }
       // Generate and pack the right kind of Match
       if (mti.isStmt) {
-        var newMatchStmt = new MatchStmt(mti.Tok, mti.EndTok, currMatchee, newMatchCases.ConvertAll(x => (MatchCaseStmt)x), true, context);
-        return new CStmt(null, newMatchStmt);
+        var newMatchCaseStmts = newMatchCases.Select(x => (MatchCaseStmt)x).ToList();
+        foreach (var c in newMatchCaseStmts) {
+          if (Attributes.Contains(c.Attributes, "split")) continue;
+          var args = new List<Expression>();
+          args.Add(new LiteralExpr(mti.Tok, false));
+          c.Attributes = new Attributes("split", args, c.Attributes);
+        }
+        var newMatchStmt = new MatchStmt(mti.Tok, mti.EndTok, currMatchee, newMatchCaseStmts, true, mti.Attributes, context);
+        return new CStmt(null, newMatchStmt); //Wokring HERE
       } else {
         var newMatchExpr = new MatchExpr(mti.Tok, currMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
         return new CExpr(null, newMatchExpr);
@@ -12095,13 +12111,13 @@ namespace Microsoft.Dafny
       if (DafnyOptions.O.MatchCompilerDebug) Console.WriteLine("DEBUG: CompileNestedMatchStmt for match at line {0}", s.Tok.line);
 
       // initialize the MatchTempInfo to record position and duplication information about each branch
-      MatchTempInfo mti = new MatchTempInfo(s.Tok, s.EndTok, s.Cases.Count(), codeContext, DafnyOptions.O.MatchCompilerDebug);
+      MatchTempInfo mti = new MatchTempInfo(s.Tok, s.EndTok, s.Cases.Count(), codeContext, DafnyOptions.O.MatchCompilerDebug, s.Attributes);
 
       // create Rbranches from NestedMatchCaseStmt and set the branch tokens in mti
       List<RBranch> branches = new List<RBranch>();
       for (int id = 0; id < s.Cases.Count(); id++) {
         var branch = s.Cases.ElementAt(id);
-        branches.Add(new RBranchStmt(id, branch));
+        branches.Add(new RBranchStmt(id, branch, branch.Attributes));
         mti.BranchTok[id] = branch.Tok;
       }
       List<Expression> matchees = new List<Expression>();
@@ -12109,12 +12125,11 @@ namespace Microsoft.Dafny
       SyntaxContainer rb = CompileRBranch(mti, new HoleCtx(), matchees, branches);
       if (rb is null) {
         // Happens only if the nested match has no cases, create a MatchStmt with no branches.
-        s.ResolvedStatement = new MatchStmt(s.Tok, s.EndTok, (new Cloner()).CloneExpr(s.Source), new List<MatchCaseStmt>(), s.UsesOptionalBraces);
-
-      } else if (rb is CStmt) {
+        s.ResolvedStatement = new MatchStmt(s.Tok, s.EndTok, (new Cloner()).CloneExpr(s.Source), new List<MatchCaseStmt>(), s.UsesOptionalBraces, s.Attributes);
+      } else if (rb is CStmt c) {
         // Resolve s as desugared match
-        s.ResolvedStatement = ((CStmt)rb).Body;
-
+        s.ResolvedStatement = c.Body;
+        s.ResolvedStatement.Attributes = (new Cloner()).CloneAttributes(s.Attributes);
         for (int id = 0; id < mti.BranchIDCount.Length; id++) {
           if (mti.BranchIDCount[id] <= 0) {
             reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant");
@@ -12305,6 +12320,7 @@ namespace Microsoft.Dafny
     private void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms, ResolveOpts opts) {
       foreach(NestedMatchCaseStmt mc in ms.Cases) {
         scope.PushMarker();
+        ResolveAttributes(mc.Attributes, null, opts);
         CheckLinearNestedMatchCase(dtd, mc, opts);
         scope.PopMarker();
       }
@@ -12952,6 +12968,7 @@ namespace Microsoft.Dafny
             ScopePushAndReport(scope, v, "bound-variable");
           }
         }
+        ResolveAttributes(alternative.Attributes, null, new ResolveOpts(codeContext, true));
         foreach (Statement ss in alternative.Body) {
           ResolveStatement(ss, codeContext);
         }

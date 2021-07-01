@@ -11115,7 +11115,6 @@ namespace Microsoft.Dafny {
         var s = (MatchStmt)stmt;
         TrStmt_CheckWellformed(s.Source, builder, locals, etran, true);
         Bpl.Expr source = etran.TrExpr(s.Source);
-
         var b = new BoogieStmtListBuilder(this);
         b.Add(TrAssumeCmd(stmt.Tok, Bpl.Expr.False));
         Bpl.StmtList els = b.Collect(stmt.Tok);
@@ -19397,7 +19396,7 @@ namespace Microsoft.Dafny {
       protected MatchCaseStmt SubstMatchCaseStmt(MatchCaseStmt c) {
         Contract.Requires(c != null);
         var newBoundVars = CreateBoundVarSubstitutions(c.Arguments, false);
-        var r = new MatchCaseStmt(c.tok, c.Ctor, newBoundVars, c.Body.ConvertAll(SubstStmt));
+        var r = new MatchCaseStmt(c.tok, c.Ctor, newBoundVars, c.Body.ConvertAll(SubstStmt), c.Attributes);
         r.Ctor = c.Ctor;
         // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
         foreach (var bv in c.Arguments) {
