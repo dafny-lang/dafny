@@ -2827,7 +2827,7 @@ namespace Microsoft.Dafny {
           wr.Write(sep);
           sep = ", ";
           if (binding.FormalParameterName != null) {
-            wr.Write($"{binding.FormalParameterName} := ");
+            wr.Write($"{binding.FormalParameterName.val} := ");
           }
           PrintExpression(binding.Actual, false);
         }
