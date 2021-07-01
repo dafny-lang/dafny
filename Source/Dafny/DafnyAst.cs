@@ -12347,7 +12347,7 @@ namespace Microsoft.Dafny {
       bool splitMatch = Attributes.Contains(this.Attributes, "split");
       Attributes.ContainsBool(this.Attributes, "split", ref splitMatch);
       foreach (var c in this.Cases) {
-        if (!Attributes.Contains(c.Attributes, "split")){
+        if (!Attributes.Contains(c.Attributes, "split")) {
           List<Expression> args = new List<Expression>();
           args.Add(new LiteralExpr(c.Tok, splitMatch));
           Attributes attrs = new Attributes("split", args, c.Attributes);
