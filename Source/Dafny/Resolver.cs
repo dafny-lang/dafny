@@ -313,7 +313,7 @@ namespace Microsoft.Dafny
 
       // The result type of the following bitvector methods is the type of the bitvector itself. However, we're representing all bitvector types as
       // a family of types rolled up in one ValuetypeDecl. Therefore, we use the special SelfType as the result type.
-      List<Formal> formals = new List<Formal> {new Formal(Token.NoToken, "w", Type.Nat(), true, false, false)};
+      List<Formal> formals = new List<Formal> {new Formal(Token.NoToken, "w", Type.Nat(), true, false, null, false)};
       var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", prog.BuiltIns.SystemModule, false, false,
         new List<TypeParameter>(), formals, new SelfType(),
         new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
@@ -322,7 +322,7 @@ namespace Microsoft.Dafny
       rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       valuetypeDecls[(int)ValuetypeVariety.Bitvector].Members.Add(rotateLeft.Name, rotateLeft);
 
-      formals = new List<Formal> {new Formal(Token.NoToken, "w", Type.Nat(), true, false, false)};
+      formals = new List<Formal> {new Formal(Token.NoToken, "w", Type.Nat(), true, false, null, false)};
       var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", prog.BuiltIns.SystemModule, false, false,
         new List<TypeParameter>(), formals, new SelfType(),
         new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(),
@@ -2014,7 +2014,7 @@ namespace Microsoft.Dafny
             null, Predicate.BodyOriginKind.OriginalOrInherited, null, null);
           // --- here comes method MoveNext
           var moveNext = new Method(iter.tok, "MoveNext", false, false, new List<TypeParameter>(),
-            new List<Formal>(), new List<Formal>() {new Formal(iter.tok, "more", Type.Bool, false, false)},
+            new List<Formal>(), new List<Formal>() {new Formal(iter.tok, "more", Type.Bool, false, false, null)},
             new List<AttributedExpression>(),
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
             new List<AttributedExpression>(),
@@ -2745,6 +2745,15 @@ namespace Microsoft.Dafny
                 AddTypeDependencyEdges((ICallable)d, formal.Type);
               }
             }
+            // resolve any default parameters
+            foreach (var ctor in dt.Ctors) {
+              scope.PushMarker();
+              scope.AllowInstance = false;
+              ctor.Formals.ForEach(p => scope.Push(p.Name, p));
+              ResolveParameterDefaultValues(ctor.Formals, dt);
+              scope.PopMarker();
+            }
+            // resolve members
             ResolveClassMemberBodies(dt);
           } else if (d is TopLevelDeclWithMembers) {
             var dd = (TopLevelDeclWithMembers)d;
@@ -2759,6 +2768,7 @@ namespace Microsoft.Dafny
       // * checks that type inference was able to determine all types
       // * check that shared destructors in datatypes are in agreement
       // * fills in the .ResolvedOp field of binary expressions
+      // * performs substitution for DefaultValueExpression's
       // * discovers bounds for:
       //     - forall statements
       //     - set comprehensions
@@ -2780,10 +2790,16 @@ namespace Microsoft.Dafny
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             var prevErrCnt = reporter.Count(ErrorLevel.Error);
+            foreach (var formal in iter.Ins) {
+              if (formal.DefaultValue != null) {
+                CheckTypeInference(formal.DefaultValue, iter);
+              }
+            }
             iter.Members.Iter(CheckTypeInference_Member);
             if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
               iter.SubExpressions.Iter(e => CheckExpression(e, this, iter));
             }
+            ResolveParameterDefaultValues_Pass1(iter.Ins, iter);
             if (iter.Body != null) {
               CheckTypeInference(iter.Body, iter);
               if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
@@ -2814,6 +2830,13 @@ namespace Microsoft.Dafny
             ResolveClassMembers_Pass1(dd);
           } else if (d is DatatypeDecl) {
             var dd = (DatatypeDecl)d;
+            foreach (var ctor in dd.Ctors) {
+              foreach (var formal in ctor.Formals) {
+                if (formal.DefaultValue != null) {
+                  CheckTypeInference(formal.DefaultValue, dd);
+                }
+              }
+            }
             foreach (var member in classMembers[dd].Values) {
               var dtor = member as DatatypeDestructor;
               if (dtor != null) {
@@ -2834,6 +2857,9 @@ namespace Microsoft.Dafny
                 }
               }
             }
+            foreach (var ctor in dd.Ctors) {
+              ResolveParameterDefaultValues_Pass1(ctor.Formals, dd);
+            }
             ResolveClassMembers_Pass1(dd);
           } else if (d is OpaqueTypeDecl) {
             var dd = (OpaqueTypeDecl)d;
@@ -2841,6 +2867,8 @@ namespace Microsoft.Dafny
           }
         }
       }
+
+      FillInDefaultValueExpressions();
 
       // ---------------------------------- Pass 2 ----------------------------------
       // This pass fills in various additional information.
@@ -3458,6 +3486,7 @@ namespace Microsoft.Dafny
         if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
           if (member is Method) {
             var m = (Method)member;
+            ResolveParameterDefaultValues_Pass1(m.Ins, m);
             if (m.Body != null) {
               ComputeGhostInterest(m.Body, m.IsGhost, m);
               CheckExpression(m.Body, this, m);
@@ -3465,6 +3494,7 @@ namespace Microsoft.Dafny
             }
           } else if (member is Function) {
             var f = (Function)member;
+            ResolveParameterDefaultValues_Pass1(f.Formals, f);
             if (!f.IsGhost && f.Body != null) {
               CheckIsCompilable(f.Body);
             }
@@ -3476,6 +3506,20 @@ namespace Microsoft.Dafny
             member.SubExpressions.Iter(e => CheckExpression(e, this, (ICodeContext)member));
           }
         }
+      }
+    }
+
+    /// <summary>
+    /// Check that default-value expressions are compilable, for non-ghost formals.
+    /// </summary>
+    void ResolveParameterDefaultValues_Pass1(List<Formal> formals, ICodeContext codeContext) {
+      Contract.Requires(formals != null);
+
+      foreach (var formal in formals.Where(f => f.DefaultValue != null)) {
+        if ((!codeContext.IsGhost || codeContext is DatatypeDecl) && !formal.IsGhost) {
+          CheckIsCompilable(formal.DefaultValue);
+        }
+        CheckExpression(formal.DefaultValue, this, codeContext);
       }
     }
 
@@ -6361,6 +6405,11 @@ namespace Microsoft.Dafny
         CheckTypeInference(field.Type, new NoContext(member.EnclosingClass.EnclosingModuleDefinition), field.tok, "const");
       } else if (member is Method) {
         var m = (Method)member;
+        foreach (var formal in m.Ins) {
+          if (formal.DefaultValue != null) {
+            CheckTypeInference(formal.DefaultValue, m);
+          }
+        }
         m.Req.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
         m.Ens.Iter(mfe => CheckTypeInference_MaybeFreeExpression(mfe, m));
         CheckTypeInference_Specification_FrameExpr(m.Mod, m);
@@ -6370,6 +6419,11 @@ namespace Microsoft.Dafny
         }
       } else if (member is Function) {
         var f = (Function)member;
+        foreach (var formal in f.Formals) {
+          if (formal.DefaultValue != null) {
+            CheckTypeInference(formal.DefaultValue, f);
+          }
+        }
         var errorCount = reporter.Count(ErrorLevel.Error);
         f.Req.Iter(e => CheckTypeInference(e.E, f));
         f.Ens.Iter(e => CheckTypeInference(e.E, f));
@@ -6824,6 +6878,7 @@ namespace Microsoft.Dafny
     /// This method computes ghost interests in the statement portion of StmtExpr's and
     /// checks for hint restrictions in any CalcStmt. In any ghost context, it also
     /// changes the bound variables of all let- and let-such-that expressions to ghost.
+    /// It also performs substitutions in DefaultValueExpression's.
     /// </summary>
     void CheckExpression(Statement stmt, Resolver resolver, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
@@ -6854,6 +6909,7 @@ namespace Microsoft.Dafny
           }
         }
       }
+
       protected override void VisitOneStmt(Statement stmt) {
         if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;
@@ -9201,14 +9257,12 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(f.TypeArgs, false, f);
           ResolveFunction(f);
           allTypeParameters.PopMarker();
-          if (f is ExtremePredicate && ec == reporter.Count(ErrorLevel.Error)) {
-            var ff = ((ExtremePredicate)f).PrefixPredicate;
-            if (ff != null) {
-              allTypeParameters.PushMarker();
-              ResolveTypeParameters(ff.TypeArgs, false, ff);
-              ResolveFunction(ff);
-              allTypeParameters.PopMarker();
-            }
+          if (f is ExtremePredicate ef && ef.PrefixPredicate != null && ec == reporter.Count(ErrorLevel.Error)) {
+            var ff = ef.PrefixPredicate;
+            allTypeParameters.PushMarker();
+            ResolveTypeParameters(ff.TypeArgs, false, ff);
+            ResolveFunction(ff);
+            allTypeParameters.PopMarker();
           }
 
         } else if (member is Method) {
@@ -9218,6 +9272,13 @@ namespace Microsoft.Dafny
           ResolveTypeParameters(m.TypeArgs, false, m);
           ResolveMethod(m);
           allTypeParameters.PopMarker();
+          if (m is ExtremeLemma em && em.PrefixLemma != null && ec == reporter.Count(ErrorLevel.Error)) {
+            var mm = em.PrefixLemma;
+            allTypeParameters.PushMarker();
+            ResolveTypeParameters(mm.TypeArgs, false, mm);
+            ResolveMethod(mm);
+            allTypeParameters.PopMarker();
+          }
 
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
@@ -9585,6 +9646,33 @@ namespace Microsoft.Dafny
       }
     }
 
+    void ResolveParameterDefaultValues(List<Formal> formals, ICodeContext codeContext) {
+      Contract.Requires(formals != null);
+      Contract.Requires(codeContext != null);
+
+      var dependencies = new Graph<IVariable>();
+      var allowMoreRequiredParameters = true;
+      foreach (var formal in formals) {
+        var d = formal.DefaultValue;
+        if (d != null) {
+          allowMoreRequiredParameters = false;
+          ResolveExpression(d, new ResolveOpts(codeContext, codeContext is TwoStateFunction || codeContext is TwoStateLemma));
+          AddAssignableConstraint(d.tok, formal.Type, d.Type, "default-value expression (of type '{1}') is not assignable to formal (of type '{0}')");
+          foreach (var v in FreeVariables(d)) {
+            dependencies.AddEdge(formal, v);
+          }
+        } else if (!allowMoreRequiredParameters) {
+          reporter.Error(MessageSource.Resolver, formal.tok, "all required parameters must precede any optional parameters");
+        }
+      }
+      SolveAllTypeConstraints();
+
+      foreach (var cycle in dependencies.AllCycles()) {
+        var cy = Util.Comma(" -> ", cycle, v => v.Name) + " -> " + cycle[0].Name;
+        reporter.Error(MessageSource.Resolver, cycle[0], $"default-value expressions for parameters contain a cycle: {cy}");
+      }
+    }
+
     /// <summary>
     /// Check to see if the attribute is one that is supported by Dafny.  What check performed here is,
     /// unfortunately, just an approximation, since the usage rules of a particular attribute is checked
@@ -9720,6 +9808,7 @@ namespace Microsoft.Dafny
       if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
         DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
+      ResolveParameterDefaultValues(f.Formals, f);
       foreach (AttributedExpression e in f.Req) {
         Expression r = e.E;
         ResolveExpression(r, new ResolveOpts(f, f is TwoStateFunction));
@@ -9868,6 +9957,7 @@ namespace Microsoft.Dafny
         foreach (Formal p in m.Ins) {
           scope.Push(p.Name, p);
         }
+        ResolveParameterDefaultValues(m.Ins, m);
 
         // Start resolving specification...
         foreach (AttributedExpression e in m.Req) {
@@ -10023,6 +10113,7 @@ namespace Microsoft.Dafny
       scope.PushMarker();
       scope.AllowInstance = false;  // disallow 'this' from use, which means that the special fields and methods added are not accessible in the syntactically given spec
       iter.Ins.ForEach(p => scope.Push(p.Name, p));
+      ResolveParameterDefaultValues(iter.Ins, iter);
 
       // Start resolving specification...
       // we start with the decreases clause, because the _decreases<n> fields were only given type proxies before; we'll know
@@ -10236,6 +10327,8 @@ namespace Microsoft.Dafny
         iter.Member_MoveNext.Decreases.Expressions.Add(new MemberSelectExpr(p.tok, new ThisExpr(p.tok), iter.DecreasesFields[i].Name));
       }
       iter.Member_MoveNext.Decreases.Attributes = iter.Decreases.Attributes;
+
+      iter.EnclosingModuleDefinition.CallGraph.AddEdge(iter.Member_MoveNext, iter);
     }
 
     // Like the ResolveTypeOptionEnum, but iff the case of AllowPrefixExtend, it also
@@ -12922,13 +13015,14 @@ namespace Microsoft.Dafny
       }
 
       if (tryToResolve) {
-        var subst = s.MethodSelect.TypeArgumentSubstitutionsAtMemberDeclaration();
+        var typeMap = s.MethodSelect.TypeArgumentSubstitutionsAtMemberDeclaration();
         // resolve arguments
-        ResolveActualParameters(s.Bindings, callee.Ins, s.Tok, callee, new ResolveOpts(codeContext, true), subst);
+        ResolveActualParameters(s.Bindings, callee.Ins, s.Tok, callee, new ResolveOpts(codeContext, true), typeMap,
+          callee.IsStatic ? null : s.Receiver);
         // type check the out-parameter arguments (in-parameters were type checked as part of ResolveActualParameters)
         for (int i = 0; i < callee.Outs.Count && i < s.Lhs.Count; i++) {
           var it = callee.Outs[i].Type;
-          Type st = SubstType(it, subst);
+          Type st = SubstType(it, typeMap);
           var lhs = s.Lhs[i];
           AddAssignableConstraint(s.Tok, lhs.Type, st, "incorrect type of method out-parameter" + (callee.Outs.Count == 1 ? "" : " " + i) + " (expected {1}, got {0})");
         }
@@ -16369,13 +16463,13 @@ namespace Microsoft.Dafny
           }
           if (callee != null) {
             // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
-            var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.Bindings.ArgumentBindings, atLabel);
+            var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.Bindings, atLabel);
             rr.Function = callee;
             rr.TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass;
             rr.TypeApplication_JustFunction = mse.TypeApplication_JustMember;
-            var subst = BuildTypeArgumentSubstitute(mse.TypeArgumentSubstitutionsAtMemberDeclaration());
-            ResolveActualParameters(rr.Bindings, callee.Formals, e.tok, callee, opts, subst);
-            rr.Type = SubstType(callee.ResultType, subst);
+            var typeMap = BuildTypeArgumentSubstitute(mse.TypeArgumentSubstitutionsAtMemberDeclaration());
+            ResolveActualParameters(rr.Bindings, callee.Formals, e.tok, callee, opts, typeMap, callee.IsStatic ? null : mse.Obj);
+            rr.Type = SubstType(callee.ResultType, typeMap);
             if (errorCount == reporter.Count(ErrorLevel.Error)) {
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
               Contract.Assert(callee.Formals.Count == rr.Args.Count);  // this should have been checked already
@@ -16394,11 +16488,11 @@ namespace Microsoft.Dafny
               formals = new List<Formal>();
               for (var i = 0; i < fnType.Args.Count; i++) {
                 var argType = fnType.Args[i];
-                var formal = new Formal(e.tok, "_#p" + i, argType, true, false);
+                var formal = new Formal(e.tok, "_#p" + i, argType, true, false, null);
                 formals.Add(formal);
               }
             }
-            ResolveActualParameters(e.Bindings, formals, e.tok, fnType, opts, null);
+            ResolveActualParameters(e.Bindings, formals, e.tok, fnType, opts, new Dictionary<TypeParameter, Type>(), null);
             r = new ApplyExpr(e.Lhs.tok, e.Lhs, e.Args);
             r.Type = fnType.Result;
           }
@@ -16417,15 +16511,16 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Resolve the actual arguments given in "bindings". Then, check that there is exactly one
     /// actual for each formal, and impose assignable constraints.
-    /// If "subst" is non-null, it applied to the types of each formal.
+    /// "typeMap" is applied to the type of each formal.
     /// This method should be called only once. That is, bindings.arguments is required to be null on entry to this method.
     /// </summary>
     void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IToken callTok, object context, ResolveOpts opts,
-      Dictionary<TypeParameter, Type> subst = null) {
+      Dictionary<TypeParameter, Type> typeMap, Expression/*?*/ receiver) {
       Contract.Requires(bindings != null);
       Contract.Requires(formals != null);
       Contract.Requires(callTok != null);
       Contract.Requires(context is Method || context is Function || context is DatatypeCtor || context is ArrowType);
+      Contract.Requires(typeMap != null);
       Contract.Requires(!bindings.WasResolved);
 
       string whatKind;
@@ -16445,40 +16540,43 @@ namespace Microsoft.Dafny
         name = $"function type '{cArrowType}'";
       }
 
-      // Compare the number of actual bindings with the required/full number of parameters, and report an error
-      // if the counts look fishy. Users would expect such an error, despite the fact that almost any(*) such error
-      // will also generate some other error below when the named bindings and default parameter values are taken
-      // into consideration.
-      // (*) The one exception is: If all actuals are given positionally and there are more actuals than formals,
-      // then the fishy-count error we give here may be the only error the user gets.
-      var requiredParametersCount = formals.Count(f => f.DefaultValue == null);
-      var actualsCounts = bindings.ArgumentBindings.Count;
-      if (requiredParametersCount <= actualsCounts && actualsCounts <= formals.Count) {
-        // the situation is plausible
-      } else if (requiredParametersCount == formals.Count) {
-        // this is the common, classical case of no default parameter values; generate a straightforward error message
-        reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects {formals.Count}, got {actualsCounts})");
-      } else if (actualsCounts < requiredParametersCount) {
-        reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at least {requiredParametersCount}, got {actualsCounts})");
-      } else {
-        reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at most {formals.Count}, got {actualsCounts})");
+      // If all arguments are passed positionally, use simple error messages that talk about the count of arguments.
+      var onlyPositionalArguments = bindings.ArgumentBindings.TrueForAll(binding => binding.FormalParameterName == null);
+      var simpleErrorReported = false;
+      if (onlyPositionalArguments) {
+        var requiredParametersCount = formals.Count(f => f.DefaultValue == null);
+        var actualsCounts = bindings.ArgumentBindings.Count;
+        if (requiredParametersCount <= actualsCounts && actualsCounts <= formals.Count) {
+          // the situation is plausible
+        } else if (requiredParametersCount == formals.Count) {
+          // this is the common, classical case of no default parameter values; generate a straightforward error message
+          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects {formals.Count}, got {actualsCounts})");
+          simpleErrorReported = true;
+        } else if (actualsCounts < requiredParametersCount) {
+          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at least {requiredParametersCount}, got {actualsCounts})");
+          simpleErrorReported = true;
+        } else {
+          reporter.Error(MessageSource.Resolver, callTok, $"wrong number of arguments ({name} expects at most {formals.Count}, got {actualsCounts})");
+          simpleErrorReported = true;
+        }
       }
 
       // resolve given arguments and populate the "namesToActuals" map
-      var formalNames = new HashSet<string>(formals.ConvertAll(f => f.Name));
-      var namesToActuals = new Dictionary<string, ActualBinding>(); // invariant: namesToActuals.Keys is a subset of formalNames
+      var namesToActuals = new Dictionary<string, ActualBinding>();
+      formals.ForEach(f => namesToActuals.Add(f.Name, null)); // a name mapping to "null" says it hasn't been filled in yet
       var stillAcceptingPositionalArguments = true;
+      var j = 0;
       foreach (var binding in bindings.ArgumentBindings) {
         var arg = binding.Actual;
         // insert the actual into "namesToActuals" under an appropriate name, unless there is an error
         if (binding.FormalParameterName != null) {
           var pname = binding.FormalParameterName.val;
           stillAcceptingPositionalArguments = false;
-          if (!formalNames.Contains(pname)) {
+          if (!namesToActuals.TryGetValue(pname, out var b)) {
             reporter.Error(MessageSource.Resolver, binding.FormalParameterName, $"the binding named '{pname}' does not correspond to any formal parameter");
-          } else if (!namesToActuals.TryGetValue(pname, out var b)) {
+          } else if (b == null) {
             // all is good
-            namesToActuals.Add(pname, binding);
+            namesToActuals[pname] = binding;
           } else if (b.FormalParameterName == null) {
             reporter.Error(MessageSource.Resolver, binding.FormalParameterName, $"the parameter named '{pname}' is already given positionally");
           } else {
@@ -16486,34 +16584,131 @@ namespace Microsoft.Dafny
           }
         } else if (!stillAcceptingPositionalArguments) {
           reporter.Error(MessageSource.Resolver, arg.tok, "a positional argument is not allowed to follow named arguments");
-        } else if (namesToActuals.Count < formals.Count) {
+        } else if (j < formals.Count) {
           // use the name of formal corresponding to this positional argument
-          namesToActuals.Add(formals[namesToActuals.Count].Name, binding);
+          var pname = formals[j].Name;
+          Contract.Assert(namesToActuals[pname] == null); // we expect this, since we've only filled parameters positionally so far
+          namesToActuals[pname] = binding;
+        } else {
+          // too many positional arguments
+          if (onlyPositionalArguments) {
+            // error was reported before the "foreach" loop
+            Contract.Assert(simpleErrorReported);
+          } else if (formals.Count < j) {
+            // error was reported on a previous iteration of this "foreach" loop
+          } else {
+            reporter.Error(MessageSource.Resolver, callTok,
+              $"wrong number of arguments ({name} expects {formals.Count}, got {bindings.ArgumentBindings.Count})");
+          }
         }
 
         // resolve argument
         ResolveExpression(arg, opts);
+        j++;
       }
 
       var actuals = new List<Expression>();
-      var j = 0;
+      j = 0;
+      var substMap = new Dictionary<IVariable, Expression>();
       foreach (var formal in formals) {
-        if (namesToActuals.TryGetValue(formal.Name, out var b)) {
+        var b = namesToActuals[formal.Name];
+        if (b != null) {
           actuals.Add(b.Actual);
-          Type st = subst == null ? formal.Type : SubstType(formal.Type, subst);
+          substMap.Add(formal, b.Actual);
           var what = whatKind + (context is Method ? " in-parameter" : " argument");
           if (formals.Count != 1) {
             what += " " + j;
           }
-          AddAssignableConstraint(callTok, st, b.Actual.Type, "incorrect type of " + what + " (expected {0}, found {1})");
+          AddAssignableConstraint(callTok, SubstType(formal.Type, typeMap), b.Actual.Type, "incorrect type of " + what + " (expected {0}, found {1})");
         } else if (formal.DefaultValue != null) {
-          actuals.Add(formal.DefaultValue); // TODO: this may need some substitutions, in the value and/or type
-          throw new NotImplementedException(); // TODO (this needs to be done as soon as the grammar changes to allow default values)
+          // Note, in the following line, "substMap" is passed in, but it hasn't been fully filled in until the
+          // end of this foreach loop. Still, that's soon enough, because DefaultValueExpression won't use it
+          // until FillInDefaultValueExpressions at the end of Pass 1 of the Resolver.
+          var n = new DefaultValueExpression(callTok, formal, receiver, substMap, typeMap);
+          allDefaultValueExpressions.Add(n);
+          actuals.Add(n);
+          substMap.Add(formal, n);
+        } else {
+          // parameter has no value
+          if (onlyPositionalArguments) {
+            // a simple error message has already been reported
+            Contract.Assert(simpleErrorReported);
+          } else {
+            var message = "no actual argument passed for " + whatKind + (context is Method ? " in-parameter" : " argument");
+            if (formals.Count != 1) {
+              if (formal.HasName) {
+                message += $" '{formal.Name}'";
+              } else {
+                message += " " + j;
+              }
+            }
+            reporter.Error(MessageSource.Resolver, callTok, message);
+          }
         }
         j++;
       }
 
       bindings.AcceptArgumentExpressionsAsExactParameterList(actuals);
+    }
+
+    private List<DefaultValueExpression> allDefaultValueExpressions = new List<DefaultValueExpression>();
+
+    /// <summary>
+    /// This method is called at the tail end of Pass1 of the Resolver.
+    /// </summary>
+    void FillInDefaultValueExpressions() {
+      var visited = new Dictionary<DefaultValueExpression, WorkProgress>();
+      foreach (var e in allDefaultValueExpressions) {
+        FillInDefaultValueExpression(e, visited);
+      }
+      allDefaultValueExpressions.Clear();
+    }
+
+    enum WorkProgress { BeingVisited, Done }
+
+    void FillInDefaultValueExpression(DefaultValueExpression expr, Dictionary<DefaultValueExpression, WorkProgress> visited) {
+      Contract.Requires(expr != null);
+      Contract.Requires(visited != null);
+      Contract.Ensures(Contract.ValueAtReturn(out expr.ResolvedExpression) != null);
+
+      if (visited.TryGetValue(expr, out var p)) {
+        if (p == WorkProgress.Done) {
+          Contract.Assert(expr.ResolvedExpression != null);
+        } else {
+          // there is a cycle
+          reporter.Error(MessageSource.Resolver, expr, "default-valued expressions are cyclicly dependent; this is not allowed, since it would cause infinite expansion");
+          // nevertheless, to avoid any issues in the resolver, fill in the .ResolvedExpression field with something
+          expr.ResolvedExpression = Expression.CreateBoolLiteral(expr.tok, false);
+        }
+        return;
+      }
+      Contract.Assert(expr.ResolvedExpression == null);
+
+      visited.Add(expr, WorkProgress.BeingVisited);
+      var s = new DefaultValueSubstituter(this, visited, expr.Receiver, expr.SubstMap, expr.TypeMap);
+      expr.ResolvedExpression = s.Substitute(expr.Formal.DefaultValue);
+      visited[expr] = WorkProgress.Done;
+    }
+
+    class DefaultValueSubstituter : Translator.Substituter {
+      private readonly Resolver resolver;
+      private readonly Dictionary<DefaultValueExpression, WorkProgress> visited;
+      public DefaultValueSubstituter(Resolver resolver, Dictionary<DefaultValueExpression, WorkProgress> visited,
+        Expression /*?*/ receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
+        : base(receiverReplacement, substMap, typeMap) {
+        Contract.Requires(resolver != null);
+        Contract.Requires(visited != null);
+        this.resolver = resolver;
+        this.visited = visited;
+      }
+
+      public override Expression Substitute(Expression expr) {
+        if (expr is DefaultValueExpression dve) {
+          resolver.FillInDefaultValueExpression(dve, visited);
+          Contract.Assert(dve.ResolvedExpression != null); // postcondition of FillInDefaultValueExpression
+        }
+        return base.Substitute(expr);
+      }
     }
 
     private Dictionary<TypeParameter, Type> BuildTypeArgumentSubstitute(Dictionary<TypeParameter, Type> typeArgumentSubstitutions, Type/*?*/ receiverTypeBound = null) {
@@ -16583,13 +16778,17 @@ namespace Microsoft.Dafny
         dtv.Ctor = ctor;
       }
       if (complain && ctor != null) {
-        ResolveActualParameters(dtv.Bindings, ctor.Formals, dtv.tok, ctor, opts, subst);
+        ResolveActualParameters(dtv.Bindings, ctor.Formals, dtv.tok, ctor, opts, subst, null);
       } else {
         // still resolve the expressions
         foreach (var binding in dtv.Bindings.ArgumentBindings) {
           ResolveExpression(binding.Actual, opts);
         }
         dtv.Bindings.AcceptArgumentExpressionsAsExactParameterList();
+      }
+
+      if (CodeContextWrapper.Unwrap(opts.codeContext) is ICallable caller && caller.EnclosingModule == dt.EnclosingModuleDefinition) {
+        caller.EnclosingModule.CallGraph.AddEdge(caller, dt);
       }
       return ok && ctor.Formals.Count == dtv.Arguments.Count;
     }
@@ -16844,7 +17043,7 @@ namespace Microsoft.Dafny
         Dictionary<TypeParameter, Type> subst = BuildTypeArgumentSubstitute(typeMap);
 
         // type check the arguments
-        ResolveActualParameters(e.Bindings, function.Formals, e.tok, function, opts, subst);
+        ResolveActualParameters(e.Bindings, function.Formals, e.tok, function, opts, subst, function.IsStatic ? null : e.Receiver);
 
         e.Type = SubstType(function.ResultType, subst).NormalizeExpand();
 
@@ -16879,19 +17078,14 @@ namespace Microsoft.Dafny
         var caller = CodeContextWrapper.Unwrap(callingContext) as ICallable;
         if (caller == null) {
           // don't add anything to the call graph after all
-        } else if (caller is IteratorDecl) {
-          callerModule.CallGraph.AddEdge(((IteratorDecl)callingContext).Member_MoveNext, function);
         } else {
           callerModule.CallGraph.AddEdge(caller, function);
-          if (caller is Function) {
-            FunctionCallExpr ee = e as FunctionCallExpr;
-            if (ee != null) {
-              ((Function)caller).AllCalls.Add(ee);
-            }
+          if (caller is Function && e is FunctionCallExpr ee) {
+            ((Function)caller).AllCalls.Add(ee);
           }
           // if the call denotes the function return value in the function postconditions, then we don't
           // mark it as recursive.
-          if (caller == function && (function is Function) && !isFunctionReturnValue) {
+          if (caller == function && function is Function && !isFunctionReturnValue) {
             ((Function)function).IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
           }
         }

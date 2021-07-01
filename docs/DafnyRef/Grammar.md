@@ -512,14 +512,16 @@ A `CIdentType` is used for a `const` declaration. The Type is optional because i
 the initializer.
 
 ````grammar
-GIdentType(allowGhostKeyword, allowNewKeyword) =
+GIdentType(allowGhostKeyword, allowNewKeyword, allowDefault) =
     [ "ghost" | "new" ] IdentType
+    [ ":=" Expression(allowLemma: true, allowLambda: true) ]
 ````
 A ``GIdentType`` is a typed entity declaration optionally preceded by `ghost` or `new`. The _ghost_
 qualifier means the entity is only used during verification and not in the generated code.
 Ghost variables are useful for abstractly representing internal state in specifications.
 If `allowGhostKeyword` is false then `ghost` is not allowed.
 If `allowNewKeyword` is false then `new` is not allowed.
+If `allowDefault` is false then `:= Expression` is not allowed.
 
 ````grammar
 LocalIdentTypeOptional = WildIdent [ ":" Type ]
@@ -536,10 +538,13 @@ A ``IdentTypeOptional`` is typically used in a context where the type of the ide
 may be inferred from the context. Examples are in pattern matching or quantifiers.
 
 ````grammar
-TypeIdentOptional = [ "ghost" ] [ NoUSIdentOrDigits ":" ] Type
+TypeIdentOptional =
+    [ "ghost" ] [ NoUSIdentOrDigits ":" ] Type
+    [ ":=" Expression(allowLemma: true, allowLambda: true) ]
 ````
 ``TypeIdentOptional``s are used in ``FormalsOptionalIds``. This represents situations
-where a type is given but there may not be an identifier.
+where a type is given but there may not be an identifier. The default-value expression
+`:= Expression` is allowed only if `NoUSIdentOrDigits :` is also provided.
 
 ````grammar
 FormalsOptionalIds = "(" [ TypeIdentOptional
