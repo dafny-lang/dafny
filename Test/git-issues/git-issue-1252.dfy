@@ -94,3 +94,14 @@ iterator Iter(c: C?, d: C?)
   reads d.more // error: c may be null (reported twice)
 {
 }
+
+method Fresh() {
+  var c := C.MaybeNew();
+  ghost var b := fresh(c.more); // error: c may be null
+}
+
+method Unchanged(c: C?)
+  modifies c
+{
+  assert unchanged(c.more); // error: c may be null
+}

@@ -31,5 +31,11 @@ Execution trace:
 git-issue-1252.dfy(87,13): Error: target object may be null
 Execution trace:
     (0,0): anon0
+git-issue-1252.dfy(100,25): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+git-issue-1252.dfy(106,21): Error: target object may be null
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 4 verified, 11 errors
+Dafny program verifier finished with 4 verified, 13 errors
