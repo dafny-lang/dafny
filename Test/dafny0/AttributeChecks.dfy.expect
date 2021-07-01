@@ -1,0 +1,106 @@
+// AttributeChecks.dfy
+
+datatype List<T> = Nil | Cons(hd: T, tl: List<T>)
+
+method If(n: int) returns (k: int)
+{
+  var i := 0;
+  if {:split true} i < n {
+    if {:split 1 + 0} true {
+    }
+  } else if {:split false} i > n {
+  } else {:split true} {
+  }
+}
+
+method IfAlt(n: int) returns (k: int)
+{
+  var i := 0;
+  if {:split true}
+  case {:split 1 + true} i < n =>
+    if {:split 1 + k} true {
+    }
+  case {:split false} i > n =>
+    {
+    }
+    return 2;
+}
+
+method While(n: int) returns (k: int)
+{
+  var f: int -> int := x => x;
+  var i := 0;
+  while {:split true} {:split true + k} i < n
+    invariant forall u :: f(u) == u + i
+  {
+  }
+  return 2;
+}
+
+method WhileAlt(n: int) returns (k: int)
+{
+  var i := 0;
+  var f: int -> int := x => x;
+  while {:split}
+    invariant forall u :: f(u) == u + i
+  {
+    case {:split 1 + true} i < n =>
+      {
+      }
+    case {:split false} i > n =>
+      return 2;
+  }
+}
+
+method Match(xs: List<int>) returns (r: int)
+{
+  match {:split 1} xs {
+    case {:split false} Cons(y, z) =>
+      return y;
+    case {:split 1 + false} Nil =>
+      return 0;
+  }
+}
+
+method Calc(x: int, y: int)
+{
+  calc {:split 1} {:split 1 + false} {
+    x + y;
+    {
+      assume x == 0;
+    }
+    y;
+  }
+  assert x == 0;
+}
+
+method ForAll(i: int, j: int, arr: array2<int>)
+{
+  forall i, j {:split 1 + false} {:split true} | i in {-3, 4} && j in {1, 2} {
+    arr[i, j] := 0;
+  }
+}
+
+method AssertBy(x: int, y: int)
+{
+  assert {:split false + x} {:split} x == 6 by {
+    assume x == 6;
+    assume y == 8;
+  }
+  assert {:split} y == 8;
+}
+AttributeChecks.dfy(18,17): Error: type of left argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(18,17): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(28,35): Error: type of right argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(28,35): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(42,19): Error: type of left argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(42,19): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(52,19): Error: type of left argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(52,19): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(58,28): Error: type of left argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(58,28): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(68,25): Error: type of left argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(68,25): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(75,23): Error: type of right argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(75,23): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+14 resolution/type errors detected in AttributeChecks.dfy
