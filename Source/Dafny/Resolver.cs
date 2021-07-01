@@ -11823,7 +11823,7 @@ namespace Microsoft.Dafny
         // Update the current context
         MatchingContext ctorctx = new IdCtx(ctor);
         MatchingContext newcontext = context.FillHole(ctorctx);
-        var insideContainer = CompileRBranch(mti, newcontext, cmatchees, currBranches); //WORKING HERE
+        var insideContainer = CompileRBranch(mti, newcontext, cmatchees, currBranches);
         if (insideContainer is null) {
           // If no branch matches this constructor, drop the case
           continue;
