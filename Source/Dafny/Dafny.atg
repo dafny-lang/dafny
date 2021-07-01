@@ -1480,11 +1480,13 @@ IdentTypeOptional<out BoundVar var>
   (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType); .)
   .
 
-TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost>
+TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost, out Expression defaultValue>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out identName)!=null);
-     string name = null; id = Token.NoToken; ty = new BoolType()/*dummy*/; isGhost = false; .)
+     string name = null; id = Token.NoToken; ty = new BoolType()/*dummy*/; isGhost = false;
+     defaultValue = null;
+  .)
   [ "ghost"                            (. isGhost = true; .)
   ]
   ( TypeAndToken<out id, out ty, false>
@@ -1498,10 +1500,12 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
          }
       .)
       Type<out ty>
+      ParameterDefaultValue<true, out defaultValue>
     ]
   | digits         (. id = t; name = id.val;.)
     ":"
     Type<out ty>
+    ParameterDefaultValue<true, out defaultValue>
   )
   (. if (name != null) {
        identName = name;
@@ -1871,25 +1875,43 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, List<Forma
      Type ty;
      bool isGhost;
      bool isOld;
+     Expression defaultValue;
   .)
   "("
   [
     GIdentType<allowGhostKeyword, allowNewKeyword, out id, out ty, out isGhost, out isOld>
-                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, isOld)); .)
+    ParameterDefaultValue<incoming, out defaultValue>
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld)); .)
     { "," GIdentType<allowGhostKeyword, allowNewKeyword, out id, out ty, out isGhost, out isOld>
-                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, isOld)); .)
+    ParameterDefaultValue<incoming, out defaultValue>
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld)); .)
     }
   ]
   ")"
   .
 
+ParameterDefaultValue<bool incoming, out Expression defaultValue>
+= (. defaultValue = null; IToken tok;
+  .)
+  [ ":="        (. tok = t; .)
+    Expression<out defaultValue, true, true>
+    (. if (!incoming) {
+         SemErr(tok, "out-parameters cannot have default-value expressions");
+         defaultValue = null;
+       }
+    .)
+  ]
+  .
+
 /*------------------------------------------------------------------------*/
 FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
-= (. Contract.Requires(cce.NonNullElements(formals)); IToken/*!*/ id;  Type/*!*/ ty;  string/*!*/ name;  bool isGhost; .)
+= (. Contract.Requires(cce.NonNullElements(formals));
+     IToken/*!*/ id;  Type/*!*/ ty;  string/*!*/ name;  bool isGhost;  Expression/*?*/ defaultValue;
+  .)
   "("
   [
-    TypeIdentOptional<out id, out name, out ty, out isGhost>        (. formals.Add(new Formal(id, name, ty, true, isGhost)); .)
-    { "," TypeIdentOptional<out id, out name, out ty, out isGhost>  (. formals.Add(new Formal(id, name, ty, true, isGhost)); .)
+    TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue>        (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue)); .)
+    { "," TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue>  (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue)); .)
     }
   ]
   ")"
@@ -2118,7 +2140,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
            .)
            GIdentType<false, false, out resultId, out ty, out isGhost, out isOld>
            (. Contract.Assert(!isGhost && !isOld);
-              result = new Formal(resultId, resultId.val, ty, false, false, false);
+              result = new Formal(resultId, resultId.val, ty, false, false, null, false);
            .)
          ")"
          | Type<out returnType>
