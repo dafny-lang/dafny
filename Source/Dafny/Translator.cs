@@ -11023,6 +11023,8 @@ namespace Microsoft.Dafny {
       } else if (stmt is ModifyStmt) {
         AddComment(builder, stmt, "modify statement");
         var s = (ModifyStmt)stmt;
+        // check well-formedness of the modifies clauses
+        CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
         // check that the modifies is a subset
         CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "modify statement may violate context's modifies clause", null);
         // cause the change of the heap according to the given frame
@@ -12244,7 +12246,8 @@ namespace Microsoft.Dafny {
         updatedFrameEtran = etran;
       }
 
-      if (s.Mod.Expressions != null) { // check that the modifies is a subset
+      if (s.Mod.Expressions != null) { // check well-formedness and that the modifies is a subset
+        CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
         CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "loop modifies clause may violate context's modifies clause", null);
         DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, loopFrameName);
       }
