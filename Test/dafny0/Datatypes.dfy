@@ -89,7 +89,7 @@ method TestAllocatednessAxioms(a: List<Node>, b: List<Node>, c: List<AnotherNode
         case Nil =>
         case Cons(y, more) =>
           var o: object := y;
-          assert p != null ==> p != o;  // follows from well-typedness
+          assert p != o;  // follows from well-typedness
       }
   }
 }
