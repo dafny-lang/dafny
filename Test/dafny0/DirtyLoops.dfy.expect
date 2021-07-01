@@ -107,19 +107,23 @@ Execution trace:
 DirtyLoops.dfy(70,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    DirtyLoops.dfy(68,3): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    DirtyLoops.dfy(68,3): anon9_Else
-    (0,0): anon10_Then
     (0,0): anon11_Then
+    (0,0): anon3
+    DirtyLoops.dfy(68,3): anon12_LoopHead
+    (0,0): anon12_LoopBody
+    DirtyLoops.dfy(68,3): anon13_Else
+    (0,0): anon14_Then
+    (0,0): anon15_Then
 DirtyLoops.dfy(72,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    DirtyLoops.dfy(68,3): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    DirtyLoops.dfy(68,3): anon9_Else
-    (0,0): anon10_Then
     (0,0): anon11_Then
+    (0,0): anon3
+    DirtyLoops.dfy(68,3): anon12_LoopHead
+    (0,0): anon12_LoopBody
+    DirtyLoops.dfy(68,3): anon13_Else
+    (0,0): anon14_Then
+    (0,0): anon15_Then
 DirtyLoops.dfy(82,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
