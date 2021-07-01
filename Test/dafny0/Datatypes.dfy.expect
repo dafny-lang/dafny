@@ -45,13 +45,13 @@ Execution trace:
 Datatypes.dfy(82,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
+    (0,0): anon18_Else
+    (0,0): anon19_Then
+    (0,0): anon4
     (0,0): anon20_Else
     (0,0): anon21_Then
-    (0,0): anon4
     (0,0): anon22_Else
     (0,0): anon23_Then
-    (0,0): anon24_Else
-    (0,0): anon25_Then
 Datatypes.dfy(170,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
