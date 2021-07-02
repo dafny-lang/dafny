@@ -258,7 +258,7 @@
       VisitNullableBlock(whileStatement.Body);
     }
 
-    public virtual void Visit(ForLoopeStmt forStatement) {
+    public virtual void Visit(ForLoopStmt forStatement) {
       Visit(forStatement.Start);
       VisitNullableExpression(forStatement.End);
       VisitNullableAttributes(forStatement.Attributes);
