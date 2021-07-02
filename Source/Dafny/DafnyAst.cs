@@ -6061,16 +6061,19 @@ namespace Microsoft.Dafny {
     }
     public readonly bool IsOld;
     public readonly Expression DefaultValue;
+    public readonly bool IsNameOnly;
 
-    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue, bool isOld = false)
+    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue, bool isOld = false, bool isNameOnly = false)
       : base(tok, name, type, isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
       Contract.Requires(inParam || defaultValue == null);
+      Contract.Requires(!isNameOnly || (inParam && !name.StartsWith("#")));
       InParam = inParam;
       IsOld = isOld;
       DefaultValue = defaultValue;
+      IsNameOnly = isNameOnly;
     }
 
     public bool HasName {

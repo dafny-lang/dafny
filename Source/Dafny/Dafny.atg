@@ -1422,14 +1422,15 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   .
 
 /*------------------------------------------------------------------------*/
-GIdentType<bool allowGhostKeyword, bool allowNewKeyword,
-           out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld>
+GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeyword,
+           out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld, out bool isNameOnly>
 /* isGhost always returns as false if allowGhostKeyword is false */
 = (. Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
-     isGhost = false; isOld = allowNewKeyword; .)
+     isGhost = false; isOld = allowNewKeyword; isNameOnly = false; .)
   { "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } .)
   | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(t, "formal cannot be declared 'new' in this context"); } .)
+  | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(t, "formal cannot be declared 'nameonly' in this context"); } .)
   }
   IdentType<out id, out ty, false>
   .
@@ -1480,15 +1481,17 @@ IdentTypeOptional<out BoundVar var>
   (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType); .)
   .
 
-TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost, out Expression defaultValue>
+TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost, out Expression defaultValue, out bool isNameOnly>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out identName)!=null);
      string name = null; id = Token.NoToken; ty = new BoolType()/*dummy*/; isGhost = false;
+     IToken nameonlyToken = null;
      defaultValue = null;
   .)
-  [ "ghost"                            (. isGhost = true; .)
-  ]
+  { "ghost"                            (. isGhost = true; .)
+  | "nameonly"                         (. nameonlyToken = t; .)
+  }
   ( TypeAndToken<out id, out ty, false>
     [ ":"
       (. /* try to convert ty to an identifier */
@@ -1509,8 +1512,13 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
   )
   (. if (name != null) {
        identName = name;
+       isNameOnly = nameonlyToken != null;
      } else {
        identName = "#" + anonymousIds++;
+       if (nameonlyToken != null) {
+         SemErr(nameonlyToken, "use of the 'nameonly' modifier must be accompanied with a parameter name");
+       }
+       isNameOnly = false;
      }
   .)
   .
@@ -1876,15 +1884,16 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, List<Forma
      bool isGhost;
      bool isOld;
      Expression defaultValue;
+     bool isNameOnly;
   .)
   "("
   [
-    GIdentType<allowGhostKeyword, allowNewKeyword, out id, out ty, out isGhost, out isOld>
+    GIdentType<allowGhostKeyword, allowNewKeyword, incoming, out id, out ty, out isGhost, out isOld, out isNameOnly>
     ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld)); .)
-    { "," GIdentType<allowGhostKeyword, allowNewKeyword, out id, out ty, out isGhost, out isOld>
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly)); .)
+    { "," GIdentType<allowGhostKeyword, allowNewKeyword, incoming, out id, out ty, out isGhost, out isOld, out isNameOnly>
     ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld)); .)
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly)); .)
     }
   ]
   ")"
@@ -1907,11 +1916,14 @@ ParameterDefaultValue<bool incoming, out Expression defaultValue>
 FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
 = (. Contract.Requires(cce.NonNullElements(formals));
      IToken/*!*/ id;  Type/*!*/ ty;  string/*!*/ name;  bool isGhost;  Expression/*?*/ defaultValue;
+     bool isNameOnly;
   .)
   "("
   [
-    TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue>        (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue)); .)
-    { "," TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue>  (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue)); .)
+    TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
+            (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
+    { "," TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
+            (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
     }
   ]
   ")"
@@ -2132,14 +2144,8 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       ":"
       (  IF(FollowedByColon())
          "("
-           (.
-              IToken resultId;
-              Type ty;
-              bool isGhost;
-              bool isOld;
-           .)
-           GIdentType<false, false, out resultId, out ty, out isGhost, out isOld>
-           (. Contract.Assert(!isGhost && !isOld);
+           GIdentType<false, false, false, out var resultId, out var ty, out var isGhost, out var isOld, out var isNameOnly>
+           (. Contract.Assert(!isGhost && !isOld && !isNameOnly);
               result = new Formal(resultId, resultId.val, ty, false, false, null, false);
            .)
          ")"
