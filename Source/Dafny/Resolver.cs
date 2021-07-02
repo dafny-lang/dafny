@@ -10691,7 +10691,7 @@ namespace Microsoft.Dafny
     public void ResolveStatement(Statement stmt, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
-      if (!(stmt is ForallStmt)) {  // forall statements do their own attribute resolution below
+      if (!(stmt is ForallStmt || stmt is ForLoopStmt)) {  // "forall" and "for" statements do their own attribute resolution below
         ResolveAttributes(stmt.Attributes, stmt, new ResolveOpts(codeContext, true));
       }
       if (stmt is PredicateStmt) {
@@ -11079,9 +11079,10 @@ namespace Microsoft.Dafny
               " (or you can add a 'decreases' clause to this 'for' loop if you want to prove that it does indeed terminate)");
           }
 
-          // Create a new scope, add the local to the scope, and resolve the local's attributes
+          // Create a new scope, add the local to the scope, and resolve the attributes
           scope.PushMarker();
           ScopePushAndReport(scope, loopIndex, "index-variable");
+          ResolveAttributes(s.Attributes, s, new ResolveOpts(codeContext, true));
         }
 
         ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, fvs, ref usesHeap);

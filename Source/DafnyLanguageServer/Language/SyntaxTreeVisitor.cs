@@ -259,6 +259,7 @@
     }
 
     public virtual void Visit(ForLoopStmt forStatement) {
+      VisitNullableAttributes(forStatement.Attributes);
       Visit(forStatement.Start);
       VisitNullableExpression(forStatement.End);
       VisitNullableAttributes(forStatement.Attributes);

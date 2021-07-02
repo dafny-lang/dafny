@@ -1710,7 +1710,9 @@ namespace Microsoft.Dafny {
     void PrintForLoopStatement(int indent, ForLoopStmt s) {
       Contract.Requires(0 <= indent);
       Contract.Requires(s != null);
-      wr.Write($"for {s.LoopIndex.Name}");
+      wr.Write("for");
+      PrintAttributes(s.Attributes);
+      wr.Write($" {s.LoopIndex.Name}");
       PrintType(": ", s.LoopIndex.Type);
       wr.Write(" := ");
       PrintExpression(s.Start, false);

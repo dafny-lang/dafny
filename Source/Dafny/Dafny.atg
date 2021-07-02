@@ -2856,6 +2856,8 @@ ForLoopStmt<out Statement stmt>
      Expression end = null;
      bool goingUp = true;
 
+     Attributes attrs = null;
+
      List<AttributedExpression> invariants = new List<AttributedExpression>();
      List<Expression> decreases = new List<Expression>();
      Attributes decAttrs = null;
@@ -2868,6 +2870,7 @@ ForLoopStmt<out Statement stmt>
      bool isDirtyLoop = true;
   .)
   "for"                    (. x = t; .)
+  { Attribute<ref attrs> }
   IdentTypeOptional<out loopIndex>
   ":="
   Expression<out start, false, false>
@@ -2886,7 +2889,7 @@ ForLoopStmt<out Statement stmt>
       body = new BlockStmt(x, endTok, new List<Statement>());
     }
     stmt = new ForLoopStmt(x, endTok, loopIndex, start, end, goingUp,
-      invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body);
+      invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
   .)
   .
 

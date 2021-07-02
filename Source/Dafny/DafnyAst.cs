@@ -8219,8 +8219,8 @@ namespace Microsoft.Dafny {
 
     public ForLoopStmt(IToken tok, IToken endTok, BoundVar loopIndexVariable, Expression start, Expression/*?*/ end, bool goingUp,
       List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-      BlockStmt /*?*/ body)
-      : base(tok, endTok, invariants, decreases, mod, body, null)
+      BlockStmt /*?*/ body, Attributes attrs)
+      : base(tok, endTok, invariants, decreases, mod, body, attrs)
     {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
