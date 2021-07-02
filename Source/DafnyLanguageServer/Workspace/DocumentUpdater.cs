@@ -50,7 +50,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       private readonly DafnyDocument _originalDocument;
       private readonly Container<TextDocumentContentChangeEvent> _contentChanges;
       private readonly CancellationToken _cancellationToken;
-      private readonly PositionComparer _positionComparer = new PositionComparer();
 
       public ChangeProcessor(ILogger logger, DafnyDocument originalDocument, Container<TextDocumentContentChangeEvent> contentChanges, CancellationToken cancellationToken) {
         _logger = logger;
@@ -103,7 +102,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       private IIntervalTree<Position, ILocalizableSymbol> ApplyLookupTreeChange(
           IIntervalTree<Position, ILocalizableSymbol> previousLookupTree, Range changeRange, Position afterChangeEndOffset
       ) {
-        var migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>(new PositionComparer());
+        var migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
         foreach(var entry in previousLookupTree) {
           _cancellationToken.ThrowIfCancellationRequested();
           if(IsPositionBeforeChange(changeRange, entry.To)) {
@@ -140,11 +139,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private bool IsPositionBeforeChange(Range changeRange, Position symbolTo) {
-        return _positionComparer.Compare(symbolTo, changeRange.Start) <= 0;
+        return symbolTo.CompareTo(changeRange.Start) <= 0;
       }
 
       private bool IsPositionAfterChange(Range changeRange, Position symbolFrom) {
-        return _positionComparer.Compare(symbolFrom, changeRange.End) >= 0;
+        return symbolFrom.CompareTo(changeRange.End) >= 0;
       }
 
       private IDictionary<ISymbol, SymbolLocation> ApplyDeclarationsChange(

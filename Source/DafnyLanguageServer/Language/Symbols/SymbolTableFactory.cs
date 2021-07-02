@@ -1,6 +1,5 @@
 ﻿using IntervalTree;
 using MediatR;
-using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -71,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       private ISymbol _currentScope;
 
-      public IIntervalTree<Position, ILocalizableSymbol> SymbolLookup { get; } = new IntervalTree<Position, ILocalizableSymbol>(new PositionComparer());
+      public IIntervalTree<Position, ILocalizableSymbol> SymbolLookup { get; } = new IntervalTree<Position, ILocalizableSymbol>();
 
       public DesignatorVisitor(
           ILogger logger, Dafny.Program program, IDictionary<AstElement, ILocalizableSymbol> declarations, ISymbol rootScope, CancellationToken cancellationToken
