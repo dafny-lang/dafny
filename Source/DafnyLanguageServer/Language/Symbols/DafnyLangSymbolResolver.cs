@@ -14,7 +14,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// </remarks>
   public class DafnyLangSymbolResolver : ISymbolResolver {
     private readonly ILogger _logger;
-    private readonly SemaphoreSlim _resolverMutex = new SemaphoreSlim(1);
+    private readonly SemaphoreSlim _resolverMutex = new(1);
 
     public DafnyLangSymbolResolver(ILogger<DafnyLangSymbolResolver> logger) {
       _logger = logger;

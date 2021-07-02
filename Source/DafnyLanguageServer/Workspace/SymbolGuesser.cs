@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return GetSymbolAndTypeOfLastMember(position, memberAccesses);
       }
 
-      private Position? GetLinePositionBefore(Position requestPosition) {
+      private static Position? GetLinePositionBefore(Position requestPosition) {
         var position = requestPosition;
         if(position.Character < 1) {
           return null;

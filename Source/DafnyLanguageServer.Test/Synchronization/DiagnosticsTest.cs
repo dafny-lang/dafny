@@ -561,8 +561,8 @@ method Multiply(x: int, y: int) returns (product: int)
     }
 
     public class TestDiagnosticReceiver {
-      private readonly SemaphoreSlim _availableDiagnostics = new SemaphoreSlim(0);
-      private readonly ConcurrentQueue<PublishDiagnosticsParams> _diagnostics = new ConcurrentQueue<PublishDiagnosticsParams>();
+      private readonly SemaphoreSlim _availableDiagnostics = new(0);
+      private readonly ConcurrentQueue<PublishDiagnosticsParams> _diagnostics = new();
 
       public void DiagnosticReceived(PublishDiagnosticsParams request) {
         _diagnostics.Enqueue(request);

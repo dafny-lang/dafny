@@ -102,7 +102,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return new CompletionList(completionItems);
       }
 
-      private bool IsConstructor(ISymbol symbol) {
+      private static bool IsConstructor(ISymbol symbol) {
         return symbol is MethodSymbol method
           && method.Name == "_ctor";
       }
@@ -116,7 +116,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         };
       }
 
-      private CompletionItemKind GetCompletionKind(ISymbol symbol) {
+      private static CompletionItemKind GetCompletionKind(ISymbol symbol) {
         return symbol switch {
           ClassSymbol _ => CompletionItemKind.Class,
           MethodSymbol _ => CompletionItemKind.Method,
@@ -127,7 +127,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         };
       }
 
-      private string GetCompletionText(ISymbol symbol) {
+      private static string GetCompletionText(ISymbol symbol) {
         return symbol.Name;
       }
     }

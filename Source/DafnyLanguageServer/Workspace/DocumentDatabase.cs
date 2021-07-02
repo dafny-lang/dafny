@@ -18,7 +18,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class DocumentDatabase : IDocumentDatabase {
     private readonly ILogger _logger;
     private readonly DocumentOptions _options;
-    private readonly ConcurrentDictionary<DocumentUri, DafnyDocument> _documents = new ConcurrentDictionary<DocumentUri, DafnyDocument>();
+    private readonly ConcurrentDictionary<DocumentUri, DafnyDocument> _documents = new();
     private readonly ITextDocumentLoader _documentLoader;
     private readonly IDocumentUpdater _documentUpdater;
 

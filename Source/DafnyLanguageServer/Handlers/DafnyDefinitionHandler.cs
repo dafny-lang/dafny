@@ -46,7 +46,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return Task.FromResult<LocationOrLocationLinks>(new[] { location });
     }
 
-    private LocationOrLocationLink? GetLspLocation(DafnyDocument document, ISymbol symbol) {
+    private static LocationOrLocationLink? GetLspLocation(DafnyDocument document, ISymbol symbol) {
       if(document.SymbolTable.TryGetLocationOf(symbol, out var location)) {
         return new Location {
           Uri = location.Uri,

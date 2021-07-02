@@ -16,11 +16,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this parser serializes all invocations.
   /// </remarks>
   public sealed class DafnyLangParser : IDafnyParser, IDisposable {
-    private static readonly object _initializationSyncObject = new object();
+    private static readonly object _initializationSyncObject = new();
     private static bool _initialized;
 
     private readonly ILogger _logger;
-    private readonly SemaphoreSlim _mutex = new SemaphoreSlim(1);
+    private readonly SemaphoreSlim _mutex = new(1);
 
     private DafnyLangParser(ILogger<DafnyLangParser> logger) {
       _logger = logger;

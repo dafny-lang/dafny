@@ -128,7 +128,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return new Position(changeStart.Line + changeEof.Line, characterOffset);
       }
 
-      private Position GetPositionWithOffset(Position position, Position originalOffset, Position changeOffset) {
+      private static Position GetPositionWithOffset(Position position, Position originalOffset, Position changeOffset) {
         int newLine = position.Line - originalOffset.Line + changeOffset.Line;
         int newCharacter = position.Character;
         if(newLine == changeOffset.Line) {
@@ -138,11 +138,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return new Position(newLine, newCharacter);
       }
 
-      private bool IsPositionBeforeChange(Range changeRange, Position symbolTo) {
+      private static bool IsPositionBeforeChange(Range changeRange, Position symbolTo) {
         return symbolTo.CompareTo(changeRange.Start) <= 0;
       }
 
-      private bool IsPositionAfterChange(Range changeRange, Position symbolFrom) {
+      private static bool IsPositionAfterChange(Range changeRange, Position symbolFrom) {
         return symbolFrom.CompareTo(changeRange.End) >= 0;
       }
 
@@ -164,7 +164,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return migratedDeclarations;
       }
 
-      private SymbolLocation? ComputeNewSymbolLocation(SymbolLocation oldLocation, Range changeRange, Position afterChangeEndOffset) {
+      private static SymbolLocation? ComputeNewSymbolLocation(SymbolLocation oldLocation, Range changeRange, Position afterChangeEndOffset) {
         var identifier = ComputeNewRange(oldLocation.Name, changeRange, afterChangeEndOffset);
         if(identifier == null) {
           return null;
@@ -176,7 +176,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return new SymbolLocation(oldLocation.Uri, identifier, declaration);
       }
 
-      private Range? ComputeNewRange(Range oldRange, Range changeRange, Position afterChangeEndOffset) {
+      private static Range? ComputeNewRange(Range oldRange, Range changeRange, Position afterChangeEndOffset) {
         if(IsPositionBeforeChange(changeRange, oldRange.End)) {
           // The range is strictly before the change.
           return oldRange;

@@ -31,7 +31,7 @@ function GetConstant(): int {
       var documentItem = CreateTestDocument(source);
       await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       await CloseDocumentAndWaitAsync(documentItem);
-      Assert.IsFalse(Documents.TryGetDocument(documentItem.Uri, out var document));
+      Assert.IsFalse(Documents.TryGetDocument(documentItem.Uri, out var _));
     }
 
     [TestMethod]
@@ -42,7 +42,7 @@ function GetConstant(): int {
 }".Trim();
       var documentItem = CreateTestDocument(source);
       await CloseDocumentAndWaitAsync(documentItem);
-      Assert.IsFalse(Documents.TryGetDocument(documentItem.Uri, out var document));
+      Assert.IsFalse(Documents.TryGetDocument(documentItem.Uri, out var _));
     }
   }
 }

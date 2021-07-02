@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using OmniSharp.Extensions.LanguageServer.Protocol.Serialization.Converters;
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// LSP Synchronization handler for symbol based events, i.e. the client requests the symbols of the specified document.
   /// </summary>
   public class DafnyDocumentSymbolHandler : DocumentSymbolHandlerBase {
-    private static readonly SymbolInformationOrDocumentSymbol[] _emptySymbols = new SymbolInformationOrDocumentSymbol[0];
+    private static readonly SymbolInformationOrDocumentSymbol[] _emptySymbols = Array.Empty<SymbolInformationOrDocumentSymbol>();
 
     private readonly ILogger _logger;
     private readonly IDocumentDatabase _documents;
