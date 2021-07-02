@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer {
 
     private static IConfiguration CreateConfiguration(string[] args) {
       return new ConfigurationBuilder()
-        .AddJsonFile("appsettings.json", optional: true)
+        .AddJsonFile("DafnyLanguageServer.appsettings.json", optional: true)
         .AddCommandLine(args)
         .Build();
     }
