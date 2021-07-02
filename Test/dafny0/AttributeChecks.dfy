@@ -65,7 +65,7 @@ method Calc(x: int, y: int)
 
 method ForAll(i: int, j: int, arr: array2<int>)
 {
-  forall i , j {:split 1 + false} {:split true}  | i in {-3, 4} && j in {1, 2}  { // error:  1 + false is ill-typed
+  forall i , j {:split 1 + false} {:split i + j}  | i in {-3, 4} && j in {1, 2}  { // error:  1 + false is ill-typed
     arr[i, j] := 0;
   }
 }
@@ -77,4 +77,15 @@ method AssertBy(x: int, y: int)
     assume y == 8;
   }
   assert {:split} y == 8;
+}
+
+method For(lo: int, hi: int) returns (k: int)
+  requires lo <= hi
+{
+  var f: int -> int := x => x;
+  for {:split i} {:split true + k} i := lo to hi // error: true + k is ill-typed
+    invariant forall u :: f(u) == u + i
+  {
+  }
+  return 2;
 }

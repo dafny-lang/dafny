@@ -605,15 +605,21 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        r = new AlternativeStmt(Tok(s.Tok), Tok(s.EndTok), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces);
+        r = new AlternativeStmt(Tok(s.Tok), Tok(s.EndTok), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces, CloneAttributes(s.Attributes));
 
       } else if (stmt is WhileStmt) {
         var s = (WhileStmt)stmt;
-        r = new WhileStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Guard), s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
+        r = new WhileStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Guard),
+          s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body), CloneAttributes(s.Attributes));
+
+      } else if (stmt is ForLoopStmt) {
+        var s = (ForLoopStmt)stmt;
+        r = new ForLoopStmt(Tok(s.Tok), Tok(s.EndTok), CloneBoundVar(s.LoopIndex), CloneExpr(s.Start), CloneExpr(s.End), s.GoingUp,
+          s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body), CloneAttributes(s.Attributes));
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        r = new AlternativeLoopStmt(Tok(s.Tok), Tok(s.EndTok), s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces);
+        r = new AlternativeLoopStmt(Tok(s.Tok), Tok(s.EndTok), s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces, CloneAttributes(s.Attributes));
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;

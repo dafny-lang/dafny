@@ -74,14 +74,14 @@ method Test5(n: nat) {
   }
 }
 
-/*method Test6(n: nat) {
+method Test6(n: nat) {
   var c := C.MaybeNew();
   for i := 0 to n
     // The following once omitted the well-formedness check
     modifies c.more // error: c may be null
   {
   }
-   }*/
+}
 
 function method F(c: C?): int
   reads c, c.more // error: c may be null

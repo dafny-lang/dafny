@@ -7101,8 +7101,8 @@ namespace Microsoft.Dafny
           }
         }
         return status;
-      } else if (stmt is WhileStmt) {
-        var s = (WhileStmt)stmt;
+      } else if (stmt is OneBodyLoopStmt) {
+        var s = (OneBodyLoopStmt)stmt;
         var status = TailRecursionStatus.NotTailRecursive;
         if (s.Body != null) {
           status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
@@ -7859,6 +7859,16 @@ namespace Microsoft.Dafny
           }
           Visit(s.SubStatements, inGhostContext);
           return false;
+        } else if (stmt is ForLoopStmt) {
+          var s = (ForLoopStmt)stmt;
+          // all subexpressions are ghost, except the bounds
+          Visit(s.LoopSpecificationExpressions, true);
+          Visit(s.Start, inGhostContext);
+          if (s.End != null) {
+            Visit(s.End, inGhostContext);
+          }
+          Visit(s.SubStatements, inGhostContext);
+          return false;
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
           CheckTypeInstantiation(s.Tok, s.Method.WhatKind, s.Method.Name, s.Method.TypeArgs, s.MethodSelect.TypeApplication_JustMember, inGhostContext);
@@ -8264,7 +8274,7 @@ namespace Microsoft.Dafny
           var s = (BreakStmt)stmt;
           s.IsGhost = mustBeErasable;
           if (s.IsGhost && !s.TargetStmt.IsGhost) {
-            var targetIsLoop = s.TargetStmt is WhileStmt || s.TargetStmt is AlternativeLoopStmt;
+            var targetIsLoop = s.TargetStmt is LoopStmt;
             Error(stmt, "ghost-context break statement is not allowed to break out of non-ghost " + (targetIsLoop ? "loop" : "structure"));
           }
 
@@ -8515,6 +8525,29 @@ namespace Microsoft.Dafny
           }
           s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost)));
           s.IsGhost = s.IsGhost || (!s.Decreases.Expressions.Exists(e => e is WildcardExpr) && s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost)));
+
+        } else if (stmt is ForLoopStmt) {
+          var s = (ForLoopStmt)stmt;
+          s.IsGhost = mustBeErasable || resolver.UsesSpecFeatures(s.Start) || (s.End != null && resolver.UsesSpecFeatures(s.End));
+          if (!mustBeErasable && s.IsGhost) {
+            resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
+          }
+          if (s.IsGhost) {
+            if (s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
+              Error(s, "'decreases *' is not allowed on ghost loops");
+            } else if (s.End == null && s.Decreases.Expressions.Count == 0) {
+              Error(s, "a ghost loop must be terminating; make the end-expression specific or add a 'decreases' clause");
+            }
+          }
+          if (s.IsGhost && s.Mod.Expressions != null) {
+            s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
+          }
+          if (s.Body != null) {
+            Visit(s.Body, s.IsGhost);
+            if (s.Body.IsGhost) {
+              s.IsGhost = true;
+            }
+          }
 
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
@@ -10658,7 +10691,7 @@ namespace Microsoft.Dafny
     public void ResolveStatement(Statement stmt, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
-      if (!(stmt is ForallStmt)) {  // forall statements do their own attribute resolution below
+      if (!(stmt is ForallStmt || stmt is ForLoopStmt)) {  // "forall" and "for" statements do their own attribute resolution below
         ResolveAttributes(stmt.Attributes, stmt, new ResolveOpts(codeContext, true));
       }
       if (stmt is PredicateStmt) {
@@ -11011,15 +11044,45 @@ namespace Microsoft.Dafny
         var s = (AlternativeStmt)stmt;
         ResolveAlternatives(s.Alternatives, null, codeContext);
 
-      } else if (stmt is WhileStmt) {
-        WhileStmt s = (WhileStmt)stmt;
+      } else if (stmt is OneBodyLoopStmt) {
+        var s = (OneBodyLoopStmt)stmt;
         var fvs = new HashSet<IVariable>();
         var usesHeap = false;
-        if (s.Guard != null) {
-          ResolveExpression(s.Guard, new ResolveOpts(codeContext, true));
-          Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
-          Translator.ComputeFreeVariables(s.Guard, fvs, ref usesHeap);
-          ConstrainTypeExprBool(s.Guard, "condition is expected to be of type bool, but is {0}");
+        if (s is WhileStmt whileS && whileS.Guard != null) {
+          ResolveExpression(whileS.Guard, new ResolveOpts(codeContext, true));
+          Contract.Assert(whileS.Guard.Type != null);  // follows from postcondition of ResolveExpression
+          Translator.ComputeFreeVariables(whileS.Guard, fvs, ref usesHeap);
+          ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
+        } else if (s is ForLoopStmt forS) {
+          var loopIndex = forS.LoopIndex;
+          int prevErrorCount = reporter.Count(ErrorLevel.Error);
+          ResolveType(loopIndex.Tok, loopIndex.Type, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          var err = new TypeConstraint.ErrorMsgWithToken(loopIndex.Tok, "index variable is expected to be of an integer type (got {0})", loopIndex.Type);
+          ConstrainToIntegerType(loopIndex.Tok, loopIndex.Type, false, err);
+          fvs.Add(loopIndex);
+
+          ResolveExpression(forS.Start, new ResolveOpts(codeContext, true));
+          Translator.ComputeFreeVariables(forS.Start, fvs, ref usesHeap);
+          AddAssignableConstraint(forS.Start.tok, forS.LoopIndex.Type, forS.Start.Type, "lower bound (of type {1}) not assignable to index variable (of type {0})");
+          if (forS.End != null) {
+            ResolveExpression(forS.End, new ResolveOpts(codeContext, true));
+            Translator.ComputeFreeVariables(forS.End, fvs, ref usesHeap);
+            AddAssignableConstraint(forS.End.tok, forS.LoopIndex.Type, forS.End.Type, "upper bound (of type {1}) not assignable to index variable (of type {0})");
+            if (forS.Decreases.Expressions.Count != 0) {
+              reporter.Error(MessageSource.Resolver, forS.Decreases.Expressions[0].tok,
+                "a 'for' loop is allowed an explicit 'decreases' clause only if the end-expression is '*'");
+            }
+          } else if (forS.Decreases.Expressions.Count == 0 && !codeContext.AllowsNontermination) {
+            // note, the following error message is also emitted elsewhere (if the loop bears a "decreases *")
+            reporter.Error(MessageSource.Resolver, forS.Tok,
+              "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating" +
+              " (or you can add a 'decreases' clause to this 'for' loop if you want to prove that it does indeed terminate)");
+          }
+
+          // Create a new scope, add the local to the scope, and resolve the attributes
+          scope.PushMarker();
+          ScopePushAndReport(scope, loopIndex, "index-variable");
+          ResolveAttributes(s.Attributes, s, new ResolveOpts(codeContext, true));
         }
 
         ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, fvs, ref usesHeap);
@@ -11032,13 +11095,22 @@ namespace Microsoft.Dafny
           loopStack.RemoveAt(loopStack.Count - 1);  // pop
         } else {
           Contract.Assert(s.BodySurrogate == null);  // .BodySurrogate is set only once
-          s.BodySurrogate = new WhileStmt.LoopBodySurrogate(new List<IVariable>(fvs.Where(fv => fv.IsMutable)), usesHeap);
+          var loopFrame = new List<IVariable>();
+          if (s is ForLoopStmt forLoopStmt) {
+            loopFrame.Add(forLoopStmt.LoopIndex);
+          }
+          loopFrame.AddRange(fvs.Where(fv => fv.IsMutable));
+          s.BodySurrogate = new WhileStmt.LoopBodySurrogate(loopFrame, usesHeap);
           var text = Util.Comma(s.BodySurrogate.LocalLoopTargets, fv => fv.Name);
           if (s.BodySurrogate.UsesHeap) {
             text += text.Length == 0 ? "$Heap" : ", $Heap";
           }
           text = string.Format("note, this loop has no body{0}", text.Length == 0 ? "" : " (loop frame: " + text + ")");
           reporter.Warning(MessageSource.Resolver, s.Tok, text);
+        }
+
+        if (s is ForLoopStmt) {
+          scope.PopMarker();
         }
 
       } else if (stmt is AlternativeLoopStmt) {
@@ -13264,8 +13336,8 @@ namespace Microsoft.Dafny
           }
         }
 
-      } else if (stmt is WhileStmt) {
-        WhileStmt s = (WhileStmt)stmt;
+      } else if (stmt is OneBodyLoopStmt) {
+        var s = (OneBodyLoopStmt)stmt;
         if (s.Body != null) {
           CheckForallStatementBodyRestrictions(s.Body, kind);
         }
@@ -13398,10 +13470,10 @@ namespace Microsoft.Dafny
           }
         }
 
-      } else if (stmt is WhileStmt) {
-        var s = (WhileStmt)stmt;
+      } else if (stmt is OneBodyLoopStmt) {
+        var s = (OneBodyLoopStmt)stmt;
         if (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-          reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a while statement used inside {0} is not allowed to have a modifies clause", where);
+          reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a loop statement used inside {0} is not allowed to have a modifies clause", where);
         }
         if (s.Body != null) {
           CheckHintRestrictions(s.Body, localsAllowedInUpdates, where);
@@ -13409,6 +13481,9 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
+        if (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
+          reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a loop statement used inside {0} is not allowed to have a modifies clause", where);
+        }
         foreach (var alt in s.Alternatives) {
           foreach (var ss in alt.Body) {
             CheckHintRestrictions(ss, localsAllowedInUpdates, where);

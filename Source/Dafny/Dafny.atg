@@ -788,8 +788,8 @@ TOKENS
   invariant = "invariant".
   function = "function".
   predicate = "predicate".
-  least = "least".
-  greatest = "greatest".
+  least = "least". /* not a keyword by itself, but part of a keyword phrase */
+  greatest = "greatest". /* not a keyword by itself, but part of a keyword phrase */
   inductive = "inductive".
   twostate = "twostate".
   copredicate = "copredicate".
@@ -2388,6 +2388,7 @@ OneStmt<out Statement/*!*/ s>
   | ReturnStmt<out s>
   | IfStmt<out s>
   | WhileStmt<out s>
+  | ForLoopStmt<out s>
   | AssertStmt<out s, false>
   | AssumeStmt<out s>
   | BreakStmt<out s>
@@ -2847,6 +2848,62 @@ WhileStmt<out Statement stmt>
   )
   .
 
+ForLoopStmt<out Statement stmt>
+= (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null);
+     IToken x;
+     BoundVar loopIndex;
+     Expression start;
+     Expression end = null;
+     bool goingUp = true;
+
+     Attributes attrs = null;
+
+     List<AttributedExpression> invariants = new List<AttributedExpression>();
+     List<Expression> decreases = new List<Expression>();
+     Attributes decAttrs = null;
+     Attributes modAttrs = null;
+     List<FrameExpression> mod = null;
+
+     BlockStmt body = null;
+     IToken bodyStart = null, bodyEnd = null, endTok = Token.NoToken;
+     stmt = dummyStmt;  // to please the compiler
+     bool isDirtyLoop = true;
+  .)
+  "for"                    (. x = t; .)
+  { Attribute<ref attrs> }
+  IdentTypeOptional<out loopIndex>
+  ":="
+  Expression<out start, false, false>
+  ForLoopDirection<out goingUp>
+  ( Expression<out end, false, false>
+  | "*"
+  )
+  LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
+  ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
+    BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
+  | /* go body-less */
+  )
+  (.
+    // The following statement protects against crashes in case of parsing errors
+    if (body == null && !isDirtyLoop) {
+      body = new BlockStmt(x, endTok, new List<Statement>());
+    }
+    stmt = new ForLoopStmt(x, endTok, loopIndex, start, end, goingUp,
+      invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
+  .)
+  .
+
+ForLoopDirection<out bool goingUp>
+= (. goingUp = true; .)
+  ident
+  (. if (t.val == "downto") {
+       goingUp = false;
+     } else if (t.val != "to") {
+       SemErr(t, "Expected 'to' or 'downto'");
+     }
+  .)
+  .
+
 /*------------------------------------------------------------------------*/
 LoopSpec<.List<AttributedExpression> invariants, List<Expression> decreases, ref List<FrameExpression> mod, ref Attributes decAttrs, ref Attributes modAttrs.>
 = { SYNC
@@ -2866,7 +2923,6 @@ DecreasesList<.List<Expression> decreases, bool allowWildcard, bool allowLambda.
   }
   (. if (allowWildcard && decreases.Count > 1 && decreases.Exists(e => e is WildcardExpr)) {
        SemErr(e.tok, "A 'decreases' clause that contains '*' is not allowed to contain any other expressions");
-
      }
   .)
   .

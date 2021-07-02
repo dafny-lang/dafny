@@ -8125,11 +8125,29 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class WhileStmt : LoopStmt
+  public abstract class OneBodyLoopStmt : LoopStmt {
+    public readonly BlockStmt/*?*/ Body;
+    public WhileStmt.LoopBodySurrogate/*?*/ BodySurrogate;  // set by Resolver; remains null unless Body==null
+
+    public OneBodyLoopStmt(IToken tok, IToken endTok,
+      List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
+      BlockStmt /*?*/ body, Attributes/*?*/ attrs)
+      : base(tok, endTok, invariants, decreases, mod, attrs) {
+      Body = body;
+    }
+
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        if (Body != null) {
+          yield return Body;
+        }
+      }
+    }
+  }
+
+  public class WhileStmt : OneBodyLoopStmt
   {
     public readonly Expression/*?*/ Guard;
-    public readonly BlockStmt/*?*/ Body;
-    public LoopBodySurrogate/*?*/ BodySurrogate;  // set by Resolver; remains null unless Body==null
 
     public class LoopBodySurrogate
     {
@@ -8145,21 +8163,21 @@ namespace Microsoft.Dafny {
     public WhileStmt(IToken tok, IToken endTok, Expression guard,
                      List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
                      BlockStmt body)
-      : base(tok, endTok, invariants, decreases, mod) {
+      : base(tok, endTok, invariants, decreases, mod, body, null) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       this.Guard = guard;
-      this.Body = body;
     }
+
     public WhileStmt(IToken tok, IToken endTok, Expression guard,
                  List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
                  BlockStmt body, Attributes attrs)
-      : base(tok, endTok, invariants, decreases, mod, attrs) {
+      : base(tok, endTok, invariants, decreases, mod, body, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       this.Guard = guard;
-      this.Body = body;
     }
+
     public override IEnumerable<Statement> SubStatements {
       get {
         if (Body != null) {
@@ -8190,6 +8208,41 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(body != null);
+    }
+  }
+
+  public class ForLoopStmt : OneBodyLoopStmt {
+    public readonly BoundVar LoopIndex;
+    public readonly Expression Start;
+    public readonly Expression/*?*/ End;
+    public readonly bool GoingUp;
+
+    public ForLoopStmt(IToken tok, IToken endTok, BoundVar loopIndexVariable, Expression start, Expression/*?*/ end, bool goingUp,
+      List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
+      BlockStmt /*?*/ body, Attributes attrs)
+      : base(tok, endTok, invariants, decreases, mod, body, attrs)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(loopIndexVariable != null);
+      Contract.Requires(start != null);
+      Contract.Requires(invariants != null);
+      Contract.Requires(decreases != null);
+      Contract.Requires(mod != null);
+      LoopIndex = loopIndexVariable;
+      Start = start;
+      End = end;
+      GoingUp = goingUp;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in base.SubExpressions) { yield return e; }
+        yield return Start;
+        if (End != null) {
+          yield return End;
+        }
+      }
     }
   }
 
