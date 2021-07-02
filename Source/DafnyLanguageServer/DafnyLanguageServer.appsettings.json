@@ -17,7 +17,7 @@
       {
         "Name": "File",
         "Args": {
-          "path": "%DAFNYLS_APP_DIR%/dafnyls.log",
+          "path": "%DAFNYLS_APP_DIR%/DafnyLanguageServer.log",
           "rollingInterval": "Day",
           "retainedFileCountLimit": 1,
           "outputTemplate": "[{Timestamp:HH:mm:ss} {Level:u3} {SourceContext:l}] {Message:lj}{NewLine}{Exception}"
