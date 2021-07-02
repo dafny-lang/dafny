@@ -147,6 +147,9 @@
       case WhileStmt whileStatement:
         Visit(whileStatement);
         break;
+      case ForLoopStmt forStatement:
+        Visit(forStatement);
+        break;
       case AlternativeLoopStmt alternativeLoopStmt:
         Visit(alternativeLoopStmt);
         break;
@@ -253,6 +256,19 @@
       //Visit(whileStatement.Decreases);
       Visit(whileStatement.Mod);
       VisitNullableBlock(whileStatement.Body);
+    }
+
+    public virtual void Visit(ForLoopStmt forStatement) {
+      VisitNullableAttributes(forStatement.Attributes);
+      Visit(forStatement.Start);
+      VisitNullableExpression(forStatement.End);
+      VisitNullableAttributes(forStatement.Attributes);
+      foreach(var invariant in forStatement.Invariants) {
+        Visit(invariant);
+      }
+      Visit(forStatement.Decreases);
+      Visit(forStatement.Mod);
+      VisitNullableBlock(forStatement.Body);
     }
 
     public virtual void Visit(AlternativeLoopStmt alternativeLoopStatement) {

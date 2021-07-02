@@ -41,4 +41,9 @@ ParseErrors.dfy(156,22): Error: a set comprehension with more than one bound var
 ParseErrors.dfy(163,2): Error: mutable fields are not allowed in value types
 ParseErrors.dfy(167,2): Error: mutable fields are not allowed in value types
 ParseErrors.dfy(170,2): Error: mutable fields are not allowed in value types
-43 parse errors detected in ParseErrors.dfy
+ParseErrors.dfy(178,14): Error: use of the 'nameonly' modifier must be accompanied with a parameter name
+ParseErrors.dfy(179,14): Error: use of the 'nameonly' modifier must be accompanied with a parameter name
+ParseErrors.dfy(183,23): Error: closeparen expected
+ParseErrors.dfy(186,28): Error: formal cannot be declared 'nameonly' in this context
+ParseErrors.dfy(189,33): Error: formal cannot be declared 'nameonly' in this context
+48 parse errors detected in ParseErrors.dfy

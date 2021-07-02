@@ -7101,8 +7101,8 @@ namespace Microsoft.Dafny
           }
         }
         return status;
-      } else if (stmt is WhileStmt) {
-        var s = (WhileStmt)stmt;
+      } else if (stmt is OneBodyLoopStmt) {
+        var s = (OneBodyLoopStmt)stmt;
         var status = TailRecursionStatus.NotTailRecursive;
         if (s.Body != null) {
           status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
@@ -7859,6 +7859,16 @@ namespace Microsoft.Dafny
           }
           Visit(s.SubStatements, inGhostContext);
           return false;
+        } else if (stmt is ForLoopStmt) {
+          var s = (ForLoopStmt)stmt;
+          // all subexpressions are ghost, except the bounds
+          Visit(s.LoopSpecificationExpressions, true);
+          Visit(s.Start, inGhostContext);
+          if (s.End != null) {
+            Visit(s.End, inGhostContext);
+          }
+          Visit(s.SubStatements, inGhostContext);
+          return false;
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
           CheckTypeInstantiation(s.Tok, s.Method.WhatKind, s.Method.Name, s.Method.TypeArgs, s.MethodSelect.TypeApplication_JustMember, inGhostContext);
@@ -8264,7 +8274,7 @@ namespace Microsoft.Dafny
           var s = (BreakStmt)stmt;
           s.IsGhost = mustBeErasable;
           if (s.IsGhost && !s.TargetStmt.IsGhost) {
-            var targetIsLoop = s.TargetStmt is WhileStmt || s.TargetStmt is AlternativeLoopStmt;
+            var targetIsLoop = s.TargetStmt is LoopStmt;
             Error(stmt, "ghost-context break statement is not allowed to break out of non-ghost " + (targetIsLoop ? "loop" : "structure"));
           }
 
@@ -8515,6 +8525,29 @@ namespace Microsoft.Dafny
           }
           s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost)));
           s.IsGhost = s.IsGhost || (!s.Decreases.Expressions.Exists(e => e is WildcardExpr) && s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost)));
+
+        } else if (stmt is ForLoopStmt) {
+          var s = (ForLoopStmt)stmt;
+          s.IsGhost = mustBeErasable || resolver.UsesSpecFeatures(s.Start) || (s.End != null && resolver.UsesSpecFeatures(s.End));
+          if (!mustBeErasable && s.IsGhost) {
+            resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
+          }
+          if (s.IsGhost) {
+            if (s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
+              Error(s, "'decreases *' is not allowed on ghost loops");
+            } else if (s.End == null && s.Decreases.Expressions.Count == 0) {
+              Error(s, "a ghost loop must be terminating; make the end-expression specific or add a 'decreases' clause");
+            }
+          }
+          if (s.IsGhost && s.Mod.Expressions != null) {
+            s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
+          }
+          if (s.Body != null) {
+            Visit(s.Body, s.IsGhost);
+            if (s.Body.IsGhost) {
+              s.IsGhost = true;
+            }
+          }
 
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
@@ -9652,6 +9685,7 @@ namespace Microsoft.Dafny
 
       var dependencies = new Graph<IVariable>();
       var allowMoreRequiredParameters = true;
+      var allowNamelessParameters = true;
       foreach (var formal in formals) {
         var d = formal.DefaultValue;
         if (d != null) {
@@ -9662,7 +9696,13 @@ namespace Microsoft.Dafny
             dependencies.AddEdge(formal, v);
           }
         } else if (!allowMoreRequiredParameters) {
-          reporter.Error(MessageSource.Resolver, formal.tok, "all required parameters must precede any optional parameters");
+          reporter.Error(MessageSource.Resolver, formal.tok, "a required parameter must precede all optional parameters");
+        }
+        if (!allowNamelessParameters && !formal.HasName) {
+          reporter.Error(MessageSource.Resolver, formal.tok, "a nameless parameter must precede all nameonly parameters");
+        }
+        if (formal.IsNameOnly) {
+          allowNamelessParameters = false;
         }
       }
       SolveAllTypeConstraints();
@@ -10651,7 +10691,7 @@ namespace Microsoft.Dafny
     public void ResolveStatement(Statement stmt, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
-      if (!(stmt is ForallStmt)) {  // forall statements do their own attribute resolution below
+      if (!(stmt is ForallStmt || stmt is ForLoopStmt)) {  // "forall" and "for" statements do their own attribute resolution below
         ResolveAttributes(stmt.Attributes, stmt, new ResolveOpts(codeContext, true));
       }
       if (stmt is PredicateStmt) {
@@ -11004,15 +11044,45 @@ namespace Microsoft.Dafny
         var s = (AlternativeStmt)stmt;
         ResolveAlternatives(s.Alternatives, null, codeContext);
 
-      } else if (stmt is WhileStmt) {
-        WhileStmt s = (WhileStmt)stmt;
+      } else if (stmt is OneBodyLoopStmt) {
+        var s = (OneBodyLoopStmt)stmt;
         var fvs = new HashSet<IVariable>();
         var usesHeap = false;
-        if (s.Guard != null) {
-          ResolveExpression(s.Guard, new ResolveOpts(codeContext, true));
-          Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
-          Translator.ComputeFreeVariables(s.Guard, fvs, ref usesHeap);
-          ConstrainTypeExprBool(s.Guard, "condition is expected to be of type bool, but is {0}");
+        if (s is WhileStmt whileS && whileS.Guard != null) {
+          ResolveExpression(whileS.Guard, new ResolveOpts(codeContext, true));
+          Contract.Assert(whileS.Guard.Type != null);  // follows from postcondition of ResolveExpression
+          Translator.ComputeFreeVariables(whileS.Guard, fvs, ref usesHeap);
+          ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
+        } else if (s is ForLoopStmt forS) {
+          var loopIndex = forS.LoopIndex;
+          int prevErrorCount = reporter.Count(ErrorLevel.Error);
+          ResolveType(loopIndex.Tok, loopIndex.Type, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          var err = new TypeConstraint.ErrorMsgWithToken(loopIndex.Tok, "index variable is expected to be of an integer type (got {0})", loopIndex.Type);
+          ConstrainToIntegerType(loopIndex.Tok, loopIndex.Type, false, err);
+          fvs.Add(loopIndex);
+
+          ResolveExpression(forS.Start, new ResolveOpts(codeContext, true));
+          Translator.ComputeFreeVariables(forS.Start, fvs, ref usesHeap);
+          AddAssignableConstraint(forS.Start.tok, forS.LoopIndex.Type, forS.Start.Type, "lower bound (of type {1}) not assignable to index variable (of type {0})");
+          if (forS.End != null) {
+            ResolveExpression(forS.End, new ResolveOpts(codeContext, true));
+            Translator.ComputeFreeVariables(forS.End, fvs, ref usesHeap);
+            AddAssignableConstraint(forS.End.tok, forS.LoopIndex.Type, forS.End.Type, "upper bound (of type {1}) not assignable to index variable (of type {0})");
+            if (forS.Decreases.Expressions.Count != 0) {
+              reporter.Error(MessageSource.Resolver, forS.Decreases.Expressions[0].tok,
+                "a 'for' loop is allowed an explicit 'decreases' clause only if the end-expression is '*'");
+            }
+          } else if (forS.Decreases.Expressions.Count == 0 && !codeContext.AllowsNontermination) {
+            // note, the following error message is also emitted elsewhere (if the loop bears a "decreases *")
+            reporter.Error(MessageSource.Resolver, forS.Tok,
+              "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating" +
+              " (or you can add a 'decreases' clause to this 'for' loop if you want to prove that it does indeed terminate)");
+          }
+
+          // Create a new scope, add the local to the scope, and resolve the attributes
+          scope.PushMarker();
+          ScopePushAndReport(scope, loopIndex, "index-variable");
+          ResolveAttributes(s.Attributes, s, new ResolveOpts(codeContext, true));
         }
 
         ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, fvs, ref usesHeap);
@@ -11025,13 +11095,22 @@ namespace Microsoft.Dafny
           loopStack.RemoveAt(loopStack.Count - 1);  // pop
         } else {
           Contract.Assert(s.BodySurrogate == null);  // .BodySurrogate is set only once
-          s.BodySurrogate = new WhileStmt.LoopBodySurrogate(new List<IVariable>(fvs.Where(fv => fv.IsMutable)), usesHeap);
+          var loopFrame = new List<IVariable>();
+          if (s is ForLoopStmt forLoopStmt) {
+            loopFrame.Add(forLoopStmt.LoopIndex);
+          }
+          loopFrame.AddRange(fvs.Where(fv => fv.IsMutable));
+          s.BodySurrogate = new WhileStmt.LoopBodySurrogate(loopFrame, usesHeap);
           var text = Util.Comma(s.BodySurrogate.LocalLoopTargets, fv => fv.Name);
           if (s.BodySurrogate.UsesHeap) {
             text += text.Length == 0 ? "$Heap" : ", $Heap";
           }
           text = string.Format("note, this loop has no body{0}", text.Length == 0 ? "" : " (loop frame: " + text + ")");
           reporter.Warning(MessageSource.Resolver, s.Tok, text);
+        }
+
+        if (s is ForLoopStmt) {
+          scope.PopMarker();
         }
 
       } else if (stmt is AlternativeLoopStmt) {
@@ -11428,8 +11507,9 @@ namespace Microsoft.Dafny
       public bool Debug;
       public readonly ICodeContext CodeContext;
       public List<ExtendedPattern> MissingCases;
+      public Attributes Attributes;
 
-      public MatchTempInfo(IToken tok, int branchidnum, ICodeContext codeContext, bool debug = false) {
+      public MatchTempInfo(IToken tok, int branchidnum, ICodeContext codeContext, bool debug = false, Attributes attrs = null) {
         int[] init = new int[branchidnum];
         for (int i = 0; i < branchidnum; i++) {
           init[i] = 1;
@@ -11442,9 +11522,9 @@ namespace Microsoft.Dafny
         this.Debug = debug;
         this.CodeContext = codeContext;
         this.MissingCases = new List<ExtendedPattern>();
+        this.Attributes = attrs;
       }
-
-      public MatchTempInfo(IToken tok, IToken endtok, int branchidnum, ICodeContext codeContext, bool debug = false) {
+      public MatchTempInfo(IToken tok, IToken endtok, int branchidnum, ICodeContext codeContext, bool debug = false, Attributes attrs = null) {
         int[] init = new int[branchidnum];
         for (int i = 0; i < branchidnum; i++) {
           init[i] = 1;
@@ -11457,6 +11537,7 @@ namespace Microsoft.Dafny
         this.Debug = debug;
         this.CodeContext = codeContext;
         this.MissingCases = new List<ExtendedPattern>();
+        this.Attributes = attrs;
       }
 
       public void UpdateBranchID(int branchID, int update) {
@@ -11489,9 +11570,11 @@ namespace Microsoft.Dafny
     private class CStmt : SyntaxContainer
     {
       public readonly Statement Body;
+      public Attributes Attributes;
 
-      public CStmt(IToken tok, Statement body) : base(tok) {
+      public CStmt(IToken tok, Statement body, Attributes attrs = null) : base(tok) {
         this.Body = body;
+        this.Attributes = attrs;
       }
     }
 
@@ -11525,13 +11608,16 @@ namespace Microsoft.Dafny
 
     private class RBranchStmt : RBranch {
       public List<Statement> Body;
+      public Attributes Attributes;
 
-      public RBranchStmt(IToken tok, int branchid, List<ExtendedPattern> patterns, List<Statement> body) : base(tok, branchid, patterns) {
+      public RBranchStmt(IToken tok, int branchid, List<ExtendedPattern> patterns, List<Statement> body, Attributes attrs = null) : base(tok, branchid, patterns) {
         this.Body = body;
+        this.Attributes = attrs;
       }
 
-      public RBranchStmt(int branchid, NestedMatchCaseStmt x) : base(x.Tok, branchid, new List<ExtendedPattern>()) {
+      public RBranchStmt(int branchid, NestedMatchCaseStmt x, Attributes attrs = null) : base(x.Tok, branchid, new List<ExtendedPattern>()) {
         this.Body = x.Body.ConvertAll((new Cloner()).CloneStmt);
+        this.Attributes = attrs;
         this.Patterns.Add(x.Pat);
       }
 
@@ -11565,7 +11651,7 @@ namespace Microsoft.Dafny
     // deep clone Patterns and Body
     private static RBranchStmt CloneRBranchStmt(RBranchStmt branch) {
       Cloner cloner = new Cloner();
-      return new RBranchStmt(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x=> cloner.CloneStmt(x)));
+      return new RBranchStmt(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x=> cloner.CloneStmt(x)), cloner.CloneAttributes(branch.Attributes));
     }
 
     private static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
@@ -11591,8 +11677,8 @@ namespace Microsoft.Dafny
     }
 
     private SyntaxContainer PackBody(IToken tok, RBranch branch) {
-      if (branch is RBranchStmt) {
-        return new CStmt(tok, new BlockStmt(tok, tok, ((RBranchStmt)branch).Body));
+      if (branch is RBranchStmt br) {
+        return new CStmt(tok, new BlockStmt(tok, tok, br.Body), br.Attributes);
       } else if (branch is RBranchExpr) {
         return new CExpr(tok, ((RBranchExpr)branch).Body);
       } else {
@@ -11707,9 +11793,9 @@ namespace Microsoft.Dafny
 
     private MatchCase MakeMatchCaseFromContainer(IToken tok, KeyValuePair<string, DatatypeCtor> ctor, List<BoundVar> freshPatBV, SyntaxContainer insideContainer) {
       MatchCase newMatchCase;
-      if (insideContainer is CStmt) {
+      if (insideContainer is CStmt c) {
         List<Statement> insideBranch = UnboxStmtContainer(insideContainer);
-        newMatchCase = new MatchCaseStmt(tok, ctor.Value,  freshPatBV, insideBranch);
+        newMatchCase = new MatchCaseStmt(tok, ctor.Value,  freshPatBV, insideBranch, c.Attributes);
       } else {
         var insideBranch = ((CExpr)insideContainer).Body;
         newMatchCase = new MatchCaseExpr(tok, ctor.Value,  freshPatBV, insideBranch);
@@ -11855,6 +11941,7 @@ namespace Microsoft.Dafny
 
         // rhs to bind to head-patterns that are bound variables
         var rhsExpr = currMatchee;
+        var ctorCounter = 0;
 
         // -- filter branches for each constructor
         for (int i = 0; i < pairPB.Count; i++) {
@@ -11873,6 +11960,7 @@ namespace Microsoft.Dafny
               }
               currBranch.Patterns.InsertRange(0, currPattern.Arguments);
               currBranches.Add(currBranch);
+              ctorCounter++;
             } else if (ctors.ContainsKey(currPattern.Id) && currPattern.Arguments != null) {
               // ==[3.2]== If the pattern is a different constructor, drop the branch
               mti.UpdateBranchID(PB.Item2.BranchID, -1);
@@ -11915,14 +12003,21 @@ namespace Microsoft.Dafny
           // Otherwise, add the case the new match created at [3]
           var tok = insideContainer.Tok is null ? currMatchee.tok : insideContainer.Tok;
           MatchCase newMatchCase = MakeMatchCaseFromContainer(tok, ctor, freshPatBV, insideContainer);
+          // newMatchCase.Attributes = (new Cloner()).CloneAttributes(mti.Attributes);
           newMatchCases.Add(newMatchCase);
-
         }
       }
       // Generate and pack the right kind of Match
       if (mti.isStmt) {
-        var newMatchStmt = new MatchStmt(mti.Tok, mti.EndTok, currMatchee, newMatchCases.ConvertAll(x => (MatchCaseStmt)x), true, context);
-        return new CStmt(null, newMatchStmt);
+        var newMatchCaseStmts = newMatchCases.Select(x => (MatchCaseStmt)x).ToList();
+        foreach (var c in newMatchCaseStmts) {
+          if (Attributes.Contains(c.Attributes, "split")) continue;
+          var args = new List<Expression>();
+          args.Add(new LiteralExpr(mti.Tok, false));
+          c.Attributes = new Attributes("split", args, c.Attributes);
+        }
+        var newMatchStmt = new MatchStmt(mti.Tok, mti.EndTok, currMatchee, newMatchCaseStmts, true, mti.Attributes, context);
+        return new CStmt(null, newMatchStmt); //Wokring HERE
       } else {
         var newMatchExpr = new MatchExpr(mti.Tok, currMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
         return new CExpr(null, newMatchExpr);
@@ -12095,13 +12190,13 @@ namespace Microsoft.Dafny
       if (DafnyOptions.O.MatchCompilerDebug) Console.WriteLine("DEBUG: CompileNestedMatchStmt for match at line {0}", s.Tok.line);
 
       // initialize the MatchTempInfo to record position and duplication information about each branch
-      MatchTempInfo mti = new MatchTempInfo(s.Tok, s.EndTok, s.Cases.Count(), codeContext, DafnyOptions.O.MatchCompilerDebug);
+      MatchTempInfo mti = new MatchTempInfo(s.Tok, s.EndTok, s.Cases.Count(), codeContext, DafnyOptions.O.MatchCompilerDebug, s.Attributes);
 
       // create Rbranches from NestedMatchCaseStmt and set the branch tokens in mti
       List<RBranch> branches = new List<RBranch>();
       for (int id = 0; id < s.Cases.Count(); id++) {
         var branch = s.Cases.ElementAt(id);
-        branches.Add(new RBranchStmt(id, branch));
+        branches.Add(new RBranchStmt(id, branch, branch.Attributes));
         mti.BranchTok[id] = branch.Tok;
       }
       List<Expression> matchees = new List<Expression>();
@@ -12109,12 +12204,11 @@ namespace Microsoft.Dafny
       SyntaxContainer rb = CompileRBranch(mti, new HoleCtx(), matchees, branches);
       if (rb is null) {
         // Happens only if the nested match has no cases, create a MatchStmt with no branches.
-        s.ResolvedStatement = new MatchStmt(s.Tok, s.EndTok, (new Cloner()).CloneExpr(s.Source), new List<MatchCaseStmt>(), s.UsesOptionalBraces);
-
-      } else if (rb is CStmt) {
+        s.ResolvedStatement = new MatchStmt(s.Tok, s.EndTok, (new Cloner()).CloneExpr(s.Source), new List<MatchCaseStmt>(), s.UsesOptionalBraces, s.Attributes);
+      } else if (rb is CStmt c) {
         // Resolve s as desugared match
-        s.ResolvedStatement = ((CStmt)rb).Body;
-
+        s.ResolvedStatement = c.Body;
+        s.ResolvedStatement.Attributes = (new Cloner()).CloneAttributes(s.Attributes);
         for (int id = 0; id < mti.BranchIDCount.Length; id++) {
           if (mti.BranchIDCount[id] <= 0) {
             reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant");
@@ -12305,6 +12399,7 @@ namespace Microsoft.Dafny
     private void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms, ResolveOpts opts) {
       foreach(NestedMatchCaseStmt mc in ms.Cases) {
         scope.PushMarker();
+        ResolveAttributes(mc.Attributes, null, opts);
         CheckLinearNestedMatchCase(dtd, mc, opts);
         scope.PopMarker();
       }
@@ -12952,6 +13047,7 @@ namespace Microsoft.Dafny
             ScopePushAndReport(scope, v, "bound-variable");
           }
         }
+        ResolveAttributes(alternative.Attributes, null, new ResolveOpts(codeContext, true));
         foreach (Statement ss in alternative.Body) {
           ResolveStatement(ss, codeContext);
         }
@@ -13240,8 +13336,8 @@ namespace Microsoft.Dafny
           }
         }
 
-      } else if (stmt is WhileStmt) {
-        WhileStmt s = (WhileStmt)stmt;
+      } else if (stmt is OneBodyLoopStmt) {
+        var s = (OneBodyLoopStmt)stmt;
         if (s.Body != null) {
           CheckForallStatementBodyRestrictions(s.Body, kind);
         }
@@ -13374,10 +13470,10 @@ namespace Microsoft.Dafny
           }
         }
 
-      } else if (stmt is WhileStmt) {
-        var s = (WhileStmt)stmt;
+      } else if (stmt is OneBodyLoopStmt) {
+        var s = (OneBodyLoopStmt)stmt;
         if (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-          reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a while statement used inside {0} is not allowed to have a modifies clause", where);
+          reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a loop statement used inside {0} is not allowed to have a modifies clause", where);
         }
         if (s.Body != null) {
           CheckHintRestrictions(s.Body, localsAllowedInUpdates, where);
@@ -13385,6 +13481,9 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
+        if (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
+          reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a loop statement used inside {0} is not allowed to have a modifies clause", where);
+        }
         foreach (var alt in s.Alternatives) {
           foreach (var ss in alt.Body) {
             CheckHintRestrictions(ss, localsAllowedInUpdates, where);
@@ -16585,8 +16684,13 @@ namespace Microsoft.Dafny
         } else if (!stillAcceptingPositionalArguments) {
           reporter.Error(MessageSource.Resolver, arg.tok, "a positional argument is not allowed to follow named arguments");
         } else if (j < formals.Count) {
-          // use the name of formal corresponding to this positional argument
-          var pname = formals[j].Name;
+          // use the name of formal corresponding to this positional argument, unless the parameter is named-only
+          var formal = formals[j];
+          var pname = formal.Name;
+          if (formal.IsNameOnly) {
+            reporter.Error(MessageSource.Resolver, arg.tok,
+              $"nameonly parameter '{pname}' must be passed using a name binding; it cannot be passed positionally");
+          }
           Contract.Assert(namesToActuals[pname] == null); // we expect this, since we've only filled parameters positionally so far
           namesToActuals[pname] = binding;
         } else {

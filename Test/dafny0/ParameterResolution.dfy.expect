@@ -52,11 +52,11 @@ ParameterResolution.dfy(198,37): Error: type parameter 'X' (inferred to be '?') 
 ParameterResolution.dfy(193,21): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
 ParameterResolution.dfy(194,13): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
 ParameterResolution.dfy(196,23): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
-ParameterResolution.dfy(202,37): Error: all required parameters must precede any optional parameters
-ParameterResolution.dfy(203,29): Error: all required parameters must precede any optional parameters
-ParameterResolution.dfy(203,29): Error: all required parameters must precede any optional parameters
-ParameterResolution.dfy(204,27): Error: all required parameters must precede any optional parameters
-ParameterResolution.dfy(205,37): Error: all required parameters must precede any optional parameters
+ParameterResolution.dfy(202,37): Error: a required parameter must precede all optional parameters
+ParameterResolution.dfy(203,29): Error: a required parameter must precede all optional parameters
+ParameterResolution.dfy(203,29): Error: a required parameter must precede all optional parameters
+ParameterResolution.dfy(204,27): Error: a required parameter must precede all optional parameters
+ParameterResolution.dfy(205,37): Error: a required parameter must precede all optional parameters
 ParameterResolution.dfy(211,23): Error: old expressions are not allowed in this context
 ParameterResolution.dfy(213,32): Error: old expressions are not allowed in this context
 ParameterResolution.dfy(216,32): Error: old expressions are not allowed in this context
@@ -73,4 +73,29 @@ ParameterResolution.dfy(252,21): Error: Duplicate parameter name: x
 ParameterResolution.dfy(259,11): Error: default-value expressions for parameters contain a cycle: x -> x
 ParameterResolution.dfy(260,35): Error: unresolved identifier: _k
 ParameterResolution.dfy(261,26): Error: unresolved identifier: _k
-75 resolution/type errors detected in ParameterResolution.dfy
+ParameterResolution.dfy(284,30): Error: a required parameter must precede all optional parameters
+ParameterResolution.dfy(285,39): Error: a required parameter must precede all optional parameters
+ParameterResolution.dfy(286,34): Error: a nameless parameter must precede all nameonly parameters
+ParameterResolution.dfy(290,21): Error: nameonly parameter 'c' must be passed using a name binding; it cannot be passed positionally
+ParameterResolution.dfy(297,26): Error: nameonly parameter 'c' must be passed using a name binding; it cannot be passed positionally
+ParameterResolution.dfy(301,34): Error: a positional argument is not allowed to follow named arguments
+ParameterResolution.dfy(305,23): Error: nameonly parameter 'b' must be passed using a name binding; it cannot be passed positionally
+ParameterResolution.dfy(308,28): Error: the binding named 'unknown' does not correspond to any formal parameter
+ParameterResolution.dfy(312,19): Error: a positional argument is not allowed to follow named arguments
+ParameterResolution.dfy(313,11): Error: nameonly parameter 'b' must be passed using a name binding; it cannot be passed positionally
+ParameterResolution.dfy(313,16): Error: the parameter named 'b' is already given positionally
+ParameterResolution.dfy(314,21): Error: duplicate binding for parameter name 'b'
+ParameterResolution.dfy(323,16): Error: nameonly parameter 'b' must be passed using a name binding; it cannot be passed positionally
+ParameterResolution.dfy(328,15): Error: wrong number of arguments (least predicate 'LP' expects at least 2, got 1)
+ParameterResolution.dfy(329,15): Error: no actual argument passed for least predicate argument 'b'
+ParameterResolution.dfy(333,36): Error: the parameter named 'a' is already given positionally
+ParameterResolution.dfy(336,21): Error: nameonly parameter 'u' must be passed using a name binding; it cannot be passed positionally
+ParameterResolution.dfy(337,29): Error: a positional argument is not allowed to follow named arguments
+ParameterResolution.dfy(337,12): Error: no actual argument passed for constructor in-parameter 'x'
+ParameterResolution.dfy(340,37): Error: duplicate binding for parameter name 'x'
+ParameterResolution.dfy(343,12): Error: unresolved identifier: a
+ParameterResolution.dfy(351,15): Error: nameonly parameter '900' must be passed using a name binding; it cannot be passed positionally
+ParameterResolution.dfy(355,15): Error: the binding named '0900' does not correspond to any formal parameter
+ParameterResolution.dfy(355,9): Error: no actual argument passed for datatype constructor argument '900'
+ParameterResolution.dfy(356,25): Error: the binding named '90_0' does not correspond to any formal parameter
+100 resolution/type errors detected in ParameterResolution.dfy

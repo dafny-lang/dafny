@@ -1455,7 +1455,9 @@ Positional arguments must be given before any named arguments.
 Positional arguments are passed to the formals in the corresponding
 position. Named arguments are passed to the formal of the given
 name. Named arguments can be given out of order from how the corresponding
-formal parameters are declared. The list of bindings for a call must
+formal parameters are declared. A formal declared with the modifier
+`nameonly` is not allowed to be passed positionally.
+The list of bindings for a call must
 provide exactly one value for every required parameter and at most one
 value for each optional parameter, and must never name
 non-existent formals. Any optional parameter that is not given a value
@@ -1467,7 +1469,8 @@ The formal parameters of a method, constructor in a class, iterator,
 function, or datatype constructor can be declared with an expression
 denoting a _default value_. This makes the parameter _optional_,
 as opposed to _required_. All required parameters must be declared
-before any optional parameters.
+before any optional parameters. All nameless parameters in a datatype
+constructor must be declared before any `nameonly` parameters.
 
 The default-value expression for a parameter is allowed to mention the
 other parameters, including `this` (for instance methods and instance
