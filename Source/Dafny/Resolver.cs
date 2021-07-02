@@ -2105,7 +2105,7 @@ namespace Microsoft.Dafny
 
               // create and add the query "method" (field, really)
               string queryName = ctor.Name + "?";
-              var query = new SpecialField(ctor.tok, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.CompileName,
+              var query = new SpecialField(ctor.tok, queryName, SpecialField.ID.UseIdParam, "is_" + ctor.Name,
                 false, false, false, Type.Bool, null);
               query.InheritVisibility(dt);
               query.EnclosingClass = dt; // resolve here
@@ -11449,8 +11449,7 @@ namespace Microsoft.Dafny
           var ctorId = mc.Ctor.Name;
           if (s.Source.Type.AsDatatype is TupleTypeDecl) {
             var tuple = (TupleTypeDecl)s.Source.Type.AsDatatype;
-            var dims = tuple.Dims;
-            ctorId = BuiltIns.TupleTypeCtorNamePrefix + dims;
+            ctorId = BuiltIns.TupleTypeCtorNamePrefix + tuple.Dims;
           }
           if (!ctors.ContainsKey(ctorId)) {
             reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
@@ -15623,8 +15622,7 @@ namespace Microsoft.Dafny
           var ctorId = mc.Ctor.Name;
           if (me.Source.Type.AsDatatype is TupleTypeDecl) {
             var tuple = (TupleTypeDecl)me.Source.Type.AsDatatype;
-            var dims = tuple.Dims;
-            ctorId = BuiltIns.TupleTypeCtorNamePrefix + dims;
+            ctorId = BuiltIns.TupleTypeCtorNamePrefix + tuple.Dims;
           }
           if (!ctors.ContainsKey(ctorId)) {
             reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
@@ -16924,6 +16922,10 @@ namespace Microsoft.Dafny
       return ok && ctor.Formals.Count == dtv.Arguments.Count;
     }
 
+    public static string IsGhostPrefix(bool isGhost) {
+      return isGhost ? "ghost " : "";
+    }
+    
     /// <summary>
     /// Try to make "expr" compilable (in particular, mark LHSs of a let-expression as ghosts if
     /// the corresponding RHS is ghost), and then report errors for every part that would prevent

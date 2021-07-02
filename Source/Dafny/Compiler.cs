@@ -154,6 +154,19 @@ namespace Microsoft.Dafny {
     }
     protected abstract void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic);
 
+    protected List<T> SelectNonGhost<T>(TopLevelDecl cl, List<T> elements) {
+      Contract.Requires(cl != null && elements != null);
+      if (cl is TupleTypeDecl tupleDecl)
+      {
+        Contract.Assert(elements.Count == tupleDecl.Dims);
+        return elements.Where((_, i) => !tupleDecl.ArgumentGhostness[i]).ToList();
+      }
+      else
+      {
+        return elements;
+      }
+    }
+
     protected List<TypeParameter> UsedTypeParameters(DatatypeDecl dt) {
       Contract.Requires(dt != null);
 
@@ -253,7 +266,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
       Contract.Requires(udt.TypeArgs.Count == (udt.ResolvedClass == null ? 0 : udt.ResolvedClass.TypeArgs.Count));
-      return TypeName_UDT(fullCompileName, udt.ResolvedClass.TypeArgs.ConvertAll(tp => tp.Variance), udt.TypeArgs, wr, tok);
+      var cl = udt.ResolvedClass;
+      var typeParams = SelectNonGhost(cl, cl.TypeArgs);
+      var typeArgs = SelectNonGhost(cl, udt.TypeArgs);
+      return TypeName_UDT(fullCompileName, typeParams.ConvertAll(tp => tp.Variance), typeArgs, wr, tok);
     }
     protected abstract string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, ConcreteSyntaxTree wr, Bpl.IToken tok);
     protected abstract string/*?*/ TypeName_Companion(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member);

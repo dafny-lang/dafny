@@ -1,0 +1,11 @@
+// AllowedGhost.dfy
+
+method Test()
+{
+  var x := (ghost 123);
+  var (y) := (ghost 123);
+
+  ghost var z: (ghost int) := (ghost 123);
+}
+
+Dafny program verifier finished with 0 verified, 0 errors

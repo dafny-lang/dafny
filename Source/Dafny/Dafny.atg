@@ -14,6 +14,7 @@ using System.Numerics;
 using Microsoft.Boogie;
 using System.IO;
 using System.Text;
+using System.Linq;
 COMPILER Dafny
 /*--------------------------------------------------------------------------*/
 readonly Expression/*!*/ dummyExpr;
@@ -224,6 +225,12 @@ bool FollowedByColon() {
 
 bool IsGets() {
   return la.kind == _gets;
+}
+
+bool IsVar() {
+  scanner.ResetPeek();
+  IToken x = scanner.Peek();
+  return la.kind == _var || (x.kind == _var && la.kind == _ghost);
 }
 
 // an existential guard starts with an identifier and is then followed by
@@ -557,11 +564,14 @@ bool IsTypeList(ref IToken pt) {
   return IsTypeSequence(ref pt, _closeAngleBracket);
 }
 /* Returns true if the next thing is of the form:
- *     Type { "," Type }
+ *     [ "ghost" ] Type { "," [ "ghost" ] Type }
  * followed by an endBracketKind.
  */
 bool IsTypeSequence(ref IToken pt, int endBracketKind) {
   while (true) {
+    if (pt.kind == _ghost) {
+      pt = scanner.Peek();
+    }
     if (!IsType(ref pt)) {
       return false;
     }
@@ -1942,6 +1952,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
      ty = new BoolType();  /*keep compiler happy*/
      List<Type> gt;
      List<Type> tupleArgTypes = null;
+     List<bool> argumentGhostness = null;
   .)
   ( "bool"                          (. tok = t; .)
   | "char"                          (. tok = t;  ty = new CharType(); .)
@@ -2015,7 +2026,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
                                        ty = theBuiltIns.ArrayType(tok, dims, gt, true, q);
                                     .)
-  | TupleType<out ty, out tok, out tupleArgTypes>
+  | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostness>
   | NamedType<out ty, out tok, inExpressionContext>
   )
   [ (. int arrowKind = 0; /* 0: any, 1: partial, 2: total */
@@ -2049,21 +2060,28 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
 
 /*------------------------------------------------------------------------*/
 
-TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes.> =
+TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<bool> argumentGhostness.> =
   "("                             (. tok = t;
                                      ty = null; // To keep compiler happy
                                      tupleArgTypes = new List<Type>();
+                                     var isGhost = false;
+                                     argumentGhostness = new List<bool>();
                                   .)
-  [ Type<out ty>                  (. tupleArgTypes.Add(ty); .)
-    { "," Type<out ty>            (. tupleArgTypes.Add(ty); .)
+  [ [ "ghost"                     (. isGhost = true; .)
+    ]
+    Type<out ty>                  (. tupleArgTypes.Add(ty); argumentGhostness.Add(isGhost); .)
+    { ","                         (. isGhost = false; .)
+      [ "ghost"                   (. isGhost = true; .)
+      ]
+      Type<out ty>                (. tupleArgTypes.Add(ty); argumentGhostness.Add(isGhost); .)
     }
   ]
-  ")"                             (. if (tupleArgTypes.Count == 1) {
+  ")"                             (. if (tupleArgTypes.Count == 1 && !isGhost) {
                                        // just return the type 'ty'
                                      } else {
                                        var dims = tupleArgTypes.Count;
-                                       var tmp = theBuiltIns.TupleType(tok, dims, true);  // make sure the tuple type exists
-                                       ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(dims), dims == 0 ? null : tupleArgTypes);
+                                       var tmp = theBuiltIns.TupleType(tok, dims, true, argumentGhostness);  // make sure the tuple type exists
+                                       ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(argumentGhostness), dims == 0 ? null : tupleArgTypes);
                                      }
                                   .)
   .
@@ -3820,17 +3838,51 @@ ParensExpression<out Expression e>
      var args = new List<ActualBinding>();
   .)
   "("                                        (. x = t; .)
-  [ ActualBindings<args> ]
+  [ TupleArgs<args> ]
   ")"
-  (. if (args.Count == 1) {
+  (. if (args.Count == 1 && !args[0].IsGhost) {
        if (args[0].FormalParameterName != null) {
          SemErr(args[0].FormalParameterName, "binding not allowed in parenthesized expression");
        }
        e = new ParensExpression(x, args[0].Actual);
      } else {
+       // Compute the actual position of ghost arguments
+       List<bool> argumentGhostness;
+       if (args.TrueForAll(arg => arg.FormalParameterName != null)) {
+         bool[] ghostness = new bool[args.Count];
+         bool[] initialized = new bool[args.Count];
+         for (int i = 0; i < initialized.Length; ++i) {
+           initialized[i] = false;
+         }
+         foreach (var arg in args) {
+           var success = int.TryParse(arg.FormalParameterName.val, out var index);
+           if (!success) {
+             SemErr(arg.FormalParameterName, "the name of tuple arguments must be an integer");
+           } else {
+             if (index < 0 || ghostness.Length <= index) {
+               SemErr(arg.FormalParameterName, "the name of tuple argument must describe a valid position in the tuple, starting from zero");
+             } else {
+               if (initialized[index]) {
+                 SemErr(arg.FormalParameterName, "different tuple arguments cannot have the same name");
+               } else {
+                 ghostness[index] = arg.IsGhost;
+                 initialized[index] = true;
+               }
+             }
+           }
+         }
+		 argumentGhostness = ghostness.ToList();
+       } else {
+         foreach (var arg in args) {
+           if (arg.FormalParameterName != null) {
+             SemErr(arg.FormalParameterName, "mixing named and positional tuple arguments is not allowed");
+           }
+         }
+         argumentGhostness = args.ConvertAll(arg => arg.IsGhost);
+       }
        // make sure the corresponding tuple type exists
-       var tmp = theBuiltIns.TupleType(x, args.Count, true);
-       e = new DatatypeValue(x, BuiltIns.TupleTypeName(args.Count), BuiltIns.TupleTypeCtorNamePrefix + args.Count, args);
+       var tmp = theBuiltIns.TupleType(x, args.Count, true, argumentGhostness);
+       e = new DatatypeValue(x, BuiltIns.TupleTypeName(argumentGhostness), BuiltIns.TupleTypeCtorNamePrefix + args.Count, args);
      }
   .)
   .
@@ -4144,7 +4196,6 @@ CasePattern<.out CasePattern<BoundVar> pat.>
         }
       ]
     ")"                                (. // Parse parenthesis without an identifier as a built in tuple type.
-                                          theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
                                           string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
                                           pat = new CasePattern<BoundVar>(id, ctor, arguments);
                                        .)
@@ -4168,7 +4219,7 @@ CasePattern<.out CasePattern<BoundVar> pat.>
  * not have a way to make the patterns take a bounded type parameter.
  */
 CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
-= (. IToken id;  List<CasePattern<LocalVariable>> arguments;
+= (. IToken id; List<CasePattern<LocalVariable>> arguments;
      LocalVariable local;
      pat = null;
   .)
@@ -4188,7 +4239,6 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
         }
       ]
     ")"                                (. // Parse parenthesis without an identifier as a built in tuple type.
-                                          theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
                                           string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
                                           pat = new CasePattern<LocalVariable>(id, ctor, arguments);
                                        .)
@@ -4398,14 +4448,14 @@ ActualBindings<.List<ActualBinding> bindings.>
   }
   .
 
-ActualBinding<out ActualBinding binding>
+ActualBinding<out ActualBinding binding, bool isGhost = false>
 = (. IToken id = null; Expression e; .)
   [ IF(IsBinding())
     NoUSIdentOrDigits<out id>
     ":="
   ]
   Expression<out e, true, true>
-  (. binding = new ActualBinding(id, e); .)
+  (. binding = new ActualBinding(id, e, isGhost); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -4485,6 +4535,22 @@ Expressions<.List<Expression> args.>
 = (. Expression e; .)
   Expression<out e, true, true>                      (. args.Add(e); .)
   { "," Expression<out e, true, true>                (. args.Add(e); .)
+  }
+  .
+
+/*------------------------------------------------------------------------*/
+TupleArgs<.List<ActualBinding> args.>
+= (. ActualBinding binding; bool isGhost = false; .)
+  // The IF is to distinguish between `(ghost var x := 5; x + x)` and (ghost x), both of which begin with `( ghost`.
+  [ IF(la.kind == _ghost && !IsVar())
+    "ghost"                             (. isGhost = true; .)
+  ]
+  ActualBinding<out binding, isGhost>   (. args.Add(binding); .)
+  { ","                                 (. isGhost = false; .)
+    [ IF(la.kind == _ghost && !IsVar())
+      "ghost"                           (. isGhost = true; .)
+    ]
+    ActualBinding<out binding, isGhost> (. args.Add(binding); .)
   }
   .
 

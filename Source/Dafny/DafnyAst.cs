@@ -114,7 +114,7 @@ namespace Microsoft.Dafny {
     public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
     public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
     public readonly Dictionary<int, SubsetTypeDecl> TotalArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
-    readonly Dictionary<int, TupleTypeDecl> tupleTypeDecls = new Dictionary<int, TupleTypeDecl>();
+    readonly Dictionary<object, TupleTypeDecl> tupleTypeDecls = new Dictionary<object, TupleTypeDecl>();
     public readonly ISet<int> Bitwidths = new HashSet<int>();
     public SpecialField ORDINAL_Offset;  // filled in by the resolver, used by the translator
 
@@ -325,30 +325,61 @@ namespace Microsoft.Dafny {
       return new ArrowType(f.tok, atd, f.Formals.ConvertAll(arg => Resolver.SubstType(arg.Type, typeMap)), Resolver.SubstType(f.ResultType, typeMap));
     }
 
-    public TupleTypeDecl TupleType(IToken tok, int dims, bool allowCreationOfNewType) {
+    private object MakeTupleKey(List<bool> isGhost, int dims) {
+      if (dims == 0) {
+        return 0;
+      } else {
+        var g = isGhost[dims - 1];
+        return Tuple.Create(g, MakeTupleKey(isGhost, dims - 1));
+      }
+    }
+
+    public TupleTypeDecl TupleType(IToken tok, int dims, bool allowCreationOfNewType, List<bool> argumentGhostness = null) {
       Contract.Requires(tok != null);
       Contract.Requires(0 <= dims);
       Contract.Ensures(Contract.Result<TupleTypeDecl>() != null);
 
       TupleTypeDecl tt;
-      if (!tupleTypeDecls.TryGetValue(dims, out tt)) {
+      argumentGhostness = argumentGhostness ?? new bool[dims].Select(_ => false).ToList();
+      object key = MakeTupleKey(argumentGhostness, dims);
+      if (!tupleTypeDecls.TryGetValue(key, out tt)) {
         Contract.Assume(allowCreationOfNewType);  // the parser should ensure that all needed tuple types exist by the time of resolution
-        if (dims == 2) {
-          // tuple#2 is already defined in DafnyRuntime.cs
-          tt = new TupleTypeDecl(dims, SystemModule, DontCompile());
-        } else {
-          tt = new TupleTypeDecl(dims, SystemModule, null);
-        }
-        tupleTypeDecls.Add(dims, tt);
+        // tuple#2 is already defined in DafnyRuntime.cs
+        var attributes = dims == 2 && !argumentGhostness.Contains(true) ? DontCompile() : null;
+        tt = new TupleTypeDecl(argumentGhostness, SystemModule, attributes);
+        tupleTypeDecls.Add(key, tt);
         SystemModule.TopLevelDecls.Add(tt);
       }
       return tt;
     }
 
-    public static string TupleTypeName(int dims) {
-      Contract.Requires(0 <= dims);
-      return "_tuple#" + dims;
+    public static char IsGhostToChar(bool isGhost) {
+      return isGhost ? 'G' : 'O';
     }
+
+    public static bool IsGhostFromChar(char c) {
+      Contract.Requires(c == 'G' || c == 'O');
+      return c == 'G';
+    }
+
+    public static string ArgumentGhostnessToString(List<bool> argumentGhostness) {
+      return argumentGhostness.Count + (!argumentGhostness.Contains(true)
+        ? "" : String.Concat(argumentGhostness.Select(IsGhostToChar)));
+    }
+
+    public static IEnumerable<bool> ArgumentGhostnessFromString(string s, int count) {
+      List<bool> argumentGhostness = new bool[count].ToList();
+      if (System.Char.IsDigit(s[s.Length - 1])) {
+        return argumentGhostness.Select(_ => false);
+      } else {
+        return argumentGhostness.Select((_, i) => IsGhostFromChar(s[s.Length - count + i]));
+      }
+    }
+
+    public static string TupleTypeName(List<bool> argumentGhostness) {
+      return "_tuple#" + ArgumentGhostnessToString(argumentGhostness);
+    }
+    
     public static bool IsTupleTypeName(string s) {
       Contract.Requires(s != null);
       return s.StartsWith("_tuple#");
@@ -3006,7 +3037,10 @@ namespace Microsoft.Dafny {
     public override string TypeName(ModuleDefinition context, bool parseAble) {
       Contract.Ensures(Contract.Result<string>() != null);
       if (BuiltIns.IsTupleTypeName(Name)) {
-        return "(" + Util.Comma(TypeArgs, ty => ty.TypeName(context, parseAble)) + ")";
+        // Unfortunately, ResolveClass may be null, so Name is all we have.  Reverse-engineer the string name.
+        IEnumerable<bool> argumentGhostness = BuiltIns.ArgumentGhostnessFromString(Name, TypeArgs.Count);
+        return "(" + Util.Comma(System.Linq.Enumerable.Zip(TypeArgs, argumentGhostness),
+          (ty_u) => Resolver.IsGhostPrefix(ty_u.Item2) + ty_u.Item1.TypeName(context, parseAble)) + ")";
       } else if (ArrowType.IsPartialArrowTypeName(Name)) {
         return ArrowType.PrettyArrowTypeName(ArrowType.PARTIAL_ARROW, TypeArgs, null, context, parseAble);
       } else if (ArrowType.IsTotalArrowTypeName(Name)) {
@@ -4698,35 +4732,47 @@ namespace Microsoft.Dafny {
 
   public class TupleTypeDecl : IndDatatypeDecl
   {
-    public readonly int Dims;
+    public readonly List<bool> ArgumentGhostness;
+
+    public int Dims
+    {
+      get { return ArgumentGhostness.Count; }
+    }
+    
+    public int NonGhostDims
+    {
+      get { return ArgumentGhostness.Count(x => !x); }
+    }
+
     /// <summary>
     /// Construct a resolved built-in tuple type with "dim" arguments.  "systemModule" is expected to be the _System module.
     /// </summary>
-    public TupleTypeDecl(int dims, ModuleDefinition systemModule, Attributes attributes)
-      : this(systemModule, CreateCovariantTypeParameters(dims), attributes) {
-      Contract.Requires(0 <= dims);
+    public TupleTypeDecl(List<bool> argumentGhostness, ModuleDefinition systemModule, Attributes attributes)
+      : this(systemModule, CreateCovariantTypeParameters(argumentGhostness.Count), argumentGhostness, attributes) {
+      Contract.Requires(0 <= Dims);
       Contract.Requires(systemModule != null);
 
       // Resolve the type parameters here
-      Contract.Assert(TypeArgs.Count == dims);
-      for (var i = 0; i < dims; i++) {
+      Contract.Assert(TypeArgs.Count == Dims);
+      for (var i = 0; i < Dims; i++) {
         var tp = TypeArgs[i];
         tp.Parent = this;
         tp.PositionalIndex = i;
       }
     }
 
-    private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, Attributes attributes)
-      : base(Token.NoToken, BuiltIns.TupleTypeName(typeArgs.Count), systemModule, typeArgs, CreateConstructors(typeArgs), new List<MemberDecl>(), attributes, false) {
+    private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, List<bool> argumentGhostness, Attributes attributes)
+      : base(Token.NoToken, BuiltIns.TupleTypeName(argumentGhostness), systemModule, typeArgs, CreateConstructors(typeArgs, argumentGhostness), new List<MemberDecl>(), attributes, false) {
       Contract.Requires(systemModule != null);
       Contract.Requires(typeArgs != null);
-      Dims = typeArgs.Count;
+      ArgumentGhostness = argumentGhostness;
       foreach (var ctor in Ctors) {
         ctor.EnclosingDatatype = this;  // resolve here
         GroundingCtor = ctor;
         TypeParametersUsedInConstructionByGroundingCtor = new bool[typeArgs.Count];
-        for (int i = 0; i < typeArgs.Count; i++) {
-          TypeParametersUsedInConstructionByGroundingCtor[i] = true;
+        for (int i = 0; i < typeArgs.Count; i++)
+        {
+          TypeParametersUsedInConstructionByGroundingCtor[i] = !argumentGhostness[i];
         }
       }
       this.EqualitySupport = ES.ConsultTypeArguments;
@@ -4741,21 +4787,23 @@ namespace Microsoft.Dafny {
       }
       return ts;
     }
-    private static List<DatatypeCtor> CreateConstructors(List<TypeParameter> typeArgs) {
+    private static List<DatatypeCtor> CreateConstructors(List<TypeParameter> typeArgs, List<bool> argumentGhostness) {
       Contract.Requires(typeArgs != null);
       var formals = new List<Formal>();
       for (int i = 0; i < typeArgs.Count; i++) {
         var tp = typeArgs[i];
-        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, false, null);
+        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, argumentGhostness[i], null);
         formals.Add(f);
       }
-      var ctor = new DatatypeCtor(Token.NoToken, BuiltIns.TupleTypeCtorNamePrefix + typeArgs.Count, formals, null);
+      string ctorName = BuiltIns.TupleTypeCtorNamePrefix + typeArgs.Count;
+      var ctor = new DatatypeCtor(Token.NoToken, ctorName, formals, null);
       return new List<DatatypeCtor>() { ctor };
     }
 
     public override string CompileName {
-      get {
-        return "Tuple" + Dims;
+      get
+      {
+        return "Tuple" + BuiltIns.ArgumentGhostnessToString(ArgumentGhostness);
       }
     }
   }
@@ -6141,11 +6189,13 @@ namespace Microsoft.Dafny {
   public class ActualBinding {
     public readonly IToken /*?*/ FormalParameterName;
     public readonly Expression Actual;
+    public readonly bool IsGhost;
 
-    public ActualBinding(IToken /*?*/ formalParameterName, Expression actual) {
+    public ActualBinding(IToken /*?*/ formalParameterName, Expression actual, bool isGhost = false) {
       Contract.Requires(actual != null);
       FormalParameterName = formalParameterName;
       Actual = actual;
+      IsGhost = isGhost;
     }
   }
 

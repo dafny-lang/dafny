@@ -669,7 +669,7 @@ namespace Microsoft.Dafny{
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return boxed ? "Long" : "long";
         } else if (cl is TupleTypeDecl tupleDecl) {
-          s = DafnyTupleClass(tupleDecl.TypeArgs.Count);
+          s = DafnyTupleClass(tupleDecl.NonGhostDims);
         }
 
         // When accessing a static member, leave off the type arguments
@@ -755,7 +755,7 @@ namespace Microsoft.Dafny{
       if (cl is TypeParameter) {
         return IdProtect(udt.CompileName);
       } else if (cl is TupleTypeDecl tupleDecl) {
-        return DafnyTupleClass(tupleDecl.TypeArgs.Count);
+        return DafnyTupleClass(tupleDecl.NonGhostDims);
       } else if (cl is TraitDecl && useCompanionName) {
         return IdProtect(udt.FullCompanionCompileName);
       } else if (cl.EnclosingModuleDefinition.CompileName == ModuleName || cl.EnclosingModuleDefinition.IsDefaultModule) {
@@ -1108,8 +1108,8 @@ namespace Microsoft.Dafny{
       if (type != null && type.AsArrayType != null){
         arrays.Add(type.AsArrayType.Dims);
       }
-      if (type.IsDatatype && type.AsDatatype is TupleTypeDecl) {
-        tuples.Add(type.AsDatatype.TypeArgs.Count);
+      if (type.IsDatatype && type.AsDatatype is TupleTypeDecl tupleDecl) {
+        tuples.Add(tupleDecl.NonGhostDims);
       }
       if (type.IsTypeParameter) {
         EmitSuppression(wr);
@@ -1669,8 +1669,8 @@ namespace Microsoft.Dafny{
     }
 
     protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
-      if (dt is TupleTypeDecl){
-        tuples.Add(((TupleTypeDecl) dt).Dims);
+      if (dt is TupleTypeDecl tupleDecl){
+        tuples.Add(tupleDecl.NonGhostDims);
         return null;
       } else {
         var w = CompileDatatypeBase(dt, wr);
@@ -2520,11 +2520,12 @@ namespace Microsoft.Dafny{
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
-      EmitDatatypeValue(dt, dtv.Ctor, dtv.InferredTypeArgs, dtv.IsCoCall, arguments, wr);
+      var typeArgs = SelectNonGhost(dt, dtv.InferredTypeArgs);
+      EmitDatatypeValue(dt, dtv.Ctor, typeArgs, dtv.IsCoCall, arguments, wr);
     }
 
     void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, List<Type>/*?*/ typeArgs, bool isCoCall, string arguments, ConcreteSyntaxTree wr) {
-      var dtName = dt is TupleTypeDecl tupleDecl ? DafnyTupleClass(tupleDecl.TypeArgs.Count) : dt.FullCompileName;
+      var dtName = dt is TupleTypeDecl tupleDecl ? DafnyTupleClass(tupleDecl.NonGhostDims) : dt.FullCompileName;
       var typeParams = typeArgs == null || typeArgs.Count == 0 ? "" : $"<{BoxedTypeNames(typeArgs, wr, dt.tok)}>";
       if (!isCoCall) {
         // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:

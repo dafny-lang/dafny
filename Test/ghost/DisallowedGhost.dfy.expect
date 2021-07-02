@@ -1,0 +1,6 @@
+DisallowedGhost.dfy(6,25): Error: mixing named and positional tuple arguments is not allowed
+DisallowedGhost.dfy(12,20): Error: the name of tuple arguments must be an integer
+DisallowedGhost.dfy(17,22): Error: the name of tuple argument must describe a valid position in the tuple, starting from zero
+DisallowedGhost.dfy(22,22): Error: different tuple arguments cannot have the same name
+DisallowedGhost.dfy(27,9): Error: closeparen expected
+5 parse errors detected in DisallowedGhost.dfy

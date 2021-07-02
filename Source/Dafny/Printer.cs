@@ -2880,6 +2880,9 @@ namespace Microsoft.Dafny {
           var binding = bindings.ArgumentBindings[i];
           wr.Write(sep);
           sep = ", ";
+          if (binding.IsGhost) {
+            wr.Write("ghost ");
+          }
           if (binding.FormalParameterName != null) {
             wr.Write($"{binding.FormalParameterName.val} := ");
           }
