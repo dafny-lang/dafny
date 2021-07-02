@@ -1635,8 +1635,8 @@ in [Section 18.3](#sec-coinduction). // TODO - check this is the correct referen
 
 ````grammar
 Formals(allowGhostKeyword, allowNewKeyword, allowDefault) =
-  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowDefault)
-        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowDefault) }
+  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowNameOnlyKeyword: true, allowDefault)
+        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowNameOnlyKeyword: true, allowDefault) }
       ]
   ")"
 ````
@@ -1940,6 +1940,7 @@ FunctionSignature_(allowGhostKeyword, allowNewKeyword) =
   ( Type
   | "(" GIdentType(allowGhostKeyword: false,
                    allowNewKeyword: false,
+                   allowNameOnlyKeyword: false,
                    allowDefault: false)
     ")"
   )

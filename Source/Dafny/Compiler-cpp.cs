@@ -14,6 +14,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -1218,7 +1219,7 @@ namespace Microsoft.Dafny {
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      wr.Write("std::cout << (");
+      wr.Write("dafny_print(");
       TrExpr(arg, wr, false);
       wr.WriteLine(");");
     }
@@ -2375,7 +2376,17 @@ namespace Microsoft.Dafny {
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
       var exeName = ComputeExeName(targetFilename);
-      var args = $"-g -Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-deprecated-copy -Wno-unknown-warning-option -std=c++17 -I{codebase} -o {exeName} {targetFilename}";
+      var warnings = "-Wall -Wextra -Wpedantic -Wno-unused-variable";
+      if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+        warnings += " -Wno-deprecated-copy";
+      }
+      if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+        warnings += " -Wno-unknown-warning-option";
+      }
+      if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+        warnings += " -Wno-unused-but-set-variable";
+      }
+      var args = warnings + $" -g -std=c++17 -I{codebase} -o {exeName} {targetFilename}";
       compilationResult = null;
       var psi = new ProcessStartInfo("g++", args) {
         CreateNoWindow = true,

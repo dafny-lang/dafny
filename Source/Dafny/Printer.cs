@@ -1008,6 +1008,10 @@ namespace Microsoft.Dafny {
       if (f.IsGhost) {
         wr.Write("ghost ");
       }
+      if (f.IsNameOnly) {
+        Contract.Assert(f.HasName);
+        wr.Write("nameonly ");
+      }
       if (f.HasName) {
         wr.Write("{0}: ", f.DisplayName);
       }
@@ -1256,10 +1260,10 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
+        wr.Write("if");
+        PrintAttributes(s.Attributes);
         if (s.UsesOptionalBraces) {
-          wr.Write("if {");
-        } else {
-          wr.Write("if");
+          wr.Write(" {");
         }
         PrintAlternatives(indent + (s.UsesOptionalBraces ? IndentAmount : 0), s.Alternatives);
         if (s.UsesOptionalBraces) {
@@ -1267,26 +1271,27 @@ namespace Microsoft.Dafny {
           Indent(indent);
           wr.Write("}");
         }
-
       } else if (stmt is WhileStmt) {
         var s = (WhileStmt)stmt;
         PrintWhileStatement(indent, s, false, false);
-
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         wr.Write("while");
-        if (s.Invariants.Count != 0) {
-          PrintSpec("invariant", s.Invariants, indent + IndentAmount);
-        }
-        if (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) {
-          PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
-        }
-
+        PrintAttributes(s.Attributes);
+        PrintSpec("invariant", s.Invariants, indent + IndentAmount);
+        PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
+        PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.Attributes);
+        bool hasSpecs = s.Invariants.Count != 0 || (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) || s.Mod.Expressions != null;
         if (s.UsesOptionalBraces) {
-          wr.WriteLine();
-          Indent(indent);
+          if (hasSpecs) {
+            wr.WriteLine();
+            Indent(indent);
+          } else {
+            wr.Write(" ");
+          }
           wr.Write("{");
         }
+        Contract.Assert(s.Alternatives.Count != 0);
         PrintAlternatives(indent + (s.UsesOptionalBraces ? IndentAmount : 0), s.Alternatives);
         if (s.UsesOptionalBraces) {
           wr.WriteLine();
@@ -1335,7 +1340,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is CalcStmt) {
         CalcStmt s = (CalcStmt)stmt;
         if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }   // Calcs don't get a "ghost" attribute, but they are.
-        wr.Write("calc ");
+        wr.Write("calc");
+        PrintAttributes(stmt.Attributes);
+        wr.Write(" ");
         if (s.UserSuppliedOp != null) {
           PrintCalcOp(s.UserSuppliedOp);
           wr.Write(" ");
@@ -1398,7 +1405,9 @@ namespace Microsoft.Dafny {
         }
 
         if (!printingDesugared) {
-          wr.Write("match ");
+          wr.Write("match");
+          PrintAttributes(s.Attributes);
+          wr.Write(" ");
           PrintExpression(s.Source, false);
           if (s.UsesOptionalBraces) {
             wr.Write(" {");
@@ -1407,7 +1416,9 @@ namespace Microsoft.Dafny {
           foreach (NestedMatchCaseStmt mc in s.Cases) {
             wr.WriteLine();
             Indent(caseInd);
-            wr.Write("case ");
+            wr.Write("case");
+            PrintAttributes(mc.Attributes);
+            wr.Write(" ");
             PrintExtendedPattern(mc.Pat);
             wr.Write(" =>");
             foreach (Statement bs in mc.Body) {
@@ -1433,7 +1444,9 @@ namespace Microsoft.Dafny {
         if (DafnyOptions.O.DafnyPrintResolvedFile == null && s.OrigUnresolved != null) {
           PrintStatement(s.OrigUnresolved, indent);
         } else {
-          wr.Write("match ");
+          wr.Write("match");
+          PrintAttributes(s.Attributes);
+          wr.Write(" ");
           PrintExpression(s.Source, false);
           if (s.UsesOptionalBraces) {
             wr.Write(" {");
@@ -1442,7 +1455,9 @@ namespace Microsoft.Dafny {
           foreach (MatchCaseStmt mc in s.Cases) {
             wr.WriteLine();
             Indent(caseInd);
-            wr.Write("case ");
+            wr.Write("case");
+            PrintAttributes(mc.Attributes);
+            wr.Write(" ");
             if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) wr.Write(mc.Ctor.Name);
             PrintMatchCaseArgument(mc);
             wr.Write(" =>");
@@ -1616,34 +1631,40 @@ namespace Microsoft.Dafny {
     }
 
     void PrintIfStatement(int indent, IfStmt s, bool omitGuard) {
+      wr.Write("if");
+      PrintAttributes(s.Attributes);
+      wr.Write(" ");
       if (omitGuard) {
-        wr.Write("if ... ");
+        wr.Write("... ");
       } else {
-        wr.Write("if ");
         PrintGuard(s.IsBindingGuard, s.Guard);
         wr.Write(" ");
       }
       PrintStatement(s.Thn, indent);
       if (s.Els != null) {
-        wr.Write(" else ");
+        wr.Write(" else");
+        if (!(s.Els is IfStmt) && s.Els.Attributes != null) {
+          PrintAttributes(s.Els.Attributes);
+        }
+        wr.Write(" ");
         PrintStatement(s.Els, indent);
       }
     }
 
     void PrintWhileStatement(int indent, WhileStmt s, bool omitGuard, bool omitBody) {
       Contract.Requires(0 <= indent);
+      wr.Write("while");
+      PrintAttributes(s.Attributes);
+      wr.Write(" ");
       if (omitGuard) {
-        wr.Write("while ...");
+        wr.Write("...");
       } else {
-        wr.Write("while ");
         PrintGuard(false, s.Guard);
       }
 
       PrintSpec("invariant", s.Invariants, indent + IndentAmount);
       PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
-      if (s.Mod.Expressions != null) {
-        PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.HasAttributes() ? s.Mod.Attributes : null);
-      }
+      PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.Attributes);
       if (omitBody) {
         wr.WriteLine();
         Indent(indent + IndentAmount);
@@ -1660,10 +1681,17 @@ namespace Microsoft.Dafny {
     }
 
     void PrintAlternatives(int indent, List<GuardedAlternative> alternatives) {
+      var startWithLine = true;
       foreach (var alternative in alternatives) {
-        wr.WriteLine();
+        if (startWithLine) {
+          wr.WriteLine();
+        } else {
+          startWithLine = true;
+        }
         Indent(indent);
-        wr.Write("case ");
+        wr.Write("case");
+        PrintAttributes(alternative.Attributes);
+        wr.Write(" ");
         if (alternative.IsBindingGuard) {
           var exists = (ExistsExpr)alternative.Guard;
           PrintBindingGuard(exists);
@@ -2843,7 +2871,7 @@ namespace Microsoft.Dafny {
           wr.Write(sep);
           sep = ", ";
           if (binding.FormalParameterName != null) {
-            wr.Write($"{binding.FormalParameterName} := ");
+            wr.Write($"{binding.FormalParameterName.val} := ");
           }
           PrintExpression(binding.Actual, false);
         }
