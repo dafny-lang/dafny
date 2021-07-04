@@ -156,13 +156,8 @@ namespace Microsoft.Dafny
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string /*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>? superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
-      wr.Write("public partial class {0}{1}", name, TypeParameters(typeParameters));
-      var realSuperClasses = superClasses?.Where(trait => !trait.IsObject).ToList() ?? new List<Type>();
-      if (realSuperClasses.Any()) {
-        wr.Write($" : {realSuperClasses.Comma(trait => TypeName(trait, wr, tok))}");
-      }
-
-      var wBody = wr.NewBlock();
+      var wBody = WriteTypeHeader("partial class", name, typeParameters, superClasses, tok, wr);
+      
       ConcreteSyntaxTree? wCtorBody = null;
       if (cls is ClassDecl cl && !(cl is TraitDecl) && !cl.IsDefaultClass) {
         if (cl.Members.TrueForAll(member => !(member is Constructor ctor) || !ctor.IsExtern(out var _, out var _))) {
@@ -225,18 +220,22 @@ namespace Microsoft.Dafny
     }
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>? typeParameters, List<Type>? superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
-      wr.Write($"public interface {IdProtect(name)}{TypeParameters(typeParameters)}");
-      if (superClasses != null) {
-        wr.Write(superClasses.Where(trait => !trait.IsObject).Comma(trait => TypeName(trait, wr, tok)));
-      }
-
-      var instanceMemberWriter = wr.NewBlock("");
+      var instanceMemberWriter = WriteTypeHeader("interface", name, typeParameters, superClasses, tok, wr);
 
       //writing the _Companion class
       wr.Write($"public class _Companion_{name}{TypeParameters(typeParameters)}");
       var staticMemberWriter = wr.NewBlock();
 
       return new ClassWriter(this, instanceMemberWriter, null, staticMemberWriter);
+    }
+
+    private ConcreteSyntaxTree WriteTypeHeader(string kind, string name, List<TypeParameter> typeParameters, List<Type>? superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+      wr.Write($"public {kind} {IdProtect(name)}{TypeParameters(typeParameters)}");
+      var realSuperClasses = superClasses?.Where(trait => !trait.IsObject).ToList() ?? new List<Type>();
+      if (realSuperClasses.Any()) {
+        wr.Write($" : {realSuperClasses.Comma(trait => TypeName(trait, wr, tok))}");
+      }
+      return wr.NewBlock();
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
