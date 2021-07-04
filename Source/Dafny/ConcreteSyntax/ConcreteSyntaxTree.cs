@@ -6,7 +6,9 @@ using System.Linq;
 using JetBrains.Annotations;
 
 namespace Microsoft.Dafny
-{
+{    
+  public enum BraceStyle { Nothing, Space, Newline }
+
   public class ConcreteSyntaxTree : ICanRender {
         
     public ConcreteSyntaxTree(int relativeIndent = 0) {
@@ -120,13 +122,11 @@ namespace Microsoft.Dafny
       return result;
     }
         
-    public enum BraceStyle { Nothing, Space, Newline }
-    
     public ConcreteSyntaxTree NewBlock(string header = "", string footer = "",
       BraceStyle open = BraceStyle.Space,
       BraceStyle close = BraceStyle.Newline) {
       Contract.Requires(header != null);
-      Append(Util.Block(out ConcreteSyntaxTree result, header, footer, open, close));
+      Append(ConcreteSyntaxTreeUtils.Block(out ConcreteSyntaxTree result, header, footer, open, close));
       return result;
     }
 

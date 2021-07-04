@@ -1108,7 +1108,7 @@ namespace Microsoft.Dafny {
         if (forBodyInheritance) {
           // don't do any conversions
         } else if (thisContext != null) {
-          w = w.NewBlock("", open: ConcreteSyntaxTree.BraceStyle.Nothing);
+          w = w.NewBlock("", open: BraceStyle.Nothing);
           for (var i = 0; i < inParams.Count; i++) {
             var p = (overriddenInParams ?? inParams)[i];
             var instantiatedType = Resolver.SubstType(p.Type, thisContext.ParentFormalTypeParametersToActuals);
@@ -1900,7 +1900,7 @@ namespace Microsoft.Dafny {
         } else {
           wIf.WriteLine("{0} = ({1})(nil)", boundVarName, TypeName(boundVarType, wBody, tok));
         }
-        wIf = wBody.NewBlock("", open: ConcreteSyntaxTree.BraceStyle.Nothing);
+        wIf = wBody.NewBlock("", open: BraceStyle.Nothing);
         string typeTest;
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
           // nothing more to test

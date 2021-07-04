@@ -432,7 +432,7 @@ namespace Microsoft.Dafny{
       bool createBody, ConcreteSyntaxTree wr) {
       wr.Write("public {0}{1} {2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       if (createBody) {
-        var w = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Newline, ConcreteSyntaxTree.BraceStyle.Newline);
+        var w = wr.NewBlock("", null, BraceStyle.Newline, BraceStyle.Newline);
         return w;
       } else {
         wr.WriteLine(";");
@@ -454,13 +454,13 @@ namespace Microsoft.Dafny{
       wr.Write("public {0}{1} {2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       ConcreteSyntaxTree wGet = null;
       if (createBody) {
-        wGet = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Newline, ConcreteSyntaxTree.BraceStyle.Newline);
+        wGet = wr.NewBlock("", null, BraceStyle.Newline, BraceStyle.Newline);
       } else {
         wr.WriteLine(";");
       }
       wr.Write("public {0}void set_{1}({2} value)", isStatic? "static " : "", name, TypeName(resultType, wr, tok));
       if (createBody) {
-        setterWriter = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Newline, ConcreteSyntaxTree.BraceStyle.Newline);
+        setterWriter = wr.NewBlock("", null, BraceStyle.Newline, BraceStyle.Newline);
       } else {
         wr.WriteLine(";");
         setterWriter = null;
@@ -503,7 +503,7 @@ namespace Microsoft.Dafny{
         wr.WriteLine(");");
         return null; // We do not want to write a function body, so instead of returning a BTW, we return null.
       } else {
-        return wr.NewBlock(")", null, ConcreteSyntaxTree.BraceStyle.Newline, ConcreteSyntaxTree.BraceStyle.Newline);
+        return wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
       }
     }
 
@@ -548,7 +548,7 @@ namespace Microsoft.Dafny{
       } else {
         ConcreteSyntaxTree w;
         if (argCount > 1) {
-          w = wr.NewBlock(")", null, ConcreteSyntaxTree.BraceStyle.Newline, ConcreteSyntaxTree.BraceStyle.Newline);
+          w = wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
         } else {
           w = wr.NewBlock(")");
         }

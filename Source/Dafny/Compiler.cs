@@ -486,7 +486,7 @@ namespace Microsoft.Dafny {
       wr.Write("if (");
       guardWriter = wr.Fork();
       if (hasElse) {
-        var thn = wr.NewBlock(")", " else", ConcreteSyntaxTree.BraceStyle.Space, ConcreteSyntaxTree.BraceStyle.Space);
+        var thn = wr.NewBlock(")", " else", BraceStyle.Space, BraceStyle.Space);
         return thn;
       } else {
         var thn = wr.NewBlock(")");
@@ -2344,7 +2344,7 @@ namespace Microsoft.Dafny {
         TrExprOpt(e.Thn, resultType, thn, accumulatorVar);
         ConcreteSyntaxTree els = wr;
         if (!(e.Els is ITEExpr)) {
-          els = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Nothing);
+          els = wr.NewBlock("", null, BraceStyle.Nothing);
           Coverage.Instrument(e.Thn.tok, "else branch", els);
         }
         TrExprOpt(e.Els, resultType, els, accumulatorVar);
@@ -2754,7 +2754,7 @@ namespace Microsoft.Dafny {
         TrCallStmt(s, null, wr);
 
       } else if (stmt is BlockStmt) {
-        var w = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Nothing, ConcreteSyntaxTree.BraceStyle.Newline);
+        var w = wr.NewBlock("", null, BraceStyle.Nothing, BraceStyle.Newline);
         TrStmtList(((BlockStmt)stmt).Body, w);
 
       } else if (stmt is IfStmt) {
@@ -2795,7 +2795,7 @@ namespace Microsoft.Dafny {
           TrStmtList(s.Thn.Body, thenWriter);
 
           if (coverageForElse) {
-            wr = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Nothing);
+            wr = wr.NewBlock("", null, BraceStyle.Nothing);
             if (s.Els == null) {
               Coverage.Instrument(s.Tok, "implicit else branch", wr);
             } else {
@@ -2822,7 +2822,7 @@ namespace Microsoft.Dafny {
           Coverage.Instrument(alternative.Tok, "if-case branch", thn);
           TrStmtList(alternative.Body, thn);
         }
-        var wElse = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Nothing);
+        var wElse = wr.NewBlock("", null, BraceStyle.Nothing);
         EmitAbsurd("unreachable alternative", wElse);
 
       } else if (stmt is WhileStmt) {
@@ -4103,7 +4103,7 @@ namespace Microsoft.Dafny {
         // Need to avoid if (true) because some languages (Go, someday Java)
         // pretend that an if (true) isn't a certainty, leading to a complaint
         // about a missing return statement
-        w = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Nothing);
+        w = wr.NewBlock("", null, BraceStyle.Nothing);
       } else {
         ConcreteSyntaxTree guardWriter;
         w = EmitIf(out guardWriter, !lastCase, wr);

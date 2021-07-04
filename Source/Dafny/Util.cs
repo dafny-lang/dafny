@@ -13,67 +13,6 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   public static class Util
   {
-    public static ConcreteSyntaxTree BracketList(params ICanRender[] elements)
-    {
-      var result = List(elements);
-      result.Prepend<LineSegment>("<");
-      result.Write(">");
-      return result;
-    }
-    
-    public static ConcreteSyntaxTree ParensList(params ICanRender[] elements)
-    {
-      var result = List(elements);
-      result.Prepend<LineSegment>("(");
-      result.Write(")");
-      return result;
-    }
-    public static ConcreteSyntaxTree List(params ICanRender[] elements)
-    {
-      var result = new ConcreteSyntaxTree();
-      if (elements.Length > 0) {
-        result.Write(elements[0]);
-        for (int i = 1; i < elements.Length; i++) {
-          result.Write(",");
-          result.Write(elements[i]);
-        }
-      }
-      return result;
-    }
-    
-    public static ConcreteSyntaxTree Block(out ConcreteSyntaxTree body, string header = "", string footer = "",
-      ConcreteSyntaxTree.BraceStyle open = ConcreteSyntaxTree.BraceStyle.Space,
-      ConcreteSyntaxTree.BraceStyle close = ConcreteSyntaxTree.BraceStyle.Newline)
-    {
-      var outer = new ConcreteSyntaxTree();
-      
-      outer.Write(header);
-      switch (open) {
-        case ConcreteSyntaxTree.BraceStyle.Space:
-          outer.Write(" ");
-          break;
-        case ConcreteSyntaxTree.BraceStyle.Newline:
-          outer.WriteLine();
-          break;
-      }
-            
-      outer.WriteLine("{");
-      body = outer.Fork(1);
-      outer.Write("}");
-            
-      if (footer != "") {
-        outer.Write(footer);
-      }
-      switch (close) {
-        case ConcreteSyntaxTree.BraceStyle.Space:
-          outer.Write(" ");
-          break;
-        case ConcreteSyntaxTree.BraceStyle.Newline:
-          outer.WriteLine();
-          break;
-      }
-      return outer;
-    }
     
     public static string Comma(this IEnumerable<string> l) {
       return Comma(l, s => s);
