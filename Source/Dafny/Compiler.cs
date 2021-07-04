@@ -4399,7 +4399,7 @@ namespace Microsoft.Dafny {
           var w = EmitSign(arg.Type, wr);
           TrParenExpr(arg, w, inLetExprBody);
           wr.Write(negated ? " != " : " == ");
-          wr.Write(sign);
+          wr.Write(sign.ToString());
         } else {
           string opString, preOpString, postOpString, callString, staticCallString;
           bool reverseArguments, truncateResult, convertE1_to_int;

@@ -1399,7 +1399,7 @@ namespace Microsoft.Dafny {
     }
     void EmitIntegerLiteral(BigInteger i, ConcreteSyntaxTree wr) {
       Contract.Requires(wr != null);
-      wr.Write(i);
+      wr.Write(i.ToString());
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {

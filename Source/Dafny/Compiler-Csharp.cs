@@ -942,8 +942,8 @@ namespace Microsoft.Dafny
 
     protected ConcreteSyntaxTree? CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, ConcreteSyntaxTree wr) {
       ConcreteSyntaxTree? result = null;
-      var body = createBody ? Block(out result) : new ConcreteSyntaxTree().Write(";");
-      wr.Format($"{Keywords(createBody, isStatic)}{TypeName(resultType, wr, tok)} {name} {{ get{body} }}");
+      var body = createBody ? Block(out result, close: BraceStyle.Nothing) : new ConcreteSyntaxTree().Write(";");
+      wr.FormatLine($"{Keywords(createBody, isStatic)}{TypeName(resultType, wr, tok)} {name} {{ get{body} }}");
       return result;
     }
 
@@ -2156,14 +2156,14 @@ namespace Microsoft.Dafny
       var xType = source.Type.NormalizeExpand();
       if (xType is SeqType || xType is MapType) {
         wr.Write(TypeHelperName(xType, wr, source.tok) + ".Update");
-        wr.Write(ParensList(
+        wr.Append(ParensList(
           Expr(source, inLetExprBody), 
           Expr(index, inLetExprBody), 
           Expr(value, inLetExprBody)));
       } else {
         TrParenExpr(source, wr, inLetExprBody);
         wr.Write(".Update");
-        wr.Write(ParensList(
+        wr.Append(ParensList(
           Expr(index, inLetExprBody), 
           Expr(value, inLetExprBody)));
       }
@@ -2176,8 +2176,8 @@ namespace Microsoft.Dafny
       TrParenExpr(source, wr, inLetExprBody);
       if (hi != null) {
         if (lo != null) {
-          wr.Write(".Subsequence(");
-          wr.Write(ParensList(Expr(lo, inLetExprBody), Expr(hi, inLetExprBody)));
+          wr.Write(".Subsequence");
+          wr.Append(ParensList(Expr(lo, inLetExprBody), Expr(hi, inLetExprBody)));
         } else {
           TrParenExpr(".Take", hi, wr, inLetExprBody);
         }
@@ -2194,7 +2194,7 @@ namespace Microsoft.Dafny
         EmitSeqConstructionExprFromLambda(expr.N, lam.BoundVars[0], lam.Body, inLetExprBody, wr);
       } else {
         wr.Write("{0}<{1}>.Create", DafnyISeq, TypeName(expr.Type.AsSeqType.Arg, wr, expr.tok));
-        wr.Write(ParensList(Expr(expr.N, inLetExprBody), Expr(expr.Initializer, inLetExprBody)));
+        wr.Append(ParensList(Expr(expr.N, inLetExprBody), Expr(expr.Initializer, inLetExprBody)));
       }
     }
 
@@ -2225,7 +2225,7 @@ namespace Microsoft.Dafny
     //     return Dafny.Sequence<T>.FromArray(a);
     //   }))();
     private void EmitSeqConstructionExprFromLambda(Expression lengthExpr, BoundVar boundVar, Expression body, bool inLetExprBody, ConcreteSyntaxTree wr) {
-      wr.Format($"((System.Func<{TypeName(new SeqType(body.Type), wr, body.tok)}>) (() => {Block(out ConcreteSyntaxTree wrLamBody)}))()");
+      wr.Format($"((System.Func<{TypeName(new SeqType(body.Type), wr, body.tok)}>) (() =>{ExprBlock(out ConcreteSyntaxTree wrLamBody)}))()");
 
       var indexType = lengthExpr.Type;
       var lengthVar = FreshId("dim");
@@ -2314,9 +2314,10 @@ namespace Microsoft.Dafny
     protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, ConcreteSyntaxTree wr) {
       var tas = Util.Snoc(boundTypes, resultType);
       var typeArgs = TypeName_UDT(ArrowType.Arrow_FullCompileName, tas.ConvertAll(_ => TypeParameter.TPVariance.Non), tas, wr, tok);
-      wr.Format($"{DafnyHelpersClass}.Id<{typeArgs}>(({boundVars.Comma()}) => {Block(out ConcreteSyntaxTree w)})");
+      var result = new ConcreteSyntaxTree();
+      wr.Format($"{DafnyHelpersClass}.Id<{typeArgs}>(({boundVars.Comma()}) => {result})");
       TrExprList(arguments, wr, inLetExprBody);
-      return w;
+      return result;
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
@@ -2335,9 +2336,9 @@ namespace Microsoft.Dafny
       // )
       wr = wr.ForkInParens();
       if (!untyped) {
-        wr.Write($"(System.Func<{inTypes.Comma(t => TypeName(t, wr, tok))}, {TypeName(resultType, wr, tok)}>)");
+        wr.Write($"(System.Func<{inTypes.Concat(new [] {resultType}).Comma(t => TypeName(t, wr, tok))}>)");
       }
-      wr.Format($"(({inNames.Comma(nm => nm)}) => {Block(out ConcreteSyntaxTree body, open: BraceStyle.Nothing, close: BraceStyle.Nothing)})");
+      wr.Format($"(({inNames.Comma(nm => nm)}) =>{ExprBlock(out ConcreteSyntaxTree body)})");
       return body;
     }
 
@@ -2351,9 +2352,8 @@ namespace Microsoft.Dafny
       // (
       //   (System.Func<resultType>)(() => <<body>>)
       // )()
-      wr.Write($"((System.Func<{TypeName(resultType, wr, resultTok)}>)(() =>");
-      var w = wr.NewBigExprBlock("", "))()");
-      return w;
+      wr.Format($"((System.Func<{TypeName(resultType, wr, resultTok)}>)(() =>{ExprBlock(out ConcreteSyntaxTree result)}))()");
+      return result;
     }
 
     protected override ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, ConcreteSyntaxTree wr) {
@@ -2674,7 +2674,7 @@ namespace Microsoft.Dafny
       {
         var result = new ConcreteSyntaxTree();
         result.Format($"new Dafny.Pair{BracketList((LineSegment)TypeName(p.A.Type, result, p.A.tok), (LineSegment)TypeName(p.B.Type, result, p.B.tok))}");
-        result.Write(ParensList(Expr(p.A, inLetExprBody), Expr(p.B, inLetExprBody)));
+        result.Append(ParensList(Expr(p.A, inLetExprBody), Expr(p.B, inLetExprBody)));
         return result;
       }).ToArray<ICanRender>();
       wr.Write($"{TypeHelperName(mt, wr, tok)}.FromElements{ParensList(arguments)}");
@@ -2705,7 +2705,7 @@ namespace Microsoft.Dafny
       var domtypeName = TypeName(mt.Domain, wr, tok);
       var rantypeName = TypeName(mt.Range, wr, tok);
       var termLeftWriter = new ConcreteSyntaxTree();
-      wr.Write($"{collName}.Add(new Dafny.Pair<{domtypeName},{rantypeName}>{ParensList(termLeftWriter, Expr(term, inLetExprBody))});");
+      wr.FormatLine($"{collName}.Add(new Dafny.Pair<{domtypeName},{rantypeName}>{ParensList(termLeftWriter, Expr(term, inLetExprBody))});");
       return termLeftWriter;
     }
 

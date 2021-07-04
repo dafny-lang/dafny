@@ -30,7 +30,7 @@ namespace Microsoft.Dafny
 
     public T Prepend<T>(T node) 
       where T : ICanRender {
-      _nodes.Add(node);
+      _nodes.Insert(0, node);
       return node;
     }
     
@@ -39,11 +39,6 @@ namespace Microsoft.Dafny
       Contract.Requires(node != null);
       _nodes.Add(node);
       return node;
-    }
-
-    public ConcreteSyntaxTree Write(object value) {
-      Write(value.ToString());
-      return this;
     }
         
     public ConcreteSyntaxTree Write(string value) {
@@ -86,11 +81,11 @@ namespace Microsoft.Dafny
         var split = anchorString.Split($"magicAnchor${argIndex}");
         anchorString = split.Length > 0 ? split[1] : "";
         Write(split[0]);
-        var argument = input.GetArgument(argIndex)!;
-        if (argument is string stringArg) {
-          Write(stringArg);
+        object argument = input.GetArgument(argIndex)!;
+        if (argument is ConcreteSyntaxTree treeArg) {
+          Append(treeArg);
         } else {
-          Append((ConcreteSyntaxTree)input.GetArgument(argIndex)!);
+          Write(argument.ToString());
         }
       }
       if (anchorString != "") {

@@ -40,15 +40,18 @@ namespace Microsoft.Dafny
     {
       var result = new ConcreteSyntaxTree();
       if (elements.Length > 0) {
-        result.Write(elements[0]);
+        result.Append(elements[0]);
         for (int i = 1; i < elements.Length; i++) {
-          result.Write(",");
-          result.Write(elements[i]);
+          result.Write(", ");
+          result.Append(elements[i]);
         }
       }
       return result;
     }
-
+    public static ConcreteSyntaxTree ExprBlock(out ConcreteSyntaxTree body, string header = "", string footer = "") {
+      return Block(out body, header, footer, BraceStyle.Space, BraceStyle.Nothing);
+    }
+    
     public static ConcreteSyntaxTree Block(out ConcreteSyntaxTree body, string header = "", string footer = "",
       BraceStyle open = BraceStyle.Space,
       BraceStyle close = BraceStyle.Newline)
