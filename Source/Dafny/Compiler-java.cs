@@ -17,8 +17,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Reflection;
 using Bpl = Microsoft.Boogie;
-
-
+using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny{
   public class JavaCompiler : Compiler{
@@ -1396,7 +1395,7 @@ namespace Microsoft.Dafny{
           }
           wr.Write(")");
         } else {
-          wr.Write($"(({TypeName(elmtType, wr, Bpl.Token.NoToken)}{Util.Repeat("[]", dimCount)}) ((");
+          wr.Write($"(({TypeName(elmtType, wr, Bpl.Token.NoToken)}{Repeat("[]", dimCount)}) ((");
           w = wr.Fork();
           wr.Write(").elmts))");
           for (int i = 0; i < dimCount; i++) {
@@ -1426,7 +1425,7 @@ namespace Microsoft.Dafny{
           w = wr.Fork();
           wr.Write($".set({Util.Comma(indices, ix => $"{DafnyHelpersClass}.toInt({ix})")}, {rhs})");
         } else {
-          wr.Write($"(({TypeName(elmtType, wr, Bpl.Token.NoToken)}{Util.Repeat("[]", indices.Count)}) (");
+          wr.Write($"(({TypeName(elmtType, wr, Bpl.Token.NoToken)}{Repeat("[]", indices.Count)}) (");
           w = wr.Fork();
           wr.Write($").elmts){Util.Comma("", indices, ix => $"[{DafnyHelpersClass}.toInt({ix})]")} = {rhs}");
         }
@@ -3052,9 +3051,9 @@ namespace Microsoft.Dafny{
 
             if (elType.IsTypeParameter) {
               bareArray =
-                $"(Object{Util.Repeat("[]", arrayClass.Dims - 1)}) {TypeDescriptor(elType, wr, tok)}.newArray({Util.Comma(Enumerable.Repeat("0", arrayClass.Dims))})";
+                $"(Object{Repeat("[]", arrayClass.Dims - 1)}) {TypeDescriptor(elType, wr, tok)}.newArray({Util.Comma(Enumerable.Repeat("0", arrayClass.Dims))})";
             } else {
-              bareArray = $"new {TypeName(elType, wr, tok)}{Util.Repeat("[0]", arrayClass.Dims)}";
+              bareArray = $"new {TypeName(elType, wr, tok)}{Repeat("[0]", arrayClass.Dims)}";
             }
             if (arrayClass.Dims > 1){
               arrays.Add(arrayClass.Dims);
@@ -3206,7 +3205,7 @@ namespace Microsoft.Dafny{
       // All brackets on the underlying "real" array type, minus the innermost
       // pair.  The innermost array must be represented as an Object since it
       // could be of primitive type.
-      var outerBrackets = Util.Repeat("[]", i - 1);
+      var outerBrackets = Repeat("[]", i - 1);
 
       var dims = Enumerable.Range(0, i);
       var outerDims = Enumerable.Range(0, i - 1);
@@ -3478,7 +3477,7 @@ namespace Microsoft.Dafny{
       }
 
       if (dimensions.Count > 1) {
-        wBareArray.Write($"(Object{Util.Repeat("[]", dimensions.Count - 1)}) ");
+        wBareArray.Write($"(Object{Repeat("[]", dimensions.Count - 1)}) ");
       }
       wBareArray.Write($"{TypeDescriptor(elmtType, wr, tok)}.newArray(");
       var sep = "";

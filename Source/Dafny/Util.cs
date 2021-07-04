@@ -65,21 +65,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(0 <= n);
       return n == 1 ? "" : "s";
     }
-    
-    public static string Repeat(string template, int times, string separator = "")
-    {
-      Contract.Requires(times >= 0);
-      
-      var builder = new StringBuilder();
-      string sep = "";
-      for (int i = 0; i < times; i++) {
-        builder.Append(sep);
-        builder.Append(string.Format(template, i));
-        sep = separator;
-      }
-
-      return builder.ToString();
-    }
 
     public static List<B> Map<A, B>(IEnumerable<A> xs, Func<A, B> f)
     {

@@ -1,7 +1,25 @@
+using System.Diagnostics.Contracts;
+using System.Text;
+
 namespace Microsoft.Dafny
 {
   public static class ConcreteSyntaxTreeUtils
   {
+    public static string Repeat(string template, int times, string separator = "")
+    {
+      Contract.Requires(times >= 0);
+      
+      var builder = new StringBuilder();
+      string sep = "";
+      for (int i = 0; i < times; i++) {
+        builder.Append(sep);
+        builder.Append(string.Format(template, i));
+        sep = separator;
+      }
+
+      return builder.ToString();
+    }
+    
     public static ConcreteSyntaxTree BracketList(params ICanRender[] elements)
     {
       var result = List(elements);

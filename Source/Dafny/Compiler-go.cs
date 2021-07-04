@@ -11,10 +11,10 @@ using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Bpl = Microsoft.Boogie;
+using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny {
   public class GoCompiler : Compiler {
@@ -1986,7 +1986,7 @@ namespace Microsoft.Dafny {
       } else if (e.Value is BigInteger i) {
         EmitIntegerLiteral(i, wr);
       } else if (e.Value is BaseTypes.BigDec n) {
-        var zeros = Util.Repeat("0", Math.Abs(n.Exponent));
+        var zeros = Repeat("0", Math.Abs(n.Exponent));
         string str;
         if (n.Exponent >= 0) {
           str = n.Mantissa + zeros;

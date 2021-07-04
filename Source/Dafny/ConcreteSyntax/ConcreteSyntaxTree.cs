@@ -52,40 +52,34 @@ namespace Microsoft.Dafny
     }
 
     [StringFormatMethod("format")]
-    public ConcreteSyntaxTree WriteLine(string format, params object[] args)
-    {
+    public ConcreteSyntaxTree WriteLine(string format, params object[] args) {
       WriteLine(string.Format(format, args));
       return this;
     }
 
-    public ConcreteSyntaxTree WriteLine(string value)
-    {
+    public ConcreteSyntaxTree WriteLine(string value) {
       Write(value);
       WriteLine();
       return this;
     }
         
-    public ConcreteSyntaxTree WriteLine()
-    {
+    public ConcreteSyntaxTree WriteLine() {
       _nodes.Add(new NewLine());
       return this;
     }
 
     [StringFormatMethod("format")]
-    public ConcreteSyntaxTree Write(string format, params object[] args)
-    {
+    public ConcreteSyntaxTree Write(string format, params object[] args) {
       Write(string.Format(format, args));
       return this;
     }
 
-    public ConcreteSyntaxTree FormatLine(FormattableString input)
-    {
+    public ConcreteSyntaxTree FormatLine(FormattableString input) {
       Format(input);
       return WriteLine();
     }
 
-    public ConcreteSyntaxTree Format(FormattableString input)
-    {
+    public ConcreteSyntaxTree Format(FormattableString input) {
       var anchorString = string.Format(input.Format, Enumerable.Range(0, input.ArgumentCount).
         Select(index => $"magicAnchor${index}").ToArray<object>());
       for (int argIndex = 0; argIndex < input.ArgumentCount; argIndex++) {
@@ -169,8 +163,7 @@ namespace Microsoft.Dafny
     }
 
     public void Render(TextWriter writer, int indentation, WriterState writerState,
-      Queue<FileSyntax> files)
-    {
+      Queue<FileSyntax> files) {
       foreach (var node in _nodes)
       {
         node.Render(writer, indentation + RelativeIndentLevel * 2, writerState, files);
