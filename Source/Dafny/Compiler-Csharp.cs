@@ -113,7 +113,7 @@ namespace Microsoft.Dafny
           }
 
           // T[,] a = new T[s0, s1];
-          w.Write($"T[{Util.Repeat("", dims, ",")}] a = " +
+          w.WriteLine($"T[{Util.Repeat("", dims, ",")}] a = " +
                   $"new T[{Util.Repeat("s{0}", dims, ",")}];");
 
           // for (int i0 = 0; i0 < s0; i0++) {
@@ -124,7 +124,7 @@ namespace Microsoft.Dafny
           }
 
           // a[i0,i1] = z;
-          wLoopNest.Write($"a[{Util.Repeat("i{0}", dims, ",")}] = z;");
+          wLoopNest.WriteLine($"a[{Util.Repeat("i{0}", dims, ",")}] = z;");
           // return a;
           w.WriteLine("return a;");
         }
@@ -2356,7 +2356,7 @@ namespace Microsoft.Dafny
       if (!untyped) {
         wr.Write($"(System.Func<{inTypes.Comma(t => TypeName(t, wr, tok))}, {TypeName(resultType, wr, tok)}>)");
       }
-      wr.Format($"(({inNames.Comma(nm => nm)}) => {Util.Block(out ConcreteSyntaxTree body)})");
+      wr.Format($"(({inNames.Comma(nm => nm)}) => {Util.Block(out ConcreteSyntaxTree body, open: ConcreteSyntaxTree.BraceStyle.Nothing, close: ConcreteSyntaxTree.BraceStyle.Nothing)})");
       return body;
     }
 
