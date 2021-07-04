@@ -2542,7 +2542,7 @@ namespace Microsoft.Dafny
           TrParenExpr(e.E, wr, inLetExprBody);
           wr.Write(", BigInteger.One)");
         } else if (e.ToType.IsCharType) {
-          wr.Format($"(char)({Expr(e.E, inLetExprBody)}");
+          wr.Format($"(char)({Expr(e.E, inLetExprBody)})");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
