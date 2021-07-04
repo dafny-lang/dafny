@@ -2048,29 +2048,29 @@ namespace Microsoft.Dafny
         } else {
           // We need an eta conversion to adjust for the difference in arity.
           // (T0 a0, T1 a1, ...) => obj.F(additionalCustomParameter, a0, a1, ...)
-          wr = wr.ForkInParens();
+          var callArguments = wr.ForkInParens();
           var sep = "";
           EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member, false), fn.tok, wr, ref sep);
           if (additionalCustomParameter != null) {
-            wr.Write($"{sep}{additionalCustomParameter}");
+            callArguments.Write($"{sep}{additionalCustomParameter}");
             sep = ", ";
           }
-          var prefixWr = new ConcreteSyntaxTree();
+          var lambdaHeader = new ConcreteSyntaxTree();
           var prefixSep = "";
-          var arguments = prefixWr.ForkInParens();
-          prefixWr.Write(" => ");
+          var arguments = lambdaHeader.ForkInParens();
+          lambdaHeader.Write(" => ");
           
           foreach (var arg in fn.Formals) {
             if (!arg.IsGhost) {
               var name = idGenerator.FreshId("_eta");
               var ty = Resolver.SubstType(arg.Type, typeMap);
               arguments.Write($"{prefixSep}{TypeName(ty, arguments, arg.tok)} {name}");
-              wr.Write($"{sep}{name}");
+              callArguments.Write($"{sep}{name}");
               sep = ", ";
               prefixSep = ", ";
             }
           }
-          return EnclosedLvalue(prefixWr.ToString(), obj, $".{wr}");
+          return EnclosedLvalue(lambdaHeader.ToString(), obj, $".{wr}");
         }
       } else {
         Contract.Assert(member is Field);
