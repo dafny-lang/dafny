@@ -2270,24 +2270,18 @@ namespace Microsoft.Dafny
       to = to.NormalizeExpand();
       Contract.Assert(from.IsRefType == to.IsRefType);
 
+      var w = new ConcreteSyntaxTree();
       if (to.IsRefType) {
-        wr.Format($"({TypeName(to, wr, tok)})({Block(out ConcreteSyntaxTree w)})");
-        return w;
+        wr.Format($"({TypeName(to, wr, tok)})({w})");
       } else {
         Contract.Assert(Type.SameHead(from, to));
 
-        wr.Format($"({Block(out ConcreteSyntaxTree w)}).DowncastClone<{Block(out ConcreteSyntaxTree wTypeArgs)}>({Block(out ConcreteSyntaxTree wConverters)})");
+        var wTypeArgs = to.TypeArgs.Comma(ta => TypeName(ta, wr, tok));
+        var wConverters = from.TypeArgs.Zip(to.TypeArgs).Comma(t => DowncastConverter(t.First, t.Second, wr, tok));
+        wr.Format($"({w}).DowncastClone<{wTypeArgs}>({wConverters})");
         Contract.Assert(from.TypeArgs.Count == to.TypeArgs.Count);
-        var sep = "";
-        for (var i = 0; i < to.TypeArgs.Count; i++) {
-          var ta = to.TypeArgs[i];
-          var fa = from.TypeArgs[i];
-          wTypeArgs.Write("{0}{1}", sep, TypeName(ta, wTypeArgs, tok));
-          wConverters.Write("{0}{1}", sep, DowncastConverter(fa, ta, wConverters, tok));
-          sep = ", ";
-        }
-        return w;
       }
+      return w;
     }
 
     string DowncastConverter(Type from, Type to, ConcreteSyntaxTree errorWr, Bpl.IToken tok) {
