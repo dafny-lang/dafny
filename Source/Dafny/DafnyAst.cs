@@ -12680,7 +12680,7 @@ namespace Microsoft.Dafny {
             yield return update.Item3;
           }
         } else {
-          foreach (var e in ResolvedExpression.SubExpressions) {
+          foreach (var e in base.SubExpressions) {
             yield return e;
           }
         }
