@@ -6061,16 +6061,19 @@ namespace Microsoft.Dafny {
     }
     public readonly bool IsOld;
     public readonly Expression DefaultValue;
+    public readonly bool IsNameOnly;
 
-    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue, bool isOld = false)
+    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue, bool isOld = false, bool isNameOnly = false)
       : base(tok, name, type, isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
       Contract.Requires(inParam || defaultValue == null);
+      Contract.Requires(!isNameOnly || (inParam && !name.StartsWith("#")));
       InParam = inParam;
       IsOld = isOld;
       DefaultValue = defaultValue;
+      IsNameOnly = isNameOnly;
     }
 
     public bool HasName {
@@ -7940,6 +7943,18 @@ namespace Microsoft.Dafny {
       this.Thn = thn;
       this.Els = els;
     }
+    public IfStmt(IToken tok, IToken endTok, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els, Attributes attrs)
+      : base(tok, endTok, attrs) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
+      Contract.Requires(thn != null);
+      Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
+      this.IsBindingGuard = isBindingGuard;
+      this.Guard = guard;
+      this.Thn = thn;
+      this.Els = els;
+    }
     public override IEnumerable<Statement> SubStatements {
       get {
         yield return Thn;
@@ -7964,6 +7979,7 @@ namespace Microsoft.Dafny {
     public readonly bool IsBindingGuard;
     public readonly Expression Guard;
     public readonly List<Statement> Body;
+    public Attributes Attributes;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Tok != null);
@@ -7981,6 +7997,19 @@ namespace Microsoft.Dafny {
       this.IsBindingGuard = isBindingGuard;
       this.Guard = guard;
       this.Body = body;
+      this.Attributes = null;
+    }
+    public GuardedAlternative(IToken tok, bool isBindingGuard, Expression guard, List<Statement> body, Attributes attrs)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(guard != null);
+      Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
+      Contract.Requires(body != null);
+      this.Tok = tok;
+      this.IsBindingGuard = isBindingGuard;
+      this.Guard = guard;
+      this.Body = body;
+      this.Attributes = attrs;
     }
   }
 
@@ -7994,6 +8023,14 @@ namespace Microsoft.Dafny {
     }
     public AlternativeStmt(IToken tok, IToken endTok, List<GuardedAlternative> alternatives, bool usesOptionalBraces)
       : base(tok, endTok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(alternatives != null);
+      this.Alternatives = alternatives;
+      this.UsesOptionalBraces = usesOptionalBraces;
+    }
+    public AlternativeStmt(IToken tok, IToken endTok, List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
+      : base(tok, endTok, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(alternatives != null);
@@ -8032,8 +8069,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Mod != null);
     }
     public LoopStmt(IToken tok, IToken endTok, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
-    : base(tok, endTok)
-    {
+    : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(cce.NonNullElements(invariants));
@@ -8044,7 +8080,18 @@ namespace Microsoft.Dafny {
       this.Decreases = decreases;
       this.Mod = mod;
     }
+    public LoopStmt(IToken tok, IToken endTok, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod, Attributes attrs)
+       : base(tok, endTok, attrs) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(cce.NonNullElements(invariants));
+      Contract.Requires(decreases != null);
+      Contract.Requires(mod != null);
 
+      this.Invariants = invariants;
+      this.Decreases = decreases;
+      this.Mod = mod;
+    }
     public IEnumerable<Expression> LoopSpecificationExpressions {
       get {
         foreach (var mfe in Invariants) {
@@ -8078,11 +8125,29 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class WhileStmt : LoopStmt
+  public abstract class OneBodyLoopStmt : LoopStmt {
+    public readonly BlockStmt/*?*/ Body;
+    public WhileStmt.LoopBodySurrogate/*?*/ BodySurrogate;  // set by Resolver; remains null unless Body==null
+
+    public OneBodyLoopStmt(IToken tok, IToken endTok,
+      List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
+      BlockStmt /*?*/ body, Attributes/*?*/ attrs)
+      : base(tok, endTok, invariants, decreases, mod, attrs) {
+      Body = body;
+    }
+
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        if (Body != null) {
+          yield return Body;
+        }
+      }
+    }
+  }
+
+  public class WhileStmt : OneBodyLoopStmt
   {
     public readonly Expression/*?*/ Guard;
-    public readonly BlockStmt/*?*/ Body;
-    public LoopBodySurrogate/*?*/ BodySurrogate;  // set by Resolver; remains null unless Body==null
 
     public class LoopBodySurrogate
     {
@@ -8098,11 +8163,19 @@ namespace Microsoft.Dafny {
     public WhileStmt(IToken tok, IToken endTok, Expression guard,
                      List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
                      BlockStmt body)
-      : base(tok, endTok, invariants, decreases, mod) {
+      : base(tok, endTok, invariants, decreases, mod, body, null) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       this.Guard = guard;
-      this.Body = body;
+    }
+
+    public WhileStmt(IToken tok, IToken endTok, Expression guard,
+                 List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
+                 BlockStmt body, Attributes attrs)
+      : base(tok, endTok, invariants, decreases, mod, body, attrs) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      this.Guard = guard;
     }
 
     public override IEnumerable<Statement> SubStatements {
@@ -8138,6 +8211,41 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class ForLoopStmt : OneBodyLoopStmt {
+    public readonly BoundVar LoopIndex;
+    public readonly Expression Start;
+    public readonly Expression/*?*/ End;
+    public readonly bool GoingUp;
+
+    public ForLoopStmt(IToken tok, IToken endTok, BoundVar loopIndexVariable, Expression start, Expression/*?*/ end, bool goingUp,
+      List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
+      BlockStmt /*?*/ body, Attributes attrs)
+      : base(tok, endTok, invariants, decreases, mod, body, attrs)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(loopIndexVariable != null);
+      Contract.Requires(start != null);
+      Contract.Requires(invariants != null);
+      Contract.Requires(decreases != null);
+      Contract.Requires(mod != null);
+      LoopIndex = loopIndexVariable;
+      Start = start;
+      End = end;
+      GoingUp = goingUp;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in base.SubExpressions) { yield return e; }
+        yield return Start;
+        if (End != null) {
+          yield return End;
+        }
+      }
+    }
+  }
+
   public class AlternativeLoopStmt : LoopStmt
   {
     public readonly bool UsesOptionalBraces;
@@ -8150,6 +8258,16 @@ namespace Microsoft.Dafny {
                                List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
                                List<GuardedAlternative> alternatives, bool usesOptionalBraces)
       : base(tok, endTok, invariants, decreases, mod) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(alternatives != null);
+      this.Alternatives = alternatives;
+      this.UsesOptionalBraces = usesOptionalBraces;
+    }
+    public AlternativeLoopStmt(IToken tok, IToken endTok,
+                   List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
+                   List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
+      : base(tok, endTok, invariants, decreases, mod, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(alternatives != null);
@@ -8588,7 +8706,6 @@ namespace Microsoft.Dafny {
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
     public readonly bool UsesOptionalBraces;
     public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it
-
     public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, MatchingContext context = null)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
@@ -8599,6 +8716,18 @@ namespace Microsoft.Dafny {
       this.cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
       this.Context = context is null? new HoleCtx() : context;
+    }
+    public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
+      : base(tok, endTok, attrs)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(source != null);
+      Contract.Requires(cce.NonNullElements(cases));
+      this.source = source;
+      this.cases = cases;
+      this.UsesOptionalBraces = usesOptionalBraces;
+      this.Context = context is null ? new HoleCtx() : context;
     }
 
     public Expression Source {
@@ -8638,13 +8767,14 @@ namespace Microsoft.Dafny {
   public class MatchCaseStmt : MatchCase
   {
     private List<Statement> body;
+    public Attributes Attributes;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Body));
     }
 
-    public MatchCaseStmt(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body)
+    public MatchCaseStmt(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
       : base(tok, ctor, arguments)
     {
       Contract.Requires(tok != null);
@@ -8652,6 +8782,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(cce.NonNullElements(body));
       this.body = body;
+      this.Attributes = attrs;
     }
 
     public List<Statement> Body {
@@ -12261,11 +12392,18 @@ namespace Microsoft.Dafny {
   public class NestedMatchCaseStmt : NestedMatchCase
   {
     public readonly List<Statement> Body;
-
+    public Attributes Attributes;
     public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body) : base(tok, pat) {
       Contract.Requires(body != null);
       this.Body = body;
+      this.Attributes = null;
     }
+    public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body, Attributes attrs) : base(tok, pat) {
+      Contract.Requires(body != null);
+      this.Body = body;
+      this.Attributes = attrs;
+    }
+
   }
 
   public class NestedMatchStmt : ConcreteSyntaxStatement
@@ -12274,6 +12412,21 @@ namespace Microsoft.Dafny {
     public readonly List<NestedMatchCaseStmt> Cases;
     public readonly bool UsesOptionalBraces;
 
+    private void InitializeAttributes()
+    {
+      // Default case for match is false
+      bool splitMatch = Attributes.Contains(this.Attributes, "split");
+      Attributes.ContainsBool(this.Attributes, "split", ref splitMatch);
+      foreach (var c in this.Cases) {
+        if (!Attributes.Contains(c.Attributes, "split")) {
+          List<Expression> args = new List<Expression>();
+          args.Add(new LiteralExpr(c.Tok, splitMatch));
+          Attributes attrs = new Attributes("split", args, c.Attributes);
+          c.Attributes = attrs;
+        }
+      }
+    }
+
     public override IEnumerable<Expression> SubExpressions {
       get {
         if (this.ResolvedStatement == null) {
@@ -12281,13 +12434,14 @@ namespace Microsoft.Dafny {
         }
       }
     }
-
-    public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces): base(tok, endTok) {
+    public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
+      : base(tok, endTok, attrs) {
       Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
       this.Source = source;
       this.Cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
+      InitializeAttributes();
     }
   }
 
@@ -12465,6 +12619,9 @@ namespace Microsoft.Dafny {
     public Statement ResolvedStatement;  // filled in during resolution; after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
     public ConcreteSyntaxStatement(IToken tok, IToken endtok)
       : base(tok, endtok) {
+    }
+    public ConcreteSyntaxStatement(IToken tok, IToken endtok, Attributes attrs)
+      : base(tok, endtok, attrs) {
     }
     public override IEnumerable<Statement> SubStatements {
       get {

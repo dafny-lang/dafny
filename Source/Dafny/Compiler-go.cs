@@ -1818,6 +1818,47 @@ namespace Microsoft.Dafny {
       return wBody;
     }
 
+    protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
+      List<Statement> body, ConcreteSyntaxTree wr) {
+
+      wr.Write($"for {loopIndex.CompileName} := ");
+      var startWr = wr.Fork();
+      wr.Write($"; ");
+
+      ConcreteSyntaxTree bodyWr;
+      if (goingUp) {
+        if (endVarName == null) {
+          wr.Write("true");
+        } else if (IsOrderedByCmp(loopIndex.Type)) {
+          wr.Write($"{loopIndex.CompileName}.Cmp({endVarName}) < 0");
+        } else {
+          wr.Write($"{loopIndex.CompileName} < {endVarName}");
+        }
+        if (AsNativeType(loopIndex.Type) == null) {
+          bodyWr = wr.NewBlock($"; {loopIndex.CompileName} = {loopIndex.CompileName}.Plus(_dafny.One)");
+        } else {
+          bodyWr = wr.NewBlock($"; {loopIndex.CompileName}++");
+        }
+      } else {
+        if (endVarName == null) {
+          wr.Write("true");
+        } else if (IsOrderedByCmp(loopIndex.Type)) {
+          wr.Write($"{endVarName}.Cmp({loopIndex.CompileName}) < 0");
+        } else {
+          wr.Write($"{endVarName} < {loopIndex.CompileName}");
+        }
+        bodyWr = wr.NewBlock($"; ");
+        if (AsNativeType(loopIndex.Type) == null) {
+          bodyWr.WriteLine($"{loopIndex.CompileName} = {loopIndex.CompileName}.Minus(_dafny.One)");
+        } else {
+          bodyWr.WriteLine($"{loopIndex.CompileName}--");
+        }
+      }
+      TrStmtList(body, bodyWr);
+
+      return startWr;
+    }
+
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
       return wr.NewNamedBlock("for {0} := _dafny.Zero; {0}.Cmp({1}) < 0; {0} = {0}.Plus(_dafny.One)", indexVar, bound);
     }

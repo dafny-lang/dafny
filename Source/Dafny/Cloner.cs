@@ -605,15 +605,21 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        r = new AlternativeStmt(Tok(s.Tok), Tok(s.EndTok), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces);
+        r = new AlternativeStmt(Tok(s.Tok), Tok(s.EndTok), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces, CloneAttributes(s.Attributes));
 
       } else if (stmt is WhileStmt) {
         var s = (WhileStmt)stmt;
-        r = new WhileStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Guard), s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
+        r = new WhileStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Guard),
+          s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body), CloneAttributes(s.Attributes));
+
+      } else if (stmt is ForLoopStmt) {
+        var s = (ForLoopStmt)stmt;
+        r = new ForLoopStmt(Tok(s.Tok), Tok(s.EndTok), CloneBoundVar(s.LoopIndex), CloneExpr(s.Start), CloneExpr(s.End), s.GoingUp,
+          s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body), CloneAttributes(s.Attributes));
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        r = new AlternativeLoopStmt(Tok(s.Tok), Tok(s.EndTok), s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces);
+        r = new AlternativeLoopStmt(Tok(s.Tok), Tok(s.EndTok), s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces, CloneAttributes(s.Attributes));
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
@@ -678,7 +684,7 @@ namespace Microsoft.Dafny
     public MatchCaseStmt CloneMatchCaseStmt(MatchCaseStmt c) {
       Contract.Requires(c != null);
       Contract.Assert(c.Arguments != null);
-      return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt));
+      return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt), CloneAttributes(c.Attributes));
     }
 
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
@@ -695,7 +701,7 @@ namespace Microsoft.Dafny
     }
     public NestedMatchCaseStmt CloneNestedMatchCaseStmt(NestedMatchCaseStmt c) {
       Contract.Requires(c != null);
-      return new NestedMatchCaseStmt(c.Tok, CloneExtendedPattern(c.Pat), c.Body.ConvertAll(CloneStmt));
+      return new NestedMatchCaseStmt(c.Tok, CloneExtendedPattern(c.Pat), c.Body.ConvertAll(CloneStmt), CloneAttributes(c.Attributes));
     }
     public CalcStmt.CalcOp CloneCalcOp(CalcStmt.CalcOp op) {
       if (op == null) {
@@ -722,7 +728,7 @@ namespace Microsoft.Dafny
     }
 
     public GuardedAlternative CloneGuardedAlternative(GuardedAlternative alt) {
-      return new GuardedAlternative(Tok(alt.Tok), alt.IsBindingGuard, CloneExpr(alt.Guard), alt.Body.ConvertAll(CloneStmt));
+      return new GuardedAlternative(Tok(alt.Tok), alt.IsBindingGuard, CloneExpr(alt.Guard), alt.Body.ConvertAll(CloneStmt), CloneAttributes(alt.Attributes));
     }
 
     public virtual Field CloneField(Field f) {

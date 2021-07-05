@@ -1050,7 +1050,7 @@ For a sequence, the only difference is the length operator:
   }
 ```
 
-The `forall` statement ([Section 19.20](#sec-forall-statement)) can also be used
+The `forall` statement ([Section 19.21](#sec-forall-statement)) can also be used
 with arrays where parallel assigment is needed:
 ```dafny
   var rev := new int[s.Length];
@@ -1635,8 +1635,8 @@ in [Section 18.3](#sec-coinduction). // TODO - check this is the correct referen
 
 ````grammar
 Formals(allowGhostKeyword, allowNewKeyword, allowDefault) =
-  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowDefault)
-        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowDefault) }
+  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowNameOnlyKeyword: true, allowDefault)
+        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowNameOnlyKeyword: true, allowDefault) }
       ]
   ")"
 ````
@@ -1940,6 +1940,7 @@ FunctionSignature_(allowGhostKeyword, allowNewKeyword) =
   ( Type
   | "(" GIdentType(allowGhostKeyword: false,
                    allowNewKeyword: false,
+                   allowNameOnlyKeyword: false,
                    allowDefault: false)
     ")"
   )

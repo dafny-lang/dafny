@@ -1484,6 +1484,27 @@ namespace Microsoft.Dafny
       wr.WriteLine(");");
     }
 
+    protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
+      List<Statement> body, ConcreteSyntaxTree wr) {
+
+      wr.Write($"for ({TypeName(loopIndex.Type,wr, tok)} {loopIndex.CompileName} = ");
+      var startWr = wr.Fork();
+      wr.Write($"; ");
+
+      ConcreteSyntaxTree bodyWr;
+      if (goingUp) {
+        wr.Write(endVarName != null ? $"{loopIndex.CompileName} < {endVarName}" : "");
+        bodyWr = wr.NewBlock($"; {loopIndex.CompileName}++)");
+      } else {
+        wr.Write(endVarName != null ? $"{endVarName} < {loopIndex.CompileName}" : "");
+        bodyWr = wr.NewBlock($"; )");
+        bodyWr.WriteLine($"{loopIndex.CompileName}--;");
+      }
+      TrStmtList(body, bodyWr);
+
+      return startWr;
+    }
+
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
       return wr.NewNamedBlock("for (var {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
     }

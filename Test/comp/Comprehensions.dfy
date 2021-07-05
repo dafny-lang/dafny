@@ -19,6 +19,7 @@ method Main() {
   Containment({}, {}, {});
   TestImplicitTypeTests.Test();
   ObjectTests.Test();
+  NewtypeRangeRegression.Test();
 }
 
 predicate method Thirteen(x: int) { x == 13 }
@@ -486,5 +487,14 @@ module ObjectTests {
   method AutoInit<X(0)>() {
     var x: X;
     print x, "\n";
+  }
+}
+
+module NewtypeRangeRegression {
+  newtype MyInt = x | 2 <= x < 5 witness *
+
+  method Test() {
+    var k: MyInt :| k != 2; // this once caused an infinite loop in the target Java code
+    print k, "\n";
   }
 }

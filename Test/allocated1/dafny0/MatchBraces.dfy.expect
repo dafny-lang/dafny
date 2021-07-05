@@ -62,53 +62,53 @@ method P(c: Color, d: Color)
 {
   var x: int;
   match c {
-    case Red =>
+    case {:split false} Red =>
       x := 20;
-    case Green =>
-    case Blue =>
+    case {:split false} Green =>
+    case {:split false} Blue =>
   }
   match c
-  case Red =>
+  case {:split false} Red =>
     match d {
-      case Red =>
-      case Green =>
-      case Blue =>
+      case {:split false} Red =>
+      case {:split false} Green =>
+      case {:split false} Blue =>
     }
-  case Green =>
+  case {:split false} Green =>
     var y := 25;
     var z := y + 3;
-  case Blue =>
+  case {:split false} Blue =>
     {
       var y := 25;
       var z := y + 3;
     }
     match d
-    case Red =>
-    case Green =>
+    case {:split false} Red =>
+    case {:split false} Green =>
       x := x + 1;
-    case Blue =>
+    case {:split false} Blue =>
 }
 
 lemma HeatIsEven(c: Color)
   ensures Heat(c) % 2 == 0
 {
   match c
-  case Red =>
+  case {:split false} Red =>
     assert 10 % 2 == 0;
-  case Green =>
+  case {:split false} Green =>
     assert 12 % 2 == 0;
-  case Blue =>
+  case {:split false} Blue =>
 }
 
 method DegenerateExamples(c: Color)
   requires Heat(c) == 10
 {
   match c
-  case Red =>
-  case Green =>
+  case {:split false} Red =>
+  case {:split false} Green =>
     match c {
     }
-  case Blue =>
+  case {:split false} Blue =>
     match c
 }
 
