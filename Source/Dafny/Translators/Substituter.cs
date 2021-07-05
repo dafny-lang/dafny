@@ -34,10 +34,9 @@ namespace Microsoft.Dafny
         var e = (StaticReceiverExpr)expr;
         var ty = Resolver.SubstType(e.Type, typeMap);
         return new StaticReceiverExpr(e.tok, ty, e.IsImplicit) { Type = ty };
-      } else if (expr is LiteralExpr) {
-        var e = (LiteralExpr)expr;
-        if (e.Value == null) {
-          return new LiteralExpr(e.tok) { Type = Resolver.SubstType(e.Type, typeMap) };
+      } else if (expr is LiteralExpr literalExpr) {
+        if (literalExpr.Value == null) {
+          return new LiteralExpr(literalExpr.tok) { Type = Resolver.SubstType(literalExpr.Type, typeMap) };
         } else {
           // nothing to substitute
         }
@@ -319,10 +318,9 @@ namespace Microsoft.Dafny
           newExpr = new ITEExpr(expr.tok, e.IsBindingGuard, test, thn, els);
         }
 
-      } else if (expr is ConcreteSyntaxExpression) {
-        var e = (ConcreteSyntaxExpression)expr;
-        Contract.Assert(e.ResolvedExpression != null);
-        return Substitute(e.ResolvedExpression);
+      } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
+        Contract.Assert(concreteSyntaxExpression.ResolvedExpression != null);
+        return Substitute(concreteSyntaxExpression.ResolvedExpression);
 
       } else if (expr is Translator.BoogieFunctionCall) {
         var e = (Translator.BoogieFunctionCall)expr;
@@ -360,7 +358,6 @@ namespace Microsoft.Dafny
     }
 
     private Expression LetExpr(LetExpr letExpr) {
-      Expression result = null;
       if (letExpr.Exact) {
         var rhss = new List<Expression>();
         bool anythingChanged = false;
@@ -389,8 +386,10 @@ namespace Microsoft.Dafny
 
         // Put things together
         if (anythingChanged || body != letExpr.Body) {
-          result = new LetExpr(letExpr.tok, newCasePatterns, rhss, body, letExpr.Exact);
+          return new LetExpr(letExpr.tok, newCasePatterns, rhss, body, letExpr.Exact);
         }
+
+        return null;
       } else {
         var rhs = Substitute(letExpr.RHSs[0]);
         var body = Substitute(letExpr.Body);
@@ -400,11 +399,8 @@ namespace Microsoft.Dafny
         // keep copies of the substitution maps so we can reuse them at desugaring time
         var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
         var newTypeMap = new Dictionary<TypeParameter, Type>(typeMap);
-        var newLet = new Translator.SubstLetExpr(letExpr.tok, letExpr.LHSs, new List<Expression> {rhs}, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
-        result = newLet;
+        return new Translator.SubstLetExpr(letExpr.tok, letExpr.LHSs, new List<Expression> {rhs}, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
       }
-
-      return result;
     }
 
     /// <summary>
