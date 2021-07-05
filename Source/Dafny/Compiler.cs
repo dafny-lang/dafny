@@ -648,7 +648,13 @@ namespace Microsoft.Dafny {
         return from.ParentTypes().Any(fromParentType => IsTargetSupertype(to, fromParentType));
       }
     }
-
+    
+    protected ConcreteSyntaxTree Downcast(Type from, Type to, Bpl.IToken tok, ICanRender expression) {
+      var result = new ConcreteSyntaxTree();
+      EmitDowncast(from, to, tok, result).Append(expression);
+      return result;
+    }
+    
     protected virtual ConcreteSyntaxTree EmitDowncast(Type from, Type to, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       Contract.Requires(from != null);
       Contract.Requires(to != null);
