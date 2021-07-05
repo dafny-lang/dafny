@@ -2264,6 +2264,12 @@ namespace Microsoft.Dafny
       wr.Write($"{DafnyHelpersClass}.Id<{TypeName(functionType, wr, tok)}>({Expr(function, inLetExprBody)})");
       TrExprList(arguments, wr, inLetExprBody);
     }
+    
+    protected ConcreteSyntaxTree Downcast(Type from, Type to, Bpl.IToken tok, ICanRender expression) {
+      var result = new ConcreteSyntaxTree();
+      EmitDowncast(from, to, tok, result).Append(expression);
+      return result;
+    }
 
     protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       from = from.NormalizeExpand();
@@ -2292,10 +2298,7 @@ namespace Microsoft.Dafny
         var sTo = TypeName(to, errorWr, tok);
         // (from x) => { return x.DowncastClone<A, B, ...>(aConverter, bConverter, ...); }
         var wr = new ConcreteSyntaxTree();
-        wr.Write("({0} x) => {{ return ", TypeName(from, errorWr, tok));
-        var wrFrom = EmitDowncast(from, to, tok, wr);
-        wrFrom.Write("x");
-        wr.Write("; }");
+        wr.Format($"({TypeName(@from, errorWr, tok)} x) => {{ return {Downcast(from, to, tok, (LineSegment)"x")}; }}");
         return wr.ToString();
       }
       // use a type
