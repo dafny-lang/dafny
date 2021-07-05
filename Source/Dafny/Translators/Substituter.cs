@@ -239,48 +239,8 @@ namespace Microsoft.Dafny
           newExpr = new TernaryExpr(expr.tok, e.Op, e0, e1, e2);
         }
 
-      } else if (expr is LetExpr) {
-        var e = (LetExpr)expr;
-        if (e.Exact) {
-          var rhss = new List<Expression>();
-          bool anythingChanged = false;
-          foreach (var rhs in e.RHSs) {
-            var r = Substitute(rhs);
-            if (r != rhs) {
-              anythingChanged = true;
-            }
-            rhss.Add(r);
-          }
-          // Note, CreateBoundVarSubstitutions has the side effect of updating the substitution map.
-          // For an Exact let expression, this is something that needs to be done after substituting
-          // in the RHSs.
-          var newCasePatterns = CreateCasePatternSubstitutions(e.LHSs, true);
-          if (newCasePatterns != e.LHSs) {
-            anythingChanged = true;
-          }
-
-          var body = Substitute(e.Body);
-          // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
-          foreach (var bv in e.BoundVars) {
-            substMap.Remove(bv);
-          }
-          // Put things together
-          if (anythingChanged || body != e.Body) {
-            newExpr = new LetExpr(e.tok, newCasePatterns, rhss, body, e.Exact);
-          }
-        } else {
-          var rhs = Substitute(e.RHSs[0]);
-          var body = Substitute(e.Body);
-          var newBounds = SubstituteBoundedPoolList(e.Constraint_Bounds);
-          if (rhs == e.RHSs[0] && body == e.Body && newBounds == e.Constraint_Bounds) {
-            return e;
-          }
-          // keep copies of the substitution maps so we can reuse them at desugaring time
-          var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
-          var newTypeMap = new Dictionary<TypeParameter, Type>(typeMap);
-          var newLet = new Translator.SubstLetExpr(e.tok, e.LHSs, new List<Expression>{ rhs }, body, e.Exact, e, newSubstMap, newTypeMap, newBounds);
-          newExpr = newLet;
-        }
+      } else if (expr is LetExpr letExpr) {
+        newExpr = LetExpr(letExpr);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         var src = Substitute(e.Source);
@@ -397,6 +357,54 @@ namespace Microsoft.Dafny
         newExpr.Type = Resolver.SubstType(expr.Type, typeMap);  // resolve on the fly (any additional resolution must be done above)
         return newExpr;
       }
+    }
+
+    private Expression LetExpr(LetExpr letExpr) {
+      Expression result = null;
+      if (letExpr.Exact) {
+        var rhss = new List<Expression>();
+        bool anythingChanged = false;
+        foreach (var rhs in letExpr.RHSs) {
+          var r = Substitute(rhs);
+          if (r != rhs) {
+            anythingChanged = true;
+          }
+
+          rhss.Add(r);
+        }
+
+        // Note, CreateBoundVarSubstitutions has the side effect of updating the substitution map.
+        // For an Exact let expression, this is something that needs to be done after substituting
+        // in the RHSs.
+        var newCasePatterns = CreateCasePatternSubstitutions(letExpr.LHSs, true);
+        if (newCasePatterns != letExpr.LHSs) {
+          anythingChanged = true;
+        }
+
+        var body = Substitute(letExpr.Body);
+        // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
+        foreach (var bv in letExpr.BoundVars) {
+          substMap.Remove(bv);
+        }
+
+        // Put things together
+        if (anythingChanged || body != letExpr.Body) {
+          result = new LetExpr(letExpr.tok, newCasePatterns, rhss, body, letExpr.Exact);
+        }
+      } else {
+        var rhs = Substitute(letExpr.RHSs[0]);
+        var body = Substitute(letExpr.Body);
+        var newBounds = SubstituteBoundedPoolList(letExpr.Constraint_Bounds);
+        if (rhs == letExpr.RHSs[0] && body == letExpr.Body && newBounds == letExpr.Constraint_Bounds) return null;
+        
+        // keep copies of the substitution maps so we can reuse them at desugaring time
+        var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
+        var newTypeMap = new Dictionary<TypeParameter, Type>(typeMap);
+        var newLet = new Translator.SubstLetExpr(letExpr.tok, letExpr.LHSs, new List<Expression> {rhs}, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
+        result = newLet;
+      }
+
+      return result;
     }
 
     /// <summary>
