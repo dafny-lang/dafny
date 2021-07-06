@@ -58,3 +58,22 @@ class C<X(0)> {
     if x in S(x) then n else n + 1
   }
 }
+
+function Z0<U(0)>(): int
+{
+  var n :| 0 <= n < 100 && n < var u: U :| true; 200;
+  n
+}
+
+function Z1<U(0)>(uu: U): int
+{
+  var n :| 0 <= n < 100 && uu == var u: U := uu; u;
+  n
+}
+
+function Z2<U(0)>(uu: U): int
+{
+  var n :| 0 <= n < 100 && 3 == var u: U := uu; 3;
+  n
+}
+

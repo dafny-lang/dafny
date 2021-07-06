@@ -18319,6 +18319,9 @@ namespace Microsoft.Dafny {
       if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
         Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction).Iter(ty => ComputeFreeTypeVariables(ty, fvs));
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        e.BoundVars.Iter(bv => ComputeFreeTypeVariables(bv.Type, fvs));
       }
       expr.SubExpressions.Iter(ee => ComputeFreeTypeVariables(ee, fvs));
     }
