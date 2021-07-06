@@ -1949,18 +1949,23 @@ namespace Microsoft.Dafny
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
       }
-      string qualification;
-      if (member != null && member.IsExtern(out qualification, out _) && qualification != null) {
+
+      if (member != null && member.IsExtern(out var qualification, out _) && qualification != null) {
         return qualification;
       }
       var cl = udt.ResolvedClass;
       if (cl is TypeParameter) {
         return IdProtect(udt.CompileName);
-      } else if (cl.EnclosingModuleDefinition.IsDefaultModule) {
-        return IdProtect(cl.CompileName);
-      } else {
-        return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
       }
+
+      if (cl.EnclosingModuleDefinition.IsDefaultModule) {
+        return IdProtect(cl.CompileName);
+      }
+
+      if (cl.IsExtern(out _, out _)) {
+        return cl.EnclosingModuleDefinition.CompileName + "." + cl.CompileName;
+      }
+      return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {
