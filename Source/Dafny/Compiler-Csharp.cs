@@ -1558,7 +1558,7 @@ namespace Microsoft.Dafny
       wr.Format($"new {TypeName(type, wr, tok)}({arguments})");
       var sep = "";
       EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, arguments, ref sep);
-      if (ctor != null && ctor.IsExtern(out _, out var _)) {
+      if (ctor != null && ctor.IsExtern(out _, out _)) {
         // the arguments of any external constructor are placed here
         for (int i = 0; i < ctor.Ins.Count; i++) {
           Formal p = ctor.Ins[i];

@@ -18,7 +18,6 @@
     <DefineConstants>TRACE</DefineConstants>
     <PackageVersion>1.1.0</PackageVersion>
     <TargetFramework>net5.0</TargetFramework>
-    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
