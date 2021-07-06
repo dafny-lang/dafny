@@ -902,8 +902,9 @@ namespace Microsoft.Dafny
           continue;
 
         var def = import.Signature.ModuleDef;
-        if (def == null)
+        if (def == null) {
           continue;
+        }
         
         if (!declmap.ContainsKey(def)) {
           declmap.Add(def, new List<AliasModuleDecl>());
