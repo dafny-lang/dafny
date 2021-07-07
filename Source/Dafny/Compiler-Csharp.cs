@@ -143,7 +143,7 @@ namespace Microsoft.Dafny
 
     const string DafnyTypeDescriptor = "Dafny.TypeDescriptor";
 
-    string TypeParameters(List<TypeParameter>? targs) {
+    string TypeParameters(List<TypeParameter>/*?*/ targs) {
       Contract.Requires(targs == null || cce.NonNullElements(targs));
       Contract.Ensures(Contract.Result<string>() != null);
 
@@ -155,10 +155,10 @@ namespace Microsoft.Dafny
     }
 
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string /*?*/ fullPrintName,
-      List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>? superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+      List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       var wBody = WriteTypeHeader("partial class", name, typeParameters, superClasses, tok, wr);
       
-      ConcreteSyntaxTree? wCtorBody = null;
+      ConcreteSyntaxTree/*?*/ wCtorBody = null;
       if (cls is ClassDecl cl && !(cl is TraitDecl) && !cl.IsDefaultClass) {
         if (cl.Members.TrueForAll(member => !(member is Constructor ctor) || !ctor.IsExtern(out var _, out var _))) {
           // This is a (non-default) class with no :extern constructor, so emit a C# constructor for the target class
@@ -219,7 +219,7 @@ namespace Microsoft.Dafny
       wTypeMethodBody.WriteLine($"return {typeDescriptorExpr};");
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>? typeParameters, List<Type>? superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       var instanceMemberWriter = WriteTypeHeader("interface", name, typeParameters, superClasses, tok, wr);
 
       //writing the _Companion class
@@ -229,7 +229,7 @@ namespace Microsoft.Dafny
       return new ClassWriter(this, instanceMemberWriter, null, staticMemberWriter);
     }
 
-    private ConcreteSyntaxTree WriteTypeHeader(string kind, string name, List<TypeParameter> typeParameters, List<Type>? superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+    private ConcreteSyntaxTree WriteTypeHeader(string kind, string name, List<TypeParameter> typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       wr.Write($"public {kind} {IdProtect(name)}{TypeParameters(typeParameters)}");
       var realSuperClasses = superClasses?.Where(trait => !trait.IsObject).ToList() ?? new List<Type>();
       if (realSuperClasses.Any()) {
@@ -799,7 +799,7 @@ namespace Microsoft.Dafny
       public readonly ConcreteSyntaxTree StaticMemberWriter;
       public readonly ConcreteSyntaxTree CtorBodyWriter;
 
-      public ClassWriter(CsharpCompiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree? ctorBodyWriter, ConcreteSyntaxTree? staticMemberWriter = null) {
+      public ClassWriter(CsharpCompiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree/*?*/ ctorBodyWriter, ConcreteSyntaxTree/*?*/ staticMemberWriter = null) {
         Contract.Requires(compiler != null);
         Contract.Requires(instanceMemberWriter != null);
         this.Compiler = compiler;
@@ -808,7 +808,7 @@ namespace Microsoft.Dafny
         this.StaticMemberWriter = staticMemberWriter ?? instanceMemberWriter;
       }
 
-      public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl? member) {
+      public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
         if (createBody) {
           if (isStatic || member?.EnclosingClass is TraitDecl && NeedsCustomReceiver(member)) {
             return StaticMemberWriter;
@@ -848,7 +848,7 @@ namespace Microsoft.Dafny
       public void Finish() { }
     }
 
-    protected ConcreteSyntaxTree? CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+    protected ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
       var hasDllImportAttribute = ProcessDllImport(m, wr);
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
       var keywords = Keywords(createBody, m.IsStatic || customReceiver, hasDllImportAttribute);
@@ -902,7 +902,7 @@ namespace Microsoft.Dafny
     }
 
     private string GetTargetReturnTypeReplacement(Method m, ConcreteSyntaxTree wr) {
-      string? targetReturnTypeReplacement = null;
+      string/*?*/ targetReturnTypeReplacement = null;
       foreach (var p in m.Outs) {
         if (!p.IsGhost) {
           if (targetReturnTypeReplacement == null) {
@@ -939,8 +939,8 @@ namespace Microsoft.Dafny
       return wr.NewBlock(open: formals.Count > 1 ? BraceStyle.Newline : BraceStyle.Space);
     }
 
-    protected ConcreteSyntaxTree? CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, ConcreteSyntaxTree wr) {
-      ConcreteSyntaxTree? result = null;
+    protected ConcreteSyntaxTree/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, ConcreteSyntaxTree wr) {
+      ConcreteSyntaxTree/*?*/ result = null;
       var body = createBody ? Block(out result, close: BraceStyle.Nothing) : new ConcreteSyntaxTree().Write(";");
       wr.FormatLine($"{Keywords(createBody, isStatic)}{TypeName(resultType, wr, tok)} {name} {{ get{body} }}");
       return result;
