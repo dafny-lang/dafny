@@ -86,7 +86,7 @@ namespace Microsoft.Dafny
           object argument = input.GetArgument(index)!;
           if (argument is ConcreteSyntaxTree treeArg) {
             anchorValues.Add(treeArg);
-            return $"${anchorUUID}${anchorValues.Count - 1}";
+            return $"{anchorUUID}{anchorValues.Count - 1}";
           }
 
           return argument;
@@ -94,8 +94,8 @@ namespace Microsoft.Dafny
       
       var anchorString = string.Format(input.Format, formatArguments);
       for (int argIndex = 0; argIndex < anchorValues.Count; argIndex++) {
-        var split = anchorString.Split($"${anchorUUID}{argIndex}");
-        anchorString = split[1];
+        var split = anchorString.Split($"{anchorUUID}{argIndex}");
+        anchorString = split.Length > 1 ? split[1] : "";
         Write(split[0]);
         Append(anchorValues[argIndex]);
       }
