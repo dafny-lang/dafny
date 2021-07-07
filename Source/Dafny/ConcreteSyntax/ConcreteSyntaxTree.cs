@@ -74,6 +74,7 @@ namespace Microsoft.Dafny
       return WriteLine();
     }
 
+    static string anchorUUID = "20e34a49-f40b-4547-ba7a-3a1955826af2";
     public ConcreteSyntaxTree Format(FormattableString input) {
       var anchorValues = new List<ConcreteSyntaxTree>();
       // Because template strings are difficult to process, we use the existing string.Format to do the processing
@@ -85,7 +86,7 @@ namespace Microsoft.Dafny
           object argument = input.GetArgument(index)!;
           if (argument is ConcreteSyntaxTree treeArg) {
             anchorValues.Add(treeArg);
-            return $"magicAnchor${anchorValues.Count - 1}";
+            return $"${anchorUUID}${anchorValues.Count - 1}";
           }
 
           return argument;
@@ -93,7 +94,7 @@ namespace Microsoft.Dafny
       
       var anchorString = string.Format(input.Format, formatArguments);
       for (int argIndex = 0; argIndex < anchorValues.Count; argIndex++) {
-        var split = anchorString.Split($"magicAnchor${argIndex}");
+        var split = anchorString.Split($"${anchorUUID}{argIndex}");
         anchorString = split[1];
         Write(split[0]);
         Append(anchorValues[argIndex]);
