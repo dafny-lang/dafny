@@ -18316,10 +18316,7 @@ namespace Microsoft.Dafny {
     // No expression introduces a type variable
     static void ComputeFreeTypeVariables(Expression expr, ISet<TypeParameter> fvs) {
       ComputeFreeTypeVariables(expr.Type, fvs);
-      if (expr is FunctionCallExpr) {
-        var e = (FunctionCallExpr)expr;
-        Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction).Iter(ty => ComputeFreeTypeVariables(ty, fvs));
-      }
+      expr.ComponentTypes.Iter(ty => ComputeFreeTypeVariables(ty, fvs));
       expr.SubExpressions.Iter(ee => ComputeFreeTypeVariables(ee, fvs));
     }
 
@@ -18330,7 +18327,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(ty.TypeArgs.Count == 0);
         fvs.Add(tp);
       } else {
-        ty.NormalizeExpand().TypeArgs.Iter(tt => ComputeFreeTypeVariables(tt, fvs));
+        ty.NormalizeExpandKeepConstraints().TypeArgs.Iter(tt => ComputeFreeTypeVariables(tt, fvs));
       }
     }
 
@@ -18339,7 +18336,7 @@ namespace Microsoft.Dafny {
       if (ty.IsTypeParameter) {
         fvs.Add(ty.AsTypeParameter);
       }
-      ty.NormalizeExpand().TypeArgs.Iter(tt => ComputeFreeTypeVariables_All(tt, fvs));
+      ty.NormalizeExpandKeepConstraints().TypeArgs.Iter(tt => ComputeFreeTypeVariables_All(tt, fvs));
     }
 
     public static ISet<IVariable> ComputeFreeVariables(Expression expr) {
