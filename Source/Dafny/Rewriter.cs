@@ -216,7 +216,7 @@ namespace Microsoft.Dafny
             for (int i = 0; i < s0.Method.Ins.Count; i++) {
               argsSubstMap.Add(s0.Method.Ins[i], s0.Args[i]);
             }
-            var substituter = new Translator.AlphaConverting_Substituter(s0.Receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
+            var substituter = new AlphaConverting_Substituter(s0.Receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
             // Strengthen the range of the "forall" statement with the precondition of the call, suitably substituted with the actual parameters.
             if (Attributes.Contains(s.Attributes, "_autorequires")) {
               var range = s.Range;
@@ -260,7 +260,7 @@ namespace Microsoft.Dafny
           Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
           var substMap = new Dictionary<IVariable, Expression>();
           substMap.Add(j, e);
-          Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap);
+          Substituter sub = new Substituter(null, substMap, typeMap);
           var v = new ForallStmtTranslationValues(sub.Substitute(Range), sub.Substitute(FInverse));
           return v;
         }
@@ -395,7 +395,7 @@ namespace Microsoft.Dafny
         Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
         Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
         substMap.Add(v, e);
-        Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap);
+        Substituter sub = new Substituter(null, substMap, typeMap);
         return sub.Substitute(expr);
       }
     }
@@ -1129,7 +1129,7 @@ namespace Microsoft.Dafny
         substMap.Add(formals[i], values[i]);
       }
 
-      Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap);
+      Substituter sub = new Substituter(f_this, substMap, typeMap);
       return sub.Substitute(e);
     }
 
@@ -1205,7 +1205,7 @@ namespace Microsoft.Dafny
         }
 
         foreach (var req in f.Req) {
-          Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap);
+          Substituter sub = new Substituter(f_this, substMap, typeMap);
           translated_f_reqs.Add(sub.Substitute(req.E));
         }
       }

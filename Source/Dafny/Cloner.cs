@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using System.Linq;
+using Microsoft.Boogie;
 using IToken = Microsoft.Boogie.IToken;
 
 namespace Microsoft.Dafny
@@ -900,12 +902,15 @@ namespace Microsoft.Dafny
           continue;
 
         var def = import.Signature.ModuleDef;
+        if (def == null) {
+          continue;
+        }
+        
         if (!declmap.ContainsKey(def)) {
           declmap.Add(def, new List<AliasModuleDecl>());
           sigmap.Add(def, new ModuleSignature());
           vismap.Add(def, new VisibilityScope());
         }
-
 
         sigmap[def] = Resolver.MergeSignature(sigmap[def], import.Signature);
         sigmap[def].ModuleDef = def;
@@ -923,11 +928,18 @@ namespace Microsoft.Dafny
         }
       }
 
-      basem.TopLevelDecls.RemoveAll(t => t is AliasModuleDecl ?
-        vismap[((AliasModuleDecl)t).Signature.ModuleDef].IsEmpty() : isInvisibleClone(t));
+      basem.TopLevelDecls.RemoveAll(t =>
+      {
+        if (t is AliasModuleDecl aliasModuleDecl) {
+          var def = aliasModuleDecl.Signature.ModuleDef;
+          return def != null && vismap[def].IsEmpty();
+        }
 
-      basem.TopLevelDecls.FindAll(t => t is TopLevelDeclWithMembers).
-        ForEach(t => ((TopLevelDeclWithMembers)t).Members.RemoveAll(isInvisibleClone));
+        return isInvisibleClone(t);
+      });
+
+      basem.TopLevelDecls.OfType<TopLevelDeclWithMembers>().
+        Iter(t => t.Members.RemoveAll(isInvisibleClone));
 
       return basem;
     }
