@@ -1901,9 +1901,7 @@ namespace Microsoft.Dafny {
         // Note, for meet, we choose not to step down to IntVarietiesSupertype or RealVarietiesSupertype
         return a.Equals(b) ? a : null;
       } else if (a.IsBitVectorType) {
-        var aa = a.AsBitVectorType;
-        var bb = b.AsBitVectorType;
-        return bb != null && aa.Width == bb.Width ? a : null;
+        return a.Equals(b) ? a : null;
       } else if (a is SetType) {
         var aa = (SetType)a;
         var bb = b as SetType;
@@ -2131,9 +2129,7 @@ namespace Microsoft.Dafny {
       } else if (a.IsNumericBased()) {
         return a.Equals(b) ? a : null;
       } else if (a.IsBitVectorType) {
-        var aa = a.AsBitVectorType;
-        var bb = b.AsBitVectorType;
-        return bb != null && aa.Width == bb.Width ? a : null;
+        return a.Equals(b) ? a : null;
       } else if (a is SetType) {
         var aa = (SetType)a;
         var bb = b as SetType;
