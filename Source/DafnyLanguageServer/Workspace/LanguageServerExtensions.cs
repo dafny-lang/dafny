@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private static IServiceCollection WithDafnyWorkspace(this IServiceCollection services, IConfiguration configuration) {
       return services
-         .Configure<DocumentOptions>(configuration.GetSection(DocumentOptions.Section))
+        .Configure<DocumentOptions>(configuration.GetSection(DocumentOptions.Section))
         .AddSingleton<IDocumentDatabase, DocumentDatabase>()
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
         .AddSingleton<ITextDocumentLoader, TextDocumentLoader>()

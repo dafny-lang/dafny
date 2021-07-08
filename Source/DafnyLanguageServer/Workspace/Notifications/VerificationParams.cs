@@ -16,6 +16,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
     /// <summary>
     /// Gets the version of the document.
     /// </summary>
-    public long Version { get; set; }
+    public int? Version { get; set; }
   }
 }
