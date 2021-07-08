@@ -1328,30 +1328,27 @@ namespace Microsoft.Dafny
     //this should be effect-free, as it only operates on clones
     private void CheckModuleExportConsistency(ModuleDefinition m) {
       var oldModuleInfo = moduleInfo;
-      foreach (var top in m.TopLevelDecls) {
-        if (!(top is ModuleExportDecl))
-          continue;
+      foreach (var exportDecl in m.TopLevelDecls.OfType<ModuleExportDecl>()) {
 
-        ModuleExportDecl decl = (ModuleExportDecl)top;
         var prevErrors = reporter.Count(ErrorLevel.Error);
 
-        foreach (var export in decl.Exports) {
+        foreach (var export in exportDecl.Exports) {
           if (export.Decl is MemberDecl member) {
             // For classes and traits, the visibility test is performed on the corresponding non-null type
             var enclosingType = member.EnclosingClass is ClassDecl cl && cl.NonNullTypeDecl != null
               ? cl.NonNullTypeDecl
               : member.EnclosingClass;
-            if (!enclosingType.IsVisibleInScope(decl.Signature.VisibilityScope)) {
+            if (!enclosingType.IsVisibleInScope(exportDecl.Signature.VisibilityScope)) {
               reporter.Error(MessageSource.Resolver, export.Tok,
                 "Cannot export type member '{0}' without providing its enclosing {1} '{2}'", member.Name,
                 member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
             } else if (member is Constructor &&
-                       !member.EnclosingClass.IsRevealedInScope(decl.Signature.VisibilityScope)) {
+                       !member.EnclosingClass.IsRevealedInScope(exportDecl.Signature.VisibilityScope)) {
               reporter.Error(MessageSource.Resolver, export.Tok,
                 "Cannot export constructor '{0}' without revealing its enclosing {1} '{2}'", member.Name,
                 member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
             } else if (member is Field && !(member is ConstantField) &&
-                       !member.EnclosingClass.IsRevealedInScope(decl.Signature.VisibilityScope)) {
+                       !member.EnclosingClass.IsRevealedInScope(exportDecl.Signature.VisibilityScope)) {
               reporter.Error(MessageSource.Resolver, export.Tok,
                 "Cannot export mutable field '{0}' without revealing its enclosing {1} '{2}'", member.Name,
                 member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
@@ -1359,12 +1356,12 @@ namespace Microsoft.Dafny
           }
         }
 
-        var scope = decl.Signature.VisibilityScope;
+        var scope = exportDecl.Signature.VisibilityScope;
         Cloner cloner = new ScopeCloner(scope);
         var exportView = cloner.CloneModuleDefinition(m, m.Name);
-        if (DafnyOptions.O.DafnyPrintExportedViews.Contains(decl.FullName)) {
+        if (DafnyOptions.O.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
           var wr = Console.Out;
-          wr.WriteLine("/* ===== export set {0}", decl.FullName);
+          wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr);
           pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);
           wr.WriteLine("*/");
@@ -1375,7 +1372,7 @@ namespace Microsoft.Dafny
         }
 
         reporter = new ErrorReporterWrapper(reporter,
-          String.Format("Raised while checking export set {0}: ", decl.Name));
+          String.Format("Raised while checking export set {0}: ", exportDecl.Name));
         var testSig = RegisterTopLevelDecls(exportView, true);
         //testSig.Refines = refinementTransformer.RefinedSig;
         ResolveModuleDefinition(exportView, testSig, true);
@@ -1383,7 +1380,7 @@ namespace Microsoft.Dafny
         reporter = ((ErrorReporterWrapper)reporter).WrappedReporter;
 
         if (wasError) {
-          reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent: {0}", decl.Name);
+          reporter.Error(MessageSource.Resolver, exportDecl.tok, "This export set is not consistent: {0}", exportDecl.Name);
         }
       }
 
@@ -8658,7 +8655,7 @@ namespace Microsoft.Dafny
             for (int i = 0; i < cs.Method.Ins.Count; i++) {
               argsSubstMap.Add(cs.Method.Ins[i], cs.Args[i]);
             }
-            var substituter = new Translator.AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>());
+            var substituter = new AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>());
             if (!Attributes.Contains(s.Attributes, "auto_generated")) {
               foreach (var ens in cs.Method.Ens) {
                 var p = substituter.Substitute(ens.E);  // substitute the call's actuals for the method's formals
@@ -16794,7 +16791,7 @@ namespace Microsoft.Dafny
       visited[expr] = WorkProgress.Done;
     }
 
-    class DefaultValueSubstituter : Translator.Substituter {
+    class DefaultValueSubstituter : Substituter {
       private readonly Resolver resolver;
       private readonly Dictionary<DefaultValueExpression, WorkProgress> visited;
       public DefaultValueSubstituter(Resolver resolver, Dictionary<DefaultValueExpression, WorkProgress> visited,
@@ -17452,7 +17449,7 @@ namespace Microsoft.Dafny
           if (dd.Var != null) {
             Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
             substMap.Add(dd.Var, e);
-            Translator.Substituter sub = new Translator.Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+            Substituter sub = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
             c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
           }
           return c;
@@ -17461,7 +17458,7 @@ namespace Microsoft.Dafny
           var c = GetImpliedTypeConstraint(e, dd.RhsWithArgument(udt.TypeArgs));
           Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
           substMap.Add(dd.Var, e);
-          Translator.Substituter sub = new Translator.Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+          Substituter sub = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
           c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
           return c;
         }
