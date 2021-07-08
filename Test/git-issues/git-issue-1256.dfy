@@ -79,8 +79,8 @@ function Z2<U(0)>(uu: U): int
 
 function Z3<U>(c: Clx): int
 {
-  var n: MyClx<U> := c;
-  5
+  var n :| n == var cc: MyClx<U> := c; 5;
+  12
 }
 
 class Clx { }
@@ -99,3 +99,16 @@ function A1<U>(o: object, c: MyClx<U>): object
   n
 }
 
+datatype Datatype = DX | DY(o: object)
+
+function M<U>(dt: Datatype): int
+  requires dt.DX?
+{
+  var n :| n == match dt case DX => 2 case DY(o: MyClx<U>) => 3;
+  n
+}
+
+function SE<X(0)>(): int {
+  var n :| n == calc { 2; { var x: X; } 2; } 20;
+  n
+}

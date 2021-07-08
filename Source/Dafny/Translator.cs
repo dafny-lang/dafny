@@ -18316,16 +18316,7 @@ namespace Microsoft.Dafny {
     // No expression introduces a type variable
     static void ComputeFreeTypeVariables(Expression expr, ISet<TypeParameter> fvs) {
       ComputeFreeTypeVariables(expr.Type, fvs);
-      if (expr is FunctionCallExpr) {
-        var e = (FunctionCallExpr)expr;
-        Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction).Iter(ty => ComputeFreeTypeVariables(ty, fvs));
-      } else if (expr is LetExpr) {
-        var e = (LetExpr)expr;
-        e.BoundVars.Iter(bv => ComputeFreeTypeVariables(bv.Type, fvs));
-      } else if (expr is TypeUnaryExpr) {
-        var e = (TypeUnaryExpr)expr;
-        ComputeFreeTypeVariables(e.ToType, fvs);
-      }
+      expr.ComponentTypes.Iter(ty => ComputeFreeTypeVariables(ty, fvs));
       expr.SubExpressions.Iter(ee => ComputeFreeTypeVariables(ee, fvs));
     }
 
