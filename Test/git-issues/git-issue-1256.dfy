@@ -77,3 +77,25 @@ function Z2<U(0)>(uu: U): int
   n
 }
 
+function Z3<U>(c: Clx): int
+{
+  var n: MyClx<U> := c;
+  5
+}
+
+class Clx { }
+type MyClx<U> = c: Clx | true witness *
+
+function A0<U>(c: Clx): int
+{
+  var n :| n == if c is MyClx<U> then 3 else 4;
+  n
+}
+
+function A1<U>(o: object, c: MyClx<U>): object
+  requires o == c
+{
+  var n: object :| n == o as MyClx<U>;
+  n
+}
+

@@ -18322,6 +18322,9 @@ namespace Microsoft.Dafny {
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         e.BoundVars.Iter(bv => ComputeFreeTypeVariables(bv.Type, fvs));
+      } else if (expr is TypeUnaryExpr) {
+        var e = (TypeUnaryExpr)expr;
+        ComputeFreeTypeVariables(e.ToType, fvs);
       }
       expr.SubExpressions.Iter(ee => ComputeFreeTypeVariables(ee, fvs));
     }
@@ -18333,7 +18336,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(ty.TypeArgs.Count == 0);
         fvs.Add(tp);
       } else {
-        ty.NormalizeExpand().TypeArgs.Iter(tt => ComputeFreeTypeVariables(tt, fvs));
+        ty.NormalizeExpandKeepConstraints().TypeArgs.Iter(tt => ComputeFreeTypeVariables(tt, fvs));
       }
     }
 
