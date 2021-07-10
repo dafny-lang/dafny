@@ -9,8 +9,8 @@ module A' {
   const one:int := 1
   const three:int := 3
   const four:int := three + one
-  const five:int := six - one  // error: cycle five -> six
-  const six: int := five + one  // error: cycle five -> six
+  const five:int := six - one  // error: cycle between five, six
+  const six: int := five + one
 }
 
 module B {  // non-static const's

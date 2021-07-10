@@ -3331,9 +3331,8 @@ namespace Microsoft.Dafny
                     // An error has already been reported for this cycle, so don't report another.
                     // Note, the representative, "r", may itself not be a const.
                   } else {
+                    ReportCallGraphCycleError(cf, "const definition contains a cycle");
                     cycleErrorHasBeenReported.Add(r);
-                    var cycle = Util.Comma(" -> ", cf.EnclosingModule.CallGraph.GetSCC(cf), clbl => clbl.NameRelativeToModule);
-                    reporter.Error(MessageSource.Resolver, cf.tok, "const definition contains a cycle: " + cycle);
                   }
                 }
               }
@@ -3573,6 +3572,16 @@ namespace Microsoft.Dafny
           }
         });
       }
+    }
+
+    void ReportCallGraphCycleError(ICallable start, string msg) {
+      Contract.Requires(start != null);
+      Contract.Requires(msg != null);
+      var scc = start.EnclosingModule.CallGraph.GetSCC(start);
+      var startIndex = scc.IndexOf(start);
+      Contract.Assert(0 <= startIndex);
+      scc = Util.Concat(scc.GetRange(startIndex, scc.Count - startIndex), scc.GetRange(0, startIndex));
+      ReportCycleError(scc, c => c.Tok, c => c.NameRelativeToModule, msg);
     }
 
     void ReportCycleError<X>(List<X> cycle, Func<X, IToken> toTok, Func<X, string> toString, string msg) {
