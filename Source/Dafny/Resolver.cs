@@ -2559,7 +2559,7 @@ namespace Microsoft.Dafny
 
       // perform acyclicity test on type synonyms
       foreach (var cycle in typeRedirectionDependencies.AllCycles()) {
-        ReportCycleError(cycle, rtd => rtd.tok, rtd => rtd.Name, "Cycle among redirecting types (newtypes, subset types, type synonyms)");
+        ReportCycleError(cycle, rtd => rtd.tok, rtd => rtd.Name, "cycle among redirecting types (newtypes, subset types, type synonyms)");
       }
     }
 

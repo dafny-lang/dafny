@@ -175,7 +175,7 @@ Variance.dfy(114,7): Error: recursive constraint dependency involving a subset t
 Variance.dfy(120,7): Error: recursive constraint dependency involving a subset type: F -> B -> A
 Variance.dfy(128,7): Error: recursive constraint dependency involving a subset type: G -> S -> R -> Q
 Variance.dfy(138,7): Error: recursive constraint dependency involving a subset type: B -> B
-Variance.dfy(138,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): B -> B
+Variance.dfy(138,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): B -> B
 Variance.dfy(142,7): Error: recursive constraint dependency involving a subset type: A -> A
 Variance.dfy(147,7): Error: recursive constraint dependency involving a subset type: C -> f
 Variance.dfy(152,7): Error: recursive constraint dependency involving a subset type: MeAndMyself -> MeAndMyself
