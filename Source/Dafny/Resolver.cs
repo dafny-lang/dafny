@@ -1030,8 +1030,7 @@ namespace Microsoft.Dafny
       // detect cycles in the extend
       var cycleError = false;
       foreach (var cycle in exportDependencies.AllCycles()) {
-        var cy = Util.Comma(" -> ", cycle, c => c.Name);
-        reporter.Error(MessageSource.Resolver, cycle[0], "module export contains a cycle: {0}", cy);
+        ReportCycleError(cycle, m => m.tok, m => m.Name, "module export contains a cycle");
         cycleError = true;
       }
 
