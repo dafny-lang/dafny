@@ -284,3 +284,99 @@ module BigOrdinals {
   newtype MyOrdinal = ORDINAL  // error: cannot use ORDINAL here
   newtype MyOrdinal' = o: ORDINAL | true  // error: cannot use ORDINAL here
 }
+
+module Cycle0 {
+  type X = x: int | P(x) // error: recursive constraint dependency
+
+  predicate P(y: int) {
+    M();
+    true
+  }
+
+  lemma M() {
+    var x: X;
+  }
+}
+
+module Cycle1 {
+  // regression: the following type synonym once foiled the recursive-constraint-dependency checking
+  type X = Y
+  type Y = x: int | P(x) // error: recursive constraint dependency
+
+  predicate P(y: int) {
+    M();
+    true
+  }
+
+  lemma M() {
+    var x: X;
+  }
+}
+
+module Cycle2 {
+  newtype X = x: int | P(x) // error: recursive constraint dependency
+
+  predicate P(y: int) {
+    M();
+    true
+  }
+
+  lemma M() {
+    var x: X;
+  }
+}
+
+module Cycle3 {
+  // regression: the following type synonym once foiled the recursive-constraint-dependency checking
+  type X = Y
+  newtype Y = x: int | P(x) // error: recursive constraint dependency
+
+  predicate P(y: int) {
+    M();
+    true
+  }
+
+  lemma M() {
+    var x: X;
+  }
+}
+
+// ----- more tests of declaration dependencies
+
+module LongerCycle0 {
+  type G0 = G1
+  type G1 = G2
+  type G2 = G3<int>
+  type G3<X> = p: (X, G5) | true witness * // error: recursive constraint dependency
+  datatype G5 = G5(G6)
+  codatatype G6 = G6(array<G0>)
+}
+
+module LongerCycle1 {
+  type G0 = G1
+  type G1 = G2
+  type G2 = G3<int>
+  type G3<X> = (X, G4)
+  newtype G4 = x | 0 <= x < 5 && forall r :: P(r) ==> P(r) // error: recursive constraint dependency
+  predicate P(r: G5)
+  datatype G5 = G5(G6)
+  codatatype G6 = G6(array<G0>)
+}
+
+// ----- regression
+
+module CycleUnsoundnessRegression {
+  type X = Y
+  type Y = x: int | P(x) witness (M(); 2) // error: recursive constraint dependency
+
+  predicate P(y: int) {
+    false
+  }
+
+  lemma M()
+    ensures false
+  {
+    var x: X;
+    assert P(x);
+  }
+}

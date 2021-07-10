@@ -98,16 +98,18 @@ module VarianceChecks {
   type U1<!A> = U0<A>
   datatype U2 = MakeU2(U1<U2>)  // error: this would give rise to a logical inconsistency
 
-  type W0 = W1
-  datatype W1 = Ctor(W0 --> bool)  // error: this would give rise to a logical inconsistency
-
-  datatype Z0 = Ctor(Z2 ~> bool)  // error: this would give rise to a logical inconsistency
-  type Z1 = Z0
-  datatype Z2 = Ctor(Z1)
-
   datatype R0 = Ctor(R2 ~> bool)  // error: this would give rise to a logical inconsistency
   type R1<X> = X
   datatype R2 = Ctor(R1<R0>)
+}
+
+module Cycles {
+  type W0 = W1
+  datatype W1 = Ctor(W0 --> bool) // error: this increases cardinality
+
+  datatype Z0 = Ctor(Z2 ~> bool) // error: this increases cardinality
+  type Z1 = Z0
+  datatype Z2 = Ctor(Z1)
 }
 
 module Depen {
@@ -134,7 +136,6 @@ module DependencyChecks {
 }
 
 module Cycle0 {
-  // The following produces two error messages (sigh)
   type B = x: B | true  // error: cycle
 }
 
