@@ -107,8 +107,8 @@ module F {
 
 module G {
   const a: int := c  // error: cyclic dependency between a, b, and c
-  const b := G(a)  // error: ditto
-  const c := F(b)  // error: ditto
+  const b := G(a)
+  const c := F(b)
   function method G(x: int): int { x + 2 }
   function method F(x: int): int { 2 * x }
 

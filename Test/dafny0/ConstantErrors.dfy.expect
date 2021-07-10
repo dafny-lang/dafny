@@ -18,12 +18,12 @@ ConstantErrors.dfy(109,8): Error: const definition contains a cycle: a -> b -> c
 ConstantErrors.dfy(115,14): Error: const definition contains a cycle: x -> H -> x
 ConstantErrors.dfy(119,14): Error: const definition contains a cycle: x' -> H' -> x'
 ConstantErrors.dfy(123,8): Error: recursive dependency involving constant initialization: ur -> ur
-ConstantErrors.dfy(127,10): Error: recursive constraint dependency involving a newtype: F -> A
-ConstantErrors.dfy(136,10): Error: recursive constraint dependency involving a newtype: F -> A -> B
-ConstantErrors.dfy(146,10): Error: recursive constraint dependency involving a newtype: F -> A -> B
-ConstantErrors.dfy(156,10): Error: recursive constraint dependency involving a newtype: F -> A -> B
-ConstantErrors.dfy(166,10): Error: recursive constraint dependency involving a newtype: F -> A -> C -> B
-ConstantErrors.dfy(180,10): Error: recursive constraint dependency involving a newtype: MakeC -> b -> A -> MakeA -> n -> M -> L -> K -> j -> I -> H -> G -> f -> E -> D -> C
+ConstantErrors.dfy(127,10): Error: recursive constraint dependency involving a newtype: A -> F -> A
+ConstantErrors.dfy(136,10): Error: recursive constraint dependency involving a newtype: A -> B -> F -> A
+ConstantErrors.dfy(146,10): Error: recursive constraint dependency involving a newtype: A -> B -> F -> A
+ConstantErrors.dfy(156,10): Error: recursive constraint dependency involving a newtype: A -> B -> F -> A
+ConstantErrors.dfy(166,10): Error: recursive constraint dependency involving a newtype: A -> C -> B -> F -> A
+ConstantErrors.dfy(180,10): Error: recursive constraint dependency involving a newtype: A -> MakeA -> n -> M -> L -> K -> j -> I -> H -> G -> f -> E -> D -> C -> MakeC -> b -> A
 ConstantErrors.dfy(207,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> C -> D -> A
 ConstantErrors.dfy(215,8): Error: static non-ghost const field 'g' of type 'G' (which does not have a default compiled value) must give a defining value
 ConstantErrors.dfy[R0](220,8): Error: static non-ghost const field 'g' of type 'G' (which does not have a default compiled value) must give a defining value

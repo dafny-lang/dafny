@@ -3345,9 +3345,8 @@ namespace Microsoft.Dafny
                 // An error has already been reported for this cycle, so don't report another.
                 // Note, the representative, "r", may itself not be a const.
               } else {
+                ReportCallGraphCycleError(dd, $"recursive constraint dependency involving a {dd.WhatKind}");
                 cycleErrorHasBeenReported.Add(r);
-                var cycle = Util.Comma(" -> ", d.EnclosingModuleDefinition.CallGraph.GetSCC(dd), clbl => clbl.NameRelativeToModule);
-                reporter.Error(MessageSource.Resolver, d.tok, "recursive constraint dependency involving a {0}: {1}", d.WhatKind, cycle);
               }
             }
           }
