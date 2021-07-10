@@ -394,9 +394,7 @@ namespace Microsoft.Dafny
       ProcessDependencies(prog.DefaultModule, b, dependencies);
       // check for cycles in the import graph
       foreach (var cycle in dependencies.AllCycles()) {
-        var cy = Util.Comma(" -> ", cycle, m => m.Name);
-        reporter.Error(MessageSource.Resolver, cycle[0],
-          "module definition contains a cycle (note: parent modules implicitly depend on submodules): {0}", cy);
+        ReportCycleError(cycle, m => m.tok, m => m.Name, "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
       }
 
       if (reporter.Count(ErrorLevel.Error) > 0) {
@@ -2541,8 +2539,7 @@ namespace Microsoft.Dafny
       }
       // Check for cycles among parent traits
       foreach (var cycle in parentRelation.AllCycles()) {
-        var cy = Util.Comma(" -> ", cycle, m => m.Name);
-        reporter.Error(MessageSource.Resolver, cycle[0], "trait definitions contain a cycle: {0}", cy);
+        ReportCycleError(cycle, m => m.tok, m => m.Name, "trait definitions contain a cycle");
       }
       if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
         // Register the trait members in the classes that inherit them
