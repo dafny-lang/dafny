@@ -3577,6 +3577,7 @@ namespace Microsoft.Dafny
       Contract.Requires(start != null);
       Contract.Requires(msg != null);
       var scc = start.EnclosingModule.CallGraph.GetSCC(start);
+      scc.Reverse();
       var startIndex = scc.IndexOf(start);
       Contract.Assert(0 <= startIndex);
       scc = Util.Concat(scc.GetRange(startIndex, scc.Count - startIndex), scc.GetRange(0, startIndex));

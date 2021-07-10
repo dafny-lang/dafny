@@ -35,7 +35,7 @@ NewtypesResolution.dfy(256,28): Error: ghost variables are allowed only in speci
 NewtypesResolution.dfy(259,24): Error: ghost variables are allowed only in specification contexts
 NewtypesResolution.dfy(262,6): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
 NewtypesResolution.dfy(265,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
-NewtypesResolution.dfy(276,7): Error: recursive constraint dependency involving a subset type: AA -> EE -> DD -> CC -> BB -> AA
+NewtypesResolution.dfy(276,7): Error: recursive constraint dependency involving a subset type: AA -> BB -> CC -> DD -> EE -> AA
 NewtypesResolution.dfy(284,10): Error: newtypes must be based on some numeric type (got ORDINAL)
 NewtypesResolution.dfy(285,10): Error: newtypes must be based on some numeric type (got ORDINAL)
 40 resolution/type errors detected in NewtypesResolution.dfy
