@@ -47,6 +47,8 @@ module C {
 
   method For()
   {
+    ghost var (x, y) := (123, 234);
+
     var a := new int[100];
     for i := 0 to 100 {
       a[i] := i;
@@ -100,10 +102,10 @@ PrettyPrinting.dfy(18,4): Error: skeleton statements are allowed only in refinin
 PrettyPrinting.dfy(18,4): Warning: note, this loop has no body
 PrettyPrinting.dfy(19,4): Error: skeleton statements are allowed only in refining methods
 PrettyPrinting.dfy(33,4): Warning: note, this forall statement has no body
-PrettyPrinting.dfy(51,4): Warning: note, this loop has no body (loop frame: i)
 PrettyPrinting.dfy(52,4): Warning: note, this loop has no body (loop frame: i)
-PrettyPrinting.dfy(53,4): Warning: note, this loop has no body (loop frame: i, a)
-PrettyPrinting.dfy(56,4): Warning: note, this loop has no body (loop frame: i, a)
-PrettyPrinting.dfy(68,4): Warning: note, this loop has no body (loop frame: i)
-PrettyPrinting.dfy(72,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
+PrettyPrinting.dfy(53,4): Warning: note, this loop has no body (loop frame: i)
+PrettyPrinting.dfy(54,4): Warning: note, this loop has no body (loop frame: i, a)
+PrettyPrinting.dfy(57,4): Warning: note, this loop has no body (loop frame: i, a)
+PrettyPrinting.dfy(69,4): Warning: note, this loop has no body (loop frame: i)
+PrettyPrinting.dfy(73,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 3 resolution/type errors detected in PrettyPrinting.dfy
