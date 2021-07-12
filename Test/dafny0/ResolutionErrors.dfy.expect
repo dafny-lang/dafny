@@ -136,13 +136,13 @@ ResolutionErrors.dfy(1037,7): Error: duplicate name of top-level declaration: Ba
 ResolutionErrors.dfy(1034,17): Error: Wrong number of type arguments (0 instead of 1) passed to datatype: List
 ResolutionErrors.dfy(1035,17): Error: Undeclared top-level type or type parameter: badName (did you forget to qualify a name or declare a module import 'opened'?)
 ResolutionErrors.dfy(1036,22): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened'?)
-ResolutionErrors.dfy(1043,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): A -> A
-ResolutionErrors.dfy(1046,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
-ResolutionErrors.dfy(1050,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1043,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> A
+ResolutionErrors.dfy(1046,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1050,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
 ResolutionErrors.dfy(1059,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'D' can be constructed
-ResolutionErrors.dfy(1062,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
-ResolutionErrors.dfy(1067,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
-ResolutionErrors.dfy(1072,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): A -> A
+ResolutionErrors.dfy(1062,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1067,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1072,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> A
 ResolutionErrors.dfy(1079,25): Error: unresolved identifier: x
 ResolutionErrors.dfy(1082,22): Error: unresolved identifier: x
 ResolutionErrors.dfy(1085,25): Error: unresolved identifier: x

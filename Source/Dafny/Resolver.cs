@@ -394,9 +394,9 @@ namespace Microsoft.Dafny
       ProcessDependencies(prog.DefaultModule, b, dependencies);
       // check for cycles in the import graph
       foreach (var cycle in dependencies.AllCycles()) {
-        var cy = Util.Comma(" -> ", cycle, m => m.Name);
-        reporter.Error(MessageSource.Resolver, cycle[0],
-          "module definition contains a cycle (note: parent modules implicitly depend on submodules): {0}", cy);
+        ReportCycleError(cycle, m => m.tok,
+          m => (m is AliasModuleDecl ? "import " : "module ") + m.Name,
+          "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
       }
 
       if (reporter.Count(ErrorLevel.Error) > 0) {
@@ -1032,8 +1032,7 @@ namespace Microsoft.Dafny
       // detect cycles in the extend
       var cycleError = false;
       foreach (var cycle in exportDependencies.AllCycles()) {
-        var cy = Util.Comma(" -> ", cycle, c => c.Name);
-        reporter.Error(MessageSource.Resolver, cycle[0], "module export contains a cycle: {0}", cy);
+        ReportCycleError(cycle, m => m.tok, m => m.Name, "module export contains a cycle");
         cycleError = true;
       }
 
@@ -2541,8 +2540,7 @@ namespace Microsoft.Dafny
       }
       // Check for cycles among parent traits
       foreach (var cycle in parentRelation.AllCycles()) {
-        var cy = Util.Comma(" -> ", cycle, m => m.Name);
-        reporter.Error(MessageSource.Resolver, cycle[0], "trait definitions contain a cycle: {0}", cy);
+        ReportCycleError(cycle, m => m.tok, m => m.Name, "trait definitions contain a cycle");
       }
       if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
         // Register the trait members in the classes that inherit them
@@ -2563,9 +2561,7 @@ namespace Microsoft.Dafny
 
       // perform acyclicity test on type synonyms
       foreach (var cycle in typeRedirectionDependencies.AllCycles()) {
-        Contract.Assert(cycle.Count != 0);
-        var erste = cycle[0];
-        reporter.Error(MessageSource.Resolver, erste.Tok, "Cycle among redirecting types (newtypes, subset types, type synonyms): {0} -> {1}", Util.Comma(" -> ", cycle, syn => syn.Name), erste.Name);
+        ReportCycleError(cycle, rtd => rtd.tok, rtd => rtd.Name, "cycle among redirecting types (newtypes, subset types, type synonyms)");
       }
     }
 
@@ -3337,9 +3333,8 @@ namespace Microsoft.Dafny
                     // An error has already been reported for this cycle, so don't report another.
                     // Note, the representative, "r", may itself not be a const.
                   } else {
+                    ReportCallGraphCycleError(cf, "const definition contains a cycle");
                     cycleErrorHasBeenReported.Add(r);
-                    var cycle = Util.Comma(" -> ", cf.EnclosingModule.CallGraph.GetSCC(cf), clbl => clbl.NameRelativeToModule);
-                    reporter.Error(MessageSource.Resolver, cf.tok, "const definition contains a cycle: " + cycle);
                   }
                 }
               }
@@ -3352,9 +3347,8 @@ namespace Microsoft.Dafny
                 // An error has already been reported for this cycle, so don't report another.
                 // Note, the representative, "r", may itself not be a const.
               } else {
+                ReportCallGraphCycleError(dd, $"recursive constraint dependency involving a {dd.WhatKind}");
                 cycleErrorHasBeenReported.Add(r);
-                var cycle = Util.Comma(" -> ", d.EnclosingModuleDefinition.CallGraph.GetSCC(dd), clbl => clbl.NameRelativeToModule);
-                reporter.Error(MessageSource.Resolver, d.tok, "recursive constraint dependency involving a {0}: {1}", d.WhatKind, cycle);
               }
             }
           }
@@ -3579,6 +3573,29 @@ namespace Microsoft.Dafny
           }
         });
       }
+    }
+
+    void ReportCallGraphCycleError(ICallable start, string msg) {
+      Contract.Requires(start != null);
+      Contract.Requires(msg != null);
+      var scc = start.EnclosingModule.CallGraph.GetSCC(start);
+      scc.Reverse();
+      var startIndex = scc.IndexOf(start);
+      Contract.Assert(0 <= startIndex);
+      scc = Util.Concat(scc.GetRange(startIndex, scc.Count - startIndex), scc.GetRange(0, startIndex));
+      ReportCycleError(scc, c => c.Tok, c => c.NameRelativeToModule, msg);
+    }
+
+    void ReportCycleError<X>(List<X> cycle, Func<X, IToken> toTok, Func<X, string> toString, string msg) {
+      Contract.Requires(cycle != null);
+      Contract.Requires(cycle.Count != 0);
+      Contract.Requires(toTok != null);
+      Contract.Requires(toString != null);
+      Contract.Requires(msg != null);
+
+      var start = cycle[0];
+      var cy = Util.Comma(" -> ", cycle, toString);
+      reporter.Error(MessageSource.Resolver, toTok(start), $"{msg}: {cy} -> {toString(start)}");
     }
 
     private BigInteger MaxBV(Type t) {
