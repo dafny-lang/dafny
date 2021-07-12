@@ -215,7 +215,7 @@ namespace Microsoft.Dafny {
           new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
           new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
         var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
-        var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false));
+        var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false, null));
         var argExprs = args.ConvertAll(a =>
               (Expression)new IdentifierExpr(tok, a.Name) { Var = a, Type = a.Type });
         var readsIS = new FunctionCallExpr(tok, "reads", new ImplicitThisExpr(tok), tok, argExprs) {
@@ -1900,6 +1900,8 @@ namespace Microsoft.Dafny {
       } else if (a.IsNumericBased()) {
         // Note, for meet, we choose not to step down to IntVarietiesSupertype or RealVarietiesSupertype
         return a.Equals(b) ? a : null;
+      } else if (a.IsBitVectorType) {
+        return a.Equals(b) ? a : null;
       } else if (a is SetType) {
         var aa = (SetType)a;
         var bb = b as SetType;
@@ -2125,6 +2127,8 @@ namespace Microsoft.Dafny {
       } else if (b is RealVarietiesSupertype) {
         return a.IsNumericBased(NumericPersuasion.Real) ? a : null;
       } else if (a.IsNumericBased()) {
+        return a.Equals(b) ? a : null;
+      } else if (a.IsBitVectorType) {
         return a.Equals(b) ? a : null;
       } else if (a is SetType) {
         var aa = (SetType)a;
@@ -4742,7 +4746,7 @@ namespace Microsoft.Dafny {
       var formals = new List<Formal>();
       for (int i = 0; i < typeArgs.Count; i++) {
         var tp = typeArgs[i];
-        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, false);
+        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, false, null);
         formals.Add(f);
       }
       var ctor = new DatatypeCtor(Token.NoToken, BuiltIns.TupleTypeCtorNamePrefix + typeArgs.Count, formals, null);
@@ -6061,14 +6065,19 @@ namespace Microsoft.Dafny {
     }
     public readonly bool IsOld;
     public readonly Expression DefaultValue;
+    public readonly bool IsNameOnly;
 
-    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, bool isOld = false)
+    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue, bool isOld = false, bool isNameOnly = false)
       : base(tok, name, type, isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
+      Contract.Requires(inParam || defaultValue == null);
+      Contract.Requires(!isNameOnly || (inParam && !name.StartsWith("#")));
       InParam = inParam;
       IsOld = isOld;
+      DefaultValue = defaultValue;
+      IsNameOnly = isNameOnly;
     }
 
     public bool HasName {
@@ -6092,7 +6101,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class ImplicitFormal : Formal {
     public ImplicitFormal(IToken tok, string name, Type type, bool inParam, bool isGhost)
-      : base(tok, name, type, inParam, isGhost) {
+      : base(tok, name, type, inParam, isGhost, null) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(type != null);
@@ -6220,6 +6229,9 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var formal in Formals.Where(f => f.DefaultValue != null)) {
+          yield return formal.DefaultValue;
+        }
         foreach (var e in Req) {
           yield return e.E;
         }
@@ -6527,6 +6539,9 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
+        foreach (var formal in Ins.Where(f => f.DefaultValue != null)) {
+          yield return formal.DefaultValue;
+        }
         foreach (var e in Req) {
           yield return e.E;
         }
@@ -8114,11 +8129,29 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class WhileStmt : LoopStmt
+  public abstract class OneBodyLoopStmt : LoopStmt {
+    public readonly BlockStmt/*?*/ Body;
+    public WhileStmt.LoopBodySurrogate/*?*/ BodySurrogate;  // set by Resolver; remains null unless Body==null
+
+    public OneBodyLoopStmt(IToken tok, IToken endTok,
+      List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
+      BlockStmt /*?*/ body, Attributes/*?*/ attrs)
+      : base(tok, endTok, invariants, decreases, mod, attrs) {
+      Body = body;
+    }
+
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        if (Body != null) {
+          yield return Body;
+        }
+      }
+    }
+  }
+
+  public class WhileStmt : OneBodyLoopStmt
   {
     public readonly Expression/*?*/ Guard;
-    public readonly BlockStmt/*?*/ Body;
-    public LoopBodySurrogate/*?*/ BodySurrogate;  // set by Resolver; remains null unless Body==null
 
     public class LoopBodySurrogate
     {
@@ -8134,11 +8167,19 @@ namespace Microsoft.Dafny {
     public WhileStmt(IToken tok, IToken endTok, Expression guard,
                      List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
                      BlockStmt body)
-      : base(tok, endTok, invariants, decreases, mod) {
+      : base(tok, endTok, invariants, decreases, mod, body, null) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       this.Guard = guard;
-      this.Body = body;
+    }
+
+    public WhileStmt(IToken tok, IToken endTok, Expression guard,
+                 List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
+                 BlockStmt body, Attributes attrs)
+      : base(tok, endTok, invariants, decreases, mod, body, attrs) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      this.Guard = guard;
     }
     public WhileStmt(IToken tok, IToken endTok, Expression guard,
                  List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
@@ -8179,6 +8220,41 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(body != null);
+    }
+  }
+
+  public class ForLoopStmt : OneBodyLoopStmt {
+    public readonly BoundVar LoopIndex;
+    public readonly Expression Start;
+    public readonly Expression/*?*/ End;
+    public readonly bool GoingUp;
+
+    public ForLoopStmt(IToken tok, IToken endTok, BoundVar loopIndexVariable, Expression start, Expression/*?*/ end, bool goingUp,
+      List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
+      BlockStmt /*?*/ body, Attributes attrs)
+      : base(tok, endTok, invariants, decreases, mod, body, attrs)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(loopIndexVariable != null);
+      Contract.Requires(start != null);
+      Contract.Requires(invariants != null);
+      Contract.Requires(decreases != null);
+      Contract.Requires(mod != null);
+      LoopIndex = loopIndexVariable;
+      Start = start;
+      End = end;
+      GoingUp = goingUp;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in base.SubExpressions) { yield return e; }
+        yield return Start;
+        if (End != null) {
+          yield return End;
+        }
+      }
     }
   }
 
@@ -8654,6 +8730,18 @@ namespace Microsoft.Dafny {
       this.UsesOptionalBraces = usesOptionalBraces;
       this.Context = context is null? new HoleCtx() : context;
     }
+    public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
+      : base(tok, endTok, attrs)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(source != null);
+      Contract.Requires(cce.NonNullElements(cases));
+      this.source = source;
+      this.cases = cases;
+      this.UsesOptionalBraces = usesOptionalBraces;
+      this.Context = context is null ? new HoleCtx() : context;
+    }
 
     public Expression Source {
       get { return source; }
@@ -8692,13 +8780,14 @@ namespace Microsoft.Dafny {
   public class MatchCaseStmt : MatchCase
   {
     private List<Statement> body;
+    public Attributes Attributes;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Body));
     }
 
-    public MatchCaseStmt(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body)
+    public MatchCaseStmt(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
       : base(tok, ctor, arguments)
     {
       Contract.Requires(tok != null);
@@ -8706,6 +8795,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(cce.NonNullElements(body));
       this.body = body;
+      this.Attributes = attrs;
     }
 
     public List<Statement> Body {
@@ -8927,6 +9017,15 @@ namespace Microsoft.Dafny {
     /// of the resolved expression.
     /// </summary>
     public virtual IEnumerable<Expression> SubExpressions {
+      get { yield break; }
+    }
+
+    /// <summary>
+    /// Returns the list of types that appear in this expression proper (that is, not including types that
+    /// may appear in subexpressions). Types occurring in sub-statements of the expression are not included.
+    /// To be called after the expression has been resolved.
+    /// </summary>
+    public virtual IEnumerable<Type> ComponentTypes {
       get { yield break; }
     }
 
@@ -9562,7 +9661,7 @@ namespace Microsoft.Dafny {
         substMap.Add(oldVars[i], id);
       }
 
-      Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap);
+      Substituter sub = new Substituter(null, substMap, typeMap);
       return sub.Substitute(e);
     }
 
@@ -10246,6 +10345,8 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Expression> SubExpressions {
       get { yield return Obj; }
     }
+
+    public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustMember);
   }
 
   public class SeqSelectExpr : Expression {
@@ -10454,23 +10555,30 @@ namespace Microsoft.Dafny {
 
     public Function Function;  // filled in by resolution
 
-    [Captured]
     public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
-      : base(tok) {
+      : this(tok, fn, receiver, openParen, new ActualBindings(args), atLabel) {
       Contract.Requires(tok != null);
       Contract.Requires(fn != null);
       Contract.Requires(receiver != null);
       Contract.Requires(cce.NonNullElements(args));
       Contract.Requires(openParen != null || args.Count == 0);
       Contract.Ensures(type == null);
-      Contract.Ensures(cce.Owner.Same(this, receiver));
+    }
+
+    public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] ActualBindings bindings, Label/*?*/ atLabel = null)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(fn != null);
+      Contract.Requires(receiver != null);
+      Contract.Requires(bindings != null);
+      Contract.Requires(openParen != null);
+      Contract.Ensures(type == null);
 
       this.Name = fn;
-      cce.Owner.AssignSame(this, receiver);
       this.Receiver = receiver;
       this.OpenParen = openParen;
       this.AtLabel = atLabel;
-      this.Bindings = new ActualBindings(args);
+      this.Bindings = bindings;
     }
 
     /// <summary>
@@ -10491,6 +10599,8 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustFunction);
   }
 
   public class SeqConstructionExpr : Expression
@@ -10511,6 +10621,14 @@ namespace Microsoft.Dafny {
       get {
         yield return N;
         yield return Initializer;
+      }
+    }
+
+    public override IEnumerable<Type> ComponentTypes {
+      get {
+        if (ExplicitElementType != null) {
+          yield return ExplicitElementType;
+        }
       }
     }
   }
@@ -10639,6 +10757,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       Contract.Requires(toType != null);
       ToType = toType;
+    }
+
+    public override IEnumerable<Type> ComponentTypes {
+      get {
+        yield return ToType;
+      }
     }
   }
 
@@ -11113,6 +11237,9 @@ namespace Microsoft.Dafny {
         yield return Body;
       }
     }
+
+    public override IEnumerable<Type> ComponentTypes => BoundVars.Select(bv => bv.Type);
+
     public IEnumerable<BoundVar> BoundVars {
       get {
         foreach (var lhs in LHSs) {
@@ -11495,6 +11622,8 @@ namespace Microsoft.Dafny {
         yield return Term;
       }
     }
+
+    public override IEnumerable<Type> ComponentTypes => BoundVars.Select(bv => bv.Type);
   }
 
   public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentType {
@@ -11896,6 +12025,16 @@ namespace Microsoft.Dafny {
         yield return Source;
         foreach (var mc in cases) {
           yield return mc.Body;
+        }
+      }
+    }
+
+    public override IEnumerable<Type> ComponentTypes {
+      get {
+        foreach (var mc in cases) {
+          foreach (var bv in mc.Arguments) {
+            yield return bv.Type;
+          }
         }
       }
     }
@@ -12309,7 +12448,6 @@ namespace Microsoft.Dafny {
   {
     public readonly List<Statement> Body;
     public Attributes Attributes;
-
     public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body) : base(tok, pat) {
       Contract.Requires(body != null);
       this.Body = body;
@@ -12329,6 +12467,21 @@ namespace Microsoft.Dafny {
     public readonly List<NestedMatchCaseStmt> Cases;
     public readonly bool UsesOptionalBraces;
 
+    private void InitializeAttributes()
+    {
+      // Default case for match is false
+      bool splitMatch = Attributes.Contains(this.Attributes, "split");
+      Attributes.ContainsBool(this.Attributes, "split", ref splitMatch);
+      foreach (var c in this.Cases) {
+        if (!Attributes.Contains(c.Attributes, "split")) {
+          List<Expression> args = new List<Expression>();
+          args.Add(new LiteralExpr(c.Tok, splitMatch));
+          Attributes attrs = new Attributes("split", args, c.Attributes);
+          c.Attributes = attrs;
+        }
+      }
+    }
+
     public override IEnumerable<Expression> SubExpressions {
       get {
         if (this.ResolvedStatement == null) {
@@ -12336,13 +12489,14 @@ namespace Microsoft.Dafny {
         }
       }
     }
-
-    public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces): base(tok, endTok) {
+    public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
+      : base(tok, endTok, attrs) {
       Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
       this.Source = source;
       this.Cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
+      InitializeAttributes();
     }
     public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs)
       : base(tok, endTok, attrs) {
@@ -12516,6 +12670,8 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public override IEnumerable<Type> ComponentTypes => ResolvedExpression.ComponentTypes;
   }
 
   /// <summary>
@@ -12589,7 +12745,7 @@ namespace Microsoft.Dafny {
             yield return update.Item3;
           }
         } else {
-          foreach (var e in ResolvedExpression.SubExpressions) {
+          foreach (var e in base.SubExpressions) {
             yield return e;
           }
         }
@@ -12622,6 +12778,46 @@ namespace Microsoft.Dafny {
       a.type = e.Type;
       a.ResolvedExpression = e;
       return a;
+    }
+  }
+
+  /// <summary>
+  /// When an actual parameter is omitted for a formal with a default value, the positional resolved
+  /// version of the actual parameter will have a DefaultValueExpression value. This has three
+  /// advantages:
+  /// * It allows the entire module to be resolved before any substitutions take place.
+  /// * It gives a good place to check for default-value expressions that would give rise to an
+  ///   infinite expansion.
+  /// * It preserves the pre-substitution form, which gives compilers a chance to avoid re-evaluation
+  ///   of actual parameters used in other default-valued expressions.
+  ///
+  /// Note. Since DefaultValueExpression is a wrapper around another expression and can in several
+  /// places be expanded according to its ResolvedExpression, it is convenient to make DefaultValueExpression
+  /// inherit from ConcreteSyntaxExpression. However, there are some places in the code where
+  /// one then needs to pay attention to DefaultValueExpression's. Such places would be more
+  /// conspicuous if DefaultValueExpression were not an Expression at all. At the time of this
+  /// writing, a change to a separate type has shown to be more hassle than the need for special
+  /// attention to DefaultValueExpression's in some places.
+  /// </summary>
+  public class DefaultValueExpression : ConcreteSyntaxExpression {
+    public readonly Formal Formal;
+    public readonly Expression Receiver;
+    public readonly Dictionary<IVariable, Expression> SubstMap;
+    public readonly Dictionary<TypeParameter, Type> TypeMap;
+
+    public DefaultValueExpression(IToken tok, Formal formal,
+      Expression/*?*/ receiver, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
+      : base(tok) {
+      Contract.Requires(tok != null);
+      Contract.Requires(formal != null);
+      Contract.Requires(formal.DefaultValue != null);
+      Contract.Requires(substMap != null);
+      Contract.Requires(typeMap != null);
+      Formal = formal;
+      Receiver = receiver;
+      SubstMap = substMap;
+      TypeMap = typeMap;
+      Type = Resolver.SubstType(formal.Type, typeMap);
     }
   }
 

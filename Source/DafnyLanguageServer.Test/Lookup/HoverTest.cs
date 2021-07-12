@@ -80,7 +80,7 @@ method DoIt() returns (x: int) {
     }
 
     [TestMethod]
-    public async Task HoveringInvocationOfUnknownFunctionOrMethodReturnsEmptyHover() {
+    public async Task HoveringInvocationOfUnknownFunctionOrMethodReturnsNull() {
       var source = @"
 method DoIt() returns (x: int) {
   return GetX();
@@ -88,8 +88,7 @@ method DoIt() returns (x: int) {
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var hover = await RequestHover(documentItem, (1, 12));
-      Assert.IsNotNull(hover);
-      Assert.IsNull(hover.Contents.MarkupContent);
+      Assert.IsNull(hover);
     }
 
     [TestMethod]

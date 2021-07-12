@@ -1,0 +1,38 @@
+
+Dafny program verifier finished with 20 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+15 gcd 9  =  3
+14 gcd 22  =  2
+371 gcd 1  =  1
+1 gcd 2  =  1
+1 gcd 1  =  1
+13 gcd 13  =  13
+60 gcd 60  =  60
+
+Dafny program verifier did not attempt verification
+15 gcd 9  =  3
+14 gcd 22  =  2
+371 gcd 1  =  1
+1 gcd 2  =  1
+1 gcd 1  =  1
+13 gcd 13  =  13
+60 gcd 60  =  60
+
+Dafny program verifier did not attempt verification
+15 gcd 9  =  3
+14 gcd 22  =  2
+371 gcd 1  =  1
+1 gcd 2  =  1
+1 gcd 1  =  1
+13 gcd 13  =  13
+60 gcd 60  =  60
+
+Dafny program verifier did not attempt verification
+15 gcd 9  =  3
+14 gcd 22  =  2
+371 gcd 1  =  1
+1 gcd 2  =  1
+1 gcd 1  =  1
+13 gcd 13  =  13
+60 gcd 60  =  60

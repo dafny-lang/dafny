@@ -1484,6 +1484,27 @@ namespace Microsoft.Dafny
       wr.WriteLine(");");
     }
 
+    protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
+      List<Statement> body, ConcreteSyntaxTree wr) {
+
+      wr.Write($"for ({TypeName(loopIndex.Type,wr, tok)} {loopIndex.CompileName} = ");
+      var startWr = wr.Fork();
+      wr.Write($"; ");
+
+      ConcreteSyntaxTree bodyWr;
+      if (goingUp) {
+        wr.Write(endVarName != null ? $"{loopIndex.CompileName} < {endVarName}" : "");
+        bodyWr = wr.NewBlock($"; {loopIndex.CompileName}++)");
+      } else {
+        wr.Write(endVarName != null ? $"{endVarName} < {loopIndex.CompileName}" : "");
+        bodyWr = wr.NewBlock($"; )");
+        bodyWr.WriteLine($"{loopIndex.CompileName}--;");
+      }
+      TrStmtList(body, bodyWr);
+
+      return startWr;
+    }
+
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
       return wr.NewNamedBlock("for (var {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
     }
@@ -1928,18 +1949,23 @@ namespace Microsoft.Dafny
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
       }
-      string qualification;
-      if (member != null && member.IsExtern(out qualification, out _) && qualification != null) {
+
+      if (member != null && member.IsExtern(out var qualification, out _) && qualification != null) {
         return qualification;
       }
       var cl = udt.ResolvedClass;
       if (cl is TypeParameter) {
         return IdProtect(udt.CompileName);
-      } else if (cl.EnclosingModuleDefinition.IsDefaultModule) {
-        return IdProtect(cl.CompileName);
-      } else {
-        return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
       }
+
+      if (cl.EnclosingModuleDefinition.IsDefaultModule) {
+        return IdProtect(cl.CompileName);
+      }
+
+      if (cl.IsExtern(out _, out _)) {
+        return cl.EnclosingModuleDefinition.CompileName + "." + cl.CompileName;
+      }
+      return IdProtect(cl.EnclosingModuleDefinition.CompileName) + "." + IdProtect(cl.CompileName);
     }
 
     protected override void EmitThis(ConcreteSyntaxTree wr) {

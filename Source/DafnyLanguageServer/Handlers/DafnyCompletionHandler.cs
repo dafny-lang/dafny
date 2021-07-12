@@ -3,6 +3,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
@@ -12,28 +13,23 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
-  public class DafnyCompletionHandler : CompletionHandler {
+  public class DafnyCompletionHandler : CompletionHandlerBase {
     private readonly ILogger _logger;
     private readonly IDocumentDatabase _documents;
     private readonly ISymbolGuesser _symbolGuesser;
 
-    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) : base(CreateRegistrationOptions()) {
+    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) {
       _logger = logger;
       _documents = documents;
       _symbolGuesser = symbolGuesser;
     }
 
-    private static CompletionRegistrationOptions CreateRegistrationOptions() {
+    protected override CompletionRegistrationOptions CreateRegistrationOptions(CompletionCapability capability, ClientCapabilities clientCapabilities) {
       return new CompletionRegistrationOptions {
         DocumentSelector = DocumentSelector.ForLanguage("dafny"),
         ResolveProvider = false,
         TriggerCharacters = new Container<string>(".")
       };
-    }
-
-    public override bool CanResolve(CompletionItem completionItem) {
-      // Never called since "ResolveProvider" is set to false.
-      throw new InvalidOperationException("method not implemented");
     }
 
     // Never called since "ResolveProvider" is set to false.
@@ -45,7 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     public override Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
       DafnyDocument? document;
       if(!_documents.TryGetDocument(request.TextDocument, out document)) {
-        _logger.LogWarning("location requested for unloaded document {}", request.TextDocument.Uri);
+        _logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return Task.FromResult(new CompletionList());
       }
       return Task.FromResult(new CompletionProcessor(_symbolGuesser, document, request, cancellationToken).Process());
@@ -106,7 +102,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return new CompletionList(completionItems);
       }
 
-      private bool IsConstructor(ISymbol symbol) {
+      private static bool IsConstructor(ISymbol symbol) {
         return symbol is MethodSymbol method
           && method.Name == "_ctor";
       }
@@ -120,7 +116,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         };
       }
 
-      private CompletionItemKind GetCompletionKind(ISymbol symbol) {
+      private static CompletionItemKind GetCompletionKind(ISymbol symbol) {
         return symbol switch {
           ClassSymbol _ => CompletionItemKind.Class,
           MethodSymbol _ => CompletionItemKind.Method,
@@ -131,7 +127,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         };
       }
 
-      private string GetCompletionText(ISymbol symbol) {
+      private static string GetCompletionText(ISymbol symbol) {
         return symbol.Name;
       }
     }

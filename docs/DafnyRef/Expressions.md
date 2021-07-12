@@ -1455,10 +1455,40 @@ Positional arguments must be given before any named arguments.
 Positional arguments are passed to the formals in the corresponding
 position. Named arguments are passed to the formal of the given
 name. Named arguments can be given out of order from how the corresponding
-formal parameters are declared. The list of bindings for a call must
-provide exactly one value for each formal parameter.
+formal parameters are declared. A formal declared with the modifier
+`nameonly` is not allowed to be passed positionally.
+The list of bindings for a call must
+provide exactly one value for every required parameter and at most one
+value for each optional parameter, and must never name
+non-existent formals. Any optional parameter that is not given a value
+takes on the default value declared in the callee for that optional parameter.
 
-## 20.45. Compile-Time Constants {#sec-compile-time-constants}
+## 20.45. Formal Parameters and Default-Value Expressions
+
+The formal parameters of a method, constructor in a class, iterator,
+function, or datatype constructor can be declared with an expression
+denoting a _default value_. This makes the parameter _optional_,
+as opposed to _required_. All required parameters must be declared
+before any optional parameters. All nameless parameters in a datatype
+constructor must be declared before any `nameonly` parameters.
+
+The default-value expression for a parameter is allowed to mention the
+other parameters, including `this` (for instance methods and instance
+functions), but not the implicit `_k` parameter in least and greatest
+predicates and lemmas. The default value of a parameter may mention
+both preceding and subsequent parameters, but there may not be any
+dependent cycle between the parameters and their default-value
+expressions.
+
+The well-formedness of default-value expressions is checked independent
+of the precondition of the enclosing declaration. For a function, the
+parameter default-value expressions may only read what the function's
+`reads` clause allows. For a datatype constructor, parameter default-value
+expressions may not read anything. A default-value expression may not be
+involved in any recursive or mutually recursive calls with the enclosing
+declaration.
+
+## 20.46. Compile-Time Constants {#sec-compile-time-constants}
 
 In certain situations in Dafny it is helpful to know what the value of a
 constant is during program analysis, before verification or execution takes

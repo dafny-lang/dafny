@@ -50,7 +50,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       private readonly DafnyDocument _originalDocument;
       private readonly Container<TextDocumentContentChangeEvent> _contentChanges;
       private readonly CancellationToken _cancellationToken;
-      private readonly PositionComparer _positionComparer = new PositionComparer();
 
       public ChangeProcessor(ILogger logger, DafnyDocument originalDocument, Container<TextDocumentContentChangeEvent> contentChanges, CancellationToken cancellationToken) {
         _logger = logger;
@@ -69,6 +68,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private string ApplyTextChange(string previousText, TextDocumentContentChangeEvent change) {
+        if (change.Range == null) {
+          throw new System.InvalidOperationException("the range of the change must not be null");
+        }
         int absoluteStart = change.Range.Start.ToAbsolutePosition(previousText, _cancellationToken);
         int absoluteEnd = change.Range.End.ToAbsolutePosition(previousText, _cancellationToken);
         return previousText[..absoluteStart] + change.Text + previousText[absoluteEnd..];
@@ -78,12 +80,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var migratedLookupTree = _originalDocument.SymbolTable.LookupTree;
         var migratedDeclarations = _originalDocument.SymbolTable.Locations;
         foreach(var change in _contentChanges) {
+          if(change.Range == null) {
+            throw new System.InvalidOperationException("the range of the change must not be null");
+          }
           _cancellationToken.ThrowIfCancellationRequested();
-          var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change);
-          migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change, afterChangeEndOffset);
-          migratedDeclarations = ApplyDeclarationsChange(migratedDeclarations, change, afterChangeEndOffset);
+          var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range, change.Text);
+          migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change.Range, afterChangeEndOffset);
+          migratedDeclarations = ApplyDeclarationsChange(migratedDeclarations, change.Range, afterChangeEndOffset);
         }
-        _logger.LogTrace("migrated the lookup tree, lookup before={}, after={}", _originalDocument.SymbolTable.LookupTree.Count, migratedLookupTree.Count);
+        _logger.LogTrace("migrated the lookup tree, lookup before={SymbolsBefore}, after={SymbolsAfter}",
+          _originalDocument.SymbolTable.LookupTree.Count, migratedLookupTree.Count);
         return new SymbolTable(
           _originalDocument.SymbolTable.CompilationUnit,
           _originalDocument.SymbolTable.Declarations,
@@ -94,16 +100,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private IIntervalTree<Position, ILocalizableSymbol> ApplyLookupTreeChange(
-          IIntervalTree<Position, ILocalizableSymbol> previousLookupTree, TextDocumentContentChangeEvent change, Position afterChangeEndOffset
+          IIntervalTree<Position, ILocalizableSymbol> previousLookupTree, Range changeRange, Position afterChangeEndOffset
       ) {
-        var migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>(new PositionComparer());
+        var migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
         foreach(var entry in previousLookupTree) {
           _cancellationToken.ThrowIfCancellationRequested();
-          if(IsPositionBeforeChange(change.Range, entry.To)) {
+          if(IsPositionBeforeChange(changeRange, entry.To)) {
             migratedLookupTree.Add(entry.From, entry.To, entry.Value);
           }
-          if(IsPositionAfterChange(change.Range, entry.From)) {
-            var beforeChangeEndOffset = change.Range.End;
+          if(IsPositionAfterChange(changeRange, entry.From)) {
+            var beforeChangeEndOffset = changeRange.End;
             var from = GetPositionWithOffset(entry.From, beforeChangeEndOffset, afterChangeEndOffset);
             var to = GetPositionWithOffset(entry.To, beforeChangeEndOffset, afterChangeEndOffset);
             migratedLookupTree.Add(from, to, entry.Value);
@@ -112,9 +118,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return migratedLookupTree;
       }
 
-      private Position GetPositionAtEndOfAppliedChange(TextDocumentContentChangeEvent change) {
-        var changeStart = change.Range.Start;
-        var changeEof = change.Text.GetEofPosition(_cancellationToken);
+      private Position GetPositionAtEndOfAppliedChange(Range changeRange, string changeText) {
+        var changeStart = changeRange.Start;
+        var changeEof = changeText.GetEofPosition(_cancellationToken);
         var characterOffset = changeEof.Character;
         if(changeEof.Line == 0) {
           characterOffset = changeStart.Character + changeEof.Character;
@@ -122,7 +128,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return new Position(changeStart.Line + changeEof.Line, characterOffset);
       }
 
-      private Position GetPositionWithOffset(Position position, Position originalOffset, Position changeOffset) {
+      private static Position GetPositionWithOffset(Position position, Position originalOffset, Position changeOffset) {
         int newLine = position.Line - originalOffset.Line + changeOffset.Line;
         int newCharacter = position.Character;
         if(newLine == changeOffset.Line) {
@@ -132,15 +138,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return new Position(newLine, newCharacter);
       }
 
-      private bool IsPositionBeforeChange(Range changeRange, Position symbolTo) {
-        return _positionComparer.Compare(symbolTo, changeRange.Start) <= 0;
+      private static bool IsPositionBeforeChange(Range changeRange, Position symbolTo) {
+        return symbolTo.CompareTo(changeRange.Start) <= 0;
       }
 
-      private bool IsPositionAfterChange(Range changeRange, Position symbolFrom) {
-        return _positionComparer.Compare(symbolFrom, changeRange.End) >= 0;
+      private static bool IsPositionAfterChange(Range changeRange, Position symbolFrom) {
+        return symbolFrom.CompareTo(changeRange.End) >= 0;
       }
 
-      private IDictionary<ISymbol, SymbolLocation> ApplyDeclarationsChange(IDictionary<ISymbol, SymbolLocation> previousDeclarations, TextDocumentContentChangeEvent change, Position afterChangeEndOffset) {
+      private IDictionary<ISymbol, SymbolLocation> ApplyDeclarationsChange(
+          IDictionary<ISymbol, SymbolLocation> previousDeclarations, Range changeRange, Position afterChangeEndOffset
+      ) {
         var migratedDeclarations = new Dictionary<ISymbol, SymbolLocation>();
         foreach(var (symbol, location) in previousDeclarations) {
           _cancellationToken.ThrowIfCancellationRequested();
@@ -148,7 +156,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             migratedDeclarations.Add(symbol, location);
             continue;
           }
-          var newLocation = ComputeNewSymbolLocation(location, change.Range, afterChangeEndOffset);
+          var newLocation = ComputeNewSymbolLocation(location, changeRange, afterChangeEndOffset);
           if(newLocation != null) {
             migratedDeclarations.Add(symbol, newLocation);
           }
@@ -156,7 +164,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return migratedDeclarations;
       }
 
-      private SymbolLocation? ComputeNewSymbolLocation(SymbolLocation oldLocation, Range changeRange, Position afterChangeEndOffset) {
+      private static SymbolLocation? ComputeNewSymbolLocation(SymbolLocation oldLocation, Range changeRange, Position afterChangeEndOffset) {
         var identifier = ComputeNewRange(oldLocation.Name, changeRange, afterChangeEndOffset);
         if(identifier == null) {
           return null;
@@ -168,7 +176,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return new SymbolLocation(oldLocation.Uri, identifier, declaration);
       }
 
-      private Range? ComputeNewRange(Range oldRange, Range changeRange, Position afterChangeEndOffset) {
+      private static Range? ComputeNewRange(Range oldRange, Range changeRange, Position afterChangeEndOffset) {
         if(IsPositionBeforeChange(changeRange, oldRange.End)) {
           // The range is strictly before the change.
           return oldRange;

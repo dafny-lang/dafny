@@ -18,12 +18,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this verifier serializes all invocations.
   /// </remarks>
   public class DafnyProgramVerifier : IProgramVerifier {
-    private static readonly object _initializationSyncObject = new object();
+    private static readonly object _initializationSyncObject = new();
     private static readonly MessageSource VerifierMessageSource = MessageSource.Other;
     private static bool _initialized;
 
     private readonly ILogger _logger;
-    private readonly SemaphoreSlim _mutex = new SemaphoreSlim(1);
+    private readonly SemaphoreSlim _mutex = new(1);
 
     private DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) {
       _logger = logger;
@@ -92,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private void CancelVerification(string requestId) {
-      _logger.LogDebug("requesting verification cancellation of {}", requestId);
+      _logger.LogDebug("requesting verification cancellation of {RequestId}", requestId);
       ExecutionEngine.CancelRequest(requestId);
     }
 

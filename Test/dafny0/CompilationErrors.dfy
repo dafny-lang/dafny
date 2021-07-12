@@ -51,6 +51,8 @@ method BodyLessLoop_NonGhost(y: int)
   var x := y;
   while true  // error: cannot be compiled
     invariant x <= 100
+  for i := 0 to 100  // error: cannot be compiled
+    invariant x <= 100
 }
 
 method BodyLessLoop_Ghost(ghost y: int)
@@ -60,6 +62,8 @@ method BodyLessLoop_Ghost(ghost y: int)
   if y == y {  // that makes this a ghost statement
     var x := y;
     while true  // error: cannot be compiled
+      invariant x <= 100
+    for i := 0 to 100  // error: cannot be compiled
       invariant x <= 100
   }
 }

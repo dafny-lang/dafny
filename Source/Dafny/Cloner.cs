@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using System.Linq;
+using Microsoft.Boogie;
 using IToken = Microsoft.Boogie.IToken;
 
 namespace Microsoft.Dafny
@@ -197,9 +199,8 @@ namespace Microsoft.Dafny
     }
 
     public Formal CloneFormal(Formal formal) {
-      Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost, formal.IsOld);
-      //if (f.Type is UserDefinedType && formal.Type is UserDefinedType)
-      //    ((UserDefinedType)f.Type).ResolvedClass = ((UserDefinedType)(formal.Type)).ResolvedClass;
+      Formal f = new Formal(Tok(formal.tok), formal.Name, CloneType(formal.Type), formal.InParam, formal.IsGhost,
+        CloneExpr(formal.DefaultValue), formal.IsOld);
       return f;
     }
 
@@ -606,15 +607,21 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        r = new AlternativeStmt(Tok(s.Tok), Tok(s.EndTok), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces);
+        r = new AlternativeStmt(Tok(s.Tok), Tok(s.EndTok), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces, CloneAttributes(s.Attributes));
 
       } else if (stmt is WhileStmt) {
         var s = (WhileStmt)stmt;
-        r = new WhileStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Guard), s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body));
+        r = new WhileStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Guard),
+          s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body), CloneAttributes(s.Attributes));
+
+      } else if (stmt is ForLoopStmt) {
+        var s = (ForLoopStmt)stmt;
+        r = new ForLoopStmt(Tok(s.Tok), Tok(s.EndTok), CloneBoundVar(s.LoopIndex), CloneExpr(s.Start), CloneExpr(s.End), s.GoingUp,
+          s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), CloneBlockStmt(s.Body), CloneAttributes(s.Attributes));
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        r = new AlternativeLoopStmt(Tok(s.Tok), Tok(s.EndTok), s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces);
+        r = new AlternativeLoopStmt(Tok(s.Tok), Tok(s.EndTok), s.Invariants.ConvertAll(CloneAttributedExpr), CloneSpecExpr(s.Decreases), CloneSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(CloneGuardedAlternative), s.UsesOptionalBraces, CloneAttributes(s.Attributes));
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
@@ -679,7 +686,7 @@ namespace Microsoft.Dafny
     public MatchCaseStmt CloneMatchCaseStmt(MatchCaseStmt c) {
       Contract.Requires(c != null);
       Contract.Assert(c.Arguments != null);
-      return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt));
+      return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt), CloneAttributes(c.Attributes));
     }
 
     public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
@@ -895,12 +902,15 @@ namespace Microsoft.Dafny
           continue;
 
         var def = import.Signature.ModuleDef;
+        if (def == null) {
+          continue;
+        }
+        
         if (!declmap.ContainsKey(def)) {
           declmap.Add(def, new List<AliasModuleDecl>());
           sigmap.Add(def, new ModuleSignature());
           vismap.Add(def, new VisibilityScope());
         }
-
 
         sigmap[def] = Resolver.MergeSignature(sigmap[def], import.Signature);
         sigmap[def].ModuleDef = def;
@@ -918,11 +928,18 @@ namespace Microsoft.Dafny
         }
       }
 
-      basem.TopLevelDecls.RemoveAll(t => t is AliasModuleDecl ?
-        vismap[((AliasModuleDecl)t).Signature.ModuleDef].IsEmpty() : isInvisibleClone(t));
+      basem.TopLevelDecls.RemoveAll(t =>
+      {
+        if (t is AliasModuleDecl aliasModuleDecl) {
+          var def = aliasModuleDecl.Signature.ModuleDef;
+          return def != null && vismap[def].IsEmpty();
+        }
 
-      basem.TopLevelDecls.FindAll(t => t is TopLevelDeclWithMembers).
-        ForEach(t => ((TopLevelDeclWithMembers)t).Members.RemoveAll(isInvisibleClone));
+        return isInvisibleClone(t);
+      });
+
+      basem.TopLevelDecls.OfType<TopLevelDeclWithMembers>().
+        Iter(t => t.Members.RemoveAll(isInvisibleClone));
 
       return basem;
     }

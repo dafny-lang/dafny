@@ -99,7 +99,8 @@ transcript(11,0): Error: invalid UpdateStmt
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(11,0): Error: invalid AssertStmt
+transcript(10,9): Error: invalid AssertStmt
+transcript(10,9): Error: Expected 'to' or 'downto'
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here

@@ -7,18 +7,18 @@ using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticPublisher : IDiagnosticPublisher {
-    private readonly ILanguageServer _languageServer;
+    private readonly ILanguageServerFacade _languageServer;
 
-    public DiagnosticPublisher(ILanguageServer languageServer) {
+    public DiagnosticPublisher(ILanguageServerFacade languageServer) {
       _languageServer = languageServer;
     }
 
     public void PublishDiagnostics(DafnyDocument document, CancellationToken cancellationToken) {
-      _languageServer.PublishDiagnostics(ToPublishDiagnostics(document, cancellationToken));
+      _languageServer.TextDocument.PublishDiagnostics(ToPublishDiagnostics(document, cancellationToken));
     }
 
     public void HideDiagnostics(DafnyDocument document) {
-      _languageServer.PublishDiagnostics(new PublishDiagnosticsParams {
+      _languageServer.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams {
         Uri = document.Uri,
         Version = document.Version,
         Diagnostics = new Container<Diagnostic>()

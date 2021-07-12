@@ -2,6 +2,10 @@
 
 datatype List<T> = Nil | Cons(hd: T, tl: List<T>)
 
+datatype {:dt 0} {:dt false + 3} Datatype = {:dt k} Blue | {:dt 50} Green
+
+datatype {:dt 0} {:dt false + 3} AnotherDatatype = {:dt 50} Blue | {:dt k} Green
+
 method If(n: int) returns (k: int)
 {
   var i := 0;
@@ -76,7 +80,7 @@ method Calc(x: int, y: int)
 
 method ForAll(i: int, j: int, arr: array2<int>)
 {
-  forall i, j {:split 1 + false} {:split true} | i in {-3, 4} && j in {1, 2} {
+  forall i, j {:split 1 + false} {:split i + j} | i in {-3, 4} && j in {1, 2} {
     arr[i, j] := 0;
   }
 }
@@ -89,6 +93,23 @@ method AssertBy(x: int, y: int)
   }
   assert {:split} y == 8;
 }
+
+method For(lo: int, hi: int) returns (k: int)
+  requires lo <= hi
+{
+  var f: int -> int := x => x;
+  for {:split i} {:split true + k} i := lo to hi
+    invariant forall u :: f(u) == u + i
+  {
+  }
+  return 2;
+}
+AttributeChecks.dfy(94,7): Error: unresolved identifier: k
+AttributeChecks.dfy(93,28): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(93,28): Error: type of right argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(97,25): Error: unresolved identifier: k
+AttributeChecks.dfy(96,28): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+AttributeChecks.dfy(96,28): Error: type of right argument to + (int) must agree with the result type (bool)
 AttributeChecks.dfy(18,17): Error: type of left argument to + (int) must agree with the result type (bool)
 AttributeChecks.dfy(18,17): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 AttributeChecks.dfy(28,35): Error: type of right argument to + (int) must agree with the result type (bool)
@@ -103,4 +124,6 @@ AttributeChecks.dfy(68,25): Error: type of left argument to + (int) must agree w
 AttributeChecks.dfy(68,25): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 AttributeChecks.dfy(75,23): Error: type of right argument to + (int) must agree with the result type (bool)
 AttributeChecks.dfy(75,23): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-14 resolution/type errors detected in AttributeChecks.dfy
+AttributeChecks.dfy(86,30): Error: type of right argument to + (int) must agree with the result type (bool)
+AttributeChecks.dfy(86,30): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+22 resolution/type errors detected in AttributeChecks.dfy

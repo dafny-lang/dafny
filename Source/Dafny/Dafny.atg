@@ -788,8 +788,8 @@ TOKENS
   invariant = "invariant".
   function = "function".
   predicate = "predicate".
-  least = "least".
-  greatest = "greatest".
+  least = "least". /* not a keyword by itself, but part of a keyword phrase */
+  greatest = "greatest". /* not a keyword by itself, but part of a keyword phrase */
   inductive = "inductive".
   twostate = "twostate".
   copredicate = "copredicate".
@@ -1422,14 +1422,15 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   .
 
 /*------------------------------------------------------------------------*/
-GIdentType<bool allowGhostKeyword, bool allowNewKeyword,
-           out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld>
+GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeyword,
+           out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld, out bool isNameOnly>
 /* isGhost always returns as false if allowGhostKeyword is false */
 = (. Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
-     isGhost = false; isOld = allowNewKeyword; .)
+     isGhost = false; isOld = allowNewKeyword; isNameOnly = false; .)
   { "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } .)
   | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(t, "formal cannot be declared 'new' in this context"); } .)
+  | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(t, "formal cannot be declared 'nameonly' in this context"); } .)
   }
   IdentType<out id, out ty, false>
   .
@@ -1480,13 +1481,17 @@ IdentTypeOptional<out BoundVar var>
   (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType); .)
   .
 
-TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost>
+TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost, out Expression defaultValue, out bool isNameOnly>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out identName)!=null);
-     string name = null; id = Token.NoToken; ty = new BoolType()/*dummy*/; isGhost = false; .)
-  [ "ghost"                            (. isGhost = true; .)
-  ]
+     string name = null; id = Token.NoToken; ty = new BoolType()/*dummy*/; isGhost = false;
+     IToken nameonlyToken = null;
+     defaultValue = null;
+  .)
+  { "ghost"                            (. isGhost = true; .)
+  | "nameonly"                         (. nameonlyToken = t; .)
+  }
   ( TypeAndToken<out id, out ty, false>
     [ ":"
       (. /* try to convert ty to an identifier */
@@ -1498,15 +1503,22 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
          }
       .)
       Type<out ty>
+      ParameterDefaultValue<true, out defaultValue>
     ]
   | digits         (. id = t; name = id.val;.)
     ":"
     Type<out ty>
+    ParameterDefaultValue<true, out defaultValue>
   )
   (. if (name != null) {
        identName = name;
+       isNameOnly = nameonlyToken != null;
      } else {
        identName = "#" + anonymousIds++;
+       if (nameonlyToken != null) {
+         SemErr(nameonlyToken, "use of the 'nameonly' modifier must be accompanied with a parameter name");
+       }
+       isNameOnly = false;
      }
   .)
   .
@@ -1871,25 +1883,47 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, List<Forma
      Type ty;
      bool isGhost;
      bool isOld;
+     Expression defaultValue;
+     bool isNameOnly;
   .)
   "("
   [
-    GIdentType<allowGhostKeyword, allowNewKeyword, out id, out ty, out isGhost, out isOld>
-                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, isOld)); .)
-    { "," GIdentType<allowGhostKeyword, allowNewKeyword, out id, out ty, out isGhost, out isOld>
-                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, isOld)); .)
+    GIdentType<allowGhostKeyword, allowNewKeyword, incoming, out id, out ty, out isGhost, out isOld, out isNameOnly>
+    ParameterDefaultValue<incoming, out defaultValue>
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly)); .)
+    { "," GIdentType<allowGhostKeyword, allowNewKeyword, incoming, out id, out ty, out isGhost, out isOld, out isNameOnly>
+    ParameterDefaultValue<incoming, out defaultValue>
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly)); .)
     }
   ]
   ")"
   .
 
+ParameterDefaultValue<bool incoming, out Expression defaultValue>
+= (. defaultValue = null; IToken tok;
+  .)
+  [ ":="        (. tok = t; .)
+    Expression<out defaultValue, true, true>
+    (. if (!incoming) {
+         SemErr(tok, "out-parameters cannot have default-value expressions");
+         defaultValue = null;
+       }
+    .)
+  ]
+  .
+
 /*------------------------------------------------------------------------*/
 FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
-= (. Contract.Requires(cce.NonNullElements(formals)); IToken/*!*/ id;  Type/*!*/ ty;  string/*!*/ name;  bool isGhost; .)
+= (. Contract.Requires(cce.NonNullElements(formals));
+     IToken/*!*/ id;  Type/*!*/ ty;  string/*!*/ name;  bool isGhost;  Expression/*?*/ defaultValue;
+     bool isNameOnly;
+  .)
   "("
   [
-    TypeIdentOptional<out id, out name, out ty, out isGhost>        (. formals.Add(new Formal(id, name, ty, true, isGhost)); .)
-    { "," TypeIdentOptional<out id, out name, out ty, out isGhost>  (. formals.Add(new Formal(id, name, ty, true, isGhost)); .)
+    TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
+            (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
+    { "," TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
+            (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
     }
   ]
   ")"
@@ -2110,15 +2144,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       ":"
       (  IF(FollowedByColon())
          "("
-           (.
-              IToken resultId;
-              Type ty;
-              bool isGhost;
-              bool isOld;
-           .)
-           GIdentType<false, false, out resultId, out ty, out isGhost, out isOld>
-           (. Contract.Assert(!isGhost && !isOld);
-              result = new Formal(resultId, resultId.val, ty, false, false, false);
+           GIdentType<false, false, false, out var resultId, out var ty, out var isGhost, out var isOld, out var isNameOnly>
+           (. Contract.Assert(!isGhost && !isOld && !isNameOnly);
+              result = new Formal(resultId, resultId.val, ty, false, false, null, false);
            .)
          ")"
          | Type<out returnType>
@@ -2360,6 +2388,7 @@ OneStmt<out Statement/*!*/ s>
   | ReturnStmt<out s>
   | IfStmt<out s>
   | WhileStmt<out s>
+  | ForLoopStmt<out s>
   | AssertStmt<out s, false>
   | AssumeStmt<out s>
   | BreakStmt<out s>
@@ -2819,6 +2848,62 @@ WhileStmt<out Statement stmt>
   )
   .
 
+ForLoopStmt<out Statement stmt>
+= (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null);
+     IToken x;
+     BoundVar loopIndex;
+     Expression start;
+     Expression end = null;
+     bool goingUp = true;
+
+     Attributes attrs = null;
+
+     List<AttributedExpression> invariants = new List<AttributedExpression>();
+     List<Expression> decreases = new List<Expression>();
+     Attributes decAttrs = null;
+     Attributes modAttrs = null;
+     List<FrameExpression> mod = null;
+
+     BlockStmt body = null;
+     IToken bodyStart = null, bodyEnd = null, endTok = Token.NoToken;
+     stmt = dummyStmt;  // to please the compiler
+     bool isDirtyLoop = true;
+  .)
+  "for"                    (. x = t; .)
+  { Attribute<ref attrs> }
+  IdentTypeOptional<out loopIndex>
+  ":="
+  Expression<out start, false, false>
+  ForLoopDirection<out goingUp>
+  ( Expression<out end, false, false>
+  | "*"
+  )
+  LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
+  ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
+    BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
+  | /* go body-less */
+  )
+  (.
+    // The following statement protects against crashes in case of parsing errors
+    if (body == null && !isDirtyLoop) {
+      body = new BlockStmt(x, endTok, new List<Statement>());
+    }
+    stmt = new ForLoopStmt(x, endTok, loopIndex, start, end, goingUp,
+      invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
+  .)
+  .
+
+ForLoopDirection<out bool goingUp>
+= (. goingUp = true; .)
+  ident
+  (. if (t.val == "downto") {
+       goingUp = false;
+     } else if (t.val != "to") {
+       SemErr(t, "Expected 'to' or 'downto'");
+     }
+  .)
+  .
+
 /*------------------------------------------------------------------------*/
 LoopSpec<.List<AttributedExpression> invariants, List<Expression> decreases, ref List<FrameExpression> mod, ref Attributes decAttrs, ref Attributes modAttrs.>
 = { SYNC
@@ -2838,7 +2923,6 @@ DecreasesList<.List<Expression> decreases, bool allowWildcard, bool allowLambda.
   }
   (. if (allowWildcard && decreases.Count > 1 && decreases.Exists(e => e is WildcardExpr)) {
        SemErr(e.tok, "A 'decreases' clause that contains '*' is not allowed to contain any other expressions");
-
      }
   .)
   .

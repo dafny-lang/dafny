@@ -547,7 +547,7 @@ namespace Microsoft.Dafny {
       Indent(indent);
       PrintClassMethodHelper("iterator", iter.Attributes, iter.Name, iter.TypeArgs);
       if (iter.IsRefining) {
-        wr.WriteLine(" ... ");
+        wr.Write(" ... ");
       } else {
         PrintFormals(iter.Ins, iter);
         if (iter.Outs.Count != 0) {
@@ -560,7 +560,6 @@ namespace Microsoft.Dafny {
           }
           PrintFormals(iter.Outs, iter);
         }
-        wr.WriteLine();
       }
 
       int ind = indent + IndentAmount;
@@ -575,6 +574,7 @@ namespace Microsoft.Dafny {
       PrintSpec("yield ensures", iter.YieldEnsures, ind);
       PrintSpec("ensures", iter.Ensures, ind);
       PrintDecreasesSpec(iter.Decreases, ind);
+      wr.WriteLine();
     }
 
     private void PrintIteratorClass(IteratorDecl iter, int indent, string fileBeingPrinted) {
@@ -850,7 +850,7 @@ namespace Microsoft.Dafny {
       if (!f.IsGhost) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
       if (f.SignatureIsOmitted) {
-        wr.WriteLine(" ...");
+        wr.Write(" ...");
       } else {
         if (f is ExtremePredicate) {
           PrintKTypeIndication(((ExtremePredicate)f).TypeOfK);
@@ -866,7 +866,6 @@ namespace Microsoft.Dafny {
             PrintType(f.ResultType);
           }
         }
-        wr.WriteLine();
       }
 
       int ind = indent + IndentAmount;
@@ -874,6 +873,7 @@ namespace Microsoft.Dafny {
       PrintFrameSpecLine("reads", f.Reads, ind, null);
       PrintSpec("ensures", f.Ens, ind);
       PrintDecreasesSpec(f.Decreases, ind);
+      wr.WriteLine();
       if (f.Body != null && !printSignatureOnly) {
         Indent(indent);
         wr.WriteLine("{");
@@ -931,7 +931,7 @@ namespace Microsoft.Dafny {
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
       PrintClassMethodHelper(k, method.Attributes, nm, method.TypeArgs);
       if (method.SignatureIsOmitted) {
-        wr.WriteLine(" ...");
+        wr.Write(" ...");
       } else {
         if (method is ExtremeLemma) {
           PrintKTypeIndication(((ExtremeLemma)method).TypeOfK);
@@ -947,7 +947,6 @@ namespace Microsoft.Dafny {
           }
           PrintFormals(method.Outs, method);
         }
-        wr.WriteLine();
       }
 
       int ind = indent + IndentAmount;
@@ -957,6 +956,7 @@ namespace Microsoft.Dafny {
       }
       PrintSpec("ensures", method.Ens, ind);
       PrintDecreasesSpec(method.Decreases, ind);
+      wr.WriteLine();
 
       if (method.Body != null && !printSignatureOnly) {
         Indent(indent);
@@ -1008,28 +1008,25 @@ namespace Microsoft.Dafny {
       if (f.IsGhost) {
         wr.Write("ghost ");
       }
+      if (f.IsNameOnly) {
+        Contract.Assert(f.HasName);
+        wr.Write("nameonly ");
+      }
       if (f.HasName) {
         wr.Write("{0}: ", f.DisplayName);
       }
       PrintType(f.Type);
-    }
-
-    internal void PrintSpec(string kind, List<Expression> ee, int indent) {
-      Contract.Requires(kind != null);
-      Contract.Requires(ee != null);
-      foreach (Expression e in ee) {
-        Contract.Assert(e != null);
-        Indent(indent);
-        wr.Write("{0} ", kind);
-        PrintExpression(e, true);
-        wr.WriteLine();
+      if (f.DefaultValue != null) {
+        wr.Write(" := ");
+        PrintExpression(f.DefaultValue, false);
       }
     }
 
-    internal void PrintDecreasesSpec(Specification<Expression> decs, int indent, bool newLine = true) {
+    internal void PrintDecreasesSpec(Specification<Expression> decs, int indent) {
       Contract.Requires(decs != null);
       if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }
       if (decs.Expressions != null && decs.Expressions.Count != 0) {
+        wr.WriteLine();
         Indent(indent);
         wr.Write("decreases");
         if (decs.HasAttributes())
@@ -1038,18 +1035,14 @@ namespace Microsoft.Dafny {
         }
         wr.Write(" ");
         PrintExpressionList(decs.Expressions, true);
-        if (newLine) {
-          wr.WriteLine();
-        } else {
-          wr.Write(" ");
-        }
       }
     }
 
-    internal void PrintFrameSpecLine(string kind, List<FrameExpression/*!*/> ee, int indent, Attributes attrs, bool newLine = true) {
+    internal void PrintFrameSpecLine(string kind, List<FrameExpression> ee, int indent, Attributes attrs) {
       Contract.Requires(kind != null);
       Contract.Requires(cce.NonNullElements(ee));
       if (ee != null && ee.Count != 0) {
+        wr.WriteLine();
         Indent(indent);
         wr.Write("{0}", kind);
         if (attrs != null) {
@@ -1057,20 +1050,16 @@ namespace Microsoft.Dafny {
         }
         wr.Write(" ");
         PrintFrameExpressionList(ee);
-        if (newLine) {
-          wr.WriteLine();
-        } else {
-          wr.Write(" ");
-        }
       }
     }
 
-    internal void PrintSpec(string kind, List<AttributedExpression> ee, int indent, bool newLine = true) {
+    internal void PrintSpec(string kind, List<AttributedExpression> ee, int indent) {
       Contract.Requires(kind != null);
       Contract.Requires(ee != null);
       if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }
       foreach (AttributedExpression e in ee) {
         Contract.Assert(e != null);
+        wr.WriteLine();
         Indent(indent);
         wr.Write("{0}", kind);
 
@@ -1083,11 +1072,6 @@ namespace Microsoft.Dafny {
           wr.Write("{0}: ", e.Label.Name);
         }
         PrintExpression(e.E, true);
-        if (newLine) {
-          wr.WriteLine();
-        } else {
-          wr.Write(" ");
-        }
       }
     }
 
@@ -1288,7 +1272,7 @@ namespace Microsoft.Dafny {
           wr.Write("}");
         }
       } else if (stmt is WhileStmt) {
-        WhileStmt s = (WhileStmt)stmt;
+        var s = (WhileStmt)stmt;
         PrintWhileStatement(indent, s, false, false);
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
@@ -1319,6 +1303,10 @@ namespace Microsoft.Dafny {
           wr.Write("}");
         }
 
+      } else if (stmt is ForLoopStmt) {
+        var s = (ForLoopStmt)stmt;
+        PrintForLoopStatement(indent, s);
+
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
         if (DafnyOptions.O.DafnyPrintResolvedFile != null && s.ForallExpressions != null) {
@@ -1335,12 +1323,14 @@ namespace Microsoft.Dafny {
             wr.Write(" ");
             PrintQuantifierDomain(s.BoundVars, s.Attributes, s.Range);
           }
-          if (s.Ens.Count == 0) {
-            wr.Write(" ");
-          } else {
-            wr.WriteLine();
-            PrintSpec("ensures", s.Ens, indent + IndentAmount, s.Body != null);
-            Indent(indent);
+          PrintSpec("ensures", s.Ens, indent + IndentAmount);
+          if (s.Body != null) {
+            if (s.Ens.Count == 0) {
+              wr.Write(" ");
+            } else {
+              wr.WriteLine();
+              Indent(indent);
+            }
           }
         }
         if (s.Body != null) {
@@ -1458,7 +1448,9 @@ namespace Microsoft.Dafny {
         if (DafnyOptions.O.DafnyPrintResolvedFile == null && s.OrigUnresolved != null) {
           PrintStatement(s.OrigUnresolved, indent);
         } else {
-          wr.Write("match ");
+          wr.Write("match");
+          PrintAttributes(s.Attributes);
+          wr.Write(" ");
           PrintExpression(s.Source, false);
           if (s.UsesOptionalBraces) {
             wr.Write(" {");
@@ -1467,7 +1459,9 @@ namespace Microsoft.Dafny {
           foreach (MatchCaseStmt mc in s.Cases) {
             wr.WriteLine();
             Indent(caseInd);
-            wr.Write("case ");
+            wr.Write("case");
+            PrintAttributes(mc.Attributes);
+            wr.Write(" ");
             if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) wr.Write(mc.Ctor.Name);
             PrintMatchCaseArgument(mc);
             wr.Write(" =>");
@@ -1670,7 +1664,6 @@ namespace Microsoft.Dafny {
         wr.WriteLine("...");
       } else {
         PrintGuard(false, s.Guard);
-        wr.WriteLine();
       }
       PrintSpec("invariant", s.Invariants, indent + IndentAmount, s.Body != null || omitBody || (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) || (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0));
       PrintDecreasesSpec(s.Decreases, indent + IndentAmount, s.Body != null || omitBody || (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0));
@@ -1679,8 +1672,16 @@ namespace Microsoft.Dafny {
       }
       Indent(indent);
       if (omitBody) {
-        wr.WriteLine("...;");
+        wr.WriteLine();
+        Indent(indent + IndentAmount);
+        wr.Write("...;");
       } else if (s.Body != null) {
+        if (s.Invariants.Count == 0 && s.Decreases.Expressions.Count == 0 && (s.Mod.Expressions == null || s.Mod.Expressions.Count == 0)) {
+          wr.Write(" ");
+        } else {
+          wr.WriteLine();
+          Indent(indent);
+        }
         PrintStatement(s.Body, indent);
       }
     }
@@ -1709,6 +1710,38 @@ namespace Microsoft.Dafny {
           Indent(indent + IndentAmount);
           PrintStatement(s, indent + IndentAmount);
         }
+      }
+    }
+
+    void PrintForLoopStatement(int indent, ForLoopStmt s) {
+      Contract.Requires(0 <= indent);
+      Contract.Requires(s != null);
+      wr.Write("for");
+      PrintAttributes(s.Attributes);
+      wr.Write($" {s.LoopIndex.Name}");
+      PrintType(": ", s.LoopIndex.Type);
+      wr.Write(" := ");
+      PrintExpression(s.Start, false);
+      wr.Write(s.GoingUp ? " to " : " downto ");
+      if (s.End == null) {
+        wr.Write("*");
+      } else {
+        PrintExpression(s.End, false);
+      }
+
+      PrintSpec("invariant", s.Invariants, indent + IndentAmount);
+      PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
+      if (s.Mod.Expressions != null) {
+        PrintFrameSpecLine("modifies", s.Mod.Expressions, indent + IndentAmount, s.Mod.HasAttributes() ? s.Mod.Attributes : null);
+      }
+      if (s.Body != null) {
+        if (s.Invariants.Count == 0 && s.Decreases.Expressions.Count == 0 && (s.Mod.Expressions == null || s.Mod.Expressions.Count == 0)) {
+          wr.Write(" ");
+        } else {
+          wr.WriteLine();
+          Indent(indent);
+        }
+        PrintStatement(s.Body, indent);
       }
     }
 
@@ -2715,8 +2748,19 @@ namespace Microsoft.Dafny {
             PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
             i++;
           }
-          if (e.UsesOptionalBraces) { wr.Write(" }"); } else if (parensNeeded) { wr.Write(")"); }
+          if (e.UsesOptionalBraces) {
+            wr.Write(" }");
+          } else if (parensNeeded) {
+            wr.Write(")");
+          }
         }
+
+      } else if (expr is DefaultValueExpression) {
+        var e = (DefaultValueExpression)expr;
+        // DefaultValueExpression's are introduced during resolution, so we expect .Resolved to be non-null
+        Contract.Assert(e.WasResolved());
+        Contract.Assert(e.Resolved != null);
+        PrintExpr(e.Resolved, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent, keyword);
 
       } else if (expr is BoxingCastExpr) {
         // this is not expected for a parsed program, but we may be called for /trace purposes in the translator
@@ -2829,14 +2873,24 @@ namespace Microsoft.Dafny {
       }
       wr.Write("(");
       string sep = "";
-      for (; i < bindings.ArgumentBindings.Count; i++) {
-        var binding = bindings.ArgumentBindings[i];
-        wr.Write(sep);
-        sep = ", ";
-        if (binding.FormalParameterName != null) {
-          wr.Write($"{binding.FormalParameterName} := ");
+      if (DafnyOptions.O.DafnyPrintResolvedFile == null || !bindings.WasResolved) {
+        for (; i < bindings.ArgumentBindings.Count; i++) {
+          var binding = bindings.ArgumentBindings[i];
+          wr.Write(sep);
+          sep = ", ";
+          if (binding.FormalParameterName != null) {
+            wr.Write($"{binding.FormalParameterName.val} := ");
+          }
+          PrintExpression(binding.Actual, false);
         }
-        PrintExpression(binding.Actual, false);
+      } else {
+        // print arguments after incorporating default parameters
+        for (; i < bindings.Arguments.Count; i++) {
+          var arg = bindings.Arguments[i];
+          wr.Write(sep);
+          sep = ", ";
+          PrintExpression(arg, false);
+        }
       }
       wr.Write(")");
     }

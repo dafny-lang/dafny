@@ -1294,7 +1294,7 @@ namespace Microsoft.Dafny {
 
       var getterWriter = CreateGetter(name, resultType, tok, isStatic, createBody, member, ownerName, abstractWriter, concreteWriter, forBodyInheritance);
 
-      var valueParam = new Formal(tok, "value", resultType, true, false);
+      var valueParam = new Formal(tok, "value", resultType, true, false, null);
       setterWriter = CreateSubroutine(name + "_set_", new List<TypeArgumentInstantiation>(), new List<Formal>() {valueParam}, new List<Formal>(), null,
         new List<Formal>() {valueParam}, new List<Formal>(), null, tok, isStatic, createBody, ownerName, member,
         abstractWriter, concreteWriter, forBodyInheritance, false);
@@ -1816,6 +1816,47 @@ namespace Microsoft.Dafny {
       guardWriter = wr.Fork();
       var wBody = wr.NewBlock("");
       return wBody;
+    }
+
+    protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
+      List<Statement> body, ConcreteSyntaxTree wr) {
+
+      wr.Write($"for {loopIndex.CompileName} := ");
+      var startWr = wr.Fork();
+      wr.Write($"; ");
+
+      ConcreteSyntaxTree bodyWr;
+      if (goingUp) {
+        if (endVarName == null) {
+          wr.Write("true");
+        } else if (IsOrderedByCmp(loopIndex.Type)) {
+          wr.Write($"{loopIndex.CompileName}.Cmp({endVarName}) < 0");
+        } else {
+          wr.Write($"{loopIndex.CompileName} < {endVarName}");
+        }
+        if (AsNativeType(loopIndex.Type) == null) {
+          bodyWr = wr.NewBlock($"; {loopIndex.CompileName} = {loopIndex.CompileName}.Plus(_dafny.One)");
+        } else {
+          bodyWr = wr.NewBlock($"; {loopIndex.CompileName}++");
+        }
+      } else {
+        if (endVarName == null) {
+          wr.Write("true");
+        } else if (IsOrderedByCmp(loopIndex.Type)) {
+          wr.Write($"{endVarName}.Cmp({loopIndex.CompileName}) < 0");
+        } else {
+          wr.Write($"{endVarName} < {loopIndex.CompileName}");
+        }
+        bodyWr = wr.NewBlock($"; ");
+        if (AsNativeType(loopIndex.Type) == null) {
+          bodyWr.WriteLine($"{loopIndex.CompileName} = {loopIndex.CompileName}.Minus(_dafny.One)");
+        } else {
+          bodyWr.WriteLine($"{loopIndex.CompileName}--");
+        }
+      }
+      TrStmtList(body, bodyWr);
+
+      return startWr;
     }
 
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
