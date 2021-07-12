@@ -54,7 +54,7 @@ namespace Microsoft.Dafny
         // anything different from the common case (the "else" branch below), then the code emitted will not
         // compile (see github issue #1151). So, to do something a wee bit better, we emit a placebo value. This
         // will only work when the opaque type is in the same module and has no type parameters.
-        return $"default({tp.CompileName})";
+        return $"default({tp.EnclosingModuleDefinition.CompileName + "." + tp.CompileName})";
       } else {
         // this is the common case
         return $"_default_{tp.CompileName}";
