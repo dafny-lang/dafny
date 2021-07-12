@@ -6,5 +6,5 @@ abstract module A {
 }
 abstract module B refines A {}
 module C refines B {
-    const c : nat := 0
+  const c: nat := 0
 }
