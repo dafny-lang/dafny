@@ -2738,6 +2738,7 @@ namespace Microsoft.Dafny
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             foreach (var ctor in dt.Ctors) {
+              ResolveAttributes(ctor.Attributes, ctor, new ResolveOpts(new NoContext(d.EnclosingModuleDefinition), false));
               foreach (var formal in ctor.Formals) {
                 AddTypeDependencyEdges((ICallable)d, formal.Type);
               }
@@ -8655,7 +8656,7 @@ namespace Microsoft.Dafny
             for (int i = 0; i < cs.Method.Ins.Count; i++) {
               argsSubstMap.Add(cs.Method.Ins[i], cs.Args[i]);
             }
-            var substituter = new Translator.AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>());
+            var substituter = new AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>());
             if (!Attributes.Contains(s.Attributes, "auto_generated")) {
               foreach (var ens in cs.Method.Ens) {
                 var p = substituter.Substitute(ens.E);  // substitute the call's actuals for the method's formals
@@ -16791,7 +16792,7 @@ namespace Microsoft.Dafny
       visited[expr] = WorkProgress.Done;
     }
 
-    class DefaultValueSubstituter : Translator.Substituter {
+    class DefaultValueSubstituter : Substituter {
       private readonly Resolver resolver;
       private readonly Dictionary<DefaultValueExpression, WorkProgress> visited;
       public DefaultValueSubstituter(Resolver resolver, Dictionary<DefaultValueExpression, WorkProgress> visited,
@@ -17449,7 +17450,7 @@ namespace Microsoft.Dafny
           if (dd.Var != null) {
             Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
             substMap.Add(dd.Var, e);
-            Translator.Substituter sub = new Translator.Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+            Substituter sub = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
             c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
           }
           return c;
@@ -17458,7 +17459,7 @@ namespace Microsoft.Dafny
           var c = GetImpliedTypeConstraint(e, dd.RhsWithArgument(udt.TypeArgs));
           Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
           substMap.Add(dd.Var, e);
-          Translator.Substituter sub = new Translator.Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+          Substituter sub = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
           c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
           return c;
         }

@@ -49,10 +49,10 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
-      var started = (VerificationStartedParams)await _notificationReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var started = (VerificationStartedParams)await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
-      var completed = (VerificationCompletedParams)await _notificationReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var completed = (VerificationCompletedParams)await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, completed.Uri);
       Assert.AreEqual(documentItem.Version, completed.Version);
       Assert.IsTrue(completed.Verified);
@@ -69,25 +69,25 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
-      var started = (VerificationStartedParams)await _notificationReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var started = (VerificationStartedParams)await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
-      var completed = (VerificationCompletedParams)await _notificationReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var completed = (VerificationCompletedParams)await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, completed.Uri);
       Assert.AreEqual(documentItem.Version, completed.Version);
       Assert.IsFalse(completed.Verified);
     }
 
     public class TestNotificationReceiver {
-      private readonly SemaphoreSlim _availableDiagnostics = new SemaphoreSlim(0);
-      private readonly ConcurrentQueue<VerificationParams> _diagnostics = new ConcurrentQueue<VerificationParams>();
+      private readonly SemaphoreSlim _availableDiagnostics = new(0);
+      private readonly ConcurrentQueue<VerificationParams> _diagnostics = new();
 
       public void StatusReceived(VerificationParams request) {
         _diagnostics.Enqueue(request);
         _availableDiagnostics.Release();
       }
 
-      public async Task<VerificationParams> AwaitNextPublishDiagnostics(CancellationToken cancellationToken) {
+      public async Task<VerificationParams> AwaitNextPublishDiagnosticsAsync(CancellationToken cancellationToken) {
         await _availableDiagnostics.WaitAsync(cancellationToken);
         if(_diagnostics.TryDequeue(out var diagnostics)) {
           return diagnostics;

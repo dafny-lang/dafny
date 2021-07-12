@@ -4,7 +4,6 @@ using Microsoft.Boogie.ModelViewer.Dafny;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
@@ -27,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
     public Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
       DafnyDocument? document;
       if(!_documents.TryGetDocument(request.TextDocument, out document)) {
-        _logger.LogWarning("counter-examples requested for unloaded document {}", request.TextDocument.Uri);
+        _logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return Task.FromResult(new CounterExampleList());
       }
       return Task.FromResult(new CounterExampleLoader(_logger, document, cancellationToken).GetCounterExamples());
@@ -35,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
     private class CounterExampleLoader {
       private const string InitialStateName = "<initial>";
-      private static readonly Regex StatePositionRegex = new Regex(
+      private static readonly Regex StatePositionRegex = new(
         @".*\.dfy\((?<line>\d+),(?<character>\d+)\)",
         RegexOptions.IgnoreCase | RegexOptions.Singleline
       );
@@ -52,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
       public CounterExampleList GetCounterExamples() {
         if(_document.SerializedCounterExamples == null) {
-          _logger.LogDebug("got no counter-examples for document {}", _document.Uri);
+          _logger.LogDebug("got no counter-examples for document {DocumentUri}", _document.Uri);
           return new CounterExampleList();
         }
         var counterExamples = GetLanguageSpecificModels(_document.SerializedCounterExamples)
@@ -62,11 +61,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       private IEnumerable<ILanguageSpecificModel> GetLanguageSpecificModels(string serializedCounterExamples) {
-        using(var counterExampleReader = new StringReader(serializedCounterExamples)) {
-          return Model.ParseModels(counterExampleReader)
-            .WithCancellation(_cancellationToken)
-            .Select(GetLanguagSpecificModel);
-        }
+        using var counterExampleReader = new StringReader(serializedCounterExamples);
+        return Model.ParseModels(counterExampleReader)
+          .WithCancellation(_cancellationToken)
+          .Select(GetLanguagSpecificModel);
       }
 
       private ILanguageSpecificModel GetLanguagSpecificModel(Model model) {
@@ -82,7 +80,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
           .Select(GetCounterExample);
       }
 
-      private bool IsInitialState(StateNode state) {
+      private static bool IsInitialState(StateNode state) {
         return state.Name.Equals(InitialStateName);
       }
 
@@ -93,7 +91,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         );
       }
 
-      private Position GetPositionFromInitialState(IState state) {
+      private static Position GetPositionFromInitialState(IState state) {
         var match = StatePositionRegex.Match(state.Name);
         if(!match.Success) {
           throw new ArgumentException($"state does not contain position: {state.Name}");

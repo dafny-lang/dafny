@@ -17,7 +17,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Completion {
 
     private void ApplyChanges(TextDocumentItem documentItem, params TextDocumentContentChangeEvent[] changes) {
       _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new VersionedTextDocumentIdentifier {
+        TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
         },

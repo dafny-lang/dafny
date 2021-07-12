@@ -1,5 +1,4 @@
 ﻿using IntervalTree;
-using Microsoft.Dafny.LanguageServer.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -87,13 +86,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     public ISymbol GetEnclosingSymbol(Position position, CancellationToken cancellationToken) {
       // TODO use a suitable data-structure to resolve the locations efficiently.
-      var comparer = new PositionComparer();
       ISymbol innerMostSymbol = CompilationUnit;
       var innerMostRange = new Range(new Position(0, 0), new Position(int.MaxValue, int.MaxValue));
       foreach(var (symbol, location) in Locations) {
         cancellationToken.ThrowIfCancellationRequested();
         var range = location.Declaration;
-        if(IsEnclosedBy(comparer, innerMostRange, range) && IsInside(comparer, range, position)) {
+        if(IsEnclosedBy(innerMostRange, range) && IsInside(range, position)) {
           innerMostSymbol = symbol;
           innerMostRange = range;
         }
@@ -101,14 +99,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return innerMostSymbol;
     }
 
-    private static bool IsEnclosedBy(PositionComparer comparer, Range current, Range tested) {
-      return comparer.Compare(tested.Start, current.Start) >= 0
-        && comparer.Compare(tested.End, current.End) <= 0;
+    private static bool IsEnclosedBy(Range current, Range tested) {
+      return tested.Start.CompareTo(current.Start) >= 0
+        && tested.End.CompareTo(current.End) <= 0;
     }
 
-    private static bool IsInside(PositionComparer comparer, Range range, Position position) {
-      return comparer.Compare(position, range.Start) >= 0
-        && comparer.Compare(position, range.End) <= 0;
+    private static bool IsInside(Range range, Position position) {
+      return position.CompareTo(range.Start) >= 0
+        && position.CompareTo(range.End) <= 0;
     }
 
     /// <summary>

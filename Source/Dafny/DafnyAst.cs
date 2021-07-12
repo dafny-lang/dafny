@@ -1900,6 +1900,8 @@ namespace Microsoft.Dafny {
       } else if (a.IsNumericBased()) {
         // Note, for meet, we choose not to step down to IntVarietiesSupertype or RealVarietiesSupertype
         return a.Equals(b) ? a : null;
+      } else if (a.IsBitVectorType) {
+        return a.Equals(b) ? a : null;
       } else if (a is SetType) {
         var aa = (SetType)a;
         var bb = b as SetType;
@@ -2125,6 +2127,8 @@ namespace Microsoft.Dafny {
       } else if (b is RealVarietiesSupertype) {
         return a.IsNumericBased(NumericPersuasion.Real) ? a : null;
       } else if (a.IsNumericBased()) {
+        return a.Equals(b) ? a : null;
+      } else if (a.IsBitVectorType) {
         return a.Equals(b) ? a : null;
       } else if (a is SetType) {
         var aa = (SetType)a;
@@ -9007,6 +9011,15 @@ namespace Microsoft.Dafny {
       get { yield break; }
     }
 
+    /// <summary>
+    /// Returns the list of types that appear in this expression proper (that is, not including types that
+    /// may appear in subexpressions). Types occurring in sub-statements of the expression are not included.
+    /// To be called after the expression has been resolved.
+    /// </summary>
+    public virtual IEnumerable<Type> ComponentTypes {
+      get { yield break; }
+    }
+
     public virtual bool IsImplicit {
       get { return false; }
     }
@@ -9639,7 +9652,7 @@ namespace Microsoft.Dafny {
         substMap.Add(oldVars[i], id);
       }
 
-      Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap);
+      Substituter sub = new Substituter(null, substMap, typeMap);
       return sub.Substitute(e);
     }
 
@@ -10323,6 +10336,8 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Expression> SubExpressions {
       get { yield return Obj; }
     }
+
+    public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustMember);
   }
 
   public class SeqSelectExpr : Expression {
@@ -10575,6 +10590,8 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustFunction);
   }
 
   public class SeqConstructionExpr : Expression
@@ -10595,6 +10612,14 @@ namespace Microsoft.Dafny {
       get {
         yield return N;
         yield return Initializer;
+      }
+    }
+
+    public override IEnumerable<Type> ComponentTypes {
+      get {
+        if (ExplicitElementType != null) {
+          yield return ExplicitElementType;
+        }
       }
     }
   }
@@ -10723,6 +10748,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       Contract.Requires(toType != null);
       ToType = toType;
+    }
+
+    public override IEnumerable<Type> ComponentTypes {
+      get {
+        yield return ToType;
+      }
     }
   }
 
@@ -11197,6 +11228,9 @@ namespace Microsoft.Dafny {
         yield return Body;
       }
     }
+
+    public override IEnumerable<Type> ComponentTypes => BoundVars.Select(bv => bv.Type);
+
     public IEnumerable<BoundVar> BoundVars {
       get {
         foreach (var lhs in LHSs) {
@@ -11579,6 +11613,8 @@ namespace Microsoft.Dafny {
         yield return Term;
       }
     }
+
+    public override IEnumerable<Type> ComponentTypes => BoundVars.Select(bv => bv.Type);
   }
 
   public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentType {
@@ -11980,6 +12016,16 @@ namespace Microsoft.Dafny {
         yield return Source;
         foreach (var mc in cases) {
           yield return mc.Body;
+        }
+      }
+    }
+
+    public override IEnumerable<Type> ComponentTypes {
+      get {
+        foreach (var mc in cases) {
+          foreach (var bv in mc.Arguments) {
+            yield return bv.Type;
+          }
         }
       }
     }
@@ -12607,6 +12653,8 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public override IEnumerable<Type> ComponentTypes => ResolvedExpression.ComponentTypes;
   }
 
   /// <summary>
@@ -12680,7 +12728,7 @@ namespace Microsoft.Dafny {
             yield return update.Item3;
           }
         } else {
-          foreach (var e in ResolvedExpression.SubExpressions) {
+          foreach (var e in base.SubExpressions) {
             yield return e;
           }
         }

@@ -75,8 +75,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         Children = children.ToArray()
       };
       if(_symbolTable.TryGetLocationOf(symbol, out var location)) {
-        documentSymbol.Range = location.Declaration;
-        documentSymbol.SelectionRange = location.Name;
+        documentSymbol = documentSymbol with {
+          Range = location.Declaration,
+          SelectionRange = location.Name
+        };
       }
       return new[] { documentSymbol };
     }
