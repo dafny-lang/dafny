@@ -14,6 +14,12 @@ using System.Numerics;
 using System.Linq;
 using Microsoft.Boogie;
 using System.Diagnostics;
+using Microsoft.Dafny;
+using Formal = Microsoft.Boogie.Formal;
+using Function = Microsoft.Boogie.Function;
+using MapType = Microsoft.Boogie.MapType;
+using Substituter = Microsoft.Boogie.Substituter;
+using TypeSynonymDecl = Microsoft.Boogie.TypeSynonymDecl;
 
 namespace Microsoft.Dafny {
   public class Program {
@@ -9008,8 +9014,13 @@ namespace Microsoft.Dafny {
     /// of the resolved expression.
     /// </summary>
     public virtual IEnumerable<Expression> SubExpressions {
-      get { yield break; }
+      get
+      {
+        var result = getSubExpressions.GetTargets(this);
+        return result;
+      }
     }
+    private GetChildrenOfType<Expression, Expression> getSubExpressions = new GetChildrenOfType<Expression, Expression>();
 
     /// <summary>
     /// Returns the list of types that appear in this expression proper (that is, not including types that
@@ -9889,10 +9900,6 @@ namespace Microsoft.Dafny {
       : this(tok, datatypeName, memberName, arguments.ConvertAll(e => new ActualBinding(null, e))) {
       Bindings.AcceptArgumentExpressionsAsExactParameterList();
     }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Arguments; }
-    }
   }
 
   public class ThisExpr : Expression {
@@ -10070,10 +10077,6 @@ namespace Microsoft.Dafny {
       : base(tok) {
       Contract.Requires(cce.NonNullElements(elements));
       Elements = elements;
-    }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Elements; }
     }
   }
 
@@ -10333,10 +10336,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override IEnumerable<Expression> SubExpressions {
-      get { yield return Obj; }
-    }
-
     public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustMember);
   }
 
@@ -10460,15 +10459,6 @@ namespace Microsoft.Dafny {
     public readonly Expression Function;
     public readonly List<Expression> Args;
 
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        yield return Function;
-        foreach (var e in Args) {
-          yield return e;
-        }
-      }
-    }
-
     public ApplyExpr(IToken tok, Expression fn, List<Expression> args)
       : base(tok)
     {
@@ -10580,15 +10570,6 @@ namespace Microsoft.Dafny {
       Label /*?*/ atLabel = null)
       : this(tok, fn, receiver, openParen, args.ConvertAll(e => new ActualBinding(null, e)), atLabel) {
       Bindings.AcceptArgumentExpressionsAsExactParameterList();
-    }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        yield return Receiver;
-        foreach (var e in Args) {
-          yield return e;
-        }
-      }
     }
 
     public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustFunction);
@@ -10779,7 +10760,8 @@ namespace Microsoft.Dafny {
 
   public class BinaryExpr : Expression
   {
-    public enum Opcode {
+    public enum Opcode
+    {
       Iff,
       Imp,
       Exp, // turned into Imp during resolution
@@ -10805,21 +10787,26 @@ namespace Microsoft.Dafny {
       BitwiseOr,
       BitwiseXor
     }
+
     public readonly Opcode Op;
-    public enum ResolvedOpcode {
-      YetUndetermined,  // the value before resolution has determined the value; .ResolvedOp should never be read in this state
+
+    public enum ResolvedOpcode
+    {
+      YetUndetermined, // the value before resolution has determined the value; .ResolvedOp should never be read in this state
 
       // logical operators
       Iff,
       Imp,
       And,
       Or,
+
       // non-collection types
       EqCommon,
       NeqCommon,
+
       // integers, reals, bitvectors
       Lt,
-      LessThanLimit,  // a synonym for Lt for ORDINAL, used only during translation
+      LessThanLimit, // a synonym for Lt for ORDINAL, used only during translation
       Le,
       Ge,
       Gt,
@@ -10828,17 +10815,20 @@ namespace Microsoft.Dafny {
       Mul,
       Div,
       Mod,
+
       // bitvectors
       LeftShift,
       RightShift,
       BitwiseAnd,
       BitwiseOr,
       BitwiseXor,
+
       // char
       LtChar,
       LeChar,
       GeChar,
       GtChar,
+
       // sets
       SetEq,
       SetNeq,
@@ -10852,6 +10842,7 @@ namespace Microsoft.Dafny {
       Union,
       Intersection,
       SetDifference,
+
       // multi-sets
       MultiSetEq,
       MultiSetNeq,
@@ -10865,6 +10856,7 @@ namespace Microsoft.Dafny {
       MultiSetUnion,
       MultiSetIntersection,
       MultiSetDifference,
+
       // Sequences
       SeqEq,
       SeqNeq,
@@ -10873,6 +10865,7 @@ namespace Microsoft.Dafny {
       Concat,
       InSeq,
       NotInSeq,
+
       // Maps
       MapEq,
       MapNeq,
@@ -10880,24 +10873,34 @@ namespace Microsoft.Dafny {
       NotInMap,
       MapMerge,
       MapSubtraction,
+
       // datatypes
       RankLt,
       RankGt
     }
+
     private ResolvedOpcode _theResolvedOp = ResolvedOpcode.YetUndetermined;
-    public ResolvedOpcode ResolvedOp {
-      set {
-        Contract.Assume(_theResolvedOp == ResolvedOpcode.YetUndetermined || _theResolvedOp == value);  // there's never a reason for resolution to change its mind, is there?
+
+    public ResolvedOpcode ResolvedOp
+    {
+      set
+      {
+        Contract.Assume(_theResolvedOp == ResolvedOpcode.YetUndetermined || _theResolvedOp == value); // there's never a reason for resolution to change its mind, is there?
         _theResolvedOp = value;
       }
-      get {
-        Contract.Assume(_theResolvedOp != ResolvedOpcode.YetUndetermined);  // shouldn't read it until it has been properly initialized
+      get
+      {
+        Contract.Assume(_theResolvedOp != ResolvedOpcode.YetUndetermined); // shouldn't read it until it has been properly initialized
         return _theResolvedOp;
       }
     }
-    public ResolvedOpcode ResolvedOp_PossiblyStillUndetermined {  // offer a way to return _theResolveOp -- for experts only!
+
+    public ResolvedOpcode ResolvedOp_PossiblyStillUndetermined
+    {
+      // offer a way to return _theResolveOp -- for experts only!
       get { return _theResolvedOp; }
     }
+
     public static bool IsEqualityOp(ResolvedOpcode op) {
       switch (op) {
         case ResolvedOpcode.EqCommon:
@@ -11007,10 +11010,10 @@ namespace Microsoft.Dafny {
         case ResolvedOpcode.NotInMap:
           return Opcode.NotIn;
 
-        case ResolvedOpcode.LessThanLimit:  // not expected here (but if it were, the same case as Lt could perhaps be used)
+        case ResolvedOpcode.LessThanLimit: // not expected here (but if it were, the same case as Lt could perhaps be used)
         default:
-          Contract.Assert(false);  // unexpected ResolvedOpcode
-          return Opcode.Add;  // please compiler
+          Contract.Assert(false); // unexpected ResolvedOpcode
+          return Opcode.Add; // please compiler
       }
     }
 
@@ -11068,13 +11071,22 @@ namespace Microsoft.Dafny {
           return "^";
         default:
           Contract.Assert(false);
-          throw new cce.UnreachableException();  // unexpected operator
+          throw new cce.UnreachableException(); // unexpected operator
       }
     }
+
     public readonly Expression E0;
     public readonly Expression E1;
-    public enum AccumulationOperand { None, Left, Right }
+
+    public enum AccumulationOperand
+    {
+      None,
+      Left,
+      Right
+    }
+
     public AccumulationOperand AccumulatesForTailRecursion = AccumulationOperand.None; // set by Resolver
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(E0 != null);
@@ -11144,13 +11156,6 @@ namespace Microsoft.Dafny {
         default:
           Type = e0.Type;
           break;
-      }
-    }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        yield return E0;
-        yield return E1;
       }
     }
   }
@@ -11958,14 +11963,6 @@ namespace Microsoft.Dafny {
       this.Thn = thn;
       this.Els = els;
     }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        yield return Test;
-        yield return Thn;
-        yield return Els;
-      }
-    }
   }
 
   public class MatchExpr : Expression {  // a MatchExpr is an "extended expression" and is only allowed in certain places
@@ -12532,10 +12529,6 @@ namespace Microsoft.Dafny {
       E = e;
       FromType = fromType;
       ToType = toType;
-    }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get { yield return E; }
     }
   }
 

@@ -1571,8 +1571,8 @@ namespace Microsoft.Dafny {
       if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
         return SuffixLvalue(obj, "[{0}]", dtor.Name);
       } else if (member is SpecialField sf && !(member is ConstantField)) {
-        string compiledName, preStr, postStr;
-        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out compiledName, out preStr, out postStr);
+        string compiledName;
+        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out compiledName, out _, out _);
         if (compiledName.Length != 0) {
           return SuffixLvalue(obj, ".{0}", compiledName);
         } else {
