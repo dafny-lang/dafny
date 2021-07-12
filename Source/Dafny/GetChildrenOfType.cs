@@ -14,33 +14,68 @@ namespace Microsoft.Dafny
     readonly IDictionary<System.Type, Func<Source, IEnumerable<Target>>> _getFunctions = 
       new Dictionary<System.Type, Func<Source, IEnumerable<Target>>>();
 
-    private static Func<Source, IEnumerable<Target>> GetFunc(System.Type concreteType) {
+    private int varCounter = 0;
+
+    private Func<Source, IEnumerable<Target>> GetFunc(System.Type concreteType) {
       var castObj = Expr.Parameter(concreteType, "castObj");
-      var objParam = Expr.Parameter(typeof(Source), "obj");
-      var enumTargetType = typeof(IEnumerable<>).MakeGenericType(typeof(Target));
-      var simpleMembers = new List<MemberExpression>();
-      var enumMembers = new List<MemberExpression>();
-      foreach (var member in concreteType.FindMembers(MemberTypes.Field, BindingFlags.Instance | BindingFlags.Public, null, null)) {
-        var memberType = GetMemberType(member);
-        var access = Expr.PropertyOrField(castObj, member.Name);
-        if (memberType.IsAssignableTo(typeof(Target))) {
-          simpleMembers.Add(access);
-        }
-        if (memberType.IsAssignableTo(enumTargetType)) {
-          enumMembers.Add(access);
-        }
+      var inter = GetTargetsExpr(new HashSet<System.Type>(), concreteType, castObj);
+      if (inter == null) {
+        return obj => Enumerable.Empty<Target>();
       }
-      var simpleMemberArray = Expr.NewArrayInit(typeof(Target), simpleMembers);
-      var expr = enumMembers.Aggregate<Expr, Expr>(simpleMemberArray, (a, b) => Expr.Call(null, typeof(Enumerable).GetMethod("Concat", BindingFlags.Static)!, a, b));
-      var block = Expr.Block(new[] { castObj }, Expr.Assign(castObj, Expr.TypeAs(objParam, concreteType)), expr);
+
+      var objParam = Expr.Parameter(typeof(Source), "obj");
+      var block = Expr.Block(new[] {castObj}, Expr.Assign(castObj, Expr.TypeAs(objParam, concreteType)), inter);
       return Expr.Lambda<Func<Source, IEnumerable<Target>>>(block, objParam).Compile();
     }
 
-    private static System.Type GetMemberType(MemberInfo member) {
+    static MethodInfo concatMethod = typeof(Enumerable).GetMethod("Concat", BindingFlags.Static | BindingFlags.Public)!.MakeGenericMethod(typeof(Target));
+    
+    private Expr? GetTargetsExpr(ISet<System.Type> visited, System.Type type, ParameterExpression value) {
+      if (type.IsPrimitive || type.IsEnum || !type.Assembly.FullName.Contains("Dafny")) {
+        return null;
+      }
+      
+      if (!visited.Add(type))
+        return null;
+      
+      var enumTargetType = typeof(IEnumerable<>).MakeGenericType(typeof(Target));
+      var simpleMembers = new List<MemberExpression>();
+      var enumerableMembers = new List<Expr>();
+      foreach (var member in type.FindMembers(MemberTypes.Field | MemberTypes.Property, BindingFlags.Instance | BindingFlags.Public, null, null)) {
+        var memberType = GetMemberType(member);
+        if (memberType == null)
+          continue;
+        
+        var access = Expr.PropertyOrField(value, member.Name);
+        if (memberType.IsAssignableTo(typeof(Target))) {
+          simpleMembers.Add(access);
+        } else if (memberType.IsAssignableTo(enumTargetType)) {
+          enumerableMembers.Add(access);
+        } else {
+          var fieldVar = Expr.Parameter(memberType, $"var{varCounter}");
+          var fieldExpr = GetTargetsExpr(visited, memberType, fieldVar);
+          if (fieldExpr != null) {
+            varCounter++;
+            enumerableMembers.Add(Expr.Block(new []{ fieldVar}, Expr.Assign(fieldVar, access), fieldExpr));
+          }
+        }
+      }
+
+      var simpleMemberArray = Expr.NewArrayInit(typeof(Target), simpleMembers);
+      var expr = enumerableMembers.Aggregate<Expr, Expr>(simpleMemberArray, (a, b) => Expr.Call(null, concatMethod, a, b));
+      var nonEmpty = simpleMembers.Any() || enumerableMembers.Any();
+      var inter = nonEmpty ? expr : null;
+      return inter;
+    }
+
+    private static System.Type? GetMemberType(MemberInfo member) {
       switch (member) {
         case FieldInfo fieldInfo:
           return fieldInfo.FieldType;
         case PropertyInfo propertyInfo:
+          if (propertyInfo.GetIndexParameters().Any())
+            return null;
+          
           return propertyInfo.PropertyType;
         default:
           throw new InvalidOperationException();

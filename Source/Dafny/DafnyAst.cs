@@ -9020,7 +9020,7 @@ namespace Microsoft.Dafny {
         return result;
       }
     }
-    private GetChildrenOfType<Expression, Expression> getSubExpressions = new GetChildrenOfType<Expression, Expression>();
+    private static GetChildrenOfType<Expression, Expression> getSubExpressions = new GetChildrenOfType<Expression, Expression>();
 
     /// <summary>
     /// Returns the list of types that appear in this expression proper (that is, not including types that
@@ -9694,6 +9694,11 @@ namespace Microsoft.Dafny {
       UnresolvedType = t;
       Implicit = isImplicit;
       OriginalResolved = null;
+    }
+
+    public override IEnumerable<Expression> SubExpressions
+    {
+      get { return Enumerable.Empty<Expression>(); }
     }
 
     /// <summary>
