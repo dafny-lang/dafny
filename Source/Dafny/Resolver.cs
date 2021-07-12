@@ -394,7 +394,9 @@ namespace Microsoft.Dafny
       ProcessDependencies(prog.DefaultModule, b, dependencies);
       // check for cycles in the import graph
       foreach (var cycle in dependencies.AllCycles()) {
-        ReportCycleError(cycle, m => m.tok, m => m.Name, "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
+        ReportCycleError(cycle, m => m.tok,
+          m => (m is AliasModuleDecl ? "import " : "module ") + m.Name,
+          "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
       }
 
       if (reporter.Count(ErrorLevel.Error) > 0) {
