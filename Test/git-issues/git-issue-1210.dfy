@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 abstract module A {
-    const c : nat
+  const c: nat
 }
 abstract module B refines A {}
 module C refines B {
