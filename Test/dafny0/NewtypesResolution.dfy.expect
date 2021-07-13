@@ -38,4 +38,11 @@ NewtypesResolution.dfy(265,9): Error: quantifiers in non-ghost contexts must be 
 NewtypesResolution.dfy(276,7): Error: recursive constraint dependency involving a subset type: AA -> BB -> CC -> DD -> EE -> AA
 NewtypesResolution.dfy(284,10): Error: newtypes must be based on some numeric type (got ORDINAL)
 NewtypesResolution.dfy(285,10): Error: newtypes must be based on some numeric type (got ORDINAL)
-40 resolution/type errors detected in NewtypesResolution.dfy
+NewtypesResolution.dfy(289,7): Error: recursive constraint dependency involving a subset type: X -> P -> M -> X
+NewtypesResolution.dfy(304,7): Error: recursive constraint dependency involving a subset type: Y -> P -> M -> X -> Y
+NewtypesResolution.dfy(317,10): Error: recursive constraint dependency involving a newtype: X -> P -> M -> X
+NewtypesResolution.dfy(332,10): Error: recursive constraint dependency involving a newtype: Y -> P -> M -> X -> Y
+NewtypesResolution.dfy(350,7): Error: recursive constraint dependency involving a subset type: G3 -> G5 -> G6 -> G0 -> G1 -> G2 -> G3
+NewtypesResolution.dfy(360,10): Error: recursive constraint dependency involving a newtype: G4 -> P -> G5 -> G6 -> G0 -> G1 -> G2 -> G3 -> G4
+NewtypesResolution.dfy(370,7): Error: recursive constraint dependency involving a subset type: Y -> M -> X -> Y
+47 resolution/type errors detected in NewtypesResolution.dfy
