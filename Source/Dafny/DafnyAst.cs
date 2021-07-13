@@ -389,7 +389,7 @@ namespace Microsoft.Dafny {
     public readonly Attributes Prev;
 
     static Attributes() {
-      Expression.getSubExpressions.Override<Attributes>(SubExpressions);
+      Expression.GetSubExpressions.Override<Attributes>(SubExpressions);
     }
 
     public Attributes(string name, [Captured] List<Expression> args, Attributes prev) {
@@ -6187,7 +6187,7 @@ namespace Microsoft.Dafny {
 
     static ActualBindings()
     {
-      Expression.getSubExpressions.Override<ActualBindings>(ab => ab.Arguments);
+      Expression.GetSubExpressions.Override<ActualBindings>(ab => ab.Arguments);
     }
     
     public List<Expression> Arguments {
@@ -6946,10 +6946,9 @@ namespace Microsoft.Dafny {
     /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
     /// </summary>
     public virtual IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in Attributes.SubExpressions(Attributes)) {
-          yield return e;
-        }
+      get
+      {
+        return Expression.GetSubExpressions.GetTargets(this);
       }
     }
   }
@@ -7033,12 +7032,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       this.Expr = expr;
     }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        yield return Expr;
-      }
-    }
   }
 
   public class AssertStmt : PredicateStmt {
@@ -7077,15 +7070,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       this.Message = message;
     }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        if (Message != null) {
-          yield return Message;
-        }
-      }
-    }
   }
 
   public class AssumeStmt : PredicateStmt {
@@ -7111,14 +7095,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(args));
 
       Args = args;
-    }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        foreach (var arg in Args) {
-          yield return arg;
-        }
-      }
     }
   }
 
@@ -7191,18 +7167,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(endTok != null);
       this.rhss = rhss;
       hiddenUpdate = null;
-    }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        if (rhss != null) {
-          foreach (var rhs in rhss) {
-            foreach (var ee in rhs.SubExpressions) {
-              yield return ee;
-            }
-          }
-        }
-      }
     }
     public override IEnumerable<Statement> SubStatements {
       get {
@@ -7480,17 +7444,6 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Statement> SubStatements {
       get { if (Update != null) { yield return Update; } }
     }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        foreach (var v in Locals) {
-          foreach (var e in Attributes.SubExpressions(v.Attributes)) {
-            yield return e;
-          }
-        }
-      }
-    }
   }
 
   public class VarDeclPattern : Statement
@@ -7504,15 +7457,6 @@ namespace Microsoft.Dafny {
       LHS = lhs;
       RHS = rhs;
       HasGhostModifier = hasGhostModifier;
-    }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in Attributes.SubExpressions(Attributes)) {
-          yield return e;
-        }
-        yield return RHS;
-      }
     }
 
     public IEnumerable<LocalVariable> LocalVars {
@@ -7568,15 +7512,6 @@ namespace Microsoft.Dafny {
       Expr = expr;
       if (assumeToken != null) {
         AssumeToken = assumeToken;
-      }
-    }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        yield return Expr;
-        foreach (var lhs in Lhss) {
-          yield return lhs;
-        }
       }
     }
   }
@@ -7678,16 +7613,6 @@ namespace Microsoft.Dafny {
       get {
         foreach (var s in Rhs.SubStatements) {
           yield return s;
-        }
-      }
-    }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        yield return Lhs;
-        foreach (var ee in Rhs.SubExpressions) {
-          yield return ee;
         }
       }
     }
@@ -7896,19 +7821,6 @@ namespace Microsoft.Dafny {
       : this(tok, endTok, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
       Bindings.AcceptArgumentExpressionsAsExactParameterList();
     }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        foreach (var ee in Lhs) {
-          yield return ee;
-        }
-        yield return MethodSelect;
-        foreach (var ee in Args) {
-          yield return ee;
-        }
-      }
-    }
   }
 
   public class BlockStmt : Statement {
@@ -7995,14 +7907,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        if (Guard != null) {
-          yield return Guard;
-        }
-      }
-    }
   }
 
   public class GuardedAlternative
@@ -8078,14 +7982,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        foreach (var alt in Alternatives) {
-          yield return alt.Guard;
-        }
-      }
-    }
   }
 
   public abstract class LoopStmt : Statement
@@ -8142,17 +8038,6 @@ namespace Microsoft.Dafny {
           foreach (var fe in Mod.Expressions) {
             yield return fe.E;
           }
-        }
-      }
-    }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) {
-          yield return e;
-        }
-        foreach (var e in LoopSpecificationExpressions) {
-          yield return e;
         }
       }
     }
@@ -8218,14 +8103,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        if (Guard != null) {
-          yield return Guard;
-        }
-      }
-    }
   }
 
   /// <summary>
@@ -8267,16 +8144,6 @@ namespace Microsoft.Dafny {
       End = end;
       GoingUp = goingUp;
     }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        yield return Start;
-        if (End != null) {
-          yield return End;
-        }
-      }
-    }
   }
 
   public class AlternativeLoopStmt : LoopStmt
@@ -8313,14 +8180,6 @@ namespace Microsoft.Dafny {
           foreach (var s in alt.Body) {
             yield return s;
           }
-        }
-      }
-    }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        foreach (var alt in Alternatives) {
-          yield return alt.Guard;
         }
       }
     }
@@ -8411,16 +8270,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        yield return Range;
-        foreach (var ee in Ens) {
-          foreach (var e in Attributes.SubExpressions(ee.Attributes)) { yield return e; }
-          yield return ee.E;
-        }
-      }
-    }
 
     public List<BoundVar> UncompilableBoundVars() {
       Contract.Ensures(Contract.Result<List<BoundVar>>() != null);
@@ -8448,15 +8297,6 @@ namespace Microsoft.Dafny {
       get {
         if (Body != null) {
           yield return Body;
-        }
-      }
-    }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        foreach (var e in Attributes.SubExpressions(Mod.Attributes)) { yield return e; }
-        foreach (var fe in Mod.Expressions) {
-          yield return fe.E;
         }
       }
     }
@@ -8789,12 +8629,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        yield return Source;
-      }
-    }
   }
 
   public class MatchCaseStmt : MatchCase
@@ -9039,12 +8873,12 @@ namespace Microsoft.Dafny {
     public virtual IEnumerable<Expression> SubExpressions {
       get
       {
-        var result = getSubExpressions.GetTargets(this);
+        var result = GetSubExpressions.GetTargets(this);
         return result;
       }
     }
 
-    public static readonly GetChildrenOfType<Expression> getSubExpressions = 
+    public static readonly GetChildrenOfType<Expression> GetSubExpressions = 
       new GetChildrenOfType<Expression>(m => m.GetCustomAttribute(typeof(FilledInByResolution)) == null);
 
     /// <summary>
