@@ -4113,11 +4113,13 @@ CaseExpression<out NestedMatchCaseExpr c, bool allowLemma, bool allowLambda, boo
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x;
      ExtendedPattern/*!*/ pat = null;
      Expression/*!*/ body;
+     Attributes attrs = null;
   .)
   "case"                      (. x = t; .)
+  { Attribute<ref attrs> }
   ExtendedPattern<out pat>             (. .)
   "=>"
-  Expression<out body, allowLemma, allowLambda, allowBitwiseOps>    (. c = new NestedMatchCaseExpr(x, pat, body); .)
+  Expression<out body, allowLemma, allowLambda, allowBitwiseOps>    (. c = new NestedMatchCaseExpr(x, pat, body, attrs); .)
 .
 
 /*------------------------------------------------------------------------*/

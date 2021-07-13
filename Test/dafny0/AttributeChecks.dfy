@@ -53,6 +53,15 @@ method Match(xs: List<int>) returns (r: int)
   }
 }
 
+datatype Result<T> = Success(x: T) | Failure(e: string)
+function method CaseExpr(r: Result<int>): Result<int>
+{
+  match r {
+    case Success(x) => Success(x + 1)
+    case {:ignore true} f => f
+  }
+}
+
 method Calc(x: int, y: int)
 {
   calc {:split 1} {:split 1 + false} { // error:  1 + false is ill-typed

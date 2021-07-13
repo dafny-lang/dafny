@@ -478,12 +478,12 @@ namespace Microsoft.Dafny
     public MatchCaseExpr CloneMatchCaseExpr(MatchCaseExpr c) {
       Contract.Requires(c != null);
       Contract.Requires(c.Arguments != null);
-      return new MatchCaseExpr(Tok(c.tok), c.Ctor, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body));
+      return new MatchCaseExpr(Tok(c.tok), c.Ctor, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body), CloneAttributes(c.Attributes));
     }
 
     public NestedMatchCaseExpr CloneNestedMatchCaseExpr(NestedMatchCaseExpr c) {
       Contract.Requires(c != null);
-      return new NestedMatchCaseExpr(Tok(c.Tok), CloneExtendedPattern(c.Pat), CloneExpr(c.Body));
+      return new NestedMatchCaseExpr(Tok(c.Tok), CloneExtendedPattern(c.Pat), CloneExpr(c.Body), CloneAttributes(c.Attributes));
     }
 
     public virtual Expression CloneApplySuffix(ApplySuffix e) {
@@ -902,7 +902,7 @@ namespace Microsoft.Dafny
         if (def == null) {
           continue;
         }
-        
+
         if (!declmap.ContainsKey(def)) {
           declmap.Add(def, new List<AliasModuleDecl>());
           sigmap.Add(def, new ModuleSignature());
