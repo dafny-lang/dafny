@@ -8181,15 +8181,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(endTok != null);
       this.Guard = guard;
     }
-    public WhileStmt(IToken tok, IToken endTok, Expression guard,
-                 List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-                 BlockStmt body, Attributes attrs)
-      : base(tok, endTok, invariants, decreases, mod, attrs) {
-      Contract.Requires(tok != null);
-      Contract.Requires(endTok != null);
-      this.Guard = guard;
-      this.Body = body;
-    }
     public override IEnumerable<Statement> SubStatements {
       get {
         if (Body != null) {
@@ -8719,7 +8710,7 @@ namespace Microsoft.Dafny {
     public readonly bool UsesOptionalBraces;
     public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it
 
-    public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, MatchingContext context = null, Attributes attributes = null)
+    public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, MatchingContext context = null, Attributes attrs = null)
       : base(tok, endTok, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
@@ -12497,14 +12488,6 @@ namespace Microsoft.Dafny {
       this.Cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
       InitializeAttributes();
-    }
-    public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs)
-      : base(tok, endTok, attrs) {
-      Contract.Requires(source != null);
-      Contract.Requires(cce.NonNullElements(cases));
-      this.Source = source;
-      this.Cases = cases;
-      this.UsesOptionalBraces = usesOptionalBraces;
     }
   }
 
