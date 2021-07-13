@@ -11789,7 +11789,7 @@ namespace Microsoft.Dafny
     }
 
 
-    private MatchCase MakeMatchCaseFromContainer(IToken tok, KeyValuePair<string, DatatypeCtor> ctor, List<BoundVar> freshPatBV, SyntaxContainer insideContainer) {
+    private MatchCase MakeMatchCaseFromContainer(IToken tok, KeyValuePair<string, DatatypeCtor> ctor, List<BoundVar> freshPatBV, SyntaxContainer insideContainer, Attributes attrs = null) {
       MatchCase newMatchCase;
       if (insideContainer is CStmt c) {
         List<Statement> insideBranch = UnboxStmtContainer(insideContainer);
@@ -12015,7 +12015,7 @@ namespace Microsoft.Dafny
           c.Attributes = new Attributes("split", args, c.Attributes);
         }
         var newMatchStmt = new MatchStmt(mti.Tok, mti.EndTok, currMatchee, newMatchCaseStmts, true, mti.Attributes, context);
-        return new CStmt(null, newMatchStmt); //Wokring HERE
+        return new CStmt(null, newMatchStmt);
       } else {
         var newMatchExpr = new MatchExpr(mti.Tok, currMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
         return new CExpr(null, newMatchExpr);
