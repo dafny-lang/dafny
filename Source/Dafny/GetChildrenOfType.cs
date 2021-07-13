@@ -3,34 +3,56 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-
 using Expr = System.Linq.Expressions.Expression;
 
 namespace Microsoft.Dafny
 {
-  // Consider supporting null. Consider supporting indirection "this.Attributes.SubExpressions(Attributes)"
-  class GetChildrenOfType<Source, Target>
+  public class FilledInByResolution : Attribute
   {
-    readonly IDictionary<System.Type, Func<Source, IEnumerable<Target>>> _getFunctions = 
-      new Dictionary<System.Type, Func<Source, IEnumerable<Target>>>();
+    
+  }
+  
+  // Consider supporting null. Consider supporting indirection "this.Attributes.SubExpressions(Attributes)"
+  public class GetChildrenOfType<Target>
+  {
+    readonly IDictionary<System.Type, Func<dynamic, IEnumerable<Target>>> _getFunctions = 
+      new Dictionary<System.Type, Func<dynamic, IEnumerable<Target>>>();
+    
+    readonly IDictionary<System.Type, Delegate> _overrides = 
+      new Dictionary<System.Type, Delegate>();
 
-    private int varCounter = 0;
+    private readonly Func<MemberInfo, bool> _memberPredicate;
 
-    private Func<Source, IEnumerable<Target>> GetFunc(System.Type concreteType) {
+    public GetChildrenOfType(Func<MemberInfo, bool> memberPredicate = null) {
+      _memberPredicate = memberPredicate;
+    }
+
+    public void Override<Source>(Func<Source, IEnumerable<Target>> func) {
+      _overrides[typeof(Source)] = func;
+    }
+
+    private Func<object, IEnumerable<Target>> GetFunc(System.Type concreteType) {
       var castObj = Expr.Parameter(concreteType, "castObj");
       var inter = GetTargetsExpr(new HashSet<System.Type>(), concreteType, castObj);
       if (inter == null) {
         return obj => Enumerable.Empty<Target>();
       }
 
-      var objParam = Expr.Parameter(typeof(Source), "obj");
+      var objParam = Expr.Parameter(typeof(object), "obj");
       var block = Expr.Block(new[] {castObj}, Expr.Assign(castObj, Expr.TypeAs(objParam, concreteType)), inter);
-      return Expr.Lambda<Func<Source, IEnumerable<Target>>>(block, objParam).Compile();
+      return Expr.Lambda<Func<object, IEnumerable<Target>>>(block, objParam).Compile();
     }
 
-    static MethodInfo concatMethod = typeof(Enumerable).GetMethod("Concat", BindingFlags.Static | BindingFlags.Public)!.MakeGenericMethod(typeof(Target));
+    private static readonly MethodInfo ConcatMethod = 
+      typeof(Enumerable).GetMethod("Concat", BindingFlags.Static | BindingFlags.Public)!.MakeGenericMethod(typeof(Target));
     
-    private Expr? GetTargetsExpr(ISet<System.Type> visited, System.Type type, ParameterExpression value) {
+    private Expr/*?*/ GetTargetsExpr(ISet<System.Type> visited, System.Type type, ParameterExpression value) {
+      if (_overrides.ContainsKey(type)) {
+        var methodInfo = _overrides[type].Method;
+        var target = _overrides[type].Target;
+        return Expr.Call(target == null ? null : Expr.Constant(target), methodInfo, value);
+      }
+      
       if (type.IsPrimitive || type.IsEnum || !type.Assembly.FullName.Contains("Dafny")) {
         return null;
       }
@@ -41,7 +63,10 @@ namespace Microsoft.Dafny
       var enumTargetType = typeof(IEnumerable<>).MakeGenericType(typeof(Target));
       var simpleMembers = new List<MemberExpression>();
       var enumerableMembers = new List<Expr>();
-      foreach (var member in type.FindMembers(MemberTypes.Field | MemberTypes.Property, BindingFlags.Instance | BindingFlags.Public, null, null)) {
+      foreach (var member in type.FindMembers(MemberTypes.Field /*| MemberTypes.Property*/, BindingFlags.Instance | BindingFlags.Public, null, null)) {
+        if (_memberPredicate != null && !_memberPredicate(member)) {
+          continue;
+        }
         var memberType = GetMemberType(member);
         if (memberType == null)
           continue;
@@ -52,23 +77,23 @@ namespace Microsoft.Dafny
         } else if (memberType.IsAssignableTo(enumTargetType)) {
           enumerableMembers.Add(access);
         } else {
-          var fieldVar = Expr.Parameter(memberType, $"var{varCounter}");
+          // TODO support IEnumerable<> of nested target carriers.
+          var fieldVar = Expr.Parameter(memberType, $"obj");
           var fieldExpr = GetTargetsExpr(visited, memberType, fieldVar);
           if (fieldExpr != null) {
-            varCounter++;
             enumerableMembers.Add(Expr.Block(new []{ fieldVar}, Expr.Assign(fieldVar, access), fieldExpr));
           }
         }
       }
 
       var simpleMemberArray = Expr.NewArrayInit(typeof(Target), simpleMembers);
-      var expr = enumerableMembers.Aggregate<Expr, Expr>(simpleMemberArray, (a, b) => Expr.Call(null, concatMethod, a, b));
+      var expr = enumerableMembers.Aggregate<Expr, Expr>(simpleMemberArray, (a, b) => Expr.Call(null, ConcatMethod, a, b));
       var nonEmpty = simpleMembers.Any() || enumerableMembers.Any();
       var inter = nonEmpty ? expr : null;
       return inter;
     }
 
-    private static System.Type? GetMemberType(MemberInfo member) {
+    private static System.Type/*?*/ GetMemberType(MemberInfo member) {
       switch (member) {
         case FieldInfo fieldInfo:
           return fieldInfo.FieldType;
@@ -82,7 +107,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    public IEnumerable<Target> GetTargets(Source source) {
+    public IEnumerable<Target> GetTargets(object source) {
       var key = source.GetType();
       if (_getFunctions.TryGetValue(key, out var existingFunc )) {
         return existingFunc(source).Where(x => x != null);

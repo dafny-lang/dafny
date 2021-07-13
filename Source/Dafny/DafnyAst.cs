@@ -14,6 +14,8 @@ using System.Numerics;
 using System.Linq;
 using Microsoft.Boogie;
 using System.Diagnostics;
+using System.Linq.Expressions;
+using System.Reflection;
 using Microsoft.Dafny;
 using Formal = Microsoft.Boogie.Formal;
 using Function = Microsoft.Boogie.Function;
@@ -380,6 +382,10 @@ namespace Microsoft.Dafny {
     /*Frozen*/
     public readonly List<Expression> Args;
     public readonly Attributes Prev;
+
+    static Attributes() {
+      Expression.getSubExpressions.Override<Attributes>(SubExpressions);
+    }
 
     public Attributes(string name, [Captured] List<Expression> args, Attributes prev) {
       Contract.Requires(name != null);
@@ -2814,7 +2820,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public TopLevelDecl ResolvedClass;  // filled in by resolution, if Name denotes a class/datatype/iterator and TypeArgs match the type parameters of that class/datatype/iterator
+    [FilledInByResolution] // if Name denotes a class/datatype/iterator and TypeArgs match the type parameters of that class/datatype/iterator
+    public TopLevelDecl ResolvedClass;  
 
     public UserDefinedType(IToken tok, string name, List<Type> optTypeArgs)
       : this(tok, new NameSegment(tok, name, optTypeArgs))
@@ -3665,7 +3672,8 @@ namespace Microsoft.Dafny {
   abstract public class ModuleDecl : TopLevelDecl
   {
     public override string WhatKind { get { return "module"; } }
-    public ModuleSignature Signature; // filled in by resolution, in topological order.
+    [FilledInByResolution] // in topological order.
+    public ModuleSignature Signature; 
     public virtual ModuleSignature AccessibleSignature(bool ignoreExports) {
       Contract.Requires(Signature != null);
       return Signature;
@@ -6172,6 +6180,11 @@ namespace Microsoft.Dafny {
 
     public bool WasResolved => arguments != null;
 
+    static ActualBindings()
+    {
+      Expression.getSubExpressions.Override<ActualBindings>(ab => ab.Arguments);
+    }
+    
     public List<Expression> Arguments {
       get {
         Contract.Requires(WasResolved);
@@ -6899,8 +6912,9 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Tok != null);
       Contract.Invariant(EndTok != null);
     }
-
-    public bool IsGhost;  // filled in by resolution
+    
+    [FilledInByResolution]
+    public bool IsGhost;
 
     public Statement(IToken tok, IToken endTok, Attributes attrs) {
       Contract.Requires(tok != null);
@@ -7326,7 +7340,8 @@ namespace Microsoft.Dafny {
     ///   resolution will either produce an error or will chop off the last part of "EType" and move it to
     ///   OptionalNameComponent, after which the case above applies.
     /// </summary>
-    public Type EType;  // in the case of Arguments != null, EType is filled in during resolution
+    [FilledInByResolution] // in the case of Arguments != null, EType is filled in during resolution
+    public Type EType;  
     public readonly List<Expression> ArrayDimensions;
     public readonly Expression ElementInit;
     public readonly List<Expression> InitDisplay;
@@ -7339,8 +7354,10 @@ namespace Microsoft.Dafny {
     }
 
     public Type Path;
-    public CallStmt InitCall;  // may be null (and is definitely null for arrays), may be filled in during resolution
-    public Type Type;  // filled in during resolution
+    [FilledInByResolution] // may be null (and is definitely null for arrays), may be filled in during resolution
+    public CallStmt InitCall;  
+    [FilledInByResolution]
+    public Type Type;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(EType != null || Bindings != null);
@@ -8070,7 +8087,8 @@ namespace Microsoft.Dafny {
   {
     public readonly List<AttributedExpression> Invariants;
     public readonly Specification<Expression> Decreases;
-    public bool InferredDecreases;  // filled in by resolution; says that no explicit "decreases" clause was given and an attempt was made to find one automatically (which may or may not have produced anything)
+    [FilledInByResolution] // says that no explicit "decreases" clause was given and an attempt was made to find one automatically (which may or may not have produced anything)
+    public bool InferredDecreases;  
     public readonly Specification<FrameExpression> Mod;
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -9020,7 +9038,9 @@ namespace Microsoft.Dafny {
         return result;
       }
     }
-    private static GetChildrenOfType<Expression, Expression> getSubExpressions = new GetChildrenOfType<Expression, Expression>();
+
+    public static readonly GetChildrenOfType<Expression> getSubExpressions = 
+      new GetChildrenOfType<Expression>(m => m.GetCustomAttribute(typeof(FilledInByResolution)) == null);
 
     /// <summary>
     /// Returns the list of types that appear in this expression proper (that is, not including types that
@@ -9874,9 +9894,13 @@ namespace Microsoft.Dafny {
     public readonly string MemberName;
     public readonly ActualBindings Bindings;
     public List<Expression> Arguments => Bindings.Arguments;
-    public DatatypeCtor Ctor;  // filled in by resolution
-    public List<Type> InferredTypeArgs = new List<Type>();  // filled in by resolution
-    public bool IsCoCall;  // filled in by resolution
+    
+    [FilledInByResolution]
+    public DatatypeCtor Ctor;
+    [FilledInByResolution]
+    public List<Type> InferredTypeArgs = new List<Type>();
+    [FilledInByResolution]
+    public bool IsCoCall;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(DatatypeName != null);
@@ -9982,7 +10006,8 @@ namespace Microsoft.Dafny {
     }
 
     public readonly string Name;
-    public IVariable Var;  // filled in by resolution
+    [FilledInByResolution] 
+    public IVariable Var;
 
     public IdentifierExpr(IToken tok, string name)
       : base(tok) {
@@ -10132,8 +10157,10 @@ namespace Microsoft.Dafny {
   public class MemberSelectExpr : Expression {
     public readonly Expression Obj;
     public readonly string MemberName;
-    public MemberDecl Member;    // filled in by resolution, will be a Field or Function
-    public Label /*?*/ AtLabel;  // determined by resolution; non-null for a two-state selection
+    [FilledInByResolution] // will be a Field or Function
+    public MemberDecl Member;    
+    [FilledInByResolution] // non-null for a two-state selection
+    public Label /*?*/ AtLabel;  
 
     /// <summary>
     /// TypeApplication_AtEnclosingClass is the list of type arguments used to instantiate the type that
@@ -10523,8 +10550,10 @@ namespace Microsoft.Dafny {
       NoBecauseIsNotGuarded,
       NoBecauseRecursiveCallsInDestructiveContext
     }
-    public CoCallResolution CoCall = CoCallResolution.No;  // indicates whether or not the call is a co-recursive call; filled in by resolution
-    public string CoCallHint = null;  // possible additional hint that can be used in verifier error message, filled in by resolver
+    [FilledInByResolution]
+    public CoCallResolution CoCall = CoCallResolution.No;  // indicates whether or not the call is a co-recursive call
+    [FilledInByResolution]
+    public string CoCallHint = null;  // possible additional hint that can be used in verifier error message
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -10539,7 +10568,8 @@ namespace Microsoft.Dafny {
         Function.TypeArgs.Count == TypeApplication_JustFunction.Count);
     }
 
-    public Function Function;  // filled in by resolution
+    [FilledInByResolution]
+    public Function Function;
 
     public FunctionCallExpr(IToken tok, string fn, Expression receiver, IToken openParen, [Captured] List<ActualBinding> args, Label/*?*/ atLabel = null)
       : this(tok, fn, receiver, openParen, new ActualBindings(args), atLabel) {
@@ -12051,7 +12081,8 @@ namespace Microsoft.Dafny {
     public VT Var;  // finalized by resolution (null if the pattern is a constructor)  Invariant:  Var != null ==> Arguments == null
     public List<CasePattern<VT>> Arguments;
 
-    public Expression Expr;  // an r-value version of the CasePattern; filled in by resolution
+    [FilledInByResolution]
+    public Expression Expr;  // an r-value version of the CasePattern;
 
     public void MakeAConstructor() {
       this.Arguments = new List<CasePattern<VT>>();
@@ -12112,8 +12143,10 @@ namespace Microsoft.Dafny {
   public abstract class MatchCase
   {
     public readonly IToken tok;
-    public DatatypeCtor Ctor;  // filled in by resolution
-    public List<BoundVar> Arguments; // created by the resolver.
+    [FilledInByResolution]
+    public DatatypeCtor Ctor;
+    [FilledInByResolution]
+    public List<BoundVar> Arguments;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(tok != null);
@@ -12713,7 +12746,8 @@ namespace Microsoft.Dafny {
   {
     public readonly Expression Root;
     public readonly List<Tuple<IToken, string, Expression>> Updates;
-    public List<DatatypeCtor> LegalSourceConstructors;  // filled in by resolution
+    [FilledInByResolution]
+    public List<DatatypeCtor> LegalSourceConstructors;
     public DatatypeUpdateExpr(IToken tok, Expression root, List<Tuple<IToken, string, Expression>> updates)
       : base(tok) {
       Contract.Requires(tok != null);
