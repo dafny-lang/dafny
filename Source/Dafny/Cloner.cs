@@ -664,7 +664,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern) stmt;
-        r = new VarDeclPattern(Tok(s.Tok), Tok(s.EndTok), CloneCasePattern(s.LHS), CloneExpr(s.RHS), s.IsAutoGhost);
+        r = new VarDeclPattern(Tok(s.Tok), Tok(s.EndTok), CloneCasePattern(s.LHS), CloneExpr(s.RHS), s.HasGhostModifier);
 
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;

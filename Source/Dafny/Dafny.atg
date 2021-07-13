@@ -2692,7 +2692,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
     Expression<out e, false, true>
 
     ";"
-    (. s = new VarDeclPattern(e.tok, e.tok, pat, e, !isGhost); .)
+    (. s = new VarDeclPattern(e.tok, e.tok, pat, e, isGhost); .)
   )
   .
 

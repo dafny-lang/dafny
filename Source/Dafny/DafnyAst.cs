@@ -7469,13 +7469,13 @@ namespace Microsoft.Dafny {
   {
     public readonly CasePattern<LocalVariable> LHS;
     public readonly Expression RHS;
-    public bool IsAutoGhost;
+    public bool HasGhostModifier;
 
-    public VarDeclPattern(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs, bool isAutoGhost = false)
+    public VarDeclPattern(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs, bool hasGhostModifier = true)
       : base(tok, endTok) {
       LHS = lhs;
       RHS = rhs;
-      IsAutoGhost = isAutoGhost;
+      HasGhostModifier = hasGhostModifier;
     }
 
     public override IEnumerable<Expression> SubExpressions {
