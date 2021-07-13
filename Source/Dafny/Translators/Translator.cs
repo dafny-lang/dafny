@@ -10462,7 +10462,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(b != null);
       Contract.Requires(tok != null);
 
-      b.Add(Assert(tok, Bpl.Expr.True, "split_here assertion, should pass", new Bpl.QKeyValue(tok, "split_here", new List<object>(), null)));
+      b.Add(Assert(tok, Bpl.Expr.True, "split_here assertion; should pass", new Bpl.QKeyValue(tok, "split_here", new List<object>(), null)));
     }
     void TrStmt(Statement stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
     {
