@@ -2500,7 +2500,7 @@ namespace Microsoft.Dafny
           ResolveType(dd.tok, dd.Rhs, dd, ResolveTypeOptionEnum.AllowPrefix, dd.TypeArgs);
           dd.Rhs.ForeachTypeComponent(ty => {
             var s = ty.AsRedirectingType;
-            if (s != null) {
+            if (s != null && s != dd) {
               typeRedirectionDependencies.AddEdge(dd, s);
             }
           });
@@ -2509,7 +2509,7 @@ namespace Microsoft.Dafny
           ResolveType(dd.tok, dd.BaseType, dd, ResolveTypeOptionEnum.DontInfer, null);
           dd.BaseType.ForeachTypeComponent(ty => {
             var s = ty.AsRedirectingType;
-            if (s != null) {
+            if (s != null && s != dd) {
               typeRedirectionDependencies.AddEdge(dd, s);
             }
           });
@@ -3340,14 +3340,14 @@ namespace Microsoft.Dafny
                 }
               }
             }
-          } else if (d is SubsetTypeDecl || d is NewtypeDecl) {
+          } else if (d is RedirectingTypeDecl) {
             var dd = (RedirectingTypeDecl)d;
             if (d.EnclosingModuleDefinition.CallGraph.GetSCCSize(dd) != 1) {
               var r = d.EnclosingModuleDefinition.CallGraph.GetSCCRepresentative(dd);
               if (cycleErrorHasBeenReported.Contains(r)) {
                 // An error has already been reported for this cycle, so don't report another.
                 // Note, the representative, "r", may itself not be a const.
-              } else {
+              } else if (dd is NewtypeDecl || dd is SubsetTypeDecl) {
                 ReportCallGraphCycleError(dd, $"recursive constraint dependency involving a {dd.WhatKind}");
                 cycleErrorHasBeenReported.Add(r);
               }
@@ -10563,13 +10563,17 @@ namespace Microsoft.Dafny
             if (d is OpaqueTypeDecl) {
               // resolve like a type parameter, and it may have type parameters if it's an opaque type
               t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
-            } else if (d is SubsetTypeDecl || d is NewtypeDecl) {
+            } else if (d is RedirectingTypeDecl) {
               var dd = (RedirectingTypeDecl)d;
               var caller = CodeContextWrapper.Unwrap(context) as ICallable;
               if (caller != null && !(d is SubsetTypeDecl && caller is SpecialFunction)) {
-                caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
-                if (caller == d) {
-                  // detect self-loops here, since they don't show up in the graph's SSC methods
+                if (caller != d) {
+                  caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
+                } else if (d is TypeSynonymDecl && !(d is SubsetTypeDecl)) {
+                  // detect self-loops here, since they don't show up in the graph's SCC methods
+                  reporter.Error(MessageSource.Resolver, d.tok, "type-synonym cycle: {0} -> {0}", d.Name);
+                } else {
+                  // detect self-loops here, since they don't show up in the graph's SCC methods
                   reporter.Error(MessageSource.Resolver, d.tok, "recursive constraint dependency involving a {0}: {1} -> {1}", d.WhatKind, d.Name);
                 }
               }
@@ -14343,7 +14347,7 @@ namespace Microsoft.Dafny
     /// Check that the type uses formal type parameters in a way that is agreeable with their variance specifications.
     /// "context == Co" says that "type" is allowed to vary in the positive direction.
     /// "context == Contra" says that "type" is allowed to vary in the negative direction.
-    /// "context == Inv" says that "type" must not vary at all.
+    /// "context == Non" says that "type" must not vary at all.
     /// * "lax" says that the context is not strict -- type parameters declared to be strict must not be used in a lax context
     /// </summary>
     public void CheckVariance(Type type, ICallable enclosingTypeDefinition, TypeParameter.TPVariance context, bool lax) {
