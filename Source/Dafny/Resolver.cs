@@ -12039,7 +12039,7 @@ namespace Microsoft.Dafny
           c.Attributes = new Attributes("split", args, c.Attributes);
         }
         var newMatchStmt = new MatchStmt(mti.Tok, mti.EndTok, currMatchee, newMatchCaseStmts, true, mti.Attributes, context);
-        return new CStmt(null, newMatchStmt); //Wokring HERE
+        return new CStmt(null, newMatchStmt);
       } else {
         var newMatchExpr = new MatchExpr(mti.Tok, currMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
         return new CExpr(null, newMatchExpr);
