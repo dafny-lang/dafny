@@ -7,12 +7,6 @@ using Expr = System.Linq.Expressions.Expression;
 
 namespace Microsoft.Dafny
 {
-  public class FilledInByResolution : Attribute
-  {
-    
-  }
-  
-  // Consider supporting null. Consider supporting indirection "this.Attributes.SubExpressions(Attributes)"
   public class GetChildrenOfType<Target>
   {
     readonly IDictionary<System.Type, Func<dynamic, IEnumerable<Target>>> _getFunctions = 

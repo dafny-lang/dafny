@@ -24,6 +24,11 @@ using Substituter = Microsoft.Boogie.Substituter;
 using TypeSynonymDecl = Microsoft.Boogie.TypeSynonymDecl;
 
 namespace Microsoft.Dafny {
+  /**
+   * Indicates that a field is set during the resolution phase.
+   */
+  public class FilledInByResolution : Attribute { }
+  
   public class Program {
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -9705,6 +9710,8 @@ namespace Microsoft.Dafny {
   {
     public readonly Type UnresolvedType;
     private bool Implicit;
+    
+    [FilledInByResolution]
     public Expression OriginalResolved;
 
     public StaticReceiverExpr(IToken tok, Type t, bool isImplicit)
@@ -9714,11 +9721,6 @@ namespace Microsoft.Dafny {
       UnresolvedType = t;
       Implicit = isImplicit;
       OriginalResolved = null;
-    }
-
-    public override IEnumerable<Expression> SubExpressions
-    {
-      get { return Enumerable.Empty<Expression>(); }
     }
 
     /// <summary>
