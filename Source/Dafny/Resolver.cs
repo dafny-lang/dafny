@@ -8353,7 +8353,7 @@ namespace Microsoft.Dafny
               local.MakeGhost();
             }
           }
-          if (!s.IsAutoGhost || mustBeErasable) {
+          if (s.HasGhostModifier || mustBeErasable) {
             s.IsGhost = s.LocalVars.All(v => v.IsGhost);
           } else {
             var spec = resolver.UsesSpecFeatures(s.RHS);

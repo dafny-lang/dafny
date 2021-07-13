@@ -1522,6 +1522,9 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;
+        if (s.HasGhostModifier) {
+          wr.Write("ghost ");
+        }
         wr.Write("var ");
         PrintCasePattern(s.LHS);
         wr.Write(" := ");
