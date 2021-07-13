@@ -10953,7 +10953,7 @@ namespace Microsoft.Dafny {
           delegate(BoogieStmtListBuilder bld, ExpressionTranslator e) {
             TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e, stmt.IsGhost);
           },
-          builder, locals, etran);
+          builder, locals, etran, splitAttributeValue);
 
       } else if (stmt is ForLoopStmt) {
         var s = (ForLoopStmt)stmt;
@@ -11045,7 +11045,7 @@ namespace Microsoft.Dafny {
           };
         }
 
-        TrLoop(s, guard, bodyTr, builder, locals, etran, freeInvariant, s.Decreases.Expressions.Count != 0);
+        TrLoop(s, guard, bodyTr, builder, locals, etran, splitAttributeValue, freeInvariant, s.Decreases.Expressions.Count != 0);
 
       } else if (stmt is ModifyStmt) {
         AddComment(builder, stmt, "modify statement");
@@ -11273,7 +11273,7 @@ namespace Microsoft.Dafny {
           bool splitHere = splitAttributeValue || Attributes.Contains(s.Cases[i].Attributes, "split");
           Attributes.ContainsBool(s.Cases[i].Attributes, "split", ref splitHere);
           if (splitHere) {
-            AddSplittingAssert(b, mc.Tok);
+            AddSplittingAssert(b, mc.tok);
           }
           List<Variable> newLocals = new List<Variable>();
           Bpl.Expr r = CtorInvocation(mc, s.Source.Type, etran, newLocals, b, s.IsGhost ? NOALLOC : ISALLOC);
@@ -12261,7 +12261,7 @@ namespace Microsoft.Dafny {
 
     void TrLoop(LoopStmt s, Expression Guard, BodyTranslator/*?*/ bodyTr,
                 BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
-                Bpl.Expr freeInvariant = null, bool includeTerminationCheck = true) {
+                bool splitAttributeValue, Bpl.Expr freeInvariant = null, bool includeTerminationCheck = true) {
       Contract.Requires(s != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
