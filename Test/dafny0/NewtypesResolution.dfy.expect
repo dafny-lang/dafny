@@ -1,4 +1,4 @@
-NewtypesResolution.dfy(5,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): MySynonym -> MyNewType -> MyIntegerType_WellSupposedly -> MySynonym
+NewtypesResolution.dfy(5,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): MySynonym -> MyNewType -> MyIntegerType_WellSupposedly -> MySynonym
 NewtypesResolution.dfy(12,10): Error: newtypes must be based on some numeric type (got List<int>)
 NewtypesResolution.dfy(51,13): Error: arguments to <= must have a common supertype (got posReal and int32)
 NewtypesResolution.dfy(50,13): Error: arguments must have comparable types (got posReal and int32)
@@ -12,7 +12,7 @@ NewtypesResolution.dfy(75,8): Error: newtype constraint must be of type bool (in
 NewtypesResolution.dfy(77,10): Error: unresolved identifier: a
 NewtypesResolution.dfy(91,31): Error: old expressions are not allowed in this context
 NewtypesResolution.dfy(101,24): Error: Wrong number of type arguments (1 instead of 0) passed to newtype: N
-NewtypesResolution.dfy(105,10): Error: recursive constraint dependency involving a newtype: BadLemma -> Cycle
+NewtypesResolution.dfy(105,10): Error: recursive constraint dependency involving a newtype: Cycle -> BadLemma -> Cycle
 NewtypesResolution.dfy(114,10): Error: recursive constraint dependency involving a newtype: SelfCycle -> SelfCycle
 NewtypesResolution.dfy(120,21): Error: name of type (N9) is used as a variable
 NewtypesResolution.dfy(139,6): Error: RHS (of type int) not assignable to LHS (of type Int)
@@ -35,7 +35,7 @@ NewtypesResolution.dfy(256,28): Error: ghost variables are allowed only in speci
 NewtypesResolution.dfy(259,24): Error: ghost variables are allowed only in specification contexts
 NewtypesResolution.dfy(262,6): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
 NewtypesResolution.dfy(265,9): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
-NewtypesResolution.dfy(276,7): Error: recursive constraint dependency involving a subset type: AA -> EE -> DD -> CC -> BB
+NewtypesResolution.dfy(276,7): Error: recursive constraint dependency involving a subset type: AA -> BB -> CC -> DD -> EE -> AA
 NewtypesResolution.dfy(284,10): Error: newtypes must be based on some numeric type (got ORDINAL)
 NewtypesResolution.dfy(285,10): Error: newtypes must be based on some numeric type (got ORDINAL)
 40 resolution/type errors detected in NewtypesResolution.dfy
