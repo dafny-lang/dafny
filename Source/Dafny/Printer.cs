@@ -1892,7 +1892,9 @@ namespace Microsoft.Dafny {
           foreach (var mc in e.Cases) {
             bool isLastCase = i == e.Cases.Count - 1;
             Indent(ind);
-            wr.Write("case ");
+            wr.Write("case");
+            PrintAttributes(mc.Attributes);
+            wr.Write(" ");
             PrintExtendedPattern(mc.Pat);
             wr.WriteLine(" =>");
             PrintExtendedExpr(mc.Body, ind + IndentAmount, isLastCase, isLastCase && (parensNeeded || endWithCloseParen));
@@ -1919,7 +1921,10 @@ namespace Microsoft.Dafny {
           foreach (var mc in e.Cases) {
             bool isLastCase = i == e.Cases.Count - 1;
             Indent(ind);
-            wr.Write("case {0}", mc.Ctor.Name);
+            wr.Write("case");
+            PrintAttributes(mc.Attributes);
+            wr.Write(" ");
+            wr.Write(mc.Ctor.Name);
             PrintMatchCaseArgument(mc);
             wr.WriteLine(" =>");
             PrintExtendedExpr(mc.Body, ind + IndentAmount, isLastCase, isLastCase && (parensNeeded || endWithCloseParen));

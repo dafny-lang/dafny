@@ -256,7 +256,7 @@ namespace Microsoft.Dafny
           if (newBoundVars != mc.Arguments || body != mc.Body) {
             anythingChanged = true;
           }
-          var newCaseExpr = new MatchCaseExpr(mc.tok, mc.Ctor, newBoundVars, body);
+          var newCaseExpr = new MatchCaseExpr(mc.tok, mc.Ctor, newBoundVars, body, mc.Attributes);
           newCaseExpr.Ctor = mc.Ctor;  // resolve here
           cases.Add(newCaseExpr);
         }

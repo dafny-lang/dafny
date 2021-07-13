@@ -9558,7 +9558,7 @@ namespace Microsoft.Dafny {
       var newVars = old_case.Arguments.ConvertAll(cloner.CloneBoundVar);
       new_body = VarSubstituter(old_case.Arguments.ConvertAll<NonglobalVariable>(x=>(NonglobalVariable)x), newVars, new_body);
 
-      var new_case = new MatchCaseExpr(old_case.tok, old_case.Ctor, newVars, new_body);
+      var new_case = new MatchCaseExpr(old_case.tok, old_case.Ctor, newVars, new_body, old_case.Attributes);
 
       new_case.Ctor = old_case.Ctor; // resolve here
       return new_case;
@@ -12132,18 +12132,20 @@ namespace Microsoft.Dafny {
   public class MatchCaseExpr : MatchCase
   {
     private Expression body;
+    public Attributes Attributes;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(body != null);
     }
 
-    public MatchCaseExpr(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments, Expression body)
+    public MatchCaseExpr(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
       : base(tok, ctor, arguments) {
       Contract.Requires(tok != null);
       Contract.Requires(ctor != null);
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(body != null);
       this.body = body;
+      this.Attributes = attrs;
     }
 
     public Expression Body {
@@ -12428,10 +12430,12 @@ namespace Microsoft.Dafny {
   public class NestedMatchCaseExpr : NestedMatchCase
   {
     public readonly Expression Body;
+    public Attributes Attributes;
 
-    public NestedMatchCaseExpr(IToken tok, ExtendedPattern pat, Expression body): base(tok, pat) {
+    public NestedMatchCaseExpr(IToken tok, ExtendedPattern pat, Expression body, Attributes attrs): base(tok, pat) {
       Contract.Requires(body != null);
       this.Body = body;
+      this.Attributes = attrs;
     }
   }
 
@@ -12496,13 +12500,15 @@ namespace Microsoft.Dafny {
     public readonly Expression Source;
     public readonly List<NestedMatchCaseExpr> Cases;
     public readonly bool UsesOptionalBraces;
+    public Attributes Attributes;
 
-    public NestedMatchExpr(IToken tok, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces): base(tok) {
+    public NestedMatchExpr(IToken tok, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces, Attributes attrs = null): base(tok) {
       Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
       this.Source = source;
       this.Cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
+      this.Attributes = attrs;
     }
   }
 

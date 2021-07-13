@@ -13,6 +13,7 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny
 {
@@ -11580,9 +11581,11 @@ namespace Microsoft.Dafny
     private class CExpr : SyntaxContainer
     {
       public readonly Expression Body;
+      public Attributes Attributes;
 
-      public CExpr(IToken tok, Expression body) : base(tok) {
+      public CExpr(IToken tok, Expression body, Attributes attrs = null) : base(tok) {
         this.Body = body;
+        this.Attributes = attrs;
       }
     }
 
@@ -11652,14 +11655,17 @@ namespace Microsoft.Dafny
     private class RBranchExpr : RBranch {
 
       public Expression Body;
+      public Attributes Attributes;
 
-      public RBranchExpr(IToken tok, int branchid, List<ExtendedPattern> patterns,  Expression body) : base(tok, branchid, patterns) {
+      public RBranchExpr(IToken tok, int branchid, List<ExtendedPattern> patterns,  Expression body, Attributes attrs = null) : base(tok, branchid, patterns) {
         this.Body = body;
+        this.Attributes = attrs;
       }
 
-      public RBranchExpr(int branchid, NestedMatchCaseExpr x) : base(x.Tok, branchid, new List<ExtendedPattern>()) {
+      public RBranchExpr(int branchid, NestedMatchCaseExpr x, Attributes attrs = null) : base(x.Tok, branchid, new List<ExtendedPattern>()) {
         this.Body = x.Body;
         this.Patterns.Add(x.Pat);
+        this.Attributes = attrs;
       }
 
       public override string ToString() {
@@ -11675,7 +11681,7 @@ namespace Microsoft.Dafny
 
     private static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
       Cloner cloner = new Cloner();
-      return new RBranchExpr(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), cloner.CloneExpr(branch.Body));
+      return new RBranchExpr(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), cloner.CloneExpr(branch.Body), cloner.CloneAttributes((branch.Attributes)));
     }
 
     private static RBranch CloneRBranch(RBranch branch) {
@@ -11699,7 +11705,7 @@ namespace Microsoft.Dafny
       if (branch is RBranchStmt br) {
         return new CStmt(tok, new BlockStmt(tok, tok, br.Body), br.Attributes);
       } else if (branch is RBranchExpr) {
-        return new CExpr(tok, ((RBranchExpr)branch).Body);
+        return new CExpr(tok, ((RBranchExpr)branch).Body, ((RBranchExpr)branch).Attributes);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException(); // RBranch has only two implementations
       }
@@ -11817,7 +11823,8 @@ namespace Microsoft.Dafny
         newMatchCase = new MatchCaseStmt(tok, ctor.Value,  freshPatBV, insideBranch, c.Attributes);
       } else {
         var insideBranch = ((CExpr)insideContainer).Body;
-        newMatchCase = new MatchCaseExpr(tok, ctor.Value,  freshPatBV, insideBranch);
+        var attrs = ((CExpr)insideContainer).Attributes;
+        newMatchCase = new MatchCaseExpr(tok, ctor.Value,  freshPatBV, insideBranch, attrs);
       }
       newMatchCase.Ctor = ctor.Value;
       return newMatchCase;
@@ -12036,7 +12043,7 @@ namespace Microsoft.Dafny
           c.Attributes = new Attributes("split", args, c.Attributes);
         }
         var newMatchStmt = new MatchStmt(mti.Tok, mti.EndTok, currMatchee, newMatchCaseStmts, true, mti.Attributes, context);
-        return new CStmt(null, newMatchStmt); //Wokring HERE
+        return new CStmt(null, newMatchStmt);
       } else {
         var newMatchExpr = new MatchExpr(mti.Tok, currMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
         return new CExpr(null, newMatchExpr);
@@ -12164,7 +12171,7 @@ namespace Microsoft.Dafny
       List<RBranch> branches = new List<RBranch>();
       for (int id = 0; id < e.Cases.Count(); id++) {
         var branch = e.Cases.ElementAt(id);
-        branches.Add(new RBranchExpr(id, branch));
+        branches.Add(new RBranchExpr(id, branch, branch.Attributes));
         mti.BranchTok[id] = branch.Tok;
       }
 
@@ -12410,6 +12417,7 @@ namespace Microsoft.Dafny
     private void CheckLinearNestedMatchExpr(Type dtd, NestedMatchExpr me, ResolveOpts opts) {
       foreach(NestedMatchCaseExpr mc in me.Cases) {
         scope.PushMarker();
+        ResolveAttributes(mc.Attributes, null, opts);
         CheckLinearNestedMatchCase(dtd, mc, opts);
         scope.PopMarker();
       }
