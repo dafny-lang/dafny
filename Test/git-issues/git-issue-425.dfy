@@ -10,7 +10,7 @@ method M() returns (x: int, ghost y: int) {
 }
 
 datatype Color = Red | Blue
-  
+
 method Main() {
   var x0, y0 := M();  // this is fine: x0 is compiled, y0 is ghost
   print x0, "\n";

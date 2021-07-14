@@ -10,9 +10,9 @@ may be given, in any order.
 We document specifications at these levels:
 
 - At the lowest level are the various kinds of specification clauses,
-  e.g., a ``RequiresClause_``.
+  e.g., a ``RequiresClause``.
 - Next are the specifications for entities that need them,
-  e.g., a ``MethodSpec``, which typically consist of a sequence of 
+  e.g., a ``MethodSpec``, which typically consist of a sequence of
   specification clauses.
 - At the top level are the entity declarations that include
   the specifications, e.g., ``MethodDecl``.
@@ -26,8 +26,10 @@ that use them.
 ### 5.1.1. Requires Clause
 
 ````grammar
-RequiresClause_ =
-  "requires" Expression(allowLemma: false, allowLambda: false)
+RequiresClause(allowLabel) =
+  "requires" { Attribute }
+  [ LabelName ":" ]  // Label allowed only if allowLabel is true
+  Expression(allowLemma: false, allowLambda: false)
 ````
 
 The `requires` clauses specify preconditions for methods,
@@ -39,7 +41,8 @@ If no `requires` clause is specified it is taken to be `true`.
 
 If more than one `requires` clause is given, then the
 precondition is the conjunction of all of the expressions
-from all of the `requires` clauses. The order of conjunctions
+from all of the `requires` clauses, with a collected list
+of all the given Attributes. The order of conjunctions
 (and hence the order of `requires` clauses with respect to each other)
 can be important: earlier conjuncts can set conditions that
 establish that later conjuncts are well-defined.
@@ -47,9 +50,9 @@ establish that later conjuncts are well-defined.
 ### 5.1.2. Ensures Clause
 
 ````grammar
-EnsuresClause_ =
+EnsuresClause(allowLambda) =
   "ensures" { Attribute } Expression(allowLemma: false,
-                                     allowLambda: false)
+                                     allowLambda)
 ````
 
 An `ensures` clause specifies the post condition for a
@@ -59,7 +62,8 @@ If no `ensures` clause is specified it is taken to be `true`.
 
 If more than one `ensures` clause is given, then the
 postcondition is the conjunction of all of the expressions
-from all of the `ensures` clauses.
+from all of the `ensures` clauses, with a
+collected list of all the given Attributes.
 The order of conjunctions
 (and hence the order of `ensures` clauses with respect to each other)
 can be important: earlier conjuncts can set conditions that
@@ -67,22 +71,27 @@ establish that later conjuncts are well-defined.
 
 ### 5.1.3. Decreases Clause
 ````grammar
-DecreasesClause_(allowWildcard, allowLambda) =
+DecreasesClause(allowWildcard, allowLambda) =
   "decreases" { Attribute } DecreasesList(allowWildcard,
                                           allowLambda)
 
 DecreasesList(allowWildcard, allowLambda) =
-  PossiblyWildExpression(allowLambda)
-  { "," PossiblyWildExpression(allowLambda) }
+  PossiblyWildExpression(allowLambda, allowWildcard)
+  { "," PossiblyWildExpression(allowLambda, allowWildcard) }
+
+PossiblyWildExpression(allowLambda, allowWild) =
+  ( "*"  // if allowWild is false, using '*' provokes an error
+  | Expression(allowLemma: false, allowLambda)
+  )
 ````
 If `allowWildcard` is false but one of the
 ``PossiblyWildExpression``s is a wild-card, an error is
 reported.
 
 Decreases clauses are used to prove termination in the
-presence of recursion. if more than one `decreases` clause is given
+presence of recursion. If more than one `decreases` clause is given
 it is as if a single `decreases` clause had been given with the
-collected list of arguments. That is,
+collected list of arguments and a collected list of Attributes. That is,
 
 ```dafny
 decreases A, B
@@ -98,8 +107,14 @@ Note that changing the order of multiple `decreases` clauses will change
 the order of the expressions within the equivalent single `decreases`
 clause, and will therefore have different semantics.
 
-If any of the expressions in the `decreases` clause are wild (i.e., `*`)
-then the proof of termination will be skipped.
+Loops and compiled methods (but not functions and not ghost methods,
+including lemmas) can be specified to be possibly non-terminating.
+This is done by declaring the method or loop with `decreases *`, which
+causes the proof of termination to be skipped. If a `*` is present
+in a `decreases` clause, no other expressions are allowed in the
+`decreases` clause. A method that contains a possibly non-terminating
+loop or a call to a possibly non-terminating method must itself be
+declared as possibly non-terminating.
 
 Termination metrics in Dafny, which are declared by `decreases` clauses,
 are lexicographic tuples of expressions. At each recursive (or mutually
@@ -283,17 +298,21 @@ method Inner(x: nat, y: nat)
 ```
 The ingredients are simple, but the end result may seem like magic. For many users, however, there may be no magic at all -- the end result may be so natural that the user never even has to be bothered to think about that there was a need to prove termination in the first place.
 
+TODO: Should there be user-level syntax to invoke this termination ordering
 
-### 5.1.4. Framing
+### 5.1.4. Framing {#sec-frame-expression}
 ````grammar
 FrameExpression(allowLemma, allowLambda) =
   ( Expression(allowLemma, allowLambda) [ FrameField ]
-  | FrameField )
+  | FrameField
+  )
 
-FrameField = "`" Ident
+FrameField = "`" IdentOrDigits
 
-PossiblyWildFrameExpression(allowLemma) =
-  ( "*" | FrameExpression(allowLemma, allowLambda: false) )
+PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) =
+  ( "*"  // error if !allowWild and '*'
+  | FrameExpression(allowLemma, allowLambda)
+  )
 ````
 
 Frame expressions are used to denote the set of memory locations
@@ -333,18 +352,11 @@ lambda expressions.
 
 ### 5.1.5. Reads Clause
 ````grammar
-ReadsClause_(allowLemma) =
-  "reads" { Attribute }
-  PossiblyWildFrameExpression(allowLemma)
-  { "," PossiblyWildFrameExpression(allowLemma) }
-
-IteratorReadsClause_ =
-  "reads" { Attribute }
-  FrameExpression(allowLemma: false, allowLambda: false)
-  { "," FrameExpression(allowLemma: false, allowLambda: false) }
-
-PossiblyWildExpression(allowLambda) =
-  ( "*" | Expression(allowLemma: false, allowLambda) )
+ReadsClause(allowLemma, allowLambda, allowWild) =
+  "reads"
+  { Attribute }
+  PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild)
+  { "," PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) }
 ````
 
 Functions are not allowed to have side effects; they may also be restricted in
@@ -368,7 +380,8 @@ function to read anything. In many cases, and in particular in all cases
 where the function is defined recursively, this makes it next to
 impossible to make any use of the function. Nevertheless, as an
 experimental feature, the language allows it (and it is sound).
-Note that a `*` makes the rest of the frame expression irrelevant.
+If a `reads` clause uses `*`, then the `reads` clause is not allowed to
+mention anything else (since anything else would be irrelevant, anyhow).
 
 A `reads` clause specifies the set of memory locations that a function,
 lambda, or iterator may read. If more than one `reads` clause is given
@@ -382,10 +395,10 @@ TO BE WRITTEN: multiset of objects allowed in reads clauses
 ### 5.1.6. Modifies Clause
 
 ````grammar
-ModifiesClause_ =
+ModifiesClause(allowLambda) =
   "modifies" { Attribute }
-  FrameExpression(allowLemma: false, allowLambda: false)
-  { "," FrameExpression(allowLemma: false, allowLambda: false) }
+  FrameExpression(allowLemma: false, allowLambda)
+  { "," FrameExpression(allowLemma: false, allowLambda) }
 ````
 
 Frames also affect methods. Methods are not
@@ -406,7 +419,7 @@ or within the scope of a `modifies` statement or a loop's `modifies` clause,
 
 It is also possible to frame what can be modified by a block statement
 by means of the block form of the
-modify statement (cf. [Section 21.9](#sec-modify-statement)).
+`modify` statement (cf. [Section 19.22](#sec-modify-statement)).
 
 A `modifies` clause specifies the set of memory locations that a
 method, iterator or loop body may modify. If more than one `modifies`
@@ -447,10 +460,10 @@ holds at the end of the loop.
 ## 5.2. Method Specification {#sec-method-specification}
 ````grammar
 MethodSpec =
-  { ModifiesClause_
-  | RequiresClause_
-  | EnsuresClause_
-  | DecreasesClause_(allowWildcard: true, allowLambda: false)
+  { ModifiesClause(allowLambda: false)
+  | RequiresClause(allowLabel: true)
+  | EnsuresClause(allowLambda: false)
+  | DecreasesClause(allowWildcard: true, allowLambda: false)
   }
 ````
 
@@ -462,10 +475,11 @@ read any memory.
 ## 5.3. Function Specification {#sec-function-specification}
 ````grammar
 FunctionSpec =
-  { RequiresClause_
-  | ReadsClause_(allowLemma: false)
-  | EnsuresClause_
-  | DecreasesClause_(allowWildcard: false, allowLambda: false)
+  { RequiresClause(allowLabel: true)
+  | ReadsClause(allowLemma: false, allowLambda: false,
+                                   allowWild: true)
+  | EnsuresClause(allowLambda: false)
+  | DecreasesClause(allowWildcard: false, allowLambda: false)
   }
 ````
 
@@ -476,11 +490,13 @@ allowed to modify any memory.
 
 ## 5.4. Lambda Specification {#sec-lambda-specification}
 ````grammar
-LambdaSpec_ =
-  { ReadsClause_(allowLemma: true)
-  | RequiresClause_
+LambdaSpec =
+  { ReadsClause(allowLemma: true, allowLambda: false,
+                                  allowWild: true)
+  | RequiresClause(allowLabel: false)
   }
 ````
+// TODO - the above grammar is not quite right for Requires
 
 A lambda specification is zero or more `reads` or `requires` clauses.
 Lambda specifications do not have `ensures` clauses because the body
@@ -493,11 +509,12 @@ are not allowed to modify any memory.
 ## 5.5. Iterator Specification {#sec-iterator-specification}
 ````grammar
 IteratorSpec =
-  { IteratorReadsClause_
-  | ModifiesClause_
-  | [ "yield" ] RequiresClause_
-  | [ "yield" ] EnsuresClause_
-  | DecreasesClause_(allowWildcard: false, allowLambda: false)
+  { ReadsClause(allowLemma: false, allowLambda: false,
+                                  allowWild: false)
+  | ModifiesClause(allowLambda: false)
+  | [ "yield" ] RequiresClause(allowLabel: !isYield)
+  | [ "yield" ] EnsuresClause(allowLambda: false)
+  | DecreasesClause(allowWildcard: false, allowLambda: false)
   }
 ````
 
@@ -518,8 +535,8 @@ the `Valid()` predicate?
 ````grammar
 LoopSpec =
   { InvariantClause_
-  | DecreasesClause_(allowWildcard: true, allowLambda: true)
-  | ModifiesClause_
+  | DecreasesClause(allowWildcard: true, allowLambda: true)
+  | ModifiesClause(allowLambda: true)
   }
 ````
 
@@ -527,7 +544,7 @@ A loop specification provides the information Dafny needs to
 prove properties of a loop. The ``InvariantClause_`` clause
 is effectively a precondition and it along with the
 negation of the loop test condition provides the postcondition.
-The ``DecreasesClause_`` clause is used to prove termination.
+The ``DecreasesClause`` clause is used to prove termination.
 
 ## 5.7. Auto-generated boilerplate specifications
 

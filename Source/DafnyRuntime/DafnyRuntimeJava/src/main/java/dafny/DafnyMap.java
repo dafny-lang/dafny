@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 package dafny;
 
 import java.util.*;
@@ -5,25 +8,30 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class DafnyMap<K, V> implements Map<K, V> {
+public class DafnyMap<K, V> {
     private Map<K, V> innerMap;
 
     public DafnyMap() {
         innerMap = new HashMap<>();
     }
 
+    private DafnyMap(HashMap<K, V> innerMap) {
+        this.innerMap = innerMap;
+    }
+
     public DafnyMap(Map<K, V> m) {
         assert m != null : "Precondition Violation";
         innerMap = new HashMap<>();
-        m.forEach((k, v) -> put(k, v));
+        m.forEach((k, v) -> innerMap.put(k, v));
     }
 
     public static <K, V> DafnyMap<K, V> empty() { return new DafnyMap<K, V>(); }
 
+    @SuppressWarnings("unchecked")
     public static <K, V> DafnyMap<K, V> fromElements(Tuple2<K, V> ... pairs) {
         DafnyMap<K, V> result = new DafnyMap<K, V>();
         for (Tuple2<K, V> pair : pairs) {
-            result.put(pair.dtor__0(), pair.dtor__1());
+            result.innerMap.put(pair.dtor__0(), pair.dtor__1());
         }
         return result;
     }
@@ -51,11 +59,6 @@ public class DafnyMap<K, V> implements Map<K, V> {
     }
 
     @Override
-    protected Object clone() throws CloneNotSupportedException {
-        return super.clone();
-    }
-
-    @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null) return false;
@@ -73,69 +76,53 @@ public class DafnyMap<K, V> implements Map<K, V> {
     public String toString() {
         String s = "map[";
         String sep = "";
-        for (Entry<K, V> entry : innerMap.entrySet()) {
+        for (Map.Entry<K, V> entry : innerMap.entrySet()) {
             s += sep + Helpers.toString(entry.getKey()) + " := " + Helpers.toString(entry.getValue());
             sep = ", ";
         }
         return s + "]";
     }
 
-    @Override
     public void forEach(BiConsumer<? super K, ? super V> action) {
         innerMap.forEach(action);
     }
 
-    @Override
-    public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
-        innerMap.replaceAll(function);
+    @SuppressWarnings("unchecked")
+    public static <K, V> DafnyMap<? extends K, ? extends V> merge(DafnyMap<? extends K, ? extends V> th, DafnyMap<? extends K, ? extends V> other) {
+        assert th != null : "Precondition Violation";
+        assert other != null : "Precondition Violation";
+
+        if (th.isEmpty()) {
+            return (DafnyMap<K, V>)other;
+        } else if (other.isEmpty()) {
+            return (DafnyMap<K, V>)th;
+        }
+
+        Map<K, V> m = new HashMap<K, V>(other.innerMap);
+        th.forEach((k, v) -> {
+                if (!m.containsKey(k)) {
+                    m.put(k, v);
+                }
+            });
+        return new DafnyMap<K, V>(m);
     }
 
-    @Override
-    public V getOrDefault(Object key, V defaultValue) {
-        return innerMap.getOrDefault(key, defaultValue);
+    @SuppressWarnings("unchecked")
+    public static <K, V> DafnyMap<? extends K, ? extends V> subtract(DafnyMap<? extends K, ? extends V> th, DafnySet<? extends K> keys) {
+        assert th != null : "Precondition Violation";
+        assert keys != null : "Precondition Violation";
+
+        if (th.isEmpty() || keys.isEmpty()) {
+            return (DafnyMap<K, V>)th;
+        }
+
+        Map<K, V> m = new HashMap(th.innerMap);
+        for (K k : keys.Elements()) {
+            m.remove(k);
+        }
+        return new DafnyMap<K, V>(m);
     }
 
-    @Override
-    public V putIfAbsent(K key, V value) {
-        return innerMap.putIfAbsent(key, value);
-    }
-
-    @Override
-    public boolean remove(Object key, Object value) {
-        return innerMap.remove(key, value);
-    }
-
-    @Override
-    public boolean replace(K key, V oldValue, V newValue) {
-        return innerMap.replace(key, oldValue, newValue);
-    }
-
-    @Override
-    public V replace(K key, V value) {
-        return innerMap.replace(key, value);
-    }
-
-    @Override
-    public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
-        return innerMap.computeIfAbsent(key, mappingFunction);
-    }
-
-    @Override
-    public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-        return innerMap.computeIfPresent(key, remappingFunction);
-    }
-
-    @Override
-    public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-        return innerMap.compute(key, remappingFunction);
-    }
-
-    @Override
-    public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
-        return innerMap.merge(key, value, remappingFunction);
-    }
-
-    @Override
     public int size() {
         return innerMap.size();
     }
@@ -144,74 +131,28 @@ public class DafnyMap<K, V> implements Map<K, V> {
         return size();
     }
 
-    @Override
     public boolean isEmpty() {
         return innerMap.isEmpty();
     }
 
-    @Override
-    public boolean containsKey(Object key) {
-        return innerMap.containsKey(key);
-    }
-
-    @Override
-    public boolean containsValue(Object value) {
-        return innerMap.containsValue(value);
-    }
-
-    @Override
     public V get(Object key) {
         return innerMap.get(key);
     }
 
-    @Override
-    public V put(K key, V value) {
-        return innerMap.put(key, value);
-    }
-
-    @Override
-    public V remove(Object key) {
-        return innerMap.remove(key);
-    }
-
-    @Override
-    public void putAll(Map<? extends K, ? extends V> m) {
-        innerMap.putAll(m);
-    }
-
-    @Override
-    public void clear() {
-        innerMap.clear();
-    }
-
-    @Override
-    public Set<K> keySet() {
-        return innerMap.keySet();
-    }
-
-    @Override
-    public Collection<V> values() {
-        return new HashSet<>(innerMap.values());
-    }
-
-    @Override
-    public Set<Entry<K, V>> entrySet() {
-        return innerMap.entrySet();
-    }
-
-    public DafnySet<K> dafnyKeySet() {
+    public DafnySet<K> keySet() {
         return new DafnySet<>(innerMap.keySet());
     }
 
-    public DafnySet<V> dafnyValues() {
+    public DafnySet<V> valueSet() {
         return new DafnySet<>(innerMap.values());
     }
 
     // Until tuples (and other datatypes) are compiled with type-argument variance, the following
     // method takes type parameters <KK, VV>. The expectation is that <K, V> is <? extends KK, ? extends VV>.
-    public <KK, VV> DafnySet<? extends Tuple2<KK, VV>> dafnyEntrySet() {
+    @SuppressWarnings("unchecked")
+    public <KK, VV> DafnySet<? extends Tuple2<KK, VV>> entrySet() {
         ArrayList<Tuple2<K, V>> list = new ArrayList<Tuple2<K, V>>();
-        for (Entry<K, V> entry : innerMap.entrySet()) {
+        for (Map.Entry<K, V> entry : innerMap.entrySet()) {
             list.add(new Tuple2<K, V>(entry.getKey(), entry.getValue()));
         }
         return (DafnySet<? extends Tuple2<KK, VV>>)(Object)new DafnySet<Tuple2<K, V>>(list);

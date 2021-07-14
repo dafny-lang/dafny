@@ -8,7 +8,7 @@ RuntimeTypeTests0.dfy(58,9): Error: compilation does not support trait types as 
 Dafny program verifier did not attempt verification
 RuntimeTypeTests0.dfy(49,9): Error: compilation does not support trait types as a type parameter (got 'object'); consider introducing a ghost
 RuntimeTypeTests0.dfy(58,9): Error: compilation does not support trait types as a type parameter (got 'object'); consider introducing a ghost
-File RuntimeTypeTests0/RuntimeTypeTests0.java contains the partially compiled program
+Wrote textual form of partial target program to RuntimeTypeTests0-java/RuntimeTypeTests0.java
 
 Dafny program verifier did not attempt verification
 {5, 7} and {5, 7}

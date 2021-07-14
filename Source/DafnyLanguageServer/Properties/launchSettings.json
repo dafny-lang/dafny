@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "DafnyLS": {
+      "commandName": "Project",
+      "remoteDebugEnabled": false,
+      "nativeDebugging": true
+    }
+  }
+}

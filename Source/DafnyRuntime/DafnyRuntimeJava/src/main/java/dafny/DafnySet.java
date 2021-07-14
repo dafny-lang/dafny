@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 package dafny;
 
 import java.util.*;
@@ -79,6 +82,7 @@ public class DafnySet<T> {
         return true;
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> DafnySet<T> union(DafnySet<? extends T> th, DafnySet<? extends T> other) {
         assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";
@@ -95,6 +99,7 @@ public class DafnySet<T> {
     }
 
     //Returns a DafnySet containing elements only found in the current DafnySet
+    @SuppressWarnings("unchecked")
     public static <T> DafnySet<T> difference(DafnySet<? extends T> th, DafnySet<? extends T> other) {
         assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";

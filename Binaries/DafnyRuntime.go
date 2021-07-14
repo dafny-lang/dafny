@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 package dafny
 
 import (
@@ -166,8 +169,11 @@ var MapType = CreateStandardTypeDescriptor(EmptyMap)
 //   var s: set<UberTrait> := ...
 //   // the following line requires run-time check that t (of type UberTrait) is a Trait
 //   var ts := set t: Trait | t in s;
+// A more straightforward situation is the expression
+//   x is Trait
 
 type TraitID struct {
+  dummy byte
 }
 
 type TraitOffspring interface {
@@ -182,6 +188,45 @@ func InstanceOfTrait(obj TraitOffspring, trait *TraitID) bool {
   }
   return false
 }
+
+// Use this method to test if an object "p" has a given class type (denoted by the
+// type of "q"). More generally, this method returns true if p and q are of the
+// same type. It is assumed that neither "p" nor "q" denotes a Dafny "null" value.
+
+func InstanceOf(p interface{}, q interface{}) bool {
+  return refl.TypeOf(p) == refl.TypeOf(q)
+}
+
+/******************************************************************************
+ * Object
+ ******************************************************************************/
+
+type Object struct {
+  dummy byte
+}
+
+func New_Object() *Object {
+  _this := Object{}
+  return &_this
+}
+
+func (_this *Object) Equals(other *Object) bool {
+  return _this == other
+}
+
+func (_this *Object) EqualsGeneric(x interface{}) bool {
+  other, ok := x.(*Object)
+  return ok && _this.Equals(other)
+}
+
+func (*Object) String() string {
+  return "object"
+}
+
+func (_this *Object) ParentTraits_() []*TraitID {
+  return [](*TraitID){};
+}
+var _ TraitOffspring = &Object{}
 
 /******************************************************************************
  * Characters
@@ -1443,6 +1488,39 @@ func (m Map) Update(key, value interface{}) Map {
     ans.elts = append(ans.elts, mapElt{key, value})
   }
   return ans
+}
+
+func (a Map) Merge(b Map) Map {
+  if a.CardinalityInt() == 0 {
+    return b
+  }
+  if b.CardinalityInt() == 0 {
+    return a
+  }
+
+  m := make([]mapElt, len(b.elts), len(a.elts) + len(b.elts))
+  copy(m, b.elts)
+  for _, e := range a.elts {
+    _, found := b.findIndex(e.key)
+    if !found {
+      m = append(m, e)
+    }
+  }
+  return Map{m}
+}
+
+func (a Map) Subtract(keys Set) Map {
+  if a.CardinalityInt() == 0 || keys.CardinalityInt() == 0 {
+    return a
+  }
+
+  mb := NewMapBuilder()
+  for _, e := range a.elts {
+    if !keys.Contains(e.key) {
+      *mb = append(*mb, e)
+    }
+  }
+  return mb.ToMap()
 }
 
 // Equals returns whether each map associates the same keys to the same values.

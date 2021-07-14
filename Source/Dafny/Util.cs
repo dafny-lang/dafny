@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -44,6 +47,11 @@ namespace Microsoft.Dafny {
         c = comma;
       }
       return res;
+    }
+
+    public static string Plural(int n) {
+      Contract.Requires(0 <= n);
+      return n == 1 ? "" : "s";
     }
 
     public static string Repeat(string str, int times) {

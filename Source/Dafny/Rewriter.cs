@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -213,7 +216,7 @@ namespace Microsoft.Dafny
             for (int i = 0; i < s0.Method.Ins.Count; i++) {
               argsSubstMap.Add(s0.Method.Ins[i], s0.Args[i]);
             }
-            var substituter = new Translator.AlphaConverting_Substituter(s0.Receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
+            var substituter = new AlphaConverting_Substituter(s0.Receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
             // Strengthen the range of the "forall" statement with the precondition of the call, suitably substituted with the actual parameters.
             if (Attributes.Contains(s.Attributes, "_autorequires")) {
               var range = s.Range;
@@ -257,7 +260,7 @@ namespace Microsoft.Dafny
           Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
           var substMap = new Dictionary<IVariable, Expression>();
           substMap.Add(j, e);
-          Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap);
+          Substituter sub = new Substituter(null, substMap, typeMap);
           var v = new ForallStmtTranslationValues(sub.Substitute(Range), sub.Substitute(FInverse));
           return v;
         }
@@ -392,7 +395,7 @@ namespace Microsoft.Dafny
         Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
         Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
         substMap.Add(v, e);
-        Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap);
+        Substituter sub = new Substituter(null, substMap, typeMap);
         return sub.Substitute(expr);
       }
     }
@@ -508,7 +511,7 @@ namespace Microsoft.Dafny
           valid.Reads.Add(new FrameExpression(tok, r1, null));
           // ensures Valid() ==> this in Repr
           var post = new BinaryExpr(tok, BinaryExpr.Opcode.Imp,
-            new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>()),
+            new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<ActualBinding>()),
             new BinaryExpr(tok, BinaryExpr.Opcode.In,
               new ThisExpr(tok),
                new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr")));
@@ -522,7 +525,7 @@ namespace Microsoft.Dafny
         } else if (member is Function && !member.IsStatic) {
           var f = (Function)member;
           // requires Valid()
-          var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>());
+          var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<ActualBinding>());
           f.Req.Insert(0, new AttributedExpression(valid));
           var format = "requires {0}";
           var repr = new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr");
@@ -535,7 +538,7 @@ namespace Microsoft.Dafny
         } else if (member is Constructor) {
           var ctor = (Constructor)member;
           // ensures Valid();
-          var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>());
+          var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<ActualBinding>());
           ctor.Ens.Insert(0, new AttributedExpression(valid));
           // ensures fresh(Repr);
           var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh,
@@ -870,7 +873,7 @@ namespace Microsoft.Dafny
       call.Type = Type.Bool;
       call.TypeApplication_AtEnclosingClass = receiver.Type.TypeArgs;
       call.TypeApplication_JustFunction = new List<Type>();
-      callingContext.EnclosingModule.CallGraph.AddEdge(callingContext, Valid);
+      callingContext.EnclosingModule.CallGraph.AddEdge((ICallable)CodeContextWrapper.Unwrap(callingContext), Valid);
       return call;
     }
 
@@ -905,7 +908,7 @@ namespace Microsoft.Dafny
   public class OpaqueFunctionRewriter : IRewriter {
     protected Dictionary<Function, Function> fullVersion; // Given an opaque function, retrieve the full
     protected Dictionary<Function, Function> original;    // Given a full version of an opaque function, find the original opaque version
-    protected Dictionary<Lemma, Function> revealOriginal; // Map reveal_* lemmas back to their original functions
+    protected Dictionary<Method, Function> revealOriginal; // Map reveal_* lemmas (or two-state lemmas) back to their original functions
 
     public OpaqueFunctionRewriter(ErrorReporter reporter)
       : base(reporter) {
@@ -913,7 +916,7 @@ namespace Microsoft.Dafny
 
       fullVersion = new Dictionary<Function, Function>();
       original = new Dictionary<Function, Function>();
-      revealOriginal = new Dictionary<Lemma, Function>();
+      revealOriginal = new Dictionary<Method, Function>();
     }
 
     internal override void PreResolve(ModuleDefinition m) {
@@ -926,8 +929,8 @@ namespace Microsoft.Dafny
 
     internal override void PostResolve(ModuleDefinition m) {
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
-        if (decl is Lemma) {
-          var lem = (Lemma)decl;
+        if (decl is Lemma || decl is TwoStateLemma) {
+          var lem = (Method)decl;
           if (revealOriginal.ContainsKey(lem)) {
             Function fn = revealOriginal[lem];
             AnnotateRevealFunction(lem, fn);
@@ -936,7 +939,8 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected void AnnotateRevealFunction(Lemma lemma, Function f) {
+    protected void AnnotateRevealFunction(Method lemma, Function f) {
+      Contract.Requires(lemma is Lemma || lemma is TwoStateLemma);
       Expression receiver;
       if (f.IsStatic) {
         receiver = new StaticReceiverExpr(f.tok, (TopLevelDeclWithMembers)f.EnclosingClass, true);
@@ -1002,7 +1006,9 @@ namespace Microsoft.Dafny
       // We produce:
       //   lemma {:axiom} {:auto_generated} {:fuel foo, 1, 2 } reveal_foo()
       //
-      // The translator, in AddMethod, then adds ensures clauses to bump up the fuel parameters approriately
+      // If "foo" is a two-state function, then "reveal_foo" will be declared as a two-state lemma.
+      //
+      // The translator, in AddMethod, then adds ensures clauses to bump up the fuel parameters appropriately
 
       var cloner = new Cloner();
 
@@ -1020,9 +1026,16 @@ namespace Microsoft.Dafny
       lemma_attrs = new Attributes("auto_generated", new List<Expression>(), lemma_attrs);
       lemma_attrs = new Attributes("opaque_reveal", new List<Expression>(), lemma_attrs);
       lemma_attrs = new Attributes("verify", new List<Expression>() { new LiteralExpr(f.tok, false)}, lemma_attrs);
-      var reveal = new Lemma(f.tok, "reveal_" + f.Name, f.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
-                              new Specification<FrameExpression>(new List<FrameExpression>(), null), /* newEnsuresList*/new List<AttributedExpression>(),
-                              new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
+      Method reveal;
+      if (f is TwoStateFunction) {
+        reveal = new TwoStateLemma(f.tok, "reveal_" + f.Name, f.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
+          new Specification<FrameExpression>(new List<FrameExpression>(), null), /* newEnsuresList*/new List<AttributedExpression>(),
+          new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
+      } else {
+        reveal = new Lemma(f.tok, "reveal_" + f.Name, f.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
+          new Specification<FrameExpression>(new List<FrameExpression>(), null), /* newEnsuresList*/new List<AttributedExpression>(),
+          new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
+      }
       newDecls.Add(reveal);
       revealOriginal[reveal] = f;
       reveal.InheritVisibility(f, true);
@@ -1116,7 +1129,7 @@ namespace Microsoft.Dafny
         substMap.Add(formals[i], values[i]);
       }
 
-      Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap);
+      Substituter sub = new Substituter(f_this, substMap, typeMap);
       return sub.Substitute(e);
     }
 
@@ -1192,7 +1205,7 @@ namespace Microsoft.Dafny
         }
 
         foreach (var req in f.Req) {
-          Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap);
+          Substituter sub = new Substituter(f_this, substMap, typeMap);
           translated_f_reqs.Add(sub.Substitute(req.E));
         }
       }
@@ -1350,8 +1363,6 @@ namespace Microsoft.Dafny
           //    2) Add forall x :: g(x) ==> WP(f(x, y)) to the function's requirements
           //    3) Current option -- do nothing.  Up to the spec writer to fix
         }
-      } else if (expr is NamedExpr) {
-        reqs.AddRange(generateAutoReqs(((NamedExpr)expr).Body));
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
 
@@ -1487,9 +1498,8 @@ namespace Microsoft.Dafny
 
     internal override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
-        if (d is ClassDecl) {
-          var c = (ClassDecl)d;
-          foreach (MemberDecl member in c.Members)  {
+        if (d is TopLevelDeclWithMembers tld) {
+          foreach (MemberDecl member in tld.Members)  {
             if (member is Function || member is Method) {
               // Check for the timeLimitMultiplier attribute
               if (Attributes.Contains(member.Attributes, "timeLimitMultiplier")) {
@@ -1500,9 +1510,22 @@ namespace Microsoft.Dafny
                       var arg = attr.Args[0] as LiteralExpr;
                       System.Numerics.BigInteger value = (System.Numerics.BigInteger)arg.Value;
                       if (value.Sign > 0) {
-                        int current_limit = DafnyOptions.O.TimeLimit > 0 ? DafnyOptions.O.TimeLimit : 10;  // Default to 10 seconds
-                        attr.Args[0] = new LiteralExpr(attr.Args[0].tok, value * current_limit);
-                        attr.Name = "timeLimit";
+                        int current_limit = 0;
+                        string name = "";
+                        if (DafnyOptions.O.ResourceLimit > 0) {
+                          // Interpret this as multiplying the resource limit
+                          current_limit = DafnyOptions.O.ResourceLimit;
+                          name = "rlimit";
+                        } else {
+                          // Interpret this as multiplying the time limit
+                          current_limit = DafnyOptions.O.TimeLimit > 0 ? DafnyOptions.O.TimeLimit : 10;  // Default to 10 seconds
+                          name = "timeLimit";
+                        }
+                        Expression newArg = new LiteralExpr(attr.Args[0].tok, value * current_limit);
+                        member.Attributes = new Attributes("_" + name, new List<Expression>() { newArg }, attrs);
+                        if (Attributes.Contains(attrs, name)) {
+                          reporter.Warning(MessageSource.Rewriter, member.tok, "timeLimitMultiplier annotation overrides " + name + " annotation");
+                        }
                       }
                     }
                   }
@@ -1570,7 +1593,7 @@ namespace Microsoft.Dafny
         }
         return new NameSegment(new AutoGeneratedToken(e.tok), bv.Name, null);
       } else {
-        return new ApplySuffix(Tok(e.tok), CloneExpr(e.Lhs), e.Args.ConvertAll(CloneExpr));
+        return new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), CloneExpr(e.Lhs), e.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding));
       }
     }
 
@@ -1727,6 +1750,9 @@ namespace Microsoft.Dafny
         } else if (DafnyOptions.O.Induction == 2 && lemma != null) {
           // We're asked to infer induction variables only for quantifiers, not for lemmas
           return;
+        } else if (DafnyOptions.O.Induction == 4 && lemma == null) {
+          // We're asked to infer induction variables only for lemmas, not for quantifiers
+          return;
         }
         // GO INFER below (only select boundVars)
       } else if (args.Count == 0) {
@@ -1786,7 +1812,7 @@ namespace Microsoft.Dafny
         }
       }
       foreach (IVariable n in boundVars) {
-        if (!(n.Type.IsTypeParameter || n.Type.IsInternalTypeSynonym) && (args != null || searchExprs.Exists(expr => VarOccursInArgumentToRecursiveFunction(expr, n)))) {
+        if (!(n.Type.IsTypeParameter || n.Type.IsOpaqueType || n.Type.IsInternalTypeSynonym) && (args != null || searchExprs.Exists(expr => VarOccursInArgumentToRecursiveFunction(expr, n)))) {
           inductionVariables.Add(new IdentifierExpr(n.Tok, n));
         }
       }

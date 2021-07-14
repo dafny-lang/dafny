@@ -14,7 +14,7 @@ method TestAssignOrHalt() {
     // to the error "type variable 'U' in the function call to 'PropagateFailure' could not be determined"
     // (because of the lack of type constraints).
     var stmt2: string :- expect Success("Hooray!");
-    
+
     var stmt3: nat :- expect NatFailure("Kaboom!");
 }
 

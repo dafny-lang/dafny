@@ -1,7 +1,12 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 #include <iostream>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 #include <memory>
 #include <unordered_set>
@@ -68,6 +73,31 @@ private:
    iterator end_;
 };
 
+// Workaround the fact that Apple's clang and g++ print nullptr as 0x0,
+// while Linux's g++ prints it as 0
+template<typename T>
+void dafny_print(T x) {
+  std::cout << x;
+}
+
+template<typename T>
+void dafny_print(T* x) {
+  if (x == nullptr) {
+    std::cout << "NULL";
+  } else {
+    std::cout << x;
+  }
+}
+
+template<typename T>
+void dafny_print(std::shared_ptr<T> x) {
+  if (x == nullptr) {
+    std::cout << "NULL";
+  } else {
+    std::cout << x;
+  }
+}
+
 /*********************************************************
  *  DEFAULTS                                             *
  *********************************************************/
@@ -113,138 +143,38 @@ struct get_default<std::shared_ptr<U>> {
  *  TUPLES                                               *
  *********************************************************/
 
-template <typename T0, typename T1>
-struct Tuple2 {
-  T0 t0;
-  T1 t1;
+struct Tuple0 {};
 
-  Tuple2() {
-    t0 = get_default<T0>::call();
-    t1 = get_default<T1>::call();
+template <typename... Types>
+struct Tuple{
+ public:
+  Tuple() : Tuple(get_default<Types>::call()...) {}
+  Tuple(Types... values) : values_(values...) {}
+
+  using StdTuple = std::tuple<Types...>;
+
+  template <std::size_t Index>
+  std::tuple_element_t<Index, StdTuple> get() {
+    return std::get<Index>(values_);
   }
 
-  Tuple2(T0 _t0, T1 _t1) {
-    t0 = _t0;
-    t1 = _t1;
-  }
-
-  T0 get_0() const { return t0; }
-  T1 get_1() const { return t1; }
+  StdTuple values_;
 };
 
-template <typename T0, typename T1>
-inline std::ostream& operator<<(std::ostream& out, const Tuple2<T0, T1>& val){
-  out << val.get_0();
-  out << val.get_1();
-  return out;
+template <typename TupleType, int Index = TupleType::size() - 1 >
+std::ostream& PrintElements(const TupleType& tuple, std::ostream& out) {
+  if (Index != 0) {
+    PrintElements<TupleType, Index - 1>(tuple, out);
+  }
+  return out << std::get<Index>(tuple);
 }
 
-template <typename T0, typename T1, typename T2>
-struct Tuple3 {
-  T0 t0;
-  T1 t1;
-  T2 t2;
-
-  Tuple3() {
-    t0 = get_default<T0>::call();
-    t1 = get_default<T1>::call();
-    t2 = get_default<T2>::call();
-  }
-
-  Tuple3(T0 _t0, T1 _t1, T2 _t2) {
-    t0 = _t0;
-    t1 = _t1;
-    t2 = _t2;
-  }
-
-  T0 get_0() const { return t0; }
-  T1 get_1() const { return t1; }
-  T2 get_2() const { return t2; }
-};
-
-template <typename T0, typename T1, typename T2>
-inline std::ostream& operator<<(std::ostream& out, const Tuple3<T0, T1, T2>& val){
-  out << val.get_0();
-  out << val.get_1();
-  out << val.get_2();
-  return out;
-}
-
-template <typename T0, typename T1, typename T2, typename T3>
-struct Tuple4 {
-  T0 t0;
-  T1 t1;
-  T2 t2;
-  T3 t3;
-
-  Tuple4() {
-    t0 = get_default<T0>::call();
-    t1 = get_default<T1>::call();
-    t2 = get_default<T2>::call();
-    t3 = get_default<T3>::call();
-  }
-
-  Tuple4(T0 _t0, T1 _t1, T2 _t2, T3 _t3) {
-    t0 = _t0;
-    t1 = _t1;
-    t2 = _t2;
-    t3 = _t3;
-  }
-
-  T0 get_0() const { return t0; }
-  T1 get_1() const { return t1; }
-  T2 get_2() const { return t2; }
-  T3 get_3() const { return t3; }
-};
-
-template <typename T0, typename T1, typename T2, typename T3>
-inline std::ostream& operator<<(std::ostream& out, const Tuple4<T0, T1, T2, T3>& val){
-  out << val.get_0();
-  out << val.get_1();
-  out << val.get_2();
-  out << val.get_3();
-  return out;
-}
-
-template <typename T0, typename T1, typename T2, typename T3, typename T4>
-struct Tuple5 {
-  T0 t0;
-  T1 t1;
-  T2 t2;
-  T3 t3;
-  T4 t4;
-
-  Tuple5() {
-    t0 = get_default<T0>::call();
-    t1 = get_default<T1>::call();
-    t2 = get_default<T2>::call();
-    t3 = get_default<T3>::call();
-    t4 = get_default<T4>::call();
-  }
-
-  Tuple5(T0 _t0, T1 _t1, T2 _t2, T3 _t3, T4 _t4) {
-    t0 = _t0;
-    t1 = _t1;
-    t2 = _t2;
-    t3 = _t3;
-    t4 = _t4;
-  }
-
-  T0 get_0() const { return t0; }
-  T1 get_1() const { return t1; }
-  T2 get_2() const { return t2; }
-  T3 get_3() const { return t3; }
-  T4 get_4() const { return t4; }
-};
-
-template <typename T0, typename T1, typename T2, typename T3, typename T4>
-inline std::ostream& operator<<(std::ostream& out, const Tuple5<T0, T1, T2, T3, T4>& val){
-  out << val.get_0();
-  out << val.get_1();
-  out << val.get_2();
-  out << val.get_3();
-  out << val.get_4();
-  return out;
+// Use a separate head template parameter to force Tuple to have at least one
+// element. This prevents the compiler from eagerly expanding Tail as an empty
+// list and causing compilation errors.
+template <typename Head, typename... Tail>
+inline std::ostream& operator<<(std::ostream& out, const Tuple<Head, Tail...>& val){
+  return PrintElements(val.values_, out);
 }
 
 /*********************************************************
@@ -739,6 +669,27 @@ struct DafnyMap {
         return ret;
     }
 
+    DafnyMap<K, V> Merge(DafnyMap<K, V> other) {
+        DafnyMap<K,V> ret(other);
+        for (const auto& kv : map) {
+            auto ptr = other.map.find(kv.first);
+            if (ptr == other.map.end()) {
+                ret.map.emplace(kv.first, kv.second);
+            }
+        }
+        return ret;
+    }
+
+    DafnyMap<K, V> Subtract(DafnySet<K> keys) {
+        DafnyMap<K,V> ret = DafnyMap();
+        for (const auto& kv : map) {
+            if (!keys.contains(kv.first)) {
+                ret.map.emplace(kv.first, kv.second);
+            }
+        }
+        return ret;
+    }
+
     uint64 size () const { return map.size(); }
 
     bool isEmpty() const { return map.empty(); }
@@ -807,4 +758,3 @@ struct std::hash<DafnyMap<T,U>> {
         return seed;
     }
 };
-

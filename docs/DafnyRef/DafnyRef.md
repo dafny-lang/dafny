@@ -54,32 +54,8 @@ user understand how to do proofs with Dafny.
 <!--PDF NEWPAGE-->
 {% include_relative UserGuide.md %}
 
-# 27. TODO
 
--- const, static const
-
--- declarations
-
--- inference of array sizes
-
--- witness, ghost witness clauses
-
--- customizable error messages
-
--- opaque types
-
--- traits, object
-
--- non-null types
-
--- abstemious functions
-
--- labels (for program locations)
-
--- updates to shared destructors
-
--- labelled assertion statements, labelled preconditions
 
 {% include_relative SyntaxTests.md %}
 
-# 29. References
+# 26. References

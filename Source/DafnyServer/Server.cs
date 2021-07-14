@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 using System;
 using System.IO;
 using System.Text;
@@ -31,7 +34,7 @@ namespace Microsoft.Dafny {
         encode = true;
         n++;
       }
-      
+
       if (selftest) {
         VerificationTask.SelfTest();
         return;

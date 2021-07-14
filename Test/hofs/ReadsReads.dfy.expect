@@ -25,12 +25,12 @@ Execution trace:
 ReadsReads.dfy(99,36): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    ReadsReads.dfy(96,14): anon15_Else
-    (0,0): anon19_Then
+    ReadsReads.dfy(96,14): anon17_Else
+    (0,0): anon22_Then
 ReadsReads.dfy(101,28): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    ReadsReads.dfy(96,14): anon15_Else
-    (0,0): anon21_Then
+    ReadsReads.dfy(96,14): anon17_Else
+    (0,0): anon24_Then
 
 Dafny program verifier finished with 13 verified, 8 errors

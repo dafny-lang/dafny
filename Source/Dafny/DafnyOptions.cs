@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,11 +22,7 @@ namespace Microsoft.Dafny
 
     public override string VersionNumber {
       get {
-        return System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion
-#if ENABLE_IRONDAFNY
-          + "[IronDafny]"
-#endif
-          ;
+        return System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).FileVersion;
       }
     }
     public override string Version {
@@ -50,8 +49,7 @@ namespace Microsoft.Dafny
 
     public bool UnicodeOutput = false;
     public bool DisallowSoundnessCheating = false;
-    public bool Dafnycc = false;
-    public int Induction = 3;
+    public int Induction = 4;
     public int InductionHeuristic = 6;
     public bool TypeInferenceDebug = false;
     public bool MatchCompilerDebug = false;
@@ -69,6 +67,7 @@ namespace Microsoft.Dafny
     public bool CompileVerbose = true;
     public string DafnyPrintCompiledFile = null;
     public string CoverageLegendFile = null;
+    public string MainMethod = null;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
     public int SpillTargetCode = 0;  // [0..4]
@@ -100,13 +99,7 @@ namespace Microsoft.Dafny
     public bool UseRuntimeLib = false;
     public bool DisableScopes = false;
     public int Allocated = 3;
-    public bool IronDafny =
-#if ENABLE_IRONDAFNY
-      true
-#else
-      false
-#endif
-    ;
+    public bool UseStdin = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -191,12 +184,19 @@ namespace Microsoft.Dafny
           return true;
 
         case "compileVerbose": {
-            int verbosity = 0;
-            if (ps.GetNumericArgument(ref verbosity, 2)) {
-              CompileVerbose = verbosity == 1;
-            }
-            return true;
+          int verbosity = 0;
+          if (ps.GetNumericArgument(ref verbosity, 2)) {
+            CompileVerbose = verbosity == 1;
           }
+          return true;
+        }
+
+        case "Main": case "main": {
+          if (ps.ConfirmArgumentCount(1)) {
+            MainMethod = args[ps.i];
+          }
+          return true;
+        }
 
         case "dafnyVerify":
             {
@@ -228,13 +228,6 @@ namespace Microsoft.Dafny
           return true;
         }
 
-        case "dafnycc":
-          Dafnycc = true;
-          Induction = 0;
-          Compile = false;
-          UseAbstractInterpretation = false; // /noinfer
-          return true;
-
         case "noCheating": {
             int cheat = 0; // 0 is default, allows cheating
             if (ps.GetNumericArgument(ref cheat, 2)) {
@@ -252,7 +245,7 @@ namespace Microsoft.Dafny
           return true;
 
         case "induction":
-          ps.GetNumericArgument(ref Induction, 4);
+          ps.GetNumericArgument(ref Induction, 5);
           return true;
 
         case "inductionHeuristic":
@@ -359,16 +352,6 @@ namespace Microsoft.Dafny
             return true;
         }
 
-        case "noIronDafny": {
-            IronDafny = false;
-            return true;
-        }
-
-        case "ironDafny": {
-            IronDafny = true;
-            return true;
-        }
-
         case "optimizeResolution": {
             int d = 2;
             if (ps.GetNumericArgument(ref d, 3)) {
@@ -413,6 +396,11 @@ namespace Microsoft.Dafny
             }
           }
           return true;
+
+        case "stdin": {
+            UseStdin = true;
+            return true;
+          }
 
         default:
           break;
@@ -605,7 +593,6 @@ namespace Microsoft.Dafny
       } else {
         var platform = (int)System.Environment.OSVersion.Platform;
 
-        // http://www.mono-project.com/docs/faq/technical/
         var isUnix = platform == 4 || platform == 6 || platform == 128;
 
         var z3binName = isUnix ? "z3" : "z3.exe";
@@ -640,14 +627,9 @@ namespace Microsoft.Dafny
       // Boogie also used to set the following options, but does not anymore.
       SetZ3Option("auto_config", "false");
       SetZ3Option("type_check", "true");
-      SetZ3Option("smt.phase_selection", "0");  // TODO: this seems not to be needed
-      SetZ3Option("smt.restart_strategy", "0");  // TODO: this seems not to be needed
-      SetZ3Option("smt.restart_factor", "|1.5|");  // TODO: this seems not to be needed
-      SetZ3Option("smt.arith.random_initial_value", "true");  // TODO: this seems not to be needed
-      SetZ3Option("smt.case_split", "3");
-      SetZ3Option("smt.qi.eager_threshold", "100");
+      SetZ3Option("smt.case_split", "3");  // TODO: try removing
+      SetZ3Option("smt.qi.eager_threshold", "100");  // TODO: try lowering
       SetZ3Option("smt.delay_units", "true");
-      SetZ3Option("nnf.sk_hack", "true");  // TODO: this seems not to be needed
       SetZ3Option("smt.arith.solver", "2");
 
       if (DisableNLarith || 3 <= ArithMode) {
@@ -716,24 +698,27 @@ namespace Microsoft.Dafny
     Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     This includes lack of support for BigIntegers (aka int), most higher order
     functions, and advanced features like traits or co-inductive types.
+/Main:<name>
+    The (fully-qualified) name of the method to use as the executable entry point.
+    Default is the method with the {:main} atrribute, or else the method named 'Main'.
 /compileVerbose:<n>
     0 - don't print status of compilation to the console
     1 (default) - print information such as files being written by
         the compiler to the console
 /spillTargetCode:<n>
-    0 (default) - don't write the compiled Dafny program (but
-        still compile it, if /compile indicates to do so)
-    1 - write the compiled Dafny program in the target language,
-        if it is being compiled
-    2 - write the compiled Dafny program in the target language,
-        provided it passes the verifier (and /noVerify is NOT used),
-        regardless of /compile setting
-    3 - write the compiled Dafny program in the target language,
-        regardless of verification outcome and /compile setting
-    NOTE: If there are .cs or .dll files on the command line, then
-    the compiled Dafny program will also be written. More precisely,
-    such files on the command line implies /spillTargetCode:1 (or
-    higher, if manually specified).
+    This option concerns the textual representation of the target program.
+    This representation is of no interest when working with only Dafny code,
+    but may be of interest in cross-language situations.
+    0 (default) - Don't make any extra effort to write the textual target program
+        (but still compile it, if /compile indicates to do so).
+    1 - Write the textual target program, if it is being compiled.
+    2 - Write the textual target program, provided it passes the verifier (and
+        /noVerify is NOT used), regardless of /compile setting.
+    3 - Write the textual target program, regardless of verification outcome
+        and /compile setting.
+    Note, some compiler targets may (always or in some situations) write out the
+    textual target program as part of compilation, in which case /spillTargetCode:0
+    behaves the same way as /spillTargetCode:1.
 /out:<file>
     filename and location for the generated target language files
 /coverage:<file>
@@ -741,7 +726,6 @@ namespace Microsoft.Dafny
     <file> a legend that gives a description of each
     source-location identifier used in the branch-coverage calls.
     (use - as <file> to print to console)
-/dafnycc      Disable features not supported by DafnyCC
 /noCheating:<n>
     0 (default) - allow assume statements and free invariants
     1 - treat all assumptions as asserts, and drop free.
@@ -750,8 +734,9 @@ namespace Microsoft.Dafny
     1 - only apply induction when attributes request it
     2 - apply induction as requested (by attributes) and also
         for heuristically chosen quantifiers
-    3 (default) - apply induction as requested, and for
+    3 - apply induction as requested, and for
         heuristically chosen quantifiers and lemmas
+    4 (default) - apply induction as requested, and for lemmas
 /inductionHeuristic:<n>
     0 - least discriminating induction heuristic (that is, lean
         toward applying induction more often)
@@ -813,10 +798,10 @@ namespace Microsoft.Dafny
     to be shadowed
 /definiteAssignment:<n>
     0 - ignores definite-assignment rules; this mode is for testing only--it is
-        not sound to be used with compilation
+        not sound
     1 (default) - enforces definite-assignment rules for variables and fields
         of types that do not support auto-initialization
-    2 - enforces definite-assignment for all non-ghost non-yield-parameter
+    2 - enforces definite-assignment for all non-yield-parameter
         variables and fields, regardless of their types
     3 - like 2, but also performs checks in the compiler that no nondeterministic
         statements are used; thus, a program that passes at this level 3 is one
@@ -855,10 +840,6 @@ namespace Microsoft.Dafny
     3 - (default) Frugal use of heap parameters.
     4 - mode 3 but with alloc antecedents when ranges don't imply
         allocatedness.
-/ironDafny    Enable experimental features needed to support Ironclad/Ironfleet. Use of
-    these features may cause your code to become incompatible with future
-    releases of Dafny.
-/noIronDafny  Disable Ironclad/Ironfleet features, if enabled by default.
 /printTooltips
     Dump additional positional information (displayed as mouse-over tooltips by
     the VS plugin) to stdout as 'Info' messages.
@@ -869,6 +850,13 @@ namespace Microsoft.Dafny
     Immediate and Transitive will exit after printing.
 /disableScopes
     Treat all export sets as 'export reveal *'. i.e. don't hide function bodies
-    or type definitions during translation.";
+    or type definitions during translation.
+/stdin
+    Read standard input and treat it as an input .dfy file.
+
+Dafny generally accepts Boogie options and passes these on to Boogie. However,
+some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
+have the same meaning for a Dafny program as it would for a similar Boogie
+program.";
   }
 }

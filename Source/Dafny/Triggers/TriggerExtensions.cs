@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 #define THROW_UNSUPPORTED_COMPARISONS
 
 using Microsoft.Dafny;
@@ -173,7 +176,7 @@ namespace Microsoft.Dafny.Triggers {
               arg1.UniqueName == arg2.UniqueName &&
               arg1.IsGhost == arg2.IsGhost &&
               arg1.IsMutable == arg2.IsMutable &&
-              ((arg1.Type == null && arg2.Type == null) || arg1.Type.Equals(arg2.Type)));
+              ((arg1.Type == null && arg2.Type == null) || (arg1.Type != null && arg1.Type.Equals(arg2.Type))));
     }
 
     /// <summary>
@@ -206,8 +209,6 @@ namespace Microsoft.Dafny.Triggers {
         return ShallowEq((WildcardExpr)expr1, (WildcardExpr)expr2);
       } else if (expr1 is ComprehensionExpr && expr2 is ComprehensionExpr) {
         return ShallowEq((ComprehensionExpr)expr1, (ComprehensionExpr)expr2);
-      } else if (expr1 is NamedExpr && expr2 is NamedExpr) {
-        return ShallowEq((NamedExpr)expr1, (NamedExpr)expr2);
       } else if (expr1 is LetExpr && expr2 is LetExpr) {
         return ShallowEq((LetExpr)expr1, (LetExpr)expr2);
       } else if (expr1 is TernaryExpr && expr2 is TernaryExpr) {
@@ -355,11 +356,6 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    private static bool ShallowEq(NamedExpr expr1, NamedExpr expr2) {
-      return expr1.Name == expr2.Name &&
-             TriggerUtils.SameNullity(expr1.Contract, expr2.Contract);
-    }
-
     private static bool ShallowEq(LetExpr expr1, LetExpr expr2) {
       return expr1.Exact == expr2.Exact &&
              ShallowSameAttributes(expr1.Attributes, expr2.Attributes);
@@ -376,7 +372,11 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(ConversionExpr expr1, ConversionExpr expr2) {
-      return expr1.Type == expr2.Type; //TODO equality on types?
+      return Type.Equal_Improved(expr1.Type, expr2.Type);
+    }
+
+    private static bool ShallowEq(TypeTestExpr expr1, TypeTestExpr expr2) {
+      return Type.Equal_Improved(expr1.Type, expr2.Type);
     }
 
     private static bool ShallowEq(UnaryOpExpr expr1, UnaryOpExpr expr2) {
@@ -386,6 +386,8 @@ namespace Microsoft.Dafny.Triggers {
     private static bool ShallowEq(UnaryExpr expr1, UnaryExpr expr2) {
       if (expr1 is ConversionExpr && expr2 is ConversionExpr) {
         return ShallowEq((ConversionExpr)expr1, (ConversionExpr)expr2);
+      } else if (expr1 is TypeTestExpr && expr2 is TypeTestExpr) {
+        return ShallowEq((TypeTestExpr)expr1, (TypeTestExpr)expr2);
       } else if (expr1 is UnaryOpExpr && expr2 is UnaryOpExpr) {
         return ShallowEq((UnaryOpExpr)expr1, (UnaryOpExpr)expr2);
       } else {

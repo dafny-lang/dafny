@@ -48,6 +48,37 @@ module VarianceChecks {
     | BorrowC(MyData<int,int,E,int,int>)  // error: - passed in as !
     | BorrowD(MyData<int,int,int,E,int>)  // error: - passed in as (default)
     | BorrowE(MyData<int,int,int,int,E>)
+    | ISetA(iset<A>)  // error: - strict passed to context without strict restrictions
+    | ISetB(iset<B>)
+    | ISetC(iset<C>)
+    | ISetD(iset<D>)  // error: - strict passed to negative context
+    | ISetE(iset<E>)  // error: - contravariant passed to covariant context
+    | SetA(set<A>)
+    | SetB(set<B>)
+    | SetC(set<C>)
+    | SetD(set<D>)
+    | SetE(set<E>)  // error: - contravariant passed to covariant context
+    | IMapAB(imap<A, B>)  // error: - strict passed to context without strict restrictions
+    | IMapAE(imap<B, E>)  // error: - contravariant passed to covariant context
+    | IMapBD(imap<B, D>)
+    | IMapDB(imap<D, B>)  // error: - strict passed to context without strict restrictions
+
+  type {:extern} abs<+A, *B, !C, D, -E>
+
+  datatype CheckRec =
+    | IMapD(imap<CheckRec, int>)  // error: - recursive mentions must be used in a strict (and covariant) context
+    | IMapR(imap<int, CheckRec>)
+    | ISet(iset<CheckRec>)  // error: - recursive mentions must be used in a strict (and covariant) context
+    | Set(set<CheckRec>)
+    | CheckA(abs<CheckRec, int, int, int, int>)
+    | CheckB(abs<int, CheckRec, int, int, int>)  // error: - recursive mentions must be used in a strict (and covariant) context
+    | CheckC(abs<int, int, CheckRec, int, int>)  // error: - recursive mentions must be used in a strict (and covariant) context
+    | CheckD(abs<int, int, int, CheckRec, int>)
+    | CheckE(abs<int, int, int, int, CheckRec>)  // error: - recursive mentions must be used in a strict (and covariant) context
+
+  datatype CheckRec2 =
+    | ArrowD(CheckRec2 -> int)  // error: - recursive mentions must be used in a strict (and covariant) context
+    | ArrowR(int -> CheckRec2)
 
   class VaryingClass<A,B,C,+HotDog,D,-Whale>  // error (x2): all must be non-variant
   {
@@ -67,16 +98,18 @@ module VarianceChecks {
   type U1<!A> = U0<A>
   datatype U2 = MakeU2(U1<U2>)  // error: this would give rise to a logical inconsistency
 
-  type W0 = W1
-  datatype W1 = Ctor(W0 --> bool)  // error: this would give rise to a logical inconsistency
-
-  datatype Z0 = Ctor(Z2 ~> bool)  // error: this would give rise to a logical inconsistency
-  type Z1 = Z0
-  datatype Z2 = Ctor(Z1)
-
   datatype R0 = Ctor(R2 ~> bool)  // error: this would give rise to a logical inconsistency
   type R1<X> = X
   datatype R2 = Ctor(R1<R0>)
+}
+
+module Cycles {
+  type W0 = W1
+  datatype W1 = Ctor(W0 --> bool) // error: this increases cardinality
+
+  datatype Z0 = Ctor(Z2 ~> bool) // error: this increases cardinality
+  type Z1 = Z0
+  datatype Z2 = Ctor(Z1)
 }
 
 module Depen {
@@ -103,7 +136,6 @@ module DependencyChecks {
 }
 
 module Cycle0 {
-  // The following produces two error messages (sigh)
   type B = x: B | true  // error: cycle
 }
 

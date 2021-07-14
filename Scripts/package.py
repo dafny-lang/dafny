@@ -10,7 +10,7 @@ import re
 import subprocess
 import sys
 import time
-import urllib.request
+from urllib import request
 import zipfile
 import shutil
 import ntpath
@@ -47,7 +47,7 @@ Z3_INTERESTING_FILES = ["LICENSE.txt", "bin/*"]
 ## On unix systems, which Dafny files should be marked as executable? (Glob syntax; Z3's permissions are preserved)
 UNIX_EXECUTABLES = ["dafny", "dafny-server"]
 
-ETCs = ["DafnyPrelude.bpl", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.jar"]
+ETCs = ["DafnyPrelude.bpl", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyRuntime.jar", "DafnyRuntime.h"]
 
 # Constants
 
@@ -58,7 +58,7 @@ BINARIES_DIRECTORY = path.join(ROOT_DIRECTORY, BINARIES_DIRECTORY)
 DESTINATION_DIRECTORY = path.join(ROOT_DIRECTORY, DESTINATION_DIRECTORY)
 CACHE_DIRECTORY = path.join(DESTINATION_DIRECTORY, "cache")
 
-OTHERS = ( [ ] ) ## Other files to include in zip
+OTHERS = ( [ "Scripts/quicktest.sh" , "Scripts/quicktest.out", "Scripts/allow_on_mac.sh" ] ) ## Other files to include in zip
 OTHER_UPLOADS = ( ["docs/DafnyRef/out/DafnyRef.pdf"] )
 
 z3ToDotNetOSMapping = {
@@ -81,7 +81,7 @@ class Release:
             raise Exception("{} does not match Z3_RELEASE_REGEXP".format(name))
         return m.group('platform'), m.group('os'), m.group("directory")
 
-    def __init__(self, js, version):
+    def __init__(self, js, version, out):
         self.z3_name = js["name"]
         self.size = js["size"]
         self.url = js["browser_download_url"]
@@ -89,6 +89,8 @@ class Release:
         self.os_name = self.os.split("-")[0]
         self.z3_zip = path.join(CACHE_DIRECTORY, self.z3_name)
         self.dafny_name = "dafny-{}-{}-{}.zip".format(version, self.platform, self.os)
+        if out != None:
+            self.dafny_name = out
         self.target = "{}-{}".format(z3ToDotNetOSMapping[self.os_name], self.platform)
         self.dafny_zip = path.join(DESTINATION_DIRECTORY, self.dafny_name)
         self.buildDirectory = path.join(BINARIES_DIRECTORY, self.target, "publish")
@@ -106,7 +108,7 @@ class Release:
             print("cached!")
         else:
             flush("downloading {:.2f}MB...".format(self.MB), end=' ')
-            with urllib.request.urlopen(self.url) as reader:
+            with request.urlopen(self.url) as reader:
                 with open(self.z3_zip, mode="wb") as writer:
                     writer.write(reader.read())
             flush("done!")
@@ -124,15 +126,21 @@ class Release:
             shutil.rmtree(self.buildDirectory)
         run(["make", "--quiet", "clean"])
         run(["make", "--quiet", "runtime"])
+        run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyLanguageServer", "DafnyLanguageServer.csproj"),
+            "--nologo",
+            "-f", "net5.0",
+            "-o", self.buildDirectory,
+            "-r", self.target,
+            "-c", "Checked"])
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyServer", "DafnyServer.csproj"),
             "--nologo",
-            "-f", "netcoreapp3.1",
+            "-f", "net5.0",
             "-o", self.buildDirectory,
             "-r", self.target,
             "-c", "Checked"])
         run(["dotnet", "publish", path.join(SOURCE_DIRECTORY, "DafnyDriver", "DafnyDriver.csproj"),
             "--nologo",
-            "-f", "netcoreapp3.1",
+            "-f", "net5.0",
             "-o", self.buildDirectory,
             "-r", self.target,
             "-c", "Checked"])
@@ -181,13 +189,15 @@ class Release:
         if missing:
             flush("      WARNING: Not all files were found: {} were missing".format(", ".join(missing)))
 
-def discover(version):
+def discover(args):
     flush("  - Getting information about latest release")
-    with urllib.request.urlopen(Z3_RELEASES_URL) as reader:
+    options = {"Authorization": "Bearer " + args.github_secret} if args.github_secret else {}
+    req = request.Request(Z3_RELEASES_URL, None, options)
+    with request.urlopen(req) as reader:
         js = json.loads(reader.read().decode("utf-8"))
 
         for release_js in js["assets"]:
-            release = Release(release_js, version)
+            release = Release(release_js, args.version, args.out)
             if release.platform == "x64":
                 flush("    + Selecting {} ({:.2f}MB, {})".format(release.z3_name, release.MB, release.size))
                 yield release
@@ -259,6 +269,8 @@ def parse_arguments():
     parser.add_argument("--os", help="operating system name for which to make a release")
     parser.add_argument("--skip_manual", help="do not create the reference manual")
     parser.add_argument("--trial", help="ignore version.cs discrepancies")
+    parser.add_argument("--github_secret", help="access token for making an authenticated GitHub call, to prevent being rate limited.")
+    parser.add_argument("--out", help="output zip file")
     return parser.parse_args()
 
 def main():
@@ -273,7 +285,7 @@ def main():
 
     # Z3
     flush("* Finding and downloading Z3 releases")
-    releases = list(discover(args.version))
+    releases = list(discover(args))
     if args.os:
         releases = list(filter(lambda release: release.os_name == args.os, releases))
     download(releases)

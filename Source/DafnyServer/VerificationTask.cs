@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 using System;
 using System.IO;
 using System.Runtime.Serialization;
@@ -25,7 +28,7 @@ namespace Microsoft.Dafny {
       this.source = source;
       this.sourceIsFile = sourceIsFile;
     }
-    
+
     public string ProgramSource { get { return sourceIsFile ? File.ReadAllText(source) : source; } }
 
     internal static VerificationTask ReadTask(string b64Repr) {

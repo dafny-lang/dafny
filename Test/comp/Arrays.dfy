@@ -69,6 +69,8 @@ method Main() {
   Coercions();
 
   CharValues();
+
+  TypeSynonym.Test();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -343,4 +345,24 @@ method CharValues() {
   var mx := new ychar[3, 3];
   var my := new zchar[3, 3];
   print mm[1, 2], " ", mx[1, 2], " ", my[1, 2], "\n";  // D D r
+}
+
+module TypeSynonym {
+  export
+    provides Test
+
+  newtype uint8 = i:int | 0 <= i < 0x100
+
+  type buffer<T> = a: array<T> | a.Length < 0x1_0000_0000 witness *
+  type buffer_t = buffer<uint8>
+
+  method BufferTest(b: buffer_t) {
+    var t := b[..];
+    print t, "\n";
+  }
+
+  method Test() {
+    var b := new uint8[] [19, 18, 9, 8];
+    BufferTest(b);
+  }
 }

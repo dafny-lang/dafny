@@ -16,7 +16,7 @@ newtype FavoriateReals = r | r == 3.14 || r == 2.7 witness 3.14
 type NonEmptyIntSet = s: set<int> | |s| != 0 witness {57}
 
 type TypeSynonym<A,B> = (A, B)
-type WithTypeParameters<A,B> = ignoreTypeParams: (int, bool) | true
+type WithTypeParameters<A(==),B> = ignoreTypeParams: (int, bool) | true
   witness if var m: map<A,B> := map[]; |m| > 0 then (4, false) else (29, true)
 
 datatype Dt = Atom(short') | More(Dt)

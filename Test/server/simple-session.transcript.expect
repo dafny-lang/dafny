@@ -84,11 +84,11 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(6,2): Error: this symbol not expected in Dafny
+transcript(6,2): Error: this symbol not expected in MethodSpec
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(6,2): Error: this symbol not expected in Dafny
+transcript(6,2): Error: this symbol not expected in MethodSpec
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
@@ -99,7 +99,8 @@ transcript(11,0): Error: invalid UpdateStmt
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(11,0): Error: invalid AssertStmt
+transcript(10,9): Error: invalid AssertStmt
+transcript(10,9): Error: Expected 'to' or 'downto'
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
@@ -134,6 +135,8 @@ Verifying Impl$$_module.__default.M_k ...
 transcript(10,9): Error: assertion violation
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
@@ -298,6 +301,8 @@ Verifying Impl$$_module.__default.M2 ...
 transcript(38,9): Error: assertion violation
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
@@ -333,6 +338,8 @@ Verifying Impl$$_module.__default.M2 ...
 transcript(38,9): Error: assertion violation
 Execution trace:
     (0,0): anon0
+    (0,0): anon3_Then
+    (0,0): anon2
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here

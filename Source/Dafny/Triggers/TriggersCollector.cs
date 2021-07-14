@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -176,7 +179,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private ISet<IVariable> CollectVariables(Expression expr) {
-      return ReduceAnnotatedSubExpressions(expr, new HashSet<IVariable>(), a => a.Variables, TriggerUtils.MergeAlterFirst);
+      return ReduceAnnotatedSubExpressions<ISet<IVariable>>(expr, new HashSet<IVariable>(), a => a.Variables, TriggerUtils.MergeAlterFirst);
     }
 
     private bool CollectIsKiller(Expression expr) {
@@ -245,15 +248,18 @@ namespace Microsoft.Dafny.Triggers {
           expr is OldExpr ||
           expr is ApplyExpr ||
           expr is DisplayExpression ||
+          expr is MapDisplayExpr ||
           expr is DatatypeValue ||
           TranslateToFunctionCall(expr)) {
         return true;
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
-        if ((e.Op == BinaryExpr.Opcode.NotIn || e.Op == BinaryExpr.Opcode.In) && !(e.E1 is DisplayExpression)) {
+        if ((e.Op == BinaryExpr.Opcode.NotIn || e.Op == BinaryExpr.Opcode.In) && !Translator.ExpressionTranslator.RewriteInExpr(e.E1, false)) {
+          return true;
+        } else if (CandidateCollectionOperation(e)) {
           return true;
         } else if (e.E0.Type.IsBigOrdinalType &&
-          (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Lt || e.ResolvedOp == BinaryExpr.ResolvedOpcode.LessThanLimit || e.ResolvedOp == BinaryExpr.ResolvedOpcode.Gt)) {
+                   (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Lt || e.ResolvedOp == BinaryExpr.ResolvedOpcode.LessThanLimit || e.ResolvedOp == BinaryExpr.ResolvedOpcode.Gt)) {
           return true;
         } else {
           return false;
@@ -300,6 +306,58 @@ namespace Microsoft.Dafny.Triggers {
       }
       return false;
     }
+
+    static bool CandidateCollectionOperation(BinaryExpr binExpr) {
+      Contract.Requires(binExpr != null);
+      var type = binExpr.E0.Type.AsCollectionType;
+      if (type == null) {
+        return false;
+      }
+      if (type is SetType) {
+        switch (binExpr.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.Union:
+          case BinaryExpr.ResolvedOpcode.Intersection:
+          case BinaryExpr.ResolvedOpcode.SetDifference:
+          case BinaryExpr.ResolvedOpcode.ProperSubset:
+          case BinaryExpr.ResolvedOpcode.Subset:
+          case BinaryExpr.ResolvedOpcode.Superset:
+          case BinaryExpr.ResolvedOpcode.ProperSuperset:
+            return true;
+          default:
+            break;
+        }
+      } else if (type is MultiSetType) {
+        switch (binExpr.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.MultiSetUnion:
+          case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
+          case BinaryExpr.ResolvedOpcode.MultiSetDifference:
+          case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
+          case BinaryExpr.ResolvedOpcode.MultiSubset:
+          case BinaryExpr.ResolvedOpcode.MultiSuperset:
+          case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
+            return true;
+          default:
+            break;
+        }
+      } else if (type is SeqType) {
+        switch (binExpr.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.Concat:
+            return true;
+          default:
+            break;
+        }
+      } else if (type is MapType) {
+        switch (binExpr.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.MapMerge:
+          case BinaryExpr.ResolvedOpcode.MapSubtraction:
+            return true;
+          default:
+            break;
+        }
+      }
+      return false;
+    }
+
     private TriggerAnnotation AnnotatePotentialCandidate(Expression expr) {
       bool expr_is_killer = false;
       HashSet<OldExpr> oldExprSet;

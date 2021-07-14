@@ -3,33 +3,49 @@ This is the procedure for generating a new Dafny release.
 
 0) Write release notes about changes since the last release.
 
-1) In an up-to-date repository, with the master branch checked out,
+1) In an up-to-date repository, with the master branch checked out
+   and up-to-date (e.g., git pull upstream)
    cd to the repo root (i.e., dafny, which contains Source, Binaries, etc.)
 
-2) Select a version number (descriptor) $VER (e.g., "3.0.0-alpha")
-   Edit it into Source/version.cs
-   Commit and push this change into the master branch
+2) Select a version number (descriptor) $VER (e.g., "3.0.0" or "3.0.0-alpha")
+   and select an internal version number (e.g., "3.0.0.30203")
+   Edit the internal version number in Source/version.cs.
+   Push/merge that change to the master branch.
 
 3) Run 'Scripts/package.py "$VER"' (in a Linux or Mac system)
-   Warnings about missing pdb files can be ignored.
+   Warnings about missing fonts can be ignored.
+   Note: This step requires that you have installed pandoc, see the
+   https://github.com/dafny-lang/dafny/wiki/INSTALL#building-the-reference-manual.
 
 4) Run 'Scripts/publish-release.sh $VER' to create the github release
    and upload files to it. You will need to have a Github Personal
    Authorization token stored in ~/github.token.
+   Also, this step requires the "jq" utility, which you can install
+   by "brew install jq" on a Mac (see https://stedolan.github.io/jq/download/).
+   Note: Each upload of this step can take a couple of minutes, so
+   be patient.
 
 5) In the Github releases, edit the new release to add in the release notes.
 
 6) Push the Publish button.
 
-7) Commit and merge the newly created DafnyRef.pdf
-   (in dafny/docs/DafnyRef.out) and Options.txt files. The creating of a
-   PR for this merge will cause the CI tests to be run, which includes
+7) Edit the release name into .github/workflows/release-downloads.yml
+   for the 'ver' variable for Windows
+
+   Commit the modified files, such as
+   .github/workflows/release-downloads,yml, docs/DafnyRef/DafnyRef.pdf,
+   possibly docs/DafnyRef/Options.txt
+
+   'git push' the commit and create a PR. The creating of a
+   PR will cause the CI tests to be run, which includes
    downloading the most recent release (this one, once it is Published)
-   and running quick tests.
+   and running some quick tests.
 
-8) Update the brew formula for dafny (see below)
+8) If something goes wrong, delete the release in github, fix the problem and try again
 
-9) Announce the new release to the world.
+9) Update the brew formula for dafny (see below)
+
+10) Announce the new release to the world.
 
 
 --------------------------

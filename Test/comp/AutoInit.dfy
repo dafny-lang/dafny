@@ -273,12 +273,12 @@ module ImportedTypes {
   method Test() {
     var c: Library.Color;
     Try(c);
-    /** TODO: include these tests once the new (0) semantics allows them
+
     var co: Library.CoColor;
     Try(co);
     var mo: Library.MoColor;
     Try(mo);
-    **/
+
     var nt: Library.Nt;
     Try(nt);
   }
@@ -290,11 +290,11 @@ module ImportedTypes {
 }
 
 module GhostWitness {
-  type EffectlessArrow<!A(!new), B> = f: A ~> B
+  type EffectlessArrow<!A(!new), B(00)> = f: A ~> B
     | forall a :: f.reads(a) == {}
     ghost witness GhostEffectlessArrowWitness<A, B>
 
-  function GhostEffectlessArrowWitness<A, B>(a: A): B
+  function GhostEffectlessArrowWitness<A, B(00)>(a: A): B
   {
     var b: B :| true; b
   }
@@ -309,11 +309,11 @@ module GhostWitness {
     forall a :: f.reads(a) == {} && f.requires(a)
   }
 
-  type TotalArrow<!A(!new), B> = f: EffectlessArrow<A, B>
+  type TotalArrow<!A(!new), B(00)> = f: EffectlessArrow<A, B>
     | Total(f)
     ghost witness TotalWitness<A, B>
 
-  function TotalWitness<A, B>(a: A): B
+  function TotalWitness<A, B(00)>(a: A): B
   {
     var b: B :| true; b
   }

@@ -1,8 +1,10 @@
 //-----------------------------------------------------------------------------
 //
-// Copyright (C) Amazon.  All Rights Reserved.
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -70,7 +72,7 @@ namespace Microsoft.Dafny{
     private readonly List<Import> Imports = new List<Import>();
 
     //RootImportWriter writes additional imports to the main file.
-    private TargetWriter RootImportWriter;
+    private ConcreteSyntaxTree RootImportWriter;
 
     private struct Import{
       public string Name, Path;
@@ -131,7 +133,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, List<Type> formalTypes, List<Type> lhsTypes) {
+    protected override void DeclareSpecificOutCollector(string collectorVarName, ConcreteSyntaxTree wr, List<Type> formalTypes, List<Type> lhsTypes) {
       // If the method returns an array of parameter type, and we're assigning
       // to a variable with a more specific type, we need to insert a cast:
       //
@@ -156,8 +158,8 @@ namespace Microsoft.Dafny{
       }
     }
     protected override void EmitCastOutParameterSplits(string outCollector, List<string> lhsNames,
-      TargetWriter wr, List<Type> formalTypes, List<Type> lhsTypes, Bpl.IToken tok){
-      var wOuts = new List<TargetWriter>();
+      ConcreteSyntaxTree wr, List<Type> formalTypes, List<Type> lhsTypes, Bpl.IToken tok){
+      var wOuts = new List<ConcreteSyntaxTree>();
       for (var i = 0; i < lhsNames.Count; i++){
         wr.Write($"{lhsNames[i]} = ");
         //
@@ -211,10 +213,10 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
+    protected override void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup){
       wr.Write("(");
       var lhs = (SeqSelectExpr) s0.Lhs;
-      TargetWriter wColl, wIndex, wValue;
+      ConcreteSyntaxTree wColl, wIndex, wValue;
       EmitIndexCollectionUpdate(out wColl, out wIndex, out wValue, wr, nativeIndex: true);
       var wCoerce = EmitCoercionIfNecessary(from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
         wCoerce.Write($"({TypeName(lhs.Seq.Type.NormalizeExpand(), wCoerce, s0.Tok)})");
@@ -227,10 +229,10 @@ namespace Microsoft.Dafny{
       EndStmt(wr);
     }
 
-    protected override void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup, int L){
+    protected override void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L){
       wr.Write("(");
       var lhs = (MultiSelectExpr) s0.Lhs;
-      var wArray = new TargetWriter(wr.IndentLevel, true);
+      var wArray = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
       var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
         wCoerced.Write($"({TypeName(tupleTypeArgsList[0].NormalizeExpand(), wCoerced, s0.Tok)})");
         EmitTupleSelect(tup, 0, wCoerced);
@@ -238,7 +240,7 @@ namespace Microsoft.Dafny{
       var array = wArray.ToString();
       var indices = new List<string>();
       for (int i = 0; i < lhs.Indices.Count; i++){
-        var wIndex = new TargetWriter();
+        var wIndex = new ConcreteSyntaxTree();
         wIndex.Write("((java.math.BigInteger)");
         EmitTupleSelect(tup, i + 1, wIndex);
         wIndex.Write(")");
@@ -252,47 +254,50 @@ namespace Microsoft.Dafny{
       EndStmt(wr);
     }
 
-    protected override void WriteCast(string s, TargetWriter wr) {
+    protected override void WriteCast(string s, ConcreteSyntaxTree wr) {
       wr.Write($"({s})");
     }
 
-    protected override TargetWriter EmitIngredients(TargetWriter wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs){
-      using (var wrVarInit = wr){
-        wrVarInit.Write($"java.util.ArrayList<{DafnyTupleClass(L)}<{tupleTypeArgs}>> {ingredients} = ");
-        AddTupleToSet(L);
-        EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
-      }
+    protected override ConcreteSyntaxTree EmitIngredients(ConcreteSyntaxTree wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs) {
+      var wrVarInit = wr;
+      wrVarInit.Write($"java.util.ArrayList<{DafnyTupleClass(L)}<{tupleTypeArgs}>> {ingredients} = ");
+      AddTupleToSet(L);
+      EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
       var wrOuter = wr;
       wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
-      using (var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr)){
-          wrTuple.Write($"{L}<{tupleTypeArgs}>(");
-        if (s0.Lhs is MemberSelectExpr lhs1) {
-          TrExpr(lhs1.Obj, wrTuple, false);
-        } else if (s0.Lhs is SeqSelectExpr lhs2) {
-          TrExpr(lhs2.Seq, wrTuple, false);
-          wrTuple.Write(", ");
-          TrParenExpr(lhs2.E0,  wrTuple, false);
-        } else {
-          var lhs = (MultiSelectExpr) s0.Lhs;
-          TrExpr(lhs.Array, wrTuple, false);
-          foreach (var t in lhs.Indices) {
-            wrTuple.Write(", ");
-            TrParenExpr(t,  wrTuple, false);
-          }
-        }
-        wrTuple.Write(", ");
-        if (rhs is MultiSelectExpr) {
-          Type t = rhs.Type.NormalizeExpand();
-          wrTuple.Write($"({TypeName(t, wrTuple, rhs.tok)})");
-        }
-        TrExpr(rhs, wrTuple, false);
+      var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr);
+      wrTuple.Write($"{L}<{tupleTypeArgs}>(");
+      if (s0.Lhs is MemberSelectExpr lhs1) {
+        TrExpr(lhs1.Obj, wrTuple, false);
       }
+      else if (s0.Lhs is SeqSelectExpr lhs2) {
+        TrExpr(lhs2.Seq, wrTuple, false);
+        wrTuple.Write(", ");
+        TrParenExpr(lhs2.E0, wrTuple, false);
+      }
+      else
+      {
+        var lhs = (MultiSelectExpr) s0.Lhs;
+        TrExpr(lhs.Array, wrTuple, false);
+        foreach (var t in lhs.Indices) {
+          wrTuple.Write(", ");
+          TrParenExpr(t, wrTuple, false);
+        }
+      }
+
+      wrTuple.Write(", ");
+      if (rhs is MultiSelectExpr) {
+        Type t = rhs.Type.NormalizeExpand();
+        wrTuple.Write($"({TypeName(t, wrTuple, rhs.tok)})");
+      }
+
+      TrExpr(rhs, wrTuple, false);
       return wrOuter;
     }
 
-    protected override void EmitHeader(Program program, TargetWriter wr){
+    protected override void EmitHeader(Program program, ConcreteSyntaxTree wr){
       wr.WriteLine($"// Dafny program {program.Name} compiled into Java");
-      ModuleName = HasMain(program, out _) ? "main" : Path.GetFileNameWithoutExtension(program.Name);
+      ModuleName = program.MainMethod != null ? "main" : Path.GetFileNameWithoutExtension(program.Name);
       wr.WriteLine();
       // Keep the import writers so that we can import subsequent modules into the main one
       EmitImports(wr, out RootImportWriter);
@@ -300,20 +305,23 @@ namespace Microsoft.Dafny{
     }
 
     // Only exists to make sure method is overriden
-    protected override void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr){ }
+    protected override void EmitBuiltInDecls(BuiltIns builtIns, ConcreteSyntaxTree wr){ }
 
-    public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
-      var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
+    public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
+      var className = TransformToClassName(baseName);
+      wr = wr.NewBlock($"public class {className}");
+
+      var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
       var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.CompileName == "_module" ? "_System." : "";
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
-      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling({companion}::{IdName(mainMethod)});");
+      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling({companion}::__Main);");
       Coverage.EmitTearDown(wBody);
     }
 
-    void EmitImports(TargetWriter wr, out TargetWriter importWriter){
-      importWriter = wr.ForkSection();
+    void EmitImports(ConcreteSyntaxTree wr, out ConcreteSyntaxTree importWriter){
+      importWriter = wr.Fork();
       foreach (var import in Imports){
         if (import.Name != ModuleName){
           EmitImport(import, importWriter);
@@ -321,11 +329,11 @@ namespace Microsoft.Dafny{
       }
     }
 
-    private void EmitImport(Import import, TargetWriter importWriter){
+    private void EmitImport(Import import, ConcreteSyntaxTree importWriter){
       importWriter.WriteLine($"import {import.Path.Replace('/','.')}.*;");
     }
 
-    protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, TargetWriter wr) {
+    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, ConcreteSyntaxTree wr) {
       if (isDefault) {
         // Fold the default module into the main module
         return wr;
@@ -354,10 +362,10 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr){
+    protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr){
       var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
+        var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.RelativeIndentLevel);
         TrExpr(sst.Witness, sw, false);
         var witness = sw.ToString();
         var typeName = TypeName(sst.Rhs, cw.StaticMemberWriter, sst.tok);
@@ -365,19 +373,18 @@ namespace Microsoft.Dafny{
           cw.DeclareField("Witness", sst, true, true, sst.Rhs, sst.tok, witness, null);
           witness = "Witness";
         }
-        using (var w = cw.StaticMemberWriter.NewBlock($"public static {TypeParameters(sst.TypeArgs, " ")}{typeName} defaultValue()")) {
-          w.WriteLine($"return {witness};");
-        }
+        var w = cw.StaticMemberWriter.NewBlock($"public static {TypeParameters(sst.TypeArgs, " ")}{typeName} defaultValue()");
+        w.WriteLine($"return {witness};");
       }
     }
 
     protected class ClassWriter : IClassWriter {
       public readonly JavaCompiler Compiler;
-      public readonly TargetWriter InstanceMemberWriter;
-      public readonly TargetWriter StaticMemberWriter;
-      public readonly TargetWriter CtorBodyWriter;
+      public readonly ConcreteSyntaxTree InstanceMemberWriter;
+      public readonly ConcreteSyntaxTree StaticMemberWriter;
+      public readonly ConcreteSyntaxTree CtorBodyWriter;
 
-      public ClassWriter(JavaCompiler compiler, TargetWriter instanceMemberWriter, TargetWriter ctorBodyWriter, BlockTargetWriter staticMemberWriter = null) {
+      public ClassWriter(JavaCompiler compiler, ConcreteSyntaxTree instanceMemberWriter, ConcreteSyntaxTree ctorBodyWriter, ConcreteSyntaxTree staticMemberWriter = null) {
         Contract.Requires(compiler != null);
         Contract.Requires(instanceMemberWriter != null);
         this.Compiler = compiler;
@@ -386,7 +393,7 @@ namespace Microsoft.Dafny{
         this.StaticMemberWriter = staticMemberWriter ?? instanceMemberWriter;
       }
 
-      public TargetWriter Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
+      public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
         if (createBody) {
           if (isStatic || (member != null && member.EnclosingClass is TraitDecl && NeedsCustomReceiver(member))) {
             return StaticMemberWriter;
@@ -395,17 +402,17 @@ namespace Microsoft.Dafny{
         return InstanceMemberWriter;
       }
 
-      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+      public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
       }
-      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
+      public ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, createBody, member), forBodyInheritance, lookasideBody);
       }
 
-      public BlockTargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
+      public ConcreteSyntaxTree/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
         return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, createBody, member));
       }
-      public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance) {
+      public ConcreteSyntaxTree/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic, createBody, member));
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, Field field) {
@@ -414,18 +421,18 @@ namespace Microsoft.Dafny{
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
         throw new NotSupportedException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
       }
-      public TextWriter/*?*/ ErrorWriter() => InstanceMemberWriter;
+      public ConcreteSyntaxTree/*?*/ ErrorWriter() => InstanceMemberWriter;
 
       public void Finish() { }
     }
 
     protected override bool SupportsStaticsInGenericClasses => false;
 
-    protected BlockTargetWriter CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic,
-      bool createBody, TargetWriter wr) {
+    protected ConcreteSyntaxTree CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic,
+      bool createBody, ConcreteSyntaxTree wr) {
       wr.Write("public {0}{1} {2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       if (createBody) {
-        var w = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+        var w = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Newline, ConcreteSyntaxTree.BraceStyle.Newline);
         return w;
       } else {
         wr.WriteLine(";");
@@ -434,7 +441,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, Expression rhs,
-      bool inLetExprBody, TargetWriter wr){
+      bool inLetExprBody, ConcreteSyntaxTree wr){
       if (type == null){
         type = rhs.Type;
       }
@@ -442,25 +449,25 @@ namespace Microsoft.Dafny{
       TrExpr(rhs, w, inLetExprBody);
     }
 
-    public BlockTargetWriter /*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic,
-      bool createBody, out TargetWriter setterWriter, TargetWriter wr) {
+    public ConcreteSyntaxTree /*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic,
+      bool createBody, out ConcreteSyntaxTree setterWriter, ConcreteSyntaxTree wr) {
       wr.Write("public {0}{1} {2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
-      BlockTargetWriter wGet = null;
+      ConcreteSyntaxTree wGet = null;
       if (createBody) {
-        wGet = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+        wGet = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Newline, ConcreteSyntaxTree.BraceStyle.Newline);
       } else {
         wr.WriteLine(";");
       }
       wr.Write("public {0}void set_{1}({2} value)", isStatic? "static " : "", name, TypeName(resultType, wr, tok));
       if (createBody) {
-        setterWriter = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+        setterWriter = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Newline, ConcreteSyntaxTree.BraceStyle.Newline);
       } else {
         wr.WriteLine(";");
         setterWriter = null;
       }
       return wGet;
     }
-    protected BlockTargetWriter CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, TargetWriter wr, bool forBodyInheritance, bool lookasideBody) {
+    protected ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
       if (m.IsExtern(out _, out _) && (m.IsStatic || m is Constructor)) {
         // No need for an abstract version of a static method or a constructor
         return null;
@@ -496,11 +503,11 @@ namespace Microsoft.Dafny{
         wr.WriteLine(");");
         return null; // We do not want to write a function body, so instead of returning a BTW, we return null.
       } else {
-        return wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+        return wr.NewBlock(")", null, ConcreteSyntaxTree.BraceStyle.Newline, ConcreteSyntaxTree.BraceStyle.Newline);
       }
     }
 
-    protected override BlockTargetWriter EmitMethodReturns(Method m, BlockTargetWriter wr) {
+    protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr) {
       int nonGhostOuts = 0;
       foreach (var t in m.Outs) {
         if (t.IsGhost) continue;
@@ -508,17 +515,16 @@ namespace Microsoft.Dafny{
         break;
       }
       if (!m.Body.Body.OfType<ReturnStmt>().Any() && (nonGhostOuts > 0 || m.IsTailRecursive)) { // If method has out parameters or is tail-recursive but no explicit return statement in Dafny
-        var r = new TargetWriter(wr.IndentLevel);
-        EmitReturn(m.Outs, r);
-        wr.BodySuffix = r.ToString();
-        wr = wr.NewBlock("if(true)"); // Ensure no unreachable error is thrown for the return statement
+        var beforeReturn = wr.NewBlock("if(true)"); // Ensure no unreachable error is thrown for the return statement
+        EmitReturn(m.Outs, wr);
+        return beforeReturn;
       }
       return wr;
     }
 
-    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
+    protected ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
       List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member,
-      TargetWriter wr, bool forBodyInheritance, bool lookasideBody) {
+      ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
       if (member.IsExtern(out _, out _) && isStatic) {
         // No need for abstract version of static method
         return null;
@@ -540,9 +546,9 @@ namespace Microsoft.Dafny{
         wr.WriteLine(");");
         return null; // We do not want to write a function body, so instead of returning a BTW, we return null.
       } else {
-        BlockTargetWriter w;
+        ConcreteSyntaxTree w;
         if (argCount > 1) {
-          w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+          w = wr.NewBlock(")", null, ConcreteSyntaxTree.BraceStyle.Newline, ConcreteSyntaxTree.BraceStyle.Newline);
         } else {
           w = wr.NewBlock(")");
         }
@@ -567,7 +573,7 @@ namespace Microsoft.Dafny{
       return Regex.Replace(s, @"<.+>", "");
     }
 
-    private void EmitSuppression(TextWriter wr) {
+    private void EmitSuppression(ConcreteSyntaxTree wr) {
       wr.WriteLine("@SuppressWarnings({\"unchecked\", \"deprecation\"})");
     }
 
@@ -581,15 +587,15 @@ namespace Microsoft.Dafny{
       return $"<{Util.Comma(targs, IdName)}>{suffix}";
     }
 
-    protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+    protected override string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
       return TypeName(type, wr, tok, boxed: false, member);
     }
 
-    private string BoxedTypeName(Type type, TextWriter wr, Bpl.IToken tok) {
+    private string BoxedTypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       return TypeName(type, wr, tok, boxed: true);
     }
 
-    private string ActualTypeArgument(Type type, TypeParameter.TPVariance variance, TextWriter wr, Bpl.IToken tok) {
+    private string ActualTypeArgument(Type type, TypeParameter.TPVariance variance, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       Contract.Requires(type != null);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
@@ -604,19 +610,19 @@ namespace Microsoft.Dafny{
       return typeName;
     }
 
-    private string BoxedTypeNames(List<Type> types, TextWriter wr, Bpl.IToken tok) {
+    private string BoxedTypeNames(List<Type> types, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       return Util.Comma(types, t => BoxedTypeName(t, wr, tok));
     }
 
-    protected override string TypeArgumentName(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeArgumentName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       return BoxedTypeName(type, wr, tok);
     }
 
-    private string TypeName(Type type, TextWriter wr, Bpl.IToken tok, bool boxed, MemberDecl /*?*/ member = null) {
+    private string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, bool boxed, MemberDecl /*?*/ member = null) {
       return TypeName(type, wr, tok, boxed, false, member);
     }
 
-    private string TypeName(Type type, TextWriter wr, Bpl.IToken tok, bool boxed, bool erased, MemberDecl/*?*/ member = null) {
+    private string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, bool boxed, bool erased, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -650,8 +656,8 @@ namespace Microsoft.Dafny{
         Type elType = UserDefinedType.ArrayElementType(xType);
         return ArrayTypeName(elType, at.Dims, wr, tok);
       } else if (xType is UserDefinedType udt) {
-        if (udt.ResolvedParam != null) {
-          if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(udt.ResolvedParam, out var instantiatedTypeParameter)) {
+        if (udt.ResolvedClass is TypeParameter tp) {
+          if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
             return TypeName(instantiatedTypeParameter, wr, tok, true, member);
           }
         }
@@ -703,7 +709,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    string ArrayTypeName(Type elType, int dims, TextWriter wr, Bpl.IToken tok) {
+    string ArrayTypeName(Type elType, int dims, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       if (dims > 1) {
         arrays.Add(dims);
         return $"{DafnyMultiArrayClass(dims)}<{ActualTypeArgument(elType, TypeParameter.TPVariance.Non, wr, tok)}>";
@@ -747,7 +753,7 @@ namespace Microsoft.Dafny{
       if (cl is NonNullTypeDecl nntd) {
         cl = nntd.Class;
       }
-      if (cl == null) {
+      if (cl is TypeParameter) {
         return IdProtect(udt.CompileName);
       } else if (cl is TupleTypeDecl tupleDecl) {
         return DafnyTupleClass(tupleDecl.TypeArgs.Count);
@@ -769,13 +775,13 @@ namespace Microsoft.Dafny{
       return name + "]";
     }
 
-    protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
+    protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, ConcreteSyntaxTree wr) {
       if (!isInParam) return false;
       wr.Write($"{prefix}{TypeName(type, wr, tok)} {name}");
       return true;
     }
 
-    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance, List<Type> typeArgs, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(variance != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
@@ -803,7 +809,7 @@ namespace Microsoft.Dafny{
     //
     // An example to show how type parameters are dealt with:
     //
-    //   class Class<T /* needs zero initializer */, U /* does not */> {
+    //   class Class<T /* needs auto-initializer */, U /* does not */> {
     //     private String sT; // type descriptor for T
     //
     //     // Fields are assigned in the constructor because some will
@@ -824,7 +830,7 @@ namespace Microsoft.Dafny{
     //   }
     //
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string /*?*/ fullPrintName,
-      List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> /*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+      List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> /*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       var javaName = isExtern ? FormatExternBaseClassName(name) : name;
       var filename = $"{ModulePath}/{javaName}.java";
       var w = wr.NewFile(filename);
@@ -851,11 +857,11 @@ namespace Microsoft.Dafny{
         }
       }
       var wBody = w.NewBlock("");
-      var wTypeFields = wBody.ForkSection();
+      var wTypeFields = wBody.Fork();
 
       wBody.Write($"public {javaName}(");
       var wCtorParams = wBody.Fork();
-      var wCtorBody = wBody.NewBigBlock(")", "");
+      var wCtorBody = wBody.NewBlock(")", "");
 
       if (typeParameters != null) {
         sep = "";
@@ -875,7 +881,7 @@ namespace Microsoft.Dafny{
 
       // make sure the (static fields associated with the) type method come after the Witness static field
       var wTypeMethod = wBody;
-      var wRestOfBody = wBody.ForkSection();
+      var wRestOfBody = wBody.Fork();
       var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(cls.tok, cls, null), wTypeMethod, cls.tok);
       EmitTypeMethod(cls, javaName, typeParameters, typeParameters, targetTypeName, null, wTypeMethod);
       return new ClassWriter(this, wRestOfBody, wCtorBody);
@@ -885,7 +891,7 @@ namespace Microsoft.Dafny{
     /// Generate the "_typeDescriptor" method for a generated class.
     /// "enclosingType" is allowed to be "null", in which case the target values are assumed to be references.
     /// </summary>
-    private void EmitTypeMethod(TopLevelDecl/*?*/ enclosingTypeDecl, string typeName, List<TypeParameter> typeParams, List<TypeParameter> usedTypeParams, string targetTypeName, string/*?*/ initializer, TargetWriter wr) {
+    private void EmitTypeMethod(TopLevelDecl/*?*/ enclosingTypeDecl, string typeName, List<TypeParameter> typeParams, List<TypeParameter> usedTypeParams, string targetTypeName, string/*?*/ initializer, ConcreteSyntaxTree wr) {
       string typeDescriptorExpr = null;
       if (enclosingTypeDecl != null) {
         var enclosingType = UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.tok, enclosingTypeDecl);
@@ -929,7 +935,7 @@ namespace Microsoft.Dafny{
         var typeDescriptorParams = usedTypeParams.Where(tp => NeedsTypeDescriptor(tp)).ToList();
         wr.Write(Util.Comma(typeDescriptorParams, tp => $"{DafnyTypeDescriptor}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
       }
-      var wTypeMethodBody = wr.NewBigBlock(")", "");
+      var wTypeMethodBody = wr.NewBlock(")", "");
       var typeDescriptorCast = $"({DafnyTypeDescriptor}<{targetTypeName}>) ({DafnyTypeDescriptor}<?>)";
       if (usedTypeParams == null || usedTypeParams.Count == 0) {
         wTypeMethodBody.WriteLine($"return {typeDescriptorCast} _TYPE;");
@@ -951,7 +957,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
+    protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
       } else if (e.Value == null) {
@@ -997,7 +1003,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitStringLiteral(string str, bool isVerbatim, TextWriter wr) {
+    protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
       if (!isVerbatim) {
         wr.Write($"\"{str}\"");
       } else {
@@ -1022,7 +1028,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    void EmitNativeIntegerLiteral(BigInteger value, NativeType nt, TextWriter wr) {
+    void EmitNativeIntegerLiteral(BigInteger value, NativeType nt, ConcreteSyntaxTree wr) {
       GetNativeInfo(nt.Sel, out var name, out var literalSuffix, out _);
       var intValue = value;
       if (intValue > long.MaxValue) {
@@ -1089,7 +1095,7 @@ namespace Microsoft.Dafny{
       return type.IsBoolType || type.IsCharType || AsNativeType(type) != null;
     }
 
-    protected override void EmitThis(TargetWriter wr) {
+    protected override void EmitThis(ConcreteSyntaxTree wr) {
       var custom =
         (enclosingMethod != null && enclosingMethod.IsTailRecursive) ||
         (enclosingFunction != null && enclosingFunction.IsTailRecursive) ||
@@ -1099,7 +1105,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, bool leaveRoomForRhs,
-      string /*?*/ rhs, TargetWriter wr){
+      string /*?*/ rhs, ConcreteSyntaxTree wr){
       if (type != null && type.AsArrayType != null){
         arrays.Add(type.AsArrayType.Dims);
       }
@@ -1122,11 +1128,11 @@ namespace Microsoft.Dafny{
     }
 
     protected override void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, bool leaveRoomForRhs,
-      string /*?*/ rhs, TargetWriter wr, Type t) {
+      string /*?*/ rhs, ConcreteSyntaxTree wr, Type t) {
       DeclareLocalVar(name, t, tok, leaveRoomForRhs, rhs, wr);
     }
 
-    protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, ConcreteSyntaxTree wr) {
       if (elements.Count == 0) {
         wr.Write($"{CollectionTypeUnparameterizedName(ct)}.<{BoxedTypeName(ct.Arg, wr, tok)}> empty(");
         if (ct is SeqType) {
@@ -1149,7 +1155,7 @@ namespace Microsoft.Dafny{
       wr.Write(")");
     }
 
-    protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, ConcreteSyntaxTree wr) {
       wr.Write($"{DafnyMapClass}.fromElements");
       wr.Write("(");
       string sep = "";
@@ -1209,16 +1215,16 @@ namespace Microsoft.Dafny{
           postString = ")";
           break;
         case SpecialField.ID.Keys:
-          compiledName = "dafnyKeySet()";
+          compiledName = "keySet()";
           break;
         case SpecialField.ID.Values:
-          compiledName = "dafnyValues()";
+          compiledName = "valueSet()";
           break;
         case SpecialField.ID.Items:
           var mapType = receiverType.AsMapType;
           Contract.Assert(mapType != null);
-          var errorWr = new TargetWriter();
-          compiledName = $"<{BoxedTypeName(mapType.Domain, errorWr, Bpl.Token.NoToken)}, {BoxedTypeName(mapType.Range, errorWr, Bpl.Token.NoToken)}>dafnyEntrySet()";
+          var errorWr = new ConcreteSyntaxTree();
+          compiledName = $"<{BoxedTypeName(mapType.Domain, errorWr, Bpl.Token.NoToken)}, {BoxedTypeName(mapType.Range, errorWr, Bpl.Token.NoToken)}>entrySet()";
           break;
         case SpecialField.ID.Reads:
           compiledName = "_reads";
@@ -1235,7 +1241,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
+    protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
       if (member is SpecialField sf && !(member is ConstantField)) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
@@ -1250,7 +1256,7 @@ namespace Microsoft.Dafny{
           return SimpleLvalue(obj);
         }
       } else if (member is Function fn) {
-        var wr = new TargetWriter();
+        var wr = new ConcreteSyntaxTree();
         EmitNameAndActualTypeArgs(IdName(member), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, member, false)), member.tok, wr);
         if (typeArgs.Count == 0 && additionalCustomParameter == null) {
           var nameAndTypeArgs = wr.ToString();
@@ -1265,7 +1271,7 @@ namespace Microsoft.Dafny{
             wr.Write("{0}{1}", sep, additionalCustomParameter);
             sep = ", ";
           }
-          var prefixWr = new TargetWriter();
+          var prefixWr = new ConcreteSyntaxTree();
           var prefixSep = "";
           prefixWr.Write("(");
           foreach (var arg in fn.Formals) {
@@ -1319,11 +1325,11 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, TargetWriter wr) {
+    protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, ConcreteSyntaxTree wr) {
       wr.Write($"{source}.is_{ctor.CompileName}()");
     }
 
-    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
+    protected override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       if (type is UserDefinedType udt && udt.ResolvedClass is TraitDecl) {
         if (member != null && (member.IsStatic || NeedsCustomReceiver(member)) && member.EnclosingClass.TypeArgs.Count != 0) {
@@ -1336,9 +1342,9 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {
+    protected override ConcreteSyntaxTree EmitArraySelect(List<string> indices, Type elmtType, ConcreteSyntaxTree wr) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
-      List<TargetWriter> wIndices;
+      List<ConcreteSyntaxTree> wIndices;
       var w = EmitArraySelect(indices.Count, out wIndices, elmtType, wr);
       for (int i = 0; i < indices.Count; i++) {
         if (!int.TryParse(indices[i], out _)) {
@@ -1350,9 +1356,9 @@ namespace Microsoft.Dafny{
       return w;
     }
 
-    protected override TargetWriter EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, TargetWriter wr) {
+    protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, ConcreteSyntaxTree wr) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
-      List<TargetWriter> wIndices;
+      List<ConcreteSyntaxTree> wIndices;
       var w = EmitArraySelect(indices.Count, out wIndices, elmtType, wr);
 
       for (int i = 0; i < indices.Count; i++) {
@@ -1362,9 +1368,9 @@ namespace Microsoft.Dafny{
       return w;
     }
 
-    private TargetWriter EmitArraySelect(int dimCount, out List<TargetWriter> wIndices, Type elmtType, TargetWriter wr) {
-      wIndices = new List<TargetWriter>();
-      TargetWriter w;
+    private ConcreteSyntaxTree EmitArraySelect(int dimCount, out List<ConcreteSyntaxTree> wIndices, Type elmtType, ConcreteSyntaxTree wr) {
+      wIndices = new List<ConcreteSyntaxTree>();
+      ConcreteSyntaxTree w;
       if (dimCount == 1) {
         if (elmtType.IsTypeParameter) {
           wr.Write($"{FormatTypeDescriptorVariable(elmtType.AsTypeParameter)}.getArrayElement(");
@@ -1404,8 +1410,8 @@ namespace Microsoft.Dafny{
     }
 
     // TODO: Generalize the EmitArraySelectAsLvalue API to be rid of this duplication
-    protected override TargetWriter EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, TargetWriter wr) {
-      TargetWriter w;
+    protected override ConcreteSyntaxTree EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, ConcreteSyntaxTree wr) {
+      ConcreteSyntaxTree w;
       if (indices.Count == 1) {
         if (elmtType.IsTypeParameter) {
           wr.Write($"{FormatTypeDescriptorVariable(elmtType.AsTypeParameter)}.setArrayElement(");
@@ -1452,13 +1458,13 @@ namespace Microsoft.Dafny{
         ElmtTypeParameter = elmtTypeParameter;
       }
 
-      public void EmitRead(TargetWriter wr) {
+      public void EmitRead(ConcreteSyntaxTree wr) {
         var wArray = Compiler.EmitArraySelect(Indices, new UserDefinedType(ElmtTypeParameter), wr);
         wArray.Write(Array);
       }
 
-      public TargetWriter EmitWrite(TargetWriter wr) {
-        TargetWriter w;
+      public ConcreteSyntaxTree EmitWrite(ConcreteSyntaxTree wr) {
+        ConcreteSyntaxTree w;
         if (Indices.Count == 1) {
           wr.Write($"{FormatTypeDescriptorVariable(ElmtTypeParameter)}.setArrayElement({Array}, {Indices[0]}.intValue(),");
           w = wr.Fork();
@@ -1472,9 +1478,9 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray, bool inLetExprBody, ConcreteSyntaxTree wr) {
       if (fromArray) {
-        wr.Write($"{DafnySeqClass}.fromRawArrayRange({TypeDescriptor(source.Type.TypeArgs[0], wr, source.tok)}, ");
+        wr.Write($"{DafnySeqClass}.fromRawArrayRange({TypeDescriptor(source.Type.NormalizeExpand().TypeArgs[0], wr, source.tok)}, ");
       }
       TrParenExpr(source, wr, inLetExprBody);
       if (fromArray) {
@@ -1511,7 +1517,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, ConcreteSyntaxTree wr) {
       // Taken from C# compiler, assuming source is a DafnySequence type.
       if (source.Type.AsMultiSetType != null) {
         wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(source.Type.AsMultiSetType.Arg, wr, Bpl.Token.NoToken)}>multiplicity(");
@@ -1529,12 +1535,12 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr) {
       TrParenExpr(expr.E, wr, inLetExprBody);
       wr.Write(".asDafnyMultiset()");
     }
 
-    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr) {
       if (source.Type.AsSeqType != null) {
         wr.Write($"{DafnySeqClass}.<{BoxedTypeName(resultCollectionType.Arg, wr, Bpl.Token.NoToken)}>update(");
         TrExpr(source, wr, inLetExprBody);
@@ -1561,7 +1567,7 @@ namespace Microsoft.Dafny{
       wr.Write(")");
     }
 
-    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr, bool inLetExprBody, FCE_Arg_Translator tr) {
       string nativeName = null, literalSuffix = null;
       bool needsCast = false;
       var nativeType = AsNativeType(e0.Type);
@@ -1590,7 +1596,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    void EmitShift(Expression e0, Expression e1, string op, bool truncate, NativeType/*?*/ nativeType, bool firstOp, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+    void EmitShift(Expression e0, Expression e1, string op, bool truncate, NativeType/*?*/ nativeType, bool firstOp, ConcreteSyntaxTree wr, bool inLetExprBody, FCE_Arg_Translator tr) {
       var bv = e0.Type.AsBitVectorType;
       if (truncate) {
         wr = EmitBitvectorTruncation(bv, true, wr);
@@ -1611,7 +1617,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override TargetWriter EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, TargetWriter wr) {
+    protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr) {
       string nativeName = null, literalSuffix = null;
       bool needsCastAfterArithmetic = false;
       if (bvType.NativeType != null) {
@@ -1645,8 +1651,8 @@ namespace Microsoft.Dafny{
       return true;
     }
 
-    protected override TargetWriter EmitSign(Type type, TargetWriter wr) {
-      TargetWriter w;
+    protected override ConcreteSyntaxTree EmitSign(Type type, ConcreteSyntaxTree wr) {
+      ConcreteSyntaxTree w;
       var nt = AsNativeType(type);
       if (nt == null) {
         w = wr.Fork();
@@ -1663,7 +1669,7 @@ namespace Microsoft.Dafny{
       return w;
     }
 
-    protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
+    protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
       if (dt is TupleTypeDecl){
         tuples.Add(((TupleTypeDecl) dt).Dims);
         return null;
@@ -1674,7 +1680,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    IClassWriter CompileDatatypeBase(DatatypeDecl dt, TargetWriter wr) {
+    IClassWriter CompileDatatypeBase(DatatypeDecl dt, ConcreteSyntaxTree wr) {
       var DtT_TypeArgs = TypeParameters(dt.TypeArgs);
       var justTypeArgs = dt.TypeArgs.Count == 0 ? "" : " " + DtT_TypeArgs;
       var DtT_protected = IdName(dt) + DtT_TypeArgs;
@@ -1701,23 +1707,21 @@ namespace Microsoft.Dafny{
       }
 
       var usedTypeArgs = UsedTypeParameters(dt);
-      TargetWriter wDefault;
+      ConcreteSyntaxTree wDefault;
       wr.WriteLine();
       if (dt.TypeArgs.Count == 0) {
         wr.Write($"private static final {DtT_protected} theDefault = ");
         wDefault = wr.Fork();
         wr.WriteLine(";");
-        using (var w = wr.NewBlock($"public static {DtT_protected} Default()")) {
-          w.WriteLine("return theDefault;");
-        }
+        var w = wr.NewBlock($"public static {DtT_protected} Default()");
+        w.WriteLine("return theDefault;");
       } else {
         wr.Write($"public static{justTypeArgs} {DtT_protected} Default(");
         wr.Write(Util.Comma(usedTypeArgs, tp => $"{tp.CompileName} {FormatDefaultTypeParameterValue(tp)}"));
-        using (var w = wr.NewBlock(")")) {
-          w.Write("return ");
-          wDefault = w.Fork();
-          w.WriteLine(";");
-        }
+        var w = wr.NewBlock(")");
+        w.Write("return ");
+        wDefault = w.Fork();
+        w.WriteLine(";");
       }
       var groundingCtor = dt.GetGroundingCtor();
       var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
@@ -1774,21 +1778,23 @@ namespace Microsoft.Dafny{
           if (dtor.EnclosingCtors[0] == ctor) {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost && arg.HasName){
-              using (var wDtor = wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} dtor_{arg.CompileName}()")){
-                if (dt.IsRecordType){
-                  wDtor.WriteLine($"return this.{IdName(arg)};");
+              var wDtor = wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} dtor_{arg.CompileName}()");
+              if (dt.IsRecordType) {
+                wDtor.WriteLine($"return this.{IdName(arg)};");
+              }
+              else {
+                wDtor.WriteLine("{0} d = this{1};", DtT_protected, dt is CoDatatypeDecl ? ".Get()" : "");
+                var n = dtor.EnclosingCtors.Count;
+                for (int i = 0; i < n - 1; i++) {
+                  var ctor_i = dtor.EnclosingCtors[i];
+                  Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
+                  wDtor.WriteLine("if (d instanceof {0}_{1}) {{ return (({0}_{1}{2})d).{3}; }}", dt.CompileName,
+                    ctor_i.CompileName, DtT_TypeArgs, IdName(arg));
                 }
-                else{
-                  wDtor.WriteLine("{0} d = this{1};", DtT_protected, dt is CoDatatypeDecl ? ".Get()" : "");
-                  var n = dtor.EnclosingCtors.Count;
-                  for (int i = 0; i < n-1; i++) {
-                    var ctor_i = dtor.EnclosingCtors[i];
-                    Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
-                    wDtor.WriteLine("if (d instanceof {0}_{1}) {{ return (({0}_{1}{2})d).{3}; }}", dt.CompileName, ctor_i.CompileName, DtT_TypeArgs, IdName(arg));
-                  }
-                  Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n-1].CompileName);
-                  wDtor.WriteLine($"return (({dt.CompileName}_{dtor.EnclosingCtors[n-1].CompileName}{DtT_TypeArgs})d).{IdName(arg)};");
-                }
+
+                Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n - 1].CompileName);
+                wDtor.WriteLine(
+                  $"return (({dt.CompileName}_{dtor.EnclosingCtors[n - 1].CompileName}{DtT_TypeArgs})d).{IdName(arg)};");
               }
             }
           }
@@ -1801,7 +1807,7 @@ namespace Microsoft.Dafny{
       return new ClassWriter(this, btw, ctorBodyWriter: null);
     }
 
-    void CompileDatatypeConstructors(DatatypeDecl dt, TargetWriter wrx) {
+    void CompileDatatypeConstructors(DatatypeDecl dt, ConcreteSyntaxTree wrx) {
       Contract.Requires(dt != null);
       string typeParams = TypeParameters(dt.TypeArgs);
       if (dt.IsRecordType) {
@@ -1845,7 +1851,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    void DatatypeFieldsAndConstructor(DatatypeCtor ctor, int constructorIndex, TargetWriter wr) {
+    void DatatypeFieldsAndConstructor(DatatypeCtor ctor, int constructorIndex, ConcreteSyntaxTree wr) {
       Contract.Requires(ctor != null);
       Contract.Requires(0 <= constructorIndex && constructorIndex < ctor.EnclosingDatatype.Ctors.Count);
       Contract.Requires(wr != null);
@@ -1859,7 +1865,8 @@ namespace Microsoft.Dafny{
       }
       wr.Write($"public {DtCtorDeclarationName(ctor)} (");
       WriteFormals("", ctor.Formals, wr);
-      using (var w = wr.NewBlock(")")) {
+      {
+        var w = wr.NewBlock(")");
         i = 0;
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
@@ -1868,9 +1875,6 @@ namespace Microsoft.Dafny{
           }
         }
       }
-      if (ctor.Formals.Count > 0){
-        wr.WriteLine($"public {DtCtorDeclarationName(ctor)}() {{ }}");
-      }
       if (dt is CoDatatypeDecl) {
         string typeParams = TypeParameters(dt.TypeArgs);
         wr.WriteLine($"public {dt.CompileName}{typeParams} Get() {{ return this; }}");
@@ -1878,35 +1882,33 @@ namespace Microsoft.Dafny{
       // Equals method
       wr.WriteLine();
       wr.WriteLine("@Override");
-      using (var w = wr.NewBlock("public boolean equals(Object other)")) {
+      {
+        var w = wr.NewBlock("public boolean equals(Object other)");
         w.WriteLine("if (this == other) return true;");
         w.WriteLine("if (other == null) return false;");
         w.WriteLine("if (getClass() != other.getClass()) return false;");
-        if(ctor.Formals.Count > 0){string typeParams = TypeParameters(dt.TypeArgs);
-          w.WriteLine("{0} o = ({0})other;", DtCtorDeclarationName(ctor, dt.TypeArgs));
-          w.Write("return ");
-          i = 0;
-          foreach (Formal arg in ctor.Formals) {
-            if (!arg.IsGhost) {
-              string nm = FormalName(arg, i);
-              if(i!= 0)
-                w.Write(" && ");
-              if (IsDirectlyComparable(arg.Type)) {
-                w.Write($"this.{nm} == o.{nm}");
-              } else {
-                w.Write($"java.util.Objects.equals(this.{nm}, o.{nm})");
-              }
-              i++;
+        string typeParams = TypeParameters(dt.TypeArgs);
+        w.WriteLine("{0} o = ({0})other;", DtCtorDeclarationName(ctor, dt.TypeArgs));
+        w.Write("return true");
+        i = 0;
+        foreach (Formal arg in ctor.Formals) {
+          if (!arg.IsGhost) {
+            string nm = FormalName(arg, i);
+            w.Write(" && ");
+            if (IsDirectlyComparable(arg.Type)) {
+              w.Write($"this.{nm} == o.{nm}");
+            } else {
+              w.Write($"java.util.Objects.equals(this.{nm}, o.{nm})");
             }
+            i++;
           }
-          w.WriteLine(";");
-        } else {
-          w.WriteLine("return true;");
         }
+        w.WriteLine(";");
       }
       // GetHashCode method (Uses the djb2 algorithm)
       wr.WriteLine("@Override");
-      using (var w = wr.NewBlock("public int hashCode()")) {
+      {
+        var w = wr.NewBlock("public int hashCode()");
         w.WriteLine("long hash = 5381;");
         w.WriteLine($"hash = ((hash << 5) + hash) + {constructorIndex};");
         i = 0;
@@ -1927,7 +1929,8 @@ namespace Microsoft.Dafny{
 
       wr.WriteLine();
       wr.WriteLine("@Override");
-      using (var w = wr.NewBlock("public String toString()")) {
+      {
+        var w = wr.NewBlock("public String toString()");
         string nm;
         if (dt is TupleTypeDecl) {
           nm = "";
@@ -1982,7 +1985,7 @@ namespace Microsoft.Dafny{
       var dt = ctor.EnclosingDatatype;
       return dt.IsRecordType ? IdName(dt) : dt.CompileName + "_" + ctor.CompileName;
     }
-    string DtCtorName(DatatypeCtor ctor, List<Type> typeArgs, TextWriter wr) {
+    string DtCtorName(DatatypeCtor ctor, List<Type> typeArgs, ConcreteSyntaxTree wr) {
       Contract.Requires(ctor != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
@@ -2010,13 +2013,13 @@ namespace Microsoft.Dafny{
       return "create_" + ctor.CompileName;
     }
 
-    protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
+    protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       wr.Write("System.out.print(");
       EmitToString(wr, arg);
       wr.WriteLine(");");
     }
 
-    protected void EmitToString(TargetWriter wr, Expression arg) {
+    protected void EmitToString(ConcreteSyntaxTree wr, Expression arg) {
       if (arg.Type.IsArrowType) {
         var expr = arg.Resolved;
         if (expr is IdentifierExpr id) {
@@ -2157,7 +2160,7 @@ namespace Microsoft.Dafny{
     }
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain, string /*?*/ targetFilename,
-      ReadOnlyCollection<string> otherFileNames, bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+      ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       compilationResult = null;
       foreach (var otherFileName in otherFileNames) {
         if (Path.GetExtension(otherFileName) != ".java") {
@@ -2190,7 +2193,8 @@ namespace Microsoft.Dafny{
       }
       proc.WaitForExit();
       if (proc.ExitCode != 0) {
-        throw new Exception($"Error while compiling Java files. Process exited with exit code {proc.ExitCode}");
+        outputWriter.WriteLine($"Error while compiling Java files. Process exited with exit code {proc.ExitCode}");
+        return false;
       }
       return true;
     }
@@ -2214,7 +2218,8 @@ namespace Microsoft.Dafny{
       }
       proc.WaitForExit();
       if (proc.ExitCode != 0) {
-        throw new Exception($"Error while running Java file {targetFilename}. Process exited with exit code {proc.ExitCode}");
+        outputWriter.WriteLine($"Error while running Java file {targetFilename}. Process exited with exit code {proc.ExitCode}");
+        return false;
       }
       return true;
     }
@@ -2249,19 +2254,19 @@ namespace Microsoft.Dafny{
       return true;
     }
 
-    private static string FindPackageName(string externFilename){
-      using (var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read))){
-        while (rd.ReadLine() is string line){
-          var match = PackageLine.Match(line);
-          if (match.Success){
-            return match.Groups[1].Value;
-          }
+    private static string FindPackageName(string externFilename)
+    {
+      using var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read));
+      while (rd.ReadLine() is string line){
+        var match = PackageLine.Match(line);
+        if (match.Success){
+          return match.Groups[1].Value;
         }
-        return null;
       }
+      return null;
     }
 
-    protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
+    protected override void EmitReturn(List<Formal> outParams, ConcreteSyntaxTree wr) {
       outParams = outParams.Where(f => !f.IsGhost).ToList();
       if (outParams.Count == 0){
         wr.WriteLine("return;");
@@ -2281,22 +2286,22 @@ namespace Microsoft.Dafny{
       return t.IsBoolType || t.IsCharType || t.IsRefType || AsJavaNativeType(t) != null;
     }
 
-    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
+    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       if (typeArgs.Count != 0) {
         wr.Write("<" + BoxedTypeNames(typeArgs, wr, tok) + ">");
       }
     }
 
-    protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
+    protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       EmitActualTypeArgs(typeArgs, tok, wr);
       wr.Write(protectedName);
     }
 
-    protected override string GenerateLhsDecl(string target, Type type, TextWriter wr, Bpl.IToken tok){
+    protected override string GenerateLhsDecl(string target, Type type, ConcreteSyntaxTree wr, Bpl.IToken tok){
       return TypeName(type, wr, tok) + " " + target;
     }
 
-    protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt initCall, TargetWriter wr) {
+    protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt initCall, ConcreteSyntaxTree wr) {
       var ctor = (Constructor)initCall?.Method; // correctness of cast follows from precondition of "EmitNew"
       wr.Write($"new {TypeName(type, wr, tok)}(");
       var sep = "";
@@ -2321,7 +2326,7 @@ namespace Microsoft.Dafny{
     /// <summary>
     /// Returns whether or not there is a run-time type descriptor corresponding to "tp".
     ///
-    /// Note, one might thing that this method should return "tp.Characteristics.MustSupportZeroInitialization".
+    /// Note, one might thing that this method should return "tp.Characteristics.HasCompiledValue".
     /// However, currently, all built-in collection types in Java use type descriptors for their arguments.
     /// To get this threaded through everywhere, all type arguments must always be passed with a
     /// corresponding type descriptor. :(  Thus, this method returns "true".
@@ -2344,7 +2349,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeDescriptor(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       type = type.NormalizeExpandKeepConstraints();
       if (type is BoolType) {
         return $"{DafnyTypeDescriptor}.BOOLEAN";
@@ -2459,7 +2464,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    private string AddTypeDescriptorArgs(string fullCompileName, List<Type> typeArgs, List<Type> relevantTypeArgs, TextWriter wr, Bpl.IToken tok) {
+    private string AddTypeDescriptorArgs(string fullCompileName, List<Type> typeArgs, List<Type> relevantTypeArgs, ConcreteSyntaxTree wr, Bpl.IToken tok) {
       Contract.Requires(fullCompileName != null);
       Contract.Requires(typeArgs != null);
       Contract.Requires(relevantTypeArgs != null);
@@ -2484,15 +2489,15 @@ namespace Microsoft.Dafny{
       return false;
     }
 
-    protected override void EmitSetBuilder_New(TargetWriter wr, SetComprehension e, string collectionName) {
+    protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
       wr.WriteLine($"java.util.ArrayList<{BoxedTypeName(e.Type.AsSetType.Arg, wr, e.tok)}> {collectionName} = new java.util.ArrayList<>();");
     }
 
-    protected override void EmitMapBuilder_New(TargetWriter wr, MapComprehension e, string collectionName) {
+    protected override void EmitMapBuilder_New(ConcreteSyntaxTree wr, MapComprehension e, string collectionName) {
       var mt = e.Type.AsMapType;
       var domType = mt.Domain;
       var ranType = mt.Range;
-      wr.WriteLine($"{DafnyMapClass}<{BoxedTypeName(domType, wr, e.tok)}, {BoxedTypeName(ranType, wr, e.tok)}> {collectionName} = new {DafnyMapClass}<>();");
+      wr.WriteLine($"java.util.HashMap<{BoxedTypeName(domType, wr, e.tok)}, {BoxedTypeName(ranType, wr, e.tok)}> {collectionName} = new java.util.HashMap<>();");
     }
 
     protected override void OrganizeModules(Program program, out List<ModuleDefinition> modules){
@@ -2514,12 +2519,12 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
+    protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
       EmitDatatypeValue(dt, dtv.Ctor, dtv.InferredTypeArgs, dtv.IsCoCall, arguments, wr);
     }
 
-    void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, List<Type>/*?*/ typeArgs, bool isCoCall, string arguments, TargetWriter wr) {
+    void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, List<Type>/*?*/ typeArgs, bool isCoCall, string arguments, ConcreteSyntaxTree wr) {
       var dtName = dt is TupleTypeDecl tupleDecl ? DafnyTupleClass(tupleDecl.TypeArgs.Count) : dt.FullCompileName;
       var typeParams = typeArgs == null || typeArgs.Count == 0 ? "" : $"<{BoxedTypeNames(typeArgs, wr, dt.tok)}>";
       if (!isCoCall) {
@@ -2534,7 +2539,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
+    protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, ConcreteSyntaxTree wr, bool untyped = false) {
       if (inTypes.Count != 1) {
         functions.Add(inTypes.Count);
       }
@@ -2548,14 +2553,14 @@ namespace Microsoft.Dafny{
       return w;
     }
 
-    protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
+    protected override ConcreteSyntaxTree CreateIIFE0(Type resultType, Bpl.IToken resultTok, ConcreteSyntaxTree wr) {
       functions.Add(0);
       wr.Write($"(({DafnyFunctionIface(0)}<{BoxedTypeName(resultType, wr, resultTok)}>)(() ->");
       var w = wr.NewBigExprBlock("", ")).apply()");
       return w;
     }
 
-    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr) {
       switch (op) {
         case ResolvedUnaryOp.BoolNot:
           TrParenExpr("!", expr, wr, inLetExprBody);
@@ -2596,7 +2601,7 @@ namespace Microsoft.Dafny{
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op, Expression e0, Expression e1, Bpl.IToken tok,
       Type resultType, out string opString,
       out string preOpString, out string postOpString, out string callString, out string staticCallString,
-      out bool reverseArguments, out bool truncateResult, out bool convertE1_to_int, TextWriter errorWr){
+      out bool reverseArguments, out bool truncateResult, out bool convertE1_to_int, ConcreteSyntaxTree errorWr){
       opString = null;
       preOpString = "";
       postOpString = "";
@@ -2806,6 +2811,9 @@ namespace Microsoft.Dafny{
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           staticCallString = $"{DafnyMultiSetClass}.<{BoxedTypeName(resultType.AsMultiSetType.Arg, errorWr, tok)}>union";
           break;
+        case BinaryExpr.ResolvedOpcode.MapMerge:
+          staticCallString = $"{DafnyMapClass}.<{BoxedTypeName(resultType.AsMapType.Domain, errorWr, tok)}, {BoxedTypeName(resultType.AsMapType.Range, errorWr, tok)}>merge";
+          break;
         case BinaryExpr.ResolvedOpcode.Intersection:
           staticCallString = $"{DafnySetClass}.<{BoxedTypeName(resultType.AsSetType.Arg, errorWr, tok)}>intersection";
           break;
@@ -2817,6 +2825,9 @@ namespace Microsoft.Dafny{
           break;
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
           staticCallString = $"{DafnyMultiSetClass}.<{BoxedTypeName(resultType.AsMultiSetType.Arg, errorWr, tok)}>difference";
+          break;
+        case BinaryExpr.ResolvedOpcode.MapSubtraction:
+          staticCallString = $"{DafnyMapClass}.<{BoxedTypeName(resultType.AsMapType.Domain, errorWr, tok)}, {BoxedTypeName(resultType.AsMapType.Range, errorWr, tok)}>subtract";
           break;
 
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
@@ -2840,17 +2851,32 @@ namespace Microsoft.Dafny{
       }
     }
 
-    public void CompileTuples(string path){
+    protected override void EmitFooter(Program program, ConcreteSyntaxTree wr) {
+      // Emit tuples
       foreach (int i in tuples) {
         if (i == 2 || i == 3) {
           continue; // Tuple2 and Tuple3 already exist in DafnyRuntime.jar, so don't remake these files.
         }
-        CreateTuple(i, path);
+        CreateTuple(i, wr);
+      }
+
+      // Emit function interfaces
+      foreach (var i in functions) {
+        CreateLambdaFunctionInterface(i, wr);
+      }
+
+      // Emit arrays
+      foreach (var i in arrays) {
+        CreateDafnyArrays(i, wr);
       }
     }
 
-    private void CreateTuple(int i, string path) {
-      var wrTop = new TargetWriter();
+    private void CreateTuple(int i, ConcreteSyntaxTree outputWr) {
+      Contract.Requires(0 <= i);
+      Contract.Requires(outputWr != null);
+
+      var wrTop = outputWr.NewFile(Path.Combine("dafny", $"Tuple{i}.java"));
+
       wrTop.WriteLine("package dafny;");
       wrTop.WriteLine();
       EmitSuppression(wrTop);
@@ -2866,10 +2892,9 @@ namespace Microsoft.Dafny{
       wr.WriteLine();
 
       wr.Write("public Tuple{0}({1}", i, Util.Comma(i, j => $"T{j} _{j}"));
-      using (var wrCtor = wr.NewBlock(")")) {
-        for (var j = 0; j < i; j++) {
-          wrCtor.WriteLine("this._{0} = _{0};", j);
-        }
+      var wrCtor = wr.NewBlock(")");
+      for (var j = 0; j < i; j++) {
+        wrCtor.WriteLine("this._{0} = _{0};", j);
       }
 
       wr.WriteLine();
@@ -2891,7 +2916,8 @@ namespace Microsoft.Dafny{
         wr.Write("public static <{1}> Tuple{0}<{1}>", i, Util.Comma(i, j => $"T{j}"));
       }
       wr.Write(" Default({0})", Util.Comma(i, j => $"T{j} {FormatDefaultTypeParameterValueName($"T{j}")}"));
-      using (var w = wr.NewBlock("")) {
+      {
+        var w = wr.NewBlock("");
         w.WriteLine("return create({0});", Util.Comma(i, j => $"{FormatDefaultTypeParameterValueName($"T{j}")}"));
       }
 
@@ -2903,63 +2929,60 @@ namespace Microsoft.Dafny{
         wr.Write("public static <{1}> Tuple{0}<{1}>", i, Util.Comma(i, j => $"T{j}"));
       }
       wr.Write(" create({0})", Util.Comma(i, j => $"T{j} _{j}"));
-      using (var w = wr.NewBlock("")) {
+      {
+        var w = wr.NewBlock("");
         w.WriteLine("return new Tuple{0}({1});", i, Util.Comma(i, j => $"_{j}"));
       }
 
       wr.WriteLine();
       wr.WriteLine("@Override");
-      using (var wrEquals = wr.NewBlock("public boolean equals(Object obj)")) {
-        wrEquals.WriteLine("if (this == obj) return true;");
-        wrEquals.WriteLine("if (obj == null) return false;");
-        wrEquals.WriteLine("if (getClass() != obj.getClass()) return false;");
-        wrEquals.WriteLine($"Tuple{i} o = (Tuple{i}) obj;");
-        if (i != 0) {
-          wrEquals.WriteLine("return {0};", Util.Comma(" && ", i, j => $"java.util.Objects.equals(this._{j}, o._{j})"));
-        } else {
-          wrEquals.WriteLine("return true;");
-        }
+      var wrEquals = wr.NewBlock("public boolean equals(Object obj)");
+      wrEquals.WriteLine("if (this == obj) return true;");
+      wrEquals.WriteLine("if (obj == null) return false;");
+      wrEquals.WriteLine("if (getClass() != obj.getClass()) return false;");
+      wrEquals.WriteLine($"Tuple{i} o = (Tuple{i}) obj;");
+      if (i != 0) {
+        wrEquals.WriteLine("return {0};", Util.Comma(" && ", i, j => $"java.util.Objects.equals(this._{j}, o._{j})"));
+      } else {
+        wrEquals.WriteLine("return true;");
       }
 
       wr.WriteLine();
       wr.WriteLine("@Override");
-      using (var wrToString = wr.NewBlock("public String toString()")) {
-        wrToString.WriteLine("StringBuilder sb = new StringBuilder();");
-        wrToString.WriteLine("sb.append(\"(\");");
-        for (int j = 0; j < i; j++) {
-          wrToString.WriteLine($"sb.append(_{j} == null ? \"null\" : _{j}.toString());");
-          if (j != i - 1)
-            wrToString.WriteLine("sb.append(\", \");");
-        }
-        wrToString.WriteLine("sb.append(\")\");");
-        wrToString.WriteLine("return sb.toString();");
+      var wrToString = wr.NewBlock("public String toString()");
+      wrToString.WriteLine("StringBuilder sb = new StringBuilder();");
+      wrToString.WriteLine("sb.append(\"(\");");
+      for (int j = 0; j < i; j++) {
+        wrToString.WriteLine($"sb.append(_{j} == null ? \"null\" : _{j}.toString());");
+        if (j != i - 1)
+          wrToString.WriteLine("sb.append(\", \");");
       }
+
+      wrToString.WriteLine("sb.append(\")\");");
+      wrToString.WriteLine("return sb.toString();");
 
       wr.WriteLine();
       wr.WriteLine("@Override");
-      using (var wrHashCode = wr.NewBlock("public int hashCode()")) {
-        wrHashCode.WriteLine("// GetHashCode method (Uses the djb2 algorithm)");
-        wrHashCode.WriteLine("// https://stackoverflow.com/questions/1579721/why-are-5381-and-33-so-important-in-the-djb2-algorithm");
-        wrHashCode.WriteLine("long hash = 5381;");
-        wrHashCode.WriteLine("hash = ((hash << 5) + hash) + 0;");  // this is constructor 0 (in fact, it's the only constructor)
-        for (int j = 0; j < i; j++) {
-          wrHashCode.WriteLine("hash = ((hash << 5) + hash) + java.util.Objects.hashCode(this._" + j + ");");
-        }
-        wrHashCode.WriteLine("return (int)hash;");
+      var wrHashCode = wr.NewBlock("public int hashCode()");
+      wrHashCode.WriteLine("// GetHashCode method (Uses the djb2 algorithm)");
+      wrHashCode.WriteLine(
+        "// https://stackoverflow.com/questions/1579721/why-are-5381-and-33-so-important-in-the-djb2-algorithm");
+      wrHashCode.WriteLine("long hash = 5381;");
+      wrHashCode.WriteLine(
+        "hash = ((hash << 5) + hash) + 0;"); // this is constructor 0 (in fact, it's the only constructor)
+      for (int j = 0; j < i; j++) {
+        wrHashCode.WriteLine("hash = ((hash << 5) + hash) + java.util.Objects.hashCode(this._" + j + ");");
       }
+
+      wrHashCode.WriteLine("return (int)hash;");
 
       for (int j = 0; j < i; j++){
         wr.WriteLine();
         wr.WriteLine("public T" + j + " dtor__" + j + "() { return this._" + j + "; }");
       }
-
-      // Create a file to write to.
-      using (StreamWriter sw = File.CreateText(path + "/Tuple" + i + ".java")) {
-        sw.Write(wrTop.ToString());
-      }
     }
 
-    public override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
+    protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is BoolType) {
         return "false";
@@ -2986,18 +3009,19 @@ namespace Microsoft.Dafny{
       }
 
       var udt = (UserDefinedType)xType;
-      if (udt.ResolvedParam != null) {
-        if (usePlaceboValue && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
-          return "null";
-        } else if (constructTypeParameterDefaultsFromTypeDescriptors) {
-          return $"{FormatTypeDescriptorVariable(udt.ResolvedParam.CompileName)}.defaultValue()";
-        } else {
-          return FormatDefaultTypeParameterValue(udt.ResolvedParam);
-        }
-      }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is NewtypeDecl) {
+      if (cl is TypeParameter tp) {
+        if (usePlaceboValue && !tp.Characteristics.HasCompiledValue) {
+          return "null";
+        } else if (constructTypeParameterDefaultsFromTypeDescriptors) {
+          return $"{FormatTypeDescriptorVariable(tp.CompileName)}.defaultValue()";
+        } else {
+          return FormatDefaultTypeParameterValue(tp);
+        }
+      } else if (cl is OpaqueTypeDecl opaque) {
+        return FormatDefaultTypeParameterValueName(opaque.CompileName);
+      } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
           return FullTypeName(udt) + ".Witness";
@@ -3077,18 +3101,18 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override TargetWriter DeclareLocalVar(string name, Type type, Bpl.IToken tok, TargetWriter wr) {
+    protected override ConcreteSyntaxTree DeclareLocalVar(string name, Type type, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       wr.Write("{0} {1} = ", type != null ? TypeName(type, wr, tok, false, false, null) : "var", name);
       var w = wr.Fork();
       wr.WriteLine(";");
       return w;
     }
 
-    protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr) {
+    protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, ConcreteSyntaxTree wr) {
       DeclareLocalVar(name, type, tok, false, rhs, wr);
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type> superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type> superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       var filename = $"{ModulePath}/{IdProtect(name)}.java";
       var w = wr.NewFile(filename);
       FileCount += 1;
@@ -3130,7 +3154,7 @@ namespace Microsoft.Dafny{
       return new ClassWriter(this, instanceMemberWriter, ctorBodyWriter, staticMemberWriter);
     }
 
-    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr){
+    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr){
       string dtorName;
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
         dtorName = $"dtor__{dtor.Name}()";
@@ -3142,20 +3166,18 @@ namespace Microsoft.Dafny{
       wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
     }
 
-    public void CreateFunctionInterface(string path) {
-      foreach(int i in functions){
-        CreateLambdaFunctionInterface(i, path);
-      }
-    }
+    private void CreateLambdaFunctionInterface(int i, ConcreteSyntaxTree outputWr) {
+      Contract.Requires(0 <= i);
+      Contract.Requires(outputWr != null);
 
-    public void CreateLambdaFunctionInterface(int i, string path) {
+      var functionName = $"Function{i}";
+      var wr = outputWr.NewFile(Path.Combine("dafny", $"{functionName}.java"));
+
       var typeArgs = "<" + Util.Comma(i + 1, j => $"T{j}") + ">";
 
-      var wr = new TargetWriter();
       wr.WriteLine("package dafny;");
       wr.WriteLine();
       wr.WriteLine("@FunctionalInterface");
-      var functionName = $"Function{i}";
       wr.Write($"public interface {functionName}{typeArgs}");
       var wrMembers = wr.NewBlock("");
       wrMembers.Write($"public T{i} apply(");
@@ -3165,25 +3187,19 @@ namespace Microsoft.Dafny{
       EmitSuppression(wrMembers);
       wrMembers.Write($"public static {typeArgs} {DafnyTypeDescriptor}<{functionName}{typeArgs}> {TypeMethodName}(");
       wrMembers.Write(Util.Comma(i + 1, j => $"{DafnyTypeDescriptor}<T{j}> t{j}"));
-      var wrTypeBody = wrMembers.NewBigBlock(")", "");
+      var wrTypeBody = wrMembers.NewBlock(")", "");
       // XXX This seems to allow non-nullable types to have null values (since
       // arrow types are allowed as "(0)"-constrained type arguments), but it's
       // consistent with other backends.
       wrTypeBody.Write($"return ({DafnyTypeDescriptor}<{functionName}{typeArgs}>) ({DafnyTypeDescriptor}<?>) {DafnyTypeDescriptor}.reference({functionName}.class);");
-
-      using (StreamWriter sw = File.CreateText($"{path}/{functionName}.java")) {
-        sw.Write(wr.ToString());
-      }
     }
 
-    public void CompileDafnyArrays(string path) {
-      foreach(int i in arrays){
-        CreateDafnyArrays(i, path);
-      }
-    }
+    private void CreateDafnyArrays(int i, ConcreteSyntaxTree outputWr) {
+      Contract.Requires(0 <= i);
+      Contract.Requires(outputWr != null);
 
-    public void CreateDafnyArrays(int i, string path) {
-      var wrTop = new TargetWriter();
+      var wrTop = outputWr.NewFile(Path.Combine("dafny", $"Array{i}.java"));
+
       wrTop.WriteLine("package dafny;");
       wrTop.WriteLine();
 
@@ -3203,8 +3219,8 @@ namespace Microsoft.Dafny{
       foreach (var j in dims) {
         wr.WriteLine($"public final int dim{j};");
       }
-
-      using (var wrBody = wr.NewBlock($"public Array{i}({DafnyTypeDescriptor}<T> elmtType, {Util.Comma(dims, j => $"int dim{j}")}, Object{outerBrackets} elmts)")) {
+      {
+        var wrBody = wr.NewBlock($"public Array{i}({DafnyTypeDescriptor}<T> elmtType, {Util.Comma(dims, j => $"int dim{j}")}, Object{outerBrackets} elmts)");
         wrBody.WriteLine("assert elmts.getClass().isArray();");
         wrBody.WriteLine("this.elmtType = elmtType;");
         foreach (var j in dims) {
@@ -3213,7 +3229,8 @@ namespace Microsoft.Dafny{
         wrBody.WriteLine("this.elmts = elmts;");
       }
 
-      using (var wrBody = wr.NewBlock($"public T get({Util.Comma(dims, j => $"int i{j}")})")) {
+      {
+        var wrBody = wr.NewBlock($"public T get({Util.Comma(dims, j => $"int i{j}")})");
         wrBody.Write("return elmtType.getArrayElement(elmts");
         foreach (var j in outerDims) {
           wrBody.Write($"[i{j}]");
@@ -3221,7 +3238,8 @@ namespace Microsoft.Dafny{
         wrBody.WriteLine($", i{i-1});");
       }
 
-      using (var wrBody = wr.NewBlock($"public void set({Util.Comma(dims, j => $"int i{j}")}, T value)")) {
+      {
+        var wrBody = wr.NewBlock($"public void set({Util.Comma(dims, j => $"int i{j}")}, T value)");
         wrBody.Write("elmtType.setArrayElement(elmts");
         foreach (var j in outerDims) {
           wrBody.Write($"[i{j}]");
@@ -3229,7 +3247,8 @@ namespace Microsoft.Dafny{
         wrBody.WriteLine($", i{i-1}, value);");
       }
 
-      using (var body = wr.NewBlock("public void fill(T z)")) {
+      {
+        var body = wr.NewBlock("public void fill(T z)");
         var forBodyWr = body;
         for (int j = 0; j < i - 1; j++) {
           forBodyWr = forBodyWr.NewBlock($"for(int i{j} = 0; i{j} < dim{j}; i{j}++)");
@@ -3241,7 +3260,8 @@ namespace Microsoft.Dafny{
         forBodyWr.WriteLine(", z);");
       }
 
-      using (var body = wr.NewBlock($"public Array{i} fillThenReturn(T z)")) {
+      {
+        var body = wr.NewBlock($"public Array{i} fillThenReturn(T z)");
         body.WriteLine("fill(z);");
         body.WriteLine("return this;");
       }
@@ -3251,13 +3271,9 @@ namespace Microsoft.Dafny{
       EmitSuppression(wr);
       var wrTypeMethod = wr.NewBlock($"public static <T> {DafnyTypeDescriptor}<Array{i}<T>> {TypeMethodName}()");
       wrTypeMethod.WriteLine($"return ({DafnyTypeDescriptor}<Array{i}<T>>) ({DafnyTypeDescriptor}<?>) TYPE;");
-
-      using (StreamWriter sw = File.CreateText(path + "/Array" + i + ".java")) {
-        sw.Write(wrTop.ToString());
-      }
     }
 
-    protected override BlockTargetWriter EmitTailCallStructure(MemberDecl member, BlockTargetWriter wr) {
+    protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
       if (!member.IsStatic && !NeedsCustomReceiver(member)) {
         var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
         var receiverTypeName = TypeName(receiverType, wr, member.tok);
@@ -3269,12 +3285,12 @@ namespace Microsoft.Dafny{
       return wr.NewBlock("TAIL_CALL_START: while (true)");
     }
 
-    protected override void EmitJumpToTailCallStart(TargetWriter wr) {
+    protected override void EmitJumpToTailCallStart(ConcreteSyntaxTree wr) {
       wr.WriteLine("continue TAIL_CALL_START;");
     }
 
-    protected override BlockTargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
-      Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
+    protected override ConcreteSyntaxTree CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
+      Bpl.IToken tok, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
 
       wr.Write("for ({1} {0} : ", tmpVarName, TypeName(collectionElementType, wr, tok));
       collectionWriter = wr.Fork();
@@ -3299,13 +3315,13 @@ namespace Microsoft.Dafny{
       return wwr;
     }
 
-    protected override BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr) {
+    protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
       wr.Write($"for ({DafnyTupleClass(L)}<{tupleTypeArgs}> {boundVarName} : ");
       collectionWriter = wr.Fork();
       return wr.NewBlock(")");
     }
 
-    protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, ConcreteSyntaxTree wr) {
       if (ct is SetType) {
         wr.Write($"{collName}.add(");
         TrExpr(elmt, wr, inLetExprBody);
@@ -3315,7 +3331,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
+    protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, ConcreteSyntaxTree wr) {
       if (ct is SetType) {
         var typeName = BoxedTypeName(ct.Arg, wr, tok);
         return $"new {DafnySetClass}<{typeName}>({collName})";
@@ -3330,15 +3346,15 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
+    protected override ConcreteSyntaxTree CreateLabeledCode(string label, ConcreteSyntaxTree wr) {
       return wr.NewNamedBlock($"goto_{label}:");
     }
 
-    protected override void EmitBreak(string label, TargetWriter wr) {
+    protected override void EmitBreak(string label, ConcreteSyntaxTree wr) {
       wr.WriteLine(label == null ? "break;" : $"break goto_{label};");
     }
 
-    protected override void EmitAbsurd(string message, TargetWriter wr) {
+    protected override void EmitAbsurd(string message, ConcreteSyntaxTree wr) {
       if (message == null) {
         message = "unexpected control point";
       }
@@ -3346,20 +3362,20 @@ namespace Microsoft.Dafny{
       wr.WriteLine($"throw new IllegalArgumentException(\"{message}\");");
     }
 
-    protected override void EmitAbsurd(string message, TargetWriter wr, bool needIterLimit) {
+    protected override void EmitAbsurd(string message, ConcreteSyntaxTree wr, bool needIterLimit) {
       if (!needIterLimit) {
         EmitAbsurd(message, wr);
       }
     }
 
-    protected override void EmitHalt(Bpl.IToken tok, Expression messageExpr, TargetWriter wr) {
+    protected override void EmitHalt(Bpl.IToken tok, Expression messageExpr, ConcreteSyntaxTree wr) {
       wr.Write("throw new dafny.DafnyHaltException(");
       if (tok != null) wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
       EmitToString(wr, messageExpr);
       wr.WriteLine(");");
     }
 
-    protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr){
+    protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr){
       var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.CompileName), IdName(nt), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
@@ -3367,13 +3383,14 @@ namespace Microsoft.Dafny{
         var wEnum = w.NewNamedBlock($"public static java.util.ArrayList<{nativeType}> IntegerRange(java.math.BigInteger lo, java.math.BigInteger hi)");
         wEnum.WriteLine($"java.util.ArrayList<{nativeType}> arr = new java.util.ArrayList<>();");
         var numberval = "intValue()";
-        if (nativeType == "Byte" || nativeType == "Short")
+        if (nativeType == "Byte" || nativeType == "Short") {
           numberval = $"{nativeType.ToLower()}Value()";
-        wEnum.WriteLine($"for (java.math.BigInteger j = lo; j.compareTo(hi) < 0; j.add(java.math.BigInteger.ONE)) {{ arr.add(new {nativeType}(j.{numberval})); }}");
+        }
+        wEnum.WriteLine($"for (java.math.BigInteger j = lo; j.compareTo(hi) < 0; j = j.add(java.math.BigInteger.ONE)) {{ arr.add({nativeType}.valueOf(j.{numberval})); }}");
         wEnum.WriteLine("return arr;");
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var witness = new TargetWriter(w.IndentLevel, true);
+        var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
         TrExpr(nt.Witness, witness, false);
         if (nt.NativeType == null) {
           cw.DeclareField("Witness", nt, true, true, nt.BaseType, nt.tok, witness.ToString(), null);
@@ -3404,7 +3421,7 @@ namespace Microsoft.Dafny{
     // if checkRange is false, msg is ignored
     // if checkRange is true and msg is null and the value is out of range, a generic message is emitted
     // if checkRange is true and msg is not null and the value is out of range, msg is emitted in the error message
-    private void TrExprAsInt(Expression expr, TargetWriter wr, bool inLetExprBody, bool checkRange = false, string msg = null) {
+    private void TrExprAsInt(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody, bool checkRange = false, string msg = null) {
       var nt = AsNativeType(expr.Type);
       if (nt == null) {
         wr.Write($"{DafnyHelpersClass}.toInt" + (checkRange ? "Checked(" : "("));
@@ -3426,15 +3443,15 @@ namespace Microsoft.Dafny{
       }
     }
 
-    private void TrParenExprAsInt(Expression expr, TargetWriter wr, bool inLetExprBody) {
+    private void TrParenExprAsInt(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody) {
       wr.Write("(");
       TrExprAsInt(expr, wr, inLetExprBody);
       wr.Write(")");
     }
 
-    protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr) {
+    protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, ConcreteSyntaxTree wr) {
       // Where to put the array to be wrapped
-      TargetWriter wBareArray;
+      ConcreteSyntaxTree wBareArray;
       if (dimensions.Count > 1) {
         arrays.Add(dimensions.Count);
         wr.Write($"new {DafnyMultiArrayClass(dimensions.Count)}<>({TypeDescriptor(elmtType, wr, tok)}, ");
@@ -3475,8 +3492,8 @@ namespace Microsoft.Dafny{
 
     protected override bool TargetLambdaCanUseEnclosingLocals => false;
 
-    protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
-      List<Type> boundTypes, Type resultType, Bpl.IToken resultTok, bool inLetExprBody, TargetWriter wr){
+    protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
+      List<Type> boundTypes, Type resultType, Bpl.IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr){
       if (boundTypes.Count != 1) {
         functions.Add(boundTypes.Count);
       }
@@ -3488,13 +3505,60 @@ namespace Microsoft.Dafny{
       return w;
     }
 
-    protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
+    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
       return wr.NewNamedBlock($"for (java.math.BigInteger {indexVar} = java.math.BigInteger.ZERO; {indexVar}.compareTo({bound}) < 0; {indexVar} = {indexVar}.add(java.math.BigInteger.ONE))");
+    }
+
+    protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
+      List<Statement> body, ConcreteSyntaxTree wr) {
+
+      var nativeType = AsNativeType(loopIndex.Type);
+
+      wr.Write($"for ({TypeName(loopIndex.Type,wr, tok)} {loopIndex.CompileName} = ");
+      var startWr = wr.Fork();
+      wr.Write($"; ");
+
+      ConcreteSyntaxTree bodyWr;
+      if (goingUp) {
+        if (endVarName == null) {
+          wr.Write("");
+        } else if (nativeType == null) {
+          wr.Write($"{loopIndex.CompileName}.compareTo({endVarName}) < 0");
+        } else if (0 <= nativeType.LowerBound) {
+          wr.Write($"{HelperClass(nativeType)}.compareUnsigned({loopIndex.CompileName}, {endVarName}) < 0");
+        } else {
+          wr.Write($"{loopIndex.CompileName} < {endVarName}");
+        }
+        if (nativeType == null) {
+          bodyWr = wr.NewBlock($"; {loopIndex.CompileName} = {loopIndex.CompileName}.add(java.math.BigInteger.ONE))");
+        } else {
+          bodyWr = wr.NewBlock($"; {loopIndex.CompileName}++)");
+        }
+      } else {
+        if (endVarName == null) {
+          wr.Write("");
+        } else if (nativeType == null) {
+          wr.Write($"{endVarName}.compareTo({loopIndex.CompileName}) < 0");
+        } else if (0 <= nativeType.LowerBound) {
+          wr.Write($"{HelperClass(nativeType)}.compareUnsigned({endVarName}, {loopIndex.CompileName}) < 0");
+        } else {
+          wr.Write($"{endVarName} < {loopIndex.CompileName}");
+        }
+        bodyWr = wr.NewBlock($"; )");
+        if (nativeType == null) {
+          bodyWr.WriteLine($"{loopIndex.CompileName} = {loopIndex.CompileName}.subtract(java.math.BigInteger.ONE);");
+        } else {
+          bodyWr.WriteLine($"{loopIndex.CompileName}--;");
+        }
+      }
+      TrStmtList(body, bodyWr);
+
+      return startWr;
     }
 
     protected override string GetHelperModuleName() => DafnyHelpersClass;
 
-    protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr){
+    protected override void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr){
       wr.WriteLine("new java.util.ArrayList<>();");
     }
 
@@ -3502,7 +3566,7 @@ namespace Microsoft.Dafny{
       tuples.Add(i);
     }
 
-    protected override TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr) {
+    protected override ConcreteSyntaxTree EmitAddTupleToList(string ingredients, string tupleTypeArgs, ConcreteSyntaxTree wr) {
       // FIXME: tupleTypeArgs is wrong because it already got generated from
       // TypeName (with unboxed being the default)  :-(
       wr.Write($"{ingredients}.add(new {DafnyTupleClassPrefix}");
@@ -3511,16 +3575,16 @@ namespace Microsoft.Dafny{
       return wrTuple;
     }
 
-    protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr){
+    protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr){
       TrParenExpr(expr, wr, inLetExprBody);
       wr.Write(".intValue()");
     }
 
-    protected override void EmitTupleSelect(string prefix, int i, TargetWriter wr) {
+    protected override void EmitTupleSelect(string prefix, int i, ConcreteSyntaxTree wr) {
       wr.Write($"{prefix}.dtor__{i}()");
     }
 
-    protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr){
+    protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, ConcreteSyntaxTree wr){
       TrParenExpr(function, wr, inLetExprBody);
       wr.Write(".apply");
       TrExprList(arguments, wr, inLetExprBody);
@@ -3545,7 +3609,7 @@ namespace Microsoft.Dafny{
       return true;
     }
 
-    protected override TargetWriter EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, Bpl.IToken tok, TargetWriter wr) {
+    protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       if (IsCoercionNecessary(from, to)) {
         return EmitDowncast(from, to, tok, wr);
       } else {
@@ -3553,48 +3617,48 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override TargetWriter EmitDowncast(Type from, Type to, Bpl.IToken tok, TargetWriter wr) {
+    protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       wr.Write($"(({TypeName(to, wr, tok)})(");
       var w = wr.Fork();
       wr.Write("))");
       return w;
     }
 
-    protected override TargetWriter EmitCoercionToNativeInt(TargetWriter wr) {
+    protected override ConcreteSyntaxTree EmitCoercionToNativeInt(ConcreteSyntaxTree wr) {
       wr.Write("((java.math.BigInteger)");
       var w = wr.Fork();
       wr.Write(").intValue()");
       return w;
     }
 
-    protected override BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr) {
+    protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
       return wr.NewNamedBlock($"for (java.math.BigInteger {indexVar} = java.math.BigInteger.valueOf({start}); ; {indexVar} = {indexVar}.multiply(new java.math.BigInteger(\"2\")))");
     }
 
-    protected override void EmitIsZero(string varName, TargetWriter wr) {
+    protected override void EmitIsZero(string varName, ConcreteSyntaxTree wr) {
       wr.Write($"{varName}.equals(java.math.BigInteger.ZERO)");
     }
 
-    protected override void EmitDecrementVar(string varName, TargetWriter wr) {
+    protected override void EmitDecrementVar(string varName, ConcreteSyntaxTree wr) {
       wr.WriteLine($"{varName} = {varName}.subtract(java.math.BigInteger.ONE);");
     }
 
-    protected override void EmitIncrementVar(string varName, TargetWriter wr) {
+    protected override void EmitIncrementVar(string varName, ConcreteSyntaxTree wr) {
       wr.WriteLine($"{varName} = {varName}.add(java.math.BigInteger.ONE);");
     }
 
-    protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr) {
+    protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, ConcreteSyntaxTree wr) {
       wr.Write("java.util.Arrays.asList");
       TrParenExpr(e, wr, inLetExprBody);
     }
 
-    protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+    protected override ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, ConcreteSyntaxTree wr) {
       wr.Write($"((java.util.function.Function<java.math.BigInteger, {BoxedTypeName(resultType, wr, resultTok)}>)(({bvName}) ->");
       var w = wr.NewBigExprBlock("", $")).apply(java.math.BigInteger.valueOf({source}))");
       return w;
     }
 
-    protected override TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term, bool inLetExprBody, TargetWriter wr){
+    protected override ConcreteSyntaxTree EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term, bool inLetExprBody, ConcreteSyntaxTree wr){
       wr.Write($"{collName}.put(");
       var termLeftWriter = wr.Fork();
       wr.Write(",");
@@ -3603,7 +3667,7 @@ namespace Microsoft.Dafny{
       return termLeftWriter;
     }
 
-    protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr) {
       wr.Write($"{DafnySeqClass}.Create({TypeDescriptor(expr.Type.AsCollectionType.Arg, wr, expr.tok)}, ");
       TrExpr(expr.N, wr, inLetExprBody);
       wr.Write(", ");
@@ -3623,7 +3687,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, ConcreteSyntaxTree wr) {
       Expression arg = e.E;
       Type fromType = e.E.Type;
       Type toType = e.ToType;
@@ -3709,7 +3773,7 @@ namespace Microsoft.Dafny{
               // Optimize .length to avoid intermediate BigInteger
               wr.Write(CastIfSmallNativeType(toType));
               var elmtType = UserDefinedType.ArrayElementType(m.Obj.Type);
-              TargetWriter w;
+              ConcreteSyntaxTree w;
               if (elmtType.IsTypeParameter) {
                 wr.Write($"{FormatTypeDescriptorVariable(elmtType.AsTypeParameter)}.getArrayLength(");
                 w = wr.Fork();
@@ -3802,12 +3866,46 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
-      var wr = ((ClassWriter) cw).StaticMemberWriter;
-      return wr.NewBlock("public static void Main(string[] args)");
+    protected override void EmitTypeTest(string localName, Type fromType, Type toType, Bpl.IToken tok, ConcreteSyntaxTree wr) {
+      Contract.Requires(fromType.IsRefType);
+      Contract.Requires(toType.IsRefType);
+
+      // from T to U:   t instanceof U && ...
+      // from T to U?:  t instanceof U && ...                 // since t is known to be non-null, this is fine
+      // from T? to U:  t instanceof U && ...                 // note, "instanceof" implies non-null, so no need for explicit null check
+      // from T? to U?: t == null || (t instanceof U && ...)
+      if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
+        wr.Write($"{localName} == null || (");
+      }
+
+      if (toType.IsObjectQ) {
+        wr.Write("true");
+      } else {
+        var typeName = toType.IsObject ? "Object" : FullTypeName((UserDefinedType)toType.NormalizeExpand());
+        wr.Write($"{localName} instanceof {typeName}");
+        localName = $"(({typeName}){localName})";
+      }
+
+      var udtTo = (UserDefinedType)toType.NormalizeExpandKeepConstraints();
+      if (udtTo.ResolvedClass is SubsetTypeDecl && !(udtTo.ResolvedClass is NonNullTypeDecl)) {
+        // TODO: test constraints
+        throw new NotImplementedException();
+      }
+
+      if (!fromType.IsNonNullRefType && !toType.IsNonNullRefType) {
+        wr.Write(")");
+      }
     }
 
-    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, TargetWriter wr, out TargetWriter wrRhs, out TargetWriter wrBody) {
+    protected override bool IssueCreateStaticMain(Method m) {
+      return true;
+    }
+    protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
+      var wr = ((ClassWriter) cw).StaticMemberWriter;
+      return wr.NewBlock("public static void __Main()");
+    }
+
+    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, ConcreteSyntaxTree wr, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody) {
       wr.Write("{0}.<{1}, {2}>Let(", DafnyHelpersClass, BoxedTypeName(bvType, wr, bvTok), BoxedTypeName(bodyType, wr, bodyTok));
       wrRhs = wr.Fork();
       wr.Write($", {bvName} -> ");
@@ -3821,12 +3919,12 @@ namespace Microsoft.Dafny{
 
     // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
 
-    protected override void EmitYield(TargetWriter wr)
+    protected override void EmitYield(ConcreteSyntaxTree wr)
     {
       throw new NotImplementedException();
     }
 
-    protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr)
+    protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr)
     {
       throw new NotImplementedException();
     }

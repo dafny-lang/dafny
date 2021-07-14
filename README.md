@@ -9,7 +9,7 @@ Dafny is a programming language with a program verifier. As you type in your pro
 * the [issue tracker](https://github.com/dafny-lang/dafny/issues)
 * the wiki, including [frequently asked questions](https://github.com/dafny-lang/dafny/wiki/FAQ)
 
-Documentation about the dafny language and tools is located 
+Documentation about the dafny language and tools is located
 [here](https://dafny-lang.github.io/dafny).
 A reference manual is available both [online](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef) and as [pdf](https://github.com/dafny-lang/dafny/blob/master/docs/DafnyRef/out/DafnyRef.pdf). (A LaTeX version can be produced if needed.)
 
@@ -75,10 +75,6 @@ Then run
     $ pre-commit install
 
 This will install pre-commit hooks in your .git/hooks directory.
-
-# Code of Conduct
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
 # License
 

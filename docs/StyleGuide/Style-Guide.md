@@ -277,7 +277,7 @@ const one := 1
 ```
 
 #### Function, Method, Predicate, and Lemma Declaration
-The `function`, `method`, `predicate`, and `lemma` definitions should have the form 
+The `function`, `method`, `predicate`, and `lemma` definitions should have the form
 `FunctionName(parameterName: parameterType, ...)`.
 
 ```dafny

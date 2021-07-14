@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 const BigNumber = require('bignumber.js');
 BigNumber.config({ MODULO_MODE: BigNumber.EUCLID })
 let _dafny = (function() {
@@ -635,6 +638,30 @@ let _dafny = (function() {
         s.push(_dafny.Tuple.of(k, v));
       }
       return s;
+    }
+    Merge(that) {
+      let m = that.slice();
+      for (let e of this) {
+        let [k, v] = e;
+        let i = m.findIndex(k);
+        if (i == m.length) {
+          m[i] = [k, v];
+        }
+      }
+      return m;
+    }
+    Subtract(keys) {
+      if (this.length === 0 || keys.length === 0) {
+        return this;
+      }
+      let m = new Map();
+      for (let e of this) {
+        let [k, v] = e;
+        if (!keys.contains(k)) {
+          m[m.length] = e;
+        }
+      }
+      return m;
     }
   }
   $module.newArray = function(initValue, ...dims) {

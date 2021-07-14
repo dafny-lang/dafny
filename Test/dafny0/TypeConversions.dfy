@@ -121,3 +121,6 @@ method M5() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b
     case small as real == small.Floor as real => seven := (if 0.0 <= small < 100.0 then small else 100.0) as bv7;
   }
 }
+
+class Class { }
+type ClassSubset = c: Class | true // error: the witness guess "null" is not good enough

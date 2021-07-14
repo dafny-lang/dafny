@@ -1,3 +1,6 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
 package dafny;
 
 import java.math.BigInteger;
@@ -95,6 +98,7 @@ public class DafnyMultiset<T> {
 
     // Determines if the current object is a subset of the DafnyMultiSet passed in. Requires that the input
     // DafnyMultiset is not null.
+    @SuppressWarnings("unchecked")
     public boolean isSubsetOf(DafnyMultiset other) {
         assert other != null : "Precondition Violation";
         for (Map.Entry<T, BigInteger> entry : innerMap.entrySet()) {
@@ -123,11 +127,13 @@ public class DafnyMultiset<T> {
         return true;
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> BigInteger multiplicity(DafnyMultiset<? extends T> th, T t) {
         BigInteger m = th.innerMap.get(t);
         return m == null ? BigInteger.ZERO : m;
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> DafnyMultiset<T> update(DafnyMultiset<? extends T> th, T t, BigInteger b) {
         assert th != null : "Precondition Violation";
         assert b != null && b.compareTo(BigInteger.ZERO) >= 0 : "Precondition Violation";
@@ -152,6 +158,7 @@ public class DafnyMultiset<T> {
         setMultiplicity(t, multiplicity(this, t).add(b));
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> DafnyMultiset<T> union(DafnyMultiset<? extends T> th, DafnyMultiset<? extends T> other) {
         assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";
@@ -165,6 +172,7 @@ public class DafnyMultiset<T> {
 
     // Returns a DafnyMultiSet with multiplicities that are
     // max(this.multiplicity(e)-other.multiplicity(e), BigInteger.ZERO)
+    @SuppressWarnings("unchecked")
     public static <T> DafnyMultiset<T> difference(DafnyMultiset<? extends T> th, DafnyMultiset<? extends T> other) {
         assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";
@@ -180,6 +188,7 @@ public class DafnyMultiset<T> {
     }
 
     // Returns a DafnyMultiSet with multiplicities that are min(this.multiplicity(e), other.multiplicity(e))
+    @SuppressWarnings("unchecked")
     public static <T> DafnyMultiset<T> intersection(DafnyMultiset<? extends T> th, DafnyMultiset<? extends T> other) {
         assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";

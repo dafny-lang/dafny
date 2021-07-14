@@ -39,7 +39,7 @@
         <Detect2Chars attribute="Comment" char="/" char1="/" context="SingleLineComment" />
         <Detect2Chars attribute="Comment" char="/" char1="*" context="MultiLineComment" />
 
-        <RegExpr attribute="Punctuation" String="(\+|-|:=|=|\(|\)|\||\[|\]|{|}|\.)" />
+        <RegExpr attribute="Punctuation" String="[+-={}()\.\[\]]" />
 
         <!-- Openings for quoted strings -->
         <DetectChar attribute="String" char="&quot;" context="Quoted String" />

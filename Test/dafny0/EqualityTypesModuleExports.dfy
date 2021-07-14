@@ -399,3 +399,39 @@ module ScopeRegressions {
     datatype BType = X | Y
   }
 }
+
+// ------------------------------------------------------
+// Tests that all declared type characteristics hold true
+// ------------------------------------------------------
+
+module SynonymTypes {
+  type Empty = x: int | false witness *
+  type Synonym(0) = Empty  // error
+  type AnotherSynonym(00) = Empty  // error
+
+  type NonEmpty = x: int | 0 <= x ghost witness 2
+  type NESynonym(0) = NonEmpty  // error
+  type NEAnotherSynonym(00) = NonEmpty
+
+  class C { }
+  type NoReference(!new) = C?  // error
+
+  codatatype Stream = More(Stream)
+  type PipeDreamEquality(==) = Stream  // error
+}
+
+module SubsetTypes {
+  type Empty = x: int | false witness *
+  type Subset(0) = e: Empty| true  // error
+  type AnotherSubset(00) = e: Empty | true  // error
+
+  type NonEmpty = x: int | 0 <= x ghost witness 2
+  type NESynonym(0) = e: NonEmpty | true  // error
+  type NEAnotherSynonym(00) = e: NonEmpty | true
+
+  class C { }
+  type NoReference(!new) = c: C? | true  // error
+
+  codatatype Stream = More(Stream)
+  type PipeDreamEquality(==) = s: Stream | true  // error
+}

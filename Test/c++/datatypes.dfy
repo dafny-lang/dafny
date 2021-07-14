@@ -112,7 +112,7 @@ method DupTestTest()
   DupTest(Dup2(330));
 }
 
-datatype IntList = 
+datatype IntList =
   | Nil
   | Cons(hd:uint32, tl:IntList)
 
@@ -120,13 +120,31 @@ method IntListLen(l:IntList) returns (len:uint32)
 {
   match l {
     case Nil => len := 0;
-    case Cons(hd, tl) => 
+    case Cons(hd, tl) =>
       var len_rest := IntListLen(tl);
       if len_rest < 0xFFFFFFFF {
         len := len_rest + 1;
       } else {
         len := len_rest;
       }
+  }
+}
+
+// Test generic datatype methods
+datatype Foo<A> = Foo(a: A) {
+  static method Alloc(a: A) returns (f: Foo<A>) {
+    f := Foo(a);
+  }
+}
+
+datatype Test<A> = Test(a:A) | Empty
+{
+  static method Alloc() returns (t:Test<A>) {
+    return Empty;
+  }
+
+  static method Invoke() {
+    var a := Alloc();
   }
 }
 
@@ -146,3 +164,4 @@ method Main() {
   var len := IntListLen(Cons(15, Cons(18, Cons(330, Nil))));
   print len;
 }
+
