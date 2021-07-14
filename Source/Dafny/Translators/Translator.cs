@@ -10464,6 +10464,25 @@ namespace Microsoft.Dafny {
 
       b.Add(Assert(tok, Bpl.Expr.True, "split_here assertion; should pass", new Bpl.QKeyValue(tok, "split_here", new List<object>(), null)));
     }
+    private bool processSplitAttribute(Attributes attrs, IToken tok, bool defaultValue = false) {
+      bool split = defaultValue;
+      Attributes attr = Attributes.GetAttribute(attrs, "split");
+      if (attr != null) {
+        if (attr.Args.Count == 0) {
+          split = true;
+        } else if (attr.Args.Count == 1) {
+          var arg = attr.Args[0] as LiteralExpr;
+          if (arg != null && arg.Value is bool) {
+            split = (bool)arg.Value;
+          } else {
+            this.reporter.Error(MessageSource.Translator, tok, "Attribute split only accepts true/false");
+          }
+        } else {
+          this.reporter.Error(MessageSource.Translator, tok, "Attribute split accepts at most 1 argument");
+        }
+      }
+      return split;
+    }
     void TrStmt(Statement stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
     {
       Contract.Requires(stmt != null);
@@ -10474,8 +10493,9 @@ namespace Microsoft.Dafny {
       Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
 
       stmtContext = StmtType.NONE;
-      bool splitAttributeValue = stmt is CalcStmt || stmt is AssertStmt || stmt is ForallStmt || Attributes.Contains(stmt.Attributes, "split");
-      Attributes.ContainsBool(stmt.Attributes, "split", ref splitAttributeValue);
+      bool splitAttributeValue = processSplitAttribute(stmt.Attributes,
+                                  stmt.Tok,
+                                  stmt is CalcStmt || stmt is AssertStmt || stmt is ForallStmt);
       adjustFuelForExists = true;  // fuel for exists might need to be adjusted based on whether it's in an assert or assume stmt.
       if (stmt is PredicateStmt) {
         var stmtBuilder = new BoogieStmtListBuilder(this);
@@ -10899,15 +10919,9 @@ namespace Microsoft.Dafny {
         if (s.Els == null) {
           els = b.Collect(s.Tok);
         } else {
-          bool mentionsSplit = Attributes.Contains(s.Els.Attributes, "split");
-          if (!(s.Els is IfStmt)) {
-            // else stmt of this CFG
-            bool splitForElse = (!mentionsSplit && splitAttributeValue) || mentionsSplit;
-            Attributes.ContainsBool(s.Els.Attributes, "split", ref splitForElse);
-            if (splitForElse) {
+          if (!(s.Els is IfStmt) && processSplitAttribute(s.Els.Attributes, s.Els.Tok, splitAttributeValue)) {
               AddSplittingAssert(b, s.Els.Tok);
-            }
-          } else if (!mentionsSplit) {
+          } else if (!Attributes.Contains(s.Els.Attributes, "split")) {
             // inherit the splitting attributes of previous if.
             var args = new List<Expression> ();
             args.Add(new LiteralExpr(s.Tok, splitAttributeValue));
@@ -11170,6 +11184,9 @@ namespace Microsoft.Dafny {
           // check steps:
           for (int i = stepCount; 0 <= --i; ) {
             b = new BoogieStmtListBuilder(this);
+            if (splitAttributeValue) {
+              AddSplittingAssert(b, s.Tok);
+            }
             // assume wf[line<i>]:
             AddComment(b, stmt, "assume wf[lhs]");
             CurrentIdGenerator.Push();
@@ -11196,10 +11213,7 @@ namespace Microsoft.Dafny {
                 }
               }
               TrStmt_CheckWellformed(CalcStmt.Rhs(s.Steps[i]), b, locals, etran, false);
-              if (splitAttributeValue) {
-                AddSplittingAssert(b, s.Tok);
-              }
-              bool splitHappened;
+              bool splitHappened; // this is a different kind of split
               var ss = TrSplitExpr(s.Steps[i], etran, true, out splitHappened);
               // assert step:
               AddComment(b, stmt, "assert line" + i.ToString() + " " + (s.StepOps[i] ?? s.Op).ToString() + " line" + (i + 1).ToString());
@@ -11270,9 +11284,7 @@ namespace Microsoft.Dafny {
           CurrentIdGenerator.Push();
           // havoc all bound variables
           b = new BoogieStmtListBuilder(this);
-          bool splitHere = splitAttributeValue || Attributes.Contains(s.Cases[i].Attributes, "split");
-          Attributes.ContainsBool(s.Cases[i].Attributes, "split", ref splitHere);
-          if (splitHere) {
+          if (processSplitAttribute(s.Cases[i].Attributes, s.Cases[i].tok, splitAttributeValue)) {
             AddSplittingAssert(b, mc.tok);
           }
           List<Variable> newLocals = new List<Variable>();
@@ -12528,9 +12540,7 @@ namespace Microsoft.Dafny {
           b.Add(new AssumeCmd(alternative.Guard.tok, etran.TrExpr(alternative.Guard)));
         }
         var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
-        bool splitAttribute = splitAttributeValue || Attributes.Contains(alternative.Attributes, "split");
-        Attributes.ContainsBool(alternative.Attributes, "split", ref splitAttribute);
-        if (splitAttribute) {
+        if (processSplitAttribute(alternative.Attributes, alternative.Tok, splitAttributeValue)) {
           AddSplittingAssert(b, alternative.Tok);
         }
         foreach (var s in alternative.Body) {

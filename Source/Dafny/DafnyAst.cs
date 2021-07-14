@@ -414,6 +414,9 @@ namespace Microsoft.Dafny {
       }
       return false;
     }
+    public static Attributes GetAttribute(Attributes attrs, String nm) {
+      return attrs.AsEnumerable().Where(a => a.Name == nm).LastOrDefault();
+    }
 
     /// <summary>
     /// Checks whether a Boolean attribute has been set on the declaration itself,
