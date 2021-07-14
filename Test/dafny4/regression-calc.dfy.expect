@@ -2,7 +2,7 @@ regression-calc.dfy(8,16): Error: A postcondition might not hold on this return 
 regression-calc.dfy(8,10): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-    regression-calc.dfy(9,5): anon2_Else
+    regression-calc.dfy(9,5): anon3_Else
 regression-calc.dfy(15,16): Error: A postcondition might not hold on this return path.
 regression-calc.dfy(15,10): Related location: This is the postcondition that might not hold.
 Execution trace:
