@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
 using Expr = System.Linq.Expressions.Expression;
 
 namespace Microsoft.Dafny
@@ -14,6 +16,12 @@ namespace Microsoft.Dafny
     
     readonly IDictionary<System.Type, Delegate> _overrides = 
       new Dictionary<System.Type, Delegate>();
+    
+    readonly IDictionary<System.Type, ParameterExpression> _params = 
+      new Dictionary<System.Type, ParameterExpression>();
+    
+    readonly IDictionary<System.Type, Expr> _expressions = 
+      new Dictionary<System.Type, Expr>();
 
     private readonly Func<MemberInfo, bool> _memberPredicate;
 
@@ -26,21 +34,50 @@ namespace Microsoft.Dafny
     }
 
     private Func<object, IEnumerable<Target>> GetFunc(System.Type concreteType) {
-      var castObj = Expr.Parameter(concreteType, "castObj");
-      var inter = GetTargetsExpr(new HashSet<System.Type>(), concreteType, castObj);
+      var castObj = GetParam(concreteType);
+      var inter = GetTargetsExprCached(concreteType);
       if (inter == null) {
         return obj => Enumerable.Empty<Target>();
       }
 
-      var objParam = Expr.Parameter(typeof(object), "obj");
+      var objParam = Expr.Parameter(typeof(object), "outerObj");
       var block = Expr.Block(new[] {castObj}, Expr.Assign(castObj, Expr.TypeAs(objParam, concreteType)), inter);
-      return Expr.Lambda<Func<object, IEnumerable<Target>>>(block, objParam).Compile();
+      var result = Expr.Lambda<Func<object, IEnumerable<Target>>>(block, objParam).Compile();
+      return result;
     }
 
     private static readonly MethodInfo ConcatMethod = 
       typeof(Enumerable).GetMethod("Concat", BindingFlags.Static | BindingFlags.Public)!.MakeGenericMethod(typeof(Target));
+
+    public static IEnumerable<TResult> NotOverloadedSelectMany<TSource, TResult>(IEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector) {
+      return source.SelectMany(selector);
+    }
+
+    private static readonly MethodInfo SelectManyMethod = typeof(GetChildrenOfType<Target>).GetMethod("NotOverloadedSelectMany");
+
+    private Expr /*?*/ GetTargetsExprCached(System.Type type) {
+      if (!_expressions.TryGetValue(type, out var result)) {
+        _expressions[type] = null;
+        result = GetTargetsExpr(type);
+        _expressions[type] = result;
+      }
+
+      return result;
+    }
+
+    ParameterExpression GetParam(System.Type type) {
+      if (!_params.TryGetValue(type, out var result)) {
+        result = Expr.Parameter(type);
+        _params[type] = result;
+      }
+
+      return result;
+    }
     
-    private Expr/*?*/ GetTargetsExpr(ISet<System.Type> visited, System.Type type, ParameterExpression value) {
+    // Does not support traversal of recursive data structures like LList
+    // TODO better support properties
+    private Expr/*?*/ GetTargetsExpr(System.Type type) {
+      var value = GetParam(type);
       if (_overrides.ContainsKey(type)) {
         var methodInfo = _overrides[type].Method;
         var target = _overrides[type].Target;
@@ -51,10 +88,8 @@ namespace Microsoft.Dafny
         return null;
       }
       
-      if (!visited.Add(type))
-        return null;
-      
       var enumTargetType = typeof(IEnumerable<>).MakeGenericType(typeof(Target));
+      var enumObjectType = typeof(IEnumerable<>).MakeGenericType(typeof(object));
       var simpleMembers = new List<MemberExpression>();
       var enumerableMembers = new List<Expr>();
       foreach (var member in type.FindMembers(MemberTypes.Field /*| MemberTypes.Property*/, BindingFlags.Instance | BindingFlags.Public, null, null)) {
@@ -64,18 +99,38 @@ namespace Microsoft.Dafny
         var memberType = GetMemberType(member);
         if (memberType == null)
           continue;
+
+        if (member is PropertyInfo propertyInfo) {
+          if (GetBackingField(propertyInfo) == null) {
+            continue;
+          }
+        }
         
         var access = Expr.PropertyOrField(value, member.Name);
         if (memberType.IsAssignableTo(typeof(Target))) {
           simpleMembers.Add(access);
         } else if (memberType.IsAssignableTo(enumTargetType)) {
           enumerableMembers.Add(access);
+        } else if (memberType.IsAssignableTo(enumObjectType)) {
+          var elementType = memberType.GenericTypeArguments[0];
+          var fieldExpr = GetTargetsExprCached(elementType);
+          if (fieldExpr != null) {;
+            Expr selector = Expr.Lambda(fieldExpr, false, GetParam(elementType));
+            var appliedSelectMany = SelectManyMethod.MakeGenericMethod(elementType, typeof(Target));
+            var call = Expr.Call(null, appliedSelectMany, access, selector);
+            
+            // NullSafe is required here because Specification.Expression can be null. Maybe we should change that.
+            var nullSafe = Expr.Condition(Expr.ReferenceEqual(access, Expr.Constant(null)),
+              Expr.Constant(Enumerable.Empty<Target>(), typeof(IEnumerable<Target>)), call);
+            enumerableMembers.Add(nullSafe);
+          }
         } else {
-          // TODO support IEnumerable<> of nested target carriers.
-          var fieldVar = Expr.Parameter(memberType, $"obj");
-          var fieldExpr = GetTargetsExpr(visited, memberType, fieldVar);
+          var fieldVar = GetParam(memberType);
+          var fieldExpr = GetTargetsExprCached(memberType);
           if (fieldExpr != null) {
-            enumerableMembers.Add(Expr.Block(new []{ fieldVar}, Expr.Assign(fieldVar, access), fieldExpr));
+            var nullSafe = Expr.Condition(Expr.ReferenceEqual(fieldVar, Expr.Constant(null)),
+              Expr.Constant(Enumerable.Empty<Target>(), typeof(IEnumerable<Target>)), fieldExpr);
+            enumerableMembers.Add(Expr.Block(new []{ fieldVar}, Expr.Assign(fieldVar, access), nullSafe));
           }
         }
       }
@@ -100,7 +155,7 @@ namespace Microsoft.Dafny
           throw new InvalidOperationException();
       }
     }
-
+ 
     public IEnumerable<Target> GetTargets(object source) {
       var key = source.GetType();
       if (_getFunctions.TryGetValue(key, out var existingFunc )) {
@@ -109,7 +164,26 @@ namespace Microsoft.Dafny
 
       var func = GetFunc(key);
       _getFunctions[key] = func;
+      // Maybe move the nullCheck to the fields.
       return func(source).Where(x => x != null);
     } 
+    
+    public static FieldInfo GetBackingField(PropertyInfo propertyInfo) {
+      if (propertyInfo == null)
+        throw new ArgumentNullException(nameof(propertyInfo));
+      if (!propertyInfo.CanRead || !propertyInfo.GetGetMethod(nonPublic: true).IsDefined(typeof(CompilerGeneratedAttribute), inherit: true))
+        return null;
+      var backingFieldName = GetBackingFieldName(propertyInfo.Name);
+      var backingField = propertyInfo.DeclaringType?.GetField(backingFieldName, BindingFlags.Instance | BindingFlags.NonPublic);
+      if (backingField == null)
+        return null;
+      if (!backingField.IsDefined(typeof(CompilerGeneratedAttribute), inherit: true))
+        return null;
+      return backingField;
+    }
+    
+    const String Prefix = "<";
+    const String Suffix = ">k__BackingField";
+    private static String GetBackingFieldName(String propertyName) => $"{Prefix}{propertyName}{Suffix}";
   }
 }
