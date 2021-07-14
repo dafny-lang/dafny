@@ -12180,7 +12180,7 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       var p = Substitute(s.ForallExpressions[0], null, substMap);
       var qq = etran.TrExpr(p);
-      var expr = (s.BoundVars.Count != 0)? BplAnd(se, qq) : BplAnd(se, ((Bpl.ForallExpr)qq).Body);
+      var expr = (s.BoundVars.Count != 0) ? BplAnd(se, qq) : BplAnd(se, ((Bpl.ForallExpr)qq).Body);
       exporter.Add(TrAssumeCmd(s.Tok, CanCallAssumption(p, etran)));
       // s.Body.Where(e => e is StmtExpr).ToList().ForEach(st => exporter.Add(TrAssumeCmd(s.Tok, CanCallAssumption(st, etran)))) // ask rustan
       exporter.Add(TrAssumeCmd(s.Tok, expr));
