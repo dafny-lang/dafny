@@ -11195,6 +11195,8 @@ namespace Microsoft.Dafny {
           b.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
           ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
           builder.Add(ifCmd);
+          // assume canCalls of lhs and rhs
+          builder.Add(TrAssumeCmd(s.Result.tok, CanCallAssumption(s.Result, etran)));
           // assume result:
           if (s.Steps.Count > 1) {
             builder.Add(TrAssumeCmd(s.Tok, etran.TrExpr(s.Result)));
@@ -12178,11 +12180,10 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       var p = Substitute(s.ForallExpressions[0], null, substMap);
       var qq = etran.TrExpr(p);
-      if (s.BoundVars.Count != 0) {
-        exporter.Add(TrAssumeCmd(s.Tok, BplAnd(se, qq)));
-      } else {
-        exporter.Add(TrAssumeCmd(s.Tok, BplAnd(se, ((Bpl.ForallExpr)qq).Body)));
-      }
+      var expr = (s.BoundVars.Count != 0)? BplAnd(se, qq) : BplAnd(se, ((Bpl.ForallExpr)qq).Body);
+      exporter.Add(TrAssumeCmd(s.Tok, CanCallAssumption(p, etran)));
+      // s.Body.Where(e => e is StmtExpr).ToList().ForEach(st => exporter.Add(TrAssumeCmd(s.Tok, CanCallAssumption(st, etran)))) // ask rustan
+      exporter.Add(TrAssumeCmd(s.Tok, expr));
     }
 
     private string GetObjFieldDetails(Expression lhs, ExpressionTranslator etran, out Bpl.Expr obj, out Bpl.Expr F) {
