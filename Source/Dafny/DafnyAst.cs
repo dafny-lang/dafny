@@ -37,11 +37,12 @@ namespace Microsoft.Dafny {
     }
 
     public readonly string FullName;
-    public Dictionary<ModuleDefinition,ModuleSignature> ModuleSigs; // filled in during resolution.
-                                                     // Resolution essentially flattens the module hierarchy, for
-                                                     // purposes of translation and compilation.
-    public List<ModuleDefinition> CompileModules; // filled in during resolution.
-                                                  // Contains the definitions to be used for compilation.
+    
+    [FilledInByResolution] // Resolution essentially flattens the module hierarchy, for purposes of translation and compilation.
+    public Dictionary<ModuleDefinition,ModuleSignature> ModuleSigs;
+    [FilledInByResolution]                                              
+    public List<ModuleDefinition> CompileModules; // Contains the definitions to be used for compilation.
+                                                  
 
     public Method MainMethod; // Method to be used as main if compiled
     public readonly ModuleDecl DefaultModule;
@@ -129,7 +130,8 @@ namespace Microsoft.Dafny {
     public readonly Dictionary<int, SubsetTypeDecl> TotalArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
     readonly Dictionary<int, TupleTypeDecl> tupleTypeDecls = new Dictionary<int, TupleTypeDecl>();
     public readonly ISet<int> Bitwidths = new HashSet<int>();
-    public SpecialField ORDINAL_Offset;  // filled in by the resolver, used by the translator
+    [FilledInByResolution]
+    public SpecialField ORDINAL_Offset; // used by the translator
 
     public readonly SubsetTypeDecl NatDecl;
     public UserDefinedType Nat() { return new UserDefinedType(Token.NoToken, "nat", NatDecl, new List<Type>()); }
@@ -3140,7 +3142,8 @@ namespace Microsoft.Dafny {
   }
 
   public abstract class TypeProxy : Type {
-    public Type T;  // filled in during resolution
+    [FilledInByResolution]
+    public Type T;
     public readonly List<Resolver.TypeConstraint> SupertypeConstraints = new List<Resolver.TypeConstraint>();
     public readonly List<Resolver.TypeConstraint> SubtypeConstraints = new List<Resolver.TypeConstraint>();
     public IEnumerable<Type> Supertypes {
@@ -3829,7 +3832,8 @@ namespace Microsoft.Dafny {
     public readonly string ClassId;
     public readonly string Id;
 
-    public Declaration Decl;  // filled in by the resolver
+    [FilledInByResolution]
+    public Declaration Decl;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -3957,9 +3961,13 @@ namespace Microsoft.Dafny {
     // Note also that the resolution of the root depends on the syntactice location
     // of the qualified id; the resolution of subsequent ids depends on the
     // default export set of the previous id.
+    [FilledInByResolution]
     public ModuleDecl Root; // the module corresponding to Path[0].val
+    [FilledInByResolution]
     public ModuleDecl Decl; // the module corresponding to the full path
+    [FilledInByResolution]
     public ModuleDefinition Def; // the module definition corresponding to the full path
+    [FilledInByResolution]
     public ModuleSignature Sig; // the module signature corresponding to the full path
   }
 
@@ -4000,8 +4008,10 @@ namespace Microsoft.Dafny {
 
     public readonly List<TopLevelDecl> TopLevelDecls = new List<TopLevelDecl>();  // filled in by the parser; readonly after that, except for the addition of prefix-named modules, which happens in the resolver
     public readonly List<Tuple<List<IToken>, LiteralModuleDecl>> PrefixNamedModules = new List<Tuple<List<IToken>, LiteralModuleDecl>>();  // filled in by the parser; emptied by the resolver
-    public readonly Graph<ICallable> CallGraph = new Graph<ICallable>();  // filled in during resolution
-    public int Height;  // height in the topological sorting of modules; filled in during resolution
+    [FilledInByResolution]
+    public readonly Graph<ICallable> CallGraph = new Graph<ICallable>();
+    [FilledInByResolution]
+    public int Height;  // height in the topological sorting of modules;
     public readonly bool IsAbstract;
     public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
     private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
@@ -4378,7 +4388,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     public readonly List<TraitDecl> ParentTraitHeads = new List<TraitDecl>();
 
-    public InheritanceInformationClass ParentTypeInformation;  // filled in during resolution
+    [FilledInByResolution]
+    public InheritanceInformationClass ParentTypeInformation;
     public class InheritanceInformationClass
     {
       private readonly Dictionary<TraitDecl, List<(Type, List<TraitDecl> /*via this parent path*/)>> info = new Dictionary<TraitDecl, List<(Type, List<TraitDecl>)>>();
@@ -4782,7 +4793,8 @@ namespace Microsoft.Dafny {
   public class CoDatatypeDecl : DatatypeDecl
   {
     public override string WhatKind { get { return "codatatype"; } }
-    public CoDatatypeDecl SscRepr;  // filled in during resolution
+    [FilledInByResolution]
+    public CoDatatypeDecl SscRepr;
 
     public CoDatatypeDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
       [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes, bool isRefining)
@@ -4852,9 +4864,12 @@ namespace Microsoft.Dafny {
     }
 
     // TODO: One could imagine having a precondition on datatype constructors
-    public DatatypeDecl EnclosingDatatype;  // filled in during resolution
-    public SpecialField QueryField;  // filled in during resolution
-    public List<DatatypeDestructor> Destructors = new List<DatatypeDestructor>();  // contents filled in during resolution; includes both implicit (not mentionable in source) and explicit destructors
+    [FilledInByResolution]
+    public DatatypeDecl EnclosingDatatype;
+    [FilledInByResolution]
+    public SpecialField QueryField;
+    [FilledInByResolution]
+    public List<DatatypeDestructor> Destructors = new List<DatatypeDestructor>(); // includes both implicit (not mentionable in source) and explicit destructors
 
     public DatatypeCtor(IToken tok, string name, [Captured] List<Formal> formals, Attributes attributes)
       : base(tok, name, attributes, false) {
@@ -4993,10 +5008,14 @@ namespace Microsoft.Dafny {
     public readonly IToken SignatureEllipsis;
     public readonly List<Field> OutsFields;
     public readonly List<Field> OutsHistoryFields;  // these are the 'xs' variables
-    public readonly List<Field> DecreasesFields;  // filled in during resolution
-    public SpecialField Member_Modifies;  // filled in during resolution
-    public SpecialField Member_Reads;  // filled in during resolution
-    public SpecialField Member_New;  // filled in during resolution
+    [FilledInByResolution]
+    public readonly List<Field> DecreasesFields;
+    [FilledInByResolution]
+    public SpecialField Member_Modifies;
+    [FilledInByResolution]
+    public SpecialField Member_Reads;
+    [FilledInByResolution]
+    public SpecialField Member_New;
     public Constructor Member_Init;  // created during registration phase of resolution; its specification is filled in during resolution
     public Predicate Member_Valid;  // created during registration phase of resolution; its specification is filled in during resolution
     public Method Member_MoveNext;  // created during registration phase of resolution; its specification is filled in during resolution
@@ -5146,9 +5165,11 @@ namespace Microsoft.Dafny {
     /// </summary>
     public bool IsInstanceIndependentConstant => this is ConstantField cf && cf.Rhs != null;
 
-    public TopLevelDecl EnclosingClass;  // filled in during resolution
+    [FilledInByResolution]
+    public TopLevelDecl EnclosingClass;
     public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
-    public MemberDecl OverriddenMember;  // filled in during resolution; non-null if the member overrides a member in a parent trait
+    [FilledInByResolution]
+    public MemberDecl OverriddenMember; // non-null if the member overrides a member in a parent trait
     public virtual bool IsOverrideThatAddsBody => OverriddenMember != null;
 
     /// <summary>
@@ -6294,6 +6315,7 @@ namespace Microsoft.Dafny {
     /// The field is filled in during resolution (and used toward the end of resolution, to attach a helpful "decreases" prefix to functions in clusters
     /// with co-recursive calls.
     /// </summary>
+    [FilledInByResolution]
     public readonly List<FunctionCallExpr> AllCalls = new List<FunctionCallExpr>();
     public enum CoCallClusterInvolvement {
       None,  // the SCC containing the function does not involve any co-recursive calls
@@ -6440,8 +6462,10 @@ namespace Microsoft.Dafny {
         return TypeOfK == KType.Nat;
       }
     }
-    public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // filled in during resolution, used by verifier
-    public PrefixPredicate PrefixPredicate;  // filled in during resolution (name registration)
+    [FilledInByResolution]
+    public readonly List<FunctionCallExpr> Uses = new List<FunctionCallExpr>();  // used by verifier
+    [FilledInByResolution]
+    public PrefixPredicate PrefixPredicate;
 
     public ExtremePredicate(IToken tok, string name, bool hasStaticKeyword, KType typeOfK,
       List<TypeParameter> typeArgs, List<Formal> formals,
@@ -6942,6 +6966,10 @@ namespace Microsoft.Dafny {
       get { yield break; }
     }
 
+    static Statement() {
+      Expression.GetSubExpressions.Override<ConcreteUpdateStatement>(s => s.SubExpressions);
+      Expression.GetSubExpressions.Override<Statement>(s => s.SubExpressions);
+    }
     /// <summary>
     /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
     /// </summary>
@@ -7101,8 +7129,10 @@ namespace Microsoft.Dafny {
   public class RevealStmt : Statement
   {
     public readonly List<Expression> Exprs;
-    public readonly List<AssertLabel> LabeledAsserts = new List<AssertLabel>();  // contents filled in during resolution to indicate that "Expr" denotes a labeled assertion
-    public readonly List<Statement> ResolvedStatements = new List<Statement>(); // contents filled in during resolution
+    [FilledInByResolution] //  to indicate that "Expr" denotes a labeled assertion
+    public readonly List<AssertLabel> LabeledAsserts = new List<AssertLabel>();  
+    [FilledInByResolution]
+    public readonly List<Statement> ResolvedStatements = new List<Statement>();
 
     public override IEnumerable<Statement> SubStatements {
       get { return ResolvedStatements; }
@@ -7135,7 +7165,8 @@ namespace Microsoft.Dafny {
   public class BreakStmt : Statement {
     public readonly string TargetLabel;
     public readonly int BreakCount;
-    public Statement TargetStmt;  // filled in during resolution
+    [FilledInByResolution]
+    public Statement TargetStmt;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(TargetLabel != null || 1 <= BreakCount);
@@ -7204,18 +7235,7 @@ namespace Microsoft.Dafny {
   {
     public readonly IToken Tok;
 
-    private Attributes attributes;
-    public Attributes Attributes
-    {
-      get
-      {
-        return attributes;
-      }
-      set
-      {
-        attributes = value;
-      }
-    }
+    public Attributes Attributes { get; set; }
 
     public bool HasAttributes()
     {
@@ -7309,7 +7329,7 @@ namespace Microsoft.Dafny {
     ///   resolution will either produce an error or will chop off the last part of "EType" and move it to
     ///   OptionalNameComponent, after which the case above applies.
     /// </summary>
-    [FilledInByResolution] // in the case of Arguments != null, EType is filled in during resolution
+    [FilledInByResolution] // filled in the case of Arguments != null
     public Type EType;  
     public readonly List<Expression> ArrayDimensions;
     public readonly Expression ElementInit;
@@ -7323,8 +7343,8 @@ namespace Microsoft.Dafny {
     }
 
     public Type Path;
-    [FilledInByResolution] // may be null (and is definitely null for arrays), may be filled in during resolution
-    public CallStmt InitCall;  
+    [FilledInByResolution] 
+    public CallStmt InitCall;  // may be null (and is definitely null for arrays)
     [FilledInByResolution]
     public Type Type;
     [ContractInvariantMethod]
@@ -7488,9 +7508,11 @@ namespace Microsoft.Dafny {
     public readonly Expression Expr;
     public readonly IToken AssumeToken;
 
-    public List<ComprehensionExpr.BoundedPool> Bounds;  // initialized and filled in by resolver; null for a ghost statement
+    [FilledInByResolution]
+    public List<ComprehensionExpr.BoundedPool> Bounds;  //  null for a ghost statement
     // invariant Bounds == null || Bounds.Count == BoundVars.Count;
-    public List<IVariable> MissingBounds;  // filled in during resolution; remains "null" if bounds can be found
+    [FilledInByResolution]
+    public List<IVariable> MissingBounds;  // remains "null" if bounds can be found
     // invariant Bounds == null || MissingBounds == null;
     public class WiggleWaggleBound : ComprehensionExpr.BoundedPool
     {
@@ -7520,11 +7542,18 @@ namespace Microsoft.Dafny {
   {
     public readonly List<AssignmentRhs> Rhss;
     public readonly bool CanMutateKnownState;
+    [FilledInByResolution]
     public Expression OriginalInitialLhs = null;
 
-    public readonly List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
+    [FilledInByResolution]
+    public readonly List<Statement> ResolvedStatements = new List<Statement>();
     public override IEnumerable<Statement> SubStatements {
       get { return ResolvedStatements; }
+    }
+
+    static UpdateStmt() {
+      // TODO is this correct, or was the original method missing?
+      Expression.GetSubExpressions.Override<UpdateStmt>(r => Enumerable.Empty<Expression>());
     }
 
     [ContractInvariantMethod]
@@ -7561,7 +7590,8 @@ namespace Microsoft.Dafny {
     public readonly Expression Rhs; // this is the unresolved RHS, and thus can also be a method call
     public readonly List<AssignmentRhs> Rhss;
     public readonly IToken KeywordToken;
-    public readonly List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
+    [FilledInByResolution]
+    public readonly List<Statement> ResolvedStatements = new List<Statement>();
     public override IEnumerable<Statement> SubStatements {
       get { return ResolvedStatements; }
     }
@@ -7747,6 +7777,7 @@ namespace Microsoft.Dafny {
     }
     public readonly Type OptionalType;  // this is the type mentioned in the declaration, if any
     Type IVariable.OptionalType { get { return this.OptionalType; } }
+    [FilledInByResolution]
     internal Type type;  // this is the declared or inferred type of the variable; it is non-null after resolution (even if resolution fails)
     public Type Type {
       get {
@@ -8021,6 +8052,8 @@ namespace Microsoft.Dafny {
       this.Decreases = decreases;
       this.Mod = mod;
     }
+    
+    // TODO also generate this using [IsGhost] attributes
     public IEnumerable<Expression> LoopSpecificationExpressions {
       get {
         foreach (var mfe in Invariants) {
@@ -8045,7 +8078,8 @@ namespace Microsoft.Dafny {
 
   public abstract class OneBodyLoopStmt : LoopStmt {
     public readonly BlockStmt/*?*/ Body;
-    public WhileStmt.LoopBodySurrogate/*?*/ BodySurrogate;  // set by Resolver; remains null unless Body==null
+    [FilledInByResolution] // remains null unless Body==null
+    public WhileStmt.LoopBodySurrogate/*?*/ BodySurrogate;  
 
     public OneBodyLoopStmt(IToken tok, IToken endTok,
       List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
@@ -8194,7 +8228,8 @@ namespace Microsoft.Dafny {
     public List<Expression> ForallExpressions;   // fill in by rewriter.
     public bool CanConvert = true; //  can convert to ForallExpressions
 
-    public List<ComprehensionExpr.BoundedPool> Bounds;  // initialized and filled in by resolver
+    [FilledInByResolution]
+    public List<ComprehensionExpr.BoundedPool> Bounds;
     // invariant: if successfully resolved, Bounds.Count == BoundVars.Count;
 
     /// <summary>
@@ -8456,8 +8491,10 @@ namespace Microsoft.Dafny {
     public readonly CalcOp UserSuppliedOp;     // may be null, if omitted by the user
     public CalcOp Op;                          // main operator of the calculation (either UserSuppliedOp or (after resolution) an inferred CalcOp)
     public readonly List<CalcOp/*?*/> StepOps; // StepOps[i] comes after line i
-    public readonly List<Expression> Steps;    // expressions li op l<i + 1>, filled in during resolution (last step is dummy)
-    public Expression Result;                  // expression l0 ResultOp ln, filled in during resolution
+    [FilledInByResolution]
+    public readonly List<Expression> Steps;    // expressions li op l<i + 1> (last step is dummy)
+    [FilledInByResolution]
+    public Expression Result;                  // expression l0 ResultOp ln
 
     public static readonly CalcOp DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq);
 
@@ -8576,7 +8613,8 @@ namespace Microsoft.Dafny {
     private Expression source;
     private List<MatchCaseStmt> cases;
     public readonly MatchingContext Context;
-    public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
+    [FilledInByResolution]
+    public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();
     public readonly bool UsesOptionalBraces;
     public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it
     public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, MatchingContext context = null)
@@ -8827,8 +8865,9 @@ namespace Microsoft.Dafny {
       }
     }
 
+    [FilledInByResolution]
     protected Type type;
-    public Type Type {  // filled in during resolution
+    public Type Type {
       get {
         Contract.Ensures(type != null || Contract.Result<Type>() == null);  // useful in conjunction with postcondition of constructor
         return type == null ? null : type.Normalize();
@@ -10002,13 +10041,15 @@ namespace Microsoft.Dafny {
     /// TypeApplication_AtEnclosingClass is the list of type arguments used to instantiate the type that
     /// declares Member (which is some supertype of the receiver type).
     /// </summary>
-    public List<Type> TypeApplication_AtEnclosingClass;  // filled in during resolution
+    [FilledInByResolution]
+    public List<Type> TypeApplication_AtEnclosingClass;
 
     /// <summary>
     ///  TypeApplication_JustMember is the list of type arguments used to instantiate the type parameters
     /// of Member.
     /// </summary>
-    public List<Type> TypeApplication_JustMember;  // filled in during resolution
+    [FilledInByResolution]
+    public List<Type> TypeApplication_JustMember;
 
     /// <summary>
     /// Returns a mapping from formal type parameters to actual type arguments. For example, given
@@ -10282,7 +10323,8 @@ namespace Microsoft.Dafny {
     public readonly Expression Seq;
     public readonly Expression Index;
     public readonly Expression Value;
-    public Expression ResolvedUpdateExpr;       // filled in during resolution, if the SeqUpdateExpr corresponds to a datatype update
+    [FilledInByResolution]
+    public Expression ResolvedUpdateExpr; // filled if the SeqUpdateExpr corresponds to a datatype update
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Seq != null);
@@ -10342,8 +10384,10 @@ namespace Microsoft.Dafny {
     public readonly Label/*?*/ AtLabel;
     public readonly ActualBindings Bindings;
     public List<Expression> Args => Bindings.Arguments;
-    public List<Type> TypeApplication_AtEnclosingClass;  // filled in during resolution
-    public List<Type> TypeApplication_JustFunction;  // filled in during resolution
+    [FilledInByResolution]
+    public List<Type> TypeApplication_AtEnclosingClass;
+    [FilledInByResolution]
+    public List<Type> TypeApplication_JustFunction;
 
     /// <summary>
     /// Return a mapping from each type parameter of the function and its enclosing class to actual type arguments.
@@ -10504,7 +10548,8 @@ namespace Microsoft.Dafny {
     [Peer]
     public readonly Expression E;
     public readonly string/*?*/ At;
-    public Label AtLabel;  // filled in during resolution; after that, At==null iff AtLabel==null
+    [FilledInByResolution]
+    public Label AtLabel; // At==null iff AtLabel==null
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(E != null);
@@ -10529,7 +10574,8 @@ namespace Microsoft.Dafny {
   {
     public readonly List<FrameExpression> Frame;
     public readonly string/*?*/ At;
-    public Label AtLabel;  // filled in during resolution; after that, At==null iff AtLabel==null
+    [FilledInByResolution]
+    public Label AtLabel;  // At==null iff AtLabel==null
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Frame != null);
@@ -11067,7 +11113,8 @@ namespace Microsoft.Dafny {
     public readonly Expression Body;
     public readonly bool Exact;  // Exact==true means a regular let expression; Exact==false means an assign-such-that expression
     public readonly Attributes Attributes;
-    public List<ComprehensionExpr.BoundedPool> Constraint_Bounds;  // initialized and filled in by resolver; null for Exact=true and for when expression is in a ghost context
+    [FilledInByResolution]
+    public List<ComprehensionExpr.BoundedPool> Constraint_Bounds;  // null for Exact=true and for when expression is in a ghost context
     // invariant Constraint_Bounds == null || Constraint_Bounds.Count == BoundVars.Count;
     private Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
     private Translator lastTranslatorUsed; // avoid clashing desugaring between translators
@@ -11459,7 +11506,8 @@ namespace Microsoft.Dafny {
       public override int Preference() => 2;
     }
 
-    public List<BoundedPool> Bounds;  // initialized and filled in by resolver
+    [FilledInByResolution]
+    public List<BoundedPool> Bounds;
     // invariant Bounds == null || Bounds.Count == BoundVars.Count;
 
     public List<BoundVar> UncompilableBoundVars() {
@@ -11840,7 +11888,8 @@ namespace Microsoft.Dafny {
     private Expression source;
     private List<MatchCaseExpr> cases;
     public readonly MatchingContext Context;
-    public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
+    [FilledInByResolution]
+    public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();
     public readonly bool UsesOptionalBraces;
     public MatchExpr OrigUnresolved;  // the resolver makes this clone of the MatchExpr before it starts desugaring it
 
@@ -12442,15 +12491,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(E != null);
     }
 
-    private Attributes attributes;
-    public Attributes Attributes {
-      get {
-        return attributes;
-      }
-      set {
-        attributes = value;
-      }
-    }
+    public Attributes Attributes { get; set; }
 
     public bool HasAttributes() {
       return Attributes != null;
@@ -12493,7 +12534,8 @@ namespace Microsoft.Dafny {
     }
 
     public readonly string FieldName;
-    public Field Field;  // filled in during resolution (but is null if FieldName is)
+    [FilledInByResolution] // is null if FieldName is
+    public Field Field;
 
     /// <summary>
     /// If a "fieldName" is given, then "tok" denotes its source location.  Otherwise, "tok"
@@ -12883,18 +12925,7 @@ namespace Microsoft.Dafny {
       Attributes = attrs;
     }
 
-    private Attributes attributes;
-    public Attributes Attributes
-    {
-      get
-      {
-        return attributes;
-      }
-      set
-      {
-        attributes = value;
-      }
-    }
+    public Attributes Attributes { get; set; }
 
     public bool HasAttributes()
     {
