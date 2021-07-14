@@ -53,6 +53,15 @@ method Match(xs: List<int>) returns (r: int)
   }
 }
 
+function method CaseExpr(r: List<int>): List<int>
+{
+  match r {
+    case Nil => Nil
+    case {:ignore 3 + true} Cons(h, Nil) => Nil // error:  3 + true is ill-typed
+    case {:ignore false} Cons(h, t) => CaseExpr(t)
+  }
+}
+
 method Calc(x: int, y: int)
 {
   calc {:split 1} {:split 1 + false} { // error:  1 + false is ill-typed

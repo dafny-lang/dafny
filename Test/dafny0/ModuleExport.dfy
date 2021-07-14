@@ -267,3 +267,19 @@ module ModuleName8 {
   const pi: int
   const e: int
 }
+
+module ExportCycle0 {
+  export extends A // error: export cycle
+  export A extends B
+  export B extends ExportCycle0
+}
+
+module ExportCycle1 {
+  export A extends B // error: export cycle
+    provides X
+  export B extends C
+    reveals X
+  export C extends A
+    provides X
+  type X = int
+}

@@ -41,6 +41,7 @@ module B refines A {
 
 module C {
   method For() {
+    ghost var (x, y) := (123, 234);
     var a := new int[100];
     for i := 0 to 100 {
       a[i] := i;

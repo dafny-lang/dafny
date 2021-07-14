@@ -1445,7 +1445,7 @@ and named arguments.
 ActualBindings =
     ActualBinding
     { "," ActualBinding }
-,,,,
+
 ActualBinding =
     [ NoUSIdentOrDigits ":=" ]
     Expression(allowLemma: true, allowLambda: true)

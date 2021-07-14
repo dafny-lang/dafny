@@ -39,6 +39,14 @@ module VarianceChecks {
 
   datatype U2 = MakeU2(U1<U2>)
 
+  datatype R0 = Ctor(R2 ~> bool)
+
+  type R1<X> = X
+
+  datatype R2 = Ctor(R1<R0>)
+}
+
+module Cycles {
   type W0 = W1
 
   datatype W1 = Ctor(W0 --> bool)
@@ -48,12 +56,6 @@ module VarianceChecks {
   type Z1 = Z0
 
   datatype Z2 = Ctor(Z1)
-
-  datatype R0 = Ctor(R2 ~> bool)
-
-  type R1<X> = X
-
-  datatype R2 = Ctor(R1<R0>)
 }
 
 module Depen {
@@ -168,16 +170,15 @@ Variance.dfy(91,30): Error: iterator declarations only support non-variant type 
 Variance.dfy(91,40): Error: iterator declarations only support non-variant type parameters
 Variance.dfy(95,21): Error: using the type being defined ('Dt') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
 Variance.dfy(99,26): Error: using the type being defined ('U2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(102,21): Error: using the type being defined ('W0') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(104,21): Error: using the type being defined ('Z2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(108,21): Error: using the type being defined ('R2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(114,7): Error: recursive constraint dependency involving a subset type: V1 -> V2 -> V0
-Variance.dfy(120,7): Error: recursive constraint dependency involving a subset type: F -> B -> A
-Variance.dfy(128,7): Error: recursive constraint dependency involving a subset type: G -> S -> R -> Q
-Variance.dfy(138,7): Error: recursive constraint dependency involving a subset type: B -> B
-Variance.dfy(138,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): B -> B
-Variance.dfy(142,7): Error: recursive constraint dependency involving a subset type: A -> A
-Variance.dfy(147,7): Error: recursive constraint dependency involving a subset type: C -> f
-Variance.dfy(152,7): Error: recursive constraint dependency involving a subset type: MeAndMyself -> MeAndMyself
-Variance.dfy(157,7): Error: recursive constraint dependency involving a subset type: MeAndMyself' -> MeAndMyself''
-57 resolution/type errors detected in Variance.dfy
+Variance.dfy(101,21): Error: using the type being defined ('R2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(108,21): Error: using the type being defined ('W0') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(110,21): Error: using the type being defined ('Z2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(116,7): Error: recursive constraint dependency involving a subset type: V0 -> V2 -> V1 -> V0
+Variance.dfy(122,7): Error: recursive constraint dependency involving a subset type: A -> B -> F -> A
+Variance.dfy(130,7): Error: recursive constraint dependency involving a subset type: R -> S -> G -> Q -> R
+Variance.dfy(139,7): Error: recursive constraint dependency involving a subset type: B -> B
+Variance.dfy(143,7): Error: recursive constraint dependency involving a subset type: A -> A
+Variance.dfy(148,7): Error: recursive constraint dependency involving a subset type: C -> f -> C
+Variance.dfy(153,7): Error: recursive constraint dependency involving a subset type: MeAndMyself -> MeAndMyself
+Variance.dfy(158,7): Error: recursive constraint dependency involving a subset type: MeAndMyself' -> MeAndMyself'' -> MeAndMyself'
+56 resolution/type errors detected in Variance.dfy
