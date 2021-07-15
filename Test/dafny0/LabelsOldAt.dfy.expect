@@ -73,5 +73,56 @@ Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
     (0,0): anon16_Then
+LabelsOldAt.dfy(164,21): Error: receiver must be allocated in the state in which its fields are accessed
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
+LabelsOldAt.dfy(166,27): Error: receiver must be allocated in the state in which its fields are accessed
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Then
+LabelsOldAt.dfy(175,19): Error: array may not be allocated
+Execution trace:
+    (0,0): anon0
+    (0,0): anon15_Then
+LabelsOldAt.dfy(177,25): Error: array may not be allocated
+Execution trace:
+    (0,0): anon0
+    (0,0): anon16_Then
+LabelsOldAt.dfy(195,25): Error: object must be allocated in the old-state of the 'unchanged' predicate
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+LabelsOldAt.dfy(197,31): Error: object must be allocated in the old-state of the 'unchanged' predicate
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Then
+LabelsOldAt.dfy(207,31): Error: each set element must be allocated in the old-state of the 'unchanged' predicate
+Execution trace:
+    (0,0): anon0
+    (0,0): anon14_Then
+LabelsOldAt.dfy(236,14): Error: receiver must be allocated in the state in which its fields are accessed
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+LabelsOldAt.dfy(242,29): Error: object must be allocated in the old-state of the 'unchanged' predicate
+Execution trace:
+    (0,0): anon0
+    (0,0): anon14_Else
+    (0,0): anon15_Then
+    (0,0): anon16_Then
+    (0,0): anon17_Then
+LabelsOldAt.dfy(244,29): Error: each set element must be allocated in the old-state of the 'unchanged' predicate
+Execution trace:
+    (0,0): anon0
+    (0,0): anon14_Else
+    (0,0): anon15_Then
+    (0,0): anon16_Then
+    LabelsOldAt.dfy(242,16): anon17_Else
+    (0,0): anon18_Then
+    (0,0): anon19_Then
+    (0,0): anon20_Then
 
-Dafny program verifier finished with 0 verified, 9 errors
+Dafny program verifier finished with 2 verified, 19 errors
