@@ -567,12 +567,19 @@ an instance method or function.
 ## 20.21. Fresh Expressions {#sec-fresh-expression}
 ````grammar
 FreshExpression_ =
-  "fresh" "(" Expression(allowLemma: true, allowLambda: true) ")"
+  "fresh" [ "@" LabelName ]
+  "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
 `fresh(e)` returns a boolean value that is true if
-the objects referenced in expression `e` were all
-freshly allocated in the current method invocation.
+the objects denoted by expression `e` were all
+freshly allocated since the time of entry to the enclosing method.
+
+If the `LabelName` is present, it must denote a label that in the
+enclosing method's control flow dominates the expression. In this
+case, `fresh@L(e)` returns `true` if the objects denoted by `e` were all
+freshly allocated since control flow reached label `L`.
+
 The argument of `fresh` must be either an object reference
 or a collection of object references.
 
