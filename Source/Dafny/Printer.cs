@@ -2342,7 +2342,8 @@ namespace Microsoft.Dafny {
           PrintExpression(e.E, false);
           wr.Write("|");
         } else if (e.Op == UnaryOpExpr.Opcode.Fresh) {
-          wr.Write("fresh(");
+          var label = ((FreshExpr)e).At;
+          wr.Write("fresh{0}(", label == null ? "" : "@" + label);
           PrintExpression(e.E, false);
           wr.Write(")");
         } else if (e.Op == UnaryOpExpr.Opcode.Allocated) {

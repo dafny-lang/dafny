@@ -10337,7 +10337,7 @@ namespace Microsoft.Dafny
       mod.Add(new FrameExpression(iter.tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"), null));
       // ensures fresh(_new - old(_new));
       ens = iter.Member_MoveNext.Ens;
-      ens.Add(new AttributedExpression(new UnaryOpExpr(iter.tok, UnaryOpExpr.Opcode.Fresh,
+      ens.Add(new AttributedExpression(new FreshExpr(iter.tok,
         new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub,
           new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
           new OldExpr(iter.tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))))));
@@ -14820,8 +14820,14 @@ namespace Microsoft.Dafny
             expr.Type = Type.Int;
             break;
           case UnaryOpExpr.Opcode.Fresh:
+            var fresh = (FreshExpr)e;
             if (!opts.twoState) {
               reporter.Error(MessageSource.Resolver, expr, "fresh expressions are not allowed in this context");
+            } else if (fresh.At != null) {
+              fresh.AtLabel = dominatingStatementLabels.Find(fresh.At);
+              if (fresh.AtLabel == null) {
+                reporter.Error(MessageSource.Resolver, expr, "no label '{0}' in scope at this time", fresh.At);
+              }
             }
             // the type of e.E must be either an object or a collection of objects
             AddXConstraint(expr.tok, "Freshable", e.E.Type, "the argument of a fresh expression must denote an object or a collection of objects (instead got {0})");
@@ -16995,12 +17001,9 @@ namespace Microsoft.Dafny
           return;
         }
 
-      } else if (expr is UnaryOpExpr) {
-        var e = (UnaryOpExpr)expr;
-        if (e.Op == UnaryOpExpr.Opcode.Fresh) {
-          reporter.Error(MessageSource.Resolver, expr, "fresh expressions are allowed only in specification and ghost contexts");
-          return;
-        }
+      } else if (expr is FreshExpr) {
+        reporter.Error(MessageSource.Resolver, expr, "fresh expressions are allowed only in specification and ghost contexts");
+        return;
 
       } else if (expr is UnchangedExpr) {
         reporter.Error(MessageSource.Resolver, expr, "unchanged expressions are allowed only in specification and ghost contexts");

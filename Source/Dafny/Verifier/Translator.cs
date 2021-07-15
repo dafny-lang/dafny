@@ -2654,7 +2654,7 @@ namespace Microsoft.Dafny {
       old_nw.Type = nw.Type;  // resolve here
       var setDiff = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub, nw, old_nw);
       setDiff.ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference; setDiff.Type = nw.Type;  // resolve here
-      Expression cond = new UnaryOpExpr(iter.tok, UnaryOpExpr.Opcode.Fresh, setDiff);
+      Expression cond = new FreshExpr(iter.tok, setDiff);
       cond.Type = Type.Bool;  // resolve here
       builder.Add(TrAssumeCmd(iter.tok, yeEtran.TrExpr(cond)));
 
@@ -12329,7 +12329,7 @@ namespace Microsoft.Dafny {
         if (codeContext is IteratorDecl iter) {
           var th = new ThisExpr(iter);
           var thisDotNew = new MemberSelectExpr(s.Tok, th, iter.Member_New);
-          var fr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Fresh, thisDotNew);
+          var fr = new FreshExpr(s.Tok, thisDotNew);
           fr.Type = Type.Bool;
           invariants.Add(TrAssertCmd(s.Tok, etran.TrExpr(fr)));
         }
@@ -15752,6 +15752,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(false); throw new cce.UnreachableException();  // unexpected sized type
               }
             case UnaryOpExpr.Opcode.Fresh:
+              var freshLabel = ((FreshExpr)e).AtLabel;
               var eeType = e.E.Type.NormalizeExpand();
               if (eeType is SetType) {
                 // generate:  (forall $o: ref :: { X[Box($o)] } X[Box($o)] ==> $o != null && !old($Heap)[$o,alloc])
@@ -15761,7 +15762,7 @@ namespace Microsoft.Dafny {
                 Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
                 bool performedInSetRewrite;
                 Bpl.Expr oInSet = TrInSet(expr.tok, o, e.E, ((SetType)eeType).Arg, true, out performedInSetRewrite);
-                Bpl.Expr oNotFresh = Old.IsAlloced(expr.tok, o);
+                Bpl.Expr oNotFresh = OldAt(freshLabel).IsAlloced(expr.tok, o);
                 Bpl.Expr oIsFresh = Bpl.Expr.Not(oNotFresh);
                 Bpl.Expr body = Bpl.Expr.Imp(oInSet, Bpl.Expr.And(oNotNull, oIsFresh));
                 var trigger = BplTrigger(performedInSetRewrite ? oNotFresh : oInSet);
@@ -15773,7 +15774,7 @@ namespace Microsoft.Dafny {
                 Bpl.Expr iBounds = translator.InSeqRange(expr.tok, i, Type.Int, TrExpr(e.E), true, null, false);
                 Bpl.Expr XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.RefType, TrExpr(e.E), i);
                 XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, predef.RefType, XsubI);
-                Bpl.Expr oNotFresh = Old.IsAlloced(expr.tok, XsubI);
+                Bpl.Expr oNotFresh = OldAt(freshLabel).IsAlloced(expr.tok, XsubI);
                 Bpl.Expr oIsFresh = Bpl.Expr.Not(oNotFresh);
                 Bpl.Expr xsubiNotNull = Bpl.Expr.Neq(XsubI, predef.Null);
                 Bpl.Expr body = Bpl.Expr.Imp(iBounds, Bpl.Expr.And(xsubiNotNull, oIsFresh));
@@ -15784,7 +15785,7 @@ namespace Microsoft.Dafny {
               } else {
                 // generate:  x != null && !old($Heap)[x]
                 Bpl.Expr oNull = Bpl.Expr.Neq(TrExpr(e.E), predef.Null);
-                Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, TrExpr(e.E)));
+                Bpl.Expr oIsFresh = Bpl.Expr.Not(OldAt(freshLabel).IsAlloced(expr.tok, TrExpr(e.E)));
                 return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.And, oNull, oIsFresh);
               }
             case UnaryOpExpr.Opcode.Allocated: {
@@ -18409,7 +18410,12 @@ namespace Microsoft.Dafny {
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr) expr;
         if (e.Op == UnaryOpExpr.Opcode.Fresh) {
-          usesOldHeap = true;
+          var f = (FreshExpr)e;
+          if (f.AtLabel == null) {
+            usesOldHeap = true;
+          } else {
+            freeHeapAtVariables.Add(f.AtLabel);
+          }
         } else if (e.Op == UnaryOpExpr.Opcode.Allocated) {
           usesHeap = true;
         }

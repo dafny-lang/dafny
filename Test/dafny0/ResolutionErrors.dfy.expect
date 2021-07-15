@@ -401,8 +401,13 @@ ResolutionErrors.dfy(2478,8): Error: an ORDINAL type is not allowed to be used a
 ResolutionErrors.dfy(2477,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2617,23): Error: no label 'Treasure' in scope at this time
 ResolutionErrors.dfy(2618,19): Error: no label 'WonderfulLabel' in scope at this time
+ResolutionErrors.dfy(2620,23): Error: no label 'FutureLabel' in scope at this time
 ResolutionErrors.dfy(2629,13): Error: no label 'Treasure' in scope at this time
 ResolutionErrors.dfy(2630,13): Error: no label 'WonderfulLabel' in scope at this time
+ResolutionErrors.dfy(2632,13): Error: no label 'FutureLabel' in scope at this time
+ResolutionErrors.dfy(2641,13): Error: no label 'Treasure' in scope at this time
+ResolutionErrors.dfy(2642,13): Error: no label 'WonderfulLabel' in scope at this time
+ResolutionErrors.dfy(2644,13): Error: no label 'FutureLabel' in scope at this time
 ResolutionErrors.dfy(2534,11): Error: no label 'L' in scope at this time
 ResolutionErrors.dfy(2537,10): Error: label shadows a dominating label
 ResolutionErrors.dfy(2545,10): Error: label shadows a dominating label
@@ -528,4 +533,4 @@ ResolutionErrors.dfy(3387,9): Error: type parameter (T) passed to function NoRef
 ResolutionErrors.dfy(3435,7): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(3449,21): Error: a loop statement used inside a hint is not allowed to have a modifies clause
 ResolutionErrors.dfy(3456,21): Error: a loop statement used inside a hint is not allowed to have a modifies clause
-525 resolution/type errors detected in ResolutionErrors.dfy
+530 resolution/type errors detected in ResolutionErrors.dfy

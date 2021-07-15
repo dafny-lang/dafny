@@ -3727,20 +3727,21 @@ ConstAtomExpression<out Expression e>
   .)
   ( LiteralExpression<out e>
   | "this"                                     (. e = new ThisExpr(t); .)
-  | "fresh"                                    (. x = t; .)
-    "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Fresh, e); .)
   | "allocated"                                (. x = t; .)
     "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Allocated, e); .)
-  | "unchanged"                                (. x = t; FrameExpression fe; var mod = new List<FrameExpression>(); IToken oldAt = null; .)
-    [ "@" LabelName<out oldAt> ]
+  | "fresh"                                    (. x = t; IToken atLabel = null; .)
+    [ "@" LabelName<out atLabel> ]
+    "(" Expression<out e, true, true> ")"      (. e = new FreshExpr(x, e, atLabel?.val); .)
+  | "unchanged"                                (. x = t; FrameExpression fe; var mod = new List<FrameExpression>(); IToken atLabel = null; .)
+    [ "@" LabelName<out atLabel> ]
     "("
       FrameExpression<out fe, false, false>         (. mod.Add(fe); .)
       { "," FrameExpression<out fe, false, false>   (. mod.Add(fe); .)
       }
-    ")"                                        (. e = new UnchangedExpr(x, mod, oldAt?.val); .)
-  | "old"                                      (. x = t; IToken oldAt = null; .)
-    [ "@" LabelName<out oldAt> ]
-    "(" Expression<out e, true, true> ")"      (. e = new OldExpr(x, e, oldAt?.val); .)
+    ")"                                        (. e = new UnchangedExpr(x, mod, atLabel?.val); .)
+  | "old"                                      (. x = t; IToken atLabel = null; .)
+    [ "@" LabelName<out atLabel> ]
+    "(" Expression<out e, true, true> ")"      (. e = new OldExpr(x, e, atLabel?.val); .)
   | "|"                                        (. x = t; .)
       Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
     "|"

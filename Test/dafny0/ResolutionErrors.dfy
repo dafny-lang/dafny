@@ -2616,8 +2616,8 @@ module LabelDomination {
       }
       assert old(x) == old@Treasure(x);  // error: no label Treasure in scope
       assert 10 == old@WonderfulLabel(x);  // error: no label WonderfulLabel in scope
-//SOON:      assert old(x) == old@GoodLabel(x);
-//SOON:      assert old(x) == old@FutureLabel(x);  // error: no label FutureLabel in scope
+      assert old(x) == old@GoodLabel(x);
+      assert old(x) == old@FutureLabel(x);  // error: no label FutureLabel in scope
       label FutureLabel: {}
     }
     method LabelNotInScope_Unchanged(y: int) {
@@ -2628,8 +2628,8 @@ module LabelDomination {
       }
       assert unchanged@Treasure(`x);  // error: no label Treasure in scope
       assert unchanged@WonderfulLabel(this);  // error: no label WonderfulLabel in scope
-//SOON:      assert unchanged@GoodLabel(this);
-//SOON:      assert unchanged@FutureLabel(this);  // error: no label FutureLabel in scope
+      assert unchanged@GoodLabel(this);
+      assert unchanged@FutureLabel(this);  // error: no label FutureLabel in scope
       label FutureLabel: {}
     }
     method LabelNotInScope_Fresh(y: int, c: MyClass) {
@@ -2638,10 +2638,10 @@ module LabelDomination {
         label Treasure:
         assert true;
       }
-//SOON:      assert fresh@Treasure(c);  // error: no label Treasure in scope
-//SOON:      assert fresh@WonderfulLabel(c);  // error: no label WonderfulLabel in scope
-//SOON:      assert fresh@GoodLabel(c);
-//SOON:      assert fresh@FutureLabel(c);  // error: no label FutureLabel in scope
+      assert fresh@Treasure(c);  // error: no label Treasure in scope
+      assert fresh@WonderfulLabel(c);  // error: no label WonderfulLabel in scope
+      assert fresh@GoodLabel(c);
+      assert fresh@FutureLabel(c);  // error: no label FutureLabel in scope
       label FutureLabel: {}
     }
   }

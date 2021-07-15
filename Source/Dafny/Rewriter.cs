@@ -541,7 +541,7 @@ namespace Microsoft.Dafny
           var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<ActualBinding>());
           ctor.Ens.Insert(0, new AttributedExpression(valid));
           // ensures fresh(Repr);
-          var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh,
+          var freshness = new FreshExpr(tok,
             new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"));
           ctor.Ens.Insert(1, new AttributedExpression(freshness));
           var m0 = new ThisExpr(tok);
@@ -724,7 +724,7 @@ namespace Microsoft.Dafny
             var e1 = new BinaryExpr(tok, BinaryExpr.Opcode.Sub, Repr, e0);
             e1.ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference;
             e1.Type = Repr.Type;
-            var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh, e1);
+            var freshness = new FreshExpr(tok, e1);
             freshness.Type = Type.Bool;
             m.Ens.Insert(1, new AttributedExpression(freshness));
             AddHoverText(m.tok, format + "\nensures {0} && {2}", valid, Repr, freshness);
@@ -845,9 +845,7 @@ namespace Microsoft.Dafny
     /// </summary>
     static bool MentionsOldState(Expression expr) {
       Contract.Requires(expr != null);
-      if (expr is OldExpr || expr is UnchangedExpr) {
-        return true;
-      } else if (expr is UnaryOpExpr && ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh) {
+      if (expr is OldExpr || expr is UnchangedExpr || expr is FreshExpr) {
         return true;
       }
       foreach (var ee in expr.SubExpressions) {

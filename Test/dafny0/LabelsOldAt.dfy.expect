@@ -23,5 +23,55 @@ Execution trace:
     (0,0): anon3
     (0,0): anon7
     (0,0): anon22_Then
+LabelsOldAt.dfy(110,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon21_Then
+    (0,0): anon3
+    (0,0): anon22_Then
+    LabelsOldAt.dfy(96,24): anon23_Else
+    (0,0): anon6
+    (0,0): anon10
+    (0,0): anon27_Then
+LabelsOldAt.dfy(112,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon21_Then
+    (0,0): anon3
+    (0,0): anon22_Then
+    LabelsOldAt.dfy(96,24): anon23_Else
+    (0,0): anon6
+    (0,0): anon10
+    (0,0): anon28_Then
+LabelsOldAt.dfy(116,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon21_Then
+    (0,0): anon3
+    (0,0): anon22_Then
+    LabelsOldAt.dfy(96,24): anon23_Else
+    (0,0): anon6
+    (0,0): anon10
+    (0,0): anon29_Then
+LabelsOldAt.dfy(118,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon21_Then
+    (0,0): anon3
+    (0,0): anon22_Then
+    LabelsOldAt.dfy(96,24): anon23_Else
+    (0,0): anon6
+    (0,0): anon10
+    (0,0): anon30_Then
+LabelsOldAt.dfy(140,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
+    (0,0): anon15_Then
+LabelsOldAt.dfy(142,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
+    (0,0): anon16_Then
 
-Dafny program verifier finished with 0 verified, 3 errors
+Dafny program verifier finished with 0 verified, 9 errors
