@@ -59,7 +59,27 @@ method Abs(x: int) returns (y: int)
     }
 
     [TestMethod]
-    public async Task VerifyingDocumentWithErrorsSendsActivityAndNotVerifiedStatus() {
+    public async Task VerifyingDocumentWithParserErrorsSendsActivityAndNotVerifiedStatus() {
+      var source = @"
+method Abs(x: int) returns (y: int)
+    ensures y >= 0
+{
+  return x
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var started = (VerificationStartedParams)await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, started.Uri);
+      Assert.AreEqual(documentItem.Version, started.Version);
+      var completed = (VerificationCompletedParams)await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, completed.Uri);
+      Assert.AreEqual(documentItem.Version, completed.Version);
+      Assert.IsFalse(completed.Verified);
+    }
+
+    [TestMethod]
+    public async Task VerifyingDocumentWithVerifierErrorsSendsActivityAndNotVerifiedStatus() {
       var source = @"
 method Abs(x: int) returns (y: int)
     ensures y >= 0
