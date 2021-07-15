@@ -46,7 +46,8 @@ def main(args):
                                     parsedArgs.strip_trailing_cr,
                                     parsedArgs.ignore_all_space
                                    )
-
+    fromFile = list(filter(lambda x: 'anon' not in x, fromFile))
+    toFile = list(filter(lambda x: 'anon' not in x, toFile))
     result = difflib.unified_diff(fromFile,
                                   toFile,
                                   fromFileName,
@@ -55,7 +56,6 @@ def main(args):
                                  )
     # Force lazy computation to happen now
     result = list(result)
-
     if len(result) == 0:
         # Files are identical
         return 0

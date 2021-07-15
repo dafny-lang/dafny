@@ -11122,12 +11122,12 @@ namespace Microsoft.Dafny {
           } else {
             var s0 = (CallStmt)s.S0;
             if (Attributes.Contains(s.Attributes, "_trustWellformed")) {
-              TrForallStmtCall(s.Tok, s.BoundVars, s.Bounds, s.Range, null, s.ForallExpressions, s0, null, builder, locals, etran);
+              TrForallStmtCall(s.Tok, s.BoundVars, s.Bounds, s.Range, null, s.ForallExpressions, s0, null, builder, locals, etran, splitAttributeValue);
             } else {
               var definedness = new BoogieStmtListBuilder(this);
               DefineFuelConstant(stmt.Tok, stmt.Attributes, definedness, etran);
               var exporter = new BoogieStmtListBuilder(this);
-              TrForallStmtCall(s.Tok, s.BoundVars, s.Bounds, s.Range, null, s.ForallExpressions, s0, definedness, exporter, locals, etran);
+              TrForallStmtCall(s.Tok, s.BoundVars, s.Bounds, s.Range, null, s.ForallExpressions, s0, definedness, exporter, locals, etran, splitAttributeValue);
               // All done, so put the two pieces together
               builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
             }
@@ -11990,7 +11990,7 @@ namespace Microsoft.Dafny {
     delegate Bpl.Expr ExpressionConverter(Dictionary<IVariable, Expression> substMap, ExpressionTranslator etran);
 
     void TrForallStmtCall(IToken tok, List<BoundVar> boundVars, List<ComprehensionExpr.BoundedPool> bounds, Expression range, ExpressionConverter additionalRange, List<Expression> forallExpressions, CallStmt s0,
-      BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, List<Variable> locals, ExpressionTranslator etran) {
+      BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, List<Variable> locals, ExpressionTranslator etran, bool splitAttributeValue = false) {
       Contract.Requires(tok != null);
       Contract.Requires(boundVars != null);
       Contract.Requires(bounds != null);
@@ -12045,6 +12045,9 @@ namespace Microsoft.Dafny {
         }
         TrStmt_CheckWellformed(range, definedness, locals, etran, false);
         definedness.Add(TrAssumeCmd(range.tok, etran.TrExpr(range)));
+        if (splitAttributeValue) {
+          AddSplittingAssert(definedness, tok);
+        }
         if (additionalRange != null) {
           var es = additionalRange(new Dictionary<IVariable, Expression>(), etran);
           definedness.Add(TrAssumeCmd(es.tok, es));
