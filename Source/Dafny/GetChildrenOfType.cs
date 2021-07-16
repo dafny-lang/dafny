@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Expr = System.Linq.Expressions.Expression;
 
 namespace Microsoft.Dafny
@@ -86,8 +87,12 @@ namespace Microsoft.Dafny
       }
 
       // Can we make this check so it throws for all types with subtypes?
-      if (type.IsAbstract && _ignoreTheseAbstractTypesExceptionOtherwise != null && !_ignoreTheseAbstractTypesExceptionOtherwise.Contains(type)) {
+      if (type.IsAbstract) {
+        if (_ignoreTheseAbstractTypesExceptionOtherwise != null && !_ignoreTheseAbstractTypesExceptionOtherwise.Contains(type)) {
           throw new Exception($"Cannot derive behavior for abstract type {type}.");
+        }
+
+        return null;
       }
       
       if (type.IsPrimitive || type.IsEnum || !type.Assembly.FullName.Contains("Dafny")) {

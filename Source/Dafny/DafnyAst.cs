@@ -7133,6 +7133,11 @@ namespace Microsoft.Dafny {
     [FilledInByResolution]
     public readonly List<Statement> ResolvedStatements = new List<Statement>();
 
+    // TODO Why do we need this? Should we check whether ResolvedStatements has been filled?
+    public override IEnumerable<Expression> SubExpressions {
+      get { return Enumerable.Empty<Expression>(); }
+    }
+    
     public override IEnumerable<Statement> SubStatements {
       get { return ResolvedStatements; }
     }
@@ -8933,7 +8938,7 @@ namespace Microsoft.Dafny {
           return false;
         }
         return m.GetCustomAttribute(typeof(FilledInByResolution)) == null;
-      }, new []{ typeof(IToken), typeof(Type)}.ToHashSet());
+      } /*, new []{ typeof(IToken), typeof(Type)}.ToHashSet() */);
 
     /// <summary>
     /// Returns the list of types that appear in this expression proper (that is, not including types that
@@ -10027,7 +10032,22 @@ namespace Microsoft.Dafny {
       Finite = finite;
       Elements = elements;
     }
+    
+
     public override IEnumerable<Expression> SubExpressions {
+      get
+      {
+        var one = base.SubExpressions;
+        var two = SubExpressions2;
+        if (!one.SequenceEqual(two)) {
+          throw new Exception();
+        }
+
+        return one;
+      }
+    }
+    
+    public IEnumerable<Expression> SubExpressions2 {
       get {
         foreach (var ep in Elements) {
           yield return ep.A;
@@ -10286,7 +10306,21 @@ namespace Microsoft.Dafny {
       E1 = e1;
     }
 
+
     public override IEnumerable<Expression> SubExpressions {
+      get
+      {
+        var one = base.SubExpressions;
+        var two = SubExpressions2;
+        if (!one.SequenceEqual(two)) {
+          throw new Exception();
+        }
+
+        return one;
+      }
+    }
+    
+    public IEnumerable<Expression> SubExpressions2 {
       get {
         yield return Seq;
         if (E0 != null) yield return E0;
@@ -10315,7 +10349,21 @@ namespace Microsoft.Dafny {
       Indices = indices;
     }
 
+
     public override IEnumerable<Expression> SubExpressions {
+      get
+      {
+        var one = base.SubExpressions;
+        var two = SubExpressions2;
+        if (!one.SequenceEqual(two)) {
+          throw new Exception();
+        }
+
+        return one;
+      }
+    }
+    
+    public IEnumerable<Expression> SubExpressions2 {
       get {
         yield return Array;
         foreach (var e in Indices) {
@@ -10519,7 +10567,22 @@ namespace Microsoft.Dafny {
       N = length;
       Initializer = initializer;
     }
+    
+
     public override IEnumerable<Expression> SubExpressions {
+      get
+      {
+        var one = base.SubExpressions;
+        var two = SubExpressions2;
+        if (!one.SequenceEqual(two)) {
+          throw new Exception();
+        }
+
+        return one;
+      }
+    }
+    
+    public IEnumerable<Expression> SubExpressions2 {
       get {
         yield return N;
         yield return Initializer;
@@ -10553,7 +10616,21 @@ namespace Microsoft.Dafny {
       E = expr;
     }
 
+
     public override IEnumerable<Expression> SubExpressions {
+      get
+      {
+        var one = base.SubExpressions;
+        var two = SubExpressions2;
+        if (!one.SequenceEqual(two)) {
+          throw new Exception();
+        }
+
+        return one;
+      }
+    }
+    
+    public IEnumerable<Expression> SubExpressions2 {
       get { yield return E; }
     }
   }
@@ -10580,7 +10657,22 @@ namespace Microsoft.Dafny {
       At = at;
     }
 
+    
+
     public override IEnumerable<Expression> SubExpressions {
+      get
+      {
+        var one = base.SubExpressions;
+        var two = SubExpressions2;
+        if (!one.SequenceEqual(two)) {
+          throw new Exception();
+        }
+
+        return one;
+      }
+    }
+    
+    public IEnumerable<Expression> SubExpressions2 {
       get { yield return E; }
     }
   }
@@ -10605,6 +10697,19 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Expression> SubExpressions {
+      get
+      {
+        var one = base.SubExpressions;
+        var two = SubExpressions2;
+        if (!one.SequenceEqual(two)) {
+          throw new Exception();
+        }
+
+        return one;
+      }
+    }
+    
+    public IEnumerable<Expression> SubExpressions2 {
       get {
         foreach (var fe in Frame) {
           yield return fe.E;
@@ -10628,7 +10733,20 @@ namespace Microsoft.Dafny {
       this.E = e;
     }
 
+
     public override IEnumerable<Expression> SubExpressions {
+      get
+      {
+        var one = base.SubExpressions;
+        var two = SubExpressions2;
+        if (!one.SequenceEqual(two)) {
+          throw new Exception();
+        }
+
+        return one;
+      }
+    }
+    public IEnumerable<Expression> SubExpressions2 {
       get { yield return E; }
     }
   }
@@ -11112,7 +11230,21 @@ namespace Microsoft.Dafny {
       E2 = e2;
     }
 
+
     public override IEnumerable<Expression> SubExpressions {
+      get
+      {
+        var one = base.SubExpressions;
+        var two = SubExpressions2;
+        if (!one.SequenceEqual(two)) {
+          throw new Exception();
+        }
+
+        return one;
+      }
+    }
+    
+    public IEnumerable<Expression> SubExpressions2 {
       get {
         yield return E0;
         yield return E1;
@@ -11155,15 +11287,30 @@ namespace Microsoft.Dafny {
       Exact = exact;
       Attributes = attrs;
     }
+    
+
     public override IEnumerable<Expression> SubExpressions {
+      get
+      {
+        var one = base.SubExpressions;
+        var two = SubExpressions2;
+        if (!one.SequenceEqual(two)) {
+          throw new Exception();
+        }
+
+        return one;
+      }
+    }
+    
+    public IEnumerable<Expression> SubExpressions2 {
       get {
         foreach (var e in Attributes.SubExpressions(Attributes)) {
           yield return e;
         }
+        yield return Body;
         foreach (var rhs in RHSs) {
           yield return rhs;
         }
-        yield return Body;
       }
     }
 
@@ -11614,6 +11761,21 @@ namespace Microsoft.Dafny {
       throw new cce.UnreachableException(); // This body is just here for the "Requires" clause
     }
 
+    
+
+    // public override IEnumerable<Expression> SubExpressions {
+    //   get
+    //   {
+    //     var one = base.SubExpressions;
+    //     var two = SubExpressions2;
+    //     if (!one.SequenceEqual(two)) {
+    //       throw new Exception();
+    //     }
+    //
+    //     return one;
+    //   }
+    // }
+    
     public override IEnumerable<Expression> SubExpressions {
       get {
         if (SplitQuantifier == null) {
@@ -11755,14 +11917,28 @@ namespace Microsoft.Dafny {
       }
     }
 
+
     public override IEnumerable<Expression> SubExpressions {
+      get
+      {
+        var one = base.SubExpressions;
+        var two = SubExpressions2;
+        if (!one.SequenceEqual(two)) {
+          throw new Exception();
+        }
+
+        return one;
+      }
+    }
+    
+    public IEnumerable<Expression> SubExpressions2 {
       get {
+        if (Range != null) { yield return Range; }
+        yield return Term;
         foreach (var e in Attributes.SubExpressions(Attributes)) {
           yield return e;
         }
-        if (Range != null) { yield return Range; }
         if (TermLeft != null) { yield return TermLeft; }
-        yield return Term;
       }
     }
   }
@@ -11876,12 +12052,11 @@ namespace Microsoft.Dafny {
   }
 
   public class MatchExpr : Expression {  // a MatchExpr is an "extended expression" and is only allowed in certain places
-    private Expression source;
-    private List<MatchCaseExpr> cases;
     public readonly MatchingContext Context;
     [FilledInByResolution]
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();
     public readonly bool UsesOptionalBraces;
+    [FilledInByResolution]
     public MatchExpr OrigUnresolved;  // the resolver makes this clone of the MatchExpr before it starts desugaring it
 
     [ContractInvariantMethod]
@@ -11896,33 +12071,44 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
-      this.source = source;
-      this.cases = cases;
+      this.Source = source;
+      this.Cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
       this.Context = context is null? new HoleCtx() : context;
     }
 
-    public Expression Source {
-      get { return source; }
-    }
+    public Expression Source { get; private set; }
 
-    public List<MatchCaseExpr> Cases {
-      get { return cases; }
-    }
+    public List<MatchCaseExpr> Cases { get; private set; }
 
     // should only be used in desugar in resolve to change the source and cases of the matchexpr
     public void UpdateSource(Expression source) {
-      this.source = source;
+      this.Source = source;
     }
 
     public void UpdateCases(List<MatchCaseExpr> cases) {
-      this.cases = cases;
+      this.Cases = cases;
     }
 
+    
+
     public override IEnumerable<Expression> SubExpressions {
+      get
+      {
+        var one = base.SubExpressions;
+        var two = SubExpressions2;
+        if (!one.SequenceEqual(two)) {
+          throw new Exception();
+        }
+
+        return one;
+      }
+    }
+    
+    public IEnumerable<Expression> SubExpressions2 {
       get {
         yield return Source;
-        foreach (var mc in cases) {
+        foreach (var mc in Cases) {
           yield return mc.Body;
         }
       }
@@ -11930,7 +12116,7 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Type> ComponentTypes {
       get {
-        foreach (var mc in cases) {
+        foreach (var mc in Cases) {
           foreach (var bv in mc.Arguments) {
             yield return bv.Type;
           }
@@ -12042,11 +12228,10 @@ namespace Microsoft.Dafny {
 
   public class MatchCaseExpr : MatchCase
   {
-    private Expression body;
     public Attributes Attributes;
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(body != null);
+      Contract.Invariant(Body != null);
     }
 
     public MatchCaseExpr(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
@@ -12055,17 +12240,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(ctor != null);
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(body != null);
-      this.body = body;
       this.Attributes = attrs;
+      this.Body = body;
     }
 
-    public Expression Body {
-      get { return body; }
-    }
+    public Expression Body { get; private set; }
 
     // should only be called by resolve to reset the body of the MatchCaseExpr
     public void UpdateBody(Expression body) {
-      this.body = body;
+      this.Body = body;
     }
   }
   /*
@@ -12460,7 +12643,22 @@ namespace Microsoft.Dafny {
       ToType = toType;
     }
 
+
+
     public override IEnumerable<Expression> SubExpressions {
+      get
+      {
+        var one = base.SubExpressions;
+        var two = SubExpressions2;
+        if (!one.SequenceEqual(two)) {
+          throw new Exception();
+        }
+
+        return one;
+      }
+    }
+    
+    public IEnumerable<Expression> SubExpressions2 {
       get { yield return E; }
     }
   }
