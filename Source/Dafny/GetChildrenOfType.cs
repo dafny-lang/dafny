@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
 using Expr = System.Linq.Expressions.Expression;
 
@@ -23,9 +22,9 @@ namespace Microsoft.Dafny
     readonly IDictionary<System.Type, Expr> _expressions = 
       new Dictionary<System.Type, Expr>();
 
-    private readonly Func<MemberInfo, bool> _memberPredicate;
+    private readonly Func<MemberInfo, System.Type, bool> _memberPredicate;
 
-    public GetChildrenOfType(Func<MemberInfo, bool> memberPredicate = null) {
+    public GetChildrenOfType(Func<MemberInfo, System.Type, bool> memberPredicate = null) {
       _memberPredicate = memberPredicate;
     }
 
@@ -93,12 +92,13 @@ namespace Microsoft.Dafny
       var simpleMembers = new List<MemberExpression>();
       var enumerableMembers = new List<Expr>();
       foreach (var member in type.FindMembers(MemberTypes.Field /*| MemberTypes.Property*/, BindingFlags.Instance | BindingFlags.Public, null, null)) {
-        if (_memberPredicate != null && !_memberPredicate(member)) {
-          continue;
-        }
         var memberType = GetMemberType(member);
         if (memberType == null)
           continue;
+        
+        if (_memberPredicate != null && !_memberPredicate(member, memberType)) {
+          continue;
+        }
 
         if (member is PropertyInfo propertyInfo) {
           if (GetBackingField(propertyInfo) == null) {

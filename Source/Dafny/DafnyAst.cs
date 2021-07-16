@@ -6961,16 +6961,11 @@ namespace Microsoft.Dafny {
       get { yield break; }
     }
 
-    static Statement() {
-      Expression.GetSubExpressions.Override<ConcreteUpdateStatement>(s => s.SubExpressions);
-      Expression.GetSubExpressions.Override<Statement>(s => s.SubExpressions);
-    }
     /// <summary>
     /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
     /// </summary>
     public virtual IEnumerable<Expression> SubExpressions {
       get {
-        // TODO encode that nested statements must not be traversed.
         // return Expression.GetSubExpressions.GetTargets(this);
 
         foreach (var e in Attributes.SubExpressions(Attributes)) {
@@ -9082,7 +9077,13 @@ namespace Microsoft.Dafny {
     }
 
     public static readonly GetChildrenOfType<Expression> GetSubExpressions = 
-      new GetChildrenOfType<Expression>(m => m.GetCustomAttribute(typeof(FilledInByResolution)) == null);
+      new GetChildrenOfType<Expression>((m, type) =>
+      {
+        if (type.IsAssignableTo(typeof(Statement))) {
+          return false;
+        }
+        return m.GetCustomAttribute(typeof(FilledInByResolution)) == null;
+      });
 
     /// <summary>
     /// Returns the list of types that appear in this expression proper (that is, not including types that
