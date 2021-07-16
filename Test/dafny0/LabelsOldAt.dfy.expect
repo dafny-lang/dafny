@@ -124,5 +124,65 @@ Execution trace:
     (0,0): anon18_Then
     (0,0): anon19_Then
     (0,0): anon20_Then
+LabelsOldAt.dfy(260,15): Error: object must be non-null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+LabelsOldAt.dfy(261,15): Error: each set element must be non-null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+    (0,0): anon9_Then
+LabelsOldAt.dfy(262,15): Error: each sequence element must be non-null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+LabelsOldAt.dfy(266,15): Error: object must be allocated in the old-state of the 'unchanged' predicate
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+LabelsOldAt.dfy(267,15): Error: each set element must be allocated in the old-state of the 'unchanged' predicate
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+    (0,0): anon9_Then
+LabelsOldAt.dfy(268,15): Error: each sequence element must be allocated in the old-state of the 'unchanged' predicate
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+LabelsOldAt.dfy(271,15): Error: object must be allocated in the old-state of the 'unchanged' predicate
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Then
+LabelsOldAt.dfy(271,15): Error: object must be non-null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Then
+LabelsOldAt.dfy(274,15): Error: each set element must be allocated in the old-state of the 'unchanged' predicate
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Then
+LabelsOldAt.dfy(274,15): Error: each set element must be non-null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Then
+LabelsOldAt.dfy(277,15): Error: each sequence element must be allocated in the old-state of the 'unchanged' predicate
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Then
+LabelsOldAt.dfy(277,15): Error: each sequence element must be non-null
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Then
 
-Dafny program verifier finished with 2 verified, 19 errors
+Dafny program verifier finished with 3 verified, 31 errors

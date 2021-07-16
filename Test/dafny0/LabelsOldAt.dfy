@@ -250,3 +250,29 @@ class C {
     && fresh(c')
   }
 }
+
+twostate predicate M0(u: C, s: set<C>, t: seq<C>) {
+  && unchanged(u)
+  && unchanged(s)
+  && unchanged(t)
+}
+twostate predicate M1(u: C?, s: set<C?>, t: seq<C?>) {
+  && unchanged(u) // error: may be null
+  && unchanged(s) // error: may be null
+  && unchanged(t) // error: may be null
+}
+
+twostate predicate N0(new u: C, new s: set<C>, new t: seq<C>) {
+  && unchanged(u) // error: may not be allocated in old
+  && unchanged(s) // error: may not be allocated in old
+  && unchanged(t) // error: may not be allocated in old
+}
+twostate predicate N1(new u: C?, new s: set<C?>, new t: seq<C?>) {
+  && unchanged(u) // error (x2): may be null, may not be allocated in old
+}
+twostate predicate N2(new u: C?, new s: set<C?>, new t: seq<C?>) {
+  && unchanged(s) // error (x2): may be null, may not be allocated in old
+}
+twostate predicate N3(new u: C?, new s: set<C?>, new t: seq<C?>) {
+  && unchanged(t) // error (x2): may be null, may not be allocated in old
+}
