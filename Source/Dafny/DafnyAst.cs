@@ -10023,14 +10023,6 @@ namespace Microsoft.Dafny {
       Finite = finite;
       Elements = elements;
     }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var ep in Elements) {
-          yield return ep.A;
-          yield return ep.B;
-        }
-      }
-    }
   }
   public class SeqDisplayExpr : DisplayExpression {
     public SeqDisplayExpr(IToken tok, List<Expression> elements)
@@ -11151,17 +11143,6 @@ namespace Microsoft.Dafny {
       Exact = exact;
       Attributes = attrs;
     }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in Attributes.SubExpressions(Attributes)) {
-          yield return e;
-        }
-        foreach (var rhs in RHSs) {
-          yield return rhs;
-        }
-        yield return Body;
-      }
-    }
 
     public override IEnumerable<Type> ComponentTypes => BoundVars.Select(bv => bv.Type);
 
@@ -11539,16 +11520,6 @@ namespace Microsoft.Dafny {
       this.Attributes = attrs;
     }
 
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in Attributes.SubExpressions(Attributes)) {
-          yield return e;
-        }
-        if (Range != null) { yield return Range; }
-        yield return Term;
-      }
-    }
-
     public override IEnumerable<Type> ComponentTypes => BoundVars.Select(bv => bv.Type);
   }
 
@@ -11761,17 +11732,6 @@ namespace Microsoft.Dafny {
         return true;
       }
     }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in Attributes.SubExpressions(Attributes)) {
-          yield return e;
-        }
-        if (Range != null) { yield return Range; }
-        if (TermLeft != null) { yield return TermLeft; }
-        yield return Term;
-      }
-    }
   }
 
   public class LambdaExpr : ComprehensionExpr
@@ -11789,18 +11749,6 @@ namespace Microsoft.Dafny {
     public Expression Body {
       get {
         return Term;
-      }
-    }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        yield return Term;
-        if (Range != null) {
-          yield return Range;
-        }
-        foreach (var read in Reads) {
-          yield return read.E;
-        }
       }
     }
 
