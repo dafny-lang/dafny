@@ -7024,7 +7024,8 @@ namespace Microsoft.Dafny {
 
   public class AssertLabel : Label
   {
-    public Boogie.Expr E;  // filled in during translation
+    [FilledInByResolution]
+    public Boogie.Expr E;
     public AssertLabel(IToken tok, string label)
       : base(tok, label) {
       Contract.Requires(tok != null);
@@ -7270,6 +7271,11 @@ namespace Microsoft.Dafny {
     public bool HasAttributes()
     {
       return Attributes != null;
+    }
+
+    static AssignmentRhs() {
+      // TODO can we improve this?
+      Expression.GetSubExpressions.Override<AssignmentRhs>(rhs => rhs.SubExpressions);
     }
 
     internal AssignmentRhs(IToken tok, Attributes attrs = null) {
@@ -7707,13 +7713,7 @@ namespace Microsoft.Dafny {
     }
 
     public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        yield return Lhs;
-        foreach (var ee in Rhs.SubExpressions) {
-          yield return ee;
-        }
-      }
+      get { return Expression.GetSubExpressions.GetTargets(this); }
     }
 
     /// <summary>
@@ -8103,13 +8103,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
+    
     public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        foreach (var alt in Alternatives) {
-          yield return alt.Guard;
-        }
-      }
+      get { return Expression.GetSubExpressions.GetTargets(this); }
     }
   }
 
@@ -8344,13 +8340,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
+    
     public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        foreach (var alt in Alternatives) {
-          yield return alt.Guard;
-        }
-      }
+      get { return Expression.GetSubExpressions.GetTargets(this); }
     }
   }
 
@@ -8440,15 +8432,9 @@ namespace Microsoft.Dafny {
         }
       }
     }
+    
     public override IEnumerable<Expression> SubExpressions {
-      get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        yield return Range;
-        foreach (var ee in Ens) {
-          foreach (var e in Attributes.SubExpressions(ee.Attributes)) { yield return e; }
-          yield return ee.E;
-        }
-      }
+      get { return Expression.GetSubExpressions.GetTargets(this); }
     }
 
     public List<BoundVar> UncompilableBoundVars() {
@@ -9076,7 +9062,7 @@ namespace Microsoft.Dafny {
         return result;
       }
     }
-
+    
     public static readonly GetChildrenOfType<Expression> GetSubExpressions = 
       new GetChildrenOfType<Expression>((m, type) =>
       {
@@ -9084,7 +9070,7 @@ namespace Microsoft.Dafny {
           return false;
         }
         return m.GetCustomAttribute(typeof(FilledInByResolution)) == null;
-      });
+      }, new []{ typeof(IToken), typeof(Type)}.ToHashSet());
 
     /// <summary>
     /// Returns the list of types that appear in this expression proper (that is, not including types that

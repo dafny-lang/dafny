@@ -23,11 +23,13 @@ namespace Microsoft.Dafny
       new Dictionary<System.Type, Expr>();
 
     private readonly Func<MemberInfo, System.Type, bool> _memberPredicate;
+    private readonly ISet<System.Type> _ignoreTheseAbstractTypesExceptionOtherwise;
 
-    public GetChildrenOfType(Func<MemberInfo, System.Type, bool> memberPredicate = null) {
+    public GetChildrenOfType(Func<MemberInfo, System.Type, bool> memberPredicate = null, ISet<System.Type> ignoreTheseAbstractTypesExceptionOtherwise = null) {
       _memberPredicate = memberPredicate;
+      _ignoreTheseAbstractTypesExceptionOtherwise = ignoreTheseAbstractTypesExceptionOtherwise;
     }
-
+    
     public void Override<Source>(Func<Source, IEnumerable<Target>> func) {
       _overrides[typeof(Source)] = func;
     }
@@ -82,6 +84,11 @@ namespace Microsoft.Dafny
         var target = _overrides[type].Target;
         return Expr.Call(target == null ? null : Expr.Constant(target), methodInfo, value);
       }
+
+      // Can we make this check so it throws for all types with subtypes?
+      if (type.IsAbstract && _ignoreTheseAbstractTypesExceptionOtherwise != null && !_ignoreTheseAbstractTypesExceptionOtherwise.Contains(type)) {
+          throw new Exception($"Cannot derive behavior for abstract type {type}.");
+      }
       
       if (type.IsPrimitive || type.IsEnum || !type.Assembly.FullName.Contains("Dafny")) {
         return null;
@@ -111,7 +118,7 @@ namespace Microsoft.Dafny
           simpleMembers.Add(access);
         } else if (memberType.IsAssignableTo(enumTargetType)) {
           // NullSafe is required here because ForallStmt.ForallExpressions can be null. Maybe we should change that.
-          enumerableMembers.Add(MakeNullSafe(access, access));
+          enumerableMembers.Add(MakeNullSafe(access, Expr.TypeAs(access, enumTargetType)));
         } else if (memberType.IsAssignableTo(enumObjectType)) {
           var elementType = memberType.GenericTypeArguments[0];
           var fieldExpr = GetTargetsExprCached(elementType);
