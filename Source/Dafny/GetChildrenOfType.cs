@@ -98,7 +98,7 @@ namespace Microsoft.Dafny
       var enumObjectType = typeof(IEnumerable<>).MakeGenericType(typeof(object));
       var simpleMembers = new List<MemberExpression>();
       var enumerableMembers = new List<Expr>();
-      foreach (var member in type.FindMembers(MemberTypes.Field /*| MemberTypes.Property*/, BindingFlags.Instance | BindingFlags.Public, null, null)) {
+      foreach (var member in type.FindMembers(MemberTypes.Field | MemberTypes.Property, BindingFlags.Instance | BindingFlags.Public, null, null)) {
         var memberType = GetMemberType(member);
         if (memberType == null)
           continue;
@@ -157,7 +157,7 @@ namespace Microsoft.Dafny
       return Expr.Condition(Expr.ReferenceEqual(inner, Expr.Constant(null)),
         Expr.Constant(Enumerable.Empty<Target>(), typeof(IEnumerable<Target>)), outer);
       
-    }
+    }  
 
     private static System.Type/*?*/ GetMemberType(MemberInfo member) {
       switch (member) {
@@ -185,6 +185,15 @@ namespace Microsoft.Dafny
       return func(source).Where(x => x != null);
     } 
     
+    /*
+     Doesn't always work, for example for the following code:
+    private Expression term;
+    public Expression Term { get { return term; } }
+
+    public void UpdateTerm(Expression newTerm) {
+      term = newTerm;
+    }
+     */
     public static FieldInfo GetBackingField(PropertyInfo propertyInfo) {
       if (propertyInfo == null)
         throw new ArgumentNullException(nameof(propertyInfo));

@@ -8844,6 +8844,10 @@ namespace Microsoft.Dafny {
       Contract.Invariant(tok != null);
     }
 
+    static Expression() {
+      GetSubExpressions.Override<TypeParameter>(tp => Enumerable.Empty<Expression>());
+    }
+    
     [Pure]
     public bool WasResolved()
     {
@@ -10023,6 +10027,14 @@ namespace Microsoft.Dafny {
       Finite = finite;
       Elements = elements;
     }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var ep in Elements) {
+          yield return ep.A;
+          yield return ep.B;
+        }
+      }
+    }
   }
   public class SeqDisplayExpr : DisplayExpression {
     public SeqDisplayExpr(IToken tok, List<Expression> elements)
@@ -11143,6 +11155,17 @@ namespace Microsoft.Dafny {
       Exact = exact;
       Attributes = attrs;
     }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in Attributes.SubExpressions(Attributes)) {
+          yield return e;
+        }
+        foreach (var rhs in RHSs) {
+          yield return rhs;
+        }
+        yield return Body;
+      }
+    }
 
     public override IEnumerable<Type> ComponentTypes => BoundVars.Select(bv => bv.Type);
 
@@ -11182,11 +11205,10 @@ namespace Microsoft.Dafny {
   {
     public readonly List<BoundVar> BoundVars;
     public readonly Expression Range;
-    private Expression term;
-    public Expression Term { get { return term; } }
+    public Expression Term { get; private set; }
 
     public void UpdateTerm(Expression newTerm) {
-      term = newTerm;
+      Term = newTerm;
     }
 
     [ContractInvariantMethod]
@@ -11732,6 +11754,17 @@ namespace Microsoft.Dafny {
         return true;
       }
     }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in Attributes.SubExpressions(Attributes)) {
+          yield return e;
+        }
+        if (Range != null) { yield return Range; }
+        if (TermLeft != null) { yield return TermLeft; }
+        yield return Term;
+      }
+    }
   }
 
   public class LambdaExpr : ComprehensionExpr
@@ -11751,7 +11784,6 @@ namespace Microsoft.Dafny {
         return Term;
       }
     }
-
   }
 
   public class WildcardExpr : Expression
