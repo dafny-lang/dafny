@@ -10032,29 +10032,6 @@ namespace Microsoft.Dafny {
       Finite = finite;
       Elements = elements;
     }
-    
-
-    public override IEnumerable<Expression> SubExpressions {
-      get
-      {
-        var one = base.SubExpressions;
-        var two = SubExpressions2;
-        if (!one.SequenceEqual(two)) {
-          throw new Exception();
-        }
-
-        return one;
-      }
-    }
-    
-    public IEnumerable<Expression> SubExpressions2 {
-      get {
-        foreach (var ep in Elements) {
-          yield return ep.A;
-          yield return ep.B;
-        }
-      }
-    }
   }
   public class SeqDisplayExpr : DisplayExpression {
     public SeqDisplayExpr(IToken tok, List<Expression> elements)
@@ -10305,28 +10282,6 @@ namespace Microsoft.Dafny {
       E0 = e0;
       E1 = e1;
     }
-
-
-    public override IEnumerable<Expression> SubExpressions {
-      get
-      {
-        var one = base.SubExpressions;
-        var two = SubExpressions2;
-        if (!one.SequenceEqual(two)) {
-          throw new Exception();
-        }
-
-        return one;
-      }
-    }
-    
-    public IEnumerable<Expression> SubExpressions2 {
-      get {
-        yield return Seq;
-        if (E0 != null) yield return E0;
-        if (E1 != null) yield return E1;
-      }
-    }
   }
 
   public class MultiSelectExpr : Expression {
@@ -10347,29 +10302,6 @@ namespace Microsoft.Dafny {
 
       Array = array;
       Indices = indices;
-    }
-
-
-    public override IEnumerable<Expression> SubExpressions {
-      get
-      {
-        var one = base.SubExpressions;
-        var two = SubExpressions2;
-        if (!one.SequenceEqual(two)) {
-          throw new Exception();
-        }
-
-        return one;
-      }
-    }
-    
-    public IEnumerable<Expression> SubExpressions2 {
-      get {
-        yield return Array;
-        foreach (var e in Indices) {
-          yield return e;
-        }
-      }
     }
   }
 
@@ -10408,18 +10340,11 @@ namespace Microsoft.Dafny {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
-        if (ResolvedUpdateExpr == null)
-        {
-          yield return Seq;
-          yield return Index;
-          yield return Value;
+        if (ResolvedUpdateExpr == null) {
+          return base.SubExpressions;
         }
-        else
-        {
-          foreach (var e in ResolvedUpdateExpr.SubExpressions)
-          {
-            yield return e;
-          }
+        else {
+          return ResolvedUpdateExpr.SubExpressions;
         }
       }
     }
@@ -10567,27 +10492,6 @@ namespace Microsoft.Dafny {
       N = length;
       Initializer = initializer;
     }
-    
-
-    public override IEnumerable<Expression> SubExpressions {
-      get
-      {
-        var one = base.SubExpressions;
-        var two = SubExpressions2;
-        if (!one.SequenceEqual(two)) {
-          throw new Exception();
-        }
-
-        return one;
-      }
-    }
-    
-    public IEnumerable<Expression> SubExpressions2 {
-      get {
-        yield return N;
-        yield return Initializer;
-      }
-    }
 
     public override IEnumerable<Type> ComponentTypes {
       get {
@@ -10615,24 +10519,6 @@ namespace Microsoft.Dafny {
       cce.Owner.AssignSame(this, expr);
       E = expr;
     }
-
-
-    public override IEnumerable<Expression> SubExpressions {
-      get
-      {
-        var one = base.SubExpressions;
-        var two = SubExpressions2;
-        if (!one.SequenceEqual(two)) {
-          throw new Exception();
-        }
-
-        return one;
-      }
-    }
-    
-    public IEnumerable<Expression> SubExpressions2 {
-      get { yield return E; }
-    }
   }
 
   public class OldExpr : Expression
@@ -10656,25 +10542,6 @@ namespace Microsoft.Dafny {
       E = expr;
       At = at;
     }
-
-    
-
-    public override IEnumerable<Expression> SubExpressions {
-      get
-      {
-        var one = base.SubExpressions;
-        var two = SubExpressions2;
-        if (!one.SequenceEqual(two)) {
-          throw new Exception();
-        }
-
-        return one;
-      }
-    }
-    
-    public IEnumerable<Expression> SubExpressions2 {
-      get { yield return E; }
-    }
   }
 
   public class UnchangedExpr : Expression
@@ -10695,27 +10562,6 @@ namespace Microsoft.Dafny {
       this.Frame = frame;
       this.At = at;
     }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get
-      {
-        var one = base.SubExpressions;
-        var two = SubExpressions2;
-        if (!one.SequenceEqual(two)) {
-          throw new Exception();
-        }
-
-        return one;
-      }
-    }
-    
-    public IEnumerable<Expression> SubExpressions2 {
-      get {
-        foreach (var fe in Frame) {
-          yield return fe.E;
-        }
-      }
-    }
   }
 
   public abstract class UnaryExpr : Expression
@@ -10731,23 +10577,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
       this.E = e;
-    }
-
-
-    public override IEnumerable<Expression> SubExpressions {
-      get
-      {
-        var one = base.SubExpressions;
-        var two = SubExpressions2;
-        if (!one.SequenceEqual(two)) {
-          throw new Exception();
-        }
-
-        return one;
-      }
-    }
-    public IEnumerable<Expression> SubExpressions2 {
-      get { yield return E; }
     }
   }
 
@@ -11229,28 +11058,6 @@ namespace Microsoft.Dafny {
       E1 = e1;
       E2 = e2;
     }
-
-
-    public override IEnumerable<Expression> SubExpressions {
-      get
-      {
-        var one = base.SubExpressions;
-        var two = SubExpressions2;
-        if (!one.SequenceEqual(two)) {
-          throw new Exception();
-        }
-
-        return one;
-      }
-    }
-    
-    public IEnumerable<Expression> SubExpressions2 {
-      get {
-        yield return E0;
-        yield return E1;
-        yield return E2;
-      }
-    }
   }
 
   public class LetExpr : Expression, IAttributeBearingDeclaration
@@ -11286,32 +11093,6 @@ namespace Microsoft.Dafny {
       Body = body;
       Exact = exact;
       Attributes = attrs;
-    }
-    
-
-    public override IEnumerable<Expression> SubExpressions {
-      get
-      {
-        var one = base.SubExpressions;
-        var two = SubExpressions2;
-        if (!one.SequenceEqual(two)) {
-          throw new Exception();
-        }
-
-        return one;
-      }
-    }
-    
-    public IEnumerable<Expression> SubExpressions2 {
-      get {
-        foreach (var e in Attributes.SubExpressions(Attributes)) {
-          yield return e;
-        }
-        yield return Body;
-        foreach (var rhs in RHSs) {
-          yield return rhs;
-        }
-      }
     }
 
     public override IEnumerable<Type> ComponentTypes => BoundVars.Select(bv => bv.Type);
@@ -11779,16 +11560,9 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Expression> SubExpressions {
       get {
         if (SplitQuantifier == null) {
-          foreach (var e in base.SubExpressions) {
-            yield return e;
-          }
+          return base.SubExpressions;
         } else {
-          foreach (var e in Attributes.SubExpressions(Attributes)) {
-            yield return e;
-          }
-          foreach (var e in SplitQuantifier) {
-            yield return e;
-          }
+          return Attributes.SubExpressions(Attributes).Concat(SplitQuantifier);
         }
       }
     }
@@ -11914,31 +11688,6 @@ namespace Microsoft.Dafny {
           return false;
         }
         return true;
-      }
-    }
-
-
-    public override IEnumerable<Expression> SubExpressions {
-      get
-      {
-        var one = base.SubExpressions;
-        var two = SubExpressions2;
-        if (!one.SequenceEqual(two)) {
-          throw new Exception();
-        }
-
-        return one;
-      }
-    }
-    
-    public IEnumerable<Expression> SubExpressions2 {
-      get {
-        if (Range != null) { yield return Range; }
-        yield return Term;
-        foreach (var e in Attributes.SubExpressions(Attributes)) {
-          yield return e;
-        }
-        if (TermLeft != null) { yield return TermLeft; }
       }
     }
   }
@@ -12088,30 +11837,6 @@ namespace Microsoft.Dafny {
 
     public void UpdateCases(List<MatchCaseExpr> cases) {
       this.Cases = cases;
-    }
-
-    
-
-    public override IEnumerable<Expression> SubExpressions {
-      get
-      {
-        var one = base.SubExpressions;
-        var two = SubExpressions2;
-        if (!one.SequenceEqual(two)) {
-          throw new Exception();
-        }
-
-        return one;
-      }
-    }
-    
-    public IEnumerable<Expression> SubExpressions2 {
-      get {
-        yield return Source;
-        foreach (var mc in Cases) {
-          yield return mc.Body;
-        }
-      }
     }
 
     public override IEnumerable<Type> ComponentTypes {
@@ -12642,25 +12367,6 @@ namespace Microsoft.Dafny {
       FromType = fromType;
       ToType = toType;
     }
-
-
-
-    public override IEnumerable<Expression> SubExpressions {
-      get
-      {
-        var one = base.SubExpressions;
-        var two = SubExpressions2;
-        if (!one.SequenceEqual(two)) {
-          throw new Exception();
-        }
-
-        return one;
-      }
-    }
-    
-    public IEnumerable<Expression> SubExpressions2 {
-      get { yield return E; }
-    }
   }
 
   public class AttributedExpression {
@@ -12738,14 +12444,17 @@ namespace Microsoft.Dafny {
   /// </summary>
   public abstract class ConcreteSyntaxExpression : Expression
   {
-    public Expression ResolvedExpression;  // filled in during resolution; after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
+    [FilledInByResolution]
+    public Expression ResolvedExpression;  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
     public ConcreteSyntaxExpression(IToken tok)
       : base(tok) {
     }
     public override IEnumerable<Expression> SubExpressions {
       get {
         if (ResolvedExpression != null) {
-          yield return ResolvedExpression;
+          return new [] { ResolvedExpression };
+        } else {
+          return base.SubExpressions;
         }
       }
     }
@@ -12918,18 +12627,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
       E = e;
-    }
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        if (ResolvedExpression == null) {
-          // the expression hasn't yet been turned into a resolved expression, so use .E as the subexpression
-          yield return E;
-        } else {
-          foreach (var ee in base.SubExpressions) {
-            yield return ee;
-          }
-        }
-      }
     }
   }
 
