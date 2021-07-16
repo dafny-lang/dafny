@@ -37,8 +37,14 @@ Execution trace:
 git-issue-1252.dfy(100,25): Error: target object may be null
 Execution trace:
     (0,0): anon0
+git-issue-1252.dfy(106,21): Error: object must be allocated in the old-state of the 'unchanged' predicate
+Execution trace:
+    (0,0): anon0
+git-issue-1252.dfy(106,21): Error: object must be non-null
+Execution trace:
+    (0,0): anon0
 git-issue-1252.dfy(106,21): Error: target object may be null
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 4 verified, 14 errors
+Dafny program verifier finished with 4 verified, 16 errors
