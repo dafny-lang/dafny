@@ -120,7 +120,14 @@ namespace Microsoft.Dafny
           // NullSafe is required here because ForallStmt.ForallExpressions can be null. Maybe we should change that.
           enumerableMembers.Add(MakeNullSafe(access, Expr.TypeAs(access, enumTargetType)));
         } else if (memberType.IsAssignableTo(enumObjectType)) {
+        
           var elementType = memberType.GenericTypeArguments[0];
+          
+          // Used for BlockStmt.Body
+          if (_memberPredicate != null && !_memberPredicate(member, elementType)) {
+            continue;
+          }
+          
           var fieldExpr = GetTargetsExprCached(elementType);
           if (fieldExpr != null) {;
             Expr selector = Expr.Lambda(fieldExpr, false, GetParam(elementType));

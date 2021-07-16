@@ -6974,11 +6974,7 @@ namespace Microsoft.Dafny {
     public virtual IEnumerable<Expression> SubExpressions {
       get
       {
-        // return Expression.GetSubExpressions.GetTargets(this);
-        
-        foreach (var e in Attributes.SubExpressions(Attributes)) {
-          yield return e;
-        }
+        return Expression.GetSubExpressions.GetTargets(this);
       }
     }
   }
@@ -7063,9 +7059,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       this.Expr = expr;
     }
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
-    }
   }
 
   public class AssertStmt : PredicateStmt {
@@ -7104,10 +7097,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       this.Message = message;
     }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
-    }
   }
 
   public class AssumeStmt : PredicateStmt {
@@ -7133,9 +7122,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(args));
 
       Args = args;
-    }
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
     }
   }
 
@@ -7212,9 +7198,7 @@ namespace Microsoft.Dafny {
       this.rhss = rhss;
       hiddenUpdate = null;
     }
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
-    }
+    
     public override IEnumerable<Statement> SubStatements {
       get {
         if (rhss != null) {
@@ -7485,10 +7469,6 @@ namespace Microsoft.Dafny {
     public override IEnumerable<Statement> SubStatements {
       get { if (Update != null) { yield return Update; } }
     }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
-    }
   }
 
   public class VarDeclPattern : Statement
@@ -7502,10 +7482,6 @@ namespace Microsoft.Dafny {
       LHS = lhs;
       RHS = rhs;
       HasGhostModifier = hasGhostModifier;
-    }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
     }
 
     public IEnumerable<LocalVariable> LocalVars {
@@ -7564,9 +7540,6 @@ namespace Microsoft.Dafny {
       if (assumeToken != null) {
         AssumeToken = assumeToken;
       }
-    }
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
     }
   }
 
@@ -7677,10 +7650,6 @@ namespace Microsoft.Dafny {
           yield return s;
         }
       }
-    }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
     }
 
     /// <summary>
@@ -7888,9 +7857,6 @@ namespace Microsoft.Dafny {
       : this(tok, endTok, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
       Bindings.AcceptArgumentExpressionsAsExactParameterList();
     }
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
-    }
   }
 
   public class BlockStmt : Statement {
@@ -7977,9 +7943,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
-    }
   }
 
   public class GuardedAlternative
@@ -8055,10 +8018,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
-    }
   }
 
   public abstract class LoopStmt : Statement
@@ -8119,10 +8078,6 @@ namespace Microsoft.Dafny {
           }
         }
       }
-    }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
     }
   }
 
@@ -8187,9 +8142,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
-    }
   }
 
   /// <summary>
@@ -8231,10 +8183,6 @@ namespace Microsoft.Dafny {
       End = end;
       GoingUp = goingUp;
     }
-
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
-    }
   }
 
   public class AlternativeLoopStmt : LoopStmt
@@ -8273,10 +8221,6 @@ namespace Microsoft.Dafny {
           }
         }
       }
-    }
-    
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
     }
   }
 
@@ -8366,10 +8310,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
-    }
 
     public List<BoundVar> UncompilableBoundVars() {
       Contract.Ensures(Contract.Result<List<BoundVar>>() != null);
@@ -8399,9 +8339,6 @@ namespace Microsoft.Dafny {
           yield return Body;
         }
       }
-    }
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
     }
   }
 
@@ -8734,9 +8671,6 @@ namespace Microsoft.Dafny {
           }
         }
       }
-    }
-    public override IEnumerable<Expression> SubExpressions {
-      get { return Expression.GetSubExpressions.GetTargets(this); }
     }
   }
 
@@ -12458,16 +12392,6 @@ namespace Microsoft.Dafny {
     public readonly Expression Source;
     public readonly List<NestedMatchCaseStmt> Cases;
     public readonly bool UsesOptionalBraces;
-
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        if (this.ResolvedStatement == null) {
-          // TODO replace with base.SubExpressions
-          yield return Source;
-        }
-      }
-    }
     
     private void InitializeAttributes()
     {
@@ -12658,6 +12582,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public abstract class ConcreteSyntaxStatement : Statement
   {
+    [FilledInByResolution]
     public Statement ResolvedStatement;  // filled in during resolution; after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
     public ConcreteSyntaxStatement(IToken tok, IToken endtok)
       : base(tok, endtok) {
@@ -12669,6 +12594,10 @@ namespace Microsoft.Dafny {
       get {
           yield return ResolvedStatement;
       }
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get { return this.ResolvedStatement == null ? base.SubExpressions : Enumerable.Empty<Expression>(); }
     }
   }
   public class ParensExpression : ConcreteSyntaxExpression
