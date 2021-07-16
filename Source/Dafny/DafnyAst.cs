@@ -6965,9 +6965,10 @@ namespace Microsoft.Dafny {
     /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
     /// </summary>
     public virtual IEnumerable<Expression> SubExpressions {
-      get {
+      get
+      {
         // return Expression.GetSubExpressions.GetTargets(this);
-
+        
         foreach (var e in Attributes.SubExpressions(Attributes)) {
           yield return e;
         }

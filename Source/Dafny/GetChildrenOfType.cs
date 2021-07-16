@@ -110,7 +110,8 @@ namespace Microsoft.Dafny
         if (memberType.IsAssignableTo(typeof(Target))) {
           simpleMembers.Add(access);
         } else if (memberType.IsAssignableTo(enumTargetType)) {
-          enumerableMembers.Add(access);
+          // NullSafe is required here because ForallStmt.ForallExpressions can be null. Maybe we should change that.
+          enumerableMembers.Add(MakeNullSafe(access, access));
         } else if (memberType.IsAssignableTo(enumObjectType)) {
           var elementType = memberType.GenericTypeArguments[0];
           var fieldExpr = GetTargetsExprCached(elementType);
@@ -120,17 +121,13 @@ namespace Microsoft.Dafny
             var call = Expr.Call(null, appliedSelectMany, access, selector);
             
             // NullSafe is required here because Specification.Expression can be null. Maybe we should change that.
-            var nullSafe = Expr.Condition(Expr.ReferenceEqual(access, Expr.Constant(null)),
-              Expr.Constant(Enumerable.Empty<Target>(), typeof(IEnumerable<Target>)), call);
-            enumerableMembers.Add(nullSafe);
+            enumerableMembers.Add(MakeNullSafe(access, call));
           }
         } else {
           var fieldVar = GetParam(memberType);
           var fieldExpr = GetTargetsExprCached(memberType);
           if (fieldExpr != null) {
-            var nullSafe = Expr.Condition(Expr.ReferenceEqual(fieldVar, Expr.Constant(null)),
-              Expr.Constant(Enumerable.Empty<Target>(), typeof(IEnumerable<Target>)), fieldExpr);
-            enumerableMembers.Add(Expr.Block(new []{ fieldVar}, Expr.Assign(fieldVar, access), nullSafe));
+            enumerableMembers.Add(Expr.Block(new []{ fieldVar}, Expr.Assign(fieldVar, access), MakeNullSafe(fieldVar, fieldExpr)));
           }
         }
       }
@@ -140,6 +137,12 @@ namespace Microsoft.Dafny
       var nonEmpty = simpleMembers.Any() || enumerableMembers.Any();
       var inter = nonEmpty ? expr : null;
       return inter;
+    }
+
+    Expr MakeNullSafe(Expr inner, Expr outer) {
+      return Expr.Condition(Expr.ReferenceEqual(inner, Expr.Constant(null)),
+        Expr.Constant(Enumerable.Empty<Target>(), typeof(IEnumerable<Target>)), outer);
+      
     }
 
     private static System.Type/*?*/ GetMemberType(MemberInfo member) {
