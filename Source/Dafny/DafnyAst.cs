@@ -6202,6 +6202,7 @@ namespace Microsoft.Dafny {
       ArgumentBindings = actuals.ConvertAll(actual => new ActualBinding(null, actual));
     }
 
+    [FilledInByResolution]
     private List<Expression> arguments; // set by ResolveActualParameters during resolution
 
     public bool WasResolved => arguments != null;
@@ -8626,6 +8627,7 @@ namespace Microsoft.Dafny {
     [FilledInByResolution]
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();
     public readonly bool UsesOptionalBraces;
+    [FilledInByResolution]
     public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it
     public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, MatchingContext context = null)
       : base(tok, endTok) {
@@ -8675,6 +8677,14 @@ namespace Microsoft.Dafny {
             yield return s;
           }
         }
+      }
+    }
+    
+    // Prevents traversing Cases, although I don't know why we don't want that.
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in Attributes.SubExpressions(Attributes)) { yield return e; }
+        yield return Source;
       }
     }
   }

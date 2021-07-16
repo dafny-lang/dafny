@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Expr = System.Linq.Expressions.Expression;
 
 namespace Microsoft.Dafny
 {
+  /*
+   * Doesn't work for Public properties manually backed by fields. Please refactor to use auto-properties in that case.
+   */
   public class GetChildrenOfType<Target>
   {
     readonly IDictionary<System.Type, Func<dynamic, IEnumerable<Target>>> _getFunctions = 
@@ -188,18 +191,9 @@ namespace Microsoft.Dafny
       _getFunctions[key] = func;
       // Maybe move the nullCheck to the fields.
       return func(source).Where(x => x != null);
-    } 
-    
-    /*
-     Doesn't always work, for example for the following code:
-    private Expression term;
-    public Expression Term { get { return term; } }
-
-    public void UpdateTerm(Expression newTerm) {
-      term = newTerm;
     }
-     */
-    public static FieldInfo GetBackingField(PropertyInfo propertyInfo) {
+
+    private static FieldInfo GetBackingField(PropertyInfo propertyInfo) {
       if (propertyInfo == null)
         throw new ArgumentNullException(nameof(propertyInfo));
       if (!propertyInfo.CanRead || !propertyInfo.GetGetMethod(nonPublic: true).IsDefined(typeof(CompilerGeneratedAttribute), inherit: true))
