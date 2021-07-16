@@ -10457,12 +10457,12 @@ namespace Microsoft.Dafny {
         return null;
       }
     }
-    private void AddSplittingAssert(BoogieStmtListBuilder b, IToken tok)
+    private void AddSplittingAssume(BoogieStmtListBuilder b, IToken tok)
     {
       Contract.Requires(b != null);
       Contract.Requires(tok != null);
 
-      b.Add(Assert(tok, Bpl.Expr.True, "split_here assertion; should pass", new Bpl.QKeyValue(tok, "split_here", new List<object>(), null)));
+      b.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.True, new Bpl.QKeyValue(tok, "split_here", new List<object>(), null)));
     }
     private bool processSplitAttribute(Attributes attrs, IToken tok, bool defaultValue = false) {
       bool split = defaultValue;
@@ -10518,7 +10518,7 @@ namespace Microsoft.Dafny {
             proofBuilder = new BoogieStmtListBuilder(this);
             AddComment(proofBuilder, stmt, "assert statement proof");
             if (splitAttributeValue) {
-              AddSplittingAssert(proofBuilder, stmt.Tok);
+              AddSplittingAssume(proofBuilder, stmt.Tok);
             }
             TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
           } else if (assertStmt != null && assertStmt.Label != null) {
@@ -10906,7 +10906,7 @@ namespace Microsoft.Dafny {
           IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran, stmt.IsGhost);
         }
         if (splitAttributeValue) {
-          AddSplittingAssert(b, s.Tok);
+          AddSplittingAssume(b, s.Tok);
         }
         Bpl.StmtList thn = TrStmt2StmtList(b, s.Thn, locals, etran);
         CurrentIdGenerator.Pop();
@@ -10920,7 +10920,7 @@ namespace Microsoft.Dafny {
           els = b.Collect(s.Tok);
         } else {
           if (!(s.Els is IfStmt) && processSplitAttribute(s.Els.Attributes, s.Els.Tok, splitAttributeValue)) {
-              AddSplittingAssert(b, s.Els.Tok);
+              AddSplittingAssume(b, s.Els.Tok);
           } else if (!Attributes.Contains(s.Els.Attributes, "split")) {
             // inherit the splitting attributes of previous if.
             var args = new List<Expression> ();
@@ -11185,7 +11185,7 @@ namespace Microsoft.Dafny {
           for (int i = stepCount; 0 <= --i; ) {
             b = new BoogieStmtListBuilder(this);
             if (splitAttributeValue) {
-              AddSplittingAssert(b, s.Tok);
+              AddSplittingAssume(b, s.Tok);
             }
             // assume wf[line<i>]:
             AddComment(b, stmt, "assume wf[lhs]");
@@ -11285,7 +11285,7 @@ namespace Microsoft.Dafny {
           // havoc all bound variables
           b = new BoogieStmtListBuilder(this);
           if (processSplitAttribute(s.Cases[i].Attributes, s.Cases[i].tok, splitAttributeValue)) {
-            AddSplittingAssert(b, mc.tok);
+            AddSplittingAssume(b, mc.tok);
           }
           List<Variable> newLocals = new List<Variable>();
           Bpl.Expr r = CtorInvocation(mc, s.Source.Type, etran, newLocals, b, s.IsGhost ? NOALLOC : ISALLOC);
@@ -12046,7 +12046,7 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(range, definedness, locals, etran, false);
         definedness.Add(TrAssumeCmd(range.tok, etran.TrExpr(range)));
         if (splitAttributeValue) {
-          AddSplittingAssert(definedness, tok);
+          AddSplittingAssume(definedness, tok);
         }
         if (additionalRange != null) {
           var es = additionalRange(new Dictionary<IVariable, Expression>(), etran);
@@ -12206,7 +12206,7 @@ namespace Microsoft.Dafny {
 
       if (s.Body != null) {
         if (splitAttributeValue) {
-          AddSplittingAssert(definedness, s.Tok);
+          AddSplittingAssume(definedness, s.Tok);
         }
         TrStmt(s.Body, definedness, locals, etran);
 
@@ -12416,7 +12416,7 @@ namespace Microsoft.Dafny {
       loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, Bpl.Expr.Not(w), invDefinednessBuilder.Collect(s.Tok), null, null));
 
       if (splitAttributeValue) {
-        AddSplittingAssert(loopBodyBuilder, s.Tok);
+        AddSplittingAssume(loopBodyBuilder, s.Tok);
       }
       // Generate:  CheckWellformed(guard); if (!guard) { break; }
       // but if this is a body-less loop, put all of that inside:  if (*) { ... }
@@ -12481,7 +12481,7 @@ namespace Microsoft.Dafny {
       }
 
       if (splitAttributeValue) {
-        AddSplittingAssert(loopBodyBuilder, s.Tok);
+        AddSplittingAssume(loopBodyBuilder, s.Tok);
       }
       // Finally, assume the well-formedness of the invariant (which has been checked once and for all above), so that the check
       // of invariant-maintenance can use the appropriate canCall predicates.
@@ -12544,7 +12544,7 @@ namespace Microsoft.Dafny {
         }
         var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
         if (processSplitAttribute(alternative.Attributes, alternative.Tok, splitAttributeValue)) {
-          AddSplittingAssert(b, alternative.Tok);
+          AddSplittingAssume(b, alternative.Tok);
         }
         foreach (var s in alternative.Body) {
           TrStmt(s, b, locals, etran);
