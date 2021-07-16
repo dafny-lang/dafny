@@ -11551,21 +11551,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(bypassSplitQuantifier || SplitQuantifier == null);
       throw new cce.UnreachableException(); // This body is just here for the "Requires" clause
     }
-
-    
-
-    // public override IEnumerable<Expression> SubExpressions {
-    //   get
-    //   {
-    //     var one = base.SubExpressions;
-    //     var two = SubExpressions2;
-    //     if (!one.SequenceEqual(two)) {
-    //       throw new Exception();
-    //     }
-    //
-    //     return one;
-    //   }
-    // }
     
     public override IEnumerable<Expression> SubExpressions {
       get {

@@ -80,7 +80,6 @@ namespace Microsoft.Dafny
     }
     
     // Does not support traversal of recursive data structures like LList
-    // TODO better support properties
     private Expr/*?*/ GetTargetsExpr(System.Type type) {
       var value = GetParam(type);
       if (_overrides.ContainsKey(type)) {
