@@ -7607,6 +7607,12 @@ namespace Microsoft.Dafny {
       get { return ResolvedStatements; }
     }
 
+    // TODO Why is this empty?
+    public override IEnumerable<Expression> SubExpressions
+    {
+      get => Enumerable.Empty<Expression>();
+    }
+
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Lhss != null);
@@ -8942,13 +8948,17 @@ namespace Microsoft.Dafny {
     }
     
     public static readonly GetChildrenOfType<Expression> GetSubExpressions = 
-      new GetChildrenOfType<Expression>((m, type) =>
+      new GetChildrenOfType<Expression>(
+        // true because ForallStmt.ForallExpressions and Specification.Expressions can be null
+        enumerableFieldsCanBeNull: true, 
+        (m, type) =>
       {
+        // Don't return expressions in nested statements.
         if (type.IsAssignableTo(typeof(Statement))) {
           return false;
         }
         return m.GetCustomAttribute(typeof(FilledInByResolution)) == null;
-      } /*, new []{ typeof(IToken), typeof(Type)}.ToHashSet() */);
+      });
 
     /// <summary>
     /// Returns the list of types that appear in this expression proper (that is, not including types that

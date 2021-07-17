@@ -3,14 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
 using Expr = System.Linq.Expressions.Expression;
 
 namespace Microsoft.Dafny
 {
   /*
-   * Doesn't work for Public properties manually backed by fields. Please refactor to use auto-properties in that case.
+   * Uses type information to generate a function that given a root value and a target type,
+   * retrieves all values of the target type that are accessible from the root through public fields and properties.
+   * 
+   * Doesn't work for public properties manually backed by private fields.
+   * Please refactor to use auto-properties in that case.
    */
   public class GetChildrenOfType<Target>
   {
@@ -26,10 +29,12 @@ namespace Microsoft.Dafny
     readonly IDictionary<System.Type, Expr> _expressions = 
       new Dictionary<System.Type, Expr>();
 
+    private readonly bool _enumerableFieldsCanBeNull;
     private readonly Func<MemberInfo, System.Type, bool> _memberPredicate;
     private readonly ISet<System.Type> _ignoreTheseAbstractTypesExceptionOtherwise;
-
-    public GetChildrenOfType(Func<MemberInfo, System.Type, bool> memberPredicate = null, ISet<System.Type> ignoreTheseAbstractTypesExceptionOtherwise = null) {
+    
+    public GetChildrenOfType(bool enumerableFieldsCanBeNull, Func<MemberInfo, System.Type, bool> memberPredicate = null, ISet<System.Type> ignoreTheseAbstractTypesExceptionOtherwise = null) {
+      _enumerableFieldsCanBeNull = enumerableFieldsCanBeNull;
       _memberPredicate = memberPredicate;
       _ignoreTheseAbstractTypesExceptionOtherwise = ignoreTheseAbstractTypesExceptionOtherwise;
     }
@@ -124,13 +129,12 @@ namespace Microsoft.Dafny
         if (memberType.IsAssignableTo(typeof(Target))) {
           simpleMembers.Add(access);
         } else if (memberType.IsAssignableTo(enumTargetType)) {
-          // NullSafe is required here because ForallStmt.ForallExpressions can be null. Maybe we should change that.
-          enumerableMembers.Add(MakeNullSafe(access, Expr.TypeAs(access, enumTargetType)));
+          var item = _enumerableFieldsCanBeNull ? MakeNullSafe(access, Expr.TypeAs(access, enumTargetType)) : access;
+          enumerableMembers.Add(item);
         } else if (memberType.IsAssignableTo(enumObjectType)) {
         
           var elementType = memberType.GenericTypeArguments[0];
           
-          // Used for BlockStmt.Body
           if (_memberPredicate != null && !_memberPredicate(member, elementType)) {
             continue;
           }
@@ -141,14 +145,16 @@ namespace Microsoft.Dafny
             var appliedSelectMany = SelectManyMethod.MakeGenericMethod(elementType, typeof(Target));
             var call = Expr.Call(null, appliedSelectMany, access, selector);
             
-            // NullSafe is required here because Specification.Expression can be null. Maybe we should change that.
-            enumerableMembers.Add(MakeNullSafe(access, call));
+            var item = _enumerableFieldsCanBeNull ? MakeNullSafe(access, call) : call;
+            enumerableMembers.Add(item);
           }
         } else {
           var fieldVar = GetParam(memberType);
           var fieldExpr = GetTargetsExprCached(memberType);
           if (fieldExpr != null) {
-            enumerableMembers.Add(Expr.Block(new []{ fieldVar}, Expr.Assign(fieldVar, access), MakeNullSafe(fieldVar, fieldExpr)));
+            enumerableMembers.Add(
+              Expr.Block(new []{ fieldVar}, Expr.Assign(fieldVar, access), 
+              MakeNullSafe(fieldVar, fieldExpr)));
           }
         }
       }
@@ -188,14 +194,13 @@ namespace Microsoft.Dafny
 
       var func = GetFunc(key);
       _getFunctions[key] = func;
-      // Maybe move the nullCheck to the fields.
       return func(source).Where(x => x != null);
     }
 
     private static FieldInfo GetBackingField(PropertyInfo propertyInfo) {
       if (propertyInfo == null)
         throw new ArgumentNullException(nameof(propertyInfo));
-      if (!propertyInfo.CanRead || !propertyInfo.GetGetMethod(nonPublic: true).IsDefined(typeof(CompilerGeneratedAttribute), inherit: true))
+      if (!propertyInfo.CanRead || !propertyInfo.GetGetMethod(nonPublic: true)!.IsDefined(typeof(CompilerGeneratedAttribute), inherit: true))
         return null;
       var backingFieldName = GetBackingFieldName(propertyInfo.Name);
       var backingField = propertyInfo.DeclaringType?.GetField(backingFieldName, BindingFlags.Instance | BindingFlags.NonPublic);
