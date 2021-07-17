@@ -1069,7 +1069,7 @@ module CycleError5 {
   datatype Dt<T> = Make(T)
 }
 module CycleError6 {
-  type A = Dt<Dt<A>>  // error: cycle A -> Dt<Dt<A>> -> Dt<A> -> A
+  type A = Dt<Dt<A>>  // error: cycle A -> A
   datatype Dt<T> = Make(T)
 }
 

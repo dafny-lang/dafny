@@ -13,6 +13,7 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny
 {
@@ -394,9 +395,9 @@ namespace Microsoft.Dafny
       ProcessDependencies(prog.DefaultModule, b, dependencies);
       // check for cycles in the import graph
       foreach (var cycle in dependencies.AllCycles()) {
-        var cy = Util.Comma(" -> ", cycle, m => m.Name);
-        reporter.Error(MessageSource.Resolver, cycle[0],
-          "module definition contains a cycle (note: parent modules implicitly depend on submodules): {0}", cy);
+        ReportCycleError(cycle, m => m.tok,
+          m => (m is AliasModuleDecl ? "import " : "module ") + m.Name,
+          "module definition contains a cycle (note: parent modules implicitly depend on submodules)");
       }
 
       if (reporter.Count(ErrorLevel.Error) > 0) {
@@ -1032,8 +1033,7 @@ namespace Microsoft.Dafny
       // detect cycles in the extend
       var cycleError = false;
       foreach (var cycle in exportDependencies.AllCycles()) {
-        var cy = Util.Comma(" -> ", cycle, c => c.Name);
-        reporter.Error(MessageSource.Resolver, cycle[0], "module export contains a cycle: {0}", cy);
+        ReportCycleError(cycle, m => m.tok, m => m.Name, "module export contains a cycle");
         cycleError = true;
       }
 
@@ -1328,30 +1328,27 @@ namespace Microsoft.Dafny
     //this should be effect-free, as it only operates on clones
     private void CheckModuleExportConsistency(ModuleDefinition m) {
       var oldModuleInfo = moduleInfo;
-      foreach (var top in m.TopLevelDecls) {
-        if (!(top is ModuleExportDecl))
-          continue;
+      foreach (var exportDecl in m.TopLevelDecls.OfType<ModuleExportDecl>()) {
 
-        ModuleExportDecl decl = (ModuleExportDecl)top;
         var prevErrors = reporter.Count(ErrorLevel.Error);
 
-        foreach (var export in decl.Exports) {
+        foreach (var export in exportDecl.Exports) {
           if (export.Decl is MemberDecl member) {
             // For classes and traits, the visibility test is performed on the corresponding non-null type
             var enclosingType = member.EnclosingClass is ClassDecl cl && cl.NonNullTypeDecl != null
               ? cl.NonNullTypeDecl
               : member.EnclosingClass;
-            if (!enclosingType.IsVisibleInScope(decl.Signature.VisibilityScope)) {
+            if (!enclosingType.IsVisibleInScope(exportDecl.Signature.VisibilityScope)) {
               reporter.Error(MessageSource.Resolver, export.Tok,
                 "Cannot export type member '{0}' without providing its enclosing {1} '{2}'", member.Name,
                 member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
             } else if (member is Constructor &&
-                       !member.EnclosingClass.IsRevealedInScope(decl.Signature.VisibilityScope)) {
+                       !member.EnclosingClass.IsRevealedInScope(exportDecl.Signature.VisibilityScope)) {
               reporter.Error(MessageSource.Resolver, export.Tok,
                 "Cannot export constructor '{0}' without revealing its enclosing {1} '{2}'", member.Name,
                 member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
             } else if (member is Field && !(member is ConstantField) &&
-                       !member.EnclosingClass.IsRevealedInScope(decl.Signature.VisibilityScope)) {
+                       !member.EnclosingClass.IsRevealedInScope(exportDecl.Signature.VisibilityScope)) {
               reporter.Error(MessageSource.Resolver, export.Tok,
                 "Cannot export mutable field '{0}' without revealing its enclosing {1} '{2}'", member.Name,
                 member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
@@ -1359,12 +1356,12 @@ namespace Microsoft.Dafny
           }
         }
 
-        var scope = decl.Signature.VisibilityScope;
+        var scope = exportDecl.Signature.VisibilityScope;
         Cloner cloner = new ScopeCloner(scope);
         var exportView = cloner.CloneModuleDefinition(m, m.Name);
-        if (DafnyOptions.O.DafnyPrintExportedViews.Contains(decl.FullName)) {
+        if (DafnyOptions.O.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
           var wr = Console.Out;
-          wr.WriteLine("/* ===== export set {0}", decl.FullName);
+          wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr);
           pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);
           wr.WriteLine("*/");
@@ -1375,7 +1372,7 @@ namespace Microsoft.Dafny
         }
 
         reporter = new ErrorReporterWrapper(reporter,
-          String.Format("Raised while checking export set {0}: ", decl.Name));
+          String.Format("Raised while checking export set {0}: ", exportDecl.Name));
         var testSig = RegisterTopLevelDecls(exportView, true);
         //testSig.Refines = refinementTransformer.RefinedSig;
         ResolveModuleDefinition(exportView, testSig, true);
@@ -1383,7 +1380,7 @@ namespace Microsoft.Dafny
         reporter = ((ErrorReporterWrapper)reporter).WrappedReporter;
 
         if (wasError) {
-          reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent: {0}", decl.Name);
+          reporter.Error(MessageSource.Resolver, exportDecl.tok, "This export set is not consistent: {0}", exportDecl.Name);
         }
       }
 
@@ -2503,7 +2500,7 @@ namespace Microsoft.Dafny
           ResolveType(dd.tok, dd.Rhs, dd, ResolveTypeOptionEnum.AllowPrefix, dd.TypeArgs);
           dd.Rhs.ForeachTypeComponent(ty => {
             var s = ty.AsRedirectingType;
-            if (s != null) {
+            if (s != null && s != dd) {
               typeRedirectionDependencies.AddEdge(dd, s);
             }
           });
@@ -2512,7 +2509,7 @@ namespace Microsoft.Dafny
           ResolveType(dd.tok, dd.BaseType, dd, ResolveTypeOptionEnum.DontInfer, null);
           dd.BaseType.ForeachTypeComponent(ty => {
             var s = ty.AsRedirectingType;
-            if (s != null) {
+            if (s != null && s != dd) {
               typeRedirectionDependencies.AddEdge(dd, s);
             }
           });
@@ -2544,8 +2541,7 @@ namespace Microsoft.Dafny
       }
       // Check for cycles among parent traits
       foreach (var cycle in parentRelation.AllCycles()) {
-        var cy = Util.Comma(" -> ", cycle, m => m.Name);
-        reporter.Error(MessageSource.Resolver, cycle[0], "trait definitions contain a cycle: {0}", cy);
+        ReportCycleError(cycle, m => m.tok, m => m.Name, "trait definitions contain a cycle");
       }
       if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
         // Register the trait members in the classes that inherit them
@@ -2566,9 +2562,7 @@ namespace Microsoft.Dafny
 
       // perform acyclicity test on type synonyms
       foreach (var cycle in typeRedirectionDependencies.AllCycles()) {
-        Contract.Assert(cycle.Count != 0);
-        var erste = cycle[0];
-        reporter.Error(MessageSource.Resolver, erste.Tok, "Cycle among redirecting types (newtypes, subset types, type synonyms): {0} -> {1}", Util.Comma(" -> ", cycle, syn => syn.Name), erste.Name);
+        ReportCycleError(cycle, rtd => rtd.tok, rtd => rtd.Name, "cycle among redirecting types (newtypes, subset types, type synonyms)");
       }
     }
 
@@ -2741,6 +2735,7 @@ namespace Microsoft.Dafny
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             foreach (var ctor in dt.Ctors) {
+              ResolveAttributes(ctor.Attributes, ctor, new ResolveOpts(new NoContext(d.EnclosingModuleDefinition), false));
               foreach (var formal in ctor.Formals) {
                 AddTypeDependencyEdges((ICallable)d, formal.Type);
               }
@@ -3339,24 +3334,22 @@ namespace Microsoft.Dafny
                     // An error has already been reported for this cycle, so don't report another.
                     // Note, the representative, "r", may itself not be a const.
                   } else {
+                    ReportCallGraphCycleError(cf, "const definition contains a cycle");
                     cycleErrorHasBeenReported.Add(r);
-                    var cycle = Util.Comma(" -> ", cf.EnclosingModule.CallGraph.GetSCC(cf), clbl => clbl.NameRelativeToModule);
-                    reporter.Error(MessageSource.Resolver, cf.tok, "const definition contains a cycle: " + cycle);
                   }
                 }
               }
             }
-          } else if (d is SubsetTypeDecl || d is NewtypeDecl) {
+          } else if (d is RedirectingTypeDecl) {
             var dd = (RedirectingTypeDecl)d;
             if (d.EnclosingModuleDefinition.CallGraph.GetSCCSize(dd) != 1) {
               var r = d.EnclosingModuleDefinition.CallGraph.GetSCCRepresentative(dd);
               if (cycleErrorHasBeenReported.Contains(r)) {
                 // An error has already been reported for this cycle, so don't report another.
                 // Note, the representative, "r", may itself not be a const.
-              } else {
+              } else if (dd is NewtypeDecl || dd is SubsetTypeDecl) {
+                ReportCallGraphCycleError(dd, $"recursive constraint dependency involving a {dd.WhatKind}");
                 cycleErrorHasBeenReported.Add(r);
-                var cycle = Util.Comma(" -> ", d.EnclosingModuleDefinition.CallGraph.GetSCC(dd), clbl => clbl.NameRelativeToModule);
-                reporter.Error(MessageSource.Resolver, d.tok, "recursive constraint dependency involving a {0}: {1}", d.WhatKind, cycle);
               }
             }
           }
@@ -3581,6 +3574,29 @@ namespace Microsoft.Dafny
           }
         });
       }
+    }
+
+    void ReportCallGraphCycleError(ICallable start, string msg) {
+      Contract.Requires(start != null);
+      Contract.Requires(msg != null);
+      var scc = start.EnclosingModule.CallGraph.GetSCC(start);
+      scc.Reverse();
+      var startIndex = scc.IndexOf(start);
+      Contract.Assert(0 <= startIndex);
+      scc = Util.Concat(scc.GetRange(startIndex, scc.Count - startIndex), scc.GetRange(0, startIndex));
+      ReportCycleError(scc, c => c.Tok, c => c.NameRelativeToModule, msg);
+    }
+
+    void ReportCycleError<X>(List<X> cycle, Func<X, IToken> toTok, Func<X, string> toString, string msg) {
+      Contract.Requires(cycle != null);
+      Contract.Requires(cycle.Count != 0);
+      Contract.Requires(toTok != null);
+      Contract.Requires(toString != null);
+      Contract.Requires(msg != null);
+
+      var start = cycle[0];
+      var cy = Util.Comma(" -> ", cycle, toString);
+      reporter.Error(MessageSource.Resolver, toTok(start), $"{msg}: {cy} -> {toString(start)}");
     }
 
     private BigInteger MaxBV(Type t) {
@@ -4945,9 +4961,9 @@ namespace Microsoft.Dafny
               // t is a proxy, but perhaps it stands for something between "object" and "array<?>".  If so, we can add a constraint
               // that it does have the form "array<?>", since "object" would not be Indexable.
               var proxy = (TypeProxy)t;
-              Type meet = null;
-              if (resolver.MeetOfAllSubtypes(proxy, ref meet, new HashSet<TypeProxy>()) && meet != null) {
-                var headWithProxyArgs = Type.HeadWithProxyArgs(meet);
+              Type join = null;
+              if (resolver.JoinOfAllSubtypes(proxy, ref join, new HashSet<TypeProxy>()) && join != null) {
+                var headWithProxyArgs = Type.HeadWithProxyArgs(join);
                 var tt = headWithProxyArgs.NormalizeExpand();
                 satisfied = tt is SeqType || tt is MultiSetType || tt is MapType || (tt.IsArrayType && tt.AsArrayType.Dims == 1);
                 if (satisfied) {
@@ -4966,9 +4982,9 @@ namespace Microsoft.Dafny
               // t is a proxy, but perhaps it stands for something between "object" and "array<?>".  If so, we can add a constraint
               // that it does have the form "array<?>", since "object" would not be Indexable.
               var proxy = (TypeProxy)t;
-              Type meet = null;
-              if (resolver.MeetOfAllSubtypes(proxy, ref meet, new HashSet<TypeProxy>()) && meet != null) {
-                var headWithProxyArgs = Type.HeadWithProxyArgs(meet);
+              Type join = null;
+              if (resolver.JoinOfAllSubtypes(proxy, ref join, new HashSet<TypeProxy>()) && join != null) {
+                var headWithProxyArgs = Type.HeadWithProxyArgs(join);
                 var tt = headWithProxyArgs.NormalizeExpand();
                 satisfied = tt is SeqType || (tt.IsArrayType && tt.AsArrayType.Dims == 1);
                 if (satisfied) {
@@ -5728,7 +5744,7 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Set "lhs" to the meet of "rhss" and "lhs.Subtypes, if possible.
+    /// Set "lhs" to the join of "rhss" and "lhs.Subtypes, if possible.
     /// Returns "true' if something was done, or "false" otherwise.
     /// </summary>
     private bool ProcessAssignable(TypeProxy lhs, List<Type> rhss) {
@@ -5745,25 +5761,25 @@ namespace Microsoft.Dafny
         }
         Console.WriteLine();
       }
-      Type meet = null;
+      Type join = null;
       foreach (var rhs in rhss) {
         if (rhs is TypeProxy) { return false; }
-        meet = meet == null ? rhs : Type.Meet(meet, rhs, builtIns);
+        join = join == null ? rhs : Type.Join(join, rhs, builtIns);
       }
       foreach (var sub in lhs.SubtypesKeepConstraints) {
         if (sub is TypeProxy) { return false; }
-        meet = meet == null ? sub : Type.Meet(meet, sub, builtIns);
+        join = join == null ? sub : Type.Join(join, sub, builtIns);
       }
-      if (meet == null) {
+      if (join == null) {
         return false;
-      } else if (Reaches(meet, lhs, 1, new HashSet<TypeProxy>())) {
+      } else if (Reaches(join, lhs, 1, new HashSet<TypeProxy>())) {
         // would cause a cycle, so don't do it
         return false;
       } else {
         if (DafnyOptions.O.TypeInferenceDebug) {
-          Console.WriteLine("DEBUG: ProcessAssignable: assigning proxy {0}.T := {1}", lhs, meet);
+          Console.WriteLine("DEBUG: ProcessAssignable: assigning proxy {0}.T := {1}", lhs, join);
         }
-        lhs.T = meet;
+        lhs.T = join;
         return true;
       }
     }
@@ -5951,9 +5967,33 @@ namespace Microsoft.Dafny
     bool AssignKnownEndsFullstrength(TypeProxy proxy) {
       Contract.Requires(proxy != null);
       // ----- continue with full strength
-      // If the meet of the subtypes exists, use it
-      var meets = new List<Type>();
+      // If the join of the subtypes exists, use it
+      var joins = new List<Type>();
       foreach (var su in proxy.Subtypes) {
+        if (su is TypeProxy) {
+          continue;  // don't include proxies in the meet computation
+        }
+        int i = 0;
+        for (; i < joins.Count; i++) {
+          var j = Type.Join(joins[i], su, builtIns);
+          if (j != null) {
+            joins[i] = j;
+            break;
+          }
+        }
+        if (i == joins.Count) {
+          // we went to the end without finding a place to meet up
+          joins.Add(su);
+        }
+      }
+      if (joins.Count == 1 && !Reaches(joins[0], proxy, 1, new HashSet<TypeProxy>())) {
+        // we were able to compute a meet of all the subtyping constraints, so use it
+        AssignProxyAndHandleItsConstraints(proxy, joins[0]);
+        return true;
+      }
+      // If the meet of the supertypes exists, use it
+      var meets = new List<Type>();
+      foreach (var su in proxy.Supertypes) {
         if (su is TypeProxy) {
           continue;  // don't include proxies in the meet computation
         }
@@ -5966,37 +6006,13 @@ namespace Microsoft.Dafny
           }
         }
         if (i == meets.Count) {
-          // we went to the end without finding a place to meet up
+          // we went to the end without finding a place to meet
           meets.Add(su);
         }
       }
-      if (meets.Count == 1 && !Reaches(meets[0], proxy, 1, new HashSet<TypeProxy>())) {
+      if (meets.Count == 1 && !(meets[0] is ArtificialType) && !Reaches(meets[0], proxy, -1, new HashSet<TypeProxy>())) {
         // we were able to compute a meet of all the subtyping constraints, so use it
         AssignProxyAndHandleItsConstraints(proxy, meets[0]);
-        return true;
-      }
-      // If the join of the supertypes exists, use it
-      var joins = new List<Type>();
-      foreach (var su in proxy.Supertypes) {
-        if (su is TypeProxy) {
-          continue;  // don't include proxies in the join computation
-        }
-        int i = 0;
-        for (; i < joins.Count; i++) {
-          var j = Type.Join(joins[i], su, builtIns);
-          if (j != null) {
-            joins[i] = j;
-            break;
-          }
-        }
-        if (i == joins.Count) {
-          // we went to the end without finding a place to join in
-          joins.Add(su);
-        }
-      }
-      if (joins.Count == 1 && !(joins[0] is ArtificialType) && !Reaches(joins[0], proxy, -1, new HashSet<TypeProxy>())) {
-        // we were able to compute a join of all the subtyping constraints, so use it
-        AssignProxyAndHandleItsConstraints(proxy, joins[0]);
         return true;
       }
 
@@ -6005,8 +6021,8 @@ namespace Microsoft.Dafny
 
     bool AssignKnownEndsFullstrength_SubDirection(TypeProxy proxy) {
       Contract.Requires(proxy != null && proxy.T == null);
-      // If the meet of the subtypes exists, use it
-      var meets = new List<Type>();
+      // If the join the subtypes exists, use it
+      var joins = new List<Type>();
       var proxySubs = new HashSet<TypeProxy>();
       proxySubs.Add(proxy);
       foreach (var su in proxy.SubtypesKeepConstraints_WithAssignable(AllXConstraints)) {
@@ -6014,43 +6030,43 @@ namespace Microsoft.Dafny
           proxySubs.Add((TypeProxy)su);
         } else {
           int i = 0;
-          for (; i < meets.Count; i++) {
-            var j = Type.Meet(meets[i], su, builtIns);
+          for (; i < joins.Count; i++) {
+            var j = Type.Join(joins[i], su, builtIns);
             if (j != null) {
-              meets[i] = j;
+              joins[i] = j;
               break;
             }
           }
-          if (i == meets.Count) {
-            // we went to the end without finding a place to meet up
-            meets.Add(su);
+          if (i == joins.Count) {
+            // we went to the end without finding a place to join in
+            joins.Add(su);
           }
         }
       }
-      if (meets.Count == 1 && !Reaches(meets[0], proxy, 1, new HashSet<TypeProxy>())) {
-        // We were able to compute a meet of all the subtyping constraints, so use it.
-        // Well, maybe.  If "meets[0]" denotes a non-null type and "proxy" is something
-        // that could be assigned "null", then set "proxy" to the nullable version of "meets[0]".
+      if (joins.Count == 1 && !Reaches(joins[0], proxy, 1, new HashSet<TypeProxy>())) {
+        // We were able to compute a join of all the subtyping constraints, so use it.
+        // Well, maybe.  If "join[0]" denotes a non-null type and "proxy" is something
+        // that could be assigned "null", then set "proxy" to the nullable version of "join[0]".
         // Stated differently, think of an applicable "IsNullableRefType" constraint as
-        // being part of the meet computation, essentially throwing in a "...?".
-        // Except: If the meet is a tight bound--meaning, it is also a join--then pick it
+        // being part of the join computation, essentially throwing in a "...?".
+        // Except: If the join is a tight bound--meaning, it is also a meet--then pick it
         // after all, because that seems to give rise to less confusing error messages.
-        if (meets[0].IsNonNullRefType) {
-          Type join = null;
-          if (JoinOfAllSupertypes(proxy, ref join, new HashSet<TypeProxy>(), false) && join != null && Type.SameHead(meets[0], join)) {
+        if (joins[0].IsNonNullRefType) {
+          Type meet = null;
+          if (MeetOfAllSupertypes(proxy, ref meet, new HashSet<TypeProxy>(), false) && meet != null && Type.SameHead(joins[0], meet)) {
             // leave it
           } else {
             CloseOverAssignableRhss(proxySubs);
             if (HasApplicableNullableRefTypeConstraint(proxySubs)) {
               if (DafnyOptions.O.TypeInferenceDebug) {
-                Console.WriteLine("DEBUG: Found meet {0} for proxy {1}, but weakening it to {2}", meets[0], proxy, meets[0].NormalizeExpand());
+                Console.WriteLine("DEBUG: Found join {0} for proxy {1}, but weakening it to {2}", joins[0], proxy, joins[0].NormalizeExpand());
               }
-              AssignProxyAndHandleItsConstraints(proxy, meets[0].NormalizeExpand(), true);
+              AssignProxyAndHandleItsConstraints(proxy, joins[0].NormalizeExpand(), true);
               return true;
             }
           }
         }
-        AssignProxyAndHandleItsConstraints(proxy, meets[0], true);
+        AssignProxyAndHandleItsConstraints(proxy, joins[0], true);
         return true;
       }
       return false;
@@ -6126,51 +6142,51 @@ namespace Microsoft.Dafny
 
     bool AssignKnownEndsFullstrength_SuperDirection(TypeProxy proxy) {
       Contract.Requires(proxy != null && proxy.T == null);
-      // First, compute the the meet of the Assignable LHSs.  Then, compute
-      // the join of that meet and the supertypes.
-      var meets = new List<Type>();
+      // First, compute the the join of the Assignable LHSs.  Then, compute
+      // the meet of that join and the supertypes.
+      var joins = new List<Type>();
       foreach (var xc in AllXConstraints) {
         if (xc.ConstraintName == "Assignable" && xc.Types[1].Normalize() == proxy) {
           var su = xc.Types[0].Normalize();
           if (su is TypeProxy) {
-            continue;  // don't include proxies in the meet computation
+            continue; // don't include proxies in the join computation
           }
           int i = 0;
-          for (; i < meets.Count; i++) {
-            var j = Type.Meet(meets[i], su, builtIns);
+          for (; i < joins.Count; i++) {
+            var j = Type.Join(joins[i], su, builtIns);
             if (j != null) {
-              meets[i] = j;
+              joins[i] = j;
               break;
             }
           }
-          if (i == meets.Count) {
-            // we went to the end without finding a place to meet in
-            meets.Add(su);
+          if (i == joins.Count) {
+            // we went to the end without finding a place to join in
+            joins.Add(su);
           }
         }
       }
-      // If the join of the supertypes exists, use it
-      var joins = new List<Type>(meets);
+      // If the meet of the supertypes exists, use it
+      var meets = new List<Type>(joins);
       foreach (var su in proxy.SupertypesKeepConstraints) {
         if (su is TypeProxy) {
-          continue;  // don't include proxies in the join computation
+          continue;  // don't include proxies in the meet computation
         }
         int i = 0;
-        for (; i < joins.Count; i++) {
-          var j = Type.Join(joins[i], su, builtIns);
+        for (; i < meets.Count; i++) {
+          var j = Type.Meet(meets[i], su, builtIns);
           if (j != null) {
-            joins[i] = j;
+            meets[i] = j;
             break;
           }
         }
-        if (i == joins.Count) {
-          // we went to the end without finding a place to join in
-          joins.Add(su);
+        if (i == meets.Count) {
+          // we went to the end without finding a place to meet up
+          meets.Add(su);
         }
       }
-      if (joins.Count == 1 && !(joins[0] is ArtificialType) && !Reaches(joins[0], proxy, -1, new HashSet<TypeProxy>())) {
-        // we were able to compute a join of all the subtyping constraints, so use it
-        AssignProxyAndHandleItsConstraints(proxy, joins[0], true);
+      if (meets.Count == 1 && !(meets[0] is ArtificialType) && !Reaches(meets[0], proxy, -1, new HashSet<TypeProxy>())) {
+        // we were able to compute a meet of all the subtyping constraints, so use it
+        AssignProxyAndHandleItsConstraints(proxy, meets[0], true);
         return true;
       }
       return false;
@@ -8338,7 +8354,7 @@ namespace Microsoft.Dafny
               local.MakeGhost();
             }
           }
-          if (!s.IsAutoGhost || mustBeErasable) {
+          if (s.HasGhostModifier || mustBeErasable) {
             s.IsGhost = s.LocalVars.All(v => v.IsGhost);
           } else {
             var spec = resolver.UsesSpecFeatures(s.RHS);
@@ -8658,7 +8674,7 @@ namespace Microsoft.Dafny
             for (int i = 0; i < cs.Method.Ins.Count; i++) {
               argsSubstMap.Add(cs.Method.Ins[i], cs.Args[i]);
             }
-            var substituter = new Translator.AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>());
+            var substituter = new AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>());
             if (!Attributes.Contains(s.Attributes, "auto_generated")) {
               foreach (var ens in cs.Method.Ens) {
                 var p = substituter.Substitute(ens.E);  // substitute the call's actuals for the method's formals
@@ -10547,13 +10563,17 @@ namespace Microsoft.Dafny
             if (d is OpaqueTypeDecl) {
               // resolve like a type parameter, and it may have type parameters if it's an opaque type
               t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
-            } else if (d is SubsetTypeDecl || d is NewtypeDecl) {
+            } else if (d is RedirectingTypeDecl) {
               var dd = (RedirectingTypeDecl)d;
               var caller = CodeContextWrapper.Unwrap(context) as ICallable;
               if (caller != null && !(d is SubsetTypeDecl && caller is SpecialFunction)) {
-                caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
-                if (caller == d) {
-                  // detect self-loops here, since they don't show up in the graph's SSC methods
+                if (caller != d) {
+                  caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
+                } else if (d is TypeSynonymDecl && !(d is SubsetTypeDecl)) {
+                  // detect self-loops here, since they don't show up in the graph's SCC methods
+                  reporter.Error(MessageSource.Resolver, d.tok, "type-synonym cycle: {0} -> {0}", d.Name);
+                } else {
+                  // detect self-loops here, since they don't show up in the graph's SCC methods
                   reporter.Error(MessageSource.Resolver, d.tok, "recursive constraint dependency involving a {0}: {1} -> {1}", d.WhatKind, d.Name);
                 }
               }
@@ -11561,9 +11581,11 @@ namespace Microsoft.Dafny
     private class CExpr : SyntaxContainer
     {
       public readonly Expression Body;
+      public Attributes Attributes;
 
-      public CExpr(IToken tok, Expression body) : base(tok) {
+      public CExpr(IToken tok, Expression body, Attributes attrs = null) : base(tok) {
         this.Body = body;
+        this.Attributes = attrs;
       }
     }
 
@@ -11633,14 +11655,17 @@ namespace Microsoft.Dafny
     private class RBranchExpr : RBranch {
 
       public Expression Body;
+      public Attributes Attributes;
 
-      public RBranchExpr(IToken tok, int branchid, List<ExtendedPattern> patterns,  Expression body) : base(tok, branchid, patterns) {
+      public RBranchExpr(IToken tok, int branchid, List<ExtendedPattern> patterns,  Expression body, Attributes attrs = null) : base(tok, branchid, patterns) {
         this.Body = body;
+        this.Attributes = attrs;
       }
 
-      public RBranchExpr(int branchid, NestedMatchCaseExpr x) : base(x.Tok, branchid, new List<ExtendedPattern>()) {
+      public RBranchExpr(int branchid, NestedMatchCaseExpr x, Attributes attrs = null) : base(x.Tok, branchid, new List<ExtendedPattern>()) {
         this.Body = x.Body;
         this.Patterns.Add(x.Pat);
+        this.Attributes = attrs;
       }
 
       public override string ToString() {
@@ -11656,7 +11681,7 @@ namespace Microsoft.Dafny
 
     private static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
       Cloner cloner = new Cloner();
-      return new RBranchExpr(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), cloner.CloneExpr(branch.Body));
+      return new RBranchExpr(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), cloner.CloneExpr(branch.Body), cloner.CloneAttributes((branch.Attributes)));
     }
 
     private static RBranch CloneRBranch(RBranch branch) {
@@ -11680,7 +11705,7 @@ namespace Microsoft.Dafny
       if (branch is RBranchStmt br) {
         return new CStmt(tok, new BlockStmt(tok, tok, br.Body), br.Attributes);
       } else if (branch is RBranchExpr) {
-        return new CExpr(tok, ((RBranchExpr)branch).Body);
+        return new CExpr(tok, ((RBranchExpr)branch).Body, ((RBranchExpr)branch).Attributes);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException(); // RBranch has only two implementations
       }
@@ -11798,7 +11823,8 @@ namespace Microsoft.Dafny
         newMatchCase = new MatchCaseStmt(tok, ctor.Value,  freshPatBV, insideBranch, c.Attributes);
       } else {
         var insideBranch = ((CExpr)insideContainer).Body;
-        newMatchCase = new MatchCaseExpr(tok, ctor.Value,  freshPatBV, insideBranch);
+        var attrs = ((CExpr)insideContainer).Attributes;
+        newMatchCase = new MatchCaseExpr(tok, ctor.Value,  freshPatBV, insideBranch, attrs);
       }
       newMatchCase.Ctor = ctor.Value;
       return newMatchCase;
@@ -12017,7 +12043,7 @@ namespace Microsoft.Dafny
           c.Attributes = new Attributes("split", args, c.Attributes);
         }
         var newMatchStmt = new MatchStmt(mti.Tok, mti.EndTok, currMatchee, newMatchCaseStmts, true, mti.Attributes, context);
-        return new CStmt(null, newMatchStmt); //Wokring HERE
+        return new CStmt(null, newMatchStmt);
       } else {
         var newMatchExpr = new MatchExpr(mti.Tok, currMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
         return new CExpr(null, newMatchExpr);
@@ -12145,7 +12171,7 @@ namespace Microsoft.Dafny
       List<RBranch> branches = new List<RBranch>();
       for (int id = 0; id < e.Cases.Count(); id++) {
         var branch = e.Cases.ElementAt(id);
-        branches.Add(new RBranchExpr(id, branch));
+        branches.Add(new RBranchExpr(id, branch, branch.Attributes));
         mti.BranchTok[id] = branch.Tok;
       }
 
@@ -12391,6 +12417,7 @@ namespace Microsoft.Dafny
     private void CheckLinearNestedMatchExpr(Type dtd, NestedMatchExpr me, ResolveOpts opts) {
       foreach(NestedMatchCaseExpr mc in me.Cases) {
         scope.PushMarker();
+        ResolveAttributes(mc.Attributes, null, opts);
         CheckLinearNestedMatchCase(dtd, mc, opts);
         scope.PopMarker();
       }
@@ -13803,40 +13830,40 @@ namespace Microsoft.Dafny
           memberName == null ? "" : " (" + memberName + ")");
       }
 
-      // Look for a meet of head symbols among the proxy's subtypes
-      Type meet = null;
-      if (MeetOfAllSubtypes(proxy, ref meet, new HashSet<TypeProxy>()) && meet != null) {
+      // Look for a join of head symbols among the proxy's subtypes
+      Type joinType = null;
+      if (JoinOfAllSubtypes(proxy, ref joinType, new HashSet<TypeProxy>()) && joinType != null) {
         bool isRoot, isLeaf, headIsRoot, headIsLeaf;
-        CheckEnds(meet, out isRoot, out isLeaf, out headIsRoot, out headIsLeaf);
-        if (meet.IsDatatype) {
+        CheckEnds(joinType, out isRoot, out isLeaf, out headIsRoot, out headIsLeaf);
+        if (joinType.IsDatatype) {
           if (DafnyOptions.O.TypeInferenceDebug) {
-            Console.WriteLine("  ----> meet is a datatype: {0}", meet);
+            Console.WriteLine("  ----> join is a datatype: {0}", joinType);
           }
-          ConstrainSubtypeRelation(t, meet, tok, "Member selection requires a supertype of {0} (got something more like {1})", t, meet);
-          return meet;
+          ConstrainSubtypeRelation(t, joinType, tok, "Member selection requires a supertype of {0} (got something more like {1})", t, joinType);
+          return joinType;
         } else if (headIsRoot) {
-          // we're good to go -- by picking "meet" (whose type parameters have been replaced by fresh proxies), we're not losing any generality
+          // we're good to go -- by picking "join" (whose type parameters have been replaced by fresh proxies), we're not losing any generality
           if (DafnyOptions.O.TypeInferenceDebug) {
-            Console.WriteLine("  ----> improved to {0} through meet", meet);
+            Console.WriteLine("  ----> improved to {0} through join", joinType);
           }
-          AssignProxyAndHandleItsConstraints(proxy, meet, true);
-          return proxy.NormalizeExpand();  // we return proxy.T instead of meet, in case the assignment gets hijacked
+          AssignProxyAndHandleItsConstraints(proxy, joinType, true);
+          return proxy.NormalizeExpand();  // we return proxy.T instead of join, in case the assignment gets hijacked
         } else if (memberName == "_#apply" || memberName == "requires" || memberName == "reads") {
-          var generalArrowType = meet.AsArrowType;  // go all the way to the base type, to get to the general arrow type, if any0
+          var generalArrowType = joinType.AsArrowType;  // go all the way to the base type, to get to the general arrow type, if any0
           if (generalArrowType != null) {
-            // pick the supertype "generalArrowType" of "meet"
+            // pick the supertype "generalArrowType" of "join"
             if (DafnyOptions.O.TypeInferenceDebug) {
-              Console.WriteLine("  ----> improved to {0} through meet and function application", generalArrowType);
+              Console.WriteLine("  ----> improved to {0} through join and function application", generalArrowType);
             }
             ConstrainSubtypeRelation(generalArrowType, t, tok, "Function application requires a subtype of {0} (got something more like {1})", generalArrowType, t);
             return generalArrowType;
           }
         } else if (memberName != null) {
-          // If "meet" has a member called "memberName" and no supertype of "meet" does, then we'll pick this meet
-          if (meet.IsRefType) {
-            var meetExpanded = meet.NormalizeExpand();  // go all the way to the base type, to get to the class
-            if (!meetExpanded.IsObjectQ) {
-              var cl = ((UserDefinedType)meetExpanded).ResolvedClass as ClassDecl;
+          // If "join" has a member called "memberName" and no supertype of "join" does, then we'll pick this join
+          if (joinType.IsRefType) {
+            var joinExpanded = joinType.NormalizeExpand();  // go all the way to the base type, to get to the class
+            if (!joinExpanded.IsObjectQ) {
+              var cl = ((UserDefinedType)joinExpanded).ResolvedClass as ClassDecl;
               if (cl != null) {
                 // TODO: the following could be improved by also supplying an upper bound of the search (computed as a join of the supertypes)
                 var plausibleMembers = new HashSet<MemberDecl>();
@@ -13845,11 +13872,11 @@ namespace Microsoft.Dafny
                   var mbr = plausibleMembers.First();
                   if (mbr.EnclosingClass == cl) {
                     if (DafnyOptions.O.TypeInferenceDebug) {
-                      Console.WriteLine("  ----> improved to {0} through member-selection meet", meet);
+                      Console.WriteLine("  ----> improved to {0} through member-selection join", joinType);
                     }
-                    var meetRoot = meet.NormalizeExpand();  // blow passed any constraints
-                    ConstrainSubtypeRelation(meetRoot, t, tok, "Member selection requires a subtype of {0} (got something more like {1})", meetRoot, t);
-                    return meet;
+                    var joinRoot = joinType.NormalizeExpand();  // blow passed any constraints
+                    ConstrainSubtypeRelation(joinRoot, t, tok, "Member selection requires a subtype of {0} (got something more like {1})", joinRoot, t);
+                    return joinType;
                   } else {
                     // pick the supertype "mbr.EnclosingClass" of "cl"
                     Contract.Assert(mbr.EnclosingClass is TraitDecl);  // a proper supertype of a ClassDecl must be a TraitDecl
@@ -13863,12 +13890,12 @@ namespace Microsoft.Dafny
                       }
                     }
                     List<Type> proxyTypeArgs = td.TypeArgs.ConvertAll(t0 => typeMapping.ContainsKey(t0) ? typeMapping[t0] : (Type)new InferredTypeProxy());
-                    var meetMapping = TypeSubstitutionMap(cl.TypeArgs, meet.TypeArgs);
-                    proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => SubstType(t0, meetMapping));
+                    var joinMapping = TypeSubstitutionMap(cl.TypeArgs, joinType.TypeArgs);
+                    proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => SubstType(t0, joinMapping));
                     proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => t0.AsTypeParameter == null ? t0 : (Type)new InferredTypeProxy());
                     var pickItFromHere = new UserDefinedType(tok, mbr.EnclosingClass.Name, mbr.EnclosingClass, proxyTypeArgs);
                     if (DafnyOptions.O.TypeInferenceDebug) {
-                      Console.WriteLine("  ----> improved to {0} through meet and member lookup", pickItFromHere);
+                      Console.WriteLine("  ----> improved to {0} through join and member lookup", pickItFromHere);
                     }
                     ConstrainSubtypeRelation(pickItFromHere, t, tok, "Member selection requires a subtype of {0} (got something more like {1})", pickItFromHere, t);
                     return pickItFromHere;
@@ -13879,19 +13906,19 @@ namespace Microsoft.Dafny
           }
         }
         if (DafnyOptions.O.TypeInferenceDebug) {
-          Console.WriteLine("  ----> found no improvement, because meet does not determine type enough");
+          Console.WriteLine("  ----> found no improvement, because join does not determine type enough");
         }
       }
 
-      // Compute the join of the proxy's supertypes
-      Type join = null;
-      if (JoinOfAllSupertypes(proxy, ref join, new HashSet<TypeProxy>(), false) && join != null) {
-        // If the join does have the member, then this looks promising. It could be that the
+      // Compute the meet of the proxy's supertypes
+      Type meet = null;
+      if (MeetOfAllSupertypes(proxy, ref meet, new HashSet<TypeProxy>(), false) && meet != null) {
+        // If the meet does have the member, then this looks promising. It could be that the
         // type would get further constrained later to pick some subtype (in particular, a
-        // subclass that overrides the member) of this join. But this is the best we can do
+        // subclass that overrides the member) of this meet. But this is the best we can do
         // now.
-        if (join is TypeProxy) {
-          if (proxy == join.Normalize()) {
+        if (meet is TypeProxy) {
+          if (proxy == meet.Normalize()) {
             // can this really ever happen?
             if (DafnyOptions.O.TypeInferenceDebug) {
               Console.WriteLine("  ----> found no improvement (other than the proxy itself)");
@@ -13899,23 +13926,23 @@ namespace Microsoft.Dafny
             return t;
           } else {
             if (DafnyOptions.O.TypeInferenceDebug) {
-              Console.WriteLine("  ----> (merging, then trying to improve further) assigning proxy {0}.T := {1}", proxy, join);
+              Console.WriteLine("  ----> (merging, then trying to improve further) assigning proxy {0}.T := {1}", proxy, meet);
             }
-            Contract.Assert(proxy != join);
-            proxy.T = join;
-            Contract.Assert(t.NormalizeExpand() == join);
+            Contract.Assert(proxy != meet);
+            proxy.T = meet;
+            Contract.Assert(t.NormalizeExpand() == meet);
             return PartiallyResolveTypeForMemberSelection(tok, t, memberName, strength + 1);
           }
         }
-        if (!(join is ArtificialType)) {
+        if (!(meet is ArtificialType)) {
           if (DafnyOptions.O.TypeInferenceDebug) {
-            Console.WriteLine("  ----> improved to {0} through join", join);
+            Console.WriteLine("  ----> improved to {0} through meet", meet);
           }
           if (memberName != null) {
-            AssignProxyAndHandleItsConstraints(proxy, join, true);
-            return proxy.NormalizeExpand(); // we return proxy.T instead of join, in case the assignment gets hijacked
+            AssignProxyAndHandleItsConstraints(proxy, meet, true);
+            return proxy.NormalizeExpand(); // we return proxy.T instead of meet, in case the assignment gets hijacked
           } else {
-            return join;
+            return meet;
           }
         }
       }
@@ -14061,12 +14088,12 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Attempts to compute the meet of "meet", "t", and all of "t"'s known subtype( constraint)s.  The meet
-    /// ignores type parameters.  It is assumed that "meet" on entry already includes the meet of all proxies
-    /// in "visited".  The empty meet is represented by "null".
-    /// The return is "true" if the meet exists.
+    /// Attempts to compute the join of "join", "t", and all of "t"'s known subtype( constraint)s.  The join
+    /// ignores type parameters.  It is assumed that "join" on entry already includes the join of all proxies
+    /// in "visited". The empty join is represented by "null".
+    /// The return is "true" if the join exists.
     /// </summary>
-    bool MeetOfAllSubtypes(Type t, ref Type meet, ISet<TypeProxy> visited) {
+    bool JoinOfAllSubtypes(Type t, ref Type joinType, ISet<TypeProxy> visited) {
       Contract.Requires(t != null);
       Contract.Requires(visited != null);
 
@@ -14081,16 +14108,16 @@ namespace Microsoft.Dafny
 
         foreach (var c in proxy.SubtypeConstraints) {
           var s = c.Sub.NormalizeExpandKeepConstraints();
-          if (!MeetOfAllSubtypes(s, ref meet, visited)) {
+          if (!JoinOfAllSubtypes(s, ref joinType, visited)) {
             return false;
           }
         }
-        if (meet == null) {
+        if (joinType == null) {
           // also consider "Assignable" constraints
           foreach (var c in AllXConstraints) {
             if (c.ConstraintName == "Assignable" && c.Types[0].Normalize() == proxy) {
               var s = c.Types[1].NormalizeExpandKeepConstraints();
-              if (!MeetOfAllSubtypes(s, ref meet, visited)) {
+              if (!JoinOfAllSubtypes(s, ref joinType, visited)) {
                 return false;
               }
             }
@@ -14099,34 +14126,34 @@ namespace Microsoft.Dafny
         return true;
       }
 
-      if (meet == null) {
+      if (joinType == null) {
         // stick with what we've got
-        meet = t;
+        joinType = t;
         return true;
-      } else if (Type.IsHeadSupertypeOf(meet, t)) {
+      } else if (Type.IsHeadSupertypeOf(joinType, t)) {
         // stick with what we've got
         return true;
-      } else if (Type.IsHeadSupertypeOf(t, meet)) {
-        meet = Type.HeadWithProxyArgs(t);
+      } else if (Type.IsHeadSupertypeOf(t, joinType)) {
+        joinType = Type.HeadWithProxyArgs(t);
         return true;
       } else {
-        meet = Type.Meet(meet, Type.HeadWithProxyArgs(t), builtIns);  // the only way this can succeed is if we obtain a (non-null or nullable) trait
-        Contract.Assert(meet == null ||
-                        meet.IsObjectQ || meet.IsObject ||
-                        (meet is UserDefinedType udt && (udt.ResolvedClass is TraitDecl || (udt.ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl))));
-        return meet != null;
+        joinType = Type.Join(joinType, Type.HeadWithProxyArgs(t), builtIns);  // the only way this can succeed is if we obtain a (non-null or nullable) trait
+        Contract.Assert(joinType == null ||
+                        joinType.IsObjectQ || joinType.IsObject ||
+                        (joinType is UserDefinedType udt && (udt.ResolvedClass is TraitDecl || (udt.ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl))));
+        return joinType != null;
       }
     }
 
     /// <summary>
-    /// Attempts to compute the join of "join", all of "t"'s known supertype( constraint)s, and, if "includeT"
+    /// Attempts to compute the meet of "meet", all of "t"'s known supertype( constraint)s, and, if "includeT"
     /// and "t" has no supertype( constraint)s, "t".
-    /// The join ignores type parameters. (Really?? --KRML)
-    /// It is assumed that "join" on entry already includes the join of all proxies
-    /// in "visited".  The empty join is represented by "null".
-    /// The return is "true" if the join exists.
+    /// The meet ignores type parameters. (Really?? --KRML)
+    /// It is assumed that "meet" on entry already includes the meet of all proxies
+    /// in "visited". The empty meet is represented by "null".
+    /// The return is "true" if the meet exists.
     /// </summary>
-    bool JoinOfAllSupertypes(Type t, ref Type join, ISet<TypeProxy> visited, bool includeT) {
+    bool MeetOfAllSupertypes(Type t, ref Type meet, ISet<TypeProxy> visited, bool includeT) {
       Contract.Requires(t != null);
       Contract.Requires(visited != null);
 
@@ -14142,7 +14169,7 @@ namespace Microsoft.Dafny
         foreach (var c in proxy.SupertypeConstraints) {
           var s = c.Super.NormalizeExpandKeepConstraints();
           delegatedToOthers = true;
-          if (!JoinOfAllSupertypes(s, ref join, visited, true)) {
+          if (!MeetOfAllSupertypes(s, ref meet, visited, true)) {
             return false;
           }
         }
@@ -14152,7 +14179,7 @@ namespace Microsoft.Dafny
             if (c.ConstraintName == "Assignable" && c.Types[1].Normalize() == proxy) {
               var s = c.Types[0].NormalizeExpandKeepConstraints();
               delegatedToOthers = true;
-              if (!JoinOfAllSupertypes(s, ref join, visited, true)) {
+              if (!MeetOfAllSupertypes(s, ref meet, visited, true)) {
                 return false;
               }
             }
@@ -14162,26 +14189,26 @@ namespace Microsoft.Dafny
           return true;
         } else if (!includeT) {
           return true;
-        } else if (join == null || join.Normalize() == proxy) {
-          join = proxy;
+        } else if (meet == null || meet.Normalize() == proxy) {
+          meet = proxy;
           return true;
         } else {
           return false;
         }
       }
 
-      if (join == null) {
-        join = Type.HeadWithProxyArgs(t);
+      if (meet == null) {
+        meet = Type.HeadWithProxyArgs(t);
         return true;
-      } else if (Type.IsHeadSupertypeOf(t, join)) {
+      } else if (Type.IsHeadSupertypeOf(t, meet)) {
         // stick with what we've got
         return true;
-      } else if (Type.IsHeadSupertypeOf(join, t)) {
-        join = Type.HeadWithProxyArgs(t);
+      } else if (Type.IsHeadSupertypeOf(meet, t)) {
+        meet = Type.HeadWithProxyArgs(t);
         return true;
       } else {
-        join = Type.Join(join, Type.HeadWithProxyArgs(t), builtIns);
-        return join != null;
+        meet = Type.Meet(meet, Type.HeadWithProxyArgs(t), builtIns);
+        return meet != null;
       }
     }
 
@@ -14320,7 +14347,7 @@ namespace Microsoft.Dafny
     /// Check that the type uses formal type parameters in a way that is agreeable with their variance specifications.
     /// "context == Co" says that "type" is allowed to vary in the positive direction.
     /// "context == Contra" says that "type" is allowed to vary in the negative direction.
-    /// "context == Inv" says that "type" must not vary at all.
+    /// "context == Non" says that "type" must not vary at all.
     /// * "lax" says that the context is not strict -- type parameters declared to be strict must not be used in a lax context
     /// </summary>
     public void CheckVariance(Type type, ICallable enclosingTypeDefinition, TypeParameter.TPVariance context, bool lax) {
@@ -16794,7 +16821,7 @@ namespace Microsoft.Dafny
       visited[expr] = WorkProgress.Done;
     }
 
-    class DefaultValueSubstituter : Translator.Substituter {
+    class DefaultValueSubstituter : Substituter {
       private readonly Resolver resolver;
       private readonly Dictionary<DefaultValueExpression, WorkProgress> visited;
       public DefaultValueSubstituter(Resolver resolver, Dictionary<DefaultValueExpression, WorkProgress> visited,
@@ -17452,7 +17479,7 @@ namespace Microsoft.Dafny
           if (dd.Var != null) {
             Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
             substMap.Add(dd.Var, e);
-            Translator.Substituter sub = new Translator.Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+            Substituter sub = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
             c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
           }
           return c;
@@ -17461,7 +17488,7 @@ namespace Microsoft.Dafny
           var c = GetImpliedTypeConstraint(e, dd.RhsWithArgument(udt.TypeArgs));
           Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
           substMap.Add(dd.Var, e);
-          Translator.Substituter sub = new Translator.Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+          Substituter sub = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
           c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
           return c;
         }

@@ -186,14 +186,18 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 0:
+ * SCC at height 1:
  *   Main
+ * SCC at height 0:
+ *   string
  */
 
 module Outer {
   /* CALL GRAPH for module Outer:
-   * SCC at height 0:
+   * SCC at height 1:
    *   Test
+   * SCC at height 0:
+   *   string
    */
 
   module C {
@@ -247,8 +251,10 @@ module Outer {
 
 module XY {
   /* CALL GRAPH for module XY:
-   * SCC at height 0:
+   * SCC at height 1:
    *   Test
+   * SCC at height 0:
+   *   string
    */
   method Test()
   {
@@ -335,8 +341,10 @@ module U {
 
   module V {
     /* CALL GRAPH for module V:
-     * SCC at height 3:
+     * SCC at height 4:
      *   Test
+     * SCC at height 3:
+     *   string
      * SCC at height 2:
      *   x2
      * SCC at height 1:

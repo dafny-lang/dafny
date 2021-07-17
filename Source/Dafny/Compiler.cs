@@ -3207,14 +3207,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CompileCollection(ComprehensionExpr.BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates, Translator.Substituter/*?*/ su,
+    void CompileCollection(ComprehensionExpr.BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates, Substituter/*?*/ su,
       ConcreteSyntaxTree collectionWriter,
       List<ComprehensionExpr.BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
       Contract.Requires(bound != null);
       Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
       Contract.Requires(collectionWriter != null);
       var propertySuffix = SupportsProperties ? "" : "()";
-      su = su ?? new Translator.Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
+      su = su ?? new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
 
       if (bound is ComprehensionExpr.BoolBoundedPool) {
         collectionWriter.Write("{0}.AllBooleans()", GetHelperModuleName());
@@ -3292,7 +3292,7 @@ namespace Microsoft.Dafny {
           sm[bv] = lowBound ? ib.LowerBound : ib.UpperBound;
         }
       }
-      var su = new Translator.Substituter(null, sm, new Dictionary<TypeParameter, Type>());
+      var su = new Substituter(null, sm, new Dictionary<TypeParameter, Type>());
       return su.Substitute(bnd);
     }
 
@@ -4702,7 +4702,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected ConcreteSyntaxTree CaptureFreeVariables(Expression expr, bool captureOnlyAsRequiredByTargetLanguage, out Translator.Substituter su, bool inLetExprBody, ConcreteSyntaxTree wr) {
+    protected ConcreteSyntaxTree CaptureFreeVariables(Expression expr, bool captureOnlyAsRequiredByTargetLanguage, out Substituter su, bool inLetExprBody, ConcreteSyntaxTree wr) {
       if (captureOnlyAsRequiredByTargetLanguage && TargetLambdaCanUseEnclosingLocals) {
         // nothing to do
       } else {
@@ -4711,11 +4711,11 @@ namespace Microsoft.Dafny {
           return EmitBetaRedex(bvars.ConvertAll(IdName), fexprs, bvars.ConvertAll(bv => bv.Type), expr.Type, expr.tok, inLetExprBody, wr);
         }
       }
-      su = Translator.Substituter.EMPTY;
+      su = Substituter.EMPTY;
       return wr;
     }
 
-    void CreateFreeVarSubstitution(Expression expr, out List<BoundVar> bvars, out List<Expression> fexprs, out Translator.Substituter su) {
+    void CreateFreeVarSubstitution(Expression expr, out List<BoundVar> bvars, out List<Expression> fexprs, out Substituter su) {
       Contract.Requires(expr != null);
 
       var fvs = Translator.ComputeFreeVariables(expr);
@@ -4736,7 +4736,7 @@ namespace Microsoft.Dafny {
         };
       }
 
-      su = new Translator.Substituter(null, sm, new Dictionary<TypeParameter, Type>());
+      su = new Substituter(null, sm, new Dictionary<TypeParameter, Type>());
     }
 
     protected bool IsHandleComparison(Bpl.IToken tok, Expression e0, Expression e1, ConcreteSyntaxTree errorWr) {

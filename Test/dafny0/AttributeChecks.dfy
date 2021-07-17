@@ -53,6 +53,15 @@ method Match(xs: List<int>) returns (r: int)
   }
 }
 
+function method CaseExpr(r: List<int>): List<int>
+{
+  match r {
+    case Nil => Nil
+    case {:ignore 3 + true} Cons(h, Nil) => Nil // error:  3 + true is ill-typed
+    case {:ignore false} Cons(h, t) => CaseExpr(t)
+  }
+}
+
 method Calc(x: int, y: int)
 {
   calc {:split 1} {:split 1 + false} { // error:  1 + false is ill-typed
@@ -89,3 +98,9 @@ method For(lo: int, hi: int) returns (k: int)
   }
   return 2;
 }
+
+datatype {:dt 0} {:dt false + 3} Datatype = // error: false + 3 is ill-typed
+  {:dt k} Blue | {:dt 50} Green // error: k is unknown
+
+datatype {:dt 0} {:dt false + 3} AnotherDatatype = // error: false + 3 is ill-typed
+  | {:dt 50} Blue | {:dt k} Green // error: k is unknown

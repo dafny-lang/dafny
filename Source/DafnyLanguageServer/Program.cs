@@ -1,19 +1,20 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using NLog;
-using NLog.Web;
 using OmniSharp.Extensions.LanguageServer.Server;
+using Serilog;
 using System;
+using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
+using OmniSharpLanguageServer = OmniSharp.Extensions.LanguageServer.Server.LanguageServer;
 
 namespace Microsoft.Dafny.LanguageServer {
   public class Program {
-    private static readonly NLog.ILogger logger = LogManager.GetCurrentClassLogger();
-
     private static async Task Main(string[] args) {
+      var configuration = CreateConfiguration(args);
+      InitializeLogger(configuration);
       try {
-        var configuration = CreateConfiguration(args);
-        var server = await OmniSharp.Extensions.LanguageServer.Server.LanguageServer.From(
+        var server = await OmniSharpLanguageServer.From(
           options => options
             .WithInput(Console.OpenStandardInput())
             .WithOutput(Console.OpenStandardOutput())
@@ -24,25 +25,33 @@ namespace Microsoft.Dafny.LanguageServer {
         );
         await server.WaitForExit;
       } finally {
-        LogManager.Shutdown();
+        Log.CloseAndFlush();
       }
     }
 
     private static IConfiguration CreateConfiguration(string[] args) {
       return new ConfigurationBuilder()
+        .AddJsonFile("DafnyLanguageServer.appsettings.json", optional: true)
         .AddCommandLine(args)
         .Build();
     }
 
-    private static void LogException(Exception e) {
-      logger.Error(e, "captured unhandled exception");
+    private static void InitializeLogger(IConfiguration configuration) {
+      // The environment variable is used so a log file can be explicitely created in the application dir.
+      Environment.SetEnvironmentVariable("DAFNYLS_APP_DIR", Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+      Log.Logger = new LoggerConfiguration()
+        .ReadFrom.Configuration(configuration)
+        .CreateLogger();
     }
 
-    private static void SetupLogging(ILoggingBuilder logging) {
-      logging.ClearProviders()
-        .AddNLog("nlog.config")
-        // The log-level is managed by NLog.
-        .SetMinimumLevel(Extensions.Logging.LogLevel.Trace);
+    private static void LogException(Exception exception) {
+      Log.Logger.Error(exception, "captured unhandled exception");
+    }
+
+    private static void SetupLogging(ILoggingBuilder builder) {
+      builder
+        .ClearProviders()
+        .AddSerilog(Log.Logger);
     }
   }
 }

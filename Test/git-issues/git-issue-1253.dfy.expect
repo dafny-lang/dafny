@@ -1,0 +1,2 @@
+git-issue-1253.dfy(5,12): Error: module C does not exist (position 1 in path M2.C)
+1 resolution/type errors detected in git-issue-1253.dfy

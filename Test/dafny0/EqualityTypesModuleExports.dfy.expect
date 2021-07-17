@@ -27,17 +27,17 @@ EqualityTypesModuleExports.dfy(154,11): Error: type parameter (A) passed to type
 EqualityTypesModuleExports.dfy(155,11): Error: type parameter (A) passed to type Co must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(156,11): Error: type parameter (A) passed to type Syn must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(157,11): Error: type parameter (A) passed to type SubsetCo must support equality (got Noeq)
-EqualityTypesModuleExports.dfy(149,7): Error: recursive constraint dependency involving a subset type: SubsetCo -> Co
+EqualityTypesModuleExports.dfy(149,7): Error: recursive constraint dependency involving a subset type: SubsetCo -> Co -> SubsetCo
 EqualityTypesModuleExports.dfy(174,11): Error: type parameter (A) passed to type MyClass must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(175,11): Error: type parameter (A) passed to type Dt must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(176,11): Error: type parameter (A) passed to type Co must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(177,11): Error: type parameter (A) passed to type Syn must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(178,11): Error: type parameter (A) passed to type SubsetCo must support equality (got Noeq)
-EqualityTypesModuleExports.dfy(170,7): Error: recursive constraint dependency involving a subset type: SubsetCo -> Co
+EqualityTypesModuleExports.dfy(170,7): Error: recursive constraint dependency involving a subset type: SubsetCo -> Co -> SubsetCo
 EqualityTypesModuleExports.dfy(188,22): Error: set argument type must support equality (got A) (perhaps try declaring type parameter 'A' on line 188 as 'A(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(189,24): Error: iset argument type must support equality (got A) (perhaps try declaring type parameter 'A' on line 189 as 'A(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(195,11): Error: type parameter (A) passed to type MyClass must support equality (got Noeq)
-EqualityTypesModuleExports.dfy(191,7): Error: recursive constraint dependency involving a subset type: SubsetCo -> Co
+EqualityTypesModuleExports.dfy(191,7): Error: recursive constraint dependency involving a subset type: SubsetCo -> Co -> SubsetCo
 EqualityTypesModuleExports.dfy(214,7): Error: type 'Opa', which does not support equality, is used to refine an opaque type with equality support
 EqualityTypesModuleExports.dfy(230,12): Error: type parameter (A) passed to type S must support equality (got GGG.Opa'<int>) (perhaps try declaring opaque type 'Opa'' on line 208 as 'Opa'(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(231,12): Error: type parameter (A) passed to type S must support equality (got GGG.Syn'<int>)
