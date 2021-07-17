@@ -6975,6 +6975,7 @@ namespace Microsoft.Dafny {
         enumerableFieldsCanBeNull: true, 
         (m, type) =>
         {
+          // TODO seems like we should remove this check
           return m.GetCustomAttribute(typeof(FilledInByResolution)) == null;
         });
 
