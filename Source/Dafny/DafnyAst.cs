@@ -7598,6 +7598,7 @@ namespace Microsoft.Dafny {
 
   public class AssignOrReturnStmt : ConcreteUpdateStatement
   {
+    [FilledInByResolution]
     public readonly Expression Rhs; // this is the unresolved RHS, and thus can also be a method call
     public readonly List<AssignmentRhs> Rhss;
     public readonly IToken KeywordToken;
@@ -7605,12 +7606,6 @@ namespace Microsoft.Dafny {
     public readonly List<Statement> ResolvedStatements = new List<Statement>();
     public override IEnumerable<Statement> SubStatements {
       get { return ResolvedStatements; }
-    }
-
-    // TODO Why is this empty?
-    public override IEnumerable<Expression> SubExpressions
-    {
-      get => Enumerable.Empty<Expression>();
     }
 
     [ContractInvariantMethod]
