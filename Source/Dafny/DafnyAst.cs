@@ -6965,9 +6965,18 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns the non-null substatements of the Statements.
     /// </summary>
-    public virtual IEnumerable<Statement> SubStatements {
-      get { yield break; }
+    public virtual IEnumerable<Statement> SubStatements
+    {
+      get => GetSubStatements.GetTargets(this);
     }
+    
+    public static readonly GetChildrenOfType<Statement> GetSubStatements = 
+      new GetChildrenOfType<Statement>(
+        enumerableFieldsCanBeNull: true, 
+        (m, type) =>
+        {
+          return m.GetCustomAttribute(typeof(FilledInByResolution)) == null;
+        });
 
     /// <summary>
     /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
@@ -7072,13 +7081,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       Proof = proof;
       Label = label;
-    }
-    public override IEnumerable<Statement> SubStatements {
-      get {
-        if (Proof != null) {
-          yield return Proof;
-        }
-      }
     }
     public void AddCustomizedErrorMessage(IToken tok, string s) {
       var args = new List<Expression>() { new StringLiteralExpr(tok, s, true) };
@@ -7204,18 +7206,6 @@ namespace Microsoft.Dafny {
       this.rhss = rhss;
       hiddenUpdate = null;
     }
-    
-    public override IEnumerable<Statement> SubStatements {
-      get {
-        if (rhss != null) {
-          foreach (var rhs in rhss) {
-            foreach (var s in rhs.SubStatements) {
-              yield return s;
-            }
-          }
-        }
-      }
-    }
   }
 
   public class ReturnStmt : ProduceStmt
@@ -7249,8 +7239,8 @@ namespace Microsoft.Dafny {
     }
 
     static AssignmentRhs() {
-      // TODO can we improve this?
       Expression.GetSubExpressions.Override<AssignmentRhs>(rhs => rhs.SubExpressions);
+      Statement.GetSubStatements.Override<AssignmentRhs>(rhs => rhs.SubStatements);
     }
 
     internal AssignmentRhs(IToken tok, Attributes attrs = null) {
@@ -7262,6 +7252,7 @@ namespace Microsoft.Dafny {
     /// Returns the non-null subexpressions of the AssignmentRhs.
     /// </summary>
     public virtual IEnumerable<Expression> SubExpressions {
+      // TODO implement generically
       get {
         foreach (var e in Attributes.SubExpressions(Attributes)) {
           yield return e;
@@ -7271,7 +7262,8 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns the non-null sub-statements of the AssignmentRhs.
     /// </summary>
-    public virtual IEnumerable<Statement> SubStatements{
+    public virtual IEnumerable<Statement> SubStatements {
+      // TODO implement generically
       get { yield break; }
     }
   }
@@ -7471,10 +7463,6 @@ namespace Microsoft.Dafny {
       Locals = locals;
       Update = update;
     }
-
-    public override IEnumerable<Statement> SubStatements {
-      get { if (Update != null) { yield return Update; } }
-    }
   }
 
   public class VarDeclPattern : Statement
@@ -7649,14 +7637,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(rhs != null);
       this.Lhs = lhs;
       this.Rhs = rhs;
-    }
-
-    public override IEnumerable<Statement> SubStatements {
-      get {
-        foreach (var s in Rhs.SubStatements) {
-          yield return s;
-        }
-      }
     }
 
     /// <summary>
@@ -7876,10 +7856,6 @@ namespace Microsoft.Dafny {
       this.Body = body;
     }
 
-    public override IEnumerable<Statement> SubStatements {
-      get { return Body; }
-    }
-
     public virtual void AppendStmt(Statement s) {
       Contract.Requires(s != null);
       Body.Add(s);
@@ -7941,14 +7917,6 @@ namespace Microsoft.Dafny {
       this.Guard = guard;
       this.Thn = thn;
       this.Els = els;
-    }
-    public override IEnumerable<Statement> SubStatements {
-      get {
-        yield return Thn;
-        if (Els != null) {
-          yield return Els;
-        }
-      }
     }
   }
 
@@ -8015,15 +7983,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(alternatives != null);
       this.Alternatives = alternatives;
       this.UsesOptionalBraces = usesOptionalBraces;
-    }
-    public override IEnumerable<Statement> SubStatements {
-      get {
-        foreach (var alt in Alternatives) {
-          foreach (var s in alt.Body) {
-            yield return s;
-          }
-        }
-      }
     }
   }
 
@@ -8099,14 +8058,6 @@ namespace Microsoft.Dafny {
       : base(tok, endTok, invariants, decreases, mod, attrs) {
       Body = body;
     }
-
-    public override IEnumerable<Statement> SubStatements {
-      get {
-        if (Body != null) {
-          yield return Body;
-        }
-      }
-    }
   }
 
   public class WhileStmt : OneBodyLoopStmt
@@ -8140,14 +8091,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       this.Guard = guard;
-    }
-
-    public override IEnumerable<Statement> SubStatements {
-      get {
-        if (Body != null) {
-          yield return Body;
-        }
-      }
     }
   }
 
@@ -8219,15 +8162,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(alternatives != null);
       this.Alternatives = alternatives;
       this.UsesOptionalBraces = usesOptionalBraces;
-    }
-    public override IEnumerable<Statement> SubStatements {
-      get {
-        foreach (var alt in Alternatives) {
-          foreach (var s in alt.Body) {
-            yield return s;
-          }
-        }
-      }
     }
   }
 
@@ -8310,14 +8244,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override IEnumerable<Statement> SubStatements {
-      get {
-        if (Body != null) {
-          yield return Body;
-        }
-      }
-    }
-
     public List<BoundVar> UncompilableBoundVars() {
       Contract.Ensures(Contract.Result<List<BoundVar>>() != null);
       var v = ComprehensionExpr.BoundedPool.PoolVirtues.Finite | ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable;
@@ -8338,14 +8264,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(mod != null);
       Mod = new Specification<FrameExpression>(mod, attrs);
       Body = body;
-    }
-
-    public override IEnumerable<Statement> SubStatements {
-      get {
-        if (Body != null) {
-          yield return Body;
-        }
-      }
     }
   }
 
@@ -8544,15 +8462,7 @@ namespace Microsoft.Dafny {
       this.Result = null;
       this.Attributes = attrs;
     }
-
-    public override IEnumerable<Statement> SubStatements
-    {
-      get {
-        foreach (var h in Hints) {
-          yield return h;
-        }
-      }
-    }
+    
     public override IEnumerable<Expression> SubExpressions
     {
       get {
@@ -8622,8 +8532,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(MissingCases));
     }
 
-    private Expression source;
-    private List<MatchCaseStmt> cases;
     public readonly MatchingContext Context;
     [FilledInByResolution]
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();
@@ -8636,8 +8544,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(endTok != null);
       Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
-      this.source = source;
-      this.cases = cases;
+      this.Source = source;
+      this.Cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
       this.Context = context is null? new HoleCtx() : context;
     }
@@ -8648,40 +8556,26 @@ namespace Microsoft.Dafny {
       Contract.Requires(endTok != null);
       Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
-      this.source = source;
-      this.cases = cases;
+      this.Source = source;
+      this.Cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
       this.Context = context is null ? new HoleCtx() : context;
     }
 
-    public Expression Source {
-      get { return source; }
-    }
+    public Expression Source { get; private set; }
 
-    public List<MatchCaseStmt> Cases {
-      get { return cases; }
-    }
+    public List<MatchCaseStmt> Cases { get; private set; }
 
     // should only be used in desugar in resolve to change the cases of the matchexpr
     public void UpdateSource(Expression source) {
-      this.source = source;
+      this.Source = source;
     }
 
     public void UpdateCases(List<MatchCaseStmt> cases) {
-      this.cases = cases;
-    }
-
-    public override IEnumerable<Statement> SubStatements {
-      get {
-        foreach (var kase in cases) {
-          foreach (var s in kase.Body) {
-            yield return s;
-          }
-        }
-      }
+      this.Cases = cases;
     }
     
-    // Prevents traversing Cases, although I don't know why we don't want that.
+    // TODO Prevents traversing Cases, although I don't know why we don't want that.
     public override IEnumerable<Expression> SubExpressions {
       get {
         foreach (var e in Attributes.SubExpressions(Attributes)) { yield return e; }
@@ -12477,6 +12371,7 @@ namespace Microsoft.Dafny {
     public ConcreteSyntaxStatement(IToken tok, IToken endtok, Attributes attrs)
       : base(tok, endtok, attrs) {
     }
+    
     public override IEnumerable<Statement> SubStatements {
       get {
           yield return ResolvedStatement;
