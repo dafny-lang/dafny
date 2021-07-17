@@ -6981,12 +6981,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns the non-null expressions of this statement proper (that is, do not include the expressions of substatements).
     /// </summary>
-    public virtual IEnumerable<Expression> SubExpressions {
-      get
-      {
-        return Expression.GetSubExpressions.GetTargets(this);
-      }
-    }
+    public virtual IEnumerable<Expression> SubExpressions => Expression.GetSubExpressions.GetTargets(this);
   }
 
   public class LList<T>
@@ -7248,24 +7243,16 @@ namespace Microsoft.Dafny {
       Attributes = attrs;
     }
     public abstract bool CanAffectPreviouslyKnownExpressions { get; }
+    
     /// <summary>
     /// Returns the non-null subexpressions of the AssignmentRhs.
     /// </summary>
-    public virtual IEnumerable<Expression> SubExpressions {
-      // TODO implement generically
-      get {
-        foreach (var e in Attributes.SubExpressions(Attributes)) {
-          yield return e;
-        }
-      }
-    }
+    public virtual IEnumerable<Expression> SubExpressions => Expression.GetSubExpressions.GetTargets(this);
+
     /// <summary>
     /// Returns the non-null sub-statements of the AssignmentRhs.
     /// </summary>
-    public virtual IEnumerable<Statement> SubStatements {
-      // TODO implement generically
-      get { yield break; }
-    }
+    public virtual IEnumerable<Statement> SubStatements => Statement.GetSubStatements.GetTargets(this);
   }
 
   public class ExprRhs : AssignmentRhs
@@ -7283,6 +7270,8 @@ namespace Microsoft.Dafny {
       Expr = expr;
     }
     public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }
+    
+    // TODO doesn't include attribute expressions. Is that a bug?
     public override IEnumerable<Expression> SubExpressions {
       get {
         yield return Expr;
@@ -7408,6 +7397,7 @@ namespace Microsoft.Dafny {
       }
     }
 
+    // TODO doesn't include Expressions in Bindings or Attributes. Is that a bug?
     public override IEnumerable<Expression> SubExpressions {
       get {
         if (ArrayDimensions != null) {
@@ -7425,6 +7415,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
+    
     public override IEnumerable<Statement> SubStatements {
       get {
         if (InitCall != null) {
@@ -8828,14 +8819,8 @@ namespace Microsoft.Dafny {
     /// means, for example, that any concrete syntax that resolves to some other expression will return the subexpressions
     /// of the resolved expression.
     /// </summary>
-    public virtual IEnumerable<Expression> SubExpressions {
-      get
-      {
-        var result = GetSubExpressions.GetTargets(this);
-        return result;
-      }
-    }
-    
+    public virtual IEnumerable<Expression> SubExpressions => GetSubExpressions.GetTargets(this);
+
     public static readonly GetChildrenOfType<Expression> GetSubExpressions = 
       new GetChildrenOfType<Expression>(
         // true because ForallStmt.ForallExpressions and Specification.Expressions can be null
