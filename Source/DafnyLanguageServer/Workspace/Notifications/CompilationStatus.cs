@@ -3,7 +3,7 @@
   /// Enumeration that identifies that actual compilation status.
   /// </summary>
   public enum CompilationStatus {
-    ParsingFailed,
+    ParsingFailed = 0,
     ResolutionFailed,
     CompilationSucceeded,
     VerificationStarted,
