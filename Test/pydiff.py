@@ -8,20 +8,6 @@ import argparse
 import difflib
 import os
 import sys
-import re
-
-def prune_exec_traces(f):
-    def exec_trace_line(l):
-        return 'Execution trace:' in l
-    def anon_line(l):
-        return not(re.match("(.*,.*): anon.*", l) is None)
-    i = 0
-    markers = []
-    trace = False
-    for l in f:
-        trace = (not trace and exec_trace_line(l)) or (trace and anon_line(l))
-        markers.append(not trace)
-    return list(map(lambda x: x[0], filter(lambda x: x[1], zip(f, markers))))
 
 def main(args):
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -59,8 +45,8 @@ def main(args):
                                     parsedArgs.strip_trailing_cr,
                                     parsedArgs.ignore_all_space
                                    )
-    result = difflib.unified_diff(prune_exec_traces(fromFile),
-                                  prune_exec_traces(toFile),
+    result = difflib.unified_diff(fromFile,
+                                  toFile,
                                   fromFileName,
                                   toFileName,
                                   n=getattr(parsedArgs,'unified='),
