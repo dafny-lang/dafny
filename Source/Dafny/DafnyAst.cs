@@ -8578,7 +8578,6 @@ namespace Microsoft.Dafny {
 
   public class MatchCaseStmt : MatchCase
   {
-    private List<Statement> body;
     public Attributes Attributes;
 
     [ContractInvariantMethod]
@@ -8593,17 +8592,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(ctor != null);
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(cce.NonNullElements(body));
-      this.body = body;
+      this.Body = body;
       this.Attributes = attrs;
     }
 
-    public List<Statement> Body {
-      get { return body; }
-    }
+    public List<Statement> Body { get; private set; }
 
     // should only be called by resolve to reset the body of the MatchCaseExpr
     public void UpdateBody(List<Statement> body) {
-      this.body = body;
+      this.Body = body;
     }
   }
 
@@ -12350,7 +12347,7 @@ namespace Microsoft.Dafny {
   public abstract class ConcreteSyntaxStatement : Statement
   {
     [FilledInByResolution]
-    public Statement ResolvedStatement;  // filled in during resolution; after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
+    public Statement ResolvedStatement;  // after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
     public ConcreteSyntaxStatement(IToken tok, IToken endtok)
       : base(tok, endtok) {
     }
