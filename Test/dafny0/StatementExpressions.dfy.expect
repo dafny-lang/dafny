@@ -1,24 +1,7 @@
 StatementExpressions.dfy(55,11): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
-    (0,0): anon8_Then
 StatementExpressions.dfy(59,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
-    StatementExpressions.dfy(53,7): anon8_Else
 StatementExpressions.dfy(77,5): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 StatementExpressions.dfy(88,4): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 StatementExpressions.dfy(98,17): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 
 Dafny program verifier finished with 11 verified, 5 errors

@@ -22,11 +22,7 @@ splitting-triggers-recovers-expressivity.dfy(58,11): Info: Selected triggers:
    {P(i)}, {Q(i)}
 splitting-triggers-recovers-expressivity.dfy(12,63): Error: A postcondition might not hold on this return path.
 splitting-triggers-recovers-expressivity.dfy(12,10): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 splitting-triggers-recovers-expressivity.dfy(19,15): Error: A postcondition might not hold on this return path.
 splitting-triggers-recovers-expressivity.dfy(19,10): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 5 verified, 2 errors

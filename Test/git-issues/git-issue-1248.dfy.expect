@@ -1,20 +1,12 @@
 git-issue-1248.dfy(13,0): Error: A postcondition might not hold on this return path.
 git-issue-1248.dfy(12,10): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 git-issue-1248.dfy(19,0): Error: A postcondition might not hold on this return path.
 git-issue-1248.dfy(18,10): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 0 verified, 2 errors
 git-issue-1248.dfy(13,0): Error: A postcondition might not hold on this return path.
 git-issue-1248.dfy(12,10): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 git-issue-1248.dfy(19,0): Error: A postcondition might not hold on this return path.
 git-issue-1248.dfy(18,10): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 0 verified, 2 errors

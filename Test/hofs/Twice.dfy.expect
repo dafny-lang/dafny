@@ -1,12 +1,4 @@
 Twice.dfy(26,21): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    Twice.dfy(22,12): anon5_Else
 Twice.dfy(34,31): Error: possible violation of function precondition
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Else
-    (0,0): anon12_Then
-    (0,0): anon13_Then
 
 Dafny program verifier finished with 2 verified, 2 errors

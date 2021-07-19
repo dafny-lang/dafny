@@ -1,23 +1,9 @@
 git-issue-356-errors2.dfy(17,11): Error: result of operation might violate subset type constraint for 'Tx'
-Execution trace:
-    (0,0): anon0
 git-issue-356-errors2.dfy(17,11): Error: value to be converted might be bigger than every natural number
-Execution trace:
-    (0,0): anon0
 git-issue-356-errors2.dfy(18,11): Error: result of operation might violate subset type constraint for 'Tx'
-Execution trace:
-    (0,0): anon0
 git-issue-356-errors2.dfy(19,11): Error: result of operation might violate subset type constraint for 'Tx'
-Execution trace:
-    (0,0): anon0
 git-issue-356-errors2.dfy(23,11): Error: result of operation might violate subset type constraint for 'Tx'
-Execution trace:
-    (0,0): anon0
 git-issue-356-errors2.dfy(23,11): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-Execution trace:
-    (0,0): anon0
 git-issue-356-errors2.dfy(24,11): Error: result of operation might violate subset type constraint for 'Tx'
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 2 verified, 7 errors

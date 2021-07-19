@@ -14,7 +14,5 @@ Processing command (at <unknown location>) a##cached##0 := a##cached##0 && ##ext
 Processing command (at Snapshots0.v1.dfy(4,10)) assert false;
   >>> MarkAsPartiallyVerified
 Snapshots0.v1.dfy(4,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 0 verified, 1 error

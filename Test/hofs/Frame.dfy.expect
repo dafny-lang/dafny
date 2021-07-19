@@ -1,40 +1,9 @@
 Frame.dfy(23,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    Frame.dfy(19,12): anon7_Else
-    (0,0): anon9_Then
 Frame.dfy(37,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    Frame.dfy(33,12): anon5_Else
 Frame.dfy(63,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
-    Frame.dfy(55,12): anon20_Else
-    (0,0): anon22_Then
-    (0,0): anon7
 Frame.dfy(66,18): Error: insufficient reads clause to read array element
-Execution trace:
-    (0,0): anon0
-    (0,0): anon23_Then
-    (0,0): anon24_Then
-    (0,0): anon25_Then
 Frame.dfy(68,27): Error: insufficient reads clause to read array element
-Execution trace:
-    (0,0): anon0
-    (0,0): anon23_Else
-    (0,0): anon26_Then
-    (0,0): anon27_Then
 Frame.dfy(123,13): Error: possible violation of function precondition
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon6_Else
 Frame.dfy(123,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon6_Else
 
 Dafny program verifier finished with 5 verified, 7 errors
