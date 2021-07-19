@@ -45,7 +45,7 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
-      var started = await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      var started = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
       Assert.AreEqual(CompilationStatus.ParsingFailed, started.Status);
@@ -62,14 +62,14 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
-      var started = await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      var started = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
       Assert.AreEqual(CompilationStatus.ResolutionFailed, started.Status);
     }
 
     [TestMethod]
-    public async Task VerifyingDocumentWithoutErrorsSendsActivityAndVerifiedStatus() {
+    public async Task DocumentWithoutErrorsSendsVerificationStartedAndSuccessfulStatuses() {
       var source = @"
 method Abs(x: int) returns (y: int)
     ensures y >= 0
@@ -82,18 +82,18 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
-      var started = await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      var started = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
       Assert.AreEqual(CompilationStatus.VerificationStarted, started.Status);
-      var completed = await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      var completed = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, completed.Uri);
       Assert.AreEqual(documentItem.Version, completed.Version);
       Assert.AreEqual(CompilationStatus.VerificationSucceeded, completed.Status);
     }
 
     [TestMethod]
-    public async Task VerifyingDocumentWithVerifierErrorsSendsActivityAndNotVerifiedStatus() {
+    public async Task DocumentWithVerifierErrorsSendsVerificationStartedAndFailedStatuses() {
       var source = @"
 method Abs(x: int) returns (y: int)
     ensures y >= 0
@@ -103,11 +103,11 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
-      var started = await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      var started = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
       Assert.AreEqual(CompilationStatus.VerificationStarted, started.Status);
-      var completed = await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      var completed = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, completed.Uri);
       Assert.AreEqual(documentItem.Version, completed.Version);
       Assert.AreEqual(CompilationStatus.VerificationFailed, completed.Status);
@@ -122,7 +122,7 @@ method Abs(x: int) returns (y: int)
         _availableDiagnostics.Release();
       }
 
-      public async Task<CompilationStatusParams> AwaitNextPublishDiagnosticsAsync(CancellationToken cancellationToken) {
+      public async Task<CompilationStatusParams> AwaitNextCompilationStatusAsync(CancellationToken cancellationToken) {
         await _availableDiagnostics.WaitAsync(cancellationToken);
         if(_compilationStatuses.TryDequeue(out var diagnostics)) {
           return diagnostics;
