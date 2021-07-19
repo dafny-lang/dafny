@@ -5,6 +5,7 @@
   public enum CompilationStatus {
     ParsingFailed,
     ResolutionFailed,
+    CompilationSucceeded,
     VerificationStarted,
     VerificationFailed,
     VerificationSucceeded

@@ -43,6 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         _notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
         serializedCounterExamples = null;
       } else {
+        _notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.CompilationSucceeded);
         serializedCounterExamples = await VerifyIfEnabledAsync(textDocument, program, verify, cancellationToken);
       }
       return new DafnyDocument(textDocument, errorReporter, program, symbolTable, serializedCounterExamples);
