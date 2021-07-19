@@ -50,11 +50,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public async Task<VerificationResult> VerifyAsync(Dafny.Program program, CancellationToken cancellationToken) {
-      if(program.reporter.AllMessages[ErrorLevel.Error].Count > 0) {
-        // TODO Change logic so that the loader is responsible to ensure that the previous steps were sucessful.
-        _logger.LogDebug("skipping program verification since the parser or resolvers already reported errors");
-        return new VerificationResult(Verified: false);
-      }
       await _mutex.WaitAsync(cancellationToken);
       try {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.

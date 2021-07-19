@@ -1,6 +1,8 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
+﻿using IntervalTree;
+using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,14 +12,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ISymbolResolver _symbolResolver;
     private readonly IProgramVerifier _verifier;
     private readonly ISymbolTableFactory _symbolTableFactory;
-    private readonly IVerificationNotificationPublisher _notificationPublisher;
+    private readonly ICompilationStatusNotificationPublisher _notificationPublisher;
 
     public TextDocumentLoader(
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
       IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
-      IVerificationNotificationPublisher notificationPublisher
+      ICompilationStatusNotificationPublisher notificationPublisher
     ) {
       _parser = parser;
       _symbolResolver = symbolResolver;
@@ -29,19 +31,53 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
       var errorReporter = new BuildErrorReporter();
       var program = await _parser.ParseAsync(textDocument, errorReporter, cancellationToken);
+      if(errorReporter.HasErrors) {
+        _notificationPublisher.ParsingFailed(textDocument);
+        return CreateDocumentWithParserErrors(textDocument, errorReporter, program);
+      }
       var compilationUnit = await _symbolResolver.ResolveSymbolsAsync(textDocument, program, cancellationToken);
       var symbolTable = _symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
-      var serializedCounterExamples = await VerifyIfEnabledAsync(textDocument, program, verify, cancellationToken);
+      string? serializedCounterExamples;
+      if(errorReporter.HasErrors) {
+        _notificationPublisher.ResolutionFailed(textDocument);
+        serializedCounterExamples = null;
+      } else {
+        serializedCounterExamples = await VerifyIfEnabledAsync(textDocument, program, verify, cancellationToken);
+      }
       return new DafnyDocument(textDocument, errorReporter, program, symbolTable, serializedCounterExamples);
+    }
+
+    private static DafnyDocument CreateDocumentWithParserErrors(TextDocumentItem textDocument, ErrorReporter errorReporter, Dafny.Program program) {
+      return new DafnyDocument(
+        textDocument,
+        errorReporter,
+        program,
+        CreateEmptySymbolTable(program),
+        serializedCounterExamples: null
+      );
+    }
+
+    private static SymbolTable CreateEmptySymbolTable(Dafny.Program program) {
+      return new SymbolTable(
+        new CompilationUnit(program),
+        new Dictionary<object, ILocalizableSymbol>(),
+        new Dictionary<ISymbol, SymbolLocation>(),
+        new IntervalTree<Position, ILocalizableSymbol>(),
+        symbolsResolved: false
+      );
     }
 
     private async Task<string?> VerifyIfEnabledAsync(TextDocumentItem textDocument, Dafny.Program program, bool verify, CancellationToken cancellationToken) {
       if(!verify) {
         return null;
       }
-      _notificationPublisher.Started(textDocument);
+      _notificationPublisher.VerificationStarted(textDocument);
       var verificationResult = await _verifier.VerifyAsync(program, cancellationToken);
-      _notificationPublisher.Completed(textDocument, verificationResult.Verified);
+      if(verificationResult.Verified) {
+        _notificationPublisher.VerificationSucceeded(textDocument);
+      } else {
+        _notificationPublisher.VerificationFailed(textDocument);
+      }
       return verificationResult.SerializedCounterExamples;
     }
   }

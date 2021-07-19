@@ -24,8 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       _notificationReceiver = new TestNotificationReceiver();
       _client = await InitializeClient(options => {
         options
-          .AddHandler(DafnyRequestNames.VerificationStarted, NotificationHandler.For<VerificationStartedParams>(_notificationReceiver.StatusReceived))
-          .AddHandler(DafnyRequestNames.VerificationCompleted, NotificationHandler.For<VerificationCompletedParams>(_notificationReceiver.StatusReceived));
+          .AddHandler(DafnyRequestNames.CompilationStatus, NotificationHandler.For<CompilationStatusParams>(_notificationReceiver.StatusReceived));
       });
     }
 
@@ -33,6 +32,40 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       return _configuration == null
         ? base.CreateConfiguration()
         : new ConfigurationBuilder().AddInMemoryCollection(_configuration).Build();
+    }
+
+    [TestMethod]
+    public async Task DocumentWithParserErrorsSendsParsingFailedStatus() {
+      var source = @"
+method Abs(x: int) returns (y: int)
+    ensures y >= 0
+{
+  return x
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var started = await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, started.Uri);
+      Assert.AreEqual(documentItem.Version, started.Version);
+      Assert.AreEqual(CompilationStatus.ParsingFailed, started.Status);
+    }
+
+    [TestMethod]
+    public async Task DocumentWithResolverErrorsSendsResolutionFailedStatus() {
+      var source = @"
+method Abs(x: int) returns (y: int)
+    ensures y >= 0
+{
+  return z;
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var started = await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, started.Uri);
+      Assert.AreEqual(documentItem.Version, started.Version);
+      Assert.AreEqual(CompilationStatus.ResolutionFailed, started.Status);
     }
 
     [TestMethod]
@@ -49,33 +82,14 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
-      var started = (VerificationStartedParams)await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      var started = await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
-      var completed = (VerificationCompletedParams)await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(CompilationStatus.VerificationStarted, started.Status);
+      var completed = await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, completed.Uri);
       Assert.AreEqual(documentItem.Version, completed.Version);
-      Assert.IsTrue(completed.Verified);
-    }
-
-    [TestMethod]
-    public async Task VerifyingDocumentWithParserErrorsSendsActivityAndNotVerifiedStatus() {
-      var source = @"
-method Abs(x: int) returns (y: int)
-    ensures y >= 0
-{
-  return x
-}
-".TrimStart();
-      var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
-      var started = (VerificationStartedParams)await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
-      Assert.AreEqual(documentItem.Uri, started.Uri);
-      Assert.AreEqual(documentItem.Version, started.Version);
-      var completed = (VerificationCompletedParams)await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
-      Assert.AreEqual(documentItem.Uri, completed.Uri);
-      Assert.AreEqual(documentItem.Version, completed.Version);
-      Assert.IsFalse(completed.Verified);
+      Assert.AreEqual(CompilationStatus.VerificationSucceeded, completed.Status);
     }
 
     [TestMethod]
@@ -89,27 +103,28 @@ method Abs(x: int) returns (y: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
-      var started = (VerificationStartedParams)await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      var started = await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, started.Uri);
       Assert.AreEqual(documentItem.Version, started.Version);
-      var completed = (VerificationCompletedParams)await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(CompilationStatus.VerificationStarted, started.Status);
+      var completed = await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
       Assert.AreEqual(documentItem.Uri, completed.Uri);
       Assert.AreEqual(documentItem.Version, completed.Version);
-      Assert.IsFalse(completed.Verified);
+      Assert.AreEqual(CompilationStatus.VerificationFailed, completed.Status);
     }
 
     public class TestNotificationReceiver {
       private readonly SemaphoreSlim _availableDiagnostics = new(0);
-      private readonly ConcurrentQueue<VerificationParams> _diagnostics = new();
+      private readonly ConcurrentQueue<CompilationStatusParams> _compilationStatuses = new();
 
-      public void StatusReceived(VerificationParams request) {
-        _diagnostics.Enqueue(request);
+      public void StatusReceived(CompilationStatusParams request) {
+        _compilationStatuses.Enqueue(request);
         _availableDiagnostics.Release();
       }
 
-      public async Task<VerificationParams> AwaitNextPublishDiagnosticsAsync(CancellationToken cancellationToken) {
+      public async Task<CompilationStatusParams> AwaitNextPublishDiagnosticsAsync(CancellationToken cancellationToken) {
         await _availableDiagnostics.WaitAsync(cancellationToken);
-        if(_diagnostics.TryDequeue(out var diagnostics)) {
+        if(_compilationStatuses.TryDequeue(out var diagnostics)) {
           return diagnostics;
         }
         throw new System.InvalidOperationException("got a signal for a received diagnostic but it was not present in the queue");
