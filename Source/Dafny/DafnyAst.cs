@@ -12491,6 +12491,8 @@ namespace Microsoft.Dafny {
       TypeMap = typeMap;
       Type = Resolver.SubstType(formal.Type, typeMap);
     }
+
+    public override IEnumerable<Expression> SubExpressions => Enumerable.Empty<Expression>();
   }
 
   /// <summary>
