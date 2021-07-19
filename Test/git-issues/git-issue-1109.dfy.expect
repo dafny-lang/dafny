@@ -1,5 +1,3 @@
 <stdin>(6,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 0 verified, 1 error

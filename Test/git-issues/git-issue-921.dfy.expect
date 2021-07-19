@@ -1,11 +1,5 @@
 git-issue-921.dfy(8,26): Error: value does not satisfy the subset constraints of 'ShortString'
-Execution trace:
-    (0,0): anon0
 git-issue-921.dfy(12,62): Error: value does not satisfy the subset constraints of 'ShortString'
-Execution trace:
-    (0,0): anon0
 git-issue-921.dfy(20,32): Error: value does not satisfy the subset constraints of 'ShortString'
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 2 verified, 3 errors

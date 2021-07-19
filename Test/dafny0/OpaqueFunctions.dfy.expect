@@ -1,135 +1,36 @@
 OpaqueFunctions.dfy(38,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 OpaqueFunctions.dfy(69,7): Error: A precondition for this call might not hold.
 OpaqueFunctions.dfy(35,15): Related location: This is the precondition that might not hold.
-Execution trace:
-    (0,0): anon0
 OpaqueFunctions.dfy(75,19): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 OpaqueFunctions.dfy(77,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 OpaqueFunctions.dfy(80,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 OpaqueFunctions.dfy(96,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon6_Then
 OpaqueFunctions.dfy(98,11): Error: A precondition for this call might not hold.
 OpaqueFunctions.dfy[A'](35,15): Related location: This is the precondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon6_Else
 OpaqueFunctions.dfy(102,17): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Else
 OpaqueFunctions.dfy(109,19): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 OpaqueFunctions.dfy(111,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 OpaqueFunctions.dfy(114,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 OpaqueFunctions.dfy(123,31): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
-    (0,0): anon8_Then
-    (0,0): anon3
 OpaqueFunctions.dfy(146,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 OpaqueFunctions.dfy(148,9): Error: A precondition for this call might not hold.
 OpaqueFunctions.dfy[A'](35,15): Related location: This is the precondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 OpaqueFunctions.dfy(155,19): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 OpaqueFunctions.dfy(157,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 OpaqueFunctions.dfy(160,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 OpaqueFunctions.dfy(165,31): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Else
-    (0,0): anon12_Then
-    (0,0): anon8
 OpaqueFunctions.dfy(181,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 OpaqueFunctions.dfy(246,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 OpaqueFunctions.dfy(261,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 OpaqueFunctions.dfy(326,16): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
 OpaqueFunctions.dfy(328,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon20_Then
 OpaqueFunctions.dfy(330,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon21_Then
 OpaqueFunctions.dfy(343,46): Error: result of operation might violate newtype constraint for 'Small'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon25_Then
-    (0,0): anon26_Then
-    (0,0): anon27_Then
-    (0,0): anon11
-    (0,0): anon28_Then
-    (0,0): anon29_Then
-    (0,0): anon30_Then
 OpaqueFunctions.dfy(350,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon15_Then
 OpaqueFunctions.dfy(352,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon16_Then
 OpaqueFunctions.dfy(354,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
 OpaqueFunctions.dfy(367,17): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon21_Then
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon11
-    (0,0): anon24_Then
 OpaqueFunctions.dfy(214,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 OpaqueFunctions.dfy(229,19): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 27 verified, 31 errors

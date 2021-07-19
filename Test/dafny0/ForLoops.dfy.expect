@@ -4,140 +4,30 @@ ForLoops.dfy(351,2): Warning: note, this loop has no body (loop frame: i, j)
 ForLoops.dfy(360,2): Warning: note, this loop has no body (loop frame: i, j)
 ForLoops.dfy(369,2): Warning: note, this loop has no body (loop frame: i, x)
 ForLoops.dfy(19,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    ForLoops.dfy(17,3): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    ForLoops.dfy(17,3): anon9_Else
-    ForLoops.dfy(17,3): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon7
 ForLoops.dfy(24,11): Error: lower bound must not exceed upper bound
-Execution trace:
-    (0,0): anon0
 ForLoops.dfy(116,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    ForLoops.dfy(108,5): anon12_LoopHead
-    (0,0): anon12_LoopBody
-    ForLoops.dfy(108,5): anon13_Else
-    (0,0): anon15_Then
 ForLoops.dfy(150,17): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    ForLoops.dfy(149,3): anon6_LoopHead
-    (0,0): anon6_LoopBody
-    ForLoops.dfy(149,3): anon7_Else
-    ForLoops.dfy(149,3): anon8_Else
 ForLoops.dfy(155,21): Error: lower bound must not exceed upper bound
-Execution trace:
-    (0,0): anon0
 ForLoops.dfy(204,6): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'Even'
-Execution trace:
-    (0,0): anon0
 ForLoops.dfy(218,6): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'NineToFive'
-Execution trace:
-    (0,0): anon0
 ForLoops.dfy(225,6): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'NineToFive'
-Execution trace:
-    (0,0): anon0
 ForLoops.dfy(230,6): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'NineToFive'
-Execution trace:
-    (0,0): anon0
 ForLoops.dfy(238,8): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'NineToFive'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
 ForLoops.dfy(241,8): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'NineToFive'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Else
 ForLoops.dfy(272,8): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
 ForLoops.dfy(275,8): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Else
 ForLoops.dfy(287,8): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'NotSeven'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
 ForLoops.dfy(290,8): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'NotSeven'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Else
 ForLoops.dfy(298,22): Error: result of operation might violate newtype constraint for 'byte'
-Execution trace:
-    (0,0): anon0
 ForLoops.dfy(306,17): Error: result of operation might violate newtype constraint for 'byte'
-Execution trace:
-    (0,0): anon0
 ForLoops.dfy(311,16): Error: result of operation might violate newtype constraint for 'byte'
-Execution trace:
-    (0,0): anon0
 ForLoops.dfy(344,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    ForLoops.dfy(342,3): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    ForLoops.dfy(342,3): anon9_Else
-    (0,0): anon10_Then
-    (0,0): anon11_Then
 ForLoops.dfy(362,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    ForLoops.dfy(360,3): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    ForLoops.dfy(360,3): anon9_Else
-    (0,0): anon10_Then
-    (0,0): anon11_Then
 ForLoops.dfy(372,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    ForLoops.dfy(369,3): anon10_LoopHead
-    (0,0): anon10_LoopBody
-    ForLoops.dfy(369,3): anon11_Else
-    (0,0): anon13_Then
-    (0,0): anon14_Then
 ForLoops.dfy(415,28): Error: This loop invariant might not be maintained by the loop.
 ForLoops.dfy(415,28): Related message: loop invariant violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon49_Else
-    (0,0): anon54_Then
-    ForLoops.dfy(414,5): anon55_LoopHead
-    (0,0): anon55_LoopBody
-    ForLoops.dfy(414,5): anon56_Else
-    ForLoops.dfy(414,5): anon57_Else
-    (0,0): anon58_Else
 ForLoops.dfy(434,26): Error: decreases expression must be bounded below by 0 at end of loop iteration
-Execution trace:
-    (0,0): anon0
-    (0,0): anon49_Else
-    (0,0): anon64_Then
-    ForLoops.dfy(432,5): anon65_LoopHead
-    (0,0): anon65_LoopBody
-    ForLoops.dfy(432,5): anon66_Else
-    ForLoops.dfy(432,5): anon67_Else
-    (0,0): anon68_Else
 ForLoops.dfy(443,18): Error: decreases expression must be bounded below by 0 at end of loop iteration
-Execution trace:
-    (0,0): anon0
-    (0,0): anon49_Else
-    (0,0): anon64_Else
-    ForLoops.dfy(441,5): anon69_LoopHead
-    (0,0): anon69_LoopBody
-    ForLoops.dfy(441,5): anon70_Else
-    ForLoops.dfy(441,5): anon71_Else
-    (0,0): anon72_Else
 ForLoops.dfy(457,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    ForLoops.dfy(453,3): anon13_LoopHead
-    (0,0): anon13_LoopBody
-    ForLoops.dfy(453,3): anon14_Else
-    (0,0): anon15_Then
 
 Dafny program verifier finished with 23 verified, 25 errors

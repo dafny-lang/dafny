@@ -1,92 +1,42 @@
 git-issue-1180b.dfy(28,22): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(12,21): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 git-issue-1180b.dfy(29,40): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(15,18): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 git-issue-1180b.dfy(34,22): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(12,21): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 git-issue-1180b.dfy(35,40): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(15,18): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 git-issue-1180b.dfy(40,22): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(12,21): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 git-issue-1180b.dfy(41,40): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(15,18): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 git-issue-1180b.dfy(46,22): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(12,21): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 git-issue-1180b.dfy(47,40): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(15,18): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 git-issue-1180b.dfy(56,22): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(12,21): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 git-issue-1180b.dfy(57,40): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(15,18): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 git-issue-1180b.dfy(63,22): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(12,21): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 git-issue-1180b.dfy(64,40): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(15,18): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 git-issue-1180b.dfy(83,22): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(75,21): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 git-issue-1180b.dfy(84,40): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(78,18): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 git-issue-1180b.dfy(103,22): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(95,21): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 git-issue-1180b.dfy(104,40): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(98,18): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 git-issue-1180b.dfy(123,22): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(115,21): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 git-issue-1180b.dfy(124,40): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(118,18): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 git-issue-1180b.dfy(143,22): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(135,21): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 git-issue-1180b.dfy(144,40): Error: A postcondition might not hold on this return path.
 git-issue-1180b.dfy(138,18): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 13 verified, 20 errors

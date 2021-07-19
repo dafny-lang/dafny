@@ -1,65 +1,20 @@
 CoPrefix.dfy(164,2): Error: A postcondition might not hold on this return path.
 CoPrefix.dfy(163,14): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 CoPrefix.dfy(169,2): Error: A postcondition might not hold on this return path.
 CoPrefix.dfy(168,14): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 CoPrefix.dfy(176,10): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 CoPrefix.dfy(205,6): Error: the calculation step between the previous line and this line might not hold
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon13_Then
 CoPrefix.dfy(207,6): Error: the calculation step between the previous line and this line might not hold
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon14_Then
-    (0,0): anon15_Then
-    (0,0): anon7
 CoPrefix.dfy(220,12): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
-    (0,0): anon11_Then
 CoPrefix.dfy(63,56): Error: failure to decrease termination measure
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
-    (0,0): anon8_Then
 CoPrefix.dfy(76,55): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
-    (0,0): anon8_Then
 CoPrefix.dfy(114,0): Error: A postcondition might not hold on this return path.
 CoPrefix.dfy(113,10): Related location: This is the postcondition that might not hold.
 CoPrefix.dfy(101,16): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 CoPrefix.dfy(138,24): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
-    (0,0): anon10_Then
 CoPrefix.dfy(142,24): Error: assertion violation
 CoPrefix.dfy(117,22): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
-    (0,0): anon12_Then
 CoPrefix.dfy(151,0): Error: A postcondition might not hold on this return path.
 CoPrefix.dfy(150,10): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 
 Dafny program verifier finished with 20 verified, 12 errors

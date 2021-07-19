@@ -3,14 +3,8 @@ splitting-picks-the-right-tokens.dfy(16,11): Info: Selected triggers: {Id(x)}
 splitting-picks-the-right-tokens.dfy(20,12): Error: A precondition for this call might not hold.
 splitting-picks-the-right-tokens.dfy(16,11): Related location: This is the precondition that might not hold.
 splitting-picks-the-right-tokens.dfy(16,39): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 splitting-picks-the-right-tokens.dfy(22,13): Error: A precondition for this call might not hold.
 splitting-picks-the-right-tokens.dfy(9,11): Related location: This is the precondition that might not hold.
 splitting-picks-the-right-tokens.dfy(9,37): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 
 Dafny program verifier finished with 0 verified, 2 errors

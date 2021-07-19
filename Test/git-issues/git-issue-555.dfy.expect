@@ -1,6 +1,4 @@
 git-issue-555.dfy(17,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 2 verified, 1 error
 

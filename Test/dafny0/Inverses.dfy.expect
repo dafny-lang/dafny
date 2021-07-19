@@ -1,21 +1,10 @@
 Inverses.dfy(68,0): Error: A postcondition might not hold on this return path.
 Inverses.dfy(67,10): Related location: This is the postcondition that might not hold.
 Inverses.dfy(67,66): Related location
-Execution trace:
-    (0,0): anon0
-    Inverses.dfy(69,24): anon13_Else
-    (0,0): anon17_Else
 Inverses.dfy(80,0): Error: A postcondition might not hold on this return path.
 Inverses.dfy(79,10): Related location: This is the postcondition that might not hold.
 Inverses.dfy(79,66): Related location
-Execution trace:
-    (0,0): anon0
-    Inverses.dfy(81,24): anon16_Else
-    (0,0): anon20_Else
 Inverses.dfy(192,0): Error: A postcondition might not hold on this return path.
 Inverses.dfy(191,15): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 
 Dafny program verifier finished with 31 verified, 3 errors
