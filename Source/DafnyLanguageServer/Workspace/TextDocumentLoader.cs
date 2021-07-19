@@ -1,6 +1,7 @@
 ﻿using IntervalTree;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
+using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Threading;
@@ -32,14 +33,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       var errorReporter = new BuildErrorReporter();
       var program = await _parser.ParseAsync(textDocument, errorReporter, cancellationToken);
       if(errorReporter.HasErrors) {
-        _notificationPublisher.ParsingFailed(textDocument);
+        _notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
         return CreateDocumentWithParserErrors(textDocument, errorReporter, program);
       }
       var compilationUnit = await _symbolResolver.ResolveSymbolsAsync(textDocument, program, cancellationToken);
       var symbolTable = _symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
       string? serializedCounterExamples;
       if(errorReporter.HasErrors) {
-        _notificationPublisher.ResolutionFailed(textDocument);
+        _notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
         serializedCounterExamples = null;
       } else {
         serializedCounterExamples = await VerifyIfEnabledAsync(textDocument, program, verify, cancellationToken);
@@ -71,13 +72,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if(!verify) {
         return null;
       }
-      _notificationPublisher.VerificationStarted(textDocument);
+      _notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.VerificationStarted);
       var verificationResult = await _verifier.VerifyAsync(program, cancellationToken);
-      if(verificationResult.Verified) {
-        _notificationPublisher.VerificationSucceeded(textDocument);
-      } else {
-        _notificationPublisher.VerificationFailed(textDocument);
-      }
+      var compilationStatusAfterVerification = verificationResult.Verified
+        ? CompilationStatus.VerificationSucceeded
+        : CompilationStatus.VerificationFailed;
+      _notificationPublisher.SendStatusNotification(textDocument, compilationStatusAfterVerification);
       return verificationResult.SerializedCounterExamples;
     }
   }

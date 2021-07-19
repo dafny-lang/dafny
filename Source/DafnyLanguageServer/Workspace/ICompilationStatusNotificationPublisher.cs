@@ -1,4 +1,5 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -7,33 +8,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// </summary>
   public interface ICompilationStatusNotificationPublisher {
     /// <summary>
-    /// Called when the document had parser errors (syntax errors).
+    /// Sends the provided compilation status for the given document.
     /// </summary>
-    /// <param name="textDocument">The document which could not be parsed.</param>
-    void ParsingFailed(TextDocumentItem textDocument);
-
-    /// <summary>
-    /// Called when the document had resolver errors.
-    /// </summary>
-    /// <param name="textDocument">The document which could not be parsed.</param>
-    void ResolutionFailed(TextDocumentItem textDocument);
-
-    /// <summary>
-    /// Called when the verification of a document started.
-    /// </summary>
-    /// <param name="textDocument">The document whose verification started.</param>
-    void VerificationStarted(TextDocumentItem textDocument);
-
-    /// <summary>
-    /// Called when the verification of a document was succesful.
-    /// </summary>
-    /// <param name="textDocument">The document whose verification completed succesfully.</param>
-    void VerificationSucceeded(TextDocumentItem textDocument);
-
-    /// <summary>
-    /// Called when the verification of a document failed.
-    /// </summary>
-    /// <param name="textDocument">The document whose verification failed.</param>
-    void VerificationFailed(TextDocumentItem textDocument);
+    /// <param name="textDocument">The document which had a compilation status change.</param>
+    /// <param name="status"></param>
+    void SendStatusNotification(TextDocumentItem textDocument, CompilationStatus status);
   }
 }
