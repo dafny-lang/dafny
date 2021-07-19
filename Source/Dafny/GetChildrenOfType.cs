@@ -168,7 +168,8 @@ namespace Microsoft.Dafny
 
     Expr MakeNullSafe(Expr inner, Expr outer) {
       return Expr.Condition(Expr.ReferenceEqual(inner, Expr.Constant(null)),
-        Expr.Constant(Enumerable.Empty<Target>(), typeof(IEnumerable<Target>)), outer);
+        Expr.Constant(Enumerable.Empty<Target>(), typeof(IEnumerable<Target>)), 
+        Expr.TypeAs(outer, typeof(IEnumerable<Target>)));
       
     }  
 
