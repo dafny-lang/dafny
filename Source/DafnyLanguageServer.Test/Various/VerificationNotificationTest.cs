@@ -50,7 +50,7 @@ method Abs(x: int) returns (y: int)
       Assert.AreEqual(documentItem.Version, started.Version);
       Assert.AreEqual(CompilationStatus.ParsingFailed, started.Status);
 
-      // We re-send the same erroneos document again to check that we don't have a CompilationSucceeded event queued.
+      // We re-send the same erroneous document again to check that we don't have a CompilationSucceeded event queued.
       _client.OpenDocument(CreateTestDocument(source, "Test2.dfy"));
       var queueRemainder = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
       Assert.AreEqual(CompilationStatus.ParsingFailed, queueRemainder.Status);
@@ -72,7 +72,7 @@ method Abs(x: int) returns (y: int)
       Assert.AreEqual(documentItem.Version, started.Version);
       Assert.AreEqual(CompilationStatus.ResolutionFailed, started.Status);
 
-      // We re-send the same erroneos document again to check that we don't have a CompilationSucceeded event queued.
+      // We re-send the same erroneous document again to check that we don't have a CompilationSucceeded event queued.
       _client.OpenDocument(CreateTestDocument(source, "Test2.dfy"));
       var queueRemainder = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
       Assert.AreEqual(CompilationStatus.ResolutionFailed, queueRemainder.Status);
