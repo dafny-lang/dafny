@@ -264,7 +264,11 @@ method test_factorial1_old()
   }
 }
 
-// This lemma expresses:  m*(2*n) == (2*m)*n
+lemma plus_associativity(a: Nat, b: Nat, c: Nat)
+ensures plus(plus(a, b), c) == plus(a, plus(b, c))
+{
+}
+
 lemma mult_lemma(m: Nat, n: Nat)
   ensures mult(m, plus(n, n)) == mult(plus(m, m), n)
 {
@@ -277,7 +281,7 @@ lemma mult_lemma(m: Nat, n: Nat)
         plus(plus(n, n), mult(m', plus(n, n)));
       ==  // induction hypothesis
         plus(plus(n, n), mult(plus(m', m'), n));
-      ==  { assert forall a,b,c {:induction} :: plus(plus(a, b), c) == plus(a, plus(b, c)); }
+      ==  { plus_associativity(n, n, mult(plus(m', m'), n)); }
         plus(n, plus(n, mult(plus(m', m'), n)));
       ==
         mult(S(S(plus(m', m'))), n);
