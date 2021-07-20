@@ -61,10 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           cancellationToken.ThrowIfCancellationRequested();
           VerifyWithBoogie(boogieProgram, cancellationToken);
         }
-        return new VerificationResult(
-          Verified: printer.SerializedCounterExamples == null,
-          SerializedCounterExamples: printer.SerializedCounterExamples
-        );
+        return new VerificationResult(printer.SerializedCounterExamples);
       } finally {
         _mutex.Release();
       }
