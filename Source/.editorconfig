@@ -1,0 +1,24 @@
+# More options for this file can be found on https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/code-style-rule-options?view=vs-2019
+root = true
+
+# C# files
+[*.cs]
+
+#### Core EditorConfig Options ####
+
+# Indentation and spacing
+indent_size = 2
+indent_style = space
+tab_width = 2
+
+# New line preferences
+end_of_line = lf
+
+#### .NET Coding Conventions ####
+
+#### C# Formatting Rules ####
+
+# New line preferences
+csharp_new_line_before_open_brace = namespace, types
+csharp_new_line_before_catch = false
+csharp_new_line_before_else = false
