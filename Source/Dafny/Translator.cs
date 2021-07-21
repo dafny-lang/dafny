@@ -9657,6 +9657,7 @@ namespace Microsoft.Dafny {
         var comment = "user-defined preconditions";
         foreach (var p in m.Req) {
           string errorMessage = CustomErrorMessage(p.Attributes);
+          req.Add(Requires(p.E.tok, true, CanCallAssumption(p.E, etran), null, comment));
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
             p.Label.E = (m is TwoStateLemma ? ordinaryEtran : etran.Old).TrExpr(p.E);
@@ -9667,8 +9668,7 @@ namespace Microsoft.Dafny {
               } else if (s.IsOnlyFree && !bodyKind) {
                 // don't include in split -- it would be ignored, anyhow
               } else {
-                req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, errorMessage, comment));
-                comment = null;
+                req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, errorMessage, null));
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
             }
@@ -9678,7 +9678,6 @@ namespace Microsoft.Dafny {
         foreach (var p in m.Ens) {
           string errorMessage = CustomErrorMessage(p.Attributes);
           AddEnsures(ens, Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), errorMessage, comment));
-          comment = null;
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             var post = s.E;
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
