@@ -1,192 +1,37 @@
 Maps.dfy(200,11): Warning: /!\ No terms found to trigger on.
 Maps.dfy(78,7): Error: element may not be in domain
-Execution trace:
-    (0,0): anon0
 Maps.dfy(128,17): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Maps.dfy(220,36): Error: key expressions may be referring to the same value
-Execution trace:
-    (0,0): anon0
-    (0,0): anon45_Then
-    (0,0): anon46_Then
-    (0,0): anon47_Then
-    (0,0): anon48_Then
-    (0,0): anon49_Then
-    (0,0): anon50_Then
 Maps.dfy(226,36): Error: key expressions may be referring to the same value
-Execution trace:
-    (0,0): anon0
-    (0,0): anon63_Then
-    (0,0): anon64_Then
-    (0,0): anon65_Then
-    (0,0): anon66_Then
-    (0,0): anon67_Then
-    (0,0): anon68_Then
 Maps.dfy(232,37): Error: key expressions may be referring to the same value
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
-    (0,0): anon20_Then
-    (0,0): anon21_Then
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon24_Then
 Maps.dfy(234,24): Error: key expressions may be referring to the same value
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Else
-    (0,0): anon25_Then
-    (0,0): anon26_Then
-    (0,0): anon27_Then
-    (0,0): anon28_Then
 Maps.dfy(241,41): Error: possible violation of function precondition
 Maps.dfy(215,13): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
-    (0,0): anon20_Then
-    (0,0): anon21_Then
-    (0,0): anon22_Then
 Maps.dfy(243,36): Error: possible violation of function precondition
 Maps.dfy(215,13): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon23_Then
-    (0,0): anon24_Then
-    (0,0): anon25_Then
-    (0,0): anon26_Then
 Maps.dfy(243,37): Error: key expressions may be referring to the same value
-Execution trace:
-    (0,0): anon0
-    (0,0): anon23_Then
-    (0,0): anon24_Then
-    (0,0): anon25_Then
-    (0,0): anon26_Then
-    (0,0): anon27_Then
-    (0,0): anon28_Then
 Maps.dfy(264,54): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon24_Then
-    (0,0): anon25_Then
-    (0,0): anon26_Then
-    (0,0): anon9
-    (0,0): anon31_Then
-    (0,0): anon32_Then
-    (0,0): anon33_Then
-    (0,0): anon21
 Maps.dfy(309,11): Error: index out of range
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Maps.dfy(311,16): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 Maps.dfy(317,11): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Maps.dfy(319,16): Error: new number of occurrences might be negative
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 Maps.dfy(328,11): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Maps.dfy(330,17): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 Maps.dfy(339,11): Error: index out of range
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Maps.dfy(341,16): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it may be null
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 Maps.dfy(347,11): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it may be null
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Maps.dfy(349,16): Error: new number of occurrences might be negative
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 Maps.dfy(358,11): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it may be null
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Maps.dfy(360,16): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it may be null
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 Maps.dfy(424,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
-    Maps.dfy(422,25): anon10_Else
-    (0,0): anon3
-    (0,0): anon11_Then
-    (0,0): anon5
 Maps.dfy(429,17): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Else
-    Maps.dfy(428,25): anon12_Else
-    (0,0): anon8
 Maps.dfy(430,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Else
-    (0,0): anon12_Then
-    (0,0): anon8
 Maps.dfy(442,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
-    Maps.dfy(440,25): anon10_Else
-    (0,0): anon3
-    (0,0): anon11_Then
-    (0,0): anon5
 Maps.dfy(447,17): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Else
-    Maps.dfy(446,25): anon12_Else
-    (0,0): anon8
 Maps.dfy(448,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Else
-    (0,0): anon12_Then
-    (0,0): anon8
 Maps.dfy(520,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Maps.dfy(525,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Maps.dfy(562,2): Error: decreases expression might not decrease
-Execution trace:
-    Maps.dfy(562,3): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    Maps.dfy(562,3): anon9_Else
-    Maps.dfy(562,3): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon7
 Maps.dfy(576,2): Error: decreases expression might not decrease
-Execution trace:
-    Maps.dfy(576,3): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    Maps.dfy(576,3): anon9_Else
-    Maps.dfy(576,3): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon7
 
 Dafny program verifier finished with 49 verified, 32 errors

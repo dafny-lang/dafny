@@ -1,20 +1,5 @@
 git-issue-1163.dfy(21,42): Error: receiver argument must be allocated in the state in which the function is invoked
-Execution trace:
-    (0,0): anon0
-    (0,0): anon23_Then
-    (0,0): anon24_Then
-    (0,0): anon25_Then
 git-issue-1163.dfy(23,44): Error: argument must be allocated in the state in which the function is invoked
-Execution trace:
-    (0,0): anon0
-    (0,0): anon26_Then
-    (0,0): anon27_Then
-    (0,0): anon28_Then
 git-issue-1163.dfy(27,40): Error: receiver argument must be allocated in the state in which the function is invoked
-Execution trace:
-    (0,0): anon0
-    (0,0): anon29_Else
-    (0,0): anon32_Then
-    (0,0): anon33_Then
 
 Dafny program verifier finished with 3 verified, 3 errors

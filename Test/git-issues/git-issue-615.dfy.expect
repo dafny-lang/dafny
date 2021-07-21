@@ -1,8 +1,4 @@
 git-issue-615.dfy(13,35): Error: insufficient reads clause to invoke function
-Execution trace:
-    (0,0): anon0
 git-issue-615.dfy(24,13): Error: insufficient reads clause to invoke function
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 3 verified, 2 errors

@@ -1,36 +1,12 @@
 Unchanged.dfy(33,25): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 Unchanged.dfy(34,25): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 Unchanged.dfy(35,25): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 Unchanged.dfy(38,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 Unchanged.dfy(45,25): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 Unchanged.dfy(46,25): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 Unchanged.dfy(47,25): Error: assertion violation
 Unchanged.dfy(47,41): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 Unchanged.dfy(48,25): Error: assertion violation
 Unchanged.dfy(48,35): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 
 Dafny program verifier finished with 1 verified, 8 errors

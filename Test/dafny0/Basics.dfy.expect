@@ -1,135 +1,22 @@
 Basics.dfy(623,17): Error: result of operation might violate newtype constraint for 'int8'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 Basics.dfy(13,13): Error: variable 'g', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 Basics.dfy(45,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 Basics.dfy(69,41): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
-    (0,0): anon14_Then
-    (0,0): anon15_Then
-    Basics.dfy(69,72): anon16_Else
-    Basics.dfy(69,82): anon17_Else
-    Basics.dfy(69,95): anon18_Else
-    (0,0): anon12
 Basics.dfy(93,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    Basics.dfy(83,14): anon27_Else
-    (0,0): anon2
-    Basics.dfy(84,14): anon28_Else
-    (0,0): anon4
-    (0,0): anon29_Then
-    Basics.dfy(89,12): anon30_Else
-    (0,0): anon8
-    Basics.dfy(90,12): anon32_Else
-    (0,0): anon11
-    Basics.dfy(91,13): anon34_Else
-    (0,0): anon35_Then
-    (0,0): anon15
 Basics.dfy(99,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    Basics.dfy(83,14): anon27_Else
-    (0,0): anon2
-    Basics.dfy(84,14): anon28_Else
-    (0,0): anon4
-    (0,0): anon29_Else
-    Basics.dfy(95,18): anon36_Else
-    (0,0): anon19
-    Basics.dfy(96,20): anon38_Else
-    (0,0): anon22
-    Basics.dfy(97,19): anon40_Else
-    (0,0): anon41_Then
-    (0,0): anon26
 Basics.dfy(112,27): Error: target object may be null
-Execution trace:
-    (0,0): anon0
-    Basics.dfy(105,20): anon13_Else
-    (0,0): anon2
-    Basics.dfy(106,20): anon14_Else
-    (0,0): anon4
-    Basics.dfy(107,24): anon15_Else
-    (0,0): anon6
-    (0,0): anon16_Then
 Basics.dfy(114,13): Error: target object may be null
-Execution trace:
-    (0,0): anon0
-    Basics.dfy(105,20): anon13_Else
-    (0,0): anon2
-    Basics.dfy(106,20): anon14_Else
-    (0,0): anon4
-    Basics.dfy(107,24): anon15_Else
-    (0,0): anon6
-    (0,0): anon16_Else
 Basics.dfy(148,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 Basics.dfy(167,9): Error: when left-hand sides a[b[18]] and a[4] refer to the same location, they must be assigned the same value
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
-    (0,0): anon3
-    (0,0): anon11_Then
-    (0,0): anon6
-    (0,0): anon12_Then
-    (0,0): anon9
 Basics.dfy(183,9): Error: when left-hand sides x.f and y.f refer to the same location, they must be assigned the same value
-Execution trace:
-    (0,0): anon0
 Basics.dfy(195,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 Basics.dfy(197,9): Error: assignment may update an object not in the enclosing context's modifies clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3
 Basics.dfy(197,9): Error: target object may be null
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3
 Basics.dfy(202,11): Error: left-hand sides m.x and m.x may refer to the same location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon3
-    (0,0): anon12_Then
 Basics.dfy(213,14): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon3
-    (0,0): anon12_Else
-    (0,0): anon6
-    (0,0): anon13_Then
-    (0,0): anon8
-    (0,0): anon14_Then
 Basics.dfy(273,9): Error: when left-hand sides d.x and c.x refer to the same location, they must be assigned the same value
-Execution trace:
-    (0,0): anon0
 Basics.dfy(463,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
-    (0,0): anon3
 Basics.dfy(474,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 Basics.dfy(476,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
-    (0,0): anon3
 
 Dafny program verifier finished with 48 verified, 20 errors

@@ -1,34 +1,4 @@
 DatatypeUpdate.dfy(67,15): Error: destructor 'b' can only be applied to datatype values constructed by 'BB'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon31_Then
-    (0,0): anon5
-    (0,0): anon33_Then
-    DatatypeUpdate.dfy(57,34): anon34_Else
-    DatatypeUpdate.dfy(58,58): anon37_Else
-    (0,0): anon19
-    (0,0): anon41_Else
-    (0,0): anon22
-    DatatypeUpdate.dfy(63,21): anon42_Else
-    (0,0): anon24
-    DatatypeUpdate.dfy(64,20): anon43_Else
-    (0,0): anon26
-    (0,0): anon44_Then
 DatatypeUpdate.dfy(69,15): Error: source of datatype update must be constructed by 'BB'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon31_Then
-    (0,0): anon5
-    (0,0): anon33_Then
-    DatatypeUpdate.dfy(57,34): anon34_Else
-    DatatypeUpdate.dfy(58,58): anon37_Else
-    (0,0): anon19
-    (0,0): anon41_Else
-    (0,0): anon22
-    DatatypeUpdate.dfy(63,21): anon42_Else
-    (0,0): anon24
-    DatatypeUpdate.dfy(64,20): anon43_Else
-    (0,0): anon26
-    (0,0): anon44_Else
 
 Dafny program verifier finished with 5 verified, 2 errors

@@ -1,57 +1,13 @@
 PatternMatchingErrors.dfy(13,2): Error: missing case in match expression: Cons(_,Nil)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Else
-    (0,0): anon11_Else
-    (0,0): anon12_Then
-    (0,0): anon13_Else
-    (0,0): anon14_Then
 PatternMatchingErrors.dfy(22,2): Error: missing case in match statement: Cons(_,Nil)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Then
-    (0,0): anon9_Else
-    (0,0): anon10_Then
 PatternMatchingErrors.dfy(31,2): Error: missing case in match statement: c:real (not all possibilities for constant 'c' have been covered)
-Execution trace:
-    (0,0): anon0
 PatternMatchingErrors.dfy(40,2): Error: missing case in match statement: Leaf
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Else
-    (0,0): anon15_Then
 PatternMatchingErrors.dfy(40,2): Error: missing case in match statement: Branch(Branch(_,c:bool,_),_,_) (not all possibilities for constant 'c' have been covered)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
-    (0,0): anon11_Else
-    (0,0): anon14_Then
 PatternMatchingErrors.dfy(40,2): Error: missing case in match statement: Branch(Leaf,_,Branch(_,_,_))
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
-    (0,0): anon11_Then
-    (0,0): anon12_Else
-    (0,0): anon13_Then
 PatternMatchingErrors.dfy(53,12): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon7_Then
 PatternMatchingErrors.dfy(78,2): Error: A postcondition might not hold on this return path.
 PatternMatchingErrors.dfy(75,12): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    (0,0): anon18_Then
 PatternMatchingErrors.dfy(99,33): Error: A postcondition might not hold on this return path.
 PatternMatchingErrors.dfy(96,12): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Then
-    (0,0): anon9_Else
-    (0,0): anon10_Then
 
 Dafny program verifier finished with 1 verified, 9 errors

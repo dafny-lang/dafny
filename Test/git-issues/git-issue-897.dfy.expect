@@ -1,48 +1,5 @@
 git-issue-897.dfy(10,17): Warning: /!\ No terms found to trigger on.
 git-issue-897.dfy(11,19): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon41_Then
-    (0,0): anon42_Then
-    (0,0): anon4
-    (0,0): anon43_Then
-    (0,0): anon7
-    (0,0): anon44_Else
-    git-issue-897.dfy(8,12): anon45_Else
-    (0,0): anon49_Then
-    (0,0): anon50_Then
-    (0,0): anon51_Then
-    (0,0): anon52_Then
-    (0,0): anon23
-    (0,0): anon53_Then
-    (0,0): anon54_Then
-    (0,0): anon55_Then
-    (0,0): anon56_Then
-    (0,0): anon29
 git-issue-897.dfy(16,30): Error: possible violation of postcondition of forall statement
-Execution trace:
-    (0,0): anon0
-    (0,0): anon41_Then
-    (0,0): anon42_Then
-    (0,0): anon4
-    (0,0): anon43_Then
-    (0,0): anon7
-    (0,0): anon44_Else
-    git-issue-897.dfy(8,12): anon45_Else
-    (0,0): anon49_Then
-    (0,0): anon50_Then
-    (0,0): anon51_Then
-    (0,0): anon52_Then
-    (0,0): anon23
-    (0,0): anon53_Then
-    (0,0): anon54_Then
-    (0,0): anon55_Then
-    (0,0): anon56_Then
-    (0,0): anon29
-    (0,0): anon57_Then
-    (0,0): anon58_Then
-    (0,0): anon32
-    (0,0): anon59_Then
-    (0,0): anon60_Then
 
 Dafny program verifier finished with 0 verified, 2 errors

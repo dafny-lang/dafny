@@ -1,181 +1,47 @@
 Twostate-Verification.dfy(271,13): Error: A postcondition might not hold on this return path.
 Twostate-Verification.dfy(263,24): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Else
-    (0,0): anon6_Else
 Twostate-Verification.dfy(277,4): Error: A postcondition might not hold on this return path.
 Twostate-Verification.dfy(276,26): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 Twostate-Verification.dfy(313,38): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon14_Else
-    (0,0): anon3
-    (0,0): anon15_Then
-    (0,0): anon5
-    Twostate-Verification.dfy(309,14): anon16_Else
-    (0,0): anon7
-    (0,0): anon17_Then
-    (0,0): anon9
-    Twostate-Verification.dfy(312,14): anon18_Else
-    (0,0): anon11
-    (0,0): anon19_Then
-    (0,0): anon13
 Twostate-Verification.dfy(337,23): Error: A precondition for this call might not hold.
 Twostate-Verification.dfy(317,29): Related location: This is the precondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
-    (0,0): after_0
-    (0,0): anon7_Then
 Twostate-Verification.dfy(359,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 Twostate-Verification.dfy(361,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 Twostate-Verification.dfy(384,17): Error: receiver argument must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 Twostate-Verification.dfy(386,17): Error: receiver argument must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 Twostate-Verification.dfy(391,26): Error: argument 0 ('c') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 Twostate-Verification.dfy(393,28): Error: argument 0 ('c') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
 Twostate-Verification.dfy(398,19): Error: receiver argument must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon15_Then
 Twostate-Verification.dfy(412,8): Error: receiver argument must be allocated in the two-state lemma's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 Twostate-Verification.dfy(414,8): Error: receiver argument must be allocated in the two-state lemma's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 Twostate-Verification.dfy(420,27): Error: parameter 0 ('c') must be allocated in the two-state lemma's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 Twostate-Verification.dfy(422,29): Error: parameter 0 ('c') must be allocated in the two-state lemma's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 Twostate-Verification.dfy(447,28): Error: argument 0 ('c') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 Twostate-Verification.dfy(451,30): Error: argument 0 ('c') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 Twostate-Verification.dfy(466,29): Error: parameter 0 ('c') must be allocated in the two-state lemma's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 Twostate-Verification.dfy(470,31): Error: parameter 0 ('c') must be allocated in the two-state lemma's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 Twostate-Verification.dfy(558,22): Error: argument 2 ('c') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 Twostate-Verification.dfy(561,22): Error: parameter 2 ('c') must be allocated in the two-state lemma's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 Twostate-Verification.dfy(564,22): Error: argument 2 ('c') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 Twostate-Verification.dfy(567,22): Error: parameter 2 ('c') must be allocated in the two-state lemma's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 Twostate-Verification.dfy(579,11): Error: receiver argument must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 Twostate-Verification.dfy(582,11): Error: receiver argument must be allocated in the two-state lemma's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 Twostate-Verification.dfy(593,19): Error: argument 1 ('c') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 Twostate-Verification.dfy(596,19): Error: parameter 1 ('c') must be allocated in the two-state lemma's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 Twostate-Verification.dfy(599,19): Error: argument 1 ('c') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 Twostate-Verification.dfy(602,19): Error: parameter 1 ('c') must be allocated in the two-state lemma's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 Twostate-Verification.dfy(613,22): Error: argument 2 ('c') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 Twostate-Verification.dfy(616,22): Error: parameter 2 ('c') must be allocated in the two-state lemma's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 Twostate-Verification.dfy(619,26): Error: argument 3 ('c') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 Twostate-Verification.dfy(622,26): Error: parameter 3 ('c') must be allocated in the two-state lemma's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 Twostate-Verification.dfy(635,25): Error: receiver argument must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 Twostate-Verification.dfy(659,29): Error: receiver must be allocated in the state in which its fields are accessed
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
 Twostate-Verification.dfy(37,26): Error: receiver must be allocated in the state in which its fields are accessed
-Execution trace:
-    (0,0): anon0
 Twostate-Verification.dfy(41,32): Error: receiver argument must be allocated in the state in which the function is invoked
-Execution trace:
-    (0,0): anon0
 Twostate-Verification.dfy(56,26): Error: receiver must be allocated in the state in which its fields are accessed
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Twostate-Verification.dfy(58,32): Error: receiver argument must be allocated in the state in which the function is invoked
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 Twostate-Verification.dfy(74,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Twostate-Verification.dfy(6,4): Error: parameter 0 ('c') must be allocated in the two-state lemma's previous state
-Execution trace:
-    (0,0): anon0
 Twostate-Verification.dfy(12,17): Error: receiver must be allocated in the state in which its fields are accessed
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 63 verified, 42 errors
