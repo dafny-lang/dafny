@@ -49,10 +49,7 @@ namespace Microsoft.Dafny
 
       DafnyOptions.Install(new DafnyOptions(reporter));
 
-      List<DafnyFile> dafnyFiles;
-      List<string> otherFiles;
-
-      CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(args, out dafnyFiles, out otherFiles);
+      CommandLineArgumentsResult cliArgumentsResult = ProcessCommandLineArguments(args, out var dafnyFiles, out var otherFiles);
       ExitValue exitValue;
       switch (cliArgumentsResult)
       {
@@ -353,14 +350,11 @@ namespace Microsoft.Dafny
       watch.Start();
 
       foreach (var prog in boogiePrograms) {
-        PipelineStatistics newstats;
-        PipelineOutcome newoc;
-
         if (DafnyOptions.O.SeparateModuleOutput) {
           ExecutionEngine.printer.AdvisoryWriteLine("For module: {0}", prog.Item1);
         }
 
-        isVerified = BoogieOnce(baseName, prog.Item1, prog.Item2, programId, out newstats, out newoc) && isVerified;
+        isVerified = BoogieOnce(baseName, prog.Item1, prog.Item2, programId, out var newstats, out var newoc) && isVerified;
 
         watch.Stop();
 
@@ -370,8 +364,7 @@ namespace Microsoft.Dafny
 
         if (DafnyOptions.O.SeparateModuleOutput) {
           TimeSpan ts = watch.Elapsed;
-          string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}",
-            ts.Hours, ts.Minutes, ts.Seconds);
+          string elapsedTime = $"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
           ExecutionEngine.printer.AdvisoryWriteLine("Elapsed time: {0}", elapsedTime);
           WriteTrailer(newstats);
         }
@@ -439,7 +432,7 @@ namespace Microsoft.Dafny
           WriteStatss(statss);
           if ((DafnyOptions.O.Compile && verified && !CommandLineOptions.Clo.UserConstrainedProcsToCheck) || DafnyOptions.O.ForceCompile) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
-          } else if ((2 <= DafnyOptions.O.SpillTargetCode && verified && !CommandLineOptions.Clo.UserConstrainedProcsToCheck) || 3 <= DafnyOptions.O.SpillTargetCode) {
+          } else if (2 <= DafnyOptions.O.SpillTargetCode && verified && !CommandLineOptions.Clo.UserConstrainedProcsToCheck || 3 <= DafnyOptions.O.SpillTargetCode) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, false);
           }
           break;
@@ -709,9 +702,8 @@ namespace Microsoft.Dafny
       }
 
       // compile the program into an assembly
-      object compilationResult;
       var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames,
-        hasMain && DafnyOptions.O.RunAfterCompile, outputWriter, out compilationResult);
+        hasMain && DafnyOptions.O.RunAfterCompile, outputWriter, out var compilationResult);
       if (compiledCorrectly && DafnyOptions.O.RunAfterCompile) {
         if (hasMain) {
           if (DafnyOptions.O.CompileVerbose) {

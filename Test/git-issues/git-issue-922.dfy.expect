@@ -1,8 +1,4 @@
 git-issue-922.dfy(12,16): Error: value does not satisfy the subset constraints of 'L'
-Execution trace:
-    (0,0): anon0
 git-issue-922.dfy(27,15): Error: value does not satisfy the subset constraints of 'L'
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 3 verified, 2 errors

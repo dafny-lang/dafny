@@ -1,161 +1,25 @@
 Termination.dfy[TerminationRefinement1](441,5): Error: failure to decrease termination measure
-Execution trace:
-    (0,0): anon0
 Termination.dfy(108,2): Error: cannot prove termination; try supplying a decreases clause for the loop
-Execution trace:
-    (0,0): anon0
-    Termination.dfy(108,3): anon6_LoopHead
-    (0,0): anon6_LoopBody
-    Termination.dfy(108,3): anon7_Else
-    Termination.dfy(108,3): anon8_Else
 Termination.dfy(125,2): Error: decreases expression might not decrease
-Execution trace:
-    (0,0): anon0
-    Termination.dfy(125,3): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    Termination.dfy(125,3): anon9_Else
-    (0,0): anon10_Then
-    (0,0): anon5
-    Termination.dfy(125,3): anon11_Else
 Termination.dfy(126,16): Error: decreases expression must be bounded below by 0 at end of loop iteration
-Execution trace:
-    (0,0): anon0
-    Termination.dfy(125,3): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    Termination.dfy(125,3): anon9_Else
-    (0,0): anon10_Then
-    (0,0): anon5
-    Termination.dfy(125,3): anon11_Else
 Termination.dfy(255,34): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Else
-    (0,0): anon9_Else
-    (0,0): anon10_Then
 Termination.dfy(296,2): Error: decreases expression might not decrease
-Execution trace:
-    Termination.dfy(296,3): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    Termination.dfy(296,3): anon10_Else
-    Termination.dfy(296,3): anon11_Else
-    (0,0): anon12_Else
 Termination.dfy(534,2): Error: decreases expression might not decrease
-Execution trace:
-    (0,0): anon0
-    Termination.dfy(534,3): anon6_LoopHead
-    (0,0): anon6_LoopBody
-    Termination.dfy(534,3): anon7_Else
-    Termination.dfy(534,3): anon8_Else
 Termination.dfy(542,2): Error: decreases expression might not decrease
-Execution trace:
-    Termination.dfy(542,3): anon6_LoopHead
-    (0,0): anon6_LoopBody
-    Termination.dfy(542,3): anon7_Else
-    Termination.dfy(542,3): anon8_Else
 Termination.dfy(549,2): Error: decreases expression might not decrease
-Execution trace:
-    Termination.dfy(549,3): anon6_LoopHead
-    (0,0): anon6_LoopBody
-    Termination.dfy(549,3): anon7_Else
-    Termination.dfy(549,3): anon8_Else
 Termination.dfy(556,2): Error: decreases expression might not decrease
-Execution trace:
-    Termination.dfy(556,3): anon6_LoopHead
-    (0,0): anon6_LoopBody
-    Termination.dfy(556,3): anon7_Else
-    Termination.dfy(556,3): anon8_Else
 Termination.dfy(563,2): Error: decreases expression might not decrease
-Execution trace:
-    Termination.dfy(563,3): anon6_LoopHead
-    (0,0): anon6_LoopBody
-    Termination.dfy(563,3): anon7_Else
-    Termination.dfy(563,3): anon8_Else
 Termination.dfy(571,2): Error: decreases expression might not decrease
-Execution trace:
-    Termination.dfy(571,3): anon6_LoopHead
-    (0,0): anon6_LoopBody
-    Termination.dfy(571,3): anon7_Else
-    Termination.dfy(571,3): anon8_Else
 Termination.dfy(579,2): Error: decreases expression might not decrease
-Execution trace:
-    Termination.dfy(579,3): anon6_LoopHead
-    (0,0): anon6_LoopBody
-    Termination.dfy(579,3): anon7_Else
-    Termination.dfy(579,3): anon8_Else
 Termination.dfy(589,2): Error: decreases expression might not decrease
-Execution trace:
-    (0,0): anon0
-    Termination.dfy(589,3): anon6_LoopHead
-    (0,0): anon6_LoopBody
-    Termination.dfy(589,3): anon7_Else
-    Termination.dfy(589,3): anon8_Else
 Termination.dfy(674,2): Error: cannot prove termination; try supplying a decreases clause for the loop
-Execution trace:
-    (0,0): anon0
-    Termination.dfy(674,3): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    Termination.dfy(674,3): anon9_Else
-    Termination.dfy(674,3): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon7
 Termination.dfy(714,2): Error: cannot prove termination; try supplying a decreases clause for the loop
-Execution trace:
-    Termination.dfy(714,3): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    Termination.dfy(714,3): anon9_Else
-    Termination.dfy(714,3): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon7
 Termination.dfy(722,2): Error: cannot prove termination; try supplying a decreases clause for the loop
-Execution trace:
-    Termination.dfy(722,3): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    Termination.dfy(722,3): anon9_Else
-    Termination.dfy(722,3): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon7
 Termination.dfy(730,2): Error: decreases expression might not decrease
-Execution trace:
-    Termination.dfy(730,3): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    Termination.dfy(730,3): anon9_Else
-    Termination.dfy(730,3): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon7
 Termination.dfy(806,2): Error: cannot prove termination; try supplying a decreases clause for the loop
-Execution trace:
-    (0,0): anon0
-    Termination.dfy(806,3): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    Termination.dfy(806,3): anon9_Else
-    Termination.dfy(806,3): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon7
 Termination.dfy(1152,2): Error: cannot prove termination; try supplying a decreases clause for the loop
-Execution trace:
-    Termination.dfy(1152,3): anon11_LoopHead
-    (0,0): anon11_LoopBody
-    Termination.dfy(1152,3): anon12_Else
-    Termination.dfy(1152,3): anon13_Else
-    (0,0): anon14_Then
-    (0,0): anon15_Then
-    (0,0): anon10
 Termination.dfy(1168,2): Error: cannot prove termination; try supplying a decreases clause for the loop
-Execution trace:
-    (0,0): anon0
-    Termination.dfy(1168,3): anon6_LoopHead
-    (0,0): anon6_LoopBody
-    Termination.dfy(1168,3): anon7_Else
-    Termination.dfy(1168,3): anon8_Else
 Termination.dfy(361,46): Error: failure to decrease termination measure
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Else
-    (0,0): anon10_Then
-    (0,0): anon11_Else
 Termination.dfy(577,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 
 Dafny program verifier finished with 95 verified, 23 errors

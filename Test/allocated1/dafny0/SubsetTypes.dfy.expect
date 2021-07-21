@@ -1,361 +1,87 @@
 SubsetTypes.dfy(7,18): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(8,9): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(10,23): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(11,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-    (0,0): anon2
 SubsetTypes.dfy(15,15): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon2
 SubsetTypes.dfy(16,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon2
-    (0,0): anon6_Then
-    (0,0): anon4
 SubsetTypes.dfy(19,11): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon2
-    (0,0): anon6_Then
-    (0,0): anon4
 SubsetTypes.dfy(21,15): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon2
-    (0,0): anon6_Then
-    (0,0): anon4
 SubsetTypes.dfy(23,8): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon2
-    (0,0): anon6_Then
-    (0,0): anon4
 SubsetTypes.dfy(30,4): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 SubsetTypes.dfy(31,7): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 SubsetTypes.dfy(42,24): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(44,15): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(49,15): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(51,9): Error: value does not satisfy the subset constraints of 'int -> nat' (possible cause: it may be partial or have read effects)
-Execution trace:
-    (0,0): anon0
-    SubsetTypes.dfy(50,15): anon5_Else
 SubsetTypes.dfy(56,4): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 SubsetTypes.dfy(63,23): Error: value does not satisfy the subset constraints of 'set<nat>'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(64,9): Error: value does not satisfy the subset constraints of 'set<nat>'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(66,28): Error: value does not satisfy the subset constraints of 'set<nat>'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(67,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-    (0,0): anon2
 SubsetTypes.dfy(71,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon2
 SubsetTypes.dfy(72,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon2
-    (0,0): anon6_Then
-    (0,0): anon4
 SubsetTypes.dfy(75,11): Error: value does not satisfy the subset constraints of 'set<nat>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon2
-    (0,0): anon6_Then
-    (0,0): anon4
 SubsetTypes.dfy(77,15): Error: value does not satisfy the subset constraints of 'set<nat>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon2
-    (0,0): anon6_Then
-    (0,0): anon4
 SubsetTypes.dfy(79,8): Error: value does not satisfy the subset constraints of 'set<nat>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon2
-    (0,0): anon6_Then
-    (0,0): anon4
 SubsetTypes.dfy(86,4): Error: value does not satisfy the subset constraints of 'set<nat>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 SubsetTypes.dfy(87,7): Error: value does not satisfy the subset constraints of 'set<nat>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 SubsetTypes.dfy(98,24): Error: value does not satisfy the subset constraints of 'set<nat>'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(100,15): Error: value does not satisfy the subset constraints of 'set<nat>'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(101,9): Error: value does not satisfy the subset constraints of 'set<int> ~> set<nat>'
-Execution trace:
-    (0,0): anon0
-    SubsetTypes.dfy(101,10): anon5_Else
 SubsetTypes.dfy(106,15): Error: value does not satisfy the subset constraints of 'set<nat>'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(108,9): Error: value does not satisfy the subset constraints of 'set<int> -> set<nat>' (possible cause: it may be partial or have read effects)
-Execution trace:
-    (0,0): anon0
-    SubsetTypes.dfy(107,15): anon5_Else
 SubsetTypes.dfy(113,4): Error: value does not satisfy the subset constraints of 'set<nat>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 SubsetTypes.dfy(123,32): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 SubsetTypes.dfy(125,20): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 SubsetTypes.dfy(135,25): Error: value does not satisfy the subset constraints of 'int ~> int'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 SubsetTypes.dfy(136,25): Error: value does not satisfy the subset constraints of 'int ~> int'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 SubsetTypes.dfy(141,25): Error: value does not satisfy the subset constraints of 'int ~> nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 SubsetTypes.dfy(143,25): Error: value does not satisfy the subset constraints of 'int ~> nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 SubsetTypes.dfy(144,25): Error: value does not satisfy the subset constraints of 'int ~> nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 SubsetTypes.dfy(157,25): Error: value does not satisfy the subset constraints of 'nat ~> nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 SubsetTypes.dfy(159,25): Error: value does not satisfy the subset constraints of 'nat ~> nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 SubsetTypes.dfy(169,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon6_Then
-    (0,0): anon4
 SubsetTypes.dfy(182,11): Error: value does not satisfy the subset constraints of 'int ~> nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon37_Then
-    SubsetTypes.dfy(182,12): anon38_Else
 SubsetTypes.dfy(199,25): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it may be null
-Execution trace:
-    (0,0): anon0
-    (0,0): anon28_Then
-    SubsetTypes.dfy(198,26): anon29_Else
-    SubsetTypes.dfy(199,26): anon31_Else
 SubsetTypes.dfy(204,23): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it may be null
-Execution trace:
-    (0,0): anon0
-    (0,0): anon28_Then
-    SubsetTypes.dfy(198,26): anon29_Else
-    SubsetTypes.dfy(199,26): anon31_Else
-    (0,0): anon11
-    SubsetTypes.dfy(201,25): anon33_Else
-    SubsetTypes.dfy(202,25): anon35_Else
-    SubsetTypes.dfy(203,24): anon37_Else
-    SubsetTypes.dfy(204,24): anon39_Else
 SubsetTypes.dfy(213,11): Error: value of expression (of type 'array<Person>') is not known to be an instance of type 'array<Person?>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 SubsetTypes.dfy(216,11): Error: value of expression (of type 'array<Person?>') is not known to be an instance of type 'array<Person>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 SubsetTypes.dfy(232,11): Error: value does not satisfy the subset constraints of 'seq<Person>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon15_Then
 SubsetTypes.dfy(241,11): Error: value does not satisfy the subset constraints of 'seq<Person>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon18_Then
 SubsetTypes.dfy(270,28): Error: value does not satisfy the subset constraints of 'byte'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 SubsetTypes.dfy(271,30): Error: value does not satisfy the subset constraints of 'byte'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 SubsetTypes.dfy(272,30): Error: value does not satisfy the subset constraints of 'byte'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 SubsetTypes.dfy(273,38): Error: value does not satisfy the subset constraints of 'byte'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 SubsetTypes.dfy(278,33): Error: value does not satisfy the subset constraints of 'byte'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
 SubsetTypes.dfy(279,39): Error: value does not satisfy the subset constraints of 'byte'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 SubsetTypes.dfy(284,28): Error: value does not satisfy the subset constraints of 'byte'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 SubsetTypes.dfy(285,29): Error: value does not satisfy the subset constraints of 'seq<byte>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 SubsetTypes.dfy(286,29): Error: value does not satisfy the subset constraints of 'set<byte>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 SubsetTypes.dfy(287,29): Error: value does not satisfy the subset constraints of 'multiset<byte>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 SubsetTypes.dfy(288,29): Error: value does not satisfy the subset constraints of 'map<byte, byte>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 SubsetTypes.dfy(318,18): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(323,20): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(329,18): Error: result of operation might violate newtype constraint for 'Nat'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(335,20): Error: result of operation might violate newtype constraint for 'Nat'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(340,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 SubsetTypes.dfy(341,18): Error: value does not satisfy the subset constraints of 'Nat'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(345,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 SubsetTypes.dfy(346,18): Error: result of operation might violate newtype constraint for 'Nat'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(350,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 SubsetTypes.dfy(358,21): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(363,23): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(375,19): Error: value does not satisfy the subset constraints of 'X'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 SubsetTypes.dfy(377,19): Error: value does not satisfy the subset constraints of 'Y'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 SubsetTypes.dfy(379,19): Error: value does not satisfy the subset constraints of 'Y'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 SubsetTypes.dfy(381,19): Error: value does not satisfy the subset constraints of 'Y'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 SubsetTypes.dfy(383,19): Error: value of expression (of type 'C?') is not known to be an instance of type 'C', because it may be null
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 SubsetTypes.dfy(388,29): Error: value does not satisfy the subset constraints of 'int --> int' (possible cause: it may have read effects)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 SubsetTypes.dfy(390,28): Error: value does not satisfy the subset constraints of 'int -> int' (possible cause: it may be partial or have read effects)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 SubsetTypes.dfy(392,28): Error: value does not satisfy the subset constraints of 'int -> int' (possible cause: it may be partial or have read effects)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 SubsetTypes.dfy(394,28): Error: value does not satisfy the subset constraints of 'int ~> nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 SubsetTypes.dfy(396,26): Error: value does not satisfy the subset constraints of 'int ~> X'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 SubsetTypes.dfy(399,9): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 SubsetTypes.dfy(409,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 SubsetTypes.dfy(411,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 
 Dafny program verifier finished with 13 verified, 85 errors

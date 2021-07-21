@@ -1,22 +1,7 @@
 AbstemiousErrors.dfy(39,6): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context; perhaps try declaring function 'voraciousAdd' with '{:abstemious}')
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 AbstemiousErrors.dfy(47,6): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context; perhaps try declaring function 'voraciousAdd' with '{:abstemious}')
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 AbstemiousErrors.dfy(53,2): Error: cannot prove termination; try supplying a decreases clause (note that the call is not sufficiently guarded to be used co-recursively)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 AbstemiousErrors.dfy(60,6): Error: cannot prove termination; try supplying a decreases clause (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 AbstemiousErrors.dfy(68,6): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context; perhaps try declaring function 'voraciousAdd' with '{:abstemious}')
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 
 Dafny program verifier finished with 5 verified, 5 errors

@@ -2,7 +2,5 @@
 Verifying Impl$$_module.__default.foo ...
   [1 proof obligation]  error
 git-issue59.dfy(7,17): Error: value does not satisfy the subset constraints of 'byte'
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 0 verified, 1 error

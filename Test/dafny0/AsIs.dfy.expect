@@ -1,46 +1,13 @@
 AsIs.dfy(60,27): Error: value of expression (of type 'object') is not known to be an instance of type 'K<W>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 AsIs.dfy(62,15): Error: value of expression (of type 'object') is not known to be an instance of type 'B<real, W>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 AsIs.dfy(64,15): Error: value of expression (of type 'object') is not known to be an instance of type 'B<W, int>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 AsIs.dfy(66,25): Error: value of expression (of type 'object') is not known to be an instance of type 'B<int, int>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 AsIs.dfy(68,15): Error: value of expression (of type 'object') is not known to be an instance of type 'A<W>'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 AsIs.dfy(119,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 AsIs.dfy(123,14): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 AsIs.dfy(128,14): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 AsIs.dfy(139,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 AsIs.dfy(143,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 AsIs.dfy(148,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 
 Dafny program verifier finished with 7 verified, 11 errors

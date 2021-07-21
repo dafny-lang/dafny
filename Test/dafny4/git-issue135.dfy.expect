@@ -1,9 +1,3 @@
 git-issue135.dfy(11,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon2
-    git-issue135.dfy(11,30): anon6_Else
-    (0,0): anon4
 
 Dafny program verifier finished with 0 verified, 1 error

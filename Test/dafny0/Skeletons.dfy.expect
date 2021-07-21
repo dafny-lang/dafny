@@ -1,12 +1,4 @@
 Skeletons.dfy(45,2): Error: A postcondition might not hold on this return path.
 Skeletons.dfy(44,14): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    Skeletons.dfy[C0](32,5): anon11_LoopHead
-    (0,0): anon11_LoopBody
-    Skeletons.dfy[C0](32,5): anon12_Else
-    (0,0): anon13_Then
-    Skeletons.dfy[C0](37,19): anon15_Else
-    (0,0): anon10
 
 Dafny program verifier finished with 4 verified, 1 error
