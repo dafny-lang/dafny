@@ -8099,13 +8099,14 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
 
-      if (result != null) {
+      if (result == null && expr is ComprehensionExpr) {
+        builder.Add(TrAssumeCmd(expr.tok, CanCallAssumption(expr, etran)));
+      } else if (result != null) {
         Contract.Assert(resultType != null);
+        builder.Add(TrAssumeCmd(expr.tok, CanCallAssumption(expr, etran)));
         var bResult = etran.TrExpr(expr);
         CheckSubrange(expr.tok, bResult, expr.Type, resultType, builder);
         builder.Add(TrAssumeCmd(expr.tok, Bpl.Expr.Eq(result, bResult)));
-        builder.Add(TrAssumeCmd(expr.tok, CanCallAssumption(expr, etran)));
-        builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
         if (AlwaysUseHeap) {
           builder.Add(TrAssumeCmd(expr.tok, MkIsAlloc(result, resultType, etran.HeapExpr)));
         }
