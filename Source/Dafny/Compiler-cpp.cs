@@ -14,6 +14,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -756,7 +757,7 @@ namespace Microsoft.Dafny {
       }
       wdr.Write(");\n");
 
-      var block = wr.NewBlock(")", null, ConcreteSyntaxTree.BraceStyle.Newline, ConcreteSyntaxTree.BraceStyle.Newline);
+      var block = wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
 
       if (targetReturnTypeReplacement != null) {
         var beforeReturnBlock = block.Fork(0);
@@ -800,7 +801,7 @@ namespace Microsoft.Dafny {
       int nIns = WriteFormals("", formals, wr);
 
       wdr.Write(");");
-      var w = wr.NewBlock(")", null, ConcreteSyntaxTree.BraceStyle.Newline, ConcreteSyntaxTree.BraceStyle.Newline);
+      var w = wr.NewBlock(")", null, BraceStyle.Newline, BraceStyle.Newline);
 
       return w;
     }
@@ -1218,7 +1219,7 @@ namespace Microsoft.Dafny {
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      wr.Write("std::cout << (");
+      wr.Write("dafny_print(");
       TrExpr(arg, wr, false);
       wr.WriteLine(");");
     }
@@ -1264,6 +1265,12 @@ namespace Microsoft.Dafny {
       if (tok != null) wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
       TrExpr(messageExpr, wr, false);
       wr.WriteLine(");");
+    }
+
+    protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
+      List<Statement> body, ConcreteSyntaxTree wr) {
+
+      throw new NotImplementedException("for loops have not yet been implemented");
     }
 
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
@@ -1392,7 +1399,7 @@ namespace Microsoft.Dafny {
     }
     void EmitIntegerLiteral(BigInteger i, ConcreteSyntaxTree wr) {
       Contract.Requires(wr != null);
-      wr.Write(i);
+      wr.Write(i.ToString());
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
@@ -2369,7 +2376,17 @@ namespace Microsoft.Dafny {
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
       var exeName = ComputeExeName(targetFilename);
-      var args = $"-g -Wall -Wextra -Wpedantic -Wno-unused-variable -Wno-deprecated-copy -Wno-unknown-warning-option -std=c++17 -I{codebase} -o {exeName} {targetFilename}";
+      var warnings = "-Wall -Wextra -Wpedantic -Wno-unused-variable";
+      if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+        warnings += " -Wno-deprecated-copy";
+      }
+      if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+        warnings += " -Wno-unknown-warning-option";
+      }
+      if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+        warnings += " -Wno-unused-but-set-variable";
+      }
+      var args = warnings + $" -g -std=c++17 -I{codebase} -o {exeName} {targetFilename}";
       compilationResult = null;
       var psi = new ProcessStartInfo("g++", args) {
         CreateNoWindow = true,

@@ -33,7 +33,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest {
           .ConfigureLogging(SetupTestLogging)
           .WithDafnyLanguageServer(CreateConfiguration())
       );
+      // This is the style used in the LSP implementation itself:
+      // https://github.com/OmniSharp/csharp-language-server-protocol/blob/1b6788df2600083c28811913a221ccac7b1d72c9/test/Lsp.Tests/Testing/LanguageServerTestBaseTests.cs
+#pragma warning disable VSTHRD110 // Observe result of async calls
       Server.Initialize(CancellationToken);
+#pragma warning restore VSTHRD110 // Observe result of async calls
       return (clientPipe.Reader.AsStream(), serverPipe.Writer.AsStream());
     }
 

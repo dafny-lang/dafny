@@ -1069,7 +1069,7 @@ module CycleError5 {
   datatype Dt<T> = Make(T)
 }
 module CycleError6 {
-  type A = Dt<Dt<A>>  // error: cycle A -> Dt<Dt<A>> -> Dt<A> -> A
+  type A = Dt<Dt<A>>  // error: cycle A -> A
   datatype Dt<T> = Make(T)
 }
 
@@ -1503,7 +1503,7 @@ module GhostTests {
         { SideEffect(); }  // error: cannot call (ghost) method with a modifies clause
         { var x := 8;
           while x != 0
-            modifies this;  // error: cannot use a modifies clause on a loop
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
           {
             x := x - 1;
           }
@@ -1532,7 +1532,7 @@ module GhostTests {
         { M(); }  // error: cannot call (ghost) method with a modifies clause
         { var x := 8;
           while x != 0
-            modifies this;  // error: cannot use a modifies clause on a loop
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
           {
             x := x - 1;
           }
@@ -3413,5 +3413,33 @@ module LetSuchThatGhost {
       var e :| e in s && True(e);
       e == e;
     if p then 6 else 8  // error: p is ghost
+  }
+}
+
+// --------------- hint restrictions in non-while loops ------------------------------
+
+module HintRestrictionsOtherLoops {
+  class C {
+    function F(): int
+    {
+      calc {
+        6;
+        { var x := 8;
+          while
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
+          {
+            case x != 0 => x := x - 1;
+          }
+        }
+        6;
+        { for i := 0 to 8
+            modifies this  // error: cannot use a modifies clause on a loop inside a hint
+          {
+          }
+        }
+        6;
+      }
+      5
+    }
   }
 }

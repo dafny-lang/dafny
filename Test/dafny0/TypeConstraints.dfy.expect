@@ -922,4 +922,34 @@ module PrettyPrintingBindingPowers {
     m := m + (m + m);
   }
 }
+
+module SameSCC {
+  /* CALL GRAPH for module SameSCC:
+   * SCC at height 2:
+   *   G6
+   *   G5
+   *   G4
+   *   G3
+   *   G2
+   *   G1
+   *   G0
+   * SCC at height 1:
+   *   _tuple#2
+   * SCC at height 0:
+   *   array
+   */
+  type G0 = G1
+
+  type G1 = G2
+
+  type G2 = G3<int>
+
+  type G3<X> = (X, G4)
+
+  type G4 = G5
+
+  datatype G5 = G5(G6)
+
+  codatatype G6 = G6(array<G0>)
+}
 22 resolution/type errors detected in TypeConstraints.dfy

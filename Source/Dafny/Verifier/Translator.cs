@@ -1431,6 +1431,8 @@ namespace Microsoft.Dafny {
             sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, ax, "Questionmark and identifier"));
           }
 
+          // check well-formedness of any default-value expressions
+          AddWellformednessCheck(ctor);
         }
 
 
@@ -2480,7 +2482,7 @@ namespace Microsoft.Dafny {
       // wellformedness check for method specification
       Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
-      if(InVerificationScope(iter)){
+      if (InVerificationScope(iter)){
         AddIteratorWellformed(iter, proc);
       }
       // the method itself
@@ -2588,8 +2590,15 @@ namespace Microsoft.Dafny {
       var builder = new BoogieStmtListBuilder(this);
       var etran = new ExpressionTranslator(this, predef, iter.tok);
       var localVariables = new List<Variable>();
+      GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables);
 
-      Bpl.StmtList stmts;
+      // check well-formedness of any default-value expressions (before assuming preconditions)
+      foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
+        var e = formal.DefaultValue;
+        CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran);
+        builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+      }
       // check well-formedness of the preconditions, and then assume each one of them
       foreach (var p in iter.Requires) {
         CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
@@ -2681,7 +2690,7 @@ namespace Microsoft.Dafny {
       }
       builder.Add(new Bpl.IfCmd(iter.tok, null, yeBuilder.Collect(iter.tok), null, endBuilder.Collect(iter.tok)));
 
-      stmts = builder.Collect(iter.tok);
+      Bpl.StmtList stmts = builder.Collect(iter.tok);
 
       if (EmitImplementation(iter.Attributes)) {
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
@@ -4570,6 +4579,20 @@ namespace Microsoft.Dafny {
         m.Outs.Iter(RemoveDefiniteAssignmentTracker);
         Contract.Assert(definiteAssignmentTrackers.Count == 0);
       } else {
+        // check well-formedness of any default-value expressions (before assuming preconditions)
+        foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
+          var e = formal.DefaultValue;
+          CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran);
+          builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+          CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+
+          if (formal.IsOld) {
+            Bpl.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
+            if (wh != null) {
+              builder.Add(Assert(e.tok, wh, "default value must be allocated in the two-state lemma's previous state"));
+            }
+          }
+        }
         // check well-formedness of the preconditions, and then assume each one of them
         foreach (AttributedExpression p in m.Req) {
           CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
@@ -4911,7 +4934,7 @@ namespace Microsoft.Dafny {
           } else {
             var pp = f.OverriddenFunction.Result;
             Contract.Assert(!pp.IsOld);
-            pOut = new Formal(pp.tok, pp.Name, f.ResultType, false, pp.IsGhost);
+            pOut = new Formal(pp.tok, pp.Name, f.ResultType, false, pp.IsGhost, null);
           }
           var varType = TrType(pOut.Type);
           var wh = GetWhereClause(pOut.tok, new Bpl.IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator), varType), pOut.Type, etran, NOALLOC);
@@ -5538,8 +5561,8 @@ namespace Microsoft.Dafny {
         printer.PrintFrameSpecLine("", m.Mod.Expressions, 0, null);
         printer.PrintSpec("", m.Ens, 0);
         printer.PrintDecreasesSpec(m.Decreases, 0);
-        if (!specificationOnly && m.Body != null && RevealedInScope(m))
-        {
+        writer.WriteLine();
+        if (!specificationOnly && m.Body != null && RevealedInScope(m)) {
           printer.PrintStatement(m.Body, 0);
         }
         data = Encoding.UTF8.GetBytes(writer.ToString());
@@ -5593,8 +5616,8 @@ namespace Microsoft.Dafny {
         printer.PrintFrameSpecLine("", f.Reads, 0, null);
         printer.PrintSpec("", f.Ens, 0);
         printer.PrintDecreasesSpec(f.Decreases, 0);
-        if (!specificationOnly && f.Body != null && RevealedInScope(f))
-        {
+        writer.WriteLine();
+        if (!specificationOnly && f.Body != null && RevealedInScope(f)) {
           printer.PrintExpression(f.Body, false);
         }
         data = Encoding.UTF8.GetBytes(writer.ToString());
@@ -6114,10 +6137,28 @@ namespace Microsoft.Dafny {
 
       DefineFrame(f.tok, f.Reads, builder, locals, null);
       InitializeFuelConstant(f.tok, builder, etran);
+
+      // Check well-formedness of any default-value expressions (before assuming preconditions).
+      var wfo = new WFOptions(null, true, true, true); // no reads or termination checks
+      foreach (var formal in f.Formals.Where(formal => formal.DefaultValue != null)) {
+        var e = formal.DefaultValue;
+        CheckWellformed(e, wfo, locals, builder, etran);
+        builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+
+        if (formal.IsOld) {
+          Bpl.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
+          if (wh != null) {
+            builder.Add(Assert(e.tok, wh, "default value must be allocated in the two-state function's previous state"));
+          }
+        }
+      }
+      wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, builder);
+
       // Check well-formedness of the preconditions (including termination), and then
       // assume each one of them.  After all that (in particular, after assuming all
       // of them), do the postponed reads checks.
-      var wfo = new WFOptions(null, true, true /* do delayed reads checks */);
+      wfo = new WFOptions(null, true, true /* do delayed reads checks */);
       foreach (AttributedExpression p in f.Req) {
         CheckWellformedAndAssume(p.E, wfo, locals, builder, etran);
       }
@@ -6436,8 +6477,7 @@ namespace Microsoft.Dafny {
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
       req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null));
       var heapVar = new Bpl.IdentifierExpr(decl.tok, "$Heap", false);
-      var varlist = new List<Bpl.IdentifierExpr>();
-      varlist.Add(heapVar);
+      var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
       var proc = new Bpl.Procedure(decl.tok, "CheckWellformed$$" + decl.FullSanitizedName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
         req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
@@ -6469,6 +6509,80 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(currentModule == decl.EnclosingModule);
       Contract.Assert(codeContext == decl);
+      isAllocContext = null;
+      fuelContext = null;
+      Reset();
+    }
+
+    void AddWellformednessCheck(DatatypeCtor ctor) {
+      Contract.Requires(ctor != null);
+      Contract.Requires(sink != null && predef != null);
+      Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
+      Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
+
+      if (!InVerificationScope(ctor)) {
+        // Checked in other file
+        return;
+      }
+
+      // If there are no parameters with default values, there's nothing to do
+      if (ctor.Formals.TrueForAll(f => f.DefaultValue == null)) {
+        return;
+      }
+
+      currentModule = ctor.EnclosingDatatype.EnclosingModuleDefinition;
+      codeContext = ctor.EnclosingDatatype;
+      fuelContext = FuelSetting.NewFuelContext(ctor.EnclosingDatatype);
+      var etran = new ExpressionTranslator(this, predef, ctor.tok);
+
+      // parameters of the procedure
+      List<Variable> inParams = MkTyParamFormals(GetTypeParams(ctor.EnclosingDatatype));
+      foreach (var p in ctor.Formals) {
+        Bpl.Type varType = TrType(p.Type);
+        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(ctor.IdGenerator), varType), p.Type, etran, NOALLOC);
+        inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(ctor.IdGenerator), varType, wh), true));
+      }
+
+      // the procedure itself
+      var req = new List<Bpl.Requires>();
+      // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
+      req.Add(Requires(ctor.tok, true, etran.HeightContext(ctor.EnclosingDatatype), null, null));
+      var heapVar = new Bpl.IdentifierExpr(ctor.tok, "$Heap", false);
+      var varlist = new List<Bpl.IdentifierExpr> { heapVar, etran.Tick() };
+      var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed$$" + ctor.FullName, new List<Bpl.TypeVariable>(),
+        inParams, new List<Variable>(),
+        req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(ctor.Attributes, null));
+      sink.AddTopLevelDeclaration(proc);
+
+      var implInParams = Bpl.Formal.StripWhereClauses(inParams);
+      var locals = new List<Variable>();
+      var builder = new BoogieStmtListBuilder(this);
+      builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for datatype constructor {0}", ctor)));
+      builder.Add(CaptureState(ctor.tok, false, "initial state"));
+      isAllocContext = new IsAllocContext(true);
+
+      DefineFrame(ctor.tok, new List<FrameExpression>(), builder, locals, null);
+
+      // check well-formedness of each default-value expression
+      foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
+        var e = formal.DefaultValue;
+        CheckWellformed(e, new WFOptions(null, true, false, true), locals, builder, etran);
+        builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+      }
+
+      if (EmitImplementation(ctor.Attributes)) {
+        // emit the impl only when there are proof obligations.
+        QKeyValue kv = etran.TrAttributes(ctor.Attributes, null);
+        var implBody = builder.Collect(ctor.tok);
+        var impl = new Bpl.Implementation(ctor.tok, proc.Name,
+          new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
+          locals, implBody, kv);
+        sink.AddTopLevelDeclaration(impl);
+      }
+
+      Contract.Assert(currentModule == ctor.EnclosingDatatype.EnclosingModuleDefinition);
+      Contract.Assert(codeContext == ctor.EnclosingDatatype);
       isAllocContext = null;
       fuelContext = null;
       Reset();
@@ -7029,6 +7143,7 @@ namespace Microsoft.Dafny {
     {
       public readonly Function SelfCallsAllowance;
       public readonly bool DoReadsChecks;
+      public readonly bool DoOnlyCoarseGrainedTerminationChecks; // termination checks don't look at decreases clause, but reports errors for any intra-SCC call (this is used in default-value expressions)
       public readonly List<Bpl.Variable> Locals;
       public readonly List<Bpl.Cmd> Asserts;
       public readonly bool LValueContext;
@@ -7037,10 +7152,11 @@ namespace Microsoft.Dafny {
       public WFOptions() {
       }
 
-      public WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool saveReadsChecks = false) {
+      public WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool saveReadsChecks = false, bool doOnlyCoarseGrainedTerminationChecks = false) {
         Contract.Requires(!saveReadsChecks || doReadsChecks);  // i.e., saveReadsChecks ==> doReadsChecks
         SelfCallsAllowance = selfCallsAllowance;
         DoReadsChecks = doReadsChecks;
+        DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
         if (saveReadsChecks) {
           Locals = new List<Variable>();
           Asserts = new List<Bpl.Cmd>();
@@ -7059,6 +7175,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(options != null);
         SelfCallsAllowance = options.SelfCallsAllowance;
         DoReadsChecks = false;  // so just leave .Locals and .Asserts as null
+        DoOnlyCoarseGrainedTerminationChecks = options.DoOnlyCoarseGrainedTerminationChecks;
         LValueContext = options.LValueContext;
         AssertKv = options.AssertKv;
       }
@@ -7071,6 +7188,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(options != null);
         SelfCallsAllowance = options.SelfCallsAllowance;
         DoReadsChecks = options.DoReadsChecks;
+        DoOnlyCoarseGrainedTerminationChecks = options.DoOnlyCoarseGrainedTerminationChecks;
         Locals = options.Locals;
         Asserts = options.Asserts;
         LValueContext = lValueContext;
@@ -7579,7 +7697,9 @@ namespace Microsoft.Dafny {
           }
           // check well-formedness of the other parameters
           foreach (Expression arg in e.Args) {
-            CheckWellformed(arg, options, locals, builder, etran);
+            if (!(arg is DefaultValueExpression)) {
+              CheckWellformed(arg, options, locals, builder, etran);
+            }
           }
           // create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
           Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
@@ -7678,48 +7798,54 @@ namespace Microsoft.Dafny {
           if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is ExtremePredicate)) {
             // check that the decreases measure goes down
             if (ModuleDefinition.InSameSCC(e.Function, codeContext)) {
-              List<Expression> contextDecreases = codeContext.Decreases.Expressions;
-              List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
-              if (e.Function == options.SelfCallsAllowance) {
-                allowance = Bpl.Expr.True;
-                if (!e.Function.IsStatic) {
-                  allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This)));
+              if (options.DoOnlyCoarseGrainedTerminationChecks) {
+                builder.Add(Assert(expr.tok, Bpl.Expr.False, "default-value expression is not allowed to involve recursive or mutually recursive calls"));
+              } else {
+                List<Expression> contextDecreases = codeContext.Decreases.Expressions;
+                List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
+                if (e.Function == options.SelfCallsAllowance) {
+                  allowance = Bpl.Expr.True;
+                  if (!e.Function.IsStatic) {
+                    allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This)));
+                  }
+                  for (int i = 0; i < e.Args.Count; i++) {
+                    Expression ee = e.Args[i];
+                    Formal ff = e.Function.Formals[i];
+                    allowance = BplAnd(allowance,
+                      Bpl.Expr.Eq(etran.TrExpr(ee),
+                        new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration.IdGenerator), TrType(ff.Type))));
+                  }
                 }
-                for (int i = 0; i < e.Args.Count; i++) {
-                  Expression ee = e.Args[i];
-                  Formal ff = e.Function.Formals[i];
-                  allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(ee), new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration.IdGenerator), TrType(ff.Type))));
+                string hint;
+                switch (e.CoCall) {
+                  case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
+                    hint = "note that only functions without side effects can be called co-recursively";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition:
+                    hint = "note that only functions without any ensures clause can be called co-recursively";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded:
+                    hint = "note that the call is not sufficiently guarded to be used co-recursively";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext:
+                    hint = "note that calls cannot be co-recursive in this context";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext:
+                    hint = "note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts";
+                    break;
+                  case FunctionCallExpr.CoCallResolution.No:
+                    hint = null;
+                    break;
+                  default:
+                    Contract.Assert(false); // unexpected CoCallResolution
+                    goto case FunctionCallExpr.CoCallResolution.No; // please the compiler
                 }
+                if (e.CoCallHint != null) {
+                  hint = hint == null ? e.CoCallHint : string.Format("{0}; {1}", hint, e.CoCallHint);
+                }
+                CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.GetTypeArgumentSubstitutions(),
+                  etran, etran, builder, codeContext.InferredDecreases, hint);
               }
-              string hint;
-              switch (e.CoCall) {
-                case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
-                  hint = "note that only functions without side effects can be called co-recursively";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasPostcondition:
-                  hint = "note that only functions without any ensures clause can be called co-recursively";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseIsNotGuarded:
-                  hint = "note that the call is not sufficiently guarded to be used co-recursively";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext:
-                  hint = "note that calls cannot be co-recursive in this context";
-                  break;
-                case FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsInDestructiveContext:
-                  hint = "note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts";
-                  break;
-                case FunctionCallExpr.CoCallResolution.No:
-                  hint = null;
-                  break;
-                default:
-                  Contract.Assert(false);  // unexpected CoCallResolution
-                  goto case FunctionCallExpr.CoCallResolution.No;  // please the compiler
-              }
-              if (e.CoCallHint != null) {
-                hint = hint == null ? e.CoCallHint : string.Format("{0}; {1}", hint, e.CoCallHint);
-              }
-              CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.GetTypeArgumentSubstitutions(),
-                etran, etran, builder, codeContext.InferredDecreases, hint);
             }
           }
           // all is okay, so allow this function application access to the function's axiom, except if it was okay because of the self-call allowance.
@@ -7740,8 +7866,9 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < dtv.Ctor.Formals.Count; i++) {
           var formal = dtv.Ctor.Formals[i];
           var arg = dtv.Arguments[i];
-          CheckWellformed(arg, options, locals, builder, etran);
-
+          if (!(arg is DefaultValueExpression)) {
+            CheckWellformed(arg, options, locals, builder, etran);
+          }
           // Cannot use the datatype's formals, so we substitute the inferred type args:
           var su = new Dictionary<TypeParameter, Type>();
           foreach (var p in LinqExtender.Zip(dtv.Ctor.EnclosingDatatype.TypeArgs, dtv.InferredTypeArgs)) {
@@ -10795,14 +10922,110 @@ namespace Microsoft.Dafny {
         AddComment(builder, stmt, "alternative loop statement");
         var s = (AlternativeLoopStmt)stmt;
         var tru = new LiteralExpr(s.Tok, true);
-        tru.Type = Type.Bool;  // resolve here
+        tru.Type = Type.Bool; // resolve here
         TrLoop(s, tru,
-          delegate(BoogieStmtListBuilder bld, ExpressionTranslator e) { TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e, stmt.IsGhost); },
+          delegate(BoogieStmtListBuilder bld, ExpressionTranslator e) {
+            TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e, stmt.IsGhost);
+          },
           builder, locals, etran);
+
+      } else if (stmt is ForLoopStmt) {
+        var s = (ForLoopStmt)stmt;
+        AddComment(builder, stmt, "for-loop statement");
+
+        var indexVar = s.LoopIndex;
+        var indexVarName = indexVar.AssignUniqueName(currentDeclaration.IdGenerator);
+        var dIndex = new IdentifierExpr(indexVar.tok, indexVar);
+        var bIndexVar = new Bpl.LocalVariable(indexVar.tok, new Bpl.TypedIdent(indexVar.Tok, indexVarName, TrType(indexVar.Type)));
+        locals.Add(bIndexVar);
+        var bIndex = new Bpl.IdentifierExpr(indexVar.tok, indexVarName);
+
+        var lo = s.GoingUp ? s.Start : s.End;
+        var hi = s.GoingUp ? s.End : s.Start;
+        Expression dLo = null;
+        Expression dHi = null;
+        Bpl.IdentifierExpr bLo = null;
+        Bpl.IdentifierExpr bHi = null;
+        if (lo != null) {
+          var name = indexVarName + "#lo";
+          var bLoVar = new Bpl.LocalVariable(lo.tok, new Bpl.TypedIdent(lo.tok, name, Bpl.Type.Int));
+          locals.Add(bLoVar);
+          bLo = new Bpl.IdentifierExpr(lo.tok, name);
+          CheckWellformed(lo, new WFOptions(null, false), locals, builder, etran);
+          builder.Add(Bpl.Cmd.SimpleAssign(lo.tok, bLo, etran.TrExpr(lo)));
+          dLo = new BoogieWrapper(bLo, lo.Type);
+        }
+        if (hi != null) {
+          var name = indexVarName + "#hi";
+          var bHiVar = new Bpl.LocalVariable(hi.tok, new Bpl.TypedIdent(hi.tok, name, Bpl.Type.Int));
+          locals.Add(bHiVar);
+          bHi = new Bpl.IdentifierExpr(hi.tok, name);
+          CheckWellformed(hi, new WFOptions(null, false), locals, builder, etran);
+          builder.Add(Bpl.Cmd.SimpleAssign(hi.tok, bHi, etran.TrExpr(hi)));
+          dHi = new BoogieWrapper(bHi, hi.Type);
+        }
+
+        // check lo <= hi
+        if (lo != null && hi != null) {
+          builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), "lower bound must not exceed upper bound"));
+        }
+        // check forall x :: lo <= x <= hi ==> Is(x, typ)
+        {
+          // The check, if needed, is performed like this:
+          //   var x: int;
+          //   havoc x;
+          //   assume lo <= x <= hi;
+          //   assert Is(x, typ);
+          var tok = indexVar.tok;
+          var name = indexVarName + "#x";
+          var xVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, Bpl.Type.Int));
+          var x = new Bpl.IdentifierExpr(tok, name);
+          string msg;
+          var cre = GetSubrangeCheck(x, Type.Int, indexVar.Type, out msg);
+          if (cre != null) {
+            locals.Add(xVar);
+            builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
+            builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
+            builder.Add(Assert(tok, cre, "entire range must be assignable to index variable, but some " + msg));
+          }
+        }
+
+        // initialize the index variable
+        builder.Add(Bpl.Cmd.SimpleAssign(indexVar.tok, bIndex, s.GoingUp ? bLo : bHi));
+
+        // build the guard expression
+        Expression guard;
+        if (lo == null || hi == null) {
+          guard = LiteralExpr.CreateBoolLiteral(s.Tok, true);
+        } else {
+          guard = Expression.CreateNot(s.Tok, Expression.CreateEq(dIndex, s.GoingUp ? dHi : dLo, indexVar.Type));
+        }
+
+        // free invariant lo <= i <= hi
+        var freeInvariant = ForLoopBounds(bIndex, bLo, bHi);
+
+        BodyTranslator bodyTr = null;
+        if (s.Body != null) {
+          bodyTr = delegate(BoogieStmtListBuilder bld, ExpressionTranslator e) {
+            CurrentIdGenerator.Push();
+            if (!s.GoingUp) {
+              bld.Add(Bpl.Cmd.SimpleAssign(s.Tok, bIndex, Bpl.Expr.Sub(bIndex, Bpl.Expr.Literal(1))));
+            }
+            TrStmt(s.Body, bld, locals, e);
+            if (s.GoingUp) {
+              bld.Add(Bpl.Cmd.SimpleAssign(s.Tok, bIndex, Bpl.Expr.Add(bIndex, Bpl.Expr.Literal(1))));
+            }
+            CurrentIdGenerator.Pop();
+          };
+        }
+
+        TrLoop(s, guard, bodyTr, builder, locals, etran, freeInvariant, s.Decreases.Expressions.Count != 0);
 
       } else if (stmt is ModifyStmt) {
         AddComment(builder, stmt, "modify statement");
         var s = (ModifyStmt)stmt;
+        // check well-formedness of the modifies clauses
+        CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
         // check that the modifies is a subset
         CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "modify statement may violate context's modifies clause", null);
         // cause the change of the heap according to the given frame
@@ -10987,7 +11210,6 @@ namespace Microsoft.Dafny {
         var s = (MatchStmt)stmt;
         TrStmt_CheckWellformed(s.Source, builder, locals, etran, true);
         Bpl.Expr source = etran.TrExpr(s.Source);
-
         var b = new BoogieStmtListBuilder(this);
         b.Add(TrAssumeCmd(stmt.Tok, Bpl.Expr.False));
         Bpl.StmtList els = b.Collect(stmt.Tok);
@@ -11118,6 +11340,20 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
+    }
+
+    /// <summary>
+    /// Generates a Boogie expression "lo <= x <= hi", but leaving the lo/hi bound if null.
+    /// </summary>
+    private static Bpl.Expr ForLoopBounds(Bpl.Expr x, Bpl.Expr/*?*/ lo, Bpl.Expr/*?*/ hi) {
+      Bpl.Expr r = Bpl.Expr.True;
+      if (lo != null) {
+        r = BplAnd(r, Bpl.Expr.Le(lo, x));
+      }
+      if (hi != null) {
+        r = BplAnd(r, Bpl.Expr.Le(x, hi));
+      }
+      return r;
     }
 
     private void GenerateAndCheckGuesses(IToken tok, List<BoundVar> bvars, List<ComprehensionExpr.BoundedPool> bounds, Expression expr, Trigger triggers, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
@@ -11987,7 +12223,8 @@ namespace Microsoft.Dafny {
 
 
     void TrLoop(LoopStmt s, Expression Guard, BodyTranslator/*?*/ bodyTr,
-                BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+                BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+                Bpl.Expr freeInvariant = null, bool includeTerminationCheck = true) {
       Contract.Requires(s != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -12009,14 +12246,15 @@ namespace Microsoft.Dafny {
         updatedFrameEtran = etran;
       }
 
-      if (s.Mod.Expressions != null) { // check that the modifies is a subset
+      if (s.Mod.Expressions != null) { // check well-formedness and that the modifies is a subset
+        CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
         CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "loop modifies clause may violate context's modifies clause", null);
         DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, loopFrameName);
       }
       builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
 
       var daTrackersMonotonicity = new List<Tuple<Bpl.IdentifierExpr, Bpl.IdentifierExpr>>();
-      foreach (var dat in definiteAssignmentTrackers.Values) {  // TODO: the order is non-deterministic and may change been invocations of Dafny
+      foreach (var dat in definiteAssignmentTrackers.Values) {  // TODO: the order is non-deterministic and may change between invocations of Dafny
         var preLoopDat = new Bpl.LocalVariable(dat.tok, new Bpl.TypedIdent(dat.tok, "preLoop$" + suffix + "$" + dat.Name, dat.Type));
         locals.Add(preLoopDat);
         var ie = new Bpl.IdentifierExpr(s.Tok, preLoopDat);
@@ -12038,6 +12276,9 @@ namespace Microsoft.Dafny {
       builder.Add(new Bpl.HavocCmd(s.Tok, new List<Bpl.IdentifierExpr> { w }));
 
       List<Bpl.PredicateCmd> invariants = new List<Bpl.PredicateCmd>();
+      if (freeInvariant != null) {
+        invariants.Add(new Bpl.AssumeCmd(freeInvariant.tok, freeInvariant));
+      }
       BoogieStmtListBuilder invDefinednessBuilder = new BoogieStmtListBuilder(this);
       foreach (AttributedExpression loopInv in s.Invariants) {
         string errorMessage = CustomErrorMessage(loopInv.Attributes);
@@ -12128,7 +12369,7 @@ namespace Microsoft.Dafny {
       // on entry to the loop, and then Boogie wouldn't consider this a loop at all. (See also comment
       // in methods GuardAlwaysHoldsOnEntry_BodyLessLoop and GuardAlwaysHoldsOnEntry_LoopWithBody in
       // Test/dafny0/DirtyLoops.dfy.)
-      var isBodyLessLoop = s is WhileStmt && ((WhileStmt)s).BodySurrogate != null;
+      var isBodyLessLoop = s is OneBodyLoopStmt && ((OneBodyLoopStmt)s).BodySurrogate != null;
       var whereToBuildLoopGuard = isBodyLessLoop ? new BoogieStmtListBuilder(this) : loopBodyBuilder;
       Bpl.Expr guard = null;
       if (Guard != null) {
@@ -12160,18 +12401,20 @@ namespace Microsoft.Dafny {
             types.Add(e.Type.NormalizeExpand());
             decrs.Add(etran.TrExpr(e));
           }
-        AddComment(loopBodyBuilder, s, "loop termination check");
-          Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
-          string msg;
-          if (s.InferredDecreases) {
-            msg = "cannot prove termination; try supplying a decreases clause for the loop";
-          } else {
-            msg = "decreases expression might not decrease";
+          if (includeTerminationCheck) {
+            AddComment(loopBodyBuilder, s, "loop termination check");
+            Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
+            string msg;
+            if (s.InferredDecreases) {
+              msg = "cannot prove termination; try supplying a decreases clause for the loop";
+            } else {
+              msg = "decreases expression might not decrease";
+            }
+            loopBodyBuilder.Add(Assert(s.Tok, decrCheck, msg));
           }
-          loopBodyBuilder.Add(Assert(s.Tok, decrCheck, msg));
         }
       } else if (isBodyLessLoop) {
-        var bodySurrogate = ((WhileStmt)s).BodySurrogate;
+        var bodySurrogate = ((OneBodyLoopStmt)s).BodySurrogate;
         // This is a body-less loop. Havoc the targets and then set w to false, to make the loop-invariant
         // maintenance check vaccuous.
         var bplTargets = bodySurrogate.LocalLoopTargets.ConvertAll(v => TrVar(s.Tok, v));
@@ -12466,7 +12709,9 @@ namespace Microsoft.Dafny {
           } else {
             actual = Args[i];
           }
-          TrStmt_CheckWellformed(actual, builder, locals, etran, true);
+          if (!(actual is DefaultValueExpression)) {
+            TrStmt_CheckWellformed(actual, builder, locals, etran, true);
+          }
           builder.Add(new CommentCmd("ProcessCallStmt: CheckSubrange"));
           // Check the subrange without boxing
           var beforeBox = etran.TrExpr(actual);
@@ -12528,9 +12773,13 @@ namespace Microsoft.Dafny {
       // Check termination
       if (isRecursiveCall) {
         Contract.Assert(codeContext != null);
-        List<Expression> contextDecreases = codeContext.Decreases.Expressions;
-        List<Expression> calleeDecreases = callee.Decreases.Expressions;
-        CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, tySubst, etran, etran.Old, builder, codeContext.InferredDecreases, null);
+        if (codeContext is DatatypeDecl) {
+          builder.Add(Assert(tok, Bpl.Expr.False, "default-value expression is not allowed to involve recursive or mutually recursive calls"));
+        } else {
+          List<Expression> contextDecreases = codeContext.Decreases.Expressions;
+          List<Expression> calleeDecreases = callee.Decreases.Expressions;
+          CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, tySubst, etran, etran.Old, builder, codeContext.InferredDecreases, null);
+        }
       }
 
       // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
@@ -14013,18 +14262,21 @@ namespace Microsoft.Dafny {
       if (e.getTranslationDesugaring(this) == null) {
         // For let-such-that expression:
         //   var x:X, y:Y :| P(x,y,g); F(...)
-        // where g has type G, declare a function for each bound variable:
-        //   function $let$x(G): X;
-        //   function $let$y(G): Y;
-        //   function $let_canCall(G): bool;
+        // where
+        //   - g has type G, and
+        //   - tt* denotes the list of type variables in the types X and Y and expression F(...),
+        // declare a function for each bound variable:
+        //   function $let$x(Ty*, G): X;
+        //   function $let$y(Ty*, G): Y;
+        //   function $let_canCall(Ty*, G): bool;
         // and add an axiom about these functions:
-        //   axiom (forall g:G ::
-        //            { $let$x(g) }
-        //            { $let$y(g) }
-        //            $let$_canCall(g)) ==>
-        //            P($let$x(g), $let$y(g), g));
+        //   axiom (forall tt*:Ty*, g:G ::
+        //            { $let$x(tt*, g) }
+        //            { $let$y(tt*, g) }
+        //            $let$_canCall(tt*, g)) ==>
+        //            P($let$x(tt*, g), $let$y(tt*, g), g));
         // and create the desugaring:
-        //   var x:X, y:Y := $let$x(g), $let$y(g); F(...)
+        //   var x:X, y:Y := $let$x(tt*, g), $let$y(tt*, g); F(...)
         if (e is SubstLetExpr) {
           // desugar based on the original letexpr.
           var expr = (SubstLetExpr)e;
@@ -14034,7 +14286,8 @@ namespace Microsoft.Dafny {
           var orgInfo = letSuchThatExprInfo[orgExpr];
           letSuchThatExprInfo.Add(expr, new LetSuchThatExprInfo(orgInfo, this, expr.substMap, expr.typeMap));
         } else {
-          // First, determine "g" as a list of Dafny variables FVs plus possibly this, $Heap, and old($Heap)
+          // First, determine "g" as a list of Dafny variables FVs plus possibly this, $Heap, and old($Heap),
+          // and determine "tt*" as a list of Dafny type variables
           LetSuchThatExprInfo info;
           {
             var FVs = new HashSet<IVariable>();
@@ -14042,10 +14295,11 @@ namespace Microsoft.Dafny {
             var FVsHeapAt = new HashSet<Label>();
             Type usesThis = null;
             ComputeFreeVariables(e.RHSs[0], FVs, ref usesHeap, ref usesOldHeap, FVsHeapAt, ref usesThis);
+            var FTVs = new HashSet<TypeParameter>();
             foreach (var bv in e.BoundVars) {
               FVs.Remove(bv);
+              ComputeFreeTypeVariables(bv.Type, FTVs);
             }
-            var FTVs = new HashSet<TypeParameter>();
             ComputeFreeTypeVariables(e.RHSs[0], FTVs);
             info = new LetSuchThatExprInfo(e.tok, letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), usesHeap, usesOldHeap, FVsHeapAt, usesThis, currentDeclaration);
             letSuchThatExprInfo.Add(e, info);
@@ -14393,6 +14647,16 @@ namespace Microsoft.Dafny {
         builder.Add(cmd);
         if (cmd is Bpl.AssertCmd) {
           tran.assertionCount++;
+        } else if (cmd is Bpl.CallCmd call) {
+          // A call command may involve a precondition, but we can't tell for sure until the callee
+          // procedure has been generated. Therefore, to be on the same side, we count this call
+          // as a possible assertion, unless it's a procedure that's part of the translation and
+          // known not to have any preconditions.
+          if (call.callee == "$IterHavoc0" || call.callee == "$IterHavoc1" || call.callee == "$YieldHavoc") {
+            // known not to have any preconditions
+          } else {
+            tran.assertionCount++;
+          }
         }
       }
       public void Add(StructuredCmd scmd) { builder.Add(scmd); }
@@ -18053,10 +18317,7 @@ namespace Microsoft.Dafny {
     // No expression introduces a type variable
     static void ComputeFreeTypeVariables(Expression expr, ISet<TypeParameter> fvs) {
       ComputeFreeTypeVariables(expr.Type, fvs);
-      if (expr is FunctionCallExpr) {
-        var e = (FunctionCallExpr)expr;
-        Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction).Iter(ty => ComputeFreeTypeVariables(ty, fvs));
-      }
+      expr.ComponentTypes.Iter(ty => ComputeFreeTypeVariables(ty, fvs));
       expr.SubExpressions.Iter(ee => ComputeFreeTypeVariables(ee, fvs));
     }
 
@@ -18067,7 +18328,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(ty.TypeArgs.Count == 0);
         fvs.Add(tp);
       } else {
-        ty.NormalizeExpand().TypeArgs.Iter(tt => ComputeFreeTypeVariables(tt, fvs));
+        ty.NormalizeExpandKeepConstraints().TypeArgs.Iter(tt => ComputeFreeTypeVariables(tt, fvs));
       }
     }
 
@@ -18076,7 +18337,7 @@ namespace Microsoft.Dafny {
       if (ty.IsTypeParameter) {
         fvs.Add(ty.AsTypeParameter);
       }
-      ty.NormalizeExpand().TypeArgs.Iter(tt => ComputeFreeTypeVariables_All(tt, fvs));
+      ty.NormalizeExpandKeepConstraints().TypeArgs.Iter(tt => ComputeFreeTypeVariables_All(tt, fvs));
     }
 
     public static ISet<IVariable> ComputeFreeVariables(Expression expr) {
@@ -18158,7 +18419,9 @@ namespace Microsoft.Dafny {
       // visit subexpressions
       bool uHeap = false, uOldHeap = false;
       Type uThis = null;
-      expr.SubExpressions.Iter(ee => ComputeFreeVariables(ee, fvs, ref uHeap, ref uOldHeap, freeHeapAtVariables, ref uThis));
+      foreach(var subExpression in expr.SubExpressions) {
+        ComputeFreeVariables(subExpression, fvs, ref uHeap, ref uOldHeap, freeHeapAtVariables, ref uThis);
+      }
       Contract.Assert(usesThis == null || uThis == null || usesThis.Equals(uThis));
       usesThis = usesThis ?? uThis;
       var asOldExpr = expr as OldExpr;
@@ -18390,948 +18653,6 @@ namespace Microsoft.Dafny {
           return newExpr;
         }
         return base.Substitute(expr);
-      }
-    }
-
-    /// <summary>
-    /// The substituter has methods to create an expression from an existing one, where the new one has the indicated
-    /// substitutions for "this" (receiverReplacement), variables (substMap), and types (typeMap).
-    /// CAUTION:  The result of the substitution is intended for use by TrExpr, not for well-formedness checks.  In
-    /// particular, the substituter does not copy parts of an expression that are used only for well-formedness checks.
-    /// </summary>
-    public class Substituter
-    {
-      public readonly Expression receiverReplacement;
-      public readonly Dictionary<IVariable, Expression/*!*/>/*!*/ substMap;
-      public readonly Dictionary<TypeParameter, Type/*!*/>/*!*/ typeMap;
-
-      public static readonly Substituter EMPTY = new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
-
-      public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap) {
-        Contract.Requires(substMap != null);
-        Contract.Requires(typeMap != null);
-        this.receiverReplacement = receiverReplacement;
-        this.substMap = substMap;
-        this.typeMap = typeMap;
-      }
-      public virtual Expression Substitute(Expression expr) {
-        Contract.Requires(expr != null);
-        Contract.Ensures(Contract.Result<Expression>() != null);
-
-        Expression newExpr = null;  // set to non-null value only if substitution has any effect; if non-null, the .Type of newExpr will be filled in at end
-
-        if (expr is StaticReceiverExpr) {
-          var e = (StaticReceiverExpr)expr;
-          var ty = Resolver.SubstType(e.Type, typeMap);
-          return new StaticReceiverExpr(e.tok, ty, e.IsImplicit) { Type = ty };
-        } else if (expr is LiteralExpr) {
-          var e = (LiteralExpr)expr;
-          if (e.Value == null) {
-            return new LiteralExpr(e.tok) { Type = Resolver.SubstType(e.Type, typeMap) };
-          } else {
-            // nothing to substitute
-          }
-        } else if (expr is BoogieWrapper) {
-          var e = (BoogieWrapper)expr;
-          return new BoogieWrapper(e.Expr, Resolver.SubstType(e.Type, typeMap));
-        } else if (expr is WildcardExpr) {
-          // nothing to substitute
-        } else if (expr is ThisExpr) {
-          return receiverReplacement == null ? expr : receiverReplacement;
-        } else if (expr is IdentifierExpr) {
-          IdentifierExpr e = (IdentifierExpr)expr;
-          Expression substExpr;
-          if (substMap.TryGetValue(e.Var, out substExpr)) {
-            var substIdExpr = substExpr as IdentifierExpr;
-            if (substIdExpr != null) {
-              // clone it, using the source location of the original
-              substExpr = new IdentifierExpr(expr.tok, substIdExpr.Var);
-            }
-            return cce.NonNull(substExpr);
-          }
-        } else if (expr is DisplayExpression) {
-          DisplayExpression e = (DisplayExpression)expr;
-          List<Expression> newElements = SubstituteExprList(e.Elements);
-          if (newElements != e.Elements) {
-            if (expr is SetDisplayExpr) {
-              newExpr = new SetDisplayExpr(expr.tok, ((SetDisplayExpr)expr).Finite, newElements);
-            } else if (expr is MultiSetDisplayExpr) {
-              newExpr = new MultiSetDisplayExpr(expr.tok, newElements);
-            } else {
-              newExpr = new SeqDisplayExpr(expr.tok, newElements);
-            }
-          }
-        } else if (expr is MapDisplayExpr) {
-          var e = (MapDisplayExpr)expr;
-          var elmts = new List<ExpressionPair>();
-          var anyChanges = false;
-          foreach (var ep in e.Elements) {
-            var a = Substitute(ep.A);
-            var b = Substitute(ep.B);
-            elmts.Add(new ExpressionPair(a, b));
-            if (a != ep.A || b != ep.B) {
-              anyChanges = true;
-            }
-          }
-          if (anyChanges) {
-            newExpr = new MapDisplayExpr(expr.tok, e.Finite, elmts);
-          }
-        } else if (expr is MemberSelectExpr) {
-          MemberSelectExpr fse = (MemberSelectExpr)expr;
-          Expression substE = Substitute(fse.Obj);
-          MemberSelectExpr fseNew = new MemberSelectExpr(fse.tok, substE, fse.MemberName);
-          fseNew.Member = fse.Member;
-          fseNew.TypeApplication_AtEnclosingClass = fse.TypeApplication_AtEnclosingClass.ConvertAll(t => Resolver.SubstType(t, typeMap));
-          fseNew.TypeApplication_JustMember = fse.TypeApplication_JustMember.ConvertAll(t => Resolver.SubstType(t, typeMap));
-          fseNew.AtLabel = fse.AtLabel;
-          newExpr = fseNew;
-        } else if (expr is SeqSelectExpr) {
-          SeqSelectExpr sse = (SeqSelectExpr)expr;
-          Expression seq = Substitute(sse.Seq);
-          Expression e0 = sse.E0 == null ? null : Substitute(sse.E0);
-          Expression e1 = sse.E1 == null ? null : Substitute(sse.E1);
-          if (seq != sse.Seq || e0 != sse.E0 || e1 != sse.E1) {
-            newExpr = new SeqSelectExpr(sse.tok, sse.SelectOne, seq, e0, e1);
-          }
-
-        } else if (expr is SeqUpdateExpr) {
-          var sse = (SeqUpdateExpr)expr;
-          if (sse.ResolvedUpdateExpr != null) {
-            return Substitute(sse.ResolvedUpdateExpr);
-          } else {
-            Expression seq = Substitute(sse.Seq);
-            Expression index = Substitute(sse.Index);
-            Expression val = Substitute(sse.Value);
-            if (seq != sse.Seq || index != sse.Index || val != sse.Value) {
-              newExpr = new SeqUpdateExpr(sse.tok, seq, index, val);
-            }
-          }
-
-        } else if (expr is MultiSelectExpr) {
-          MultiSelectExpr mse = (MultiSelectExpr)expr;
-          Expression array = Substitute(mse.Array);
-          List<Expression> newArgs = SubstituteExprList(mse.Indices);
-          if (array != mse.Array || newArgs != mse.Indices) {
-            newExpr = new MultiSelectExpr(mse.tok, array, newArgs);
-          }
-
-        } else if (expr is FunctionCallExpr) {
-          FunctionCallExpr e = (FunctionCallExpr)expr;
-          Expression receiver = Substitute(e.Receiver);
-          List<Expression> newArgs = SubstituteExprList(e.Args);
-          var newTypeApplicationAtEnclosingClass = SubstituteTypeList(e.TypeApplication_AtEnclosingClass);
-          var newTypeApplicationJustFunction = SubstituteTypeList(e.TypeApplication_JustFunction);
-          if (receiver != e.Receiver || newArgs != e.Args ||
-              newTypeApplicationAtEnclosingClass != e.TypeApplication_AtEnclosingClass ||
-              newTypeApplicationJustFunction != e.TypeApplication_JustFunction) {
-            FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs, e.AtLabel);
-            newFce.Function = e.Function;  // resolve on the fly (and set newFce.Type below, at end)
-            newFce.CoCall = e.CoCall;  // also copy the co-call status
-            newFce.CoCallHint = e.CoCallHint;  // and any co-call hint
-            newFce.TypeApplication_AtEnclosingClass = newTypeApplicationAtEnclosingClass;
-            newFce.TypeApplication_JustFunction = newTypeApplicationJustFunction;
-            newExpr = newFce;
-          }
-
-        } else if (expr is ApplyExpr) {
-          ApplyExpr e = (ApplyExpr)expr;
-          Expression fn = Substitute(e.Function);
-          List<Expression> args = SubstituteExprList(e.Args);
-          newExpr = new ApplyExpr(e.tok, fn, args);
-
-        } else if (expr is DatatypeValue) {
-          DatatypeValue dtv = (DatatypeValue)expr;
-          var newArguments = SubstituteExprList(dtv.Bindings.Arguments); // substitute into the expressions, but drop any binding names (since those are no longer needed)
-          if (newArguments != dtv.Bindings.Arguments) {
-            DatatypeValue newDtv = new DatatypeValue(dtv.tok, dtv.DatatypeName, dtv.MemberName, newArguments);
-            newDtv.Ctor = dtv.Ctor;  // resolve on the fly (and set newDtv.Type below, at end)
-            newDtv.InferredTypeArgs = Map(dtv.InferredTypeArgs, tt => Resolver.SubstType(tt, typeMap));
-                                     // ^ Set the correct type arguments to the constructor
-            newExpr = newDtv;
-          }
-
-        } else if (expr is OldExpr) {
-          var e = (OldExpr)expr;
-          // Note, it is up to the caller to avoid variable capture.  In most cases, this is not a
-          // problem, since variables have unique declarations.  However, it is an issue if the substitution
-          // takes place inside an OldExpr.  In those cases (see LetExpr), the caller can use a
-          // BoogieWrapper before calling Substitute.
-          Expression se = Substitute(e.E);
-          if (se != e.E) {
-            newExpr = new OldExpr(expr.tok, se, e.At) { AtLabel = e.AtLabel };
-          }
-        } else if (expr is UnchangedExpr) {
-          var e = (UnchangedExpr)expr;
-          var fr = new List<FrameExpression>();
-          var anythingChanged = false;
-          foreach (var fe in e.Frame) {
-            var fefe = SubstFrameExpr(fe);
-            if (fefe != fe) {
-              anythingChanged = true;
-            }
-            fr.Add(fefe);
-          }
-          if (anythingChanged) {
-            newExpr = new UnchangedExpr(e.tok, fr, e.At) { AtLabel = e.AtLabel };
-          }
-        } else if (expr is SeqConstructionExpr) {
-          var e = (SeqConstructionExpr)expr;
-          var sn = Substitute(e.N);
-          var sinit = Substitute(e.Initializer);
-          if (sn != e.N || sinit != e.Initializer) {
-            newExpr = new SeqConstructionExpr(expr.tok, e.ExplicitElementType, sn, sinit);
-          }
-        } else if (expr is MultiSetFormingExpr) {
-          var e = (MultiSetFormingExpr)expr;
-          var se = Substitute(e.E);
-          if (se != e.E) {
-            newExpr = new MultiSetFormingExpr(expr.tok, se);
-          }
-        } else if (expr is BoxingCastExpr) {
-          var e = (BoxingCastExpr)expr;
-          var se = Substitute(e.E);
-          if (se != e.E) {
-            newExpr = new BoxingCastExpr(se, e.FromType, e.ToType);
-          }
-        } else if (expr is UnaryExpr) {
-          var e = (UnaryExpr)expr;
-          Expression se = Substitute(e.E);
-          if (se != e.E) {
-            if (e is UnaryOpExpr) {
-              var ee = (UnaryOpExpr)e;
-              newExpr = new UnaryOpExpr(expr.tok, ee.Op, se);
-            } else if (e is ConversionExpr) {
-              var ee = (ConversionExpr)e;
-              newExpr = new ConversionExpr(expr.tok, se, ee.ToType);
-            } else if (e is TypeTestExpr) {
-              var ee = (TypeTestExpr)e;
-              newExpr = new TypeTestExpr(expr.tok, se, ee.ToType);
-            } else {
-              Contract.Assert(false);  // unexpected UnaryExpr subtype
-            }
-          }
-        } else if (expr is BinaryExpr) {
-          BinaryExpr e = (BinaryExpr)expr;
-          Expression e0 = Substitute(e.E0);
-          Expression e1 = Substitute(e.E1);
-          if (e0 != e.E0 || e1 != e.E1) {
-            BinaryExpr newBin = new BinaryExpr(expr.tok, e.Op, e0, e1);
-            newBin.ResolvedOp = e.ResolvedOp;  // part of what needs to be done to resolve on the fly (newBin.Type is set below, at end)
-            newExpr = newBin;
-          }
-
-        } else if (expr is TernaryExpr) {
-          var e = (TernaryExpr)expr;
-          var e0 = Substitute(e.E0);
-          var e1 = Substitute(e.E1);
-          var e2 = Substitute(e.E2);
-          if (e0 != e.E0 || e1 != e.E1 || e2 != e.E2) {
-            newExpr = new TernaryExpr(expr.tok, e.Op, e0, e1, e2);
-          }
-
-        } else if (expr is LetExpr) {
-          var e = (LetExpr)expr;
-          if (e.Exact) {
-            var rhss = new List<Expression>();
-            bool anythingChanged = false;
-            foreach (var rhs in e.RHSs) {
-              var r = Substitute(rhs);
-              if (r != rhs) {
-                anythingChanged = true;
-              }
-              rhss.Add(r);
-            }
-            // Note, CreateBoundVarSubstitutions has the side effect of updating the substitution map.
-            // For an Exact let expression, this is something that needs to be done after substituting
-            // in the RHSs.
-            var newCasePatterns = CreateCasePatternSubstitutions(e.LHSs, true);
-            if (newCasePatterns != e.LHSs) {
-              anythingChanged = true;
-            }
-
-            var body = Substitute(e.Body);
-            // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
-            foreach (var bv in e.BoundVars) {
-              substMap.Remove(bv);
-            }
-            // Put things together
-            if (anythingChanged || body != e.Body) {
-              newExpr = new LetExpr(e.tok, newCasePatterns, rhss, body, e.Exact);
-            }
-          } else {
-            var rhs = Substitute(e.RHSs[0]);
-            var body = Substitute(e.Body);
-            var newBounds = SubstituteBoundedPoolList(e.Constraint_Bounds);
-            if (rhs == e.RHSs[0] && body == e.Body && newBounds == e.Constraint_Bounds) {
-              return e;
-            }
-            // keep copies of the substitution maps so we can reuse them at desugaring time
-            var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
-            var newTypeMap = new Dictionary<TypeParameter, Type>(typeMap);
-            var newLet = new SubstLetExpr(e.tok, e.LHSs, new List<Expression>{ rhs }, body, e.Exact, e, newSubstMap, newTypeMap, newBounds);
-            newExpr = newLet;
-          }
-        } else if (expr is MatchExpr) {
-          var e = (MatchExpr)expr;
-          var src = Substitute(e.Source);
-          bool anythingChanged = src != e.Source;
-          var cases = new List<MatchCaseExpr>();
-          foreach (var mc in e.Cases) {
-            var newBoundVars = CreateBoundVarSubstitutions(mc.Arguments, false);
-            var body = Substitute(mc.Body);
-            // undo any changes to substMap (could be optimized to do this only if newBoundVars != mc.Arguments)
-            foreach (var bv in mc.Arguments) {
-              substMap.Remove(bv);
-            }
-            // Put things together
-            if (newBoundVars != mc.Arguments || body != mc.Body) {
-              anythingChanged = true;
-            }
-            var newCaseExpr = new MatchCaseExpr(mc.tok, mc.Ctor, newBoundVars, body);
-            newCaseExpr.Ctor = mc.Ctor;  // resolve here
-            cases.Add(newCaseExpr);
-          }
-          if (anythingChanged) {
-            var newME = new MatchExpr(expr.tok, src, cases, e.UsesOptionalBraces);
-            newME.MissingCases.AddRange(e.MissingCases);
-            newExpr = newME;
-          }
-
-        } else if (expr is ComprehensionExpr) {
-          var e = (ComprehensionExpr)expr;
-          // For quantifiers and setComprehesion we want to make sure that we don't introduce name clashes with
-          // the enclosing scopes.
-
-          var q = e as QuantifierExpr;
-          if (q != null && q.SplitQuantifier != null) {
-            return Substitute(q.SplitQuantifierExpression);
-          }
-
-          var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, expr is ForallExpr || expr is ExistsExpr || expr is SetComprehension);
-          var newRange = e.Range == null ? null : Substitute(e.Range);
-          var newTerm = Substitute(e.Term);
-          var newAttrs = SubstAttributes(e.Attributes);
-          var newBounds = SubstituteBoundedPoolList(e.Bounds);
-          if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes || newBounds != e.Bounds) {
-            if (e is SetComprehension) {
-              newExpr = new SetComprehension(expr.tok, ((SetComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
-            } else if (e is MapComprehension) {
-              var mc = (MapComprehension)e;
-              var newTermLeft = mc.IsGeneralMapComprehension ? Substitute(mc.TermLeft) : null;
-              newExpr = new MapComprehension(expr.tok, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
-            } else if (expr is ForallExpr) {
-              newExpr = new ForallExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
-            } else if (expr is ExistsExpr) {
-              newExpr = new ExistsExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
-            } else if (expr is LambdaExpr) {
-              var l = (LambdaExpr)expr;
-              newExpr = new LambdaExpr(e.tok, newBoundVars, newRange, l.Reads.ConvertAll(SubstFrameExpr), newTerm);
-            } else {
-              Contract.Assert(false);  // unexpected ComprehensionExpr
-            }
-            ((ComprehensionExpr)newExpr).Bounds = newBounds;
-          }
-          // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.BoundVars)
-          foreach (var bv in e.BoundVars) {
-            substMap.Remove(bv);
-          }
-
-        } else if (expr is StmtExpr) {
-          var e = (StmtExpr)expr;
-          newExpr = new StmtExpr(e.tok, SubstStmt(e.S), Substitute(e.E));
-
-        } else if (expr is ITEExpr) {
-          ITEExpr e = (ITEExpr)expr;
-          Expression test = Substitute(e.Test);
-          Expression thn = Substitute(e.Thn);
-          Expression els = Substitute(e.Els);
-          if (test != e.Test || thn != e.Thn || els != e.Els) {
-            newExpr = new ITEExpr(expr.tok, e.IsBindingGuard, test, thn, els);
-          }
-
-        } else if (expr is ConcreteSyntaxExpression) {
-          var e = (ConcreteSyntaxExpression)expr;
-          return Substitute(e.ResolvedExpression);
-
-        } else if (expr is BoogieFunctionCall) {
-          var e = (BoogieFunctionCall)expr;
-          bool anythingChanged = false;
-          var newTyArgs = new List<Type>();
-          foreach (var arg in e.TyArgs) {
-            var newArg = Resolver.SubstType(arg, typeMap);
-            if (newArg != arg) {
-              anythingChanged = true;
-            }
-            newTyArgs.Add(newArg);
-          }
-          var newArgs = new List<Expression>();
-          foreach (var arg in e.Args) {
-            var newArg = Substitute(arg);
-            if (newArg != arg) {
-              anythingChanged = true;
-            }
-            newArgs.Add(newArg);
-          }
-          if (anythingChanged) {
-            newExpr = new BoogieFunctionCall(e.tok, e.FunctionName, e.UsesHeap, e.UsesOldHeap, e.HeapAtLabels, newArgs, newTyArgs);
-          }
-
-        } else {
-          Contract.Assume(false); // unexpected Expression
-        }
-
-        if (newExpr == null) {
-          return expr;
-        } else {
-          newExpr.Type = Resolver.SubstType(expr.Type, typeMap);  // resolve on the fly (any additional resolution must be done above)
-          return newExpr;
-        }
-      }
-
-      /// <summary>
-      /// This method calls "SubstituteBoundedPool" on each item in the possibly null list. If any of those calls returns a
-      /// change from the original, then all of the results are returned in a new list; otherwise, "list" is returned.
-      /// </summary>
-      public List<ComprehensionExpr.BoundedPool>/*?*/ SubstituteBoundedPoolList(List<ComprehensionExpr.BoundedPool>/*?*/ list) {
-        if (list != null) {
-          var newList = list.ConvertAll(SubstituteBoundedPool);
-          for (var i = 0; i < list.Count; i++) {
-            if (list[i] != newList[i]) {
-              return newList;
-            }
-          }
-        }
-        return list;
-      }
-
-      public ComprehensionExpr.BoundedPool SubstituteBoundedPool(ComprehensionExpr.BoundedPool bound) {
-        if (bound == null) {
-          return null;
-        } else if (bound is ComprehensionExpr.ExactBoundedPool) {
-          var b = (ComprehensionExpr.ExactBoundedPool)bound;
-          return new ComprehensionExpr.ExactBoundedPool(Substitute(b.E));
-        } else if (bound is ComprehensionExpr.BoolBoundedPool) {
-          return bound;  // nothing to substitute
-        } else if (bound is ComprehensionExpr.CharBoundedPool) {
-          return bound;  // nothing to substitute
-        } else if (bound is ComprehensionExpr.IntBoundedPool) {
-          var b = (ComprehensionExpr.IntBoundedPool)bound;
-          return new ComprehensionExpr.IntBoundedPool(b.LowerBound == null ? null : Substitute(b.LowerBound), b.UpperBound == null ? null : Substitute(b.UpperBound));
-        } else if (bound is ComprehensionExpr.SetBoundedPool) {
-          var b = (ComprehensionExpr.SetBoundedPool)bound;
-          return new ComprehensionExpr.SetBoundedPool(Substitute(b.Set), b.BoundVariableType, b.CollectionElementType, b.IsFiniteCollection);
-        } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
-          var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
-          return new ComprehensionExpr.MultiSetBoundedPool(Substitute(b.MultiSet), b.BoundVariableType, b.CollectionElementType);
-        } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
-          var b = (ComprehensionExpr.SubSetBoundedPool)bound;
-          return new ComprehensionExpr.SubSetBoundedPool(Substitute(b.UpperBound), b.IsFiniteCollection);
-        } else if (bound is ComprehensionExpr.SuperSetBoundedPool) {
-          var b = (ComprehensionExpr.SuperSetBoundedPool)bound;
-          return new ComprehensionExpr.SuperSetBoundedPool(Substitute(b.LowerBound));
-        } else if (bound is ComprehensionExpr.MapBoundedPool) {
-          var b = (ComprehensionExpr.MapBoundedPool)bound;
-          return new ComprehensionExpr.MapBoundedPool(Substitute(b.Map), b.BoundVariableType, b.CollectionElementType, b.IsFiniteCollection);
-        } else if (bound is ComprehensionExpr.SeqBoundedPool) {
-          var b = (ComprehensionExpr.SeqBoundedPool)bound;
-          return new ComprehensionExpr.SeqBoundedPool(Substitute(b.Seq), b.BoundVariableType, b.CollectionElementType);
-        } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
-          return bound;  // nothing to substitute
-        } else if (bound is ComprehensionExpr.DatatypeInclusionBoundedPool) {
-          return bound;  // nothing to substitute
-        } else if (bound is ComprehensionExpr.AllocFreeBoundedPool) {
-          return bound;  // nothing to substitute
-        } else if (bound is ComprehensionExpr.ExplicitAllocatedBoundedPool) {
-          return bound;  // nothing to substitute
-        } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
-          return bound;  // nothing to substitute
-        } else if (bound is ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool) {
-          return bound;  // nothing to substitute
-        } else {
-          Contract.Assume(false);  // unexpected ComprehensionExpr.BoundedPool
-          throw new cce.UnreachableException();  // to please compiler
-        }
-      }
-
-      /// <summary>
-      /// Return a list of bound variables, of the same length as 'vars' but with possible substitutions.
-      /// For any change necessary, update 'substMap' to reflect the new substitution; the caller is responsible for
-      /// undoing these changes once the updated 'substMap' has been used.
-      /// If no changes are necessary, the list returned is exactly 'vars' and 'substMap' is unchanged.
-      /// </summary>
-      protected virtual List<BoundVar> CreateBoundVarSubstitutions(List<BoundVar> vars, bool forceSubstitutionOfBoundVars) {
-        bool anythingChanged = false;
-        var newBoundVars = new List<BoundVar>();
-        foreach (var bv in vars) {
-          var tt = Resolver.SubstType(bv.Type, typeMap);
-          if (!forceSubstitutionOfBoundVars && tt == bv.Type) {
-            newBoundVars.Add(bv);
-          } else {
-            anythingChanged = true;
-            var newBv = new BoundVar(bv.tok, bv.Name, tt);
-            newBoundVars.Add(newBv);
-            // update substMap to reflect the new BoundVar substitutions
-            var ie = new IdentifierExpr(newBv.tok, newBv.Name);
-            ie.Var = newBv;  // resolve here
-            ie.Type = newBv.Type;  // resolve here
-            substMap.Add(bv, ie);
-          }
-        }
-        return anythingChanged ? newBoundVars : vars;
-      }
-
-      /// <summary>
-      /// Return a list of local variables, of the same length as 'vars' but with possible substitutions.
-      /// For any change necessary, update 'substMap' to reflect the new substitution; the caller is responsible for
-      /// undoing these changes once the updated 'substMap' has been used.
-      /// If no changes are necessary, the list returned is exactly 'vars' and 'substMap' is unchanged.
-      /// </summary>
-      protected virtual List<LocalVariable> CreateLocalVarSubstitutions(List<LocalVariable> vars, bool forceSubstitutionOfVars) {
-        bool anythingChanged = false;
-        var newVars = new List<LocalVariable>();
-        foreach (var v in vars) {
-          var tt = Resolver.SubstType(v.OptionalType, typeMap);
-          if (!forceSubstitutionOfVars && tt == v.OptionalType) {
-            newVars.Add(v);
-          } else {
-            anythingChanged = true;
-            var newVar = new LocalVariable(v.Tok, v.EndTok, v.Name, tt, v.IsGhost);
-            newVar.type = tt;  // resolve here
-            newVars.Add(newVar);
-            // update substMap to reflect the new LocalVariable substitutions
-            var ie = new IdentifierExpr(newVar.Tok, newVar.Name);
-            ie.Var = newVar;  // resolve here
-            ie.Type = newVar.Type;  // resolve here
-            substMap.Add(v, ie);
-          }
-        }
-        return anythingChanged ? newVars : vars;
-      }
-
-      /// <summary>
-      /// Return a list of case patterns, of the same length as 'patterns' but with possible substitutions.
-      /// For any change necessary, update 'substMap' to reflect the new substitution; the caller is responsible for
-      /// undoing these changes once the updated 'substMap' has been used.
-      /// If no changes are necessary, the list returned is exactly 'patterns' and 'substMap' is unchanged.
-      /// </summary>
-      protected virtual List<CasePattern<BoundVar>> CreateCasePatternSubstitutions(List<CasePattern<BoundVar>> patterns, bool forceSubstitutionOfBoundVars) {
-        bool anythingChanged = false;
-        var newPatterns = new List<CasePattern<BoundVar>>();
-        foreach (var pat in patterns) {
-          var newPat = SubstituteCasePattern(pat, forceSubstitutionOfBoundVars);
-          newPatterns.Add(newPat);
-          if (newPat != pat) {
-            anythingChanged = true;
-          }
-        }
-        return anythingChanged ? newPatterns : patterns;
-      }
-      CasePattern<BoundVar> SubstituteCasePattern(CasePattern<BoundVar> pat, bool forceSubstitutionOfBoundVars) {
-        Contract.Requires(pat != null);
-        if (pat.Var != null) {
-          var bv = pat.Var;
-          var tt = Resolver.SubstType(bv.Type, typeMap);
-          if (forceSubstitutionOfBoundVars || tt != bv.Type) {
-            var newBv = new BoundVar(pat.tok, pat.Id, tt);
-            // update substMap to reflect the new BoundVar substitutions
-            var ie = new IdentifierExpr(newBv.tok, newBv.Name);
-            ie.Var = newBv;  // resolve here
-            ie.Type = newBv.Type;  // resolve here
-            substMap.Add(bv, ie);
-            var newPat = new CasePattern<BoundVar>(pat.tok, newBv);
-            newPat.AssembleExpr(null);
-            return newPat;
-          }
-        } else if (pat.Arguments != null) {
-          bool anythingChanged = false;
-          var newArgs = new List<CasePattern<BoundVar>>();
-          foreach (var arg in pat.Arguments) {
-            var newArg = SubstituteCasePattern(arg, forceSubstitutionOfBoundVars);
-            newArgs.Add(newArg);
-            if (newArg != arg) {
-              anythingChanged = true;
-            }
-          }
-          if (anythingChanged) {
-            var patE = (DatatypeValue)pat.Expr;
-            var newPat = new CasePattern<BoundVar>(pat.tok, pat.Id, newArgs);
-            newPat.Ctor = pat.Ctor;
-            newPat.AssembleExpr(patE.InferredTypeArgs.ConvertAll(tp => Resolver.SubstType(tp, typeMap)));
-            return newPat;
-          }
-        }
-        return pat;
-      }
-
-      protected List<Expression/*!*/>/*!*/ SubstituteExprList(List<Expression/*!*/>/*!*/ elist) {
-        Contract.Requires(cce.NonNullElements(elist));
-        Contract.Ensures(cce.NonNullElements(Contract.Result<List<Expression>>()));
-
-        List<Expression> newElist = null;  // initialized lazily
-        for (int i = 0; i < elist.Count; i++) {
-          cce.LoopInvariant(newElist == null || newElist.Count == i);
-
-          Expression substE = Substitute(elist[i]);
-          if (substE != elist[i] && newElist == null) {
-            newElist = new List<Expression>();
-            for (int j = 0; j < i; j++) {
-              newElist.Add(elist[j]);
-            }
-          }
-          if (newElist != null) {
-            newElist.Add(substE);
-          }
-        }
-        if (newElist == null) {
-          return elist;
-        } else {
-          return newElist;
-        }
-      }
-
-      protected Dictionary<TypeParameter, Type> SubstituteTypeMap(Dictionary<TypeParameter, Type> tmap) {
-        Contract.Requires(tmap != null);
-        Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
-        if (typeMap.Count == 0) {  // optimization
-          return tmap;
-        }
-        bool anythingChanged = false;
-        var newTmap = new Dictionary<TypeParameter, Type>();
-        var i = 0;
-        foreach (var maplet in tmap) {
-          var tt = Resolver.SubstType(maplet.Value, typeMap);
-          if (tt != maplet.Value) {
-            anythingChanged = true;
-          }
-          newTmap.Add(maplet.Key, tt);
-          i++;
-        }
-        if (anythingChanged) {
-          return newTmap;
-        } else {
-          return tmap;
-        }
-      }
-
-      protected List<Type> SubstituteTypeList(List<Type> types) {
-        Contract.Requires(types != null);
-        Contract.Ensures(Contract.Result<List<Type>>() != null);
-        if (types.Count == 0) {  // optimization
-          return types;
-        }
-        bool anythingChanged = false;
-        var newTypes = new List<Type>();
-        var i = 0;
-        foreach (var ty in types) {
-          var tt = Resolver.SubstType(ty, typeMap);
-          if (tt != ty) {
-            anythingChanged = true;
-          }
-          newTypes.Add(tt);
-          i++;
-        }
-        if (anythingChanged) {
-          return newTypes;
-        } else {
-          return types;
-        }
-      }
-
-      /// <summary>
-      /// This method (which currently is used only internally to class Substituter) performs substitutions in
-      /// statements that can occur in a StmtExpr.  (For example, it does not bother to do anything with a
-      /// PrintStmt, ReturnStmt, or YieldStmt.)
-      /// </summary>
-      protected virtual Statement SubstStmt(Statement stmt) {
-        Statement r;
-        if (stmt == null) {
-          return null;
-        } else if (stmt is AssertStmt) {
-          var s = (AssertStmt)stmt;
-          r = new AssertStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstBlockStmt(s.Proof), s.Label, SubstAttributes(s.Attributes));
-        } else if (stmt is ExpectStmt) {
-          var s = (ExpectStmt)stmt;
-          r = new ExpectStmt(s.Tok, s.EndTok, Substitute(s.Expr), Substitute(s.Message), SubstAttributes(s.Attributes));
-        } else if (stmt is AssumeStmt) {
-          var s = (AssumeStmt)stmt;
-          r = new AssumeStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstAttributes(s.Attributes));
-        } else if (stmt is BreakStmt) {
-          var s = (BreakStmt)stmt;
-          BreakStmt rr;
-          if (s.TargetLabel != null) {
-            rr = new BreakStmt(s.Tok, s.EndTok, s.TargetLabel);
-          } else {
-            rr = new BreakStmt(s.Tok, s.EndTok, s.BreakCount);
-          }
-          // r.TargetStmt will be filled in as later
-          List<BreakStmt> breaks;
-          if (!BreaksToBeResolved.TryGetValue(s, out breaks)) {
-            breaks = new List<BreakStmt>();
-            BreaksToBeResolved.Add(s, breaks);
-          }
-          breaks.Add(rr);
-          r = rr;
-        } else if (stmt is AssignStmt) {
-          var s = (AssignStmt)stmt;
-          r = new AssignStmt(s.Tok, s.EndTok, Substitute(s.Lhs), SubstRHS(s.Rhs));
-        } else if (stmt is CallStmt) {
-          var s = (CallStmt)stmt;
-          var rr = new CallStmt(s.Tok, s.EndTok, s.Lhs.ConvertAll(Substitute), (MemberSelectExpr)Substitute(s.MethodSelect), s.Args.ConvertAll(Substitute));
-          r = rr;
-        } else if (stmt is DividedBlockStmt) {
-          r = SubstDividedBlockStmt((DividedBlockStmt)stmt);
-        } else if (stmt is BlockStmt) {
-          r = SubstBlockStmt((BlockStmt)stmt);
-        } else if (stmt is IfStmt) {
-          var s = (IfStmt)stmt;
-          r = new IfStmt(s.Tok, s.EndTok, s.IsBindingGuard, Substitute(s.Guard), SubstBlockStmt(s.Thn), SubstStmt(s.Els));
-        } else if (stmt is AlternativeStmt) {
-          var s = (AlternativeStmt)stmt;
-          r = new AlternativeStmt(s.Tok, s.EndTok, s.Alternatives.ConvertAll(SubstGuardedAlternative), s.UsesOptionalBraces);
-        } else if (stmt is WhileStmt) {
-          var s = (WhileStmt)stmt;
-          r = new WhileStmt(s.Tok, s.EndTok, Substitute(s.Guard), s.Invariants.ConvertAll(SubstMayBeFreeExpr), SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), SubstBlockStmt(s.Body));
-        } else if (stmt is AlternativeLoopStmt) {
-          var s = (AlternativeLoopStmt)stmt;
-          r = new AlternativeLoopStmt(s.Tok, s.EndTok, s.Invariants.ConvertAll(SubstMayBeFreeExpr), SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(SubstGuardedAlternative), s.UsesOptionalBraces);
-        } else if (stmt is ForallStmt) {
-          var s = (ForallStmt)stmt;
-          var newBoundVars = CreateBoundVarSubstitutions(s.BoundVars, false);
-          var body = SubstStmt(s.Body);
-          // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
-          foreach (var bv in s.BoundVars) {
-            substMap.Remove(bv);
-          }
-
-          // Put things together
-          var rr = new ForallStmt(s.Tok, s.EndTok, newBoundVars, SubstAttributes(s.Attributes), Substitute(s.Range), s.Ens.ConvertAll(SubstMayBeFreeExpr), body);
-          rr.Kind = s.Kind;
-          rr.CanConvert = s.CanConvert;
-          rr.Bounds = SubstituteBoundedPoolList(s.Bounds);
-          if (s.ForallExpressions != null) {
-            rr.ForallExpressions = s.ForallExpressions.ConvertAll(Substitute);
-          }
-          r = rr;
-        } else if (stmt is CalcStmt) {
-          var s = (CalcStmt)stmt;
-          var rr = new CalcStmt(s.Tok, s.EndTok, SubstCalcOp(s.UserSuppliedOp), s.Lines.ConvertAll(Substitute), s.Hints.ConvertAll(SubstBlockStmt), s.StepOps.ConvertAll(SubstCalcOp), SubstAttributes(s.Attributes));
-          rr.Op = SubstCalcOp(s.Op);
-          rr.Steps.AddRange(s.Steps.ConvertAll(Substitute));
-          rr.Result = Substitute(s.Result);
-          r = rr;
-        } else if (stmt is ConcreteSyntaxStatement) {
-          var s = (ConcreteSyntaxStatement)stmt;
-          r = SubstStmt(s.ResolvedStatement);
-        } else if (stmt is MatchStmt) {
-          var s = (MatchStmt)stmt;
-          var rr = new MatchStmt(s.Tok, s.EndTok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt), s.UsesOptionalBraces);
-          rr.MissingCases.AddRange(s.MissingCases);
-          r = rr;
-        } else if (stmt is AssignSuchThatStmt) {
-          var s = (AssignSuchThatStmt)stmt;
-          r = new AssignSuchThatStmt(s.Tok, s.EndTok, s.Lhss.ConvertAll(Substitute), Substitute(s.Expr), s.AssumeToken == null ? null : s.AssumeToken, null);
-        } else if (stmt is UpdateStmt) {
-          var s = (UpdateStmt)stmt;
-          var resolved = s.ResolvedStatements;
-          UpdateStmt rr;
-          if (resolved.Count == 1) {
-            // when later translating this UpdateStmt, the s.Lhss and s.Rhss components won't be used, only s.ResolvedStatements
-            rr = new UpdateStmt(s.Tok, s.EndTok, s.Lhss, s.Rhss, s.CanMutateKnownState);
-          } else {
-            rr = new UpdateStmt(s.Tok, s.EndTok, s.Lhss.ConvertAll(Substitute), s.Rhss.ConvertAll(SubstRHS), s.CanMutateKnownState);
-          }
-          rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
-          r = rr;
-        } else if (stmt is VarDeclStmt) {
-          var s = (VarDeclStmt)stmt;
-          var lhss = CreateLocalVarSubstitutions(s.Locals, false);
-          var rr = new VarDeclStmt(s.Tok, s.EndTok, lhss, (ConcreteUpdateStatement)SubstStmt(s.Update));
-          r = rr;
-        } else if (stmt is RevealStmt) {
-          var s = (RevealStmt)stmt;
-          // don't need to substitute s.Expr since it won't be used, only the s.ResolvedStatements are used.
-          var rr = new RevealStmt(s.Tok, s.EndTok, s.Exprs);
-          rr.LabeledAsserts.AddRange(s.LabeledAsserts);
-          rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
-          r = rr;
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
-        }
-
-        // add labels to the cloned statement
-        AddStmtLabels(r, stmt.Labels);
-        r.Attributes = SubstAttributes(stmt.Attributes);
-        r.IsGhost = stmt.IsGhost;
-        if (stmt.Labels != null || stmt is WhileStmt) {
-          List<BreakStmt> breaks;
-          if (BreaksToBeResolved.TryGetValue(stmt, out breaks)) {
-            foreach (var b in breaks) {
-              b.TargetStmt = r;
-            }
-            BreaksToBeResolved.Remove(stmt);
-          }
-        }
-
-        return r;
-      }
-
-      Dictionary<Statement, List<BreakStmt>> BreaksToBeResolved = new Dictionary<Statement, List<BreakStmt>>();  // old-target -> new-breaks
-
-      protected void AddStmtLabels(Statement s, LList<Label> node) {
-        if (node != null) {
-          AddStmtLabels(s, node.Next);
-          s.Labels = new LList<Label>(node.Data, s.Labels);
-        }
-      }
-
-      protected virtual DividedBlockStmt SubstDividedBlockStmt(DividedBlockStmt stmt) {
-        return stmt == null ? null : new DividedBlockStmt(stmt.Tok, stmt.EndTok, stmt.BodyInit.ConvertAll(SubstStmt), stmt.SeparatorTok, stmt.BodyProper.ConvertAll(SubstStmt));
-      }
-
-      protected virtual BlockStmt SubstBlockStmt(BlockStmt stmt) {
-        if (stmt == null) {
-          return null;
-        }
-        var prevSubstMap = new Dictionary<IVariable, Expression>(substMap);
-        var b = new BlockStmt(stmt.Tok, stmt.EndTok, stmt.Body.ConvertAll(SubstStmt));
-        if (substMap.Count != prevSubstMap.Count) {
-          // reset substMap to what it was (note that substMap is a readonly field, so we can't just change it back to prevSubstMap)
-          substMap.Clear();
-          foreach (var item in prevSubstMap) {
-            substMap.Add(item.Key, item.Value);
-          }
-        }
-        return b;
-      }
-
-      protected GuardedAlternative SubstGuardedAlternative(GuardedAlternative alt) {
-        Contract.Requires(alt != null);
-        return new GuardedAlternative(alt.Tok, alt.IsBindingGuard, Substitute(alt.Guard), alt.Body.ConvertAll(SubstStmt));
-      }
-
-      protected AttributedExpression SubstMayBeFreeExpr(AttributedExpression expr) {
-        Contract.Requires(expr != null);
-        var mfe = new AttributedExpression(Substitute(expr.E));
-        mfe.Attributes = SubstAttributes(expr.Attributes);
-        return mfe;
-      }
-
-      protected Specification<Expression> SubstSpecExpr(Specification<Expression> spec) {
-        var ee = spec.Expressions == null ? null : spec.Expressions.ConvertAll(Substitute);
-        return new Specification<Expression>(ee, SubstAttributes(spec.Attributes));
-      }
-
-      protected Specification<FrameExpression> SubstSpecFrameExpr(Specification<FrameExpression> frame) {
-        var ee = frame.Expressions == null ? null : frame.Expressions.ConvertAll(SubstFrameExpr);
-        return new Specification<FrameExpression>(ee, SubstAttributes(frame.Attributes));
-      }
-
-      public FrameExpression SubstFrameExpr(FrameExpression frame) {
-        Contract.Requires(frame != null);
-        var fe = new FrameExpression(frame.tok, Substitute(frame.E), frame.FieldName);
-        fe.Field = frame.Field;  // resolve here
-        return fe;
-      }
-
-      protected AssignmentRhs SubstRHS(AssignmentRhs rhs) {
-        AssignmentRhs c;
-        if (rhs is ExprRhs) {
-          var r = (ExprRhs)rhs;
-          c = new ExprRhs(Substitute(r.Expr));
-        } else if (rhs is HavocRhs) {
-          c = new HavocRhs(rhs.Tok);
-        } else {
-          // since the Substituter is assumed to operate on statements only if they are part of a StatementExpression, then the TypeRhs case cannot occur
-          Contract.Assume(false); throw new cce.UnreachableException();
-        }
-        c.Attributes = SubstAttributes(rhs.Attributes);
-        return c;
-      }
-
-      protected MatchCaseStmt SubstMatchCaseStmt(MatchCaseStmt c) {
-        Contract.Requires(c != null);
-        var newBoundVars = CreateBoundVarSubstitutions(c.Arguments, false);
-        var r = new MatchCaseStmt(c.tok, c.Ctor, newBoundVars, c.Body.ConvertAll(SubstStmt));
-        r.Ctor = c.Ctor;
-        // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
-        foreach (var bv in c.Arguments) {
-          substMap.Remove(bv);
-        }
-        return r;
-      }
-
-      protected CalcStmt.CalcOp SubstCalcOp(CalcStmt.CalcOp op) {
-        if (op == null) {
-          return null;
-        } else if (op is CalcStmt.BinaryCalcOp) {
-          return new CalcStmt.BinaryCalcOp(((CalcStmt.BinaryCalcOp)op).Op);
-        } else if (op is CalcStmt.TernaryCalcOp) {
-          return new CalcStmt.TernaryCalcOp(Substitute(((CalcStmt.TernaryCalcOp)op).Index));
-        } else {
-          Contract.Assert(false);
-          throw new cce.UnreachableException();
-        }
-      }
-
-      public Attributes SubstAttributes(Attributes attrs) {
-        Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
-        if (attrs != null) {
-          var newArgs = new List<Expression>();  // allocate it eagerly, what the heck, it doesn't seem worth the extra complexity in the code to do it lazily for the infrequently occurring attributes
-          bool anyArgSubst = false;
-          foreach (var arg in attrs.Args) {
-            var argToBeAdded = arg;
-            var substArg = Substitute(arg);
-            if (substArg != arg) {
-              argToBeAdded = substArg;
-              anyArgSubst = true;
-            }
-            newArgs.Add(argToBeAdded);
-          }
-          if (!anyArgSubst) {
-            newArgs = attrs.Args;
-          }
-
-          Attributes prev = SubstAttributes(attrs.Prev);
-          if (newArgs != attrs.Args || prev != attrs.Prev) {
-            if (attrs is UserSuppliedAttributes) {
-              var usa = (UserSuppliedAttributes)attrs;
-              return new UserSuppliedAttributes(usa.tok, usa.OpenBrace, usa.CloseBrace, newArgs, prev);
-            } else {
-              return new Attributes(attrs.Name, newArgs, prev);
-            }
-          }
-        }
-        return attrs;
-      }
-    }
-
-    /// <summary>
-    /// This substituter performs substitutions in such a way that it's okay to print the resulting expression without a human getting confused.
-    /// More precisely, bound variables first gets alpha-renamed.  Also, "this" is never left implicit, including in the
-    /// case where "receiverReplacement" is given as ImplicitThisExpr (but no attempt is made to substitute for all ImplicitThisExpr's in
-    /// "receiverReplacement" and the range of "substMap").
-    /// </summary>
-    public class AlphaConverting_Substituter : Substituter
-    {
-      ISet<string> namesToAvoid = new HashSet<string>();
-      public AlphaConverting_Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
-        : base(receiverReplacement is ImplicitThisExpr ? new ThisExpr(receiverReplacement.tok) { Type = receiverReplacement.Type } : receiverReplacement, substMap, typeMap) {
-        Contract.Requires(substMap != null);
-        Contract.Requires(typeMap != null);
-      }
-      protected override List<BoundVar> CreateBoundVarSubstitutions(List<BoundVar> vars, bool forceSubstitutionOfBoundVars) {
-        var newBoundVars = vars.Count == 0 ? vars : new List<BoundVar>();
-        foreach (var bv in vars) {
-          var tt = Resolver.SubstType(bv.Type, typeMap);
-          var newBv = new BoundVar(bv.tok, "_'" + bv.Name, tt);
-          newBoundVars.Add(newBv);
-          // update substMap to reflect the new BoundVar substitutions
-          var ie = new IdentifierExpr(newBv.tok, newBv.Name);
-          ie.Var = newBv;  // resolve here
-          ie.Type = newBv.Type;  // resolve here
-          substMap.Add(bv, ie);
-        }
-        return newBoundVars;
       }
     }
 

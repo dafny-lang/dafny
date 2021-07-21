@@ -136,13 +136,13 @@ ResolutionErrors.dfy(1037,7): Error: duplicate name of top-level declaration: Ba
 ResolutionErrors.dfy(1034,17): Error: Wrong number of type arguments (0 instead of 1) passed to datatype: List
 ResolutionErrors.dfy(1035,17): Error: Undeclared top-level type or type parameter: badName (did you forget to qualify a name or declare a module import 'opened'?)
 ResolutionErrors.dfy(1036,22): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened'?)
-ResolutionErrors.dfy(1043,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): A -> A
-ResolutionErrors.dfy(1046,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
-ResolutionErrors.dfy(1050,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1043,7): Error: type-synonym cycle: A -> A
+ResolutionErrors.dfy(1046,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1050,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
 ResolutionErrors.dfy(1059,11): Error: because of cyclic dependencies among constructor argument types, no instances of datatype 'D' can be constructed
-ResolutionErrors.dfy(1062,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
-ResolutionErrors.dfy(1067,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
-ResolutionErrors.dfy(1072,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): A -> A
+ResolutionErrors.dfy(1062,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1067,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> A
+ResolutionErrors.dfy(1072,7): Error: type-synonym cycle: A -> A
 ResolutionErrors.dfy(1079,25): Error: unresolved identifier: x
 ResolutionErrors.dfy(1082,22): Error: unresolved identifier: x
 ResolutionErrors.dfy(1085,25): Error: unresolved identifier: x
@@ -216,13 +216,13 @@ ResolutionErrors.dfy(1479,20): Error: calls to methods with side-effects are not
 ResolutionErrors.dfy(1501,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1502,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1503,20): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(1506,21): Error: a while statement used inside a hint is not allowed to have a modifies clause
+ResolutionErrors.dfy(1506,21): Error: a loop statement used inside a hint is not allowed to have a modifies clause
 ResolutionErrors.dfy(1488,24): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(1501,18): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 ResolutionErrors.dfy(1530,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1531,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1532,11): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(1535,21): Error: a while statement used inside a hint is not allowed to have a modifies clause
+ResolutionErrors.dfy(1535,21): Error: a loop statement used inside a hint is not allowed to have a modifies clause
 ResolutionErrors.dfy(1523,24): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(1530,18): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 ResolutionErrors.dfy(1559,20): Error: only ghost methods can be called from this context
@@ -526,4 +526,6 @@ ResolutionErrors.dfy(3346,9): Error: type parameter (T) passed to function MustB
 ResolutionErrors.dfy(3352,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
 ResolutionErrors.dfy(3367,9): Error: type parameter (T) passed to function NoReferences must support no references (got Class?)
 ResolutionErrors.dfy(3415,7): Error: ghost variables are allowed only in specification contexts
-523 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(3429,21): Error: a loop statement used inside a hint is not allowed to have a modifies clause
+ResolutionErrors.dfy(3436,21): Error: a loop statement used inside a hint is not allowed to have a modifies clause
+525 resolution/type errors detected in ResolutionErrors.dfy

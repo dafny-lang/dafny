@@ -169,3 +169,22 @@ newtype Pos = x | 0 < x witness 1
 type Opaque {
   var x: int  // error: mutable field not allowed in opaque type
 }
+
+// ------------------------- nameonly parameters ------------------------------
+
+module NameOnlyParameters {
+  // name-less datatype fields
+  datatype D =
+    | D0(int, nameonly int) // error: nameonly modifier must be followed by parameter name
+    | D1(int, nameonly int, real) // error: nameonly modifier must be followed by parameter name
+    | D2(int, nameonly x: int)
+  // named function results
+  function F(nameonly y: int): int
+  function G(y: int): (nameonly r: int) // error: 'nameonly' unexpected here
+  // out-parameters
+  method M(nameonly x: int) returns (y: int)
+  method N(x: int) returns (nameonly y: int) // error: 'nameonly' not allowed here
+  // yield-parameters
+  iterator Iter0(nameonly x: int) yields (y: int)
+  iterator Iter0(x: int) yields (nameonly y: int) // error: 'nameonly' not allowed here
+}

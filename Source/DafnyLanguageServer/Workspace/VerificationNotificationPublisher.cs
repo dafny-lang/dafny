@@ -4,9 +4,9 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class VerificationNotificationPublisher : IVerificationNotificationPublisher {
-    private readonly ILanguageServer _languageServer;
+    private readonly ITextDocumentLanguageServer _languageServer;
 
-    public VerificationNotificationPublisher(ILanguageServer languageServer) {
+    public VerificationNotificationPublisher(ITextDocumentLanguageServer languageServer) {
       _languageServer = languageServer;
     }
 
