@@ -240,13 +240,6 @@ namespace Microsoft.Boogie.ModelViewer
       public int Column;
     }
 
-    public SourceViewState GetSourceLocation(string name)
-    {
-      SourceViewState res;
-      sourceLocations.TryGetValue(name, out res);
-      return res;
-    }
-
     // example parsed token: @"c:\users\foo\bar.c(12,10) : random string"
     // the ": random string" part is optional
     public SourceLocation TryParseSourceLocation(string name)
