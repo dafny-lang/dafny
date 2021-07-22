@@ -17,11 +17,11 @@ namespace Microsoft.Boogie.ModelViewer
 
   public abstract class LanguageModel : ILanguageSpecificModel
   {
-    protected Dictionary<string, int> baseNameUse = new Dictionary<string, int>();
-    protected Dictionary<Model.Element, string> canonicalName = new Dictionary<Model.Element, string>();
-    protected Dictionary<string, Model.Element> invCanonicalName = new Dictionary<string, Model.Element>();
-    protected Dictionary<Model.Element, string> localValue = new Dictionary<Model.Element, string>();
-    protected Dictionary<string, SourceViewState> sourceLocations = new Dictionary<string, SourceViewState>();
+    protected Dictionary<string, int> baseNameUse = new();
+    protected Dictionary<Model.Element, string> canonicalName = new();
+    protected Dictionary<string, Model.Element> invCanonicalName = new();
+    protected Dictionary<Model.Element, string> localValue = new();
+    protected Dictionary<string, SourceViewState> sourceLocations = new();
     public readonly Model model;
 
     protected virtual bool UseLocalsForCanonicalNames
@@ -76,7 +76,7 @@ namespace Microsoft.Boogie.ModelViewer
 
     protected virtual string AppendSuffix(string baseName, int id)
     {
-      return baseName + "'" + id.ToString();
+      return baseName + "'" + id;
     }
 
     public virtual string CanonicalName(Model.Element elt)
@@ -134,7 +134,7 @@ namespace Microsoft.Boogie.ModelViewer
     {
       var workList = new Queue<IDisplayNode>();
 
-      Action<IEnumerable<IDisplayNode>> addList = (IEnumerable<IDisplayNode> nodes) =>
+      Action<IEnumerable<IDisplayNode>> addList = nodes =>
       {
         var ch = new Dictionary<string, IDisplayNode>();
         foreach (var x in nodes)
@@ -181,7 +181,7 @@ namespace Microsoft.Boogie.ModelViewer
         if ('0' <= c && c <= '9')
         {
           res *= 10;
-          res += (uint)c - (uint)'0';
+          res += (uint)c - '0';
         }
         beg++;
       }
@@ -190,13 +190,6 @@ namespace Microsoft.Boogie.ModelViewer
 
     public virtual int CompareFieldNames(string f1, string f2)
     {
-      /*
-      bool s1 = HasSpecialChars(f1);
-      bool s2 = HasSpecialChars(f2);
-      if (s1 && !s2)
-        return 1;
-      if (!s1 && s2)
-        return -1; */
       var len = Math.Min(f1.Length, f2.Length);
       var numberPos = -1;
       for (int i = 0; i < len; ++i)
@@ -218,7 +211,7 @@ namespace Microsoft.Boogie.ModelViewer
         var v2 = GetNumber(f2, numberPos);
 
         if (v1 < v2) return -1;
-        else if (v1 > v2) return 1;
+        if (v1 > v2) return 1;
       }
 
       return string.CompareOrdinal(f1, f2);
@@ -228,7 +221,7 @@ namespace Microsoft.Boogie.ModelViewer
     {
       var diff = (int)n1.Category - (int)n2.Category;
       if (diff != 0) return diff;
-      else return CompareFieldNames(n1.Name, n2.Name);
+      return CompareFieldNames(n1.Name, n2.Name);
     }
 
     public virtual IEnumerable<string> SortFields(IEnumerable<IDisplayNode> fields_)
@@ -292,7 +285,7 @@ namespace Microsoft.Boogie.ModelViewer
       return res;
     }
 
-    static char[] dirSeps = new char[] { '\\', '/' };
+    static char[] dirSeps = { '\\', '/' };
     public virtual string ShortenToken(string tok, int fnLimit, bool addAddInfo)
     {
       var loc = TryParseSourceLocation(tok);
@@ -312,10 +305,7 @@ namespace Microsoft.Boogie.ModelViewer
           addInfo = ":" + addInfo;
         return string.Format("{0}({1},{2}){3}", fn, loc.Line, loc.Column, addInfo);
       }
-      else
-      {
-        return tok;
-      }
+      return tok;
     }
 
     protected virtual void RtfAppend(StringBuilder sb, char c, ref int pos)
@@ -445,18 +435,9 @@ namespace Microsoft.Boogie.ModelViewer
       this.langModel = lm;
     }
 
-    public Model.CapturedState State
-    {
-      get { return state; }
-    }
+    public Model.CapturedState State => state;
 
-    public virtual string Name
-    {
-      get
-      {
-        return langModel.ShortenToken(state.Name, 20, true);
-      }
-    }
+    public virtual string Name => langModel.ShortenToken(state.Name, 20, true);
 
     // by overriding this, one state can masqureade another
     public virtual string CapturedStateName
@@ -533,16 +514,6 @@ namespace Microsoft.Boogie.ModelViewer
       {
         var c = format[i];
 
-        /*
-        var canonical = false;
-        if (c == '%' && i < format.Length - 1) {
-          if (format[i + 1] == 'c') {
-            ++i;
-            canonical = true;
-          }
-        }
-         */
-
         if (c == '%' && i < format.Length - 1)
         {
           var j = i + 1;
@@ -564,10 +535,7 @@ namespace Microsoft.Boogie.ModelViewer
       return res.ToString();
     }
 
-    public virtual IEnumerable<Model.Element> Dependencies
-    {
-      get { return args; }
-    }
+    public virtual IEnumerable<Model.Element> Dependencies => args;
   }
 
 }

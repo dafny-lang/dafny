@@ -10,7 +10,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
 {
   public class Provider : ILanguageProvider
   {
-    public static Provider Instance = new Provider();
+    public static Provider Instance = new();
     private Provider() { }
 
     public bool IsMyModel(Model m)
@@ -34,9 +34,9 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
   public class DafnyModel : LanguageModel
   {
     public readonly Model.Func f_heap_select, f_set_select, f_seq_length, f_seq_index, f_box, f_dim, f_index_field, f_multi_index_field, f_dtype, f_null;
-    public readonly Dictionary<Model.Element, Model.Element[]> ArrayLengths = new Dictionary<Model.Element, Model.Element[]>();
-    public readonly Dictionary<Model.Element, Model.FuncTuple> DatatypeValues = new Dictionary<Model.Element, Model.FuncTuple>();
-    public List<StateNode> states = new List<StateNode>();
+    public readonly Dictionary<Model.Element, Model.Element[]> ArrayLengths = new();
+    public readonly Dictionary<Model.Element, Model.FuncTuple> DatatypeValues = new();
+    public List<StateNode> states = new();
 
     public DafnyModel(Model m, ViewOptions opts)
       : base(m, opts)
@@ -91,10 +91,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       GenerateSourceLocations(states);
     }
 
-    public override IEnumerable<IState> States
-    {
-      get { return states; }
-    }
+    public override IEnumerable<IState> States => states;
 
     public string GetUserVariableName(string name)
     {
@@ -115,8 +112,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
         string nm = fnTuple.Func.Name;
         if (fnTuple.Func.Arity == 0)
           return nm;
-        else
-          return nm + "(...)";
+        return nm + "(...)";
       }
       var seqLen = f_seq_length.AppWithArg(0, elt);
       if (seqLen != null)
@@ -282,15 +278,14 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       var unboxed = f_box.AppWithResult(elt);
       if (unboxed != null)
         return unboxed.Args[0];
-      else
-        return elt;
+      return elt;
     }
   }
 
   public class StateNode : NamedState
   {
     internal readonly DafnyModel dm;
-    public readonly List<VariableNode> Vars = new List<VariableNode>();
+    public readonly List<VariableNode> Vars = new();
     internal readonly List<VariableNode> skolems;
 
     public StateNode(int i, DafnyModel parent, Model.CapturedState s)
@@ -344,13 +339,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       }
     }
 
-    public override IEnumerable<IDisplayNode> Nodes
-    {
-      get
-      {
-        return Vars.Concat(skolems);
-      }
-    }
+    public override IEnumerable<IDisplayNode> Nodes => Vars.Concat(skolems);
   }
 
   public class ElementNode : DisplayNode
@@ -362,7 +351,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
     public ElementNode(StateNode st, EdgeName name, Model.Element elt)
       : base(st.dm, name, elt)
     {
-      this.stateNode = st;
+      stateNode = st;
       this.elt = elt;
     }
 

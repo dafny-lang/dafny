@@ -97,9 +97,6 @@ namespace Microsoft.Boogie.ModelViewer
     protected ILanguageSpecificModel langModel;
     protected List<IDisplayNode> children;
 
-    public DisplayNode(ILanguageSpecificModel model, string n, Model.Element elt)
-      : this(model, new EdgeName(n), elt) { }
-
     public DisplayNode(ILanguageSpecificModel model, EdgeName n, Model.Element elt)
     {
       langModel = model;
@@ -134,36 +131,21 @@ namespace Microsoft.Boogie.ModelViewer
 
     public object ViewSync { get; set; }
 
-    public virtual string Name
-    {
-      get { return name.ToString(); }
-    }
+    public virtual string Name => name.ToString();
 
     private string shortName;
 
     public virtual string ShortName
     {
-      get
-      {
+      get {
         if (shortName != null)
-        {
           return shortName;
-        }
-        else
-        {
-          return name.ToString();
-        }
+        return name.ToString();
       }
-      set
-      {
-        shortName = value;
-      }
+      set => shortName = value;
     }
 
-    public virtual Model.Element Element
-    {
-      get { return element; }
-    }
+    public virtual Model.Element Element => element;
 
     public virtual string Value
     {
