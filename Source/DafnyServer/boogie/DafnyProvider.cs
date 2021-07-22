@@ -319,6 +319,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
           Vars.Add(vn);
         }
       }
+      dm.Flush(Nodes);
     }
     
     public virtual string CapturedStateName => State.Name;
@@ -335,6 +336,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
         yield return new VariableNode(this, name, f.GetConstant(), name);
       }
     }
+    public IEnumerable<DisplayNode> Nodes => Vars.Concat(skolems);
     
     public Model.CapturedState State => state;
 
