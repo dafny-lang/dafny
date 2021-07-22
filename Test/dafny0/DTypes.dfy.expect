@@ -8,37 +8,15 @@ DTypes.dfy(233,14): Warning: the type of the other operand is a non-null type, s
 DTypes.dfy(64,13): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'true' (to make it possible for variable 'a' to have the value 'null', declare its type to be 'CP?<int, C>')
 DTypes.dfy(179,2): Error: A postcondition might not hold on this return path.
 DTypes.dfy(178,14): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 DTypes.dfy(18,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 DTypes.dfy(56,17): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 DTypes.dfy(121,11): Error: assertion violation
 DTypes.dfy(93,29): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-    (0,0): anon2
 DTypes.dfy(127,11): Error: assertion violation
 DTypes.dfy(93,19): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-    (0,0): anon2
 DTypes.dfy(137,11): Error: assertion violation
 DTypes.dfy(132,4): Related location
 DTypes.dfy(93,19): Related location
-Execution trace:
-    (0,0): anon0
 DTypes.dfy(156,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
-    (0,0): anon7_Then
-    (0,0): anon8_Then
-    (0,0): anon5
 
 Dafny program verifier finished with 22 verified, 7 errors

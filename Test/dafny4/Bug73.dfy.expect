@@ -1,12 +1,4 @@
 Bug73.dfy(7,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    Bug73.dfy(7,19): anon3_Else
-    (0,0): anon2
 Bug73.dfy(13,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    Bug73.dfy(13,20): anon3_Else
-    (0,0): anon2
 
 Dafny program verifier finished with 0 verified, 2 errors

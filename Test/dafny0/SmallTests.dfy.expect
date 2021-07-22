@@ -1,271 +1,55 @@
 SmallTests.dfy(548,4): Warning: /!\ No trigger covering all quantified variables found.
 SmallTests.dfy(909,14): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 SmallTests.dfy(901,14): Error: target object may be null
-Execution trace:
-    (0,0): anon0
-    SmallTests.dfy(900,23): anon3_Else
-    (0,0): anon2
 SmallTests.dfy(34,11): Error: index out of range
-Execution trace:
-    (0,0): anon0
 SmallTests.dfy(65,35): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
 SmallTests.dfy(66,50): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Else
-    (0,0): anon14_Else
 SmallTests.dfy(67,21): Error: target object may be null
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
-    (0,0): anon14_Then
-    (0,0): anon15_Then
 SmallTests.dfy(86,23): Error: target object may be null
-Execution trace:
-    (0,0): anon0
-    SmallTests.dfy(85,5): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    (0,0): anon9_Then
 SmallTests.dfy(120,5): Error: call may violate context's modifies clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
-    (0,0): anon3
 SmallTests.dfy(132,9): Error: call may violate context's modifies clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 SmallTests.dfy(134,9): Error: call may violate context's modifies clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 SmallTests.dfy(174,8): Error: assignment may update an object field not in the enclosing context's modifies clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon18_Else
-    (0,0): anon20_Else
-    (0,0): anon22_Else
-    (0,0): anon23_Then
 SmallTests.dfy(196,25): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 SmallTests.dfy(197,25): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
 SmallTests.dfy(199,25): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
 SmallTests.dfy(209,25): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 SmallTests.dfy(211,25): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
 SmallTests.dfy(212,30): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon14_Then
 SmallTests.dfy(214,30): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon16_Then
 SmallTests.dfy(223,25): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 SmallTests.dfy(225,30): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 SmallTests.dfy(236,25): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 SmallTests.dfy(239,25): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
 SmallTests.dfy(240,30): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon14_Then
 SmallTests.dfy(243,30): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon16_Then
 SmallTests.dfy(253,25): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 SmallTests.dfy(255,30): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 SmallTests.dfy(303,23): Error: A precondition for this call might not hold.
 SmallTests.dfy(281,16): Related location: This is the precondition that might not hold.
-Execution trace:
-    (0,0): anon0
 SmallTests.dfy(408,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 SmallTests.dfy(418,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 SmallTests.dfy(428,5): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 SmallTests.dfy(733,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    SmallTests.dfy(730,5): anon7_LoopHead
-    (0,0): anon7_LoopBody
-    SmallTests.dfy(730,5): anon8_Else
-    (0,0): anon9_Then
 SmallTests.dfy(754,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
-    (0,0): anon10_Then
-    (0,0): anon11_Then
-    (0,0): anon4
 SmallTests.dfy(338,2): Error: A postcondition might not hold on this return path.
 SmallTests.dfy(332,10): Related location: This is the postcondition that might not hold.
 SmallTests.dfy(332,40): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon20_Else
-    (0,0): anon26_Then
-    (0,0): anon27_Then
-    (0,0): anon28_Then
-    (0,0): anon17
-    (0,0): anon29_Else
 SmallTests.dfy(379,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
-    (0,0): anon7
 SmallTests.dfy(386,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 SmallTests.dfy(396,3): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 SmallTests.dfy(440,9): Error: A postcondition might not hold on this return path.
 SmallTests.dfy(443,40): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
 SmallTests.dfy(604,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
-    (0,0): anon10_Then
-    (0,0): anon3
-    (0,0): anon11_Then
-    (0,0): anon12_Then
-    (0,0): anon8
 SmallTests.dfy(618,19): Error: left-hand sides n.next and n.next.next may refer to the same location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon29_Then
-    (0,0): anon30_Then
-    (0,0): anon4
-    (0,0): anon31_Then
-    (0,0): anon32_Then
-    (0,0): anon7
-    (0,0): anon9
-    (0,0): anon33_Then
-    (0,0): anon34_Then
-    (0,0): anon12
 SmallTests.dfy(620,14): Error: left-hand sides a[j] and a[i] may refer to the same location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon29_Then
-    SmallTests.dfy(613,18): anon30_Else
-    (0,0): anon4
-    (0,0): anon31_Else
-    (0,0): anon9
-    (0,0): anon33_Else
-    (0,0): anon37_Then
-    (0,0): anon38_Then
-    (0,0): anon39_Then
-    (0,0): anon22
-    (0,0): anon40_Then
 SmallTests.dfy(627,24): Error: target object may be null
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 SmallTests.dfy(640,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-    (0,0): anon2
 SmallTests.dfy(664,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
-    (0,0): anon20_Then
-    (0,0): anon21_Then
-    (0,0): anon22_Then
-    (0,0): anon8
-    (0,0): anon23_Then
-    (0,0): anon10
-    (0,0): anon24_Then
-    (0,0): anon25_Then
-    (0,0): anon26_Then
-    (0,0): anon27_Then
 SmallTests.dfy(687,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
-    (0,0): anon14_Then
-    (0,0): anon15_Then
-    (0,0): anon16_Then
-    (0,0): anon17_Then
-    (0,0): anon9
-    (0,0): anon18_Then
-    (0,0): anon12
 SmallTests.dfy(701,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
-    (0,0): anon11_Then
-    (0,0): anon12_Then
-    (0,0): anon13_Then
-    (0,0): anon6
 SmallTests.dfy(703,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
-    (0,0): anon11_Else
-    (0,0): anon14_Then
-    (0,0): anon9
 SmallTests.dfy(716,8): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
-    (0,0): anon20_Then
-    (0,0): anon21_Then
-    (0,0): anon22_Then
-    (0,0): anon8
-    (0,0): anon23_Then
-    (0,0): anon10
-    (0,0): anon24_Then
-    (0,0): anon25_Then
-    (0,0): anon26_Then
-    (0,0): anon27_Then
 
 Dafny program verifier finished with 56 verified, 47 errors
 SmallTests.dfy.tmp.dprint.dfy(450,4): Warning: /!\ No trigger covering all quantified variables found.

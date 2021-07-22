@@ -1,83 +1,17 @@
 Datatypes.dfy(297,9): Error: A postcondition might not hold on this return path.
 Datatypes.dfy(295,14): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon14_Then
-    (0,0): anon15_Else
-    (0,0): anon16_Then
-    (0,0): anon6
 Datatypes.dfy(298,11): Error: missing case in match expression: Appendix(_)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon14_Then
-    (0,0): anon15_Else
-    (0,0): anon16_Else
-    (0,0): anon17_Then
 Datatypes.dfy(349,4): Error: missing case in match expression: Cons(_,_)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Then
 Datatypes.dfy(349,4): Error: missing case in match expression: Nil
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Else
-    (0,0): anon9_Then
 Datatypes.dfy(356,7): Error: missing case in match expression: Cons(_,_)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Else
-    (0,0): anon11_Else
-    (0,0): anon12_Then
-    (0,0): anon13_Then
 Datatypes.dfy(356,7): Error: missing case in match expression: Nil
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Else
-    (0,0): anon11_Else
-    (0,0): anon12_Then
-    (0,0): anon13_Else
-    (0,0): anon14_Then
 Datatypes.dfy(377,21): Error: RHS is not certain to look like the pattern 'AAA'
-Execution trace:
-    (0,0): anon0
 Datatypes.dfy(82,19): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon18_Else
-    (0,0): anon19_Then
-    (0,0): anon4
-    (0,0): anon20_Else
-    (0,0): anon21_Then
-    (0,0): anon22_Else
-    (0,0): anon23_Then
 Datatypes.dfy(170,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
 Datatypes.dfy(172,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
-    (0,0): anon5_Then
 Datatypes.dfy(201,12): Error: destructor 'Car' can only be applied to datatype values constructed by 'XCons'
-Execution trace:
-    (0,0): anon0
 Datatypes.dfy(204,16): Error: destructor 'Car' can only be applied to datatype values constructed by 'XCons'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 Datatypes.dfy(225,16): Error: destructor 'c' can only be applied to datatype values constructed by 'T''
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 Datatypes.dfy(48,21): Error: target object may not be allocated
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Else
-    (0,0): anon13_Else
-    (0,0): anon14_Then
-    (0,0): anon15_Then
 
 Dafny program verifier finished with 27 verified, 14 errors

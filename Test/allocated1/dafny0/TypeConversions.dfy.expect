@@ -1,70 +1,19 @@
 TypeConversions.dfy(14,40): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
 TypeConversions.dfy(16,40): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon15_Then
 TypeConversions.dfy(17,40): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon16_Then
 TypeConversions.dfy(20,44): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
 TypeConversions.dfy(44,28): Error: result of operation might violate newtype constraint for 'SmallReal'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon32_Then
 TypeConversions.dfy(57,26): Error: value to be converted might not fit in bv32
-Execution trace:
-    (0,0): anon0
-    (0,0): anon18_Then
 TypeConversions.dfy(61,30): Error: value to be converted might not fit in bv7
-Execution trace:
-    (0,0): anon0
-    (0,0): anon22_Then
 TypeConversions.dfy(62,28): Error: value to be converted might not fit in bv7
-Execution trace:
-    (0,0): anon0
-    (0,0): anon23_Then
 TypeConversions.dfy(72,29): Error: value to be converted might not fit in bv0
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 TypeConversions.dfy(73,27): Error: value to be converted might not fit in bv0
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 TypeConversions.dfy(74,31): Error: value to be converted might not fit in bv0
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 TypeConversions.dfy(100,20): Error: result of operation might violate newtype constraint for 'EvenInt'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
 TypeConversions.dfy(100,20): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
 TypeConversions.dfy(102,20): Error: result of operation might violate newtype constraint for 'EvenInt'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon14_Then
 TypeConversions.dfy(115,28): Error: value to be converted might not fit in bv7
-Execution trace:
-    (0,0): anon0
-    (0,0): anon20_Then
 TypeConversions.dfy(116,27): Error: value to be converted might not fit in bv0
-Execution trace:
-    (0,0): anon0
-    (0,0): anon21_Then
 TypeConversions.dfy(126,5): Error: trying witness null: value of expression (of type 'Class?') is not known to be an instance of type 'Class', because it may be null
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 
 Dafny program verifier finished with 3 verified, 17 errors

@@ -1,26 +1,6 @@
 FunctionEquality.dfy(11,17): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    FunctionEquality.dfy(9,27): anon59_Else
-    (0,0): anon63_Then
-    FunctionEquality.dfy(11,21): anon64_Else
 FunctionEquality.dfy(13,26): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    FunctionEquality.dfy(9,27): anon59_Else
-    (0,0): anon68_Then
-    FunctionEquality.dfy(13,30): anon69_Else
 FunctionEquality.dfy(15,26): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    FunctionEquality.dfy(9,27): anon59_Else
-    (0,0): anon73_Then
-    FunctionEquality.dfy(15,30): anon74_Else
 FunctionEquality.dfy(19,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    FunctionEquality.dfy(9,27): anon59_Else
-    (0,0): anon73_Else
-    FunctionEquality.dfy(18,14): anon78_Else
 
 Dafny program verifier finished with 0 verified, 4 errors

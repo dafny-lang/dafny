@@ -1,52 +1,15 @@
 NonZeroInitialization.dfy(4,36): Error: the given witness expression might not satisfy constraint
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 NonZeroInitialization.dfy(11,5): Error: trying witness 0: result of operation might violate subset type constraint for 'Six'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 NonZeroInitialization.dfy(12,45): Error: result of operation might violate subset type constraint for 'Six'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 NonZeroInitialization.dfy(13,5): Error: trying witness 0: result of operation might violate subset type constraint for 'Six'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 NonZeroInitialization.dfy(16,8): Error: trying witness 0: result of operation might violate newtype constraint for 'NewSix'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 NonZeroInitialization.dfy(17,61): Error: result of operation might violate newtype constraint for 'NewSix'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 NonZeroInitialization.dfy(18,46): Error: result of operation might violate newtype constraint for 'NewSix'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 NonZeroInitialization.dfy(19,8): Error: trying witness 0: result of operation might violate newtype constraint for 'NewSix'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 NonZeroInitialization.dfy(37,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 NonZeroInitialization.dfy(38,70): Error: result of operation might violate subset type constraint for 'ListTwo'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 NonZeroInitialization.dfy(39,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 NonZeroInitialization.dfy(53,0): Error: out-parameter 'g', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 NonZeroInitialization.dfy(58,7): Error: unless an initializer is provided for the array elements, a new array of 'Yt<GW>' must have empty size
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 11 verified, 13 errors

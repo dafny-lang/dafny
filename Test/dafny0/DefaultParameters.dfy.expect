@@ -1,245 +1,80 @@
 DefaultParameters.dfy(55,30): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(63,42): Error: default value must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(67,38): Error: default value must be allocated in the two-state lemma's previous state
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(92,2): Error: A postcondition might not hold on this return path.
 DefaultParameters.dfy(91,16): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(102,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 DefaultParameters.dfy(110,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon15_Then
 DefaultParameters.dfy(124,31): Error: insufficient reads clause to read field
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(131,34): Error: insufficient reads clause to read field
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(135,43): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(137,37): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(140,28): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(145,17): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(160,43): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(160,43): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(162,38): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(162,38): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(165,29): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(165,29): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(170,15): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(170,15): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(172,45): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(180,35): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(180,35): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(181,40): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(148,38): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(150,33): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(153,24): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(158,15): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(178,35): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(179,33): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(194,33): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(200,34): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(211,56): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
 DefaultParameters.dfy(219,23): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(220,23): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(229,8): Error: failure to decrease termination measure
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 DefaultParameters.dfy(235,4): Error: failure to decrease termination measure
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 DefaultParameters.dfy(235,6): Error: failure to decrease termination measure
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 DefaultParameters.dfy(241,4): Error: failure to decrease termination measure
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 DefaultParameters.dfy(251,25): Error: insufficient reads clause to read field
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(258,34): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(267,35): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(320,39): Error: A precondition for this call might not hold.
 DefaultParameters.dfy(319,15): Related location: This is the precondition that might not hold.
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(326,36): Error: insufficient reads clause to read array element
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
-    (0,0): anon4
-    (0,0): anon13_Then
-    (0,0): anon14_Then
-    (0,0): anon9
 DefaultParameters.dfy(327,54): Error: insufficient reads clause to read array element
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
-    (0,0): anon4
-    (0,0): anon13_Then
-    (0,0): anon14_Then
-    (0,0): anon9
 DefaultParameters.dfy(360,38): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(363,37): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(363,37): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(365,38): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(361,34): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(362,32): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(385,35): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(388,34): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(388,34): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(390,35): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(386,31): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(387,29): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(416,28): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(417,23): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(418,24): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(419,28): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(438,27): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(443,28): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(447,5): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(453,32): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(481,32): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(494,28): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(493,18): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(500,15): Error: A precondition for this call might not hold.
 DefaultParameters.dfy(503,13): Related location: This is the precondition that might not hold.
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(520,38): Error: insufficient reads clause to read field
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(548,38): Error: insufficient reads clause to read field
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(521,34): Error: insufficient reads clause to read field
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(524,43): Error: insufficient reads clause to read field
-Execution trace:
-    (0,0): anon0
 DefaultParameters.dfy(601,11): Error: assertion violation
 DefaultParameters.dfy(582,18): Related location
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 73 verified, 74 errors

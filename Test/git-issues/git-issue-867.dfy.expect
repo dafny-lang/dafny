@@ -1,32 +1,7 @@
 git-issue-867.dfy(49,6): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Else
-    (0,0): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon7
 git-issue-867.dfy(90,6): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Else
-    (0,0): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon7
 git-issue-867.dfy(9,2): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon7_Then
 git-issue-867.dfy(21,2): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon7_Then
 git-issue-867.dfy(29,2): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Else
-    (0,0): anon9_Then
-    (0,0): anon10_Then
 
 Dafny program verifier finished with 4 verified, 5 errors

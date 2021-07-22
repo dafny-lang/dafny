@@ -1,8 +1,4 @@
 Bug93.dfy(17,28): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Bug93.dfy(34,28): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 2 verified, 2 errors
