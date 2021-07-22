@@ -13,11 +13,6 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
     public static Provider Instance = new();
     private Provider() { }
 
-    public bool IsMyModel(Model m)
-    {
-      return m.TryGetFunc("$$Language$Dafny") != null;
-    }
-
     public LanguageModel GetLanguageSpecificModel(Model m, ViewOptions opts)
     {
       var dm = new DafnyModel(m, opts);
@@ -339,14 +334,14 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       }
     }
 
-    public override IEnumerable<DisplayNode> Nodes => Vars.Concat(skolems);
+    public IEnumerable<DisplayNode> Nodes => Vars.Concat(skolems);
   }
 
   public class ElementNode : DisplayNode
   {
     protected StateNode stateNode;
     protected Model.Element elt;
-    protected DafnyModel vm { get { return stateNode.dm; } }
+    protected DafnyModel vm => stateNode.dm;
 
     public ElementNode(StateNode st, EdgeName name, Model.Element elt)
       : base(st.dm, name, elt)

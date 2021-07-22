@@ -24,10 +24,7 @@ namespace Microsoft.Boogie.ModelViewer
     protected Dictionary<string, SourceViewState> sourceLocations = new();
     public readonly Model model;
 
-    protected virtual bool UseLocalsForCanonicalNames
-    {
-      get { return false; }
-    }
+    protected bool UseLocalsForCanonicalNames => false;
 
     public readonly ViewOptions viewOpts;
     public LanguageModel(Model model, ViewOptions opts)
@@ -66,7 +63,7 @@ namespace Microsoft.Boogie.ModelViewer
       return "";
     }
 
-    public virtual void RegisterLocalValue(string name, Model.Element elt)
+    public void RegisterLocalValue(string name, Model.Element elt)
     {
       string curr;
       if (localValue.TryGetValue(elt, out curr) && CompareFieldNames(name, curr) >= 0)
@@ -74,12 +71,12 @@ namespace Microsoft.Boogie.ModelViewer
       localValue[elt] = name;
     }
 
-    protected virtual string AppendSuffix(string baseName, int id)
+    protected string AppendSuffix(string baseName, int id)
     {
       return baseName + "'" + id;
     }
 
-    public virtual string CanonicalName(Model.Element elt)
+    public string CanonicalName(Model.Element elt)
     {
       string res;
       if (elt == null) return "?";
@@ -109,19 +106,6 @@ namespace Microsoft.Boogie.ModelViewer
       canonicalName.Add(elt, res);
       invCanonicalName[res.Replace(" ", "")] = elt;
       return res;
-    }
-
-    public virtual Model.Element FindElement(string canonicalName)
-    {
-      Model.Element res;
-      if (invCanonicalName.TryGetValue(canonicalName.Replace(" ", ""), out res))
-        return res;
-      return null;
-    }
-
-    public virtual string PathName(IEnumerable<DisplayNode> path)
-    {
-      return path.Select(n => n.Name).Concat(".");
     }
 
     public abstract IEnumerable<NamedState> States { get; }
@@ -188,7 +172,7 @@ namespace Microsoft.Boogie.ModelViewer
       return res;
     }
 
-    public virtual int CompareFieldNames(string f1, string f2)
+    public int CompareFieldNames(string f1, string f2)
     {
       var len = Math.Min(f1.Length, f2.Length);
       var numberPos = -1;
@@ -217,14 +201,14 @@ namespace Microsoft.Boogie.ModelViewer
       return string.CompareOrdinal(f1, f2);
     }
 
-    public virtual int CompareFields(DisplayNode n1, DisplayNode n2)
+    public int CompareFields(DisplayNode n1, DisplayNode n2)
     {
       var diff = (int)n1.Category - (int)n2.Category;
       if (diff != 0) return diff;
       return CompareFieldNames(n1.Name, n2.Name);
     }
 
-    public virtual IEnumerable<string> SortFields(IEnumerable<DisplayNode> fields_)
+    public IEnumerable<string> SortFields(IEnumerable<DisplayNode> fields_)
     {
       var fields = new List<DisplayNode>(fields_);
       fields.Sort(CompareFields);
@@ -264,7 +248,7 @@ namespace Microsoft.Boogie.ModelViewer
 
     // example parsed token: @"c:\users\foo\bar.c(12,10) : random string"
     // the ": random string" part is optional
-    public virtual SourceLocation TryParseSourceLocation(string name)
+    public SourceLocation TryParseSourceLocation(string name)
     {
       var par = name.LastIndexOf('(');
       if (par <= 0) return null;
@@ -286,7 +270,7 @@ namespace Microsoft.Boogie.ModelViewer
     }
 
     static char[] dirSeps = { '\\', '/' };
-    public virtual string ShortenToken(string tok, int fnLimit, bool addAddInfo)
+    public string ShortenToken(string tok, int fnLimit, bool addAddInfo)
     {
       var loc = TryParseSourceLocation(tok);
 
@@ -308,7 +292,7 @@ namespace Microsoft.Boogie.ModelViewer
       return tok;
     }
 
-    protected virtual void RtfAppend(StringBuilder sb, char c, ref int pos)
+    protected void RtfAppend(StringBuilder sb, char c, ref int pos)
     {
       pos++;
       switch (c)
@@ -322,21 +306,21 @@ namespace Microsoft.Boogie.ModelViewer
       }
     }
 
-    protected virtual void RtfAppendStateIdx(StringBuilder sb, string label, ref int pos)
+    protected void RtfAppendStateIdx(StringBuilder sb, string label, ref int pos)
     {
       label += ".";
       pos += label.Length;
       sb.Append(@"{\sub\cf5\highlight4 ").Append(label).Append("}");
     }
 
-    protected virtual void RtfAppendLineNo(StringBuilder sb, int num, ref int pos)
+    protected void RtfAppendLineNo(StringBuilder sb, int num, ref int pos)
     {
       string n = string.Format("{0:0000}: ", num);
       pos += n.Length;
       sb.Append(@"{\cf6 ").Append(n).Append("}");
     }
 
-    protected virtual void GenerateSourceLocations(IEnumerable<NamedState> states)
+    protected void GenerateSourceLocations(IEnumerable<NamedState> states)
     {
       sourceLocations = new Dictionary<string, SourceViewState>();
 
@@ -431,26 +415,16 @@ namespace Microsoft.Boogie.ModelViewer
 
     public NamedState(Model.CapturedState s, LanguageModel lm)
     {
-      this.state = s;
-      this.langModel = lm;
+      state = s;
+      langModel = lm;
     }
 
     public Model.CapturedState State => state;
 
-    public virtual string Name => langModel.ShortenToken(state.Name, 20, true);
+    public string Name => langModel.ShortenToken(state.Name, 20, true);
 
     // by overriding this, one state can masqureade another
-    public virtual string CapturedStateName
-    {
-      get { return State.Name; }
-    }
-
-    public virtual SourceViewState ShowSource()
-    {
-      return langModel.GetSourceLocation(CapturedStateName);
-    }
-
-    public abstract IEnumerable<DisplayNode> Nodes { get; }
+    public string CapturedStateName => State.Name;
   }
 
   public class EdgeName
@@ -534,8 +508,7 @@ namespace Microsoft.Boogie.ModelViewer
 
       return res.ToString();
     }
-
-    public virtual IEnumerable<Model.Element> Dependencies => args;
+    
   }
 
 }

@@ -49,16 +49,9 @@ namespace Microsoft.Boogie.ModelViewer
       name = n;
       element = elt;
     }
+    public NodeCategory Category { get; set; }
 
-    public virtual string ToolTip
-    {
-      get { return null; }
-    }
-
-    public virtual int ViewLevel { get; set; }
-    public virtual NodeCategory Category { get; set; }
-
-    public virtual IEnumerable<DisplayNode> Children
+    public IEnumerable<DisplayNode> Children
     {
       get
       {
@@ -75,13 +68,11 @@ namespace Microsoft.Boogie.ModelViewer
     {
     }
 
-    public object ViewSync { get; set; }
-
-    public virtual string Name => name.ToString();
+    public string Name => name.ToString();
 
     private string shortName;
 
-    public virtual string ShortName
+    public string ShortName
     {
       get {
         if (shortName != null)
@@ -91,9 +82,9 @@ namespace Microsoft.Boogie.ModelViewer
       set => shortName = value;
     }
 
-    public virtual Model.Element Element => element;
+    public Model.Element Element => element;
 
-    public virtual string Value
+    public string Value
     {
       get
       {
@@ -102,24 +93,13 @@ namespace Microsoft.Boogie.ModelViewer
         return langModel.CanonicalName(element);
       }
     }
-
-    public virtual IEnumerable<Model.Element> References
-    {
-      get
-      {
-        foreach (var r in name.Dependencies)
-          yield return r;
-        if (element != null)
-          yield return element;
-      }
-    }
   }
 
   public static class Util
   {
     public static void Assert(bool cond)
     {
-      if (!cond) throw new System.Exception("assertion violation");
+      if (!cond) throw new Exception("assertion violation");
     }
 
     public static string Concat(this IEnumerable<string> strs, string sep)
