@@ -67,8 +67,7 @@ namespace DafnyServer {
     private CounterExample ConvertModels(List<LanguageModel> specificModels) {
       foreach (var languageSpecificModel in specificModels) {
         var counterExample = new CounterExample();
-        foreach (var s in languageSpecificModel.States) {
-          var state = s as StateNode;
+        foreach (var state in languageSpecificModel.States) {
           if (state == null) continue;
 
           var counterExampleState = new CounterExampleState {
@@ -97,7 +96,7 @@ namespace DafnyServer {
       return new CounterExample();
     }
 
-    private static void GetExpansions(StateNode state, ElementNode elementNode, CounterExampleState counterExampleState,
+    private static void GetExpansions(DafnyModelState state, ElementNode elementNode, CounterExampleState counterExampleState,
       LanguageModel languageSpecificModel) {
       try {
         var dafnyModel = GetFieldValue<DafnyModel>(state, "dm");

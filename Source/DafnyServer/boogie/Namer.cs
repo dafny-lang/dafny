@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Microsoft.Boogie.ModelViewer.Dafny;
 
 namespace Microsoft.Boogie.ModelViewer
 {
@@ -108,7 +109,7 @@ namespace Microsoft.Boogie.ModelViewer
       return res;
     }
 
-    public abstract IEnumerable<NamedState> States { get; }
+    public abstract IEnumerable<DafnyModelState> States { get; }
 
     /// <summary>
     /// Walks each input tree in BFS order, and force evaluation of Name and Value properties
@@ -320,7 +321,7 @@ namespace Microsoft.Boogie.ModelViewer
       sb.Append(@"{\cf6 ").Append(n).Append("}");
     }
 
-    protected void GenerateSourceLocations(IEnumerable<NamedState> states)
+    protected void GenerateSourceLocations(IEnumerable<DafnyModelState> states)
     {
       sourceLocations = new Dictionary<string, SourceViewState>();
 
@@ -406,25 +407,6 @@ namespace Microsoft.Boogie.ModelViewer
       }
     }
     #endregion
-  }
-
-  public abstract class NamedState
-  {
-    protected Model.CapturedState state;
-    private LanguageModel langModel; // no point making it protected - they will need VccModel, DafnyModel
-
-    public NamedState(Model.CapturedState s, LanguageModel lm)
-    {
-      state = s;
-      langModel = lm;
-    }
-
-    public Model.CapturedState State => state;
-
-    public string Name => langModel.ShortenToken(state.Name, 20, true);
-
-    // by overriding this, one state can masqureade another
-    public string CapturedStateName => State.Name;
   }
 
   public class EdgeName

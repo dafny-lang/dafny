@@ -18,7 +18,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       var dm = new DafnyModel(m, opts);
       foreach (var s in m.States)
       {
-        var sn = new StateNode(dm.states.Count, dm, s);
+        var sn = new DafnyModelState(dm.states.Count, dm, s);
         dm.states.Add(sn);
       }
       dm.FinishStates();
@@ -31,7 +31,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
     public readonly Model.Func f_heap_select, f_set_select, f_seq_length, f_seq_index, f_box, f_dim, f_index_field, f_multi_index_field, f_dtype, f_null;
     public readonly Dictionary<Model.Element, Model.Element[]> ArrayLengths = new();
     public readonly Dictionary<Model.Element, Model.FuncTuple> DatatypeValues = new();
-    public List<StateNode> states = new();
+    public List<DafnyModelState> states = new();
 
     public DafnyModel(Model m, ViewOptions opts)
       : base(m, opts)
@@ -86,7 +86,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       GenerateSourceLocations(states);
     }
 
-    public override IEnumerable<NamedState> States => states;
+    public override IEnumerable<DafnyModelState> States => states;
 
     public string GetUserVariableName(string name)
     {
@@ -135,7 +135,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       return base.CanonicalBaseName(elt, out suff);
     }
 
-    public IEnumerable<ElementNode> GetExpansion(StateNode state, Model.Element elt)
+    public IEnumerable<ElementNode> GetExpansion(DafnyModelState state, Model.Element elt)
     {
       List<ElementNode> result = new List<ElementNode>();
 
@@ -277,15 +277,17 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
     }
   }
 
-  public class StateNode : NamedState
+  public class DafnyModelState
   {
     internal readonly DafnyModel dm;
     public readonly List<VariableNode> Vars = new();
-    internal readonly List<VariableNode> skolems;
+    private readonly List<VariableNode> skolems;
+    private Model.CapturedState state;
+    private LanguageModel langModel; // no point making it protected - they will need VccModel, DafnyModel
 
-    public StateNode(int i, DafnyModel parent, Model.CapturedState s)
-       : base(s, parent)
-    {
+    public DafnyModelState(int i, DafnyModel parent, Model.CapturedState s) {
+      state = s;
+      langModel = parent;
       dm = parent;
       state = s;
       skolems = new List<VariableNode>(SkolemVars());
@@ -317,9 +319,9 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
           Vars.Add(vn);
         }
       }
-
-      dm.Flush(Nodes);
     }
+    
+    public virtual string CapturedStateName => State.Name;
 
     IEnumerable<VariableNode> SkolemVars()
     {
@@ -333,24 +335,26 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
         yield return new VariableNode(this, name, f.GetConstant(), name);
       }
     }
+    
+    public Model.CapturedState State => state;
 
-    public IEnumerable<DisplayNode> Nodes => Vars.Concat(skolems);
+    public virtual string Name => langModel.ShortenToken(state.Name, 20, true);
   }
 
   public class ElementNode : DisplayNode
   {
-    protected StateNode stateNode;
+    protected DafnyModelState stateNode;
     protected Model.Element elt;
     protected DafnyModel vm => stateNode.dm;
 
-    public ElementNode(StateNode st, EdgeName name, Model.Element elt)
+    public ElementNode(DafnyModelState st, EdgeName name, Model.Element elt)
       : base(st.dm, name, elt)
     {
       stateNode = st;
       this.elt = elt;
     }
 
-    public ElementNode(StateNode st, string name, Model.Element elt)
+    public ElementNode(DafnyModelState st, string name, Model.Element elt)
       : this(st, new EdgeName(name), elt) { }
 
     protected override void ComputeChildren()
@@ -361,7 +365,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
 
   class FieldNode : ElementNode
   {
-    public FieldNode(StateNode par, EdgeName realName, Model.Element elt)
+    public FieldNode(DafnyModelState par, EdgeName realName, Model.Element elt)
       : base(par, realName, elt)
     {
     }
@@ -371,7 +375,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
   {
     public string realName;
 
-    public VariableNode(StateNode par, string realName, Model.Element elt, string shortName)
+    public VariableNode(DafnyModelState par, string realName, Model.Element elt, string shortName)
       : base(par, realName, elt)
     {
       this.realName = realName;
