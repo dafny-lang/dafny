@@ -1,10 +1,8 @@
 ﻿// Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Diagnostics.Contracts;
 
@@ -38,7 +36,6 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
     public readonly Model.Func f_heap_select, f_set_select, f_seq_length, f_seq_index, f_box, f_dim, f_index_field, f_multi_index_field, f_dtype, f_null;
     public readonly Dictionary<Model.Element, Model.Element[]> ArrayLengths = new Dictionary<Model.Element, Model.Element[]>();
     public readonly Dictionary<Model.Element, Model.FuncTuple> DatatypeValues = new Dictionary<Model.Element, Model.FuncTuple>();
-    Dictionary<Model.Element, string> typeName = new Dictionary<Model.Element, string>();
     public List<StateNode> states = new List<StateNode>();
 
     public DafnyModel(Model m, ViewOptions opts)
@@ -105,20 +102,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
         return null;
       if (name.Contains("##"))  // a temporary variable of the translation
         return null;
-#if SOMETIME_AGAIN
-      var hash = name.IndexOf('#');
-      if (0 < hash)
-        return name.Substring(0, hash);
-#endif
       return name;
-    }
-
-    public Model.Element Image(Model.Element elt, Model.Func f)
-    {
-      var r = f.AppWithResult(elt);
-      if (r != null)
-        return r.Args[0];
-      return null;
     }
 
     protected override string CanonicalBaseName(Model.Element elt, out NameSeqSuffix suff)
@@ -308,15 +292,12 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
     internal readonly DafnyModel dm;
     public readonly List<VariableNode> Vars = new List<VariableNode>();
     internal readonly List<VariableNode> skolems;
-    internal readonly int index;
 
     public StateNode(int i, DafnyModel parent, Model.CapturedState s)
        : base(s, parent)
     {
       dm = parent;
       state = s;
-      index = i;
-
       skolems = new List<VariableNode>(SkolemVars());
       SetupVars();
     }
@@ -341,7 +322,6 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
           var val = state.TryGet(v);
           var shortName = Regex.Replace(v, @"#\d+$", "");
           var vn = new VariableNode(this, v, val, names.Any(n => n != v && Regex.Replace(n, @"#\d+$", "") == shortName) ? v : shortName);
-          vn.updatedHere = dm.states.Count > 0 && curVars.ContainsKey(v);
           if (curVars.ContainsKey(v))
             dm.RegisterLocalValue(vn.Name, val);
           Vars.Add(vn);
@@ -400,25 +380,11 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
     public FieldNode(StateNode par, EdgeName realName, Model.Element elt)
       : base(par, realName, elt)
     {
-      /*
-      var idx = realName.LastIndexOf('.');
-      if (idx > 0)
-        name = realName.Substring(idx + 1);
-       */
-    }
-  }
-
-  class MapletNode : ElementNode
-  {
-    public MapletNode(StateNode par, EdgeName realName, Model.Element elt)
-      : base(par, realName, elt)
-    {
     }
   }
 
   public class VariableNode : ElementNode
   {
-    public bool updatedHere;
     public string realName;
 
     public VariableNode(StateNode par, string realName, Model.Element elt, string shortName)

@@ -90,36 +90,6 @@ namespace Microsoft.Boogie.ModelViewer
     object ViewSync { get; set; }
   }
 
-
-  public class TopState : IState
-  {
-    protected IDisplayNode[] children;
-    protected string name;
-
-    public TopState(string name, IEnumerable<IDisplayNode> nodes)
-    {
-      this.name = name;
-      children = nodes.ToArray();
-    }
-
-    public string Name
-    {
-      get { return name; }
-    }
-
-    public IEnumerable<IDisplayNode> Nodes
-    {
-      get { return children; }
-    }
-
-
-    public SourceViewState ShowSource()
-    {
-      return null;
-    }
-
-  }
-
   public abstract class DisplayNode : IDisplayNode
   {
     protected EdgeName name;
@@ -217,34 +187,6 @@ namespace Microsoft.Boogie.ModelViewer
     }
   }
 
-  public class ContainerNode<T> : DisplayNode
-  {
-    protected Func<T, IDisplayNode> convert;
-    protected IEnumerable<T> data;
-
-    public ContainerNode(EdgeName name, Func<T, IDisplayNode> convert, IEnumerable<T> data) : base(null, name, null)
-    {
-      this.convert = convert;
-      this.data = data;
-    }
-
-    public ContainerNode(string name, Func<T, IDisplayNode> convert, IEnumerable<T> data)
-      : this(new EdgeName(name), convert, data)
-    {
-    }
-
-    protected override void ComputeChildren()
-    {
-      foreach (var f in data)
-      {
-        var res = convert(f);
-        if (res != null)
-          children.Add(res);
-      }
-    }
-  }
-
-
   public static class Util
   {
     public static void Assert(bool cond)
@@ -263,39 +205,10 @@ namespace Microsoft.Boogie.ModelViewer
     }
 
     public static IEnumerable<T> Empty<T>() { yield break; }
-
-    public static IEnumerable<T> Singleton<T>(T e) { yield return e; }
-
-    public static IEnumerable<T> Concat1<T>(this IEnumerable<T> s, T e) { return s.Concat(Singleton(e)); }
-
+    
     public static IEnumerable<T> Map<S, T>(this IEnumerable<S> inp, Func<S, T> conv)
     {
       foreach (var s in inp) yield return conv(s);
-    }
-
-    public static void Iter<T>(this IEnumerable<T> inp, Action<T> fn)
-    {
-      foreach (var s in inp) fn(s);
-    }
-
-    public static void AddRange<T>(this HashSet<T> st, IEnumerable<T> elts)
-    {
-      foreach (var e in elts) st.Add(e);
-    }
-
-    public static T OrElse<T>(T a, T b)
-      where T : class
-    {
-      if (a != null) return a;
-      return b;
-    }
-
-    public static S GetWithDefault<T, S>(this Dictionary<T, S> dict, T key, S defl)
-    {
-      S r;
-      if (dict.TryGetValue(key, out r))
-        return r;
-      return defl;
     }
   }
 
