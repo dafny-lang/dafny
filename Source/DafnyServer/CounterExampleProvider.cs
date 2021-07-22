@@ -13,7 +13,7 @@ using Microsoft.Boogie.ModelViewer.Dafny;
 
 namespace DafnyServer {
   public class CounterExampleProvider {
-    private List<ILanguageSpecificModel> _languageSpecificModels;
+    private List<LanguageModel> _languageSpecificModels;
     public static readonly string ModelBvd = "./model.bvd";
 
     public CounterExample LoadCounterModel() {
@@ -25,7 +25,7 @@ namespace DafnyServer {
       }
     }
 
-    private List<ILanguageSpecificModel> LoadModelFromFile() {
+    private List<LanguageModel> LoadModelFromFile() {
       using (var wr = new StreamReader(ModelBvd)) {
         var output = wr.ReadToEnd();
         var models = ExtractModels(output);
@@ -34,8 +34,8 @@ namespace DafnyServer {
       return _languageSpecificModels;
     }
 
-    private List<ILanguageSpecificModel> BuildModels(List<Model> modellist) {
-      var list = new List<ILanguageSpecificModel>();
+    private List<LanguageModel> BuildModels(List<Model> modellist) {
+      var list = new List<LanguageModel>();
       foreach (var model in modellist) {
         var specifiedModel = Provider.Instance.GetLanguageSpecificModel(model, new ViewOptions() { DebugMode = true, ViewLevel = 3 });
         list.Add(specifiedModel);
@@ -64,7 +64,7 @@ namespace DafnyServer {
       return field == null ? default(T) : (T)field.GetValue(instance);
     }
 
-    private CounterExample ConvertModels(List<ILanguageSpecificModel> specificModels) {
+    private CounterExample ConvertModels(List<LanguageModel> specificModels) {
       foreach (var languageSpecificModel in specificModels) {
         var counterExample = new CounterExample();
         foreach (var s in languageSpecificModel.States) {
@@ -98,7 +98,7 @@ namespace DafnyServer {
     }
 
     private static void GetExpansions(StateNode state, ElementNode elementNode, CounterExampleState counterExampleState,
-      ILanguageSpecificModel languageSpecificModel) {
+      LanguageModel languageSpecificModel) {
       try {
         var dafnyModel = GetFieldValue<DafnyModel>(state, "dm");
         var elt = GetFieldValue<Model.Element>(elementNode, "elt");

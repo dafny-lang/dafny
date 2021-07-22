@@ -8,7 +8,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Boogie.ModelViewer.Dafny
 {
-  public class Provider : ILanguageProvider
+  public class Provider
   {
     public static Provider Instance = new();
     private Provider() { }
@@ -18,7 +18,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       return m.TryGetFunc("$$Language$Dafny") != null;
     }
 
-    public ILanguageSpecificModel GetLanguageSpecificModel(Model m, ViewOptions opts)
+    public LanguageModel GetLanguageSpecificModel(Model m, ViewOptions opts)
     {
       var dm = new DafnyModel(m, opts);
       foreach (var s in m.States)
@@ -91,7 +91,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       GenerateSourceLocations(states);
     }
 
-    public override IEnumerable<IState> States => states;
+    public override IEnumerable<NamedState> States => states;
 
     public string GetUserVariableName(string name)
     {
@@ -339,7 +339,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       }
     }
 
-    public override IEnumerable<IDisplayNode> Nodes => Vars.Concat(skolems);
+    public override IEnumerable<DisplayNode> Nodes => Vars.Concat(skolems);
   }
 
   public class ElementNode : DisplayNode

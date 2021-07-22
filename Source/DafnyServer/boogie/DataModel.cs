@@ -29,26 +29,6 @@ namespace Microsoft.Boogie.ModelViewer
     Maplet
   }
 
-  public interface ILanguageProvider
-  {
-    bool IsMyModel(Model m);
-    ILanguageSpecificModel GetLanguageSpecificModel(Model m, ViewOptions opts);
-  }
-
-  public interface ILanguageSpecificModel
-  {
-    string CanonicalName(Model.Element elt);
-
-    Model.Element FindElement(string canonicalName);
-
-    string PathName(IEnumerable<IDisplayNode> path);
-
-    IEnumerable<IState> States { get; }
-
-    // This function is given IDisplayNode possibly from different states.
-    IEnumerable<string> SortFields(IEnumerable<IDisplayNode> fields);
-  }
-
   public class SourceViewState
   {
     public string Header;
@@ -56,48 +36,14 @@ namespace Microsoft.Boogie.ModelViewer
     public int Location;
   }
 
-  public interface IState
-  {
-    string Name { get; }
-    SourceViewState ShowSource();
-    IEnumerable<IDisplayNode> Nodes { get; }
-  }
-
-  public interface IDisplayNode
-  {
-    /// <summary>
-    ///  Used for indexing the state tree.
-    /// </summary>
-    string Name { get; }
-
-    string ShortName { get; }
-
-    NodeCategory Category { get; }
-    string Value { get; }
-    string ToolTip { get; }
-
-    int ViewLevel { get; }
-
-    /// <summary>
-    /// Used to determine aliasing. Can be null.
-    /// </summary>
-    Model.Element Element { get; }
-
-    IEnumerable<Model.Element> References { get; }
-
-    IEnumerable<IDisplayNode> Children { get; }
-
-    object ViewSync { get; set; }
-  }
-
-  public abstract class DisplayNode : IDisplayNode
+  public abstract class DisplayNode
   {
     protected EdgeName name;
     protected Model.Element element;
-    protected ILanguageSpecificModel langModel;
-    protected List<IDisplayNode> children;
+    protected LanguageModel langModel;
+    protected List<DisplayNode> children;
 
-    public DisplayNode(ILanguageSpecificModel model, EdgeName n, Model.Element elt)
+    public DisplayNode(LanguageModel model, EdgeName n, Model.Element elt)
     {
       langModel = model;
       name = n;
@@ -112,13 +58,13 @@ namespace Microsoft.Boogie.ModelViewer
     public virtual int ViewLevel { get; set; }
     public virtual NodeCategory Category { get; set; }
 
-    public virtual IEnumerable<IDisplayNode> Children
+    public virtual IEnumerable<DisplayNode> Children
     {
       get
       {
         if (children == null)
         {
-          children = new List<IDisplayNode>();
+          children = new List<DisplayNode>();
           ComputeChildren();
         }
         return children;

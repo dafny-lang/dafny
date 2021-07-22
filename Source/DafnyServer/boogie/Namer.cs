@@ -15,7 +15,7 @@ namespace Microsoft.Boogie.ModelViewer
     Always
   }
 
-  public abstract class LanguageModel : ILanguageSpecificModel
+  public abstract class LanguageModel
   {
     protected Dictionary<string, int> baseNameUse = new();
     protected Dictionary<Model.Element, string> canonicalName = new();
@@ -119,24 +119,24 @@ namespace Microsoft.Boogie.ModelViewer
       return null;
     }
 
-    public virtual string PathName(IEnumerable<IDisplayNode> path)
+    public virtual string PathName(IEnumerable<DisplayNode> path)
     {
       return path.Select(n => n.Name).Concat(".");
     }
 
-    public abstract IEnumerable<IState> States { get; }
+    public abstract IEnumerable<NamedState> States { get; }
 
     /// <summary>
     /// Walks each input tree in BFS order, and force evaluation of Name and Value properties
     /// (to get reasonable numbering of canonical values).
     /// </summary>
-    public void Flush(IEnumerable<IDisplayNode> roots)
+    public void Flush(IEnumerable<DisplayNode> roots)
     {
-      var workList = new Queue<IDisplayNode>();
+      var workList = new Queue<DisplayNode>();
 
-      Action<IEnumerable<IDisplayNode>> addList = nodes =>
+      Action<IEnumerable<DisplayNode>> addList = nodes =>
       {
-        var ch = new Dictionary<string, IDisplayNode>();
+        var ch = new Dictionary<string, DisplayNode>();
         foreach (var x in nodes)
         {
           if (ch.ContainsKey(x.Name))
@@ -217,16 +217,16 @@ namespace Microsoft.Boogie.ModelViewer
       return string.CompareOrdinal(f1, f2);
     }
 
-    public virtual int CompareFields(IDisplayNode n1, IDisplayNode n2)
+    public virtual int CompareFields(DisplayNode n1, DisplayNode n2)
     {
       var diff = (int)n1.Category - (int)n2.Category;
       if (diff != 0) return diff;
       return CompareFieldNames(n1.Name, n2.Name);
     }
 
-    public virtual IEnumerable<string> SortFields(IEnumerable<IDisplayNode> fields_)
+    public virtual IEnumerable<string> SortFields(IEnumerable<DisplayNode> fields_)
     {
-      var fields = new List<IDisplayNode>(fields_);
+      var fields = new List<DisplayNode>(fields_);
       fields.Sort(CompareFields);
       return fields.Select(f => f.Name);
     }
@@ -424,7 +424,7 @@ namespace Microsoft.Boogie.ModelViewer
     #endregion
   }
 
-  public abstract class NamedState : IState
+  public abstract class NamedState
   {
     protected Model.CapturedState state;
     private LanguageModel langModel; // no point making it protected - they will need VccModel, DafnyModel
@@ -450,17 +450,17 @@ namespace Microsoft.Boogie.ModelViewer
       return langModel.GetSourceLocation(CapturedStateName);
     }
 
-    public abstract IEnumerable<IDisplayNode> Nodes { get; }
+    public abstract IEnumerable<DisplayNode> Nodes { get; }
   }
 
   public class EdgeName
   {
-    ILanguageSpecificModel langModel;
+    LanguageModel langModel;
     string format;
     string cachedName;
     Model.Element[] args;
 
-    public EdgeName(ILanguageSpecificModel n, string format, params Model.Element[] args)
+    public EdgeName(LanguageModel n, string format, params Model.Element[] args)
     {
       this.langModel = n;
       this.format = format;

@@ -60,19 +60,19 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         return new CounterExampleList(counterExamples);
       }
 
-      private IEnumerable<ILanguageSpecificModel> GetLanguageSpecificModels(string serializedCounterExamples) {
+      private IEnumerable<LanguageModel> GetLanguageSpecificModels(string serializedCounterExamples) {
         using var counterExampleReader = new StringReader(serializedCounterExamples);
         return Model.ParseModels(counterExampleReader)
           .WithCancellation(_cancellationToken)
           .Select(GetLanguagSpecificModel);
       }
 
-      private ILanguageSpecificModel GetLanguagSpecificModel(Model model) {
+      private LanguageModel GetLanguagSpecificModel(Model model) {
         // TODO Make view options configurable?
         return Provider.Instance.GetLanguageSpecificModel(model, new ViewOptions { DebugMode = true, ViewLevel = 3 });
       }
 
-      private IEnumerable<CounterExampleItem> GetCounterExamples(ILanguageSpecificModel model) {
+      private IEnumerable<CounterExampleItem> GetCounterExamples(LanguageModel model) {
         return model.States
           .WithCancellation(_cancellationToken)
           .OfType<StateNode>()
@@ -91,7 +91,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         );
       }
 
-      private static Position GetPositionFromInitialState(IState state) {
+      private static Position GetPositionFromInitialState(NamedState state) {
         var match = StatePositionRegex.Match(state.Name);
         if(!match.Success) {
           throw new ArgumentException($"state does not contain position: {state.Name}");
