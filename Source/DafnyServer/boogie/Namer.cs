@@ -217,19 +217,6 @@ namespace Microsoft.Boogie.ModelViewer
     #endregion
 
     #region Displaying source code
-    class Position : IComparable<Position>
-    {
-      public int Line, Column, Index;
-      public int CharPos;
-      public string Name;
-
-      public int CompareTo(Position other)
-      {
-        if (this.Line == other.Line)
-          return this.Column - other.Column;
-        return this.Line - other.Line;
-      }
-    }
 
     public class SourceLocation
     {
