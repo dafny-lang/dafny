@@ -21,7 +21,6 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
         var sn = new DafnyModelState(dm.states.Count, dm, s);
         dm.states.Add(sn);
       }
-      dm.FinishStates();
       return dm;
     }
   }
@@ -79,11 +78,6 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
           }
         }
       }
-    }
-
-    internal void FinishStates()
-    {
-      GenerateSourceLocations(states);
     }
 
     public override IEnumerable<DafnyModelState> States => states;
@@ -321,7 +315,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       }
       dm.Flush(Nodes);
     }
-    
+
     public virtual string CapturedStateName => State.Name;
 
     IEnumerable<VariableNode> SkolemVars()
@@ -337,7 +331,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       }
     }
     public IEnumerable<DisplayNode> Nodes => Vars.Concat(skolems);
-    
+
     public Model.CapturedState State => state;
 
     public virtual string Name => langModel.ShortenToken(state.Name, 20, true);

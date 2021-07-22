@@ -18,16 +18,15 @@ namespace Microsoft.Boogie.ModelViewer
 
   public abstract class LanguageModel
   {
-    protected Dictionary<string, int> baseNameUse = new();
-    protected Dictionary<Model.Element, string> canonicalName = new();
-    protected Dictionary<string, Model.Element> invCanonicalName = new();
-    protected Dictionary<Model.Element, string> localValue = new();
-    protected Dictionary<string, SourceViewState> sourceLocations = new();
+    private readonly Dictionary<string, int> baseNameUse = new();
+    private readonly Dictionary<Model.Element, string> canonicalName = new();
+    private readonly Dictionary<string, Model.Element> invCanonicalName = new();
+    private readonly Dictionary<Model.Element, string> localValue = new();
     public readonly Model model;
 
-    protected bool UseLocalsForCanonicalNames => false;
+    private bool UseLocalsForCanonicalNames => false;
 
-    public readonly ViewOptions viewOpts;
+    private readonly ViewOptions viewOpts;
     public LanguageModel(Model model, ViewOptions opts)
     {
       this.model = model;
@@ -286,119 +285,6 @@ namespace Microsoft.Boogie.ModelViewer
       return tok;
     }
 
-    protected void RtfAppend(StringBuilder sb, char c, ref int pos)
-    {
-      pos++;
-      switch (c)
-      {
-        case '\r': pos--; break;
-        case '\\': sb.Append("\\\\"); break;
-        case '\n': sb.Append("\\par\n"); break;
-        case '{': sb.Append("\\{"); break;
-        case '}': sb.Append("\\}"); break;
-        default: sb.Append(c); break;
-      }
-    }
-
-    protected void RtfAppendStateIdx(StringBuilder sb, string label, ref int pos)
-    {
-      label += ".";
-      pos += label.Length;
-      sb.Append(@"{\sub\cf5\highlight4 ").Append(label).Append("}");
-    }
-
-    protected void RtfAppendLineNo(StringBuilder sb, int num, ref int pos)
-    {
-      string n = string.Format("{0:0000}: ", num);
-      pos += n.Length;
-      sb.Append(@"{\cf6 ").Append(n).Append("}");
-    }
-
-    protected void GenerateSourceLocations(IEnumerable<DafnyModelState> states)
-    {
-      sourceLocations = new Dictionary<string, SourceViewState>();
-
-      var files = new Dictionary<string, List<Position>>();
-      var sIdx = -1;
-
-      foreach (var s in states)
-      {
-        var sn = s.CapturedStateName;
-        sIdx++;
-        var loc = TryParseSourceLocation(sn);
-        if (loc == null) continue;
-
-        List<Position> positions;
-        if (!files.TryGetValue(loc.Filename, out positions))
-        {
-          positions = new List<Position>();
-          files[loc.Filename] = positions;
-        }
-        positions.Add(new Position() { Name = sn, Line = loc.Line, Column = loc.Column, Index = sIdx });
-      }
-
-      foreach (var kv in files)
-      {
-        var positions = kv.Value;
-        positions.Sort();
-
-        string content = "";
-        if (System.IO.File.Exists(kv.Key))
-        {
-          try
-          {
-            content = System.IO.File.ReadAllText(kv.Key);
-          }
-          catch
-          {
-            continue;
-          }
-        }
-        else
-        {
-          continue;
-        }
-
-        var pos = new Position() { Line = 1, Column = 1 };
-        var currPosIdx = 0;
-        var output = new StringBuilder();
-        RtfAppendLineNo(output, pos.Line, ref pos.CharPos);
-
-        foreach (var c in content)
-        {
-          if (c == '\n')
-          {
-            pos.Column = int.MaxValue; // flush remaining positions in this line
-          }
-
-          while (currPosIdx < positions.Count && pos.CompareTo(positions[currPosIdx]) >= 0)
-          {
-            positions[currPosIdx].CharPos = pos.CharPos;
-            RtfAppendStateIdx(output, positions[currPosIdx].Index.ToString(), ref pos.CharPos);
-            currPosIdx++;
-          }
-
-          RtfAppend(output, c, ref pos.CharPos);
-
-          if (c == '\n')
-          {
-            pos.Line++;
-            pos.Column = 1;
-            RtfAppendLineNo(output, pos.Line, ref pos.CharPos);
-          }
-          else
-          {
-            pos.Column++;
-          }
-        }
-
-        var resStr = output.ToString();
-        foreach (var p in positions)
-        {
-          sourceLocations[p.Name] = new SourceViewState() { Header = p.Name, Location = p.CharPos, RichTextContent = resStr };
-        }
-      }
-    }
     #endregion
   }
 
@@ -483,7 +369,6 @@ namespace Microsoft.Boogie.ModelViewer
 
       return res.ToString();
     }
-    
   }
 
 }
