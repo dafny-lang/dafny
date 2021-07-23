@@ -277,7 +277,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
     public readonly List<VariableNode> Vars = new();
     private readonly List<VariableNode> skolems;
     private Model.CapturedState state;
-    private LanguageModel langModel; // no point making it protected - they will need VccModel, DafnyModel
+    private LanguageModel langModel;
 
     public DafnyModelState(int i, DafnyModel parent, Model.CapturedState s) {
       state = s;
