@@ -1,0 +1,17 @@
+ShowSnippets.dfy(7,9): Error: assertion violation
+  |
+7 |   assert false;
+  |          ^ here
+
+ShowSnippets.dfy(11,7): Error: A precondition for this call might not hold.
+   |
+11 |   Never();
+   |        ^ here
+
+ShowSnippets.dfy(4,32): Related location: This is the precondition that might not hold.
+  |
+4 | method Never() requires true && false {}
+  |                                 ^ here
+
+
+Dafny program verifier finished with 0 verified, 2 errors

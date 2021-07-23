@@ -100,6 +100,7 @@ namespace Microsoft.Dafny
     public bool DisableScopes = false;
     public int Allocated = 3;
     public bool UseStdin = false;
+    public bool ShowSnippets = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -401,6 +402,11 @@ namespace Microsoft.Dafny
             UseStdin = true;
             return true;
           }
+
+        case "showSnippets":{
+          ShowSnippets = true;
+          return true;
+        }
 
         default:
           break;
@@ -743,6 +749,7 @@ namespace Microsoft.Dafny
     1,2,3,4,5 - levels in between, ordered as follows as far as
         how discriminating they are:  0 < 1 < 2 < (3,4) < 5 < 6
     6 (default) - most discriminating
+/showSnippets Show a source code snippet for each Dafny message
 /noIncludes   Ignore include directives
 /noExterns    Ignore extern and dllimport attributes
 /noNLarith    Reduce Z3's knowledge of non-linear arithmetic (*,/,%).
