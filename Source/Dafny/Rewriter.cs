@@ -1510,7 +1510,7 @@ namespace Microsoft.Dafny
                       var arg = attr.Args[0] as LiteralExpr;
                       System.Numerics.BigInteger value = (System.Numerics.BigInteger)arg.Value;
                       if (value.Sign > 0) {
-                        int current_limit = 0;
+                        uint current_limit = 0;
                         string name = "";
                         if (DafnyOptions.O.ResourceLimit > 0) {
                           // Interpret this as multiplying the resource limit

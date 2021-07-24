@@ -33,10 +33,9 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
     public List<DafnyModelState> states = new();
 
     public DafnyModel(Model m, ViewOptions opts)
-      : base(m, opts)
-    {
-      f_heap_select = m.MkFunc("[3]", 3);
-      f_set_select = m.MkFunc("[2]", 2);
+      : base(m, opts) {
+      f_heap_select = MergeMapSelectFunctions(3);
+      f_set_select = MergeMapSelectFunctions(2);
       f_seq_length = m.MkFunc("Seq#Length", 1);
       f_seq_index = m.MkFunc("Seq#Index", 2);
       f_box = m.MkFunc("$Box", 1);
@@ -78,6 +77,29 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
           }
         }
       }
+    }
+
+    /// <summary>
+    /// Creates a new function that merges together the applications of all the
+    /// functions that have a certain arity and whose name matches the
+    /// "^MapType[0-9]*Select$" pattern. This has previously been done by
+    /// Boogie's Model Parser as a preprocessing step but has been deprecated
+    /// since 2.9.2
+    /// </summary>
+    private Model.Func MergeMapSelectFunctions(int arity) {
+      int id = arity - 1;
+      // Need to make sure the name of the new function is unique
+      while (model.HasFunc("[" + ++id + "]")) { }
+      var result = model.MkFunc("[" + id + "]", arity);
+      foreach (var func in model.Functions) {
+        if (!Regex.IsMatch(func.Name, "^MapType[0-9]*Select$") ||
+            func.Arity != arity) continue;
+        foreach (var app in func.Apps) {
+          result.AddApp(app.Result, app.Args);
+        }
+        result.Else ??= func.Else;
+      }
+      return result;
     }
 
     public override IEnumerable<DafnyModelState> States => states;
