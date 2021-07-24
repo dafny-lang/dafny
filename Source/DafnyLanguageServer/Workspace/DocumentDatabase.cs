@@ -6,6 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -41,7 +42,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       _options = options.Value;
       _documentLoader = documentLoader;
       _documentUpdater = documentUpdater;
-      CommandLineOptions.Clo.ProverOptions.AddRange(ProverOptions);
+      CommandLineOptions.Clo.ProverOptions = ProverOptions.ToList();
     }
 
     public async Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
