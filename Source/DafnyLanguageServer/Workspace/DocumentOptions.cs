@@ -12,5 +12,9 @@
     /// Gets or sets when the automatic verification should be applied.
     /// </summary>
     public AutoVerification Verify { get; set; } = AutoVerification.OnChange;
+
+    public string ProverOptions = "O:model_compress=false " +
+                                  "O:model.completion=true " +
+                                  "O:model_evaluator.completion=true";
   }
 }

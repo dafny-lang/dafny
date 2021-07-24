@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
+﻿using System;
+using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -7,6 +8,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -25,6 +27,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private bool VerifyOnLoad => _options.Verify == AutoVerification.OnChange;
     private bool VerifyOnSave => _options.Verify == AutoVerification.OnSave;
 
+    private string[] ProverOptions =>
+      _options.ProverOptions.Split(new[] {" ", "\n", "\t"},
+        StringSplitOptions.RemoveEmptyEntries);
+
     public DocumentDatabase(
       ILogger<DocumentDatabase> logger,
       IOptions<DocumentOptions> options,
@@ -35,6 +41,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       _options = options.Value;
       _documentLoader = documentLoader;
       _documentUpdater = documentUpdater;
+      CommandLineOptions.Clo.ProverOptions.AddRange(ProverOptions);
     }
 
     public async Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
