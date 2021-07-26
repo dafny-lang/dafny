@@ -2528,6 +2528,7 @@ namespace Microsoft.Dafny {
         // USER-DEFINED SPECIFICATIONS
         var comment = "user-defined preconditions";
         foreach (var p in iter.Requires) {
+          req.Add(Requires(p.E.tok, true, CanCallAssumption(p.E, etran), null, comment));
           string errorMessage = CustomErrorMessage(p.Attributes);
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
@@ -2537,7 +2538,12 @@ namespace Microsoft.Dafny {
               if (kind == MethodTranslationKind.Call && RefinementToken.IsInherited(s.E.tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
-                req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, errorMessage, comment));
+                var pre = s.E;
+                if (kind == MethodTranslationKind.Call || kind == MethodTranslationKind.CoCall) {
+                  req.Add(Requires(s.E.tok, s.IsOnlyFree, BplImp(CanCallAssumption(p.E, etran), s.E), errorMessage, null));
+                } else {
+                  req.Add(Requires(s.E.tok, s.IsOnlyFree, pre, errorMessage, comment));
+                }
                 comment = null;
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
@@ -2546,6 +2552,7 @@ namespace Microsoft.Dafny {
         }
         comment = "user-defined postconditions";
         foreach (var p in iter.Ensures) {
+          AddEnsures(ens, Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), CustomErrorMessage(p.Attributes), comment));
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
               // this postcondition was inherited into this module, so just ignore it
@@ -4958,6 +4965,34 @@ namespace Microsoft.Dafny {
         };
         var ens = new List<Bpl.Ensures>();
 
+
+        var substMap = new Dictionary<IVariable, Expression>();
+        for (int i = 0; i < f.Formals.Count; i++)
+        {
+          //get corresponsing formal in the class
+          var ie = new IdentifierExpr(f.Formals[i].tok, f.Formals[i].AssignUniqueName(f.IdGenerator));
+          ie.Var = f.Formals[i]; ie.Type = ie.Var.Type;
+          substMap.Add(f.OverriddenFunction.Formals[i], ie);
+        }
+
+        if (f.OverriddenFunction.Result != null)
+        {
+          Contract.Assert(pOut != null);
+          //get corresponsing formal in the class
+          var ie = new IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator));
+          ie.Var = pOut; ie.Type = ie.Var.Type;
+          substMap.Add(f.OverriddenFunction.Result, ie);
+        }
+        // add can call assumptions as free requires for checking the implementation
+        void addCanCallReq(List<AttributedExpression> spec) {
+          var exps = spec.Select(s => Substitute(s.E, null, substMap)).ToList();
+          exps.ForEach(e => req.Add(Requires(f.tok, true, CanCallAssumption(e, etran), null, null)));
+        }
+        addCanCallReq(f.Req);
+        addCanCallReq(f.Ens);
+        addCanCallReq(f.OverriddenFunction.Req);
+        addCanCallReq(f.OverriddenFunction.Ens);
+
         var proc = new Bpl.Procedure(f.tok, "OverrideCheck$$" + f.FullSanitizedName, new List<Bpl.TypeVariable>(),
           Concat(Concat(typeInParams, inParams_Heap), inParams), outParams,
           req, mod, ens, etran.TrAttributes(f.Attributes, null));
@@ -4982,21 +5017,6 @@ namespace Microsoft.Dafny {
           etran = ordinaryEtran;  // we no longer need the special heap names
         }
 
-        var substMap = new Dictionary<IVariable, Expression>();
-        for (int i = 0; i < f.Formals.Count; i++) {
-          //get corresponsing formal in the class
-          var ie = new IdentifierExpr(f.Formals[i].tok, f.Formals[i].AssignUniqueName(f.IdGenerator));
-          ie.Var = f.Formals[i]; ie.Type = ie.Var.Type;
-          substMap.Add(f.OverriddenFunction.Formals[i], ie);
-        }
-
-        if (f.OverriddenFunction.Result != null) {
-          Contract.Assert(pOut != null);
-          //get corresponsing formal in the class
-          var ie = new IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator));
-          ie.Var = pOut; ie.Type = ie.Var.Type;
-          substMap.Add(f.OverriddenFunction.Result, ie);
-        }
 
         //adding assume Pre’; assert P; // this checks that Pre’ implies P
         AddFunctionOverrideReqsChk(f, builder, etran, substMap);
@@ -5335,6 +5355,15 @@ namespace Microsoft.Dafny {
             ie.Var = m.Outs[i]; ie.Type = ie.Var.Type;
             substMap.Add(m.OverriddenMethod.Outs[i], ie);
         }
+        void addCanCallReq(List<AttributedExpression> spec)
+        {
+          var exps = spec.Select(s => Substitute(s.E, null, substMap)).ToList();
+          exps.ForEach(e => proc.Requires.Add(Requires(m.tok, true, CanCallAssumption(e, etran), null, null)));
+        }
+        addCanCallReq(m.Req);
+        addCanCallReq(m.Ens);
+        addCanCallReq(m.OverriddenMethod.Req);
+        addCanCallReq(m.OverriddenMethod.Ens);
 
         Bpl.StmtList stmts;
         //adding assume Pre’; assert P; // this checks that Pre’ implies P
@@ -6103,6 +6132,7 @@ namespace Microsoft.Dafny {
         var splits = new List<SplitExprInfo>();
         bool splitHappened /*we actually don't care*/ = TrSplitExpr(p.E, splits, true, functionHeight, true, true, etran);
         string errorMessage = CustomErrorMessage(p.Attributes);
+        AddEnsures(ens, Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), errorMessage, null));
         foreach (var s in splits) {
           if (s.IsChecked && !RefinementToken.IsInherited(s.E.tok, currentModule)) {
             AddEnsures(ens, Ensures(s.E.tok, false, s.E, errorMessage, null));
@@ -9795,7 +9825,13 @@ namespace Microsoft.Dafny {
               } else if (s.IsOnlyFree && !bodyKind) {
                 // don't include in split -- it would be ignored, anyhow
               } else {
-                req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, errorMessage, null));
+                if (kind == MethodTranslationKind.Call || kind == MethodTranslationKind.CoCall) {
+                  // assymetric because of Boogie --- it assumes free ensures at the end of impl
+                  // but does not assume free requires at call sites
+                  req.Add(Requires(s.E.tok, s.IsOnlyFree, BplImp(CanCallAssumption(p.E, etran), s.E), errorMessage, null));
+                } else {
+                  req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, errorMessage, null));
+                }
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
             }
@@ -9804,6 +9840,9 @@ namespace Microsoft.Dafny {
         comment = "user-defined postconditions";
         foreach (var p in m.Ens) {
           string errorMessage = CustomErrorMessage(p.Attributes);
+          // In boogie, free ensures are assumed while checking impl.
+          // so it suffices to assume all of them in one post-condition;
+          // we don't need to add canCalls as antecedents of every post-condition
           AddEnsures(ens, Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), errorMessage, comment));
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             var post = s.E;
