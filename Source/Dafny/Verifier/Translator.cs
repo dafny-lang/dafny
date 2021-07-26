@@ -2552,12 +2552,17 @@ namespace Microsoft.Dafny {
         }
         comment = "user-defined postconditions";
         foreach (var p in iter.Ensures) {
-          AddEnsures(ens, Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), CustomErrorMessage(p.Attributes), comment));
+          var canCalls = CanCallAssumption(p.E, etran);
+          AddEnsures(ens, Ensures(p.E.tok, true, canCalls, CustomErrorMessage(p.Attributes), comment));
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
               // this postcondition was inherited into this module, so just ignore it
             } else {
-              ens.Add(Ensures(s.E.tok, s.IsOnlyFree, s.E, null, comment));
+              if (kind == MethodTranslationKind.Implementation) {
+                ens.Add(Ensures(s.E.tok, s.IsOnlyFree, BplImp(canCalls, s.E), null, comment));
+              } else {
+                ens.Add(Ensures(s.E.tok, s.IsOnlyFree, s.E, null, comment));
+              }
               comment = null;
             }
           }
@@ -6135,10 +6140,11 @@ namespace Microsoft.Dafny {
         var splits = new List<SplitExprInfo>();
         bool splitHappened /*we actually don't care*/ = TrSplitExpr(p.E, splits, true, functionHeight, true, true, etran);
         string errorMessage = CustomErrorMessage(p.Attributes);
-        AddEnsures(ens, Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), errorMessage, null));
+        var canCalls = CanCallAssumption(p.E, etran);
+        AddEnsures(ens, Ensures(p.E.tok, true, canCalls, errorMessage, null));
         foreach (var s in splits) {
           if (s.IsChecked && !RefinementToken.IsInherited(s.E.tok, currentModule)) {
-            AddEnsures(ens, Ensures(s.E.tok, false, s.E, errorMessage, null));
+            AddEnsures(ens, Ensures(s.E.tok, false, BplImp(canCalls, s.E), errorMessage, null));
           }
         }
       }
@@ -9843,10 +9849,8 @@ namespace Microsoft.Dafny {
         comment = "user-defined postconditions";
         foreach (var p in m.Ens) {
           string errorMessage = CustomErrorMessage(p.Attributes);
-          // In boogie, free ensures are assumed while checking impl.
-          // so it suffices to assume all of them in one post-condition;
-          // we don't need to add canCalls as antecedents of every post-condition
-          AddEnsures(ens, Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), errorMessage, comment));
+          var canCalls = CanCallAssumption(p.E, etran);
+          AddEnsures(ens, Ensures(p.E.tok, true, canCalls, errorMessage, comment));
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             var post = s.E;
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
@@ -9858,7 +9862,11 @@ namespace Microsoft.Dafny {
             } else if (s.IsOnlyChecked && !bodyKind) {
               // don't include in split
             } else {
-              AddEnsures(ens, Ensures(s.E.tok, s.IsOnlyFree, post, errorMessage, null));
+              if (kind == MethodTranslationKind.Implementation) {
+                AddEnsures(ens, Ensures(s.E.tok, s.IsOnlyFree, BplImp(canCalls, post), errorMessage, null));
+              } else {
+                AddEnsures(ens, Ensures(s.E.tok, s.IsOnlyFree, post, errorMessage, null));
+              }
             }
           }
         }
