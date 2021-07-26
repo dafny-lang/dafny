@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
-      var errorReporter = new BuildErrorReporter();
+      var errorReporter = new DiagnosticErrorReporter();
       var program = await _parser.ParseAsync(textDocument, errorReporter, cancellationToken);
       if(errorReporter.HasErrors) {
         _notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);

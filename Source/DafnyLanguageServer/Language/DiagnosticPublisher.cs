@@ -13,8 +13,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       _languageServer = languageServer;
     }
 
-    public void PublishDiagnostics(DafnyDocument document, CancellationToken cancellationToken) {
-      _languageServer.TextDocument.PublishDiagnostics(ToPublishDiagnostics(document, cancellationToken));
+    public void PublishDiagnostics(DafnyDocument document) {
+      _languageServer.TextDocument.PublishDiagnostics(ToPublishDiagnostics(document));
     }
 
     public void HideDiagnostics(DafnyDocument document) {
@@ -25,39 +25,24 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       });
     }
 
-    private static PublishDiagnosticsParams ToPublishDiagnostics(DafnyDocument document, CancellationToken cancellationToken) {
-      return new PublishDiagnosticsParams {
+    private static PublishDiagnosticsParams ToPublishDiagnostics(DafnyDocument document) {
+      return new() {
         Uri = document.Uri,
         Version = document.Version,
-        Diagnostics = ToDiagnostics(document, cancellationToken).ToArray(),
+        Diagnostics = ToDiagnostics(document).ToArray(),
       };
     }
 
-    private static IEnumerable<Diagnostic> ToDiagnostics(DafnyDocument document, CancellationToken cancellationToken) {
-      foreach(var (level, messages) in document.Errors.AllMessages) {
-        foreach(var message in messages) {
-          cancellationToken.ThrowIfCancellationRequested();
-          if(!document.IsPartOf(message.token)) {
-            // TODO The reported error belongs to another file. Report it anyway?
-            continue;
-          }
-          yield return new Diagnostic {
-            Severity = ToSeverity(level),
-            Range = message.token.GetLspRange(),
-            Message = message.message,
-            Source = message.source.ToString()
-          };
+    private static IEnumerable<Diagnostic> ToDiagnostics(DafnyDocument document) {
+      var reporter = (DiagnosticErrorReporter)document.Errors;
+      foreach (var entry in reporter.Diagnostics) {
+        if (document.Uri.Path == entry.Key) {
+          return entry.Value;
         }
       }
+
+      return Enumerable.Empty<Diagnostic>();
     }
 
-    private static DiagnosticSeverity ToSeverity(ErrorLevel level) {
-      return level switch {
-        ErrorLevel.Error => DiagnosticSeverity.Error,
-        ErrorLevel.Warning => DiagnosticSeverity.Warning,
-        ErrorLevel.Info => DiagnosticSeverity.Information,
-        _ => throw new System.ArgumentException($"unknown error level {level}", nameof(level))
-      };
-    }
   }
 }
