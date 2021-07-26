@@ -6140,11 +6140,11 @@ namespace Microsoft.Dafny {
         var splits = new List<SplitExprInfo>();
         bool splitHappened /*we actually don't care*/ = TrSplitExpr(p.E, splits, true, functionHeight, true, true, etran);
         string errorMessage = CustomErrorMessage(p.Attributes);
-        var canCalls = CanCallAssumption(p.E, etran);
-        AddEnsures(ens, Ensures(p.E.tok, true, canCalls, errorMessage, null));
+        // var canCalls = CanCallAssumption(p.E, etran);
+        // AddEnsures(ens, Ensures(p.E.tok, true, canCalls, errorMessage, null));
         foreach (var s in splits) {
           if (s.IsChecked && !RefinementToken.IsInherited(s.E.tok, currentModule)) {
-            AddEnsures(ens, Ensures(s.E.tok, false, BplImp(canCalls, s.E), errorMessage, null));
+            AddEnsures(ens, Ensures(s.E.tok, false, s.E), errorMessage, null));
           }
         }
       }
