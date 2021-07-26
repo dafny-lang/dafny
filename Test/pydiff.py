@@ -46,8 +46,6 @@ def main(args):
                                     parsedArgs.strip_trailing_cr,
                                     parsedArgs.ignore_all_space
                                    )
-    fromFile = list(filter(lambda x: 'anon' not in x, fromFile))
-    toFile = list(filter(lambda x: 'anon' not in x, toFile))
     result = difflib.unified_diff(fromFile,
                                   toFile,
                                   fromFileName,
