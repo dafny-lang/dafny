@@ -1,27 +1,5 @@
 LabelsOldAt.dfy(34,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
-    (0,0): anon2
-    (0,0): anon8_Then
-    (0,0): anon4
-    (0,0): anon9_Then
-    (0,0): anon6
 LabelsOldAt.dfy(56,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon12_Then
-    (0,0): anon13_Then
-    (0,0): anon14_Then
-    (0,0): anon15_Then
 LabelsOldAt.dfy(78,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon16_Then
-    (0,0): anon17_Then
-    (0,0): anon3
-    (0,0): anon7
-    (0,0): anon22_Then
 
 Dafny program verifier finished with 0 verified, 3 errors

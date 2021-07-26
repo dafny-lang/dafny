@@ -1,6 +1,3 @@
 sequences-s0-in-s.dfy(13,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 
 Dafny program verifier finished with 1 verified, 1 error

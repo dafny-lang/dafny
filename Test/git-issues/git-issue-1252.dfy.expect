@@ -1,44 +1,16 @@
 git-issue-1252.dfy(93,13): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 git-issue-1252.dfy(94,10): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 git-issue-1252.dfy(93,13): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 git-issue-1252.dfy(94,10): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 git-issue-1252.dfy(30,11): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 git-issue-1252.dfy(37,11): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 git-issue-1252.dfy(45,13): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 git-issue-1252.dfy(51,14): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 git-issue-1252.dfy(59,15): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 git-issue-1252.dfy(70,15): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 git-issue-1252.dfy(81,15): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 git-issue-1252.dfy(87,13): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 git-issue-1252.dfy(100,25): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 git-issue-1252.dfy(106,21): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 4 verified, 14 errors

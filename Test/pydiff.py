@@ -9,7 +9,6 @@ import difflib
 import os
 import sys
 
-
 def main(args):
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description=__doc__

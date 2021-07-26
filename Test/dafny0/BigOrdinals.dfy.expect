@@ -1,46 +1,13 @@
 BigOrdinals.dfy(18,11): Error: a negative integer cannot be converted to an ORDINAL
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 BigOrdinals.dfy(20,11): Error: value to be converted might be bigger than every natural number
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 BigOrdinals.dfy(35,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
 BigOrdinals.dfy(53,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon26_Then
 BigOrdinals.dfy(64,15): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon13_Then
 BigOrdinals.dfy(66,15): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon14_Then
 BigOrdinals.dfy(68,15): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon15_Then
 BigOrdinals.dfy(73,15): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
 BigOrdinals.dfy(88,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon20_Then
 BigOrdinals.dfy(113,9): Error: value does not satisfy the subset constraints of 'ConstrainedOrdinal'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 BigOrdinals.dfy(120,9): Error: value does not satisfy the subset constraints of 'ConstrainedOrdinal'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 
 Dafny program verifier finished with 3 verified, 11 errors

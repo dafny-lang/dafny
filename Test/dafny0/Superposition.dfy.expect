@@ -6,17 +6,11 @@ Verifying CheckWellformed$$M0.C.Q ...
   [3 proof obligations]  error
 Superposition.dfy(20,14): Error: A postcondition might not hold on this return path.
 Superposition.dfy(21,25): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
 
 Verifying CheckWellformed$$M0.C.R ...
   [3 proof obligations]  error
 Superposition.dfy(26,14): Error: A postcondition might not hold on this return path.
 Superposition.dfy(27,25): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
 
 Verifying Impl$$M1.C.M ...
   [1 proof obligation]  verified

@@ -1,8 +1,4 @@
 OpaqueBug.dfy(13,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 OpaqueBug.dfy(23,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 2 verified, 2 errors

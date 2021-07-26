@@ -1275,7 +1275,7 @@ namespace Microsoft.Dafny {
         // TODO: the string should be converted to a Dafny seq<char>
         TrStringLiteral(str, wr);
       } else if (AsNativeType(e.Type) != null) {
-        wr.Write((BigInteger)e.Value);
+        wr.Write(e.Value.ToString());
       } else if (e.Value is BigInteger) {
         var i = (BigInteger)e.Value;
         wr.Write(IntegerLiteral(i));

@@ -5,89 +5,19 @@ Comprehensions.dfy(25,11): Warning: /!\ No terms found to trigger on.
 Comprehensions.dfy(32,11): Warning: /!\ No trigger covering all quantified variables found.
 Comprehensions.dfy(54,11): Warning: /!\ No terms found to trigger on.
 Comprehensions.dfy(99,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 Comprehensions.dfy(107,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 Comprehensions.dfy(115,40): Error: insufficient reads clause to read field
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon12_Then
-    (0,0): anon13_Else
 Comprehensions.dfy(118,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Else
-    Comprehensions.dfy(118,12): anon11_Else
 Comprehensions.dfy(126,4): Error: all sequence indices must be in the domain of the initialization function
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Else
-    Comprehensions.dfy(126,12): anon12_Else
 Comprehensions.dfy(132,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 Comprehensions.dfy(148,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Else
-    Comprehensions.dfy(148,12): anon11_Else
 Comprehensions.dfy(168,16): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Else
-    Comprehensions.dfy(168,17): anon9_Else
 Comprehensions.dfy(171,11): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Else
-    Comprehensions.dfy(171,12): anon9_Else
 Comprehensions.dfy(174,4): Error: all sequence indices must be in the domain of the initialization function
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Else
-    Comprehensions.dfy(174,12): anon12_Else
 Comprehensions.dfy(180,38): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon12_Then
-    (0,0): anon13_Else
 Comprehensions.dfy(186,30): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon12_Then
-    (0,0): anon13_Then
 Comprehensions.dfy(189,16): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Else
-    Comprehensions.dfy(189,17): anon11_Else
 Comprehensions.dfy(12,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon12_Then
-    (0,0): anon13_Then
-    (0,0): anon5
-    (0,0): anon14_Then
-    (0,0): anon15_Then
-    (0,0): anon16_Then
-    (0,0): anon10
 Comprehensions.dfy(78,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    Comprehensions.dfy(71,27): anon16_Else
-    Comprehensions.dfy(74,25): anon18_Else
-    (0,0): anon20_Then
 
 Dafny program verifier finished with 16 verified, 15 errors

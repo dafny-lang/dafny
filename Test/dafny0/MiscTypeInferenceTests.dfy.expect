@@ -1,61 +1,13 @@
 MiscTypeInferenceTests.dfy(85,11): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'false' (to make it possible for variable 'x' to have the value 'null', declare its type to be 'Node?')
 MiscTypeInferenceTests.dfy(95,16): Warning: the type of the other operand is a set of non-null elements, so the non-inclusion test of 'null' will always return 'true'
 MiscTypeInferenceTests.dfy(14,59): Error: value does not satisfy the subset constraints of 'neg'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
-    (0,0): anon8_Then
-    (0,0): anon9_Then
-    (0,0): anon10_Then
 MiscTypeInferenceTests.dfy(24,11): Error: value does not satisfy the subset constraints of 'int -> int' (possible cause: it may be partial or have read effects)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon25_Then
-    (0,0): anon26_Then
-    (0,0): anon4
 MiscTypeInferenceTests.dfy(27,11): Error: value does not satisfy the subset constraints of 'int ~> nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon28_Then
 MiscTypeInferenceTests.dfy(50,13): Error: possible violation of function precondition
-Execution trace:
-    (0,0): anon0
 MiscTypeInferenceTests.dfy(50,16): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 MiscTypeInferenceTests.dfy(109,18): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon15_Then
-    (0,0): anon2
-    (0,0): anon16_Then
-    (0,0): anon17_Then
-    (0,0): anon5
-    (0,0): anon6
-    (0,0): anon18_Then
-    (0,0): anon8
-    (0,0): anon19_Then
-    (0,0): anon10
 MiscTypeInferenceTests.dfy(110,18): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon15_Then
-    (0,0): anon2
-    (0,0): anon16_Then
-    (0,0): anon17_Then
-    (0,0): anon5
-    (0,0): anon6
-    (0,0): anon18_Then
-    (0,0): anon8
-    (0,0): anon19_Then
-    (0,0): anon10
-    (0,0): anon20_Then
-    (0,0): anon12
 MiscTypeInferenceTests.dfy(143,15): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 MiscTypeInferenceTests.dfy(155,15): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 10 verified, 9 errors

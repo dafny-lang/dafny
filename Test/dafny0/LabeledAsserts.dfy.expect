@@ -1,128 +1,28 @@
 LabeledAsserts.dfy(25,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 LabeledAsserts.dfy(27,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 LabeledAsserts.dfy(28,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    LabeledAsserts.dfy(27,3): anon5_Else
-    (0,0): anon6_Then
 LabeledAsserts.dfy(29,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    LabeledAsserts.dfy(27,3): anon5_Else
-    LabeledAsserts.dfy(28,3): anon6_Else
 LabeledAsserts.dfy(32,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    LabeledAsserts.dfy(27,3): anon5_Else
-    LabeledAsserts.dfy(28,3): anon6_Else
 LabeledAsserts.dfy(162,17): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    LabeledAsserts.dfy(159,3): anon15_Else
-    (0,0): anon16_Then
 LabeledAsserts.dfy(172,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    LabeledAsserts.dfy(159,3): anon15_Else
-    LabeledAsserts.dfy(162,3): anon16_Else
-    LabeledAsserts.dfy(166,3): anon17_Else
-    (0,0): anon18_Then
 LabeledAsserts.dfy(189,19): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    LabeledAsserts.dfy(159,3): anon15_Else
-    LabeledAsserts.dfy(162,3): anon16_Else
-    LabeledAsserts.dfy(166,3): anon17_Else
-    (0,0): anon19_Else
-    LabeledAsserts.dfy(181,5): anon20_Else
-    (0,0): anon21_Then
 LabeledAsserts.dfy(193,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    LabeledAsserts.dfy(159,3): anon15_Else
-    LabeledAsserts.dfy(162,3): anon16_Else
-    LabeledAsserts.dfy(166,3): anon17_Else
-    (0,0): anon19_Else
-    LabeledAsserts.dfy(181,5): anon20_Else
-    (0,0): anon21_Else
 LabeledAsserts.dfy(16,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 LabeledAsserts.dfy(42,18): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 LabeledAsserts.dfy(43,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 LabeledAsserts.dfy(91,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    LabeledAsserts.dfy(71,3): anon9_Else
-    LabeledAsserts.dfy(75,3): anon10_Else
-    LabeledAsserts.dfy(79,3): anon11_Else
-    (0,0): anon12_Then
 LabeledAsserts.dfy(105,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 LabeledAsserts.dfy(107,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 LabeledAsserts.dfy(128,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    LabeledAsserts.dfy(119,3): anon13_Else
-    (0,0): anon15_Then
 LabeledAsserts.dfy(142,19): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    LabeledAsserts.dfy(119,3): anon13_Else
-    (0,0): anon16_Else
-    LabeledAsserts.dfy(136,5): anon17_Else
-    (0,0): anon18_Then
 LabeledAsserts.dfy(146,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    LabeledAsserts.dfy(119,3): anon13_Else
-    (0,0): anon16_Else
-    LabeledAsserts.dfy(136,5): anon17_Else
-    (0,0): anon18_Else
 LabeledAsserts.dfy(206,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 LabeledAsserts.dfy(207,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 LabeledAsserts.dfy(211,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 LabeledAsserts.dfy(224,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 LabeledAsserts.dfy(226,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 LabeledAsserts.dfy(232,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 LabeledAsserts.dfy(252,6): Error: the calculation step between the previous line and this line might not hold
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
 LabeledAsserts.dfy(265,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 11 verified, 26 errors
