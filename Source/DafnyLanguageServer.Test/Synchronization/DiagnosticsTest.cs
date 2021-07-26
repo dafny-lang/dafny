@@ -198,13 +198,12 @@ method Multiply(x: int, y: int) returns (product: int)
       _client.OpenDocument(documentItem);
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(3, diagnostics.Length);
+      Assert.AreEqual(2, diagnostics.Length);
       Assert.AreEqual("Other", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
       Assert.AreEqual("Other", diagnostics[1].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[1].Severity);
-      Assert.AreEqual("Other", diagnostics[2].Source);
-      Assert.AreEqual(DiagnosticSeverity.Information, diagnostics[2].Severity);
+      Assert.AreEqual(1, diagnostics[0].RelatedInformation.Count());
     }
 
     [TestMethod]

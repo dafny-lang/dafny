@@ -8,30 +8,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language
-{ 
-  static class PositionUtility
-  {
-    public static Range ToSingleLengthRange(this Position position)
-    {
-      return new Range(position, new Position(position.Line, position.Character + 1));
-    }
-
-    public static Range ToMaximumLengthRange(this Position position)
-    {
-      return new Range(position, new Position(position.Line, int.MaxValue));
-    }
-  }
-  
-  static class BoogieUtility
-  {
-
-    public static Position BoogieToLspPosition(this IToken token)
-    {
-      // TODO understand why there is an extra -1,-1
-      return new Position(token.line - 1, token.col - 2);
-    }
-  }
-
+{
   public class DiagnosticErrorReporter : ErrorReporter
   {
     private static readonly MessageSource VerifierMessageSource = MessageSource.Other;
@@ -49,14 +26,6 @@ namespace Microsoft.Dafny.LanguageServer.Language
     {
       var tok = error.Tok;
       var relatedInformation = new List<DiagnosticRelatedInformation>() { };
-      var item = new Diagnostic
-      {
-        Severity = DiagnosticSeverity.Error,
-        Message = error.Msg,
-        Range = tok.BoogieToLspPosition().ToMaximumLengthRange(),
-        RelatedInformation = relatedInformation,
-        Source = VerifierMessageSource.ToString()
-      };
       foreach (var auxErrorInfo in error.Aux)
       {
         if (auxErrorInfo.Category == "Related location") {
@@ -65,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Language
             Message = auxErrorInfo.Msg,
             Location = new Location()
             {
-              Range = auxErrorInfo.Tok.BoogieToLspPosition().ToMaximumLengthRange(),
+              Range = auxErrorInfo.Tok.GetLspRange(),
               Uri = FindUriFromFileName(auxErrorInfo.Tok.filename)
             }
           });
@@ -79,6 +48,14 @@ namespace Microsoft.Dafny.LanguageServer.Language
           
         }
       }
+      var item = new Diagnostic
+      {
+        Severity = DiagnosticSeverity.Error,
+        Message = error.Msg,
+        Range = tok.GetLspRange(),
+        RelatedInformation = relatedInformation,
+        Source = VerifierMessageSource.ToString()
+      };
       AddDiagnosticForFile(item, tok.filename);
     }
 
@@ -92,7 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Language
       {
         Severity = ToSeverity(level),
         Message = msg,
-        Range = new Position(tok.line - 1, tok.col -1).ToMaximumLengthRange(),
+        Range = tok.GetLspRange(),
         Source = source.ToString()
       };
       string filename = tok.filename;
