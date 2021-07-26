@@ -6144,7 +6144,7 @@ namespace Microsoft.Dafny {
         // AddEnsures(ens, Ensures(p.E.tok, true, canCalls, errorMessage, null));
         foreach (var s in splits) {
           if (s.IsChecked && !RefinementToken.IsInherited(s.E.tok, currentModule)) {
-            AddEnsures(ens, Ensures(s.E.tok, false, s.E), errorMessage, null));
+            AddEnsures(ens, Ensures(s.E.tok, false, s.E, errorMessage, null));
           }
         }
       }
