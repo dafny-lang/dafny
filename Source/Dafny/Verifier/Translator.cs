@@ -3090,7 +3090,10 @@ namespace Microsoft.Dafny {
         substMap.Add(f.Result, new BoogieWrapper(funcAppl, f.ResultType));
       }
       foreach (AttributedExpression p in ens) {
-        Bpl.Expr q = etran.TrExpr(Substitute(p.E, null, substMap));
+        var bodyWithSubst = Substitute(p.E, null, substMap);
+        var canCallEns = CanCallAssumption(bodyWithSubst, etran);
+        post = BplAnd(post, canCallEns);
+        var q = etran.TrExpr(bodyWithSubst);
         post = BplAnd(post, q);
       }
       Bpl.Expr whr = GetWhereClause(f.tok, funcAppl, f.ResultType, etran, NOALLOC);
