@@ -43,8 +43,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     private static bool HasErrors(Dafny.Program program) {
-      // TODO create extension method
-      return program.reporter.AllMessages[ErrorLevel.Error].Count > 0;
+      return program.reporter.HasErrors;
     }
 
     private static IDictionary<AstElement, ILocalizableSymbol> CreateDeclarationDictionary(CompilationUnit compilationUnit, CancellationToken cancellationToken) {

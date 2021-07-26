@@ -35,10 +35,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private static IEnumerable<Diagnostic> ToDiagnostics(DafnyDocument document) {
       var reporter = (DiagnosticErrorReporter)document.Errors;
+      return reporter.Diagnostics.Values.SelectMany(d => d);
       foreach (var entry in reporter.Diagnostics) {
-        if (document.Uri.Path == entry.Key) {
+        //if (document.Uri.Path == entry.Key) {
           return entry.Value;
-        }
+        //}
       }
 
       return Enumerable.Empty<Diagnostic>();

@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     private static int GetErrorCount(Dafny.Program program) {
-      return program.reporter.AllMessages[ErrorLevel.Error].Count;
+      return program.reporter.Count(ErrorLevel.Error);
     }
 
     private bool RunDafnyResolver(TextDocumentItem document, Dafny.Program program) {

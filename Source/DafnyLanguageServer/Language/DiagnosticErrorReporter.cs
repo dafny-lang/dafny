@@ -31,13 +31,14 @@ namespace Microsoft.Dafny.LanguageServer.Language
       return new Position(token.line - 1, token.col - 2);
     }
   }
-  
-  class DiagnosticErrorReporter : ErrorReporter
+
+  public class DiagnosticErrorReporter : ErrorReporter
   {
     private static readonly MessageSource VerifierMessageSource = MessageSource.Other;
     readonly Dictionary<string, List<Diagnostic>> diagnostics = new();
-    
-    public DocumentUri FindUriFromFileName(string fileName)
+    readonly Dictionary<DiagnosticSeverity, int> counts = new();
+
+    private DocumentUri FindUriFromFileName(string fileName)
     {
       return DocumentUri.FromFileSystemPath(Path.Combine(Directory.GetCurrentDirectory(), fileName));
     }
@@ -83,6 +84,10 @@ namespace Microsoft.Dafny.LanguageServer.Language
 
     public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg)
     {
+      if (ErrorsOnly && level != ErrorLevel.Error) {
+        return false;
+      }
+      
       var item = new Diagnostic
       {
         Severity = ToSeverity(level),
@@ -95,12 +100,22 @@ namespace Microsoft.Dafny.LanguageServer.Language
       return true;
     }
 
+    public override int Count(ErrorLevel level) {
+      if (counts.TryGetValue(ToSeverity(level), out var count)) {
+        return count;
+      }
+
+      return 0;
+    }
+
     public void AddDiagnosticForFile(Diagnostic item, string filename)
     {
       var fileDiagnostics = diagnostics.ContainsKey(filename)
                       ? diagnostics[filename]
                       : diagnostics[filename] = new List<Diagnostic>();
 
+      counts.TryGetValue(item.Severity!.Value, out var count);
+      counts[item.Severity!.Value] = count + 1;
       fileDiagnostics.Add(item);
     }
 
@@ -109,7 +124,7 @@ namespace Microsoft.Dafny.LanguageServer.Language
         ErrorLevel.Error => DiagnosticSeverity.Error,
         ErrorLevel.Warning => DiagnosticSeverity.Warning,
         ErrorLevel.Info => DiagnosticSeverity.Information,
-        _ => throw new System.ArgumentException($"unknown error level {level}", nameof(level))
+        _ => throw new ArgumentException($"unknown error level {level}", nameof(level))
       };
     }
   }

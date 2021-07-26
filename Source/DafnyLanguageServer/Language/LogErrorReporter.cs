@@ -23,6 +23,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return true;
     }
 
+    public override int Count(ErrorLevel level) {
+      return 0;
+    }
+
     private static LogLevel ToCoreLogLevel(ErrorLevel level) {
       return level switch {
         ErrorLevel.Error => LogLevel.Error,
