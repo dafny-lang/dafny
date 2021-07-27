@@ -12,6 +12,8 @@ namespace Microsoft.Dafny
     {
       this._value = value;
     }
+    
+    public static implicit operator LineSegment(string value) => new LineSegment(value);
 
     public void Render(TextWriter writer, int indentation, WriterState writerState, Queue<FileSyntax> files)
     {

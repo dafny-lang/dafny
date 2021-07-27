@@ -1,10 +1,4 @@
 Classes.dfy(60,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Classes.dfy(38,5): Error: possible violation of function precondition
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Else
 
 Dafny program verifier finished with 4 verified, 2 errors

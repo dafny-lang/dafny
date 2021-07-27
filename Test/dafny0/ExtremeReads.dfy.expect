@@ -1,90 +1,36 @@
 ExtremeReads.dfy(47,11): Error: assertion violation
 ExtremeReads.dfy(13,20): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon5
 ExtremeReads.dfy(50,11): Error: assertion violation
 ExtremeReads.dfy(13,20): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 ExtremeReads.dfy(69,11): Error: assertion violation
 ExtremeReads.dfy(20,20): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 ExtremeReads.dfy(83,11): Error: assertion violation
 ExtremeReads.dfy(26,2): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 ExtremeReads.dfy(105,11): Error: assertion violation
 ExtremeReads.dfy(89,2): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
 ExtremeReads.dfy(127,11): Error: assertion violation
 ExtremeReads.dfy(9,19): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon5
 ExtremeReads.dfy(127,11): Error: assertion violation
 ExtremeReads.dfy(13,20): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon5
 ExtremeReads.dfy(130,11): Error: assertion violation
 ExtremeReads.dfy(9,19): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 ExtremeReads.dfy(130,11): Error: assertion violation
 ExtremeReads.dfy(13,20): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 ExtremeReads.dfy(149,11): Error: assertion violation
 ExtremeReads.dfy(16,19): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 ExtremeReads.dfy(149,11): Error: assertion violation
 ExtremeReads.dfy(20,20): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 ExtremeReads.dfy(168,11): Error: assertion violation
 ExtremeReads.dfy(23,19): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 ExtremeReads.dfy(168,11): Error: assertion violation
 ExtremeReads.dfy(26,2): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 ExtremeReads.dfy(171,11): Error: assertion violation
 ExtremeReads.dfy(23,19): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 ExtremeReads.dfy(171,11): Error: assertion violation
 ExtremeReads.dfy(26,2): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 ExtremeReads.dfy(181,11): Error: assertion violation
 ExtremeReads.dfy(86,16): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
 ExtremeReads.dfy(181,11): Error: assertion violation
 ExtremeReads.dfy(89,2): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
 
 Dafny program verifier finished with 10 verified, 17 errors

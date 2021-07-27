@@ -486,7 +486,7 @@ namespace Microsoft.Dafny {
       wr.Write("if (");
       guardWriter = wr.Fork();
       if (hasElse) {
-        var thn = wr.NewBlock(")", " else", ConcreteSyntaxTree.BraceStyle.Space, ConcreteSyntaxTree.BraceStyle.Space);
+        var thn = wr.NewBlock(")", " else", BraceStyle.Space, BraceStyle.Space);
         return thn;
       } else {
         var thn = wr.NewBlock(")");
@@ -648,7 +648,13 @@ namespace Microsoft.Dafny {
         return from.ParentTypes().Any(fromParentType => IsTargetSupertype(to, fromParentType));
       }
     }
-
+    
+    protected ConcreteSyntaxTree Downcast(Type from, Type to, Bpl.IToken tok, ICanRender expression) {
+      var result = new ConcreteSyntaxTree();
+      EmitDowncast(from, to, tok, result).Append(expression);
+      return result;
+    }
+    
     protected virtual ConcreteSyntaxTree EmitDowncast(Type from, Type to, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       Contract.Requires(from != null);
       Contract.Requires(to != null);
@@ -711,20 +717,22 @@ namespace Microsoft.Dafny {
       Contract.Requires(wr != null);
 
       resultType = resultType.NormalizeExpand();
-      wr.Write("((");
-      TrExpr(guard, wr, inLetExprBody);
-      wr.Write(") ? (");
-      TrExpr(thn, resultType.Equals(thn.Type.NormalizeExpand()) ? wr : EmitCast(resultType, wr), inLetExprBody);
-      wr.Write(") : (");
-      TrExpr(els, resultType.Equals(els.Type.NormalizeExpand()) ? wr : EmitCast(resultType, wr), inLetExprBody);
-      wr.Write("))");
+      var thenExpr = Expr(thn, inLetExprBody);
+      var castedThenExpr = resultType.Equals(thn.Type.NormalizeExpand()) ? thenExpr : Cast(resultType, thenExpr);
+      var elseExpr = Expr(els, inLetExprBody);
+      var castedElseExpr = resultType.Equals(els.Type.NormalizeExpand()) ? elseExpr : Cast(resultType, elseExpr);
+      wr.Format($"(({Expr(guard, inLetExprBody)}) ? ({castedThenExpr}) : ({castedElseExpr}))");
     }
 
+    public ConcreteSyntaxTree Cast(Type toType, ConcreteSyntaxTree expr) {
+      var result = new ConcreteSyntaxTree();
+      EmitCast(toType, result).Append(expr);
+      return result;
+    }
+    
     protected virtual ConcreteSyntaxTree EmitCast(Type toType, ConcreteSyntaxTree wr) {
-      wr.Write("({0})(", TypeName(toType, wr, Bpl.Token.NoToken));
-      var exprWr = wr.Fork();
-      wr.Write(")");
-      return exprWr;
+      wr.Write("({0})", TypeName(toType, wr, Bpl.Token.NoToken));
+      return wr.ForkInParens();
     }
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, ConcreteSyntaxTree wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType, out string compiledName, out string preString, out string postString);
@@ -2342,7 +2350,7 @@ namespace Microsoft.Dafny {
         TrExprOpt(e.Thn, resultType, thn, accumulatorVar);
         ConcreteSyntaxTree els = wr;
         if (!(e.Els is ITEExpr)) {
-          els = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Nothing);
+          els = wr.NewBlock("", null, BraceStyle.Nothing);
           Coverage.Instrument(e.Thn.tok, "else branch", els);
         }
         TrExprOpt(e.Els, resultType, els, accumulatorVar);
@@ -2752,7 +2760,7 @@ namespace Microsoft.Dafny {
         TrCallStmt(s, null, wr);
 
       } else if (stmt is BlockStmt) {
-        var w = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Nothing, ConcreteSyntaxTree.BraceStyle.Newline);
+        var w = wr.NewBlock("", null, BraceStyle.Nothing, BraceStyle.Newline);
         TrStmtList(((BlockStmt)stmt).Body, w);
 
       } else if (stmt is IfStmt) {
@@ -2793,7 +2801,7 @@ namespace Microsoft.Dafny {
           TrStmtList(s.Thn.Body, thenWriter);
 
           if (coverageForElse) {
-            wr = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Nothing);
+            wr = wr.NewBlock("", null, BraceStyle.Nothing);
             if (s.Els == null) {
               Coverage.Instrument(s.Tok, "implicit else branch", wr);
             } else {
@@ -2820,7 +2828,7 @@ namespace Microsoft.Dafny {
           Coverage.Instrument(alternative.Tok, "if-case branch", thn);
           TrStmtList(alternative.Body, thn);
         }
-        var wElse = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Nothing);
+        var wElse = wr.NewBlock("", null, BraceStyle.Nothing);
         EmitAbsurd("unreachable alternative", wElse);
 
       } else if (stmt is WhileStmt) {
@@ -4101,7 +4109,7 @@ namespace Microsoft.Dafny {
         // Need to avoid if (true) because some languages (Go, someday Java)
         // pretend that an if (true) isn't a certainty, leading to a complaint
         // about a missing return statement
-        w = wr.NewBlock("", null, ConcreteSyntaxTree.BraceStyle.Nothing);
+        w = wr.NewBlock("", null, BraceStyle.Nothing);
       } else {
         ConcreteSyntaxTree guardWriter;
         w = EmitIf(out guardWriter, !lastCase, wr);
@@ -4141,9 +4149,7 @@ namespace Microsoft.Dafny {
     protected void TrParenExpr(Expression expr, ConcreteSyntaxTree wr, bool inLetExprBody) {
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
-      wr.Write("(");
-      TrExpr(expr, wr, inLetExprBody);
-      wr.Write(")");
+      TrExpr(expr, wr.ForkInParens(), inLetExprBody);
     }
 
     /// <summary>
@@ -4169,6 +4175,13 @@ namespace Microsoft.Dafny {
     }
 
     protected virtual void WriteCast(string s, ConcreteSyntaxTree wr) { }
+
+    protected ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody)
+    {
+      var result = new ConcreteSyntaxTree();
+      TrExpr(expr, result, inLetExprBody);
+      return result;
+    }
 
     /// <summary>
     /// Before calling TrExpr(expr), the caller must have spilled the let variables declared in "expr".
@@ -4229,10 +4242,8 @@ namespace Microsoft.Dafny {
             Contract.Assert(typeArgs.Count == sf.EnclosingClass.TypeArgs.Count);
             wr.Write("{0}.", TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
             EmitNameAndActualTypeArgs(IdName(e.Member), typeArgs, e.tok, wr);
-            wr.Write("(");
             var tas = TypeArgumentInstantiation.ListFromClass(sf.EnclosingClass, typeArgs);
-            EmitTypeDescriptorsActuals(tas, e.tok, wr);
-            wr.Write(")");
+            EmitTypeDescriptorsActuals(tas, e.tok, wr.ForkInParens());
           } else {
             void writeObj(ConcreteSyntaxTree w) {
               //Contract.Assert(!sf.IsStatic);
@@ -4394,7 +4405,7 @@ namespace Microsoft.Dafny {
           var w = EmitSign(arg.Type, wr);
           TrParenExpr(arg, w, inLetExprBody);
           wr.Write(negated ? " != " : " == ");
-          wr.Write(sign);
+          wr.Write(sign.ToString());
         } else {
           string opString, preOpString, postOpString, callString, staticCallString;
           bool reverseArguments, truncateResult, convertE1_to_int;
@@ -4421,19 +4432,18 @@ namespace Microsoft.Dafny {
             if (nativeType != null) {
               GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
             }
+
+            var inner = wr;
             if (needsCast) {
-              wr.Write("(" + nativeName + ")(");
+              inner = wr.Write("(" + nativeName + ")").ForkInParens();
             }
-            wr.Write(preOpString);
-            TrParenExpr(e0, wr, inLetExprBody);
-            wr.Write(" {0} ", opString);
+            inner.Write(preOpString);
+            TrParenExpr(e0, inner, inLetExprBody);
+            inner.Write(" {0} ", opString);
             if (convertE1_to_int) {
-              EmitExprAsInt(e1, inLetExprBody, wr);
+              EmitExprAsInt(e1, inLetExprBody, inner);
             } else {
-              TrParenExpr(e1, wr, inLetExprBody);
-            }
-            if (needsCast) {
-              wr.Write(")");
+              TrParenExpr(e1, inner, inLetExprBody);
             }
             wr.Write(postOpString);
           } else if (callString != null) {
@@ -4750,6 +4760,12 @@ namespace Microsoft.Dafny {
         Error(tok, "Comparison of a handle can only be with another handle", errorWr);
       }
       return false;
+    }
+
+    protected ConcreteSyntaxTree StringLiteral(StringLiteralExpr str) {
+      var result = new ConcreteSyntaxTree();
+      TrStringLiteral(str, result);
+      return result;
     }
 
     protected void TrStringLiteral(StringLiteralExpr str, ConcreteSyntaxTree wr) {

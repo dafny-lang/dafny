@@ -290,44 +290,12 @@ lemma TestMultiset(Empty: multiset<int>, Nonempty: multiset<int>)
   }
 }
 CalcDefaultMainOperator.dfy(9,4): Error: the calculation step between the previous line and this line might not hold
-Execution trace:
-    (0,0): anon0
-    (0,0): anon18_Then
 CalcDefaultMainOperator.dfy(14,4): Error: the calculation step between the previous line and this line might not hold
-Execution trace:
-    (0,0): anon0
-    CalcDefaultMainOperator.dfy(7,3): anon19_Else
-    (0,0): anon21_Then
 CalcDefaultMainOperator.dfy(20,4): Error: the calculation step between the previous line and this line might not hold
-Execution trace:
-    (0,0): anon0
-    CalcDefaultMainOperator.dfy(7,3): anon19_Else
-    CalcDefaultMainOperator.dfy(12,3): anon22_Else
-    (0,0): anon25_Then
 CalcDefaultMainOperator.dfy(24,4): Error: the calculation step between the previous line and this line might not hold
-Execution trace:
-    (0,0): anon0
-    CalcDefaultMainOperator.dfy(7,3): anon19_Else
-    CalcDefaultMainOperator.dfy(12,3): anon22_Else
-    CalcDefaultMainOperator.dfy(17,3): anon25_Else
-    (0,0): anon27_Then
 CalcDefaultMainOperator.dfy(34,4): Error: the calculation step between the previous line and this line might not hold
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 CalcDefaultMainOperator.dfy(40,4): Error: the calculation step between the previous line and this line might not hold
-Execution trace:
-    (0,0): anon0
-    CalcDefaultMainOperator.dfy(32,3): anon11_Else
-    (0,0): anon14_Then
 CalcDefaultMainOperator.dfy(49,4): Error: the calculation step between the previous line and this line might not hold
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 CalcDefaultMainOperator.dfy(55,4): Error: the calculation step between the previous line and this line might not hold
-Execution trace:
-    (0,0): anon0
-    CalcDefaultMainOperator.dfy(47,3): anon11_Else
-    (0,0): anon14_Then
 
 Dafny program verifier finished with 11 verified, 8 errors

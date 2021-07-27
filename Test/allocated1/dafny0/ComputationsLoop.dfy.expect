@@ -1,9 +1,4 @@
 ComputationsLoop.dfy(7,2): Error: failure to decrease termination measure
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 ComputationsLoop.dfy(12,25): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 0 verified, 2 errors

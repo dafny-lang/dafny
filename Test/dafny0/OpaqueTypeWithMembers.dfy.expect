@@ -1,38 +1,14 @@
 OpaqueTypeWithMembers.dfy(83,36): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 OpaqueTypeWithMembers.dfy(84,51): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 OpaqueTypeWithMembers.dfy(87,9): Error: index out of range
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 OpaqueTypeWithMembers.dfy(90,22): Error: index out of range
-Execution trace:
-    (0,0): anon0
 OpaqueTypeWithMembers.dfy(93,18): Error: index out of range
-Execution trace:
-    (0,0): anon0
 OpaqueTypeWithMembers.dfy(100,8): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
 OpaqueTypeWithMembers.dfy(107,17): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 OpaqueTypeWithMembers.dfy(139,15): Error: possible violation of function precondition
 OpaqueTypeWithMembers.dfy(120,13): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 OpaqueTypeWithMembers.dfy(141,16): Error: possible violation of function precondition
 OpaqueTypeWithMembers.dfy(115,13): Related location
 OpaqueTypeWithMembers.dfy(113,35): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 
 Dafny program verifier finished with 17 verified, 9 errors

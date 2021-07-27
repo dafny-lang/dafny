@@ -1,9 +1,3 @@
 Bug114.dfy(9,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
-    (0,0): anon7_Then
-    (0,0): anon8_Then
-    (0,0): anon4
 
 Dafny program verifier finished with 0 verified, 1 error
