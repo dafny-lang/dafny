@@ -2,11 +2,9 @@ Unchanged.dfy(33,25): Error: assertion violation
 Unchanged.dfy(34,25): Error: assertion violation
 Unchanged.dfy(35,25): Error: assertion violation
 Unchanged.dfy(38,13): Error: assertion violation
-Unchanged.dfy(45,25): Error: assertion violation
-Unchanged.dfy(46,25): Error: assertion violation
-Unchanged.dfy(47,25): Error: assertion violation
-Unchanged.dfy(47,41): Related location
-Unchanged.dfy(48,25): Error: assertion violation
-Unchanged.dfy(48,35): Related location
+Unchanged.dfy(46,35): Error: object must be allocated in the old-state of the 'unchanged' predicate
+Unchanged.dfy(47,35): Error: object must be allocated in the old-state of the 'unchanged' predicate
+Unchanged.dfy(48,41): Error: object must be allocated in the old-state of the 'unchanged' predicate
+Unchanged.dfy(49,35): Error: object must be allocated in the old-state of the 'unchanged' predicate
 
 Dafny program verifier finished with 1 verified, 8 errors

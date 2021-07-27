@@ -103,5 +103,5 @@ method Fresh() {
 method Unchanged(c: C?)
   modifies c
 {
-  assert unchanged(c.more); // error: c may be null
+  assert unchanged(c.more); // error (3x): c may be null, c.more may be null, c.more may not be allocated
 }
