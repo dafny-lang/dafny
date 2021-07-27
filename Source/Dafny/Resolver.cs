@@ -5192,7 +5192,7 @@ namespace Microsoft.Dafny
             }
           case "Freshable": {
               var collType = t.AsCollectionType;
-              if (collType != null) {
+              if (collType is SetType || collType is SeqType) {
                 t = collType.Arg.NormalizeExpand();
               }
               if (t is TypeProxy) {
@@ -9917,12 +9917,13 @@ namespace Microsoft.Dafny
       Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
       var eventualRefType = new InferredTypeProxy();
       if (use == FrameExpressionUse.Reads) {
-        AddXConstraint(fe.E.tok, "ReadsFrame", t, eventualRefType, "a reads-clause expression must denote an object or a collection of objects (instead got {0})");
+        AddXConstraint(fe.E.tok, "ReadsFrame", t, eventualRefType,
+          "a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got {0})");
       } else {
         AddXConstraint(fe.E.tok, "ModifiesFrame", t, eventualRefType,
           use == FrameExpressionUse.Modifies ?
-          "a modifies-clause expression must denote an object or a collection of objects (instead got {0})" :
-          "an unchanged expression must denote an object or a collection of objects (instead got {0})");
+          "a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got {0})" :
+          "an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got {0})");
       }
       if (fe.FieldName != null) {
         NonProxyType tentativeReceiverType;
@@ -14796,8 +14797,8 @@ namespace Microsoft.Dafny
         var e = (FreshExpr)expr;
         ResolveExpression(e.E, opts);
         e.AtLabel = ResolveDominatingLabelInExpr(expr.tok, e.At, "fresh", opts);
-        // the type of e.E must be either an object or a collection of objects
-        AddXConstraint(expr.tok, "Freshable", e.E.Type, "the argument of a fresh expression must denote an object or a collection of objects (instead got {0})");
+        // the type of e.E must be either an object or a set/seq of objects
+        AddXConstraint(expr.tok, "Freshable", e.E.Type, "the argument of a fresh expression must denote an object or a set or sequence of objects (instead got {0})");
         expr.Type = Type.Bool;
 
       } else if (expr is UnaryOpExpr) {

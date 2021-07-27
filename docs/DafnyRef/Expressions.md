@@ -581,7 +581,7 @@ case, `fresh@L(e)` returns `true` if the objects denoted by `e` were all
 freshly allocated since control flow reached label `L`.
 
 The argument of `fresh` must be either an object reference
-or a collection of object references.
+or a set or sequence of object references.
 
 ## 20.22. Allocated Expressions
 ````grammar
