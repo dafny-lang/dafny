@@ -14779,31 +14779,25 @@ namespace Microsoft.Dafny
         expr.Type = new MultiSetType(elementType);
 
       } else if (expr is OldExpr) {
-        OldExpr e = (OldExpr)expr;
-        if (!opts.twoState) {
-          reporter.Error(MessageSource.Resolver, expr, "old expressions are not allowed in this context");
-        } else if (e.At != null) {
-          e.AtLabel = dominatingStatementLabels.Find(e.At);
-          if (e.AtLabel == null) {
-            reporter.Error(MessageSource.Resolver, expr, "no label '{0}' in scope at this time", e.At);
-          }
-        }
+        var e = (OldExpr)expr;
+        e.AtLabel = ResolveDominatingLabelInExpr(expr.tok, e.At, "old", opts);
         ResolveExpression(e.E, new ResolveOpts(opts.codeContext, false, opts.isReveal, opts.isPostCondition, true));
         expr.Type = e.E.Type;
 
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
-        if (!opts.twoState) {
-          reporter.Error(MessageSource.Resolver, expr, "unchanged expressions are not allowed in this context");
-        } else if (e.At != null) {
-          e.AtLabel = dominatingStatementLabels.Find(e.At);
-          if (e.AtLabel == null) {
-            reporter.Error(MessageSource.Resolver, expr, "no label '{0}' in scope at this time", e.At);
-          }
-        }
+        e.AtLabel = ResolveDominatingLabelInExpr(expr.tok, e.At, "unchanged", opts);
         foreach (var fe in e.Frame) {
           ResolveFrameExpression(fe, FrameExpressionUse.Unchanged, opts.codeContext);
         }
+        expr.Type = Type.Bool;
+
+      } else if (expr is FreshExpr) {
+        var e = (FreshExpr)expr;
+        ResolveExpression(e.E, opts);
+        e.AtLabel = ResolveDominatingLabelInExpr(expr.tok, e.At, "fresh", opts);
+        // the type of e.E must be either an object or a collection of objects
+        AddXConstraint(expr.tok, "Freshable", e.E.Type, "the argument of a fresh expression must denote an object or a collection of objects (instead got {0})");
         expr.Type = Type.Bool;
 
       } else if (expr is UnaryOpExpr) {
@@ -14818,20 +14812,6 @@ namespace Microsoft.Dafny
           case UnaryOpExpr.Opcode.Cardinality:
             AddXConstraint(expr.tok, "Sizeable", e.E.Type, "size operator expects a collection argument (instead got {0})");
             expr.Type = Type.Int;
-            break;
-          case UnaryOpExpr.Opcode.Fresh:
-            var fresh = (FreshExpr)e;
-            if (!opts.twoState) {
-              reporter.Error(MessageSource.Resolver, expr, "fresh expressions are not allowed in this context");
-            } else if (fresh.At != null) {
-              fresh.AtLabel = dominatingStatementLabels.Find(fresh.At);
-              if (fresh.AtLabel == null) {
-                reporter.Error(MessageSource.Resolver, expr, "no label '{0}' in scope at this time", fresh.At);
-              }
-            }
-            // the type of e.E must be either an object or a collection of objects
-            AddXConstraint(expr.tok, "Freshable", e.E.Type, "the argument of a fresh expression must denote an object or a collection of objects (instead got {0})");
-            expr.Type = Type.Bool;
             break;
           case UnaryOpExpr.Opcode.Allocated:
             // the argument is allowed to have any type at all
@@ -15267,6 +15247,23 @@ namespace Microsoft.Dafny
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
       }
+    }
+
+    Label/*?*/ ResolveDominatingLabelInExpr(IToken tok, string/*?*/ labelName, string expressionDescription, ResolveOpts opts) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expressionDescription != null);
+      Contract.Requires(opts != null);
+
+      Label label = null;
+      if (!opts.twoState) {
+        reporter.Error(MessageSource.Resolver, tok, $"{expressionDescription} expressions are not allowed in this context");
+      } else if (labelName != null) {
+        label = dominatingStatementLabels.Find(labelName);
+        if (label == null) {
+          reporter.Error(MessageSource.Resolver, tok, $"no label '{labelName}' in scope at this time");
+        }
+      }
+      return label;
     }
 
     private Expression VarDotFunction(IToken tok, string varname, string functionname) {
