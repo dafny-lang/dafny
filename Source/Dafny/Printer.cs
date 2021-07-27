@@ -2335,16 +2335,19 @@ namespace Microsoft.Dafny {
         PrintFrameExpressionList(e.Frame);
         wr.Write(")");
 
+      } else if (expr is FreshExpr) {
+        var e = (FreshExpr)expr;
+        var label = e.At;
+        wr.Write("fresh{0}(", label == null ? "" : "@" + label);
+        PrintExpression(e.E, false);
+        wr.Write(")");
+
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
         if (e.Op == UnaryOpExpr.Opcode.Cardinality) {
           wr.Write("|");
           PrintExpression(e.E, false);
           wr.Write("|");
-        } else if (e.Op == UnaryOpExpr.Opcode.Fresh) {
-          wr.Write("fresh(");
-          PrintExpression(e.E, false);
-          wr.Write(")");
         } else if (e.Op == UnaryOpExpr.Opcode.Allocated) {
           wr.Write("allocated(");
           PrintExpression(e.E, false);
@@ -2354,6 +2357,7 @@ namespace Microsoft.Dafny {
           PrintExpression(e.E, false);
           wr.Write(")");
         } else {
+          Contract.Assert(e.Op != UnaryOpExpr.Opcode.Fresh); // this is handled is "is FreshExpr" case above
           // Prefix operator.
           // determine if parens are needed
           string op;
