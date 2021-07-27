@@ -265,7 +265,7 @@ method test_factorial1_old()
 }
 
 lemma plus_associativity(a: Nat, b: Nat, c: Nat)
-ensures plus(plus(a, b), c) == plus(a, plus(b, c))
+  ensures plus(plus(a, b), c) == plus(a, plus(b, c))
 {
 }
 
