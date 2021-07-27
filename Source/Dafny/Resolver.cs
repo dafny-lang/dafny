@@ -5192,7 +5192,7 @@ namespace Microsoft.Dafny
             }
           case "Freshable": {
               var collType = t.AsCollectionType;
-              if (collType != null) {
+              if (collType is SetType || collType is SeqType) {
                 t = collType.Arg.NormalizeExpand();
               }
               if (t is TypeProxy) {
@@ -9917,12 +9917,13 @@ namespace Microsoft.Dafny
       Contract.Assert(t != null);  // follows from postcondition of ResolveExpression
       var eventualRefType = new InferredTypeProxy();
       if (use == FrameExpressionUse.Reads) {
-        AddXConstraint(fe.E.tok, "ReadsFrame", t, eventualRefType, "a reads-clause expression must denote an object or a collection of objects (instead got {0})");
+        AddXConstraint(fe.E.tok, "ReadsFrame", t, eventualRefType,
+          "a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got {0})");
       } else {
         AddXConstraint(fe.E.tok, "ModifiesFrame", t, eventualRefType,
           use == FrameExpressionUse.Modifies ?
-          "a modifies-clause expression must denote an object or a collection of objects (instead got {0})" :
-          "an unchanged expression must denote an object or a collection of objects (instead got {0})");
+          "a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got {0})" :
+          "an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got {0})");
       }
       if (fe.FieldName != null) {
         NonProxyType tentativeReceiverType;
@@ -10337,7 +10338,7 @@ namespace Microsoft.Dafny
       mod.Add(new FrameExpression(iter.tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"), null));
       // ensures fresh(_new - old(_new));
       ens = iter.Member_MoveNext.Ens;
-      ens.Add(new AttributedExpression(new UnaryOpExpr(iter.tok, UnaryOpExpr.Opcode.Fresh,
+      ens.Add(new AttributedExpression(new FreshExpr(iter.tok,
         new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub,
           new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
           new OldExpr(iter.tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))))));
@@ -14779,31 +14780,25 @@ namespace Microsoft.Dafny
         expr.Type = new MultiSetType(elementType);
 
       } else if (expr is OldExpr) {
-        OldExpr e = (OldExpr)expr;
-        if (!opts.twoState) {
-          reporter.Error(MessageSource.Resolver, expr, "old expressions are not allowed in this context");
-        } else if (e.At != null) {
-          e.AtLabel = dominatingStatementLabels.Find(e.At);
-          if (e.AtLabel == null) {
-            reporter.Error(MessageSource.Resolver, expr, "no label '{0}' in scope at this time", e.At);
-          }
-        }
+        var e = (OldExpr)expr;
+        e.AtLabel = ResolveDominatingLabelInExpr(expr.tok, e.At, "old", opts);
         ResolveExpression(e.E, new ResolveOpts(opts.codeContext, false, opts.isReveal, opts.isPostCondition, true));
         expr.Type = e.E.Type;
 
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
-        if (!opts.twoState) {
-          reporter.Error(MessageSource.Resolver, expr, "unchanged expressions are not allowed in this context");
-        } else if (e.At != null) {
-          e.AtLabel = dominatingStatementLabels.Find(e.At);
-          if (e.AtLabel == null) {
-            reporter.Error(MessageSource.Resolver, expr, "no label '{0}' in scope at this time", e.At);
-          }
-        }
+        e.AtLabel = ResolveDominatingLabelInExpr(expr.tok, e.At, "unchanged", opts);
         foreach (var fe in e.Frame) {
           ResolveFrameExpression(fe, FrameExpressionUse.Unchanged, opts.codeContext);
         }
+        expr.Type = Type.Bool;
+
+      } else if (expr is FreshExpr) {
+        var e = (FreshExpr)expr;
+        ResolveExpression(e.E, opts);
+        e.AtLabel = ResolveDominatingLabelInExpr(expr.tok, e.At, "fresh", opts);
+        // the type of e.E must be either an object or a set/seq of objects
+        AddXConstraint(expr.tok, "Freshable", e.E.Type, "the argument of a fresh expression must denote an object or a set or sequence of objects (instead got {0})");
         expr.Type = Type.Bool;
 
       } else if (expr is UnaryOpExpr) {
@@ -14818,14 +14813,6 @@ namespace Microsoft.Dafny
           case UnaryOpExpr.Opcode.Cardinality:
             AddXConstraint(expr.tok, "Sizeable", e.E.Type, "size operator expects a collection argument (instead got {0})");
             expr.Type = Type.Int;
-            break;
-          case UnaryOpExpr.Opcode.Fresh:
-            if (!opts.twoState) {
-              reporter.Error(MessageSource.Resolver, expr, "fresh expressions are not allowed in this context");
-            }
-            // the type of e.E must be either an object or a collection of objects
-            AddXConstraint(expr.tok, "Freshable", e.E.Type, "the argument of a fresh expression must denote an object or a collection of objects (instead got {0})");
-            expr.Type = Type.Bool;
             break;
           case UnaryOpExpr.Opcode.Allocated:
             // the argument is allowed to have any type at all
@@ -15261,6 +15248,23 @@ namespace Microsoft.Dafny
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
       }
+    }
+
+    Label/*?*/ ResolveDominatingLabelInExpr(IToken tok, string/*?*/ labelName, string expressionDescription, ResolveOpts opts) {
+      Contract.Requires(tok != null);
+      Contract.Requires(expressionDescription != null);
+      Contract.Requires(opts != null);
+
+      Label label = null;
+      if (!opts.twoState) {
+        reporter.Error(MessageSource.Resolver, tok, $"{expressionDescription} expressions are not allowed in this context");
+      } else if (labelName != null) {
+        label = dominatingStatementLabels.Find(labelName);
+        if (label == null) {
+          reporter.Error(MessageSource.Resolver, tok, $"no label '{labelName}' in scope at this time");
+        }
+      }
+      return label;
     }
 
     private Expression VarDotFunction(IToken tok, string varname, string functionname) {
@@ -16995,12 +16999,9 @@ namespace Microsoft.Dafny
           return;
         }
 
-      } else if (expr is UnaryOpExpr) {
-        var e = (UnaryOpExpr)expr;
-        if (e.Op == UnaryOpExpr.Opcode.Fresh) {
-          reporter.Error(MessageSource.Resolver, expr, "fresh expressions are allowed only in specification and ghost contexts");
-          return;
-        }
+      } else if (expr is FreshExpr) {
+        reporter.Error(MessageSource.Resolver, expr, "fresh expressions are allowed only in specification and ghost contexts");
+        return;
 
       } else if (expr is UnchangedExpr) {
         reporter.Error(MessageSource.Resolver, expr, "unchanged expressions are allowed only in specification and ghost contexts");

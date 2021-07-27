@@ -90,3 +90,18 @@ module C {
   }
   class Cell { var data: int }
 }
+
+module Ats {
+  class Cell {
+    var data: int
+
+    method M()
+    {
+      label Label:
+      assert old(data) == old@Label(data);
+      assert unchanged(this) && unchanged@Label(this);
+      var c := new Cell;
+      assert fresh(c) && fresh@Label(c);
+    }
+  }
+}

@@ -83,4 +83,64 @@ class C {
     case true =>
       assert unchanged@End({c,d});
   }
+
+  method Fresh(y: int, b: bool)
+    modifies this
+  {
+    label Start:
+    var c := new C;
+    if b {
+      c := this;
+    }
+    if y < 5 {
+      assert c != this ==> fresh(c);
+    } else {
+      c.x := c.x + 2;
+      assert c != this ==> fresh(c);
+    }
+    label Middle:
+    var d := new C;
+    label End:
+    if
+    case true =>
+      assert fresh(d);
+    case true =>
+      assert fresh@Middle(d);
+    case true =>
+      assert fresh@End(d); // error: d is not fresh since End
+    case true =>
+      assert fresh@Middle(c); // error: c is not fresh since Middle
+    case true =>
+      var e := d;
+      assert fresh@Middle(e);
+      assert fresh@End(e); // error: e is not fresh since End
+    case true =>
+      assert fresh@Start(c); // error: c might be this
+    case true =>
+      assert b || fresh@Start(c);
+  }
+
+  var cc: C?
+
+  method FreshAgain(b: bool)
+    requires cc != null
+    modifies this
+  {
+    label A:
+    if b {
+      cc := new C;
+    }
+    label B:
+    if
+    case true =>
+      assert cc == old(cc) || fresh@A(cc);
+    case b =>
+      assert fresh@A(cc);
+    case b =>
+      assert fresh@B(cc); // error: cc is never an object allocated after B
+    case b =>
+      assert fresh@A(old(cc)); // error: original value of cc is not fresh since A
+    case b =>
+      assert fresh@A(old@B(cc));
+  }
 }
