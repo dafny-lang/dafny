@@ -181,7 +181,7 @@ method Multiply(x: int, y: int) returns (product: int)
     }
 
     [TestMethod]
-    public async Task OpeningDocumentWithMultipleVerificationErrorsReportsDiagnosticsWithAllVerificationErrors() {
+    public async Task OpeningDocumentWithMultipleVerificationErrorsReportsDiagnosticsWithAllVerificationErrorsAndRelatedInformation() {
       var source = @"
 method Multiply(x: int, y: int) returns (product: int)
   decreases y
@@ -204,6 +204,9 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual("Other", diagnostics[1].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[1].Severity);
       Assert.AreEqual(1, diagnostics[0].RelatedInformation.Count());
+      var relatedInformation = diagnostics[0].RelatedInformation.First();
+      Assert.AreEqual("This is the postcondition that might not hold.", relatedInformation.Message);
+      Assert.AreEqual(new Range(new Position(2,38), new Position(2,40)), relatedInformation.Location.Range);
     }
 
     [TestMethod]

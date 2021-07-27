@@ -123,7 +123,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {
         CaptureCounterExamples(errorInfo);
-        CaptureViolatedPostconditions(errorInfo);
+        _errorReporter.ReportBoogieError(errorInfo);
       }
 
       private void CaptureCounterExamples(ErrorInformation errorInfo) {
@@ -134,10 +134,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           _serializedCounterExamples.Append(modelString.ToString());
           modelString.GetStringBuilder().Clear();
         }
-      }
-
-      private void CaptureViolatedPostconditions(ErrorInformation errorInfo) {
-        _errorReporter.ReportBoogieError(errorInfo);
       }
 
       public void WriteTrailer(PipelineStatistics stats) {

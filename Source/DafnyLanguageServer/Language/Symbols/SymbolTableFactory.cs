@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       var declarations = CreateDeclarationDictionary(compilationUnit, cancellationToken);
       var designatorVisitor = new DesignatorVisitor(_logger, program, declarations, compilationUnit, cancellationToken);
       var declarationLocationVisitor = new SymbolDeclarationLocationVisitor(cancellationToken);
-      var symbolsResolved = !HasErrors(program);
+      var symbolsResolved = !program.reporter.HasErrors;
       if(symbolsResolved) {
         designatorVisitor.Visit(program);
         declarationLocationVisitor.Visit(compilationUnit);
@@ -40,10 +40,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         designatorVisitor.SymbolLookup,
         symbolsResolved
       );
-    }
-
-    private static bool HasErrors(Dafny.Program program) {
-      return program.reporter.HasErrors;
     }
 
     private static IDictionary<AstElement, ILocalizableSymbol> CreateDeclarationDictionary(CompilationUnit compilationUnit, CancellationToken cancellationToken) {

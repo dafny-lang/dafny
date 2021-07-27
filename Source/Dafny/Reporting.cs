@@ -54,6 +54,7 @@ namespace Microsoft.Dafny {
 
     public abstract int Count(ErrorLevel level);
     
+    // This method required by the Parser
     internal void Error(MessageSource source, string filename, int line, int col, string msg) {
       var tok = new Token(line, col);
       tok.filename = filename;
@@ -92,7 +93,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, (IToken) (Expression) e.tok, msg, args);
+      Error(source, e.tok, msg, args);
     }
 
     public void Warning(MessageSource source, IToken tok, string msg) {
@@ -150,31 +151,29 @@ namespace Microsoft.Dafny {
 
   public abstract class BatchErrorReporter : ErrorReporter
   {
-    public Dictionary<ErrorLevel, List<ErrorMessage>> AllMessages { get; private set; }
+    private readonly Dictionary<ErrorLevel, List<ErrorMessage>> allMessages;
 
     protected BatchErrorReporter() {
       ErrorsOnly = false;
-      AllMessages = new Dictionary<ErrorLevel, List<ErrorMessage>>();
-      AllMessages[ErrorLevel.Error] = new List<ErrorMessage>();
-      AllMessages[ErrorLevel.Warning] = new List<ErrorMessage>();
-      AllMessages[ErrorLevel.Info] = new List<ErrorMessage>();
+      allMessages = new Dictionary<ErrorLevel, List<ErrorMessage>> {
+        [ErrorLevel.Error] = new(),
+        [ErrorLevel.Warning] = new(),
+        [ErrorLevel.Info] = new()
+      };
     }
 
-    // This is the only thing that needs to be overriden
     public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         // discard the message
         return false;
       }
-      AllMessages[level].Add(new ErrorMessage { token = tok, message = msg });
+      allMessages[level].Add(new ErrorMessage { token = tok, message = msg });
       return true;
     }
 
     public override int Count(ErrorLevel level) {
-      return AllMessages[level].Count;
+      return allMessages[level].Count;
     }
-
-    // This method required by the Parser
   }
 
   public class ConsoleErrorReporter : BatchErrorReporter {

@@ -1,24 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using Microsoft.Boogie;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language
 {
   public class DiagnosticErrorReporter : ErrorReporter
   {
-    private static readonly MessageSource VerifierMessageSource = MessageSource.Other;
-    readonly Dictionary<string, List<Diagnostic>> diagnostics = new();
-    readonly Dictionary<DiagnosticSeverity, int> counts = new();
-
-    private DocumentUri FindUriFromFileName(string fileName)
-    {
-      return DocumentUri.FromFileSystemPath(Path.Combine(Directory.GetCurrentDirectory(), fileName));
-    }
+    private const MessageSource verifierMessageSource = MessageSource.Other;
+    private readonly Dictionary<string, List<Diagnostic>> diagnostics = new();
+    private readonly Dictionary<DiagnosticSeverity, int> counts = new();
 
     public IReadOnlyDictionary<string, List<Diagnostic>> Diagnostics => diagnostics;
 
@@ -35,7 +27,9 @@ namespace Microsoft.Dafny.LanguageServer.Language
             Location = new Location()
             {
               Range = auxErrorInfo.Tok.GetLspRange(),
-              Uri = FindUriFromFileName(auxErrorInfo.Tok.filename)
+              
+              // https://github.com/dafny-lang/dafny/blob/06b498ee73c74660c61042bb752207df13930376/Source/DafnyLanguageServer/Language/DafnyLangParser.cs#L59
+              Uri = DocumentUri.FromFileSystemPath(auxErrorInfo.Tok.filename)
             }
           });
         } else {
@@ -43,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Language
           // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
           // the execution trace message appears to not have any interesting information.
           if(auxErrorInfo.Tok.line > 0) {
-            Info(VerifierMessageSource, auxErrorInfo.Tok, auxErrorInfo.Msg);
+            Info(verifierMessageSource, auxErrorInfo.Tok, auxErrorInfo.Msg);
           }
           
         }
@@ -54,7 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Language
         Message = error.Msg,
         Range = tok.GetLspRange(),
         RelatedInformation = relatedInformation,
-        Source = VerifierMessageSource.ToString()
+        Source = verifierMessageSource.ToString()
       };
       AddDiagnosticForFile(item, tok.filename);
     }
@@ -85,7 +79,7 @@ namespace Microsoft.Dafny.LanguageServer.Language
       return 0;
     }
 
-    public void AddDiagnosticForFile(Diagnostic item, string filename)
+    private void AddDiagnosticForFile(Diagnostic item, string filename)
     {
       var fileDiagnostics = diagnostics.ContainsKey(filename)
                       ? diagnostics[filename]
