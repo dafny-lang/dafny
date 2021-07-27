@@ -601,7 +601,29 @@ UnchangedExpression_ =
   ")"
 ````
 
-TO BE WRITTEN - unchanged expressions
+The `unchanged` expression returns `true` if and only if every reference
+denoted by its arguments has the same value for all its fields in the
+old and current state. For example, if `c` is an object with two
+fields, `x` and `y`, then `unchanged(c)` is equivalent to
+```dafny
+c.x == old(c.x) && c.y == old(c.y)
+```
+
+Each argument to `unchanged` can be a reference, a set of references, or
+a sequence of references. If it is a reference, it can be followed by
+`` `f``, where `f` is a field of the reference. This form expresses that `f`,
+not necessarily all fields, has the same value in the old and current
+state.
+
+The optional `@`-label says to use it as the old-state instead of using
+the `old` state. That is, using the example `c` from above, the expression
+`unchanged@Lbl(c)` is equivalent to
+```dafny
+c.x == old@Lbl(c.x) && c.y == old@Lbl(c.y)
+```
+
+Each reference denoted by the arguments of `unchanged` must be non-null and
+must be allocated in the old-state of the expression.
 
 ## 20.24. Old and Old@ Expressions {#sec-old-expression}
 
@@ -649,8 +671,6 @@ The next example demonstrates the interaction between `old` and array elements.
 ```dafny
 {% include_relative examples/Example-Old3.dfy %}
 ```
-
-TO BE WRITTEN -- Inside an old, disallow unchanged, fresh, two-state functions, two-state lemmas, and nested old
 
 ## 20.25. Cardinality Expressions {#sec-cardinality-expression}
 ````grammar
