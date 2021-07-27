@@ -1,53 +1,8 @@
 TypeAntecedents.dfy(35,12): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 TypeAntecedents.dfy(58,0): Error: A postcondition might not hold on this return path.
 TypeAntecedents.dfy(57,14): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon23_Then
-    (0,0): anon6
-    (0,0): anon26_Then
-    (0,0): anon8
-    (0,0): anon27_Else
-    (0,0): anon28_Else
-    (0,0): anon29_Then
-    (0,0): anon30_Then
-    (0,0): anon17
-    (0,0): anon31_Then
-    (0,0): anon32_Then
-    (0,0): anon33_Then
-    (0,0): anon22
 TypeAntecedents.dfy(66,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon23_Else
-    (0,0): anon24_Then
-    (0,0): anon25_Else
 TypeAntecedents.dfy(80,47): Error: target object may not be allocated
-Execution trace:
-    (0,0): anon0
-    (0,0): anon23_Then
-    (0,0): anon6
-    (0,0): anon26_Then
-    (0,0): anon8
-    (0,0): anon27_Else
-    (0,0): anon28_Else
-    (0,0): anon29_Then
-    (0,0): anon30_Then
 TypeAntecedents.dfy(82,52): Error: target object may not be allocated
-Execution trace:
-    (0,0): anon0
-    (0,0): anon23_Then
-    (0,0): anon6
-    (0,0): anon26_Then
-    (0,0): anon8
-    (0,0): anon27_Else
-    (0,0): anon28_Else
-    (0,0): anon29_Then
-    (0,0): anon30_Then
-    (0,0): anon17
-    (0,0): anon31_Then
-    (0,0): anon32_Then
 
 Dafny program verifier finished with 5 verified, 5 errors

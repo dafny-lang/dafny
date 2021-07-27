@@ -1,77 +1,25 @@
 Inc.dfy(55,0): Error: A postcondition might not hold on this return path.
 Inc.dfy(54,12): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Inc.dfy(84,0): Error: A postcondition might not hold on this return path.
 Inc.dfy(83,12): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Inc.dfy(93,2): Error: A postcondition might not hold on this return path.
 Inc.dfy(90,12): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    (0,0): anon18_Then
 Inc.dfy(111,0): Error: A postcondition might not hold on this return path.
 Inc.dfy(110,12): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Inc.dfy(120,2): Error: A postcondition might not hold on this return path.
 Inc.dfy(117,12): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    (0,0): anon18_Then
 Inc.dfy(182,0): Error: A postcondition might not hold on this return path.
 Inc.dfy(181,12): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Inc.dfy(211,0): Error: A postcondition might not hold on this return path.
 Inc.dfy(210,12): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Inc.dfy(220,2): Error: A postcondition might not hold on this return path.
 Inc.dfy(217,12): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    (0,0): anon18_Then
 Inc.dfy(238,0): Error: A postcondition might not hold on this return path.
 Inc.dfy(237,12): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Inc.dfy(247,2): Error: A postcondition might not hold on this return path.
 Inc.dfy(244,12): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    (0,0): anon18_Then
 Inc.dfy(318,17): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon15_Else
-    (0,0): anon16_Else
-    (0,0): anon19_Then
-    (0,0): anon20_Else
-    (0,0): anon21_Then
-    (0,0): anon22_Then
-    (0,0): anon12
 Inc.dfy(318,17): Error: decreases expression (component 1) must be bounded below by 0
 Inc.dfy(303,26): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon15_Else
-    (0,0): anon16_Else
-    (0,0): anon19_Then
-    (0,0): anon20_Else
-    (0,0): anon21_Then
-    (0,0): anon22_Then
-    (0,0): anon12
 
 Dafny program verifier finished with 11 verified, 12 errors

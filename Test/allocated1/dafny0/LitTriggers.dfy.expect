@@ -1,7 +1,3 @@
 LitTriggers.dfy(56,21): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
-    (0,0): anon2
 
 Dafny program verifier finished with 5 verified, 1 error

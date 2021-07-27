@@ -1,27 +1,17 @@
 git-issue-370.dfy(45,0): Error: A postcondition might not hold on this return path.
 git-issue-370.dfy(43,7): Related location: This is the postcondition that might not hold.
 git-issue-370.dfy(19,5): Related location
-Execution trace:
-    (0,0): anon0
 git-issue-370.dfy(45,0): Error: A postcondition might not hold on this return path.
 git-issue-370.dfy(44,7): Related location: This is the postcondition that might not hold.
 git-issue-370.dfy(29,9): Related location
-Execution trace:
-    (0,0): anon0
 git-issue-370.dfy(45,0): Error: A postcondition might not hold on this return path.
 git-issue-370.dfy(44,7): Related location: This is the postcondition that might not hold.
 git-issue-370.dfy(30,9): Related location
-Execution trace:
-    (0,0): anon0
 git-issue-370.dfy(45,0): Error: A postcondition might not hold on this return path.
 git-issue-370.dfy(44,7): Related location: This is the postcondition that might not hold.
 git-issue-370.dfy(31,9): Related location
-Execution trace:
-    (0,0): anon0
 git-issue-370.dfy(45,0): Error: A postcondition might not hold on this return path.
 git-issue-370.dfy(44,7): Related location: This is the postcondition that might not hold.
 git-issue-370.dfy(32,9): Related location
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 3 verified, 5 errors

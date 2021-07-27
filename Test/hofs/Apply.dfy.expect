@@ -1,38 +1,6 @@
 Apply.dfy(46,23): Error: function must be allocated in the state in which the function is invoked
-Execution trace:
-    (0,0): anon0
-    Apply.dfy(38,12): anon37_Else
-    Apply.dfy(42,12): anon39_Else
-    (0,0): anon42_Then
 Apply.dfy(57,31): Error: argument must be allocated in the state in which the function is invoked
-Execution trace:
-    (0,0): anon0
-    Apply.dfy(38,12): anon37_Else
-    Apply.dfy(42,12): anon39_Else
-    (0,0): anon42_Then
-    (0,0): anon13
-    Apply.dfy(52,12): anon43_Else
-    Apply.dfy(53,12): anon46_Else
-    (0,0): anon52_Then
 Apply.dfy(58,31): Error: argument must be allocated in the state in which the function is invoked
-Execution trace:
-    (0,0): anon0
-    Apply.dfy(38,12): anon37_Else
-    Apply.dfy(42,12): anon39_Else
-    (0,0): anon42_Then
-    (0,0): anon13
-    Apply.dfy(52,12): anon43_Else
-    Apply.dfy(53,12): anon46_Else
-    (0,0): anon53_Then
 Apply.dfy(61,31): Error: argument must be allocated in the state in which the function is invoked
-Execution trace:
-    (0,0): anon0
-    Apply.dfy(38,12): anon37_Else
-    Apply.dfy(42,12): anon39_Else
-    (0,0): anon42_Then
-    (0,0): anon13
-    Apply.dfy(52,12): anon43_Else
-    Apply.dfy(53,12): anon46_Else
-    (0,0): anon56_Then
 
 Dafny program verifier finished with 4 verified, 4 errors

@@ -1,28 +1,9 @@
 MultiSets.dfy(158,2): Error: A postcondition might not hold on this return path.
 MultiSets.dfy(157,14): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 MultiSets.dfy(164,2): Error: A postcondition might not hold on this return path.
 MultiSets.dfy(163,14): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 MultiSets.dfy(177,19): Error: new number of occurrences might be negative
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
-    (0,0): anon3
 MultiSets.dfy(268,23): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon3
-    (0,0): anon12_Then
-    (0,0): anon14_Else
 MultiSets.dfy(291,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
-    (0,0): anon3
-    (0,0): anon9_Else
 
 Dafny program verifier finished with 34 verified, 5 errors

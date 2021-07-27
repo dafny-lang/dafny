@@ -1,122 +1,12 @@
 ControlStructures.dfy(8,2): Error: missing case in match statement: Purple
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon7_Else
-    (0,0): anon8_Then
 ControlStructures.dfy(8,2): Error: missing case in match statement: Blue
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon7_Else
-    (0,0): anon8_Else
-    (0,0): anon9_Then
 ControlStructures.dfy(17,2): Error: missing case in match statement: Purple
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon7_Else
-    (0,0): anon8_Then
 ControlStructures.dfy(46,4): Error: missing case in match statement: Red
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
-    (0,0): anon9_Else
-    (0,0): anon10_Then
 ControlStructures.dfy(54,2): Error: missing case in match expression: Red
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Else
-    (0,0): anon10_Else
-    (0,0): anon11_Else
-    (0,0): anon12_Else
-    (0,0): anon13_Then
 ControlStructures.dfy(75,2): Error: alternative cases fail to cover all possibilties
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Else
 ControlStructures.dfy(218,17): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    ControlStructures.dfy(197,3): anon59_LoopHead
-    (0,0): anon59_LoopBody
-    ControlStructures.dfy(197,3): anon60_Else
-    ControlStructures.dfy(197,3): anon61_Else
-    ControlStructures.dfy(201,5): anon62_LoopHead
-    (0,0): anon62_LoopBody
-    ControlStructures.dfy(201,5): anon63_Else
-    ControlStructures.dfy(201,5): anon64_Else
-    (0,0): anon68_Then
-    ControlStructures.dfy(213,9): anon69_LoopHead
-    (0,0): anon69_LoopBody
-    ControlStructures.dfy(213,9): anon70_Else
-    (0,0): anon71_Then
 ControlStructures.dfy(235,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    ControlStructures.dfy(197,3): anon59_LoopHead
-    (0,0): anon59_LoopBody
-    ControlStructures.dfy(197,3): anon60_Else
-    ControlStructures.dfy(197,3): anon61_Else
-    ControlStructures.dfy(201,5): anon62_LoopHead
-    (0,0): anon62_LoopBody
-    ControlStructures.dfy(201,5): anon63_Else
-    ControlStructures.dfy(201,5): anon64_Else
-    (0,0): anon68_Then
-    ControlStructures.dfy(213,9): anon69_LoopHead
-    (0,0): anon69_LoopBody
-    ControlStructures.dfy(213,9): anon70_Else
-    ControlStructures.dfy(213,9): anon71_Else
-    (0,0): anon72_Then
-    (0,0): after_0_0_0
-    ControlStructures.dfy(224,7): anon74_LoopHead
-    (0,0): anon74_LoopBody
-    ControlStructures.dfy(224,7): anon75_Else
-    ControlStructures.dfy(224,7): anon76_Else
-    (0,0): anon78_Then
-    (0,0): anon38
-    (0,0): anon83_Then
-    (0,0): anon52
 ControlStructures.dfy(238,29): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    ControlStructures.dfy(197,3): anon59_LoopHead
-    (0,0): anon59_LoopBody
-    ControlStructures.dfy(197,3): anon60_Else
-    ControlStructures.dfy(197,3): anon61_Else
-    ControlStructures.dfy(201,5): anon62_LoopHead
-    (0,0): anon62_LoopBody
-    ControlStructures.dfy(201,5): anon63_Else
-    ControlStructures.dfy(201,5): anon64_Else
-    (0,0): anon65_Then
-    (0,0): anon84_Then
-    (0,0): anon85_Then
-    (0,0): anon56
 ControlStructures.dfy(241,16): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    ControlStructures.dfy(197,3): anon59_LoopHead
-    (0,0): anon59_LoopBody
-    ControlStructures.dfy(197,3): anon60_Else
-    ControlStructures.dfy(197,3): anon61_Else
-    ControlStructures.dfy(201,5): anon62_LoopHead
-    (0,0): anon62_LoopBody
-    ControlStructures.dfy(201,5): anon63_Else
-    ControlStructures.dfy(201,5): anon64_Else
-    (0,0): anon68_Then
-    ControlStructures.dfy(213,9): anon69_LoopHead
-    (0,0): anon69_LoopBody
-    ControlStructures.dfy(213,9): anon70_Else
-    ControlStructures.dfy(213,9): anon71_Else
-    (0,0): anon72_Then
-    (0,0): after_0_0_0
-    ControlStructures.dfy(224,7): anon74_LoopHead
-    (0,0): anon74_LoopBody
-    ControlStructures.dfy(224,7): anon75_Else
-    ControlStructures.dfy(224,7): anon76_Else
-    (0,0): anon79_Then
-    (0,0): anon82_Then
-    (0,0): anon86_Then
-    (0,0): anon58
 
 Dafny program verifier finished with 11 verified, 10 errors

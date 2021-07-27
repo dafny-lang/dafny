@@ -1,20 +1,10 @@
 one-message-per-failed-precondition.dfy(13,3): Error: A precondition for this call might not hold.
 one-message-per-failed-precondition.dfy(8,13): Related location: This is the precondition that might not hold.
-Execution trace:
-    (0,0): anon0
 one-message-per-failed-precondition.dfy(13,3): Error: A precondition for this call might not hold.
 one-message-per-failed-precondition.dfy(9,13): Related location: This is the precondition that might not hold.
-Execution trace:
-    (0,0): anon0
 one-message-per-failed-precondition.dfy(20,27): Error: possible violation of function precondition
 one-message-per-failed-precondition.dfy(17,13): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 one-message-per-failed-precondition.dfy(20,27): Error: possible violation of function precondition
 one-message-per-failed-precondition.dfy(18,13): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 
 Dafny program verifier finished with 0 verified, 4 errors

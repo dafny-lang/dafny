@@ -1,23 +1,7 @@
 RealTypes.dfy(12,17): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 RealTypes.dfy(14,29): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 RealTypes.dfy(21,11): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    RealTypes.dfy(20,25): anon3_Else
-    (0,0): anon2
 RealTypes.dfy(21,19): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    RealTypes.dfy(20,25): anon3_Else
-    (0,0): anon2
 RealTypes.dfy(29,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 2 verified, 5 errors

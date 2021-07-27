@@ -1,6 +1,4 @@
 Regression8.dfy(14,16): Error: possible violation of function precondition
 Regression8.dfy(5,13): Related location
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 0 verified, 1 error

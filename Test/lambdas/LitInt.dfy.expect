@@ -1,10 +1,4 @@
 LitInt.dfy(22,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 LitInt.dfy(32,26): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 
 Dafny program verifier finished with 2 verified, 2 errors

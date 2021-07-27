@@ -1,13 +1,4 @@
 LambdaEq.dfy(10,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    LambdaEq.dfy(6,24): anon13_Else
-    LambdaEq.dfy(7,24): anon15_Else
-    LambdaEq.dfy(8,24): anon17_Else
 LambdaEq.dfy(17,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    LambdaEq.dfy(15,24): anon9_Else
-    LambdaEq.dfy(16,24): anon11_Else
 
 Dafny program verifier finished with 0 verified, 2 errors

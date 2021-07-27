@@ -1,18 +1,6 @@
 git-issue-664.dfy(13,18): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon18_Then
 git-issue-664.dfy(15,9): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon20_Then
 git-issue-664.dfy(17,18): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon22_Then
 git-issue-664.dfy(19,18): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon24_Then
 
 Dafny program verifier finished with 0 verified, 4 errors

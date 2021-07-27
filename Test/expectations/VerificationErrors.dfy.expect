@@ -1,7 +1,3 @@
 VerificationErrors.dfy(8,22): Error: destructor 'get' can only be applied to datatype values constructed by 'Some'
-Execution trace:
-    (0,0): anon0
-    VerificationErrors.dfy(7,5): anon4_Else
-    (0,0): anon5_Then
 
 Dafny program verifier finished with 0 verified, 1 error

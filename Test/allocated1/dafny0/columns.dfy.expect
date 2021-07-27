@@ -1,15 +1,6 @@
 columns.dfy(8,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 columns.dfy(9,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 columns.dfy(10,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 columns.dfy(11,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 
 Dafny program verifier finished with 0 verified, 3 errors
