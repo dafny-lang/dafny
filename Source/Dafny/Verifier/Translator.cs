@@ -7900,18 +7900,18 @@ namespace Microsoft.Dafny {
           CheckWellformed(fe.E, options, locals, builder, etran);
 
           EachReferenceInFrameExpression(fe.E, locals, builder, etran, out var description, out var ty, out var r, out var ante);
-          Bpl.Expr nonnull;
+          Bpl.Expr nonNull;
           if (ty.IsNonNullRefType) {
-            nonnull = Bpl.Expr.True;
+            nonNull = Bpl.Expr.True;
           } else {
             Contract.Assert(ty.IsRefType);
-            nonnull = Bpl.Expr.Neq(r, predef.Null);
-            builder.Add(Assert(fe.E.tok, BplImp(ante, nonnull), $"{description} must be non-null"));
+            nonNull = Bpl.Expr.Neq(r, predef.Null);
+            builder.Add(Assert(fe.E.tok, BplImp(ante, nonNull), $"{description} must be non-null"));
           }
           // check that "r" was allocated in the "e.AtLabel" state
           Bpl.Expr wh = GetWhereClause(fe.E.tok, r, ty, etran.OldAt(e.AtLabel), ISALLOC, true);
           if (wh != null) {
-            builder.Add(Assert(fe.E.tok, BplImp(BplAnd(ante, nonnull), wh),
+            builder.Add(Assert(fe.E.tok, BplImp(BplAnd(ante, nonNull), wh),
               $"{description} must be allocated in the old-state of the 'unchanged' predicate"));
           }
         }
