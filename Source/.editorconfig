@@ -21,3 +21,15 @@ end_of_line = lf
 csharp_new_line_before_open_brace = namespace, types
 csharp_new_line_before_catch = false
 csharp_new_line_before_else = false
+
+#### Naming rules
+
+dotnet_naming_rule.private_members.symbols  = private_fields
+dotnet_naming_rule.private_members.style    = private
+dotnet_naming_rule.private_members.severity = suggestion
+
+dotnet_naming_symbols.private_fields.applicable_kinds           = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+
+dotnet_naming_style.private.capitalization = camel_case
+dotnet_naming_style.private.required_prefix = 
