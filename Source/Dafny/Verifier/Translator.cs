@@ -7898,6 +7898,22 @@ namespace Microsoft.Dafny {
         var e = (UnchangedExpr)expr;
         foreach (var fe in e.Frame) {
           CheckWellformed(fe.E, options, locals, builder, etran);
+
+          EachReferenceInFrameExpression(fe.E, locals, builder, etran, out var description, out var ty, out var r, out var ante);
+          Bpl.Expr nonNull;
+          if (ty.IsNonNullRefType) {
+            nonNull = Bpl.Expr.True;
+          } else {
+            Contract.Assert(ty.IsRefType);
+            nonNull = Bpl.Expr.Neq(r, predef.Null);
+            builder.Add(Assert(fe.E.tok, BplImp(ante, nonNull), $"{description} must be non-null"));
+          }
+          // check that "r" was allocated in the "e.AtLabel" state
+          Bpl.Expr wh = GetWhereClause(fe.E.tok, r, ty, etran.OldAt(e.AtLabel), ISALLOC, true);
+          if (wh != null) {
+            builder.Add(Assert(fe.E.tok, BplImp(BplAnd(ante, nonNull), wh),
+              $"{description} must be allocated in the old-state of the 'unchanged' predicate"));
+          }
         }
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
@@ -8887,6 +8903,65 @@ namespace Microsoft.Dafny {
 
     private Expr NewOneHeapExpr(IToken tok) {
       return new Bpl.IdentifierExpr(tok, "$OneHeap", predef.HeapType);
+    }
+
+    /// <summary>
+    /// For expression "e" that is expected to come from a modifies/unchanged frame, return information
+    /// that is useful for checking every reference from "e". More precisely,
+    ///  * If "e" denotes a reference, then return
+    ///       -- "description" as the string "object",
+    ///       -- "type" as the type of that reference,
+    ///       -- "obj" as the translation of that reference, and
+    ///       -- "antecedent" as "true".
+    ///  * If "e" denotes a set of references, then return
+    ///       -- "description" as the string "each set element",
+    ///       -- "type" as the element type of that set,
+    ///       -- "obj" as a new identifier of type "type", and
+    ///       -- "antecedent" as "obj in e".
+    ///  * If "e" denotes a sequence of references, then return
+    ///       -- "description" as the string "each sequence element",
+    ///       -- "type" as the element type of that sequence,
+    ///       -- "obj" as an expression "e[i]", where "i" is a new identifier, and
+    ///       -- "antecedent" as "0 <= i < |e|".
+    /// </summary>
+    void EachReferenceInFrameExpression(Expression e, List<Bpl.Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+      out string description, out Type type, out Bpl.Expr obj, out Bpl.Expr antecedent) {
+      Contract.Requires(e != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+
+      if (e.Type.IsRefType) {
+        description = "object";
+        type = e.Type;
+        obj = etran.TrExpr(e);
+        antecedent = Bpl.Expr.True;
+        return;
+      }
+
+      var isSetType = e.Type.AsSetType != null;
+      Contract.Assert(isSetType || e.Type.AsSeqType != null);
+      var sType = e.Type.AsCollectionType;
+      Contract.Assert(sType != null);
+      type = sType.Arg;
+      // var $x
+      var name = CurrentIdGenerator.FreshId("$unchanged#x");
+      var xVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, name, isSetType ? TrType(type) : Bpl.Type.Int));
+      locals.Add(xVar);
+      var x = new Bpl.IdentifierExpr(e.tok, xVar);
+      // havoc $x
+      builder.Add(new Bpl.HavocCmd(e.tok, new List<Bpl.IdentifierExpr>() { x }));
+
+      var s = etran.TrExpr(e);
+      if (isSetType) {
+        description = "each set element";
+        obj = x;
+        antecedent = Bpl.Expr.SelectTok(e.tok, s, BoxIfNecessary(e.tok, x, type));
+      } else {
+        description = "each sequence element";
+        obj = UnboxIfBoxed(FunctionCall(e.tok, BuiltinFunction.SeqIndex, predef.BoxType, s, x), type);
+        antecedent = InSeqRange(e.tok, x, Type.Int, s, true, null, false);
+      }
     }
 
     private void AddArrowTypeAxioms(ArrowTypeDecl ad) {
