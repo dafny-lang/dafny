@@ -1,9 +1,7 @@
-// UNSUPPORTED: windows, ubuntu16, ubuntu, macosx
 // RUN: %dafny /out:Output/DafnyMain.cs TestAttribute.dfy /compile:0 /spillTargetCode:3 /noVerify
-// RUN: dotnet build -t:restore ../DafnyTests.sln
-// RUN: dotnet build -t:Test -v:q -noLogo > "%t".raw || true
-// Remove the absolute file path before the expected error
-// RUN: sed 's/[^:]*://' "%t".raw > "%t"
+// RUN: dotnet test -v:q -noLogo 2>%t.raw || true
+// Remove the timestamp prefixes on the expected errors
+// RUN: sed 's/[^]]*\]//' "%t".raw > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 include "../exceptions/VoidOutcomeDt.dfy"
