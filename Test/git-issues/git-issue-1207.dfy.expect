@@ -4,208 +4,24 @@ git-issue-1207.dfy(41,9): Warning: /!\ No terms found to trigger on.
 git-issue-1207.dfy(47,9): Warning: /!\ No terms found to trigger on.
 git-issue-1207.dfy(48,9): Warning: /!\ No terms found to trigger on.
 git-issue-1207.dfy(10,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
-    (0,0): anon2
 git-issue-1207.dfy(11,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
-    (0,0): anon2
-    (0,0): anon20_Then
-    (0,0): anon4
 git-issue-1207.dfy(14,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
-    (0,0): anon2
-    (0,0): anon20_Then
-    (0,0): anon4
-    (0,0): anon21_Then
-    (0,0): anon6
-    (0,0): anon22_Then
-    (0,0): anon8
-    (0,0): anon23_Then
-    (0,0): anon10
 git-issue-1207.dfy(15,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
-    (0,0): anon2
-    (0,0): anon20_Then
-    (0,0): anon4
-    (0,0): anon21_Then
-    (0,0): anon6
-    (0,0): anon22_Then
-    (0,0): anon8
-    (0,0): anon23_Then
-    (0,0): anon10
-    (0,0): anon24_Then
-    (0,0): anon12
 git-issue-1207.dfy(16,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
-    (0,0): anon2
-    (0,0): anon20_Then
-    (0,0): anon4
-    (0,0): anon21_Then
-    (0,0): anon6
-    (0,0): anon22_Then
-    (0,0): anon8
-    (0,0): anon23_Then
-    (0,0): anon10
-    (0,0): anon24_Then
-    (0,0): anon12
-    (0,0): anon25_Then
-    (0,0): anon14
 git-issue-1207.dfy(22,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
-    (0,0): anon2
 git-issue-1207.dfy(23,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
-    (0,0): anon2
-    (0,0): anon20_Then
-    (0,0): anon4
 git-issue-1207.dfy(24,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
-    (0,0): anon2
-    (0,0): anon20_Then
-    (0,0): anon4
-    (0,0): anon21_Then
-    (0,0): anon6
 git-issue-1207.dfy(26,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
-    (0,0): anon2
-    (0,0): anon20_Then
-    (0,0): anon4
-    (0,0): anon21_Then
-    (0,0): anon6
-    (0,0): anon22_Then
-    (0,0): anon8
-    (0,0): anon23_Then
-    (0,0): anon10
 git-issue-1207.dfy(27,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon19_Then
-    (0,0): anon2
-    (0,0): anon20_Then
-    (0,0): anon4
-    (0,0): anon21_Then
-    (0,0): anon6
-    (0,0): anon22_Then
-    (0,0): anon8
-    (0,0): anon23_Then
-    (0,0): anon10
-    (0,0): anon24_Then
-    (0,0): anon12
 git-issue-1207.dfy(34,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon21_Then
-    (0,0): anon2
 git-issue-1207.dfy(35,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon21_Then
-    (0,0): anon2
-    (0,0): anon22_Then
-    (0,0): anon4
 git-issue-1207.dfy(38,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon21_Then
-    (0,0): anon2
-    (0,0): anon22_Then
-    (0,0): anon4
-    (0,0): anon23_Then
-    (0,0): anon6
-    (0,0): anon24_Then
-    (0,0): anon8
-    (0,0): anon25_Then
-    (0,0): anon10
 git-issue-1207.dfy(39,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon21_Then
-    (0,0): anon2
-    (0,0): anon22_Then
-    (0,0): anon4
-    (0,0): anon23_Then
-    (0,0): anon6
-    (0,0): anon24_Then
-    (0,0): anon8
-    (0,0): anon25_Then
-    (0,0): anon10
-    (0,0): anon26_Then
-    (0,0): anon12
 git-issue-1207.dfy(40,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon21_Then
-    (0,0): anon2
-    (0,0): anon22_Then
-    (0,0): anon4
-    (0,0): anon23_Then
-    (0,0): anon6
-    (0,0): anon24_Then
-    (0,0): anon8
-    (0,0): anon25_Then
-    (0,0): anon10
-    (0,0): anon26_Then
-    (0,0): anon12
-    (0,0): anon27_Then
-    (0,0): anon14
 git-issue-1207.dfy(47,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon2
 git-issue-1207.dfy(48,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon2
-    (0,0): anon12_Then
-    (0,0): anon4
 git-issue-1207.dfy(49,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon2
-    (0,0): anon12_Then
-    (0,0): anon4
-    (0,0): anon13_Then
-    (0,0): anon6
 git-issue-1207.dfy(50,49): Error: index out of range
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon2
-    (0,0): anon12_Then
-    (0,0): anon4
-    (0,0): anon13_Then
-    (0,0): anon6
-    (0,0): anon14_Then
 git-issue-1207.dfy(50,57): Error: index out of range
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
-    (0,0): anon2
-    (0,0): anon12_Then
-    (0,0): anon4
-    (0,0): anon13_Then
-    (0,0): anon6
-    (0,0): anon14_Then
 
 Dafny program verifier finished with 0 verified, 20 errors

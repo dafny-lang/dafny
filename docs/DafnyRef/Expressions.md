@@ -567,14 +567,21 @@ an instance method or function.
 ## 20.21. Fresh Expressions {#sec-fresh-expression}
 ````grammar
 FreshExpression_ =
-  "fresh" "(" Expression(allowLemma: true, allowLambda: true) ")"
+  "fresh" [ "@" LabelName ]
+  "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
 `fresh(e)` returns a boolean value that is true if
-the objects referenced in expression `e` were all
-freshly allocated in the current method invocation.
+the objects denoted by expression `e` were all
+freshly allocated since the time of entry to the enclosing method.
+
+If the `LabelName` is present, it must denote a label that in the
+enclosing method's control flow dominates the expression. In this
+case, `fresh@L(e)` returns `true` if the objects denoted by `e` were all
+freshly allocated since control flow reached label `L`.
+
 The argument of `fresh` must be either an object reference
-or a collection of object references.
+or a set or sequence of object references.
 
 ## 20.22. Allocated Expressions
 ````grammar
@@ -594,7 +601,29 @@ UnchangedExpression_ =
   ")"
 ````
 
-TO BE WRITTEN - unchanged expressions
+The `unchanged` expression returns `true` if and only if every reference
+denoted by its arguments has the same value for all its fields in the
+old and current state. For example, if `c` is an object with two
+fields, `x` and `y`, then `unchanged(c)` is equivalent to
+```dafny
+c.x == old(c.x) && c.y == old(c.y)
+```
+
+Each argument to `unchanged` can be a reference, a set of references, or
+a sequence of references. If it is a reference, it can be followed by
+`` `f``, where `f` is a field of the reference. This form expresses that `f`,
+not necessarily all fields, has the same value in the old and current
+state.
+
+The optional `@`-label says to use it as the old-state instead of using
+the `old` state. That is, using the example `c` from above, the expression
+`unchanged@Lbl(c)` is equivalent to
+```dafny
+c.x == old@Lbl(c.x) && c.y == old@Lbl(c.y)
+```
+
+Each reference denoted by the arguments of `unchanged` must be non-null and
+must be allocated in the old-state of the expression.
 
 ## 20.24. Old and Old@ Expressions {#sec-old-expression}
 
@@ -642,8 +671,6 @@ The next example demonstrates the interaction between `old` and array elements.
 ```dafny
 {% include_relative examples/Example-Old3.dfy %}
 ```
-
-TO BE WRITTEN -- Inside an old, disallow unchanged, fresh, two-state functions, two-state lemmas, and nested old
 
 ## 20.25. Cardinality Expressions {#sec-cardinality-expression}
 ````grammar

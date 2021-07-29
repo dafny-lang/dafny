@@ -1,13 +1,7 @@
 Predicates.dfy(62,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Predicates.dfy(66,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Predicates.dfy(105,4): Error: A postcondition might not hold on this return path.
 Predicates.dfy(104,14): Related location: This is the postcondition that might not hold.
 Predicates.dfy(104,45): Related location
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 21 verified, 3 errors

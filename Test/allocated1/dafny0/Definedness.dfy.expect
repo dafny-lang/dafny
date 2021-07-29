@@ -1,182 +1,55 @@
 Definedness.dfy(11,6): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 Definedness.dfy(18,15): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(27,15): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(28,20): Error: target object may be null
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Definedness.dfy(29,16): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(36,15): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(45,15): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(53,17): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(54,2): Error: A postcondition might not hold on this return path.
 Definedness.dfy(53,21): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(60,17): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(61,2): Error: A postcondition might not hold on this return path.
 Definedness.dfy(60,21): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(68,2): Error: A postcondition might not hold on this return path.
 Definedness.dfy(67,21): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(88,6): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(89,4): Error: possible violation of function precondition
 Definedness.dfy(79,15): Related location
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(89,9): Error: assignment may update an object not in the enclosing context's modifies clause
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(89,9): Error: target object may be null
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(90,9): Error: possible violation of function precondition
 Definedness.dfy(79,15): Related location
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(95,13): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(95,22): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(96,14): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(101,11): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(108,14): Error: possible division by zero
-Execution trace:
-    Definedness.dfy(108,5): anon7_LoopHead
-    (0,0): anon7_LoopBody
-    Definedness.dfy(108,5): anon8_Else
 Definedness.dfy(117,22): Error: possible violation of function precondition
 Definedness.dfy(79,15): Related location
-Execution trace:
-    (0,0): anon0
-    Definedness.dfy(116,5): anon12_LoopHead
-    (0,0): anon12_LoopBody
-    (0,0): anon13_Then
 Definedness.dfy(123,16): Error: possible violation of function precondition
 Definedness.dfy(79,15): Related location
-Execution trace:
-    (0,0): anon0
-    Definedness.dfy(116,5): anon12_LoopHead
-    (0,0): anon12_LoopBody
-    Definedness.dfy(116,5): anon13_Else
-    (0,0): anon14_Then
-    Definedness.dfy(122,5): anon15_LoopHead
-    (0,0): anon15_LoopBody
-    (0,0): anon16_Then
 Definedness.dfy(133,16): Error: possible violation of function precondition
 Definedness.dfy(79,15): Related location
-Execution trace:
-    (0,0): anon0
-    Definedness.dfy(132,5): anon6_LoopHead
-    (0,0): anon6_LoopBody
-    (0,0): anon7_Then
 Definedness.dfy(133,21): Error: This loop invariant might not hold on entry.
 Definedness.dfy(133,21): Related message: loop invariant violation
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(134,16): Error: possible violation of function precondition
 Definedness.dfy(79,15): Related location
-Execution trace:
-    (0,0): anon0
-    Definedness.dfy(132,5): anon6_LoopHead
-    (0,0): anon6_LoopBody
-    (0,0): anon7_Then
 Definedness.dfy(143,14): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    Definedness.dfy(143,5): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    Definedness.dfy(143,5): anon9_Else
 Definedness.dfy(162,14): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    Definedness.dfy(156,5): anon16_LoopHead
-    (0,0): anon16_LoopBody
-    Definedness.dfy(156,5): anon17_Else
-    (0,0): anon18_Then
-    (0,0): anon5
-    (0,0): anon19_Then
-    Definedness.dfy(162,5): anon20_LoopHead
-    (0,0): anon20_LoopBody
-    Definedness.dfy(162,5): anon21_Else
 Definedness.dfy(175,27): Error: This loop invariant might not hold on entry.
 Definedness.dfy(175,27): Related message: loop invariant violation
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(181,16): Error: possible violation of function precondition
 Definedness.dfy(79,15): Related location
-Execution trace:
-    (0,0): anon0
-    Definedness.dfy(173,5): anon18_LoopHead
-    (0,0): anon18_LoopBody
-    Definedness.dfy(173,5): anon19_Else
-    (0,0): anon20_Then
-    Definedness.dfy(180,5): anon21_LoopHead
-    (0,0): anon21_LoopBody
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon11
 Definedness.dfy(196,18): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    Definedness.dfy(194,5): anon6_LoopHead
-    (0,0): anon6_LoopBody
-    (0,0): anon7_Then
 Definedness.dfy(196,22): Error: This loop invariant might not hold on entry.
 Definedness.dfy(196,22): Related message: loop invariant violation
-Execution trace:
-    (0,0): anon0
 Definedness.dfy(196,27): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    Definedness.dfy(194,5): anon6_LoopHead
-    (0,0): anon6_LoopBody
-    (0,0): anon7_Then
 Definedness.dfy(215,9): Error: A postcondition might not hold on this return path.
 Definedness.dfy(217,48): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 Definedness.dfy(224,21): Error: target object may be null
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
 Definedness.dfy(224,21): Error: target object may not be allocated
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
 Definedness.dfy(237,9): Error: A postcondition might not hold on this return path.
 Definedness.dfy(240,23): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 
 Dafny program verifier finished with 9 verified, 38 errors

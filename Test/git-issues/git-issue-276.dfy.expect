@@ -16,13 +16,7 @@ git-issue-276.dfy(21,10): Info: newtype b3b resolves as {:nativeType "byte"} (De
 git-issue-276.dfy(22,10): Info: newtype b4b resolves as {:nativeType "byte"} (Detected Range: 0 .. 10)
 git-issue-276.dfy(36,10): Info: newtype cx resolves as {:nativeType "byte"} (Detected Range: 0 .. 4)
 git-issue-276.dfy(25,17): Error: result of operation might violate newtype constraint for 'byte'
-Execution trace:
-    (0,0): anon0
 git-issue-276.dfy(29,18): Error: result of operation might violate newtype constraint for 'b2'
-Execution trace:
-    (0,0): anon0
 git-issue-276.dfy(32,18): Error: result of operation might violate newtype constraint for 'b3'
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 18 verified, 3 errors

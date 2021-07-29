@@ -1,0 +1,35 @@
+# More options for this file can be found on https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/code-style-rule-options?view=vs-2019
+
+# C# files
+[*.cs]
+
+#### Core EditorConfig Options ####
+
+# Indentation and spacing
+indent_size = 2
+indent_style = space
+tab_width = 2
+
+# New line preferences
+end_of_line = lf
+
+#### .NET Coding Conventions ####
+
+#### C# Formatting Rules ####
+
+# New line preferences
+csharp_new_line_before_open_brace = namespace, types
+csharp_new_line_before_catch = false
+csharp_new_line_before_else = false
+
+#### Naming rules
+
+dotnet_naming_rule.private_members.symbols  = private_fields
+dotnet_naming_rule.private_members.style    = private
+dotnet_naming_rule.private_members.severity = suggestion
+
+dotnet_naming_symbols.private_fields.applicable_kinds           = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+
+dotnet_naming_style.private.capitalization = camel_case
+dotnet_naming_style.private.required_prefix = 

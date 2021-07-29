@@ -1,65 +1,15 @@
 Newtypes.dfy(74,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 Newtypes.dfy(76,44): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 Newtypes.dfy(87,13): Error: result of operation might violate newtype constraint for 'char8'
-Execution trace:
-    (0,0): anon0
 Newtypes.dfy(95,11): Error: result of operation might violate newtype constraint for 'char8'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 Newtypes.dfy(97,13): Error: result of operation might violate newtype constraint for 'char8'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 Newtypes.dfy(104,15): Error: result of operation might violate newtype constraint for 'char8'
-Execution trace:
-    (0,0): anon0
 Newtypes.dfy(177,13): Error: result of operation might violate newtype constraint for 'Even'
-Execution trace:
-    (0,0): anon0
 Newtypes.dfy(193,67): Error: index 0 out of range
-Execution trace:
-    (0,0): anon0
-    Newtypes.dfy(182,23): anon35_Else
-    Newtypes.dfy(183,23): anon37_Else
-    Newtypes.dfy(184,26): anon39_Else
-    (0,0): anon51_Then
-    (0,0): anon52_Then
-    (0,0): anon28
 Newtypes.dfy(194,70): Error: index 1 out of range
-Execution trace:
-    (0,0): anon0
-    Newtypes.dfy(182,23): anon35_Else
-    Newtypes.dfy(183,23): anon37_Else
-    Newtypes.dfy(184,26): anon39_Else
-    (0,0): anon53_Then
-    (0,0): anon54_Then
-    (0,0): anon31
 Newtypes.dfy(223,21): Error: new number of occurrences might be negative
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 Newtypes.dfy(226,39): Error: result of operation might violate newtype constraint for 'Even'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 Newtypes.dfy(238,18): Error: result of operation might violate newtype constraint for 'N'
-Execution trace:
-    (0,0): anon0
-    Newtypes.dfy(237,5): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    (0,0): anon10_Then
 Newtypes.dfy(278,18): Error: result of operation might violate newtype constraint for 'R'
-Execution trace:
-    (0,0): anon0
-    Newtypes.dfy(277,5): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    (0,0): anon10_Then
 
 Dafny program verifier finished with 37 verified, 13 errors
