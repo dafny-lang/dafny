@@ -94,6 +94,21 @@ module C {
     }
   }
 }
+
+module Ats {
+  class Cell {
+    var data: int
+
+    method M()
+    {
+      label Label:
+      assert old(data) == old@Label(data);
+      assert unchanged(this) && unchanged@Label(this);
+      var c := new Cell;
+      assert fresh(c) && fresh@Label(c);
+    }
+  }
+}
 PrettyPrinting.dfy(10,4): Warning: note, this loop has no body
 PrettyPrinting.dfy(11,4): Warning: note, this loop has no body
 PrettyPrinting.dfy(14,4): Warning: note, this loop has no body

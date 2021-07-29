@@ -206,7 +206,10 @@ namespace Microsoft.Dafny
         var e = (UnaryExpr)expr;
         Expression se = Substitute(e.E);
         if (se != e.E) {
-          if (e is UnaryOpExpr) {
+          if (e is FreshExpr) {
+            var ee = (FreshExpr)e;
+            newExpr = new FreshExpr(expr.tok, se, ee.At) { AtLabel = ee.AtLabel };
+          } else if (e is UnaryOpExpr) {
             var ee = (UnaryOpExpr)e;
             newExpr = new UnaryOpExpr(expr.tok, ee.Op, se);
           } else if (e is ConversionExpr) {

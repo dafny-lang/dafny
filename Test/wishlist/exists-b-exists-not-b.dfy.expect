@@ -1,11 +1,4 @@
 exists-b-exists-not-b.dfy(8,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 exists-b-exists-not-b.dfy(9,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
-    (0,0): anon6_Then
 
 Dafny program verifier finished with 0 verified, 2 errors

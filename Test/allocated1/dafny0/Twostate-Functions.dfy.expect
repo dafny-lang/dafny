@@ -1,92 +1,22 @@
 Twostate-Functions.dfy(11,43): Error: target object may not be allocated
-Execution trace:
-    (0,0): anon0
 Twostate-Functions.dfy(19,12): Error: target object may not be allocated
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 Twostate-Functions.dfy(25,8): Error: insufficient reads clause to read field
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 Twostate-Functions.dfy(70,17): Error: assertion violation
 Twostate-Functions.dfy(57,14): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
-    (0,0): anon2
-    (0,0): anon8_Then
-    (0,0): anon4
-    (0,0): anon9_Then
 Twostate-Functions.dfy(72,15): Error: assertion violation
 Twostate-Functions.dfy(57,14): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
-    (0,0): anon2
-    (0,0): anon8_Then
-    (0,0): anon4
-    (0,0): anon9_Else
 Twostate-Functions.dfy(96,24): Error: argument ('u') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
 Twostate-Functions.dfy(101,40): Error: argument 1 ('x') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Else
 Twostate-Functions.dfy(107,40): Error: argument 1 ('x') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Else
 Twostate-Functions.dfy(131,61): Error: target object may not be allocated
-Execution trace:
-    (0,0): anon0
-    (0,0): anon16_Then
 Twostate-Functions.dfy(133,46): Error: argument 0 ('c') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon16_Else
-    (0,0): anon4
-    (0,0): anon18_Then
 Twostate-Functions.dfy(134,42): Error: target object may not be allocated
-Execution trace:
-    (0,0): anon0
-    (0,0): anon16_Then
-    (0,0): anon4
-    (0,0): anon18_Then
-    (0,0): anon19_Then
 Twostate-Functions.dfy(136,33): Error: target object may not be allocated
-Execution trace:
-    (0,0): anon0
-    (0,0): anon16_Else
-    (0,0): anon4
-    (0,0): anon17_Else
-    (0,0): anon20_Else
 Twostate-Functions.dfy(150,12): Error: target object may not be allocated
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 Twostate-Functions.dfy(152,12): Error: target object may not be allocated
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 Twostate-Functions.dfy(171,15): Error: argument ('d') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 Twostate-Functions.dfy(174,13): Error: possible violation of function precondition
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 Twostate-Functions.dfy(192,15): Error: argument ('d') must be allocated in the two-state function's previous state
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 Twostate-Functions.dfy(195,13): Error: possible violation of function precondition
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
 
 Dafny program verifier finished with 18 verified, 18 errors

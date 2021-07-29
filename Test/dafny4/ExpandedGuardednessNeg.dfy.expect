@@ -1,28 +1,8 @@
 ExpandedGuardednessNeg.dfy(8,17): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Else
-    (0,0): anon9_Then
-    (0,0): anon10_Then
 ExpandedGuardednessNeg.dfy(8,17): Error: decreases expression must be bounded below by 0
 ExpandedGuardednessNeg.dfy(6,27): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Else
-    (0,0): anon9_Then
-    (0,0): anon10_Then
 ExpandedGuardednessNeg.dfy(13,16): Error: cannot prove termination; try supplying a decreases clause
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Else
-    (0,0): anon9_Then
-    (0,0): anon10_Then
 ExpandedGuardednessNeg.dfy(13,16): Error: decreases expression must be bounded below by 0
 ExpandedGuardednessNeg.dfy(11,21): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Else
-    (0,0): anon9_Then
-    (0,0): anon10_Then
 
 Dafny program verifier finished with 0 verified, 4 errors

@@ -1,26 +1,8 @@
 git-issue-952.dfy(35,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 git-issue-952.dfy(38,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 git-issue-952.dfy(71,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 git-issue-952.dfy(74,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 git-issue-952.dfy(100,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 git-issue-952.dfy(103,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Else
 
 Dafny program verifier finished with 4 verified, 6 errors

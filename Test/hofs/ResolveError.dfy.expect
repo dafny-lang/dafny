@@ -11,7 +11,7 @@ ResolveError.dfy(37,18): Error: incorrect type of function argument (expected in
 ResolveError.dfy(35,25): Error: arguments must have comparable types (got bool and int)
 ResolveError.dfy(38,22): Error: arguments must have comparable types (got set<object?> and int)
 ResolveError.dfy(47,18): Error: Precondition must be boolean (got int)
-ResolveError.dfy(46,15): Error: a reads-clause expression must denote an object or a collection of objects (instead got int)
+ResolveError.dfy(46,15): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got int)
 ResolveError.dfy(56,9): Error: condition is expected to be of type bool, but is () -> bool
 ResolveError.dfy(59,42): Error: type of 'null' is a reference type, but it is used as A -> B
 ResolveError.dfy(62,11): Error: arguments must have comparable types (got A -> B and object)

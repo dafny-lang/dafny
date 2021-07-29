@@ -45,7 +45,7 @@ class A {
   {}
 
   twostate lemma L4(new a: A)
-    requires allocated(a)
+    requires old(allocated(a))
     requires unchanged(a)
   {
     assert a.f == old(a.f);
@@ -123,7 +123,7 @@ class Node {
   }
 
   twostate lemma M_Lemma(node: Node)
-    requires old(Valid())
+    requires old(Valid()) && old(allocated(Repr))
     requires old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
     requires unchanged(old(Repr) - {node})
     ensures Valid() && old(Sum()) <= Sum()
@@ -211,6 +211,7 @@ class {:autocontracts} NodeAuto {
   }
 
   method M(node: NodeAuto)
+    requires allocated(Repr)
     modifies node
   {
     var s := Sum();
@@ -221,7 +222,7 @@ class {:autocontracts} NodeAuto {
 
   twostate lemma M_Lemma(node: NodeAuto)
     requires old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
-    requires unchanged(old(Repr) - {node})
+    requires old(allocated(Repr)) && unchanged(old(Repr) - {node})
     ensures Valid() && old(Sum()) <= Sum()
     decreases Repr
   {

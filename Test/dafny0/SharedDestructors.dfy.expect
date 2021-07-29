@@ -1,62 +1,15 @@
 SharedDestructors.dfy(16,11): Error: destructor 'x' can only be applied to datatype values constructed by 'A' or 'B'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon14_Then
 SharedDestructors.dfy(22,11): Error: destructor 'x' can only be applied to datatype values constructed by 'A' or 'B'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
 SharedDestructors.dfy(24,11): Error: destructor 'y' can only be applied to datatype values constructed by 'A', 'C', or 'D'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon18_Then
 SharedDestructors.dfy(30,15): Error: destructor 'h' can only be applied to datatype values constructed by 'B'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon22_Then
 SharedDestructors.dfy(34,15): Error: source of datatype update must be constructed by 'A'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon24_Then
 SharedDestructors.dfy(51,14): Error: destructor 'a' can only be applied to datatype values constructed by 'AA'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Else
-    (0,0): anon9_Then
 SharedDestructors.dfy(57,14): Error: source of datatype update must be constructed by 'AA'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Else
-    (0,0): anon9_Else
-    (0,0): anon10_Else
 SharedDestructors.dfy(95,12): Error: source of datatype update must be constructed by 'PP'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 SharedDestructors.dfy(101,12): Error: source of datatype update must be constructed by 'RR'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 SharedDestructors.dfy(107,12): Error: source of datatype update must be constructed by 'RR'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 SharedDestructors.dfy(124,12): Error: source of datatype update must be constructed by 'C3'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 SharedDestructors.dfy(139,11): Error: source of datatype update must be constructed by 'Ma5' or 'Ma2'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon30_Then
 SharedDestructors.dfy(145,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon33_Then
-    (0,0): anon7
-    (0,0): anon34_Else
-    (0,0): anon10
-    (0,0): anon35_Then
-    (0,0): anon12
 
 Dafny program verifier finished with 0 verified, 13 errors

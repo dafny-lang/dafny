@@ -2654,7 +2654,7 @@ namespace Microsoft.Dafny {
       old_nw.Type = nw.Type;  // resolve here
       var setDiff = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub, nw, old_nw);
       setDiff.ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference; setDiff.Type = nw.Type;  // resolve here
-      Expression cond = new UnaryOpExpr(iter.tok, UnaryOpExpr.Opcode.Fresh, setDiff);
+      Expression cond = new FreshExpr(iter.tok, setDiff);
       cond.Type = Type.Bool;  // resolve here
       builder.Add(TrAssumeCmd(iter.tok, yeEtran.TrExpr(cond)));
 
@@ -7898,6 +7898,22 @@ namespace Microsoft.Dafny {
         var e = (UnchangedExpr)expr;
         foreach (var fe in e.Frame) {
           CheckWellformed(fe.E, options, locals, builder, etran);
+
+          EachReferenceInFrameExpression(fe.E, locals, builder, etran, out var description, out var ty, out var r, out var ante);
+          Bpl.Expr nonNull;
+          if (ty.IsNonNullRefType) {
+            nonNull = Bpl.Expr.True;
+          } else {
+            Contract.Assert(ty.IsRefType);
+            nonNull = Bpl.Expr.Neq(r, predef.Null);
+            builder.Add(Assert(fe.E.tok, BplImp(ante, nonNull), $"{description} must be non-null"));
+          }
+          // check that "r" was allocated in the "e.AtLabel" state
+          Bpl.Expr wh = GetWhereClause(fe.E.tok, r, ty, etran.OldAt(e.AtLabel), ISALLOC, true);
+          if (wh != null) {
+            builder.Add(Assert(fe.E.tok, BplImp(BplAnd(ante, nonNull), wh),
+              $"{description} must be allocated in the old-state of the 'unchanged' predicate"));
+          }
         }
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
@@ -8887,6 +8903,65 @@ namespace Microsoft.Dafny {
 
     private Expr NewOneHeapExpr(IToken tok) {
       return new Bpl.IdentifierExpr(tok, "$OneHeap", predef.HeapType);
+    }
+
+    /// <summary>
+    /// For expression "e" that is expected to come from a modifies/unchanged frame, return information
+    /// that is useful for checking every reference from "e". More precisely,
+    ///  * If "e" denotes a reference, then return
+    ///       -- "description" as the string "object",
+    ///       -- "type" as the type of that reference,
+    ///       -- "obj" as the translation of that reference, and
+    ///       -- "antecedent" as "true".
+    ///  * If "e" denotes a set of references, then return
+    ///       -- "description" as the string "each set element",
+    ///       -- "type" as the element type of that set,
+    ///       -- "obj" as a new identifier of type "type", and
+    ///       -- "antecedent" as "obj in e".
+    ///  * If "e" denotes a sequence of references, then return
+    ///       -- "description" as the string "each sequence element",
+    ///       -- "type" as the element type of that sequence,
+    ///       -- "obj" as an expression "e[i]", where "i" is a new identifier, and
+    ///       -- "antecedent" as "0 <= i < |e|".
+    /// </summary>
+    void EachReferenceInFrameExpression(Expression e, List<Bpl.Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+      out string description, out Type type, out Bpl.Expr obj, out Bpl.Expr antecedent) {
+      Contract.Requires(e != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+
+      if (e.Type.IsRefType) {
+        description = "object";
+        type = e.Type;
+        obj = etran.TrExpr(e);
+        antecedent = Bpl.Expr.True;
+        return;
+      }
+
+      var isSetType = e.Type.AsSetType != null;
+      Contract.Assert(isSetType || e.Type.AsSeqType != null);
+      var sType = e.Type.AsCollectionType;
+      Contract.Assert(sType != null);
+      type = sType.Arg;
+      // var $x
+      var name = CurrentIdGenerator.FreshId("$unchanged#x");
+      var xVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, name, isSetType ? TrType(type) : Bpl.Type.Int));
+      locals.Add(xVar);
+      var x = new Bpl.IdentifierExpr(e.tok, xVar);
+      // havoc $x
+      builder.Add(new Bpl.HavocCmd(e.tok, new List<Bpl.IdentifierExpr>() { x }));
+
+      var s = etran.TrExpr(e);
+      if (isSetType) {
+        description = "each set element";
+        obj = x;
+        antecedent = Bpl.Expr.SelectTok(e.tok, s, BoxIfNecessary(e.tok, x, type));
+      } else {
+        description = "each sequence element";
+        obj = UnboxIfBoxed(FunctionCall(e.tok, BuiltinFunction.SeqIndex, predef.BoxType, s, x), type);
+        antecedent = InSeqRange(e.tok, x, Type.Int, s, true, null, false);
+      }
     }
 
     private void AddArrowTypeAxioms(ArrowTypeDecl ad) {
@@ -12329,7 +12404,7 @@ namespace Microsoft.Dafny {
         if (codeContext is IteratorDecl iter) {
           var th = new ThisExpr(iter);
           var thisDotNew = new MemberSelectExpr(s.Tok, th, iter.Member_New);
-          var fr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Fresh, thisDotNew);
+          var fr = new FreshExpr(s.Tok, thisDotNew);
           fr.Type = Type.Bool;
           invariants.Add(TrAssertCmd(s.Tok, etran.TrExpr(fr)));
         }
@@ -15752,6 +15827,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(false); throw new cce.UnreachableException();  // unexpected sized type
               }
             case UnaryOpExpr.Opcode.Fresh:
+              var freshLabel = ((FreshExpr)e).AtLabel;
               var eeType = e.E.Type.NormalizeExpand();
               if (eeType is SetType) {
                 // generate:  (forall $o: ref :: { X[Box($o)] } X[Box($o)] ==> $o != null && !old($Heap)[$o,alloc])
@@ -15761,7 +15837,7 @@ namespace Microsoft.Dafny {
                 Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
                 bool performedInSetRewrite;
                 Bpl.Expr oInSet = TrInSet(expr.tok, o, e.E, ((SetType)eeType).Arg, true, out performedInSetRewrite);
-                Bpl.Expr oNotFresh = Old.IsAlloced(expr.tok, o);
+                Bpl.Expr oNotFresh = OldAt(freshLabel).IsAlloced(expr.tok, o);
                 Bpl.Expr oIsFresh = Bpl.Expr.Not(oNotFresh);
                 Bpl.Expr body = Bpl.Expr.Imp(oInSet, Bpl.Expr.And(oNotNull, oIsFresh));
                 var trigger = BplTrigger(performedInSetRewrite ? oNotFresh : oInSet);
@@ -15773,7 +15849,7 @@ namespace Microsoft.Dafny {
                 Bpl.Expr iBounds = translator.InSeqRange(expr.tok, i, Type.Int, TrExpr(e.E), true, null, false);
                 Bpl.Expr XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.RefType, TrExpr(e.E), i);
                 XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, predef.RefType, XsubI);
-                Bpl.Expr oNotFresh = Old.IsAlloced(expr.tok, XsubI);
+                Bpl.Expr oNotFresh = OldAt(freshLabel).IsAlloced(expr.tok, XsubI);
                 Bpl.Expr oIsFresh = Bpl.Expr.Not(oNotFresh);
                 Bpl.Expr xsubiNotNull = Bpl.Expr.Neq(XsubI, predef.Null);
                 Bpl.Expr body = Bpl.Expr.Imp(iBounds, Bpl.Expr.And(xsubiNotNull, oIsFresh));
@@ -15784,7 +15860,7 @@ namespace Microsoft.Dafny {
               } else {
                 // generate:  x != null && !old($Heap)[x]
                 Bpl.Expr oNull = Bpl.Expr.Neq(TrExpr(e.E), predef.Null);
-                Bpl.Expr oIsFresh = Bpl.Expr.Not(Old.IsAlloced(expr.tok, TrExpr(e.E)));
+                Bpl.Expr oIsFresh = Bpl.Expr.Not(OldAt(freshLabel).IsAlloced(expr.tok, TrExpr(e.E)));
                 return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.And, oNull, oIsFresh);
               }
             case UnaryOpExpr.Opcode.Allocated: {
@@ -18409,7 +18485,12 @@ namespace Microsoft.Dafny {
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr) expr;
         if (e.Op == UnaryOpExpr.Opcode.Fresh) {
-          usesOldHeap = true;
+          var f = (FreshExpr)e;
+          if (f.AtLabel == null) {
+            usesOldHeap = true;
+          } else {
+            freeHeapAtVariables.Add(f.AtLabel);
+          }
         } else if (e.Op == UnaryOpExpr.Opcode.Allocated) {
           usesHeap = true;
         }
