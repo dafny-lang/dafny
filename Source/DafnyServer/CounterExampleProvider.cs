@@ -4,12 +4,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
+using DafnyServer.CounterExampleGeneration;
 using Microsoft.Boogie;
-using Microsoft.Boogie.ModelViewer;
-using Microsoft.Boogie.ModelViewer.Dafny;
 
 namespace DafnyServer {
   public class CounterExampleProvider {
@@ -37,7 +35,7 @@ namespace DafnyServer {
     private List<DafnyModel> BuildModels(List<Model> modellist) {
       var list = new List<DafnyModel>();
       foreach (var model in modellist) {
-        var specifiedModel = Provider.Instance.GetLanguageSpecificModel(model, new ViewOptions() { DebugMode = true, ViewLevel = 3 });
+        var specifiedModel = new DafnyModel(model);
         list.Add(specifiedModel);
       }
       return list;
@@ -65,9 +63,9 @@ namespace DafnyServer {
           if (state == null) continue;
 
           var counterExampleState = new CounterExampleState {
-            Name = state.CapturedStateName
+            Name = state.FullStateName
           };
-          AddLineInformation(counterExampleState, state.CapturedStateName);
+          AddLineInformation(counterExampleState, state.FullStateName);
 
           var vars = state.ExpandedVariableSet(2);
 

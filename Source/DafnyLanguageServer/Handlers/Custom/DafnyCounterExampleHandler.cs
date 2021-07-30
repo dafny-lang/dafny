@@ -1,6 +1,4 @@
 ﻿using Microsoft.Boogie;
-using Microsoft.Boogie.ModelViewer;
-using Microsoft.Boogie.ModelViewer.Dafny;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
@@ -12,6 +10,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using DafnyServer.CounterExampleGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
@@ -69,7 +68,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
       private DafnyModel GetLanguagSpecificModel(Model model) {
         // TODO Make view options configurable?
-        return Provider.Instance.GetLanguageSpecificModel(model, new ViewOptions { DebugMode = true, ViewLevel = 3 });
+        return new(model);
       }
 
       private IEnumerable<CounterExampleItem> GetCounterExamples(DafnyModel model, int maxDepth) {
@@ -81,7 +80,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       private static bool IsInitialState(DafnyModelState state) {
-        return state.Name.Equals(InitialStateName);
+        return state.ShortenedStateName.Equals(InitialStateName);
       }
 
       private CounterExampleItem GetCounterExample(DafnyModelState state, int maxDepth) {
@@ -92,9 +91,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       private static Position GetPositionFromInitialState(DafnyModelState state) {
-        var match = StatePositionRegex.Match(state.Name);
+        var match = StatePositionRegex.Match(state.ShortenedStateName);
         if(!match.Success) {
-          throw new ArgumentException($"state does not contain position: {state.Name}");
+          throw new ArgumentException($"state does not contain position: {state.ShortenedStateName}");
         }
         // Note: lines in a model start with 1, characters/columns with 0.
         return new Position(
