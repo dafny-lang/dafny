@@ -1,11 +1,6 @@
 Bug88.dfy(6,0): Error: A postcondition might not hold on this return path.
 Bug88.dfy(5,12): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    Bug88.dfy(7,3): anon2_Else
 Bug88.dfy(14,0): Error: A postcondition might not hold on this return path.
 Bug88.dfy(13,10): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 0 verified, 2 errors

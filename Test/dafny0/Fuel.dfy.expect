@@ -1,106 +1,32 @@
 Fuel.dfy(17,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Fuel.dfy(65,27): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
 Fuel.dfy(69,27): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Then
-    (0,0): anon7_Then
 Fuel.dfy(92,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Fuel.dfy(93,23): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Fuel.dfy(94,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Fuel.dfy(129,8): Error: Fuel can only increase within a given scope.
 Fuel.dfy(120,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Fuel.dfy(121,23): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Fuel.dfy(122,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Fuel.dfy(132,26): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    Fuel.dfy(129,9): anon9_Else
-    (0,0): anon10_Then
 Fuel.dfy(133,26): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    Fuel.dfy(129,9): anon9_Else
-    (0,0): anon10_Then
 Fuel.dfy(157,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Else
-    (0,0): anon9
 Fuel.dfy(200,55): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Fuel.dfy(245,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Fuel.dfy(247,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Fuel.dfy(280,26): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 Fuel.dfy(335,26): Error: possible violation of function precondition
 Fuel.dfy(324,21): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Then
 Fuel.dfy(335,49): Error: destructor 't' can only be applied to datatype values constructed by 'VTuple'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Then
 Fuel.dfy(335,50): Error: index out of range
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Then
 Fuel.dfy(336,38): Error: index out of range
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Then
 Fuel.dfy(336,42): Error: destructor 'u' can only be applied to datatype values constructed by 'VUint64'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Then
 Fuel.dfy(407,8): Error: Fuel can only increase within a given scope.
 Fuel.dfy(397,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Fuel.dfy(398,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Fuel.dfy(399,23): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Fuel.dfy(435,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Fuel.dfy(436,22): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Fuel.dfy(437,23): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 35 verified, 27 errors

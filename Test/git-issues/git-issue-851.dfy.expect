@@ -20,153 +20,32 @@ git-issue-851.dfy(259,13): Warning: /!\ No terms found to trigger on.
 git-issue-851.dfy(265,13): Warning: /!\ No terms found to trigger on.
 git-issue-851.dfy(271,13): Warning: /!\ No terms found to trigger on.
 git-issue-851.dfy(17,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    git-issue-851.dfy(17,5): anon7_Else
-    (0,0): anon5
 git-issue-851.dfy(37,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    git-issue-851.dfy(37,5): anon7_Else
-    (0,0): anon5
 git-issue-851.dfy(55,4): Error: variable 'd', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
 git-issue-851.dfy(62,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    git-issue-851.dfy(62,14): anon3_Else
-    (0,0): anon2
 git-issue-851.dfy(70,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    git-issue-851.dfy(70,14): anon3_Else
-    (0,0): anon2
 git-issue-851.dfy(127,14): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    git-issue-851.dfy(127,15): anon5_Else
-    (0,0): anon2
 git-issue-851.dfy(145,16): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    git-issue-851.dfy(144,14): anon3_Else
-    (0,0): anon2
 git-issue-851.dfy(151,16): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    git-issue-851.dfy(150,14): anon3_Else
-    (0,0): anon2
 git-issue-851.dfy(157,16): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    git-issue-851.dfy(156,14): anon3_Else
-    (0,0): anon2
 git-issue-851.dfy(163,16): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    git-issue-851.dfy(162,14): anon4_Else
-    (0,0): anon3
 git-issue-851.dfy(169,16): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    git-issue-851.dfy(168,14): anon4_Else
-    (0,0): anon3
 git-issue-851.dfy(175,16): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    git-issue-851.dfy(174,14): anon4_Else
-    (0,0): anon3
 git-issue-851.dfy(181,16): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    git-issue-851.dfy(180,14): anon4_Else
-    (0,0): anon3
 git-issue-851.dfy(187,16): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    git-issue-851.dfy(186,14): anon8_Else
-    (0,0): anon7
 git-issue-851.dfy(193,16): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    git-issue-851.dfy(192,14): anon8_Else
-    (0,0): anon7
 git-issue-851.dfy(199,16): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    git-issue-851.dfy(198,14): anon5_Else
 git-issue-851.dfy(211,29): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon7_Then
 git-issue-851.dfy(218,7): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    git-issue-851.dfy(217,14): anon7_Else
-    (0,0): anon5
 git-issue-851.dfy(224,7): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    git-issue-851.dfy(223,14): anon7_Else
-    (0,0): anon5
 git-issue-851.dfy(230,7): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    git-issue-851.dfy(229,14): anon7_Else
-    (0,0): anon5
 git-issue-851.dfy(236,7): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    git-issue-851.dfy(235,14): anon7_Else
-    (0,0): anon5
 git-issue-851.dfy(242,7): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    git-issue-851.dfy(241,14): anon8_Else
-    (0,0): anon6
 git-issue-851.dfy(248,7): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    git-issue-851.dfy(247,14): anon8_Else
-    (0,0): anon6
 git-issue-851.dfy(254,7): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    git-issue-851.dfy(253,14): anon8_Else
-    (0,0): anon6
 git-issue-851.dfy(260,7): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    git-issue-851.dfy(259,14): anon8_Else
-    (0,0): anon6
 git-issue-851.dfy(266,7): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Else
-    git-issue-851.dfy(265,14): anon12_Else
-    (0,0): anon10
 git-issue-851.dfy(272,7): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Else
-    git-issue-851.dfy(271,14): anon12_Else
-    (0,0): anon10
 git-issue-851.dfy(278,7): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Else
-    git-issue-851.dfy(277,14): anon9_Else
 
 Dafny program verifier finished with 8 verified, 28 errors

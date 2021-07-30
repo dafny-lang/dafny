@@ -1,10 +1,4 @@
 git-issue-1277.dfy(11,7): Error: shift amount must be non-negative
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 git-issue-1277.dfy(11,7): Error: the calculation step between the previous line and this line might not hold
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Then
 
 Dafny program verifier finished with 0 verified, 2 errors

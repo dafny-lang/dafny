@@ -1,62 +1,22 @@
 TypeSynonyms.dfy(78,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(119,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(119,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(121,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(121,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(123,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(123,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(125,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(125,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(133,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(133,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(135,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(143,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(143,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(145,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(145,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(147,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(155,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(155,2): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 TypeSynonyms.dfy(157,2): Error: out-parameter 'x', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 2 verified, 20 errors

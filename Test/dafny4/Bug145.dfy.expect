@@ -1,13 +1,4 @@
 Bug145.dfy(11,24): Error: array size (dimension 0) might be negative
-Execution trace:
-    (0,0): anon0
 Bug145.dfy(24,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon21_Else
-    Bug145.dfy(16,5): anon25_LoopHead
-    (0,0): anon25_LoopBody
-    Bug145.dfy(16,5): anon26_Else
-    (0,0): anon27_Then
 
 Dafny program verifier finished with 1 verified, 2 errors

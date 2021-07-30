@@ -1,65 +1,11 @@
 LoopModifies.dfy(8,4): Error: assignment may update an array element not in the enclosing context's modifies clause
-Execution trace:
-    (0,0): anon0
 LoopModifies.dfy(19,7): Error: assignment may update an array element not in the enclosing context's modifies clause
-Execution trace:
-    (0,0): anon0
-    LoopModifies.dfy(16,4): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    LoopModifies.dfy(16,4): anon9_Else
-    LoopModifies.dfy(16,4): anon11_Else
 LoopModifies.dfy(48,7): Error: assignment may update an array element not in the enclosing context's modifies clause
-Execution trace:
-    (0,0): anon0
-    LoopModifies.dfy(44,4): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    LoopModifies.dfy(44,4): anon9_Else
-    LoopModifies.dfy(44,4): anon11_Else
 LoopModifies.dfy(63,7): Error: assignment may update an array element not in the enclosing context's modifies clause
-Execution trace:
-    (0,0): anon0
-    LoopModifies.dfy(59,4): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    LoopModifies.dfy(59,4): anon10_Else
-    LoopModifies.dfy(59,4): anon12_Else
 LoopModifies.dfy(76,3): Error: loop modifies clause may violate context's modifies clause
-Execution trace:
-    (0,0): anon0
 LoopModifies.dfy(100,7): Error: assignment may update an array element not in the enclosing context's modifies clause
-Execution trace:
-    (0,0): anon0
-    LoopModifies.dfy(92,4): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    LoopModifies.dfy(92,4): anon9_Else
-    LoopModifies.dfy(92,4): anon11_Else
 LoopModifies.dfy(148,10): Error: assignment may update an array element not in the enclosing context's modifies clause
-Execution trace:
-    (0,0): anon0
-    LoopModifies.dfy(136,4): anon17_LoopHead
-    (0,0): anon17_LoopBody
-    LoopModifies.dfy(136,4): anon18_Else
-    LoopModifies.dfy(136,4): anon20_Else
-    LoopModifies.dfy(141,7): anon21_LoopHead
-    (0,0): anon21_LoopBody
-    LoopModifies.dfy(141,7): anon22_Else
-    LoopModifies.dfy(141,7): anon24_Else
 LoopModifies.dfy(199,9): Error: assignment may update an array element not in the enclosing context's modifies clause
-Execution trace:
-    (0,0): anon0
-    LoopModifies.dfy(195,4): anon8_LoopHead
-    (0,0): anon8_LoopBody
-    LoopModifies.dfy(195,4): anon9_Else
-    LoopModifies.dfy(195,4): anon11_Else
 LoopModifies.dfy(287,12): Error: assignment may update an array element not in the enclosing context's modifies clause
-Execution trace:
-    (0,0): anon0
-    LoopModifies.dfy(275,4): anon16_LoopHead
-    (0,0): anon16_LoopBody
-    LoopModifies.dfy(275,4): anon17_Else
-    LoopModifies.dfy(275,4): anon19_Else
-    LoopModifies.dfy(283,7): anon20_LoopHead
-    (0,0): anon20_LoopBody
-    LoopModifies.dfy(283,7): anon21_Else
-    LoopModifies.dfy(283,7): anon23_Else
 
 Dafny program verifier finished with 21 verified, 9 errors

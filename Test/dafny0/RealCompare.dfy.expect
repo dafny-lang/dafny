@@ -1,24 +1,7 @@
 RealCompare.dfy(35,5): Error: failure to decrease termination measure
-Execution trace:
-    (0,0): anon0
-    (0,0): anon3_Then
 RealCompare.dfy(50,3): Error: decreases expression must be bounded below by 0.0
 RealCompare.dfy(48,12): Related location
-Execution trace:
-    (0,0): anon0
 RealCompare.dfy(141,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    RealCompare.dfy(133,3): anon7_LoopHead
-    (0,0): anon7_LoopBody
-    RealCompare.dfy(133,3): anon8_Else
-    (0,0): anon9_Then
 RealCompare.dfy(156,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    RealCompare.dfy(147,3): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    RealCompare.dfy(147,3): anon10_Else
-    (0,0): anon12_Then
 
 Dafny program verifier finished with 10 verified, 4 errors

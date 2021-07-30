@@ -1,23 +1,9 @@
 ExportVerify.dfy(40,13): Error: variable 'd', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
 ExportVerify.dfy(44,4): Error: variable 'd', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
 ExportVerify.dfy(52,19): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 ExportVerify.dfy(54,21): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 ExportVerify.dfy(55,20): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 ExportVerify.dfy(56,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 ExportVerify.dfy(75,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 1 verified, 7 errors
