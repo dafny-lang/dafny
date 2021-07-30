@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new DafnyDocument(textDocument, errorReporter, program, symbolTable, serializedCounterExamples);
     }
 
-    private static DafnyDocument CreateDocumentWithParserErrors(TextDocumentItem textDocument, ErrorReporter errorReporter, Dafny.Program program) {
+    private static DafnyDocument CreateDocumentWithParserErrors(TextDocumentItem textDocument, DiagnosticErrorReporter errorReporter, Dafny.Program program) {
       return new DafnyDocument(
         textDocument,
         errorReporter,
