@@ -87,11 +87,16 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
     /// since 2.9.2
     /// </summary>
     private Model.Func MergeMapSelectFunctions(int arity) {
-      int id = arity;
-      while (model.HasFunc("[" + id + "]")) {
-        id++; // increment id if the name "[" + id + "]" is already reserved
+      var name = "[" + arity + "]";
+      if (model.HasFunc(name)) {
+        // Coming up with a new name if the ideal one is reserved
+        var id = 0;
+        while (model.HasFunc(name + "#" + id)) {
+          id++;
+        }
+        name += "#" + id;
       }
-      var result = model.MkFunc("[" + id + "]", arity);
+      var result = model.MkFunc(name, arity);
       foreach (var func in model.Functions) {
         if (!Regex.IsMatch(func.Name, "^MapType[0-9]*Select$") ||
             func.Arity != arity) {
