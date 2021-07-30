@@ -191,6 +191,20 @@ class BankAccountUnsafe {
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("this"));
     }
     
-    
+    [TestMethod]
+    public async Task GetCounterExampleForACharacter() {
+      var source = @"
+method a(c:char) {
+    assert c != '0';
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(1, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("c"));
+      Assert.IsTrue(counterExamples[0].Variables["c"] == "'0'");
+    }
   }
 }

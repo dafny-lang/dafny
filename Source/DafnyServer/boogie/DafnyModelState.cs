@@ -54,12 +54,10 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       return varMap[element];
     }
 
-    void SetupVars()
-    {
+    void SetupVars() {
       var names = Util.Empty<string>();
 
-      if (dm.states.Count > 0)
-      {
+      if (dm.states.Count > 0) {
         var prev = dm.states.Last();
         names = prev.Vars.Map(v => v.Name);
       }
@@ -67,10 +65,8 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       names = names.Concat(state.Variables).Distinct();
 
       var curVars = state.Variables.ToDictionary(x => x);
-      foreach (var v in names)
-      {
-        if (dm.GetUserVariableName(v) != null)
-        {
+      foreach (var v in names) {
+        if (dm.GetUserVariableName(v) != null) {
           var val = state.TryGet(v);
           var vn = DafnyModelVariable.Get(this, val, v);
           if (curVars.ContainsKey(v))
@@ -80,10 +76,8 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       }
     }
 
-    IEnumerable<DafnyModelVariable> SkolemVars()
-    {
-      foreach (var f in dm.model.Functions)
-      {
+    IEnumerable<DafnyModelVariable> SkolemVars() {
+      foreach (var f in dm.model.Functions) {
         if (f.Arity != 0) continue;
         int n = f.Name.IndexOf('!');
         if (n == -1) continue;

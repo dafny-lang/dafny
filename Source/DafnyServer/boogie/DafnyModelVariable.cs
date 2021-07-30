@@ -55,7 +55,9 @@ namespace Microsoft.Boogie.ModelViewer.Dafny {
     }
 
     public virtual bool IsPrimitive =>
-      (element.Kind != Model.ElementKind.Uninterpreted || element == state.dm.f_null.GetConstant()) && 
+      (element.Kind != Model.ElementKind.Uninterpreted 
+       || element == state.dm.f_null.GetConstant()
+       || state.dm.f_type.AppWithArg(0, element)?.Result == state.dm.f_char.GetConstant()) && 
       element.Kind != Model.ElementKind.Array && 
       (element.Kind != Model.ElementKind.DataValue || 
        ((Model.DatatypeValue) element).ConstructorName == "-");

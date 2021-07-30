@@ -12,19 +12,19 @@ namespace Microsoft.Boogie.ModelViewer.Dafny {
 public class DafnyModel {
     public List<DafnyModelState> states = new();
     public readonly Model model;
-    internal readonly Model.Func f_set_select, f_seq_length, f_seq_index, f_box, f_dim, f_index_field, f_multi_index_field, f_dtype, f_null;
+    internal readonly Model.Func f_set_select, f_seq_length, f_seq_index, f_box, 
+      f_dim, f_index_field, f_multi_index_field, f_dtype, f_null, f_char_to_int,
+      f_type, f_char;
     private readonly Dictionary<Model.Element, Model.Element[]> ArrayLengths = new();
     private readonly Dictionary<Model.Element, Model.FuncTuple> DatatypeValues = new();
     private readonly Dictionary<Model.Element, string> localValue = new();
-    private readonly Dictionary<string, int> baseNameUse = new();
-    private readonly Dictionary<Model.Element, string> canonicalName = new();
-    private readonly ViewOptions viewOpts;
-    
+
+    private readonly HashSet<int> charCodes = new();
+
     private bool UseLocalsForCanonicalNames => false;
 
     public DafnyModel(Model model, ViewOptions viewOpts) {
       this.model = model;
-      this.viewOpts = viewOpts;
       f_set_select = MergeMapSelectFunctions(2);
       f_seq_length = model.MkFunc("Seq#Length", 1);
       f_seq_index = model.MkFunc("Seq#Index", 2);
@@ -34,23 +34,24 @@ public class DafnyModel {
       f_multi_index_field = model.MkFunc("MultiIndexField", 2);
       f_dtype = model.MkFunc("dtype", 1);
       f_null = model.MkFunc("null", 0);
+      f_char_to_int = model.MkFunc("char#ToInt", 1);
+      f_type = model.MkFunc("type", 1);
+      f_char = model.MkFunc("charType", 0);
+      
+      InitCharCodes();
 
       // collect the array dimensions from the various array.Length functions, and
       // collect all known datatype values
-      foreach (var fn in model.Functions)
-      {
-        if (Regex.IsMatch(fn.Name, "^_System.array[0-9]*.Length[0-9]*$"))
-        {
+      foreach (var fn in model.Functions) {
+        if (Regex.IsMatch(fn.Name, "^_System.array[0-9]*.Length[0-9]*$")) {
           int j = fn.Name.IndexOf('.', 13);
           int dims = j == 13 ? 1 : int.Parse(fn.Name.Substring(13, j - 13));
           int idx = j == 13 ? 0 : int.Parse(fn.Name.Substring(j + 7));
-          foreach (var tpl in fn.Apps)
-          {
+          foreach (var tpl in fn.Apps) {
             var elt = tpl.Args[0];
             var len = tpl.Result;
             Model.Element[] ar;
-            if (!ArrayLengths.TryGetValue(elt, out ar))
-            {
+            if (!ArrayLengths.TryGetValue(elt, out ar)) {
               ar = new Model.Element[dims];
               ArrayLengths.Add(elt, ar);
             }
@@ -58,15 +59,18 @@ public class DafnyModel {
             ar[idx] = len;
           }
         }
-        else if (fn.Name.StartsWith("#") && fn.Name.IndexOf('.') != -1 && fn.Name[1] != '#')
-        {
-          foreach (var tpl in fn.Apps)
-          {
+        else if (fn.Name.StartsWith("#") && fn.Name.IndexOf('.') != -1 && fn.Name[1] != '#') {
+          foreach (var tpl in fn.Apps) {
             var elt = tpl.Result;
             DatatypeValues.Add(elt, tpl);
           }
         }
       }
+    }
+
+    private void InitCharCodes() {
+      foreach (var app in f_char_to_int.Apps)
+        charCodes.Add(((Model.Integer) app.Result).AsInt());
     }
 
     /// <summary>
@@ -102,8 +106,7 @@ public class DafnyModel {
 
     public IEnumerable<DafnyModelState> States => states;
 
-    public string GetUserVariableName(string name)
-    {
+    public string GetUserVariableName(string name) {
       if (name.StartsWith("$")) // this covers $Heap and $_Frame and $nw...
         return null;
       if (name.Contains("##"))  // a temporary variable of the translation
@@ -111,45 +114,11 @@ public class DafnyModel {
       return name;
     }
     
-    public string CanonicalName(Model.Element elt)
-    {
+    public string CanonicalName(Model.Element elt) {
       string res;
       if (elt == null) return "?";
-      if (canonicalName.TryGetValue(elt, out res)) return res;
-      NameSeqSuffix suff;
-      var baseName = CanonicalBaseName(elt, out suff);
-      if (baseName == "")
-        suff = NameSeqSuffix.Always;
-      if (baseName == "null")
-        return baseName;
-
-      if (viewOpts.DebugMode && !(elt is Model.Boolean) && !(elt is Model.Number))
-      {
-        baseName += string.Format("({0})", elt);
-        suff = NameSeqSuffix.WhenNonZero;
-      }
-
-      int cnt;
-      if (!baseNameUse.TryGetValue(baseName, out cnt))
-        cnt = -1;
-      cnt++;
-
-      if (suff == NameSeqSuffix.Always || (cnt > 0 && suff == NameSeqSuffix.WhenNonZero))
-        res = AppendSuffix(baseName, cnt);
-      else
-        res = baseName;
-
-      baseNameUse[baseName] = cnt;
-      canonicalName.Add(elt, res);
-      return res;
-    }
-
-    protected string CanonicalBaseName(Model.Element elt, out NameSeqSuffix suff)
-    {
       Model.FuncTuple fnTuple;
-      suff = NameSeqSuffix.WhenNonZero;
-      if (DatatypeValues.TryGetValue(elt, out fnTuple))
-      {
+      if (DatatypeValues.TryGetValue(elt, out fnTuple)) {
         // elt is s a datatype value, make its name be the name of the datatype constructor
         string nm = fnTuple.Func.Name;
         if (fnTuple.Func.Arity == 0)
@@ -157,9 +126,7 @@ public class DafnyModel {
         return nm + "(...)";
       }
       var seqLen = f_seq_length.AppWithArg(0, elt);
-      if (seqLen != null)
-      {
-        // elt is a sequence
+      if (seqLen != null) { // elt is a sequence
         return string.Format("[Length {0}]", seqLen.Result.AsInt());
       }
 
@@ -167,35 +134,37 @@ public class DafnyModel {
         return "null";
 
       var tp = f_dtype.TryEval(elt);
-      if (tp != null)
-      {
-        foreach (var app in tp.References)
-        {
-          if (app.Args.Length == 0 && app.Func.Name.StartsWith("class."))
-          {
-            suff = NameSeqSuffix.Always;
+      if (tp != null) {
+        foreach (var app in tp.References) {
+          if (app.Args.Length == 0 && app.Func.Name.StartsWith("class.")) {
             return app.Func.Name.Substring(6);
           }
         }
       }
-      
-      string res;
-      if (elt is Model.Integer || elt is Model.Boolean)
-      {
-        suff = NameSeqSuffix.None;
+      if (elt is Model.Integer || elt is Model.Boolean) {
         return elt.ToString();
       }
-      suff = NameSeqSuffix.Always;
-      if (UseLocalsForCanonicalNames)
-      {
+
+      if (f_type.AppWithArg(0, elt)?.Result == f_char.GetConstant()) {
+        int utfCode = 33; // TODO: use a constant here
+        if (f_char_to_int.AppWithArg(0, elt) != null)
+          utfCode = ((Model.Integer) f_char_to_int.AppWithArg(0, elt).Result).AsInt();
+        else {
+          while (charCodes.Contains(utfCode)) {
+            utfCode++;
+          }
+        }
+        return "'" + Char.ConvertFromUtf32(utfCode) + "'";
+      }
+
+      if (UseLocalsForCanonicalNames) {
         if (localValue.TryGetValue(elt, out res))
           return res;
       }
-      return "";
+      return "?";
     }
 
-    public IEnumerable<DafnyModelVariable> GetExpansion(DafnyModelState dafnyModelState, DafnyModelVariable var)
-    {
+    public IEnumerable<DafnyModelVariable> GetExpansion(DafnyModelState dafnyModelState, DafnyModelVariable var) {
       List<DafnyModelVariable> result = new ();
 
       if (var.element.Kind != Model.ElementKind.Uninterpreted)
@@ -203,12 +172,10 @@ public class DafnyModel {
 
       // Perhaps elt is a known datatype value
       Model.FuncTuple fnTuple;
-      if (DatatypeValues.TryGetValue(var.element, out fnTuple))
-      {
+      if (DatatypeValues.TryGetValue(var.element, out fnTuple)) {
         // elt is a datatype value
         int i = 0;
-        foreach (var arg in fnTuple.Args)
-        {
+        foreach (var arg in fnTuple.Args) {
           result.Add(DafnyModelVariable.Get(dafnyModelState, arg, var.element.ToString() + i, var));
           i++;
         }
@@ -217,8 +184,7 @@ public class DafnyModel {
 
       // Perhaps elt is a sequence
       var seqLen = f_seq_length.AppWithArg(0, var.element);
-      if (seqLen != null)
-      {
+      if (seqLen != null) {
         // elt is a sequence
         foreach (var tpl in f_seq_index.AppsWithArg(0, var.element))
           result.Add(DafnyModelVariable.Get(dafnyModelState, Unbox(tpl.Result), "[" + tpl.Args[1] + "]", var));
@@ -226,8 +192,7 @@ public class DafnyModel {
       }
 
       // Perhaps elt is a set
-      foreach (var tpl in f_set_select.AppsWithArg(0, var.element))
-      {
+      foreach (var tpl in f_set_select.AppsWithArg(0, var.element)) {
         var setElement = tpl.Args[1];
         var containment = tpl.Result;
         result.Add(DafnyModelVariable.Get(dafnyModelState, containment, "["+Unbox(setElement)+"]", var));
@@ -237,11 +202,9 @@ public class DafnyModel {
 
       // It seems elt is an object or array
       Model.Element[] lengths;
-      if (ArrayLengths.TryGetValue(var.element, out lengths))
-      {
+      if (ArrayLengths.TryGetValue(var.element, out lengths)) {
         int i = 0;
-        foreach (var len in lengths)
-        {
+        foreach (var len in lengths) {
           var name = lengths.Length == 1 ? "Length" : "Length" + i;
           result.Add(DafnyModelVariable.Get(dafnyModelState, len, name, var));
           i++;
@@ -253,8 +216,7 @@ public class DafnyModel {
       var instances = f_set_select.AppsWithArgs(0, heap, 1, var.element);
       if (instances == null || (!instances.Any()))
         return result;
-      foreach (var tpl in f_set_select.AppsWithArg(0, instances.ToList()[0].Result))
-      {
+      foreach (var tpl in f_set_select.AppsWithArg(0, instances.ToList()[0].Result)) {
         var field = new FieldName(tpl.Args[1], this);
         if (field.NameFormat != "alloc")
           result.Add(DafnyModelVariable.Get(dafnyModelState, Unbox(tpl.Result), "." + field.NameFormat, var));
@@ -269,24 +231,19 @@ public class DafnyModel {
       public readonly string NameFormat;
       public readonly Model.Element[] NameArgs;
 
-      public FieldName(Model.Element elt, DafnyModel dm)
-      {
+      public FieldName(Model.Element elt, DafnyModel dm) {
         Field = elt;
         NameArgs = new Model.Element[Dims];
         var tpl = dm.f_dim.AppWithArg(0, elt);
-        if (tpl != null)
-        {
+        if (tpl != null) {
           Dims = tpl.Result.AsInt();
           NameArgs = new Model.Element[Dims];
-          for (int i = Dims; 0 <= --i;)
-          {
-            if (i == 0)
-            {
+          for (int i = Dims; 0 <= --i;) {
+            if (i == 0) {
               tpl = dm.f_index_field.AppWithResult(elt);
               NameArgs[i] = tpl.Args[0];
             }
-            else
-            {
+            else {
               tpl = dm.f_multi_index_field.AppWithResult(elt);
               NameArgs[i] = tpl.Args[1];
               elt = tpl.Args[0];
@@ -294,11 +251,9 @@ public class DafnyModel {
           }
         }
         // now for the name
-        if (Dims == 0)
-        {
+        if (Dims == 0) {
           NameFormat = Field.ToString();
-          foreach (var n in Field.Names)
-          {
+          foreach (var n in Field.Names) {
             NameFormat = n.Func.Name;
             int dot = NameFormat.LastIndexOf('.');
             if (0 <= dot)
@@ -306,12 +261,10 @@ public class DafnyModel {
             break;
           }
         }
-        else
-        {
+        else {
           NameFormat = "[";
           string sep = "";
-          for (int i = 0; i < Dims; i++)
-          {
+          for (int i = 0; i < Dims; i++) {
             NameFormat += sep + "%" + i;
             sep = ",";
           }
@@ -320,29 +273,21 @@ public class DafnyModel {
       }
     }
 
-    Model.Element Unbox(Model.Element elt)
-    {
+    Model.Element Unbox(Model.Element elt) {
       var unboxed = f_box.AppWithResult(elt);
       if (unboxed != null)
         return unboxed.Args[0];
       return elt;
     }
     
-    public void RegisterLocalValue(string name, Model.Element elt)
-    {
+    public void RegisterLocalValue(string name, Model.Element elt) {
       string curr;
       if (localValue.TryGetValue(elt, out curr) && CompareFieldNames(name, curr) >= 0)
         return;
       localValue[elt] = name;
     }
 
-    protected string AppendSuffix(string baseName, int id)
-    {
-      return baseName + "'" + id;
-    }
-
-    static ulong GetNumber(string s, int beg)
-    {
+    static ulong GetNumber(string s, int beg) {
       ulong res = 0;
       while (beg < s.Length)
       {
@@ -357,16 +302,13 @@ public class DafnyModel {
       return res;
     }
 
-    public int CompareFieldNames(string f1, string f2)
-    {
+    public int CompareFieldNames(string f1, string f2) {
       var len = Math.Min(f1.Length, f2.Length);
       var numberPos = -1;
-      for (int i = 0; i < len; ++i)
-      {
+      for (int i = 0; i < len; ++i) {
         var c1 = f1[i];
         var c2 = f2[i];
-        if ('0' <= c1 && c1 <= '9' && '0' <= c2 && c2 <= '9')
-        {
+        if ('0' <= c1 && c1 <= '9' && '0' <= c2 && c2 <= '9') {
           numberPos = i;
           break;
         }
@@ -374,8 +316,7 @@ public class DafnyModel {
           break;
       }
 
-      if (numberPos >= 0)
-      {
+      if (numberPos >= 0) {
         var v1 = GetNumber(f1, numberPos);
         var v2 = GetNumber(f2, numberPos);
 
@@ -386,8 +327,7 @@ public class DafnyModel {
       return string.CompareOrdinal(f1, f2);
     }
 
-    public class SourceLocation
-    {
+    public class SourceLocation {
       public string Filename;
       public string AddInfo;
       public int Line;
@@ -396,8 +336,7 @@ public class DafnyModel {
 
     // example parsed token: @"c:\users\foo\bar.c(12,10) : random string"
     // the ": random string" part is optional
-    public SourceLocation TryParseSourceLocation(string name)
-    {
+    public SourceLocation TryParseSourceLocation(string name) {
       var par = name.LastIndexOf('(');
       if (par <= 0) return null;
 
@@ -418,8 +357,7 @@ public class DafnyModel {
     }
 
     static char[] dirSeps = { '\\', '/' };
-    public string ShortenToken(string tok, int fnLimit, bool addAddInfo)
-    {
+    public string ShortenToken(string tok, int fnLimit, bool addAddInfo) {
       var loc = TryParseSourceLocation(tok);
 
       if (loc != null)
