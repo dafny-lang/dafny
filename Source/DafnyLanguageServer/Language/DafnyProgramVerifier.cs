@@ -49,12 +49,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public async Task<string?> VerifyAsync(Dafny.Program program, CancellationToken cancellationToken) {
-      if(program.reporter.AllMessages[ErrorLevel.Error].Count > 0) {
-        // TODO Change logic so that the loader is responsible to ensure that the previous steps were sucessful.
-        _logger.LogDebug("skipping program verification since the parser or resolvers already reported errors");
-        return null;
-      }
+    public async Task<VerificationResult> VerifyAsync(Dafny.Program program, CancellationToken cancellationToken) {
       await _mutex.WaitAsync(cancellationToken);
       try {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
@@ -66,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           cancellationToken.ThrowIfCancellationRequested();
           VerifyWithBoogie(boogieProgram, cancellationToken);
         }
-        return printer.SerializedCounterExamples;
+        return new VerificationResult(printer.SerializedCounterExamples);
       } finally {
         _mutex.Release();
       }
