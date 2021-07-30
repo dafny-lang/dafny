@@ -2528,7 +2528,7 @@ namespace Microsoft.Dafny {
         // USER-DEFINED SPECIFICATIONS
         var comment = "user-defined preconditions";
         foreach (var p in iter.Requires) {
-          req.Add(Requires(p.E.tok, true, CanCallAssumption(p.E, etran), null, comment));
+          req.Add(Requires(p.E.tok, true, CanCallAssumption(p.E, etran), null, comment, AlwaysAssumeAttribute(p.E.tok)));
           string errorMessage = CustomErrorMessage(p.Attributes);
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
@@ -2553,16 +2553,12 @@ namespace Microsoft.Dafny {
         comment = "user-defined postconditions";
         foreach (var p in iter.Ensures) {
           var canCalls = CanCallAssumption(p.E, etran);
-          AddEnsures(ens, Ensures(p.E.tok, true, canCalls, CustomErrorMessage(p.Attributes), comment));
+          AddEnsures(ens, Ensures(p.E.tok, true, canCalls, CustomErrorMessage(p.Attributes), comment, AlwaysAssumeAttribute(p.E.tok)));
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
               // this postcondition was inherited into this module, so just ignore it
             } else {
-              if (kind == MethodTranslationKind.Implementation) {
-                ens.Add(Ensures(s.E.tok, s.IsOnlyFree, BplImp(canCalls, s.E), null, comment));
-              } else {
                 ens.Add(Ensures(s.E.tok, s.IsOnlyFree, s.E, null, comment));
-              }
               comment = null;
             }
           }
@@ -2818,6 +2814,11 @@ namespace Microsoft.Dafny {
     public static Bpl.QKeyValue InlineAttribute(Bpl.IToken tok, Bpl.QKeyValue/*?*/ next = null) {
       Contract.Requires(tok != null);
       return new QKeyValue(tok, "inline", new List<object>(), next);
+    }
+
+    public static Bpl.QKeyValue AlwaysAssumeAttribute(Bpl.IToken tok, Bpl.QKeyValue next = null) {
+      Contract.Requires(tok != null);
+      return new QKeyValue(tok, "always_assume", new List<object>(), next);
     }
 
     class Specialization
@@ -6141,10 +6142,10 @@ namespace Microsoft.Dafny {
         bool splitHappened /*we actually don't care*/ = TrSplitExpr(p.E, splits, true, functionHeight, true, true, etran);
         string errorMessage = CustomErrorMessage(p.Attributes);
         var canCalls = CanCallAssumption(p.E, etran, new CanCallOptions(f));
-        AddEnsures(ens, Ensures(p.E.tok, true, canCalls, errorMessage, null));
+        AddEnsures(ens, Ensures(p.E.tok, true, canCalls, errorMessage, null, AlwaysAssumeAttribute(p.E.tok)));
         foreach (var s in splits) {
           if (s.IsChecked && !RefinementToken.IsInherited(s.E.tok, currentModule)) {
-            AddEnsures(ens, Ensures(s.E.tok, false, BplImp(canCalls, s.E), errorMessage, null));
+            AddEnsures(ens, Ensures(s.E.tok, false, s.E, errorMessage, null));
           }
         }
       }
@@ -9840,7 +9841,7 @@ namespace Microsoft.Dafny {
         var comment = "user-defined preconditions";
         foreach (var p in m.Req) {
           string errorMessage = CustomErrorMessage(p.Attributes);
-          req.Add(Requires(p.E.tok, true, CanCallAssumption(p.E, etran), null, comment));
+          req.Add(Requires(p.E.tok, true, CanCallAssumption(p.E, etran), null, comment, AlwaysAssumeAttribute(p.E.tok)));
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
             p.Label.E = (m is TwoStateLemma ? ordinaryEtran : etran.Old).TrExpr(p.E);
@@ -9851,13 +9852,7 @@ namespace Microsoft.Dafny {
               } else if (s.IsOnlyFree && !bodyKind) {
                 // don't include in split -- it would be ignored, anyhow
               } else {
-                if (kind == MethodTranslationKind.Call || kind == MethodTranslationKind.CoCall) {
-                  // assymetric because of Boogie --- it assumes free ensures at the end of impl
-                  // but does not assume free requires at call sites
-                  req.Add(Requires(s.E.tok, s.IsOnlyFree, BplImp(CanCallAssumption(p.E, etran), s.E), errorMessage, null));
-                } else {
                   req.Add(Requires(s.E.tok, s.IsOnlyFree, s.E, errorMessage, null));
-                }
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
             }
@@ -9867,7 +9862,7 @@ namespace Microsoft.Dafny {
         foreach (var p in m.Ens) {
           string errorMessage = CustomErrorMessage(p.Attributes);
           var canCalls = CanCallAssumption(p.E, etran);
-          AddEnsures(ens, Ensures(p.E.tok, true, canCalls, errorMessage, comment));
+          AddEnsures(ens, Ensures(p.E.tok, true, canCalls, errorMessage, comment, AlwaysAssumeAttribute(p.E.tok)));
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             var post = s.E;
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
@@ -9879,11 +9874,7 @@ namespace Microsoft.Dafny {
             } else if (s.IsOnlyChecked && !bodyKind) {
               // don't include in split
             } else {
-              if (kind == MethodTranslationKind.Implementation) {
-                AddEnsures(ens, Ensures(s.E.tok, s.IsOnlyFree, BplImp(canCalls, post), errorMessage, null));
-              } else {
-                AddEnsures(ens, Ensures(s.E.tok, s.IsOnlyFree, post, errorMessage, null));
-              }
+              AddEnsures(ens, Ensures(s.E.tok, s.IsOnlyFree, post, errorMessage, null));
             }
           }
         }
@@ -10460,25 +10451,25 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Ensures Ensures(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string comment)
+    Bpl.Ensures Ensures(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string comment, QKeyValue kv = null)
     {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
-      Bpl.Ensures ens = new Bpl.Ensures(ForceCheckToken.Unwrap(tok), free, condition, comment);
+      Bpl.Ensures ens = new Bpl.Ensures(ForceCheckToken.Unwrap(tok), free, condition, comment, kv);
       if (errorMessage != null) {
         ens.ErrorData = errorMessage;
       }
       return ens;
     }
 
-    Bpl.Requires Requires(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string comment)
+    Bpl.Requires Requires(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string comment, QKeyValue kv = null)
     {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Requires>() != null);
-      Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, condition, comment);
+      Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, condition, comment, kv);
       if (errorMessage != null) {
         req.ErrorData = errorMessage;
       }
@@ -18118,6 +18109,8 @@ namespace Microsoft.Dafny {
           if (!position) {
             ihBody = Bpl.Expr.Not(ihBody);
           }
+          ihBody = BplAnd(CanCallAssumption(bodyK, etran), ihBody);
+          Console.WriteLine("coming here");
           ihBody = Bpl.Expr.Imp(less, ihBody);
           List<Variable> bvars = new List<Variable>();
           Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);  // no need to use allocation antecedent here, because the well-founded less-than ordering assures kk are allocated
