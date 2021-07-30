@@ -5,18 +5,21 @@ using System.Linq;
 namespace Microsoft.Boogie.ModelViewer.Dafny
 {
   public class DafnyModelState {
-    public readonly List<DafnyModelVariable> Vars = new();
+    private readonly List<DafnyModelVariable> Vars = new();
     internal readonly DafnyModel dm;
     private readonly List<DafnyModelVariable> skolems;
     private Model.CapturedState state;
     private DafnyModel langModel;
     private Dictionary<Model.Element, DafnyModelVariable> varMap;
 
+    public int VarIndex; // used to assign unique indices to variables
+
     public DafnyModelState(DafnyModel parent, Model.CapturedState s) {
       state = s;
       langModel = parent;
       dm = parent;
       state = s;
+      VarIndex = 0;
       varMap = new Dictionary<Model.Element, DafnyModelVariable>();
       skolems = new List<DafnyModelVariable>(SkolemVars());
       SetupVars();
@@ -68,7 +71,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       foreach (var v in names) {
         if (dm.GetUserVariableName(v) != null) {
           var val = state.TryGet(v);
-          var vn = DafnyModelVariable.Get(this, val, v);
+          var vn = DafnyModelVariable.Get(this, val, v, duplicate:true);
           if (curVars.ContainsKey(v))
             dm.RegisterLocalValue(vn.Name, val);
           Vars.Add(vn);

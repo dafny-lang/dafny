@@ -241,6 +241,9 @@ public class DafnyModel {
     public string CanonicalName(Model.Element elt) {
       string res;
       if (elt == null) return "?";
+      if (elt is Model.Integer or Model.Boolean or Model.BitVector) {
+        return elt.ToString();
+      }
       Model.FuncTuple fnTuple;
       if (DatatypeValues.TryGetValue(elt, out fnTuple)) {
         // elt is s a datatype value, make its name be the name of the datatype constructor
@@ -264,9 +267,6 @@ public class DafnyModel {
             return app.Func.Name.Substring(6);
           }
         }
-      }
-      if (elt is Model.Integer || elt is Model.Boolean) {
-        return elt.ToString();
       }
 
       if (f_type.AppWithArg(0, elt)?.Result == f_char.GetConstant()) {

@@ -8,15 +8,14 @@ namespace Microsoft.Boogie.ModelViewer.Dafny {
     public readonly Model.Element element;
     public readonly string Name;
     public readonly string Type;
-    
-    private static int index;
 
     public static DafnyModelVariable Get(DafnyModelState state,
-      Model.Element element, string name, DafnyModelVariable parent=null) {
+      Model.Element element, string name, DafnyModelVariable parent=null, bool duplicate=false) {
       if (state.ExistsVar(element)) {
         if (parent != null)
           parent.AddChild(name, state.GetVar(element));
-        return state.GetVar(element);
+        if (!duplicate)
+          return state.GetVar(element);
       }
       return new(state, element, name, parent);
     }
@@ -31,7 +30,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny {
         Name = name;
         return;
       }
-      Name = "@" + index++;
+      Name = "@" + state.VarIndex++;
       parent.AddChild(name, this);
     }
 

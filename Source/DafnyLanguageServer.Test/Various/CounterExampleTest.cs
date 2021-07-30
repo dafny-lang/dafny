@@ -204,7 +204,7 @@ method a(c:char) {
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("c:char"));
-      Assert.IsTrue(counterExamples[0].Variables["c:char"] == "'0'");
+      Assert.AreEqual("'0'", counterExamples[0].Variables["c:char"]);
     }
     
     [TestMethod]
@@ -271,6 +271,40 @@ method a(s:seq<bv5>) requires |s| > 0 {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("s:seq<bv5>"));
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("@0:bv5"));
       // TODO: add more assertions here?
+    }
+    
+    [TestMethod]
+    public async Task GetCounterExampleForABitVector() {
+      var source = @"
+method a(bv:bv7) {
+    assert bv != (2 as bv7);
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(1, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("bv:bv7"));
+      Assert.AreEqual("2bv7", counterExamples[0].Variables["bv:bv7"]);
+    }
+    
+    [TestMethod]
+    public async Task GetCounterExampleForBitWiseAnd() {
+      var source = @"
+method m(a:bv1, b:bv1) {
+    assert a & b != (1 as bv1);
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(2, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("a:bv1"));
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("b:bv1"));
+      Assert.AreEqual("1bv1", counterExamples[0].Variables["a:bv1"]);
+      Assert.AreEqual("1bv1", counterExamples[0].Variables["b:bv1"]);
     }
   }
 }
