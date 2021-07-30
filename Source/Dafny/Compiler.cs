@@ -156,8 +156,7 @@ namespace Microsoft.Dafny {
 
     protected List<T> SelectNonGhost<T>(TopLevelDecl cl, List<T> elements) {
       Contract.Requires(cl != null && elements != null);
-      if (cl is TupleTypeDecl tupleDecl)
-      {
+      if (cl is TupleTypeDecl tupleDecl) {
         Contract.Assert(elements.Count == tupleDecl.Dims);
         return elements.Where((_, i) => !tupleDecl.ArgumentGhostness[i]).ToList();
       } else {
