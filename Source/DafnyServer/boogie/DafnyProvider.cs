@@ -343,7 +343,6 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
           Vars.Add(vn);
         }
       }
-      dm.Flush(Nodes);
     }
 
     public virtual string CapturedStateName => State.Name;

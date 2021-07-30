@@ -20,7 +20,6 @@ namespace Microsoft.Boogie.ModelViewer
   {
     private readonly Dictionary<string, int> baseNameUse = new();
     private readonly Dictionary<Model.Element, string> canonicalName = new();
-    private readonly Dictionary<string, Model.Element> invCanonicalName = new();
     private readonly Dictionary<Model.Element, string> localValue = new();
     public readonly Model model;
 
@@ -104,58 +103,10 @@ namespace Microsoft.Boogie.ModelViewer
 
       baseNameUse[baseName] = cnt;
       canonicalName.Add(elt, res);
-      invCanonicalName[res.Replace(" ", "")] = elt;
       return res;
     }
 
     public abstract IEnumerable<DafnyModelState> States { get; }
-
-    /// <summary>
-    /// Walks each input tree in BFS order, and force evaluation of Name and Value properties
-    /// (to get reasonable numbering of canonical values).
-    /// </summary>
-    public void Flush(IEnumerable<DisplayNode> roots)
-    {
-      var workList = new Queue<DisplayNode>();
-
-      Action<IEnumerable<DisplayNode>> addList = nodes =>
-      {
-        var ch = new Dictionary<string, DisplayNode>();
-        foreach (var x in nodes)
-        {
-          if (ch.ContainsKey(x.Name))
-          {
-            // throw new System.InvalidOperationException("duplicated model entry: " + x.Name);
-          }
-          ch[x.Name] = x;
-        }
-        foreach (var k in SortFields(nodes))
-          workList.Enqueue(ch[k]);
-      };
-
-      addList(roots);
-
-      var visited = new HashSet<Model.Element>();
-      while (workList.Count > 0)
-      {
-        var n = workList.Dequeue();
-
-        var dummy1 = n.Name;
-        var dummy2 = n.Value;
-
-        if (n.Element != null)
-        {
-          if (visited.Contains(n.Element))
-            continue;
-          visited.Add(n.Element);
-        }
-
-        addList(n.Children);
-      }
-    }
-
-    #region field name sorting
-
     static ulong GetNumber(string s, int beg)
     {
       ulong res = 0;
@@ -200,23 +151,6 @@ namespace Microsoft.Boogie.ModelViewer
 
       return string.CompareOrdinal(f1, f2);
     }
-
-    public int CompareFields(DisplayNode n1, DisplayNode n2)
-    {
-      var diff = (int)n1.Category - (int)n2.Category;
-      if (diff != 0) return diff;
-      return CompareFieldNames(n1.Name, n2.Name);
-    }
-
-    public IEnumerable<string> SortFields(IEnumerable<DisplayNode> fields_)
-    {
-      var fields = new List<DisplayNode>(fields_);
-      fields.Sort(CompareFields);
-      return fields.Select(f => f.Name);
-    }
-    #endregion
-
-    #region Displaying source code
 
     public class SourceLocation
     {
@@ -271,8 +205,7 @@ namespace Microsoft.Boogie.ModelViewer
       }
       return tok;
     }
-
-    #endregion
+    
   }
 
   public class EdgeName
