@@ -446,12 +446,12 @@ namespace Microsoft.Dafny {
     }
   }
   
-  class ListComparer<T> : IEqualityComparer<List<T>> {
-    public bool Equals(List<T> x, List<T> y) {
+  class IEnumerableComparer<T> : IEqualityComparer<IEnumerable<T>> {
+    public bool Equals(IEnumerable<T> x, IEnumerable<T> y) {
       return x.SequenceEqual(y);
     }
 
-    public int GetHashCode(List<T> obj) {
+    public int GetHashCode(IEnumerable<T> obj) {
       var hash = new HashCode();
       foreach (T t in obj) {
         hash.Add(t);
