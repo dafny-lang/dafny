@@ -104,5 +104,93 @@ method Negate(a: int) returns (b: int)
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("a"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("b"));
     }
+    
+    [TestMethod]
+    public async Task GetCounterExampleForASelfReferringObject() {
+      var source = @"
+class Node {
+    var next: Node?;
+}
+
+method IsSelfReferring(n:Node) returns (b:bool) {
+    assert n.next != n;
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(1, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("n"));
+    }
+    
+    [TestMethod]
+    public async Task GetCounterExampleForAnObjectWithANonNullField() {
+      var source = @"
+class Node {
+    var next: Node?;
+}
+
+method IsSelfRecursive(n:Node) returns (b:bool) {
+    assert (n.next == n) || (n.next == null);
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(2, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("n"));
+    }
+    
+    [TestMethod]
+    public async Task GetCounterExampleForAnObjectWithANullField() {
+      var source = @"
+class Node {
+    var next: Node?;
+}
+
+method IsSelfRecursive(n:Node) returns (b:bool) {
+    assert n.next != null;
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(1, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("n"));
+    }
+    
+    [TestMethod]
+    public async Task GetCounterExampleWithTwoStatesAndPrimitiveField() {
+      var source = @"
+class BankAccountUnsafe {
+    var balance: int;
+    var b:bool;
+
+    method withdraw(amount: int) 
+        modifies this 
+        requires amount >= 0
+        requires balance >= 0 
+        ensures balance >= 0
+    {
+      balance := balance - amount;   
+    }
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(2, counterExamples.Length);
+      Assert.AreEqual(2, counterExamples[0].Variables.Count);
+      Assert.AreEqual(2, counterExamples[1].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("amount"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("amount"));
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("this"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("this"));
+    }
+    
+    
   }
 }

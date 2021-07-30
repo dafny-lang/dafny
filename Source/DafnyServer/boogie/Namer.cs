@@ -4,8 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using Microsoft.Boogie.ModelViewer.Dafny;
 
 namespace Microsoft.Boogie.ModelViewer
 {
@@ -84,6 +82,8 @@ namespace Microsoft.Boogie.ModelViewer
       var baseName = CanonicalBaseName(elt, out suff);
       if (baseName == "")
         suff = NameSeqSuffix.Always;
+      if (baseName == "null")
+        return baseName;
 
       if (viewOpts.DebugMode && !(elt is Model.Boolean) && !(elt is Model.Number))
       {
@@ -106,7 +106,6 @@ namespace Microsoft.Boogie.ModelViewer
       return res;
     }
 
-    public abstract IEnumerable<DafnyModelState> States { get; }
     static ulong GetNumber(string s, int beg)
     {
       ulong res = 0;
@@ -205,90 +204,28 @@ namespace Microsoft.Boogie.ModelViewer
       }
       return tok;
     }
-    
   }
 
-  public class EdgeName
+  public class ViewOptions
   {
-    LanguageModel langModel;
-    string format;
-    string cachedName;
-    Model.Element[] args;
+    // 0 - Normal
+    // 1 - Expert
+    // 2 - Everything
+    // 3 - Include the kitchen sink
+    public int ViewLevel = 1;
+    public bool DebugMode;
+  }
 
-    public EdgeName(LanguageModel n, string format, params Model.Element[] args)
+  public static class Util
+  {
+
+    public static IEnumerable<T> Empty<T>() { yield break; }
+
+    public static IEnumerable<T> Map<S, T>(this IEnumerable<S> inp, Func<S, T> conv)
     {
-      this.langModel = n;
-      this.format = format;
-      this.args = args.ToArray();
+      foreach (var s in inp) yield return conv(s);
     }
-
-    public EdgeName(string name) : this(null, name)
-    {
-      Util.Assert(name != null);
-    }
-
-    public override string ToString()
-    {
-      if (cachedName != null)
-        return cachedName;
-      cachedName = Format();
-      return cachedName;
-    }
-
-    public override int GetHashCode()
-    {
-      int res = format.GetHashCode();
-      foreach (var c in args)
-      {
-        res += c.GetHashCode();
-        res *= 13;
-      }
-      return res;
-    }
-
-    public override bool Equals(object obj)
-    {
-      EdgeName e = obj as EdgeName;
-      if (e == null) return false;
-      if (e == this) return true;
-      if (e.format != this.format || e.args.Length != this.args.Length)
-        return false;
-      for (int i = 0; i < this.args.Length; ++i)
-        if (this.args[i] != e.args[i])
-          return false;
-      return true;
-    }
-
-    protected virtual string Format()
-    {
-      if (args == null || args.Length == 0)
-        return format;
-
-      var res = new StringBuilder(format.Length);
-      for (int i = 0; i < format.Length; ++i)
-      {
-        var c = format[i];
-
-        if (c == '%' && i < format.Length - 1)
-        {
-          var j = i + 1;
-          while (j < format.Length && char.IsDigit(format[j]))
-            j++;
-          var len = j - i - 1;
-          if (len > 0)
-          {
-            var idx = int.Parse(format.Substring(i + 1, len));
-            res.Append(langModel.CanonicalName(args[idx]));
-            i = j - 1;
-            continue;
-          }
-        }
-
-        res.Append(c);
-      }
-
-      return res.ToString();
-    }
+    
   }
 
 }

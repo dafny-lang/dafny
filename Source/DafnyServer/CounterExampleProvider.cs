@@ -13,7 +13,7 @@ using Microsoft.Boogie.ModelViewer.Dafny;
 
 namespace DafnyServer {
   public class CounterExampleProvider {
-    private List<LanguageModel> _languageSpecificModels;
+    private List<DafnyModel> _dafnyModels;
     public static readonly string ModelBvd = "./model.bvd";
 
     public CounterExample LoadCounterModel() {
@@ -25,17 +25,17 @@ namespace DafnyServer {
       }
     }
 
-    private List<LanguageModel> LoadModelFromFile() {
+    private List<DafnyModel> LoadModelFromFile() {
       using (var wr = new StreamReader(ModelBvd)) {
         var output = wr.ReadToEnd();
         var models = ExtractModels(output);
-        _languageSpecificModels = BuildModels(models);
+        _dafnyModels = BuildModels(models);
       }
-      return _languageSpecificModels;
+      return _dafnyModels;
     }
 
-    private List<LanguageModel> BuildModels(List<Model> modellist) {
-      var list = new List<LanguageModel>();
+    private List<DafnyModel> BuildModels(List<Model> modellist) {
+      var list = new List<DafnyModel>();
       foreach (var model in modellist) {
         var specifiedModel = Provider.Instance.GetLanguageSpecificModel(model, new ViewOptions() { DebugMode = true, ViewLevel = 3 });
         list.Add(specifiedModel);
@@ -58,16 +58,10 @@ namespace DafnyServer {
       return models;
     }
 
-    private static T GetFieldValue<T>(object instance, string fieldName) {
-      const BindingFlags bindFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
-      var field = instance.GetType().GetField(fieldName, bindFlags);
-      return field == null ? default(T) : (T)field.GetValue(instance);
-    }
-
-    private CounterExample ConvertModels(List<LanguageModel> specificModels) {
-      foreach (var languageSpecificModel in specificModels) {
+    private CounterExample ConvertModels(List<DafnyModel> specificModels) {
+      foreach (var dafnyModel in specificModels) {
         var counterExample = new CounterExample();
-        foreach (var state in languageSpecificModel.States) {
+        foreach (var state in dafnyModel.States) {
           if (state == null) continue;
 
           var counterExampleState = new CounterExampleState {
@@ -75,13 +69,15 @@ namespace DafnyServer {
           };
           AddLineInformation(counterExampleState, state.CapturedStateName);
 
-          foreach (var variableNode in state.Vars) {
+          var vars = state.ExpandedVariableSet(2);
+
+          foreach (var variableNode in vars) {
             counterExampleState.Variables.Add(new CounterExampleVariable {
               Name = variableNode.ShortName,
               Value = variableNode.Value,
-              CanonicalName = languageSpecificModel.CanonicalName(variableNode.Element)
+              // CanonicalName is same as Value now but keeping this for legacy
+              CanonicalName = variableNode.Value
             });
-            GetExpansions(state, variableNode, counterExampleState, languageSpecificModel);
           }
           var index = counterExample.States.FindIndex(c => c.Column == counterExampleState.Column && c.Line == counterExampleState.Line);
           if (index != -1) {
@@ -94,24 +90,6 @@ namespace DafnyServer {
       }
 
       return new CounterExample();
-    }
-
-    private static void GetExpansions(DafnyModelState state, ElementNode elementNode, CounterExampleState counterExampleState,
-      LanguageModel languageSpecificModel) {
-      try {
-        var dafnyModel = GetFieldValue<DafnyModel>(state, "dm");
-        var elt = GetFieldValue<Model.Element>(elementNode, "elt");
-        var extras = dafnyModel.GetExpansion(state, elt);
-        foreach (var el in extras) {
-          counterExampleState.Variables.Add(new CounterExampleVariable {
-            Name = elementNode.Name + "." + el.Name,
-            Value = el.Value,
-            CanonicalName = languageSpecificModel.CanonicalName(el.Element)
-          });
-        }
-      } catch (Exception e) {
-        Console.Error.WriteLine(e.Message);
-      }
     }
 
     private void AddLineInformation(CounterExampleState state, string stateCapturedStateName) {

@@ -1,6 +1,7 @@
 ﻿// Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -13,12 +14,12 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
     public static Provider Instance = new();
     private Provider() { }
 
-    public LanguageModel GetLanguageSpecificModel(Model m, ViewOptions opts)
+    public DafnyModel GetLanguageSpecificModel(Model m, ViewOptions opts)
     {
       var dm = new DafnyModel(m, opts);
       foreach (var s in m.States)
       {
-        var sn = new DafnyModelState(dm.states.Count, dm, s);
+        var sn = new DafnyModelState(dm, s);
         dm.states.Add(sn);
       }
       return dm;
@@ -27,14 +28,12 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
 
   public class DafnyModel : LanguageModel
   {
-    public readonly Model.Func f_heap_select, f_set_select, f_seq_length, f_seq_index, f_box, f_dim, f_index_field, f_multi_index_field, f_dtype, f_null;
+    public readonly Model.Func f_set_select, f_seq_length, f_seq_index, f_box, f_dim, f_index_field, f_multi_index_field, f_dtype, f_null;
     public readonly Dictionary<Model.Element, Model.Element[]> ArrayLengths = new();
     public readonly Dictionary<Model.Element, Model.FuncTuple> DatatypeValues = new();
     public List<DafnyModelState> states = new();
 
-    public DafnyModel(Model m, ViewOptions opts)
-      : base(m, opts) {
-      f_heap_select = MergeMapSelectFunctions(3);
+    public DafnyModel(Model m, ViewOptions opts) : base(m, opts) {
       f_set_select = MergeMapSelectFunctions(2);
       f_seq_length = m.MkFunc("Seq#Length", 1);
       f_seq_index = m.MkFunc("Seq#Index", 2);
@@ -110,7 +109,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       return result;
     }
 
-    public override IEnumerable<DafnyModelState> States => states;
+    public IEnumerable<DafnyModelState> States => states;
 
     public string GetUserVariableName(string name)
     {
@@ -120,6 +119,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
         return null;
       return name;
     }
+    
 
     protected override string CanonicalBaseName(Model.Element elt, out NameSeqSuffix suff)
     {
@@ -155,81 +155,73 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
           }
         }
       }
-
       return base.CanonicalBaseName(elt, out suff);
     }
 
-    public IEnumerable<ElementNode> GetExpansion(DafnyModelState state, Model.Element elt)
+    public IEnumerable<DafnyModelVariable> GetExpansion(DafnyModelState dafnyModelState, DafnyModelVariable var)
     {
-      List<ElementNode> result = new List<ElementNode>();
+      List<DafnyModelVariable> result = new ();
 
-      if (elt.Kind != Model.ElementKind.Uninterpreted)
+      if (var.element.Kind != Model.ElementKind.Uninterpreted)
         return result;
 
       // Perhaps elt is a known datatype value
       Model.FuncTuple fnTuple;
-      if (DatatypeValues.TryGetValue(elt, out fnTuple))
+      if (DatatypeValues.TryGetValue(var.element, out fnTuple))
       {
         // elt is a datatype value
         int i = 0;
         foreach (var arg in fnTuple.Args)
         {
-          var edgname = new EdgeName(this, i.ToString());
-          result.Add(new FieldNode(state, edgname, arg));
+          result.Add(DafnyModelVariable.Get(dafnyModelState, arg, var.element.ToString() + i, var));
           i++;
         }
         return result;
       }
 
       // Perhaps elt is a sequence
-      var seqLen = f_seq_length.AppWithArg(0, elt);
+      var seqLen = f_seq_length.AppWithArg(0, var.element);
       if (seqLen != null)
       {
         // elt is a sequence
-        foreach (var tpl in f_seq_index.AppsWithArg(0, elt))
-        {
-          var edgname = new EdgeName(this, "[%0]", tpl.Args[1]);
-          result.Add(new FieldNode(state, edgname, Unbox(tpl.Result)));
-        }
+        foreach (var tpl in f_seq_index.AppsWithArg(0, var.element))
+          result.Add(DafnyModelVariable.Get(dafnyModelState, Unbox(tpl.Result), "[" + tpl.Args[1] + "]", var));
         return result;
       }
 
       // Perhaps elt is a set
-      foreach (var tpl in f_set_select.AppsWithArg(0, elt))
+      foreach (var tpl in f_set_select.AppsWithArg(0, var.element))
       {
         var setElement = tpl.Args[1];
         var containment = tpl.Result;
-        var edgname = new EdgeName(this, "[%0]", Unbox(setElement));
-        result.Add(new FieldNode(state, edgname, containment));
+        result.Add(DafnyModelVariable.Get(dafnyModelState, containment, "["+Unbox(setElement)+"]", var));
       }
       if (result.Count != 0)
         return result;  // elt is a set
 
       // It seems elt is an object or array
       Model.Element[] lengths;
-      if (ArrayLengths.TryGetValue(elt, out lengths))
+      if (ArrayLengths.TryGetValue(var.element, out lengths))
       {
         int i = 0;
         foreach (var len in lengths)
         {
           var name = lengths.Length == 1 ? "Length" : "Length" + i;
-          var edgname = new EdgeName(this, name);
-          result.Add(new FieldNode(state, edgname, len));
+          result.Add(DafnyModelVariable.Get(dafnyModelState, len, name, var));
           i++;
         }
       }
-      var heap = state.State.TryGet("$Heap");
-      if (heap != null)
+      var heap = dafnyModelState.State.TryGet("$Heap");
+      if (heap == null)
+        return result;
+      var instances = f_set_select.AppsWithArgs(0, heap, 1, var.element);
+      if (instances == null || (!instances.Any()))
+        return result;
+      foreach (var tpl in f_set_select.AppsWithArg(0, instances.ToList()[0].Result))
       {
-        foreach (var tpl in f_heap_select.AppsWithArgs(0, heap, 1, elt))
-        {
-          var field = new FieldName(tpl.Args[2], this);
-          if (field.NameFormat != "alloc")
-          {
-            var edgname = new EdgeName(this, field.NameFormat, field.NameArgs);
-            result.Add(new FieldNode(state, edgname, Unbox(tpl.Result)));
-          }
-        }
+        var field = new FieldName(tpl.Args[1], this);
+        if (field.NameFormat != "alloc")
+          result.Add(DafnyModelVariable.Get(dafnyModelState, Unbox(tpl.Result), "." + field.NameFormat, var));
       }
       return result;
     }
@@ -297,25 +289,60 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       var unboxed = f_box.AppWithResult(elt);
       if (unboxed != null)
         return unboxed.Args[0];
-      return elt;
+      else
+        return elt;
     }
   }
 
   public class DafnyModelState
   {
+    public readonly List<DafnyModelVariable> Vars = new();
     internal readonly DafnyModel dm;
-    public readonly List<VariableNode> Vars = new();
-    private readonly List<VariableNode> skolems;
+    private readonly List<DafnyModelVariable> skolems;
     private Model.CapturedState state;
     private LanguageModel langModel;
+    private Dictionary<Model.Element, DafnyModelVariable> varMap;
 
-    public DafnyModelState(int i, DafnyModel parent, Model.CapturedState s) {
+    public DafnyModelState(DafnyModel parent, Model.CapturedState s) {
       state = s;
       langModel = parent;
       dm = parent;
       state = s;
-      skolems = new List<VariableNode>(SkolemVars());
+      varMap = new Dictionary<Model.Element, DafnyModelVariable>();
+      skolems = new List<DafnyModelVariable>(SkolemVars());
       SetupVars();
+    }
+
+    public HashSet<DafnyModelVariable> ExpandedVariableSet(int maxDepth) {
+      HashSet<DafnyModelVariable> vars = new();
+      List<Tuple<DafnyModelVariable, int>> varsToAdd = new();
+      Vars.ForEach(v => varsToAdd.Add(new Tuple<DafnyModelVariable, int>(v, 0)));
+      skolems.ForEach(v => varsToAdd.Add(new Tuple<DafnyModelVariable, int>(v, 0)));
+      while (varsToAdd.Count != 0) {
+        var (next, depth) = varsToAdd[0];
+        varsToAdd.RemoveAt(0);
+        if (vars.Contains(next))
+          continue;
+        vars.Add(next);
+        if (depth < maxDepth)
+          foreach (var v in next.GetExpansion().
+            Where(x => !vars.Contains(x) && !x.IsPrimitive)) { 
+            varsToAdd.Add(new Tuple<DafnyModelVariable, int>(v, depth + 1));
+          }
+      }
+      return vars;
+    }
+
+    public bool ExistsVar(Model.Element element) {
+      return varMap.ContainsKey(element);
+    }
+
+    public void AddVar(Model.Element element, DafnyModelVariable var) {
+      varMap[element] = var;
+    }
+    
+    public DafnyModelVariable GetVar(Model.Element element) {
+      return varMap[element];
     }
 
     void SetupVars()
@@ -325,7 +352,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       if (dm.states.Count > 0)
       {
         var prev = dm.states.Last();
-        names = prev.Vars.Map(v => v.realName);
+        names = prev.Vars.Map(v => v.Name);
       }
 
       names = names.Concat(state.Variables).Distinct();
@@ -336,8 +363,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
         if (dm.GetUserVariableName(v) != null)
         {
           var val = state.TryGet(v);
-          var shortName = Regex.Replace(v, @"#\d+$", "");
-          var vn = new VariableNode(this, v, val, names.Any(n => n != v && Regex.Replace(n, @"#\d+$", "") == shortName) ? v : shortName);
+          var vn = DafnyModelVariable.Get(this, val, v);
           if (curVars.ContainsKey(v))
             dm.RegisterLocalValue(vn.Name, val);
           Vars.Add(vn);
@@ -345,9 +371,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       }
     }
 
-    public virtual string CapturedStateName => State.Name;
-
-    IEnumerable<VariableNode> SkolemVars()
+    IEnumerable<DafnyModelVariable> SkolemVars()
     {
       foreach (var f in dm.model.Functions)
       {
@@ -356,56 +380,76 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
         if (n == -1) continue;
         string name = f.Name.Substring(0, n);
         if (!name.Contains('#')) continue;
-        yield return new VariableNode(this, name, f.GetConstant(), name);
+        yield return DafnyModelVariable.Get(this, f.GetConstant(), name);
       }
     }
-    public IEnumerable<DisplayNode> Nodes => Vars.Concat(skolems);
-
+    
     public Model.CapturedState State => state;
+    
+    public virtual string CapturedStateName => State.Name;
 
     public virtual string Name => langModel.ShortenToken(state.Name, 20, true);
   }
 
-  public class ElementNode : DisplayNode
+  public class DafnyModelVariable
   {
-    protected DafnyModelState stateNode;
-    protected Model.Element elt;
-    protected DafnyModel vm => stateNode.dm;
+    private DafnyModelState state;
+    private Dictionary<string, DafnyModelVariable> children;
+    public readonly Model.Element element;
+    public readonly string Name;
+    
+    private static int index;
 
-    public ElementNode(DafnyModelState st, EdgeName name, Model.Element elt)
-      : base(st.dm, name, elt)
-    {
-      stateNode = st;
-      this.elt = elt;
+    public static DafnyModelVariable Get(DafnyModelState state,
+      Model.Element element, string name, DafnyModelVariable parent=null) {
+      if (state.ExistsVar(element)) {
+        if (parent != null)
+          parent.AddChild(name, state.GetVar(element));
+        return state.GetVar(element);
+      }
+      return new(state, element, name, parent);
     }
 
-    public ElementNode(DafnyModelState st, string name, Model.Element elt)
-      : this(st, new EdgeName(name), elt) { }
-
-    protected override void ComputeChildren()
-    {
-      children.AddRange(vm.GetExpansion(stateNode, elt));
+    private DafnyModelVariable(DafnyModelState state, Model.Element element, string name, DafnyModelVariable parent) {
+      this.state = state;
+      this.element = element;
+      children = new();
+      state.AddVar(element, this);
+      if (parent == null) {
+        Name = name;
+        return;
+      }
+      Name = "@" + index++;
+      parent.AddChild(name, this);
     }
-  }
 
-  class FieldNode : ElementNode
-  {
-    public FieldNode(DafnyModelState par, EdgeName realName, Model.Element elt)
-      : base(par, realName, elt)
-    {
+    public IEnumerable<DafnyModelVariable> GetExpansion() {
+      return state.dm.GetExpansion(state, this);
     }
-  }
 
-  public class VariableNode : ElementNode
-  {
-    public string realName;
-
-    public VariableNode(DafnyModelState par, string realName, Model.Element elt, string shortName)
-      : base(par, realName, elt)
-    {
-      this.realName = realName;
-      name = new EdgeName(vm.GetUserVariableName(realName));
-      ShortName = shortName;
+    public void AddChild(string name, DafnyModelVariable child) {
+      children[name] = child;
     }
+    
+    public virtual string Value {
+      get {
+        string result = state.dm.CanonicalName(element);
+        foreach (var key in children.Keys) {
+          if (children[key].IsPrimitive)
+            result += ", " + ShortName + key + "=" + children[key].Value;
+          else
+            result += ", " + ShortName + key + "=" + children[key].ShortName;
+        }
+        return result;
+      }
+    }
+
+    public virtual bool IsPrimitive =>
+      (element.Kind != Model.ElementKind.Uninterpreted || element == state.dm.f_null.GetConstant()) && 
+      element.Kind != Model.ElementKind.Array && 
+      (element.Kind != Model.ElementKind.DataValue || 
+       ((Model.DatatypeValue) element).ConstructorName == "-");
+    
+    public virtual string ShortName => Regex.Replace(Name, @"#\d+$", "");
   }
 }
