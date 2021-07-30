@@ -1,34 +1,11 @@
 ForbidNondeterminism.dfy(55,2): Error: field 'y', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-Execution trace:
-    (0,0): anon0
 ForbidNondeterminism.dfy(17,9): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
 ForbidNondeterminism.dfy(37,4): Error: out-parameter 's', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
 ForbidNondeterminism.dfy(37,4): Error: out-parameter 't', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
 ForbidNondeterminism.dfy(39,17): Error: variable 's', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 ForbidNondeterminism.dfy(41,0): Error: out-parameter 't', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 ForbidNondeterminism.dfy(47,11): Error: variable 'a', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
 ForbidNondeterminism.dfy(60,11): Error: unless an initializer is provided for the array elements, a new array of 'int' must have empty size
-Execution trace:
-    (0,0): anon0
 ForbidNondeterminism.dfy(61,11): Error: unless an initializer is provided for the array elements, a new array of 'bool' must have empty size
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 1 verified, 9 errors

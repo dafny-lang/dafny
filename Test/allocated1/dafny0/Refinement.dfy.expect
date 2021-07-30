@@ -1,39 +1,18 @@
 Refinement.dfy(15,4): Error: A postcondition might not hold on this return path.
 Refinement.dfy(14,16): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 Refinement.dfy[B](15,4): Error: A postcondition might not hold on this return path.
 Refinement.dfy(33,19): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 Refinement.dfy(69,15): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Refinement.dfy(80,16): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 Refinement.dfy(99,11): Error: A postcondition might not hold on this return path.
 Refinement.dfy(78,14): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 Refinement.dfy(102,2): Error: A postcondition might not hold on this return path.
 Refinement.dfy(83,14): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 Refinement.dfy(198,6): Error: assertion violation
 Refinement.dfy[IncorrectConcrete](122,18): Related location
-Execution trace:
-    (0,0): anon0
 Refinement.dfy(204,6): Error: assertion violation
 Refinement.dfy[IncorrectConcrete](131,18): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
-    (0,0): anon3
 Refinement.dfy(209,6): Error: assertion violation
 Refinement.dfy[IncorrectConcrete](137,23): Related location
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 23 verified, 9 errors

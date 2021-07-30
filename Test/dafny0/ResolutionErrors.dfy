@@ -2609,20 +2609,40 @@ module LabelDomination {
   class MyClass {
     var x: int
     method LabelNotInScope_Old(y: int) {
+      label GoodLabel:
       if y < 5 {
         label Treasure:
         assert true;
       }
       assert old(x) == old@Treasure(x);  // error: no label Treasure in scope
       assert 10 == old@WonderfulLabel(x);  // error: no label WonderfulLabel in scope
+      assert old(x) == old@GoodLabel(x);
+      assert old(x) == old@FutureLabel(x);  // error: no label FutureLabel in scope
+      label FutureLabel: {}
     }
     method LabelNotInScope_Unchanged(y: int) {
+      label GoodLabel:
       if y < 5 {
         label Treasure:
         assert true;
       }
       assert unchanged@Treasure(`x);  // error: no label Treasure in scope
       assert unchanged@WonderfulLabel(this);  // error: no label WonderfulLabel in scope
+      assert unchanged@GoodLabel(this);
+      assert unchanged@FutureLabel(this);  // error: no label FutureLabel in scope
+      label FutureLabel: {}
+    }
+    method LabelNotInScope_Fresh(y: int, c: MyClass) {
+      label GoodLabel:
+      if y < 5 {
+        label Treasure:
+        assert true;
+      }
+      assert fresh@Treasure(c);  // error: no label Treasure in scope
+      assert fresh@WonderfulLabel(c);  // error: no label WonderfulLabel in scope
+      assert fresh@GoodLabel(c);
+      assert fresh@FutureLabel(c);  // error: no label FutureLabel in scope
+      label FutureLabel: {}
     }
   }
 }
@@ -3441,5 +3461,177 @@ module HintRestrictionsOtherLoops {
       }
       5
     }
+  }
+}
+
+// --------------- regressions: types of arguments to fresh, unchanged, modifies, reads ------------------------------
+
+module FrameTypes {
+  // ----- fresh takes an expression as its argument
+
+  method FreshArgumentType0(
+    o: object,
+    s: set<object>, ss: iset<object>,
+    q: seq<object>,
+    ms: multiset<object>,
+    mp: map<object, int>, mp2: map<int, object>,
+    im: imap<object, object>)
+  {
+    ghost var b;
+    b := fresh(o);
+    b := fresh(s);
+    b := fresh(ss);
+    b := fresh(q);
+    b := fresh(ms); // error: wrong argument type for fresh
+    b := fresh(mp); // error: wrong argument type for fresh
+    b := fresh(mp2); // error: wrong argument type for fresh
+    b := fresh(im); // error: wrong argument type for fresh
+  }
+
+  method FreshArgumentType1(x: int, s: set<bool>, ss: iset<bv8>, q: seq<int>) {
+    ghost var b;
+    b := fresh(x); // error: wrong argument type for fresh
+    b := fresh(s); // error: wrong argument type for fresh
+    b := fresh(ss); // error: wrong argument type for fresh
+    b := fresh(q); // error: wrong argument type for fresh
+  }
+
+  method FreshArgumentType2(f: int -> int, g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int) {
+    ghost var b;
+    b := fresh(f); // error: wrong argument type for fresh
+    b := fresh(g); // error: wrong argument type for fresh
+    b := fresh(h); // error: wrong argument type for fresh
+    b := fresh(j); // error: wrong argument type for fresh
+    b := fresh(k); // error: wrong argument type for fresh
+  }
+
+  // ----- unchanged, modifies, and reads take frame expressions as their arguments
+
+  method UnchangedArgumentType0(
+    o: object,
+    s: set<object>, ss: iset<object>,
+    q: seq<object>,
+    ms: multiset<object>,
+    mp: map<object, int>, mp2: map<int, object>,
+    im: imap<object, object>)
+  {
+    ghost var b;
+    b := unchanged(o);
+    b := unchanged(s);
+    b := unchanged(ss);
+    b := unchanged(q);
+    b := unchanged(ms);
+    b := unchanged(mp); // error: wrong argument type for unchanged
+    b := unchanged(mp2); // error: wrong argument type for unchanged
+    b := unchanged(im); // error: wrong argument type for unchanged
+  }
+
+  method UnchangedArgumentType1(x: int, s: set<bool>, ss: iset<bv8>, q: seq<int>) {
+    ghost var b;
+    b := unchanged(x); // error: wrong argument type for unchanged
+    b := unchanged(s); // error: wrong argument type for unchanged
+    b := unchanged(ss); // error: wrong argument type for unchanged
+    b := unchanged(q); // error: wrong argument type for unchanged
+  }
+
+  method UnchangedArgumentType2(
+    f: int -> int,
+    g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
+    l: bool -> multiset<object>, m: bool -> map<object, object>)
+  {
+    ghost var b;
+    b := unchanged(f); // error: wrong argument type for unchanged
+    b := unchanged(g); // error: wrong argument type for unchanged
+    b := unchanged(h); // error: wrong argument type for unchanged
+    b := unchanged(i); // error: wrong argument type for unchanged
+    b := unchanged(j); // error: wrong argument type for unchanged
+    b := unchanged(k); // error: wrong argument type for unchanged
+    b := unchanged(l); // error: wrong argument type for unchanged
+    b := unchanged(m); // error: wrong argument type for unchanged
+  }
+
+  method ModifiesArgumentType0(
+    o: object,
+    s: set<object>, ss: iset<object>,
+    q: seq<object>,
+    ms: multiset<object>,
+    mp: map<object, int>, mp2: map<int, object>,
+    im: imap<object, object>)
+    modifies o
+    modifies s
+    modifies ss
+    modifies q
+    modifies ms
+    modifies mp // error: wrong argument type for modifies
+    modifies mp2 // error: wrong argument type for modifies
+    modifies im // error: wrong argument type for modifies
+  {
+  }
+
+  method ModifiesArgumentType1(x: int, s: set<bool>, ss: iset<bv8>, q: seq<int>)
+    modifies x // error: wrong argument type for modifies
+    modifies s // error: wrong argument type for modifies
+    modifies ss // error: wrong argument type for modifies
+    modifies q // error: wrong argument type for modifies
+  {
+  }
+
+  method ModifiesArgumentType2(
+    f: int -> int,
+    g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
+    l: bool -> multiset<object>, m: bool -> map<object, object>)
+    modifies f // error: wrong argument type for modifies
+    modifies g // error: wrong argument type for modifies
+    modifies h // error: wrong argument type for modifies
+    modifies i // error: wrong argument type for modifies
+    modifies j // error: wrong argument type for modifies
+    modifies k // error: wrong argument type for modifies
+    modifies l // error: wrong argument type for modifies
+    modifies m // error: wrong argument type for modifies
+  {
+  }
+
+  predicate ReadsArgumentType0(
+    o: object,
+    s: set<object>, ss: iset<object>,
+    q: seq<object>,
+    ms: multiset<object>,
+    mp: map<object, int>, mp2: map<int, object>,
+    im: imap<object, object>)
+    reads o
+    reads s
+    reads ss
+    reads q
+    reads ms
+    reads mp // error: wrong argument type for reads
+    reads mp2 // error: wrong argument type for reads
+    reads im // error: wrong argument type for reads
+  {
+    true
+  }
+
+  predicate ReadsArgumentType1(x: int, s: set<bool>, ss: iset<bv8>, q: seq<int>)
+    reads x // error: wrong argument type for reads
+    reads s // error: wrong argument type for reads
+    reads ss // error: wrong argument type for reads
+    reads q // error: wrong argument type for reads
+  {
+    true
+  }
+
+  predicate ReadsArgumentType2(
+    f: int -> int,
+    g: int -> object, h: int -> set<object>, i: int -> iset<object>, j: int -> seq<object>, k: set<object> -> int,
+    l: bool -> multiset<object>, m: bool -> map<object, object>)
+    reads f // error: wrong argument type for reads
+    reads g
+    reads h
+    reads i
+    reads j
+    reads k // error: wrong argument type for reads
+    reads l
+    reads m // error: wrong argument type for reads
+  {
+    true
   }
 }

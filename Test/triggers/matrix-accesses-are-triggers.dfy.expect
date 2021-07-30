@@ -1,11 +1,5 @@
 matrix-accesses-are-triggers.dfy(7,11): Info: Selected triggers: {m[j, _t#0], m[i, j]}
 matrix-accesses-are-triggers.dfy(7,81): Error: index 0 out of range
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
 matrix-accesses-are-triggers.dfy(7,86): Error: index 1 out of range
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
 
 Dafny program verifier finished with 0 verified, 2 errors

@@ -1,6 +1,3 @@
 git-issue3.dfy(4,8): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 
 Dafny program verifier finished with 0 verified, 1 error

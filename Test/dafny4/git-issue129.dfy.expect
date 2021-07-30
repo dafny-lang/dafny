@@ -1,5 +1,3 @@
 git-issue129.dfy(35,8): Error: RHS is not certain to look like the pattern 'Some'
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 2 verified, 1 error

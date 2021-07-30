@@ -1,24 +1,8 @@
 git-issue-448.dfy(18,8): Error: variable 's', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
 git-issue-448.dfy(21,4): Error: variable 'c', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
 git-issue-448.dfy(23,13): Error: variable 'c', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon10_Then
 git-issue-448.dfy(25,6): Error: variable 'c', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Then
 git-issue-448.dfy(27,13): Error: variable 'c', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 git-issue-448.dfy(40,8): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 1 verified, 6 errors
