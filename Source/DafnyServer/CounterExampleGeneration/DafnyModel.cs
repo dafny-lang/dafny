@@ -87,13 +87,21 @@ namespace DafnyServer.CounterExampleGeneration {
     /// since 2.9.2
     /// </summary>
     private Model.Func MergeMapSelectFunctions(int arity) {
-      var id = arity - 1;
-      // Need to make sure the name of the new function is unique
-      while (Model.HasFunc("[" + ++id + "]")) { }
-      var result = Model.MkFunc("[" + id + "]", arity);
+      var name = "[" + arity + "]";
+      if (Model.HasFunc(name)) {
+        // Coming up with a new name if the ideal one is reserved
+        var id = 0;
+        while (Model.HasFunc(name + "#" + id)) {
+          id++;
+        }
+        name += "#" + id;
+      }
+      var result = Model.MkFunc(name, arity);
       foreach (var func in Model.Functions) {
         if (!Regex.IsMatch(func.Name, "^MapType[0-9]*Select$") ||
-            func.Arity != arity) continue;
+            func.Arity != arity) {
+          continue;
+        }
         foreach (var app in func.Apps) {
           result.AddApp(app.Result, app.Args);
         }
