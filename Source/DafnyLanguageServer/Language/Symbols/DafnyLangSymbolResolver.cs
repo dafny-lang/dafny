@@ -21,12 +21,6 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     public async Task<CompilationUnit> ResolveSymbolsAsync(TextDocumentItem textDocument, Dafny.Program program, CancellationToken cancellationToken) {
-      int parserErrors = GetErrorCount(program);
-      if(parserErrors > 0) {
-        _logger.LogTrace("document {DocumentUri} had {ErrorCount} parser errors, skipping symbol resolution", textDocument.Uri, parserErrors);
-        return new CompilationUnit(program);
-      }
-
       // TODO The resolution requires mutual exclusion since it sets static variables of classes like Microsoft.Dafny.Type.
       //      Although, the variables are marked "ThreadStatic" - thus it might not be necessary. But there might be
       //      other classes as well.
