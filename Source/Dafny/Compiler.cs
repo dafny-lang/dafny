@@ -160,9 +160,7 @@ namespace Microsoft.Dafny {
       {
         Contract.Assert(elements.Count == tupleDecl.Dims);
         return elements.Where((_, i) => !tupleDecl.ArgumentGhostness[i]).ToList();
-      }
-      else
-      {
+      } else {
         return elements;
       }
     }
