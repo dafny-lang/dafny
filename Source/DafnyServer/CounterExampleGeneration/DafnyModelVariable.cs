@@ -37,8 +37,9 @@ namespace DafnyServer.CounterExampleGeneration {
       bool duplicate=false) {
       if (state.ExistsVar(element)) {
         parent?.AddChild(name, state.GetVar(element));
-        if (!duplicate)
+        if (!duplicate) {
           return state.GetVar(element);
+        }
       }
       return new(state, element, name, parent);
     }
@@ -66,10 +67,11 @@ namespace DafnyServer.CounterExampleGeneration {
       get {
         string result = state.Model.CanonicalName(Element);
         foreach (var key in children.Keys) {
-          if (children[key].IsPrimitive)
+          if (children[key].IsPrimitive) {
             result += ", " + ShortName + key + "=" + children[key].Value;
-          else
+          } else {
             result += ", " + ShortName + key + "=" + children[key].ShortName;
+          }
         }
         return result;
       }

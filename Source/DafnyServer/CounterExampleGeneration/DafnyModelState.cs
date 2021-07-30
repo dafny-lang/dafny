@@ -49,11 +49,13 @@ namespace DafnyServer.CounterExampleGeneration {
       while (varsToAdd.Count != 0) {
         var (next, depth) = varsToAdd[0];
         varsToAdd.RemoveAt(0);
-        if (expandedSet.Contains(next))
+        if (expandedSet.Contains(next)) {
           continue;
+        }
         expandedSet.Add(next);
-        if (depth == maxDepth)
+        if (depth == maxDepth) {
           break;
+        }
         // fields of primitive types are skipped:
         foreach (var v in next.GetExpansion().
             Where(x => !expandedSet.Contains(x) && !x.IsPrimitive)) { 
@@ -95,8 +97,9 @@ namespace DafnyServer.CounterExampleGeneration {
         if (Model.GetUserVariableName(v) != null) {
           var val = State.TryGet(v);
           var vn = DafnyModelVariable.Get(this, val, v, duplicate:true);
-          if (curVars.ContainsKey(v))
+          if (curVars.ContainsKey(v)) {
             Model.RegisterLocalValue(vn.Name, val);
+          }
           vars.Add(vn);
         }
       }
@@ -107,11 +110,17 @@ namespace DafnyServer.CounterExampleGeneration {
     /// </summary>
     private IEnumerable<DafnyModelVariable> SkolemVars() {
       foreach (var f in Model.Model.Functions) {
-        if (f.Arity != 0) continue;
+        if (f.Arity != 0) {
+          continue;
+        }
         var n = f.Name.IndexOf('!');
-        if (n == -1) continue;
+        if (n == -1) {
+          continue;
+        }
         var name = f.Name.Substring(0, n);
-        if (!name.Contains('#')) continue;
+        if (!name.Contains('#')) {
+          continue;
+        }
         yield return DafnyModelVariable.Get(this, f.GetConstant(), name, 
           null, true);
       }
@@ -122,14 +131,16 @@ namespace DafnyServer.CounterExampleGeneration {
       if (loc != null) {
         var fn = loc.Filename;
         var idx = fn.LastIndexOfAny(new[]{ '\\', '/' });
-        if (idx > 0)
+        if (idx > 0) {
           fn = fn.Substring(idx + 1);
+        }
         if (fn.Length > fnLimit) {
           fn = fn.Substring(0, fnLimit) + "..";
         }
         var addInfo = loc.AddInfo;
-        if (addInfo != "")
+        if (addInfo != "") {
           addInfo = ":" + addInfo;
+        }
         return $"{fn}({loc.Line},{loc.Column}){addInfo}";
       }
       return name;
@@ -142,16 +153,21 @@ namespace DafnyServer.CounterExampleGeneration {
     /// </summary>
     private static SourceLocation TryParseSourceLocation(string name) {
       var par = name.LastIndexOf('(');
-      if (par <= 0) return null;
+      if (par <= 0) {
+        return null;
+      }
       var res = new SourceLocation() { Filename = name.Substring(0, par) };
       var words = name.Substring(par + 1)
         .Split(',', ')', ':')
         .Where(x => x != "")
         .ToArray();
-      if (words.Length < 2) return null;
-      if (!int.TryParse(words[0], out res.Line) || 
-          !int.TryParse(words[1], out res.Column)) 
+      if (words.Length < 2) {
         return null;
+      }
+      if (!int.TryParse(words[0], out res.Line) ||
+          !int.TryParse(words[1], out res.Column)) {
+        return null;
+      }
       var colon = name.IndexOf(':', par);
       res.AddInfo = colon > 0 ? name.Substring(colon + 1).Trim() : "";
       return res;
