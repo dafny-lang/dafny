@@ -7,46 +7,37 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Diagnostics.Contracts;
 
-namespace Microsoft.Boogie.ModelViewer.Dafny
-{
-  public class Provider
-  {
-    public static Provider Instance = new();
-    private Provider() { }
+namespace Microsoft.Boogie.ModelViewer.Dafny {
 
-    public DafnyModel GetLanguageSpecificModel(Model m, ViewOptions opts)
-    {
-      var dm = new DafnyModel(m, opts);
-      foreach (var s in m.States)
-      {
-        var sn = new DafnyModelState(dm, s);
-        dm.states.Add(sn);
-      }
-      return dm;
-    }
-  }
-
-  public class DafnyModel : LanguageModel
-  {
-    public readonly Model.Func f_set_select, f_seq_length, f_seq_index, f_box, f_dim, f_index_field, f_multi_index_field, f_dtype, f_null;
-    public readonly Dictionary<Model.Element, Model.Element[]> ArrayLengths = new();
-    public readonly Dictionary<Model.Element, Model.FuncTuple> DatatypeValues = new();
+public class DafnyModel {
     public List<DafnyModelState> states = new();
+    public readonly Model model;
+    internal readonly Model.Func f_set_select, f_seq_length, f_seq_index, f_box, f_dim, f_index_field, f_multi_index_field, f_dtype, f_null;
+    private readonly Dictionary<Model.Element, Model.Element[]> ArrayLengths = new();
+    private readonly Dictionary<Model.Element, Model.FuncTuple> DatatypeValues = new();
+    private readonly Dictionary<Model.Element, string> localValue = new();
+    private readonly Dictionary<string, int> baseNameUse = new();
+    private readonly Dictionary<Model.Element, string> canonicalName = new();
+    private readonly ViewOptions viewOpts;
+    
+    private bool UseLocalsForCanonicalNames => false;
 
-    public DafnyModel(Model m, ViewOptions opts) : base(m, opts) {
+    public DafnyModel(Model model, ViewOptions viewOpts) {
+      this.model = model;
+      this.viewOpts = viewOpts;
       f_set_select = MergeMapSelectFunctions(2);
-      f_seq_length = m.MkFunc("Seq#Length", 1);
-      f_seq_index = m.MkFunc("Seq#Index", 2);
-      f_box = m.MkFunc("$Box", 1);
-      f_dim = m.MkFunc("FDim", 1);
-      f_index_field = m.MkFunc("IndexField", 1);
-      f_multi_index_field = m.MkFunc("MultiIndexField", 2);
-      f_dtype = m.MkFunc("dtype", 1);
-      f_null = m.MkFunc("null", 0);
+      f_seq_length = model.MkFunc("Seq#Length", 1);
+      f_seq_index = model.MkFunc("Seq#Index", 2);
+      f_box = model.MkFunc("$Box", 1);
+      f_dim = model.MkFunc("FDim", 1);
+      f_index_field = model.MkFunc("IndexField", 1);
+      f_multi_index_field = model.MkFunc("MultiIndexField", 2);
+      f_dtype = model.MkFunc("dtype", 1);
+      f_null = model.MkFunc("null", 0);
 
       // collect the array dimensions from the various array.Length functions, and
       // collect all known datatype values
-      foreach (var fn in m.Functions)
+      foreach (var fn in model.Functions)
       {
         if (Regex.IsMatch(fn.Name, "^_System.array[0-9]*.Length[0-9]*$"))
         {
@@ -120,8 +111,40 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       return name;
     }
     
+    public string CanonicalName(Model.Element elt)
+    {
+      string res;
+      if (elt == null) return "?";
+      if (canonicalName.TryGetValue(elt, out res)) return res;
+      NameSeqSuffix suff;
+      var baseName = CanonicalBaseName(elt, out suff);
+      if (baseName == "")
+        suff = NameSeqSuffix.Always;
+      if (baseName == "null")
+        return baseName;
 
-    protected override string CanonicalBaseName(Model.Element elt, out NameSeqSuffix suff)
+      if (viewOpts.DebugMode && !(elt is Model.Boolean) && !(elt is Model.Number))
+      {
+        baseName += string.Format("({0})", elt);
+        suff = NameSeqSuffix.WhenNonZero;
+      }
+
+      int cnt;
+      if (!baseNameUse.TryGetValue(baseName, out cnt))
+        cnt = -1;
+      cnt++;
+
+      if (suff == NameSeqSuffix.Always || (cnt > 0 && suff == NameSeqSuffix.WhenNonZero))
+        res = AppendSuffix(baseName, cnt);
+      else
+        res = baseName;
+
+      baseNameUse[baseName] = cnt;
+      canonicalName.Add(elt, res);
+      return res;
+    }
+
+    protected string CanonicalBaseName(Model.Element elt, out NameSeqSuffix suff)
     {
       Model.FuncTuple fnTuple;
       suff = NameSeqSuffix.WhenNonZero;
@@ -155,7 +178,20 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
           }
         }
       }
-      return base.CanonicalBaseName(elt, out suff);
+      
+      string res;
+      if (elt is Model.Integer || elt is Model.Boolean)
+      {
+        suff = NameSeqSuffix.None;
+        return elt.ToString();
+      }
+      suff = NameSeqSuffix.Always;
+      if (UseLocalsForCanonicalNames)
+      {
+        if (localValue.TryGetValue(elt, out res))
+          return res;
+      }
+      return "";
     }
 
     public IEnumerable<DafnyModelVariable> GetExpansion(DafnyModelState dafnyModelState, DafnyModelVariable var)
@@ -289,167 +325,119 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
       var unboxed = f_box.AppWithResult(elt);
       if (unboxed != null)
         return unboxed.Args[0];
-      else
-        return elt;
-    }
-  }
-
-  public class DafnyModelState
-  {
-    public readonly List<DafnyModelVariable> Vars = new();
-    internal readonly DafnyModel dm;
-    private readonly List<DafnyModelVariable> skolems;
-    private Model.CapturedState state;
-    private LanguageModel langModel;
-    private Dictionary<Model.Element, DafnyModelVariable> varMap;
-
-    public DafnyModelState(DafnyModel parent, Model.CapturedState s) {
-      state = s;
-      langModel = parent;
-      dm = parent;
-      state = s;
-      varMap = new Dictionary<Model.Element, DafnyModelVariable>();
-      skolems = new List<DafnyModelVariable>(SkolemVars());
-      SetupVars();
-    }
-
-    public HashSet<DafnyModelVariable> ExpandedVariableSet(int maxDepth) {
-      HashSet<DafnyModelVariable> vars = new();
-      List<Tuple<DafnyModelVariable, int>> varsToAdd = new();
-      Vars.ForEach(v => varsToAdd.Add(new Tuple<DafnyModelVariable, int>(v, 0)));
-      skolems.ForEach(v => varsToAdd.Add(new Tuple<DafnyModelVariable, int>(v, 0)));
-      while (varsToAdd.Count != 0) {
-        var (next, depth) = varsToAdd[0];
-        varsToAdd.RemoveAt(0);
-        if (vars.Contains(next))
-          continue;
-        vars.Add(next);
-        if (depth < maxDepth)
-          foreach (var v in next.GetExpansion().
-            Where(x => !vars.Contains(x) && !x.IsPrimitive)) { 
-            varsToAdd.Add(new Tuple<DafnyModelVariable, int>(v, depth + 1));
-          }
-      }
-      return vars;
-    }
-
-    public bool ExistsVar(Model.Element element) {
-      return varMap.ContainsKey(element);
-    }
-
-    public void AddVar(Model.Element element, DafnyModelVariable var) {
-      varMap[element] = var;
+      return elt;
     }
     
-    public DafnyModelVariable GetVar(Model.Element element) {
-      return varMap[element];
-    }
-
-    void SetupVars()
+    public void RegisterLocalValue(string name, Model.Element elt)
     {
-      var names = Util.Empty<string>();
-
-      if (dm.states.Count > 0)
-      {
-        var prev = dm.states.Last();
-        names = prev.Vars.Map(v => v.Name);
-      }
-
-      names = names.Concat(state.Variables).Distinct();
-
-      var curVars = state.Variables.ToDictionary(x => x);
-      foreach (var v in names)
-      {
-        if (dm.GetUserVariableName(v) != null)
-        {
-          var val = state.TryGet(v);
-          var vn = DafnyModelVariable.Get(this, val, v);
-          if (curVars.ContainsKey(v))
-            dm.RegisterLocalValue(vn.Name, val);
-          Vars.Add(vn);
-        }
-      }
-    }
-
-    IEnumerable<DafnyModelVariable> SkolemVars()
-    {
-      foreach (var f in dm.model.Functions)
-      {
-        if (f.Arity != 0) continue;
-        int n = f.Name.IndexOf('!');
-        if (n == -1) continue;
-        string name = f.Name.Substring(0, n);
-        if (!name.Contains('#')) continue;
-        yield return DafnyModelVariable.Get(this, f.GetConstant(), name);
-      }
-    }
-    
-    public Model.CapturedState State => state;
-    
-    public virtual string CapturedStateName => State.Name;
-
-    public virtual string Name => langModel.ShortenToken(state.Name, 20, true);
-  }
-
-  public class DafnyModelVariable
-  {
-    private DafnyModelState state;
-    private Dictionary<string, DafnyModelVariable> children;
-    public readonly Model.Element element;
-    public readonly string Name;
-    
-    private static int index;
-
-    public static DafnyModelVariable Get(DafnyModelState state,
-      Model.Element element, string name, DafnyModelVariable parent=null) {
-      if (state.ExistsVar(element)) {
-        if (parent != null)
-          parent.AddChild(name, state.GetVar(element));
-        return state.GetVar(element);
-      }
-      return new(state, element, name, parent);
-    }
-
-    private DafnyModelVariable(DafnyModelState state, Model.Element element, string name, DafnyModelVariable parent) {
-      this.state = state;
-      this.element = element;
-      children = new();
-      state.AddVar(element, this);
-      if (parent == null) {
-        Name = name;
+      string curr;
+      if (localValue.TryGetValue(elt, out curr) && CompareFieldNames(name, curr) >= 0)
         return;
-      }
-      Name = "@" + index++;
-      parent.AddChild(name, this);
+      localValue[elt] = name;
     }
 
-    public IEnumerable<DafnyModelVariable> GetExpansion() {
-      return state.dm.GetExpansion(state, this);
+    protected string AppendSuffix(string baseName, int id)
+    {
+      return baseName + "'" + id;
     }
 
-    public void AddChild(string name, DafnyModelVariable child) {
-      children[name] = child;
-    }
-    
-    public virtual string Value {
-      get {
-        string result = state.dm.CanonicalName(element);
-        foreach (var key in children.Keys) {
-          if (children[key].IsPrimitive)
-            result += ", " + ShortName + key + "=" + children[key].Value;
-          else
-            result += ", " + ShortName + key + "=" + children[key].ShortName;
+    static ulong GetNumber(string s, int beg)
+    {
+      ulong res = 0;
+      while (beg < s.Length)
+      {
+        var c = s[beg];
+        if ('0' <= c && c <= '9')
+        {
+          res *= 10;
+          res += (uint)c - '0';
         }
-        return result;
+        beg++;
       }
+      return res;
     }
 
-    public virtual bool IsPrimitive =>
-      (element.Kind != Model.ElementKind.Uninterpreted || element == state.dm.f_null.GetConstant()) && 
-      element.Kind != Model.ElementKind.Array && 
-      (element.Kind != Model.ElementKind.DataValue || 
-       ((Model.DatatypeValue) element).ConstructorName == "-");
-    
-    public virtual string ShortName => Regex.Replace(Name, @"#\d+$", "");
+    public int CompareFieldNames(string f1, string f2)
+    {
+      var len = Math.Min(f1.Length, f2.Length);
+      var numberPos = -1;
+      for (int i = 0; i < len; ++i)
+      {
+        var c1 = f1[i];
+        var c2 = f2[i];
+        if ('0' <= c1 && c1 <= '9' && '0' <= c2 && c2 <= '9')
+        {
+          numberPos = i;
+          break;
+        }
+        if (c1 != c2)
+          break;
+      }
+
+      if (numberPos >= 0)
+      {
+        var v1 = GetNumber(f1, numberPos);
+        var v2 = GetNumber(f2, numberPos);
+
+        if (v1 < v2) return -1;
+        if (v1 > v2) return 1;
+      }
+
+      return string.CompareOrdinal(f1, f2);
+    }
+
+    public class SourceLocation
+    {
+      public string Filename;
+      public string AddInfo;
+      public int Line;
+      public int Column;
+    }
+
+    // example parsed token: @"c:\users\foo\bar.c(12,10) : random string"
+    // the ": random string" part is optional
+    public SourceLocation TryParseSourceLocation(string name)
+    {
+      var par = name.LastIndexOf('(');
+      if (par <= 0) return null;
+
+      var res = new SourceLocation() { Filename = name.Substring(0, par) };
+
+      var words = name.Substring(par + 1).Split(',', ')', ':').Where(x => x != "").ToArray();
+      if (words.Length < 2) return null;
+
+      if (!int.TryParse(words[0], out res.Line) || !int.TryParse(words[1], out res.Column)) return null;
+
+      var colon = name.IndexOf(':', par);
+      if (colon > 0)
+        res.AddInfo = name.Substring(colon + 1).Trim();
+      else
+        res.AddInfo = "";
+
+      return res;
+    }
+
+    static char[] dirSeps = { '\\', '/' };
+    public string ShortenToken(string tok, int fnLimit, bool addAddInfo)
+    {
+      var loc = TryParseSourceLocation(tok);
+
+      if (loc != null)
+      {
+        var fn = loc.Filename;
+        var idx = fn.LastIndexOfAny(dirSeps);
+        if (idx > 0)
+          fn = fn.Substring(idx + 1);
+        if (fn.Length > fnLimit)
+        {
+          fn = fn.Substring(0, fnLimit) + "..";
+        }
+        var addInfo = addAddInfo ? loc.AddInfo : "";
+        if (addInfo != "")
+          addInfo = ":" + addInfo;
+        return string.Format("{0}({1},{2}){3}", fn, loc.Line, loc.Column, addInfo);
+      }
+      return tok;
+    }
   }
 }
