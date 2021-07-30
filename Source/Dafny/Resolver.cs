@@ -16926,7 +16926,7 @@ namespace Microsoft.Dafny
       return ok && ctor.Formals.Count == dtv.Arguments.Count;
     }
 
-    public static string IsGhostPrefix(bool isGhost) {
+    public static string GhostPrefix(bool isGhost) {
       return isGhost ? "ghost " : "";
     }
     

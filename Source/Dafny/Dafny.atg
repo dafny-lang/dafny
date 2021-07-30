@@ -3848,39 +3848,24 @@ ParensExpression<out Expression e>
        e = new ParensExpression(x, args[0].Actual);
      } else {
        // Compute the actual position of ghost arguments
-       List<bool> argumentGhostness;
-       if (args.TrueForAll(arg => arg.FormalParameterName != null)) {
-         bool[] ghostness = new bool[args.Count];
-         bool[] initialized = new bool[args.Count];
-         for (int i = 0; i < initialized.Length; ++i) {
-           initialized[i] = false;
-         }
-         foreach (var arg in args) {
-           var success = int.TryParse(arg.FormalParameterName.val, out var index);
-           if (!success) {
-             SemErr(arg.FormalParameterName, "the name of tuple arguments must be an integer");
+       var ghostness = new bool[args.Count];
+       for (var i = 0; i < args.Count; i++) {
+         ghostness[i] = false;
+       }
+       for (var i = 0; i < args.Count; i++) {
+         var arg = args[i];
+         if (arg.IsGhost) {
+           if (arg.FormalParameterName == null) {
+             ghostness[i] = true;
            } else {
-             if (index < 0 || ghostness.Length <= index) {
-               SemErr(arg.FormalParameterName, "the name of tuple argument must describe a valid position in the tuple, starting from zero");
-             } else {
-               if (initialized[index]) {
-                 SemErr(arg.FormalParameterName, "different tuple arguments cannot have the same name");
-               } else {
-                 ghostness[index] = arg.IsGhost;
-                 initialized[index] = true;
-               }
+             var success = int.TryParse(arg.FormalParameterName.val, out var index);
+             if (success && 0 <= index && index < args.Count) {
+               ghostness[index] = true;
              }
            }
          }
-		 argumentGhostness = ghostness.ToList();
-       } else {
-         foreach (var arg in args) {
-           if (arg.FormalParameterName != null) {
-             SemErr(arg.FormalParameterName, "mixing named and positional tuple arguments is not allowed");
-           }
-         }
-         argumentGhostness = args.ConvertAll(arg => arg.IsGhost);
        }
+       var argumentGhostness = ghostness.ToList();
        // make sure the corresponding tuple type exists
        var tmp = theBuiltIns.TupleType(x, args.Count, true, argumentGhostness);
        e = new DatatypeValue(x, BuiltIns.TupleTypeName(argumentGhostness), BuiltIns.TupleTypeCtorNamePrefix + args.Count, args);

@@ -114,7 +114,7 @@ namespace Microsoft.Dafny {
     public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
     public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
     public readonly Dictionary<int, SubsetTypeDecl> TotalArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
-    readonly Dictionary<object, TupleTypeDecl> tupleTypeDecls = new Dictionary<object, TupleTypeDecl>();
+    readonly Dictionary<List<bool>, TupleTypeDecl> tupleTypeDecls = new Dictionary<List<bool>, TupleTypeDecl>(new Dafny.ListComparer<bool>());
     public readonly ISet<int> Bitwidths = new HashSet<int>();
     public SpecialField ORDINAL_Offset;  // filled in by the resolver, used by the translator
 
@@ -325,29 +325,20 @@ namespace Microsoft.Dafny {
       return new ArrowType(f.tok, atd, f.Formals.ConvertAll(arg => Resolver.SubstType(arg.Type, typeMap)), Resolver.SubstType(f.ResultType, typeMap));
     }
 
-    private object MakeTupleKey(List<bool> isGhost, int dims) {
-      if (dims == 0) {
-        return 0;
-      } else {
-        var g = isGhost[dims - 1];
-        return Tuple.Create(g, MakeTupleKey(isGhost, dims - 1));
-      }
-    }
-
     public TupleTypeDecl TupleType(IToken tok, int dims, bool allowCreationOfNewType, List<bool> argumentGhostness = null) {
       Contract.Requires(tok != null);
       Contract.Requires(0 <= dims);
+      Contract.Requires(argumentGhostness == null || argumentGhostness.Count == dims);
       Contract.Ensures(Contract.Result<TupleTypeDecl>() != null);
 
       TupleTypeDecl tt;
       argumentGhostness = argumentGhostness ?? new bool[dims].Select(_ => false).ToList();
-      object key = MakeTupleKey(argumentGhostness, dims);
-      if (!tupleTypeDecls.TryGetValue(key, out tt)) {
+      if (!tupleTypeDecls.TryGetValue(argumentGhostness, out tt)) {
         Contract.Assume(allowCreationOfNewType);  // the parser should ensure that all needed tuple types exist by the time of resolution
         // tuple#2 is already defined in DafnyRuntime.cs
         var attributes = dims == 2 && !argumentGhostness.Contains(true) ? DontCompile() : null;
         tt = new TupleTypeDecl(argumentGhostness, SystemModule, attributes);
-        tupleTypeDecls.Add(key, tt);
+        tupleTypeDecls.Add(argumentGhostness, tt);
         SystemModule.TopLevelDecls.Add(tt);
       }
       return tt;
@@ -3040,7 +3031,7 @@ namespace Microsoft.Dafny {
         // Unfortunately, ResolveClass may be null, so Name is all we have.  Reverse-engineer the string name.
         IEnumerable<bool> argumentGhostness = BuiltIns.ArgumentGhostnessFromString(Name, TypeArgs.Count);
         return "(" + Util.Comma(System.Linq.Enumerable.Zip(TypeArgs, argumentGhostness),
-          (ty_u) => Resolver.IsGhostPrefix(ty_u.Item2) + ty_u.Item1.TypeName(context, parseAble)) + ")";
+          (ty_u) => Resolver.GhostPrefix(ty_u.Item2) + ty_u.Item1.TypeName(context, parseAble)) + ")";
       } else if (ArrowType.IsPartialArrowTypeName(Name)) {
         return ArrowType.PrettyArrowTypeName(ArrowType.PARTIAL_ARROW, TypeArgs, null, context, parseAble);
       } else if (ArrowType.IsTotalArrowTypeName(Name)) {
@@ -4734,22 +4725,16 @@ namespace Microsoft.Dafny {
   {
     public readonly List<bool> ArgumentGhostness;
 
-    public int Dims
-    {
-      get { return ArgumentGhostness.Count; }
-    }
-    
-    public int NonGhostDims
-    {
-      get { return ArgumentGhostness.Count(x => !x); }
-    }
+    public int Dims => ArgumentGhostness.Count;
+
+    public int NonGhostDims => ArgumentGhostness.Count(x => !x);
 
     /// <summary>
     /// Construct a resolved built-in tuple type with "dim" arguments.  "systemModule" is expected to be the _System module.
     /// </summary>
     public TupleTypeDecl(List<bool> argumentGhostness, ModuleDefinition systemModule, Attributes attributes)
       : this(systemModule, CreateCovariantTypeParameters(argumentGhostness.Count), argumentGhostness, attributes) {
-      Contract.Requires(0 <= Dims);
+      Contract.Requires(0 <= argumentGhostness.Count);
       Contract.Requires(systemModule != null);
 
       // Resolve the type parameters here

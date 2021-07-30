@@ -13,13 +13,13 @@ method Test2(t2: (int, ghost int, int)) { print "Test2: ", t2, "\n"; }
 method Test3(t3: ((ghost int), (ghost int, int), ghost int)) { print "Test3: ", t3, "\n"; }
 
 method Main() {
-    var p := PhantomData(123);
-    var t0 := (ghost 00);
-    var t1 := (ghost 11, 22);
-    var t2 := (33, ghost 44, 55);
-    var t3 := ((ghost 66), (ghost 77, 88), ghost 99);
-    Test0(t0);
-    Test1(t1);
-    Test2(t2);
-    Test3(t3);
+  var p := PhantomData(123);
+  var t0 := (ghost 00);
+  var t1 := (ghost 11, 22);
+  var t2 := (33, ghost 44, 55);
+  var t3 := ((ghost 66), (ghost 77, 88), ghost 99);
+  Test0(t0);
+  Test1(t1);
+  Test2(t2);
+  Test3(t3);
 }
