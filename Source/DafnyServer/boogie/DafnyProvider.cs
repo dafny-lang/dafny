@@ -87,7 +87,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny
     /// since 2.9.2
     /// </summary>
     private Model.Func MergeMapSelectFunctions(int arity) {
-      int id = arity - 1;
+      int id = arity;
       while (model.HasFunc("[" + id + "]")) {
         id++; // increment id if the name "[" + id + "]" is already reserved
       }
