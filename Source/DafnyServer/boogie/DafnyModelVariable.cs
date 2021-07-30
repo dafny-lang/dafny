@@ -7,6 +7,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny {
     private Dictionary<string, DafnyModelVariable> children;
     public readonly Model.Element element;
     public readonly string Name;
+    public readonly string Type;
     
     private static int index;
 
@@ -23,6 +24,7 @@ namespace Microsoft.Boogie.ModelViewer.Dafny {
     private DafnyModelVariable(DafnyModelState state, Model.Element element, string name, DafnyModelVariable parent) {
       this.state = state;
       this.element = element;
+      Type = state.dm.GetDafnyType(element);
       children = new();
       state.AddVar(element, this);
       if (parent == null) {

@@ -14,12 +14,12 @@ public class DafnyModel {
     public readonly Model model;
     internal readonly Model.Func f_set_select, f_seq_length, f_seq_index, f_box, 
       f_dim, f_index_field, f_multi_index_field, f_dtype, f_null, f_char_to_int,
-      f_type, f_char;
+      f_type, f_char, f_tag, f_bv;
     private readonly Dictionary<Model.Element, Model.Element[]> ArrayLengths = new();
     private readonly Dictionary<Model.Element, Model.FuncTuple> DatatypeValues = new();
     private readonly Dictionary<Model.Element, string> localValue = new();
 
-    private readonly HashSet<int> charCodes = new();
+    private readonly HashSet<int> charCodes = new(); //TODO: move this to state level
 
     private bool UseLocalsForCanonicalNames => false;
 
@@ -37,6 +37,8 @@ public class DafnyModel {
       f_char_to_int = model.MkFunc("char#ToInt", 1);
       f_type = model.MkFunc("type", 1);
       f_char = model.MkFunc("charType", 0);
+      f_tag = model.MkFunc("Tag", 1);
+      f_bv = model.MkFunc("TBitvector", 1);
       
       InitCharCodes();
 
@@ -114,6 +116,128 @@ public class DafnyModel {
       return name;
     }
     
+    /// <summary>
+    /// Return the name of the 0-arity function that maps to the element if such
+    /// a function exists and is unique. Return null otherwise
+    /// </summary>
+    private string GetTrueName(Model.Element element) {
+      string name = null;
+      foreach (var funcTuple in element.Names) {
+        if (funcTuple.Func.Arity != 0)
+          continue;
+        if (name == null)
+          name = funcTuple.Func.Name;
+        else
+          return null;
+      }
+      return name;
+    }
+
+    /// <summary>Get Boogie type. This returns the Boogie type associated
+    /// with the element </summary>
+    private string GetBoogieType(Model.Element element) {
+      Model.Element typeElement = model.GetFunc("type").OptEval(element);
+      if (typeElement == null)
+        return null;
+      string name = GetTrueName(typeElement);
+      if (name != null)
+        return name;
+      if (model.GetFunc("SeqTypeInv0").OptEval(typeElement) != null)
+        return "SeqType";
+      if (model.GetFunc("MapType0TypeInv0").OptEval(typeElement) != null)  // TODO: Not sure about this
+        return "SetType";
+      return null;
+    }
+    
+    /// <summary> Get the Dafny type of the element </summary>
+    /// <returns></returns>
+    internal string GetDafnyType(Model.Element element) {
+      switch (element.Kind) {
+        case Model.ElementKind.Boolean: 
+          return "bool";
+        case Model.ElementKind.Integer:
+          return "int";
+        case Model.ElementKind.Real:
+          return "real";
+        case Model.ElementKind.BitVector:
+          return "bv" + ((Model.BitVector) element).Size; //TODO: test this
+        case Model.ElementKind.Uninterpreted:
+          return GetDafnyType(element as Model.Uninterpreted);
+        case Model.ElementKind.DataValue:
+          if (((Model.DatatypeValue) element).ConstructorName == "-")
+            return GetDafnyType(((Model.DatatypeValue) element).Arguments.First());
+          return "?"; // TODO: Not sure if this can happen
+        case Model.ElementKind.Array: 
+        default:
+          return "?";
+      }
+    }
+
+    /// <summary>
+    /// Return all elements x that satisfy ($Is element x)
+    /// </summary>
+    private List<Model.Element> GetIsResults(Model.Element element) {
+      List<Model.Element> result = new();
+      foreach (var tuple in model.GetFunc("$Is").AppsWithArg(0, element))
+        if (((Model.Boolean) tuple.Result).Value) {
+          result.Add(tuple.Args[1]);
+        }
+      return result;
+    }
+
+    /// <summary> Get the Dafny type of an Uninterpreted element </summary>
+    private string GetDafnyType(Model.Uninterpreted element) {
+      // TODO: make uses of OptEval and AppWithArg consistent
+      string boogieType = GetBoogieType(element);
+      switch (boogieType) {
+        case "intType": case "realType": case "charType": case "boolType":
+          return boogieType.Substring(0, boogieType.Length - 4);
+        case "SeqType":
+        case "SetType":
+        case "DatatypeTypeType":
+          return ReconstructType(GetIsResults(element)?[0]);
+        case "refType":
+          return ReconstructType(f_dtype.OptEval(element));
+        case var bv when new Regex("^bv[0-9]+Type$").IsMatch(bv):
+          return bv.Substring(0, bv.Length - 4);
+        default:
+          return "?";
+      }
+    }
+
+    /// <summary>
+    /// Reconstruct Dafny type from an element that represents a type in Z3
+    /// </summary>
+    private string ReconstructType(Model.Element typeElement) {
+      if (typeElement == null)
+        return "?";
+      string fullName = GetTrueName(typeElement);
+      if (fullName != null && fullName.Length > 7)
+        return fullName.Substring(7);
+      if (fullName is "TInt" or "TReal" or "TChar" or "TBool")
+        return fullName.Substring(1).ToLower(); // TODO: what about sequences and bitVectors?
+      if (f_bv.AppWithResult(typeElement) != null)
+        return "bv" + ((Model.Integer)f_bv.AppWithResult(typeElement).Args[0]).AsInt();
+      Model.Element tagElement = f_tag.OptEval(typeElement);
+      if (tagElement == null)
+        return "?";
+      string tagName = GetTrueName(tagElement);
+      if (tagName == null || (tagName.Length < 10 && tagName != "TagSeq" && tagName != "TagSet" && tagName != "TagBitVector"))
+        return "?";
+      Model.Element[] typeArgs = model.GetFunc("T" + tagName.Substring(3))?.
+        AppWithResult(typeElement)?.
+        Args;
+      if (tagName == "TagSeq")
+        tagName = "seq";
+      else if (tagName == "TagSet")
+        tagName = "set";
+      else
+        tagName = tagName.Substring(9);
+      if (typeArgs == null)
+        return tagName;
+      return tagName + "<" + String.Join(",", typeArgs.Map(t => ReconstructType(t))) + ">";
+    }
+    
     public string CanonicalName(Model.Element elt) {
       string res;
       if (elt == null) return "?";
@@ -176,7 +300,7 @@ public class DafnyModel {
         // elt is a datatype value
         int i = 0;
         foreach (var arg in fnTuple.Args) {
-          result.Add(DafnyModelVariable.Get(dafnyModelState, arg, var.element.ToString() + i, var));
+          result.Add(DafnyModelVariable.Get(dafnyModelState, arg, "[" + i + "]", var));
           i++;
         }
         return result;
@@ -185,7 +309,7 @@ public class DafnyModel {
       // Perhaps elt is a sequence
       var seqLen = f_seq_length.AppWithArg(0, var.element);
       if (seqLen != null) {
-        // elt is a sequence
+        // elt is a sequence TODO: string equality comparison
         foreach (var tpl in f_seq_index.AppsWithArg(0, var.element))
           result.Add(DafnyModelVariable.Get(dafnyModelState, Unbox(tpl.Result), "[" + tpl.Args[1] + "]", var));
         return result;

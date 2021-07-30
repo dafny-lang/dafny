@@ -38,7 +38,7 @@ method Abs(x: int) returns (y: int)
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual((2, 0), counterExamples[0].Position);
-      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("y"));
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("y:int"));
     }
 
     [TestMethod]
@@ -58,9 +58,9 @@ method Abs(x: int) returns (y: int)
       Assert.AreEqual((2, 0), counterExamples[0].Position);
       Assert.AreEqual((3, 12), counterExamples[1].Position);
       Assert.AreEqual((4, 8), counterExamples[2].Position);
-      Assert.IsTrue(counterExamples[2].Variables.ContainsKey("x"));
-      Assert.IsTrue(counterExamples[2].Variables.ContainsKey("y"));
-      Assert.IsTrue(counterExamples[2].Variables.ContainsKey("z"));
+      Assert.IsTrue(counterExamples[2].Variables.ContainsKey("x:int"));
+      Assert.IsTrue(counterExamples[2].Variables.ContainsKey("y:int"));
+      Assert.IsTrue(counterExamples[2].Variables.ContainsKey("z:int"));
     }
 
     [TestMethod]
@@ -99,10 +99,10 @@ method Negate(a: int) returns (b: int)
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual((2, 0), counterExamples[0].Position);
-      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("y"));
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("y:int"));
       Assert.AreEqual((7, 0), counterExamples[1].Position);
-      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("a"));
-      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("b"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("a:int"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("b:int"));
     }
     
     [TestMethod]
@@ -121,7 +121,7 @@ method IsSelfReferring(n:Node) returns (b:bool) {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
-      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("n"));
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("n:_module.Node?"));
     }
     
     [TestMethod]
@@ -140,7 +140,7 @@ method IsSelfRecursive(n:Node) returns (b:bool) {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
-      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("n"));
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("n:_module.Node?"));
     }
     
     [TestMethod]
@@ -159,7 +159,7 @@ method IsSelfRecursive(n:Node) returns (b:bool) {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
-      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("n"));
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("n:_module.Node?"));
     }
     
     [TestMethod]
@@ -185,10 +185,10 @@ class BankAccountUnsafe {
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
       Assert.AreEqual(2, counterExamples[1].Variables.Count);
-      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("amount"));
-      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("amount"));
-      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("this"));
-      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("this"));
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("amount:int"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("amount:int"));
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("this:_module.BankAccountUnsafe?"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("this:_module.BankAccountUnsafe?"));
     }
     
     [TestMethod]
@@ -203,8 +203,74 @@ method a(c:char) {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
-      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("c"));
-      Assert.IsTrue(counterExamples[0].Variables["c"] == "'0'");
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("c:char"));
+      Assert.IsTrue(counterExamples[0].Variables["c:char"] == "'0'");
+    }
+    
+    [TestMethod]
+    public async Task GetCounterExampleForADatatype() {
+      var source = @"
+datatype B = A(int)
+method a(b:B) {
+    assert b != A(5);
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(1, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("b:_module.B"));
+      // TODO: add more assertions here?
+    }
+    
+    [TestMethod]
+    public async Task GetCounterExampleForAnArray() {
+      var source = @"
+method a(arr:array<int>) requires arr.Length > 0 {
+    assert arr[0] != 4;
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(1, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("arr:_System.array?<int>"));
+      // TODO: add more assertions here?
+    }
+    
+    [TestMethod]
+    public async Task GetCounterExampleForASequence() {
+      var source = @"
+method a(s:seq<int>) requires |s| > 0 {
+    assert s[0] != 4;
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(1, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("s:seq<int>"));
+      // TODO: add more assertions here?
+    }
+    
+    [TestMethod]
+    public async Task GetCounterExampleForASequenceOfBitVectors() {
+      var source = @"
+method a(s:seq<bv5>) requires |s| > 0 {
+    assert s[0] == (2 as bv5);
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(2, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("s:seq<bv5>"));
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("@0:bv5"));
+      // TODO: add more assertions here?
     }
   }
 }
