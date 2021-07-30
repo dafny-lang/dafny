@@ -42,7 +42,7 @@ class A {
   {}
 
   twostate lemma L4(new a: A)
-    requires unchanged(a)
+    requires old(allocated(a)) && unchanged(a)
   {
     assert a.f == old(a.f);
     assert a.GimmieF() == old(a.GimmieF());  // we get that everything about a, including its allocatedness,
@@ -78,7 +78,7 @@ class A {
 class Node {
   var x: int
   var next: Node?
-  ghost var Repr: set<Node?>
+  ghost var Repr: set<Node>
   predicate Valid()
     reads this, Repr
     ensures Valid() ==> this in Repr
@@ -164,7 +164,7 @@ class Node {
   twostate lemma M_Lemma_Alt(node: Node)
     requires old(Valid())
     requires old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
-    requires forall n :: n != null && n in old(Repr) && n != node ==> n.x == old(n.x) && n.next == old(n.next) && n.Repr == old(n.Repr)
+    requires forall n :: n in old(Repr) && n != node ==> n.x == old(n.x) && n.next == old(n.next) && n.Repr == old(n.Repr)
     ensures Valid() && old(Sum()) <= Sum()
     decreases Repr
   {
@@ -176,7 +176,7 @@ class Node {
   static twostate lemma M_Lemma_Alt_Static(self: Node, node: Node)
     requires old(self.Valid())
     requires old(node.x) <= node.x && old((node.next, node.Repr)) == (node.next, node.Repr)
-    requires forall n :: n != null && n in old(self.Repr) && n != node ==> n.x == old(n.x) && n.next == old(n.next) && n.Repr == old(n.Repr)
+    requires forall n :: n in old(self.Repr) && n != node ==> n.x == old(n.x) && n.next == old(n.next) && n.Repr == old(n.Repr)
     ensures self.Valid() && old(self.Sum()) <= self.Sum()
     decreases self.Repr
   {

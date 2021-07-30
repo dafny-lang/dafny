@@ -10652,7 +10652,7 @@ namespace Microsoft.Dafny {
     [Peer]
     public readonly Expression E;
     public readonly string/*?*/ At;
-    public Label AtLabel;  // filled in during resolution; after that, At==null iff AtLabel==null
+    public Label/*?*/ AtLabel;  // filled in during resolution; after that, At==null iff AtLabel==null
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(E != null);
@@ -10677,7 +10677,7 @@ namespace Microsoft.Dafny {
   {
     public readonly List<FrameExpression> Frame;
     public readonly string/*?*/ At;
-    public Label AtLabel;  // filled in during resolution; after that, At==null iff AtLabel==null
+    public Label/*?*/ AtLabel;  // filled in during resolution; after that, At==null iff AtLabel==null
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(Frame != null);
@@ -10725,7 +10725,7 @@ namespace Microsoft.Dafny {
     public enum Opcode {
       Not,  // boolean negation or bitwise negation
       Cardinality,
-      Fresh,
+      Fresh, // fresh also has a(n optional) second argument, namely the @-label
       Allocated,
       Lit,  // there is no syntax for this operator, but it is sometimes introduced during translation
     }
@@ -10735,7 +10735,20 @@ namespace Microsoft.Dafny {
       : base(tok, e) {
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
+      Contract.Requires(op != Opcode.Fresh || this is FreshExpr);
       this.Op = op;
+    }
+  }
+
+  public class FreshExpr : UnaryOpExpr {
+    public readonly string/*?*/ At;
+    public Label/*?*/ AtLabel;  // filled in during resolution; after that, At==null iff AtLabel==null
+
+    public FreshExpr(IToken tok, Expression e, string at = null)
+      : base(tok, Opcode.Fresh, e) {
+      Contract.Requires(tok != null);
+      Contract.Requires(e != null);
+      this.At = at;
     }
   }
 
