@@ -12,12 +12,17 @@ namespace DafnyServer.CounterExampleGeneration {
     
     internal readonly DafnyModel Model;
     internal readonly Model.CapturedState State;
+    internal int VarIndex; // used to assign unique indices to variables
     private readonly List<DafnyModelVariable> vars;
     private readonly List<DafnyModelVariable> skolems;
     // The following map helps to avoid the creation of multiple variables for
     // the same element.
     private readonly Dictionary<Model.Element, DafnyModelVariable> varMap;
-    internal int VarIndex; // used to assign unique indices to variables
+    
+    // The following is used to assign unique character codes to elements for
+    // which the model does not provide precise mapping
+    private readonly Dictionary<string, HashSet<int>> uniqueIds;
+    private readonly Dictionary<string, Dictionary<Model.Element, int>> elToId;
 
     public DafnyModelState(DafnyModel model, Model.CapturedState state) {
       Model = model;
@@ -26,6 +31,8 @@ namespace DafnyServer.CounterExampleGeneration {
       vars = new();
       varMap = new ();
       skolems = new List<DafnyModelVariable>(SkolemVars());
+      uniqueIds = new();
+      elToId = new();
       SetupVars();
     }
 
@@ -82,7 +89,41 @@ namespace DafnyServer.CounterExampleGeneration {
     public string ShortenedStateName => ShortenName(State.Name, 20);
 
     /// <summary>
-    /// Initializes the vars list, which stores all variables relevant to
+    /// Initializes the set of values of some type for which the model already
+    /// has a mapping and which cannot be assigned to arbitrary elements. This
+    /// is used for chars and could be used for bitvectors
+    /// </summary>
+    internal void SetupUniqueIds(string type, IEnumerable<int> reservedValues) {
+      if (!elToId.ContainsKey(type)) {
+        uniqueIds[type] = new();
+      }
+      foreach (var value in reservedValues) {
+        uniqueIds[type].Add(value);
+      }
+    }
+
+    /// <summary>
+    /// Returns a unique integer mapping for an element (e.g. utf for a char).
+    /// </summary>
+    internal int GetUniqueId(Model.Element element, string type, int minValue=0) {
+      if (!elToId.ContainsKey(type)) {
+        elToId[type] = new();
+        uniqueIds[type] = new();
+      }
+      if (elToId[type].ContainsKey(element)) {
+        return elToId[type][element];
+      }
+      var value = minValue;
+      while (uniqueIds[type].Contains(value)) {
+        value++;
+      }
+      uniqueIds[type].Add(value);
+      elToId[type][element] = value;
+      return value;
+    }
+
+    /// <summary>
+    /// Initialize the vars list, which stores all variables relevant to
     /// the counterexample except for Skolem constants
     /// </summary>
     private void SetupVars() {
@@ -94,19 +135,20 @@ namespace DafnyServer.CounterExampleGeneration {
       names = names.Concat(State.Variables).Distinct();
       var curVars = State.Variables.ToDictionary(x => x);
       foreach (var v in names) {
-        if (Model.GetUserVariableName(v) != null) {
-          var val = State.TryGet(v);
-          var vn = DafnyModelVariable.Get(this, val, v, duplicate:true);
-          if (curVars.ContainsKey(v)) {
-            Model.RegisterLocalValue(vn.Name, val);
-          }
-          vars.Add(vn);
+        if (!DafnyModel.IsUserVariableName(v)) {
+          continue;
         }
+        var val = State.TryGet(v);
+        var vn = DafnyModelVariable.Get(this, val, v, duplicate:true);
+        if (curVars.ContainsKey(v)) {
+          Model.RegisterLocalValue(vn.Name, val);
+        }
+        vars.Add(vn);
       }
     }
 
     /// <summary>
-    /// Returns list of variables associated with Skolem constants
+    /// Return list of variables associated with Skolem constants
     /// </summary>
     private IEnumerable<DafnyModelVariable> SkolemVars() {
       foreach (var f in Model.Model.Functions) {
@@ -145,8 +187,9 @@ namespace DafnyServer.CounterExampleGeneration {
       }
       return name;
     }
+    
     /// <summary>
-    /// Parses a string (typically the name of the captured state in Boogie) to
+    /// Parse a string (typically the name of the captured state in Boogie) to
     /// extract a SourceLocation from it. An example of a string to be parsed:
     /// @"c:\users\foo\bar.c(12,10) : random string"
     /// The ": random string" part is optional.

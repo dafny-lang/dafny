@@ -1,6 +1,7 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
@@ -14,12 +15,14 @@ namespace DafnyServer.CounterExampleGeneration {
     internal readonly Model.Element Element;
     private readonly DafnyModelState state; // the associated captured state
     // A child is a field or a value at a given index of an array, etc.
-    // This dictionary maps the name of the child or field to resp. variable:
-    private readonly Dictionary<string, DafnyModelVariable> children; 
+    // This dictionary associates a child name with resp. variable:
+    // several children can have same names (particularly, sets can have
+    // many children called true and falls)
+    private readonly Dictionary<string, HashSet<DafnyModelVariable>> children; 
 
     /// <summary>
-    /// Creates a new variable to be associated with the given model element in
-    /// a given counterexample state or returns such a variable if one already
+    /// Create a new variable to be associated with the given model element in
+    /// a given counterexample state or return such a variable if one already
     /// exists.
     /// </summary>
     /// <param name="state"></param>
@@ -65,15 +68,28 @@ namespace DafnyServer.CounterExampleGeneration {
 
     public string Value {
       get {
-        string result = state.Model.CanonicalName(Element);
-        foreach (var key in children.Keys) {
-          if (children[key].IsPrimitive) {
-            result += ", " + ShortName + key + "=" + children[key].Value;
-          } else {
-            result += ", " + ShortName + key + "=" + children[key].ShortName;
+        string result = state.Model.CanonicalName(Element, state);
+        if (children.Count == 0)
+          return result == "" ? "()" : result;
+        List<Tuple<string, string>> childList = new();
+        foreach (var childName in children.Keys) {
+          foreach (var child in children[childName]) {
+            if (child.IsPrimitive) {
+              childList.Add(new Tuple<string, string>(childName, child.Value));
+            } else {
+              childList.Add(new Tuple<string, string>(childName, child.ShortName));
+            }
           }
         }
-        return result;
+        string childValues;
+        if (Type.StartsWith("set<")) {
+          childValues = string.Join(", ",
+            childList.ConvertAll(tpl => tpl.Item2 + " => " + tpl.Item1));
+        } else {
+          childValues = string.Join(", ",
+            childList.ConvertAll(tpl => tpl.Item1 + " => " + tpl.Item2));
+        }
+        return result + "(" + childValues + ")";
       }
     }
 
@@ -82,7 +98,20 @@ namespace DafnyServer.CounterExampleGeneration {
     public string ShortName => Regex.Replace(Name, @"#\d+$", "");
     
     private void AddChild(string name, DafnyModelVariable child) {
-      children[name] = child;
+      if (!children.ContainsKey(name)) {
+        children[name] = new();
+      }
+      children[name].Add(child);
+    }
+
+    public override int GetHashCode() {
+      return Element.Id;
+    }
+
+    public override bool Equals(object? obj) {
+      if (obj is not DafnyModelVariable other)
+        return false;
+      return other.Element == Element && other.state == state && other.Name == Name;
     }
   }
 }
