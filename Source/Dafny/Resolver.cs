@@ -9894,12 +9894,35 @@ namespace Microsoft.Dafny
       }
       SolveAllTypeConstraints();
 
+      if (f.ByMethodBody != null) {
+        // The following conditions are assured by the parser and other callers of the Function constructor
+        Contract.Assert(f.Body != null);
+        Contract.Assert(!f.IsGhost);
+      }
       if (f.Body != null) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(f.Body, new ResolveOpts(f, f is TwoStateFunction));
         Contract.Assert(f.Body.Type != null);  // follows from postcondition of ResolveExpression
         AddAssignableConstraint(f.tok, f.ResultType, f.Body.Type, "Function body type mismatch (expected {0}, got {1})");
         SolveAllTypeConstraints();
+
+        if (f.ByMethodBody != null) {
+          var resultVar = f.Result ?? new Formal(f.tok, "#result", f.ResultType, false, false, null);
+          var r = Expression.CreateIdentExpr(resultVar);
+          var cl = (TopLevelDeclWithMembers)f.EnclosingClass;
+          var receiver = f.IsStatic ?
+            (Expression)new StaticReceiverExpr(f.tok, cl, true) :
+            new ImplicitThisExpr(f.tok) { Type = GetThisType(f.tok, cl) };
+          var fn = new FunctionCallExpr(f.tok, f.Name, receiver, f.tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
+          var post = new AttributedExpression(Expression.CreateEq(r, fn, f.ResultType));
+          var method = new Method(f.tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
+            f.Formals, new List<Formal>() { resultVar },
+            f.Req, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
+            f.ByMethodBody, f.Attributes, null);
+          Contract.Assert(f.ByMethodDecl == null);
+          f.ByMethodDecl = method;
+          ResolveMethod(method);
+        }
       }
 
       scope.PopMarker();

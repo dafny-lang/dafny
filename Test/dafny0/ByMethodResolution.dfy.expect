@@ -1,0 +1,4 @@
+ByMethodResolution.dfy(17,6): Error: number of return parameters does not match declaration (found 2, expected 1)
+ByMethodResolution.dfy(25,4): Error: RHS (of type bv9) not assignable to LHS (of type real)
+ByMethodResolution.dfy(24,6): Error: RHS (of type int) not assignable to LHS (of type real)
+3 resolution/type errors detected in ByMethodResolution.dfy
