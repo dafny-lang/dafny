@@ -879,7 +879,12 @@ namespace Microsoft.Dafny {
         wr.WriteLine("{");
         PrintExtendedExpr(f.Body, ind, true, false);
         Indent(indent);
-        wr.WriteLine("}");
+        wr.Write("}");
+        if (f.ByMethodBody != null) {
+          wr.Write(" by method ");
+          PrintStatement(f.ByMethodBody, indent);
+        }
+        wr.WriteLine();
       }
     }
 

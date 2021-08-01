@@ -449,10 +449,11 @@ namespace Microsoft.Dafny
         body = refinementCloner.CloneExpr(f.Body);
         bodyOrigin = Predicate.BodyOriginKind.OriginalOrInherited;
       }
+      var byMethodBody = refinementCloner.CloneBlockStmt(f.ByMethodBody);
 
       if (f is Predicate) {
         return new Predicate(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals,
-          req, reads, ens, decreases, body, bodyOrigin, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
+          req, reads, ens, decreases, body, bodyOrigin, byMethodBody, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is LeastPredicate) {
         return new LeastPredicate(tok, f.Name, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
@@ -467,7 +468,7 @@ namespace Microsoft.Dafny
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else {
         return new Function(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals, result, refinementCloner.CloneType(f.ResultType),
-          req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
+          req, reads, ens, decreases, body, byMethodBody, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       }
     }
 

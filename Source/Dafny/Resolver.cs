@@ -2008,7 +2008,7 @@ namespace Microsoft.Dafny
             new List<FrameExpression>(),
             new List<AttributedExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
-            null, Predicate.BodyOriginKind.OriginalOrInherited, null, null);
+            null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null);
           // --- here comes method MoveNext
           var moveNext = new Method(iter.tok, "MoveNext", false, false, new List<TypeParameter>(),
             new List<Formal>(), new List<Formal>() {new Formal(iter.tok, "more", Type.Bool, false, false, null)},

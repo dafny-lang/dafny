@@ -2242,7 +2242,20 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
 
   (. decreases = isLeastPredicate || isGreatestPredicate ? null : new List<Expression/*!*/>(); .)
   FunctionSpec<reqs, reads, ens, decreases>
-  [ FunctionBody<out body, out bodyStart, out bodyEnd>
+  (. BlockStmt byMethodBody = null; .)
+  [ FunctionBody<out body, out bodyStart, out bodyEnd, out byMethodBody>
+    (. if (byMethodBody != null) {
+         if (isTwoState) {
+           SemErr(byMethodBody.Tok, "a 'by method' implementation is not allowed on a twostate function");
+         } else if (isLeastPredicate || isGreatestPredicate) {
+           SemErr(byMethodBody.Tok, "a 'by method' implementation is not allowed on an extreme predicate");
+         } else if (isFunctionMethod) {
+           var what = isPredicate ? "predicate" : "function";
+           SemErr(byMethodBody.Tok,
+            $"to use a 'by method' implementation with a {what}, declare {id.val} using '{what}', not '{what} method'");
+         }
+       }
+    .)
   ]
   (. IToken tok = id;
      if (isTwoState && isPredicate) {
@@ -2253,7 +2266,8 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
                                  reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
         f = new Predicate(tok, id.val, dmod.IsStatic, !isFunctionMethod, typeArgs, formals,
-                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
+                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited,
+                          byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
         f = new LeastPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals,
                                reqs, reads, ens, body, attrs, signatureEllipsis);
@@ -2262,7 +2276,8 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
                                   reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
         f = new Function(tok, id.val, dmod.IsStatic, !isFunctionMethod, typeArgs, formals, result, returnType,
-                         reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
+                         reqs, reads, ens, new Specification<Expression>(decreases, null), body, byMethodBody,
+                         attrs, signatureEllipsis);
      }
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
@@ -2350,11 +2365,16 @@ FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
   .
 
 /*------------------------------------------------------------------------*/
-FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd>
-= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
+FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd, out BlockStmt/*?*/ byMethodBody>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr;
+     byMethodBody = null;
+  .)
   "{"                         (. bodyStart = t; .)
   Expression<out e, true, true>
   "}"                         (. bodyEnd = t; .)
+  [ "by" "method"
+    BlockStmt<out byMethodBody, out _, out _>
+  ]
   .
 
 /*------------------------------------------------------------------------*/
