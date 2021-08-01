@@ -847,7 +847,7 @@ namespace Microsoft.Dafny {
       Indent(indent);
       string k = isPredicate ? "predicate" : f.WhatKind;
       if (f.HasStaticKeyword) { k = "static " + k; }
-      if (!f.IsGhost) { k += " method"; }
+      if (!f.IsGhost && f.ByMethodBody == null) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
       if (f.SignatureIsOmitted) {
         wr.Write(" ...");

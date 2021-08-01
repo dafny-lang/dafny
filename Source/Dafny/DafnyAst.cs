@@ -6345,6 +6345,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(reads));
       Contract.Requires(cce.NonNullElements(ens));
       Contract.Requires(decreases != null);
+      Contract.Requires(byMethodBody == null || !isGhost); // function-by-method has a ghost expr and non-ghost stmt, but to callers appears like a functiion-method
       this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
       this.TypeArgs = typeArgs;
       this.Formals = formals;

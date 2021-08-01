@@ -2265,7 +2265,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
         f = new TwoStateFunction(tok, id.val, dmod.IsStatic, typeArgs, formals, result, returnType,
                                  reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
-        f = new Predicate(tok, id.val, dmod.IsStatic, !isFunctionMethod, typeArgs, formals,
+        f = new Predicate(tok, id.val, dmod.IsStatic, !isFunctionMethod && byMethodBody == null, typeArgs, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited,
                           byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
@@ -2275,7 +2275,8 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
         f = new GreatestPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals,
                                   reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
-        f = new Function(tok, id.val, dmod.IsStatic, !isFunctionMethod, typeArgs, formals, result, returnType,
+        f = new Function(tok, id.val, dmod.IsStatic, !isFunctionMethod && byMethodBody == null,
+                         typeArgs, formals, result, returnType,
                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, byMethodBody,
                          attrs, signatureEllipsis);
      }
