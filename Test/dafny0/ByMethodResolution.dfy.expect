@@ -2,4 +2,6 @@ ByMethodResolution.dfy(17,6): Error: number of return parameters does not match 
 ByMethodResolution.dfy(25,4): Error: RHS (of type bv9) not assignable to LHS (of type real)
 ByMethodResolution.dfy(24,6): Error: RHS (of type int) not assignable to LHS (of type real)
 ByMethodResolution.dfy(55,13): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-4 resolution/type errors detected in ByMethodResolution.dfy
+ByMethodResolution.dfy(75,9): Error: ghost variables are allowed only in specification contexts
+ByMethodResolution.dfy(82,14): Error: ghost variables are allowed only in specification contexts
+6 resolution/type errors detected in ByMethodResolution.dfy

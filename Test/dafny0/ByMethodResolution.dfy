@@ -58,3 +58,34 @@ module Export {
     }
   }
 }
+
+module ByMethodGhostInterests {
+  function Zero(): int { 0 }
+
+  function F(x: nat): int {
+    x + Zero()
+  } by method {
+    var j := 0;
+    for i := 0 to x
+      invariant i == -j
+    {
+      j := j - 1;
+    }
+    ghost var k := j;
+    j := k; // error: cannot assign ghost to non-ghost
+    return -j;
+  }
+
+  function G(ghost a: int, b: bool): real {
+    0.0
+  } by method {
+    return if a == 3 then 3.0 else 0.0; // error: cannot use ghost in this context
+  }
+
+  method Caller() returns (x: int, r: real, ghost xx: int, ghost rr: real) {
+    x := F(50);
+    r := G(x, true);
+    xx := F(50);
+    rr := G(x, true);
+  }
+}
