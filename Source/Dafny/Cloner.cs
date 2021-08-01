@@ -976,6 +976,7 @@ namespace Microsoft.Dafny
 
     public override Function CloneFunction(Function f, string newName = null) {
       var basef = base.CloneFunction(f, newName);
+      basef.ByMethodBody = null; // never export the method body of a function-by-method
       if (!RevealedInScope(f)) {
         basef.Body = null;
       }

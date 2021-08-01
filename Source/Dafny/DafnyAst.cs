@@ -6332,8 +6332,8 @@ namespace Microsoft.Dafny {
     public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
       List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-      Expression body, BlockStmt/*?*/ byMethodBody,
-      Attributes attributes, IToken signatureEllipsis)
+      Expression/*?*/ body, BlockStmt/*?*/ byMethodBody,
+      Attributes attributes, IToken/*?*/ signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
 
       Contract.Requires(tok != null);
@@ -6345,7 +6345,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(reads));
       Contract.Requires(cce.NonNullElements(ens));
       Contract.Requires(decreases != null);
-      Contract.Requires(byMethodBody == null || !isGhost); // function-by-method has a ghost expr and non-ghost stmt, but to callers appears like a functiion-method
+      Contract.Requires(byMethodBody == null || (!isGhost && body != null)); // function-by-method has a ghost expr and non-ghost stmt, but to callers appears like a functiion-method
       this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
       this.TypeArgs = typeArgs;
       this.Formals = formals;
