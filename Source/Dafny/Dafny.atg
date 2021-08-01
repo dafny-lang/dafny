@@ -2158,7 +2158,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
-      Formals<true, isFunctionMethod, isTwoState, formals>
+      Formals<true, true, isTwoState, formals>
       ":"
       (  IF(FollowedByColon())
          "("
@@ -2189,7 +2189,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
-      [ Formals<true, isFunctionMethod, isTwoState, formals>
+      [ Formals<true, true, isTwoState, formals>
       ]
       [ ":" Type<out returnType> (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
@@ -2257,6 +2257,15 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
        }
     .)
   ]
+  (. // Now that we know if there's a "by method" clause, check in-parameters for uses of "ghost"
+     if (byMethodBody == null && !isFunctionMethod) {
+       foreach (var formal in formals) {
+         if (formal.IsGhost) {
+           SemErr(formal.tok, "formal cannot be declared 'ghost' in this context");
+         }
+       }
+     }
+  .)
   (. IToken tok = id;
      if (isTwoState && isPredicate) {
         f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals,
