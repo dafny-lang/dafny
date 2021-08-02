@@ -4760,7 +4760,7 @@ namespace Microsoft.Dafny {
           TypeParametersUsedInConstructionByGroundingCtor[i] = !argumentGhostness[i];
         }
       }
-      this.EqualitySupport = ES.ConsultTypeArguments;
+      this.EqualitySupport = argumentGhostness.Contains(true) ? ES.Never : ES.ConsultTypeArguments;
     }
     private static List<TypeParameter> CreateCovariantTypeParameters(int dims) {
       Contract.Requires(0 <= dims);

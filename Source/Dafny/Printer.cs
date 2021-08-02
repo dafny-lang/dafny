@@ -1529,7 +1529,7 @@ namespace Microsoft.Dafny {
         PrintCasePattern(s.LHS);
         wr.Write(" := ");
         PrintExpression(s.RHS, true);
-        wr.WriteLine(";");
+        wr.Write(";");
 
       } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;
