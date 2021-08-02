@@ -6457,10 +6457,12 @@ namespace Microsoft.Dafny
         if (f.Body != null) {
           CheckTypeInference(f.Body, f);
         }
-        if (errorCount == reporter.Count(ErrorLevel.Error) && f is ExtremePredicate) {
-          var cop = (ExtremePredicate)f;
-          CheckTypeInference_Member(cop.PrefixPredicate);
-        }
+        if (errorCount == reporter.Count(ErrorLevel.Error))
+          if (f is ExtremePredicate cop) {
+            CheckTypeInference_Member(cop.PrefixPredicate);
+          } else if (f.ByMethodDecl != null) {
+            CheckTypeInference_Member(f.ByMethodDecl);
+          }
       }
     }
 

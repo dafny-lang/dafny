@@ -1690,6 +1690,9 @@ namespace Microsoft.Dafny
               } else if (member is Function) {
                 var function = (Function)member;
                 ProcessFunctionExpressions(function);
+                if (function.ByMethodDecl != null) {
+                  ProcessMethodExpressions(function.ByMethodDecl);
+                }
               }
             }
           }

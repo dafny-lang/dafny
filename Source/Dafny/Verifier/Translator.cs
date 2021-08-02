@@ -2223,7 +2223,7 @@ namespace Microsoft.Dafny {
       return fieldName;
     }
 
-    void AddClassMembers(TopLevelDeclWithMembers c, bool includeMethods)
+    void AddClassMembers(TopLevelDeclWithMembers c, bool includeAllMethods)
     {
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(c != null);
@@ -2336,19 +2336,17 @@ namespace Microsoft.Dafny {
             AddAllocationAxiom(f, c);
           }
 
-        } else if (member is Function) {
-          AddFunction_Top((Function)member);
-        } else if (member is Method) {
-          if (includeMethods || InVerificationScope(member) || referencedMembers.Contains(member)) {
-            AddMethod_Top((Method)member);
-          }
+        } else if (member is Function function) {
+          AddFunction_Top(function, includeAllMethods);
+        } else if (member is Method method) {
+          AddMethod_Top(method, false, includeAllMethods);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
       }
     }
 
-    void AddFunction_Top(Function f) {
+    void AddFunction_Top(Function f, bool includeAllMethods) {
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(f);
       isAllocContext = new IsAllocContext(true);
@@ -2361,16 +2359,23 @@ namespace Microsoft.Dafny {
           AddFunctionOverrideCheckImpl(f);
         }
       }
-      var cop = f as ExtremePredicate;
-      if (cop != null) {
+      if (f is ExtremePredicate cop) {
         AddClassMember_Function(cop.PrefixPredicate);
         // skip the well-formedness check, because it has already been done for the extreme predicate
+      } else if (f.ByMethodDecl != null) {
+        AddMethod_Top(f.ByMethodDecl, true, includeAllMethods);
       }
+
       this.fuelContext = oldFuelContext;
       isAllocContext = null;
     }
 
-    void AddMethod_Top(Method m) {
+    void AddMethod_Top(Method m, bool isByMethod, bool includeAllMethods) {
+      if (!includeAllMethods && !InVerificationScope(m) && !referencedMembers.Contains(m)) {
+        // do nothing
+        return;
+      }
+
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(m);
 
@@ -2407,7 +2412,6 @@ namespace Microsoft.Dafny {
       }
       Reset();
       this.fuelContext = oldFuelContext;
-
     }
 
     /// <summary>
