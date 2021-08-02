@@ -1,0 +1,12 @@
+ByMethod.dfy(38,18): Error: This loop invariant might not be maintained by the loop.
+ByMethod.dfy(38,18): Related message: loop invariant violation
+ByMethod.dfy(42,4): Error: A postcondition might not hold on this return path.
+ByMethod.dfy(35,14): Related location: This is the postcondition that might not hold.
+ByMethod.dfy(47,11): Error: A postcondition might not hold on this return path.
+ByMethod.dfy(48,12): Related location: This is the postcondition that might not hold.
+ByMethod.dfy(55,11): Error: A postcondition might not hold on this return path.
+ByMethod.dfy(56,12): Related location: This is the postcondition that might not hold.
+ByMethod.dfy(60,4): Error: A postcondition might not hold on this return path.
+ByMethod.dfy(59,14): Related location: This is the postcondition that might not hold.
+
+Dafny program verifier finished with 3 verified, 5 errors

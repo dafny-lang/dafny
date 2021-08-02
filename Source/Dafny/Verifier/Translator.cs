@@ -2383,10 +2383,12 @@ namespace Microsoft.Dafny {
       if (m.EnclosingClass is IteratorDecl && m == ((IteratorDecl)m.EnclosingClass).Member_MoveNext) {
         // skip the well-formedness check, because it has already been done for the iterator
       } else {
-        var proc = AddMethod(m, MethodTranslationKind.SpecWellformedness);
-        sink.AddTopLevelDeclaration(proc);
-        if (InVerificationScope(m)) {
-          AddMethodImpl(m, proc, true);
+        if (!isByMethod) {
+          var proc = AddMethod(m, MethodTranslationKind.SpecWellformedness);
+          sink.AddTopLevelDeclaration(proc);
+          if (InVerificationScope(m)) {
+            AddMethodImpl(m, proc, true);
+          }
         }
         if (m.OverriddenMethod != null && InVerificationScope(m)) //method has overrided a parent method
         {
@@ -2396,7 +2398,9 @@ namespace Microsoft.Dafny {
         }
       }
       // the method spec itself
-      sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.Call));
+      if (!isByMethod) {
+        sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.Call));
+      }
       if (m is ExtremeLemma) {
         // Let the CoCall and Impl forms to use m.PrefixLemma signature and specification (and
         // note that m.PrefixLemma.Body == m.Body.
