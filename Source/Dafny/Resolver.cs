@@ -2693,7 +2693,7 @@ namespace Microsoft.Dafny
               if (member is ConstantField field && field.Rhs != null) {
                 CheckTypeInference(field.Rhs, field);
                 if (!field.IsGhost) {
-                  CheckIsCompilable(field.Rhs);
+                  CheckIsCompilable(field.Rhs, field);
                 }
               }
             }
@@ -2710,14 +2710,15 @@ namespace Microsoft.Dafny
           var dd = (RedirectingTypeDecl)d;
           if (dd.Witness != null) {
             var prevErrCnt = reporter.Count(ErrorLevel.Error);
-            ResolveExpression(dd.Witness, new ResolveOpts(new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost), false));
+            var codeContext = new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+            ResolveExpression(dd.Witness, new ResolveOpts(codeContext, false));
             ConstrainSubtypeRelation(dd.Var.Type, dd.Witness.Type, dd.Witness, "witness expression must have type '{0}' (got '{1}')", dd.Var.Type, dd.Witness.Type);
             SolveAllTypeConstraints();
             if (reporter.Count(ErrorLevel.Error) == prevErrCnt) {
               CheckTypeInference(dd.Witness, dd);
             }
             if (reporter.Count(ErrorLevel.Error) == prevErrCnt && dd.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-              CheckIsCompilable(dd.Witness);
+              CheckIsCompilable(dd.Witness, codeContext);
             }
           }
           if (d is TopLevelDeclWithMembers dm) {
@@ -3489,7 +3490,7 @@ namespace Microsoft.Dafny
             var f = (Function)member;
             ResolveParameterDefaultValues_Pass1(f.Formals, f);
             if (!f.IsGhost && f.Body != null) {
-              CheckIsCompilable(f.Body);
+              CheckIsCompilable(f.Body, f);
             }
             if (f.Body != null) {
               DetermineTailRecursion(f);
@@ -3510,7 +3511,7 @@ namespace Microsoft.Dafny
 
       foreach (var formal in formals.Where(f => f.DefaultValue != null)) {
         if ((!codeContext.IsGhost || codeContext is DatatypeDecl) && !formal.IsGhost) {
-          CheckIsCompilable(formal.DefaultValue);
+          CheckIsCompilable(formal.DefaultValue, codeContext);
         }
         CheckExpression(formal.DefaultValue, this, codeContext);
       }
@@ -8268,10 +8269,10 @@ namespace Microsoft.Dafny
           if (mustBeErasable) {
             Error(stmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
           } else {
-            resolver.CheckIsCompilable(s.Expr);
+            resolver.CheckIsCompilable(s.Expr, codeContext);
             // If not provided, the message is populated with a default value in resolution
             Contract.Assert(s.Message != null);
-            resolver.CheckIsCompilable(s.Message);
+            resolver.CheckIsCompilable(s.Message, codeContext);
           }
 
         } else if (stmt is PrintStmt) {
@@ -8279,7 +8280,7 @@ namespace Microsoft.Dafny
           if (mustBeErasable) {
             Error(stmt, "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
           } else {
-            s.Args.Iter(resolver.CheckIsCompilable);
+            s.Args.Iter(ee => resolver.CheckIsCompilable(ee, codeContext));
           }
 
         } else if (stmt is RevealStmt) {
@@ -8363,7 +8364,7 @@ namespace Microsoft.Dafny
                 local.MakeGhost();
               }
             } else {
-              resolver.CheckIsCompilable(s.RHS);
+              resolver.CheckIsCompilable(s.RHS, codeContext);
             }
             s.IsGhost = spec;
           }
@@ -8395,33 +8396,33 @@ namespace Microsoft.Dafny
           } else {
             if (gk == AssignStmt.NonGhostKind.Field) {
               var mse = (MemberSelectExpr)lhs;
-              resolver.CheckIsCompilable(mse.Obj);
+              resolver.CheckIsCompilable(mse.Obj, codeContext);
             } else if (gk == AssignStmt.NonGhostKind.ArrayElement) {
-              resolver.CheckIsCompilable(lhs);
+              resolver.CheckIsCompilable(lhs, codeContext);
             }
 
             if (s.Rhs is ExprRhs) {
               var rhs = (ExprRhs)s.Rhs;
               if (!AssignStmt.LhsIsToGhost(lhs)) {
-                resolver.CheckIsCompilable(rhs.Expr);
+                resolver.CheckIsCompilable(rhs.Expr, codeContext);
               }
             } else if (s.Rhs is HavocRhs) {
               // cool
             } else {
               var rhs = (TypeRhs)s.Rhs;
               if (rhs.ArrayDimensions != null) {
-                rhs.ArrayDimensions.ForEach(resolver.CheckIsCompilable);
+                rhs.ArrayDimensions.ForEach(ee => resolver.CheckIsCompilable(ee, codeContext));
                 if (rhs.ElementInit != null) {
-                  resolver.CheckIsCompilable(rhs.ElementInit);
+                  resolver.CheckIsCompilable(rhs.ElementInit, codeContext);
                 }
                 if (rhs.InitDisplay != null) {
-                  rhs.InitDisplay.ForEach(resolver.CheckIsCompilable);
+                  rhs.InitDisplay.ForEach(ee => resolver.CheckIsCompilable(ee, codeContext));
                 }
               }
               if (rhs.InitCall != null) {
                 for (var i = 0; i < rhs.InitCall.Args.Count; i++) {
                   if (!rhs.InitCall.Method.Ins[i].IsGhost) {
-                    resolver.CheckIsCompilable(rhs.InitCall.Args[i]);
+                    resolver.CheckIsCompilable(rhs.InitCall.Args[i], codeContext);
                   }
                 }
               }
@@ -8441,12 +8442,12 @@ namespace Microsoft.Dafny
           } else {
             int j;
             if (!callee.IsGhost) {
-              resolver.CheckIsCompilable(s.Receiver);
+              resolver.CheckIsCompilable(s.Receiver, codeContext);
               j = 0;
               foreach (var e in s.Args) {
                 Contract.Assume(j < callee.Ins.Count);  // this should have already been checked by the resolver
                 if (!callee.Ins[j].IsGhost) {
-                  resolver.CheckIsCompilable(e);
+                  resolver.CheckIsCompilable(e, codeContext);
                 }
                 j++;
               }
@@ -16959,9 +16960,10 @@ namespace Microsoft.Dafny
     /// compilation.
     /// Requires "expr" to have been successfully resolved.
     /// </summary>
-    void CheckIsCompilable(Expression expr) {
+    void CheckIsCompilable(Expression expr, ICodeContext codeContext) {
       Contract.Requires(expr != null);
       Contract.Requires(expr.WasResolved());  // this check approximates the requirement that "expr" be resolved
+      Contract.Requires(codeContext != null);
 
       if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
@@ -16993,10 +16995,10 @@ namespace Microsoft.Dafny
             return;
           }
           // function is okay, so check all NON-ghost arguments
-          CheckIsCompilable(e.Receiver);
+          CheckIsCompilable(e.Receiver, codeContext);
           for (int i = 0; i < e.Function.Formals.Count; i++) {
             if (!e.Function.Formals[i].IsGhost) {
-              CheckIsCompilable(e.Args[i]);
+              CheckIsCompilable(e.Args[i], codeContext);
             }
           }
         }
@@ -17008,7 +17010,7 @@ namespace Microsoft.Dafny
         // note that if resolution is successful, then |e.Arguments| == |e.Ctor.Formals|
         for (int i = 0; i < e.Arguments.Count; i++) {
           if (!e.Ctor.Formals[i].IsGhost) {
-            CheckIsCompilable(e.Arguments[i]);
+            CheckIsCompilable(e.Arguments[i], codeContext);
           }
         }
         return;
@@ -17035,7 +17037,7 @@ namespace Microsoft.Dafny
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         // ignore the statement
-        CheckIsCompilable(e.E);
+        CheckIsCompilable(e.E, codeContext);
         return;
 
       } else if (expr is BinaryExpr) {
@@ -17076,18 +17078,18 @@ namespace Microsoft.Dafny
             }
 
             if (!lhs.Vars.All(bv => bv.IsGhost)) {
-              CheckIsCompilable(ee);
+              CheckIsCompilable(ee, codeContext);
             }
             i++;
           }
-          CheckIsCompilable(e.Body);
+          CheckIsCompilable(e.Body, codeContext);
         } else {
           Contract.Assert(e.RHSs.Count == 1);
           var lhsVarsAreAllGhost = e.BoundVars.All(bv => bv.IsGhost);
           if (!lhsVarsAreAllGhost) {
-            CheckIsCompilable(e.RHSs[0]);
+            CheckIsCompilable(e.RHSs[0], codeContext);
           }
-          CheckIsCompilable(e.Body);
+          CheckIsCompilable(e.Body, codeContext);
 
           // fill in bounds for this to-be-compiled let-such-that expression
           Contract.Assert(e.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
@@ -17097,7 +17099,7 @@ namespace Microsoft.Dafny
         return;
       } else if (expr is LambdaExpr) {
         var e = expr as LambdaExpr;
-        CheckIsCompilable(e.Body);
+        CheckIsCompilable(e.Body, codeContext);
         return;
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
@@ -17119,20 +17121,20 @@ namespace Microsoft.Dafny
           return;
         }
         // don't recurse down any attributes
-        if (e.Range != null) { CheckIsCompilable(e.Range); }
-        CheckIsCompilable(e.Term);
+        if (e.Range != null) { CheckIsCompilable(e.Range, codeContext); }
+        CheckIsCompilable(e.Term, codeContext);
         return;
 
       } else if (expr is ChainingExpression) {
         // We don't care about the different operators; we only want the operands, so let's get them directly from
         // the chaining expression
         var e = (ChainingExpression)expr;
-        e.Operands.ForEach(CheckIsCompilable);
+        e.Operands.ForEach(ee => CheckIsCompilable(ee, codeContext));
         return;
       }
 
       foreach (var ee in expr.SubExpressions) {
-        CheckIsCompilable(ee);
+        CheckIsCompilable(ee, codeContext);
       }
     }
 
