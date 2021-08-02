@@ -8,5 +8,11 @@ ByMethod.dfy(55,11): Error: A postcondition might not hold on this return path.
 ByMethod.dfy(56,12): Related location: This is the postcondition that might not hold.
 ByMethod.dfy(60,4): Error: A postcondition might not hold on this return path.
 ByMethod.dfy(59,14): Related location: This is the postcondition that might not hold.
+ByMethod.dfy(63,12): Error: A postcondition might not hold on this return path.
+ByMethod.dfy(64,27): Related location: This is the postcondition that might not hold.
+ByMethod.dfy(68,4): Error: A postcondition might not hold on this return path.
+ByMethod.dfy(67,14): Related location: This is the postcondition that might not hold.
+ByMethod.dfy(71,12): Error: A postcondition might not hold on this return path.
+ByMethod.dfy(72,27): Related location: This is the postcondition that might not hold.
 
-Dafny program verifier finished with 3 verified, 5 errors
+Dafny program verifier finished with 4 verified, 8 errors

@@ -59,4 +59,23 @@ module ByMethodVerification {
   } by method {
     return x + 1; // error: this is not what the function body does
   }
+
+  predicate Pred0(x: int) // error: function body does not meet postcondition
+    ensures Pred0(x) ==> x < 100
+  {
+    x == 23 || x == 102
+  } by method {
+    return x == 22; // error: this is not what the function body does
+  }
+
+  predicate Pred1(x: int) // error: function body does not meet postcondition
+    ensures Pred1(x) ==> x < 100
+  {
+    x == 23 || x == 102
+  } by method {
+    // Because the function body and function postcondition are at odds with each
+    // other for x==102, the verifier finds x==102 to be absurd. Therefore, the
+    // verifier has no complaints about the following implementation:
+    return x == 23; // since the consequence axiom says
+  }
 }
