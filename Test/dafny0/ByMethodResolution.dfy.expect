@@ -4,4 +4,7 @@ ByMethodResolution.dfy(24,6): Error: RHS (of type int) not assignable to LHS (of
 ByMethodResolution.dfy(55,13): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ByMethodResolution.dfy(75,9): Error: ghost variables are allowed only in specification contexts
 ByMethodResolution.dfy(82,14): Error: ghost variables are allowed only in specification contexts
-6 resolution/type errors detected in ByMethodResolution.dfy
+ByMethodResolution.dfy(96,4): Error: a recursive call from a least predicate can go only to other least predicates
+ByMethodResolution.dfy(132,4): Error: a recursive call from a least predicate can go only to other least predicates
+ByMethodResolution.dfy(147,4): Error: a recursive call from a least predicate can go only to other least predicates
+9 resolution/type errors detected in ByMethodResolution.dfy

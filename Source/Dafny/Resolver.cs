@@ -3489,11 +3489,19 @@ namespace Microsoft.Dafny
           } else if (member is Function) {
             var f = (Function)member;
             ResolveParameterDefaultValues_Pass1(f.Formals, f);
-            if (!f.IsGhost && f.Body != null) {
-              CheckIsCompilable(f.Body, f);
-            }
-            if (f.Body != null) {
-              DetermineTailRecursion(f);
+            if (f.ByMethodBody == null) {
+              if (!f.IsGhost && f.Body != null) {
+                CheckIsCompilable(f.Body, f);
+              }
+              if (f.Body != null) {
+                DetermineTailRecursion(f);
+              }
+            } else {
+              var m = f.ByMethodDecl;
+              Contract.Assert(m != null && !m.IsGhost);
+              ComputeGhostInterest(m.Body, m.IsGhost, m);
+              CheckExpression(m.Body, this, m);
+              DetermineTailRecursion(m);
             }
           }
           if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
@@ -9919,7 +9927,9 @@ namespace Microsoft.Dafny
           var method = new Method(f.tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
             f.Formals, new List<Formal>() { resultVar },
             f.Req, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
-            f.ByMethodBody, f.Attributes, null);
+            f.ByMethodBody, f.Attributes, null) {
+            EnclosingClass = f.EnclosingClass
+          };
           Contract.Assert(f.ByMethodDecl == null);
           f.ByMethodDecl = method;
           ResolveMethod(method);
@@ -16993,6 +17003,11 @@ namespace Microsoft.Dafny
             }
             reporter.Error(MessageSource.Resolver, expr, msg);
             return;
+          }
+          if (e.Function.ByMethodBody != null) {
+            Contract.Requires(e.Function.ByMethodDecl != null);
+            // this call will really go to the method part of the function-by-method, so add that edge to the call graph
+            AddCallGraphEdge(codeContext, e.Function.ByMethodDecl, e, false);
           }
           // function is okay, so check all NON-ghost arguments
           CheckIsCompilable(e.Receiver, codeContext);
