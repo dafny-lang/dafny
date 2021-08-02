@@ -84,10 +84,10 @@ namespace DafnyServer.CounterExampleGeneration {
         string childValues;
         if (Type.StartsWith("set<")) {
           childValues = string.Join(", ",
-            childList.ConvertAll(tpl => tpl.Item2 + " => " + tpl.Item1));
+            childList.ConvertAll(tpl => tpl.Item2 + " := " + tpl.Item1));
         } else {
           childValues = string.Join(", ",
-            childList.ConvertAll(tpl => tpl.Item1 + " => " + tpl.Item2));
+            childList.ConvertAll(tpl => tpl.Item1 + " := " + tpl.Item2));
         }
         return result + "(" + childValues + ")";
       }
@@ -108,7 +108,7 @@ namespace DafnyServer.CounterExampleGeneration {
       return Element.Id;
     }
 
-    public override bool Equals(object? obj) {
+    public override bool Equals(object obj) {
       if (obj is not DafnyModelVariable other)
         return false;
       return other.Element == Element && other.state == state && other.Name == Name;

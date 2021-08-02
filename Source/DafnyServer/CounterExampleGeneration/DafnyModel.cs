@@ -16,7 +16,8 @@ namespace DafnyServer.CounterExampleGeneration {
     public readonly List<DafnyModelState> States = new();
     private readonly Model.Func fSetSelect, fSeqLength, fSeqIndex, fBox, 
       fDim, fIndexField, fMultiIndexField, fDtype, fCharToInt, fTag, fBv, fType,
-      fChar, fNull, fSetUnion, fSetIntersection, fSetDifference;
+      fChar, fNull, fSetUnion, fSetIntersection, fSetDifference, fSeqBuild,
+      fSeqAppend, fSeqDrop, fSeqTake, fSeqUpdate, fSeqCreate, fReal, fU2real;
     private readonly Dictionary<Model.Element, Model.Element[]> arrayLengths = new();
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
     private readonly Dictionary<Model.Element, string> localValue = new();
@@ -26,7 +27,13 @@ namespace DafnyServer.CounterExampleGeneration {
       Model = model;
       fSetSelect = MergeMapSelectFunctions(2);
       fSeqLength = model.MkFunc("Seq#Length", 1);
+      fSeqBuild = model.MkFunc("Seq#Build", 2);
+      fSeqAppend = model.MkFunc("Seq#Append", 2);
+      fSeqDrop = model.MkFunc("Seq#Drop", 2);
+      fSeqTake = model.MkFunc("Seq#Take", 2);
       fSeqIndex = model.MkFunc("Seq#Index", 2);
+      fSeqUpdate = model.MkFunc("Seq#Update", 3);
+      fSeqCreate = model.MkFunc("Seq#Create", 4);
       fSetUnion = model.MkFunc("Set#Union", 2);
       fSetIntersection = model.MkFunc("Set#Intersection", 2);
       fSetDifference = model.MkFunc("Set#Difference", 2);
@@ -39,6 +46,8 @@ namespace DafnyServer.CounterExampleGeneration {
       fCharToInt = model.MkFunc("char#ToInt", 1);
       fType = model.MkFunc("type", 1);
       fChar = model.MkFunc("charType", 0);
+      fReal = model.MkFunc("realType", 0);
+      fU2real = model.MkFunc("U_2_real", 1);
       fTag = model.MkFunc("Tag", 1);
       fBv = model.MkFunc("TBitvector", 1);
       InitArraysAndDatatypes();
@@ -135,10 +144,11 @@ namespace DafnyServer.CounterExampleGeneration {
       (element.Kind != Model.ElementKind.Uninterpreted 
        || element == state.Model.fNull.GetConstant()
        || state.Model.fType.OptEval(element) == state.Model.fChar.GetConstant()
+       || state.Model.fType.OptEval(element) == state.Model.fReal.GetConstant()
        || IsBitVectorObject(element, state.Model)) && 
       element.Kind != Model.ElementKind.Array && 
       (element.Kind != Model.ElementKind.DataValue || 
-       ((Model.DatatypeValue) element).ConstructorName == "-");
+       ((Model.DatatypeValue) element).ConstructorName is "-" or "/");
     
     /// <summary>
     /// Return the name of the 0-arity function that maps to the element if such
@@ -196,7 +206,7 @@ namespace DafnyServer.CounterExampleGeneration {
         case Model.ElementKind.Uninterpreted:
           return GetDafnyType(element as Model.Uninterpreted);
         case Model.ElementKind.DataValue:
-          if (((Model.DatatypeValue) element).ConstructorName == "-") {
+          if (((Model.DatatypeValue) element).ConstructorName is "-" or "/") {
             return GetDafnyType(
               ((Model.DatatypeValue) element).Arguments.First());
           }
@@ -226,7 +236,7 @@ namespace DafnyServer.CounterExampleGeneration {
         case "intType": case "realType": case "charType": case "boolType":
           return boogieType.Substring(0, boogieType.Length - 4);
         case "SeqType":
-        case "SetType": // TODO: multisets and isets
+        case "SetType":
         case "DatatypeTypeType":
           var isOfType = GetIsResults(element);
           if (isOfType.Count > 0) {
@@ -236,11 +246,29 @@ namespace DafnyServer.CounterExampleGeneration {
           setOperation ??= fSetIntersection.AppWithResult(element);
           setOperation ??= fSetDifference.AppWithResult(element);
           if (boogieType == "SetType" && setOperation != null) {
-            if (setOperation.Args[0] == element) {
-              return GetDafnyType(setOperation.Args[1]);
+            foreach (var arg in setOperation.Args) {
+              if (arg == element || GetBoogieType(arg) != "SetType") {
+                continue;
+              }
+              return GetDafnyType(arg);
             }
-            return GetDafnyType(setOperation.Args[0]);
-          } // TODO: similar construction for sequences
+          } 
+          var seqOperation = fSeqAppend.AppWithResult(element);
+          seqOperation ??= fSeqDrop.AppWithResult(element);
+          seqOperation ??= fSeqTake.AppWithResult(element);
+          seqOperation ??= fSeqUpdate.AppWithResult(element);
+          if (boogieType == "SeqType" && seqOperation != null) {
+            foreach (var arg in seqOperation.Args) {
+              if (arg == element || GetBoogieType(arg) != "SeqType") {
+                continue;
+              }
+              return GetDafnyType(arg);
+            }
+          }
+          seqOperation = fSeqCreate.AppWithResult(element);
+          if (seqOperation != null) {
+            return "seq<" + ReconstructType(seqOperation.Args.First()) + ">";
+          }
           return "?";
         case "refType":
           return ReconstructType(fDtype.OptEval(element));
@@ -296,7 +324,7 @@ namespace DafnyServer.CounterExampleGeneration {
       if (elt == null) {
         return "?";
       }
-      if (elt is Model.Integer or Model.Boolean or Model.BitVector) {
+      if (elt is Model.Integer or Model.Boolean or Model.BitVector or Model.Real) {
         return elt.ToString();
       }
       if (IsBitVectorObject(elt, this)) {
@@ -310,9 +338,14 @@ namespace DafnyServer.CounterExampleGeneration {
         }
         return "?";
       }
-      if (elt.Kind == Model.ElementKind.DataValue &&
-          ((Model.DatatypeValue) elt).ConstructorName == "-") {
-        return "-" + ((Model.DatatypeValue) elt).Arguments.First();
+      if (elt.Kind == Model.ElementKind.DataValue) {
+        if (((Model.DatatypeValue) elt).ConstructorName == "-") {
+          return "-" + CanonicalName(((Model.DatatypeValue) elt).Arguments.First(), state);
+        }
+        if (((Model.DatatypeValue) elt).ConstructorName == "/") {
+          return CanonicalName(((Model.DatatypeValue) elt).Arguments.First(), state) + 
+                 "/" + CanonicalName(((Model.DatatypeValue) elt).Arguments[1], state);
+        }
       }
       if (datatypeValues.TryGetValue(elt, out var fnTuple)) {
         return fnTuple.Func.Name.Split(".").Last();
@@ -332,6 +365,11 @@ namespace DafnyServer.CounterExampleGeneration {
           return "'" + char.ConvertFromUtf32(utfCode) + "'";
         } catch (ArgumentOutOfRangeException) {
           return "?#" + utfCode;
+        }
+      }
+      if (fType.OptEval(elt) == fReal.GetConstant()) {
+        if (fU2real.OptEval(elt) != null) {
+          return CanonicalName(fU2real.OptEval(elt), state);
         }
       }
       return "";
@@ -356,7 +394,20 @@ namespace DafnyServer.CounterExampleGeneration {
       var seqLen = fSeqLength.OptEval(var.Element);
       if (seqLen != null) {
         result.Add(DafnyModelVariable.Get(dafnyModelState, seqLen, "Length", var));
-        // elt is a sequence TODO: string equality comparison
+        // Sequence can be constructed with build operator:
+        List<Model.Element> elements = new();
+        var substring = var.Element;
+        while (fSeqBuild.AppWithResult(substring) != null) {
+          elements.Insert(0, Unbox(fSeqBuild.AppWithResult(substring).Args[1]));
+          substring = fSeqBuild.AppWithResult(substring).Args[0];
+        }
+        for (int i = 0; i < elements.Count; i++) {
+          result.Add(DafnyModelVariable.Get(dafnyModelState, Unbox(elements[i]), "[" + i + "]", var));
+        }
+        if (elements.Count > 0) {
+          return result;
+        }
+        // Otherwise, sequence can be reconstructed index by index:
         foreach (var tpl in fSeqIndex.AppsWithArg(0, var.Element)) {
           result.Add(DafnyModelVariable.Get(dafnyModelState, Unbox(tpl.Result),
             "[" + tpl.Args[1] + "]", var));
