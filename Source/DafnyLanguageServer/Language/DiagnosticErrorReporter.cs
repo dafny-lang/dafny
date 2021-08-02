@@ -28,7 +28,8 @@ namespace Microsoft.Dafny.LanguageServer.Language
             {
               Range = auxErrorInfo.Tok.GetLspRange(),
               
-              // https://github.com/dafny-lang/dafny/blob/06b498ee73c74660c61042bb752207df13930376/Source/DafnyLanguageServer/Language/DafnyLangParser.cs#L59
+              // During parsing, we store absolute paths to make reconstructing the Uri easier
+              // https://github.com/dafny-lang/dafny/blob/06b498ee73c74660c61042bb752207df13930376/Source/DafnyLanguageServer/Language/DafnyLangParser.cs#L59 
               Uri = DocumentUri.FromFileSystemPath(auxErrorInfo.Tok.filename)
             }
           });
@@ -79,14 +80,12 @@ namespace Microsoft.Dafny.LanguageServer.Language
       return 0;
     }
 
-    private void AddDiagnosticForFile(Diagnostic item, string filename)
-    {
-      var fileDiagnostics = diagnostics.ContainsKey(filename)
-                      ? diagnostics[filename]
-                      : diagnostics[filename] = new List<Diagnostic>();
+    private void AddDiagnosticForFile(Diagnostic item, string filename) {
+      var fileDiagnostics = diagnostics.GetOrCreate(filename, () => new List<Diagnostic>());
 
-      counts.TryGetValue(item.Severity!.Value, out var count);
-      counts[item.Severity!.Value] = count + 1;
+      var severity = item.Severity!.Value; // All our diagnostics have a severity.
+      counts.TryGetValue(severity, out var count);
+      counts[severity] = count + 1;
       fileDiagnostics.Add(item);
     }
 

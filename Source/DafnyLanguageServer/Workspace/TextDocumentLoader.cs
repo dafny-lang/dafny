@@ -1,4 +1,5 @@
-﻿using IntervalTree;
+﻿using System;
+using IntervalTree;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
