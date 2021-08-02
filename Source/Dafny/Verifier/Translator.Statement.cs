@@ -37,16 +37,19 @@ namespace Microsoft.Dafny
           }
           BoogieStmtListBuilder proofBuilder = null;
           var assertStmt = stmt as AssertStmt;
-          if (assertStmt != null && assertStmt.Proof != null) {
-            proofBuilder = new BoogieStmtListBuilder(this);
-            AddComment(proofBuilder, stmt, "assert statement proof");
-            CurrentIdGenerator.Push();
-            TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
-            CurrentIdGenerator.Pop();
-          } else if (assertStmt != null && assertStmt.Label != null) {
-            proofBuilder = new BoogieStmtListBuilder(this);
-            AddComment(proofBuilder, stmt, "assert statement proof");
+          if (assertStmt != null) {
+            if (assertStmt.Proof != null) {
+              proofBuilder = new BoogieStmtListBuilder(this);
+              AddComment(proofBuilder, stmt, "assert statement proof");
+              CurrentIdGenerator.Push();
+              TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
+              CurrentIdGenerator.Pop();
+            } else if (assertStmt.Label != null) {
+              proofBuilder = new BoogieStmtListBuilder(this);
+              AddComment(proofBuilder, stmt, "assert statement proof");
+            }
           }
+
           bool splitHappened;
           var ss = TrSplitExpr(s.Expr, etran, true, out splitHappened);
           if (!splitHappened) {
