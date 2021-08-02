@@ -10,6 +10,8 @@
 //       - main program for taking a Dafny program and verifying it
 //---------------------------------------------------------------------------------------------
 
+using System.Security;
+
 namespace Microsoft.Dafny
 {
   using System;
@@ -510,9 +512,13 @@ namespace Microsoft.Dafny
       private string GetFileLine(string filename, int lineNumber) {
         List<string> lines;
         if (!fsCache.ContainsKey(filename)) {
-          // Note: This is not guaranteed to be the same file that Dafny parsed. To ensure that, Dafny should keep
-          // an in-memory version of each file it parses.
-          lines = File.ReadLines(filename).ToList();
+          try {
+            // Note: This is not guaranteed to be the same file that Dafny parsed. To ensure that, Dafny should keep
+            // an in-memory version of each file it parses.
+            lines = File.ReadLines(filename).ToList();
+          } catch (Exception _) {
+            lines = new List<string>();
+          }
           fsCache.Add(filename, lines);
         } else {
           lines = fsCache[filename];
