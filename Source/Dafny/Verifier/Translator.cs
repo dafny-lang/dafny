@@ -4526,171 +4526,10 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.StmtList stmts;
-      if (!wellformednessProc) {
-        var inductionVars = ApplyInduction(m.Ins, m.Attributes);
-        if (inductionVars.Count != 0) {
-          // Let the parameters be this,x,y of the method M and suppose ApplyInduction returns y.
-          // Also, let Pre be the precondition and VF be the decreases clause.
-          // Then, insert into the method body what amounts to:
-          //     assume case-analysis-on-parameter[[ y' ]];
-          //     forall (y' | Pre(this, x, y') && VF(this, x, y') << VF(this, x, y)) {
-          //       this.M(x, y');
-          //     }
-          // Generate bound variables for the forall statement, and a substitution for the Pre and VF
-
-          // assume case-analysis-on-parameter[[ y' ]];
-          foreach (var inFormal in m.Ins) {
-            var dt = inFormal.Type.AsDatatype;
-            if (dt != null) {
-              var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(inFormal.tok, "$IsA#" + dt.FullSanitizedName, Bpl.Type.Bool));
-              var f = new Bpl.IdentifierExpr(inFormal.tok, inFormal.AssignUniqueName(m.IdGenerator), TrType(inFormal.Type));
-              builder.Add(TrAssumeCmd(inFormal.tok, new Bpl.NAryExpr(inFormal.tok, funcID, new List<Bpl.Expr> { f })));
-            }
-          }
-
-          var parBoundVars = new List<BoundVar>();
-          var parBounds = new List<ComprehensionExpr.BoundedPool>();
-          var substMap = new Dictionary<IVariable, Expression>();
-          Expression receiverSubst = null;
-          foreach (var iv in inductionVars) {
-            BoundVar bv;
-            if (iv == null) {
-              // this corresponds to "this"
-              Contract.Assert(!m.IsStatic);  // if "m" is static, "this" should never have gone into the _induction attribute
-              Contract.Assert(receiverSubst == null);  // we expect at most one
-              var receiverType = Resolver.GetThisType(m.tok, (TopLevelDeclWithMembers)m.EnclosingClass);
-              bv = new BoundVar(m.tok, CurrentIdGenerator.FreshId("$ih#this"), receiverType); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
-              var ie = new IdentifierExpr(m.tok, bv.Name);
-              ie.Var = bv;  // resolve here
-              ie.Type = bv.Type;  // resolve here
-              receiverSubst = ie;
-            } else {
-              IdentifierExpr ie;
-              CloneVariableAsBoundVar(iv.tok, iv, "$ih#" + iv.Name, out bv, out ie);
-              substMap.Add(iv, ie);
-            }
-            parBoundVars.Add(bv);
-            parBounds.Add(new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());  // record that we don't want alloc antecedents for these variables
-          }
-
-          // Generate a CallStmt for the recursive call
-          Expression recursiveCallReceiver;
-          List<Expression> recursiveCallArgs;
-          RecursiveCallParameters(m.tok, m, m.TypeArgs, m.Ins, substMap, out recursiveCallReceiver, out recursiveCallArgs);
-          var methodSel = new MemberSelectExpr(m.tok, recursiveCallReceiver, m.Name);
-          methodSel.Member = m;  // resolve here
-          methodSel.TypeApplication_AtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
-          methodSel.TypeApplication_JustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
-          methodSel.Type = new InferredTypeProxy();
-          var recursiveCall = new CallStmt(m.tok, m.tok, new List<Expression>(), methodSel, recursiveCallArgs);
-          recursiveCall.IsGhost = m.IsGhost;  // resolve here
-
-          Expression parRange = new LiteralExpr(m.tok, true);
-          parRange.Type = Type.Bool;  // resolve here
-          foreach (var pre in m.Req) {
-            parRange = Expression.CreateAnd(parRange, Substitute(pre.E, receiverSubst, substMap));
-          }
-          // construct an expression (generator) for:  VF' << VF
-          ExpressionConverter decrCheck = delegate(Dictionary<IVariable, Expression> decrSubstMap, ExpressionTranslator exprTran) {
-            var decrToks = new List<IToken>();
-            var decrTypes = new List<Type>();
-            var decrCallee = new List<Expr>();
-            var decrCaller = new List<Expr>();
-            foreach (var ee in m.Decreases.Expressions) {
-              decrToks.Add(ee.tok);
-              decrTypes.Add(ee.Type.NormalizeExpand());
-              decrCaller.Add(exprTran.TrExpr(ee));
-              Expression es = Substitute(ee, receiverSubst, substMap);
-              es = Substitute(es, null, decrSubstMap);
-              decrCallee.Add(exprTran.TrExpr(es));
-            }
-            return DecreasesCheck(decrToks, decrTypes, decrTypes, decrCallee, decrCaller, null, null, false, true);
-          };
-
-#if VERIFY_CORRECTNESS_OF_TRANSLATION_FORALL_STATEMENT_RANGE
-          var definedness = new BoogieStmtListBuilder(this);
-          var exporter = new BoogieStmtListBuilder(this);
-          TrForallStmtCall(m.tok, parBoundVars, parRange, decrCheck, null, recursiveCall, definedness, exporter, localVariables, etran);
-          // All done, so put the two pieces together
-          builder.Add(new Bpl.IfCmd(m.tok, null, definedness.Collect(m.tok), null, exporter.Collect(m.tok)));
-#else
-          TrForallStmtCall(m.tok, parBoundVars, parBounds, parRange, decrCheck, null, recursiveCall, null, builder, localVariables, etran);
-#endif
-        }
-        // translate the body of the method
-        Contract.Assert(m.Body != null);  // follows from method precondition and the if guard
-
-        // $_reverifyPost := false;
-        builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, "$_reverifyPost", Bpl.Type.Bool), Bpl.Expr.False));
-        // register output parameters with definite-assignment trackers
-        Contract.Assert(definiteAssignmentTrackers.Count == 0);
-        m.Outs.Iter(p => AddExistingDefiniteAssignmentTracker(p, m.IsGhost));
-        // translate the body
-        TrStmt(m.Body, builder, localVariables, etran);
-        m.Outs.Iter(p => CheckDefiniteAssignmentReturn(m.BodyEndTok, p, builder));
-        stmts = builder.Collect(m.Body.Tok);
-        // tear down definite-assignment trackers
-        m.Outs.Iter(RemoveDefiniteAssignmentTracker);
-        Contract.Assert(definiteAssignmentTrackers.Count == 0);
+      if (wellformednessProc) {
+        stmts = AddMethodImplWellFormednessProc(m, localVariables, builder, etran, outParams);
       } else {
-        // check well-formedness of any default-value expressions (before assuming preconditions)
-        foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
-          var e = formal.DefaultValue;
-          CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran);
-          builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
-          CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
-
-          if (formal.IsOld) {
-            Bpl.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
-            if (wh != null) {
-              builder.Add(Assert(e.tok, wh, "default value must be allocated in the two-state lemma's previous state"));
-            }
-          }
-        }
-        // check well-formedness of the preconditions, and then assume each one of them
-        foreach (AttributedExpression p in m.Req) {
-          CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
-        }
-        // check well-formedness of the modifies clauses
-        CheckFrameWellFormed(new WFOptions(), m.Mod.Expressions, localVariables, builder, etran);
-        // check well-formedness of the decreases clauses
-        foreach (Expression p in m.Decreases.Expressions)
-        {
-          CheckWellformed(p, new WFOptions(), localVariables, builder, etran);
-        }
-
-        if (!(m is TwoStateLemma)) {
-          // play havoc with the heap according to the modifies clause
-          builder.Add(new Bpl.HavocCmd(m.tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
-          // assume the usual two-state boilerplate information
-          foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, etran.Old, etran, etran.Old)) {
-            if (tri.IsFree) {
-              builder.Add(TrAssumeCmd(m.tok, tri.Expr));
-            }
-          }
-        }
-
-        // also play havoc with the out parameters
-        if (outParams.Count != 0) {  // don't create an empty havoc statement
-          List<Bpl.IdentifierExpr> outH = new List<Bpl.IdentifierExpr>();
-          foreach (Bpl.Variable b in outParams) {
-            Contract.Assert(b != null);
-            outH.Add(new Bpl.IdentifierExpr(b.tok, b));
-          }
-          builder.Add(new Bpl.HavocCmd(m.tok, outH));
-        }
-        // mark the end of the modifles/out-parameter havocking with a CaptureState; make its location be the first ensures clause, if any (and just
-        // omit the CaptureState if there's no ensures clause)
-        if (m.Ens.Count != 0) {
-          builder.Add(CaptureState(m.Ens[0].E.tok, false, "post-state"));
-        }
-
-        // check wellformedness of postconditions
-        foreach (AttributedExpression p in m.Ens) {
-          CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
-        }
-
-        stmts = builder.Collect(m.tok);
+        stmts = AddMethodWithoutWellformedNessProc(m, builder, localVariables, etran);
       }
 
       if (EmitImplementation(m.Attributes)) {
@@ -4710,7 +4549,207 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
-#region Definite-assignment tracking
+    private StmtList AddMethodWithoutWellformedNessProc(Method m, BoogieStmtListBuilder builder, List<Variable> localVariables,
+      ExpressionTranslator etran)
+    {
+      StmtList stmts;
+      var inductionVars = ApplyInduction(m.Ins, m.Attributes);
+      if (inductionVars.Count != 0) {
+        // Let the parameters be this,x,y of the method M and suppose ApplyInduction returns y.
+        // Also, let Pre be the precondition and VF be the decreases clause.
+        // Then, insert into the method body what amounts to:
+        //     assume case-analysis-on-parameter[[ y' ]];
+        //     forall (y' | Pre(this, x, y') && VF(this, x, y') << VF(this, x, y)) {
+        //       this.M(x, y');
+        //     }
+        // Generate bound variables for the forall statement, and a substitution for the Pre and VF
+
+        // assume case-analysis-on-parameter[[ y' ]];
+        foreach (var inFormal in m.Ins) {
+          var dt = inFormal.Type.AsDatatype;
+          if (dt != null) {
+            var funcID =
+              new Bpl.FunctionCall(
+                new Bpl.IdentifierExpr(inFormal.tok, "$IsA#" + dt.FullSanitizedName, Bpl.Type.Bool));
+            var f = new Bpl.IdentifierExpr(inFormal.tok, inFormal.AssignUniqueName(m.IdGenerator),
+              TrType(inFormal.Type));
+            builder.Add(TrAssumeCmd(inFormal.tok, new Bpl.NAryExpr(inFormal.tok, funcID, new List<Bpl.Expr> {f})));
+          }
+        }
+
+        var parBoundVars = new List<BoundVar>();
+        var parBounds = new List<ComprehensionExpr.BoundedPool>();
+        var substMap = new Dictionary<IVariable, Expression>();
+        Expression receiverSubst = null;
+        foreach (var iv in inductionVars) {
+          BoundVar bv;
+          if (iv == null) {
+            // this corresponds to "this"
+            Contract.Assert(!m
+              .IsStatic); // if "m" is static, "this" should never have gone into the _induction attribute
+            Contract.Assert(receiverSubst == null); // we expect at most one
+            var receiverType = Resolver.GetThisType(m.tok, (TopLevelDeclWithMembers) m.EnclosingClass);
+            bv = new BoundVar(m.tok, CurrentIdGenerator.FreshId("$ih#this"),
+              receiverType); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
+            var ie = new IdentifierExpr(m.tok, bv.Name);
+            ie.Var = bv; // resolve here
+            ie.Type = bv.Type; // resolve here
+            receiverSubst = ie;
+          } else {
+            IdentifierExpr ie;
+            CloneVariableAsBoundVar(iv.tok, iv, "$ih#" + iv.Name, out bv, out ie);
+            substMap.Add(iv, ie);
+          }
+
+          parBoundVars.Add(bv);
+          parBounds.Add(
+            new ComprehensionExpr.
+              SpecialAllocIndependenceAllocatedBoundedPool()); // record that we don't want alloc antecedents for these variables
+        }
+
+        // Generate a CallStmt for the recursive call
+        Expression recursiveCallReceiver;
+        List<Expression> recursiveCallArgs;
+        RecursiveCallParameters(m.tok, m, m.TypeArgs, m.Ins, substMap, out recursiveCallReceiver,
+          out recursiveCallArgs);
+        var methodSel = new MemberSelectExpr(m.tok, recursiveCallReceiver, m.Name);
+        methodSel.Member = m; // resolve here
+        methodSel.TypeApplication_AtEnclosingClass =
+          m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type) new UserDefinedType(tp.tok, tp));
+        methodSel.TypeApplication_JustMember = m.TypeArgs.ConvertAll(tp => (Type) new UserDefinedType(tp.tok, tp));
+        methodSel.Type = new InferredTypeProxy();
+        var recursiveCall = new CallStmt(m.tok, m.tok, new List<Expression>(), methodSel, recursiveCallArgs);
+        recursiveCall.IsGhost = m.IsGhost; // resolve here
+
+        Expression parRange = new LiteralExpr(m.tok, true);
+        parRange.Type = Type.Bool; // resolve here
+        foreach (var pre in m.Req) {
+          parRange = Expression.CreateAnd(parRange, Substitute(pre.E, receiverSubst, substMap));
+        }
+
+        // construct an expression (generator) for:  VF' << VF
+        ExpressionConverter decrCheck =
+          delegate(Dictionary<IVariable, Expression> decrSubstMap, ExpressionTranslator exprTran)
+          {
+            var decrToks = new List<IToken>();
+            var decrTypes = new List<Type>();
+            var decrCallee = new List<Expr>();
+            var decrCaller = new List<Expr>();
+            foreach (var ee in m.Decreases.Expressions) {
+              decrToks.Add(ee.tok);
+              decrTypes.Add(ee.Type.NormalizeExpand());
+              decrCaller.Add(exprTran.TrExpr(ee));
+              Expression es = Substitute(ee, receiverSubst, substMap);
+              es = Substitute(es, null, decrSubstMap);
+              decrCallee.Add(exprTran.TrExpr(es));
+            }
+
+            return DecreasesCheck(decrToks, decrTypes, decrTypes, decrCallee, decrCaller, null, null, false, true);
+          };
+
+#if VERIFY_CORRECTNESS_OF_TRANSLATION_FORALL_STATEMENT_RANGE
+          var definedness = new BoogieStmtListBuilder(this);
+          var exporter = new BoogieStmtListBuilder(this);
+          TrForallStmtCall(m.tok, parBoundVars, parRange, decrCheck, null, recursiveCall, definedness, exporter, localVariables, etran);
+          // All done, so put the two pieces together
+          builder.Add(new Bpl.IfCmd(m.tok, null, definedness.Collect(m.tok), null, exporter.Collect(m.tok)));
+#else
+        TrForallStmtCall(m.tok, parBoundVars, parBounds, parRange, decrCheck, null, recursiveCall, null, builder,
+          localVariables, etran);
+#endif
+      }
+
+      // translate the body of the method
+      Contract.Assert(m.Body != null); // follows from method precondition and the if guard
+
+      // $_reverifyPost := false;
+      builder.Add(Bpl.Cmd.SimpleAssign(m.tok, new Bpl.IdentifierExpr(m.tok, "$_reverifyPost", Bpl.Type.Bool),
+        Bpl.Expr.False));
+      // register output parameters with definite-assignment trackers
+      Contract.Assert(definiteAssignmentTrackers.Count == 0);
+      m.Outs.Iter(p => AddExistingDefiniteAssignmentTracker(p, m.IsGhost));
+      // translate the body
+      TrStmt(m.Body, builder, localVariables, etran);
+      m.Outs.Iter(p => CheckDefiniteAssignmentReturn(m.BodyEndTok, p, builder));
+      stmts = builder.Collect(m.Body.Tok);
+      // tear down definite-assignment trackers
+      m.Outs.Iter(RemoveDefiniteAssignmentTracker);
+      Contract.Assert(definiteAssignmentTrackers.Count == 0);
+      return stmts;
+    }
+
+    private StmtList AddMethodImplWellFormednessProc(Method m, List<Variable> localVariables, BoogieStmtListBuilder builder,
+      ExpressionTranslator etran, List<Variable> outParams)
+    {
+      StmtList stmts;
+      // check well-formedness of any default-value expressions (before assuming preconditions)
+      foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
+        var e = formal.DefaultValue;
+        CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran);
+        builder.Add(new Bpl.AssumeCmd(e.tok, CanCallAssumption(e, etran)));
+        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+
+        if (formal.IsOld) {
+          Bpl.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
+          if (wh != null) {
+            builder.Add(Assert(e.tok, wh, "default value must be allocated in the two-state lemma's previous state"));
+          }
+        }
+      }
+
+      // check well-formedness of the preconditions, and then assume each one of them
+      foreach (AttributedExpression p in m.Req) {
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
+      }
+
+      // check well-formedness of the modifies clauses
+      CheckFrameWellFormed(new WFOptions(), m.Mod.Expressions, localVariables, builder, etran);
+      // check well-formedness of the decreases clauses
+      foreach (Expression p in m.Decreases.Expressions) {
+        CheckWellformed(p, new WFOptions(), localVariables, builder, etran);
+      }
+
+      if (!(m is TwoStateLemma)) {
+        // play havoc with the heap according to the modifies clause
+        builder.Add(new Bpl.HavocCmd(m.tok,
+          new List<Bpl.IdentifierExpr> {(Bpl.IdentifierExpr /*TODO: this cast is rather dubious*/) etran.HeapExpr}));
+        // assume the usual two-state boilerplate information
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, etran.Old,
+          etran, etran.Old)) {
+          if (tri.IsFree) {
+            builder.Add(TrAssumeCmd(m.tok, tri.Expr));
+          }
+        }
+      }
+
+      // also play havoc with the out parameters
+      if (outParams.Count != 0) {
+        // don't create an empty havoc statement
+        List<Bpl.IdentifierExpr> outH = new List<Bpl.IdentifierExpr>();
+        foreach (Bpl.Variable b in outParams) {
+          Contract.Assert(b != null);
+          outH.Add(new Bpl.IdentifierExpr(b.tok, b));
+        }
+
+        builder.Add(new Bpl.HavocCmd(m.tok, outH));
+      }
+
+      // mark the end of the modifles/out-parameter havocking with a CaptureState; make its location be the first ensures clause, if any (and just
+      // omit the CaptureState if there's no ensures clause)
+      if (m.Ens.Count != 0) {
+        builder.Add(CaptureState(m.Ens[0].E.tok, false, "post-state"));
+      }
+
+      // check wellformedness of postconditions
+      foreach (AttributedExpression p in m.Ens) {
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran);
+      }
+
+      stmts = builder.Collect(m.tok);
+      return stmts;
+    }
+
+    #region Definite-assignment tracking
 
     bool NeedsDefiniteAssignmentTracker(bool isGhost, Type type) {
       Contract.Requires(type != null);
