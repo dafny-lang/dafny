@@ -226,12 +226,12 @@ namespace Microsoft.Dafny {
           new List<TypeParameter>(), args, null, Type.Bool,
           new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
           new Specification<Expression>(new List<Expression>(), null),
-          null, null, null, null);
+          null, null, null, null, null);
         var reads = new Function(tok, "reads", false, true,
           new List<TypeParameter>(), args, null, new SetType(true, ObjectQ()),
           new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
           new Specification<Expression>(new List<Expression>(), null),
-          null, null, null, null);
+          null, null, null, null, null);
         readsIS.Function = reads;  // just so we can really claim the member declarations are resolved
         readsIS.TypeApplication_AtEnclosingClass = tys;  // ditto
         readsIS.TypeApplication_JustFunction = new List<Type>();  // ditto
@@ -5299,7 +5299,7 @@ namespace Microsoft.Dafny {
       List<TypeParameter> typeArgs, List<Formal> formals, Type resultType,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
       Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, null, attributes, signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, null, null, attributes, signatureEllipsis)
     {
       Module = module;
     }
@@ -6232,6 +6232,7 @@ namespace Microsoft.Dafny {
     public readonly List<AttributedExpression> Ens;
     public readonly Specification<Expression> Decreases;
     public Expression Body;  // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
+    public IToken/*?*/ ByMethodTok; // null iff ByMethodBody is null
     public BlockStmt/*?*/ ByMethodBody;
     public Method/*?*/ ByMethodDecl; // filled in by resolution, if ByMethodBody is non-null
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }  // is "false" for all Function objects that survive into resolution
@@ -6332,7 +6333,7 @@ namespace Microsoft.Dafny {
     public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
       List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-      Expression/*?*/ body, BlockStmt/*?*/ byMethodBody,
+      Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
       Attributes attributes, IToken/*?*/ signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
 
@@ -6356,6 +6357,7 @@ namespace Microsoft.Dafny {
       this.Ens = ens;
       this.Decreases = decreases;
       this.Body = body;
+      this.ByMethodTok = byMethodTok;
       this.ByMethodBody = byMethodBody;
       this.SignatureEllipsis = signatureEllipsis;
 
@@ -6419,8 +6421,8 @@ namespace Microsoft.Dafny {
     public Predicate(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
       List<TypeParameter> typeArgs, List<Formal> formals,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-      Expression body, BodyOriginKind bodyOrigin, BlockStmt/*?*/ byMethodBody, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, byMethodBody, attributes, signatureEllipsis) {
+      Expression body, BodyOriginKind bodyOrigin, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody, Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, byMethodTok, byMethodBody, attributes, signatureEllipsis) {
       Contract.Requires(bodyOrigin == Predicate.BodyOriginKind.OriginalOrInherited || body != null);
       BodyOrigin = bodyOrigin;
     }
@@ -6438,7 +6440,7 @@ namespace Microsoft.Dafny {
       List<TypeParameter> typeArgs, Formal k, List<Formal> formals,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
       Expression body, Attributes attributes, ExtremePredicate extremePred)
-      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, null, attributes, null) {
+      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, null, null, attributes, null) {
       Contract.Requires(k != null);
       Contract.Requires(extremePred != null);
       Contract.Requires(formals != null && 1 <= formals.Count && formals[0] == k);
@@ -6464,7 +6466,7 @@ namespace Microsoft.Dafny {
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
       Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, true, typeArgs, formals, null, Type.Bool,
-             req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, null, attributes, signatureEllipsis) {
+             req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, null, null, attributes, signatureEllipsis) {
       TypeOfK = typeOfK;
     }
 
@@ -6521,7 +6523,7 @@ namespace Microsoft.Dafny {
                      List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
                      List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
                      Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, result, resultType, req, reads, ens, decreases, body, null, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, result, resultType, req, reads, ens, decreases, body, null, null, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);

@@ -2008,7 +2008,7 @@ namespace Microsoft.Dafny
             new List<FrameExpression>(),
             new List<AttributedExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
-            null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null);
+            null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null, null);
           // --- here comes method MoveNext
           var moveNext = new Method(iter.tok, "MoveNext", false, false, new List<TypeParameter>(),
             new List<Formal>(), new List<Formal>() {new Formal(iter.tok, "more", Type.Bool, false, false, null)},
@@ -9918,13 +9918,14 @@ namespace Microsoft.Dafny
         SolveAllTypeConstraints();
 
         if (f.ByMethodBody != null) {
-          var resultVar = f.Result ?? new Formal(f.tok, "#result", f.ResultType, false, false, null);
+          var tok = f.ByMethodTok;
+          var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
           var r = Expression.CreateIdentExpr(resultVar);
           var cl = (TopLevelDeclWithMembers)f.EnclosingClass;
-          var receiver = f.IsStatic ? (Expression)new StaticReceiverExpr(f.tok, cl, true) : new ImplicitThisExpr(f.tok);
-          var fn = new FunctionCallExpr(f.tok, f.Name, receiver, f.tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
-          var post = new AttributedExpression(new BinaryExpr(f.ByMethodBody.Tok, BinaryExpr.Opcode.Eq, r, fn));
-          var method = new Method(f.tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
+          var receiver = f.IsStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
+          var fn = new FunctionCallExpr(tok, f.Name, receiver, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
+          var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
+          var method = new Method(tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
             f.Formals, new List<Formal>() { resultVar },
             f.Req, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
             f.ByMethodBody, f.Attributes, null) {

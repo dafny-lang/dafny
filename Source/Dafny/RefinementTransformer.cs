@@ -311,8 +311,6 @@ namespace Microsoft.Dafny
     }
 
     public bool CheckIsRefinement(ModuleDecl derived, AbstractModuleDecl original) {
-
-
       // Check explicit refinement
       // TODO syntactic analysis of export sets is not quite right
       var derivedPointer = derived.Signature.ModuleDef;
@@ -453,7 +451,9 @@ namespace Microsoft.Dafny
 
       if (f is Predicate) {
         return new Predicate(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals,
-          req, reads, ens, decreases, body, bodyOrigin, byMethodBody, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
+          req, reads, ens, decreases, body, bodyOrigin,
+          f.ByMethodTok == null ? null : refinementCloner.Tok(f.ByMethodTok), byMethodBody,
+          refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is LeastPredicate) {
         return new LeastPredicate(tok, f.Name, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
@@ -468,7 +468,9 @@ namespace Microsoft.Dafny
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else {
         return new Function(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals, result, refinementCloner.CloneType(f.ResultType),
-          req, reads, ens, decreases, body, byMethodBody, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
+          req, reads, ens, decreases, body,
+          f.ByMethodTok == null ? null : refinementCloner.Tok(f.ByMethodTok), byMethodBody,
+          refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       }
     }
 

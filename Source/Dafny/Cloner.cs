@@ -765,7 +765,9 @@ namespace Microsoft.Dafny
 
       if (f is Predicate) {
         return new Predicate(Tok(f.tok), newName, f.HasStaticKeyword, f.IsGhost, tps, formals,
-          req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited, byMethodBody, CloneAttributes(f.Attributes), null);
+          req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited,
+          f.ByMethodTok == null ? null : Tok(f.ByMethodTok), byMethodBody,
+          CloneAttributes(f.Attributes), null);
       } else if (f is LeastPredicate) {
         return new LeastPredicate(Tok(f.tok), newName, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
@@ -780,7 +782,8 @@ namespace Microsoft.Dafny
           req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
       } else {
         return new Function(Tok(f.tok), newName, f.HasStaticKeyword, f.IsGhost, tps, formals, f.Result == null ? null : CloneFormal(f.Result), CloneType(f.ResultType),
-          req, reads, ens, decreases, body, byMethodBody, CloneAttributes(f.Attributes), null);
+          req, reads, ens, decreases, body, f.ByMethodTok == null ? null : Tok(f.ByMethodTok), byMethodBody,
+          CloneAttributes(f.Attributes), null);
       }
     }
 
@@ -976,7 +979,9 @@ namespace Microsoft.Dafny
 
     public override Function CloneFunction(Function f, string newName = null) {
       var basef = base.CloneFunction(f, newName);
+      basef.ByMethodTok = null; // never export the method body of a function-by-method
       basef.ByMethodBody = null; // never export the method body of a function-by-method
+      Contract.Assert(basef.ByMethodDecl == null);
       if (!RevealedInScope(f)) {
         basef.Body = null;
       }

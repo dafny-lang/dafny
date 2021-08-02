@@ -2242,8 +2242,8 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
 
   (. decreases = isLeastPredicate || isGreatestPredicate ? null : new List<Expression/*!*/>(); .)
   FunctionSpec<reqs, reads, ens, decreases>
-  (. BlockStmt byMethodBody = null; .)
-  [ FunctionBody<out body, out bodyStart, out bodyEnd, out byMethodBody>
+  (. IToken byMethodTok = null; BlockStmt byMethodBody = null; .)
+  [ FunctionBody<out body, out bodyStart, out bodyEnd, out byMethodTok, out byMethodBody>
     (. if (byMethodBody != null) {
          if (isTwoState) {
            SemErr(byMethodBody.Tok, "a 'by method' implementation is not allowed on a twostate function");
@@ -2276,7 +2276,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      } else if (isPredicate) {
         f = new Predicate(tok, id.val, dmod.IsStatic, !isFunctionMethod && byMethodBody == null, typeArgs, formals,
                           reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited,
-                          byMethodBody, attrs, signatureEllipsis);
+                          byMethodTok, byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
         f = new LeastPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals,
                                reqs, reads, ens, body, attrs, signatureEllipsis);
@@ -2286,7 +2286,8 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      } else {
         f = new Function(tok, id.val, dmod.IsStatic, !isFunctionMethod && byMethodBody == null,
                          typeArgs, formals, result, returnType,
-                         reqs, reads, ens, new Specification<Expression>(decreases, null), body, byMethodBody,
+                         reqs, reads, ens, new Specification<Expression>(decreases, null), body,
+                         byMethodTok, byMethodBody,
                          attrs, signatureEllipsis);
      }
      f.BodyStartTok = bodyStart;
@@ -2375,14 +2376,14 @@ FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
   .
 
 /*------------------------------------------------------------------------*/
-FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd, out BlockStmt/*?*/ byMethodBody>
+FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd, out IToken/*?*/ byMethodTok, out BlockStmt/*?*/ byMethodBody>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr;
-     byMethodBody = null;
+     byMethodTok = null; byMethodBody = null;
   .)
   "{"                         (. bodyStart = t; .)
   Expression<out e, true, true>
   "}"                         (. bodyEnd = t; .)
-  [ "by" "method"
+  [ "by" "method"             (. byMethodTok = t; .)
     BlockStmt<out byMethodBody, out _, out _>
   ]
   .
