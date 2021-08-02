@@ -9921,17 +9921,16 @@ namespace Microsoft.Dafny
           var resultVar = f.Result ?? new Formal(f.tok, "#result", f.ResultType, false, false, null);
           var r = Expression.CreateIdentExpr(resultVar);
           var cl = (TopLevelDeclWithMembers)f.EnclosingClass;
-          var receiver = f.IsStatic ?
-            (Expression)new StaticReceiverExpr(f.tok, cl, true) :
-            new ImplicitThisExpr(f.tok) { Type = GetThisType(f.tok, cl) };
+          var receiver = f.IsStatic ? (Expression)new StaticReceiverExpr(f.tok, cl, true) : new ImplicitThisExpr(f.tok);
           var fn = new FunctionCallExpr(f.tok, f.Name, receiver, f.tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
-          var post = new AttributedExpression(Expression.CreateEq(r, fn, f.ResultType));
+          var post = new AttributedExpression(new BinaryExpr(f.tok, BinaryExpr.Opcode.Eq, r, fn));
           var method = new Method(f.tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
             f.Formals, new List<Formal>() { resultVar },
             f.Req, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
             f.ByMethodBody, f.Attributes, null) {
             EnclosingClass = f.EnclosingClass
           };
+          method.InheritVisibility(f);
           Contract.Assert(f.ByMethodDecl == null);
           f.ByMethodDecl = method;
           ResolveMethod(method);
