@@ -2539,11 +2539,7 @@ namespace Microsoft.Dafny {
                 // this precondition was inherited into this module, so just ignore it
               } else {
                 var pre = s.E;
-                if (kind == MethodTranslationKind.Call || kind == MethodTranslationKind.CoCall) {
-                  req.Add(Requires(s.E.tok, s.IsOnlyFree, BplImp(CanCallAssumption(p.E, etran), s.E), errorMessage, null));
-                } else {
-                  req.Add(Requires(s.E.tok, s.IsOnlyFree, pre, errorMessage, comment));
-                }
+                req.Add(Requires(s.E.tok, s.IsOnlyFree, pre, errorMessage, comment));
                 comment = null;
                 // the free here is not linked to the free on the original expression (this is free things generated in the splitting.)
               }
@@ -4993,14 +4989,16 @@ namespace Microsoft.Dafny {
           substMap.Add(f.OverriddenFunction.Result, ie);
         }
         // add can call assumptions as free requires for checking the implementation
-        void addCanCallReq(List<AttributedExpression> spec) {
+        // we want to prove properties about the overridden function,
+        // so let's not provide the canCall to it.
+        void addCanCallReq(List<AttributedExpression> spec, CanCallOptions cco) {
           var exps = spec.Select(s => Substitute(s.E, null, substMap)).ToList();
-          exps.ForEach(e => req.Add(Requires(f.tok, true, CanCallAssumption(e, etran), null, null)));
+          exps.ForEach(e => req.Add(Requires(f.tok, true, CanCallAssumption(e, etran, cco), null, null)));
         }
-        addCanCallReq(f.Req);
-        addCanCallReq(f.Ens);
-        addCanCallReq(f.OverriddenFunction.Req);
-        addCanCallReq(f.OverriddenFunction.Ens);
+        addCanCallReq(f.Req, new CanCallOptions(f));
+        addCanCallReq(f.Ens, new CanCallOptions(f));
+        addCanCallReq(f.OverriddenFunction.Req, new CanCallOptions(f.OverriddenFunction, f));
+        addCanCallReq(f.OverriddenFunction.Ens, new CanCallOptions(f.OverriddenFunction, f));
 
         var proc = new Bpl.Procedure(f.tok, "OverrideCheck$$" + f.FullSanitizedName, new List<Bpl.TypeVariable>(),
           Concat(Concat(typeInParams, inParams_Heap), inParams), outParams,
@@ -6696,16 +6694,17 @@ namespace Microsoft.Dafny {
       return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(id), args);
     }
 
-    private Bpl.Expr MakeAllowance (FunctionCallExpr e, ExpressionTranslator etran) {
+    private Bpl.Expr MakeAllowance(FunctionCallExpr e, ExpressionTranslator etran, CanCallOptions cco = null) {
       Bpl.Expr allowance = Bpl.Expr.True;
       if (!e.Function.IsStatic)
       {
         allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This)));
       }
+      var formals = cco == null ? e.Function.Formals : cco.HostFunction.Formals;
       for (int i = 0; i < e.Args.Count; i++)
       {
         Expression ee = e.Args[i];
-        Formal ff = e.Function.Formals[i];
+        Formal ff = formals[i];
         allowance = BplAnd(allowance,
           Bpl.Expr.Eq(etran.TrExpr(ee),
             new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration.IdGenerator), TrType(ff.Type))));
@@ -6785,7 +6784,7 @@ namespace Microsoft.Dafny {
           List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null);
           Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(canCallFuncID), args);
           bool makeAllowance = cco != null && (e.Function == cco.SelfCallsAllowance);
-          var add = makeAllowance ? Bpl.Expr.Or(MakeAllowance(e, etran), canCallFuncAppl) : canCallFuncAppl;
+          var add = makeAllowance ? Bpl.Expr.Or(MakeAllowance(e, etran, cco), canCallFuncAppl) : canCallFuncAppl;
           r = BplAnd(r, add);
         }
         return r;
@@ -7185,9 +7184,17 @@ namespace Microsoft.Dafny {
     private class CanCallOptions
     {
       public readonly Function SelfCallsAllowance;
+      public readonly Function HostFunction;
 
       public CanCallOptions(Function f) {
         this.SelfCallsAllowance = f;
+        this.HostFunction = f;
+      }
+
+      public CanCallOptions(Function f, Function g) {
+        Contract.Assert(f.Formals.Count() == g.Formals.Count);
+        this.SelfCallsAllowance = f;
+        this.HostFunction = g;
       }
     }
 
@@ -18186,7 +18193,6 @@ namespace Microsoft.Dafny {
             ihBody = Bpl.Expr.Not(ihBody);
           }
           ihBody = BplAnd(CanCallAssumption(bodyK, etran), ihBody);
-          Console.WriteLine("coming here");
           ihBody = Bpl.Expr.Imp(less, ihBody);
           List<Variable> bvars = new List<Variable>();
           Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);  // no need to use allocation antecedent here, because the well-founded less-than ordering assures kk are allocated
