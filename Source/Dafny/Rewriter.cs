@@ -216,7 +216,7 @@ namespace Microsoft.Dafny
             for (int i = 0; i < s0.Method.Ins.Count; i++) {
               argsSubstMap.Add(s0.Method.Ins[i], s0.Args[i]);
             }
-            var substituter = new AlphaConverting_Substituter(s0.Receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
+            var substituter = new AlphaConvertingSubstituter(s0.Receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
             // Strengthen the range of the "forall" statement with the precondition of the call, suitably substituted with the actual parameters.
             if (Attributes.Contains(s.Attributes, "_autorequires")) {
               var range = s.Range;

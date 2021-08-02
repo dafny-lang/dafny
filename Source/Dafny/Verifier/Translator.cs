@@ -94,7 +94,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class Translator {
+  public partial class Translator {
     ErrorReporter reporter;
     // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
     public bool UseOptimizationInZ3 { get; set; }
@@ -18744,60 +18744,6 @@ namespace Microsoft.Dafny {
         substMap.Add(letExpr.LHSs[i].Var, letExpr.RHSs[i]);
       }
       return Translator.Substitute(letExpr.Body, null, substMap);
-    }
-
-    public class FunctionCallSubstituter : Substituter
-    {
-      public readonly Function A, B;
-      public FunctionCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Function a, Function b)
-        : base(receiverReplacement, substMap, new Dictionary<TypeParameter,Type>()) {
-        A = a;
-        B = b;
-      }
-      public override Expression Substitute(Expression expr) {
-        if (expr is FunctionCallExpr) {
-          FunctionCallExpr e = (FunctionCallExpr)expr;
-          Expression receiver = Substitute(e.Receiver);
-          List<Expression> newArgs = SubstituteExprList(e.Args);
-          FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs, e.AtLabel);
-          if (e.Function == A) {
-            newFce.Function = B;
-            newFce.Type = e.Type; // TODO: this may not work with type parameters.
-          } else {
-            newFce.Function = e.Function;
-            newFce.Type = e.Type;
-          }
-          newFce.TypeApplication_AtEnclosingClass = e.TypeApplication_AtEnclosingClass;  // resolve here
-          newFce.TypeApplication_JustFunction = e.TypeApplication_JustFunction;  // resolve here
-          newFce.IsByMethodCall = e.IsByMethodCall;
-          return newFce;
-        }
-        return base.Substitute(expr);
-      }
-    }
-    public class PrefixCallSubstituter : Substituter
-    {
-      readonly ExtremePredicate extremePred;
-      readonly Expression unrollDepth;
-      readonly ModuleDefinition module;
-      public PrefixCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> tySubstMap, ExtremePredicate extremePredicate, Expression depth)
-        : base(receiverReplacement, substMap, tySubstMap) {
-        Contract.Requires(extremePredicate != null);
-        Contract.Requires(depth != null);
-        extremePred = extremePredicate;
-        unrollDepth = depth;
-        module = extremePredicate.EnclosingClass.EnclosingModuleDefinition;
-      }
-      public override Expression Substitute(Expression expr) {
-        if (expr is FunctionCallExpr) {
-          var e = (FunctionCallExpr)expr;
-          var cof = e.Function as ExtremePredicate;
-          if (cof != null && ModuleDefinition.InSameSCC(cof, extremePred)) {
-            expr = cof.CreatePrefixPredicateCall(e, unrollDepth);
-          }
-        }
-        return base.Substitute(expr);
-      }
     }
 
     Bpl.Expr HeapSameOrSucc(Bpl.Expr oldHeap, Bpl.Expr newHeap) {
