@@ -1,80 +1,75 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny
 {
   public class FreshIdGenerator
   {
-    Dictionary<string, int> PrefixToCount = new Dictionary<string, int>();
-
-    public /*spec public*/ readonly Stack<int> Tip = new Stack<int>();
     string tipString;  // a string representation of Tip
     int tipChildrenCount = 0;
-    readonly Stack<Dictionary<string, int>> PrefixToCount_Stack = new Stack<Dictionary<string, int>>();  // invariant PrefixToCount_Stack.Count == Tip.Count
+    readonly Stack<Dictionary<string, int>> prefixToCountStack = new();  // invariant PrefixToCount_Stack.Count == Tip.Count
+
+    public /*spec public*/ readonly Stack<int> Tip = new();
+    
     public void Push() {
       Tip.Push(tipChildrenCount);
       tipChildrenCount = 0;
       tipString = ComputeTipString();
-      PrefixToCount_Stack.Push(PrefixToCount);
-      PrefixToCount = new Dictionary<string, int>();
+      prefixToCountStack.Push(new());
     }
+    
     public void Pop() {
       Contract.Requires(Tip.Count > 0);
       int k = Tip.Pop();
       tipChildrenCount = k + 1;
       tipString = ComputeTipString();
-      PrefixToCount = PrefixToCount_Stack.Pop();
+      prefixToCountStack.Pop();
     }
+    
     string ComputeTipString() {
-      string s = null;
-      foreach (var k in Tip) {
-        if (s == null) {
-          s = k.ToString();
-        } else {
-          s = k.ToString() + "_" + s;
-        }
-      }
-      return s;
+      return Tip.Any() ? string.Join('_', Tip.Reverse().Select(t => t.ToString())) : null;
     }
 
-    readonly string CommonPrefix = "";
+    readonly string commonPrefix = "";
 
     public FreshIdGenerator()
     {
+      prefixToCountStack.Push(new());
     }
 
-    private FreshIdGenerator(string commonPrefix)
+    private FreshIdGenerator(string commonPrefix) : this()
     {
-      CommonPrefix = commonPrefix;
+      this.commonPrefix = commonPrefix;
     }
 
-    public void Reset()
-    {
-      lock (PrefixToCount)
+    public void Reset() {
+      var prefixToCount = prefixToCountStack.Peek();
+      lock (prefixToCount)
       {
-        PrefixToCount.Clear();
+        prefixToCount.Clear();
       }
     }
 
     public string FreshId(string prefix)
     {
-      return CommonPrefix + prefix + FreshNumericId(prefix);
+      return commonPrefix + prefix + FreshNumericId(prefix);
     }
 
     public FreshIdGenerator NestedFreshIdGenerator(string prefix)
     {
-      return new FreshIdGenerator(FreshId(prefix));
+      return new(FreshId(prefix));
     }
 
     public string FreshNumericId(string prefix = "")
     {
-      lock (PrefixToCount)
+      var prefixToCount = prefixToCountStack.Peek();
+      lock (prefixToCount)
       {
-        int old;
-        if (!PrefixToCount.TryGetValue(prefix, out old)) {
+        if (!prefixToCount.TryGetValue(prefix, out var old)) {
           old = 0;
         }
-        PrefixToCount[prefix] = old + 1;
+        prefixToCount[prefix] = old + 1;
         return tipString == null ? old.ToString() : tipString + "_" + old.ToString();
       }
     }
