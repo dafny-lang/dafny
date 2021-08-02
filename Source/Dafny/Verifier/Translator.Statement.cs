@@ -904,5 +904,135 @@ namespace Microsoft.Dafny
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
     }
+
+    private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
+    {
+      var stmtBuilder = new BoogieStmtListBuilder(this);
+      string errorMessage = CustomErrorMessage(stmt.Attributes);
+      this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
+      var defineFuel = DefineFuelConstant(stmt.Tok, stmt.Attributes, stmtBuilder, etran);
+      var b = defineFuel ? stmtBuilder : builder;
+      if (stmt is AssertStmt || DafnyOptions.O.DisallowSoundnessCheating) {
+        stmtContext = StmtType.ASSERT;
+        AddComment(b, stmt, "assert statement");
+        TrStmt_CheckWellformed(stmt.Expr, b, locals, etran, false);
+        IToken enclosingToken = null;
+        if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
+          enclosingToken = stmt.Tok;
+        }
+
+        BoogieStmtListBuilder proofBuilder = null;
+        var assertStmt = stmt as AssertStmt;
+        if (assertStmt != null) {
+          if (assertStmt.Proof != null) {
+            proofBuilder = new BoogieStmtListBuilder(this);
+            AddComment(proofBuilder, stmt, "assert statement proof");
+            TrStmt(((AssertStmt) stmt).Proof, proofBuilder, locals, etran);
+          } else if (assertStmt.Label != null) {
+            proofBuilder = new BoogieStmtListBuilder(this);
+            AddComment(proofBuilder, stmt, "assert statement proof");
+          }
+        }
+
+        var ss = TrSplitExpr(stmt.Expr, etran, true, out var splitHappened);
+        if (!splitHappened) {
+          var tok = enclosingToken == null ? stmt.Expr.tok : new NestedToken(enclosingToken, stmt.Expr.tok);
+          (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), errorMessage ?? "assertion violation", stmt.Tok,
+            etran.TrAttributes(stmt.Attributes, null)));
+        } else {
+          foreach (var split in ss) {
+            if (split.IsChecked) {
+              var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.E.tok);
+              (proofBuilder ?? b).Add(AssertNS(tok, split.E, errorMessage ?? "assertion violation", stmt.Tok,
+                etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
+            }
+          }
+        }
+
+        if (proofBuilder != null) {
+          PathAsideBlock(stmt.Tok, proofBuilder, b);
+        }
+
+        stmtContext = StmtType.NONE; // done with translating assert stmt
+        if (splitHappened || proofBuilder != null) {
+          if (assertStmt != null && assertStmt.Label != null) {
+            // make copies of the variables used in the assertion
+            var name = "$Heap_at_" + assertStmt.Label.AssignUniqueId(CurrentIdGenerator);
+            var heapAt = new Boogie.LocalVariable(stmt.Tok, new Boogie.TypedIdent(stmt.Tok, name, predef.HeapType));
+            locals.Add(heapAt);
+            var h = new Boogie.IdentifierExpr(stmt.Tok, heapAt);
+            b.Add(Boogie.Cmd.SimpleAssign(stmt.Tok, h, etran.HeapExpr));
+            var substMap = new Dictionary<IVariable, Expression>();
+            foreach (var v in ComputeFreeVariables(assertStmt.Expr)) {
+              if (v is LocalVariable) {
+                var vcopy = new LocalVariable(stmt.Tok, stmt.Tok, string.Format("##{0}#{1}", name, v.Name), v.Type,
+                  v.IsGhost);
+                vcopy.type = vcopy.OptionalType; // resolve local here
+                IdentifierExpr ie =
+                  new IdentifierExpr(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator));
+                ie.Var = vcopy;
+                ie.Type = ie.Var.Type; // resolve ie here
+                substMap.Add(v, ie);
+                locals.Add(new Boogie.LocalVariable(vcopy.Tok,
+                  new Boogie.TypedIdent(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator),
+                    TrType(vcopy.Type))));
+                b.Add(Boogie.Cmd.SimpleAssign(stmt.Tok, TrVar(stmt.Tok, vcopy), TrVar(stmt.Tok, v)));
+              }
+            }
+
+            var exprToBeRevealed = Substitute(assertStmt.Expr, null, substMap);
+            var etr = new ExpressionTranslator(etran, h);
+            assertStmt.Label.E = etr.TrExpr(exprToBeRevealed);
+          } else if (!defineFuel) {
+            // Adding the assume stmt, resetting the stmtContext
+            stmtContext = StmtType.ASSUME;
+            adjustFuelForExists = true;
+            b.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(stmt.Expr)));
+            stmtContext = StmtType.NONE;
+          }
+        }
+
+        if (defineFuel) {
+          var ifCmd = new Boogie.IfCmd(stmt.Tok, null, b.Collect(stmt.Tok), null,
+            null); // BUGBUG: shouldn't this first append "assume false" to "b"? (use PathAsideBlock to do this)  --KRML
+          builder.Add(ifCmd);
+          // Adding the assume stmt, resetting the stmtContext
+          stmtContext = StmtType.ASSUME;
+          adjustFuelForExists = true;
+          builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(stmt.Expr)));
+          stmtContext = StmtType.NONE;
+        }
+      } else if (stmt is ExpectStmt) {
+        AddComment(builder, stmt, "expect statement");
+        ExpectStmt s = (ExpectStmt) stmt;
+        stmtContext = StmtType.ASSUME;
+        TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
+
+        // Need to check the message is well-formed, assuming the expected expression
+        // does NOT hold:
+        //
+        // if Not(TrExpr[[ s.Expr ]]) {
+        //  CheckWellformed[[ s.Message ]]
+        //  assume false;
+        // }
+        BoogieStmtListBuilder thnBuilder = new BoogieStmtListBuilder(this);
+        TrStmt_CheckWellformed(s.Message, thnBuilder, locals, etran, false);
+        thnBuilder.Add(TrAssumeCmd(stmt.Tok, new Boogie.LiteralExpr(stmt.Tok, false),
+          etran.TrAttributes(stmt.Attributes, null)));
+        Boogie.StmtList thn = thnBuilder.Collect(s.Tok);
+        builder.Add(new Boogie.IfCmd(stmt.Tok, Boogie.Expr.Not(etran.TrExpr(s.Expr)), thn, null, null));
+
+        stmtContext = StmtType.NONE; // done with translating expect stmt.
+      } else if (stmt is AssumeStmt) {
+        AddComment(builder, stmt, "assume statement");
+        AssumeStmt s = (AssumeStmt) stmt;
+        stmtContext = StmtType.ASSUME;
+        TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
+        builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(s.Expr), etran.TrAttributes(stmt.Attributes, null)));
+        stmtContext = StmtType.NONE; // done with translating assume stmt.
+      }
+
+      this.fuelContext = FuelSetting.PopFuelContext();
+    }
   }
 }
