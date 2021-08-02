@@ -14,5 +14,12 @@ ByMethod.dfy(68,4): Error: A postcondition might not hold on this return path.
 ByMethod.dfy(67,14): Related location: This is the postcondition that might not hold.
 ByMethod.dfy(71,12): Error: A postcondition might not hold on this return path.
 ByMethod.dfy(72,27): Related location: This is the postcondition that might not hold.
+ByMethod.dfy(93,11): Error: failure to decrease termination measure
+ByMethod.dfy(102,11): Error: failure to decrease termination measure
+ByMethod.dfy(111,11): Error: failure to decrease termination measure
+ByMethod.dfy(126,10): Error: cannot prove termination; try supplying a decreases clause
+ByMethod.dfy(132,13): Error: cannot prove termination; try supplying a decreases clause
+ByMethod.dfy(148,11): Error: failure to decrease termination measure
+ByMethod.dfy(152,13): Error: cannot prove termination; try supplying a decreases clause
 
-Dafny program verifier finished with 4 verified, 8 errors
+Dafny program verifier finished with 12 verified, 15 errors

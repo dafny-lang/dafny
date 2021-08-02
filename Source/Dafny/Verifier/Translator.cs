@@ -7804,7 +7804,8 @@ namespace Microsoft.Dafny {
           Bpl.Expr allowance = null;
           if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is ExtremePredicate)) {
             // check that the decreases measure goes down
-            if (ModuleDefinition.InSameSCC(e.Function, codeContext)) {
+            var calleeSCCLookup = !codeContext.IsGhost && e.Function.ByMethodDecl != null ? (ICallable)e.Function.ByMethodDecl : e.Function;
+            if (ModuleDefinition.InSameSCC(calleeSCCLookup, codeContext)) {
               if (options.DoOnlyCoarseGrainedTerminationChecks) {
                 builder.Add(Assert(expr.tok, Bpl.Expr.False, "default-value expression is not allowed to involve recursive or mutually recursive calls"));
               } else {

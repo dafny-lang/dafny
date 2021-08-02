@@ -79,3 +79,86 @@ module ByMethodVerification {
     return x == 23; // since the consequence axiom says
   }
 }
+
+module ByMethodRecursion {
+  function F(x: int, n: nat): int {
+    x
+  } by method {
+    return if n == 0 then x else F(x, n - 1);
+  }
+
+  function G(x: int, n: nat): int {
+    x
+  } by method {
+    return Id(x, n); // error: failure to prove termination
+  }
+  function method Id(x: int, n: nat): int {
+    if n == 0 then x else G(x, n - 1)
+  }
+
+  function H(x: int, n: nat): int {
+    x
+  } by method {
+    return H(x, n); // error: failure to prove termination
+  }
+
+  function method I(x: int, n: nat): int {
+    if n == 0 then x else J(x, n - 1)
+  }
+  function J(x: int, n: nat): int {
+    x
+  } by method {
+    return I(x, n); // error: failure to prove termination
+  }
+
+  function method I'(x: int, n: nat): int
+    decreases x, n, 3
+  {
+    if n == 0 then x else J'(x, n - 1)
+  }
+  function J'(x: int, n: nat): int {
+    x
+  } by method {
+    return I'(x, n);
+  }
+
+  function K(): (k: int) {
+    LemmaK(); // error: failure to prove termination
+    5
+  } by method {
+    k := 5;
+  }
+  lemma LemmaK() {
+    var k := K(); // error: failure to prove termination (TODO)
+  }
+
+  function L(): (k: int) {
+    5
+  } by method {
+    LemmaL(); // fine
+    k := 5;
+  }
+  lemma LemmaL() {
+    var l := L();
+  }
+
+  function M(): (k: int) {
+    5
+  } by method {
+    MethodM(); // error: failure to prove termination
+    k := 5;
+  }
+  method MethodM() {
+    var m := M(); // error: failure to prove termination
+  }
+
+  function N(): (k: int) {
+    5
+  } by method {
+    MethodN(); // fine
+    k := 5;
+  }
+  method MethodN() {
+    ghost var n := N();
+  }
+}
