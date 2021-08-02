@@ -818,7 +818,7 @@ namespace Microsoft.Dafny
           req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
       } else {
         return new Method(Tok(m.tok), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(CloneFormal),
-          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null);
+          req, mod, ens, decreases, body, CloneAttributes(m.Attributes), null, m.IsByMethod);
       }
     }
 

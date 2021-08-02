@@ -9928,7 +9928,7 @@ namespace Microsoft.Dafny
           var method = new Method(tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
             f.Formals, new List<Formal>() { resultVar },
             f.Req, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
-            f.ByMethodBody, f.Attributes, null) {
+            f.ByMethodBody, f.Attributes, null, true) {
             EnclosingClass = f.EnclosingClass
           };
           method.InheritVisibility(f);

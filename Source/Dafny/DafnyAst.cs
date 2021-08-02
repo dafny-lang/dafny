@@ -6561,6 +6561,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "method"; } }
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
     public readonly IToken SignatureEllipsis;
+    public readonly bool IsByMethod;
     public bool MustReverify;
     public bool IsEntryPoint = false;
     public readonly List<TypeParameter> TypeArgs;
@@ -6618,7 +6619,7 @@ namespace Microsoft.Dafny {
                   [Captured] List<AttributedExpression> ens,
                   [Captured] Specification<Expression> decreases,
                   [Captured] BlockStmt body,
-                  Attributes attributes, IToken signatureEllipsis)
+                  Attributes attributes, IToken signatureEllipsis, bool isByMethod = false)
       : base(tok, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -6638,6 +6639,7 @@ namespace Microsoft.Dafny {
       this.Decreases = decreases;
       this.methodBody = body;
       this.SignatureEllipsis = signatureEllipsis;
+      this.IsByMethod = isByMethod;
       MustReverify = false;
     }
 

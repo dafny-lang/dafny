@@ -210,7 +210,7 @@ namespace Microsoft.Dafny {
           var r = module.CallGraph.GetSCC(clbl);
           foreach (var m in r) {
             Indent(indent);
-            wr.WriteLine($" *   {m.NameRelativeToModule}{(m is Function fn && fn.ByMethodDecl != null ? " (function)" : "")}");
+            wr.WriteLine($" *   {m.NameRelativeToModule}{(m is Method method && method.IsByMethod ? " (by method)" : "")}");
           }
         }
         Indent(indent); wr.WriteLine(" */");
