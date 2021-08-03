@@ -4423,7 +4423,7 @@ namespace Microsoft.Dafny {
 
     Dictionary<string, Bpl.IdentifierExpr> _tmpIEs = new Dictionary<string, Bpl.IdentifierExpr>();
 
-    int assertionCount = 0;
+    public int assertionCount = 0;
 
     Bpl.IdentifierExpr GetTmpVar_IdExpr(IToken tok, string name, Bpl.Type ty, List<Variable> locals)  // local variable that's shared between statements that need it
     {
@@ -12767,42 +12767,6 @@ namespace Microsoft.Dafny {
         this.substMap = substMap;
         this.typeMap = typeMap;
         this.Constraint_Bounds = constraintBounds;
-      }
-    }
-
-    internal class BoogieStmtListBuilder
-    {
-      public Bpl.StmtListBuilder builder;
-      public Translator tran;
-
-      public BoogieStmtListBuilder(Translator tran) {
-        builder = new Bpl.StmtListBuilder();
-        this.tran = tran;
-      }
-
-      public void Add(Cmd cmd) {
-        builder.Add(cmd);
-        if (cmd is Bpl.AssertCmd) {
-          tran.assertionCount++;
-        } else if (cmd is Bpl.CallCmd call) {
-          // A call command may involve a precondition, but we can't tell for sure until the callee
-          // procedure has been generated. Therefore, to be on the same side, we count this call
-          // as a possible assertion, unless it's a procedure that's part of the translation and
-          // known not to have any preconditions.
-          if (call.callee == "$IterHavoc0" || call.callee == "$IterHavoc1" || call.callee == "$YieldHavoc") {
-            // known not to have any preconditions
-          } else {
-            tran.assertionCount++;
-          }
-        }
-      }
-      public void Add(StructuredCmd scmd) { builder.Add(scmd); }
-      public void Add(TransferCmd tcmd) { builder.Add(tcmd);  }
-      public void AddLabelCmd(string label) { builder.AddLabelCmd(label); }
-      public void AddLocalVariable(string name) { builder.AddLocalVariable(name); }
-
-      public StmtList Collect(IToken tok) {
-        return builder.Collect(tok);
       }
     }
 
