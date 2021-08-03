@@ -1341,7 +1341,7 @@ namespace Microsoft.Dafny
       }
 
       for (int i = stmt.Cases.Count; 0 <= --i;) {
-        var mc = (MatchCaseStmt) stmt.Cases[i];
+        var mc = stmt.Cases[i];
         CurrentIdGenerator.Push();
         // havoc all bound variables
         b = new BoogieStmtListBuilder(this);
