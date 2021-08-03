@@ -1,3 +1,6 @@
+assertBy.dfy(13,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
+assertBy.dfy(7,5): Warning: /!\ No terms found to trigger on.
+assertBy.dfy(13,2): Warning: /!\ No terms found to trigger on.
 // Dafny 3.2.0.30713
 // Command Line Options: -useBaseNameForFileName -countVerificationErrors:0 -compileVerbose:0 /errorTrace:0 /compile:0 /print:- /Users/rwillems/Documents/SourceCode/dafny/Test/boogie/assertBy.dfy
 
@@ -2785,78 +2788,167 @@ axiom (forall $o: ref, $h: Heap ::
   $IsAlloc($o, Tclass._module.__default(), $h)
      <==> $o == null || read($h, $o, alloc));
 
-procedure CheckWellformed$$_module.__default.M();
-  free requires 0 == $FunctionContextHeight;
+procedure CheckWellformed$$_module.__default.M(heap#0: ref
+       where $Is(heap#0, Tclass._System.object())
+         && $IsAlloc(heap#0, Tclass._System.object(), $Heap));
+  free requires 1 == $FunctionContextHeight;
   modifies $Heap, $Tick;
 
 
 
-procedure Call$$_module.__default.M();
+procedure Call$$_module.__default.M(heap#0: ref
+       where $Is(heap#0, Tclass._System.object())
+         && $IsAlloc(heap#0, Tclass._System.object(), $Heap));
   modifies $Heap, $Tick;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
-    $o != null && read(old($Heap), $o, alloc) ==> $Heap[$o] == old($Heap)[$o]);
+    $o != null && read(old($Heap), $o, alloc)
+       ==> $Heap[$o] == old($Heap)[$o] || $o == heap#0);
   // boilerplate
   free ensures $HeapSucc(old($Heap), $Heap);
 
 
 
-procedure Impl$$_module.__default.M() returns ($_reverifyPost: bool);
-  free requires 0 == $FunctionContextHeight;
+procedure Impl$$_module.__default.M(heap#0: ref
+       where $Is(heap#0, Tclass._System.object())
+         && $IsAlloc(heap#0, Tclass._System.object(), $Heap))
+   returns ($_reverifyPost: bool);
+  free requires 1 == $FunctionContextHeight;
   modifies $Heap, $Tick;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
-    $o != null && read(old($Heap), $o, alloc) ==> $Heap[$o] == old($Heap)[$o]);
+    $o != null && read(old($Heap), $o, alloc)
+       ==> $Heap[$o] == old($Heap)[$o] || $o == heap#0);
   // boilerplate
   free ensures $HeapSucc(old($Heap), $Heap);
 
 
 
-implementation Impl$$_module.__default.M() returns ($_reverifyPost: bool)
+implementation Impl$$_module.__default.M(heap#0: ref) returns ($_reverifyPost: bool)
 {
   var $_Frame: <beta>[ref,Field beta]bool;
   var x#0: int;
-  var x#1: int;
+  var eg$y#0: int;
+  var y#0_0: int;
+  var x#1_0: int;
+  var y#2_0: int;
+  var i#3_0: int;
+  var x#3_0: int;
+  var s#0: Set Box where $Is(s#0, TSet(TInt)) && $IsAlloc(s#0, TSet(TInt), $Heap);
+  var $PreModifyHeap$modify#0: Heap;
+  var $Frame$modify#0: <beta>[ref,Field beta]bool;
+  var z#4_0: int;
+  var x#5_0: int;
+  var y#5_0: int;
   var y#0: int;
-  var y#1: int;
 
     // AddMethodImpl: M, Impl$$_module.__default.M
     $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: 
-      $o != null && read($Heap, $o, alloc) ==> false);
-    assume {:captureState "assertBy.dfy(3,11): initial state"} true;
+      $o != null && read($Heap, $o, alloc) ==> $o == heap#0);
+    assume {:captureState "assertBy.dfy(5,0): initial state"} true;
     $_reverifyPost := false;
-    // ----- assignment statement ----- assertBy.dfy(4,9)
+    // ----- assignment statement ----- assertBy.dfy(6,9)
     assume true;
     assume true;
     x#0 := LitInt(0);
-    assume {:captureState "assertBy.dfy(4,12)"} true;
-    // ----- assert statement ----- assertBy.dfy(5,3)
+    assume {:captureState "assertBy.dfy(6,12)"} true;
+    // ----- if statement ----- assertBy.dfy(7,3)
+    // Begin Comprehension WF check
+    havoc eg$y#0;
+    if (true)
+    {
+    }
+
+    // End Comprehension WF check
+    assume true;
+    havoc y#0_0;
+    if (*)
+    {
+        assume y#0_0 < x#0;
+        // ----- assignment statement ----- assertBy.dfy(8,11)
+        assume true;
+        assume true;
+        x#1_0 := LitInt(0);
+        assume {:captureState "assertBy.dfy(8,14)"} true;
+    }
+    else
+    {
+        assume !(exists eg$y#1: int :: eg$y#1 < x#0);
+        // ----- assignment statement ----- assertBy.dfy(10,11)
+        assume true;
+        assume true;
+        y#2_0 := LitInt(0);
+        assume {:captureState "assertBy.dfy(10,14)"} true;
+    }
+
+    // ----- forall statement (proof) ----- assertBy.dfy(13,3)
+    if (*)
+    {
+        // Assume Fuel Constant
+        havoc i#3_0;
+        assume true;
+        if (LitInt(0) <= i#3_0)
+        {
+        }
+
+        assume true;
+        assume LitInt(0) <= i#3_0 && i#3_0 < x#0;
+        // ----- assignment statement ----- assertBy.dfy(14,10)
+        assume true;
+        assume true;
+        x#3_0 := LitInt(2);
+        assume {:captureState "assertBy.dfy(14,13)"} true;
+        assume false;
+    }
+    else
+    {
+        assume (forall i#3_1: int :: LitInt(0) <= i#3_1 && i#3_1 < x#0 ==> Lit(true));
+    }
+
+    assume {:captureState "assertBy.dfy(15,2)"} true;
+    // ----- assignment statement ----- assertBy.dfy(17,9)
+    assume true;
+    assume true;
+    s#0 := Lit(Set#UnionOne(Set#UnionOne(Set#Empty(): Set Box, $Box(LitInt(2))), $Box(LitInt(3))));
+    assume {:captureState "assertBy.dfy(17,16)"} true;
+    // ----- modify statement ----- assertBy.dfy(18,3)
+    assert (forall<alpha> $o: ref, $f: Field alpha :: 
+      $o != null && read($Heap, $o, alloc) && $o == heap#0 ==> $_Frame[$o, $f]);
+    $Frame$modify#0 := (lambda<alpha> $o: ref, $f: Field alpha :: 
+      $o != null && read($Heap, $o, alloc) ==> $o == heap#0);
+    // ----- assignment statement ----- assertBy.dfy(19,11)
+    assume true;
+    assume true;
+    z#4_0 := LitInt(3);
+    assume {:captureState "assertBy.dfy(19,14)"} true;
+    assume {:captureState "assertBy.dfy(20,2)"} true;
+    // ----- assert statement ----- assertBy.dfy(22,3)
     assume true;
     if (*)
     {
-        // ----- assert statement proof ----- assertBy.dfy(5,3)
-        // ----- assignment statement ----- assertBy.dfy(6,11)
+        // ----- assert statement proof ----- assertBy.dfy(22,3)
+        // ----- assignment statement ----- assertBy.dfy(23,11)
         assume true;
         assume true;
-        x#0_0 := x#0 + 2;
-        assume {:captureState "assertBy.dfy(6,18)"} true;
-        // ----- assignment statement ----- assertBy.dfy(7,11)
+        x#5_0 := x#0 + 2;
+        assume {:captureState "assertBy.dfy(23,18)"} true;
+        // ----- assignment statement ----- assertBy.dfy(24,11)
         assume true;
         assume true;
-        y#0_0 := LitInt(0);
-        assume {:captureState "assertBy.dfy(7,14)"} true;
+        y#5_0 := LitInt(0);
+        assume {:captureState "assertBy.dfy(24,14)"} true;
         assert x#0 == LitInt(0);
         assume false;
     }
 
     assume x#0 == LitInt(0);
-    // ----- assignment statement ----- assertBy.dfy(9,9)
+    // ----- assignment statement ----- assertBy.dfy(26,9)
     assume true;
     assume true;
     y#0 := LitInt(200);
-    assume {:captureState "assertBy.dfy(9,14)"} true;
+    assume {:captureState "assertBy.dfy(26,14)"} true;
 }
 
 
