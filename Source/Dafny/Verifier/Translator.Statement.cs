@@ -905,6 +905,81 @@ namespace Microsoft.Dafny
       }
     }
 
+    
+
+    void TrForallProof(ForallStmt s, BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, List<Variable> locals, ExpressionTranslator etran) {
+      // Translate:
+      //   forall (x,y | Range(x,y))
+      //     ensures Post(x,y);
+      //   {
+      //     Body;
+      //   }
+      // as:
+      //   if (*) {
+      //     var x,y;
+      //     havoc x,y;
+      //     CheckWellformed( Range );
+      //     assume Range(x,y);
+      //     Tr( Body );
+      //     CheckWellformed( Post );
+      //     assert Post;
+      //     assume false;
+      //   } else {
+      //     assume (forall x,y :: Range(x,y) ==> Post(x,y));
+      //   }
+
+      if (s.BoundVars.Count != 0) {
+        // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
+        // here (rather than a TrBoundVariables).  However, there is currently no way to apply
+        // a substMap to a statement (in particular, to s.Body), so that doesn't work here.
+        List<bool> freeOfAlloc = null;
+        if (FrugalHeapUseX) {
+          freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+        }
+        var bVars = new List<Variable>();
+        var typeAntecedent = etran.TrBoundVariables(s.BoundVars, bVars, true, freeOfAlloc);
+        locals.AddRange(bVars);
+        var havocIds = new List<Bpl.IdentifierExpr>();
+        foreach (Bpl.Variable bv in bVars) {
+          havocIds.Add(new Bpl.IdentifierExpr(s.Tok, bv));
+        }
+        definedness.Add(new Bpl.HavocCmd(s.Tok, havocIds));
+        definedness.Add(TrAssumeCmd(s.Tok, typeAntecedent));
+      }
+      TrStmt_CheckWellformed(s.Range, definedness, locals, etran, false);
+      definedness.Add(TrAssumeCmd(s.Range.tok, etran.TrExpr(s.Range)));
+
+      if (s.Body != null) {
+        TrStmt(s.Body, definedness, locals, etran);
+
+        // check that postconditions hold
+        foreach (var ens in s.Ens) {
+
+          bool splitHappened;  // we actually don't care
+          foreach (var split in TrSplitExpr(ens.E, etran, true, out splitHappened)) {
+            if (split.IsChecked) {
+              definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of forall statement"));
+            }
+          }
+        }
+      }
+
+      definedness.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
+
+      // Now for the other branch, where the ensures clauses are exported.
+      // If the forall body has side effect such as call to a reveal function,
+      // it needs to be exported too.
+      var se = s.Body == null ? Bpl.Expr.True : TrFunctionSideEffect(s.Body, etran);
+      var substMap = new Dictionary<IVariable, Expression>();
+      var p = Substitute(s.ForallExpressions[0], null, substMap);
+      var qq = etran.TrExpr(p);
+      if (s.BoundVars.Count != 0) {
+        exporter.Add(TrAssumeCmd(s.Tok, BplAnd(se, qq)));
+      } else {
+        exporter.Add(TrAssumeCmd(s.Tok, BplAnd(se, ((Bpl.ForallExpr)qq).Body)));
+      }
+    }
+    
     /// <summary>
     /// "lhs" is expected to be a resolved form of an expression, i.e., not a conrete-syntax expression.
     /// </summary>
@@ -2245,6 +2320,198 @@ namespace Microsoft.Dafny
           builder.Add(cmd);
         }
       }
+    }
+    void TrForallStmtCall(IToken tok, List<BoundVar> boundVars, List<ComprehensionExpr.BoundedPool> bounds, Expression range, ExpressionConverter additionalRange, List<Expression> forallExpressions, CallStmt s0,
+      BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, List<Variable> locals, ExpressionTranslator etran) {
+      Contract.Requires(tok != null);
+      Contract.Requires(boundVars != null);
+      Contract.Requires(bounds != null);
+      Contract.Requires(range != null);
+      // additionalRange is allowed to be null
+      Contract.Requires(s0 != null);
+      // definedness is allowed to be null
+      Contract.Requires(exporter != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+
+      // Translate:
+      //   forall (x,y | Range(x,y)) {
+      //     E(x,y) . M( Args(x,y) );
+      //   }
+      // as:
+      //   if (*) {
+      //     var x,y;
+      //     havoc x,y;
+      //     CheckWellformed( Range );
+      //     assume Range(x,y);
+      //     assume additionalRange;
+      //     Tr( Call );
+      //     assume false;
+      //   } else {
+      //     initHeap := $Heap;
+      //     advance $Heap, Tick;
+      //     assume (forall x,y :: (Range(x,y) && additionalRange)[INIT] &&
+      //                           ==> Post[old($Heap) := initHeap]( E(x,y)[INIT], Args(x,y)[INIT] ));
+      //   }
+      // where Post(this,args) is the postcondition of method M and
+      // INIT is the substitution [old($Heap),$Heap := old($Heap),initHeap].
+
+      if (definedness != null) {
+        if (boundVars.Count != 0) {
+          // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
+          // here (rather than a TrBoundVariables).  However, there is currently no way to apply
+          // a substMap to a statement (in particular, to s.Body), so that doesn't work here.
+          List<bool> freeOfAlloc = null;
+          if (FrugalHeapUseX) {
+            freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+          }
+          List<Variable> bvars = new List<Variable>();
+          var ante = etran.TrBoundVariables(boundVars, bvars, true, freeOfAlloc);
+          locals.AddRange(bvars);
+          var havocIds = new List<Bpl.IdentifierExpr>();
+          foreach (Bpl.Variable bv in bvars) {
+            havocIds.Add(new Bpl.IdentifierExpr(tok, bv));
+          }
+          definedness.Add(new Bpl.HavocCmd(tok, havocIds));
+          definedness.Add(TrAssumeCmd(tok, ante));
+        }
+        TrStmt_CheckWellformed(range, definedness, locals, etran, false);
+        definedness.Add(TrAssumeCmd(range.tok, etran.TrExpr(range)));
+        if (additionalRange != null) {
+          var es = additionalRange(new Dictionary<IVariable, Expression>(), etran);
+          definedness.Add(TrAssumeCmd(es.tok, es));
+        }
+
+        TrStmt(s0, definedness, locals, etran);
+
+        definedness.Add(TrAssumeCmd(tok, Bpl.Expr.False));
+      }
+
+      // Now for the other branch, where the postcondition of the call is exported.
+      {
+        var initHeapVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, CurrentIdGenerator.FreshId("$initHeapForallStmt#"), predef.HeapType));
+        locals.Add(initHeapVar);
+        var initHeap = new Bpl.IdentifierExpr(tok, initHeapVar);
+        var initEtran = new ExpressionTranslator(this, predef, initHeap, etran.Old.HeapExpr);
+        // initHeap := $Heap;
+        exporter.Add(Bpl.Cmd.SimpleAssign(tok, initHeap, etran.HeapExpr));
+        var heapIdExpr = (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr;
+        // advance $Heap, Tick;
+        exporter.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { heapIdExpr, etran.Tick() }));
+        Contract.Assert(s0.Method.Mod.Expressions.Count == 0);  // checked by the resolver
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(tok, new List<FrameExpression>(), s0.IsGhost, initEtran, etran, initEtran)) {
+          if (tri.IsFree) {
+            exporter.Add(TrAssumeCmd(tok, tri.Expr));
+          }
+        }
+        if (codeContext is IteratorDecl) {
+          var iter = (IteratorDecl)codeContext;
+          RecordNewObjectsIn_New(tok, iter, initHeap, heapIdExpr, exporter, locals, etran);
+        }
+
+        // Note, in the following, we need to do a bit of a song and dance.  The actual arguments of the
+        // call should be translated using "initEtran", whereas the method postcondition should be translated
+        // using "callEtran".  To accomplish this, we translate the argument and then tuck the resulting
+        // Boogie expressions into BoogieExprWrappers that are used in the DafnyExpr-to-DafnyExpr substitution.
+        // TODO
+        Bpl.Expr qq;
+        var bvars = new List<Variable>();
+        Dictionary<IVariable, Expression> substMap;
+        Bpl.Trigger antitriggerBoundVarTypes;
+        Bpl.Expr ante;
+        var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
+        Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
+        var callEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, initHeap);
+        Bpl.Expr post = Bpl.Expr.True;
+        Bpl.Trigger tr;
+        if (forallExpressions != null) {
+          // tranlate based on the forallExpressions since the triggers are computed based on it already.
+          QuantifierExpr expr = (QuantifierExpr)forallExpressions[0];
+          while (expr.SplitQuantifier != null) {
+            expr = (QuantifierExpr)expr.SplitQuantifierExpression;
+          }
+          boundVars = expr.BoundVars;
+          ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap, out antitriggerBoundVarTypes);
+          ante = BplAnd(ante, initEtran.TrExpr(Substitute(expr.Range, null, substMap)));
+          if (additionalRange != null) {
+            ante = BplAnd(ante, additionalRange(substMap, initEtran));
+          }
+          tr = TrTrigger(callEtran, expr.Attributes, expr.tok, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
+          post = callEtran.TrExpr(Substitute(expr.Term, null, substMap));
+        } else {
+          ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap, out antitriggerBoundVarTypes);
+          for (int i = 0; i < s0.Method.Ins.Count; i++) {
+            var arg = Substitute(s0.Args[i], null, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());  // substitute the renamed bound variables for the declared ones
+            argsSubstMap.Add(s0.Method.Ins[i], new BoogieWrapper(initEtran.TrExpr(arg), s0.Args[i].Type));
+          }
+          ante = BplAnd(ante, initEtran.TrExpr(Substitute(range, null, substMap)));
+          if (additionalRange != null) {
+            ante = BplAnd(ante, additionalRange(substMap, initEtran));
+          }
+          var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents())), s0.Receiver.Type);
+          foreach (var ens in s0.Method.Ens) {
+            var p = Substitute(ens.E, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());  // substitute the call's actuals for the method's formals
+            post = BplAnd(post, callEtran.TrExpr(p));
+          }
+          tr = antitriggerBoundVarTypes;
+        }
+
+        // TRIG (forall $ih#s0#0: Seq Box :: $Is($ih#s0#0, TSeq(TChar)) && $IsAlloc($ih#s0#0, TSeq(TChar), $initHeapForallStmt#0) && Seq#Length($ih#s0#0) != 0 && Seq#Rank($ih#s0#0) < Seq#Rank(s#0) ==> (forall i#2: int :: true ==> LitInt(0) <= i#2 && i#2 < Seq#Length($ih#s0#0) ==> char#ToInt(_module.CharChar.MinChar($LS($LZ), $Heap, this, $ih#s0#0)) <= char#ToInt($Unbox(Seq#Index($ih#s0#0, i#2)): char)))
+        // TRIG (forall $ih#pat0#0: Seq Box, $ih#a0#0: Seq Box :: $Is($ih#pat0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#pat0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && $Is($ih#a0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#a0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && Seq#Length($ih#pat0#0) <= Seq#Length($ih#a0#0) && Seq#SameUntil($ih#pat0#0, $ih#a0#0, Seq#Length($ih#pat0#0)) && (Seq#Rank($ih#pat0#0) < Seq#Rank(pat#0) || (Seq#Rank($ih#pat0#0) == Seq#Rank(pat#0) && Seq#Rank($ih#a0#0) < Seq#Rank(a#0))) ==> _module.__default.IsRelaxedPrefixAux(_module._default.Same0$T, $LS($LZ), $Heap, $ih#pat0#0, $ih#a0#0, LitInt(1)))'
+        // TRIG (forall $ih#m0#0: DatatypeType, $ih#n0#0: DatatypeType :: $Is($ih#m0#0, Tclass._module.Nat()) && $IsAlloc($ih#m0#0, Tclass._module.Nat(), $initHeapForallStmt#0) && $Is($ih#n0#0, Tclass._module.Nat()) && $IsAlloc($ih#n0#0, Tclass._module.Nat(), $initHeapForallStmt#0) && Lit(true) && (DtRank($ih#m0#0) < DtRank(m#0) || (DtRank($ih#m0#0) == DtRank(m#0) && DtRank($ih#n0#0) < DtRank(n#0))) ==> _module.__default.mult($LS($LZ), $Heap, $ih#m0#0, _module.__default.plus($LS($LZ), $Heap, $ih#n0#0, $ih#n0#0)) == _module.__default.mult($LS($LZ), $Heap, _module.__default.plus($LS($LZ), $Heap, $ih#m0#0, $ih#m0#0), $ih#n0#0))
+        qq = new Bpl.ForallExpr(tok, bvars, tr, Bpl.Expr.Imp(ante, post));  // TODO: Add a SMART_TRIGGER here.  If we can't find one, abort the attempt to do induction automatically
+        exporter.Add(TrAssumeCmd(tok, qq));
+      }
+    }
+
+    void RecordNewObjectsIn_New(IToken tok, IteratorDecl iter, Bpl.Expr initHeap, Bpl.IdentifierExpr currentHeap,
+      BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+      Contract.Requires(tok != null);
+      Contract.Requires(iter != null);
+      Contract.Requires(initHeap != null);
+      Contract.Requires(currentHeap != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(locals != null);
+      Contract.Requires(etran != null);
+      // Add all newly allocated objects to the set this._new
+      var updatedSet = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, CurrentIdGenerator.FreshId("$iter_newUpdate"), predef.SetType(iter.tok, true, predef.BoxType)));
+      locals.Add(updatedSet);
+      var updatedSetIE = new Bpl.IdentifierExpr(iter.tok, updatedSet);
+      // call $iter_newUpdate := $IterCollectNewObjects(initHeap, $Heap, this, _new);
+      var th = new Bpl.IdentifierExpr(iter.tok, etran.This, predef.RefType);
+      var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
+      Bpl.Cmd cmd = new CallCmd(iter.tok, "$IterCollectNewObjects",
+        new List<Bpl.Expr>() { initHeap, etran.HeapExpr, th, nwField },
+        new List<Bpl.IdentifierExpr>() { updatedSetIE });
+      builder.Add(cmd);
+      // $Heap[this, _new] := $iter_newUpdate;
+      cmd = Bpl.Cmd.SimpleAssign(iter.tok, currentHeap, ExpressionTranslator.UpdateHeap(iter.tok, currentHeap, th, nwField, updatedSetIE));
+      builder.Add(cmd);
+      // assume $IsGoodHeap($Heap)
+      builder.Add(AssumeGoodHeap(tok, etran));
+    }
+    
+    private string GetObjFieldDetails(Expression lhs, ExpressionTranslator etran, out Bpl.Expr obj, out Bpl.Expr F) {
+      string description;
+      if (lhs is MemberSelectExpr) {
+        var fse = (MemberSelectExpr)lhs;
+        obj = etran.TrExpr(fse.Obj);
+        F = GetField(fse);
+        description = "an object field";
+      } else if (lhs is SeqSelectExpr) {
+        var sel = (SeqSelectExpr)lhs;
+        obj = etran.TrExpr(sel.Seq);
+        var idx = etran.TrExpr(sel.E0);
+        idx = ConvertExpression(sel.E0.tok, idx, sel.E0.Type, Type.Int);
+        F = FunctionCall(sel.tok, BuiltinFunction.IndexField, null, idx);
+        description = "an array element";
+      } else {
+        MultiSelectExpr mse = (MultiSelectExpr)lhs;
+        obj = etran.TrExpr(mse.Array);
+        F = etran.GetArrayIndexFieldName(mse.tok, mse.Indices);
+        description = "an array element";
+      }
+      return description;
     }
   }
 }
