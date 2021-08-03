@@ -59,10 +59,10 @@ namespace DafnyServer.CounterExampleGeneration {
         if (expandedSet.Contains(next)) {
           continue;
         }
-        expandedSet.Add(next);
         if (depth == maxDepth) {
           break;
         }
+        expandedSet.Add(next);
         // fields of primitive types are skipped:
         foreach (var v in next.GetExpansion().
             Where(x => !expandedSet.Contains(x) && !x.IsPrimitive)) { 

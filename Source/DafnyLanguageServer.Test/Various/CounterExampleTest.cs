@@ -106,26 +106,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("a:int"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("b:int"));
     }
-    
-    [TestMethod]
-    public async Task SelfReferringObject() {
-      var source = @"
-      class Node {
-          var next: Node?;
-      }
-      method IsSelfReferring(n:Node) {
-          assert n.next != n;
-      }
-      ".TrimStart();
-      var documentItem = CreateTestDocument(source);
-      _client.OpenDocument(documentItem);
-      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
-      Assert.AreEqual(1, counterExamples.Length);
-      Assert.AreEqual(1, counterExamples[0].Variables.Count);
-      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("n:_module.Node?"));
-      Assert.AreEqual("(next := n)", counterExamples[0].Variables["n:_module.Node?"]);
-    }
-    
+
     [TestMethod]
     public async Task RealFull() {
       var source = @"
@@ -197,6 +178,25 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
+    public async Task SelfReferringObject() {
+      var source = @"
+      class Node {
+          var next: Node?;
+      }
+      method IsSelfReferring(n:Node) {
+          assert n.next != n;
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(1, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("n:_module.Node?"));
+      Assert.AreEqual("(next := n)", counterExamples[0].Variables["n:_module.Node?"]);
+    }
+    
+    [TestMethod]
     public async Task ObjectWithANonNullField() {
       var source = @"
       class Node {
@@ -233,7 +233,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("n:_module.Node?"));
       Assert.AreEqual("(next := null)", counterExamples[0].Variables["n:_module.Node?"]);
     }
-    
+
     [TestMethod]
     public async Task PrimitiveField() {
       var source = @"
@@ -312,9 +312,83 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("b:_module.B"));
-      Assert.AreEqual("A([0] := 5)", counterExamples[0].Variables["b:_module.B"]);
+      Assert.AreEqual("A(_h0 := 5)", counterExamples[0].Variables["b:_module.B"]);
     }
     
+    [TestMethod]
+    public async Task DatatypeWithParameters() {
+      var source = @"
+      datatype A<T> = One(b:T) | Two(i:int)
+      method m(a:A<bool>) requires a == One(false) || a == One(true) {
+        assert a.b;
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(1, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("a:_module.A<bool>"));
+      Assert.AreEqual("One(b := false)", counterExamples[0].Variables["a:_module.A<bool>"]);
+    }
+    
+    [TestMethod]
+    public async Task UnknownBool() {
+      var source = @"
+      datatype List<T> = Nil | Cons(head: T, tail: List<T>)
+      method listHasSingleElement(list:List<bool>) 
+        requires list != Nil
+      {
+        assert list.tail != Nil;
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(2, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("list:_module.List<bool>"));
+      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<bool>"], new Regex("Cons\\(head := (true|false), tail := @[0-9]+\\)"));
+    }
+    
+    [TestMethod]
+    public async Task UnknownInt() {
+      var source = @"
+      datatype List<T> = Nil | Cons(head: T, tail: List<T>)
+      method listHasSingleElement(list:List<int>) 
+        requires list != Nil
+      {
+        assert list.tail != Nil;
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(2, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("list:_module.List<int>"));
+      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<int>"], new Regex("Cons\\(head := [0-9][1-9]*, tail := @[0-9]+\\)"));
+    }
+    
+    [TestMethod]
+    public async Task UnknownReal() {
+      var source = @"
+      datatype List<T> = Nil | Cons(head: T, tail: List<T>)
+      method listHasSingleElement(list:List<real>) 
+        requires list != Nil
+      {
+        assert list.tail != Nil;
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(2, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("list:_module.List<real>"));
+      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<real>"], new Regex("Cons\\(head := [0-9]+\\.[0-9]+, tail := @[0-9]+\\)"));
+    }
+
     [TestMethod]
     public async Task Array() {
       var source = @"

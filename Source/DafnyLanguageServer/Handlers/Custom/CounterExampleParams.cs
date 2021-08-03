@@ -9,7 +9,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor.
     public TextDocumentIdentifier TextDocument { get; set; }
     
-    public int CounterExampleDepth { get; set; } = 2;
+    public int CounterExampleDepth { get; set; } = 5;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor.
   }
 }

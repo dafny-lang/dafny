@@ -17,7 +17,8 @@ namespace DafnyServer.CounterExampleGeneration {
     private readonly Model.Func fSetSelect, fSeqLength, fSeqIndex, fBox, 
       fDim, fIndexField, fMultiIndexField, fDtype, fCharToInt, fTag, fBv, fType,
       fChar, fNull, fSetUnion, fSetIntersection, fSetDifference, fSeqBuild,
-      fSeqAppend, fSeqDrop, fSeqTake, fSeqUpdate, fSeqCreate, fReal, fU2real;
+      fSeqAppend, fSeqDrop, fSeqTake, fSeqUpdate, fSeqCreate, fReal, fU2Real,
+      fBool, fU2Bool, fInt, fU2Int;
     private readonly Dictionary<Model.Element, Model.Element[]> arrayLengths = new();
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
     private readonly Dictionary<Model.Element, string> localValue = new();
@@ -47,7 +48,11 @@ namespace DafnyServer.CounterExampleGeneration {
       fType = model.MkFunc("type", 1);
       fChar = model.MkFunc("charType", 0);
       fReal = model.MkFunc("realType", 0);
-      fU2real = model.MkFunc("U_2_real", 1);
+      fU2Real = model.MkFunc("U_2_real", 1);
+      fBool = model.MkFunc("boolType", 0);
+      fU2Bool = model.MkFunc("U_2_bool", 1);
+      fInt = model.MkFunc("intType", 0);
+      fU2Int = model.MkFunc("U_2_int", 1);
       fTag = model.MkFunc("Tag", 1);
       fBv = model.MkFunc("TBitvector", 1);
       InitArraysAndDatatypes();
@@ -133,6 +138,10 @@ namespace DafnyServer.CounterExampleGeneration {
     public static bool IsUserVariableName(string name) =>
       !name.StartsWith("$") && !name.Contains("##");
 
+    /// <summary>
+    /// Return true iff element is a BitVector object (not to be confused an
+    /// instance of Model.BitVector, which is a BitVector value)
+    /// </summary>
     private static bool IsBitVectorObject(Model.Element element, DafnyModel model) =>
       Regex.IsMatch(GetTrueName(model.fType.OptEval(element))
                     ?? "", "^bv[0-9]+Type$");
@@ -145,6 +154,8 @@ namespace DafnyServer.CounterExampleGeneration {
        || element == state.Model.fNull.GetConstant()
        || state.Model.fType.OptEval(element) == state.Model.fChar.GetConstant()
        || state.Model.fType.OptEval(element) == state.Model.fReal.GetConstant()
+       || state.Model.fType.OptEval(element) == state.Model.fInt.GetConstant()
+       || state.Model.fType.OptEval(element) == state.Model.fBool.GetConstant()
        || IsBitVectorObject(element, state.Model)) && 
       element.Kind != Model.ElementKind.Array && 
       (element.Kind != Model.ElementKind.DataValue || 
@@ -171,8 +182,10 @@ namespace DafnyServer.CounterExampleGeneration {
       return name;
     }
 
-    /// <summary>Get Boogie type. This returns the Boogie type associated
-    /// with the element </summary>
+    /// <summary>
+    /// Get Boogie type. This returns the Boogie type associated
+    /// with the element
+    /// </summary>
     private string GetBoogieType(Model.Element element) {
       var typeElement = Model.GetFunc("type").OptEval(element);
       if (typeElement == null) {
@@ -191,8 +204,7 @@ namespace DafnyServer.CounterExampleGeneration {
       return null;
     }
     
-    /// <summary> Get the Dafny type of the element </summary>
-    /// <returns></returns>
+    /// <summary> Get the Dafny type of an element </summary>
     internal string GetDafnyType(Model.Element element) {
       switch (element.Kind) {
         case Model.ElementKind.Boolean: 
@@ -288,7 +300,7 @@ namespace DafnyServer.CounterExampleGeneration {
       }
       var fullName = GetTrueName(typeElement);
       if (fullName != null && fullName.Length > 7) {
-        return fullName.Substring(7);
+        return fullName.Substring(7); 
       }
       if (fullName is "TInt" or "TReal" or "TChar" or "TBool") {
         return fullName.Substring(1).ToLower();
@@ -320,9 +332,16 @@ namespace DafnyServer.CounterExampleGeneration {
       return tagName + "<" + String.Join(",", typeArgs.ConvertAll(t => ReconstructType(t))) + ">";
     }
     
+    /// <summary>
+    /// Extract the string representation of the element.
+    /// Returns "" if !IsPrimitive(elt, state)
+    /// </summary>
     public string CanonicalName(Model.Element elt, DafnyModelState state) {
       if (elt == null) {
         return "?";
+      }
+      if (elt == fNull.GetConstant()) {
+        return "null";
       }
       if (elt is Model.Integer or Model.Boolean or Model.BitVector or Model.Real) {
         return elt.ToString();
@@ -350,9 +369,6 @@ namespace DafnyServer.CounterExampleGeneration {
       if (datatypeValues.TryGetValue(elt, out var fnTuple)) {
         return fnTuple.Func.Name.Split(".").Last();
       }
-      if (elt == fNull.GetConstant()) {
-        return "null";
-      }
       if (fType.OptEval(elt) == fChar.GetConstant()) {
         int utfCode;
         if (fCharToInt.OptEval(elt) != null) {
@@ -368,31 +384,50 @@ namespace DafnyServer.CounterExampleGeneration {
         }
       }
       if (fType.OptEval(elt) == fReal.GetConstant()) {
-        if (fU2real.OptEval(elt) != null) {
-          return CanonicalName(fU2real.OptEval(elt), state);
+        if (fU2Real.OptEval(elt) != null) {
+          return CanonicalName(fU2Real.OptEval(elt), state);
         }
+        return "0.0";
+      }
+      if (fType.OptEval(elt) == fBool.GetConstant()) {
+        if (fU2Bool.OptEval(elt) != null) {
+          return CanonicalName(fU2Bool.OptEval(elt), state);
+        }
+        return "false";
+      }
+      if (fType.OptEval(elt) == fInt.GetConstant()) {
+        if (fU2Int.OptEval(elt) != null) {
+          return CanonicalName(fU2Int.OptEval(elt), state);
+        }
+        return "0";
       }
       return "";
     }
 
+    /// <summary>
+    /// Return a set of variables associated with an element. These could be
+    /// values of fields for objects, values at certain positions for
+    /// sequences, etc.
+    /// </summary>
     public IEnumerable<DafnyModelVariable> GetExpansion(DafnyModelState dafnyModelState, DafnyModelVariable var) {
       List<DafnyModelVariable> result = new ();
       if (var.Element.Kind != Model.ElementKind.Uninterpreted) {
-        return result;
+        return result;  // primitive types can't have fields
       }
-      // Perhaps elt is a known datatype value
       if (datatypeValues.TryGetValue(var.Element, out var fnTuple)) {
-        // elt is a datatype value
+        // Elt is a datatype value
         var i = 0;
         foreach (var arg in fnTuple.Args) {
-          result.Add(DafnyModelVariable.Get(dafnyModelState, arg, "[" + i + "]", var));
+          result.Add(DafnyModelVariable.Get(dafnyModelState, 
+            Unbox(arg), 
+            GetDestructorName(var.Element, arg) ?? "[" + i + "]", 
+            var));
           i++;
         }
         return result;
       }
-      // Perhaps elt is a sequence
       var seqLen = fSeqLength.OptEval(var.Element);
-      if (seqLen != null) {
+      if (seqLen != null) { // Elt is a sequence
         result.Add(DafnyModelVariable.Get(dafnyModelState, seqLen, "Length", var));
         // Sequence can be constructed with build operator:
         List<Model.Element> elements = new();
@@ -414,7 +449,6 @@ namespace DafnyServer.CounterExampleGeneration {
         }
         return result;
       }
-      // Perhaps elt is a set
       foreach (var tpl in fSetSelect.AppsWithArg(0, var.Element)) {
         var setElement = tpl.Args[1];
         var containment = tpl.Result;
@@ -424,11 +458,11 @@ namespace DafnyServer.CounterExampleGeneration {
         result.Add(DafnyModelVariable.Get(dafnyModelState, Unbox(setElement), 
           ((Model.Boolean)containment).ToString(), var));
       }
-      if (result.Count != 0) {
-        return result; // elt is a set
+      if (result.Count != 0) { // Elt is a set
+        return result;
       }
-      // It seems elt is an object or array
       if (arrayLengths.TryGetValue(var.Element, out var lengths)) {
+        // Elt is an array
         var i = 0;
         foreach (var len in lengths) {
           var name = lengths.Length == 1 ? "Length" : "Length" + i;
@@ -436,6 +470,7 @@ namespace DafnyServer.CounterExampleGeneration {
           i++;
         }
       }
+      // Elt is an array or an object:
       var heap = dafnyModelState.State.TryGet("$Heap");
       if (heap == null) {
         return result;
@@ -454,7 +489,26 @@ namespace DafnyServer.CounterExampleGeneration {
     }
 
     /// <summary>
-    /// Return the name of the field represented by the element.
+    /// Search for a function that maps the datatype object to a particular
+    /// destructor value. Extract the name of the destructor.
+    /// </summary>
+    private static string GetDestructorName(Model.Element datatype,
+      Model.Element destructor) {
+      string name = null;
+      foreach (var app in destructor.Names) {
+        if (app.Func.Arity != 1 || app.Args[0] != datatype || !app.Func.Name.Contains(".")) {
+          continue;
+        }
+        if (name != null) {
+          return null;  // name must be unique
+        }
+        name = app.Func.Name;
+      }
+      return name?.Split(".").Last();
+    }
+    
+    /// <summary>
+    /// Return the name of the field represented by the given element.
     /// Special care is required if the element represents an array index
     /// </summary>
     private string GetFieldName(Model.Element elt) {
@@ -483,6 +537,7 @@ namespace DafnyServer.CounterExampleGeneration {
         ConvertAll(x => x.ToString())) + "]";
     }
 
+    /// <summary> Unboxes an element, if possible </summary>
     private Model.Element Unbox(Model.Element elt) {
       var unboxed = fBox.AppWithResult(elt);
       return unboxed != null ? unboxed.Args[0] : elt;
