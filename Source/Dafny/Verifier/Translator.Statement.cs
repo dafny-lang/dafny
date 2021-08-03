@@ -905,6 +905,36 @@ namespace Microsoft.Dafny
       }
     }
 
+    /// <summary>
+    /// "lhs" is expected to be a resolved form of an expression, i.e., not a conrete-syntax expression.
+    /// </summary>
+    void TrAssignment(Statement stmt, Expression lhs, AssignmentRhs rhs,
+      BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
+    {
+      Contract.Requires(stmt != null);
+      Contract.Requires(lhs != null);
+      Contract.Requires(!(lhs is ConcreteSyntaxExpression));
+      Contract.Requires(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // these were once allowed, but their functionality is now provided by 'forall' statements
+      Contract.Requires(rhs != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(cce.NonNullElements(locals));
+      Contract.Requires(etran != null);
+      Contract.Requires(predef != null);
+
+      List<AssignToLhs> lhsBuilder;
+      List<Bpl.IdentifierExpr> bLhss;
+      var lhss = new List<Expression>() { lhs };
+      Bpl.Expr[] ignore1, ignore2;
+      string[] ignore3;
+      ProcessLhss(lhss, rhs.CanAffectPreviouslyKnownExpressions, true, builder, locals, etran,
+        out lhsBuilder, out bLhss, out ignore1, out ignore2, out ignore3);
+      Contract.Assert(lhsBuilder.Count == 1 && bLhss.Count == 1);  // guaranteed by postcondition of ProcessLhss
+
+      var rhss = new List<AssignmentRhs>() { rhs };
+      ProcessRhss(lhsBuilder, bLhss, lhss, rhss, builder, locals, etran);
+      builder.Add(CaptureState(stmt));
+    }
+
     void TrForallAssign(ForallStmt s, AssignStmt s0,
       BoogieStmtListBuilder definedness, BoogieStmtListBuilder updater, List<Variable> locals, ExpressionTranslator etran) {
       // The statement:
