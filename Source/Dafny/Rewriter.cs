@@ -150,10 +150,10 @@ namespace Microsoft.Dafny
                   } else if (lhs is SeqSelectExpr) {
                     var ll = (SeqSelectExpr)lhs;
                     Contract.Assert(ll.SelectOne);
-                    if (!Translator.ContainsFreeVariable(ll.Seq, false, i)) {
+                    if (!FreeVariablesUtil.ContainsFreeVariable(ll.Seq, false, i)) {
                       Fi = ll.E0;
                       lhsBuilder = e => { var l = new SeqSelectExpr(ll.tok, true, ll.Seq, e, null); l.Type = ll.Type; return l; };
-                    } else if (!Translator.ContainsFreeVariable(ll.E0, false, i)) {
+                    } else if (!FreeVariablesUtil.ContainsFreeVariable(ll.E0, false, i)) {
                       Fi = ll.Seq;
                       lhsBuilder = e => { var l = new SeqSelectExpr(ll.tok, true, e, ll.E0, null); l.Type = ll.Type; return l; };
                     }
@@ -300,7 +300,7 @@ namespace Microsoft.Dafny
         Contract.Requires(R != null);
         Contract.Requires(F != null);
         F = F.Resolved;
-        if (!Translator.ContainsFreeVariable(F, false, i)) {
+        if (!FreeVariablesUtil.ContainsFreeVariable(F, false, i)) {
           // We're looking at R(i) && j == K.
           // We cannot invert j == K, but if we're lucky, R(i) contains a conjunct i==G.
           Expression r = Expression.CreateBoolLiteral(R.tok, true);
@@ -338,7 +338,7 @@ namespace Microsoft.Dafny
         } else if (F is BinaryExpr) {
           var bin = (BinaryExpr)F;
           if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Add && (bin.E0.Type.IsIntegerType || bin.E0.Type.IsRealType)) {
-            if (!Translator.ContainsFreeVariable(bin.E1, false, i)) {
+            if (!FreeVariablesUtil.ContainsFreeVariable(bin.E1, false, i)) {
               // We're looking at:  R(i) && j == f(i) + K.
               // By a recursive call, we'll ask to invert:  R(i) && j' == f(i).
               // For each P_0(j') && f-1_0(j') == i we get back, we yield:
@@ -347,7 +347,7 @@ namespace Microsoft.Dafny
               foreach (var val in InvertExpression(i, j, R, bin.E0)) {
                 yield return val.Subst(j, jMinusK);
               }
-            } else if (!Translator.ContainsFreeVariable(bin.E0, false, i)) {
+            } else if (!FreeVariablesUtil.ContainsFreeVariable(bin.E0, false, i)) {
               // We're looking at:  R(i) && j == K + f(i)
               // Do as in previous case, but with operands reversed.
               var jMinusK = Expression.CreateSubtract(Expression.CreateIdentExpr(j), bin.E0);
@@ -356,14 +356,14 @@ namespace Microsoft.Dafny
               }
             }
           } else if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub && (bin.E0.Type.IsIntegerType || bin.E0.Type.IsRealType)) {
-            if (!Translator.ContainsFreeVariable(bin.E1, false, i)) {
+            if (!FreeVariablesUtil.ContainsFreeVariable(bin.E1, false, i)) {
               // We're looking at:  R(i) && j == f(i) - K
               // Recurse on f(i) and then replace j := j + K
               var jPlusK = Expression.CreateAdd(Expression.CreateIdentExpr(j), bin.E1);
               foreach (var val in InvertExpression(i, j, R, bin.E0)) {
                 yield return val.Subst(j, jPlusK);
               }
-            } else if (!Translator.ContainsFreeVariable(bin.E0, false, i)) {
+            } else if (!FreeVariablesUtil.ContainsFreeVariable(bin.E0, false, i)) {
               // We're looking at:  R(i) && j == K - f(i)
               // Recurse on f(i) and then replace j := K - j
               var kMinusJ = Expression.CreateSubtract(bin.E0, Expression.CreateIdentExpr(j));
@@ -1808,7 +1808,7 @@ namespace Microsoft.Dafny
       // Okay, here we go, coming up with good induction setting for the given situation
       var inductionVariables = new List<Expression>();
       if (lemma != null && !lemma.IsStatic) {
-        if (args != null || searchExprs.Exists(expr => Translator.ContainsFreeVariable(expr, true, null))) {
+        if (args != null || searchExprs.Exists(expr => FreeVariablesUtil.ContainsFreeVariable(expr, true, null))) {
           inductionVariables.Add(new ThisExpr(lemma));
         }
       }
@@ -1871,7 +1871,7 @@ namespace Microsoft.Dafny
     public static bool VarOccursInArgumentToRecursiveFunction(Expression expr, IVariable n) {
       switch (DafnyOptions.O.InductionHeuristic) {
         case 0: return true;
-        case 1: return Translator.ContainsFreeVariable(expr, false, n);
+        case 1: return FreeVariablesUtil.ContainsFreeVariable(expr, false, n);
         default: return VarOccursInArgumentToRecursiveFunction(expr, n, false);
       }
     }
@@ -1915,7 +1915,7 @@ namespace Microsoft.Dafny
           // The receiver is considered to be "variant" if the function is recursive and the receiver participates
           // in the effective decreases clause of the function.  The receiver participates if it's a free variable
           // of a term in the explicit decreases clause.
-          variantArgument = rec && decr.Exists(ee => Translator.ContainsFreeVariable(ee, true, null));
+          variantArgument = rec && decr.Exists(ee => FreeVariablesUtil.ContainsFreeVariable(ee, true, null));
         }
         if (VarOccursInArgumentToRecursiveFunction(e.Receiver, n, variantArgument || subExprIsProminent)) {
           return true;
@@ -1932,7 +1932,7 @@ namespace Microsoft.Dafny
             if (f is ImplicitFormal) {
               // ... it is the argument is the implicit _k parameter, which is always first in the effective decreases clause of a prefix lemma, or
               variantArgument = true;
-            } else if (decr.Exists(ee => Translator.ContainsFreeVariable(ee, false, f))) {
+            } else if (decr.Exists(ee => FreeVariablesUtil.ContainsFreeVariable(ee, false, f))) {
               // ... it participates in the effective decreases clause of the function, which happens when it is
               // a free variable of a term in the explicit decreases clause, or
               variantArgument = true;

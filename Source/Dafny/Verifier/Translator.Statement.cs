@@ -1643,7 +1643,7 @@ namespace Microsoft.Dafny
             var h = new Boogie.IdentifierExpr(stmt.Tok, heapAt);
             b.Add(Boogie.Cmd.SimpleAssign(stmt.Tok, h, etran.HeapExpr));
             var substMap = new Dictionary<IVariable, Expression>();
-            foreach (var v in ComputeFreeVariables(assertStmt.Expr)) {
+            foreach (var v in FreeVariablesUtil.ComputeFreeVariables(assertStmt.Expr)) {
               if (v is LocalVariable) {
                 var vcopy = new LocalVariable(stmt.Tok, stmt.Tok, string.Format("##{0}#{1}", name, v.Name), v.Type,
                   v.IsGhost);

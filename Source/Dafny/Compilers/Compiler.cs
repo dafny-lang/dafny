@@ -4754,7 +4754,7 @@ namespace Microsoft.Dafny {
     void CreateFreeVarSubstitution(Expression expr, out List<BoundVar> bvars, out List<Expression> fexprs, out Substituter su) {
       Contract.Requires(expr != null);
 
-      var fvs = Translator.ComputeFreeVariables(expr);
+      var fvs = FreeVariablesUtil.ComputeFreeVariables(expr);
       var sm = new Dictionary<IVariable, Expression>();
 
       bvars = new List<BoundVar>();
