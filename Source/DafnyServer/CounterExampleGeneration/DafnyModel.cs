@@ -284,6 +284,8 @@ namespace DafnyServer.CounterExampleGeneration {
           return "?";
         case "refType":
           return ReconstructType(fDtype.OptEval(element));
+        case null:
+          return "?";
         case var bv when new Regex("^bv[0-9]+Type$").IsMatch(bv):
           return bv.Substring(0, bv.Length - 4);
         default:
