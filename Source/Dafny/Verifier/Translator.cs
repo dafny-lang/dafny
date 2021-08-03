@@ -10564,7 +10564,9 @@ namespace Microsoft.Dafny {
           if (assertStmt != null && assertStmt.Proof != null) {
             proofBuilder = new BoogieStmtListBuilder(this);
             AddComment(proofBuilder, stmt, "assert statement proof");
+            CurrentIdGenerator.Push();
             TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
+            CurrentIdGenerator.Pop();
           } else if (assertStmt != null && assertStmt.Label != null) {
             proofBuilder = new BoogieStmtListBuilder(this);
             AddComment(proofBuilder, stmt, "assert statement proof");
