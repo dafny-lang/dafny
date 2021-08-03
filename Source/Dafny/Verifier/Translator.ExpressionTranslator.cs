@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using Microsoft.Boogie;
+using static Microsoft.Dafny.Util;
 
 namespace Microsoft.Dafny
 {
@@ -312,7 +313,7 @@ namespace Microsoft.Dafny
             if (e.Type is BitvectorType) {
               return MaybeLit(translator.BplBvLiteralExpr(e.tok, n, (BitvectorType)e.Type));
             } else if (e.Type.IsBigOrdinalType) {
-              var fromNat = translator.FunctionCall(expr.tok, "ORD#FromNat", predef.BigOrdinalType, Boogie.Expr.Literal(n));
+              var fromNat = FunctionCall(expr.tok, "ORD#FromNat", predef.BigOrdinalType, Boogie.Expr.Literal(n));
               return MaybeLit(fromNat, predef.BigOrdinalType);
             } else {
               return MaybeLit(Boogie.Expr.Literal(n));
@@ -419,7 +420,7 @@ namespace Microsoft.Dafny
             isLit = isLit && translator.IsLit(rawA) && translator.IsLit(rawB);
             Boogie.Expr elt = BoxIfNecessary(expr.tok, rawA, cce.NonNull(p.A.Type));
             Boogie.Expr elt2 = BoxIfNecessary(expr.tok, rawB, cce.NonNull(p.B.Type));
-            s = translator.FunctionCall(expr.tok, e.Finite ? "Map#Build" : "IMap#Build", maptype, s, elt, elt2);
+            s = FunctionCall(expr.tok, e.Finite ? "Map#Build" : "IMap#Build", maptype, s, elt, elt2);
           }
           if (isLit) {
             // Lit-lifting: All keys and values are lit, so the map is Lit too
@@ -476,7 +477,7 @@ namespace Microsoft.Dafny
               if (!fn.IsStatic) {
                 args.Add(/* translator.BoxIfUnboxed */(TrExpr(e.Obj)/*, e.Type */));
               }
-              return translator.FunctionCall(e.tok, translator.FunctionHandle(fn), predef.HandleType, args);
+              return FunctionCall(e.tok, translator.FunctionHandle(fn), predef.HandleType, args);
             });
         } else if (expr is SeqSelectExpr) {
           SeqSelectExpr e = (SeqSelectExpr)expr;
@@ -573,7 +574,7 @@ namespace Microsoft.Dafny
               Boogie.Type maptype = predef.MapType(expr.tok, mt.Finite, predef.BoxType, predef.BoxType);
               Boogie.Expr index = BoxIfNecessary(expr.tok, TrExpr(e.Index), mt.Domain);
               Boogie.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), mt.Range);
-              return translator.FunctionCall(expr.tok, mt.Finite ? "Map#Build" : "IMap#Build", maptype, seq, index, val);
+              return FunctionCall(expr.tok, mt.Finite ? "Map#Build" : "IMap#Build", maptype, seq, index, val);
             }
             else if (seqType is MultiSetType)
             {
@@ -626,7 +627,7 @@ namespace Microsoft.Dafny
 
           Func<Expression, Boogie.Expr> TrArg = arg => translator.BoxIfUnboxed(TrExpr(arg), arg.Type);
 
-          var applied = translator.FunctionCall(expr.tok, Translator.Apply(arity), predef.BoxType,
+          var applied = FunctionCall(expr.tok, Translator.Apply(arity), predef.BoxType,
             Concat(Map(tt.TypeArgs,translator.TypeToTy),
               Cons(HeapExpr, Cons(TrExpr(e.Function), e.Args.ConvertAll(arg => TrArg(arg))))));
 
@@ -699,7 +700,7 @@ namespace Microsoft.Dafny
         } else if (expr is SeqConstructionExpr) {
           var e = (SeqConstructionExpr)expr;
           var eType = e.Type.AsSeqType.Arg.NormalizeExpand();
-          return translator.FunctionCall(expr.tok, "Seq#Create", predef.SeqType(e.tok, predef.BoxType), translator.TypeToTy(eType), HeapExpr, TrExpr(e.N), TrExpr(e.Initializer));
+          return FunctionCall(expr.tok, "Seq#Create", predef.SeqType(e.tok, predef.BoxType), translator.TypeToTy(eType), HeapExpr, TrExpr(e.N), TrExpr(e.Initializer));
 
         } else if (expr is MultiSetFormingExpr) {
           MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
@@ -730,7 +731,7 @@ namespace Microsoft.Dafny
               if (expr.Type.IsBitVectorType) {
                 var bvWidth = expr.Type.AsBitVectorType.Width;
                 var bvType = translator.BplBvType(bvWidth);
-                Boogie.Expr r = translator.FunctionCall(expr.tok, "not_bv" + bvWidth, bvType, arg);
+                Boogie.Expr r = FunctionCall(expr.tok, "not_bv" + bvWidth, bvType, arg);
                 if (translator.IsLit(arg)) {
                   r = MaybeLit(r, bvType);
                 }
@@ -884,7 +885,7 @@ namespace Microsoft.Dafny
               if (0 <= bvWidth) {
                 return TrToFunctionCall(expr.tok, "lt_bv" + bvWidth, Boogie.Type.Bool, e0, e1, liftLit);
               } else if (e.E0.Type.IsBigOrdinalType) {
-                return translator.FunctionCall(expr.tok, "ORD#Less", Boogie.Type.Bool, e0, e1);
+                return FunctionCall(expr.tok, "ORD#Less", Boogie.Type.Bool, e0, e1);
               } else if (isReal || !DafnyOptions.O.DisableNLarith) {
                 typ = Boogie.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Lt;
@@ -893,13 +894,13 @@ namespace Microsoft.Dafny
                 return TrToFunctionCall(expr.tok, "INTERNAL_lt_boogie", Boogie.Type.Bool, e0, e1, liftLit);
               }
             case BinaryExpr.ResolvedOpcode.LessThanLimit:
-              return translator.FunctionCall(expr.tok, "ORD#LessThanLimit", Boogie.Type.Bool, e0, e1);
+              return FunctionCall(expr.tok, "ORD#LessThanLimit", Boogie.Type.Bool, e0, e1);
             case BinaryExpr.ResolvedOpcode.Le:
               keepLits = true;
               if (0 <= bvWidth) {
                 return TrToFunctionCall(expr.tok, "le_bv" + bvWidth, Boogie.Type.Bool, e0, e1, false);
               } else if (e.E0.Type.IsBigOrdinalType) {
-                var less = translator.FunctionCall(expr.tok, "ORD#Less", Boogie.Type.Bool, e0, e1);
+                var less = FunctionCall(expr.tok, "ORD#Less", Boogie.Type.Bool, e0, e1);
                 var eq = Boogie.Expr.Eq(e0, e1);
                 return BplOr(eq, less);
               } else if (isReal || !DafnyOptions.O.DisableNLarith) {
@@ -914,7 +915,7 @@ namespace Microsoft.Dafny
               if (0 <= bvWidth) {
                 return TrToFunctionCall(expr.tok, "ge_bv" + bvWidth, Boogie.Type.Bool, e0, e1, false);
               } else if (e.E0.Type.IsBigOrdinalType) {
-                var less = translator.FunctionCall(expr.tok, "ORD#Less", Boogie.Type.Bool, e1, e0);
+                var less = FunctionCall(expr.tok, "ORD#Less", Boogie.Type.Bool, e1, e0);
                 var eq = Boogie.Expr.Eq(e1, e0);
                 return BplOr(eq, less);
               } else if (isReal || !DafnyOptions.O.DisableNLarith) {
@@ -928,7 +929,7 @@ namespace Microsoft.Dafny
               if (0 <= bvWidth) {
                 return TrToFunctionCall(expr.tok, "gt_bv" + bvWidth, Boogie.Type.Bool, e0, e1, liftLit);
               } else if (e.E0.Type.IsBigOrdinalType) {
-                return translator.FunctionCall(expr.tok, "ORD#Less", Boogie.Type.Bool, e1, e0);
+                return FunctionCall(expr.tok, "ORD#Less", Boogie.Type.Bool, e1, e0);
               } else if (isReal || !DafnyOptions.O.DisableNLarith) {
                 typ = Boogie.Type.Bool;
                 bOpcode = BinaryOperator.Opcode.Gt;
@@ -1157,12 +1158,12 @@ namespace Microsoft.Dafny
             case BinaryExpr.ResolvedOpcode.MapMerge: {
               bool finite = e.E0.Type.AsMapType.Finite;
               var f = finite ? "Map#Merge" : "IMap#Merge";
-              return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type), e0, e1);
+              return FunctionCall(expr.tok, f, translator.TrType(expr.Type), e0, e1);
             }
             case BinaryExpr.ResolvedOpcode.MapSubtraction: {
               bool finite = e.E0.Type.AsMapType.Finite;
               var f = finite ? "Map#Subtract" : "IMap#Subtract";
-              return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type), e0, e1);
+              return FunctionCall(expr.tok, f, translator.TrType(expr.Type), e0, e1);
             }
 
             case BinaryExpr.ResolvedOpcode.RankLt:
@@ -1189,7 +1190,7 @@ namespace Microsoft.Dafny
           var e = (TernaryExpr)expr;
           var e0 = TrExpr(e.E0);
           if (!TernaryExpr.PrefixEqUsesNat && !e.E0.Type.IsBigOrdinalType) {
-            e0 = translator.FunctionCall(e0.tok, "ORD#FromNat", predef.BigOrdinalType, e0);
+            e0 = FunctionCall(e0.tok, "ORD#FromNat", predef.BigOrdinalType, e0);
           }
           var e1 = TrExpr(e.E1);
           var e2 = TrExpr(e.E2);
@@ -1464,7 +1465,7 @@ namespace Microsoft.Dafny
         }
       }
       public Expr TrToFunctionCall(IToken tok, string function, Boogie.Type returnType, Boogie.Expr e0, Boogie.Expr e1, bool liftLit) {
-        Boogie.Expr re = translator.FunctionCall(tok, function, returnType, e0, e1);
+        Boogie.Expr re = FunctionCall(tok, function, returnType, e0, e1);
         if (liftLit) {
           re = MaybeLit(re, returnType);
         }
@@ -1505,12 +1506,12 @@ namespace Microsoft.Dafny
         var o = BplBoundVar(varNameGen.FreshId("#o#"), predef.RefType, rdvars);
         Boogie.Expr rdbody = new Boogie.LambdaExpr(e.tok, new List<TypeVariable>(), rdvars, null,
           translator.InRWClause(e.tok, o, null, e.Reads.ConvertAll(su.SubstFrameExpr), et, null, null));
-        rdbody = translator.FunctionCall(e.tok, "SetRef_to_SetBox", predef.SetType(e.tok, true, predef.BoxType), rdbody);
+        rdbody = FunctionCall(e.tok, "SetRef_to_SetBox", predef.SetType(e.tok, true, predef.BoxType), rdbody);
 
         return MaybeLit(
           translator.FunctionCall(e.tok, BuiltinFunction.AtLayer, predef.HandleType,
             new Boogie.LambdaExpr(e.tok, new List<TypeVariable>(), lvars, null,
-              translator.FunctionCall(e.tok, translator.Handle(e.BoundVars.Count), predef.BoxType,
+              FunctionCall(e.tok, translator.Handle(e.BoundVars.Count), predef.BoxType,
                 new Boogie.LambdaExpr(e.tok, new List<TypeVariable>(), bvars, null, ebody),
                 new Boogie.LambdaExpr(e.tok, new List<TypeVariable>(), bvars, null, reqbody),
                 new Boogie.LambdaExpr(e.tok, new List<TypeVariable>(), bvars, null, rdbody))),

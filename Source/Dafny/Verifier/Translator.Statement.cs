@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
+using static Microsoft.Dafny.Util;
 
 namespace Microsoft.Dafny
 {

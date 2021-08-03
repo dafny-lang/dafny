@@ -155,7 +155,7 @@ namespace Microsoft.Dafny
         if (newArguments != dtv.Bindings.Arguments) {
           DatatypeValue newDtv = new DatatypeValue(dtv.tok, dtv.DatatypeName, dtv.MemberName, newArguments);
           newDtv.Ctor = dtv.Ctor;  // resolve on the fly (and set newDtv.Type below, at end)
-          newDtv.InferredTypeArgs = Translator.Map(dtv.InferredTypeArgs, tt => Resolver.SubstType(tt, typeMap));
+          newDtv.InferredTypeArgs = Util.Map(dtv.InferredTypeArgs, tt => Resolver.SubstType(tt, typeMap));
           // ^ Set the correct type arguments to the constructor
           newExpr = newDtv;
         }
