@@ -819,44 +819,6 @@ namespace Microsoft.Dafny {
         }
         yield return new Tuple<string, Bpl.Program>(outerModule.CompileName, translator.DoTranslation(p, outerModule));
       }
-
-    }
-
-    public Bpl.Type BplBvType(int width) {
-      Contract.Requires(0 <= width);
-      if (width == 0) {
-        // Boogie claims to support bv0, but it translates it straight down to the SMT solver's 0-width bitvector type.
-        // However, the SMT-LIB 2 standard does not define such a bitvector width, so this is a bug in Boogie.  The
-        // best would be to fix this in Boogie, but for now, we simply work around it here.
-        return predef.Bv0Type;
-      } else {
-        return Bpl.Type.GetBvType(width);
-      }
-    }
-
-    internal Expr BplBvLiteralExpr(IToken tok, BaseTypes.BigNum n, BitvectorType bitvectorType) {
-      Contract.Requires(tok != null);
-      Contract.Requires(bitvectorType != null);
-      return BplBvLiteralExpr(tok, n, bitvectorType.Width);
-    }
-    internal Expr BplBvLiteralExpr(IToken tok, BaseTypes.BigNum n, int width) {
-      Contract.Requires(tok != null);
-      Contract.Requires(0 <= width);
-      if (width == 0) {
-        // see comment in BplBvType
-        Contract.Assert(n.IsZero);
-        return Bpl.Expr.Literal(0);
-      } else if (n.IsNegative) {
-        // This can only happen if some error is reported elsewhere. Nevertheless, we do need to
-        // generate a Boogie expression and Boogie would crash if we pass a negative number to
-        // Bpl.LiteralExpr for a bitvector.
-        var zero = new Bpl.LiteralExpr(tok, BaseTypes.BigNum.ZERO, width);
-        var absN = new Bpl.LiteralExpr(tok, -n, width);
-        var etran = new ExpressionTranslator(this, predef, tok);
-        return etran.TrToFunctionCall(tok, "sub_bv" + width, BplBvType(width), zero, absN, false);
-      } else {
-        return new Bpl.LiteralExpr(tok, n, width);
-      }
     }
 
     private void AddBitvectorTypeAxioms(int w) {
