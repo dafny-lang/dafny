@@ -4903,7 +4903,7 @@ namespace Microsoft.Dafny {
   }
 
   public class CodeContextWrapper : ICodeContext {
-    private readonly ICodeContext inner;
+    protected readonly ICodeContext inner;
     private readonly bool isGhostContext;
     public CodeContextWrapper(ICodeContext inner, bool isGhostContext) {
       this.inner = inner;
@@ -4941,6 +4941,24 @@ namespace Microsoft.Dafny {
     /// the property will get the value "true".  This is so that a useful error message can be provided.
     /// </summary>
     bool InferredDecreases { get; set; }
+  }
+
+  public class CallableWrapper : CodeContextWrapper, ICallable
+  {
+    public CallableWrapper(ICallable callable, bool isGhostContext)
+      : base(callable, isGhostContext) {
+    }
+
+    protected ICallable cwInner => (ICallable)inner;
+    public IToken Tok => cwInner.Tok;
+    public string WhatKind => cwInner.WhatKind;
+    public string NameRelativeToModule => cwInner.NameRelativeToModule;
+    public Specification<Expression> Decreases => cwInner.Decreases;
+
+    public bool InferredDecreases {
+      get => cwInner.InferredDecreases;
+      set { cwInner.InferredDecreases = value; }
+    }
   }
 
   public class DontUseICallable : ICallable

@@ -6313,7 +6313,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(decl.Constraint != null);  // follows from the test above and the RedirectingTypeDecl class invariant
 
       currentModule = decl.Module;
-      codeContext = decl;
+      codeContext = new CallableWrapper(decl, true);
       var etran = new ExpressionTranslator(this, predef, decl.tok);
 
       // parameters of the procedure
@@ -6376,7 +6376,10 @@ namespace Microsoft.Dafny {
       var witnessCheckBuilder = new BoogieStmtListBuilder(this);
       if (decl.Witness != null) {
         // check well-formedness of the witness expression (including termination, and reads checks)
+        var ghostCodeContext = codeContext;
+        codeContext = decl.WitnessKind == SubsetTypeDecl.WKind.Compiled ? new CallableWrapper(decl, false) : ghostCodeContext;
         CheckWellformed(decl.Witness, new WFOptions(null, true), locals, witnessCheckBuilder, etran);
+        codeContext = ghostCodeContext;
         // check that the witness is assignable to the type of the given bound variable
         if (decl is SubsetTypeDecl) {
           // Note, for new-types, this has already been checked by CheckWellformed.
@@ -6438,7 +6441,7 @@ namespace Microsoft.Dafny {
       // TODO: Should a checksum be inserted here?
 
       Contract.Assert(currentModule == decl.Module);
-      Contract.Assert(codeContext == decl);
+      Contract.Assert(CodeContextWrapper.Unwrap(codeContext) == decl);
       isAllocContext = null;
       Reset();
     }
