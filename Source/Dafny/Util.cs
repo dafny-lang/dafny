@@ -455,4 +455,18 @@ namespace Microsoft.Dafny {
       }
     }
   }
+  
+  class IEnumerableComparer<T> : IEqualityComparer<IEnumerable<T>> {
+    public bool Equals(IEnumerable<T> x, IEnumerable<T> y) {
+      return x.SequenceEqual(y);
+    }
+
+    public int GetHashCode(IEnumerable<T> obj) {
+      var hash = new HashCode();
+      foreach (T t in obj) {
+        hash.Add(t);
+      }
+      return hash.ToHashCode();
+    }
+  }
 }
