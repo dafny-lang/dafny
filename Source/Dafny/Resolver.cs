@@ -2275,6 +2275,20 @@ namespace Microsoft.Dafny
 
             extraMember.InheritVisibility(m, false);
             members.Add(extraName, extraMember);
+          } else if (m is Function f && f.ByMethodBody != null) {
+            var tok = f.ByMethodTok;
+            var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
+            var r = Expression.CreateIdentExpr(resultVar);
+            var receiver = f.IsStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
+            var fn = new FunctionCallExpr(tok, f.Name, receiver, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
+            var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
+            var method = new Method(tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
+              f.Formals, new List<Formal>() { resultVar },
+              f.Req, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
+              f.ByMethodBody, f.Attributes, null, true);
+            Contract.Assert(f.ByMethodDecl == null);
+            method.InheritVisibility(f);
+            f.ByMethodDecl = method;
           }
         } else if (m is Constructor && !((Constructor)m).HasName) {
           reporter.Error(MessageSource.Resolver, m, "More than one anonymous constructor");
@@ -9058,6 +9072,9 @@ namespace Microsoft.Dafny
               allTypeParameters.PopMarker();
             }
           }
+          if (f.ByMethodDecl != null) {
+            f.ByMethodDecl.EnclosingClass = cl;
+          }
 
         } else if (member is Method) {
           var m = (Method)member;
@@ -9918,22 +9935,8 @@ namespace Microsoft.Dafny
         SolveAllTypeConstraints();
 
         if (f.ByMethodBody != null) {
-          var tok = f.ByMethodTok;
-          var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
-          var r = Expression.CreateIdentExpr(resultVar);
-          var cl = (TopLevelDeclWithMembers)f.EnclosingClass;
-          var receiver = f.IsStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
-          var fn = new FunctionCallExpr(tok, f.Name, receiver, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
-          var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
-          var method = new Method(tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
-            f.Formals, new List<Formal>() { resultVar },
-            f.Req, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
-            f.ByMethodBody, f.Attributes, null, true) {
-            EnclosingClass = f.EnclosingClass
-          };
-          method.InheritVisibility(f);
-          Contract.Assert(f.ByMethodDecl == null);
-          f.ByMethodDecl = method;
+          var method = f.ByMethodDecl;
+          Contract.Assert(method != null); // this should have been filled in by now
           ResolveMethod(method);
         }
       }
@@ -17007,7 +17010,7 @@ namespace Microsoft.Dafny
             return;
           }
           if (e.Function.ByMethodBody != null) {
-            Contract.Requires(e.Function.ByMethodDecl != null);
+            Contract.Assert(e.Function.ByMethodDecl != null); // we expect .ByMethodDecl to have been filled in by now
             // this call will really go to the method part of the function-by-method, so add that edge to the call graph
             AddCallGraphEdge(codeContext, e.Function.ByMethodDecl, e, false);
           }
