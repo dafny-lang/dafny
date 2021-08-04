@@ -26,31 +26,15 @@ namespace Microsoft.Dafny {
     public MessageSource source;
   }
 
-  public abstract class ErrorReporter {
+  public abstract class ErrorReporter
+  {
     public bool ErrorsOnly { get; set; }
-    public Dictionary<ErrorLevel, List<ErrorMessage>> AllMessages { get; private set; }
 
-    protected ErrorReporter() {
-      ErrorsOnly = false;
-      AllMessages = new Dictionary<ErrorLevel, List<ErrorMessage>>();
-      AllMessages[ErrorLevel.Error] = new List<ErrorMessage>();
-      AllMessages[ErrorLevel.Warning] = new List<ErrorMessage>();
-      AllMessages[ErrorLevel.Info] = new List<ErrorMessage>();
-    }
+    public bool HasErrors => ErrorCount > 0;    
+    public int ErrorCount => Count(ErrorLevel.Error);
 
-    // This is the only thing that needs to be overriden
-    public virtual bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-      if (ErrorsOnly && level != ErrorLevel.Error) {
-        // discard the message
-        return false;
-      }
-      AllMessages[level].Add(new ErrorMessage { token = tok, message = msg });
-      return true;
-    }
-
-    public int Count(ErrorLevel level) {
-      return AllMessages[level].Count;
-    }
+    
+    public abstract bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg);
 
     public void Error(MessageSource source, IToken tok, string msg) {
       Contract.Requires(tok != null);
@@ -68,6 +52,8 @@ namespace Microsoft.Dafny {
       Message(source, ErrorLevel.Error, tok, msg);
     }
 
+    public abstract int Count(ErrorLevel level);
+    
     // This method required by the Parser
     internal void Error(MessageSource source, string filename, int line, int col, string msg) {
       var tok = new Token(line, col);
@@ -124,6 +110,7 @@ namespace Microsoft.Dafny {
         Warning(source, tok, String.Format(msg, args));
       }
     }
+
     public void DeprecatedStyle(MessageSource source, IToken tok, string msg, params object[] args) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
@@ -162,7 +149,34 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ConsoleErrorReporter : ErrorReporter {
+  public abstract class BatchErrorReporter : ErrorReporter
+  {
+    private readonly Dictionary<ErrorLevel, List<ErrorMessage>> allMessages;
+
+    protected BatchErrorReporter() {
+      ErrorsOnly = false;
+      allMessages = new Dictionary<ErrorLevel, List<ErrorMessage>> {
+        [ErrorLevel.Error] = new(),
+        [ErrorLevel.Warning] = new(),
+        [ErrorLevel.Info] = new()
+      };
+    }
+
+    public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+      if (ErrorsOnly && level != ErrorLevel.Error) {
+        // discard the message
+        return false;
+      }
+      allMessages[level].Add(new ErrorMessage { token = tok, message = msg });
+      return true;
+    }
+
+    public override int Count(ErrorLevel level) {
+      return allMessages[level].Count;
+    }
+  }
+
+  public class ConsoleErrorReporter : BatchErrorReporter {
     private ConsoleColor ColorForLevel(ErrorLevel level) {
       switch (level) {
         case ErrorLevel.Error:
@@ -177,7 +191,7 @@ namespace Microsoft.Dafny {
     }
 
     public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
-      if (base.Message(source, level, tok, msg) && ((DafnyOptions.O != null && DafnyOptions.O.PrintTooltips) || level != ErrorLevel.Info)) {
+      if (base.Message(source, level, tok, msg) && (DafnyOptions.O != null && DafnyOptions.O.PrintTooltips || level != ErrorLevel.Info)) {
         // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
         msg = msg.Replace(Environment.NewLine, Environment.NewLine + " ");
 
@@ -198,9 +212,13 @@ namespace Microsoft.Dafny {
     public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
       return false;
     }
+
+    public override int Count(ErrorLevel level) {
+      return 0;
+    }
   }
 
-  public class ErrorReporterWrapper : ErrorReporter {
+  public class ErrorReporterWrapper : BatchErrorReporter {
 
     private string msgPrefix;
     public readonly ErrorReporter WrappedReporter;

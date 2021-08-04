@@ -1,4 +1,5 @@
-﻿using IntervalTree;
+﻿using System;
+using IntervalTree;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
@@ -30,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
-      var errorReporter = new BuildErrorReporter();
+      var errorReporter = new DiagnosticErrorReporter();
       var program = await _parser.ParseAsync(textDocument, errorReporter, cancellationToken);
       if(errorReporter.HasErrors) {
         _notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
@@ -49,7 +50,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return new DafnyDocument(textDocument, errorReporter, program, symbolTable, serializedCounterExamples);
     }
 
-    private static DafnyDocument CreateDocumentWithParserErrors(TextDocumentItem textDocument, ErrorReporter errorReporter, Dafny.Program program) {
+    private static DafnyDocument CreateDocumentWithParserErrors(TextDocumentItem textDocument, DiagnosticErrorReporter errorReporter, Dafny.Program program) {
       return new DafnyDocument(
         textDocument,
         errorReporter,
