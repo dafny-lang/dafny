@@ -1,8 +1,6 @@
 assertBy.dfy(13,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
 assertBy.dfy(7,5): Warning: /!\ No terms found to trigger on.
 assertBy.dfy(13,2): Warning: /!\ No terms found to trigger on.
-// Dafny 3.2.0.30713
-// Command Line Options: -useBaseNameForFileName -countVerificationErrors:0 -compileVerbose:0 /errorTrace:0 /compile:0 /print:- /Users/rwillems/Documents/SourceCode/dafny/Test/boogie/assertBy.dfy
 
 type Ty;
 

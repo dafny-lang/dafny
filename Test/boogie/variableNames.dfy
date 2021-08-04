@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:- "%s" > "%t"
+// RUN: %dafny /compile:0 /env:0 /print:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 method M(heap: object) 
   modifies heap
