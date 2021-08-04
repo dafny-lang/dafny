@@ -661,13 +661,13 @@ namespace Microsoft.Dafny {
         return from.ParentTypes().Any(fromParentType => IsTargetSupertype(to, fromParentType));
       }
     }
-    
+
     protected ConcreteSyntaxTree Downcast(Type from, Type to, Bpl.IToken tok, ICanRender expression) {
       var result = new ConcreteSyntaxTree();
       EmitDowncast(from, to, tok, result).Append(expression);
       return result;
     }
-    
+
     protected virtual ConcreteSyntaxTree EmitDowncast(Type from, Type to, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       Contract.Requires(from != null);
       Contract.Requires(to != null);
@@ -742,7 +742,7 @@ namespace Microsoft.Dafny {
       EmitCast(toType, result).Append(expr);
       return result;
     }
-    
+
     protected virtual ConcreteSyntaxTree EmitCast(Type toType, ConcreteSyntaxTree wr) {
       wr.Write("({0})", TypeName(toType, wr, Bpl.Token.NoToken));
       return wr.ForkInParens();
@@ -1586,7 +1586,8 @@ namespace Microsoft.Dafny {
 
       if (!(c is TraitDecl) || TraitRepeatsInheritedDeclarations) {
         thisContext = c;
-        foreach (var member in inheritedMembers) {
+        foreach (var memberx in inheritedMembers) {
+          var member = (memberx as Function)?.ByMethodDecl ?? memberx;
           Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
           if (member.IsGhost) {
             // skip
@@ -1646,7 +1647,8 @@ namespace Microsoft.Dafny {
         thisContext = null;
       }
 
-      foreach (MemberDecl member in c.Members) {
+      foreach (MemberDecl memberx in c.Members) {
+        var member = (memberx as Function)?.ByMethodDecl ?? memberx;
         if (!member.IsStatic) {
           thisContext = c;
         }
