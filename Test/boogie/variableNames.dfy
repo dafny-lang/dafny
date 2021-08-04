@@ -10,8 +10,19 @@ method M(heap: object)
     var y := 0;
   }
   
+  while(x < 5) {
+    var x:= 2;
+    var y := 0;
+  }
+  
+  for i: int := 0 to 3 {
+    var x:= 2;
+    var y := 0;
+  }
+  
   forall i | 0 <= i < x {
     var x:= 2;
+    var y := 0;
   }
   
   var s := {2,3};

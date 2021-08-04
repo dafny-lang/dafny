@@ -1,6 +1,6 @@
-assertBy.dfy(13,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
-assertBy.dfy(7,5): Warning: /!\ No terms found to trigger on.
-assertBy.dfy(13,2): Warning: /!\ No terms found to trigger on.
+variableNames.dfy(23,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
+variableNames.dfy(7,5): Warning: /!\ No terms found to trigger on.
+variableNames.dfy(23,2): Warning: /!\ No terms found to trigger on.
 
 type Ty;
 
@@ -2832,27 +2832,41 @@ implementation Impl$$_module.__default.M(heap#0: ref) returns ($_reverifyPost: b
   var y#0_0: int;
   var x#1_0: int;
   var y#2_0: int;
-  var i#3_0: int;
+  var $PreLoopHeap$loop#0: Heap;
+  var $decr_init$loop#00: int;
+  var $w$loop#0: bool;
+  var $decr$loop#00: int;
   var x#3_0: int;
+  var y#3_0: int;
+  var i#0: int;
+  var i#0#lo: int;
+  var i#0#hi: int;
+  var $PreLoopHeap$loop#1: Heap;
+  var $w$loop#1: bool;
+  var x#4_0: int;
+  var y#4_0: int;
+  var i#5_0: int;
+  var x#5_0: int;
+  var y#5_0: int;
   var s#0: Set Box where $Is(s#0, TSet(TInt)) && $IsAlloc(s#0, TSet(TInt), $Heap);
   var $PreModifyHeap$modify#0: Heap;
   var $Frame$modify#0: <beta>[ref,Field beta]bool;
-  var z#4_0: int;
-  var x#5_0: int;
-  var y#5_0: int;
+  var z#6_0: int;
+  var x#7_0: int;
+  var y#7_0: int;
   var y#0: int;
 
     // AddMethodImpl: M, Impl$$_module.__default.M
     $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: 
       $o != null && read($Heap, $o, alloc) ==> $o == heap#0);
-    assume {:captureState "assertBy.dfy(5,0): initial state"} true;
+    assume {:captureState "variableNames.dfy(5,0): initial state"} true;
     $_reverifyPost := false;
-    // ----- assignment statement ----- assertBy.dfy(6,9)
+    // ----- assignment statement ----- variableNames.dfy(6,9)
     assume true;
     assume true;
     x#0 := LitInt(0);
-    assume {:captureState "assertBy.dfy(6,12)"} true;
-    // ----- if statement ----- assertBy.dfy(7,3)
+    assume {:captureState "variableNames.dfy(6,12)"} true;
+    // ----- if statement ----- variableNames.dfy(7,3)
     // Begin Comprehension WF check
     havoc eg$y#0;
     if (true)
@@ -2865,88 +2879,184 @@ implementation Impl$$_module.__default.M(heap#0: ref) returns ($_reverifyPost: b
     if (*)
     {
         assume y#0_0 < x#0;
-        // ----- assignment statement ----- assertBy.dfy(8,11)
+        // ----- assignment statement ----- variableNames.dfy(8,11)
         assume true;
         assume true;
         x#1_0 := LitInt(0);
-        assume {:captureState "assertBy.dfy(8,14)"} true;
+        assume {:captureState "variableNames.dfy(8,14)"} true;
     }
     else
     {
         assume !(exists eg$y#1: int :: eg$y#1 < x#0);
-        // ----- assignment statement ----- assertBy.dfy(10,11)
+        // ----- assignment statement ----- variableNames.dfy(10,11)
         assume true;
         assume true;
         y#2_0 := LitInt(0);
-        assume {:captureState "assertBy.dfy(10,14)"} true;
+        assume {:captureState "variableNames.dfy(10,14)"} true;
     }
 
-    // ----- forall statement (proof) ----- assertBy.dfy(13,3)
+    // ----- while statement ----- variableNames.dfy(13,3)
+    // Assume Fuel Constant
+    $PreLoopHeap$loop#0 := $Heap;
+    $decr_init$loop#00 := 5 - x#0;
+    havoc $w$loop#0;
+    while (true)
+      free invariant (forall $o: ref :: 
+        { $Heap[$o] } 
+        $o != null && read(old($Heap), $o, alloc)
+           ==> $Heap[$o] == $PreLoopHeap$loop#0[$o] || $o == heap#0);
+      free invariant $HeapSucc($PreLoopHeap$loop#0, $Heap);
+      free invariant (forall<alpha> $o: ref, $f: Field alpha :: 
+        { read($Heap, $o, $f) } 
+        $o != null && read($PreLoopHeap$loop#0, $o, alloc)
+           ==> read($Heap, $o, $f) == read($PreLoopHeap$loop#0, $o, $f) || $_Frame[$o, $f]);
+      free invariant 5 - x#0 <= $decr_init$loop#00 && (5 - x#0 == $decr_init$loop#00 ==> true);
+    {
+        assume {:captureState "variableNames.dfy(13,2): after some loop iterations"} true;
+        if (!$w$loop#0)
+        {
+            assume true;
+            assume false;
+        }
+
+        assume true;
+        if (5 <= x#0)
+        {
+            break;
+        }
+
+        $decr$loop#00 := 5 - x#0;
+        // ----- assignment statement ----- variableNames.dfy(14,10)
+        assume true;
+        assume true;
+        x#3_0 := LitInt(2);
+        assume {:captureState "variableNames.dfy(14,13)"} true;
+        // ----- assignment statement ----- variableNames.dfy(15,11)
+        assume true;
+        assume true;
+        y#3_0 := LitInt(0);
+        assume {:captureState "variableNames.dfy(15,14)"} true;
+        // ----- loop termination check ----- variableNames.dfy(13,3)
+        assert 0 <= $decr$loop#00 || 5 - x#0 == $decr$loop#00;
+        assert 5 - x#0 < $decr$loop#00;
+    }
+
+    // ----- for-loop statement ----- variableNames.dfy(18,3)
+    i#0#lo := LitInt(0);
+    i#0#hi := LitInt(3);
+    assert i#0#lo <= i#0#hi;
+    i#0 := i#0#lo;
+    $PreLoopHeap$loop#1 := $Heap;
+    havoc $w$loop#1;
+    while (true)
+      free invariant i#0#lo <= i#0 && i#0 <= i#0#hi;
+      free invariant (forall $o: ref :: 
+        { $Heap[$o] } 
+        $o != null && read(old($Heap), $o, alloc)
+           ==> $Heap[$o] == $PreLoopHeap$loop#1[$o] || $o == heap#0);
+      free invariant $HeapSucc($PreLoopHeap$loop#1, $Heap);
+      free invariant (forall<alpha> $o: ref, $f: Field alpha :: 
+        { read($Heap, $o, $f) } 
+        $o != null && read($PreLoopHeap$loop#1, $o, alloc)
+           ==> read($Heap, $o, $f) == read($PreLoopHeap$loop#1, $o, $f) || $_Frame[$o, $f]);
+      free invariant true;
+    {
+        assume {:captureState "variableNames.dfy(18,2): after some loop iterations"} true;
+        if (!$w$loop#1)
+        {
+            assume false;
+        }
+
+        assume true;
+        if (i#0 == i#0#hi)
+        {
+            break;
+        }
+
+        // ----- assignment statement ----- variableNames.dfy(19,10)
+        assume true;
+        assume true;
+        x#4_0 := LitInt(2);
+        assume {:captureState "variableNames.dfy(19,13)"} true;
+        // ----- assignment statement ----- variableNames.dfy(20,11)
+        assume true;
+        assume true;
+        y#4_0 := LitInt(0);
+        assume {:captureState "variableNames.dfy(20,14)"} true;
+        i#0 := i#0 + 1;
+    }
+
+    // ----- forall statement (proof) ----- variableNames.dfy(23,3)
     if (*)
     {
         // Assume Fuel Constant
-        havoc i#3_0;
+        havoc i#5_0;
         assume true;
-        if (LitInt(0) <= i#3_0)
+        if (LitInt(0) <= i#5_0)
         {
         }
 
         assume true;
-        assume LitInt(0) <= i#3_0 && i#3_0 < x#0;
-        // ----- assignment statement ----- assertBy.dfy(14,10)
+        assume LitInt(0) <= i#5_0 && i#5_0 < x#0;
+        // ----- assignment statement ----- variableNames.dfy(24,10)
         assume true;
         assume true;
-        x#3_0 := LitInt(2);
-        assume {:captureState "assertBy.dfy(14,13)"} true;
+        x#5_0 := LitInt(2);
+        assume {:captureState "variableNames.dfy(24,13)"} true;
+        // ----- assignment statement ----- variableNames.dfy(25,11)
+        assume true;
+        assume true;
+        y#5_0 := LitInt(0);
+        assume {:captureState "variableNames.dfy(25,14)"} true;
         assume false;
     }
     else
     {
-        assume (forall i#3_1: int :: LitInt(0) <= i#3_1 && i#3_1 < x#0 ==> Lit(true));
+        assume (forall i#5_1: int :: LitInt(0) <= i#5_1 && i#5_1 < x#0 ==> Lit(true));
     }
 
-    assume {:captureState "assertBy.dfy(15,2)"} true;
-    // ----- assignment statement ----- assertBy.dfy(17,9)
+    assume {:captureState "variableNames.dfy(26,2)"} true;
+    // ----- assignment statement ----- variableNames.dfy(28,9)
     assume true;
     assume true;
     s#0 := Lit(Set#UnionOne(Set#UnionOne(Set#Empty(): Set Box, $Box(LitInt(2))), $Box(LitInt(3))));
-    assume {:captureState "assertBy.dfy(17,16)"} true;
-    // ----- modify statement ----- assertBy.dfy(18,3)
+    assume {:captureState "variableNames.dfy(28,16)"} true;
+    // ----- modify statement ----- variableNames.dfy(29,3)
     assert (forall<alpha> $o: ref, $f: Field alpha :: 
       $o != null && read($Heap, $o, alloc) && $o == heap#0 ==> $_Frame[$o, $f]);
     $Frame$modify#0 := (lambda<alpha> $o: ref, $f: Field alpha :: 
       $o != null && read($Heap, $o, alloc) ==> $o == heap#0);
-    // ----- assignment statement ----- assertBy.dfy(19,11)
+    // ----- assignment statement ----- variableNames.dfy(30,11)
     assume true;
     assume true;
-    z#4_0 := LitInt(3);
-    assume {:captureState "assertBy.dfy(19,14)"} true;
-    assume {:captureState "assertBy.dfy(20,2)"} true;
-    // ----- assert statement ----- assertBy.dfy(22,3)
+    z#6_0 := LitInt(3);
+    assume {:captureState "variableNames.dfy(30,14)"} true;
+    assume {:captureState "variableNames.dfy(31,2)"} true;
+    // ----- assert statement ----- variableNames.dfy(33,3)
     assume true;
     if (*)
     {
-        // ----- assert statement proof ----- assertBy.dfy(22,3)
-        // ----- assignment statement ----- assertBy.dfy(23,11)
+        // ----- assert statement proof ----- variableNames.dfy(33,3)
+        // ----- assignment statement ----- variableNames.dfy(34,11)
         assume true;
         assume true;
-        x#5_0 := x#0 + 2;
-        assume {:captureState "assertBy.dfy(23,18)"} true;
-        // ----- assignment statement ----- assertBy.dfy(24,11)
+        x#7_0 := x#0 + 2;
+        assume {:captureState "variableNames.dfy(34,18)"} true;
+        // ----- assignment statement ----- variableNames.dfy(35,11)
         assume true;
         assume true;
-        y#5_0 := LitInt(0);
-        assume {:captureState "assertBy.dfy(24,14)"} true;
+        y#7_0 := LitInt(0);
+        assume {:captureState "variableNames.dfy(35,14)"} true;
         assert x#0 == LitInt(0);
         assume false;
     }
 
     assume x#0 == LitInt(0);
-    // ----- assignment statement ----- assertBy.dfy(26,9)
+    // ----- assignment statement ----- variableNames.dfy(37,9)
     assume true;
     assume true;
     y#0 := LitInt(200);
-    assume {:captureState "assertBy.dfy(26,14)"} true;
+    assume {:captureState "variableNames.dfy(37,14)"} true;
 }
 
 
@@ -2974,5 +3084,6 @@ const unique tytagFamily$_tuple#2: TyTagFamily;
 const unique tytagFamily$_tuple#0: TyTagFamily;
 
 const unique tytagFamily$_default: TyTagFamily;
+variableNames.dfy(13,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 
-Dafny program verifier finished with 1 verified, 0 errors
+Dafny program verifier finished with 0 verified, 1 error
