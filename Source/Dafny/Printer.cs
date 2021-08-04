@@ -1529,7 +1529,7 @@ namespace Microsoft.Dafny {
         PrintCasePattern(s.LHS);
         wr.Write(" := ");
         PrintExpression(s.RHS, true);
-        wr.WriteLine(";");
+        wr.Write(";");
 
       } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;
@@ -2884,6 +2884,9 @@ namespace Microsoft.Dafny {
           var binding = bindings.ArgumentBindings[i];
           wr.Write(sep);
           sep = ", ";
+          if (binding.IsGhost) {
+            wr.Write("ghost ");
+          }
           if (binding.FormalParameterName != null) {
             wr.Write($"{binding.FormalParameterName.val} := ");
           }
