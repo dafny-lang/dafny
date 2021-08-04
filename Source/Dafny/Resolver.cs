@@ -6983,7 +6983,7 @@ namespace Microsoft.Dafny
         if (hasTailRecursionPreference && 2 <= sccSize) {
           reporter.Error(MessageSource.Resolver, m.tok, "sorry, tail-call optimizations are not supported for mutually recursive methods");
         } else if (hasTailRecursionPreference || sccSize == 1) {
-          CallStmt tailCall = null;
+          Statement tailCall = null;
           var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
           if (status != TailRecursionStatus.NotTailRecursive && tailCall != null) {
             // this means there was at least one recursive call
@@ -7015,7 +7015,7 @@ namespace Microsoft.Dafny
     /// If the return value is NoTailRecursive, "tailCall" could be anything.  In this case, an error
     /// message has been reported (provided "reportsErrors" is true).
     /// </summary>
-    TailRecursionStatus CheckTailRecursive(List<Statement> stmts, Method enclosingMethod, ref CallStmt tailCall, bool reportErrors) {
+    TailRecursionStatus CheckTailRecursive(List<Statement> stmts, Method enclosingMethod, ref Statement tailCall, bool reportErrors) {
       Contract.Requires(stmts != null);
       var status = TailRecursionStatus.CanBeFollowedByAnything;
       foreach (var s in stmts) {
@@ -7043,7 +7043,7 @@ namespace Microsoft.Dafny
     /// See CheckTailRecursive(List Statement, ...), including its description of "tailCall".
     /// In the current implementation, "enclosingMethod" is not allowed to be a mutually recursive method.
     /// </summary>
-    TailRecursionStatus CheckTailRecursive(Statement stmt, Method enclosingMethod, ref CallStmt tailCall, bool reportErrors) {
+    TailRecursionStatus CheckTailRecursive(Statement stmt, Method enclosingMethod, ref Statement tailCall, bool reportErrors) {
       Contract.Requires(stmt != null);
       if (stmt.IsGhost) {
         return TailRecursionStatus.CanBeFollowedByAnything;
@@ -7058,8 +7058,7 @@ namespace Microsoft.Dafny
         }
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
-        var tRhs = s.Rhs as TypeRhs;
-        if (tRhs != null && tRhs.InitCall != null && tRhs.InitCall.Method == enclosingMethod) {
+        if (s.Rhs is TypeRhs tRhs && tRhs.InitCall != null && tRhs.InitCall.Method == enclosingMethod) {
           // It's a recursive call.  However, it is not a tail call, because after the "new" allocation
           // and init call have taken place, the newly allocated object has yet to be assigned to
           // the LHS of the assignment statement.
@@ -7069,6 +7068,16 @@ namespace Microsoft.Dafny
               tRhs.InitCall.Method.Name);
           }
           return TailRecursionStatus.NotTailRecursive;
+        } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && fce.Function.ByMethodDecl == enclosingMethod) {
+          var status = ConfirmTailCall(s.Tok, enclosingMethod, fce.TypeApplication_JustFunction, new List<Expression>() { s.Lhs }, reportErrors);
+          if (status == TailRecursionStatus.TailCallSpent) {
+            tailCall = s;
+            fce.Args.Iter(ee => DisallowRecursiveCallsInExpressions(ee, enclosingMethod));
+          } else {
+            DisallowRecursiveCallsInExpressions(s.Lhs, enclosingMethod, reportErrors);
+            DisallowRecursiveCallsInExpressions(eRhs.Expr, enclosingMethod, reportErrors);
+          }
+          return status;
         }
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
@@ -7078,48 +7087,19 @@ namespace Microsoft.Dafny
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         if (s.Method == enclosingMethod) {
-          // It's a recursive call.  It can be considered a tail call only if the LHS of the call are the
-          // formal out-parameters of the method
-          for (int i = 0; i < s.Lhs.Count; i++) {
-            var formal = enclosingMethod.Outs[i];
-            if (!formal.IsGhost) {
-              var lhs = s.Lhs[i] as IdentifierExpr;
-              if (lhs != null && lhs.Var == formal) {
-                // all is good
-              } else {
-                if (reportErrors) {
-                  reporter.Error(MessageSource.Resolver, s.Tok,
-                    "the recursive call to '{0}' is not tail recursive because the actual out-parameter{1} is not the formal out-parameter '{2}'",
-                    s.Method.Name, s.Lhs.Count == 1 ? "" : " " + i, formal.Name);
-                }
-                return TailRecursionStatus.NotTailRecursive;
-              }
-            }
+          DisallowRecursiveCallsInExpressions(s, enclosingMethod, reportErrors);
+          var status = ConfirmTailCall(s.Tok, s.Method, s.MethodSelect.TypeApplication_JustMember, s.Lhs, reportErrors);
+          if (status == TailRecursionStatus.TailCallSpent) {
+            tailCall = s;
           }
-          // Moreover, it can be considered a tail recursive call only if the type parameters are the same
-          // as in the caller.
-          var classTypeParameterCount = s.Method.EnclosingClass.TypeArgs.Count;
-          Contract.Assert(s.MethodSelect.TypeApplication_JustMember.Count == s.Method.TypeArgs.Count);
-          for (int i = 0; i < s.Method.TypeArgs.Count; i++) {
-            var formal = s.Method.TypeArgs[i];
-            var actual = s.MethodSelect.TypeApplication_JustMember[i].AsTypeParameter;
-            if (formal != actual) {
-              if (reportErrors) {
-                reporter.Error(MessageSource.Resolver, s.Tok,
-                  "the recursive call to '{0}' is not tail recursive because the actual type parameter{1} is not the formal type parameter '{2}'",
-                  s.Method.Name, s.Method.TypeArgs.Count == 1 ? "" : " " + i, formal.Name);
-              }
-              return TailRecursionStatus.NotTailRecursive;
-            }
-          }
-          tailCall = s;
-          return TailRecursionStatus.TailCallSpent;
+          return status;
         }
       } else if (stmt is BlockStmt) {
         var s = (BlockStmt)stmt;
         return CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
+        DisallowRecursiveCallsInExpressions(s.Guard, enclosingMethod, reportErrors);
         var stThen = CheckTailRecursive(s.Thn, enclosingMethod, ref tailCall, reportErrors);
         if (stThen == TailRecursionStatus.NotTailRecursive) {
           return stThen;
@@ -7134,6 +7114,7 @@ namespace Microsoft.Dafny
         var s = (AlternativeStmt)stmt;
         var status = TailRecursionStatus.CanBeFollowedByAnything;
         foreach (var alt in s.Alternatives) {
+          DisallowRecursiveCallsInExpressions(alt.Guard, enclosingMethod, reportErrors);
           var st = CheckTailRecursive(alt.Body, enclosingMethod, ref tailCall, reportErrors);
           if (st == TailRecursionStatus.NotTailRecursive) {
             return st;
@@ -7144,6 +7125,12 @@ namespace Microsoft.Dafny
         return status;
       } else if (stmt is OneBodyLoopStmt) {
         var s = (OneBodyLoopStmt)stmt;
+        if (s is WhileStmt wh) {
+          DisallowRecursiveCallsInExpressions(wh.Guard, enclosingMethod, reportErrors);
+        } else if (s is ForLoopStmt forLoop) {
+          DisallowRecursiveCallsInExpressions(forLoop.Start, enclosingMethod, reportErrors);
+          DisallowRecursiveCallsInExpressions(forLoop.End, enclosingMethod, reportErrors);
+        }
         var status = TailRecursionStatus.NotTailRecursive;
         if (s.Body != null) {
           status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
@@ -7159,6 +7146,7 @@ namespace Microsoft.Dafny
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         foreach (var alt in s.Alternatives) {
+          DisallowRecursiveCallsInExpressions(alt.Guard, enclosingMethod, reportErrors);
           var status = CheckTailRecursive(alt.Body, enclosingMethod, ref tailCall, reportErrors);
           if (status != TailRecursionStatus.CanBeFollowedByAnything) {
             if (status == TailRecursionStatus.NotTailRecursive) {
@@ -7171,6 +7159,7 @@ namespace Microsoft.Dafny
         }
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
+        DisallowRecursiveCallsInExpressions(s.Range, enclosingMethod, reportErrors);
         var status = TailRecursionStatus.NotTailRecursive;
         if (s.Body != null) {
           status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
@@ -7185,6 +7174,7 @@ namespace Microsoft.Dafny
         }
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
+        DisallowRecursiveCallsInExpressions(s.Source, enclosingMethod, reportErrors);
         var status = TailRecursionStatus.CanBeFollowedByAnything;
         foreach (var kase in s.Cases) {
           var st = CheckTailRecursive(kase.Body, enclosingMethod, ref tailCall, reportErrors);
@@ -7205,7 +7195,14 @@ namespace Microsoft.Dafny
         return TailRecursionStatus.NotTailRecursive;
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
-        return CheckTailRecursive(s.ResolvedStatements, enclosingMethod, ref tailCall, reportErrors);
+        var ss = s.ResolvedStatements;
+        if (ss.Count == 1) {
+          return CheckTailRecursive(ss, enclosingMethod, ref tailCall, reportErrors);
+        } else {
+          foreach (var r in ss) {
+            DisallowRecursiveCallsInExpressions(r, enclosingMethod, reportErrors);
+          }
+        }
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         if (s.Update != null) {
@@ -7216,7 +7213,83 @@ namespace Microsoft.Dafny
       } else {
         Contract.Assert(false);  // unexpected statement type
       }
+      DisallowRecursiveCallsInExpressions(stmt, enclosingMethod, reportErrors);
       return TailRecursionStatus.CanBeFollowedByAnything;
+    }
+
+    /// <summary>
+    /// If "enclosingMethod" is a by-method, then look through "stmt" for any expression that
+    /// calls the function corresponding to the by-method. Report an error if such a call is
+    /// found.
+    /// </summary>
+    void DisallowRecursiveCallsInExpressions(Statement stmt, Method enclosingMethod, bool reportErrors) {
+      Contract.Requires(stmt != null);
+      Contract.Requires(enclosingMethod != null);
+
+      if (enclosingMethod.IsByMethod && reportErrors) {
+        stmt.SubExpressions.Iter(e => DisallowRecursiveCallsInExpressions(e, enclosingMethod));
+      }
+    }
+
+    void DisallowRecursiveCallsInExpressions(Expression/*?*/ expr, Method enclosingMethod, bool reportErrors) {
+      Contract.Requires(enclosingMethod != null);
+
+      if (expr !=null && reportErrors) {
+        DisallowRecursiveCallsInExpressions(expr, enclosingMethod);
+      }
+    }
+
+    void DisallowRecursiveCallsInExpressions(Expression expr, Method enclosingMethod) {
+      Contract.Requires(expr != null);
+      Contract.Requires(enclosingMethod != null);
+
+      if (expr is FunctionCallExpr fce && fce.Function.ByMethodDecl == enclosingMethod) {
+        reporter.Error(MessageSource.Resolver, expr.tok, "a recursive call in this context is not recognized as a tail call");
+      }
+      expr.SubExpressions.Iter(ee => DisallowRecursiveCallsInExpressions(ee, enclosingMethod));
+    }
+
+    TailRecursionStatus ConfirmTailCall(IToken tok, Method method, List<Type> typeApplication_JustMember, List<Expression> lhss, bool reportErrors) {
+      Contract.Requires(tok != null);
+      Contract.Requires(method != null);
+      Contract.Requires(typeApplication_JustMember != null);
+      Contract.Requires(lhss != null);
+
+      // It's a recursive call.  It can be considered a tail call only if the LHS of the call are the
+      // formal out-parameters of the method
+      for (int i = 0; i < lhss.Count; i++) {
+        var formal = method.Outs[i];
+        if (!formal.IsGhost) {
+          if (lhss[i] is IdentifierExpr lhs && lhs.Var == formal) {
+            // all is good
+          } else {
+            if (reportErrors) {
+              var outParamName = formal.HasName ? $" '{formal.Name}'" : "";
+              reporter.Error(MessageSource.Resolver, tok,
+                "the recursive call to '{0}' is not tail recursive because the actual out-parameter{1} is not the formal out-parameter{2}",
+                method.Name, lhss.Count == 1 ? "" : " " + i, outParamName);
+            }
+            return TailRecursionStatus.NotTailRecursive;
+          }
+        }
+      }
+      // Moreover, it can be considered a tail recursive call only if the type parameters are the same
+      // as in the caller.
+      var classTypeParameterCount = method.EnclosingClass.TypeArgs.Count;
+      Contract.Assert(typeApplication_JustMember.Count == method.TypeArgs.Count);
+      for (int i = 0; i < method.TypeArgs.Count; i++) {
+        var formal = method.TypeArgs[i];
+        var actual = typeApplication_JustMember[i].AsTypeParameter;
+        if (formal != actual) {
+          if (reportErrors) {
+            reporter.Error(MessageSource.Resolver, tok,
+              "the recursive call to '{0}' is not tail recursive because the actual type parameter{1} is not the formal type parameter '{2}'",
+              method.Name, method.TypeArgs.Count == 1 ? "" : " " + i, formal.Name);
+          }
+          return TailRecursionStatus.NotTailRecursive;
+        }
+      }
+      return TailRecursionStatus.TailCallSpent;
     }
 #endregion CheckTailRecursive
 
