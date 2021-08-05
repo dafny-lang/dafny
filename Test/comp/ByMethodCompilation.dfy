@@ -10,6 +10,8 @@ method Main() {
   print "four is ", four, "\n"; // 4
   print "Recursive(7) = ", Recursive(7), "\n"; // 14
   print "NonCompilableFunction: ", NonCompilableFunction(2), " ", NonCompilableFunction(4), "\n"; // 4 7
+  var s, s' := {2, 7, 5}, {2, 0, 2, 1};
+  print "Sums: ", Sum(s), " ", Sum(s'), "\n";
 }
 
 function Four(): int {
@@ -72,5 +74,74 @@ lemma Pong(x: int)
 {
   if x < 3 {
     Pong(x + 1);
+  }
+}
+
+// ------------------ longer example ------------------
+// This example sums the elements of a set. Because summing
+// is associate and commutative, the order in which the elements
+// are drawn from the set does not matter. The implementation
+// below is efficient, except for the part that tracks what
+// elements have already been picked from the set (an inefficiency
+// that will be solved once Dafny supports built-in iterations
+// over sets).
+
+function Sum(s: set<int>): int {
+  if s == {} then 0 else
+    var x := Pick(s);
+    x + Sum(s - {x})
+} by method {
+  var sum := 0;
+  var s' := s;
+  while s' != {}
+    invariant s' <= s
+    invariant sum + Sum(s') == Sum(s)
+    decreases s' // TODO: this should be inferred automatically -- is the loop-decreases automation not done for by-method's?
+  {
+    var x :| x in s';
+    var s'' := s' - {x};
+    assert s'' + {x} == s';
+    SumLemma(s'', x);
+    sum, s' := sum + x, s'';
+  }
+  return sum;
+}
+
+function Pick(s: set<int>): int
+  requires s != {}
+{
+  var x :| x in s; x
+}
+
+lemma SumLemma(s: set<int>, y: int)
+  requires y !in s
+  ensures Sum(s + {y}) == Sum(s) + y
+  decreases |s|
+{
+  if s == {} {
+  } else {
+    var sy := s + {y};
+    assert s == sy - {y};
+    var x := Pick(sy);
+    if x == y {
+    } else {
+      var s'x := s - {x};
+      assert s'x + {x} == s;
+      calc {
+        Sum(s + {y});
+      ==
+        Sum(sy);
+      ==  // def. Sum
+        x + Sum(sy - {x});
+      ==  { assert sy - {x} == s'x + {y}; }
+        x + Sum(s'x + {y});
+      ==  { SumLemma(s'x, y); }
+        x + Sum(s'x) + y;
+      ==  { SumLemma(s'x, x); }
+        Sum(s'x + {x}) + y;
+      ==
+        Sum(s) + y;
+      }
+    }
   }
 }
