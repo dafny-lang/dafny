@@ -181,7 +181,7 @@ method Multiply(x: int, y: int) returns (product: int)
     }
 
     [TestMethod]
-    public async Task OpeningDocumentWithMultipleVerificationErrorsReportsDiagnosticsWithAllVerificationErrors() {
+    public async Task OpeningDocumentWithMultipleVerificationErrorsReportsDiagnosticsWithAllVerificationErrorsAndRelatedInformation() {
       var source = @"
 method Multiply(x: int, y: int) returns (product: int)
   decreases y
@@ -198,13 +198,15 @@ method Multiply(x: int, y: int) returns (product: int)
       _client.OpenDocument(documentItem);
       var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
       var diagnostics = report.Diagnostics.ToArray();
-      Assert.AreEqual(3, diagnostics.Length);
+      Assert.AreEqual(2, diagnostics.Length);
       Assert.AreEqual("Other", diagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[0].Severity);
       Assert.AreEqual("Other", diagnostics[1].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, diagnostics[1].Severity);
-      Assert.AreEqual("Other", diagnostics[2].Source);
-      Assert.AreEqual(DiagnosticSeverity.Information, diagnostics[2].Severity);
+      Assert.AreEqual(1, diagnostics[0].RelatedInformation.Count());
+      var relatedInformation = diagnostics[0].RelatedInformation.First();
+      Assert.AreEqual("This is the postcondition that might not hold.", relatedInformation.Message);
+      Assert.AreEqual(new Range(new Position(2,38), new Position(2,40)), relatedInformation.Location.Range);
     }
 
     [TestMethod]
@@ -229,7 +231,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new VersionedTextDocumentIdentifier {
+        TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
         },
@@ -273,7 +275,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new VersionedTextDocumentIdentifier {
+        TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
         },
@@ -314,7 +316,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new VersionedTextDocumentIdentifier {
+        TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
         },
@@ -358,7 +360,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new VersionedTextDocumentIdentifier {
+        TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
         },
@@ -397,7 +399,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(0, diagnosticsAfterOpening.Length);
 
       _client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-        TextDocument = new VersionedTextDocumentIdentifier {
+        TextDocument = new OptionalVersionedTextDocumentIdentifier {
           Uri = documentItem.Uri,
           Version = documentItem.Version + 1
         },
@@ -561,8 +563,8 @@ method Multiply(x: int, y: int) returns (product: int)
     }
 
     public class TestDiagnosticReceiver {
-      private readonly SemaphoreSlim _availableDiagnostics = new SemaphoreSlim(0);
-      private readonly ConcurrentQueue<PublishDiagnosticsParams> _diagnostics = new ConcurrentQueue<PublishDiagnosticsParams>();
+      private readonly SemaphoreSlim _availableDiagnostics = new(0);
+      private readonly ConcurrentQueue<PublishDiagnosticsParams> _diagnostics = new();
 
       public void DiagnosticReceived(PublishDiagnosticsParams request) {
         _diagnostics.Enqueue(request);

@@ -553,100 +553,27 @@ module N2 refines N1 {
 AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy(12,14): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    (0,0): anon18_Then
-    (0,0): anon3
-    (0,0): anon19_Else
-    (0,0): anon20_Then
-    AutoContracts.dfy(17,5): anon21_Else
-    (0,0): anon9
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon14
-    (0,0): anon24_Then
 AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    (0,0): anon18_Then
-    (0,0): anon3
-    (0,0): anon19_Else
-    (0,0): anon20_Then
-    AutoContracts.dfy(17,5): anon21_Else
-    (0,0): anon9
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon14
-    (0,0): anon24_Then
 AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy(12,14): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    (0,0): anon18_Then
-    (0,0): anon3
-    (0,0): anon19_Else
-    (0,0): anon20_Then
-    AutoContracts.dfy(17,5): anon21_Else
-    (0,0): anon9
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon14
-    (0,0): anon24_Then
 AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy(12,14): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    AutoContracts.dfy(17,5): anon18_Else
-    (0,0): anon3
-    (0,0): anon19_Then
-    (0,0): anon20_Then
-    (0,0): anon21_Then
-    (0,0): anon9
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon14
-    (0,0): anon24_Then
 AutoContracts.dfy(17,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(17,4): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy(12,14): Related location
 AutoContracts.dfy(5,25): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon17_Then
-    AutoContracts.dfy(17,5): anon18_Else
-    (0,0): anon3
-    (0,0): anon19_Then
-    (0,0): anon20_Then
-    (0,0): anon21_Then
-    (0,0): anon9
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon14
-    (0,0): anon24_Then
 AutoContracts.dfy(50,4): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(49,24): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy[N1](65,14): Related location
-Execution trace:
-    (0,0): anon0
 AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
 AutoContracts.dfy[N1](65,14): Related location
-Execution trace:
-    (0,0): anon0
 AutoContracts.dfy(79,21): Error: A postcondition might not hold on this return path.
 AutoContracts.dfy(60,16): Related location: This is the postcondition that might not hold.
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 37 verified, 9 errors

@@ -1,14 +1,3 @@
 Lambda.dfy(24,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    Lambda.dfy(6,24): anon45_Else
-    Lambda.dfy(7,24): anon47_Else
-    Lambda.dfy(8,26): anon49_Else
-    Lambda.dfy(10,34): anon51_Else
-    Lambda.dfy(11,15): anon53_Else
-    Lambda.dfy(13,15): anon55_Else
-    Lambda.dfy(14,15): anon59_Else
-    Lambda.dfy(18,15): anon63_Else
-    Lambda.dfy(23,15): anon66_Else
 
 Dafny program verifier finished with 3 verified, 1 error

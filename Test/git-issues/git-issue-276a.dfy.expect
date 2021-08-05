@@ -3,120 +3,39 @@ git-issue-276a.dfy(25,10): Info: newtype c1 resolves as {:nativeType "byte"} (De
 git-issue-276a.dfy(26,10): Info: newtype c2 resolves as {:nativeType "byte"} (Detected Range: 0 .. 50)
 git-issue-276a.dfy(5,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 git-issue-276a.dfy(5,26): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
 git-issue-276a.dfy(5,29): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(6,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 git-issue-276a.dfy(6,26): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
 git-issue-276a.dfy(6,29): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(7,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 git-issue-276a.dfy(7,26): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
 git-issue-276a.dfy(7,32): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(8,32): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(9,35): Error: value to be converted might not fit in bv8
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(10,34): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(11,33): Error: value to be converted might not fit in bv8
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(12,41): Error: value to be converted might not fit in bv8
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(13,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 git-issue-276a.dfy(13,27): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
 git-issue-276a.dfy(13,39): Error: value to be converted might not fit in char
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(14,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 git-issue-276a.dfy(14,27): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
 git-issue-276a.dfy(14,40): Error: real value to be converted might not fit in char
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(15,41): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(16,33): Error: value to be converted might not fit in bv2
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(17,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 git-issue-276a.dfy(17,27): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
 git-issue-276a.dfy(17,46): Error: bit-vector value to be converted might not fit in char
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(18,41): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(19,41): Error: possible division by zero
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(20,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 git-issue-276a.dfy(20,27): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
 git-issue-276a.dfy(20,40): Error: shift amount must be non-negative
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(21,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 git-issue-276a.dfy(21,27): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
 git-issue-276a.dfy(21,40): Error: shift amount must be non-negative
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 git-issue-276a.dfy(28,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'ghost *' to treat as a possibly empty type
 git-issue-276a.dfy(28,26): Related location
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
 git-issue-276a.dfy(28,35): Error: index out of range
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Then
 
 Dafny program verifier finished with 4 verified, 27 errors

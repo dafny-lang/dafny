@@ -4,7 +4,6 @@ using Microsoft.Boogie.ModelViewer.Dafny;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
@@ -27,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
     public Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
       DafnyDocument? document;
       if(!_documents.TryGetDocument(request.TextDocument, out document)) {
-        _logger.LogWarning("counter-examples requested for unloaded document {}", request.TextDocument.Uri);
+        _logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return Task.FromResult(new CounterExampleList());
       }
       return Task.FromResult(new CounterExampleLoader(_logger, document, cancellationToken).GetCounterExamples());
@@ -35,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
     private class CounterExampleLoader {
       private const string InitialStateName = "<initial>";
-      private static readonly Regex StatePositionRegex = new Regex(
+      private static readonly Regex StatePositionRegex = new(
         @".*\.dfy\((?<line>\d+),(?<character>\d+)\)",
         RegexOptions.IgnoreCase | RegexOptions.Singleline
       );
@@ -52,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
       public CounterExampleList GetCounterExamples() {
         if(_document.SerializedCounterExamples == null) {
-          _logger.LogDebug("got no counter-examples for document {}", _document.Uri);
+          _logger.LogDebug("got no counter-examples for document {DocumentUri}", _document.Uri);
           return new CounterExampleList();
         }
         var counterExamples = GetLanguageSpecificModels(_document.SerializedCounterExamples)
@@ -61,39 +60,38 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         return new CounterExampleList(counterExamples);
       }
 
-      private IEnumerable<ILanguageSpecificModel> GetLanguageSpecificModels(string serializedCounterExamples) {
-        using(var counterExampleReader = new StringReader(serializedCounterExamples)) {
-          return Model.ParseModels(counterExampleReader)
-            .WithCancellation(_cancellationToken)
-            .Select(GetLanguagSpecificModel);
-        }
+      private IEnumerable<LanguageModel> GetLanguageSpecificModels(string serializedCounterExamples) {
+        using var counterExampleReader = new StringReader(serializedCounterExamples);
+        return Model.ParseModels(counterExampleReader)
+          .WithCancellation(_cancellationToken)
+          .Select(GetLanguagSpecificModel);
       }
 
-      private ILanguageSpecificModel GetLanguagSpecificModel(Model model) {
+      private LanguageModel GetLanguagSpecificModel(Model model) {
         // TODO Make view options configurable?
         return Provider.Instance.GetLanguageSpecificModel(model, new ViewOptions { DebugMode = true, ViewLevel = 3 });
       }
 
-      private IEnumerable<CounterExampleItem> GetCounterExamples(ILanguageSpecificModel model) {
+      private IEnumerable<CounterExampleItem> GetCounterExamples(LanguageModel model) {
         return model.States
           .WithCancellation(_cancellationToken)
-          .OfType<StateNode>()
+          .OfType<DafnyModelState>()
           .Where(state => !IsInitialState(state))
           .Select(GetCounterExample);
       }
 
-      private bool IsInitialState(StateNode state) {
+      private static bool IsInitialState(DafnyModelState state) {
         return state.Name.Equals(InitialStateName);
       }
 
-      private CounterExampleItem GetCounterExample(StateNode state) {
+      private CounterExampleItem GetCounterExample(DafnyModelState state) {
         return new CounterExampleItem(
           GetPositionFromInitialState(state),
           GetVariablesFromState(state)
         );
       }
 
-      private Position GetPositionFromInitialState(IState state) {
+      private static Position GetPositionFromInitialState(DafnyModelState state) {
         var match = StatePositionRegex.Match(state.Name);
         if(!match.Success) {
           throw new ArgumentException($"state does not contain position: {state.Name}");
@@ -105,7 +103,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         );
       }
 
-      private IDictionary<string, string> GetVariablesFromState(StateNode state) {
+      private IDictionary<string, string> GetVariablesFromState(DafnyModelState state) {
         return state.Vars
           .WithCancellation(_cancellationToken)
           .ToDictionary(

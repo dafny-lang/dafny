@@ -1,21 +1,6 @@
 PredExpr.dfy(7,11): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Else
 PredExpr.dfy(39,14): Error: value does not satisfy the subset constraints of 'nat'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon7_Else
-    (0,0): anon8_Else
 PredExpr.dfy(52,16): Error: assertion violation
-Execution trace:
-    (0,0): anon0
 PredExpr.dfy(77,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Else
-    (0,0): anon3
-    PredExpr.dfy(76,20): anon10_Else
-    (0,0): anon6
 
 Dafny program verifier finished with 6 verified, 4 errors

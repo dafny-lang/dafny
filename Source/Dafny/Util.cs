@@ -6,28 +6,40 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
-
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 
 
 namespace Microsoft.Dafny {
-  public class Util
+  public static class Util
   {
-    public static string Comma(IEnumerable<string> l) {
+    
+    public static string Comma(this IEnumerable<string> l) {
       return Comma(l, s => s);
     }
 
-    public static string Comma<T>(IEnumerable<T> l, Func<T, string> f) {
+    public static string Comma<T>(this IEnumerable<T> l, Func<T, string> f) {
+      return Comma(", ", l, (element, index) => f(element));
+    }
+    
+    public static string Comma<T>(this IEnumerable<T> l, Func<T, int, string> f) {
       return Comma(", ", l, f);
     }
 
-    public static string Comma<T>(string comma, IEnumerable<T> l, Func<T, string> f) {
+    public static string Comma<T>(string comma, IEnumerable<T> l, Func<T, string> f)
+    {
+      return Comma(comma, l, (element, index) => f(element));
+    }
+
+    public static string Comma<T>(string comma, IEnumerable<T> l, Func<T, int, string> f) {
       Contract.Requires(comma != null);
       string res = "";
       string c = "";
+      int index = 0;
       foreach (var t in l) {
-        res += c + f(t);
+        res += c + f(t, index);
         c = comma;
+        index++;
       }
       return res;
     }
@@ -52,17 +64,6 @@ namespace Microsoft.Dafny {
     public static string Plural(int n) {
       Contract.Requires(0 <= n);
       return n == 1 ? "" : "s";
-    }
-
-    public static string Repeat(string str, int times) {
-      Contract.Requires(times >= 0);
-      Contract.Requires(str != null);
-
-      var ans = "";
-      for (var i = 0; i < times; i++) {
-        ans += str;
-      }
-      return ans;
     }
 
     public static List<B> Map<A, B>(IEnumerable<A> xs, Func<A, B> f)
@@ -311,6 +312,16 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static V GetOrCreate<K, V>(this IDictionary<K, V> dictionary, K key, Func<V> createValue) {
+      if (dictionary.TryGetValue(key, out var result)) {
+        return result;
+      }
+
+      result = createValue();
+      dictionary[key] = result;
+      return result;
+    }
+
     /// <summary>
     /// Generic statistic counter
     /// </summary>
@@ -442,6 +453,20 @@ namespace Microsoft.Dafny {
       foreach (string leaf in leaves) {
         System.Console.WriteLine(leaf);
       }
+    }
+  }
+  
+  class IEnumerableComparer<T> : IEqualityComparer<IEnumerable<T>> {
+    public bool Equals(IEnumerable<T> x, IEnumerable<T> y) {
+      return x.SequenceEqual(y);
+    }
+
+    public int GetHashCode(IEnumerable<T> obj) {
+      var hash = new HashCode();
+      foreach (T t in obj) {
+        hash.Add(t);
+      }
+      return hash.ToHashCode();
     }
   }
 }

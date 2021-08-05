@@ -1,6 +1,4 @@
 SplitExpr.dfy(96,14): Error: loop invariant violation
 SplitExpr.dfy(90,43): Related location
-Execution trace:
-    SplitExpr.dfy(95,3): anon7_LoopHead
 
 Dafny program verifier finished with 8 verified, 1 error

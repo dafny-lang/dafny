@@ -73,6 +73,31 @@ private:
    iterator end_;
 };
 
+// Workaround the fact that Apple's clang and g++ print nullptr as 0x0,
+// while Linux's g++ prints it as 0
+template<typename T>
+void dafny_print(T x) {
+  std::cout << x;
+}
+
+template<typename T>
+void dafny_print(T* x) {
+  if (x == nullptr) {
+    std::cout << "NULL";
+  } else {
+    std::cout << x;
+  }
+}
+
+template<typename T>
+void dafny_print(std::shared_ptr<T> x) {
+  if (x == nullptr) {
+    std::cout << "NULL";
+  } else {
+    std::cout << x;
+  }
+}
+
 /*********************************************************
  *  DEFAULTS                                             *
  *********************************************************/
@@ -117,6 +142,8 @@ struct get_default<std::shared_ptr<U>> {
 /*********************************************************
  *  TUPLES                                               *
  *********************************************************/
+
+struct Tuple0 {};
 
 template <typename... Types>
 struct Tuple{

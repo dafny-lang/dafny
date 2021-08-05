@@ -9,10 +9,10 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   public class DafnyDocument {
     public TextDocumentItem Text { get; }
     public DocumentUri Uri => Text.Uri;
-    public long Version => Text.Version;
+    public int Version => Text.Version!.Value;
 
     public Dafny.Program Program { get; }
-    public ErrorReporter Errors { get; }
+    public DiagnosticErrorReporter Errors { get; }
     public SymbolTable SymbolTable { get; }
 
     /// <summary>
@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public DafnyDocument(
       TextDocumentItem textDocument,
-      ErrorReporter errors,
+      DiagnosticErrorReporter errors,
       Dafny.Program program,
       SymbolTable symbolTable,
       string? serializedCounterExamples

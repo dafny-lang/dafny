@@ -68,3 +68,37 @@ module ReadsGenerics {
     { (a, b) }
   }
 }
+
+module TwoStateFunctions {
+  method Apply(ghost f: int -> int, x: int) returns (ghost y: int)
+    ensures y == f(x)
+  {
+    y := f(x);
+  }
+
+  class Cell {
+    var data: int
+
+    twostate function F(x: int): int {
+      old(data) + x
+    }
+  }
+
+  method Caller(c: Cell)
+    requires c.data == 9
+    modifies c
+  {
+    c.data := c.data + 1;
+    label L:
+    assert c.F(11) == 20;
+
+    var y := Apply(c.F, 11);
+    assert y == 20;
+
+    assert c.F@L(11) == 21;
+    y := Apply(u => c.F@L(u), 11);
+    assert y == 21;
+
+    assert c.F(100) == 0; // error
+  }
+}

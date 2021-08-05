@@ -1,168 +1,43 @@
 DefiniteAssignment.dfy(300,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    DefiniteAssignment.dfy(300,14): anon3_Else
-    (0,0): anon2
 DefiniteAssignment.dfy(305,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    DefiniteAssignment.dfy(305,14): anon3_Else
-    (0,0): anon2
 DefiniteAssignment.dfy(310,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    DefiniteAssignment.dfy(310,7): anon3_Else
-    (0,0): anon2
 DefiniteAssignment.dfy(316,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    DefiniteAssignment.dfy(316,7): anon3_Else
-    (0,0): anon2
 DefiniteAssignment.dfy(329,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    DefiniteAssignment.dfy(329,14): anon3_Else
-    (0,0): anon2
 DefiniteAssignment.dfy(336,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    DefiniteAssignment.dfy(336,7): anon3_Else
-    (0,0): anon2
 DefiniteAssignment.dfy(351,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    DefiniteAssignment.dfy(351,5): anon7_Else
-    (0,0): anon5
 DefiniteAssignment.dfy(370,11): Error: field 'y', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(377,6): Error: field 'y', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(382,4): Error: field 'y', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(387,4): Error: field 'x', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(11,9): Error: field 'y', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(13,4): Error: field 'oxA', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(13,4): Error: field 'oxB', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(18,4): Error: field 'oxA', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(18,4): Error: field 'oxB', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(18,4): Error: field 'y', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(23,2): Error: field 'oxA', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(23,2): Error: field 'oxB', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(23,2): Error: field 'y', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(27,2): Error: field 'oxA', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(27,2): Error: field 'oxB', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(27,2): Error: field 'x', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(276,13): Error: variable 'f', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(281,13): Error: variable 'f', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(289,13): Error: variable 'f', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(40,0): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon7_Else
-    (0,0): anon5
 DefiniteAssignment.dfy(48,9): Error: variable 'z', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Else
-    (0,0): anon13_Then
 DefiniteAssignment.dfy(56,15): Error: variable 'j', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Else
-    (0,0): anon13_Else
-    (0,0): anon14_Else
-    (0,0): anon15_Then
 DefiniteAssignment.dfy(59,4): Error: out-parameter 'y', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Else
-    (0,0): anon13_Else
-    (0,0): anon14_Else
-    (0,0): anon15_Else
-    (0,0): anon16_Then
 DefiniteAssignment.dfy(63,0): Error: out-parameter 'z', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Else
-    (0,0): anon13_Else
-    (0,0): anon14_Else
-    (0,0): anon15_Else
-    (0,0): anon16_Else
-    (0,0): anon11
 DefiniteAssignment.dfy(85,9): Error: variable 'y', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon6_Else
-    (0,0): anon7_Then
 DefiniteAssignment.dfy(94,5): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-Execution trace:
-    (0,0): anon0
-    DefiniteAssignment.dfy(94,6): anon12_Else
-    (0,0): anon2
 DefiniteAssignment.dfy(94,14): Error: variable 'e1', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon12_Then
 DefiniteAssignment.dfy(127,7): Error: variable 'b', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(128,0): Error: out-parameter 'g', which is subject to definite-assignment rules, might not have been defined at this return point
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(133,7): Error: variable 'b', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(136,9): Error: variable 'c', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
 DefiniteAssignment.dfy(143,8): Error: variable 'w', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
-    (0,0): anon4_Then
-    (0,0): anon3
 DefiniteAssignment.dfy(237,12): Error: variable 'a', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
 DefiniteAssignment.dfy(238,12): Error: variable 'b', which is subject to definite-assignment rules, might be used before it has been assigned
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 12 verified, 41 errors

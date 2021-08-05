@@ -74,28 +74,5 @@ some-terms-do-not-look-like-the-triggers-they-match.dfy(164,12): Info: Selected 
 some-terms-do-not-look-like-the-triggers-they-match.dfy(166,12): Warning: /!\ No terms found to trigger on.
 some-terms-do-not-look-like-the-triggers-they-match.dfy(167,12): Warning: /!\ No terms found to trigger on.
 some-terms-do-not-look-like-the-triggers-they-match.dfy(152,9): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    (0,0): anon35_Then
-    (0,0): anon36_Then
-    (0,0): anon3
-    (0,0): anon37_Then
-    (0,0): anon38_Then
-    (0,0): anon39_Then
-    (0,0): anon8
-    (0,0): anon40_Then
-    (0,0): anon41_Then
-    (0,0): anon11
-    (0,0): anon42_Then
-    (0,0): anon43_Then
-    (0,0): anon44_Then
-    (0,0): anon16
-    some-terms-do-not-look-like-the-triggers-they-match.dfy(135,3): anon45_Else
-    (0,0): anon50_Then
-    (0,0): anon51_Then
-    (0,0): anon31
-    (0,0): anon52_Then
-    (0,0): anon53_Then
-    (0,0): anon34
 
 Dafny program verifier finished with 4 verified, 1 error

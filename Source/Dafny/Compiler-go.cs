@@ -11,10 +11,10 @@ using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Bpl = Microsoft.Boogie;
+using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny {
   public class GoCompiler : Compiler {
@@ -1108,7 +1108,7 @@ namespace Microsoft.Dafny {
         if (forBodyInheritance) {
           // don't do any conversions
         } else if (thisContext != null) {
-          w = w.NewBlock("", open: ConcreteSyntaxTree.BraceStyle.Nothing);
+          w = w.NewBlock("", open: BraceStyle.Nothing);
           for (var i = 0; i < inParams.Count; i++) {
             var p = (overriddenInParams ?? inParams)[i];
             var instantiatedType = Resolver.SubstType(p.Type, thisContext.ParentFormalTypeParametersToActuals);
@@ -1294,7 +1294,7 @@ namespace Microsoft.Dafny {
 
       var getterWriter = CreateGetter(name, resultType, tok, isStatic, createBody, member, ownerName, abstractWriter, concreteWriter, forBodyInheritance);
 
-      var valueParam = new Formal(tok, "value", resultType, true, false);
+      var valueParam = new Formal(tok, "value", resultType, true, false, null);
       setterWriter = CreateSubroutine(name + "_set_", new List<TypeArgumentInstantiation>(), new List<Formal>() {valueParam}, new List<Formal>(), null,
         new List<Formal>() {valueParam}, new List<Formal>(), null, tok, isStatic, createBody, ownerName, member,
         abstractWriter, concreteWriter, forBodyInheritance, false);
@@ -1818,6 +1818,47 @@ namespace Microsoft.Dafny {
       return wBody;
     }
 
+    protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
+      List<Statement> body, ConcreteSyntaxTree wr) {
+
+      wr.Write($"for {loopIndex.CompileName} := ");
+      var startWr = wr.Fork();
+      wr.Write($"; ");
+
+      ConcreteSyntaxTree bodyWr;
+      if (goingUp) {
+        if (endVarName == null) {
+          wr.Write("true");
+        } else if (IsOrderedByCmp(loopIndex.Type)) {
+          wr.Write($"{loopIndex.CompileName}.Cmp({endVarName}) < 0");
+        } else {
+          wr.Write($"{loopIndex.CompileName} < {endVarName}");
+        }
+        if (AsNativeType(loopIndex.Type) == null) {
+          bodyWr = wr.NewBlock($"; {loopIndex.CompileName} = {loopIndex.CompileName}.Plus(_dafny.One)");
+        } else {
+          bodyWr = wr.NewBlock($"; {loopIndex.CompileName}++");
+        }
+      } else {
+        if (endVarName == null) {
+          wr.Write("true");
+        } else if (IsOrderedByCmp(loopIndex.Type)) {
+          wr.Write($"{endVarName}.Cmp({loopIndex.CompileName}) < 0");
+        } else {
+          wr.Write($"{endVarName} < {loopIndex.CompileName}");
+        }
+        bodyWr = wr.NewBlock($"; ");
+        if (AsNativeType(loopIndex.Type) == null) {
+          bodyWr.WriteLine($"{loopIndex.CompileName} = {loopIndex.CompileName}.Minus(_dafny.One)");
+        } else {
+          bodyWr.WriteLine($"{loopIndex.CompileName}--");
+        }
+      }
+      TrStmtList(body, bodyWr);
+
+      return startWr;
+    }
+
     protected override ConcreteSyntaxTree CreateForLoop(string indexVar, string bound, ConcreteSyntaxTree wr) {
       return wr.NewNamedBlock("for {0} := _dafny.Zero; {0}.Cmp({1}) < 0; {0} = {0}.Plus(_dafny.One)", indexVar, bound);
     }
@@ -1859,7 +1900,7 @@ namespace Microsoft.Dafny {
         } else {
           wIf.WriteLine("{0} = ({1})(nil)", boundVarName, TypeName(boundVarType, wBody, tok));
         }
-        wIf = wBody.NewBlock("", open: ConcreteSyntaxTree.BraceStyle.Nothing);
+        wIf = wBody.NewBlock("", open: BraceStyle.Nothing);
         string typeTest;
         if (boundVarType.IsObject || boundVarType.IsObjectQ) {
           // nothing more to test
@@ -1945,7 +1986,7 @@ namespace Microsoft.Dafny {
       } else if (e.Value is BigInteger i) {
         EmitIntegerLiteral(i, wr);
       } else if (e.Value is BaseTypes.BigDec n) {
-        var zeros = Util.Repeat("0", Math.Abs(n.Exponent));
+        var zeros = Repeat("0", Math.Abs(n.Exponent));
         string str;
         if (n.Exponent >= 0) {
           str = n.Mantissa + zeros;

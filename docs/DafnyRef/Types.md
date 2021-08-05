@@ -1050,7 +1050,7 @@ For a sequence, the only difference is the length operator:
   }
 ```
 
-The `forall` statement ([Section 19.20](#sec-forall-statement)) can also be used
+The `forall` statement ([Section 19.21](#sec-forall-statement)) can also be used
 with arrays where parallel assigment is needed:
 ```dafny
   var rev := new int[s.Length];
@@ -1378,7 +1378,7 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 20.44](#sec-compile-time-constants).
+in [Section 20.46](#sec-compile-time-constants).
 
 ## 12.1. Conversion operations {#sec-conversion}
 
@@ -1436,7 +1436,7 @@ ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
 
 ClassMemberDecl(allowConstructors, isValueType,
                 moduleLevelDecl, isWithinAbstractModule) =
-  ( FieldDecl(isValueType) // allowed iff moduleLevelDecl is true
+  ( FieldDecl(isValueType) // allowed iff moduleLevelDecl is false
   | ConstantFieldDecl(moduleLevelDecl)
   | FunctionDecl(isWithinAbstractModule)
   | MethodDecl(isGhost: "ghost" was present,
@@ -1447,7 +1447,7 @@ The ``ClassMemberDecl`` parameter `moduleLevelDecl` will be true if
 the member declaration is at the top level or directly within a
 module declaration. It will be false for ``ClassMemberDecl``s
 that are part of a class or trait declaration. If `moduleLevelDecl` is
-false ``FieldDecl``s are not allowed.
+true ``FieldDecl``s are not allowed.
 
 A _class_ `C` is a reference type declared as follows:
 ```dafny
@@ -1611,8 +1611,8 @@ as explained below.
 MethodSignature_(isGhost, isExtreme) =
   [ GenericParameters ]
   [ KType ]    // permitted only if isExtreme == true
-  Formals(allowGhostKeyword: !isGhost, allowNewKeyword: isTwostateLemma))
-  [ "returns" Formals(allowGhostKeyword: !isGhost, allowNewKeyword: false) ]
+  Formals(allowGhostKeyword: !isGhost, allowNewKeyword: isTwostateLemma, allowDefault: true))
+  [ "returns" Formals(allowGhostKeyword: !isGhost, allowNewKeyword: false, allowDefault: false) ]
 ````
 A method signature specifies the method generic parameters,
 input parameters and return parameters.
@@ -1634,14 +1634,15 @@ The _k-type_ may be specified only for least and greatest lemmas and is describe
 in [Section 18.3](#sec-coinduction). // TODO - check this is the correct reference
 
 ````grammar
-Formals(allowGhostKeyword, allowNewKeyword) =
-  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword)
-        { "," GIdentType(allowGhostKeyword, allowNewKeyword) }
+Formals(allowGhostKeyword, allowNewKeyword, allowDefault) =
+  "(" [ GIdentType(allowGhostKeyword, allowNewKeyword, allowNameOnlyKeyword: true, allowDefault)
+        { "," GIdentType(allowGhostKeyword, allowNewKeyword, allowNameOnlyKeyword: true, allowDefault) }
       ]
   ")"
 ````
 The ``Formals`` specifies the names and types of the method input or
 output parameters.
+
 
 See [Section 5.2](#sec-method-specification) for a description of ``MethodSpec``.
 
@@ -1938,7 +1939,9 @@ FunctionSignature_(allowGhostKeyword, allowNewKeyword) =
   ":"
   ( Type
   | "(" GIdentType(allowGhostKeyword: false,
-                   allowNewKeyword: false)
+                   allowNewKeyword: false,
+                   allowNameOnlyKeyword: false,
+                   allowDefault: false)
     ")"
   )
 
@@ -2789,7 +2792,7 @@ _lambda expressions_. See [Section 20.13](#sec-lambda-expressions).
 <!--PDF NEWPAGE-->
 ## 17.1.  Tuple types {#sec-tuple-types}
 ````grammar
-TupleType = "(" [ Type { "," Type } ] ")"
+TupleType = "(" [ [ "ghost" ] Type { "," [ "ghost" ] Type } ] ")"
 ````
 
 Dafny builds in record types that correspond to tuples and gives these
@@ -2814,6 +2817,11 @@ Dafny declares _n_-tuples where _n_ is 0 or 2 or more.  There are no
 1-tuples, since parentheses around a single type or a single value have
 no semantic meaning.  The 0-tuple type, `()`, is often known as the
 _unit type_ and its single value, also written `()`, is known as _unit_.
+
+The `ghost` modifier can be used to mark tuple components as being used for specification only:
+```dafny
+var pair: (int, ghost int) := (1, ghost 2);
+```
 
 <!--PDF NEWPAGE-->
 # 18. Algebraic Datatypes

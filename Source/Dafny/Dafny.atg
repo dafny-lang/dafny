@@ -14,6 +14,7 @@ using System.Numerics;
 using Microsoft.Boogie;
 using System.IO;
 using System.Text;
+using System.Linq;
 COMPILER Dafny
 /*--------------------------------------------------------------------------*/
 readonly Expression/*!*/ dummyExpr;
@@ -202,6 +203,12 @@ bool IsLabel(bool allowLabel) {
   return (IsIdentifier(la.kind) || la.kind == _digits) && x.kind == _colon;
 }
 
+bool IsBinding() {
+  scanner.ResetPeek();
+  IToken x = scanner.Peek();
+  return (IsIdentifier(la.kind) || la.kind == _digits) && x.kind == _gets;
+}
+
 bool IsAlternative() {
   IToken x = scanner.Peek();
   return (la.kind == _lbrace && x.kind == _case)
@@ -218,6 +225,12 @@ bool FollowedByColon() {
 
 bool IsGets() {
   return la.kind == _gets;
+}
+
+bool IsVar() {
+  scanner.ResetPeek();
+  IToken x = scanner.Peek();
+  return la.kind == _var || (x.kind == _var && la.kind == _ghost);
 }
 
 // an existential guard starts with an identifier and is then followed by
@@ -551,11 +564,14 @@ bool IsTypeList(ref IToken pt) {
   return IsTypeSequence(ref pt, _closeAngleBracket);
 }
 /* Returns true if the next thing is of the form:
- *     Type { "," Type }
+ *     [ "ghost" ] Type { "," [ "ghost" ] Type }
  * followed by an endBracketKind.
  */
 bool IsTypeSequence(ref IToken pt, int endBracketKind) {
   while (true) {
+    if (pt.kind == _ghost) {
+      pt = scanner.Peek();
+    }
     if (!IsType(ref pt)) {
       return false;
     }
@@ -782,8 +798,8 @@ TOKENS
   invariant = "invariant".
   function = "function".
   predicate = "predicate".
-  least = "least".
-  greatest = "greatest".
+  least = "least". /* not a keyword by itself, but part of a keyword phrase */
+  greatest = "greatest". /* not a keyword by itself, but part of a keyword phrase */
   inductive = "inductive".
   twostate = "twostate".
   copredicate = "copredicate".
@@ -1416,14 +1432,15 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   .
 
 /*------------------------------------------------------------------------*/
-GIdentType<bool allowGhostKeyword, bool allowNewKeyword,
-           out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld>
+GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeyword,
+           out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld, out bool isNameOnly>
 /* isGhost always returns as false if allowGhostKeyword is false */
 = (. Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
-     isGhost = false; isOld = allowNewKeyword; .)
+     isGhost = false; isOld = allowNewKeyword; isNameOnly = false; .)
   { "ghost"                    (. if (allowGhostKeyword) { isGhost = true; } else { SemErr(t, "formal cannot be declared 'ghost' in this context"); } .)
   | "new"                      (. if (allowNewKeyword) { isOld = false; } else { SemErr(t, "formal cannot be declared 'new' in this context"); } .)
+  | "nameonly"                 (. if (allowNameOnlyKeyword) { isNameOnly = true; } else { SemErr(t, "formal cannot be declared 'nameonly' in this context"); } .)
   }
   IdentType<out id, out ty, false>
   .
@@ -1474,13 +1491,17 @@ IdentTypeOptional<out BoundVar var>
   (. var = new BoundVar(id, id.val, optType == null ? new InferredTypeProxy() : optType); .)
   .
 
-TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost>
+TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ ty, out bool isGhost, out Expression defaultValue, out bool isNameOnly>
 = (.Contract.Ensures(Contract.ValueAtReturn(out id)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out identName)!=null);
-     string name = null; id = Token.NoToken; ty = new BoolType()/*dummy*/; isGhost = false; .)
-  [ "ghost"                            (. isGhost = true; .)
-  ]
+     string name = null; id = Token.NoToken; ty = new BoolType()/*dummy*/; isGhost = false;
+     IToken nameonlyToken = null;
+     defaultValue = null;
+  .)
+  { "ghost"                            (. isGhost = true; .)
+  | "nameonly"                         (. nameonlyToken = t; .)
+  }
   ( TypeAndToken<out id, out ty, false>
     [ ":"
       (. /* try to convert ty to an identifier */
@@ -1492,15 +1513,22 @@ TypeIdentOptional<out IToken/*!*/ id, out string/*!*/ identName, out Type/*!*/ t
          }
       .)
       Type<out ty>
+      ParameterDefaultValue<true, out defaultValue>
     ]
   | digits         (. id = t; name = id.val;.)
     ":"
     Type<out ty>
+    ParameterDefaultValue<true, out defaultValue>
   )
   (. if (name != null) {
        identName = name;
+       isNameOnly = nameonlyToken != null;
      } else {
        identName = "#" + anonymousIds++;
+       if (nameonlyToken != null) {
+         SemErr(nameonlyToken, "use of the 'nameonly' modifier must be accompanied with a parameter name");
+       }
+       isNameOnly = false;
      }
   .)
   .
@@ -1865,25 +1893,47 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, List<Forma
      Type ty;
      bool isGhost;
      bool isOld;
+     Expression defaultValue;
+     bool isNameOnly;
   .)
   "("
   [
-    GIdentType<allowGhostKeyword, allowNewKeyword, out id, out ty, out isGhost, out isOld>
-                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, isOld)); .)
-    { "," GIdentType<allowGhostKeyword, allowNewKeyword, out id, out ty, out isGhost, out isOld>
-                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, isOld)); .)
+    GIdentType<allowGhostKeyword, allowNewKeyword, incoming, out id, out ty, out isGhost, out isOld, out isNameOnly>
+    ParameterDefaultValue<incoming, out defaultValue>
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly)); .)
+    { "," GIdentType<allowGhostKeyword, allowNewKeyword, incoming, out id, out ty, out isGhost, out isOld, out isNameOnly>
+    ParameterDefaultValue<incoming, out defaultValue>
+                 (. formals.Add(new Formal(id, id.val, ty, incoming, isGhost, defaultValue, isOld, isNameOnly)); .)
     }
   ]
   ")"
   .
 
+ParameterDefaultValue<bool incoming, out Expression defaultValue>
+= (. defaultValue = null; IToken tok;
+  .)
+  [ ":="        (. tok = t; .)
+    Expression<out defaultValue, true, true>
+    (. if (!incoming) {
+         SemErr(tok, "out-parameters cannot have default-value expressions");
+         defaultValue = null;
+       }
+    .)
+  ]
+  .
+
 /*------------------------------------------------------------------------*/
 FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
-= (. Contract.Requires(cce.NonNullElements(formals)); IToken/*!*/ id;  Type/*!*/ ty;  string/*!*/ name;  bool isGhost; .)
+= (. Contract.Requires(cce.NonNullElements(formals));
+     IToken/*!*/ id;  Type/*!*/ ty;  string/*!*/ name;  bool isGhost;  Expression/*?*/ defaultValue;
+     bool isNameOnly;
+  .)
   "("
   [
-    TypeIdentOptional<out id, out name, out ty, out isGhost>        (. formals.Add(new Formal(id, name, ty, true, isGhost)); .)
-    { "," TypeIdentOptional<out id, out name, out ty, out isGhost>  (. formals.Add(new Formal(id, name, ty, true, isGhost)); .)
+    TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
+            (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
+    { "," TypeIdentOptional<out id, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
+            (. formals.Add(new Formal(id, name, ty, true, isGhost, defaultValue, false, isNameOnly)); .)
     }
   ]
   ")"
@@ -1902,6 +1952,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
      ty = new BoolType();  /*keep compiler happy*/
      List<Type> gt;
      List<Type> tupleArgTypes = null;
+     List<bool> argumentGhostness = null;
   .)
   ( "bool"                          (. tok = t; .)
   | "char"                          (. tok = t;  ty = new CharType(); .)
@@ -1975,7 +2026,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                        int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
                                        ty = theBuiltIns.ArrayType(tok, dims, gt, true, q);
                                     .)
-  | TupleType<out ty, out tok, out tupleArgTypes>
+  | TupleType<out ty, out tok, out tupleArgTypes, out argumentGhostness>
   | NamedType<out ty, out tok, inExpressionContext>
   )
   [ (. int arrowKind = 0; /* 0: any, 1: partial, 2: total */
@@ -2009,21 +2060,28 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
 
 /*------------------------------------------------------------------------*/
 
-TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes.> =
+TupleType<.out Type ty, out IToken tok, out List<Type> tupleArgTypes, out List<bool> argumentGhostness.> =
   "("                             (. tok = t;
                                      ty = null; // To keep compiler happy
                                      tupleArgTypes = new List<Type>();
+                                     var isGhost = false;
+                                     argumentGhostness = new List<bool>();
                                   .)
-  [ Type<out ty>                  (. tupleArgTypes.Add(ty); .)
-    { "," Type<out ty>            (. tupleArgTypes.Add(ty); .)
+  [ [ "ghost"                     (. isGhost = true; .)
+    ]
+    Type<out ty>                  (. tupleArgTypes.Add(ty); argumentGhostness.Add(isGhost); .)
+    { ","                         (. isGhost = false; .)
+      [ "ghost"                   (. isGhost = true; .)
+      ]
+      Type<out ty>                (. tupleArgTypes.Add(ty); argumentGhostness.Add(isGhost); .)
     }
   ]
-  ")"                             (. if (tupleArgTypes.Count == 1) {
+  ")"                             (. if (tupleArgTypes.Count == 1 && !isGhost) {
                                        // just return the type 'ty'
                                      } else {
                                        var dims = tupleArgTypes.Count;
-                                       var tmp = theBuiltIns.TupleType(tok, dims, true);  // make sure the tuple type exists
-                                       ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(dims), dims == 0 ? null : tupleArgTypes);
+                                       var tmp = theBuiltIns.TupleType(tok, dims, true, argumentGhostness);  // make sure the tuple type exists
+                                       ty = new UserDefinedType(tok, BuiltIns.TupleTypeName(argumentGhostness), dims == 0 ? null : tupleArgTypes);
                                      }
                                   .)
   .
@@ -2104,15 +2162,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
       ":"
       (  IF(FollowedByColon())
          "("
-           (.
-              IToken resultId;
-              Type ty;
-              bool isGhost;
-              bool isOld;
-           .)
-           GIdentType<false, false, out resultId, out ty, out isGhost, out isOld>
-           (. Contract.Assert(!isGhost && !isOld);
-              result = new Formal(resultId, resultId.val, ty, false, false, false);
+           GIdentType<false, false, false, out var resultId, out var ty, out var isGhost, out var isOld, out var isNameOnly>
+           (. Contract.Assert(!isGhost && !isOld && !isNameOnly);
+              result = new Formal(resultId, resultId.val, ty, false, false, null, false);
            .)
          ")"
          | Type<out returnType>
@@ -2354,6 +2406,7 @@ OneStmt<out Statement/*!*/ s>
   | ReturnStmt<out s>
   | IfStmt<out s>
   | WhileStmt<out s>
+  | ForLoopStmt<out s>
   | AssertStmt<out s, false>
   | AssumeStmt<out s>
   | BreakStmt<out s>
@@ -2509,7 +2562,7 @@ Rhs<out AssignmentRhs r>
      IToken/*!*/ x, newToken;  Expression/*!*/ e;
      Type ty = new InferredTypeProxy();
      List<Expression> ee = null;
-     List<Expression> args = null;
+     List<ActualBinding> args = null;
      Expression arrayElementInit = null;
      List<Expression> display = null;
      r = dummyRhs;  // to please compiler
@@ -2519,9 +2572,9 @@ Rhs<out AssignmentRhs r>
     ( NewArray<out ee, out arrayElementInit, out display>  // "ty" is set to InferredTypeProxy above
     | TypeAndToken<out x, out ty, false>
       [ NewArray<out ee, out arrayElementInit, out display>
-      |                                (. x = null; args = new List<Expression/*!*/>(); .)
+      |                                (. x = null; args = new List<ActualBinding>(); .)
         "("
-          [ Expressions<args> ]
+          [ ActualBindings<args> ]
         ")"
       ]
     )
@@ -2532,7 +2585,7 @@ Rhs<out AssignmentRhs r>
            r = new TypeRhs(newToken, ty, ee, arrayElementInit);
          }
        } else if (args != null) {
-         r = new TypeRhs(newToken, ty, args, false);
+         r = new TypeRhs(newToken, ty, args);
        } else {
          r = new TypeRhs(newToken, ty);
        }
@@ -2657,7 +2710,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
     Expression<out e, false, true>
 
     ";"
-    (. s = new VarDeclPattern(e.tok, e.tok, pat, e, !isGhost); .)
+    (. s = new VarDeclPattern(e.tok, e.tok, pat, e, isGhost); .)
   )
   .
 
@@ -2669,16 +2722,19 @@ IfStmt<out Statement/*!*/ ifStmt>
      BlockStmt/*!*/ bs;
      Statement/*!*/ s;
      Statement els = null;
+     Attributes attrs = null;
+     Attributes elsattrs = null;
      IToken bodyStart, bodyEnd, endTok;
      List<GuardedAlternative> alternatives;
      ifStmt = dummyIfStmt;  // to please the compiler
      bool usesOptionalBraces;
   .)
   "if"                       (. x = t; .)
+  { Attribute<ref attrs> }
   (
     IF(IsAlternative())
     AlternativeBlock<true, out alternatives, out usesOptionalBraces, out endTok>
-    (. ifStmt = new AlternativeStmt(x, endTok, alternatives, usesOptionalBraces); .)
+    (. ifStmt = new AlternativeStmt(x, endTok, alternatives, usesOptionalBraces, attrs); .)
   |
     ( IF(IsBindingGuard())
       BindingGuard<out guard, true>      (. isBindingGuard = true; .)
@@ -2688,13 +2744,17 @@ IfStmt<out Statement/*!*/ ifStmt>
     BlockStmt<out thn, out bodyStart, out bodyEnd>    (. endTok = thn.EndTok; .)
     [ "else"
       ( IfStmt<out s>                                 (. els = s; endTok = s.EndTok; .)
-      | BlockStmt<out bs, out bodyStart, out bodyEnd> (. els = bs; endTok = bs.EndTok; .)
+      | { Attribute<ref elsattrs> } BlockStmt<out bs, out bodyStart, out bodyEnd> (. els = bs; endTok = bs.EndTok; .)
       )
     ]
-    (. if (guardEllipsis != null) {
+    (.
+       if (els != null && !(els is IfStmt)) {
+        els.Attributes = elsattrs;
+       }
+       if (guardEllipsis != null) {
          ifStmt = new SkeletonStatement(new IfStmt(x, endTok, isBindingGuard, guard, thn, els), guardEllipsis, null);
        } else {
-         ifStmt = new IfStmt(x, endTok, isBindingGuard, guard, thn, els);
+         ifStmt = new IfStmt(x, endTok, isBindingGuard, guard, thn, els, attrs);
        }
     .)
   )
@@ -2729,8 +2789,10 @@ AlternativeBlockCase<.bool allowBindingGuards, out GuardedAlternative alt.>
 = (. IToken x;
      Expression e; bool isBindingGuard;
      List<Statement> body;
+     Attributes attrs = null;
   .)
   "case"                             (. x = t; isBindingGuard = false; e = dummyExpr; .)
+  { Attribute<ref attrs> }
   ( IF(allowBindingGuards && IsBindingGuard())
     BindingGuard<out e, false >  (. isBindingGuard = true; .)  // NB: don't allow lambda here
   | Expression<out e, true, false> // NB: don't allow lambda here
@@ -2745,20 +2807,19 @@ AlternativeBlockCase<.bool allowBindingGuards, out GuardedAlternative alt.>
     Stmt<body>
     SYNC  /* see comment about SYNC above */
   }
-  (. alt = new GuardedAlternative(x, isBindingGuard, e, body); .)
+  (. alt = new GuardedAlternative(x, isBindingGuard, e, body, attrs); .)
   .
 
 /*------------------------------------------------------------------------*/
 WhileStmt<out Statement stmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken x;
      Expression guard = null;  IToken guardEllipsis = null;
-
+     Attributes attrs = null;
      List<AttributedExpression> invariants = new List<AttributedExpression>();
      List<Expression> decreases = new List<Expression>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
      List<FrameExpression> mod = null;
-
      BlockStmt body = null;  IToken bodyEllipsis = null;
      IToken bodyStart = null, bodyEnd = null, endTok = Token.NoToken;
      List<GuardedAlternative> alternatives;
@@ -2767,11 +2828,12 @@ WhileStmt<out Statement stmt>
      bool usesOptionalBraces;
   .)
   "while"                    (. x = t; .)
+  { Attribute<ref attrs> }
   (
     IF(IsLoopSpec() || IsAlternative())
     LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
     AlternativeBlock<false, out alternatives, out usesOptionalBraces, out endTok>
-    (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces); .)
+    (. stmt = new AlternativeLoopStmt(x, endTok, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces, attrs); .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
     | ellipsis                   (. guardEllipsis = t; .)
@@ -2791,17 +2853,73 @@ WhileStmt<out Statement stmt>
         if (body == null && !isDirtyLoop) {
           body = new BlockStmt(x, endTok, new List<Statement>());
         }
-        stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body);
+        stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body, attrs);
         stmt = new SkeletonStatement(stmt, guardEllipsis, bodyEllipsis);
       } else {
         // The following statement protects against crashes in case of parsing errors
         if (body == null && !isDirtyLoop) {
           body = new BlockStmt(x, endTok, new List<Statement>());
         }
-        stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body);
+        stmt = new WhileStmt(x, endTok, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
       }
     .)
   )
+  .
+
+ForLoopStmt<out Statement stmt>
+= (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null);
+     IToken x;
+     BoundVar loopIndex;
+     Expression start;
+     Expression end = null;
+     bool goingUp = true;
+
+     Attributes attrs = null;
+
+     List<AttributedExpression> invariants = new List<AttributedExpression>();
+     List<Expression> decreases = new List<Expression>();
+     Attributes decAttrs = null;
+     Attributes modAttrs = null;
+     List<FrameExpression> mod = null;
+
+     BlockStmt body = null;
+     IToken bodyStart = null, bodyEnd = null, endTok = Token.NoToken;
+     stmt = dummyStmt;  // to please the compiler
+     bool isDirtyLoop = true;
+  .)
+  "for"                    (. x = t; .)
+  { Attribute<ref attrs> }
+  IdentTypeOptional<out loopIndex>
+  ":="
+  Expression<out start, false, false>
+  ForLoopDirection<out goingUp>
+  ( Expression<out end, false, false>
+  | "*"
+  )
+  LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
+  ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
+    BlockStmt<out body, out bodyStart, out bodyEnd>  (. endTok = body.EndTok; isDirtyLoop = false; .)
+  | /* go body-less */
+  )
+  (.
+    // The following statement protects against crashes in case of parsing errors
+    if (body == null && !isDirtyLoop) {
+      body = new BlockStmt(x, endTok, new List<Statement>());
+    }
+    stmt = new ForLoopStmt(x, endTok, loopIndex, start, end, goingUp,
+      invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
+  .)
+  .
+
+ForLoopDirection<out bool goingUp>
+= (. goingUp = true; .)
+  ident
+  (. if (t.val == "downto") {
+       goingUp = false;
+     } else if (t.val != "to") {
+       SemErr(t, "Expected 'to' or 'downto'");
+     }
+  .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2823,7 +2941,6 @@ DecreasesList<.List<Expression> decreases, bool allowWildcard, bool allowLambda.
   }
   (. if (allowWildcard && decreases.Count > 1 && decreases.Exists(e => e is WildcardExpr)) {
        SemErr(e.tok, "A 'decreases' clause that contains '*' is not allowed to contain any other expressions");
-
      }
   .)
   .
@@ -2900,8 +3017,10 @@ MatchStmt<out Statement/*!*/ s>
      IToken x; Expression/*!*/ e; NestedMatchCaseStmt/*!*/ c;
      List<NestedMatchCaseStmt/*!*/> cases = new List<NestedMatchCaseStmt/*!*/>();
      bool usesOptionalBraces = false;
+     Attributes attrs = null;
   .)
   "match"                     (. x = t; .)
+  { Attribute<ref attrs> }
   Expression<out e, true, true>
   ( IF(la.kind == _lbrace)  /* always favor brace-enclosed match body to a case-less match */
     "{" (. usesOptionalBraces = true; .)
@@ -2911,7 +3030,7 @@ MatchStmt<out Statement/*!*/ s>
           CaseStmt<out c> (. cases.Add(c); .)
         }
   )
-  (. s = new NestedMatchStmt(x, t, e, cases, usesOptionalBraces); .)
+  (. s = new NestedMatchStmt(x, t, e, cases, usesOptionalBraces, attrs); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2920,8 +3039,10 @@ CaseStmt<out NestedMatchCaseStmt/*!*/ c>
      IToken/*!*/ x;
      ExtendedPattern/*!*/ pat = null;
      var body = new List<Statement/*!*/>();
+     Attributes attrs = null;
   .)
   "case"                      (. x = t; .)
+  { Attribute<ref attrs> }
   ExtendedPattern<out pat>    (. .)
   "=>"
     SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
@@ -2932,7 +3053,7 @@ CaseStmt<out NestedMatchCaseStmt/*!*/ c>
       Stmt<body>
       SYNC  /* see comment about SYNC above */
     }
-  (. c = new NestedMatchCaseStmt(x, pat, body); .)
+  (. c = new NestedMatchCaseStmt(x, pat, body, attrs); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -3624,20 +3745,21 @@ ConstAtomExpression<out Expression e>
   .)
   ( LiteralExpression<out e>
   | "this"                                     (. e = new ThisExpr(t); .)
-  | "fresh"                                    (. x = t; .)
-    "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Fresh, e); .)
   | "allocated"                                (. x = t; .)
     "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Allocated, e); .)
-  | "unchanged"                                (. x = t; FrameExpression fe; var mod = new List<FrameExpression>(); IToken oldAt = null; .)
-    [ "@" LabelName<out oldAt> ]
+  | "fresh"                                    (. x = t; IToken atLabel = null; .)
+    [ "@" LabelName<out atLabel> ]
+    "(" Expression<out e, true, true> ")"      (. e = new FreshExpr(x, e, atLabel?.val); .)
+  | "unchanged"                                (. x = t; FrameExpression fe; var mod = new List<FrameExpression>(); IToken atLabel = null; .)
+    [ "@" LabelName<out atLabel> ]
     "("
       FrameExpression<out fe, false, false>         (. mod.Add(fe); .)
       { "," FrameExpression<out fe, false, false>   (. mod.Add(fe); .)
       }
-    ")"                                        (. e = new UnchangedExpr(x, mod, oldAt?.val); .)
-  | "old"                                      (. x = t; IToken oldAt = null; .)
-    [ "@" LabelName<out oldAt> ]
-    "(" Expression<out e, true, true> ")"      (. e = new OldExpr(x, e, oldAt?.val); .)
+    ")"                                        (. e = new UnchangedExpr(x, mod, atLabel?.val); .)
+  | "old"                                      (. x = t; IToken atLabel = null; .)
+    [ "@" LabelName<out atLabel> ]
+    "(" Expression<out e, true, true> ")"      (. e = new OldExpr(x, e, atLabel?.val); .)
   | "|"                                        (. x = t; .)
       Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
     "|"
@@ -3714,17 +3836,39 @@ LambdaSpec<.ref List<FrameExpression> reads, ref Expression req.>
 /*------------------------------------------------------------------------*/
 ParensExpression<out Expression e>
 = (. IToken x;
-     var args = new List<Expression>();
+     var args = new List<ActualBinding>();
   .)
   "("                                        (. x = t; .)
-  [ Expressions<args> ]
+  [ TupleArgs<args> ]
   ")"
-  (. if (args.Count == 1) {
-       e = new ParensExpression(x, args[0]);
+  (. if (args.Count == 1 && !args[0].IsGhost) {
+       if (args[0].FormalParameterName != null) {
+         SemErr(args[0].FormalParameterName, "binding not allowed in parenthesized expression");
+       }
+       e = new ParensExpression(x, args[0].Actual);
      } else {
+       // Compute the actual position of ghost arguments
+       var ghostness = new bool[args.Count];
+       for (var i = 0; i < args.Count; i++) {
+         ghostness[i] = false;
+       }
+       for (var i = 0; i < args.Count; i++) {
+         var arg = args[i];
+         if (arg.IsGhost) {
+           if (arg.FormalParameterName == null) {
+             ghostness[i] = true;
+           } else {
+             var success = int.TryParse(arg.FormalParameterName.val, out var index);
+             if (success && 0 <= index && index < args.Count) {
+               ghostness[index] = true;
+             }
+           }
+         }
+       }
+       var argumentGhostness = ghostness.ToList();
        // make sure the corresponding tuple type exists
-       var tmp = theBuiltIns.TupleType(x, args.Count, true);
-       e = new DatatypeValue(x, BuiltIns.TupleTypeName(args.Count), BuiltIns.TupleTypeCtorNamePrefix + args.Count, args);
+       var tmp = theBuiltIns.TupleType(x, args.Count, true, argumentGhostness);
+       e = new DatatypeValue(x, BuiltIns.TupleTypeName(argumentGhostness), BuiltIns.TupleTypeCtorNamePrefix + args.Count, args);
      }
   .)
   .
@@ -4007,11 +4151,13 @@ CaseExpression<out NestedMatchCaseExpr c, bool allowLemma, bool allowLambda, boo
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x;
      ExtendedPattern/*!*/ pat = null;
      Expression/*!*/ body;
+     Attributes attrs = null;
   .)
   "case"                      (. x = t; .)
+  { Attribute<ref attrs> }
   ExtendedPattern<out pat>             (. .)
   "=>"
-  Expression<out body, allowLemma, allowLambda, allowBitwiseOps>    (. c = new NestedMatchCaseExpr(x, pat, body); .)
+  Expression<out body, allowLemma, allowLambda, allowBitwiseOps>    (. c = new NestedMatchCaseExpr(x, pat, body, attrs); .)
 .
 
 /*------------------------------------------------------------------------*/
@@ -4036,7 +4182,6 @@ CasePattern<.out CasePattern<BoundVar> pat.>
         }
       ]
     ")"                                (. // Parse parenthesis without an identifier as a built in tuple type.
-                                          theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
                                           string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
                                           pat = new CasePattern<BoundVar>(id, ctor, arguments);
                                        .)
@@ -4060,7 +4205,7 @@ CasePattern<.out CasePattern<BoundVar> pat.>
  * not have a way to make the patterns take a bounded type parameter.
  */
 CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
-= (. IToken id;  List<CasePattern<LocalVariable>> arguments;
+= (. IToken id; List<CasePattern<LocalVariable>> arguments;
      LocalVariable local;
      pat = null;
   .)
@@ -4080,7 +4225,6 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
         }
       ]
     ")"                                (. // Parse parenthesis without an identifier as a built in tuple type.
-                                          theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
                                           string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
                                           pat = new CasePattern<LocalVariable>(id, ctor, arguments);
                                        .)
@@ -4104,7 +4248,7 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
 NameSegment<out Expression e>
 = (. IToken id;
      IToken openParen = null; IToken atLabel = null;
-     List<Type> typeArgs = null; List<Expression> args = null;
+     List<Type> typeArgs = null; List<ActualBinding> args = null;
   .)
   Ident<out id>
   ( IF(IsGenericInstantiation(true))
@@ -4144,27 +4288,27 @@ NameSegmentForTypeName<out Expression e, bool inExpressionContext>
  * expression, just like for other function applications.
  * Note: This grammar production mutates the id.val field to append the hash sign.
  */
-HashCall<.IToken id, out IToken openParen, out List<Type> typeArgs, out List<Expression> args.>
-= (. Expression k; args = new List<Expression>(); typeArgs = null; .)
+HashCall<.IToken id, out IToken openParen, out List<Type> typeArgs, out List<ActualBinding> args.>
+= (. Expression k; args = new List<ActualBinding>(); typeArgs = null; .)
   "#"                                      (. id.val = id.val + "#"; .)
   [                                        (. typeArgs = new List<Type>(); .)
     GenericInstantiation<typeArgs>
   ]
-  "[" Expression<out k, true, true> "]"    (. args.Add(k); .)
+  "[" Expression<out k, true, true> "]"    (. args.Add(new ActualBinding(null, k)); .)
   "("                                      (. openParen = t; .)
-    [ Expressions<args> ]
+    [ ActualBindings<args> ]
   ")"
   .
 
 /*------------------------------------------------------------------------*/
-AtCall<.out IToken atLabel, out IToken openParen, out List<Expression> args.>
+AtCall<.out IToken atLabel, out IToken openParen, out List<ActualBinding> args.>
 = (. atLabel = null;
      openParen = null;
-     args = new List<Expression>();
+     args = new List<ActualBinding>();
   .)
   "@" LabelName<out atLabel>
   "("                                      (. openParen = t; .)
-    [ Expressions<args> ]
+    [ ActualBindings<args> ]
   ")"
   .
 
@@ -4190,7 +4334,8 @@ Suffix<ref Expression e>
                                                     e = new ExprDotName(id, e, id.val, null);
                                                     id = x;  // move to the next Suffix
                                                   }
-                                                  IToken openParen = null;  List<Type> typeArgs = null;  List<Expression> args = null;
+                                                  IToken openParen = null;  List<Type> typeArgs = null;
+                                                  List<ActualBinding> args = null;
                                                   IToken atLabel = null;
                                                .)
 
@@ -4275,10 +4420,28 @@ Suffix<ref Expression e>
          }
       .)
     "]"
-  | "("                                    (. IToken openParen = t; var args = new List<Expression>(); .)
-    [ Expressions<args> ]
+  | "("                                    (. IToken openParen = t; var args = new List<ActualBinding>(); .)
+    [ ActualBindings<args> ]
     ")"                                    (. e = new ApplySuffix(openParen, null, e, args); .)
   )
+  .
+
+/*------------------------------------------------------------------------*/
+ActualBindings<.List<ActualBinding> bindings.>
+= (. ActualBinding binding; .)
+  ActualBinding<out binding>                      (. bindings.Add(binding); .)
+  { "," ActualBinding<out binding>                (. bindings.Add(binding); .)
+  }
+  .
+
+ActualBinding<out ActualBinding binding, bool isGhost = false>
+= (. IToken id = null; Expression e; .)
+  [ IF(IsBinding())
+    NoUSIdentOrDigits<out id>
+    ":="
+  ]
+  Expression<out e, true, true>
+  (. binding = new ActualBinding(id, e, isGhost); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -4358,6 +4521,22 @@ Expressions<.List<Expression> args.>
 = (. Expression e; .)
   Expression<out e, true, true>                      (. args.Add(e); .)
   { "," Expression<out e, true, true>                (. args.Add(e); .)
+  }
+  .
+
+/*------------------------------------------------------------------------*/
+TupleArgs<.List<ActualBinding> args.>
+= (. ActualBinding binding; bool isGhost = false; .)
+  // The IF is to distinguish between `(ghost var x := 5; x + x)` and (ghost x), both of which begin with `( ghost`.
+  [ IF(la.kind == _ghost && !IsVar())
+    "ghost"                             (. isGhost = true; .)
+  ]
+  ActualBinding<out binding, isGhost>   (. args.Add(binding); .)
+  { ","                                 (. isGhost = false; .)
+    [ IF(la.kind == _ghost && !IsVar())
+      "ghost"                           (. isGhost = true; .)
+    ]
+    ActualBinding<out binding, isGhost> (. args.Add(binding); .)
   }
   .
 

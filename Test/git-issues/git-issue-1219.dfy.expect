@@ -1,0 +1,64 @@
+// git-issue-1219.dfy
+
+
+module Issue1219 {
+  datatype CheckRussell = ISet(s: iset<CheckRussell>)
+
+  lemma russell_paradox()
+    ensures false
+  {
+    var t := ISet(iset t: CheckRussell | t !in t.s);
+    assert t in t.s;
+    assert t !in t.s;
+  }
+}
+
+module RegressionSynonymDependencies {
+  type DD = D
+
+  type F = DD -> bool
+
+  datatype D = Ctor(f: F)
+
+  lemma False()
+    ensures false
+  {
+    var f := (d: D) => !d.f(d);
+    var dd := Ctor(f);
+    assert f(dd);
+    assert !f(dd);
+  }
+}
+
+module GeneralFunction0 {
+  type DD = D
+
+  datatype D = Ctor(f: DD ~> bool)
+
+  lemma False()
+    ensures false
+  {
+    var f := (d: D) => !d.f(d);
+    var dd := Ctor(f);
+    assert f(dd);
+    assert !f(dd);
+  }
+}
+
+module GeneralFunction1 {
+  datatype D = Ctor(f: D ~> bool)
+
+  lemma False()
+    ensures false
+  {
+    var f := (d: D) => !d.f(d);
+    var dd := Ctor(f);
+    assert f(dd);
+    assert !f(dd);
+  }
+}
+git-issue-1219.dfy(5,39): Error: using the type being defined ('CheckRussell') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+git-issue-1219.dfy(21,11): Error: using the type being defined ('DD') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+git-issue-1219.dfy(36,23): Error: using the type being defined ('DD') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+git-issue-1219.dfy(49,23): Error: using the type being defined ('D') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+4 resolution/type errors detected in git-issue-1219.dfy

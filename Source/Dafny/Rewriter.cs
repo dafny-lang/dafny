@@ -216,7 +216,7 @@ namespace Microsoft.Dafny
             for (int i = 0; i < s0.Method.Ins.Count; i++) {
               argsSubstMap.Add(s0.Method.Ins[i], s0.Args[i]);
             }
-            var substituter = new Translator.AlphaConverting_Substituter(s0.Receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
+            var substituter = new AlphaConverting_Substituter(s0.Receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
             // Strengthen the range of the "forall" statement with the precondition of the call, suitably substituted with the actual parameters.
             if (Attributes.Contains(s.Attributes, "_autorequires")) {
               var range = s.Range;
@@ -260,7 +260,7 @@ namespace Microsoft.Dafny
           Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
           var substMap = new Dictionary<IVariable, Expression>();
           substMap.Add(j, e);
-          Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap);
+          Substituter sub = new Substituter(null, substMap, typeMap);
           var v = new ForallStmtTranslationValues(sub.Substitute(Range), sub.Substitute(FInverse));
           return v;
         }
@@ -395,7 +395,7 @@ namespace Microsoft.Dafny
         Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
         Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
         substMap.Add(v, e);
-        Translator.Substituter sub = new Translator.Substituter(null, substMap, typeMap);
+        Substituter sub = new Substituter(null, substMap, typeMap);
         return sub.Substitute(expr);
       }
     }
@@ -511,7 +511,7 @@ namespace Microsoft.Dafny
           valid.Reads.Add(new FrameExpression(tok, r1, null));
           // ensures Valid() ==> this in Repr
           var post = new BinaryExpr(tok, BinaryExpr.Opcode.Imp,
-            new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>()),
+            new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<ActualBinding>()),
             new BinaryExpr(tok, BinaryExpr.Opcode.In,
               new ThisExpr(tok),
                new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr")));
@@ -525,7 +525,7 @@ namespace Microsoft.Dafny
         } else if (member is Function && !member.IsStatic) {
           var f = (Function)member;
           // requires Valid()
-          var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>());
+          var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<ActualBinding>());
           f.Req.Insert(0, new AttributedExpression(valid));
           var format = "requires {0}";
           var repr = new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr");
@@ -538,10 +538,10 @@ namespace Microsoft.Dafny
         } else if (member is Constructor) {
           var ctor = (Constructor)member;
           // ensures Valid();
-          var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<Expression>());
+          var valid = new FunctionCallExpr(tok, "Valid", new ImplicitThisExpr(tok), tok, new List<ActualBinding>());
           ctor.Ens.Insert(0, new AttributedExpression(valid));
           // ensures fresh(Repr);
-          var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh,
+          var freshness = new FreshExpr(tok,
             new MemberSelectExpr(tok, new ImplicitThisExpr(tok), "Repr"));
           ctor.Ens.Insert(1, new AttributedExpression(freshness));
           var m0 = new ThisExpr(tok);
@@ -724,7 +724,7 @@ namespace Microsoft.Dafny
             var e1 = new BinaryExpr(tok, BinaryExpr.Opcode.Sub, Repr, e0);
             e1.ResolvedOp = BinaryExpr.ResolvedOpcode.SetDifference;
             e1.Type = Repr.Type;
-            var freshness = new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Fresh, e1);
+            var freshness = new FreshExpr(tok, e1);
             freshness.Type = Type.Bool;
             m.Ens.Insert(1, new AttributedExpression(freshness));
             AddHoverText(m.tok, format + "\nensures {0} && {2}", valid, Repr, freshness);
@@ -845,9 +845,7 @@ namespace Microsoft.Dafny
     /// </summary>
     static bool MentionsOldState(Expression expr) {
       Contract.Requires(expr != null);
-      if (expr is OldExpr || expr is UnchangedExpr) {
-        return true;
-      } else if (expr is UnaryOpExpr && ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh) {
+      if (expr is OldExpr || expr is UnchangedExpr || expr is FreshExpr) {
         return true;
       }
       foreach (var ee in expr.SubExpressions) {
@@ -1129,7 +1127,7 @@ namespace Microsoft.Dafny
         substMap.Add(formals[i], values[i]);
       }
 
-      Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap);
+      Substituter sub = new Substituter(f_this, substMap, typeMap);
       return sub.Substitute(e);
     }
 
@@ -1205,7 +1203,7 @@ namespace Microsoft.Dafny
         }
 
         foreach (var req in f.Req) {
-          Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap);
+          Substituter sub = new Substituter(f_this, substMap, typeMap);
           translated_f_reqs.Add(sub.Substitute(req.E));
         }
       }
@@ -1498,9 +1496,8 @@ namespace Microsoft.Dafny
 
     internal override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
-        if (d is ClassDecl) {
-          var c = (ClassDecl)d;
-          foreach (MemberDecl member in c.Members)  {
+        if (d is TopLevelDeclWithMembers tld) {
+          foreach (MemberDecl member in tld.Members)  {
             if (member is Function || member is Method) {
               // Check for the timeLimitMultiplier attribute
               if (Attributes.Contains(member.Attributes, "timeLimitMultiplier")) {
@@ -1511,7 +1508,7 @@ namespace Microsoft.Dafny
                       var arg = attr.Args[0] as LiteralExpr;
                       System.Numerics.BigInteger value = (System.Numerics.BigInteger)arg.Value;
                       if (value.Sign > 0) {
-                        int current_limit = 0;
+                        uint current_limit = 0;
                         string name = "";
                         if (DafnyOptions.O.ResourceLimit > 0) {
                           // Interpret this as multiplying the resource limit
@@ -1594,7 +1591,7 @@ namespace Microsoft.Dafny
         }
         return new NameSegment(new AutoGeneratedToken(e.tok), bv.Name, null);
       } else {
-        return new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), CloneExpr(e.Lhs), e.Args.ConvertAll(CloneExpr));
+        return new ApplySuffix(Tok(e.tok), e.AtTok == null ? null : Tok(e.AtTok), CloneExpr(e.Lhs), e.Bindings.ArgumentBindings.ConvertAll(CloneActualBinding));
       }
     }
 

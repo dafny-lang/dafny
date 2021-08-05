@@ -9,7 +9,6 @@ import difflib
 import os
 import sys
 
-
 def main(args):
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description=__doc__
@@ -46,7 +45,6 @@ def main(args):
                                     parsedArgs.strip_trailing_cr,
                                     parsedArgs.ignore_all_space
                                    )
-
     result = difflib.unified_diff(fromFile,
                                   toFile,
                                   fromFileName,

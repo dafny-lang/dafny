@@ -1,0 +1,26 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+Test0: ()
+Test1: (22)
+Test2: (33, 55)
+Test3: ((), (88))
+
+Dafny program verifier did not attempt verification
+Test0: ()
+Test1: (22)
+Test2: (33, 55)
+Test3: ((), (88))
+
+Dafny program verifier did not attempt verification
+Test0: ()
+Test1: (22)
+Test2: (33, 55)
+Test3: ((), (88))
+
+Dafny program verifier did not attempt verification
+Test0: ()
+Test1: (22)
+Test2: (33, 55)
+Test3: ((), (88))

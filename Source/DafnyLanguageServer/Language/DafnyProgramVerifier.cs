@@ -18,12 +18,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   /// this verifier serializes all invocations.
   /// </remarks>
   public class DafnyProgramVerifier : IProgramVerifier {
-    private static readonly object _initializationSyncObject = new object();
-    private static readonly MessageSource VerifierMessageSource = MessageSource.Other;
+    private static readonly object _initializationSyncObject = new();
     private static bool _initialized;
 
     private readonly ILogger _logger;
-    private readonly SemaphoreSlim _mutex = new SemaphoreSlim(1);
+    private readonly SemaphoreSlim _mutex = new(1);
 
     private DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) {
       _logger = logger;
@@ -49,16 +48,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public async Task<string?> VerifyAsync(Dafny.Program program, CancellationToken cancellationToken) {
-      if(program.reporter.AllMessages[ErrorLevel.Error].Count > 0) {
-        // TODO Change logic so that the loader is responsible to ensure that the previous steps were sucessful.
-        _logger.LogDebug("skipping program verification since the parser or resolvers already reported errors");
-        return null;
-      }
+    public async Task<VerificationResult> VerifyAsync(Dafny.Program program, CancellationToken cancellationToken) {
       await _mutex.WaitAsync(cancellationToken);
       try {
         // The printer is responsible for two things: It logs boogie errors and captures the counter example model.
-        var errorReporter = program.reporter;
+        var errorReporter = (DiagnosticErrorReporter)program.reporter;
         var printer = new ModelCapturingOutputPrinter(_logger, errorReporter);
         ExecutionEngine.printer = printer;
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
@@ -66,7 +60,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           cancellationToken.ThrowIfCancellationRequested();
           VerifyWithBoogie(boogieProgram, cancellationToken);
         }
-        return printer.SerializedCounterExamples;
+        return new VerificationResult(printer.SerializedCounterExamples);
       } finally {
         _mutex.Release();
       }
@@ -92,18 +86,18 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private void CancelVerification(string requestId) {
-      _logger.LogDebug("requesting verification cancellation of {}", requestId);
+      _logger.LogDebug("requesting verification cancellation of {RequestId}", requestId);
       ExecutionEngine.CancelRequest(requestId);
     }
 
     private class ModelCapturingOutputPrinter : OutputPrinter {
       private readonly ILogger _logger;
-      private readonly ErrorReporter _errorReporter;
+      private readonly DiagnosticErrorReporter _errorReporter;
       private StringBuilder? _serializedCounterExamples;
 
       public string? SerializedCounterExamples => _serializedCounterExamples?.ToString();
 
-      public ModelCapturingOutputPrinter(ILogger logger, ErrorReporter errorReporter) {
+      public ModelCapturingOutputPrinter(ILogger logger, DiagnosticErrorReporter errorReporter) {
         _logger = logger;
         _errorReporter = errorReporter;
       }
@@ -129,7 +123,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
       public void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace) {
         CaptureCounterExamples(errorInfo);
-        CaptureViolatedPostconditions(errorInfo);
+        _errorReporter.ReportBoogieError(errorInfo);
       }
 
       private void CaptureCounterExamples(ErrorInformation errorInfo) {
@@ -139,18 +133,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           _serializedCounterExamples ??= new StringBuilder();
           _serializedCounterExamples.Append(modelString.ToString());
           modelString.GetStringBuilder().Clear();
-        }
-      }
-
-      private void CaptureViolatedPostconditions(ErrorInformation errorInfo) {
-        _errorReporter.Error(VerifierMessageSource, errorInfo.Tok, errorInfo.Msg);
-        foreach(var auxiliaryErrorInfo in errorInfo.Aux) {
-          // The execution trace is an additional auxiliary which identifies itself with
-          // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
-          // the execution trace message appears to not have any interesting information.
-          if(auxiliaryErrorInfo.Tok.line > 0) {
-            _errorReporter.Info(VerifierMessageSource, auxiliaryErrorInfo.Tok, auxiliaryErrorInfo.Msg);
-          }
         }
       }
 

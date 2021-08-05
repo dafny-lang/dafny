@@ -1,13 +1,4 @@
 git-issue-283c.dfy(19,6): Error: missing case in match expression: Success(C2(c:seq<char>)) (not all possibilities for constant 'c' in context have been covered)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon8_Then
-    (0,0): anon9_Else
-    (0,0): anon10_Then
 git-issue-283c.dfy(27,6): Error: missing case in match expression: Failure(c:seq<char>) (not all possibilities for constant 'c' in context have been covered)
-Execution trace:
-    (0,0): anon0
-    (0,0): anon5_Else
-    (0,0): anon6_Then
 
 Dafny program verifier finished with 0 verified, 2 errors

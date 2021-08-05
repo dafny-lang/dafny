@@ -1,5 +1,3 @@
 SeqSlice.dfy(70,22): Error: index out of range
-Execution trace:
-    (0,0): anon0
 
 Dafny program verifier finished with 6 verified, 1 error

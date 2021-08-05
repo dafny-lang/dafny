@@ -3,6 +3,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
@@ -14,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// LSP Synchronization handler for document based events, such as change, open, close and save.
   /// The documents are managed using an implementaiton of <see cref="IDocumentDatabase"/>.
   /// </summary>
-  public class DafnyTextDocumentHandler : TextDocumentSyncHandler {
+  public class DafnyTextDocumentHandler : TextDocumentSyncHandlerBase {
     private const string LanguageId = "dafny";
 
     private readonly ILogger _logger;
@@ -23,15 +24,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public DafnyTextDocumentHandler(
         ILogger<DafnyTextDocumentHandler> logger, IDocumentDatabase documents, IDiagnosticPublisher diagnosticPublisher
-    ) : base(TextDocumentSyncKind.Incremental, CreateRegistrationOptions()) {
+    ) {
       _logger = logger;
       _documents = documents;
       _diagnosticPublisher = diagnosticPublisher;
     }
 
-    private static TextDocumentSaveRegistrationOptions CreateRegistrationOptions() {
-      return new TextDocumentSaveRegistrationOptions {
-        DocumentSelector = DocumentSelector.ForLanguage(LanguageId)
+    protected override TextDocumentSyncRegistrationOptions CreateRegistrationOptions(SynchronizationCapability capability, ClientCapabilities clientCapabilities) {
+      return new TextDocumentSyncRegistrationOptions {
+        DocumentSelector = DocumentSelector.ForLanguage(LanguageId),
+        Change = TextDocumentSyncKind.Incremental
       };
     }
 
@@ -40,14 +42,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
-      _logger.LogTrace("received open notification {}", notification.TextDocument.Uri);
+      _logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
       var document = await _documents.LoadDocumentAsync(notification.TextDocument, cancellationToken);
-      _diagnosticPublisher.PublishDiagnostics(document, cancellationToken);
+      _diagnosticPublisher.PublishDiagnostics(document);
       return Unit.Value;
     }
 
     public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
-      _logger.LogTrace("received close notification {}", notification.TextDocument.Uri);
+      _logger.LogTrace("received close notification {DocumentUri}", notification.TextDocument.Uri);
       var document = _documents.CloseDocument(notification.TextDocument);
       if(document != null) {
         _diagnosticPublisher.HideDiagnostics(document);
@@ -56,19 +58,19 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override async Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
-      _logger.LogTrace("received change notification {}", notification.TextDocument.Uri);
+      _logger.LogTrace("received change notification {DocumentUri}", notification.TextDocument.Uri);
       var document = await _documents.UpdateDocumentAsync(notification, cancellationToken);
       if(document != null) {
-        _diagnosticPublisher.PublishDiagnostics(document, cancellationToken);
+        _diagnosticPublisher.PublishDiagnostics(document);
       }
       return Unit.Value;
     }
 
     public override async Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
-      _logger.LogTrace("received save notification {}", notification.TextDocument.Uri);
+      _logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
       var document = await _documents.SaveDocumentAsync(notification.TextDocument, cancellationToken);
       if(document != null) {
-        _diagnosticPublisher.PublishDiagnostics(document, cancellationToken);
+        _diagnosticPublisher.PublishDiagnostics(document);
       }
       return Unit.Value;
     }

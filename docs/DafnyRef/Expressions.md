@@ -523,7 +523,7 @@ TODO: what about multi-dimensional arrays
 ## 20.17. Object Allocation
 ````grammar
 ObjectAllocation_ = "new" Type [ "." TypeNameOrCtorSuffix ]
-                               [ "(" [ Expressions ] ")" ]
+                               [ "(" [ Bindings ] ")" ]
 ````
 
 This allocated a new object of a class type as explained
@@ -567,14 +567,21 @@ an instance method or function.
 ## 20.21. Fresh Expressions {#sec-fresh-expression}
 ````grammar
 FreshExpression_ =
-  "fresh" "(" Expression(allowLemma: true, allowLambda: true) ")"
+  "fresh" [ "@" LabelName ]
+  "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
 `fresh(e)` returns a boolean value that is true if
-the objects referenced in expression `e` were all
-freshly allocated in the current method invocation.
+the objects denoted by expression `e` were all
+freshly allocated since the time of entry to the enclosing method.
+
+If the `LabelName` is present, it must denote a label that in the
+enclosing method's control flow dominates the expression. In this
+case, `fresh@L(e)` returns `true` if the objects denoted by `e` were all
+freshly allocated since control flow reached label `L`.
+
 The argument of `fresh` must be either an object reference
-or a collection of object references.
+or a set or sequence of object references.
 
 ## 20.22. Allocated Expressions
 ````grammar
@@ -594,7 +601,29 @@ UnchangedExpression_ =
   ")"
 ````
 
-TO BE WRITTEN - unchanged expressions
+The `unchanged` expression returns `true` if and only if every reference
+denoted by its arguments has the same value for all its fields in the
+old and current state. For example, if `c` is an object with two
+fields, `x` and `y`, then `unchanged(c)` is equivalent to
+```dafny
+c.x == old(c.x) && c.y == old(c.y)
+```
+
+Each argument to `unchanged` can be a reference, a set of references, or
+a sequence of references. If it is a reference, it can be followed by
+`` `f``, where `f` is a field of the reference. This form expresses that `f`,
+not necessarily all fields, has the same value in the old and current
+state.
+
+The optional `@`-label says to use it as the old-state instead of using
+the `old` state. That is, using the example `c` from above, the expression
+`unchanged@Lbl(c)` is equivalent to
+```dafny
+c.x == old@Lbl(c.x) && c.y == old@Lbl(c.y)
+```
+
+Each reference denoted by the arguments of `unchanged` must be non-null and
+must be allocated in the old-state of the expression.
 
 ## 20.24. Old and Old@ Expressions {#sec-old-expression}
 
@@ -642,8 +671,6 @@ The next example demonstrates the interaction between `old` and array elements.
 ```dafny
 {% include_relative examples/Example-Old3.dfy %}
 ```
-
-TO BE WRITTEN -- Inside an old, disallow unchanged, fresh, two-state functions, two-state lemmas, and nested old
 
 ## 20.25. Cardinality Expressions {#sec-cardinality-expression}
 ````grammar
@@ -1205,7 +1232,7 @@ followed by a ``HashCall``.
 ````grammar
 HashCall = "#" [ GenericInstantiation ]
   "[" Expression(allowLemma: true, allowLambda: true) "]"
-  "(" [ Expressions ] ")"
+  "(" [ Bindings ] ")"
 ````
 A ``HashCall`` is used to call the prefix for a copredicate or colemma.
 In the non-generic case, just insert `"#[k]"` before the call argument
@@ -1436,7 +1463,59 @@ Expressions =
 The ``Expressions`` non-terminal represents a list of
 one or more expressions separated by commas.
 
-## 20.44. Compile-Time Constants {#sec-compile-time-constants}
+## 20.44. Parameter Bindings
+
+Method calls, object-allocation calls (`new`), function calls, and
+datatype constructors can be called with both positional arguments
+and named arguments.
+````grammar
+ActualBindings =
+    ActualBinding
+    { "," ActualBinding }
+
+ActualBinding =
+    [ NoUSIdentOrDigits ":=" ]
+    Expression(allowLemma: true, allowLambda: true)
+````
+
+Positional arguments must be given before any named arguments.
+Positional arguments are passed to the formals in the corresponding
+position. Named arguments are passed to the formal of the given
+name. Named arguments can be given out of order from how the corresponding
+formal parameters are declared. A formal declared with the modifier
+`nameonly` is not allowed to be passed positionally.
+The list of bindings for a call must
+provide exactly one value for every required parameter and at most one
+value for each optional parameter, and must never name
+non-existent formals. Any optional parameter that is not given a value
+takes on the default value declared in the callee for that optional parameter.
+
+## 20.45. Formal Parameters and Default-Value Expressions
+
+The formal parameters of a method, constructor in a class, iterator,
+function, or datatype constructor can be declared with an expression
+denoting a _default value_. This makes the parameter _optional_,
+as opposed to _required_. All required parameters must be declared
+before any optional parameters. All nameless parameters in a datatype
+constructor must be declared before any `nameonly` parameters.
+
+The default-value expression for a parameter is allowed to mention the
+other parameters, including `this` (for instance methods and instance
+functions), but not the implicit `_k` parameter in least and greatest
+predicates and lemmas. The default value of a parameter may mention
+both preceding and subsequent parameters, but there may not be any
+dependent cycle between the parameters and their default-value
+expressions.
+
+The well-formedness of default-value expressions is checked independent
+of the precondition of the enclosing declaration. For a function, the
+parameter default-value expressions may only read what the function's
+`reads` clause allows. For a datatype constructor, parameter default-value
+expressions may not read anything. A default-value expression may not be
+involved in any recursive or mutually recursive calls with the enclosing
+declaration.
+
+## 20.46. Compile-Time Constants {#sec-compile-time-constants}
 
 In certain situations in Dafny it is helpful to know what the value of a
 constant is during program analysis, before verification or execution takes

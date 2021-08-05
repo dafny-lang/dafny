@@ -1,0 +1,29 @@
+{
+  "Serilog": {
+    "Using": [ "Serilog.Sinks.Debug", "Serilog.Sinks.File" ],
+    "MinimumLevel": {
+      "Default": "Warning",
+      "Override": {
+        "Microsoft.Dafny": "Information"
+      }
+    },
+    "WriteTo": [
+      {
+        "Name": "Debug",
+        "Args": {
+          "outputTemplate": "[{Timestamp:HH:mm:ss} {Level:u3} {SourceContext:l}] {Message:lj}{NewLine}{Exception}"
+        }
+      },
+      {
+        "Name": "File",
+        "Args": {
+          "path": "%DAFNYLS_APP_DIR%/DafnyLanguageServer.log",
+          "rollingInterval": "Day",
+          "retainedFileCountLimit": 1,
+          "outputTemplate": "[{Timestamp:HH:mm:ss} {Level:u3} {SourceContext:l}] {Message:lj}{NewLine}{Exception}"
+        }
+      }
+    ],
+    "Enrich": [ "FromLogContext", "WithMachineName" ]
+  }
+}

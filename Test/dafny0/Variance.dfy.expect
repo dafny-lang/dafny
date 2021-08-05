@@ -10,7 +10,13 @@ module VarianceChecks {
 
   class MyClass<!Inv> { }
 
-  datatype CheckIt<+A, *B, !C, D, -E> = Cons(A, MyData<int, int, int, int, int>) | Fn(int ~> A) | Nf(A ~> int) | Double((A ~> int) ~> int) | ToSet(real -> set<A>) | FromSet(set<A> ~> real) | Classy(MyClass<A>) | MakeA(MyData<A, int, int, int, int>) | MakeB(MyData<int, A, int, int, int>) | MakeC(MyData<int, int, A, int, int>) | MakeD(MyData<int, int, int, A, int>) | MakeE(MyData<int, int, int, int, A>) | CreateA(MyData<B, int, int, int, int>) | CreateB(MyData<int, B, int, int, int>) | CreateC(MyData<int, int, B, int, int>) | CreateD(MyData<int, int, int, B, int>) | CreateE(MyData<int, int, int, int, B>) | DoA(MyData<C, int, int, int, int>) | DoB(MyData<int, C, int, int, int>) | DoC(MyData<int, int, C, int, int>) | DoD(MyData<int, int, int, C, int>) | DoE(MyData<int, int, int, int, C>) | FabricateA(MyData<D, int, int, int, int>) | FabricateB(MyData<int, D, int, int, int>) | FabricateC(MyData<int, int, D, int, int>) | FabricateD(MyData<int, int, int, D, int>) | FabricateE(MyData<int, int, int, int, D>) | BorrowA(MyData<E, int, int, int, int>) | BorrowB(MyData<int, E, int, int, int>) | BorrowC(MyData<int, int, E, int, int>) | BorrowD(MyData<int, int, int, E, int>) | BorrowE(MyData<int, int, int, int, E>)
+  datatype CheckIt<+A, *B, !C, D, -E> = Cons(A, MyData<int, int, int, int, int>) | Fn(int ~> A) | Nf(A ~> int) | Double((A ~> int) ~> int) | ToSet(real -> set<A>) | FromSet(set<A> ~> real) | Classy(MyClass<A>) | MakeA(MyData<A, int, int, int, int>) | MakeB(MyData<int, A, int, int, int>) | MakeC(MyData<int, int, A, int, int>) | MakeD(MyData<int, int, int, A, int>) | MakeE(MyData<int, int, int, int, A>) | CreateA(MyData<B, int, int, int, int>) | CreateB(MyData<int, B, int, int, int>) | CreateC(MyData<int, int, B, int, int>) | CreateD(MyData<int, int, int, B, int>) | CreateE(MyData<int, int, int, int, B>) | DoA(MyData<C, int, int, int, int>) | DoB(MyData<int, C, int, int, int>) | DoC(MyData<int, int, C, int, int>) | DoD(MyData<int, int, int, C, int>) | DoE(MyData<int, int, int, int, C>) | FabricateA(MyData<D, int, int, int, int>) | FabricateB(MyData<int, D, int, int, int>) | FabricateC(MyData<int, int, D, int, int>) | FabricateD(MyData<int, int, int, D, int>) | FabricateE(MyData<int, int, int, int, D>) | BorrowA(MyData<E, int, int, int, int>) | BorrowB(MyData<int, E, int, int, int>) | BorrowC(MyData<int, int, E, int, int>) | BorrowD(MyData<int, int, int, E, int>) | BorrowE(MyData<int, int, int, int, E>) | ISetA(iset<A>) | ISetB(iset<B>) | ISetC(iset<C>) | ISetD(iset<D>) | ISetE(iset<E>) | SetA(set<A>) | SetB(set<B>) | SetC(set<C>) | SetD(set<D>) | SetE(set<E>) | IMapAB(imap<A, B>) | IMapAE(imap<B, E>) | IMapBD(imap<B, D>) | IMapDB(imap<D, B>)
+
+  type {:extern} abs<+A, *B, !C, D, -E>
+
+  datatype CheckRec = IMapD(imap<CheckRec, int>) | IMapR(imap<int, CheckRec>) | ISet(iset<CheckRec>) | Set(set<CheckRec>) | CheckA(abs<CheckRec, int, int, int, int>) | CheckB(abs<int, CheckRec, int, int, int>) | CheckC(abs<int, int, CheckRec, int, int>) | CheckD(abs<int, int, int, CheckRec, int>) | CheckE(abs<int, int, int, int, CheckRec>)
+
+  datatype CheckRec2 = ArrowD(CheckRec2 -> int) | ArrowR(int -> CheckRec2)
 
   class VaryingClass<A, B, C, +HotDog, D, -Whale> {
     var f: HotDog -> Whale
@@ -33,6 +39,14 @@ module VarianceChecks {
 
   datatype U2 = MakeU2(U1<U2>)
 
+  datatype R0 = Ctor(R2 ~> bool)
+
+  type R1<X> = X
+
+  datatype R2 = Ctor(R1<R0>)
+}
+
+module Cycles {
   type W0 = W1
 
   datatype W1 = Ctor(W0 --> bool)
@@ -42,12 +56,6 @@ module VarianceChecks {
   type Z1 = Z0
 
   datatype Z2 = Ctor(Z1)
-
-  datatype R0 = Ctor(R2 ~> bool)
-
-  type R1<X> = X
-
-  datatype R2 = Ctor(R1<R0>)
 }
 
 module Depen {
@@ -143,22 +151,34 @@ Variance.dfy(46,21): Error: formal type parameter 'E' is not used according to i
 Variance.dfy(47,25): Error: formal type parameter 'E' is not used according to its variance specification
 Variance.dfy(48,29): Error: formal type parameter 'E' is not used according to its variance specification
 Variance.dfy(49,33): Error: formal type parameter 'E' is not used according to its variance specification
-Variance.dfy(52,28): Error: class declarations only support non-variant type parameters
-Variance.dfy(52,38): Error: class declarations only support non-variant type parameters
-Variance.dfy(60,30): Error: iterator declarations only support non-variant type parameters
-Variance.dfy(60,40): Error: iterator declarations only support non-variant type parameters
-Variance.dfy(64,21): Error: using the type being defined ('Dt') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(68,26): Error: using the type being defined ('U2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(71,21): Error: using the type being defined ('W0') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(73,21): Error: using the type being defined ('Z2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(77,21): Error: using the type being defined ('R2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-Variance.dfy(83,7): Error: recursive constraint dependency involving a subset type: V1 -> V2 -> V0
-Variance.dfy(89,7): Error: recursive constraint dependency involving a subset type: F -> B -> A
-Variance.dfy(97,7): Error: recursive constraint dependency involving a subset type: G -> S -> R -> Q
-Variance.dfy(107,7): Error: recursive constraint dependency involving a subset type: B -> B
-Variance.dfy(107,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): B -> B
-Variance.dfy(111,7): Error: recursive constraint dependency involving a subset type: A -> A
-Variance.dfy(116,7): Error: recursive constraint dependency involving a subset type: C -> f
-Variance.dfy(121,7): Error: recursive constraint dependency involving a subset type: MeAndMyself -> MeAndMyself
-Variance.dfy(126,7): Error: recursive constraint dependency involving a subset type: MeAndMyself' -> MeAndMyself''
-44 resolution/type errors detected in Variance.dfy
+Variance.dfy(51,17): Error: formal type parameter 'A' is not used according to its variance specification (it is used left of an arrow) (perhaps try changing the declaration from '+A' to '*A')
+Variance.dfy(54,17): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '!D')
+Variance.dfy(55,17): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(60,15): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(61,18): Error: formal type parameter 'A' is not used according to its variance specification (it is used left of an arrow) (perhaps try changing the declaration from '+A' to '*A')
+Variance.dfy(62,21): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(64,18): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '!D')
+Variance.dfy(69,17): Error: using the type being defined ('CheckRec') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(71,16): Error: using the type being defined ('CheckRec') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(74,22): Error: using the type being defined ('CheckRec') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(75,27): Error: using the type being defined ('CheckRec') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(77,37): Error: using the type being defined ('CheckRec') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(80,13): Error: using the type being defined ('CheckRec2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(83,28): Error: class declarations only support non-variant type parameters
+Variance.dfy(83,38): Error: class declarations only support non-variant type parameters
+Variance.dfy(91,30): Error: iterator declarations only support non-variant type parameters
+Variance.dfy(91,40): Error: iterator declarations only support non-variant type parameters
+Variance.dfy(95,21): Error: using the type being defined ('Dt') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(99,26): Error: using the type being defined ('U2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(101,21): Error: using the type being defined ('R2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(108,21): Error: using the type being defined ('W0') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(110,21): Error: using the type being defined ('Z2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(116,7): Error: recursive constraint dependency involving a subset type: V0 -> V2 -> V1 -> V0
+Variance.dfy(122,7): Error: recursive constraint dependency involving a subset type: A -> B -> F -> A
+Variance.dfy(130,7): Error: recursive constraint dependency involving a subset type: R -> S -> G -> Q -> R
+Variance.dfy(139,7): Error: recursive constraint dependency involving a subset type: B -> B
+Variance.dfy(143,7): Error: recursive constraint dependency involving a subset type: A -> A
+Variance.dfy(148,7): Error: recursive constraint dependency involving a subset type: C -> f -> C
+Variance.dfy(153,7): Error: recursive constraint dependency involving a subset type: MeAndMyself -> MeAndMyself
+Variance.dfy(158,7): Error: recursive constraint dependency involving a subset type: MeAndMyself' -> MeAndMyself'' -> MeAndMyself'
+56 resolution/type errors detected in Variance.dfy
