@@ -1953,8 +1953,31 @@ PredicateSignature_(allowGhostKeyword) =
                                           allowNewKeyword)
 
 FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
-               "}"
+               "}" [ "by" "method" BlockStmt ]
 ````
+
+The `by method` clause is allowed only for the `function` or `predicate`
+declarations (without `method`, `twostate`, `least`, and `greatest`, but
+possibly with `static`). A function-by-method gives a way to implement a
+(deterministic, side-effect free) function by a method (whose body may be
+nondeterministic and may allocate objects that it modifies). The method
+inherits the in-parameters, attributes, and `requires` and `decreases`
+clauses of the function. The method also gets one out-parameter, corresponding
+to the function's result value (and the name of it, if present). Finally,
+the method gets an empty `modifies` clause and a postcondition
+`ensures r == F(args)`, where `r` is the name of the out-parameter and
+`F(args)` is the function with its arguments. In other words, the method
+body must compute and return exactly what the function says, and must
+do so without modifying any previously existing heap state.
+
+The function body of a function-by-method is allowed to be ghost, but the
+method body must be compilable. In non-ghost contexts, the compiler turns a
+call of the function-by-method into a call that leads to the method body.
+
+Note, the method body of a function-by-method may contain `print` statements.
+This means that the run-time evaluation of an expression may have print effects.
+Dafny does not track print effects, but this is the only situation that an
+expression can have a print effect.
 
 ### 13.4.1. Functions
 
