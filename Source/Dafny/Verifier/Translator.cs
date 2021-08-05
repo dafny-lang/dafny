@@ -18645,6 +18645,7 @@ namespace Microsoft.Dafny {
           }
           newFce.TypeApplication_AtEnclosingClass = e.TypeApplication_AtEnclosingClass;  // resolve here
           newFce.TypeApplication_JustFunction = e.TypeApplication_JustFunction;  // resolve here
+          newFce.IsByMethodCall = e.IsByMethodCall;
           return newFce;
         }
         return base.Substitute(expr);

@@ -17041,7 +17041,7 @@ namespace Microsoft.Dafny
     public static string GhostPrefix(bool isGhost) {
       return isGhost ? "ghost " : "";
     }
-    
+
     /// <summary>
     /// Try to make "expr" compilable (in particular, mark LHSs of a let-expression as ghosts if
     /// the corresponding RHS is ghost), and then report errors for every part that would prevent
@@ -17086,6 +17086,7 @@ namespace Microsoft.Dafny
             Contract.Assert(e.Function.ByMethodDecl != null); // we expect .ByMethodDecl to have been filled in by now
             // this call will really go to the method part of the function-by-method, so add that edge to the call graph
             AddCallGraphEdge(codeContext, e.Function.ByMethodDecl, e, false);
+            e.IsByMethodCall = true;
           }
           // function is okay, so check all NON-ghost arguments
           CheckIsCompilable(e.Receiver, codeContext);

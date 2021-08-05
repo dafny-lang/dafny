@@ -370,7 +370,7 @@ namespace Microsoft.Dafny {
     public static string TupleTypeName(List<bool> argumentGhostness) {
       return "_tuple#" + ArgumentGhostnessToString(argumentGhostness);
     }
-    
+
     public static bool IsTupleTypeName(string s) {
       Contract.Requires(s != null);
       return s.StartsWith("_tuple#");
@@ -10548,6 +10548,7 @@ namespace Microsoft.Dafny {
     public List<Expression> Args => Bindings.Arguments;
     public List<Type> TypeApplication_AtEnclosingClass;  // filled in during resolution
     public List<Type> TypeApplication_JustFunction;  // filled in during resolution
+    public bool IsByMethodCall; // filled in during resolution
 
     /// <summary>
     /// Return a mapping from each type parameter of the function and its enclosing class to actual type arguments.

@@ -139,6 +139,7 @@ namespace Microsoft.Dafny
           newFce.CoCallHint = e.CoCallHint;  // and any co-call hint
           newFce.TypeApplication_AtEnclosingClass = newTypeApplicationAtEnclosingClass;
           newFce.TypeApplication_JustFunction = newTypeApplicationJustFunction;
+          newFce.IsByMethodCall = e.IsByMethodCall;
           newExpr = newFce;
         }
 
