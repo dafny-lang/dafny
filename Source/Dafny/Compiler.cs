@@ -2669,12 +2669,17 @@ namespace Microsoft.Dafny {
         EmitBreak(s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator), wr);
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
+        var isTailRecursiveResult = false;
         if (s.hiddenUpdate != null) {
           TrStmt(s.hiddenUpdate, wr);
+          var ss = s.hiddenUpdate.ResolvedStatements;
+          if (ss.Count == 1 && ss[0] is AssignStmt assign && assign.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
+            isTailRecursiveResult = true;
+          }
         }
         if (s is YieldStmt) {
           EmitYield(wr);
-        } else {
+        } else if (!isTailRecursiveResult) {
           EmitReturn(this.enclosingMethod.Outs, wr);
         }
       } else if (stmt is UpdateStmt) {
@@ -2725,8 +2730,7 @@ namespace Microsoft.Dafny {
           if (DafnyOptions.O.ForbidNondeterminism) {
             Error(s.Rhs.Tok, "nondeterministic assignment forbidden by /definiteAssignment:3 option", wr);
           }
-        } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce &&
-                   fce.IsByMethodCall && fce.Function.ByMethodDecl == enclosingMethod && fce.Function.ByMethodDecl.IsTailRecursive) {
+        } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
           TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, null, wr);
         } else {
           var lvalue = CreateLvalue(s.Lhs, wr);
@@ -3125,6 +3129,11 @@ namespace Microsoft.Dafny {
       }
 
       return wrOuter;
+    }
+
+    bool IsTailRecursiveByMethodCall(FunctionCallExpr fce) {
+      Contract.Requires(fce != null);
+      return fce.IsByMethodCall && fce.Function.ByMethodDecl == enclosingMethod && fce.Function.ByMethodDecl.IsTailRecursive;
     }
 
     protected virtual void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
