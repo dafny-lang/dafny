@@ -21,5 +21,6 @@ ByMethod.dfy(126,10): Error: cannot prove termination; try supplying a decreases
 ByMethod.dfy(132,13): Error: cannot prove termination; try supplying a decreases clause
 ByMethod.dfy(148,11): Error: failure to decrease termination measure
 ByMethod.dfy(152,13): Error: cannot prove termination; try supplying a decreases clause
+ByMethod.dfy(175,13): Error: failure to decrease termination measure
 
-Dafny program verifier finished with 12 verified, 15 errors
+Dafny program verifier finished with 13 verified, 16 errors

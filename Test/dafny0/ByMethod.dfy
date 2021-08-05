@@ -129,7 +129,7 @@ module ByMethodRecursion {
     k := 5;
   }
   lemma LemmaK() {
-    var k := K(); // error: failure to prove termination (TODO)
+    var k := K(); // error: failure to prove termination
   }
 
   function L(): (k: int) {
@@ -160,5 +160,19 @@ module ByMethodRecursion {
   }
   method MethodN() {
     ghost var n := N();
+  }
+
+  function Func(x: int): int {
+    5
+  } by method {
+    assert Func(x) == 5;
+    return 5;
+  }
+
+  function Func'(x: int): int {
+    5
+  } by method {
+    var r := Func'(x); // error: failure to prove termination
+    return r;
   }
 }
