@@ -2725,6 +2725,9 @@ namespace Microsoft.Dafny {
           if (DafnyOptions.O.ForbidNondeterminism) {
             Error(s.Rhs.Tok, "nondeterministic assignment forbidden by /definiteAssignment:3 option", wr);
           }
+        } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce &&
+                   fce.IsByMethodCall && fce.Function.ByMethodDecl == enclosingMethod && fce.Function.ByMethodDecl.IsTailRecursive) {
+          TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, null, wr);
         } else {
           var lvalue = CreateLvalue(s.Lhs, wr);
           var wStmts = wr.Fork();
