@@ -3836,52 +3836,7 @@ namespace Microsoft.Dafny {
 
       if (s.Method == enclosingMethod && enclosingMethod.IsTailRecursive) {
         // compile call as tail-recursive
-
-        // assign the actual in-parameters to temporary variables
-        var inTmps = new List<string>();
-        var inTypes = new List<Type/*?*/>();
-        if (receiverReplacement != null) {
-          // TODO:  What to do here?  When does this happen, what does it mean?
-        } else if (!s.Method.IsStatic) {
-          string inTmp = idGenerator.FreshId("_in");
-          inTmps.Add(inTmp);
-          inTypes.Add(null);
-          DeclareLocalVar(inTmp, null, null, s.Receiver, false, wr);
-        }
-        for (int i = 0; i < s.Method.Ins.Count; i++) {
-          Formal p = s.Method.Ins[i];
-          if (!p.IsGhost) {
-            string inTmp = idGenerator.FreshId("_in");
-            inTmps.Add(inTmp);
-            inTypes.Add(s.Args[i].Type);
-            DeclareLocalVar(inTmp, s.Args[i].Type, p.tok, s.Args[i], false, wr);
-          }
-        }
-        // Now, assign to the formals
-        int n = 0;
-        if (!s.Method.IsStatic) {
-          wr.Write("_this = ");
-          ConcreteSyntaxTree wRHS;
-          if (thisContext == null) {
-            wRHS = wr;
-          } else {
-            var instantiatedType = Resolver.SubstType(s.Receiver.Type, thisContext.ParentFormalTypeParametersToActuals);
-            wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(s.Tok, thisContext), s.Tok, wr);
-          }
-          wRHS.Write(inTmps[n]);
-          EndStmt(wr);
-          n++;
-        }
-        foreach (var p in s.Method.Ins) {
-          if (!p.IsGhost) {
-            EmitAssignment(IdName(p), p.Type, inTmps[n], inTypes[n], wr);
-            n++;
-          }
-        }
-        Contract.Assert(n == inTmps.Count);
-        // finally, the jump back to the head of the method
-        EmitJumpToTailCallStart(wr);
-
+        TrTailCallStmt(s.Tok, s.Method, s.Receiver, s.Args, receiverReplacement, wr);
       } else {
         // compile call as a regular call
 
@@ -4061,6 +4016,60 @@ namespace Microsoft.Dafny {
           }
         }
       }
+    }
+
+    void TrTailCallStmt(Bpl.IToken tok, Method method, Expression receiver, List<Expression> args, string receiverReplacement, ConcreteSyntaxTree wr) {
+      Contract.Requires(tok != null);
+      Contract.Requires(method != null);
+      Contract.Requires(receiver != null);
+      Contract.Requires(args != null);
+      Contract.Requires(method.IsTailRecursive);
+      Contract.Requires(wr != null);
+
+      // assign the actual in-parameters to temporary variables
+      var inTmps = new List<string>();
+      var inTypes = new List<Type/*?*/>();
+      if (receiverReplacement != null) {
+        // TODO:  What to do here?  When does this happen, what does it mean?
+      } else if (!method.IsStatic) {
+        string inTmp = idGenerator.FreshId("_in");
+        inTmps.Add(inTmp);
+        inTypes.Add(null);
+        DeclareLocalVar(inTmp, null, null, receiver, false, wr);
+      }
+      for (int i = 0; i < method.Ins.Count; i++) {
+        Formal p = method.Ins[i];
+        if (!p.IsGhost) {
+          string inTmp = idGenerator.FreshId("_in");
+          inTmps.Add(inTmp);
+          inTypes.Add(args[i].Type);
+          DeclareLocalVar(inTmp, args[i].Type, p.tok, args[i], false, wr);
+        }
+      }
+      // Now, assign to the formals
+      int n = 0;
+      if (!method.IsStatic) {
+        wr.Write("_this = ");
+        ConcreteSyntaxTree wRHS;
+        if (thisContext == null) {
+          wRHS = wr;
+        } else {
+          var instantiatedType = Resolver.SubstType(receiver.Type, thisContext.ParentFormalTypeParametersToActuals);
+          wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(tok, thisContext), tok, wr);
+        }
+        wRHS.Write(inTmps[n]);
+        EndStmt(wr);
+        n++;
+      }
+      foreach (var p in method.Ins) {
+        if (!p.IsGhost) {
+          EmitAssignment(IdName(p), p.Type, inTmps[n], inTypes[n], wr);
+          n++;
+        }
+      }
+      Contract.Assert(n == inTmps.Count);
+      // finally, the jump back to the head of the method
+      EmitJumpToTailCallStart(wr);
     }
 
     /// <summary>
