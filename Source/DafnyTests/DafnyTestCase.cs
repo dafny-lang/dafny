@@ -171,8 +171,8 @@ namespace DafnyTests {
     }
 
     public static IEnumerable<string> Expand(object obj) {
-      if (obj is ForEachArgumentList forEach) {
-        return forEach;
+      if (obj is ForEachArgumentList forEachArgumentList) {
+        return forEachArgumentList;
       } else {
         return new[] {(string)obj};
       }
