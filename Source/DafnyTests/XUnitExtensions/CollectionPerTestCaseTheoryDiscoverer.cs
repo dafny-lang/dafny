@@ -25,13 +25,30 @@ namespace XUnitExtensions {
       discoveryOptions.SetValue("xunit.discovery.PreEnumerateTheories", true);
             
       IEnumerable<IXunitTestCase> testCases = theoryDiscoverer.Discover(discoveryOptions, testMethod, factAttribute);
+      
+      // Select the requested fraction of the test cases if using the XUNIT_SHARD[_COUNT} environment variables.
+      // Ideally this would be handled at a higher level so that cases from different test methods could be
+      // balanced as a whole.
       var shardEnvVar = Environment.GetEnvironmentVariable("XUNIT_SHARD");
       var numShardsEnvVar = Environment.GetEnvironmentVariable("XUNIT_SHARD_COUNT");
-      // TODO-RS: More careful error checking
-      if (shardEnvVar != null && numShardsEnvVar != null) {
-        var testCaseList = testCases.ToList();
+      if (shardEnvVar != null || numShardsEnvVar != null) {
+        if (shardEnvVar == null || numShardsEnvVar == null) {
+          throw new ArgumentNullException(
+            "The XUNIT_SHARD and XUNIT_SHARD_COUNT environment variables must both be provided.");
+        }
+
         var shard = Int32.Parse(shardEnvVar);
         var numShards = Int32.Parse(numShardsEnvVar);
+        if (numShards <= 0) {
+          throw new ArgumentNullException(
+            "XUNIT_SHARD_COUNT must be greater than 0.");
+        }
+        if (shard <= 0 || shard > numShards) {
+          throw new ArgumentNullException(
+            "XUNIT_SHARD must be at least 1 and at most XUNIT_SHARD_COUNT.");
+        }
+        
+        var testCaseList = testCases.ToList();
         var shardStart = (shard - 1) * testCaseList.Count / numShards;
         var shardEnd = shard * testCaseList.Count / numShards;
         testCases = testCaseList.GetRange(shardStart, shardEnd - shardStart);

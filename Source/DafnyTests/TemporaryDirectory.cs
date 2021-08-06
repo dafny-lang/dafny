@@ -7,6 +7,7 @@ namespace DafnyTests {
 
     public TemporaryDirectory(string parent, string prefix = "") {
       string dirPath;
+      // Loop until we pick a random name that isn't already taken.
       do {
         dirPath = Path.Combine(parent, prefix + Path.GetRandomFileName());
       } while (File.Exists(dirPath) || Directory.Exists(dirPath));
