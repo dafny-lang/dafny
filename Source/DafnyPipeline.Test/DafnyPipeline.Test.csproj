@@ -20,8 +20,4 @@
     </PackageReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
-  </ItemGroup>
-
 </Project>

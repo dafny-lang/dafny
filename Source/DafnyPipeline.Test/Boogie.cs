@@ -1,11 +1,8 @@
-using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
 using DiffPlex.DiffBuilder;
 using DiffPlex.DiffBuilder.Model;
-using JetBrains.Annotations;
-using Microsoft.Dafny;
 using Xunit;
 
 namespace DafnyPipeline.Test
@@ -174,7 +171,7 @@ method M(heap: object)
 
         const string defaultDafnyArgs =
           "dotnet run --no-build --project /Users/rwillems/Documents/SourceCode/dafny/Source/DafnyDriver/DafnyDriver.csproj -- -useBaseNameForFileName -countVerificationErrors:0 -compileVerbose:0 /errorTrace:0";
-        string GetBoogie(string dafnyProgram, [CanBeNull] string optionalFileName = null) {
+        string GetBoogie(string dafnyProgram, string optionalFileName = null) {
           string fileName = optionalFileName ?? Path.GetTempFileName() + ".dfy";
           var writer  = File.CreateText(fileName);
           writer.Write(dafnyProgram);
