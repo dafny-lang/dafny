@@ -79,6 +79,9 @@ jobs:
     - if: runner.os != 'Windows'
       run: |
         unzip dafny/Package/CI.zip -d unzippedRelease
+    - name: Run XUnit tests
+      if: {{ matrix.shard }} == 0
+      run: dotnet test --no-restore --verbosity normal dafny/Source/Dafny.sln
     - name: Run lit tests
       run: |
         ## lit in this context needs the executables specified
