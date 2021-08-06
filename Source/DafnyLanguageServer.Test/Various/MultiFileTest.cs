@@ -29,7 +29,7 @@ method Test() {
       var documentItem = CreateTestDocument(source, TestFilePath);
       await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.IsTrue(Documents.TryGetDocument(documentItem, out var document));
-      Assert.AreEqual(0, document.Errors.AllMessages[ErrorLevel.Error].Count);
+      Assert.IsTrue(!document.Errors.HasErrors);
     }
 
     // https://github.com/dafny-lang/language-server-csharp/issues/40
@@ -45,7 +45,7 @@ method Test() {
       var documentItem = CreateTestDocument(source, TestFilePath);
       await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.IsTrue(Documents.TryGetDocument(documentItem, out var document));
-      Assert.AreEqual(1, document.Errors.AllMessages[ErrorLevel.Error].Count);
+      Assert.AreEqual(1, document.Errors.ErrorCount);
     }
   }
 }

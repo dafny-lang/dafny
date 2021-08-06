@@ -312,6 +312,16 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static V GetOrCreate<K, V>(this IDictionary<K, V> dictionary, K key, Func<V> createValue) {
+      if (dictionary.TryGetValue(key, out var result)) {
+        return result;
+      }
+
+      result = createValue();
+      dictionary[key] = result;
+      return result;
+    }
+
     /// <summary>
     /// Generic statistic counter
     /// </summary>
