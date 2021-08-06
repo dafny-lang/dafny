@@ -1465,7 +1465,7 @@ namespace Microsoft.Dafny{
       public ConcreteSyntaxTree EmitWrite(ConcreteSyntaxTree wr) {
         ConcreteSyntaxTree w;
         if (Indices.Count == 1) {
-          wr.Write($"{FormatTypeDescriptorVariable(ElmtTypeParameter)}.setArrayElement({Array}, {Indices[0]}.intValue(),");
+          wr.Write($"{FormatTypeDescriptorVariable(ElmtTypeParameter)}.setArrayElement({Array}, {Indices[0]},");
           w = wr.Fork();
           wr.Write(")");
         } else {
@@ -1473,6 +1473,7 @@ namespace Microsoft.Dafny{
           w = wr.Fork();
           wr.Write(")");
         }
+        Compiler.EndStmt(wr);
         return w;
       }
     }
