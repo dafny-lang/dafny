@@ -283,7 +283,7 @@ namespace DafnyTests {
         dafnyProcess.StartInfo.Arguments = "run --no-build --project ";
         dafnyProcess.StartInfo.Arguments += DafnyTestSpec.DAFNY_PROJ;
         dafnyProcess.StartInfo.Arguments += " --";
-        foreach(var argument in dafnyArguments) {
+        foreach (var argument in dafnyArguments) {
           dafnyProcess.StartInfo.Arguments += " " + argument;
         }
         
