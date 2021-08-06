@@ -10,7 +10,7 @@ using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace DafnyTests.XUnitExtensions {
+namespace DafnyDriver.Test.XUnitExtensions {
   public class YamlDataTests {
         
     [Theory]
@@ -31,7 +31,7 @@ namespace DafnyTests.XUnitExtensions {
       Assert.Equal(3, config.Count);
     }
 
-    [DataDiscoverer("DafnyTests.XUnitExtensions.CustomDiscoverer", "DafnyTests")]
+    [DataDiscoverer("DafnyTests.XUnitExtensions.CustomDiscoverer", "DafnyDriver.Test")]
     public class CustomYamlDataAttribute : YamlDataAttribute {
       public CustomYamlDataAttribute(bool withParameterNames = true) : base(withParameterNames) {
       }

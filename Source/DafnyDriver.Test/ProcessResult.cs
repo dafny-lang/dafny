@@ -1,4 +1,4 @@
-namespace DafnyTests {
+namespace DafnyDriver.Test {
   public class ProcessResult {
 
     public int ExitCode;

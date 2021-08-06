@@ -5,9 +5,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
+using DafnyDriver.Test.XUnitExtensions;
 using Microsoft.Extensions.FileProviders;
-using Microsoft.VisualBasic.CompilerServices;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -15,10 +14,9 @@ using XUnitExtensions;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using YamlDotNet.Serialization.NodeDeserializers;
 using YamlDotNet.Serialization.ObjectFactories;
 
-namespace DafnyTests {
+namespace DafnyDriver.Test {
   
   public class DafnyTestSpec: IEnumerable<DafnyTestCase> {
 
@@ -354,7 +352,7 @@ dafnyArguments: {}
     private static readonly IFileProvider ManifestFileProvider = new ManifestEmbeddedFileProvider(
       Assembly.GetExecutingAssembly());
     private static readonly Dictionary<string, string> PathsForResourceNames = GetPathsForResourceNames(
-      "DafnyTests", ManifestFileProvider, "DafnyTests");
+      "DafnyDriver.Test", ManifestFileProvider, "DafnyTests");
     
     private static Dictionary<string, string> GetPathsForResourceNames(string assemblyName, IFileProvider fileProvider, string path = null) {
       return fileProvider.GetDirectoryContents(path).SelectMany(file => {
@@ -417,7 +415,7 @@ dafnyArguments: {}
     }
   }
   
-  [DataDiscoverer("DafnyTests.DafnyTestYamlDataDiscoverer", "DafnyTests")]
+  [DataDiscoverer("DafnyDriver.Test.DafnyTestYamlDataDiscoverer", "DafnyDriver.Test")]
   public class DafnyTestDataAttribute : YamlDataAttribute {
     public DafnyTestDataAttribute(bool withParameterNames) : base(withParameterNames) {
     }

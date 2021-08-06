@@ -16,9 +16,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		version.cs = version.cs
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyTests", "DafnyTests\DafnyTests.csproj", "{08A3665B-9854-4CF6-BF5F-C532DA39A043}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyDriver.Test", "DafnyDriver.Test\DafnyDriver.Test.csproj", "{08A3665B-9854-4CF6-BF5F-C532DA39A043}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LitTestConverter", "LitTestConverter\LitTestConverter.csproj", "{2EA7D80A-B179-4352-BDF2-8A1599F8685A}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyLanguageServer", "DafnyLanguageServer\DafnyLanguageServer.csproj", "{CD05D26C-C672-4F43-835E-7A3E1741E4D8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyLanguageServer.Test", "DafnyLanguageServer.Test\DafnyLanguageServer.Test.csproj", "{320C02A3-D3E6-4AC7-A7E2-170AF86A6EEC}"

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace XUnitExtensions {
+namespace DafnyDriver.Test.XUnitExtensions {
   public class ForEachAttribute : Attribute {
 
     private readonly Type EnumeratorClass;

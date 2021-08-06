@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DafnyTests\DafnyTests.csproj" />
+    <ProjectReference Include="..\DafnyDriver.Test\DafnyDriver.Test.csproj" />
   </ItemGroup>
 
 </Project>

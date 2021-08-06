@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DafnyDriver.Test;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
-using YamlDotNet.Serialization.ObjectGraphTraversalStrategies;
 
-namespace DafnyTests {
+namespace LitTestConvertor {
   
   public class LitTestConvertor {
 
@@ -15,7 +15,7 @@ namespace DafnyTests {
     private const string LIT_DAFNY = "%dafny";
     private const string LIT_SERVER = "%server";
     
-    // Fake options to which files are passed to the CLI
+    // Fake options for which files are passed to the CLI
     public const string TEST_CONFIG_OTHER_FILES = "otherFiles";
     public const string TEST_CONFIG_INCLUDE_THIS_FILE = "includeThisFile";
     

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace DafnyTests {
+namespace DafnyDriver.Test {
   public static class EnumerableUtils {
     /**
      * Source: https://docs.microsoft.com/en-us/archive/blogs/ericlippert/computing-a-cartesian-product-with-linq

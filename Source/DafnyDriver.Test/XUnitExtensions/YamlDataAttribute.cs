@@ -5,7 +5,7 @@ using Xunit.Sdk;
 
 namespace XUnitExtensions {
   
-  [DataDiscoverer("XUnitExtensions.YamlDataDiscoverer", "DafnyTests")]
+  [DataDiscoverer("XUnitExtensions.YamlDataDiscoverer", "DafnyDriver.Test")]
   public class YamlDataAttribute : DataAttribute {
 
     public YamlDataAttribute(bool withParameterNames = true) {

@@ -2,8 +2,8 @@
 
     <PropertyGroup>
         <TargetFramework>net5.0</TargetFramework>
-        <AssemblyName>DafnyTests</AssemblyName>
         <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+        <PackageId>DafnyDriver.Test</PackageId>
     </PropertyGroup>
 
     <ItemGroup>

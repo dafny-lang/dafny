@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace DafnyTests {
+namespace DafnyDriver.Test {
   public class TemporaryDirectory : IDisposable {
     public readonly DirectoryInfo DirInfo;
 

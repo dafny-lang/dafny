@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using DafnyTests;
+using DafnyDriver.Test;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 using YamlDotNet.Core;
@@ -14,7 +14,7 @@ using YamlDotNet.Serialization.NodeDeserializers;
 using YamlDotNet.Serialization.ObjectFactories;
 using YamlDotNet.Serialization.Utilities;
 
-namespace XUnitExtensions {
+namespace DafnyDriver.Test.XUnitExtensions {
   public class YamlDataDiscoverer : IDataDiscoverer {
     public virtual IParser GetYamlParser(string manifestResourceName, Stream stream)  {
       return new Parser(new StreamReader(stream));
