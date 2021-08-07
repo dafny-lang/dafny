@@ -12,6 +12,8 @@ namespace XUnitExtensions {
     }
     
     public override IEnumerable<object[]> GetData(MethodInfo testMethod) {
+      // This method is not used - the YamlDataDiscoverer has all of the actual logic instead
+      // because it exposes some methods for subclasses to customize such as GetYamlParser.
       throw new NotImplementedException();
     }
   }
