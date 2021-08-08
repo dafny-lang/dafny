@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DafnyDriver.Test.XUnitExtensions;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using YamlDotNet.Serialization.ObjectFactories;
@@ -13,7 +14,7 @@ namespace DafnyDriver.Test
   
   public class DafnyTestSpec: IEnumerable<DafnyTestCase> {
 
-    private static DirectoryInfo OUTPUT_ROOT = new DirectoryInfo(Directory.GetCurrentDirectory());
+    private static readonly DirectoryInfo OUTPUT_ROOT = new(Directory.GetCurrentDirectory());
     
     // TODO-RS: This is an ugly method of locating the project root.
     // The proper fix is to run entirely out of the output directory,
@@ -36,18 +37,18 @@ namespace DafnyDriver.Test
     [YamlIgnore]
     public readonly string SourcePath;
     
-    public Dictionary<string, object> DafnyArguments = new Dictionary<string, object>();
-    public List<string> OtherFiles = new List<string>();
+    public Dictionary<string, object> DafnyArguments = new();
+    public List<string> OtherFiles = new();
     
-    public Dictionary<string, DafnyTestSpec> CompileTargetOverrides = new Dictionary<string, DafnyTestSpec>();
+    public Dictionary<string, DafnyTestSpec> CompileTargetOverrides = new();
     
-    public DafnyTestCase.Expectation Expected;
+    public CLITestCase.Expectation Expected;
 
     public DafnyTestSpec(string sourcePath) {
       SourcePath = sourcePath;
     }
 
-    private DafnyTestSpec(string sourcePath, Dictionary<string, object> dafnyArguments, List<string> otherFiles, DafnyTestCase.Expectation expected) {
+    private DafnyTestSpec(string sourcePath, Dictionary<string, object> dafnyArguments, List<string> otherFiles, CLITestCase.Expectation expected) {
       SourcePath = sourcePath;
       DafnyArguments = dafnyArguments;
       OtherFiles = otherFiles;
@@ -104,7 +105,7 @@ namespace DafnyDriver.Test
         var justVerify = new Dictionary<string, object>(DafnyArguments) {
           [DAFNY_COMPILE_OPTION] = "0"
         };
-        yield return new DafnyTestSpec(SourcePath, justVerify, OtherFiles, DafnyTestCase.Expectation.NO_OUTPUT);
+        yield return new DafnyTestSpec(SourcePath, justVerify, OtherFiles, CLITestCase.Expectation.NO_OUTPUT);
         
         foreach (var compileTarget in compileTargets) {
           var withLanguage = new Dictionary<string, object>(DafnyArguments) {
@@ -126,8 +127,8 @@ namespace DafnyDriver.Test
 
     private DafnyTestSpec ApplyOverride(DafnyTestSpec otherSpec) {
       var mergedArguments = new Dictionary<string, object>(DafnyArguments);
-      foreach (KeyValuePair<string, object> pair in otherSpec.DafnyArguments) {
-        mergedArguments[pair.Key] = pair.Value;
+      foreach (var (key, value) in otherSpec.DafnyArguments) {
+        mergedArguments[key] = value;
       }
       return new DafnyTestSpec(otherSpec.SourcePath, mergedArguments, OtherFiles.Concat(otherSpec.OtherFiles).ToList(), otherSpec.Expected);
     }
@@ -135,25 +136,15 @@ namespace DafnyDriver.Test
     private DafnyTestSpec ResolveExpected() {
       if (Expected == null) {
         return new DafnyTestSpec(SourcePath, DafnyArguments, OtherFiles, 
-                                 new DafnyTestCase.Expectation(0, SourcePath + ".expect", null));
+                                 new CLITestCase.Expectation(0, SourcePath + ".expect", null));
       }
       return this;
     }
     
     private DafnyTestCase ToTestCase() {
-      var arguments = new []{ SourcePath }
-        .Concat(DafnyArguments.Select(ConfigPairToArgument));
-      return new DafnyTestCase(arguments, Expected);
+      return new DafnyTestCase(SourcePath, DafnyArguments, OtherFiles, Expected);
     }
     
-    private static string ConfigPairToArgument(KeyValuePair<string, object> pair) {
-      if (pair.Value.Equals("yes")) {
-        return String.Format("/{0}", pair.Key);
-      } else {
-        return String.Format("/{0}:{1}", pair.Key, pair.Value);
-      }
-    }
-
     private IEnumerable<DafnyTestSpec> ExpandArguments() {
       return DafnyArguments.Select(ExpandValue)
                            .CartesianProduct()

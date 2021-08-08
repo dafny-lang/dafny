@@ -1,14 +1,15 @@
 using System.Linq;
+using DafnyDriver.Test.XUnitExtensions;
 using Xunit;
-using Xunit.Sdk;
-using XUnitExtensions;
 
 namespace DafnyDriver.Test {
   
   public class DafnyTests {
 
     [Fact]
-    public static void MetaTest() {
+    public static void DafnyTestDataDiscovererDiscoversAtLeastOneTest() {
+      // This test is much easier to debug than the main parameterized test
+      // if the discoverer is not working correctly
       var discoverer = new DafnyTestYamlDataDiscoverer();
       var testMethod = typeof(DafnyTests).GetMethod(nameof(Test));
       var testData = discoverer.GetData(testMethod, false).ToList();
@@ -17,7 +18,7 @@ namespace DafnyDriver.Test {
 
     [ParallelTheory]
     [DafnyTestData(false)]
-    public static void Test(DafnyTestCase testCase) {
+    public static void Test(CLITestCase testCase) {
       testCase.Run();
     }
   }

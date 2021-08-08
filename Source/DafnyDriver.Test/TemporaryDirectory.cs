@@ -17,6 +17,7 @@ namespace DafnyDriver.Test {
 
     public void Dispose() {
       Dispose(true);
+      GC.SuppressFinalize(this);
     }
 
     ~TemporaryDirectory() {
@@ -27,7 +28,7 @@ namespace DafnyDriver.Test {
       SafeDelete();
     }
         
-    public void SafeDelete() {
+    private void SafeDelete() {
       try {
         DirInfo.Delete(true);
       } catch {

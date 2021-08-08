@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DafnyDriver.Test;
+using DafnyDriver.Test.XUnitExtensions;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -39,7 +40,7 @@ namespace LitTestConvertor {
       IEnumerable<string> testContent;
       
       if (filePath.Contains("/Inputs/")) {
-        testSpec = Enumerable.Empty<DafnyTestCase>();
+        testSpec = Enumerable.Empty<CLITestCase>();
         testContent = File.ReadAllLines(filePath);
       } else {
 
@@ -83,7 +84,7 @@ namespace LitTestConvertor {
     private object ConvertLitCommands(string filePath, List<string> litCommands) {
       if (litCommands.Count == 1 && litCommands.Single().StartsWith("echo")) {
         // This is an idiom for Dafny files used elsewhere
-        return Enumerable.Empty<DafnyTestCase>();
+        return Enumerable.Empty<CLITestCase>();
       }
 
       if (!litCommands[^1].Equals("%diff \"%s.expect\" \"%t\"")) {
