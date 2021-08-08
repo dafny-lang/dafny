@@ -316,6 +316,78 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
+    public async Task DatatypeInvolvedDestructorName() {
+      var source = @"
+      datatype A = B(x:real)
+      method destructorNameTest(a:A) {
+        assert a.x >= 0.0 || a.x < -0.5;
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(1, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("a:_module.A"));
+      StringAssert.Matches(counterExamples[0].Variables["a:_module.A"], new Regex("B\\(x := -[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+\\)"));
+    }
+    
+    [TestMethod]
+    public async Task DatatypeDestructorNameDifferentConstructors() {
+      var source = @"
+      datatype Hand = Left(x:int, y:int) | Right(a:int, b:int)
+      method T_datatype0_1(h0:Hand, h1:Hand) 
+        requires h0.Right? && h1.Left? {
+        assert h0 == h1;
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(2, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("h0:_module.Hand"));
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("h1:_module.Hand"));
+      StringAssert.Matches(counterExamples[0].Variables["h0:_module.Hand"], new Regex("Right\\([a|b] := -?[0-9]+, [b|a] := -?[0-9]+\\)"));
+      StringAssert.Matches(counterExamples[0].Variables["h1:_module.Hand"], new Regex("Left\\([x|y] := -?[0-9]+, [x|y] := -?[0-9]+\\)"));
+    }
+    
+    [TestMethod]
+    public async Task DatatypeDestructorEqualValues() {
+      var source = @"
+      datatype Hand = Left(a:int, b:int)
+      method T_datatype0_1(h:Hand)  {
+        assert h.a != h.b || h.a != 3;
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(1, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("h:_module.Hand"));
+      StringAssert.Matches(counterExamples[0].Variables["h:_module.Hand"], new Regex("Left\\([a|b] := 3, [a|b] := 3\\)"));
+    }
+    
+    [TestMethod]
+    public async Task DatatypeBuiltInDestructors() {
+      var source = @"
+      datatype A = B_(C_q:bool, B_q:bool, D_q:bool) | C(B_q:bool, C_q:bool, D_q:bool)
+      method m (a:A) requires !a.B_?{
+          assert a.C_q || a.B_q || a.D_q;
+      }
+      ".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(1, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("a:_module.A"));
+      StringAssert.Matches(counterExamples[0].Variables["a:_module.A"], new Regex("[B|C]\\((B__q|C__q|D__q) := false, (B__q|C__q|D__q) := false, (B__q|C__q|D__q) := false\\)"));
+    }
+    
+
+    [TestMethod]
     public async Task DatatypeWithParameters() {
       var source = @"
       datatype A<T> = One(b:T) | Two(i:int)
@@ -348,7 +420,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("list:_module.List<bool>"));
-      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<bool>"], new Regex("Cons\\(head := (true|false), tail := @[0-9]+\\)"));
+      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<bool>"], new Regex("Cons\\(head := \\?:bool, tail := @[0-9]+\\)"));
     }
     
     [TestMethod]
@@ -367,7 +439,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("list:_module.List<int>"));
-      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<int>"], new Regex("Cons\\(head := [0-9][1-9]*, tail := @[0-9]+\\)"));
+      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<int>"], new Regex("Cons\\(head := \\?:int, tail := @[0-9]+\\)"));
     }
     
     [TestMethod]
@@ -386,7 +458,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("list:_module.List<real>"));
-      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<real>"], new Regex("Cons\\(head := [0-9]+\\.[0-9]+, tail := @[0-9]+\\)"));
+      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<real>"], new Regex("Cons\\(head := \\?:real, tail := @[0-9]+\\)"));
     }
 
     [TestMethod]

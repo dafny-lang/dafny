@@ -357,7 +357,7 @@ namespace DafnyServer.CounterExampleGeneration {
         if (Model.GetFunc(funcName).OptEval(elt) != null) {
           return Model.GetFunc(funcName).OptEval(elt).ToString();
         }
-        return "?";
+        return "?:" + typeName[..^4];
       }
       if (elt.Kind == Model.ElementKind.DataValue) {
         if (((Model.DatatypeValue) elt).ConstructorName == "-") {
@@ -382,26 +382,26 @@ namespace DafnyServer.CounterExampleGeneration {
         try {
           return "'" + char.ConvertFromUtf32(utfCode) + "'";
         } catch (ArgumentOutOfRangeException) {
-          return "?#" + utfCode;
+          return "?:char";
         }
       }
       if (fType.OptEval(elt) == fReal.GetConstant()) {
         if (fU2Real.OptEval(elt) != null) {
           return CanonicalName(fU2Real.OptEval(elt), state);
         }
-        return "0.0";
+        return "?:real";
       }
       if (fType.OptEval(elt) == fBool.GetConstant()) {
         if (fU2Bool.OptEval(elt) != null) {
           return CanonicalName(fU2Bool.OptEval(elt), state);
         }
-        return "false";
+        return "?:bool";
       }
       if (fType.OptEval(elt) == fInt.GetConstant()) {
         if (fU2Int.OptEval(elt) != null) {
           return CanonicalName(fU2Int.OptEval(elt), state);
         }
-        return "0";
+        return "?:int";
       }
       return "";
     }
@@ -411,26 +411,32 @@ namespace DafnyServer.CounterExampleGeneration {
     /// values of fields for objects, values at certain positions for
     /// sequences, etc.
     /// </summary>
-    public IEnumerable<DafnyModelVariable> GetExpansion(DafnyModelState dafnyModelState, DafnyModelVariable var) {
+    public IEnumerable<DafnyModelVariable> GetExpansion(DafnyModelState state, DafnyModelVariable var) {
       List<DafnyModelVariable> result = new ();
       if (var.Element.Kind != Model.ElementKind.Uninterpreted) {
         return result;  // primitive types can't have fields
       }
       if (datatypeValues.TryGetValue(var.Element, out var fnTuple)) {
         // Elt is a datatype value
-        var i = 0;
-        foreach (var arg in fnTuple.Args) {
-          result.Add(DafnyModelVariable.Get(dafnyModelState, 
-            Unbox(arg), 
-            GetDestructorName(var.Element, arg) ?? "[" + i + "]", 
-            var));
-          i++;
+        var destructors = GetDestructorFunctions(var.Element, var.Type.Split("<").First());
+        if (destructors.Count == fnTuple.Args.Length) {
+          // we know all destructor names
+          foreach (var func in destructors) {
+            result.Add(DafnyModelVariable.Get(state, Unbox(func.OptEval(var.Element)), 
+              func.Name.Split(".").Last(), var));
+          }
+        } else {
+          // we don't now destructor names, so we use indeces instead
+          for (var i = 0; i < fnTuple.Args.Length; i++) {
+            result.Add(DafnyModelVariable.Get(state, Unbox(fnTuple.Args[i]), 
+              "[" + i + "]", var));
+          }
         }
         return result;
       }
       var seqLen = fSeqLength.OptEval(var.Element);
       if (seqLen != null) { // Elt is a sequence
-        result.Add(DafnyModelVariable.Get(dafnyModelState, seqLen, "Length", var));
+        result.Add(DafnyModelVariable.Get(state, seqLen, "Length", var));
         // Sequence can be constructed with build operator:
         List<Model.Element> elements = new();
         var substring = var.Element;
@@ -438,15 +444,15 @@ namespace DafnyServer.CounterExampleGeneration {
           elements.Insert(0, Unbox(fSeqBuild.AppWithResult(substring).Args[1]));
           substring = fSeqBuild.AppWithResult(substring).Args[0];
         }
-        for (int i = 0; i < elements.Count; i++) {
-          result.Add(DafnyModelVariable.Get(dafnyModelState, Unbox(elements[i]), "[" + i + "]", var));
+        for (var i = 0; i < elements.Count; i++) {
+          result.Add(DafnyModelVariable.Get(state, Unbox(elements[i]), "[" + i + "]", var));
         }
         if (elements.Count > 0) {
           return result;
         }
         // Otherwise, sequence can be reconstructed index by index:
         foreach (var tpl in fSeqIndex.AppsWithArg(0, var.Element)) {
-          result.Add(DafnyModelVariable.Get(dafnyModelState, Unbox(tpl.Result),
+          result.Add(DafnyModelVariable.Get(state, Unbox(tpl.Result),
             "[" + tpl.Args[1] + "]", var));
         }
         return result;
@@ -457,7 +463,7 @@ namespace DafnyServer.CounterExampleGeneration {
         if (containment.Kind != Model.ElementKind.Boolean) {
           continue;
         }
-        result.Add(DafnyModelVariable.Get(dafnyModelState, Unbox(setElement), 
+        result.Add(DafnyModelVariable.Get(state, Unbox(setElement), 
           ((Model.Boolean)containment).ToString(), var));
       }
       if (result.Count != 0) { // Elt is a set
@@ -468,12 +474,12 @@ namespace DafnyServer.CounterExampleGeneration {
         var i = 0;
         foreach (var len in lengths) {
           var name = lengths.Length == 1 ? "Length" : "Length" + i;
-          result.Add(DafnyModelVariable.Get(dafnyModelState, len, name, var));
+          result.Add(DafnyModelVariable.Get(state, len, name, var));
           i++;
         }
       }
       // Elt is an array or an object:
-      var heap = dafnyModelState.State.TryGet("$Heap");
+      var heap = state.State.TryGet("$Heap");
       if (heap == null) {
         return result;
       }
@@ -484,29 +490,28 @@ namespace DafnyServer.CounterExampleGeneration {
       foreach (var tpl in fSetSelect.AppsWithArg(0, instances.ToList()[0].Result)) {
         var fieldName = GetFieldName(tpl.Args[1]);
         if (fieldName != "alloc") {
-          result.Add(DafnyModelVariable.Get(dafnyModelState, Unbox(tpl.Result), fieldName, var));
+          result.Add(DafnyModelVariable.Get(state, Unbox(tpl.Result), fieldName, var));
         }
       }
       return result;
     }
 
     /// <summary>
-    /// Search for a function that maps the datatype object to a particular
-    /// destructor value. Extract the name of the destructor.
+    /// Return all functions that map the datatype object to a particular
+    /// destructor value. 
     /// </summary>
-    private static string GetDestructorName(Model.Element datatype,
-      Model.Element destructor) {
-      string name = null;
-      foreach (var app in destructor.Names) {
-        if (app.Func.Arity != 1 || app.Args[0] != datatype || !app.Func.Name.Contains(".")) {
+    private static List<Model.Func> GetDestructorFunctions(Model.Element datatype, string type) {
+      List<Model.Func> result = new();
+      foreach (var app in datatype.References) {
+        if (app.Func.Arity != 1 || app.Args[0] != datatype || 
+            !app.Func.Name.StartsWith(type + ".") ||
+            Regex.IsMatch(app.Func.Name.Split(".").Last(), "^.*[^_](__)*_q$")) {
+          // the regex is for built-in datatype destructors
           continue;
         }
-        if (name != null) {
-          return null;  // name must be unique
-        }
-        name = app.Func.Name;
+        result.Add(app.Func);
       }
-      return name?.Split(".").Last();
+      return result;
     }
     
     /// <summary>
