@@ -28,33 +28,35 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         _logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return Task.FromResult(new CounterExampleList());
       }
-      return Task.FromResult(new CounterExampleLoader(_logger, document, cancellationToken).GetCounterExamples(request.CounterExampleDepth));
+      return Task.FromResult(new CounterExampleLoader(_logger, document, cancellationToken, request.CounterExampleDepth).GetCounterExamples());
     }
 
     private class CounterExampleLoader {
-      private const string InitialStateName = "<initial>";
-      private static readonly Regex StatePositionRegex = new(
+      private const string initialStateName = "<initial>";
+      private static readonly Regex statePositionRegex = new(
         @".*\.dfy\((?<line>\d+),(?<character>\d+)\)",
         RegexOptions.IgnoreCase | RegexOptions.Singleline
       );
 
-      private readonly ILogger _logger;
-      private readonly DafnyDocument _document;
-      private readonly CancellationToken _cancellationToken;
+      private readonly ILogger logger;
+      private readonly DafnyDocument document;
+      private readonly CancellationToken cancellationToken;
+      private readonly int counterExampleDepth;
 
-      public CounterExampleLoader(ILogger logger, DafnyDocument document, CancellationToken cancellationToken) {
-        _logger = logger;
-        _document = document;
-        _cancellationToken = cancellationToken;
+      public CounterExampleLoader(ILogger logger, DafnyDocument document, CancellationToken cancellationToken, int depth) {
+        this.logger = logger;
+        this.document = document;
+        this.cancellationToken = cancellationToken;
+        counterExampleDepth = depth;
       }
 
-      public CounterExampleList GetCounterExamples(int maxDepth) {
-        if(_document.SerializedCounterExamples == null) {
-          _logger.LogDebug("got no counter-examples for document {DocumentUri}", _document.Uri);
+      public CounterExampleList GetCounterExamples() {
+        if(document.SerializedCounterExamples == null) {
+          logger.LogDebug("got no counter-examples for document {DocumentUri}", document.Uri);
           return new CounterExampleList();
         }
-        var counterExamples = GetLanguageSpecificModels(_document.SerializedCounterExamples)
-          .SelectMany(x => GetCounterExamples(x, maxDepth))
+        var counterExamples = GetLanguageSpecificModels(document.SerializedCounterExamples)
+          .SelectMany(model => GetCounterExamples(model))
           .ToArray();
         return new CounterExampleList(counterExamples);
       }
@@ -62,36 +64,35 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       private IEnumerable<DafnyModel> GetLanguageSpecificModels(string serializedCounterExamples) {
         using var counterExampleReader = new StringReader(serializedCounterExamples);
         return Model.ParseModels(counterExampleReader)
-          .WithCancellation(_cancellationToken)
+          .WithCancellation(cancellationToken)
           .Select(GetLanguagSpecificModel);
       }
 
       private DafnyModel GetLanguagSpecificModel(Model model) {
-        // TODO Make view options configurable?
         return new(model);
       }
 
-      private IEnumerable<CounterExampleItem> GetCounterExamples(DafnyModel model, int maxDepth) {
+      private IEnumerable<CounterExampleItem> GetCounterExamples(DafnyModel model) {
         return model.States
-          .WithCancellation(_cancellationToken)
+          .WithCancellation(cancellationToken)
           .OfType<DafnyModelState>()
           .Where(state => !IsInitialState(state))
-          .Select(x => GetCounterExample(x, maxDepth));
+          .Select(state => GetCounterExample(state));
       }
 
       private static bool IsInitialState(DafnyModelState state) {
-        return state.ShortenedStateName.Equals(InitialStateName);
+        return state.ShortenedStateName.Equals(initialStateName);
       }
 
-      private CounterExampleItem GetCounterExample(DafnyModelState state, int maxDepth) {
+      private CounterExampleItem GetCounterExample(DafnyModelState state) {
         return new(
           GetPositionFromInitialState(state),
-          GetVariablesFromState(state, maxDepth)
+          GetVariablesFromState(state, counterExampleDepth)
         );
       }
 
       private static Position GetPositionFromInitialState(DafnyModelState state) {
-        var match = StatePositionRegex.Match(state.ShortenedStateName);
+        var match = statePositionRegex.Match(state.ShortenedStateName);
         if(!match.Success) {
           throw new ArgumentException($"state does not contain position: {state.ShortenedStateName}");
         }
@@ -104,7 +105,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
       private IDictionary<string, string> GetVariablesFromState(DafnyModelState state, int maxDepth) {
         HashSet<DafnyModelVariable> vars = state.ExpandedVariableSet(maxDepth);
-        return vars.WithCancellation(_cancellationToken).ToDictionary(
+        return vars.WithCancellation(cancellationToken).ToDictionary(
             variable => variable.ShortName + ":" + variable.Type,
             variable => variable.Value 
           );

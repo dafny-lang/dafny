@@ -4,15 +4,17 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 using DafnyServer.CounterExampleGeneration;
 using Microsoft.Boogie;
 
 namespace DafnyServer {
-  public class CounterExampleProvider {
-    private List<DafnyModel> _dafnyModels;
-    public static readonly string ModelBvd = "./model.bvd";
+  public class CounterExampleProvider
+  {
+    private const int maximumCounterexampleDepth = 5;
+    public const string ModelBvd = "./model.bvd";
 
     public CounterExample LoadCounterModel() {
       try {
@@ -23,25 +25,19 @@ namespace DafnyServer {
       }
     }
 
-    private List<DafnyModel> LoadModelFromFile() {
-      using (var wr = new StreamReader(ModelBvd)) {
-        var output = wr.ReadToEnd();
-        var models = ExtractModels(output);
-        _dafnyModels = BuildModels(models);
-      }
-      return _dafnyModels;
+    private static List<DafnyModel> LoadModelFromFile() {
+      using var wr = new StreamReader(ModelBvd);
+      var output = wr.ReadToEnd();
+      var models = ExtractModels(output);
+      var dafnyModels = BuildModels(models).ToList();
+      return dafnyModels;
     }
 
-    private List<DafnyModel> BuildModels(List<Model> modellist) {
-      var list = new List<DafnyModel>();
-      foreach (var model in modellist) {
-        var specifiedModel = new DafnyModel(model);
-        list.Add(specifiedModel);
-      }
-      return list;
+    private static IEnumerable<DafnyModel> BuildModels(IEnumerable<Model> modelList) {
+      return modelList.Select(model => new DafnyModel(model));
     }
 
-    private List<Model> ExtractModels(string output) {
+    private static List<Model> ExtractModels(string output) {
       const string begin = "*** MODEL";
       const string end = "*** END_MODEL";
       var beginIndex = output.IndexOf(begin, StringComparison.Ordinal);
@@ -67,7 +63,7 @@ namespace DafnyServer {
           };
           AddLineInformation(counterExampleState, state.FullStateName);
 
-          var vars = state.ExpandedVariableSet(2);
+          var vars = state.ExpandedVariableSet(maximumCounterexampleDepth);
 
           foreach (var variableNode in vars) {
             counterExampleState.Variables.Add(new CounterExampleVariable {
@@ -90,7 +86,7 @@ namespace DafnyServer {
       return new CounterExample();
     }
 
-    private void AddLineInformation(CounterExampleState state, string stateCapturedStateName) {
+    private static void AddLineInformation(CounterExampleState state, string stateCapturedStateName) {
       if ("<initial>".Equals(stateCapturedStateName)) {
         state.Line = 0;
         state.Column = 0;

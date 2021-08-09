@@ -29,36 +29,36 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task FileWithBodyLessMethodReturnsSingleCounterExampleForPostconditions() {
       var source = @"
-      method Abs(x: int) returns (y: int)
-          ensures y > 0
-      {
-      }
-      ".TrimStart();
+method Abs(x: int) returns (y: int)
+    ensures y > 0
+{
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
-      Assert.AreEqual((2, 6), counterExamples[0].Position);
+      Assert.AreEqual((2, 0), counterExamples[0].Position);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("y:int"));
     }
 
     [TestMethod]
     public async Task FileWithMethodWithErrorsReturnsCounterExampleForPostconditionsAndEveryUpdateLine() {
       var source = @"
-      method Abs(x: int) returns (y: int)
-          ensures y >= 0
-      {
-        var z := x;
-        y := z;
-      }
-      ".TrimStart();
+method Abs(x: int) returns (y: int)
+    ensures y >= 0
+{
+  var z := x;
+  y := z;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(3, counterExamples.Length);
-      Assert.AreEqual((2, 6), counterExamples[0].Position);
-      Assert.AreEqual((3, 18), counterExamples[1].Position);
-      Assert.AreEqual((4, 14), counterExamples[2].Position);
+      Assert.AreEqual((2, 0), counterExamples[0].Position);
+      Assert.AreEqual((3, 12), counterExamples[1].Position);
+      Assert.AreEqual((4, 8), counterExamples[2].Position);
       Assert.IsTrue(counterExamples[2].Variables.ContainsKey("x:int"));
       Assert.IsTrue(counterExamples[2].Variables.ContainsKey("y:int"));
       Assert.IsTrue(counterExamples[2].Variables.ContainsKey("z:int"));
@@ -67,15 +67,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task FileWithMethodWithoutErrorsReturnsEmptyCounterExampleList() {
       var source = @"
-      method Abs(x: int) returns (y: int)
-          ensures y >= 0
-      {
-        if x >= 0 {
-          return x;
-        }
-        return -x;
-      }
-      ".TrimStart();
+method Abs(x: int) returns (y: int)
+    ensures y >= 0
+{
+  if x >= 0 {
+    return x;
+  }
+  return -x;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -85,34 +85,34 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task GetCounterExampleWithMultipleMethodsWithErrorsReturnsCounterExamplesForEveryMethod() {
       var source = @"
-      method Abs(x: int) returns (y: int)
-          ensures y > 0
-      {
-      }
+method Abs(x: int) returns (y: int)
+    ensures y > 0
+{
+}
 
-      method Negate(a: int) returns (b: int)
-          ensures b == -a
-      {
-      }
-      ".TrimStart();
+method Negate(a: int) returns (b: int)
+    ensures b == -a
+{
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(2, counterExamples.Length);
-      Assert.AreEqual((2, 6), counterExamples[0].Position);
+      Assert.AreEqual((2, 0), counterExamples[0].Position);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("y:int"));
-      Assert.AreEqual((7, 6), counterExamples[1].Position);
+      Assert.AreEqual((7, 0), counterExamples[1].Position);
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("a:int"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("b:int"));
     }
 
     [TestMethod]
-    public async Task RealFull() {
+    public async Task WholeNumberAsReal() {
       var source = @"
-      method a(r:real) {
-          assert r != 1.0;
-      }
-      ".TrimStart();
+method a(r:real) {
+    assert r != 1.0;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -123,12 +123,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task RealFraction() {
+    public async Task FractionAsAReal() {
       var source = @"
-      method a(r:real) {
-          assert r != 0.4;
-      }
-      ".TrimStart();
+method a(r:real) {
+    assert r != 0.4;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -139,15 +139,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task RealFieldFull() {
+    public async Task WholeNumberFieldAsReal() {
       var source = @"
-      class Value {
-          var v:real;
-      }
-      method a(v:Value) {
-          assert v.v != 0.0;
-      }
-      ".TrimStart();
+class Value {
+    var v:real;
+}
+method a(v:Value) {
+    assert v.v != 0.0;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -158,15 +158,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task RealFieldFraction() {
+    public async Task FractionFieldAsReal() {
       var source = @"
-      class Value {
-          var v:real;
-      }
-      method a(v:Value) {
-          assert v.v != 0.4;
-      }
-      ".TrimStart();
+class Value {
+    var v:real;
+}
+method a(v:Value) {
+    assert v.v != 0.4;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -179,13 +179,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task SelfReferringObject() {
       var source = @"
-      class Node {
-          var next: Node?;
-      }
-      method IsSelfReferring(n:Node) {
-          assert n.next != n;
-      }
-      ".TrimStart();
+class Node {
+    var next: Node?;
+}
+method IsSelfReferring(n:Node) {
+    assert n.next != n;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -198,13 +198,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task ObjectWithANonNullField() {
       var source = @"
-      class Node {
-          var next: Node?;
-      }
-      method IsSelfRecursive(n:Node) {
-          assert (n.next == n) || (n.next == null);
-      }
-      ".TrimStart();
+class Node {
+    var next: Node?;
+}
+method IsSelfRecursive(n:Node) {
+    assert (n.next == n) || (n.next == null);
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -217,13 +217,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task ObjectWithANullField() {
       var source = @"
-      class Node {
-          var next: Node?;
-      }
-      method IsSelfRecursive(n:Node) {
-          assert n.next != null;
-      }
-      ".TrimStart();
+class Node {
+    var next: Node?;
+}
+method IsSelfRecursive(n:Node) {
+    assert n.next != null;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -234,22 +234,22 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
 
     [TestMethod]
-    public async Task PrimitiveField() {
+    public async Task ObjectWithAFieldOfBasicType() {
       var source = @"
-      class BankAccountUnsafe {
-          var balance: int;
-          var b:bool;
+class BankAccountUnsafe {
+    var balance: int;
+    var b:bool;
 
-          method withdraw(amount: int) 
-              modifies this 
-              requires amount >= 0
-              requires balance >= 0 
-              ensures balance >= 0
-          {
-            balance := balance - amount;   
-          }
-      }
-      ".TrimStart();
+    method withdraw(amount: int) 
+        modifies this 
+        requires amount >= 0
+        requires balance >= 0 
+        ensures balance >= 0
+    {
+      balance := balance - amount;   
+    }
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -265,12 +265,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task Character() {
+    public async Task SpecificCharacter() {
       var source = @"
-      method a(c:char) {
-          assert c != '0';
-      }
-      ".TrimStart();
+method a(c:char) {
+    assert c != '0';
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -281,12 +281,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task UnknownCharacter() {
+    public async Task ArbitraryCharacter() {
       var source = @"
-      method a(c:char) {
-          assert c == '0';
-      }
-      ".TrimStart();
+method a(c:char) {
+    assert c == '0';
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -298,13 +298,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task Datatype() {
+    public async Task DatatypeWithUnnamedDestructor() {
       var source = @"
-      datatype B = A(int)
-      method a(b:B) {
-          assert b != A(5);
-      }
-      ".TrimStart();
+datatype B = A(int)
+method a(b:B) {
+    assert b != A(5);
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -315,13 +315,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task DatatypeInvolvedDestructorName() {
+    public async Task DatatypeWithDestructorThanIsADataValue() {
       var source = @"
-      datatype A = B(x:real)
-      method destructorNameTest(a:A) {
-        assert a.x >= 0.0 || a.x < -0.5;
-      }
-      ".TrimStart();
+datatype A = B(x:real)
+method destructorNameTest(a:A) {
+  assert a.x >= 0.0 || a.x < -0.5;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -332,14 +332,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task DatatypeDestructorNameDifferentConstructors() {
+    public async Task DatatypeWithDifferentDestructorsForDifferentConstructors() {
       var source = @"
-      datatype Hand = Left(x:int, y:int) | Right(a:int, b:int)
-      method T_datatype0_1(h0:Hand, h1:Hand) 
-        requires h0.Right? && h1.Left? {
-        assert h0 == h1;
-      }
-      ".TrimStart();
+datatype Hand = Left(x:int, y:int) | Right(a:int, b:int)
+method T_datatype0_1(h0:Hand, h1:Hand) 
+  requires h0.Right? && h1.Left? {
+  assert h0 == h1;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -352,13 +352,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task DatatypeDestructorEqualValues() {
+    public async Task DatatypeObjectWithTwoDestructorsWhoseValuesAreEqual() {
       var source = @"
-      datatype Hand = Left(a:int, b:int)
-      method T_datatype0_1(h:Hand)  {
-        assert h.a != h.b || h.a != 3;
-      }
-      ".TrimStart();
+datatype Hand = Left(a:int, b:int)
+method T_datatype0_1(h:Hand)  {
+  assert h.a != h.b || h.a != 3;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -369,13 +369,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task DatatypeBuiltInDestructors() {
+    public async Task DatatypeWithDestructorsWhoseNamesShadowBuiltInDestructors() {
       var source = @"
-      datatype A = B_(C_q:bool, B_q:bool, D_q:bool) | C(B_q:bool, C_q:bool, D_q:bool)
-      method m (a:A) requires !a.B_?{
-          assert a.C_q || a.B_q || a.D_q;
-      }
-      ".TrimStart();
+datatype A = B_(C_q:bool, B_q:bool, D_q:bool) | C(B_q:bool, C_q:bool, D_q:bool)
+method m (a:A) requires !a.B_?{
+    assert a.C_q || a.B_q || a.D_q;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -387,13 +387,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     
 
     [TestMethod]
-    public async Task DatatypeWithParameters() {
+    public async Task DatatypeWithTypeParameters() {
       var source = @"
-      datatype A<T> = One(b:T) | Two(i:int)
-      method m(a:A<bool>) requires a == One(false) || a == One(true) {
-        assert a.b;
-      }
-      ".TrimStart();
+datatype A<T> = One(b:T) | Two(i:int)
+method m(a:A<bool>) requires a == One(false) || a == One(true) {
+  assert a.b;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -404,15 +404,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task UnknownBool() {
+    public async Task ArbitraryBool() {
       var source = @"
-      datatype List<T> = Nil | Cons(head: T, tail: List<T>)
-      method listHasSingleElement(list:List<bool>) 
-        requires list != Nil
-      {
-        assert list.tail != Nil;
-      }
-      ".TrimStart();
+datatype List<T> = Nil | Cons(head: T, tail: List<T>)
+method listHasSingleElement(list:List<bool>) 
+  requires list != Nil
+{
+  assert list.tail != Nil;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -423,15 +423,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task UnknownInt() {
+    public async Task ArbitraryInt() {
       var source = @"
-      datatype List<T> = Nil | Cons(head: T, tail: List<T>)
-      method listHasSingleElement(list:List<int>) 
-        requires list != Nil
-      {
-        assert list.tail != Nil;
-      }
-      ".TrimStart();
+datatype List<T> = Nil | Cons(head: T, tail: List<T>)
+method listHasSingleElement(list:List<int>) 
+  requires list != Nil
+{
+  assert list.tail != Nil;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -442,15 +442,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task UnknownReal() {
+    public async Task ArbitraryReal() {
       var source = @"
-      datatype List<T> = Nil | Cons(head: T, tail: List<T>)
-      method listHasSingleElement(list:List<real>) 
-        requires list != Nil
-      {
-        assert list.tail != Nil;
-      }
-      ".TrimStart();
+datatype List<T> = Nil | Cons(head: T, tail: List<T>)
+method listHasSingleElement(list:List<real>) 
+  requires list != Nil
+{
+  assert list.tail != Nil;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -461,12 +461,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
 
     [TestMethod]
-    public async Task Array() {
+    public async Task ArraySimpleTest() {
       var source = @"
-      method a(arr:array<int>) requires arr.Length == 2 {
-          assert arr[0] != 4 || arr[1] != 5;
-      }
-      ".TrimStart();
+method a(arr:array<int>) requires arr.Length == 2 {
+    assert arr[0] != 4 || arr[1] != 5;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -477,12 +477,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task Sequence() {
+    public async Task SequenceSimpleTest() {
       var source = @"
-      method a(s:seq<int>) requires |s| == 1 {
-          assert s[0] != 4;
-      }
-      ".TrimStart();
+method a(s:seq<int>) requires |s| == 1 {
+    assert s[0] != 4;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -495,10 +495,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task SequenceOfBitVectors() {
       var source = @"
-      method a(s:seq<bv5>) requires |s| == 2 {
-          assert s[1] != (2 as bv5);
-      }
-      ".TrimStart();
+method a(s:seq<bv5>) requires |s| == 2 {
+    assert s[1] != (2 as bv5);
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -509,12 +509,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task BitVector() {
+    public async Task SpecificBitVector() {
       var source = @"
-      method a(bv:bv7) {
-          assert bv != (2 as bv7);
-      }
-      ".TrimStart();
+method a(bv:bv7) {
+    assert bv != (2 as bv7);
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -525,12 +525,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task UnknownBitVector() {
+    public async Task ArbitraryBitVector() {
       var source = @"
-      method a(b:bv2) {
-          assert b == (1 as bv2);
-      }
-      ".TrimStart();
+method a(b:bv2) {
+    assert b == (1 as bv2);
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -543,10 +543,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task BitWiseAnd() {
       var source = @"
-      method m(a:bv1, b:bv1) {
-          assert a & b != (1 as bv1);
-      }
-      ".TrimStart();
+method m(a:bv1, b:bv1) {
+    assert a & b != (1 as bv1);
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -561,13 +561,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task BitVectorField() {
       var source = @"
-      class Value {
-          var b:bv5;
-      }
-      method a(v:Value) {
-          assert v.b != (2 as bv5);
-      }
-      ".TrimStart();
+class Value {
+    var b:bv5;
+}
+method a(v:Value) {
+    assert v.b != (2 as bv5);
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -578,12 +578,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task SetOfSeqOfSetOfArray() {
+    public async Task SeqSetAndArrayAsTypeParameters() {
       var source = @"
-      method a(s:set<seq<set<array<int>>>>) requires |s| <= 1{
-          assert |s| == 0;
-      }
-      ".TrimStart();
+method a(s:set<seq<set<array<int>>>>) requires |s| <= 1{
+    assert |s| == 0;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -595,10 +595,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task MultiDimensionalArray() {
       var source = @"
-      method m(a:array3<int>) requires a.Length0 == 4 requires a.Length1 == 5 requires a.Length2 == 6 {
-          assert a[2, 3, 1] != 7;
-      }
-      ".TrimStart();
+method m(a:array3<int>) requires a.Length0 == 4 requires a.Length1 == 5 requires a.Length2 == 6 {
+    assert a[2, 3, 1] != 7;
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -609,12 +609,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task ArrayComparison() {
+    public async Task ArrayEqualityByReference() {
       var source = @"
-      method test(x:array<int>, y:array<int>)   {
-        assert x != y;  
-      }
-      ".TrimStart();
+method test(x:array<int>, y:array<int>)   {
+  assert x != y;  
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -626,15 +626,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
 
     [TestMethod]
-    public async Task Sets() {
+    public async Task SetBasicOperations() {
       var source = @"
-      method a(s1:set<char>, s2:set<char>) {
-          var sUnion:set<char> := s1 + s2;
-          var sInter:set<char> := s1 * s2;
-          var sDiff:set<char> := s1 - s2;
-          assert !('a' in sUnion) || ('a' in sInter) || !('b' in sInter) || !('a' in sDiff);
-      }
-      ".TrimStart();
+method a(s1:set<char>, s2:set<char>) {
+    var sUnion:set<char> := s1 + s2;
+    var sInter:set<char> := s1 * s2;
+    var sDiff:set<char> := s1 - s2;
+    assert !('a' in sUnion) || ('a' in sInter) || !('b' in sInter) || !('a' in sDiff);
+}
+".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -663,12 +663,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task SetSingle() {
+    public async Task SetSingleElement() {
       var source = @"
-      method test() {
-        var s := {6};
-        assert 6 !in s;
-      }".TrimStart();
+method test() {
+  var s := {6};
+  assert 6 !in s;
+}".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -681,9 +681,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task StringBuilding() {
       var source = "" +
-      "method a(s:string) {" + 
-      "    assert s != \"abc\";"+
-      "    }".TrimStart();
+"method a(s:string) {" + 
+"    assert s != \"abc\";"+
+"    }".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -696,9 +696,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task SequenceEdit() {
       var source = "" + 
-      "method a(c:char, s1:string) requires s1 == \"abc\"{" +
-      "    var s2:string := s1[1 := c];" +
-      "    assert s2[0] != 'a' || s2[1] !='d' || s2[2] != 'c';}".TrimStart();
+"method a(c:char, s1:string) requires s1 == \"abc\"{" +
+"    var s2:string := s1[1 := c];" +
+"    assert s2[0] != 'a' || s2[1] !='d' || s2[2] != 'c';}".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -713,12 +713,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task SeqSingle() {
+    public async Task SequenceSingleElement() {
       var source = @"
-      method test() {
-        var s := [6];
-        assert 6 !in s;
-      }".TrimStart();
+method test() {
+  var s := [6];
+  assert 6 !in s;
+}".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -731,10 +731,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task SequenceConcat() {
       var source = @"
-      method a(s1:string, s2:string) requires |s1| == 1 && |s2| == 1 {
-          var sCat:string := s2 + s1;
-          assert sCat[0] != 'a' || sCat[1] != 'b';
-      }".TrimStart();
+method a(s1:string, s2:string) requires |s1| == 1 && |s2| == 1 {
+    var sCat:string := s2 + s1;
+    assert sCat[0] != 'a' || sCat[1] != 'b';
+}".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -751,10 +751,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task SequenceGenerate() {
       var source = @"
-      method a(multiplier:int) {
-          var s:seq<int> := seq(3, i => i * multiplier);
-          assert s[2] != 6;
-      }".TrimStart();
+method a(multiplier:int) {
+    var s:seq<int> := seq(3, i => i * multiplier);
+    assert s[2] != 6;
+}".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -769,10 +769,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task SequenceSub() {
       var source = @"
-      method a(s:seq<char>) requires |s| == 5 {
-          var sSub:seq<char> := s[2..4];
-          assert sSub[0] != 'a' || sSub[1] != 'b';
-      }".TrimStart();
+method a(s:seq<char>) requires |s| == 5 {
+    var sSub:seq<char> := s[2..4];
+    assert sSub[0] != 'a' || sSub[1] != 'b';
+}".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -787,10 +787,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task SequenceDrop() {
       var source = @"
-      method a(s:seq<char>) requires |s| == 5 {
-          var sSub:seq<char> := s[2..];
-          assert sSub[0] != 'a' || sSub[1] != 'b' || sSub[2] != 'c';
-      }".TrimStart();
+method a(s:seq<char>) requires |s| == 5 {
+    var sSub:seq<char> := s[2..];
+    assert sSub[0] != 'a' || sSub[1] != 'b' || sSub[2] != 'c';
+}".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -805,10 +805,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     [TestMethod]
     public async Task SequenceTake() {
       var source = @"
-      method a(s:seq<char>) requires |s| == 5 {
-          var sSub:seq<char> := s[..3];
-          assert sSub[0] != 'a' || sSub[1] != 'b' || sSub[2] != 'c';
-      }".TrimStart();
+method a(s:seq<char>) requires |s| == 5 {
+    var sSub:seq<char> := s[..3];
+    assert sSub[0] != 'a' || sSub[1] != 'b' || sSub[2] != 'c';
+}".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -821,12 +821,12 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
     }
     
     [TestMethod]
-    public async Task Shadowing() {
+    public async Task VariableNameShadowing() {
       var source = @"
-      method test(m:set<int>) {
-        var m := {6};
-        assert 6 !in m;
-      }".TrimStart();
+method test(m:set<int>) {
+  var m := {6};
+  assert 6 !in m;
+}".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();

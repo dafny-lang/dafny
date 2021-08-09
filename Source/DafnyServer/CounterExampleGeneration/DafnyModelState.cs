@@ -46,8 +46,8 @@ namespace DafnyServer.CounterExampleGeneration {
       // The following is the queue for elements to be added to the set. The 2nd
       // element of a tuple is the depth of the variable w.r.t. the original set
       List<Tuple<DafnyModelVariable, int>> varsToAdd = new();
-      vars.ForEach(v => varsToAdd.Add(new Tuple<DafnyModelVariable, int>(v, 0)));
-      skolems.ForEach(v => varsToAdd.Add(new Tuple<DafnyModelVariable, int>(v, 0)));
+      vars.ForEach(variable => varsToAdd.Add(new Tuple<DafnyModelVariable, int>(variable, 0)));
+      skolems.ForEach(variable => varsToAdd.Add(new Tuple<DafnyModelVariable, int>(variable, 0)));
       while (varsToAdd.Count != 0) {
         var (next, depth) = varsToAdd[0];
         varsToAdd.RemoveAt(0);
@@ -60,7 +60,7 @@ namespace DafnyServer.CounterExampleGeneration {
         expandedSet.Add(next);
         // fields of primitive types are skipped:
         foreach (var v in next.GetExpansion().
-            Where(x => !expandedSet.Contains(x) && !x.IsPrimitive)) { 
+            Where(variable => !expandedSet.Contains(variable) && !variable.IsPrimitive)) { 
             varsToAdd.Add(new Tuple<DafnyModelVariable, int>(v, depth + 1));
         }
       }
@@ -101,7 +101,7 @@ namespace DafnyServer.CounterExampleGeneration {
       var names = Enumerable.Empty<string>();
       if (Model.States.Count > 0) {
         var prev = Model.States.Last();
-        names = prev.vars.ConvertAll(v => v.Name);
+        names = prev.vars.ConvertAll(variable => variable.Name);
       }
       names = names.Concat(State.Variables).Distinct();
       var curVars = State.Variables.ToDictionary(x => x);

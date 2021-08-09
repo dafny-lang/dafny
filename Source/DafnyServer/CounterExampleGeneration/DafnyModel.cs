@@ -350,7 +350,7 @@ namespace DafnyServer.CounterExampleGeneration {
       if (typeArgs == null) {
         return tagName;
       }
-      return tagName + "<" + String.Join(",", typeArgs.ConvertAll(t => ReconstructType(t))) + ">";
+      return tagName + "<" + String.Join(",", typeArgs.ConvertAll(element => ReconstructType(element))) + ">";
     }
     
     /// <summary>
@@ -564,7 +564,7 @@ namespace DafnyServer.CounterExampleGeneration {
         }
       }
       return "[" + String.Join(",", indices.ToList().
-        ConvertAll(x => x.ToString())) + "]";
+        ConvertAll(element => element.ToString())) + "]";
     }
 
     /// <summary> Unboxes an element, if possible </summary>

@@ -80,13 +80,13 @@ namespace DafnyServer.CounterExampleGeneration {
         string result = state.Model.CanonicalName(Element, state);
         if (children.Count == 0)
           return result == "" ? "()" : result;
-        List<Tuple<string, string>> childList = new();
+        List<(string ChildName, string ChildValue)> childList = new();
         foreach (var childName in children.Keys) {
           foreach (var child in children[childName]) {
             if (child.IsPrimitive) {
-              childList.Add(new Tuple<string, string>(childName, child.Value));
+              childList.Add(new ValueTuple<string, string>(childName, child.Value));
             } else {
-              childList.Add(new Tuple<string, string>(childName, child.ShortName));
+              childList.Add(new ValueTuple<string, string>(childName, child.ShortName));
             }
           }
         }
