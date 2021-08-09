@@ -12,7 +12,6 @@ tab_width = 2
 
 # New line preferences
 end_of_line = lf
-max_line_length = 200
 
 #### .NET Coding Conventions ####
 

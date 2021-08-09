@@ -11,7 +11,7 @@ using Xunit;
 
 namespace DafnyPipeline.Test
 {
-    public class Boogie
+    public class VerificationStability
     {
         [Fact]
         public void CreatingBoogieVariableNameCollisionsHasExpectedDiff() {
@@ -173,8 +173,8 @@ method M(heap: object)
           return result.ToString();
         }
 
-        static Boogie() {
-          var testAssemblyPath = Assembly.GetAssembly(typeof(Boogie)).GetAssemblyLocation();
+        static VerificationStability() {
+          var testAssemblyPath = Assembly.GetAssembly(typeof(VerificationStability)).GetAssemblyLocation();
           var parts = testAssemblyPath.Split(Path.DirectorySeparatorChar);
           // This way of finding the repository root is not reliable, we should instead reference the DafnyPipeline assembly and run Dafny in the same process as the unit tests.
           var sourceIndex = Array.FindIndex(parts, e => e == "Source");
