@@ -24,6 +24,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyLanguageServer", "Dafn
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyLanguageServer.Test", "DafnyLanguageServer.Test\DafnyLanguageServer.Test.csproj", "{320C02A3-D3E6-4AC7-A7E2-170AF86A6EEC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LitTestConvertor.Test", "LitTestConvertor.Test\LitTestConvertor.Test.csproj", "{A4BC2C77-3A48-4917-AA22-41978DFFE24E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Checked|.NET = Checked|.NET
@@ -232,6 +234,30 @@ Global
 		{320C02A3-D3E6-4AC7-A7E2-170AF86A6EEC}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{320C02A3-D3E6-4AC7-A7E2-170AF86A6EEC}.Release|x86.ActiveCfg = Release|Any CPU
 		{320C02A3-D3E6-4AC7-A7E2-170AF86A6EEC}.Release|x86.Build.0 = Release|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Checked|.NET.ActiveCfg = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Checked|.NET.Build.0 = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Checked|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Checked|Any CPU.Build.0 = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Checked|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Checked|Mixed Platforms.Build.0 = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Checked|x86.ActiveCfg = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Checked|x86.Build.0 = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Debug|.NET.ActiveCfg = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Debug|.NET.Build.0 = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Debug|x86.Build.0 = Debug|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Release|.NET.ActiveCfg = Release|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Release|.NET.Build.0 = Release|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Release|x86.ActiveCfg = Release|Any CPU
+		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
