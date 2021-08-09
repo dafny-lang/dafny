@@ -198,6 +198,7 @@ method M(heap: object)
             FileName = "dotnet",
             Arguments = $"{DefaultDafnyArgs} /compile:0 /env:0 /print:- {fileName}",
             RedirectStandardOutput = true,
+            RedirectStandardError = true,
             UseShellExecute = false
           };
           var dafnyProcess = Process.Start(processStartInfo);
@@ -205,6 +206,7 @@ method M(heap: object)
           dafnyProcess.WaitForExit();
 
           if (dafnyProcess.ExitCode != 0) {
+            Console.Write(result);
             Console.Error.Write(dafnyProcess.StandardError.ReadToEnd());
           }
           Assert.Equal(0, dafnyProcess.ExitCode);
