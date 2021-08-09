@@ -39,14 +39,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       return new SymbolDeclarationResolver(_logger, cancellationToken).ProcessProgram(program);
     }
 
-    private static int GetErrorCount(Dafny.Program program) {
-      return program.reporter.AllMessages[ErrorLevel.Error].Count;
-    }
-
     private bool RunDafnyResolver(TextDocumentItem document, Dafny.Program program) {
       var resolver = new Resolver(program);
       resolver.ResolveProgram(program);
-      int resolverErrors = GetErrorCount(program);
+      int resolverErrors = program.reporter.ErrorCount;
       if(resolverErrors > 0) {
         _logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors, document.Uri);
         return false;
