@@ -312,6 +312,16 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public static V GetOrCreate<K, V>(this IDictionary<K, V> dictionary, K key, Func<V> createValue) {
+      if (dictionary.TryGetValue(key, out var result)) {
+        return result;
+      }
+
+      result = createValue();
+      dictionary[key] = result;
+      return result;
+    }
+
     /// <summary>
     /// Generic statistic counter
     /// </summary>
@@ -443,6 +453,20 @@ namespace Microsoft.Dafny {
       foreach (string leaf in leaves) {
         System.Console.WriteLine(leaf);
       }
+    }
+  }
+  
+  class IEnumerableComparer<T> : IEqualityComparer<IEnumerable<T>> {
+    public bool Equals(IEnumerable<T> x, IEnumerable<T> y) {
+      return x.SequenceEqual(y);
+    }
+
+    public int GetHashCode(IEnumerable<T> obj) {
+      var hash = new HashCode();
+      foreach (T t in obj) {
+        hash.Add(t);
+      }
+      return hash.ToHashCode();
     }
   }
 }

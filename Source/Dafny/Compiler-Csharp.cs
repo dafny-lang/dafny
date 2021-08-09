@@ -347,7 +347,8 @@ namespace Microsoft.Dafny
       //    }}
       //   ...
       // }
-      var DtT_TypeArgs = TypeParameters(dt.TypeArgs);
+      var nonGhostTypeArgs = SelectNonGhost(dt, dt.TypeArgs);
+      var DtT_TypeArgs = TypeParameters(nonGhostTypeArgs);
       var DtT_protected = IdName(dt) + DtT_TypeArgs;
 
       // from here on, write everything into the new block created here:
@@ -362,7 +363,7 @@ namespace Microsoft.Dafny
       }
 
       var wDefault = new ConcreteSyntaxTree();
-      if (dt.TypeArgs.Count == 0) {
+      if (nonGhostTypeArgs.Count == 0) {
         wr.FormatLine($"private static readonly {DtT_protected} theDefault = {wDefault};");
         var w = wr.NewBlock($"public static {DtT_protected} Default()");
         w.WriteLine("return theDefault;");
@@ -414,7 +415,7 @@ namespace Microsoft.Dafny
       }
 
       if (dt.HasFinitePossibleValues) {
-        Contract.Assert(dt.TypeArgs.Count == 0);
+        Contract.Assert(nonGhostTypeArgs.Count == 0);
         var w = wr.NewNamedBlock(
           $"public static System.Collections.Generic.IEnumerable<{DtT_protected}> AllSingletonConstructors");
         var wGet = w.NewBlock("get");
@@ -487,7 +488,8 @@ namespace Microsoft.Dafny
 
     void CompileDatatypeConstructors(DatatypeDecl dt, ConcreteSyntaxTree wrx) {
       Contract.Requires(dt != null);
-      string typeParams = TypeParameters(dt.TypeArgs);
+      var nonGhostTypeArgs = SelectNonGhost(dt, dt.TypeArgs);
+      string typeParams = TypeParameters(nonGhostTypeArgs);
       if (dt is CoDatatypeDecl) {
         // public class Dt__Lazy<T> : Dt<T> {
         //   public delegate Dt<T> Computer();
@@ -514,7 +516,7 @@ namespace Microsoft.Dafny
       int constructorIndex = 0; // used to give each constructor a different name
       foreach (DatatypeCtor ctor in dt.Ctors) {
         var wr = wrx.NewNamedBlock(
-          $"public class {DtCtorDeclarationName(ctor)}{TypeParameters(dt.TypeArgs)} : {IdName(dt)}{typeParams}");
+          $"public class {DtCtorDeclarationName(ctor)}{TypeParameters(nonGhostTypeArgs)} : {IdName(dt)}{typeParams}");
         DatatypeFieldsAndConstructor(ctor, constructorIndex, wr);
         constructorIndex++;
       }
@@ -565,15 +567,17 @@ namespace Microsoft.Dafny
         }
       }
 
+      var nonGhostTypeArgs = SelectNonGhost(dt, dt.TypeArgs);
+
       if (dt is CoDatatypeDecl) {
-        string typeParams = TypeParameters(dt.TypeArgs);
+        string typeParams = TypeParameters(nonGhostTypeArgs);
         wr.WriteLine($"public override {dt.CompileName}{typeParams} _Get() {{ return this; }}");
       }
 
       // Equals method
       {
         var w = wr.NewBlock("public override bool Equals(object other)");
-        w.WriteLine($"var oth = other as {DtCtorName(ctor)}{TypeParameters(dt.TypeArgs)};");
+        w.WriteLine($"var oth = other as {DtCtorName(ctor)}{TypeParameters(nonGhostTypeArgs)};");
         w.Write("return oth != null");
         i = 0;
         foreach (Formal arg in ctor.Formals) {
@@ -1190,8 +1194,9 @@ namespace Microsoft.Dafny
         }
       } else if (cl is DatatypeDecl dt) {
         var s = FullTypeName(udt);
-        if (udt.TypeArgs.Count != 0) {
-          s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
+        var nonGhostTypeArgs = SelectNonGhost(dt, udt.TypeArgs);
+        if (nonGhostTypeArgs.Count != 0) {
+          s += "<" + TypeNames(nonGhostTypeArgs, wr, udt.tok) + ">";
         }
         var relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs);
         return string.Format($"{s}.Default({relevantTypeArgs.Comma(ta => DefaultValue(ta.Actual, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors))})");
@@ -1946,7 +1951,8 @@ namespace Microsoft.Dafny
       var dt = dtv.Ctor.EnclosingDatatype;
       var dtName = dt.EnclosingModuleDefinition.IsDefaultModule ? dt.CompileName : dt.FullCompileName;
 
-      var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : $"<{TypeNames(dtv.InferredTypeArgs, wr, dtv.tok)}>";
+      var nonGhostInferredTypeArgs = SelectNonGhost(dt, dtv.InferredTypeArgs);
+      var typeParams = nonGhostInferredTypeArgs.Count == 0 ? "" : $"<{TypeNames(nonGhostInferredTypeArgs, wr, dtv.tok)}>";
       if (!dtv.IsCoCall) {
         // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
         //   Dt.create_Cons<T>( args )
