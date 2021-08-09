@@ -832,5 +832,129 @@ method test(m:set<int>) {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       // Just make sure there are no errors ot infinite loops here
     }
+    
+    [TestMethod]
+    public async Task MapsCreation() {
+      var source = @"
+method test() {
+  var m := map[3 := false];
+  assert m[3];
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(2, counterExamples.Length);
+      Assert.AreEqual(1, counterExamples[1].Variables.Count);
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int,bool>"));
+      StringAssert.Matches(counterExamples[1].Variables["m:map<int,bool>"], new Regex("\\(.*3 := false.*"));
+    }
+
+    [TestMethod]
+    public async Task MapsUpdate() {
+      var source = @"
+method test(value:int) {
+  var m := map[3 := -1];
+  var b := m[3] == -1;
+  m := m[3 := value];
+  assert b && m[3] <= 0;
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(4, counterExamples.Length);
+      Assert.AreEqual(2, counterExamples[1].Variables.Count);
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int,int>"));
+      StringAssert.Matches(counterExamples[1].Variables["m:map<int,int>"], new Regex("\\(.*3 := -1.*"));
+      Assert.AreEqual(3, counterExamples[3].Variables.Count);
+      Assert.IsTrue(counterExamples[3].Variables.ContainsKey("m:map<int,int>"));
+      Assert.IsTrue(counterExamples[3].Variables.ContainsKey("value:int"));
+      Assert.IsTrue(counterExamples[3].Variables.ContainsKey("b:bool"));
+      Assert.AreEqual("true", counterExamples[3].Variables["b:bool"]);
+      StringAssert.Matches(counterExamples[3].Variables["value:int"], new Regex("[1-9][0-9]*"));
+      StringAssert.Matches(counterExamples[3].Variables["m:map<int,int>"], new Regex("\\(.*3 := [1-9].*"));
+    }
+    
+    [TestMethod]
+    public async Task MapsUpdateStoredInANewVariable() {
+      var source = @"
+method T_map1(m:map<int,int>, key:int, val:int)
+  requires key in m.Keys
+{
+  var m' := m[key := val - 1];    
+  m' := m'[key := val];
+  assert m'.Values == m.Values - {m[key]} + {val};  
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(3, counterExamples.Length);
+      Assert.AreEqual(4, counterExamples[2].Variables.Count);
+      Assert.IsTrue(counterExamples[2].Variables.ContainsKey("m:map<int,int>"));
+      Assert.IsTrue(counterExamples[2].Variables.ContainsKey("m':map<int,int>"));
+      Assert.IsTrue(counterExamples[2].Variables.ContainsKey("val:int"));
+      Assert.IsTrue(counterExamples[2].Variables.ContainsKey("key:int"));
+      var key = counterExamples[2].Variables["key:int"];
+      var val = counterExamples[2].Variables["val:int"];
+      StringAssert.Matches(counterExamples[2].Variables["m':map<int,int>"], new Regex("\\(.*"+key+" := "+val+".*"));
+    }
+    
+    [TestMethod]
+    public async Task MapsValuesUpdate() {
+      // This corner case previously triggered infinite loops
+      var source = @"
+method T_map0(m:map<int,int>, key:int, val:int) 
+{
+    var m' := m[key := val];    
+    assert m.Values + {val} == m'.Values;  
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(2, counterExamples.Length);
+      Assert.AreEqual(4, counterExamples[1].Variables.Count);
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int,int>"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m':map<int,int>"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("val:int"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("key:int"));
+      var key = counterExamples[1].Variables["key:int"];
+      var val = counterExamples[1].Variables["val:int"];
+      StringAssert.Matches(counterExamples[1].Variables["m':map<int,int>"], new Regex("\\(.*"+key+" := "+val+".*"));
+    }
+
+    [TestMethod]
+    public async Task MapsKeys() {
+      var source = @"
+      method test(m:map<int,char>) {
+       var keys := m.Keys;
+       assert (25 !in keys);
+      }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(2, counterExamples.Length);
+      Assert.AreEqual(2, counterExamples[1].Variables.Count);
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int,char>"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("keys:set<int>"));
+      StringAssert.Matches(counterExamples[1].Variables["m:map<int,char>"], new Regex("\\(.*25 := .*"));
+      StringAssert.Matches(counterExamples[1].Variables["keys:set<int>"], new Regex("\\(.*25 := true.*"));
+    }
+    
+    [TestMethod]
+    public async Task MapsValues() {
+      var source = @"
+      method test(m:map<int,char>) {
+       var values := m.Values;
+       assert ('c' !in values);
+      }".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(2, counterExamples.Length);
+      Assert.AreEqual(2, counterExamples[1].Variables.Count);
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int,char>"));
+      Assert.IsTrue(counterExamples[1].Variables.ContainsKey("values:set<char>"));
+      StringAssert.Matches(counterExamples[1].Variables["m:map<int,char>"], new Regex("\\(.* := 'c'.*"));
+      StringAssert.Matches(counterExamples[1].Variables["values:set<char>"], new Regex("\\(.*'c' := true.*"));
+    }
   }
 }

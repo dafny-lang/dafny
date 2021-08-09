@@ -18,7 +18,8 @@ namespace DafnyServer.CounterExampleGeneration {
       fDim, fIndexField, fMultiIndexField, fDtype, fCharToInt, fTag, fBv, fType,
       fChar, fNull, fSetUnion, fSetIntersection, fSetDifference, fSetUnionOne, 
       fSetEmpty, fSeqEmpty, fSeqBuild, fSeqAppend, fSeqDrop, fSeqTake, 
-      fSeqUpdate, fSeqCreate, fReal, fU2Real, fBool, fU2Bool, fInt, fU2Int;
+      fSeqUpdate, fSeqCreate, fReal, fU2Real, fBool, fU2Bool, fInt, fU2Int, 
+      fMapDomain, fMapElements, fMapBuild;
     private readonly Dictionary<Model.Element, Model.Element[]> arrayLengths = new();
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
     private readonly Dictionary<Model.Element, string> localValue = new();
@@ -41,6 +42,9 @@ namespace DafnyServer.CounterExampleGeneration {
       fSetUnionOne = model.MkFunc("Set#UnionOne", 2);
       fSetIntersection = model.MkFunc("Set#Intersection", 2);
       fSetDifference = model.MkFunc("Set#Difference", 2);
+      fMapDomain = model.MkFunc("Map#Domain", 1);
+      fMapElements = model.MkFunc("Map#Elements", 1);
+      fMapBuild = model.MkFunc("Map#Build", 3);
       fBox = model.MkFunc("$Box", 1);
       fDim = model.MkFunc("FDim", 1);
       fIndexField = model.MkFunc("IndexField", 1);
@@ -196,6 +200,9 @@ namespace DafnyServer.CounterExampleGeneration {
       if (Model.GetFunc("MapType0TypeInv0").OptEval(typeElement) != null) {
         return "SetType";
       }
+      if (Model.GetFunc("MapTypeInv0").OptEval(typeElement) != null) {
+        return "MapType"; // TODO: make sure this clearly differentiates maps
+      }
       return null;
     }
     
@@ -301,6 +308,16 @@ namespace DafnyServer.CounterExampleGeneration {
             return ReconstructType(isOfType[0]);
           }
           return "?";
+        case "MapType": 
+          isOfType = GetIsResults(element);
+          if (isOfType.Count > 0) {
+            return ReconstructType(isOfType[0]);
+          }
+          var mapOperation = fMapBuild.AppWithResult(element);
+          if (mapOperation != null) {
+            return GetDafnyType(mapOperation.Args.First());
+          }
+          return "map<?,?>";
         case "refType":
           return ReconstructType(fDtype.OptEval(element));
         case null:
@@ -336,7 +353,8 @@ namespace DafnyServer.CounterExampleGeneration {
       var tagName = GetTrueName(tagElement);
       if (tagName == null || tagName.Length < 10 && tagName != "TagSeq" &&
                               tagName != "TagSet" &&
-                              tagName != "TagBitVector") {
+                              tagName != "TagBitVector" &&
+                              tagName != "TagMap") {
         return "?";
       }
       var typeArgs = Model.GetFunc("T" + tagName.Substring(3))?.
@@ -345,6 +363,7 @@ namespace DafnyServer.CounterExampleGeneration {
       tagName = tagName switch {
         "TagSeq" => "seq",
         "TagSet" => "set",
+        "TagMap" => "map",
         _ => tagName.Substring(9)
       };
       if (typeArgs == null) {
@@ -492,6 +511,41 @@ namespace DafnyServer.CounterExampleGeneration {
       if (result.Count != 0) { // Elt is a set
         return result;
       }
+      
+      var mapDomain = fMapDomain.OptEval(var.Element);
+      var mapElements = fMapElements.OptEval(var.Element);
+      var mapBuild = fMapBuild.AppWithResult(var.Element);
+      while (mapBuild != null) {
+        var key = DafnyModelVariableFactory.Get(state, Unbox(mapBuild.Args[1]), "", var);
+        var value = DafnyModelVariableFactory.Get(state, Unbox(mapBuild.Args[2]), "", var);
+        result.Add(key);
+        result.Add(value);
+        ((MapVariable)var).AddMapping(key, value);
+        mapDomain = fMapDomain.OptEval(mapBuild.Args[0]);
+        mapElements = fMapElements.OptEval(mapBuild.Args[0]);
+        if (fMapBuild.AppWithResult(mapBuild.Args[0]) == mapBuild) {
+          break; // can happen when constructing maps with single application
+        }
+        mapBuild = fMapBuild.AppWithResult(mapBuild.Args[0]);
+      }
+      if (mapDomain != null && mapElements != null) {
+        foreach (var app in fSetSelect.AppsWithArg(0, mapDomain)) {
+          if (!((Model.Boolean) app.Result).Value) {
+            continue; // TODO: maybe do something else in this situation?
+          }
+          var key = DafnyModelVariableFactory.Get(state, Unbox(app.Args[1]), "", var);
+          result.Add(key);
+          var valueElement = fSetSelect.OptEval(mapElements, app.Args[1]);
+          if (valueElement == null) {
+              ((MapVariable)var).AddMapping(key, null);
+          } else {
+            var value = DafnyModelVariableFactory.Get(state, Unbox(valueElement), "", var);
+            result.Add(value);
+            ((MapVariable)var).AddMapping(key, value);
+          }
+        }
+      }
+      
       if (arrayLengths.TryGetValue(var.Element, out var lengths)) {
         // Elt is an array
         var i = 0;

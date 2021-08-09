@@ -39,6 +39,9 @@ namespace DafnyServer.CounterExampleGeneration {
       if (state.Model.GetDafnyType(element).StartsWith("seq<")) {
         return new SeqVariable(state, element, name, parent);
       }
+      if (state.Model.GetDafnyType(element).StartsWith("map<")) {
+        return new MapVariable(state, element, name, parent);
+      }
       return new DafnyModelVariable(state, element, name, parent);
     }
   }
@@ -186,4 +189,43 @@ namespace DafnyServer.CounterExampleGeneration {
     }
   }
 
+  public class MapVariable : DafnyModelVariable {
+
+    private readonly Dictionary<DafnyModelVariable, DafnyModelVariable> mappings = new();
+
+    internal MapVariable(DafnyModelState state, Model.Element element, string name, DafnyModelVariable parent) : base(state, element, name, parent) { }
+
+    public override string Value {
+      get {
+        if (mappings.Count == 0)
+          return "()";
+        // maps a key value pair to how many times it appears in the map
+        // a key value pair can appear many times in a map due to "?:int" etc.
+        Dictionary<string, int> mapStrings = new();
+        foreach (var key in mappings.Keys) {
+          var keyString = key.IsPrimitive ? key.Value : key.Name;
+          var valueString = "?";
+          if (mappings[key] != null) {
+            valueString = mappings[key].IsPrimitive
+              ? mappings[key].Value
+              : mappings[key].Name;
+          }
+          var mapString = keyString + " := " + valueString;
+          mapStrings[mapString] = mapStrings.GetValueOrDefault(mapString, 0) + 1;
+        }
+        return "(" + String.Join(", ", mapStrings.Keys.ToList()
+          .ConvertAll(keyValuePair => 
+            mapStrings[keyValuePair] == 1 ? 
+              keyValuePair: 
+              keyValuePair + " [+"+ (mapStrings[keyValuePair] - 1) + "]")) + ")";
+      }
+    }
+    
+    public void AddMapping(DafnyModelVariable from, DafnyModelVariable to) {
+      if (mappings.ContainsKey(from)) {
+        return;
+      }
+      mappings[from] = to;
+    }
+  }  
 }
