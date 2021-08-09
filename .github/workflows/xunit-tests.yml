@@ -14,7 +14,6 @@ jobs:
     env:
       testPath: Source/DafnyLanguageServer.Test/bin/Debug/net5.0
       solutionPath: Source/Dafny.sln
-      testProjectPath: Source/DafnyLanguageServer.Test/DafnyLanguageServer.Test.csproj
       z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
       z3: z3-4.8.5-x64-ubuntu-16.04
     steps:
@@ -39,4 +38,4 @@ jobs:
     - name: Set Z3 Permissions
       run: chmod +x ${{env.testPath}}/z3/bin/z3
     - name: Run Tests
-      run: dotnet test --no-restore --verbosity normal ${{env.testProjectPath}}
+      run: dotnet test --no-restore --verbosity normal Source/Dafny.sln

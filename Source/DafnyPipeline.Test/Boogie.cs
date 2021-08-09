@@ -1,8 +1,12 @@
+using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 using DiffPlex.DiffBuilder;
 using DiffPlex.DiffBuilder.Model;
+using Microsoft.VisualStudio.TestPlatform.PlatformAbstractions;
 using Xunit;
 
 namespace DafnyPipeline.Test
@@ -169,8 +173,16 @@ method M(heap: object)
           return result.ToString();
         }
 
-        const string defaultDafnyArgs =
-          "dotnet run --no-build --project /Users/rwillems/Documents/SourceCode/dafny/Source/DafnyDriver/DafnyDriver.csproj -- -useBaseNameForFileName -countVerificationErrors:0 -compileVerbose:0 /errorTrace:0";
+        static Boogie() {
+          var testAssemblyPath = Assembly.GetAssembly(typeof(Boogie)).GetAssemblyLocation();
+          var parts = testAssemblyPath.Split(Path.DirectorySeparatorChar);
+          var sourceIndex = Array.FindIndex(parts, e => e == "Source");
+          dafnyDirectory = Path.Combine(Path.GetPathRoot(testAssemblyPath)!, Path.Combine(parts.Take(sourceIndex).ToArray()));
+        }
+
+        private static readonly string dafnyDirectory;
+        private static string DefaultDafnyArgs => $"dotnet run --no-build --project {dafnyDirectory}/Source/DafnyDriver/DafnyDriver.csproj -- -useBaseNameForFileName -countVerificationErrors:0 -compileVerbose:0 /errorTrace:0";
+        
         string GetBoogie(string dafnyProgram, string optionalFileName = null) {
           string fileName = optionalFileName ?? Path.GetTempFileName() + ".dfy";
           var writer  = File.CreateText(fileName);
@@ -179,7 +191,7 @@ method M(heap: object)
           var processStartInfo = new ProcessStartInfo
           {
             FileName = "dotnet",
-            Arguments = $"{defaultDafnyArgs} /compile:0 /env:0 /print:- {fileName}",
+            Arguments = $"{DefaultDafnyArgs} /compile:0 /env:0 /print:- {fileName}",
             RedirectStandardOutput = true,
             UseShellExecute = false
           };
