@@ -10564,7 +10564,9 @@ namespace Microsoft.Dafny {
           if (assertStmt != null && assertStmt.Proof != null) {
             proofBuilder = new BoogieStmtListBuilder(this);
             AddComment(proofBuilder, stmt, "assert statement proof");
+            CurrentIdGenerator.Push();
             TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
+            CurrentIdGenerator.Pop();
           } else if (assertStmt != null && assertStmt.Label != null) {
             proofBuilder = new BoogieStmtListBuilder(this);
             AddComment(proofBuilder, stmt, "assert statement proof");
@@ -10944,11 +10946,13 @@ namespace Microsoft.Dafny {
           TrStmt_CheckWellformed(guard, builder, locals, etran, true);
         }
         BoogieStmtListBuilder b = new BoogieStmtListBuilder(this);
-        CurrentIdGenerator.Push();
         if (s.IsBindingGuard) {
+          CurrentIdGenerator.Push();
           var exists = (ExistsExpr)s.Guard;  // the original (that is, not alpha-renamed) guard
           IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran, stmt.IsGhost);
+          CurrentIdGenerator.Pop();
         }
+        CurrentIdGenerator.Push();
         Bpl.StmtList thn = TrStmt2StmtList(b, s.Thn, locals, etran);
         CurrentIdGenerator.Pop();
         Bpl.StmtList els;
@@ -10960,7 +10964,9 @@ namespace Microsoft.Dafny {
         if (s.Els == null) {
           els = b.Collect(s.Tok);
         } else {
+          CurrentIdGenerator.Push();
           els = TrStmt2StmtList(b, s.Els, locals, etran);
+          CurrentIdGenerator.Pop();
           if (els.BigBlocks.Count == 1) {
             Bpl.BigBlock bb = els.BigBlocks[0];
             if (bb.LabelName == null && bb.simpleCmds.Count == 0 && bb.ec is Bpl.IfCmd) {
@@ -11123,7 +11129,9 @@ namespace Microsoft.Dafny {
         } else {
           // do the body, but with preModifyHeapVar as the governing frame
           var updatedFrameEtran = new ExpressionTranslator(etran, modifyFrameName);
+          CurrentIdGenerator.Push();
           TrStmt(s.Body, builder, locals, updatedFrameEtran);
+          CurrentIdGenerator.Pop();
         }
         builder.Add(CaptureState(stmt));
 
@@ -11131,6 +11139,7 @@ namespace Microsoft.Dafny {
         var s = (ForallStmt)stmt;
         this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
 
+        CurrentIdGenerator.Push();
         if (s.Kind == ForallStmt.BodyKind.Assign) {
           AddComment(builder, stmt, "forall statement (assign)");
           Contract.Assert(s.Ens.Count == 0);
@@ -11181,6 +11190,7 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(false);  // unexpected kind
         }
+        CurrentIdGenerator.Pop();
         this.fuelContext = FuelSetting.PopFuelContext();
       } else if (stmt is CalcStmt) {
         /* Translate into:
