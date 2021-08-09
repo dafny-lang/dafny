@@ -1,0 +1,7 @@
+Override.dfy(44,11): Error: the function must provide an equal or more detailed postcondition than in its parent trait
+Override.dfy(46,11): Error: the function must provide an equal or more detailed postcondition than in its parent trait
+Override.dfy(49,24): Error: cannot prove termination; try supplying a decreases clause
+Override.dfy(48,11): Error: the function must provide an equal or more detailed postcondition than in its parent trait
+Override.dfy(5,22): Error: insufficient reads clause to invoke function
+
+Dafny program verifier finished with 11 verified, 5 errors
