@@ -3,23 +3,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 
 namespace DafnyServer.CounterExampleGeneration {
-  
-  public class DafnyModelVariable {
-    
-    public readonly string Name; // name given to the variable at creation
-    public readonly string Type; // Dafny type of the variable
-    internal readonly Model.Element Element;
-    private readonly DafnyModelState state; // the associated captured state
-    // A child is a field or a value at a given index of an array, etc.
-    // This dictionary associates a child name with resp. variable:
-    // several children can have same names (particularly, sets can have
-    // many children called true and falls)
-    private readonly Dictionary<string, HashSet<DafnyModelVariable>> children; 
 
+  public static class DafnyModelVariableFactory {
+    
     /// <summary>
     /// Create a new variable to be associated with the given model element in
     /// a given counterexample state or return such a variable if one already
@@ -43,11 +34,28 @@ namespace DafnyServer.CounterExampleGeneration {
         if (!duplicate) {
           return state.GetVar(element);
         }
+        return new DuplicateVariable(state, state.GetVar(element), name, parent);
       }
-      return new(state, element, name, parent);
+      if (state.Model.GetDafnyType(element).StartsWith("seq<")) {
+        return new SeqVariable(state, element, name, parent);
+      }
+      return new DafnyModelVariable(state, element, name, parent);
     }
+  }
+  
+  public class DafnyModelVariable {
+    
+    public readonly string Name; // name given to the variable at creation
+    public readonly string Type; // Dafny type of the variable
+    internal readonly Model.Element Element;
+    private readonly DafnyModelState state; // the associated captured state
+    // A child is a field or a value at a given index of an array, etc.
+    // This dictionary associates a child name with resp. variable:
+    // several children can have same names (particularly, sets can have
+    // many children called true and falls)
+    private readonly Dictionary<string, HashSet<DafnyModelVariable>> children;
 
-    private DafnyModelVariable(DafnyModelState state, Model.Element element, 
+    internal DafnyModelVariable(DafnyModelState state, Model.Element element, 
       string name, DafnyModelVariable parent) {
       this.state = state;
       Element = element;
@@ -56,17 +64,18 @@ namespace DafnyServer.CounterExampleGeneration {
       state.AddVar(element, this);
       if (parent == null) {
         Name = name;
-        return;
+      } else {
+        Name = "@" + state.VarIndex++;
+        parent.AddChild(name, this);
       }
-      Name = "@" + state.VarIndex++;
-      parent.AddChild(name, this);
+      state.AddVarName(ShortName);
     }
 
-    public IEnumerable<DafnyModelVariable> GetExpansion() {
+    public virtual IEnumerable<DafnyModelVariable> GetExpansion() {
       return state.Model.GetExpansion(state, this);
     }
 
-    public string Value {
+    public virtual string Value {
       get {
         string result = state.Model.CanonicalName(Element, state);
         if (children.Count == 0)
@@ -95,9 +104,14 @@ namespace DafnyServer.CounterExampleGeneration {
 
     public bool IsPrimitive => DafnyModel.IsPrimitive(Element, state);
     
-    public string ShortName => Regex.Replace(Name, @"#\d+$", "");
-    
-    private void AddChild(string name, DafnyModelVariable child) {
+    public string ShortName {
+      get {
+        var shortName = Regex.Replace(Name, @"#\d+$", "");
+        return state.VarNameIsShared(shortName) ? Name : shortName;
+      }
+    }
+
+    internal void AddChild(string name, DafnyModelVariable child) {
       if (!children.ContainsKey(name)) {
         children[name] = new();
       }
@@ -114,4 +128,62 @@ namespace DafnyServer.CounterExampleGeneration {
       return other.Element == Element && other.state == state && other.Name == Name;
     }
   }
+
+  public class DuplicateVariable : DafnyModelVariable {
+    private readonly DafnyModelVariable original;
+
+    internal DuplicateVariable(DafnyModelState state, DafnyModelVariable original, string newName, DafnyModelVariable parent)
+      : base(state, original.Element, newName, parent) {
+      this.original = original;
+    }
+
+    public override string Value => original.ShortName;
+
+    public override IEnumerable<DafnyModelVariable> GetExpansion() {
+      return original.GetExpansion();
+    }
+  }
+  
+  public class SeqVariable : DafnyModelVariable {
+    
+    private DafnyModelVariable seqLength;
+    Dictionary<int, DafnyModelVariable> seqElements;
+
+    internal SeqVariable(DafnyModelState state, Model.Element element, string name, DafnyModelVariable parent)
+      : base(state, element, name, parent) {
+      seqLength = null;
+      seqElements = new Dictionary<int, DafnyModelVariable>();
+    }
+
+    public override string Value {
+      get {
+        var length = (seqLength?.Element as Model.Integer)?.AsInt();
+        if (length == null || seqElements.Count != length) {
+          return base.Value;
+        }
+        List<string> result = new();
+        for (int i = 0; i < length; i++) {
+          if (!seqElements.ContainsKey(i)) {
+            return base.Value;
+          }
+          result.Add(seqElements[i].IsPrimitive ? 
+            seqElements[i].Value : 
+            seqElements[i].ShortName);
+        }
+        return "(" + String.Join(", ", result) + ")";
+      }
+    }
+
+    public void SetLength(DafnyModelVariable seqLength) {
+      this.seqLength = seqLength;
+    }
+
+    public void AddAtIndex(DafnyModelVariable e, int? index) {
+      if (index == null) {
+        return;
+      }
+      seqElements[(int) index] = e;
+    }
+  }
+
 }

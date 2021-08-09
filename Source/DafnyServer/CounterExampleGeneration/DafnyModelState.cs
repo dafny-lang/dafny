@@ -18,11 +18,7 @@ namespace DafnyServer.CounterExampleGeneration {
     // The following map helps to avoid the creation of multiple variables for
     // the same element.
     private readonly Dictionary<Model.Element, DafnyModelVariable> varMap;
-    
-    // The following is used to assign unique character codes to elements for
-    // which the model does not provide precise mapping
-    private readonly Dictionary<string, HashSet<int>> uniqueIds;
-    private readonly Dictionary<string, Dictionary<Model.Element, int>> elToId;
+    private readonly Dictionary<string, int> varNamesMap;
 
     public DafnyModelState(DafnyModel model, Model.CapturedState state) {
       Model = model;
@@ -30,9 +26,8 @@ namespace DafnyServer.CounterExampleGeneration {
       VarIndex = 0;
       vars = new();
       varMap = new ();
+      varNamesMap = new();
       skolems = new List<DafnyModelVariable>(SkolemVars());
-      uniqueIds = new();
-      elToId = new();
       SetupVars();
     }
 
@@ -77,51 +72,27 @@ namespace DafnyServer.CounterExampleGeneration {
     }
 
     public void AddVar(Model.Element element, DafnyModelVariable var) {
-      varMap[element] = var;
+      if (!ExistsVar(element)) {
+        varMap[element] = var;
+      }
     }
     
     public DafnyModelVariable GetVar(Model.Element element) {
       return varMap[element];
     }
+
+    public void AddVarName(string name) {
+      varNamesMap[name] = varNamesMap.GetValueOrDefault(name, 0) + 1;
+    }
+
+    public bool VarNameIsShared(string name) {
+      return varNamesMap.GetValueOrDefault(name, 0) > 1;
+    }
     
     public string FullStateName => State.Name;
 
     public string ShortenedStateName => ShortenName(State.Name, 20);
-
-    /// <summary>
-    /// Initializes the set of values of some type for which the model already
-    /// has a mapping and which cannot be assigned to arbitrary elements. This
-    /// is used for chars and could be used for bitvectors
-    /// </summary>
-    internal void SetupUniqueIds(string type, IEnumerable<int> reservedValues) {
-      if (!elToId.ContainsKey(type)) {
-        uniqueIds[type] = new();
-      }
-      foreach (var value in reservedValues) {
-        uniqueIds[type].Add(value);
-      }
-    }
-
-    /// <summary>
-    /// Returns a unique integer mapping for an element (e.g. utf for a char).
-    /// </summary>
-    internal int GetUniqueId(Model.Element element, string type, int minValue=0) {
-      if (!elToId.ContainsKey(type)) {
-        elToId[type] = new();
-        uniqueIds[type] = new();
-      }
-      if (elToId[type].ContainsKey(element)) {
-        return elToId[type][element];
-      }
-      var value = minValue;
-      while (uniqueIds[type].Contains(value)) {
-        value++;
-      }
-      uniqueIds[type].Add(value);
-      elToId[type][element] = value;
-      return value;
-    }
-
+    
     /// <summary>
     /// Initialize the vars list, which stores all variables relevant to
     /// the counterexample except for Skolem constants
@@ -139,7 +110,7 @@ namespace DafnyServer.CounterExampleGeneration {
           continue;
         }
         var val = State.TryGet(v);
-        var vn = DafnyModelVariable.Get(this, val, v, duplicate:true);
+        var vn = DafnyModelVariableFactory.Get(this, val, v, duplicate:true);
         if (curVars.ContainsKey(v)) {
           Model.RegisterLocalValue(vn.Name, val);
         }
@@ -163,7 +134,7 @@ namespace DafnyServer.CounterExampleGeneration {
         if (!name.Contains('#')) {
           continue;
         }
-        yield return DafnyModelVariable.Get(this, f.GetConstant(), name, 
+        yield return DafnyModelVariableFactory.Get(this, f.GetConstant(), name, 
           null, true);
       }
     }
