@@ -206,8 +206,10 @@ method M(heap: object)
           dafnyProcess.WaitForExit();
 
           if (dafnyProcess.ExitCode != 0) {
-            Console.Write(result);
-            Console.Error.Write(dafnyProcess.StandardError.ReadToEnd());
+            Console.Out.WriteLine("Result:");
+            Console.Out.WriteLine(result);
+            Console.Out.WriteLine(dafnyProcess.StandardError.ReadToEnd());
+            Console.Out.Flush();
           }
           Assert.Equal(0, dafnyProcess.ExitCode);
           return result;
