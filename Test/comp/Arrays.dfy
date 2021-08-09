@@ -1,3 +1,10 @@
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %diff "%s.expect" "%t"
+
 method LinearSearch(a: array<int>, key: int) returns (n: nat)
   ensures 0 <= n <= a.Length
   ensures n == a.Length || a[n] == key

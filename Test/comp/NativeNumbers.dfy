@@ -1,12 +1,10 @@
-/*
----
-!dafnyTestSpec
-compileTargetOverrides:
-    js:
-        expected:
-            outputFile: NativeNumbers.dfy.js.expect
-            specialCaseReason: :nativeType doesn't work correctly for JavaScript
-*/
+// Skip JavaScript because JavaScript doesn't have the same native types
+
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %diff "%s.expect" "%t"
+
 method Main() {
   CastTests();
   DefaultTests();

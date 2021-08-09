@@ -1,13 +1,8 @@
-/*
----
-!dafnyTestSpec
-compileTargetOverrides:
-    java:
-        expected:
-            exitCode: 134
-            outputFile: ~
-            specialCaseReason: Iterators are not implemented for Java
-*/
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class C {
   var x: int
   // for variety, the following tests the use of an instance Main method

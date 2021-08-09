@@ -1,30 +1,10 @@
-/*
----
-!dafnyTestSpec
-compileTargetOverrides:
-    java:
-        otherFiles:
-            - Class.java
-    cs:
-        otherFiles:
-            - ExternCtors-externs/Library.cs
-    js:
-        otherFiles:
-            - ExternCtors-externs/Library.js
-        expected:
-            # The expected exit code should be 3, but /countVerificationErrors:0 is overriding that
-            # https://github.com/dafny-lang/dafny/issues/887
-            outputFile: ~
-            specialCaseReason: Extern constructors are currently broken in JavaScript
-    go:
-        otherFiles:
-            - ExternCtors-externs/Library.go
-        expected:
-            # The expected exit code should be 3, but /countVerificationErrors:0 is overriding that
-            # https://github.com/dafny-lang/dafny/issues/887
-            outputFile: ~
-            specialCaseReason: Extern constructors are currently broken in Go
-*/
+// RUN: %dafny /compile:3 /compileTarget:cs "%s" ExternCtors-externs/Library.cs > "%t"
+// RUN: %dafny /compile:3 /compileTarget:java "%s" ExternCtors-externs/Class.java >> "%t"
+// RUN: %diff "%s.expect" "%t"
+
+// FIXME: Extern constructors are currently broken in Go and JavaScript,
+// so they are omitted
+
 method Main() {
   Library.Class.SayHi();
   var obj := new Library.Class(42);

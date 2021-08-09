@@ -1,24 +1,9 @@
-/*
----
-!dafnyTestSpec
-compileTargetOverrides:
-    cs:
-        expected:
-            outputFile: TypeParams.dfy.cs.expect
-            specialCaseReason: Function printing is inconsistent
-    java:
-        expected:
-            outputFile: TypeParams.dfy.java.expect
-            specialCaseReason: Function printing is inconsistent
-    js:
-        expected:
-            outputFile: TypeParams.dfy.js.expect
-            specialCaseReason: Function printing is inconsistent
-    go:
-        expected:
-            outputFile: TypeParams.dfy.go.expect
-            specialCaseReason: Function printing is inconsistent
-*/
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %diff "%s.expect" "%t"
+
 datatype Color = Orange | Pink | Teal
 type Six = x | x <= 6
 newtype Even = x | x % 2 == 0

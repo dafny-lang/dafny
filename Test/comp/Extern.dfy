@@ -1,24 +1,9 @@
-/*
----
-!dafnyTestSpec
-compileTargetOverrides:
-    java:
-        otherFiles:
-            - AllDafny.java
-            - AllExtern.java
-            - LibClass.java
-            - Mixed.java
-            - OtherClass.java
-    cs:
-        otherFiles:
-            - Extern2.cs
-    js:
-        otherFiles:
-            - Extern3.js
-    go:
-        otherFiles:
-            - Extern4.go
-*/
+// RUN: %dafny /compile:3 /compileTarget:cs "%s" Extern2.cs > "%t"
+// RUN: %dafny /compile:3 /compileTarget:js "%s" Extern3.js >> "%t"
+// RUN: %dafny /compile:3 /compileTarget:go "%s" Extern4.go >> "%t"
+// RUN: %dafny /compile:3 /compileTarget:java "%s" LibClass.java OtherClass.java AllDafny.java Mixed.java AllExtern.java >> "%t"
+// RUN: %diff "%s.expect" "%t"
+
 method Main() {
   print "Hello\n";
   var x, y := Library.LibClass.CallMeInt(30);

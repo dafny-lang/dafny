@@ -1,8 +1,6 @@
-/*
----
-compile: 0 
-allocated: [1, 3] 
-*/
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class C {
   var x: C?
 

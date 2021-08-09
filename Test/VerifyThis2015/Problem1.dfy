@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 // Rustan Leino
 // 12 April 2015
 // VerifyThis 2015
