@@ -176,6 +176,7 @@ method M(heap: object)
         static Boogie() {
           var testAssemblyPath = Assembly.GetAssembly(typeof(Boogie)).GetAssemblyLocation();
           var parts = testAssemblyPath.Split(Path.DirectorySeparatorChar);
+          // This way of finding the repository root is not reliable, we should instead reference the DafnyPipeline assembly and run Dafny in the same process as the unit tests.
           var sourceIndex = Array.FindIndex(parts, e => e == "Source");
           dafnyDirectory = Path.Combine(Path.GetPathRoot(testAssemblyPath)!, Path.Combine(parts.Take(sourceIndex).ToArray()));
         }
