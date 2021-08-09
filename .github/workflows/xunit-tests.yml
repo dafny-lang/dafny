@@ -1,4 +1,4 @@
-name: Test Language Server
+name: Run XUnit tests
 
 on:
   push:
