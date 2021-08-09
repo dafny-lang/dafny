@@ -3554,9 +3554,11 @@ namespace Microsoft.Dafny {
         ModeledAsBoxType(f.ResultType) ? BoxIfUnboxed(overridingFuncAppl, overridingFunction.ResultType) : overridingFuncAppl);
       // add overridingFunction#canCall ==> f#canCall to the axiom
       Bpl.IdentifierExpr callName = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-      Bpl.Expr canCallFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), argsJF);
+      var callArgs = f.IsFuelAware() ? argsJF.TakeLast(argsJF.Count() - 1).ToList() : argsJF;
+      Bpl.Expr canCallFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), callArgs);
       callName = new Bpl.IdentifierExpr(overridingFunction.tok, overridingFunction.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-      Bpl.Expr canCallOverridingFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), argsCF);
+      callArgs = overridingFunction.IsFuelAware() ? argsCF.TakeLast(argsCF.Count() - 1).ToList() : argsCF;
+      Bpl.Expr canCallOverridingFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), callArgs);
       var canCallImp = BplImp(canCallOverridingFunc, canCallFunc);
       // The axiom
       Bpl.Expr ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), forallFormals, null, tr,
