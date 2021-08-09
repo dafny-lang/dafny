@@ -179,6 +179,7 @@ method M(heap: object)
           // This way of finding the repository root is not reliable, we should instead reference the DafnyPipeline assembly and run Dafny in the same process as the unit tests.
           var sourceIndex = Array.FindIndex(parts, e => e == "Source");
           dafnyDirectory = Path.Combine(Path.GetPathRoot(testAssemblyPath)!, Path.Combine(parts.Take(sourceIndex).ToArray()));
+          Console.WriteLine("dafnyDirectory: " + dafnyDirectory);
         }
 
         private static readonly string dafnyDirectory;
@@ -199,6 +200,8 @@ method M(heap: object)
           var dafnyProcess = Process.Start(processStartInfo);
           var result = dafnyProcess.StandardOutput.ReadToEnd();
           dafnyProcess.WaitForExit();
+
+          Assert.Equal(0, dafnyProcess.ExitCode);
           return result;
         }
     }
