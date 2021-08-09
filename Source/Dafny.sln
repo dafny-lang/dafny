@@ -236,7 +236,6 @@ Global
 		{320C02A3-D3E6-4AC7-A7E2-170AF86A6EEC}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{320C02A3-D3E6-4AC7-A7E2-170AF86A6EEC}.Release|x86.ActiveCfg = Release|Any CPU
 		{320C02A3-D3E6-4AC7-A7E2-170AF86A6EEC}.Release|x86.Build.0 = Release|Any CPU
-<<<<<<< HEAD
 		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Checked|.NET.ActiveCfg = Debug|Any CPU
 		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Checked|.NET.Build.0 = Debug|Any CPU
 		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Checked|Any CPU.ActiveCfg = Debug|Any CPU
@@ -261,7 +260,6 @@ Global
 		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Release|x86.ActiveCfg = Release|Any CPU
 		{A4BC2C77-3A48-4917-AA22-41978DFFE24E}.Release|x86.Build.0 = Release|Any CPU
-=======
 		{FA2A3A73-3035-497B-B9D7-B6BC4888A058}.Checked|.NET.ActiveCfg = Debug|Any CPU
 		{FA2A3A73-3035-497B-B9D7-B6BC4888A058}.Checked|.NET.Build.0 = Debug|Any CPU
 		{FA2A3A73-3035-497B-B9D7-B6BC4888A058}.Checked|Any CPU.ActiveCfg = Debug|Any CPU
@@ -286,7 +284,6 @@ Global
 		{FA2A3A73-3035-497B-B9D7-B6BC4888A058}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{FA2A3A73-3035-497B-B9D7-B6BC4888A058}.Release|x86.ActiveCfg = Release|Any CPU
 		{FA2A3A73-3035-497B-B9D7-B6BC4888A058}.Release|x86.Build.0 = Release|Any CPU
->>>>>>> 4c5da6ff884054a920559dbf6fe9d41bf67a98da
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
