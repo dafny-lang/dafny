@@ -4908,6 +4908,11 @@ namespace Microsoft.Dafny {
     bool AllowsNontermination { get; }
   }
 
+  /// <summary>
+  /// Some declarations have more than one context. For example, a subset type has a constraint
+  /// (which is a ghost context) and a witness (which may be a compiled context). To distinguish
+  /// between these two, the declaration is wrapped inside a CodeContextWrapper.
+  /// </summary>
   public class CodeContextWrapper : ICodeContext {
     protected readonly ICodeContext inner;
     private readonly bool isGhostContext;
@@ -4949,6 +4954,12 @@ namespace Microsoft.Dafny {
     bool InferredDecreases { get; set; }
   }
 
+  /// <summary>
+  /// This class allows an ICallable to be treated as ghost/compiled according to the "isGhostContext"
+  /// parameter.
+  ///
+  /// This class is to ICallable what CodeContextWrapper is to ICodeContext.
+  /// </summary>
   public class CallableWrapper : CodeContextWrapper, ICallable
   {
     public CallableWrapper(ICallable callable, bool isGhostContext)
