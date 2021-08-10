@@ -1,6 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Dafny.LanguageServer.Util;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -195,7 +195,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void VisitUnknown(object node, Boogie.IToken token) {
         _logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
-          node.GetType(), Path.GetFileName(token.filename), token.line, token.col);
+          node.GetType(), token.GetDocumentFileName(), token.line, token.col);
       }
 
       public override void Visit(BlockStmt blockStatement) {

@@ -81,7 +81,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void VisitUnknown(object node, Boogie.IToken token) {
         _logger.LogDebug("encountered unknown syntax node of type {NodeType} in {Filename}@({Line},{Column})",
-          node.GetType(), Path.GetFileName(token.filename), token.line, token.col);
+          node.GetType(), token.GetDocumentFileName(), token.line, token.col);
       }
 
       public override void Visit(ModuleDefinition moduleDefinition) {
@@ -179,7 +179,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           _designators.Add(node, symbol);
         } else {
           _logger.LogInformation("could not resolve the symbol of designator named {Identifier} in {Filename}@({Line},{Column})",
-            identifier, Path.GetFileName(token.filename), token.line, token.col);
+            identifier, token.GetDocumentFileName(), token.line, token.col);
         }
       }
 
@@ -334,7 +334,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       private void RegisterLocation(ISymbol symbol, Boogie.IToken token, Range name, Range declaration) {
         if(token.filename != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
-          Locations.Add(symbol, new SymbolLocation(DocumentUri.FromFileSystemPath(token.filename), name, declaration));
+          Locations.Add(symbol, new SymbolLocation(token.GetDocumentUri(), name, declaration));
         }
       }
     }
