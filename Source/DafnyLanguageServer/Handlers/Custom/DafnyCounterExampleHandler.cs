@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
           return new CounterExampleList();
         }
         var counterExamples = GetLanguageSpecificModels(document.SerializedCounterExamples)
-          .SelectMany(model => GetCounterExamples(model))
+          .SelectMany(GetCounterExamples)
           .ToArray();
         return new CounterExampleList(counterExamples);
       }
@@ -77,7 +77,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
           .WithCancellation(cancellationToken)
           .OfType<DafnyModelState>()
           .Where(state => !IsInitialState(state))
-          .Select(state => GetCounterExample(state));
+          .Select(GetCounterExample);
       }
 
       private static bool IsInitialState(DafnyModelState state) {

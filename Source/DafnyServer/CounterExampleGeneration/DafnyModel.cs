@@ -369,7 +369,7 @@ namespace DafnyServer.CounterExampleGeneration {
       if (typeArgs == null) {
         return tagName;
       }
-      return tagName + "<" + String.Join(",", typeArgs.ConvertAll(element => ReconstructType(element))) + ">";
+      return tagName + "<" + String.Join(",", typeArgs.ConvertAll(ReconstructType)) + ">";
     }
     
     /// <summary>
