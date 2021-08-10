@@ -176,3 +176,17 @@ module ByMethodRecursion {
     return r;
   }
 }
+
+module MoreExamples {
+  function Fib(n: nat): nat {
+    if n < 2 then n else Fib(n - 2) + Fib(n - 1)
+  } by method {
+    var x, y := 0, 1;
+    for i := 0 to n
+      invariant x == Fib(i) && y == Fib(i + 1)
+    {
+      x, y := y, x + y;
+    }
+    return x;
+  }
+}

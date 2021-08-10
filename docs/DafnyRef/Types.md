@@ -1956,11 +1956,34 @@ FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
                "}" [ "by" "method" BlockStmt ]
 ````
 
+A function with a `by method` clause declares a _function-by-method_.
+A function-by-method gives a way to implement a
+(deterministic, side-effect free) function by a method (whose body may be
+nondeterministic and may allocate objects that it modifies). This can
+be useful if the best implementation uses nondeterminism (for example,
+because it uses `:|` in a nondeterministic way) in a way that does not
+affect the result, or if the implementation temporarily makes use of some
+mutable data structures, or if the implementation is done with a loop.
+For example, here is the standard definition of the Fibonacci function
+but with an efficient implementation that uses a loop:
+
+```dafny
+function Fib(n: nat): nat {
+  if n < 2 then n else Fib(n - 2) + Fib(n - 1)
+} by method {
+  var x, y := 0, 1;
+  for i := 0 to n
+    invariant x == Fib(i) && y == Fib(i + 1)
+  {
+    x, y := y, x + y;
+  }
+  return x;
+}
+```
+
 The `by method` clause is allowed only for the `function` or `predicate`
 declarations (without `method`, `twostate`, `least`, and `greatest`, but
-possibly with `static`). A function-by-method gives a way to implement a
-(deterministic, side-effect free) function by a method (whose body may be
-nondeterministic and may allocate objects that it modifies). The method
+possibly with `static`). The method
 inherits the in-parameters, attributes, and `requires` and `decreases`
 clauses of the function. The method also gets one out-parameter, corresponding
 to the function's result value (and the name of it, if present). Finally,
