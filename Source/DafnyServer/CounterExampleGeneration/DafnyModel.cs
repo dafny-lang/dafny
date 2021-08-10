@@ -362,8 +362,8 @@ namespace DafnyServer.CounterExampleGeneration {
         Args.ToList();
       tagName = tagName switch {
         "TagSeq" => "seq",
-        "TagSet" => "set",
         "TagMap" => "map",
+        "TagSet" => "set",
         _ => tagName.Substring(9)
       };
       if (typeArgs == null) {
