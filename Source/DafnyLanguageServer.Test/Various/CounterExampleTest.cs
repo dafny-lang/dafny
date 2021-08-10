@@ -293,7 +293,7 @@ method a(c:char) {
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("c:char"));
-      StringAssert.Matches(counterExamples[0].Variables["c:char"], new Regex("('.'|\\?)"));
+      StringAssert.Matches(counterExamples[0].Variables["c:char"], new Regex("('.'|\\?#[0-9]+)"));
       Assert.AreNotEqual(counterExamples[0].Variables["c:char"], "'0'");
     }
     
@@ -419,7 +419,7 @@ method listHasSingleElement(list:List<bool>)
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("list:_module.List<bool>"));
-      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<bool>"], new Regex("Cons\\(head := \\?, tail := @[0-9]+\\)"));
+      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<bool>"], new Regex("Cons\\(head := \\?#[0-9]+, tail := @[0-9]+\\)"));
     }
     
     [TestMethod]
@@ -438,7 +438,7 @@ method listHasSingleElement(list:List<int>)
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("list:_module.List<int>"));
-      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<int>"], new Regex("Cons\\(head := \\?, tail := @[0-9]+\\)"));
+      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<int>"], new Regex("Cons\\(head := \\?#[0-9]+, tail := @[0-9]+\\)"));
     }
     
     [TestMethod]
@@ -457,7 +457,7 @@ method listHasSingleElement(list:List<real>)
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("list:_module.List<real>"));
-      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<real>"], new Regex("Cons\\(head := \\?, tail := @[0-9]+\\)"));
+      StringAssert.Matches(counterExamples[0].Variables["list:_module.List<real>"], new Regex("Cons\\(head := \\?#[0-9]+, tail := @[0-9]+\\)"));
     }
 
     [TestMethod]

@@ -23,6 +23,11 @@ namespace DafnyServer.CounterExampleGeneration {
     private readonly Dictionary<Model.Element, Model.Element[]> arrayLengths = new();
     private readonly Dictionary<Model.Element, Model.FuncTuple> datatypeValues = new();
     private readonly Dictionary<Model.Element, string> localValue = new();
+    // Maps an element's id to another unique id. This can be used to 
+    // distinguish between basic-typed variables for which the model does not
+    // specify values. This mapping makes ids shorter since there are fewer such
+    // elements than there are elements in general.
+    private readonly Dictionary<int, int> shortElementIds = new();
 
 
     public DafnyModel(Model model) {
@@ -393,12 +398,12 @@ namespace DafnyServer.CounterExampleGeneration {
         var typeName = GetTrueName(fType.OptEval(elt));
         var funcName = "U_2_" + typeName[..^4];
         if (!Model.HasFunc(funcName)) {
-          return "?";
+          return "?#" + GetShortElementId(elt);
         }
         if (Model.GetFunc(funcName).OptEval(elt) != null) {
           return Model.GetFunc(funcName).OptEval(elt).ToString();
         }
-        return "?";
+        return "?#" + GetShortElementId(elt);
       }
       if (elt.Kind == Model.ElementKind.DataValue) {
         if (((Model.DatatypeValue) elt).ConstructorName == "-") {
@@ -418,31 +423,34 @@ namespace DafnyServer.CounterExampleGeneration {
           utfCode = ((Model.Integer) fCharToInt.OptEval(elt)).AsInt();
           return "'" + char.ConvertFromUtf32(utfCode) + "'";
         }
-        // return "?#" + elt.Id + ":char";
-        return "?";
+        return "?#" + GetShortElementId(elt);
       }
       if (fType.OptEval(elt) == fReal.GetConstant()) {
         if (fU2Real.OptEval(elt) != null) {
           return CanonicalName(fU2Real.OptEval(elt), state);
         }
-        // return "?#" + elt.Id + ":real";
-        return "?";
+        return "?#" + GetShortElementId(elt);
       }
       if (fType.OptEval(elt) == fBool.GetConstant()) {
         if (fU2Bool.OptEval(elt) != null) {
           return CanonicalName(fU2Bool.OptEval(elt), state);
         }
-        // return "?#" + elt.Id + ":bool";
-        return "?";
+        return "?#" + GetShortElementId(elt);
       }
       if (fType.OptEval(elt) == fInt.GetConstant()) {
         if (fU2Int.OptEval(elt) != null) {
           return CanonicalName(fU2Int.OptEval(elt), state);
         }
-        // return "?#" + elt.Id + ":int";
-        return "?";
+        return "?#" + GetShortElementId(elt);
       }
       return "";
+    }
+
+    private int GetShortElementId(Model.Element element) {
+      if (!shortElementIds.ContainsKey(element.Id)) {
+        shortElementIds[element.Id] = shortElementIds.Count;
+      }
+      return shortElementIds[element.Id];
     }
 
     /// <summary>
