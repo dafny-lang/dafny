@@ -3,7 +3,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticPublisher : IDiagnosticPublisher {
@@ -34,15 +33,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private static IEnumerable<Diagnostic> ToDiagnostics(DafnyDocument document) {
-      foreach (var entry in document.Errors.Diagnostics) {
-        // Skip errors from included files.
-        if (document.Uri.Path == entry.Key) {
-          return entry.Value;
-        }
+      // Only report errors of the entry-document.
+      // GetFileSystemPath() is used since Path resolves to a non-Windows path format on Windows, e.g.:
+      // /d:/data/file.dfy
+      if(document.Errors.Diagnostics.TryGetValue(document.Uri.GetFileSystemPath(), out var diagnostics)) {
+        return diagnostics;
       }
-      
       return Enumerable.Empty<Diagnostic>();
     }
-
   }
 }
