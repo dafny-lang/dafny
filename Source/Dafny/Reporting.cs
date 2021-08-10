@@ -26,8 +26,7 @@ namespace Microsoft.Dafny {
     public MessageSource source;
   }
 
-  public abstract class ErrorReporter
-  {
+  public abstract class ErrorReporter {
     public bool ErrorsOnly { get; set; }
 
     public bool HasErrors => ErrorCount > 0;    
