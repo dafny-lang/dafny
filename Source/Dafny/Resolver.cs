@@ -2276,19 +2276,7 @@ namespace Microsoft.Dafny
             extraMember.InheritVisibility(m, false);
             members.Add(extraName, extraMember);
           } else if (m is Function f && f.ByMethodBody != null) {
-            var tok = f.ByMethodTok;
-            var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
-            var r = Expression.CreateIdentExpr(resultVar);
-            var receiver = f.IsStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
-            var fn = new FunctionCallExpr(tok, f.Name, receiver, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
-            var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
-            var method = new Method(tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
-              f.Formals, new List<Formal>() { resultVar },
-              f.Req, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
-              f.ByMethodBody, f.Attributes, null, true);
-            Contract.Assert(f.ByMethodDecl == null);
-            method.InheritVisibility(f);
-            f.ByMethodDecl = method;
+            RegisterByMethod(f);
           }
         } else if (m is Constructor && !((Constructor)m).HasName) {
           reporter.Error(MessageSource.Resolver, m, "More than one anonymous constructor");
@@ -2296,6 +2284,25 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, m, "Duplicate member name: {0}", m.Name);
         }
       }
+    }
+
+    void RegisterByMethod(Function f) {
+      Contract.Requires(f != null && f.ByMethodBody != null);
+
+      var cl = (TopLevelDeclWithMembers)f.EnclosingClass;
+      var tok = f.ByMethodTok;
+      var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
+      var r = Expression.CreateIdentExpr(resultVar);
+      var receiver = f.IsStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
+      var fn = new FunctionCallExpr(tok, f.Name, receiver, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
+      var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
+      var method = new Method(tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
+        f.Formals, new List<Formal>() { resultVar },
+        f.Req, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
+        f.ByMethodBody, f.Attributes, null, true);
+      Contract.Assert(f.ByMethodDecl == null);
+      method.InheritVisibility(f);
+      f.ByMethodDecl = method;
     }
 
     private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height,
