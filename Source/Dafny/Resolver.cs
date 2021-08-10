@@ -6441,6 +6441,9 @@ namespace Microsoft.Dafny
     // ------------------------------------------------------------------------------------------------------
     // ----- CheckTypeInference -----------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
+    // The CheckTypeInference machinery visits every type in a given part of the AST (for example,
+    // CheckTypeInference(Expression) does so for an Expression and CheckTypeInference_Member(MemberDecl)
+    // does so for a MemberDecl) to make sure that all parts of types were fully inferred.
 #region CheckTypeInference
     private void CheckTypeInference_Member(MemberDecl member) {
       if (member is ConstantField) {
