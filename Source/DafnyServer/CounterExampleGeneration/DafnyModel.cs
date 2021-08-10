@@ -383,8 +383,11 @@ namespace DafnyServer.CounterExampleGeneration {
       if (elt == fNull.GetConstant()) {
         return "null";
       }
-      if (elt is Model.Integer or Model.Boolean or Model.BitVector or Model.Real) {
+      if (elt is Model.Integer or Model.Boolean or Model.Real) {
         return elt.ToString();
+      }
+      if (elt is Model.BitVector vector) {
+        return vector.AsInt().ToString();
       }
       if (IsBitVectorObject(elt, this)) {
         var typeName = GetTrueName(fType.OptEval(elt));

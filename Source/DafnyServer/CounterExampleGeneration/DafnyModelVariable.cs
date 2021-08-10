@@ -97,10 +97,10 @@ namespace DafnyServer.CounterExampleGeneration {
         if (Type.StartsWith("set<")) {
           childValues = string.Join(", ",
             childList.ConvertAll(tpl => tpl.Item2 + " := " + tpl.Item1));
-        } else {
-          childValues = string.Join(", ",
-            childList.ConvertAll(tpl => tpl.Item1 + " := " + tpl.Item2));
+          return result + "{" + childValues + "}";
         }
+        childValues = string.Join(", ",
+            childList.ConvertAll(tpl => tpl.Item1 + " := " + tpl.Item2)); 
         return result + "(" + childValues + ")";
       }
     }
@@ -109,7 +109,7 @@ namespace DafnyServer.CounterExampleGeneration {
     
     public string ShortName {
       get {
-        var shortName = Regex.Replace(Name, @"#\d+$", "");
+        var shortName = Regex.Replace(Name, @"#.*$", "");
         return state.VarNameIsShared(shortName) ? Name : shortName;
       }
     }
@@ -173,7 +173,7 @@ namespace DafnyServer.CounterExampleGeneration {
             seqElements[i].Value : 
             seqElements[i].ShortName);
         }
-        return "(" + String.Join(", ", result) + ")";
+        return "[" + String.Join(", ", result) + "]";
       }
     }
 

@@ -489,7 +489,7 @@ method a(s:seq<int>) requires |s| == 1 {
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("s:seq<int>"));
-      Assert.AreEqual("(4)", counterExamples[0].Variables["s:seq<int>"]);
+      Assert.AreEqual("[4]", counterExamples[0].Variables["s:seq<int>"]);
     }
     
     [TestMethod]
@@ -521,7 +521,7 @@ method a(bv:bv7) {
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("bv:bv7"));
-      Assert.AreEqual("2bv7", counterExamples[0].Variables["bv:bv7"]);
+      Assert.AreEqual("2", counterExamples[0].Variables["bv:bv7"]);
     }
     
     [TestMethod]
@@ -537,7 +537,7 @@ method a(b:bv2) {
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("b:bv2"));
-      StringAssert.Matches(counterExamples[0].Variables["b:bv2"], new Regex("[023]bv2"));
+      StringAssert.Matches(counterExamples[0].Variables["b:bv2"], new Regex("[023]"));
     }
     
     [TestMethod]
@@ -554,8 +554,8 @@ method m(a:bv1, b:bv1) {
       Assert.AreEqual(2, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("a:bv1"));
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("b:bv1"));
-      StringAssert.Matches(counterExamples[0].Variables["a:bv1"], new Regex("(1bv1|b)"));
-      StringAssert.Matches(counterExamples[0].Variables["b:bv1"], new Regex("(1bv1|a)"));
+      StringAssert.Matches(counterExamples[0].Variables["a:bv1"], new Regex("(1|b)"));
+      StringAssert.Matches(counterExamples[0].Variables["b:bv1"], new Regex("(1|a)"));
     }
     
     [TestMethod]
@@ -589,7 +589,7 @@ method a(s:set<seq<set<array<int>>>>) requires |s| <= 1{
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       Assert.AreEqual(1, counterExamples.Length);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("s:set<seq<set<_System.array<int>>>>"));
-      StringAssert.Matches(counterExamples[0].Variables["s:set<seq<set<_System.array<int>>>>"], new Regex("\\(@[0-9]+ := true\\)"));
+      StringAssert.Matches(counterExamples[0].Variables["s:set<seq<set<_System.array<int>>>>"], new Regex("\\{@[0-9]+ := true\\}"));
     }
     
     [TestMethod]
@@ -675,7 +675,7 @@ method test() {
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[1].Variables.Count);
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("s:set<int>"));
-      StringAssert.Matches(counterExamples[1].Variables["s:set<int>"], new Regex("\\(.*6 := true.*\\)"));
+      StringAssert.Matches(counterExamples[1].Variables["s:set<int>"], new Regex("\\{.*6 := true.*\\}"));
     }
 
     [TestMethod]
@@ -690,7 +690,7 @@ method test() {
       Assert.AreEqual(1, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("s:seq<char>"));
-      Assert.AreEqual("('a', 'b', 'c')", counterExamples[0].Variables["s:seq<char>"]);
+      Assert.AreEqual("['a', 'b', 'c']", counterExamples[0].Variables["s:seq<char>"]);
     }
     
     [TestMethod]
@@ -707,8 +707,8 @@ method test() {
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("s1:seq<char>"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("s2:seq<char>"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("c:char"));
-      Assert.AreEqual("('a', 'b', 'c')", counterExamples[1].Variables["s1:seq<char>"]);
-      Assert.AreEqual("('a', 'd', 'c')", counterExamples[1].Variables["s2:seq<char>"]);
+      Assert.AreEqual("['a', 'b', 'c']", counterExamples[1].Variables["s1:seq<char>"]);
+      Assert.AreEqual("['a', 'd', 'c']", counterExamples[1].Variables["s2:seq<char>"]);
       Assert.AreEqual("'d'", counterExamples[1].Variables["c:char"]);
     }
     
@@ -725,7 +725,7 @@ method test() {
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual(1, counterExamples[1].Variables.Count);
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("s:seq<int>"));
-      StringAssert.Matches(counterExamples[1].Variables["s:seq<int>"], new Regex("\\(6\\)"));
+      StringAssert.Matches(counterExamples[1].Variables["s:seq<int>"], new Regex("\\[6\\]"));
     }
 
     [TestMethod]
@@ -743,9 +743,9 @@ method a(s1:string, s2:string) requires |s1| == 1 && |s2| == 1 {
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("s1:seq<char>"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("s2:seq<char>"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("sCat:seq<char>"));
-      Assert.AreEqual("('b')", counterExamples[1].Variables["s1:seq<char>"]);
-      Assert.AreEqual("('a')", counterExamples[1].Variables["s2:seq<char>"]);
-      Assert.AreEqual("('a', 'b')", counterExamples[1].Variables["sCat:seq<char>"]);
+      Assert.AreEqual("['b']", counterExamples[1].Variables["s1:seq<char>"]);
+      Assert.AreEqual("['a']", counterExamples[1].Variables["s2:seq<char>"]);
+      Assert.AreEqual("['a', 'b']", counterExamples[1].Variables["sCat:seq<char>"]);
     }
     
     [TestMethod]
@@ -780,7 +780,7 @@ method a(s:seq<char>) requires |s| == 5 {
       Assert.AreEqual(2, counterExamples[1].Variables.Count);
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("sSub:seq<char>"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("s:seq<char>"));
-      Assert.AreEqual("('a', 'b')", counterExamples[1].Variables["sSub:seq<char>"]);
+      Assert.AreEqual("['a', 'b']", counterExamples[1].Variables["sSub:seq<char>"]);
       StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[2\\] := 'a', \\[3\\] := 'b'.*"));
     }
     
@@ -798,7 +798,7 @@ method a(s:seq<char>) requires |s| == 5 {
       Assert.AreEqual(2, counterExamples[1].Variables.Count);
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("sSub:seq<char>"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("s:seq<char>"));
-      Assert.AreEqual("('a', 'b', 'c')", counterExamples[1].Variables["sSub:seq<char>"]);
+      Assert.AreEqual("['a', 'b', 'c']", counterExamples[1].Variables["sSub:seq<char>"]);
       StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[2\\] := 'a', \\[3\\] := 'b', \\[4\\] := 'c'.*"));
     }
     
@@ -816,7 +816,7 @@ method a(s:seq<char>) requires |s| == 5 {
       Assert.AreEqual(2, counterExamples[1].Variables.Count);
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("sSub:seq<char>"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("s:seq<char>"));
-      Assert.AreEqual("('a', 'b', 'c')", counterExamples[1].Variables["sSub:seq<char>"]);
+      Assert.AreEqual("['a', 'b', 'c']", counterExamples[1].Variables["sSub:seq<char>"]);
       StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[0\\] := 'a', \\[1\\] := 'b', \\[2\\] := 'c'.*"));
     }
     
@@ -936,7 +936,7 @@ method T_map0(m:map<int,int>, key:int, val:int)
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int,char>"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("keys:set<int>"));
       StringAssert.Matches(counterExamples[1].Variables["m:map<int,char>"], new Regex("\\(.*25 := .*"));
-      StringAssert.Matches(counterExamples[1].Variables["keys:set<int>"], new Regex("\\(.*25 := true.*"));
+      StringAssert.Matches(counterExamples[1].Variables["keys:set<int>"], new Regex("\\{.*25 := true.*"));
     }
     
     [TestMethod]
@@ -954,7 +954,7 @@ method T_map0(m:map<int,int>, key:int, val:int)
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("m:map<int,char>"));
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("values:set<char>"));
       StringAssert.Matches(counterExamples[1].Variables["m:map<int,char>"], new Regex("\\(.* := 'c'.*"));
-      StringAssert.Matches(counterExamples[1].Variables["values:set<char>"], new Regex("\\(.*'c' := true.*"));
+      StringAssert.Matches(counterExamples[1].Variables["values:set<char>"], new Regex("\\{.*'c' := true.*"));
     }
   }
 }
