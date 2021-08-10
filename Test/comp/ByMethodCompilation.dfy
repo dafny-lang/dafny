@@ -96,7 +96,6 @@ function Sum(s: set<int>): int {
   while s' != {}
     invariant s' <= s
     invariant sum + Sum(s') == Sum(s)
-    decreases s' // TODO: this should be inferred automatically -- is the loop-decreases automation not done for by-method's?
   {
     var x :| x in s';
     var s'' := s' - {x};
@@ -116,7 +115,6 @@ function Pick(s: set<int>): int
 lemma SumLemma(s: set<int>, y: int)
   requires y !in s
   ensures Sum(s + {y}) == Sum(s) + y
-  decreases |s|
 {
   if s == {} {
   } else {

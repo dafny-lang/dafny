@@ -4186,6 +4186,9 @@ namespace Microsoft.Dafny {
             var clbl = member as ICallable;
             if (clbl != null && !(member is ConstantField)) {
               yield return clbl;
+              if (clbl is Function f && f.ByMethodDecl != null) {
+                yield return f.ByMethodDecl;
+              }
             }
           }
         }
@@ -4207,6 +4210,9 @@ namespace Microsoft.Dafny {
             var clbl = member as ICallable;
             if (clbl != null) {
               yield return clbl;
+              if (clbl is Function f && f.ByMethodDecl != null) {
+                yield return f.ByMethodDecl;
+              }
             }
           }
         }
