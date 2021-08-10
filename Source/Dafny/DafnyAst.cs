@@ -7965,6 +7965,9 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /**
+   * Used by two phase constructors: https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#13323-two-phase-constructors
+   */
   public class DividedBlockStmt : BlockStmt
   {
     public readonly List<Statement> BodyInit;  // first part of Body's statements
