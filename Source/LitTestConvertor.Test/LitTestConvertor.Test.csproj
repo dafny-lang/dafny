@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net5.0</TargetFramework>
-
+        <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
         <IsPackable>false</IsPackable>
     </PropertyGroup>
 
@@ -20,7 +20,11 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\LitTestConverter\LitTestConverter.csproj" />
+        <ProjectReference Include="..\LitTestConverter\LitTestConverter.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <EmbeddedResource Include="TestFiles\*.dfy" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+    
 </Project>

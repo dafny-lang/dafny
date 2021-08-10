@@ -36,31 +36,15 @@ namespace LitTestConvertor {
     private int invalidCount = 0;
 
     public void ConvertLitTest(string filePath) {
-      object testSpec;
+      IEnumerable<CLITestCase> testSpec;
       IEnumerable<string> testContent;
-      
       if (filePath.Contains("/Inputs/")) {
         testSpec = Enumerable.Empty<CLITestCase>();
         testContent = File.ReadAllLines(filePath);
       } else {
-
-        string[] lines = File.ReadAllLines(filePath);
-
-        var litCommands = lines.Select(ExtractLitCommand).TakeWhile(c => c != null).ToList();
-        if (!litCommands.Any()) {
-          alreadyConverted++;
-          return;
-        }
-        testContent = lines.Skip(litCommands.Count);
-        
-        // Make sure the commands are consecutive
-        if (testContent.Any(line => ExtractLitCommand(line) != null)) {
-          throw new ArgumentException("Lit commands are not consecutive");
-        }
-
-        testSpec = ConvertLitCommands(filePath, litCommands);
+        (testSpec, testContent) = ConvertLitCommands(filePath, File.ReadAllLines(filePath));
       }
-
+      
       ISerializer serializer = new SerializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults)
@@ -81,10 +65,21 @@ namespace LitTestConvertor {
       }
     }
 
-    private object ConvertLitCommands(string filePath, List<string> litCommands) {
+    public (IEnumerable<CLITestCase> spec, IEnumerable<string> content) ConvertLitCommands(string filePath, IEnumerable<string> lines) {
+      var litCommands = lines.Select(ExtractLitCommand).TakeWhile(c => c != null).ToList();
+      if (!litCommands.Any()) {
+        throw new ArgumentException("No lit commands found");
+      }
+      
+      // Make sure the commands are consecutive
+      var testContent = lines.Skip(litCommands.Count);
+      if (testContent.Any(line => ExtractLitCommand(line) != null)) {
+        throw new ArgumentException("Lit commands are not consecutive");
+      }
+
       if (litCommands.Count == 1 && litCommands.Single().StartsWith("echo")) {
         // This is an idiom for Dafny files used elsewhere
-        return Enumerable.Empty<CLITestCase>();
+        return (Enumerable.Empty<CLITestCase>(), testContent);
       }
 
       if (!litCommands[^1].Equals("%diff \"%s.expect\" \"%t\"")) {
@@ -99,13 +94,13 @@ namespace LitTestConvertor {
         if (IsStandardVerifyOnly(single)) {
           verifyOnlyCount++;
         }
-        return single;
+        return (single, testContent);
       } 
       
       if (IsStandardVerifyOnly(testConfigs[0]) && testConfigs.Skip(1).All(IsStandardCompileAndRun)
             || testConfigs.Skip(1).All(IsStandardCompileAndRun)) {
         defaultCount++;
-        return null;
+        return (null, testContent);
       }
       
       throw new ArgumentException("Multi-command lit tests require manual conversion");

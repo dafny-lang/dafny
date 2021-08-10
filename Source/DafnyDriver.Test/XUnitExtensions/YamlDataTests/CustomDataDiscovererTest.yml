@@ -3,4 +3,4 @@
     end: 5
   rhs: !range
     start: 0
-    end: 4
+    end: 2

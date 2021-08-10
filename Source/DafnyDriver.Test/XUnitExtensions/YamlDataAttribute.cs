@@ -5,10 +5,13 @@ using Xunit.Sdk;
 
 namespace XUnitExtensions {
   
-  [DataDiscoverer("XUnitExtensions.YamlDataDiscoverer", "DafnyDriver.Test")]
-  public class YamlDataAttribute : DataAttribute {
-
+  [DataDiscoverer("DafnyDriver.Test.XUnitExtensions.YamlDataDiscoverer", "DafnyDriver.Test")]
+  public class YamlDataAttribute : DataAttribute
+  {
+    public readonly bool WithParameterNames;
+    
     public YamlDataAttribute(bool withParameterNames = true) {
+      WithParameterNames = withParameterNames;
     }
     
     public override IEnumerable<object[]> GetData(MethodInfo testMethod) {
