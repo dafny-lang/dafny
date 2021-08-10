@@ -1,4 +1,5 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+﻿using Microsoft.Dafny.LanguageServer.Util;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
