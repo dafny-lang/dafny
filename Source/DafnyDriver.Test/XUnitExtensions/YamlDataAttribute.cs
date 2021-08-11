@@ -9,9 +9,13 @@ namespace XUnitExtensions {
   public class YamlDataAttribute : DataAttribute
   {
     public readonly bool WithParameterNames;
-    
-    public YamlDataAttribute(bool withParameterNames = true) {
+    public readonly string Path;
+    public readonly string Extension;
+
+    public YamlDataAttribute(bool withParameterNames = true, string path = null, string extension = ".yml") {
       WithParameterNames = withParameterNames;
+      Path = path;
+      Extension = extension;
     }
     
     public override IEnumerable<object[]> GetData(MethodInfo testMethod) {

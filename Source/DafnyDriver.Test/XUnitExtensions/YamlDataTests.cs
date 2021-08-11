@@ -18,7 +18,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
       var method = typeof(YamlDataTests).GetMethod(methodName);
       var attribute = (YamlDataAttribute)Attribute.GetCustomAttribute(method!, typeof(YamlDataAttribute));
       var discoverer = new YamlDataDiscoverer();
-      Assert.Equal(expectedData, discoverer.GetData(method, attribute!.WithParameterNames));
+      Assert.Equal(expectedData, discoverer.GetData(method, attribute!.WithParameterNames, attribute.Path, attribute.Extension));
     }
     
     [Theory]

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using JetBrains.Annotations;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 using YamlDotNet.Core;
@@ -15,11 +16,11 @@ using YamlDotNet.Serialization.Utilities;
 
 namespace DafnyDriver.Test.XUnitExtensions {
   public class YamlDataDiscoverer : IDataDiscoverer {
-    public virtual IParser GetYamlParser(string manifestResourceName, Stream stream)  {
+    public virtual IParser GetYamlParser(string fileName, Stream stream)  {
       return new Parser(new StreamReader(stream));
     }
 
-    public virtual IDeserializer GetDeserializer(string manifestResourceName) {
+    public virtual IDeserializer GetDeserializer(string fileName) {
       return new Deserializer();
     }
 
@@ -39,15 +40,15 @@ namespace DafnyDriver.Test.XUnitExtensions {
       return true;
     }
     
-    private IEnumerable<object[]> ResourceData(MethodInfo testMethod, string resourceName, bool withParameterNames) {
+    private IEnumerable<object[]> FileData(MethodInfo testMethod, string fileName, bool withParameterNames) {
       try {
-        using Stream stream = testMethod.DeclaringType.Assembly.GetManifestResourceStream(resourceName);
-        IParser parser = GetYamlParser(resourceName, stream);
-        if (parser == null) {
+        using Stream stream = File.OpenRead(fileName);
+        IParser parser = GetYamlParser(fileName, stream);
+        if (parser == null) { 
           return Enumerable.Empty<object[]>();
         }
 
-        IDeserializer deserializer = GetDeserializer(resourceName);
+        IDeserializer deserializer = GetDeserializer(fileName);
         parser.Consume<StreamStart>();
         parser.Consume<DocumentStart>();
 
@@ -70,7 +71,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
         }
       } catch (Exception e) {
         throw new ArgumentException(
-          "Exception thrown while trying to deserialize test data from manifest resource: " + resourceName, e);
+          "Exception thrown while trying to deserialize test data from file: " + fileName, e);
       }
     }
 
@@ -80,22 +81,34 @@ namespace DafnyDriver.Test.XUnitExtensions {
       if (methodInfo == null) {
         return null;
       }
-
+      
       List<object> attributeArgs = attributeInfo.GetConstructorArguments().ToList();
-      bool withParameterNames = (bool) attributeArgs[0];
+      var withParameterNames = attributeInfo.GetNamedArgument<bool>("WithParameterNames");
+      var path = attributeInfo.GetNamedArgument<string>("Path");
+      var extension = attributeInfo.GetNamedArgument<string>("Extension");
 
-      return GetData(methodInfo, withParameterNames);
+      return GetData(methodInfo, withParameterNames, path, extension);
     }
 
-    public IEnumerable<object[]> GetData(MethodInfo methodInfo, bool withParameterNames) {
-      string resourceNamePrefix = methodInfo.DeclaringType.FullName + "." + methodInfo.Name;
-      IEnumerable<object[]> result = methodInfo.DeclaringType.Assembly.GetManifestResourceNames()
-        .Where(n => n.StartsWith(resourceNamePrefix))
-        .SelectMany(path => ResourceData(methodInfo, path, withParameterNames));
-      if (!result.Any()) {
-        throw new ArgumentException("No data found for resource prefix: " + resourceNamePrefix);
+    public IEnumerable<object[]> GetData(MethodInfo methodInfo, bool withParameterNames, string path, string extension) {
+      if (path == null) {
+        path = Path.Combine("TestFiles", methodInfo.DeclaringType.Name, methodInfo.Name);
       }
-      return result;
+      if (extension == null) {
+        extension = ".yml";
+      }
+      
+      if (Directory.Exists(path)) {
+        return Directory.EnumerateFiles(path, "*" + extension, SearchOption.AllDirectories)
+          .SelectMany(childPath => FileData(methodInfo, childPath, withParameterNames));
+      }
+
+      var yamlFileName = path + ".yml";
+      if (File.Exists(yamlFileName)) {
+        return FileData(methodInfo, yamlFileName, withParameterNames);
+      }
+      
+      throw new ArgumentException("No data found for path: " + path);
     }
   }
 

@@ -2,14 +2,12 @@
 
     <PropertyGroup>
         <TargetFramework>net5.0</TargetFramework>
-        <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
         <PackageId>DafnyDriver.Test</PackageId>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="DiffPlex" Version="1.6.3" />
         <PackageReference Include="FluentAssertions" Version="5.10.3" />
-        <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="5.0.8" /> 
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
         <PackageReference Include="xunit" Version="2.4.1" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1" />
@@ -19,13 +17,13 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Content Include="XUnitExtensions\YamlDataTests\**\*.yml">
+        <Content Include="TestFiles\YamlDataTests\**\*.yml">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <Content Include="..\..\Test\comp\**\*.*" LinkBase="DafnyTests\Test\comp">
+        <Content Include="..\..\Test\comp\**\*.*" LinkBase="TestFiles\DafnyTests\Test\comp">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <Content Include="..\..\Test\c++\**\*.*" LinkBase="DafnyTests\Test\c++">
+        <Content Include="..\..\Test\c++\**\*.*" LinkBase="TestFiles\DafnyTests\Test\c++">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>

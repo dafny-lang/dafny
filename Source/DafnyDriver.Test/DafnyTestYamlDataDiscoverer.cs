@@ -1,9 +1,5 @@
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Reflection;
 using DafnyDriver.Test.XUnitExtensions;
-using Microsoft.Extensions.FileProviders;
 using Xunit.Sdk;
 using XUnitExtensions;
 using YamlDotNet.Core;
@@ -19,30 +15,8 @@ namespace DafnyDriver.Test {
 dafnyArguments: {}
 ";
 
-    private static readonly IFileProvider ManifestFileProvider = new ManifestEmbeddedFileProvider(
-      Assembly.GetExecutingAssembly());
-    private static readonly Dictionary<string, string> PathsForResourceNames = GetPathsForResourceNames(
-      "DafnyDriver.Test", ManifestFileProvider, "DafnyTests");
-    
-    private static Dictionary<string, string> GetPathsForResourceNames(string assemblyName, IFileProvider fileProvider, string path = null) {
-      return fileProvider.GetDirectoryContents(path).SelectMany(file => {
-        var childName = path == null ? file.Name : path + "/" + file.Name;
-        if (file.IsDirectory) {
-          return GetPathsForResourceNames(assemblyName, fileProvider, childName);
-        } else {
-          var result = new Dictionary<string, string>();
-          result[ResourceNameForFilePath(assemblyName, childName)] = childName;
-          return result;
-        }
-      }).ToDictionary(pair => pair.Key, pair => pair.Value);
-    }
-
-    private static string ResourceNameForFilePath(string assemblyName, string filePath) {
-      return assemblyName + "." + filePath.Replace("/", ".").Replace("+", "_");
-    }
-    
-    private static DafnyTestSpec SpecForResourceName(string manifestResourceName) {
-      string filePath = PathsForResourceNames[manifestResourceName].Substring("DafnyTests/Test".Length + 1);
+    private static DafnyTestSpec SpecForFileName(string fileName) {
+      string filePath = fileName.Substring("TestFiles/DafnyTests/Test".Length + 1);
       return new DafnyTestSpec(filePath);
     }
     
@@ -61,20 +35,16 @@ dafnyArguments: {}
       return null;
     }
     
-    public override IParser GetYamlParser(string manifestResourceName, Stream stream) {
-      if (!manifestResourceName.EndsWith(".dfy")) {
-        return null;
-      }
-      
+    public override IParser GetYamlParser(string fileName, Stream stream) {
       string content = GetTestCaseConfigYaml(new StreamReader(stream).ReadToEnd()) ?? DEFAULT_CONFIG;
   
       return new Parser(new StringReader(content));
     }
 
-    public override IDeserializer GetDeserializer(string manifestResourceName) {
+    public override IDeserializer GetDeserializer(string fileName) {
       var defaultObjectFactory = new DefaultObjectFactory();
       var customObjectFactory = new LambdaObjectFactory(type => 
-        type == typeof(DafnyTestSpec) ? SpecForResourceName(manifestResourceName) : defaultObjectFactory.Create(type));
+        type == typeof(DafnyTestSpec) ? SpecForFileName(fileName) : defaultObjectFactory.Create(type));
       
       return new DeserializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
@@ -88,6 +58,6 @@ dafnyArguments: {}
 
 [DataDiscoverer("DafnyDriver.Test.DafnyTestYamlDataDiscoverer", "DafnyDriver.Test")]
 public class DafnyTestDataAttribute : YamlDataAttribute {
-  public DafnyTestDataAttribute(bool withParameterNames) : base(withParameterNames) {
+  public DafnyTestDataAttribute() : base(false, null, ".dfy") {
   }
 }
