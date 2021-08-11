@@ -199,7 +199,7 @@ method M(heap: object)
             RedirectStandardError = true,
             UseShellExecute = false
           };
-          var dafnyProcess = Process.Start(processStartInfo);
+          using var dafnyProcess = Process.Start(processStartInfo);
           var result = dafnyProcess.StandardOutput.ReadToEnd();
           dafnyProcess.WaitForExit();
 
