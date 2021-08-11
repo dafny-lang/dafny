@@ -190,9 +190,7 @@ method M(heap: object)
         
         string GetBoogie(string dafnyProgram, string optionalFileName = null) {
           string fileName = optionalFileName ?? Path.GetTempFileName() + ".dfy";
-          var writer  = File.CreateText(fileName);
-          writer.Write(dafnyProgram);
-          writer.Flush();
+          File.WriteAllText(fileName, dafnyProgram);
           var processStartInfo = new ProcessStartInfo
           {
             FileName = "dotnet",
