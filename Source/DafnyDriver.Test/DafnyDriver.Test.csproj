@@ -19,12 +19,14 @@
     </ItemGroup>
 
     <ItemGroup>
-        <EmbeddedResource Include="XUnitExtensions\YamlDataTests\**\*.yml" />
-        <EmbeddedResource Include="..\..\Test\comp\**\*.*" LinkBase="DafnyTests\Test\comp" />
-        <EmbeddedResource Include="..\..\Test\c++\**\*.*" LinkBase="DafnyTests\Test\c++" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="XUnitExtensions\YamlDataTests\MultiFile" />
+        <Content Include="XUnitExtensions\YamlDataTests\**\*.yml">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="..\..\Test\comp\**\*.*" LinkBase="DafnyTests\Test\comp">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="..\..\Test\c++\**\*.*" LinkBase="DafnyTests\Test\c++">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 </Project>

@@ -22,7 +22,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
     }
     
     [Theory]
-    [YamlData()]
+    [YamlData]
     public void CalculatorTest(int lhs, int rhs, int expected) {
       Assert.Equal(expected, lhs + rhs);
     }
@@ -36,8 +36,8 @@ namespace DafnyDriver.Test.XUnitExtensions {
     }
     
     [Theory]
-    [YamlData()]
-    public void CalculatorCombinatorialTest([ForEach()] int lhs, [ForEach()] int rhs) {
+    [YamlData]
+    public void CalculatorCombinatorialTest([ForEach] int lhs, [ForEach] int rhs) {
       Assert.Equal(rhs + lhs, lhs + rhs);
     }
     
@@ -58,7 +58,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
     }
     
     [Theory]
-    [YamlData()]
+    [YamlData]
     public void MultiFileTest(int a, int b) {
       Assert.Equal(a + 1, b);
     }
