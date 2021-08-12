@@ -7,6 +7,7 @@ using System.Reflection;
 using JetBrains.Annotations;
 using Xunit.Abstractions;
 using Xunit.Sdk;
+using XUnitExtensions;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
@@ -15,8 +16,8 @@ using YamlDotNet.Serialization.ObjectFactories;
 using YamlDotNet.Serialization.Utilities;
 
 namespace DafnyDriver.Test.XUnitExtensions {
-  public class YamlDataDiscoverer : IDataDiscoverer {
-    public virtual IParser GetYamlParser(string fileName, Stream stream)  {
+  public class YamlDataDiscoverer : FileDataDiscoverer {
+    public virtual IParser GetYamlParser(string fileName, Stream stream) {
       return new Parser(new StreamReader(stream));
     }
 
@@ -36,11 +37,18 @@ namespace DafnyDriver.Test.XUnitExtensions {
       };
     }
     
-    public bool SupportsDiscoveryEnumeration(IAttributeInfo dataAttribute, IMethodInfo testMethod) {
+    public override bool SupportsDiscoveryEnumeration(IAttributeInfo dataAttribute, IMethodInfo testMethod) {
       return true;
     }
     
-    private IEnumerable<object[]> FileData(MethodInfo testMethod, string fileName, bool withParameterNames) {
+    protected override IEnumerable<object[]> FileData(IAttributeInfo dataAttribute, IMethodInfo testMethod, string fileName) {
+      var withParameterNames = dataAttribute.GetNamedArgument<bool>(nameof(YamlDataAttribute.WithParameterNames));
+      // YamlDotNet's deserialization framework requires runtime type information
+      MethodInfo methodInfo = testMethod.ToRuntimeMethod();
+      if (methodInfo == null) {
+        return null;
+      }
+      
       try {
         using Stream stream = File.OpenRead(fileName);
         IParser parser = GetYamlParser(fileName, stream);
@@ -55,7 +63,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
         if (withParameterNames) {
           IObjectFactory argumentsFactory = new DefaultObjectFactory();
           INodeDeserializer collectionDeserializer = new CollectionNodeDeserializer(argumentsFactory);
-          var nestedObjectDeserializer = ForMethodInfoDeserializeFn(deserializer, testMethod);
+          var nestedObjectDeserializer = ForMethodInfoDeserializeFn(deserializer, methodInfo);
           if (collectionDeserializer.Deserialize(parser, typeof(List<MethodArguments>), nestedObjectDeserializer,
             out var value)) {
             List<MethodArguments> argumentses = (List<MethodArguments>) value;
@@ -64,7 +72,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
             throw new ArgumentException();
           }
         } else {
-          IEnumerable<ParameterInfo> parameters = testMethod.GetParameters();
+          IEnumerable<ParameterInfo> parameters = methodInfo.GetParameters();
           Type targetType = typeof(IEnumerable<>).MakeGenericType(parameters.Single().ParameterType);
           IEnumerable<object> results = (IEnumerable<object>) deserializer.Deserialize(parser, targetType);
           return results.Select(value => new[] {value});
@@ -73,42 +81,6 @@ namespace DafnyDriver.Test.XUnitExtensions {
         throw new ArgumentException(
           "Exception thrown while trying to deserialize test data from file: " + fileName, e);
       }
-    }
-
-    public IEnumerable<object[]> GetData(IAttributeInfo attributeInfo, IMethodInfo testMethod) {
-      // YamlDotNet's deserialization framework requires runtime type information
-      MethodInfo methodInfo = testMethod.ToRuntimeMethod();
-      if (methodInfo == null) {
-        return null;
-      }
-      
-      List<object> attributeArgs = attributeInfo.GetConstructorArguments().ToList();
-      var withParameterNames = attributeInfo.GetNamedArgument<bool>("WithParameterNames");
-      var path = attributeInfo.GetNamedArgument<string>("Path");
-      var extension = attributeInfo.GetNamedArgument<string>("Extension");
-
-      return GetData(methodInfo, withParameterNames, path, extension);
-    }
-
-    public IEnumerable<object[]> GetData(MethodInfo methodInfo, bool withParameterNames, string path, string extension) {
-      if (path == null) {
-        path = Path.Combine("TestFiles", methodInfo.DeclaringType.Name, methodInfo.Name);
-      }
-      if (extension == null) {
-        extension = ".yml";
-      }
-      
-      if (Directory.Exists(path)) {
-        return Directory.EnumerateFiles(path, "*" + extension, SearchOption.AllDirectories)
-          .SelectMany(childPath => FileData(methodInfo, childPath, withParameterNames));
-      }
-
-      var yamlFileName = path + ".yml";
-      if (File.Exists(yamlFileName)) {
-        return FileData(methodInfo, yamlFileName, withParameterNames);
-      }
-      
-      throw new ArgumentException("No data found for path: " + path);
     }
   }
 

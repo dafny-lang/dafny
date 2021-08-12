@@ -1,21 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using DafnyDriver.Test.XUnitExtensions;
 using Xunit.Sdk;
 
 namespace XUnitExtensions {
   
   [DataDiscoverer("DafnyDriver.Test.XUnitExtensions.YamlDataDiscoverer", "DafnyDriver.Test")]
-  public class YamlDataAttribute : DataAttribute
+  public class YamlDataAttribute : FileDataAttribute
   {
     public readonly bool WithParameterNames;
-    public readonly string Path;
-    public readonly string Extension;
 
-    public YamlDataAttribute(bool withParameterNames = true, string path = null, string extension = ".yml") {
+    public YamlDataAttribute(bool withParameterNames = true, string path = null, string extension = ".yml")
+      : base(path, extension)
+    {
       WithParameterNames = withParameterNames;
-      Path = path;
-      Extension = extension;
     }
     
     public override IEnumerable<object[]> GetData(MethodInfo testMethod) {

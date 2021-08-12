@@ -24,7 +24,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <EmbeddedResource Include="TestFiles\*.dfy" CopyToOutputDirectory="PreserveNewest" />
+        <Content Include="TestFiles\*.dfy" CopyToOutputDirectory="PreserveNewest" />
+        <Content Include="..\..\Test\**\*.*" LinkBase="TestFiles\LitTestRunner\LitTest">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
     
 </Project>

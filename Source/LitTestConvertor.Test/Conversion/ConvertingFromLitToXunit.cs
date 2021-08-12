@@ -21,10 +21,7 @@ namespace LitTestConvertor.Test
     [Fact]
     public void HelloWorld() {
       var convertor = new LitTestConvertor();
-      using var stream =
-        Assembly.GetExecutingAssembly().GetManifestResourceStream("LitTestConvertor.Test.TestFiles.HelloWorldLitTest.dfy");
-      using var reader = new StreamReader(stream);
-      var lines = ReadLines(reader);
+      var lines = File.ReadLines("TestFiles/HelloWorldLitTest.dfy");
       var (testCases, testContent) = convertor.ConvertLitCommands("TestFiles/HelloWorldLitTest.dfy", lines);
       DafnyTestSpec spec = (DafnyTestSpec)testCases;
       Assert.Equal(3, spec.Compile);
@@ -36,7 +33,7 @@ namespace LitTestConvertor.Test
       using var stream =
         Assembly.GetExecutingAssembly().GetManifestResourceStream("LitTestConvertor.Test.TestFiles.VerifyOnlyLitTest.dfy");
       using var reader = new StreamReader(stream);
-      var lines = ReadLines(reader);
+      var lines = File.ReadLines("TestFiles/VerifyOnly.dfy");
       var (testCases, testContent) = convertor.ConvertLitCommands("TestFiles/VerifyOnly.dfy", lines);
       DafnyTestSpec spec = (DafnyTestSpec)testCases;
       Assert.Equal(0, spec.Compile);

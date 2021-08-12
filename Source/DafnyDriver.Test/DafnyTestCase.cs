@@ -27,7 +27,7 @@ namespace DafnyDriver.Test {
     {
       Dictionary<string, object> optionsWithDefaults = new(defaultDafnyOptions);
       foreach (var (key, value) in dafnyOptions) {
-        optionsWithDefaults.Add(key, value);
+        optionsWithDefaults[key] = value;
       }
 
       return new[] {

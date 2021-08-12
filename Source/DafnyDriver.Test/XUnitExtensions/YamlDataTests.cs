@@ -16,9 +16,9 @@ namespace DafnyDriver.Test.XUnitExtensions {
 
     private void AssertTheoryData(string methodName, IEnumerable<object> expectedData) {
       var method = typeof(YamlDataTests).GetMethod(methodName);
-      var attribute = (YamlDataAttribute)Attribute.GetCustomAttribute(method!, typeof(YamlDataAttribute));
+      var attribute = method!.GetCustomAttributesData().First(a => a.AttributeType == typeof(YamlDataAttribute));
       var discoverer = new YamlDataDiscoverer();
-      Assert.Equal(expectedData, discoverer.GetData(method, attribute!.WithParameterNames, attribute.Path, attribute.Extension));
+      Assert.Equal(expectedData, discoverer.GetData(Reflector.Wrap(attribute), Reflector.Wrap(method)));
     }
     
     [Theory]
