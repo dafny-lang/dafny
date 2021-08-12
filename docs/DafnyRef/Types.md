@@ -2792,7 +2792,7 @@ _lambda expressions_. See [Section 20.13](#sec-lambda-expressions).
 <!--PDF NEWPAGE-->
 ## 17.1.  Tuple types {#sec-tuple-types}
 ````grammar
-TupleType = "(" [ Type { "," Type } ] ")"
+TupleType = "(" [ [ "ghost" ] Type { "," [ "ghost" ] Type } ] ")"
 ````
 
 Dafny builds in record types that correspond to tuples and gives these
@@ -2817,6 +2817,11 @@ Dafny declares _n_-tuples where _n_ is 0 or 2 or more.  There are no
 1-tuples, since parentheses around a single type or a single value have
 no semantic meaning.  The 0-tuple type, `()`, is often known as the
 _unit type_ and its single value, also written `()`, is known as _unit_.
+
+The `ghost` modifier can be used to mark tuple components as being used for specification only:
+```dafny
+var pair: (int, ghost int) := (1, ghost 2);
+```
 
 <!--PDF NEWPAGE-->
 # 18. Algebraic Datatypes
