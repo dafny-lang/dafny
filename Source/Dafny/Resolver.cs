@@ -3525,7 +3525,7 @@ namespace Microsoft.Dafny
             } else {
               var m = f.ByMethodDecl;
               Contract.Assert(m != null && !m.IsGhost);
-              ComputeGhostInterest(m.Body, m.IsGhost, m);
+              ComputeGhostInterest(m.Body, false, m);
               CheckExpression(m.Body, this, m);
               DetermineTailRecursion(m);
             }
