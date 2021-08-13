@@ -924,10 +924,10 @@ method T_map0(m:map<int,int>, key:int, val:int)
     [TestMethod]
     public async Task MapsKeys() {
       var source = @"
-      method test(m:map<int,char>) {
-       var keys := m.Keys;
-       assert (25 !in keys);
-      }".TrimStart();
+method test(m:map<int,char>) {
+ var keys := m.Keys;
+ assert (25 !in keys);
+}".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
@@ -955,6 +955,28 @@ method T_map0(m:map<int,int>, key:int, val:int)
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("values:set<char>"));
       StringAssert.Matches(counterExamples[1].Variables["m:map<int,char>"], new Regex("\\(.* := 'c'.*"));
       StringAssert.Matches(counterExamples[1].Variables["values:set<char>"], new Regex("\\{.*'c' := true.*"));
+    }
+    
+    [TestMethod]
+    public async Task ModuleRenaming() {
+      var source = @"
+module Mo_dule_ {
+   module Module2_ {
+      class Cla__ss {
+         var i:int;
+         method test() {
+            assert this.i != 5;
+         }
+      }
+   }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      Assert.AreEqual(1, counterExamples.Length);
+      Assert.AreEqual(1, counterExamples[0].Variables.Count);
+      Assert.IsTrue(counterExamples[0].Variables.ContainsKey("this:Mo_dule_.Module2_.Cla__ss?"));
+      Assert.AreEqual("(i := 5)", counterExamples[0].Variables["this:Mo_dule_.Module2_.Cla__ss?"]);
     }
   }
 }
