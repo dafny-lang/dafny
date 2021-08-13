@@ -1784,9 +1784,14 @@ namespace Microsoft.Dafny
                   var dk = ResolveAlias(kv.Value);
                   ok = dd == dk;
                 } else {
-                  var dType = UserDefinedType.FromTopLevelDecl(d.tok, d);
-                  var vType = UserDefinedType.FromTopLevelDecl(kv.Value.tok, kv.Value);
-                  ok = dType.Equals(vType, true);
+                  // It's okay if "d" and "kv.Value" denote the same type. This can happen, for example,
+                  // if both are type synonyms for "int".
+                  var scope = Type.GetScope();
+                  if (d.IsVisibleInScope(scope) && kv.Value.IsVisibleInScope(scope)) {
+                    var dType = UserDefinedType.FromTopLevelDecl(d.tok, d);
+                    var vType = UserDefinedType.FromTopLevelDecl(kv.Value.tok, kv.Value);
+                    ok = dType.Equals(vType, true);
+                  }
                 }
                 if (!ok) {
                   sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
