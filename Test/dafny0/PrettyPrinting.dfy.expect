@@ -108,6 +108,19 @@ module Ats {
     }
   }
 }
+
+module ByMethod {
+  function F(x: nat): int
+  {
+    x
+  } by method {
+    var j := 0;
+    for _v0 := 0 to x {
+      j := j - 1;
+    }
+    return -j;
+  }
+}
 PrettyPrinting.dfy(10,4): Warning: note, this loop has no body
 PrettyPrinting.dfy(11,4): Warning: note, this loop has no body
 PrettyPrinting.dfy(14,4): Warning: note, this loop has no body

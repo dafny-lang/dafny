@@ -2223,7 +2223,7 @@ namespace Microsoft.Dafny {
       return fieldName;
     }
 
-    void AddClassMembers(TopLevelDeclWithMembers c, bool includeMethods)
+    void AddClassMembers(TopLevelDeclWithMembers c, bool includeAllMethods)
     {
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(c != null);
@@ -2336,19 +2336,17 @@ namespace Microsoft.Dafny {
             AddAllocationAxiom(f, c);
           }
 
-        } else if (member is Function) {
-          AddFunction_Top((Function)member);
-        } else if (member is Method) {
-          if (includeMethods || InVerificationScope(member) || referencedMembers.Contains(member)) {
-            AddMethod_Top((Method)member);
-          }
+        } else if (member is Function function) {
+          AddFunction_Top(function, includeAllMethods);
+        } else if (member is Method method) {
+          AddMethod_Top(method, false, includeAllMethods);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
       }
     }
 
-    void AddFunction_Top(Function f) {
+    void AddFunction_Top(Function f, bool includeAllMethods) {
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(f);
       isAllocContext = new IsAllocContext(true);
@@ -2361,16 +2359,23 @@ namespace Microsoft.Dafny {
           AddFunctionOverrideCheckImpl(f);
         }
       }
-      var cop = f as ExtremePredicate;
-      if (cop != null) {
+      if (f is ExtremePredicate cop) {
         AddClassMember_Function(cop.PrefixPredicate);
         // skip the well-formedness check, because it has already been done for the extreme predicate
+      } else if (f.ByMethodDecl != null) {
+        AddMethod_Top(f.ByMethodDecl, true, includeAllMethods);
       }
+
       this.fuelContext = oldFuelContext;
       isAllocContext = null;
     }
 
-    void AddMethod_Top(Method m) {
+    void AddMethod_Top(Method m, bool isByMethod, bool includeAllMethods) {
+      if (!includeAllMethods && !InVerificationScope(m) && !referencedMembers.Contains(m)) {
+        // do nothing
+        return;
+      }
+
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(m);
 
@@ -2378,10 +2383,12 @@ namespace Microsoft.Dafny {
       if (m.EnclosingClass is IteratorDecl && m == ((IteratorDecl)m.EnclosingClass).Member_MoveNext) {
         // skip the well-formedness check, because it has already been done for the iterator
       } else {
-        var proc = AddMethod(m, MethodTranslationKind.SpecWellformedness);
-        sink.AddTopLevelDeclaration(proc);
-        if (InVerificationScope(m)) {
-          AddMethodImpl(m, proc, true);
+        if (!isByMethod) {
+          var proc = AddMethod(m, MethodTranslationKind.SpecWellformedness);
+          sink.AddTopLevelDeclaration(proc);
+          if (InVerificationScope(m)) {
+            AddMethodImpl(m, proc, true);
+          }
         }
         if (m.OverriddenMethod != null && InVerificationScope(m)) //method has overrided a parent method
         {
@@ -2391,7 +2398,9 @@ namespace Microsoft.Dafny {
         }
       }
       // the method spec itself
-      sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.Call));
+      if (!isByMethod) {
+        sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.Call));
+      }
       if (m is ExtremeLemma) {
         // Let the CoCall and Impl forms to use m.PrefixLemma signature and specification (and
         // note that m.PrefixLemma.Body == m.Body.
@@ -2407,7 +2416,6 @@ namespace Microsoft.Dafny {
       }
       Reset();
       this.fuelContext = oldFuelContext;
-
     }
 
     /// <summary>
@@ -6305,7 +6313,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(decl.Constraint != null);  // follows from the test above and the RedirectingTypeDecl class invariant
 
       currentModule = decl.Module;
-      codeContext = decl;
+      codeContext = new CallableWrapper(decl, true);
       var etran = new ExpressionTranslator(this, predef, decl.tok);
 
       // parameters of the procedure
@@ -6368,7 +6376,10 @@ namespace Microsoft.Dafny {
       var witnessCheckBuilder = new BoogieStmtListBuilder(this);
       if (decl.Witness != null) {
         // check well-formedness of the witness expression (including termination, and reads checks)
+        var ghostCodeContext = codeContext;
+        codeContext = decl.WitnessKind == SubsetTypeDecl.WKind.Compiled ? new CallableWrapper(decl, false) : ghostCodeContext;
         CheckWellformed(decl.Witness, new WFOptions(null, true), locals, witnessCheckBuilder, etran);
+        codeContext = ghostCodeContext;
         // check that the witness is assignable to the type of the given bound variable
         if (decl is SubsetTypeDecl) {
           // Note, for new-types, this has already been checked by CheckWellformed.
@@ -6430,7 +6441,7 @@ namespace Microsoft.Dafny {
       // TODO: Should a checksum be inserted here?
 
       Contract.Assert(currentModule == decl.Module);
-      Contract.Assert(codeContext == decl);
+      Contract.Assert(CodeContextWrapper.Unwrap(codeContext) == decl);
       isAllocContext = null;
       Reset();
     }
@@ -7796,7 +7807,9 @@ namespace Microsoft.Dafny {
           Bpl.Expr allowance = null;
           if (codeContext != null && e.CoCall != FunctionCallExpr.CoCallResolution.Yes && !(e.Function is ExtremePredicate)) {
             // check that the decreases measure goes down
-            if (ModuleDefinition.InSameSCC(e.Function, codeContext)) {
+            var calleeSCCLookup = e.IsByMethodCall ? (ICallable)e.Function.ByMethodDecl : e.Function;
+            Contract.Assert(calleeSCCLookup != null);
+            if (ModuleDefinition.InSameSCC(calleeSCCLookup, codeContext)) {
               if (options.DoOnlyCoarseGrainedTerminationChecks) {
                 builder.Add(Assert(expr.tok, Bpl.Expr.False, "default-value expression is not allowed to involve recursive or mutually recursive calls"));
               } else {
@@ -18643,6 +18656,7 @@ namespace Microsoft.Dafny {
           }
           newFce.TypeApplication_AtEnclosingClass = e.TypeApplication_AtEnclosingClass;  // resolve here
           newFce.TypeApplication_JustFunction = e.TypeApplication_JustFunction;  // resolve here
+          newFce.IsByMethodCall = e.IsByMethodCall;
           return newFce;
         }
         return base.Substitute(expr);

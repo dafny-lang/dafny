@@ -209,7 +209,9 @@ namespace Microsoft.Dafny {
           Indent(indent); wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativeId(clbl));
           var r = module.CallGraph.GetSCC(clbl);
           foreach (var m in r) {
-            Indent(indent); wr.WriteLine(" *   {0}", m.NameRelativeToModule);
+            Indent(indent);
+            var maybeByMethod = m is Method method && method.IsByMethod ? " (by method)" : "";
+            wr.WriteLine($" *   {m.NameRelativeToModule}{maybeByMethod}");
           }
         }
         Indent(indent); wr.WriteLine(" */");
@@ -847,7 +849,7 @@ namespace Microsoft.Dafny {
       Indent(indent);
       string k = isPredicate ? "predicate" : f.WhatKind;
       if (f.HasStaticKeyword) { k = "static " + k; }
-      if (!f.IsGhost) { k += " method"; }
+      if (!f.IsGhost && f.ByMethodBody == null) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
       if (f.SignatureIsOmitted) {
         wr.Write(" ...");
@@ -879,7 +881,18 @@ namespace Microsoft.Dafny {
         wr.WriteLine("{");
         PrintExtendedExpr(f.Body, ind, true, false);
         Indent(indent);
-        wr.WriteLine("}");
+        wr.Write("}");
+        if (f.ByMethodBody != null) {
+          wr.Write(" by method ");
+          if (DafnyOptions.O.DafnyPrintResolvedFile != null && f.ByMethodDecl != null) {
+            Contract.Assert(f.ByMethodDecl.Ens.Count == 1);
+            wr.Write("/* ensures");
+            PrintAttributedExpression(f.ByMethodDecl.Ens[0]);
+            wr.Write(" */ ");
+          }
+          PrintStatement(f.ByMethodBody, indent);
+        }
+        wr.WriteLine();
       }
     }
 
@@ -1062,17 +1075,22 @@ namespace Microsoft.Dafny {
         wr.WriteLine();
         Indent(indent);
         wr.Write("{0}", kind);
-
-        if (e.HasAttributes()) {
-          PrintAttributes(e.Attributes);
-        }
-
-        wr.Write(" ");
-        if (e.Label != null) {
-          wr.Write("{0}: ", e.Label.Name);
-        }
-        PrintExpression(e.E, true);
+        PrintAttributedExpression(e);
       }
+    }
+
+    void PrintAttributedExpression(AttributedExpression e) {
+      Contract.Requires(e != null);
+
+      if (e.HasAttributes()) {
+        PrintAttributes(e.Attributes);
+      }
+
+      wr.Write(" ");
+      if (e.Label != null) {
+        wr.Write("{0}: ", e.Label.Name);
+      }
+      PrintExpression(e.E, true);
     }
 
     // ----------------------------- PrintType -----------------------------

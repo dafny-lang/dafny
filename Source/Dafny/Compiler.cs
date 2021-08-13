@@ -661,13 +661,13 @@ namespace Microsoft.Dafny {
         return from.ParentTypes().Any(fromParentType => IsTargetSupertype(to, fromParentType));
       }
     }
-    
+
     protected ConcreteSyntaxTree Downcast(Type from, Type to, Bpl.IToken tok, ICanRender expression) {
       var result = new ConcreteSyntaxTree();
       EmitDowncast(from, to, tok, result).Append(expression);
       return result;
     }
-    
+
     protected virtual ConcreteSyntaxTree EmitDowncast(Type from, Type to, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       Contract.Requires(from != null);
       Contract.Requires(to != null);
@@ -742,7 +742,7 @@ namespace Microsoft.Dafny {
       EmitCast(toType, result).Append(expr);
       return result;
     }
-    
+
     protected virtual ConcreteSyntaxTree EmitCast(Type toType, ConcreteSyntaxTree wr) {
       wr.Write("({0})", TypeName(toType, wr, Bpl.Token.NoToken));
       return wr.ForkInParens();
@@ -1586,7 +1586,8 @@ namespace Microsoft.Dafny {
 
       if (!(c is TraitDecl) || TraitRepeatsInheritedDeclarations) {
         thisContext = c;
-        foreach (var member in inheritedMembers) {
+        foreach (var memberx in inheritedMembers) {
+          var member = (memberx as Function)?.ByMethodDecl ?? memberx;
           Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
           if (member.IsGhost) {
             // skip
@@ -1646,7 +1647,8 @@ namespace Microsoft.Dafny {
         thisContext = null;
       }
 
-      foreach (MemberDecl member in c.Members) {
+      foreach (MemberDecl memberx in c.Members) {
+        var member = (memberx as Function)?.ByMethodDecl ?? memberx;
         if (!member.IsStatic) {
           thisContext = c;
         }
@@ -2667,12 +2669,17 @@ namespace Microsoft.Dafny {
         EmitBreak(s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator), wr);
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
+        var isTailRecursiveResult = false;
         if (s.hiddenUpdate != null) {
           TrStmt(s.hiddenUpdate, wr);
+          var ss = s.hiddenUpdate.ResolvedStatements;
+          if (ss.Count == 1 && ss[0] is AssignStmt assign && assign.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
+            isTailRecursiveResult = true;
+          }
         }
         if (s is YieldStmt) {
           EmitYield(wr);
-        } else {
+        } else if (!isTailRecursiveResult) {
           EmitReturn(this.enclosingMethod.Outs, wr);
         }
       } else if (stmt is UpdateStmt) {
@@ -2723,6 +2730,8 @@ namespace Microsoft.Dafny {
           if (DafnyOptions.O.ForbidNondeterminism) {
             Error(s.Rhs.Tok, "nondeterministic assignment forbidden by /definiteAssignment:3 option", wr);
           }
+        } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
+          TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, null, wr);
         } else {
           var lvalue = CreateLvalue(s.Lhs, wr);
           var wStmts = wr.Fork();
@@ -3120,6 +3129,11 @@ namespace Microsoft.Dafny {
       }
 
       return wrOuter;
+    }
+
+    bool IsTailRecursiveByMethodCall(FunctionCallExpr fce) {
+      Contract.Requires(fce != null);
+      return fce.IsByMethodCall && fce.Function.ByMethodDecl == enclosingMethod && fce.Function.ByMethodDecl.IsTailRecursive;
     }
 
     protected virtual void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
@@ -3834,52 +3848,7 @@ namespace Microsoft.Dafny {
 
       if (s.Method == enclosingMethod && enclosingMethod.IsTailRecursive) {
         // compile call as tail-recursive
-
-        // assign the actual in-parameters to temporary variables
-        var inTmps = new List<string>();
-        var inTypes = new List<Type/*?*/>();
-        if (receiverReplacement != null) {
-          // TODO:  What to do here?  When does this happen, what does it mean?
-        } else if (!s.Method.IsStatic) {
-          string inTmp = idGenerator.FreshId("_in");
-          inTmps.Add(inTmp);
-          inTypes.Add(null);
-          DeclareLocalVar(inTmp, null, null, s.Receiver, false, wr);
-        }
-        for (int i = 0; i < s.Method.Ins.Count; i++) {
-          Formal p = s.Method.Ins[i];
-          if (!p.IsGhost) {
-            string inTmp = idGenerator.FreshId("_in");
-            inTmps.Add(inTmp);
-            inTypes.Add(s.Args[i].Type);
-            DeclareLocalVar(inTmp, s.Args[i].Type, p.tok, s.Args[i], false, wr);
-          }
-        }
-        // Now, assign to the formals
-        int n = 0;
-        if (!s.Method.IsStatic) {
-          wr.Write("_this = ");
-          ConcreteSyntaxTree wRHS;
-          if (thisContext == null) {
-            wRHS = wr;
-          } else {
-            var instantiatedType = Resolver.SubstType(s.Receiver.Type, thisContext.ParentFormalTypeParametersToActuals);
-            wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(s.Tok, thisContext), s.Tok, wr);
-          }
-          wRHS.Write(inTmps[n]);
-          EndStmt(wr);
-          n++;
-        }
-        foreach (var p in s.Method.Ins) {
-          if (!p.IsGhost) {
-            EmitAssignment(IdName(p), p.Type, inTmps[n], inTypes[n], wr);
-            n++;
-          }
-        }
-        Contract.Assert(n == inTmps.Count);
-        // finally, the jump back to the head of the method
-        EmitJumpToTailCallStart(wr);
-
+        TrTailCallStmt(s.Tok, s.Method, s.Receiver, s.Args, receiverReplacement, wr);
       } else {
         // compile call as a regular call
 
@@ -4059,6 +4028,60 @@ namespace Microsoft.Dafny {
           }
         }
       }
+    }
+
+    void TrTailCallStmt(Bpl.IToken tok, Method method, Expression receiver, List<Expression> args, string receiverReplacement, ConcreteSyntaxTree wr) {
+      Contract.Requires(tok != null);
+      Contract.Requires(method != null);
+      Contract.Requires(receiver != null);
+      Contract.Requires(args != null);
+      Contract.Requires(method.IsTailRecursive);
+      Contract.Requires(wr != null);
+
+      // assign the actual in-parameters to temporary variables
+      var inTmps = new List<string>();
+      var inTypes = new List<Type/*?*/>();
+      if (receiverReplacement != null) {
+        // TODO:  What to do here?  When does this happen, what does it mean?
+      } else if (!method.IsStatic) {
+        string inTmp = idGenerator.FreshId("_in");
+        inTmps.Add(inTmp);
+        inTypes.Add(null);
+        DeclareLocalVar(inTmp, null, null, receiver, false, wr);
+      }
+      for (int i = 0; i < method.Ins.Count; i++) {
+        Formal p = method.Ins[i];
+        if (!p.IsGhost) {
+          string inTmp = idGenerator.FreshId("_in");
+          inTmps.Add(inTmp);
+          inTypes.Add(args[i].Type);
+          DeclareLocalVar(inTmp, args[i].Type, p.tok, args[i], false, wr);
+        }
+      }
+      // Now, assign to the formals
+      int n = 0;
+      if (!method.IsStatic) {
+        wr.Write("_this = ");
+        ConcreteSyntaxTree wRHS;
+        if (thisContext == null) {
+          wRHS = wr;
+        } else {
+          var instantiatedType = Resolver.SubstType(receiver.Type, thisContext.ParentFormalTypeParametersToActuals);
+          wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(tok, thisContext), tok, wr);
+        }
+        wRHS.Write(inTmps[n]);
+        EndStmt(wr);
+        n++;
+      }
+      foreach (var p in method.Ins) {
+        if (!p.IsGhost) {
+          EmitAssignment(IdName(p), p.Type, inTmps[n], inTypes[n], wr);
+          n++;
+        }
+      }
+      Contract.Assert(n == inTmps.Count);
+      // finally, the jump back to the head of the method
+      EmitJumpToTailCallStart(wr);
     }
 
     /// <summary>

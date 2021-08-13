@@ -1,0 +1,10 @@
+ByMethodResolution.dfy(17,6): Error: number of return parameters does not match declaration (found 2, expected 1)
+ByMethodResolution.dfy(25,4): Error: RHS (of type bv9) not assignable to LHS (of type real)
+ByMethodResolution.dfy(24,6): Error: RHS (of type int) not assignable to LHS (of type real)
+ByMethodResolution.dfy(55,13): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ByMethodResolution.dfy(75,9): Error: ghost variables are allowed only in specification contexts
+ByMethodResolution.dfy(82,14): Error: ghost variables are allowed only in specification contexts
+ByMethodResolution.dfy(96,4): Error: a recursive call from a least predicate can go only to other least predicates
+ByMethodResolution.dfy(132,4): Error: a recursive call from a least predicate can go only to other least predicates
+ByMethodResolution.dfy(147,4): Error: a recursive call from a least predicate can go only to other least predicates
+9 resolution/type errors detected in ByMethodResolution.dfy

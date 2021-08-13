@@ -105,3 +105,15 @@ module Ats {
     }
   }
 }
+
+module ByMethod {
+  function F(x: nat): int {
+    x
+  } by method {
+    var j := 0;
+    for _ := 0 to x {
+      j := j - 1;
+    }
+    return -j;
+  }
+}
