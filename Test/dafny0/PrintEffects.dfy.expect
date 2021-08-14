@@ -1,0 +1,11 @@
+
+Dafny program verifier finished with 3 verified, 0 errors
+hello, Main
+method P here
+function-by-method F
+bye, from M
+PrintEffects.dfy(6,2): Error: to use a print statement, the enclosing method must be marked with {:print}
+PrintEffects.dfy(7,3): Error: to call a method with print effects, the enclosing method must be marked with {:print}
+PrintEffects.dfy(17,2): Error: to use a print statement, the enclosing method must be marked with {:print}
+PrintEffects.dfy(23,2): Error: a function-by-method is not allowed to use print statements
+4 resolution/type errors detected in PrintEffects.dfy

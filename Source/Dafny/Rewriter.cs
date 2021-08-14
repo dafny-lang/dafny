@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using IToken = Microsoft.Boogie.IToken;
 
@@ -2024,6 +2025,61 @@ namespace Microsoft.Dafny
       }
     }
   }
+
+  // ------------------- PrintEffectEnforcement -------------------
+
+  public class PrintEffectEnforcement : IRewriter
+  {
+    internal PrintEffectEnforcement(ErrorReporter reporter) : base(reporter) {
+      Contract.Requires(reporter != null);
+    }
+
+    internal override void PostDecreasesResolve(ModuleDefinition m) {
+      foreach (var decl in m.TopLevelDecls) {
+        if (decl is TopLevelDeclWithMembers cl) {
+          foreach (var member in cl.Members) {
+            var printAttribute = Attributes.Find(member.Attributes, "print");
+            if (printAttribute != null && printAttribute.Args.Count != 0) {
+              reporter.Error(MessageSource.Rewriter, printAttribute.Args[0].tok, ":print attribute does not take any arguments");
+            }
+            if (member is Function f) {
+              if (printAttribute != null) {
+                reporter.Error(MessageSource.Rewriter, member.tok, ":print attribute is not allowed on functions");
+              }
+              if (f.ByMethodDecl != null && DafnyOptions.O.EnforcePrintEffects) {
+                f.ByMethodDecl.Body.Body.Iter(stmt => CheckNoPrintEffects(stmt, f.ByMethodDecl));
+              }
+            } else if (member is Method method) {
+              if (printAttribute != null && member.IsGhost) {
+                reporter.Error(MessageSource.Rewriter, member.tok, ":print attribute is not allowed on ghost methods");
+              } else if (printAttribute == null && !member.IsGhost && method.Body != null) {
+                if (DafnyOptions.O.EnforcePrintEffects) {
+                  method.Body.Body.Iter(stmt => CheckNoPrintEffects(stmt, method));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    private void CheckNoPrintEffects(Statement stmt, Method method) {
+      if (stmt is PrintStmt) {
+        if (method.IsByMethod) {
+          reporter.Error(MessageSource.Rewriter, stmt.Tok, "a function-by-method is not allowed to use print statements");
+        } else {
+          reporter.Error(MessageSource.Rewriter, stmt.Tok, "to use a print statement, the enclosing method must be marked with {:print}");
+        }
+      } else if (stmt is CallStmt call) {
+        if (Attributes.Contains(call.Method.Attributes, "print")) {
+          if (method.IsByMethod) {
+            reporter.Error(MessageSource.Rewriter, stmt.Tok, "a function-by-method is not allowed to call a method with print effects");
+          } else {
+            reporter.Error(MessageSource.Rewriter, stmt.Tok, "to call a method with print effects, the enclosing method must be marked with {:print}");
+          }
+        }
+      }
+      stmt.SubStatements.Iter(s => CheckNoPrintEffects(s, method));
+    }
+  }
 }
-
-

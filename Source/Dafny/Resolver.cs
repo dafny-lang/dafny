@@ -433,6 +433,7 @@ namespace Microsoft.Dafny
       }
 
       rewriters.Add(new InductionRewriter(reporter));
+      rewriters.Add(new PrintEffectEnforcement(reporter));
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
