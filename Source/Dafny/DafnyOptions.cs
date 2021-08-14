@@ -451,9 +451,6 @@ namespace Microsoft.Dafny
       Dafny does not perform sanity checks on the arguments---it is the user's responsibility not to generate
       malformed target code.
 
-    {:axiom}
-      TODO
-
     {:handle}
       TODO
 
@@ -467,7 +464,11 @@ namespace Microsoft.Dafny
       TODO
 
     {:axiom}
-      TODO
+      Ordinarily, the compiler gives an error for every function or
+      method without a body. If the function or method is ghost, then
+      marking it with {:axiom} suppresses the error. The {:axiom}
+      attribute says you're taking responsibility for the existence
+      of a body for the function or method.
 
     {:abstemious}
       TODO
