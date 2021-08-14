@@ -65,6 +65,7 @@ namespace Microsoft.Dafny
     public enum CompilationTarget { Csharp = 1, JavaScript = 2, Go = 4, Java = 8, Cpp = 16, Php = 32 }
     public CompilationTarget CompileTarget = CompilationTarget.Csharp;
     public bool CompileVerbose = true;
+    public bool EnforcePrintEffects = false;
     public string DafnyPrintCompiledFile = null;
     public string CoverageLegendFile = null;
     public string MainMethod = null;
@@ -187,6 +188,14 @@ namespace Microsoft.Dafny
           int verbosity = 0;
           if (ps.GetNumericArgument(ref verbosity, 2)) {
             CompileVerbose = verbosity == 1;
+          }
+          return true;
+        }
+
+        case "trackPrintEffects": {
+          int printEffects = 0;
+          if (ps.GetNumericArgument(ref printEffects, 2)) {
+            EnforcePrintEffects = printEffects == 1;
           }
           return true;
         }
