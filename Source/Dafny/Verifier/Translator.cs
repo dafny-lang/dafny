@@ -116,6 +116,7 @@ namespace Microsoft.Dafny {
         sink = boogieProgram;
         predef = FindPredefinedDecls(boogieProgram);
       }
+      bvFuncs = new HashSet<string>();
     }
 
     public void SetReporter(ErrorReporter reporter) {
@@ -229,6 +230,7 @@ namespace Microsoft.Dafny {
 
 
     private Bpl.Program sink;
+    private HashSet<string> bvFuncs;
     private VisibilityScope currentScope;
     private VisibilityScope verificationScope;
 
@@ -762,11 +764,11 @@ namespace Microsoft.Dafny {
         AddBitvectorFunction(w, "ge_bv", "bvuge", true, Bpl.Type.Bool, true);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
         AddBitvectorFunction(w, "gt_bv", "bvugt", true, Bpl.Type.Bool, false);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
         // shifts
-        AddBitvectorShiftFunction(w, "LeftShift_bv", "bvshl");
-        AddBitvectorShiftFunction(w, "RightShift_bv", "bvlshr");
+        AddBitvectorShiftSynonym(w, "LeftShift_bv", AddBitvectorShiftFunction(w, "smt_LeftShift_bv", "bvshl"));
+        AddBitvectorShiftSynonym(w, "RightShift_bv", AddBitvectorShiftFunction(w, "smt_RightShift_bv", "bvlshr"));
         // rotates
-        AddBitvectorShiftFunction(w, "LeftRotate_bv", "ext_rotate_left");
-        AddBitvectorShiftFunction(w, "RightRotate_bv", "ext_rotate_right");
+        AddBitvectorShiftSynonym(w, "LeftRotate_bv", AddBitvectorShiftFunction(w, "smt_LeftRotate_bv", "ext_rotate_left"));
+        AddBitvectorShiftSynonym(w, "RightRotate_bv", AddBitvectorShiftFunction(w, "smt_RightRotate_bv", "ext_rotate_right"));
         // conversion functions
         AddBitvectorNatConversionFunction(w);
       }
@@ -1012,7 +1014,7 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(func);
     }
 
-    private void AddBitvectorShiftFunction(int w, string namePrefix, string smtFunctionName) {
+    private Bpl.Function AddBitvectorShiftFunction(int w, string namePrefix, string smtFunctionName) {
       Contract.Requires(0 <= w);
       Contract.Requires(namePrefix != null);
       Contract.Requires(smtFunctionName != null);
@@ -1034,6 +1036,84 @@ namespace Microsoft.Dafny {
         func.Body = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, w);
       }
       sink.AddTopLevelDeclaration(func);
+      return func;
+    }
+
+    private void AddBitvectorShiftSynonym(int w, string namePrefix, Bpl.Function smtFunc) {
+      Contract.Requires(0 <= w);
+      Contract.Requires(namePrefix != null);
+      var tok = Token.NoToken;
+      var t = BplBvType(w);
+      List<Bpl.Variable> args;
+      var a0 = BplFormalVar(null, t, true);
+      var a1 = BplFormalVar(null, t, true);
+      args = new List<Variable>() { a0, a1 };
+      var r = BplFormalVar(null, t, false);
+      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, null);
+      if (w == 0) {
+        func.Body = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, w);
+      }
+
+      sink.AddTopLevelDeclaration(func);
+      var b1Var = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b1", BplBvType(w)));
+      var b2Var = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b2", BplBvType(w)));
+      var b1 = new Bpl.IdentifierExpr(tok, b1Var);
+      var b2 = new Bpl.IdentifierExpr(tok, b2Var);
+      // var funcArgs = new Array<Bpl.Expr>();
+      // funcArgs.Add(b1);
+      // funcArgs.Add(b2);
+      var bvshift = FunctionCall(tok, namePrefix + w, Bpl.Type.Int, b1, b2);
+      var smt_bvshift = FunctionCall(tok, smtFunc.Name, Bpl.Type.Int, b1, b2);
+      var body = Bpl.Expr.Eq(bvshift, smt_bvshift);
+      var ax = new Bpl.ForallExpr(tok, new List<Variable>() { b1Var, b2Var }, BplTrigger(bvshift), body);
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
+    }
+
+    private string BvBvFunctionName(int fromWidth, int toWidth) {
+      return "bv"+fromWidth+"_to_bv"+toWidth;
+    }
+
+    private string BvBvConversionFunc(int fromWidth, int toWidth) {
+      Contract.Requires(0 <= fromWidth);
+      Contract.Requires(0 <= toWidth);
+      Contract.Requires(fromWidth != toWidth);
+
+      string bvbvName = BvBvFunctionName(fromWidth, toWidth);
+      if(bvFuncs.Contains(bvbvName)) {
+        return bvbvName;
+      }
+      var tok = Token.NoToken;
+      var func = new Bpl.Function(tok, bvbvName, new List<TypeVariable>(),
+        new List<Variable>() { BplFormalVar(null, BplBvType(fromWidth), true) }, BplFormalVar(null, BplBvType(toWidth), false),
+        null, null);
+      sink.AddTopLevelDeclaration(func);
+
+      var bVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b", BplBvType(fromWidth)));
+      var b = new Bpl.IdentifierExpr(tok, bVar);
+      var bvconvert = FunctionCall(tok, bvbvName, Bpl.Type.Int, b);
+      Bpl.Expr actualConversion;
+      if (fromWidth < toWidth) {
+        var zeros = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, toWidth - fromWidth);
+        if (fromWidth == 0) {
+          actualConversion = zeros;
+        } else {
+          var concat = new Bpl.BvConcatExpr(tok, zeros, b);
+          // There's a bug in Boogie that causes a warning to be emitted if a BvConcatExpr is passed as the argument
+          // to $Box, which takes a type argument.  The bug can apparently be worked around by giving an explicit
+          // (and other redudant) type conversion.
+          actualConversion = Bpl.Expr.CoerceType(tok, concat, BplBvType(toWidth));
+        }
+      } else if (toWidth == 0) {
+        actualConversion = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, toWidth);
+      } else {
+        Contract.Assert(fromWidth > toWidth);
+        actualConversion = new Bpl.BvExtractExpr(tok, b, toWidth, 0);
+      }
+      var body = Bpl.Expr.Eq(bvconvert, actualConversion);
+      var ax = new Bpl.ForallExpr(tok, new List<Variable>() { bVar }, BplTrigger(bvconvert), body);
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
+      bvFuncs.Add(bvbvName);
+      return bvbvName;
     }
 
     private void AddBitvectorNatConversionFunction(int w) {
@@ -8404,21 +8484,9 @@ namespace Microsoft.Dafny {
           var toWidth = toType.AsBitVectorType.Width;
           if (fromWidth == toWidth) {
             // no conversion
-          } else if (fromWidth < toWidth) {
-            var zeros = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, toWidth - fromWidth);
-            if (fromWidth == 0) {
-              r = zeros;
-            } else {
-              var concat = new Bpl.BvConcatExpr(tok, zeros, r);
-              // There's a bug in Boogie that causes a warning to be emitted if a BvConcatExpr is passed as the argument
-              // to $Box, which takes a type argument.  The bug can apparently be worked around by giving an explicit
-              // (and other redudant) type conversion.
-              r = Bpl.Expr.CoerceType(tok, concat, BplBvType(toWidth));
-            }
-          } else if (toWidth == 0) {
-            r = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, toWidth);
           } else {
-            r = new Bpl.BvExtractExpr(tok, r, toWidth, 0);
+            var funcName = BvBvConversionFunc(fromWidth, toWidth);
+            r = FunctionCall(tok, funcName, null, r);
           }
         } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
           r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
