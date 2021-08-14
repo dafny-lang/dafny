@@ -415,6 +415,16 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// Returns first occurrence of an attribute named "nm", or "null" if there is no such
+    /// attribute.
+    /// </summary>
+    [Pure]
+    public static Attributes/*?*/ Find(Attributes attrs, string nm) {
+      Contract.Requires(nm != null);
+      return attrs.AsEnumerable().FirstOrDefault(attr => attr.Name == nm);
+    }
+
+    /// <summary>
     /// Returns true if "nm" is a specified attribute.  If it is, then:
     /// - if the attribute is {:nm true}, then value==true
     /// - if the attribute is {:nm false}, then value==false
