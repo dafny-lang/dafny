@@ -2286,9 +2286,9 @@ namespace Microsoft.Dafny {
 
       if (c is TraitDecl) {
         //this adds: function implements$J(Ty, typeArgs): bool;
-        var vars = MkTyParamFormals(GetTypeParams(c));
-        var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, predef.Ty), true);
-        vars.Add(arg_ref);
+        var arg_ref = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, "ty", predef.Ty), true);
+        var vars = new List<Bpl.Variable> { arg_ref };
+        vars.AddRange(MkTyParamFormals(GetTypeParams(c)));
         var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
         var implement_intr = new Bpl.Function(c.tok, "implements$" + c.FullSanitizedName, vars, res);
         sink.AddTopLevelDeclaration(implement_intr);
