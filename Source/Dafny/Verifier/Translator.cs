@@ -12307,13 +12307,23 @@ namespace Microsoft.Dafny {
     }
 
     Bpl.AssumeCmd TrAssumeCmd(IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
-      var lit = RemoveLit(expr);
-      return attributes == null ? new Bpl.AssumeCmd(tok, lit) : new Bpl.AssumeCmd(tok, lit, attributes);
+      // It may be that "expr" is a Lit expression. It might seem we don't need a Lit expression
+      // around the boolean expression that is being assumed. However, we keep it. For one,
+      // it doesn't change the semantics of the assume command. More importantly, leaving
+      // a Lit around the expression is useful to avoid sending an "assume false;" to Boogie--since
+      // Boogie looks especially for "assume false;" commands and processes them in such a way
+      // that loops no longer are loops (which is confusing for Dafny users).
+      return attributes == null ? new Bpl.AssumeCmd(tok, expr) : new Bpl.AssumeCmd(tok, expr, attributes);
     }
 
     Bpl.AssertCmd TrAssertCmd(IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
-      var lit = RemoveLit(expr);
-      return attributes == null ? new Bpl.AssertCmd(tok, lit) : new Bpl.AssertCmd(tok, lit, attributes);
+      // It may be that "expr" is a Lit expression. It might seem we don't need a Lit expression
+      // around the boolean expression that is being asserted. However, we keep it. For one,
+      // it doesn't change the semantics of the assert command. More importantly, leaving
+      // a Lit around the expression is useful to avoid sending an "assert false;" to Boogie--since
+      // Boogie looks especially for "assert false;" commands and processes them in such a way
+      // that loops no longer are loops (which is confusing for Dafny users).
+      return attributes == null ? new Bpl.AssertCmd(tok, expr) : new Bpl.AssertCmd(tok, expr, attributes);
     }
 
     delegate void BodyTranslator(BoogieStmtListBuilder builder, ExpressionTranslator etran);
