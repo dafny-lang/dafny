@@ -10425,6 +10425,15 @@ namespace Microsoft.Dafny {
       return Assert(tok, condition, errorMessage, tok);
     }
 
+    Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.QKeyValue kv) {
+      Contract.Requires(tok != null);
+      Contract.Requires(errorMessage != null);
+      Contract.Requires(condition != null);
+      Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
+
+      return Assert(tok, condition, errorMessage, tok, kv);
+    }
+
     Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesToken, Bpl.QKeyValue kv = null) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
@@ -10437,13 +10446,14 @@ namespace Microsoft.Dafny {
       } else {
         var cmd = TrAssertCmd(ForceCheckToken.Unwrap(tok), condition, kv);
         cmd.ErrorData = "Error: " + errorMessage;
-        this.assertionCount++;
         return cmd;
       }
     }
+
     Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage) {
       return AssertNS(tok, condition, errorMessage, tok, null);
     }
+
     Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesTok, Bpl.QKeyValue kv)
     {
       Contract.Requires(tok != null);
@@ -10459,22 +10469,6 @@ namespace Microsoft.Dafny {
         var args = new List<object>();
         args.Add(Bpl.Expr.Literal(0));
         Bpl.AssertCmd cmd = TrAssertCmd(tok, condition, new Bpl.QKeyValue(tok, "subsumption", args, kv));
-        cmd.ErrorData = "Error: " + errorMessage;
-        return cmd;
-      }
-    }
-
-    Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.QKeyValue kv) {
-      Contract.Requires(tok != null);
-      Contract.Requires(errorMessage != null);
-      Contract.Requires(condition != null);
-      Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
-
-      if (assertAsAssume || (RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
-        // produce an assume instead
-        return TrAssumeCmd(tok, condition, kv);
-      } else {
-        var cmd = TrAssertCmd(ForceCheckToken.Unwrap(tok), condition, kv);
         cmd.ErrorData = "Error: " + errorMessage;
         return cmd;
       }
