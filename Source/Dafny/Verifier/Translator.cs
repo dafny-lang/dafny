@@ -1080,10 +1080,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(namePrefix != null);
       var tok = Token.NoToken;
       var t = BplBvType(w);
-      List<Bpl.Variable> args;
       var a0 = BplFormalVar(null, t, true);
       var a1 = BplFormalVar(null, t, true);
-      args = new List<Variable>() { a0, a1 };
+      var args = new List<Variable>() { a0, a1 };
       var r = BplFormalVar(null, t, false);
       var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, w == 0 ? InlineAttribute(tok) : null);
       if (w == 0) {
