@@ -1103,7 +1103,7 @@ namespace Microsoft.Dafny {
     }
 
     private string BvBvFunctionName(int fromWidth, int toWidth) {
-      return "bv"+fromWidth+"_to_bv"+toWidth;
+      return $"bv{fromWidth}_to_bv{toWidth}";
     }
 
     private string BvBvConversionFunc(int fromWidth, int toWidth) {
