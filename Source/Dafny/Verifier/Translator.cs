@@ -1112,7 +1112,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(fromWidth != toWidth);
 
       string bvbvName = BvBvFunctionName(fromWidth, toWidth);
-      if(bvFuncs.Contains(bvbvName)) {
+      if (bvFuncs.Contains(bvbvName)) {
         return bvbvName;
       }
       var tok = Token.NoToken;
