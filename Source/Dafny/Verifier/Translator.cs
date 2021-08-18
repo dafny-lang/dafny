@@ -748,27 +748,27 @@ namespace Microsoft.Dafny {
         // type axioms
         AddBitvectorTypeAxioms(w);
         // bitwise operations
-        AddBitvectorSynonym(w, "and_bv", AddBitvectorFunction(w, "smt_and_bv", "bvand"));
-        AddBitvectorSynonym(w, "or_bv", AddBitvectorFunction(w, "smt_or_bv", "bvor"));
-        AddBitvectorSynonym(w, "xor_bv", AddBitvectorFunction(w, "smt_xor_bv", "bvxor"));  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
-        AddBitvectorSynonym(w, "not_bv", AddBitvectorFunction(w, "smt_not_bv", "bvnot", false), false);
+        AddBitvectorFunction(w, "and_bv", AddBitvectorBuiltin(w, "smt_and_bv", "bvand"));
+        AddBitvectorFunction(w, "or_bv", AddBitvectorBuiltin(w, "smt_or_bv", "bvor"));
+        AddBitvectorFunction(w, "xor_bv", AddBitvectorBuiltin(w, "smt_xor_bv", "bvxor"));  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "not_bv", AddBitvectorBuiltin(w, "smt_not_bv", "bvnot", false), false);
         // arithmetic operations
-        AddBitvectorSynonym(w, "add_bv", AddBitvectorFunction(w, "smt_add_bv", "bvadd"));
-        AddBitvectorSynonym(w, "sub_bv", AddBitvectorFunction(w, "smt_sub_bv", "bvsub"));  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
-        AddBitvectorSynonym(w, "mul_bv", AddBitvectorFunction(w, "smt_mul_bv", "bvmul"));
-        AddBitvectorSynonym(w, "div_bv", AddBitvectorFunction(w, "smt_div_bv", "bvudiv"));
-        AddBitvectorSynonym(w, "mod_bv", AddBitvectorFunction(w, "smt_mod_bv", "bvurem"));
+        AddBitvectorFunction(w, "add_bv", AddBitvectorBuiltin(w, "smt_add_bv", "bvadd"));
+        AddBitvectorFunction(w, "sub_bv", AddBitvectorBuiltin(w, "smt_sub_bv", "bvsub"));  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "mul_bv", AddBitvectorBuiltin(w, "smt_mul_bv", "bvmul"));
+        AddBitvectorFunction(w, "div_bv", AddBitvectorBuiltin(w, "smt_div_bv", "bvudiv"));
+        AddBitvectorFunction(w, "mod_bv", AddBitvectorBuiltin(w, "smt_mod_bv", "bvurem"));
         // comparisons
-        AddBitvectorSynonym(w, "lt_bv", AddBitvectorFunction(w, "smt_lt_bv", "bvult", true, Bpl.Type.Bool, false), true, Bpl.Type.Bool, false) ;
-        AddBitvectorSynonym(w, "le_bv", AddBitvectorFunction(w, "smt_le_bv", "bvule", true, Bpl.Type.Bool, true), true, Bpl.Type.Bool, true) ;  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
-        AddBitvectorSynonym(w, "ge_bv", AddBitvectorFunction(w, "smt_ge_bv", "bvuge", true, Bpl.Type.Bool, true), true, Bpl.Type.Bool, true) ;  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
-        AddBitvectorSynonym(w, "gt_bv", AddBitvectorFunction(w, "smt_gt_bv", "bvugt", true, Bpl.Type.Bool, false), true, Bpl.Type.Bool, false) ;  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "lt_bv", AddBitvectorBuiltin(w, "smt_lt_bv", "bvult", true, Bpl.Type.Bool, false), true, Bpl.Type.Bool, false) ;
+        AddBitvectorFunction(w, "le_bv", AddBitvectorBuiltin(w, "smt_le_bv", "bvule", true, Bpl.Type.Bool, true), true, Bpl.Type.Bool, true) ;  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "ge_bv", AddBitvectorBuiltin(w, "smt_ge_bv", "bvuge", true, Bpl.Type.Bool, true), true, Bpl.Type.Bool, true) ;  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "gt_bv", AddBitvectorBuiltin(w, "smt_gt_bv", "bvugt", true, Bpl.Type.Bool, false), true, Bpl.Type.Bool, false) ;  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
         // shifts
-        AddBitvectorShiftSynonym(w, "LeftShift_bv", AddBitvectorShiftFunction(w, "smt_LeftShift_bv", "bvshl"));
-        AddBitvectorShiftSynonym(w, "RightShift_bv", AddBitvectorShiftFunction(w, "smt_RightShift_bv", "bvlshr"));
+        AddBitvectorShiftFunction(w, "LeftShift_bv", AddBitvectorShiftBuiltin(w, "smt_LeftShift_bv", "bvshl"));
+        AddBitvectorShiftFunction(w, "RightShift_bv", AddBitvectorShiftBuiltin(w, "smt_RightShift_bv", "bvlshr"));
         // rotates
-        AddBitvectorShiftSynonym(w, "LeftRotate_bv", AddBitvectorShiftFunction(w, "smt_LeftRotate_bv", "ext_rotate_left"));
-        AddBitvectorShiftSynonym(w, "RightRotate_bv", AddBitvectorShiftFunction(w, "smt_RightRotate_bv", "ext_rotate_right"));
+        AddBitvectorShiftFunction(w, "LeftRotate_bv", AddBitvectorShiftBuiltin(w, "smt_LeftRotate_bv", "ext_rotate_left"));
+        AddBitvectorShiftFunction(w, "RightRotate_bv", AddBitvectorShiftBuiltin(w, "smt_RightRotate_bv", "ext_rotate_right"));
         // conversion functions
         AddBitvectorNatConversionFunction(w);
       }
@@ -968,6 +968,32 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isAllocBv)));
     }
 
+    private Bpl.Function AddBitvectorBuiltin(int w, string namePrefix, string smtFunctionName, bool binary = true, Bpl.Type resultType = null, bool bodyForBv0 = false) {
+      Contract.Requires(0 <= w);
+      Contract.Requires(namePrefix != null);
+      Contract.Requires(smtFunctionName != null);
+      if (w == 0) {
+        return null; // don't need the smt function for w = 0
+      }
+
+      var tok = Token.NoToken;
+      var t = BplBvType(w);
+      List<Bpl.Variable> args;
+      if (binary) {
+        var a0 = BplFormalVar(null, t, true);
+        var a1 = BplFormalVar(null, t, true);
+        args = new List<Variable>() { a0, a1 };
+      } else {
+        var a0 = BplFormalVar(null, t, true);
+        args = new List<Variable>() { a0 };
+      }
+      var r = BplFormalVar(null, resultType ?? t, false);
+      Bpl.QKeyValue attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
+      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, attr);
+      sink.AddTopLevelDeclaration(func);
+      return func;
+    }
+
     /// <summary>
     /// Declare and add to the sink a Boogie function named "namePrefix + w".
     /// If "binary", then the function takes two arguments; otherwise, it takes one.  Arguments have the type
@@ -981,10 +1007,9 @@ namespace Microsoft.Dafny {
     ///     If "resultType" is null, then use 0 as the body; otherwise, use "bodyForBv0" as the body (which
     ///     assumes "resultType" is actually Bpl.Type.Bool).
     /// </summary>
-    private Bpl.Function AddBitvectorFunction(int w, string namePrefix, string smtFunctionName, bool binary = true, Bpl.Type resultType = null, bool bodyForBv0 = false) {
+    private void AddBitvectorFunction(int w, string namePrefix, Bpl.Function smtFunc, bool binary = true, Bpl.Type resultType = null, bool bodyForBv0 = false) {
       Contract.Requires(0 <= w);
       Contract.Requires(namePrefix != null);
-      Contract.Requires(smtFunctionName != null);
       var tok = Token.NoToken;
       var t = BplBvType(w);
       List<Bpl.Variable> args;
@@ -997,123 +1022,84 @@ namespace Microsoft.Dafny {
         args = new List<Variable>() { a0 };
       }
       var r = BplFormalVar(null, resultType ?? t, false);
-      Bpl.QKeyValue attr;
-      if (w == 0) {
-        attr = InlineAttribute(tok);
-      } else {
-        attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
-      }
-      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, attr);
-      if (w == 0) {
+      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, w == 0 ? InlineAttribute(tok) : null);
+      if (w == 0) { // if w == 0 then the function has a body
         if (resultType != null) {
           func.Body = Bpl.Expr.Literal(bodyForBv0);
         } else {
           func.Body = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, w);
         }
+      } else {  // otherwise we add an axiom for equating it to a buiilt-in smt function
+        if (binary) {
+          var b1Var = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b1", BplBvType(w)));
+          var b2Var = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b2", BplBvType(w)));
+          var b1 = new Bpl.IdentifierExpr(tok, b1Var);
+          var b2 = new Bpl.IdentifierExpr(tok, b2Var);
+          var bvfunc = FunctionCall(tok, namePrefix + w, resultType ?? t, b1, b2);
+          var smt_bvfunc = FunctionCall(tok, smtFunc.Name, resultType ?? t, b1, b2);
+          var body = Bpl.Expr.Eq(bvfunc, smt_bvfunc);
+          var ax = new Bpl.ForallExpr(tok, new List<Variable>() { b1Var, b2Var }, BplTrigger(bvfunc), body);
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
+        } else {
+          var bVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b", BplBvType(w)));
+          var b = new Bpl.IdentifierExpr(tok, bVar);
+          var bvfunc = FunctionCall(tok, namePrefix + w, resultType ?? t, b);
+          var smt_bvfunc = FunctionCall(tok, smtFunc.Name, resultType ?? t, b);
+          var body = Bpl.Expr.Eq(bvfunc, smt_bvfunc);
+          var ax = new Bpl.ForallExpr(tok, new List<Variable>() { bVar }, BplTrigger(bvfunc), body);
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
+        }
       }
+
+      sink.AddTopLevelDeclaration(func);
+    }
+
+    private Bpl.Function AddBitvectorShiftBuiltin(int w, string namePrefix, string smtFunctionName) {
+      Contract.Requires(0 <= w);
+      Contract.Requires(namePrefix != null);
+      Contract.Requires(smtFunctionName != null);
+      if (w == 0) {
+        return null;
+      }
+
+      var tok = Token.NoToken;
+      var t = BplBvType(w);
+      List<Bpl.Variable> args;
+      var a0 = BplFormalVar(null, t, true);
+      var a1 = BplFormalVar(null, t, true);
+      args = new List<Variable>() { a0, a1 };
+      var r = BplFormalVar(null, t, false);
+      Bpl.QKeyValue attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
+      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, attr);
       sink.AddTopLevelDeclaration(func);
       return func;
     }
 
-    private void AddBitvectorSynonym(int w, string namePrefix, Bpl.Function smtFunc, bool binary = true, Bpl.Type resultType = null, bool bodyForBv0 = false) {
+    private void AddBitvectorShiftFunction(int w, string namePrefix, Bpl.Function smtFunc) {
       Contract.Requires(0 <= w);
       Contract.Requires(namePrefix != null);
       var tok = Token.NoToken;
       var t = BplBvType(w);
       List<Bpl.Variable> args;
-      if (binary) {
-        var a0 = BplFormalVar(null, t, true);
-        var a1 = BplFormalVar(null, t, true);
-        args = new List<Variable>() { a0, a1 };
-      } else {
-        var a0 = BplFormalVar(null, t, true);
-        args = new List<Variable>() { a0 };
-      }
-      var r = BplFormalVar(null, resultType ?? t, false);
-      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, null);
+      var a0 = BplFormalVar(null, t, true);
+      var a1 = BplFormalVar(null, t, true);
+      args = new List<Variable>() { a0, a1 };
+      var r = BplFormalVar(null, t, false);
+      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, w == 0 ? InlineAttribute(tok) : null);
       if (w == 0) {
-        if (resultType != null) {
-          func.Body = Bpl.Expr.Literal(bodyForBv0);
-        } else {
-          func.Body = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, w);
-        }
-      }
-      sink.AddTopLevelDeclaration(func);
-
-      if (binary) {
+        func.Body = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, w);
+      } else {
         var b1Var = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b1", BplBvType(w)));
         var b2Var = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b2", BplBvType(w)));
         var b1 = new Bpl.IdentifierExpr(tok, b1Var);
         var b2 = new Bpl.IdentifierExpr(tok, b2Var);
-        var bvfunc = FunctionCall(tok, namePrefix + w, resultType ?? t, b1, b2);
-        var smt_bvfunc = FunctionCall(tok, smtFunc.Name, resultType ?? t, b1, b2);
-        var body = Bpl.Expr.Eq(bvfunc, smt_bvfunc);
-        var ax = new Bpl.ForallExpr(tok, new List<Variable>() { b1Var, b2Var }, BplTrigger(bvfunc), body);
-        sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
-      } else {
-        var bVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b", BplBvType(w)));
-        var b = new Bpl.IdentifierExpr(tok, bVar);
-        var bvfunc = FunctionCall(tok, namePrefix + w, resultType ?? t, b);
-        var smt_bvfunc = FunctionCall(tok, smtFunc.Name, resultType ?? t, b);
-        var body = Bpl.Expr.Eq(bvfunc, smt_bvfunc);
-        var ax = new Bpl.ForallExpr(tok, new List<Variable>() { bVar }, BplTrigger(bvfunc), body);
+        var bvshift = FunctionCall(tok, namePrefix + w, t, b1, b2);
+        var smt_bvshift = FunctionCall(tok, smtFunc.Name, t, b1, b2);
+        var body = Bpl.Expr.Eq(bvshift, smt_bvshift);
+        var ax = new Bpl.ForallExpr(tok, new List<Variable>() { b1Var, b2Var }, BplTrigger(bvshift), body);
         sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
       }
-    }
-
-    private Bpl.Function AddBitvectorShiftFunction(int w, string namePrefix, string smtFunctionName) {
-      Contract.Requires(0 <= w);
-      Contract.Requires(namePrefix != null);
-      Contract.Requires(smtFunctionName != null);
-      var tok = Token.NoToken;
-      var t = BplBvType(w);
-      List<Bpl.Variable> args;
-      var a0 = BplFormalVar(null, t, true);
-      var a1 = BplFormalVar(null, t, true);
-      args = new List<Variable>() { a0, a1 };
-      var r = BplFormalVar(null, t, false);
-      Bpl.QKeyValue attr;
-      if (w == 0) {
-        attr = InlineAttribute(tok);
-      } else {
-        attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
-      }
-      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, attr);
-      if (w == 0) {
-        func.Body = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, w);
-      }
       sink.AddTopLevelDeclaration(func);
-      return func;
-    }
-
-    private void AddBitvectorShiftSynonym(int w, string namePrefix, Bpl.Function smtFunc) {
-      Contract.Requires(0 <= w);
-      Contract.Requires(namePrefix != null);
-      var tok = Token.NoToken;
-      var t = BplBvType(w);
-      List<Bpl.Variable> args;
-      var a0 = BplFormalVar(null, t, true);
-      var a1 = BplFormalVar(null, t, true);
-      args = new List<Variable>() { a0, a1 };
-      var r = BplFormalVar(null, t, false);
-      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, null);
-      if (w == 0) {
-        func.Body = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, w);
-      }
-
-      sink.AddTopLevelDeclaration(func);
-      var b1Var = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b1", BplBvType(w)));
-      var b2Var = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b2", BplBvType(w)));
-      var b1 = new Bpl.IdentifierExpr(tok, b1Var);
-      var b2 = new Bpl.IdentifierExpr(tok, b2Var);
-      // var funcArgs = new Array<Bpl.Expr>();
-      // funcArgs.Add(b1);
-      // funcArgs.Add(b2);
-      var bvshift = FunctionCall(tok, namePrefix + w, Bpl.Type.Int, b1, b2); // QUESTION: should this be t?????
-      var smt_bvshift = FunctionCall(tok, smtFunc.Name, Bpl.Type.Int, b1, b2);
-      var body = Bpl.Expr.Eq(bvshift, smt_bvshift);
-      var ax = new Bpl.ForallExpr(tok, new List<Variable>() { b1Var, b2Var }, BplTrigger(bvshift), body);
-      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
     }
 
     private string BvBvFunctionName(int fromWidth, int toWidth) {
@@ -1137,7 +1123,7 @@ namespace Microsoft.Dafny {
 
       var bVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "b", BplBvType(fromWidth)));
       var b = new Bpl.IdentifierExpr(tok, bVar);
-      var bvconvert = FunctionCall(tok, bvbvName, Bpl.Type.Int, b);
+      var bvconvert = FunctionCall(tok, bvbvName, BplBvType(toWidth), b);
       Bpl.Expr actualConversion;
       if (fromWidth < toWidth) {
         var zeros = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, toWidth - fromWidth);
@@ -1175,17 +1161,30 @@ namespace Microsoft.Dafny {
       // function {:inline} nat_to_bv0(int) : Bv0 { ZERO }
       if (w == 0) {
         attr = InlineAttribute(tok);
+        func = new Bpl.Function(tok, "nat_to_bv" + w, new List<TypeVariable>(),
+          new List<Variable>() { BplFormalVar(null, Bpl.Type.Int, true) }, BplFormalVar(null, bv, false),
+          null, attr);
+        func.Body = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, w);
+        sink.AddTopLevelDeclaration(func);
       } else {
         var smt_int2bv = string.Format("(_ int2bv {0})", w);
         attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smt_int2bv }, null);  // SMT-LIB 2 calls this function nat2bv, but Z3 apparently calls it int2bv
+        var smtFunc = new Bpl.Function(tok, "smt_nat_to_bv" + w, new List<TypeVariable>(),
+          new List<Variable>() { BplFormalVar(null, Bpl.Type.Int, true) }, BplFormalVar(null, bv, false),
+          null, attr);
+        sink.AddTopLevelDeclaration(smtFunc);
+        func = new Bpl.Function(tok, "nat_to_bv" + w, new List<TypeVariable>(),
+          new List<Variable>() { BplFormalVar(null, Bpl.Type.Int, true) }, BplFormalVar(null, bv, false),
+          null, null);
+        sink.AddTopLevelDeclaration(func);
+        var nVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "n", Bpl.Type.Int));
+        var n = new Bpl.IdentifierExpr(tok, nVar);
+        var nat2bv = FunctionCall(tok, "nat_to_bv" + w, BplBvType(w), n);
+        var smt_nat2bv = FunctionCall(tok, "smt_nat_to_bv" + w, BplBvType(w), n);
+        var body = Bpl.Expr.Eq(nat2bv, smt_nat2bv);
+        var ax = new Bpl.ForallExpr(tok, new List<Variable> () { nVar }, BplTrigger(nat2bv), body);
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
       }
-      func = new Bpl.Function(tok, "nat_to_bv" + w, new List<TypeVariable>(),
-        new List<Variable>() { BplFormalVar(null, Bpl.Type.Int, true) }, BplFormalVar(null, bv, false),
-        null, attr);
-      if (w == 0) {
-        func.Body = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, w);
-      }
-      sink.AddTopLevelDeclaration(func);
 
       if (w == 0) {
         // function {:inline} nat_from_bv0_smt(Bv0) : int { 0 }
