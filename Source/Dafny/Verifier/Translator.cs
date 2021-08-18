@@ -1132,7 +1132,7 @@ namespace Microsoft.Dafny {
           var concat = new Bpl.BvConcatExpr(tok, zeros, b);
           // There's a bug in Boogie that causes a warning to be emitted if a BvConcatExpr is passed as the argument
           // to $Box, which takes a type argument.  The bug can apparently be worked around by giving an explicit
-          // (and other redudant) type conversion.
+          // (but otherwise redundant) type conversion.
           actualConversion = Bpl.Expr.CoerceType(tok, concat, BplBvType(toWidth));
         }
       } else if (toWidth == 0) {
