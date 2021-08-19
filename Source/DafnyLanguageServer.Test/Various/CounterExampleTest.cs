@@ -830,7 +830,7 @@ method test(m:set<int>) {
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
-      // Just make sure there are no errors ot infinite loops here
+      Assert.AreEqual(2, counterExamples.Length);
     }
 
     [TestMethod]
