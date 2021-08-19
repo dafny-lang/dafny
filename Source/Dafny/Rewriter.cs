@@ -2036,23 +2036,27 @@ namespace Microsoft.Dafny
 
     internal override void PostDecreasesResolve(ModuleDefinition m) {
       foreach (var decl in m.TopLevelDecls) {
-        if (decl is TopLevelDeclWithMembers cl) {
-          foreach (var member in cl.Members) {
-            var printAttribute = Attributes.Find(member.Attributes, "print");
-            if (printAttribute != null && printAttribute.Args.Count != 0) {
-              reporter.Error(MessageSource.Rewriter, printAttribute.Args[0].tok, ":print attribute does not take any arguments");
+        if (decl is IteratorDecl iter) {
+          var hasPrintAttribute = HasPrintAttribute(iter.Attributes);
+          if (!hasPrintAttribute && iter.Body != null) {
+            if (DafnyOptions.O.EnforcePrintEffects) {
+              iter.Body.Body.Iter(stmt => CheckNoPrintEffects(stmt, iter));
             }
+          }
+        } else if (decl is TopLevelDeclWithMembers cl) {
+          foreach (var member in cl.Members) {
+            var hasPrintAttribute = HasPrintAttribute(member.Attributes);
             if (member is Function f) {
-              if (printAttribute != null) {
+              if (hasPrintAttribute) {
                 reporter.Error(MessageSource.Rewriter, member.tok, ":print attribute is not allowed on functions");
               }
               if (f.ByMethodDecl != null && DafnyOptions.O.EnforcePrintEffects) {
                 f.ByMethodDecl.Body.Body.Iter(stmt => CheckNoPrintEffects(stmt, f.ByMethodDecl));
               }
             } else if (member is Method method) {
-              if (printAttribute != null && member.IsGhost) {
+              if (hasPrintAttribute && member.IsGhost) {
                 reporter.Error(MessageSource.Rewriter, member.tok, ":print attribute is not allowed on ghost methods");
-              } else if (printAttribute == null && !member.IsGhost && method.Body != null) {
+              } else if (!hasPrintAttribute && !member.IsGhost && method.Body != null) {
                 if (DafnyOptions.O.EnforcePrintEffects) {
                   method.Body.Body.Iter(stmt => CheckNoPrintEffects(stmt, method));
                 }
@@ -2063,23 +2067,35 @@ namespace Microsoft.Dafny
       }
     }
 
-    private void CheckNoPrintEffects(Statement stmt, Method method) {
+    bool HasPrintAttribute(Attributes attrs) {
+      var printAttribute = Attributes.Find(attrs, "print");
+      if (printAttribute != null && printAttribute.Args.Count != 0) {
+        reporter.Error(MessageSource.Rewriter, printAttribute.Args[0].tok, ":print attribute does not take any arguments");
+      }
+      return printAttribute != null;
+    }
+
+    private void CheckNoPrintEffects(Statement stmt, IMethodCodeContext codeContext) {
       if (stmt is PrintStmt) {
-        if (method.IsByMethod) {
+        var method = codeContext as Method;
+        if (method != null && method.IsByMethod) {
           reporter.Error(MessageSource.Rewriter, stmt.Tok, "a function-by-method is not allowed to use print statements");
         } else {
-          reporter.Error(MessageSource.Rewriter, stmt.Tok, "to use a print statement, the enclosing method must be marked with {:print}");
+          reporter.Error(MessageSource.Rewriter, stmt.Tok,
+            "to use a print statement, the enclosing {0} must be marked with {{:print}}", method?.WhatKind ?? ((IteratorDecl)codeContext).WhatKind);
         }
       } else if (stmt is CallStmt call) {
         if (Attributes.Contains(call.Method.Attributes, "print")) {
-          if (method.IsByMethod) {
+          var method = codeContext as Method;
+          if (method != null && method.IsByMethod) {
             reporter.Error(MessageSource.Rewriter, stmt.Tok, "a function-by-method is not allowed to call a method with print effects");
           } else {
-            reporter.Error(MessageSource.Rewriter, stmt.Tok, "to call a method with print effects, the enclosing method must be marked with {:print}");
+            reporter.Error(MessageSource.Rewriter, stmt.Tok,
+              "to call a method with print effects, the enclosing {0} must be marked with {{:print}}", method?.WhatKind ?? ((IteratorDecl)codeContext).WhatKind);
           }
         }
       }
-      stmt.SubStatements.Iter(s => CheckNoPrintEffects(s, method));
+      stmt.SubStatements.Iter(s => CheckNoPrintEffects(s, codeContext));
     }
   }
 }

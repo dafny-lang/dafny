@@ -486,8 +486,8 @@ namespace Microsoft.Dafny
       This attributes declares that a method may have print effects,
       that is, it may use 'print' statements and may call other methods
       that have print effects. The attribute can be applied to compiled
-      methods, and it gives an error if applied to functions or ghost
-      methods.
+      methods, constructors, and iterators, and it gives an error if
+      applied to functions or ghost methods.
       Print effects are enforced only with /trackPrintEffects:1.
 
     {:nativeType}
@@ -745,10 +745,10 @@ namespace Microsoft.Dafny
     source-location identifier used in the branch-coverage calls.
     (use - as <file> to print to console)
 /trackPrintEffects:<n>
-    0 (default) - Every compiled method, whether or not it bears a {:print}
-       attribute, may have print effects.
-    1 - A compiled method is allowed to have print effects only if it is marked
-       with {:print}.
+    0 (default) - Every compiled method, constructor, and iterator, whether or not
+       it bears a {:print} attribute, may have print effects.
+    1 - A compiled method, constructor, or iterator is allowed to have print effects
+       only if it is marked with {:print}.
 /noCheating:<n>
     0 (default) - allow assume statements and free invariants
     1 - treat all assumptions as asserts, and drop free.
