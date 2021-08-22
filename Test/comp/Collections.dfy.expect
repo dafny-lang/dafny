@@ -92,6 +92,9 @@ true true true false
 jack wendy null
 jack null null
 ronald ronald false
+Map multiple occurrences test
+  length: 1
+  self-equal: true
 2: 0 1 1
 3: 0 1 2
 There are 0 occurrences of 58 in the multiset
@@ -207,6 +210,9 @@ true true true false
 jack wendy null
 jack null null
 ronald ronald false
+Map multiple occurrences test
+  length: 2
+  self-equal: true
 2: 0 1 1
 3: 0 1 2
 There are 0 occurrences of 58 in the multiset
@@ -322,6 +328,9 @@ true true true false
 jack wendy null
 jack null null
 ronald ronald false
+Map multiple occurrences test
+  length: 1
+  self-equal: true
 2: 0 1 1
 3: 0 1 2
 There are 0 occurrences of 58 in the multiset
@@ -437,6 +446,9 @@ true true true false
 jack wendy null
 jack null null
 ronald ronald false
+Map multiple occurrences test
+  length: 1
+  self-equal: true
 2: 0 1 1
 3: 0 1 2
 There are 0 occurrences of 58 in the multiset

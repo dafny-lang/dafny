@@ -1419,7 +1419,17 @@ func NewMapBuilder() *MapBuilder {
 
 // Add adds a key and value to the map being built.
 func (mb *MapBuilder) Add(k, v interface{}) *MapBuilder {
-  *mb = append(*mb, mapElt{k, v})
+  modifyingIdx := -1
+  for i, e := range *mb {
+    if AreEqual(e.key, k) {
+      modifyingIdx = i
+    }
+  }
+  if modifyingIdx == -1 {
+    *mb = append(*mb, mapElt{k, v})
+  } else {
+    (*mb)[modifyingIdx] = mapElt{k, v}
+  }
   return mb
 }
 
