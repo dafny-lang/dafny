@@ -1417,6 +1417,12 @@ func NewMapBuilder() *MapBuilder {
   return new(MapBuilder)
 }
 
+// Add adds a key and value to the map being built, used by map comprehension
+func (mb *MapBuilder) Add(k, v interface{}) *MapBuilder {
+  *mb = append(*mb, mapElt{k, v})
+  return mb
+}
+
 // ToMap gets the map out of the map builder.
 func (mb *MapBuilder) ToMap() Map {
   return Map{*mb}
