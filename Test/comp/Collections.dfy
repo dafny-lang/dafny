@@ -268,6 +268,7 @@ method Maps() {
   print "items: ", items, "\n";
 
   TestMapMergeSubtraction();
+  TestMapMultiOccurrences();
 }
 
 method TestMapMergeSubtraction() {
@@ -386,6 +387,13 @@ method TestNullsAmongValues() {
   print p[0].name, " ", p[1].name, " ", p[20], "\n";  // jack wendy null
   print q[0].name, " ", q[199], " ", q[20], "\n";  // jack null null
   print r[0].name, " ", r[198].name, " ", 20 in r, "\n";  // ronald ronald false
+}
+
+method TestMapMultiOccurrences() {
+  var a := map[1 := 1, 1 := 2];
+  print "Map multiple occurrences test", "\n";
+  print "  length: ", |a|, "\n";
+  print "  self-equal: ", a == a, "\n";
 }
 
 // -------------------------------------------------------------------------------------------
