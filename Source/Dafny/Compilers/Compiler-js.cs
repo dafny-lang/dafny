@@ -2350,18 +2350,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements,
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write($"{DafnyMapClass}.of(");
-      string sep = "";
+      wr.Write($"{DafnyMapClass}.Empty.slice()");
       foreach (ExpressionPair p in elements) {
-        wr.Write(sep);
-        wr.Write("[");
+        wr.Write(".updateUnsafe(");
         TrExpr(p.A, wr, inLetExprBody, wStmts);
         wr.Write(",");
         TrExpr(p.B, wr, inLetExprBody, wStmts);
-        wr.Write("]");
-        sep = ", ";
+        wr.Write(")");
       }
-      wr.Write(")");
     }
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
