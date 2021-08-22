@@ -77,6 +77,8 @@ method MultiSets() {
   print "  disjoint: ", a !! b, " ", b !! c, "\n";
   print "  subset: ", a <= b, " ", b <= c, " ", c <= c, "\n";
   print "  proper subset: ", a < b, " ", b < c, " ", c < c, "\n";
+  print "  superset: ", a >= b, " ", b >= a, " ", c >= c, "\n";
+  print "  proper superset: ", a > b, " ", b > a, " ", c > c, "\n";
   print "  membership: ", 17 in a, " ", 17 in b, " ", 17 in c, "\n";
   print "  update: ", a[17 := 2], " ", b[17 := 2], " ", c[17 := 2], "\n";
   print "  multiplicity: ", a[17], " ", b[17], " ", c[17], "\n";

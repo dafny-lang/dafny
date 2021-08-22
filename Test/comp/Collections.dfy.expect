@@ -25,6 +25,8 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
   multiplicity: 0 2 1
@@ -142,6 +144,8 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
   multiplicity: 0 2 1
@@ -259,6 +263,8 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
   multiplicity: 0 2 1
@@ -376,6 +382,8 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{17, 12}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{17, 17, 12}
   multiplicity: 0 2 1
