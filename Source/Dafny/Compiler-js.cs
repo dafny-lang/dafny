@@ -2282,18 +2282,14 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, ConcreteSyntaxTree wr) {
-      wr.Write($"{DafnyMapClass}.of(");
-      string sep = "";
+      wr.Write($"{DafnyMapClass}.Empty.slice()");
       foreach (ExpressionPair p in elements) {
-        wr.Write(sep);
-        wr.Write("[");
+        wr.Write(".updateUnsafe(");
         TrExpr(p.A, wr, inLetExprBody);
         wr.Write(",");
         TrExpr(p.B, wr, inLetExprBody);
-        wr.Write("]");
-        sep = ", ";
+        wr.Write(")");
       }
-      wr.Write(")");
     }
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {

@@ -600,6 +600,14 @@ let _dafny = (function() {
       m[i] = [k, v];
       return m;
     }
+    // Similar to update, but make the modification in-place.
+    // Meant to be used in the map constructor.
+    updateUnsafe(k, v) {
+      let m = this;
+      let i = m.findIndex(k);
+      m[i] = [k, v];
+      return m;
+    }
     equals(other) {
       if (this === other) {
         return true;

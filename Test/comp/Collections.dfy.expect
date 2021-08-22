@@ -211,7 +211,7 @@ jack wendy null
 jack null null
 ronald ronald false
 Map multiple occurrences test
-  length: 2
+  length: 1
   self-equal: true
 2: 0 1 1
 3: 0 1 2
