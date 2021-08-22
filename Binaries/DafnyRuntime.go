@@ -1387,7 +1387,7 @@ func (mset MultiSet) isRelated(
   if !r(len(mset.elts), len(mset2.elts)) {
     return false
   }
-  isProper := false
+  isProper := len(mset.elts) < len(mset2.elts)
   for _, e := range mset.elts {
     m := mset2.Multiplicity(e.value)
     cmp := e.count.Cmp(m)
