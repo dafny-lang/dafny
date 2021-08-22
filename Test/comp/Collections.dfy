@@ -36,6 +36,8 @@ method Sets() {
   print "  disjoint: ", a !! b, " ", b !! c, "\n";
   print "  subset: ", a <= b, " ", b <= c, " ", c <= c, "\n";
   print "  proper subset: ", a < b, " ", b < c, " ", c < c, "\n";
+  print "  superset: ", a >= b, " ", b >= a, " ", c >= c, "\n";
+  print "  proper superset: ", a > b, " ", b > a, " ", c > c, "\n";
   print "  membership: ", 17 in a, " ", 17 in b, " ", 17 in c, "\n";
 
   var cl := new Class;

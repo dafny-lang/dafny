@@ -10,6 +10,8 @@ Sets: {} {17, 82} {12, 17}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   eq covariance: 1 true true
 false true
@@ -125,6 +127,8 @@ Sets: {} {17, 82} {12, 17}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   eq covariance: 1 true true
 false true
@@ -240,6 +244,8 @@ Sets: {} {17, 82} {12, 17}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   eq covariance: 1 true true
 false true
@@ -355,6 +361,8 @@ Sets: {} {17, 82} {17, 12}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   eq covariance: 1 true true
 false true
