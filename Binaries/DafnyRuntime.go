@@ -1384,10 +1384,12 @@ func (mset MultiSet) isRelated(
   r func(int, int) bool,
   properCheck func(bool) bool,
 ) bool {
-  if !r(len(mset.elts), len(mset2.elts)) {
+  msetLen := len(mset.elts)
+  mset2Len := len(mset2.elts)
+  if !r(msetLen, mset2Len) {
     return false
   }
-  isProper := len(mset.elts) < len(mset2.elts)
+  isProper := msetLen < mset2Len
   for _, e := range mset.elts {
     m := mset2.Multiplicity(e.value)
     cmp := e.count.Cmp(m)
