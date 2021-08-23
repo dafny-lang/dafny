@@ -18,7 +18,7 @@ end_of_line = lf
 #### C# Formatting Rules ####
 
 # New line preferences
-csharp_new_line_before_open_brace = namespace, types
+csharp_new_line_before_open_brace = none
 csharp_new_line_before_catch = false
 csharp_new_line_before_else = false
 
