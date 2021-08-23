@@ -314,6 +314,13 @@ class Cell<T> {
   {
     x, y := arr, arr;
   }
+  method UArray(x: T)
+    modifies arr 
+  {
+    if arr.Length > 0 {
+      arr[0] := x;
+    }
+  }
 }
 
 type ychar = ch | '\0' <= ch <= 'z'

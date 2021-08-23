@@ -1953,8 +1953,54 @@ PredicateSignature_(allowGhostKeyword) =
                                           allowNewKeyword)
 
 FunctionBody = "{" Expression(allowLemma: true, allowLambda: true)
-               "}"
+               "}" [ "by" "method" BlockStmt ]
 ````
+
+A function with a `by method` clause declares a _function-by-method_.
+A function-by-method gives a way to implement a
+(deterministic, side-effect free) function by a method (whose body may be
+nondeterministic and may allocate objects that it modifies). This can
+be useful if the best implementation uses nondeterminism (for example,
+because it uses `:|` in a nondeterministic way) in a way that does not
+affect the result, or if the implementation temporarily makes use of some
+mutable data structures, or if the implementation is done with a loop.
+For example, here is the standard definition of the Fibonacci function
+but with an efficient implementation that uses a loop:
+
+```dafny
+function Fib(n: nat): nat {
+  if n < 2 then n else Fib(n - 2) + Fib(n - 1)
+} by method {
+  var x, y := 0, 1;
+  for i := 0 to n
+    invariant x == Fib(i) && y == Fib(i + 1)
+  {
+    x, y := y, x + y;
+  }
+  return x;
+}
+```
+
+The `by method` clause is allowed only for the `function` or `predicate`
+declarations (without `method`, `twostate`, `least`, and `greatest`, but
+possibly with `static`). The method
+inherits the in-parameters, attributes, and `requires` and `decreases`
+clauses of the function. The method also gets one out-parameter, corresponding
+to the function's result value (and the name of it, if present). Finally,
+the method gets an empty `modifies` clause and a postcondition
+`ensures r == F(args)`, where `r` is the name of the out-parameter and
+`F(args)` is the function with its arguments. In other words, the method
+body must compute and return exactly what the function says, and must
+do so without modifying any previously existing heap state.
+
+The function body of a function-by-method is allowed to be ghost, but the
+method body must be compilable. In non-ghost contexts, the compiler turns a
+call of the function-by-method into a call that leads to the method body.
+
+Note, the method body of a function-by-method may contain `print` statements.
+This means that the run-time evaluation of an expression may have print effects.
+Dafny does not track print effects, but this is the only situation that an
+expression can have a print effect.
 
 ### 13.4.1. Functions
 
@@ -2792,7 +2838,7 @@ _lambda expressions_. See [Section 20.13](#sec-lambda-expressions).
 <!--PDF NEWPAGE-->
 ## 17.1.  Tuple types {#sec-tuple-types}
 ````grammar
-TupleType = "(" [ Type { "," Type } ] ")"
+TupleType = "(" [ [ "ghost" ] Type { "," [ "ghost" ] Type } ] ")"
 ````
 
 Dafny builds in record types that correspond to tuples and gives these
@@ -2817,6 +2863,11 @@ Dafny declares _n_-tuples where _n_ is 0 or 2 or more.  There are no
 1-tuples, since parentheses around a single type or a single value have
 no semantic meaning.  The 0-tuple type, `()`, is often known as the
 _unit type_ and its single value, also written `()`, is known as _unit_.
+
+The `ghost` modifier can be used to mark tuple components as being used for specification only:
+```dafny
+var pair: (int, ghost int) := (1, ghost 2);
+```
 
 <!--PDF NEWPAGE-->
 # 18. Algebraic Datatypes

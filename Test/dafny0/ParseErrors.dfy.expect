@@ -29,12 +29,12 @@ ParseErrors.dfy(122,19): Error: formal cannot be declared 'ghost' in this contex
 ParseErrors.dfy(123,11): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(125,18): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(126,11): Error: formal cannot be declared 'ghost' in this context
-ParseErrors.dfy(133,11): Error: formal cannot be declared 'ghost' in this context
-ParseErrors.dfy(135,12): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(133,17): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(135,18): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(137,19): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(139,23): Error: formal cannot be declared 'ghost' in this context
-ParseErrors.dfy(142,21): Error: formal cannot be declared 'ghost' in this context
-ParseErrors.dfy(143,22): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(142,27): Error: formal cannot be declared 'ghost' in this context
+ParseErrors.dfy(143,28): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(155,19): Error: verticalbar expected
 ParseErrors.dfy(155,18): Error: a set comprehension with more than one bound variable must have a term expression
 ParseErrors.dfy(156,22): Error: a set comprehension with more than one bound variable must have a term expression

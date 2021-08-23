@@ -1,6 +1,4 @@
 ﻿using Microsoft.Boogie;
-using Microsoft.Boogie.ModelViewer;
-using Microsoft.Boogie.ModelViewer.Dafny;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
@@ -12,6 +10,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using DafnyServer.CounterExampleGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
   public class DafnyCounterExampleHandler : ICounterExampleHandler {
@@ -29,72 +28,73 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         _logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return Task.FromResult(new CounterExampleList());
       }
-      return Task.FromResult(new CounterExampleLoader(_logger, document, cancellationToken).GetCounterExamples());
+      return Task.FromResult(new CounterExampleLoader(_logger, document, cancellationToken, request.CounterExampleDepth).GetCounterExamples());
     }
 
     private class CounterExampleLoader {
-      private const string InitialStateName = "<initial>";
-      private static readonly Regex StatePositionRegex = new(
+      private const string initialStateName = "<initial>";
+      private static readonly Regex statePositionRegex = new(
         @".*\.dfy\((?<line>\d+),(?<character>\d+)\)",
         RegexOptions.IgnoreCase | RegexOptions.Singleline
       );
 
-      private readonly ILogger _logger;
-      private readonly DafnyDocument _document;
-      private readonly CancellationToken _cancellationToken;
+      private readonly ILogger logger;
+      private readonly DafnyDocument document;
+      private readonly CancellationToken cancellationToken;
+      private readonly int counterExampleDepth;
 
-      public CounterExampleLoader(ILogger logger, DafnyDocument document, CancellationToken cancellationToken) {
-        _logger = logger;
-        _document = document;
-        _cancellationToken = cancellationToken;
+      public CounterExampleLoader(ILogger logger, DafnyDocument document, CancellationToken cancellationToken, int depth) {
+        this.logger = logger;
+        this.document = document;
+        this.cancellationToken = cancellationToken;
+        counterExampleDepth = depth;
       }
 
       public CounterExampleList GetCounterExamples() {
-        if(_document.SerializedCounterExamples == null) {
-          _logger.LogDebug("got no counter-examples for document {DocumentUri}", _document.Uri);
+        if(document.SerializedCounterExamples == null) {
+          logger.LogDebug("got no counter-examples for document {DocumentUri}", document.Uri);
           return new CounterExampleList();
         }
-        var counterExamples = GetLanguageSpecificModels(_document.SerializedCounterExamples)
+        var counterExamples = GetLanguageSpecificModels(document.SerializedCounterExamples)
           .SelectMany(GetCounterExamples)
           .ToArray();
         return new CounterExampleList(counterExamples);
       }
 
-      private IEnumerable<ILanguageSpecificModel> GetLanguageSpecificModels(string serializedCounterExamples) {
+      private IEnumerable<DafnyModel> GetLanguageSpecificModels(string serializedCounterExamples) {
         using var counterExampleReader = new StringReader(serializedCounterExamples);
         return Model.ParseModels(counterExampleReader)
-          .WithCancellation(_cancellationToken)
+          .WithCancellation(cancellationToken)
           .Select(GetLanguagSpecificModel);
       }
 
-      private ILanguageSpecificModel GetLanguagSpecificModel(Model model) {
-        // TODO Make view options configurable?
-        return Provider.Instance.GetLanguageSpecificModel(model, new ViewOptions { DebugMode = true, ViewLevel = 3 });
+      private DafnyModel GetLanguagSpecificModel(Model model) {
+        return new(model);
       }
 
-      private IEnumerable<CounterExampleItem> GetCounterExamples(ILanguageSpecificModel model) {
+      private IEnumerable<CounterExampleItem> GetCounterExamples(DafnyModel model) {
         return model.States
-          .WithCancellation(_cancellationToken)
-          .OfType<StateNode>()
+          .WithCancellation(cancellationToken)
+          .OfType<DafnyModelState>()
           .Where(state => !IsInitialState(state))
           .Select(GetCounterExample);
       }
 
-      private static bool IsInitialState(StateNode state) {
-        return state.Name.Equals(InitialStateName);
+      private static bool IsInitialState(DafnyModelState state) {
+        return state.ShortenedStateName.Equals(initialStateName);
       }
 
-      private CounterExampleItem GetCounterExample(StateNode state) {
-        return new CounterExampleItem(
+      private CounterExampleItem GetCounterExample(DafnyModelState state) {
+        return new(
           GetPositionFromInitialState(state),
-          GetVariablesFromState(state)
+          GetVariablesFromState(state, counterExampleDepth)
         );
       }
 
-      private static Position GetPositionFromInitialState(IState state) {
-        var match = StatePositionRegex.Match(state.Name);
+      private static Position GetPositionFromInitialState(DafnyModelState state) {
+        var match = statePositionRegex.Match(state.ShortenedStateName);
         if(!match.Success) {
-          throw new ArgumentException($"state does not contain position: {state.Name}");
+          throw new ArgumentException($"state does not contain position: {state.ShortenedStateName}");
         }
         // Note: lines in a model start with 1, characters/columns with 0.
         return new Position(
@@ -103,12 +103,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         );
       }
 
-      private IDictionary<string, string> GetVariablesFromState(StateNode state) {
-        return state.Vars
-          .WithCancellation(_cancellationToken)
-          .ToDictionary(
-            variable => variable.ShortName,
-            variable => variable.Value
+      private IDictionary<string, string> GetVariablesFromState(DafnyModelState state, int maxDepth) {
+        HashSet<DafnyModelVariable> vars = state.ExpandedVariableSet(maxDepth);
+        return vars.WithCancellation(cancellationToken).ToDictionary(
+            variable => variable.ShortName + ":" + variable.Type,
+            variable => variable.Value 
           );
       }
     }

@@ -10,7 +10,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// Publishes the diagnostics of the specified dafny document to the connected LSP client.
     /// </summary>
     /// <param name="document">The document whose diagnostics should be published.</param>
-    void PublishDiagnostics(DafnyDocument document, CancellationToken cancellationToken);
+    void PublishDiagnostics(DafnyDocument document);
 
     /// <summary>
     /// Hides the previously published diagnostics of the specified dafny document.

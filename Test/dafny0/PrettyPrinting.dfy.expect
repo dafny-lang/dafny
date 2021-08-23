@@ -48,7 +48,6 @@ module C {
   method For()
   {
     ghost var (x, y) := (123, 234);
-
     var a := new int[100];
     for i := 0 to 100 {
       a[i] := i;
@@ -92,6 +91,34 @@ module C {
       modifies c, {c}, {c}
     {
     }
+  }
+}
+
+module Ats {
+  class Cell {
+    var data: int
+
+    method M()
+    {
+      label Label:
+      assert old(data) == old@Label(data);
+      assert unchanged(this) && unchanged@Label(this);
+      var c := new Cell;
+      assert fresh(c) && fresh@Label(c);
+    }
+  }
+}
+
+module ByMethod {
+  function F(x: nat): int
+  {
+    x
+  } by method {
+    var j := 0;
+    for _v0 := 0 to x {
+      j := j - 1;
+    }
+    return -j;
   }
 }
 PrettyPrinting.dfy(10,4): Warning: note, this loop has no body

@@ -373,3 +373,92 @@ method {:tailrecursion} NonGhostLoop(n: nat) returns (r: nat)
     }
   }
 }
+
+function {:tailrecursion} FBM0(n: nat, x: int): int {
+  x
+} by method {
+  return if n == 0 then x else FBM0(n - 1, x); // error: not recognized as tail recursive
+}
+
+function {:tailrecursion} FBM0'(n: nat, x: int): (r: int) {
+  x
+} by method {
+  if n == 0 {
+    return x;
+  } else {
+    r := FBM0'(n - 1, x);
+  }
+}
+
+function {:tailrecursion} FBM0''(n: nat, x: int): (r: int) {
+  x
+} by method {
+  if n == 0 {
+    return x;
+  } else {
+    return FBM0''(n - 1, x);
+  }
+}
+
+function {:tailrecursion} FBM0'3(n: nat, x: int): int {
+  x
+} by method {
+  if n == 0 {
+    return x;
+  } else {
+    return FBM0'3(n - 1, x);
+  }
+}
+
+function {:tailrecursion} FBM1(n: nat, x: int): int {
+  x
+} by method {
+  return if n == 0 then x else FBM1(n - 1, x) + FBM1(n - 1, x); // error: not tail recursive
+}
+
+function {:tailrecursion} FBM2(n: nat, x: int): int {
+  x
+} by method {
+  if n == 0 {
+    return x;
+  } else {
+    var y := FBM2(n - 1, x); // error: not tail recursive
+    var z := FBM2(n - 1, y);
+    return z;
+  }
+}
+
+function {:tailrecursion} FBM3(n: nat, x: int): (r: int) {
+  x
+} by method {
+  if n == 0 {
+    return x;
+  } else {
+    var y := FBM3(n - 1, x); // error: not recognized as tail recursive
+  }
+}
+
+function {:tailrecursion} FBM4(n: nat, x: int): (r: int) {
+  x
+} by method {
+  if n == 0 {
+    return x;
+  } else {
+    var y;
+    if * {
+      r, y := FBM4(n - 1, x), 450; // error: not recognized as tail recursive
+    } else {
+      y, r := 450, FBM4(n - 1, x); // error: not recognized as tail recursive
+    }
+  }
+}
+
+function {:tailrecursion} FBM5(n: nat, x: int): (r: int) {
+  x
+} by method {
+  r := x;
+  if n != 0 {
+    var arr := new real[100];
+    arr[if FBM5(n - 1, x) % 2 == 0 then 3 else 4] := 98.6; // error: not recognized as tail recursive
+  }
+}

@@ -4,7 +4,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
@@ -35,7 +37,7 @@ function GetConstant(): int {
       var documentItem = CreateTestDocument(source);
       await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
-      Assert.AreEqual(0, document.Errors.AllMessages[ErrorLevel.Error].Count);
+      Assert.AreEqual(0, document.Errors.ErrorCount);
     }
 
     [TestMethod]
@@ -47,9 +49,9 @@ function GetConstant() int {
       var documentItem = CreateTestDocument(source);
       await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
-      Assert.AreEqual(1, document.Errors.AllMessages[ErrorLevel.Error].Count);
-      var message = document.Errors.AllMessages[ErrorLevel.Error][0];
-      Assert.AreEqual(MessageSource.Parser, message.source);
+      Assert.AreEqual(1, document.Errors.ErrorCount);
+      var message = document.Errors.Diagnostics.First().Value[0];
+      Assert.AreEqual(MessageSource.Parser.ToString(), message.Source);
     }
 
     [TestMethod]
@@ -61,9 +63,9 @@ function GetConstant(): int {
       var documentItem = CreateTestDocument(source);
       await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
-      Assert.AreEqual(1, document.Errors.AllMessages[ErrorLevel.Error].Count);
-      var message = document.Errors.AllMessages[ErrorLevel.Error][0];
-      Assert.AreEqual(MessageSource.Resolver, message.source);
+      Assert.AreEqual(1, document.Errors.ErrorCount);
+      var message = document.Errors.Diagnostics.First().Value[0];
+      Assert.AreEqual(MessageSource.Resolver.ToString(), message.Source);
     }
 
     [TestMethod]
@@ -79,9 +81,9 @@ method Recurse(x: int) returns (r: int) {
       var documentItem = CreateTestDocument(source);
       await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
-      Assert.AreEqual(1, document.Errors.AllMessages[ErrorLevel.Error].Count);
-      var message = document.Errors.AllMessages[ErrorLevel.Error][0];
-      Assert.AreEqual(MessageSource.Other, message.source);
+      Assert.AreEqual(1, document.Errors.ErrorCount);
+      var message = document.Errors.Diagnostics.First().Value.First(d => d.Severity!.Value == DiagnosticSeverity.Error);
+      Assert.AreEqual(MessageSource.Other.ToString(), message.Source);
     }
 
     [TestMethod]
@@ -100,7 +102,7 @@ method Recurse(x: int) returns (r: int) {
       var documentItem = CreateTestDocument(source);
       await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
-      Assert.AreEqual(0, document.Errors.AllMessages[ErrorLevel.Error].Count);
+      Assert.IsTrue(!document.Errors.HasErrors);
     }
   }
 }

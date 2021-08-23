@@ -209,7 +209,9 @@ namespace Microsoft.Dafny {
           Indent(indent); wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativeId(clbl));
           var r = module.CallGraph.GetSCC(clbl);
           foreach (var m in r) {
-            Indent(indent); wr.WriteLine(" *   {0}", m.NameRelativeToModule);
+            Indent(indent);
+            var maybeByMethod = m is Method method && method.IsByMethod ? " (by method)" : "";
+            wr.WriteLine($" *   {m.NameRelativeToModule}{maybeByMethod}");
           }
         }
         Indent(indent); wr.WriteLine(" */");
@@ -847,7 +849,7 @@ namespace Microsoft.Dafny {
       Indent(indent);
       string k = isPredicate ? "predicate" : f.WhatKind;
       if (f.HasStaticKeyword) { k = "static " + k; }
-      if (!f.IsGhost) { k += " method"; }
+      if (!f.IsGhost && f.ByMethodBody == null) { k += " method"; }
       PrintClassMethodHelper(k, f.Attributes, f.Name, f.TypeArgs);
       if (f.SignatureIsOmitted) {
         wr.Write(" ...");
@@ -879,7 +881,18 @@ namespace Microsoft.Dafny {
         wr.WriteLine("{");
         PrintExtendedExpr(f.Body, ind, true, false);
         Indent(indent);
-        wr.WriteLine("}");
+        wr.Write("}");
+        if (f.ByMethodBody != null) {
+          wr.Write(" by method ");
+          if (DafnyOptions.O.DafnyPrintResolvedFile != null && f.ByMethodDecl != null) {
+            Contract.Assert(f.ByMethodDecl.Ens.Count == 1);
+            wr.Write("/* ensures");
+            PrintAttributedExpression(f.ByMethodDecl.Ens[0]);
+            wr.Write(" */ ");
+          }
+          PrintStatement(f.ByMethodBody, indent);
+        }
+        wr.WriteLine();
       }
     }
 
@@ -1062,17 +1075,22 @@ namespace Microsoft.Dafny {
         wr.WriteLine();
         Indent(indent);
         wr.Write("{0}", kind);
-
-        if (e.HasAttributes()) {
-          PrintAttributes(e.Attributes);
-        }
-
-        wr.Write(" ");
-        if (e.Label != null) {
-          wr.Write("{0}: ", e.Label.Name);
-        }
-        PrintExpression(e.E, true);
+        PrintAttributedExpression(e);
       }
+    }
+
+    void PrintAttributedExpression(AttributedExpression e) {
+      Contract.Requires(e != null);
+
+      if (e.HasAttributes()) {
+        PrintAttributes(e.Attributes);
+      }
+
+      wr.Write(" ");
+      if (e.Label != null) {
+        wr.Write("{0}: ", e.Label.Name);
+      }
+      PrintExpression(e.E, true);
     }
 
     // ----------------------------- PrintType -----------------------------
@@ -1529,7 +1547,7 @@ namespace Microsoft.Dafny {
         PrintCasePattern(s.LHS);
         wr.Write(" := ");
         PrintExpression(s.RHS, true);
-        wr.WriteLine(";");
+        wr.Write(";");
 
       } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;
@@ -2335,16 +2353,19 @@ namespace Microsoft.Dafny {
         PrintFrameExpressionList(e.Frame);
         wr.Write(")");
 
+      } else if (expr is FreshExpr) {
+        var e = (FreshExpr)expr;
+        var label = e.At;
+        wr.Write("fresh{0}(", label == null ? "" : "@" + label);
+        PrintExpression(e.E, false);
+        wr.Write(")");
+
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
         if (e.Op == UnaryOpExpr.Opcode.Cardinality) {
           wr.Write("|");
           PrintExpression(e.E, false);
           wr.Write("|");
-        } else if (e.Op == UnaryOpExpr.Opcode.Fresh) {
-          wr.Write("fresh(");
-          PrintExpression(e.E, false);
-          wr.Write(")");
         } else if (e.Op == UnaryOpExpr.Opcode.Allocated) {
           wr.Write("allocated(");
           PrintExpression(e.E, false);
@@ -2354,6 +2375,7 @@ namespace Microsoft.Dafny {
           PrintExpression(e.E, false);
           wr.Write(")");
         } else {
+          Contract.Assert(e.Op != UnaryOpExpr.Opcode.Fresh); // this is handled is "is FreshExpr" case above
           // Prefix operator.
           // determine if parens are needed
           string op;
@@ -2880,6 +2902,9 @@ namespace Microsoft.Dafny {
           var binding = bindings.ArgumentBindings[i];
           wr.Write(sep);
           sep = ", ";
+          if (binding.IsGhost) {
+            wr.Write("ghost ");
+          }
           if (binding.FormalParameterName != null) {
             wr.Write($"{binding.FormalParameterName.val} := ");
           }

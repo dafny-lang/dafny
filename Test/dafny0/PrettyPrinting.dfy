@@ -90,3 +90,30 @@ module C {
   }
   class Cell { var data: int }
 }
+
+module Ats {
+  class Cell {
+    var data: int
+
+    method M()
+    {
+      label Label:
+      assert old(data) == old@Label(data);
+      assert unchanged(this) && unchanged@Label(this);
+      var c := new Cell;
+      assert fresh(c) && fresh@Label(c);
+    }
+  }
+}
+
+module ByMethod {
+  function F(x: nat): int {
+    x
+  } by method {
+    var j := 0;
+    for _ := 0 to x {
+      j := j - 1;
+    }
+    return -j;
+  }
+}
