@@ -7,7 +7,7 @@ namespace DafnyDriver.Test {
   
   /**
    * Specialization of CLITestCase that mainly exists to support a much more
-   * consice definition of ToString().
+   * concise definition of ToString().
    */
   public class DafnyTestCase : CLITestCase {
 

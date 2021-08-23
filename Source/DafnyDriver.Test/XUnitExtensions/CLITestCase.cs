@@ -46,10 +46,6 @@ namespace DafnyDriver.Test.XUnitExtensions {
         info.AddValue(nameof(SpecialCaseReason), SpecialCaseReason);
       }
 
-      public Expectation Adjust() {
-        return new Expectation(ExitCode, OutputFile == null ? null : "comp/" + OutputFile, SpecialCaseReason);
-      }
-      
       public override string ToString() {
         string result;
         if (ExitCode != 0) {
@@ -153,7 +149,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
             Expected.ExitCode, result.ExitCode, result.StandardError));
       }
       if (Expected.OutputFile != null) {
-        var expectedOutput = File.ReadAllText(Path.Combine(DafnyTestSpec.TEST_ROOT, Expected.OutputFile));
+        var expectedOutput = File.ReadAllText(Expected.OutputFile);
         AssertWithDiff.Equal(expectedOutput, result.StandardOutput);
       }
 

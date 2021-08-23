@@ -100,7 +100,10 @@ namespace LitTestConvertor {
       if (IsStandardVerifyOnly(testConfigs[0]) && testConfigs.Skip(1).All(IsStandardCompileAndRun)
             || testConfigs.Skip(1).All(IsStandardCompileAndRun)) {
         defaultCount++;
-        return (null, testContent);
+        // TODO: For now don't return a value, since we also have to split up the .expect
+        // files for this to work.
+        // return (null, testContent);
+        throw new ArgumentException("Default for-each-compiler test cases not yet supported");
       }
       
       throw new ArgumentException("Multi-command lit tests require manual conversion");

@@ -84,10 +84,10 @@ namespace DafnyDriver.Test
     }
     
     [YamlIgnore]
-    public string CompileTarget {
+    public object CompileTarget {
       get {
         if (DafnyArguments.TryGetValue(DAFNY_COMPILE_TARGET_OPTION, out var compileTarget)) {
-          return (string) compileTarget;
+          return compileTarget;
         }
         return null;
       }
@@ -98,10 +98,7 @@ namespace DafnyDriver.Test
         Compile = 3;
       }
       
-      if (Compile > 0 && CompileTarget == null) {
-        // TODO: Include c++ but flag as special case by default?
-        var compileTargets = new[] {"cs", "java", "go", "js"};
-
+      if (Compile > 0 && CompileTarget is ForEachArgumentList compileTargets) {
         var justVerify = new Dictionary<string, object>(DafnyArguments) {
           [DAFNY_COMPILE_OPTION] = "0"
         };
