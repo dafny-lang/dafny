@@ -100,11 +100,15 @@ namespace Microsoft.Dafny
     public bool DisableScopes = false;
     public int Allocated = 3;
     public bool UseStdin = false;
+<<<<<<< HEAD
     public enum TestModes { None, Block, Path };
     public TestModes TestMode = TestModes.None;
     public string MethodToTest = null;
     public uint? SeqLengthLimit = null;
     public uint TestInlineDepth = 0;
+=======
+    public bool ShowSnippets = false;
+>>>>>>> 852e54749f4634ee628cb4d49f34ca8563341b34
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -406,6 +410,19 @@ namespace Microsoft.Dafny
             UseStdin = true;
             return true;
           }
+
+        case "showSnippets": {
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i].Equals("0")) {
+              ShowSnippets = false;
+            } else if (args[ps.i].Equals("1")) {
+              ShowSnippets = true;
+            } else {
+              throw new Exception("Invalid value for showSnippets");
+            }
+          }
+          return true;
+        }
 
         case "testMode":
           if (ps.ConfirmArgumentCount(1)) {
@@ -786,6 +803,9 @@ namespace Microsoft.Dafny
     1,2,3,4,5 - levels in between, ordered as follows as far as
         how discriminating they are:  0 < 1 < 2 < (3,4) < 5 < 6
     6 (default) - most discriminating
+/showSnippets:<n>
+    0 (default) - don't show source code snippets for Dafny messages
+    1 - show a source code snippet for each Dafny message
 /noIncludes   Ignore include directives
 /noExterns    Ignore extern and dllimport attributes
 /noNLarith    Reduce Z3's knowledge of non-linear arithmetic (*,/,%).

@@ -114,7 +114,7 @@ namespace Microsoft.Dafny.Triggers {
         if (expr2 is IdentifierExpr) {
           return true;
         } else {
-          var freeInE2 = Translator.ComputeFreeVariables(expr2);
+          var freeInE2 = FreeVariablesUtil.ComputeFreeVariables(expr2);
           freeInE2.IntersectWith(boundVars);
           return !freeInE2.Any();
         }
