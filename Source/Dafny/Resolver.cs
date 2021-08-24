@@ -1784,9 +1784,14 @@ namespace Microsoft.Dafny
                   var dk = ResolveAlias(kv.Value);
                   ok = dd == dk;
                 } else {
-                  var dType = UserDefinedType.FromTopLevelDecl(d.tok, d);
-                  var vType = UserDefinedType.FromTopLevelDecl(kv.Value.tok, kv.Value);
-                  ok = dType.Equals(vType, true);
+                  // It's okay if "d" and "kv.Value" denote the same type. This can happen, for example,
+                  // if both are type synonyms for "int".
+                  var scope = Type.GetScope();
+                  if (d.IsVisibleInScope(scope) && kv.Value.IsVisibleInScope(scope)) {
+                    var dType = UserDefinedType.FromTopLevelDecl(d.tok, d);
+                    var vType = UserDefinedType.FromTopLevelDecl(kv.Value.tok, kv.Value);
+                    ok = dType.Equals(vType, true);
+                  }
                 }
                 if (!ok) {
                   sig.TopLevels[kv.Key] = AmbiguousTopLevelDecl.Create(moduleDef, d, kv.Value);
@@ -2008,7 +2013,7 @@ namespace Microsoft.Dafny
             new List<FrameExpression>(),
             new List<AttributedExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
-            null, Predicate.BodyOriginKind.OriginalOrInherited, null, null);
+            null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null, null);
           // --- here comes method MoveNext
           var moveNext = new Method(iter.tok, "MoveNext", false, false, new List<TypeParameter>(),
             new List<Formal>(), new List<Formal>() {new Formal(iter.tok, "more", Type.Bool, false, false, null)},
@@ -2275,6 +2280,8 @@ namespace Microsoft.Dafny
 
             extraMember.InheritVisibility(m, false);
             members.Add(extraName, extraMember);
+          } else if (m is Function f && f.ByMethodBody != null) {
+            RegisterByMethod(f);
           }
         } else if (m is Constructor && !((Constructor)m).HasName) {
           reporter.Error(MessageSource.Resolver, m, "More than one anonymous constructor");
@@ -2282,6 +2289,25 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, m, "Duplicate member name: {0}", m.Name);
         }
       }
+    }
+
+    void RegisterByMethod(Function f) {
+      Contract.Requires(f != null && f.ByMethodBody != null);
+
+      var cl = (TopLevelDeclWithMembers)f.EnclosingClass;
+      var tok = f.ByMethodTok;
+      var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
+      var r = Expression.CreateIdentExpr(resultVar);
+      var receiver = f.IsStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
+      var fn = new FunctionCallExpr(tok, f.Name, receiver, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
+      var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
+      var method = new Method(tok, f.Name, f.HasStaticKeyword, false, f.TypeArgs,
+        f.Formals, new List<Formal>() { resultVar },
+        f.Req, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
+        f.ByMethodBody, f.Attributes, null, true);
+      Contract.Assert(f.ByMethodDecl == null);
+      method.InheritVisibility(f);
+      f.ByMethodDecl = method;
     }
 
     private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height,
@@ -2693,7 +2719,7 @@ namespace Microsoft.Dafny
               if (member is ConstantField field && field.Rhs != null) {
                 CheckTypeInference(field.Rhs, field);
                 if (!field.IsGhost) {
-                  CheckIsCompilable(field.Rhs);
+                  CheckIsCompilable(field.Rhs, field);
                 }
               }
             }
@@ -2710,14 +2736,15 @@ namespace Microsoft.Dafny
           var dd = (RedirectingTypeDecl)d;
           if (dd.Witness != null) {
             var prevErrCnt = reporter.Count(ErrorLevel.Error);
-            ResolveExpression(dd.Witness, new ResolveOpts(new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost), false));
+            var codeContext = new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+            ResolveExpression(dd.Witness, new ResolveOpts(codeContext, false));
             ConstrainSubtypeRelation(dd.Var.Type, dd.Witness.Type, dd.Witness, "witness expression must have type '{0}' (got '{1}')", dd.Var.Type, dd.Witness.Type);
             SolveAllTypeConstraints();
             if (reporter.Count(ErrorLevel.Error) == prevErrCnt) {
               CheckTypeInference(dd.Witness, dd);
             }
             if (reporter.Count(ErrorLevel.Error) == prevErrCnt && dd.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-              CheckIsCompilable(dd.Witness);
+              CheckIsCompilable(dd.Witness, codeContext);
             }
           }
           if (d is TopLevelDeclWithMembers dm) {
@@ -3488,11 +3515,19 @@ namespace Microsoft.Dafny
           } else if (member is Function) {
             var f = (Function)member;
             ResolveParameterDefaultValues_Pass1(f.Formals, f);
-            if (!f.IsGhost && f.Body != null) {
-              CheckIsCompilable(f.Body);
-            }
-            if (f.Body != null) {
-              DetermineTailRecursion(f);
+            if (f.ByMethodBody == null) {
+              if (!f.IsGhost && f.Body != null) {
+                CheckIsCompilable(f.Body, f);
+              }
+              if (f.Body != null) {
+                DetermineTailRecursion(f);
+              }
+            } else {
+              var m = f.ByMethodDecl;
+              Contract.Assert(m != null && !m.IsGhost);
+              ComputeGhostInterest(m.Body, false, m);
+              CheckExpression(m.Body, this, m);
+              DetermineTailRecursion(m);
             }
           }
           if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
@@ -3510,7 +3545,7 @@ namespace Microsoft.Dafny
 
       foreach (var formal in formals.Where(f => f.DefaultValue != null)) {
         if ((!codeContext.IsGhost || codeContext is DatatypeDecl) && !formal.IsGhost) {
-          CheckIsCompilable(formal.DefaultValue);
+          CheckIsCompilable(formal.DefaultValue, codeContext);
         }
         CheckExpression(formal.DefaultValue, this, codeContext);
       }
@@ -6411,6 +6446,9 @@ namespace Microsoft.Dafny
     // ------------------------------------------------------------------------------------------------------
     // ----- CheckTypeInference -----------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
+    // The CheckTypeInference machinery visits every type in a given part of the AST (for example,
+    // CheckTypeInference(Expression) does so for an Expression and CheckTypeInference_Member(MemberDecl)
+    // does so for a MemberDecl) to make sure that all parts of types were fully inferred.
 #region CheckTypeInference
     private void CheckTypeInference_Member(MemberDecl member) {
       if (member is ConstantField) {
@@ -6448,10 +6486,12 @@ namespace Microsoft.Dafny
         if (f.Body != null) {
           CheckTypeInference(f.Body, f);
         }
-        if (errorCount == reporter.Count(ErrorLevel.Error) && f is ExtremePredicate) {
-          var cop = (ExtremePredicate)f;
-          CheckTypeInference_Member(cop.PrefixPredicate);
-        }
+        if (errorCount == reporter.Count(ErrorLevel.Error))
+          if (f is ExtremePredicate cop) {
+            CheckTypeInference_Member(cop.PrefixPredicate);
+          } else if (f.ByMethodDecl != null) {
+            CheckTypeInference_Member(f.ByMethodDecl);
+          }
       }
     }
 
@@ -6958,7 +6998,7 @@ namespace Microsoft.Dafny
         if (hasTailRecursionPreference && 2 <= sccSize) {
           reporter.Error(MessageSource.Resolver, m.tok, "sorry, tail-call optimizations are not supported for mutually recursive methods");
         } else if (hasTailRecursionPreference || sccSize == 1) {
-          CallStmt tailCall = null;
+          Statement tailCall = null;
           var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
           if (status != TailRecursionStatus.NotTailRecursive && tailCall != null) {
             // this means there was at least one recursive call
@@ -6990,7 +7030,7 @@ namespace Microsoft.Dafny
     /// If the return value is NoTailRecursive, "tailCall" could be anything.  In this case, an error
     /// message has been reported (provided "reportsErrors" is true).
     /// </summary>
-    TailRecursionStatus CheckTailRecursive(List<Statement> stmts, Method enclosingMethod, ref CallStmt tailCall, bool reportErrors) {
+    TailRecursionStatus CheckTailRecursive(List<Statement> stmts, Method enclosingMethod, ref Statement tailCall, bool reportErrors) {
       Contract.Requires(stmts != null);
       var status = TailRecursionStatus.CanBeFollowedByAnything;
       foreach (var s in stmts) {
@@ -7018,7 +7058,7 @@ namespace Microsoft.Dafny
     /// See CheckTailRecursive(List Statement, ...), including its description of "tailCall".
     /// In the current implementation, "enclosingMethod" is not allowed to be a mutually recursive method.
     /// </summary>
-    TailRecursionStatus CheckTailRecursive(Statement stmt, Method enclosingMethod, ref CallStmt tailCall, bool reportErrors) {
+    TailRecursionStatus CheckTailRecursive(Statement stmt, Method enclosingMethod, ref Statement tailCall, bool reportErrors) {
       Contract.Requires(stmt != null);
       if (stmt.IsGhost) {
         return TailRecursionStatus.CanBeFollowedByAnything;
@@ -7033,8 +7073,7 @@ namespace Microsoft.Dafny
         }
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
-        var tRhs = s.Rhs as TypeRhs;
-        if (tRhs != null && tRhs.InitCall != null && tRhs.InitCall.Method == enclosingMethod) {
+        if (s.Rhs is TypeRhs tRhs && tRhs.InitCall != null && tRhs.InitCall.Method == enclosingMethod) {
           // It's a recursive call.  However, it is not a tail call, because after the "new" allocation
           // and init call have taken place, the newly allocated object has yet to be assigned to
           // the LHS of the assignment statement.
@@ -7044,6 +7083,16 @@ namespace Microsoft.Dafny
               tRhs.InitCall.Method.Name);
           }
           return TailRecursionStatus.NotTailRecursive;
+        } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && fce.Function.ByMethodDecl == enclosingMethod) {
+          var status = ConfirmTailCall(s.Tok, enclosingMethod, fce.TypeApplication_JustFunction, new List<Expression>() { s.Lhs }, reportErrors);
+          if (status == TailRecursionStatus.TailCallSpent) {
+            tailCall = s;
+            fce.Args.Iter(ee => DisallowRecursiveCallsInExpressions(ee, enclosingMethod));
+          } else {
+            DisallowRecursiveCallsInExpressions(s.Lhs, enclosingMethod, reportErrors);
+            DisallowRecursiveCallsInExpressions(eRhs.Expr, enclosingMethod, reportErrors);
+          }
+          return status;
         }
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
@@ -7053,48 +7102,19 @@ namespace Microsoft.Dafny
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         if (s.Method == enclosingMethod) {
-          // It's a recursive call.  It can be considered a tail call only if the LHS of the call are the
-          // formal out-parameters of the method
-          for (int i = 0; i < s.Lhs.Count; i++) {
-            var formal = enclosingMethod.Outs[i];
-            if (!formal.IsGhost) {
-              var lhs = s.Lhs[i] as IdentifierExpr;
-              if (lhs != null && lhs.Var == formal) {
-                // all is good
-              } else {
-                if (reportErrors) {
-                  reporter.Error(MessageSource.Resolver, s.Tok,
-                    "the recursive call to '{0}' is not tail recursive because the actual out-parameter{1} is not the formal out-parameter '{2}'",
-                    s.Method.Name, s.Lhs.Count == 1 ? "" : " " + i, formal.Name);
-                }
-                return TailRecursionStatus.NotTailRecursive;
-              }
-            }
+          DisallowRecursiveCallsInExpressions(s, enclosingMethod, reportErrors);
+          var status = ConfirmTailCall(s.Tok, s.Method, s.MethodSelect.TypeApplication_JustMember, s.Lhs, reportErrors);
+          if (status == TailRecursionStatus.TailCallSpent) {
+            tailCall = s;
           }
-          // Moreover, it can be considered a tail recursive call only if the type parameters are the same
-          // as in the caller.
-          var classTypeParameterCount = s.Method.EnclosingClass.TypeArgs.Count;
-          Contract.Assert(s.MethodSelect.TypeApplication_JustMember.Count == s.Method.TypeArgs.Count);
-          for (int i = 0; i < s.Method.TypeArgs.Count; i++) {
-            var formal = s.Method.TypeArgs[i];
-            var actual = s.MethodSelect.TypeApplication_JustMember[i].AsTypeParameter;
-            if (formal != actual) {
-              if (reportErrors) {
-                reporter.Error(MessageSource.Resolver, s.Tok,
-                  "the recursive call to '{0}' is not tail recursive because the actual type parameter{1} is not the formal type parameter '{2}'",
-                  s.Method.Name, s.Method.TypeArgs.Count == 1 ? "" : " " + i, formal.Name);
-              }
-              return TailRecursionStatus.NotTailRecursive;
-            }
-          }
-          tailCall = s;
-          return TailRecursionStatus.TailCallSpent;
+          return status;
         }
       } else if (stmt is BlockStmt) {
         var s = (BlockStmt)stmt;
         return CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
+        DisallowRecursiveCallsInExpressions(s.Guard, enclosingMethod, reportErrors);
         var stThen = CheckTailRecursive(s.Thn, enclosingMethod, ref tailCall, reportErrors);
         if (stThen == TailRecursionStatus.NotTailRecursive) {
           return stThen;
@@ -7109,6 +7129,7 @@ namespace Microsoft.Dafny
         var s = (AlternativeStmt)stmt;
         var status = TailRecursionStatus.CanBeFollowedByAnything;
         foreach (var alt in s.Alternatives) {
+          DisallowRecursiveCallsInExpressions(alt.Guard, enclosingMethod, reportErrors);
           var st = CheckTailRecursive(alt.Body, enclosingMethod, ref tailCall, reportErrors);
           if (st == TailRecursionStatus.NotTailRecursive) {
             return st;
@@ -7119,6 +7140,12 @@ namespace Microsoft.Dafny
         return status;
       } else if (stmt is OneBodyLoopStmt) {
         var s = (OneBodyLoopStmt)stmt;
+        if (s is WhileStmt wh) {
+          DisallowRecursiveCallsInExpressions(wh.Guard, enclosingMethod, reportErrors);
+        } else if (s is ForLoopStmt forLoop) {
+          DisallowRecursiveCallsInExpressions(forLoop.Start, enclosingMethod, reportErrors);
+          DisallowRecursiveCallsInExpressions(forLoop.End, enclosingMethod, reportErrors);
+        }
         var status = TailRecursionStatus.NotTailRecursive;
         if (s.Body != null) {
           status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
@@ -7134,6 +7161,7 @@ namespace Microsoft.Dafny
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         foreach (var alt in s.Alternatives) {
+          DisallowRecursiveCallsInExpressions(alt.Guard, enclosingMethod, reportErrors);
           var status = CheckTailRecursive(alt.Body, enclosingMethod, ref tailCall, reportErrors);
           if (status != TailRecursionStatus.CanBeFollowedByAnything) {
             if (status == TailRecursionStatus.NotTailRecursive) {
@@ -7146,6 +7174,7 @@ namespace Microsoft.Dafny
         }
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
+        DisallowRecursiveCallsInExpressions(s.Range, enclosingMethod, reportErrors);
         var status = TailRecursionStatus.NotTailRecursive;
         if (s.Body != null) {
           status = CheckTailRecursive(s.Body, enclosingMethod, ref tailCall, reportErrors);
@@ -7160,6 +7189,7 @@ namespace Microsoft.Dafny
         }
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
+        DisallowRecursiveCallsInExpressions(s.Source, enclosingMethod, reportErrors);
         var status = TailRecursionStatus.CanBeFollowedByAnything;
         foreach (var kase in s.Cases) {
           var st = CheckTailRecursive(kase.Body, enclosingMethod, ref tailCall, reportErrors);
@@ -7180,7 +7210,14 @@ namespace Microsoft.Dafny
         return TailRecursionStatus.NotTailRecursive;
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
-        return CheckTailRecursive(s.ResolvedStatements, enclosingMethod, ref tailCall, reportErrors);
+        var ss = s.ResolvedStatements;
+        if (ss.Count == 1) {
+          return CheckTailRecursive(ss, enclosingMethod, ref tailCall, reportErrors);
+        } else {
+          foreach (var r in ss) {
+            DisallowRecursiveCallsInExpressions(r, enclosingMethod, reportErrors);
+          }
+        }
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         if (s.Update != null) {
@@ -7191,7 +7228,83 @@ namespace Microsoft.Dafny
       } else {
         Contract.Assert(false);  // unexpected statement type
       }
+      DisallowRecursiveCallsInExpressions(stmt, enclosingMethod, reportErrors);
       return TailRecursionStatus.CanBeFollowedByAnything;
+    }
+
+    /// <summary>
+    /// If "enclosingMethod" is a by-method, then look through "stmt" for any expression that
+    /// calls the function corresponding to the by-method. Report an error if such a call is
+    /// found.
+    /// </summary>
+    void DisallowRecursiveCallsInExpressions(Statement stmt, Method enclosingMethod, bool reportErrors) {
+      Contract.Requires(stmt != null);
+      Contract.Requires(enclosingMethod != null);
+
+      if (enclosingMethod.IsByMethod && reportErrors) {
+        stmt.SubExpressions.Iter(e => DisallowRecursiveCallsInExpressions(e, enclosingMethod));
+      }
+    }
+
+    void DisallowRecursiveCallsInExpressions(Expression/*?*/ expr, Method enclosingMethod, bool reportErrors) {
+      Contract.Requires(enclosingMethod != null);
+
+      if (expr !=null && reportErrors) {
+        DisallowRecursiveCallsInExpressions(expr, enclosingMethod);
+      }
+    }
+
+    void DisallowRecursiveCallsInExpressions(Expression expr, Method enclosingMethod) {
+      Contract.Requires(expr != null);
+      Contract.Requires(enclosingMethod != null);
+
+      if (expr is FunctionCallExpr fce && fce.Function.ByMethodDecl == enclosingMethod) {
+        reporter.Error(MessageSource.Resolver, expr.tok, "a recursive call in this context is not recognized as a tail call");
+      }
+      expr.SubExpressions.Iter(ee => DisallowRecursiveCallsInExpressions(ee, enclosingMethod));
+    }
+
+    TailRecursionStatus ConfirmTailCall(IToken tok, Method method, List<Type> typeApplication_JustMember, List<Expression> lhss, bool reportErrors) {
+      Contract.Requires(tok != null);
+      Contract.Requires(method != null);
+      Contract.Requires(typeApplication_JustMember != null);
+      Contract.Requires(lhss != null);
+
+      // It's a recursive call.  It can be considered a tail call only if the LHS of the call are the
+      // formal out-parameters of the method
+      for (int i = 0; i < lhss.Count; i++) {
+        var formal = method.Outs[i];
+        if (!formal.IsGhost) {
+          if (lhss[i] is IdentifierExpr lhs && lhs.Var == formal) {
+            // all is good
+          } else {
+            if (reportErrors) {
+              var outParamName = formal.HasName ? $" '{formal.Name}'" : "";
+              reporter.Error(MessageSource.Resolver, tok,
+                "the recursive call to '{0}' is not tail recursive because the actual out-parameter{1} is not the formal out-parameter{2}",
+                method.Name, lhss.Count == 1 ? "" : " " + i, outParamName);
+            }
+            return TailRecursionStatus.NotTailRecursive;
+          }
+        }
+      }
+      // Moreover, it can be considered a tail recursive call only if the type parameters are the same
+      // as in the caller.
+      var classTypeParameterCount = method.EnclosingClass.TypeArgs.Count;
+      Contract.Assert(typeApplication_JustMember.Count == method.TypeArgs.Count);
+      for (int i = 0; i < method.TypeArgs.Count; i++) {
+        var formal = method.TypeArgs[i];
+        var actual = typeApplication_JustMember[i].AsTypeParameter;
+        if (formal != actual) {
+          if (reportErrors) {
+            reporter.Error(MessageSource.Resolver, tok,
+              "the recursive call to '{0}' is not tail recursive because the actual type parameter{1} is not the formal type parameter '{2}'",
+              method.Name, method.TypeArgs.Count == 1 ? "" : " " + i, formal.Name);
+          }
+          return TailRecursionStatus.NotTailRecursive;
+        }
+      }
+      return TailRecursionStatus.TailCallSpent;
     }
 #endregion CheckTailRecursive
 
@@ -8268,10 +8381,10 @@ namespace Microsoft.Dafny
           if (mustBeErasable) {
             Error(stmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
           } else {
-            resolver.CheckIsCompilable(s.Expr);
+            resolver.CheckIsCompilable(s.Expr, codeContext);
             // If not provided, the message is populated with a default value in resolution
             Contract.Assert(s.Message != null);
-            resolver.CheckIsCompilable(s.Message);
+            resolver.CheckIsCompilable(s.Message, codeContext);
           }
 
         } else if (stmt is PrintStmt) {
@@ -8279,7 +8392,7 @@ namespace Microsoft.Dafny
           if (mustBeErasable) {
             Error(stmt, "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
           } else {
-            s.Args.Iter(resolver.CheckIsCompilable);
+            s.Args.Iter(ee => resolver.CheckIsCompilable(ee, codeContext));
           }
 
         } else if (stmt is RevealStmt) {
@@ -8363,7 +8476,7 @@ namespace Microsoft.Dafny
                 local.MakeGhost();
               }
             } else {
-              resolver.CheckIsCompilable(s.RHS);
+              resolver.CheckIsCompilable(s.RHS, codeContext);
             }
             s.IsGhost = spec;
           }
@@ -8395,33 +8508,33 @@ namespace Microsoft.Dafny
           } else {
             if (gk == AssignStmt.NonGhostKind.Field) {
               var mse = (MemberSelectExpr)lhs;
-              resolver.CheckIsCompilable(mse.Obj);
+              resolver.CheckIsCompilable(mse.Obj, codeContext);
             } else if (gk == AssignStmt.NonGhostKind.ArrayElement) {
-              resolver.CheckIsCompilable(lhs);
+              resolver.CheckIsCompilable(lhs, codeContext);
             }
 
             if (s.Rhs is ExprRhs) {
               var rhs = (ExprRhs)s.Rhs;
               if (!AssignStmt.LhsIsToGhost(lhs)) {
-                resolver.CheckIsCompilable(rhs.Expr);
+                resolver.CheckIsCompilable(rhs.Expr, codeContext);
               }
             } else if (s.Rhs is HavocRhs) {
               // cool
             } else {
               var rhs = (TypeRhs)s.Rhs;
               if (rhs.ArrayDimensions != null) {
-                rhs.ArrayDimensions.ForEach(resolver.CheckIsCompilable);
+                rhs.ArrayDimensions.ForEach(ee => resolver.CheckIsCompilable(ee, codeContext));
                 if (rhs.ElementInit != null) {
-                  resolver.CheckIsCompilable(rhs.ElementInit);
+                  resolver.CheckIsCompilable(rhs.ElementInit, codeContext);
                 }
                 if (rhs.InitDisplay != null) {
-                  rhs.InitDisplay.ForEach(resolver.CheckIsCompilable);
+                  rhs.InitDisplay.ForEach(ee => resolver.CheckIsCompilable(ee, codeContext));
                 }
               }
               if (rhs.InitCall != null) {
                 for (var i = 0; i < rhs.InitCall.Args.Count; i++) {
                   if (!rhs.InitCall.Method.Ins[i].IsGhost) {
-                    resolver.CheckIsCompilable(rhs.InitCall.Args[i]);
+                    resolver.CheckIsCompilable(rhs.InitCall.Args[i], codeContext);
                   }
                 }
               }
@@ -8441,12 +8554,12 @@ namespace Microsoft.Dafny
           } else {
             int j;
             if (!callee.IsGhost) {
-              resolver.CheckIsCompilable(s.Receiver);
+              resolver.CheckIsCompilable(s.Receiver, codeContext);
               j = 0;
               foreach (var e in s.Args) {
                 Contract.Assume(j < callee.Ins.Count);  // this should have already been checked by the resolver
                 if (!callee.Ins[j].IsGhost) {
-                  resolver.CheckIsCompilable(e);
+                  resolver.CheckIsCompilable(e, codeContext);
                 }
                 j++;
               }
@@ -9046,6 +9159,9 @@ namespace Microsoft.Dafny
               ResolveFunctionSignature(ff);
               allTypeParameters.PopMarker();
             }
+          }
+          if (f.ByMethodDecl != null) {
+            f.ByMethodDecl.EnclosingClass = cl;
           }
 
         } else if (member is Method) {
@@ -9894,12 +10010,23 @@ namespace Microsoft.Dafny
       }
       SolveAllTypeConstraints();
 
+      if (f.ByMethodBody != null) {
+        // The following conditions are assured by the parser and other callers of the Function constructor
+        Contract.Assert(f.Body != null);
+        Contract.Assert(!f.IsGhost);
+      }
       if (f.Body != null) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(f.Body, new ResolveOpts(f, f is TwoStateFunction));
         Contract.Assert(f.Body.Type != null);  // follows from postcondition of ResolveExpression
         AddAssignableConstraint(f.tok, f.ResultType, f.Body.Type, "Function body type mismatch (expected {0}, got {1})");
         SolveAllTypeConstraints();
+
+        if (f.ByMethodBody != null) {
+          var method = f.ByMethodDecl;
+          Contract.Assert(method != null); // this should have been filled in by now
+          ResolveMethod(method);
+        }
       }
 
       scope.PopMarker();
@@ -16929,16 +17056,17 @@ namespace Microsoft.Dafny
     public static string GhostPrefix(bool isGhost) {
       return isGhost ? "ghost " : "";
     }
-    
+
     /// <summary>
     /// Try to make "expr" compilable (in particular, mark LHSs of a let-expression as ghosts if
     /// the corresponding RHS is ghost), and then report errors for every part that would prevent
     /// compilation.
     /// Requires "expr" to have been successfully resolved.
     /// </summary>
-    void CheckIsCompilable(Expression expr) {
+    void CheckIsCompilable(Expression expr, ICodeContext codeContext) {
       Contract.Requires(expr != null);
       Contract.Requires(expr.WasResolved());  // this check approximates the requirement that "expr" be resolved
+      Contract.Requires(codeContext != null);
 
       if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
@@ -16969,11 +17097,17 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, expr, msg);
             return;
           }
+          if (e.Function.ByMethodBody != null) {
+            Contract.Assert(e.Function.ByMethodDecl != null); // we expect .ByMethodDecl to have been filled in by now
+            // this call will really go to the method part of the function-by-method, so add that edge to the call graph
+            AddCallGraphEdge(codeContext, e.Function.ByMethodDecl, e, false);
+            e.IsByMethodCall = true;
+          }
           // function is okay, so check all NON-ghost arguments
-          CheckIsCompilable(e.Receiver);
+          CheckIsCompilable(e.Receiver, codeContext);
           for (int i = 0; i < e.Function.Formals.Count; i++) {
             if (!e.Function.Formals[i].IsGhost) {
-              CheckIsCompilable(e.Args[i]);
+              CheckIsCompilable(e.Args[i], codeContext);
             }
           }
         }
@@ -16985,7 +17119,7 @@ namespace Microsoft.Dafny
         // note that if resolution is successful, then |e.Arguments| == |e.Ctor.Formals|
         for (int i = 0; i < e.Arguments.Count; i++) {
           if (!e.Ctor.Formals[i].IsGhost) {
-            CheckIsCompilable(e.Arguments[i]);
+            CheckIsCompilable(e.Arguments[i], codeContext);
           }
         }
         return;
@@ -17012,7 +17146,7 @@ namespace Microsoft.Dafny
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         // ignore the statement
-        CheckIsCompilable(e.E);
+        CheckIsCompilable(e.E, codeContext);
         return;
 
       } else if (expr is BinaryExpr) {
@@ -17053,18 +17187,18 @@ namespace Microsoft.Dafny
             }
 
             if (!lhs.Vars.All(bv => bv.IsGhost)) {
-              CheckIsCompilable(ee);
+              CheckIsCompilable(ee, codeContext);
             }
             i++;
           }
-          CheckIsCompilable(e.Body);
+          CheckIsCompilable(e.Body, codeContext);
         } else {
           Contract.Assert(e.RHSs.Count == 1);
           var lhsVarsAreAllGhost = e.BoundVars.All(bv => bv.IsGhost);
           if (!lhsVarsAreAllGhost) {
-            CheckIsCompilable(e.RHSs[0]);
+            CheckIsCompilable(e.RHSs[0], codeContext);
           }
-          CheckIsCompilable(e.Body);
+          CheckIsCompilable(e.Body, codeContext);
 
           // fill in bounds for this to-be-compiled let-such-that expression
           Contract.Assert(e.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
@@ -17074,7 +17208,7 @@ namespace Microsoft.Dafny
         return;
       } else if (expr is LambdaExpr) {
         var e = expr as LambdaExpr;
-        CheckIsCompilable(e.Body);
+        CheckIsCompilable(e.Body, codeContext);
         return;
       } else if (expr is ComprehensionExpr) {
         var e = (ComprehensionExpr)expr;
@@ -17096,20 +17230,20 @@ namespace Microsoft.Dafny
           return;
         }
         // don't recurse down any attributes
-        if (e.Range != null) { CheckIsCompilable(e.Range); }
-        CheckIsCompilable(e.Term);
+        if (e.Range != null) { CheckIsCompilable(e.Range, codeContext); }
+        CheckIsCompilable(e.Term, codeContext);
         return;
 
       } else if (expr is ChainingExpression) {
         // We don't care about the different operators; we only want the operands, so let's get them directly from
         // the chaining expression
         var e = (ChainingExpression)expr;
-        e.Operands.ForEach(CheckIsCompilable);
+        e.Operands.ForEach(ee => CheckIsCompilable(ee, codeContext));
         return;
       }
 
       foreach (var ee in expr.SubExpressions) {
-        CheckIsCompilable(ee);
+        CheckIsCompilable(ee, codeContext);
       }
     }
 

@@ -226,12 +226,12 @@ namespace Microsoft.Dafny {
           new List<TypeParameter>(), args, null, Type.Bool,
           new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
           new Specification<Expression>(new List<Expression>(), null),
-          null, null, null);
+          null, null, null, null, null);
         var reads = new Function(tok, "reads", false, true,
           new List<TypeParameter>(), args, null, new SetType(true, ObjectQ()),
           new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
           new Specification<Expression>(new List<Expression>(), null),
-          null, null, null);
+          null, null, null, null, null);
         readsIS.Function = reads;  // just so we can really claim the member declarations are resolved
         readsIS.TypeApplication_AtEnclosingClass = tys;  // ditto
         readsIS.TypeApplication_JustFunction = new List<Type>();  // ditto
@@ -370,7 +370,7 @@ namespace Microsoft.Dafny {
     public static string TupleTypeName(List<bool> argumentGhostness) {
       return "_tuple#" + ArgumentGhostnessToString(argumentGhostness);
     }
-    
+
     public static bool IsTupleTypeName(string s) {
       Contract.Requires(s != null);
       return s.StartsWith("_tuple#");
@@ -4189,6 +4189,9 @@ namespace Microsoft.Dafny {
             var clbl = member as ICallable;
             if (clbl != null && !(member is ConstantField)) {
               yield return clbl;
+              if (clbl is Function f && f.ByMethodDecl != null) {
+                yield return f.ByMethodDecl;
+              }
             }
           }
         }
@@ -4210,6 +4213,9 @@ namespace Microsoft.Dafny {
             var clbl = member as ICallable;
             if (clbl != null) {
               yield return clbl;
+              if (clbl is Function f && f.ByMethodDecl != null) {
+                yield return f.ByMethodDecl;
+              }
             }
           }
         }
@@ -4905,8 +4911,13 @@ namespace Microsoft.Dafny {
     bool AllowsNontermination { get; }
   }
 
+  /// <summary>
+  /// Some declarations have more than one context. For example, a subset type has a constraint
+  /// (which is a ghost context) and a witness (which may be a compiled context). To distinguish
+  /// between these two, the declaration is wrapped inside a CodeContextWrapper.
+  /// </summary>
   public class CodeContextWrapper : ICodeContext {
-    private readonly ICodeContext inner;
+    protected readonly ICodeContext inner;
     private readonly bool isGhostContext;
     public CodeContextWrapper(ICodeContext inner, bool isGhostContext) {
       this.inner = inner;
@@ -4944,6 +4955,30 @@ namespace Microsoft.Dafny {
     /// the property will get the value "true".  This is so that a useful error message can be provided.
     /// </summary>
     bool InferredDecreases { get; set; }
+  }
+
+  /// <summary>
+  /// This class allows an ICallable to be treated as ghost/compiled according to the "isGhostContext"
+  /// parameter.
+  ///
+  /// This class is to ICallable what CodeContextWrapper is to ICodeContext.
+  /// </summary>
+  public class CallableWrapper : CodeContextWrapper, ICallable
+  {
+    public CallableWrapper(ICallable callable, bool isGhostContext)
+      : base(callable, isGhostContext) {
+    }
+
+    protected ICallable cwInner => (ICallable)inner;
+    public IToken Tok => cwInner.Tok;
+    public string WhatKind => cwInner.WhatKind;
+    public string NameRelativeToModule => cwInner.NameRelativeToModule;
+    public Specification<Expression> Decreases => cwInner.Decreases;
+
+    public bool InferredDecreases {
+      get => cwInner.InferredDecreases;
+      set { cwInner.InferredDecreases = value; }
+    }
   }
 
   public class DontUseICallable : ICallable
@@ -5302,7 +5337,7 @@ namespace Microsoft.Dafny {
       List<TypeParameter> typeArgs, List<Formal> formals, Type resultType,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
       Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, attributes, signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, null, null, attributes, signatureEllipsis)
     {
       Module = module;
     }
@@ -6235,6 +6270,9 @@ namespace Microsoft.Dafny {
     public readonly List<AttributedExpression> Ens;
     public readonly Specification<Expression> Decreases;
     public Expression Body;  // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
+    public IToken/*?*/ ByMethodTok; // null iff ByMethodBody is null
+    public BlockStmt/*?*/ ByMethodBody;
+    public Method/*?*/ ByMethodDecl; // filled in by resolution, if ByMethodBody is non-null
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }  // is "false" for all Function objects that survive into resolution
     public readonly IToken SignatureEllipsis;
     public bool IsBuiltin;
@@ -6333,7 +6371,8 @@ namespace Microsoft.Dafny {
     public Function(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
       List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-      Expression body, Attributes attributes, IToken signatureEllipsis)
+      Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
+      Attributes attributes, IToken/*?*/ signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
 
       Contract.Requires(tok != null);
@@ -6345,6 +6384,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(reads));
       Contract.Requires(cce.NonNullElements(ens));
       Contract.Requires(decreases != null);
+      Contract.Requires(byMethodBody == null || (!isGhost && body != null)); // function-by-method has a ghost expr and non-ghost stmt, but to callers appears like a functiion-method
       this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
       this.TypeArgs = typeArgs;
       this.Formals = formals;
@@ -6355,6 +6395,8 @@ namespace Microsoft.Dafny {
       this.Ens = ens;
       this.Decreases = decreases;
       this.Body = body;
+      this.ByMethodTok = byMethodTok;
+      this.ByMethodBody = byMethodBody;
       this.SignatureEllipsis = signatureEllipsis;
 
       if (attributes != null) {
@@ -6417,8 +6459,8 @@ namespace Microsoft.Dafny {
     public Predicate(IToken tok, string name, bool hasStaticKeyword, bool isGhost,
       List<TypeParameter> typeArgs, List<Formal> formals,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-      Expression body, BodyOriginKind bodyOrigin, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
+      Expression body, BodyOriginKind bodyOrigin, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody, Attributes attributes, IToken signatureEllipsis)
+      : base(tok, name, hasStaticKeyword, isGhost, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, byMethodTok, byMethodBody, attributes, signatureEllipsis) {
       Contract.Requires(bodyOrigin == Predicate.BodyOriginKind.OriginalOrInherited || body != null);
       BodyOrigin = bodyOrigin;
     }
@@ -6436,7 +6478,7 @@ namespace Microsoft.Dafny {
       List<TypeParameter> typeArgs, Formal k, List<Formal> formals,
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
       Expression body, Attributes attributes, ExtremePredicate extremePred)
-      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, null) {
+      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, null, null, attributes, null) {
       Contract.Requires(k != null);
       Contract.Requires(extremePred != null);
       Contract.Requires(formals != null && 1 <= formals.Count && formals[0] == k);
@@ -6462,7 +6504,7 @@ namespace Microsoft.Dafny {
       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
       Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, true, typeArgs, formals, null, Type.Bool,
-             req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, attributes, signatureEllipsis) {
+             req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, null, null, attributes, signatureEllipsis) {
       TypeOfK = typeOfK;
     }
 
@@ -6519,7 +6561,7 @@ namespace Microsoft.Dafny {
                      List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
                      List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
                      Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, result, resultType, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, true, typeArgs, formals, result, resultType, req, reads, ens, decreases, body, null, null, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);
@@ -6557,6 +6599,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "method"; } }
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
     public readonly IToken SignatureEllipsis;
+    public readonly bool IsByMethod;
     public bool MustReverify;
     public bool IsEntryPoint = false;
     public readonly List<TypeParameter> TypeArgs;
@@ -6614,7 +6657,7 @@ namespace Microsoft.Dafny {
                   [Captured] List<AttributedExpression> ens,
                   [Captured] Specification<Expression> decreases,
                   [Captured] BlockStmt body,
-                  Attributes attributes, IToken signatureEllipsis)
+                  Attributes attributes, IToken signatureEllipsis, bool isByMethod = false)
       : base(tok, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -6634,6 +6677,7 @@ namespace Microsoft.Dafny {
       this.Decreases = decreases;
       this.methodBody = body;
       this.SignatureEllipsis = signatureEllipsis;
+      this.IsByMethod = isByMethod;
       MustReverify = false;
     }
 
@@ -10527,6 +10571,7 @@ namespace Microsoft.Dafny {
     public List<Expression> Args => Bindings.Arguments;
     public List<Type> TypeApplication_AtEnclosingClass;  // filled in during resolution
     public List<Type> TypeApplication_JustFunction;  // filled in during resolution
+    public bool IsByMethodCall; // filled in during resolution
 
     /// <summary>
     /// Return a mapping from each type parameter of the function and its enclosing class to actual type arguments.

@@ -1366,6 +1366,11 @@ Note that Dafny does not have method overriding and there is no mechanism to
 override the built-in value->string conversion.  Nor is there a way to
 explicitly invoke this conversion.
 
+Dafny does not keep track of print effects. `print` statements are allowed
+only in non-ghost contexts and not in expressions, with one exception.
+The exception is that a function-by-method may contain `print` statements,
+whose effect may be observed as part of the run-time evaluation of such functions.
+
 ## 19.20. Reveal Statement {#sec-reveal-statement}
 ````grammar
 RevealStmt =

@@ -486,7 +486,7 @@ namespace Microsoft.Dafny
       if (!cl.Members.Exists(member => member is Function && member.Name == "Valid" && !member.IsStatic)) {
         var valid = new Predicate(cl.tok, "Valid", false, true, new List<TypeParameter>(), new List<Formal>(),
           new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
-          null, Predicate.BodyOriginKind.OriginalOrInherited, null, null);
+          null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null, null);
         cl.Members.Add(valid);
         // It will be added to hover text later
       }
@@ -1690,6 +1690,9 @@ namespace Microsoft.Dafny
               } else if (member is Function) {
                 var function = (Function)member;
                 ProcessFunctionExpressions(function);
+                if (function.ByMethodDecl != null) {
+                  ProcessMethodExpressions(function.ByMethodDecl);
+                }
               }
             }
           }
