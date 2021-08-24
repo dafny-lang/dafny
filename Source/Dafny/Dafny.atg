@@ -2158,7 +2158,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
-      Formals<true, isFunctionMethod, isTwoState, formals>
+      Formals<true, true, isTwoState, formals>
       ":"
       (  IF(FollowedByColon())
          "("
@@ -2189,7 +2189,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     MethodFunctionName<out id>
     (
       [ GenericParameters<typeArgs, false> ]
-      [ Formals<true, isFunctionMethod, isTwoState, formals>
+      [ Formals<true, true, isTwoState, formals>
       ]
       [ ":" Type<out returnType> (. SemErr(t, "predicates do not have an explicitly declared return type; it is always bool"); .)
       ]
@@ -2242,8 +2242,30 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
 
   (. decreases = isLeastPredicate || isGreatestPredicate ? null : new List<Expression/*!*/>(); .)
   FunctionSpec<reqs, reads, ens, decreases>
-  [ FunctionBody<out body, out bodyStart, out bodyEnd>
+  (. IToken byMethodTok = null; BlockStmt byMethodBody = null; .)
+  [ FunctionBody<out body, out bodyStart, out bodyEnd, out byMethodTok, out byMethodBody>
+    (. if (byMethodBody != null) {
+         if (isTwoState) {
+           SemErr(byMethodBody.Tok, "a 'by method' implementation is not allowed on a twostate function");
+         } else if (isLeastPredicate || isGreatestPredicate) {
+           SemErr(byMethodBody.Tok, "a 'by method' implementation is not allowed on an extreme predicate");
+         } else if (isFunctionMethod) {
+           var what = isPredicate ? "predicate" : "function";
+           SemErr(byMethodBody.Tok,
+            $"to use a 'by method' implementation with a {what}, declare {id.val} using '{what}', not '{what} method'");
+         }
+       }
+    .)
   ]
+  (. // Now that we know if there's a "by method" clause, check in-parameters for uses of "ghost"
+     if (byMethodBody == null && !isFunctionMethod) {
+       foreach (var formal in formals) {
+         if (formal.IsGhost) {
+           SemErr(formal.tok, "formal cannot be declared 'ghost' in this context");
+         }
+       }
+     }
+  .)
   (. IToken tok = id;
      if (isTwoState && isPredicate) {
         f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals,
@@ -2252,8 +2274,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
         f = new TwoStateFunction(tok, id.val, dmod.IsStatic, typeArgs, formals, result, returnType,
                                  reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
-        f = new Predicate(tok, id.val, dmod.IsStatic, !isFunctionMethod, typeArgs, formals,
-                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited, attrs, signatureEllipsis);
+        f = new Predicate(tok, id.val, dmod.IsStatic, !isFunctionMethod && byMethodBody == null, typeArgs, formals,
+                          reqs, reads, ens, new Specification<Expression>(decreases, null), body, Predicate.BodyOriginKind.OriginalOrInherited,
+                          byMethodTok, byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
         f = new LeastPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals,
                                reqs, reads, ens, body, attrs, signatureEllipsis);
@@ -2261,8 +2284,11 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
         f = new GreatestPredicate(tok, id.val, dmod.IsStatic, kType, typeArgs, formals,
                                   reqs, reads, ens, body, attrs, signatureEllipsis);
      } else {
-        f = new Function(tok, id.val, dmod.IsStatic, !isFunctionMethod, typeArgs, formals, result, returnType,
-                         reqs, reads, ens, new Specification<Expression>(decreases, null), body, attrs, signatureEllipsis);
+        f = new Function(tok, id.val, dmod.IsStatic, !isFunctionMethod && byMethodBody == null,
+                         typeArgs, formals, result, returnType,
+                         reqs, reads, ens, new Specification<Expression>(decreases, null), body,
+                         byMethodTok, byMethodBody,
+                         attrs, signatureEllipsis);
      }
      f.BodyStartTok = bodyStart;
      f.BodyEndTok = bodyEnd;
@@ -2350,11 +2376,16 @@ FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
   .
 
 /*------------------------------------------------------------------------*/
-FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd>
-= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr; .)
+FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd, out IToken/*?*/ byMethodTok, out BlockStmt/*?*/ byMethodBody>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr;
+     byMethodTok = null; byMethodBody = null;
+  .)
   "{"                         (. bodyStart = t; .)
   Expression<out e, true, true>
   "}"                         (. bodyEnd = t; .)
+  [ "by" "method"             (. byMethodTok = t; .)
+    BlockStmt<out byMethodBody, out _, out _>
+  ]
   .
 
 /*------------------------------------------------------------------------*/

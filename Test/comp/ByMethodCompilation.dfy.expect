@@ -1,0 +1,30 @@
+
+Dafny program verifier finished with 14 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+hello
+four is 4
+Recursive(7) = 14
+NonCompilableFunction: 4 7
+Sums: 14 3
+
+Dafny program verifier did not attempt verification
+hello
+four is 4
+Recursive(7) = 14
+NonCompilableFunction: 4 7
+Sums: 14 3
+
+Dafny program verifier did not attempt verification
+hello
+four is 4
+Recursive(7) = 14
+NonCompilableFunction: 4 7
+Sums: 14 3
+
+Dafny program verifier did not attempt verification
+hello
+four is 4
+Recursive(7) = 14
+NonCompilableFunction: 4 7
+Sums: 14 3
