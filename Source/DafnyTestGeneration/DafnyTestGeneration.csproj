@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <Nullable>enable</Nullable>
+        <OutputPath>..\..\Binaries\</OutputPath>
+        <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
+      <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
+    </ItemGroup>
+
+</Project>

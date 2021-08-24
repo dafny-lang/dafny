@@ -15,6 +15,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
+      <ProjectReference Include="..\DafnyTestGeneration\DafnyTestGeneration.csproj" />
   </ItemGroup>
 
   <ItemGroup>

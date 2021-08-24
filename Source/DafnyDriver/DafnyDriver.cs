@@ -217,6 +217,13 @@ namespace Microsoft.Dafny
       if (dafnyFiles.Count == 0) { ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
+
+      if (dafnyFiles.Count > 1 &&
+          DafnyOptions.O.TestMode != DafnyOptions.TestModes.None) {
+        ExecutionEngine.printer.ErrorWriteLine(Console.Out,
+          "*** Error: Only one .dfy file can be specified for testing");
+        return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+      }
       return CommandLineArgumentsResult.OK;
     }
 
@@ -227,6 +234,13 @@ namespace Microsoft.Dafny
       var dafnyFileNames = DafnyFile.fileNames(dafnyFiles);
 
       ExitValue exitValue = ExitValue.SUCCESS;
+      if (DafnyOptions.O.TestMode != DafnyOptions.TestModes.None) {
+        var output = DafnyTestGeneration.Main
+          .GetTestClassForProgram(dafnyFileNames[0]);
+        Console.WriteLine(output);
+        return exitValue;
+      }
+
       if (CommandLineOptions.Clo.VerifySeparately && 1 < dafnyFiles.Count)
       {
         foreach (var f in dafnyFiles)

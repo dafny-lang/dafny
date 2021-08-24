@@ -100,6 +100,11 @@ namespace Microsoft.Dafny
     public bool DisableScopes = false;
     public int Allocated = 3;
     public bool UseStdin = false;
+    public enum TestModes { None, Block, Path };
+    public TestModes TestMode = TestModes.None;
+    public string? MethodToTest = null;
+    public uint? SeqLengthLimit = null;
+    public uint TestInlineDepth = 0;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -401,6 +406,44 @@ namespace Microsoft.Dafny
             UseStdin = true;
             return true;
           }
+
+        case "testMode":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i].Equals("None")) {
+              TestMode = TestModes.None;
+            } else if (args[ps.i].Equals("Block")) {
+              TestMode = TestModes.Block;
+            } else if (args[ps.i].Equals("Path")) {
+              TestMode = TestModes.Path;
+            } else {
+              throw new Exception("Invalid value for testMode");
+            }
+            if (TestMode != TestModes.None) {
+              Compile = false;
+              DafnyVerify = false;
+            }
+          }
+          return true;
+
+        case "seqLengthLimit":
+          var limit = 0;
+          if (ps.GetNumericArgument(ref limit)) {
+            SeqLengthLimit = (uint) limit;
+          }
+          return true;
+
+        case "methodToTest":
+          if (ps.ConfirmArgumentCount(1)) {
+            MethodToTest = args[ps.i];
+          }
+          return true;
+
+        case "testInlineDepth":
+          var depth = 0;
+          if (ps.GetNumericArgument(ref depth)) {
+            TestInlineDepth = (uint) depth;
+          }
+          return true;
 
         default:
           break;
@@ -853,6 +896,21 @@ namespace Microsoft.Dafny
     or type definitions during translation.
 /stdin
     Read standard input and treat it as an input .dfy file.
+/testMode:<None|Block|Path>
+    None is the default and has no effect.
+    Block prints block-coverage test cases for the given program.
+    Path prints path-coverage test cases for the given program.
+    Using loop unrolling is highly recommended when generating tests.
+/seqLengthLimit:<n>
+    Can only be used when testMode is not None. Adds an axiom that sets the
+    length of all sequences to be no greater than <n>. This is useful in
+    conjunction with loop unrolling.
+/methodToTest:<methodName>
+    Can only be used when testMode is not None. If specified, all other methods
+    will be inlined and the specified method alone will be tested.
+/testInlineDepth:<n>
+    0 is the default. When used in conjunction with methodToTest, this argument
+    specifies the depth up to which all non-tested methods should be inlined.
 
 Dafny generally accepts Boogie options and passes these on to Boogie. However,
 some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
