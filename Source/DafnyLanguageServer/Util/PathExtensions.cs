@@ -43,7 +43,6 @@ namespace Microsoft.Dafny.LanguageServer.Util
     /// <param name="token">The token to check.</param>
     /// <returns><c>true</c> if the given token is part of the entrypoint document of the given program.</returns>
     public static bool IsPartOfEntryDocument(this Dafny.Program program, Boogie.IToken token) {
-      // TODO Cleanup this check. It requires that DafnyLangParser sets the program's name to the entrypoint filename.
       // The token filename happens to be null if it's representing a default module or class.
       return token.filename == null || token.filename == program.FullName;
     }
