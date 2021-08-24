@@ -8787,7 +8787,7 @@ namespace Microsoft.Dafny
             for (int i = 0; i < cs.Method.Ins.Count; i++) {
               argsSubstMap.Add(cs.Method.Ins[i], cs.Args[i]);
             }
-            var substituter = new AlphaConverting_Substituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>());
+            var substituter = new AlphaConvertingSubstituter(cs.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>());
             if (!Attributes.Contains(s.Attributes, "auto_generated")) {
               foreach (var ens in cs.Method.Ens) {
                 var p = substituter.Substitute(ens.E);  // substitute the call's actuals for the method's formals
@@ -11199,7 +11199,7 @@ namespace Microsoft.Dafny
         if (s is WhileStmt whileS && whileS.Guard != null) {
           ResolveExpression(whileS.Guard, new ResolveOpts(codeContext, true));
           Contract.Assert(whileS.Guard.Type != null);  // follows from postcondition of ResolveExpression
-          Translator.ComputeFreeVariables(whileS.Guard, fvs, ref usesHeap);
+          FreeVariablesUtil.ComputeFreeVariables(whileS.Guard, fvs, ref usesHeap);
           ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
         } else if (s is ForLoopStmt forS) {
           var loopIndex = forS.LoopIndex;
@@ -11210,11 +11210,11 @@ namespace Microsoft.Dafny
           fvs.Add(loopIndex);
 
           ResolveExpression(forS.Start, new ResolveOpts(codeContext, true));
-          Translator.ComputeFreeVariables(forS.Start, fvs, ref usesHeap);
+          FreeVariablesUtil.ComputeFreeVariables(forS.Start, fvs, ref usesHeap);
           AddAssignableConstraint(forS.Start.tok, forS.LoopIndex.Type, forS.Start.Type, "lower bound (of type {1}) not assignable to index variable (of type {0})");
           if (forS.End != null) {
             ResolveExpression(forS.End, new ResolveOpts(codeContext, true));
-            Translator.ComputeFreeVariables(forS.End, fvs, ref usesHeap);
+            FreeVariablesUtil.ComputeFreeVariables(forS.End, fvs, ref usesHeap);
             AddAssignableConstraint(forS.End.tok, forS.LoopIndex.Type, forS.End.Type, "upper bound (of type {1}) not assignable to index variable (of type {0})");
             if (forS.Decreases.Expressions.Count != 0) {
               reporter.Error(MessageSource.Resolver, forS.Decreases.Expressions[0].tok,
@@ -11475,7 +11475,7 @@ namespace Microsoft.Dafny
         ResolveExpression(inv.E, new ResolveOpts(codeContext, true));
         Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
         if (fvs != null) {
-          Translator.ComputeFreeVariables(inv.E, fvs, ref usesHeap);
+          FreeVariablesUtil.ComputeFreeVariables(inv.E, fvs, ref usesHeap);
         }
         ConstrainTypeExprBool(inv.E, "invariant is expected to be of type bool, but is {0}");
       }
@@ -11487,7 +11487,7 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
         }
         if (fvs != null) {
-          Translator.ComputeFreeVariables(e, fvs, ref usesHeap);
+          FreeVariablesUtil.ComputeFreeVariables(e, fvs, ref usesHeap);
         }
         // any type is fine
       }
