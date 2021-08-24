@@ -129,11 +129,12 @@ namespace DafnyTestGeneration {
     /// </summary>
     private class AddImplementationsForCalls : ReadOnlyVisitor {
 
-      private List<Implementation> implsToAdd;
-      private Program program;
+      private List<Implementation> implsToAdd = new();
+      private Program? program;
 
-      public override Procedure VisitProcedure(Procedure? node) {
-        if (node == null || !node.Name.StartsWith("Call$$")) {
+      public override Procedure? VisitProcedure(Procedure? node) {
+        if (program == null || node == null ||
+            !node.Name.StartsWith("Call$$")) {
           return node;
         }
 
@@ -194,7 +195,7 @@ namespace DafnyTestGeneration {
 
       // maps name of an implementation to those implementations that it calls
       private readonly Dictionary<string, List<string>> calls = new();
-      private string impl;
+      private string? impl;
 
       public override Implementation VisitImplementation(Implementation node) {
         impl = node.Name;
@@ -204,7 +205,9 @@ namespace DafnyTestGeneration {
       }
 
       public override Cmd VisitCallCmd(CallCmd node) {
-        calls[impl].Add(node.callee);
+        if (impl != null) {
+          calls[impl].Add(node.callee);
+        }
         return base.VisitCallCmd(node);
       }
 

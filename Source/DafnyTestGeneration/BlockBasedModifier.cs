@@ -9,9 +9,9 @@ namespace DafnyTestGeneration {
   /// </summary>
   public class BlockBasedModifier : ProgramModifier {
 
-    private string implName; // name of the implementation currently traversed
-    private Program program; // the original program
-    private List<ProgramModification> modifications;
+    private string? implName; // name of the implementation currently traversed
+    private Program? program; // the original program
+    private List<ProgramModification> modifications = new();
 
     protected override List<ProgramModification> Modify(Program p) {
       modifications = new List<ProgramModification>();
@@ -20,6 +20,9 @@ namespace DafnyTestGeneration {
     }
 
     public override Block VisitBlock(Block node) {
+      if (program == null || implName == null) {
+        return node;
+      }
       base.VisitBlock(node);
       if (node.cmds.Count == 0) { // ignore blocks with zero commands
         return node;

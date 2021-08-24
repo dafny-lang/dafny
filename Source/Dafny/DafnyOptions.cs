@@ -102,7 +102,7 @@ namespace Microsoft.Dafny
     public bool UseStdin = false;
     public enum TestModes { None, Block, Path };
     public TestModes TestMode = TestModes.None;
-    public string? MethodToTest = null;
+    public string MethodToTest = null;
     public uint? SeqLengthLimit = null;
     public uint TestInlineDepth = 0;
 

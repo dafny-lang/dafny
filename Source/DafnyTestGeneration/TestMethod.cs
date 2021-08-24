@@ -132,7 +132,7 @@ namespace DafnyTestGeneration {
         case "map":
           var mapVar = variable as MapVariable;
           List<string> mappingStrings = new();
-          foreach (var mapping in mapVar.mappings) {
+          foreach (var mapping in mapVar?.mappings ?? new()) {
             mappingStrings.Add($"{ExtractVariable(mapping.Key)} := {ExtractVariable(mapping.Value)}");
           }
           return $"map[{string.Join(", ", mappingStrings)}]";
@@ -259,10 +259,11 @@ namespace DafnyTestGeneration {
       var fU2Real = model.MkFunc("U_2_real", 1);
       reservedValues["real"] = new();
       foreach (var app in fU2Real.Apps) {
+        var resultAsString = app.Result.ToString() ?? "";
         // this skips fractions and negative values
-        if (app.Result is Model.Real && !app.Result.ToString().Contains("/")) {
+        if (app.Result is Model.Real && resultAsString.Contains("/")) {
           reservedValues["real"].Add(int.Parse(Regex.Replace(
-            app.Result.ToString(), "\\.0$", "")));
+            resultAsString, "\\.0$", "")));
         }
       }
 
@@ -317,9 +318,6 @@ namespace DafnyTestGeneration {
       const string end = "*** END_MODEL";
       var beginIndex = log.IndexOf(begin, StringComparison.Ordinal);
       var endIndex = log.IndexOf(end, StringComparison.Ordinal);
-      if (beginIndex == -1 || endIndex == -1) {
-        return null;
-      }
       var modelString = log.Substring(beginIndex, endIndex + end.Length - beginIndex);
       var model = Model.ParseModels(new StringReader(modelString)).First();
       return new DafnyModel(model);

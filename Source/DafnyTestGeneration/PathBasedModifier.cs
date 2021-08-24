@@ -11,7 +11,7 @@ namespace DafnyTestGeneration {
 
     // prefix given to variables indicating whether or not a block was visited
     private const string blockVarNamePrefix = "$$visited$$_";
-    private List<Path> paths;
+    private List<Path> paths = new();
 
     protected override List<ProgramModification> Modify(Program p) {
       paths = new List<Path>();
@@ -97,7 +97,7 @@ namespace DafnyTestGeneration {
       currSet.Add(block.UniqueId);
       currList.Add(block.UniqueId);
       var gotoCmd = block.TransferCmd as GotoCmd;
-      foreach (var b in gotoCmd.labelNames) {
+      foreach (var b in gotoCmd?.labelNames ?? new List<string>()) {
         GeneratePaths(impl, idToBlock, idToBlock[b], currSet, currList);
       }
       currList.RemoveAt(currList.Count - 1);

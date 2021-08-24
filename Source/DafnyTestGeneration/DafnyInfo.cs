@@ -22,7 +22,7 @@ namespace DafnyTestGeneration {
     }
 
     public List<string> GetReturnTypes(string method) {
-      return returnTypes.GetValueOrDefault(method, null);
+      return returnTypes[method];
     }
 
     public bool IsStatic(string method) {

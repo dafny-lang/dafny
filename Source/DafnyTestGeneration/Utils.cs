@@ -25,7 +25,7 @@ namespace DafnyTestGeneration {
       var success = Parser.Parse(source, fileName, fileName, null, module, builtIns,
         new Errors(reporter)) == 0 && Microsoft.Dafny.Main.ParseIncludes(module, builtIns,
         new List<string>(), new Errors(reporter)) == null;
-      Program program = null;
+      Program? program = null;
       if (success) {
         program = new Program(fileName, module, builtIns, reporter);
       }
