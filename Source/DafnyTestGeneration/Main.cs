@@ -63,7 +63,7 @@ namespace DafnyTestGeneration {
       var rawName = sourceFile.Split("/").Last().Split(".").First();
 
       result += $"include \"{rawName}.dfy\"\n";
-      result += $"module {rawName}BuggyBoogie {{\n";
+      result += $"module {rawName}UnitTests {{\n";
       result += string.Join("\n", dafnyInfo.ToImport
         .Select(module => $"import {module}")) + "\n";
 

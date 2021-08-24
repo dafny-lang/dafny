@@ -915,16 +915,16 @@ namespace Microsoft.Dafny
     Read standard input and treat it as an input .dfy file.
 /testMode:<None|Block|Path>
     None is the default and has no effect.
-    Block prints block-coverage test cases for the given program.
-    Path prints path-coverage test cases for the given program.
-    Using loop unrolling is highly recommended when generating tests.
+    Block prints block-coverage tests for the given program.
+    Path prints path-coverage tests for the given program.
+    Using \definiteAssignment:3 and \loopUnroll is highly recommended when
+    generating tests.
 /seqLengthLimit:<n>
-    Can only be used when testMode is not None. Adds an axiom that sets the
+    If testMode is not None, using this argument adds an axiom that sets the
     length of all sequences to be no greater than <n>. This is useful in
     conjunction with loop unrolling.
 /methodToTest:<methodName>
-    Can only be used when testMode is not None. If specified, all other methods
-    will be inlined and the specified method alone will be tested.
+    If specified, only this method will be tested.
 /testInlineDepth:<n>
     0 is the default. When used in conjunction with methodToTest, this argument
     specifies the depth up to which all non-tested methods should be inlined.

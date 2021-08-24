@@ -144,7 +144,7 @@ class SimpleTest {
   static method compareToB(c: char) returns (ret: int) {
     if (c == 'B') {
         return 0;
-    } else if (c > 'A') {
+    } else if (c > 'B') {
         return 1;
     } else {
         return -1;
