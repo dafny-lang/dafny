@@ -100,15 +100,12 @@ namespace Microsoft.Dafny
     public bool DisableScopes = false;
     public int Allocated = 3;
     public bool UseStdin = false;
-<<<<<<< HEAD
+    public bool ShowSnippets = false;
     public enum TestModes { None, Block, Path };
     public TestModes TestMode = TestModes.None;
     public string MethodToTest = null;
     public uint? SeqLengthLimit = null;
     public uint TestInlineDepth = 0;
-=======
-    public bool ShowSnippets = false;
->>>>>>> 852e54749f4634ee628cb4d49f34ca8563341b34
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
