@@ -516,7 +516,7 @@ namespace Microsoft.Dafny
             // Note: This is not guaranteed to be the same file that Dafny parsed. To ensure that, Dafny should keep
             // an in-memory version of each file it parses.
             lines = File.ReadLines(filename).ToList();
-          } catch (Exception _) {
+          } catch (Exception) {
             lines = new List<string>();
           }
           fsCache.Add(filename, lines);
