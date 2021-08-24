@@ -166,7 +166,7 @@ namespace Microsoft.Dafny.Triggers
 
       var expr = (QuantifierExpr) q.quantifier;
       if (substMap.Count > 0) {
-        var s = new Translator.ExprSubstituter(substMap);
+        var s = new ExprSubstituter(substMap);
         expr = s.Substitute(q.quantifier) as QuantifierExpr;
       } else {
         // make a copy of the expr
