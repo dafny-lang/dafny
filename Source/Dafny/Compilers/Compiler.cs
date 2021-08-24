@@ -3788,7 +3788,7 @@ namespace Microsoft.Dafny {
           string f = idGenerator.FreshId("_arrayinit");
           DeclareLocalVar(f, tRhs.ElementInit.Type, tRhs.ElementInit.tok, tRhs.ElementInit, false, wStmts);
           // Build a loop nest that will call the initializer for all indices
-          var indices = Translator.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => idGenerator.FreshId("_arrayinit_" + ii));
+          var indices = Util.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => idGenerator.FreshId("_arrayinit_" + ii));
           var w = wStmts;
           for (var d = 0; d < tRhs.ArrayDimensions.Count; d++) {
             string len, pre, post;
@@ -4755,7 +4755,7 @@ namespace Microsoft.Dafny {
     void CreateFreeVarSubstitution(Expression expr, out List<BoundVar> bvars, out List<Expression> fexprs, out Substituter su) {
       Contract.Requires(expr != null);
 
-      var fvs = Translator.ComputeFreeVariables(expr);
+      var fvs = FreeVariablesUtil.ComputeFreeVariables(expr);
       var sm = new Dictionary<IVariable, Expression>();
 
       bvars = new List<BoundVar>();
