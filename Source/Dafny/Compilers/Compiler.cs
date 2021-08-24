@@ -1070,6 +1070,7 @@ namespace Microsoft.Dafny {
           e1, e0, tok, resultType,
           out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
           errorWr);
+        reverseArguments = !reverseArguments;
       } else if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no negated op"
         CompileBinOp(negatedOp,
           e0, e1, tok, resultType,
