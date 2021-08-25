@@ -316,7 +316,7 @@ let _dafny = (function() {
       }
     }
     contains(k) {
-      return this.findIndex(k) < this.length;
+      return !this.get(k).isZero();
     }
     add(k, n) {
       let i = this.findIndex(k);
@@ -376,7 +376,9 @@ let _dafny = (function() {
     *UniqueElements_() {
       for (let e of this) {
         let [k, n] = e;
-        yield k;
+        if (!n.isZero()) {
+          yield k;
+        }
       }
     }
     Union(that) {

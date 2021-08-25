@@ -445,7 +445,7 @@ namespace Dafny
     }
 
     public bool Contains<G>(G t) {
-      return t == null ? occurrencesOfNull > 0 : t is T && dict.ContainsKey((T)(object)t);
+      return Select(t) != 0;
     }
     public BigInteger Select<G>(G t) {
       if (t == null) {
@@ -564,7 +564,9 @@ namespace Dafny
           yield return default(T);
         }
         foreach (var key in dict.Keys) {
-          yield return key;
+          if (dict[key] != 0) {
+            yield return key;
+          }
         }
       }
     }

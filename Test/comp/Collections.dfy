@@ -70,17 +70,18 @@ method MultiSets() {
   var b : IntMultiSet := multiset{17, 82, 17, 82};
   var c := multiset{12, 17};
   var d := multiset{12, 12, 17};
+  var e := c[12 := 0];
   print "Multisets: ", a, " ", b, " ", c, "\n";
   print "  cardinality: ", |a|, " ", |b|, " ", |c|, "\n";
   print "  union: ", a + b, " ", b + c, "\n";
   print "  intersection: ", a * b, " ", b * c, "\n";
   print "  difference: ", a - b, " ", b - c, "\n";
-  print "  disjoint: ", a !! b, " ", b !! c, "\n";
+  print "  disjoint: ", a !! b, " ", b !! c, " ", c !! e, "\n";
   print "  subset: ", a <= b, " ", b <= c, " ", c <= c, " ", c <= d, "\n";
   print "  proper subset: ", a < b, " ", b < c, " ", c < c, " ", c < d, "\n";
   print "  superset: ", a >= b, " ", b >= a, " ", c >= c, "\n";
   print "  proper superset: ", a > b, " ", b > a, " ", c > c, "\n";
-  print "  membership: ", 17 in a, " ", 17 in b, " ", 17 in c, "\n";
+  print "  membership: ", 17 in a, " ", 17 in b, " ", 17 in c, " ", 12 in d, "\n";
   print "  update: ", a[17 := 2], " ", b[17 := 2], " ", c[17 := 2], "\n";
   print "  multiplicity: ", a[17], " ", b[17], " ", c[17], "\n";
 }
