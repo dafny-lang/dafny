@@ -14,6 +14,7 @@ jobs:
     env:
       testPath1: Source/DafnyLanguageServer.Test/bin/Debug/net5.0
       testPath2: Source/DafnyPipeline.Test/bin/Debug/net5.0
+      testPath3: Source/DafnyTestGeneration.Test/bin/Debug/net5.0
       solutionPath: Source/Dafny.sln
       z3BaseUri: https://github.com/Z3Prover/z3/releases/download/Z3-4.8.5
       z3: z3-4.8.5-x64-ubuntu-16.04
@@ -37,9 +38,11 @@ jobs:
         Remove-Item z3.zip
         Copy-Item ${{env.z3}} ${{env.testPath1}}/z3 -Recurse
         Copy-Item ${{env.z3}} ${{env.testPath2}}/z3 -Recurse
+        Copy-Item ${{env.z3}} ${{env.testPath3}}/z3 -Recurse
     - name: Set Z3 Permissions
       run: | 
         chmod +x ${{env.testPath1}}/z3/bin/z3
         chmod +x ${{env.testPath2}}/z3/bin/z3
+        chmod +x ${{env.testPath3}}/z3/bin/z3
     - name: Run Tests
       run: dotnet test --no-restore --verbosity normal Source/Dafny.sln
