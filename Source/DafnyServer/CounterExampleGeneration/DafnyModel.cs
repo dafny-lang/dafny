@@ -386,7 +386,8 @@ namespace DafnyServer.CounterExampleGeneration {
 
     /// <summary>
     /// Extract the string representation of the element.
-    /// Returns "" if !IsPrimitive(elt, state)
+    /// Return "" if !IsPrimitive(elt, state) unless elt is a datatype,
+    /// in which case return the corresponding constructor name.
     /// </summary>
     public string CanonicalName(Model.Element elt, DafnyModelState state) {
       if (elt == null) {
@@ -480,7 +481,7 @@ namespace DafnyServer.CounterExampleGeneration {
               func.Name.Split(".").Last(), var));
           }
         } else {
-          // we don't now destructor names, so we use indeces instead
+          // we don't now destructor names, so we use indices instead
           for (var i = 0; i < fnTuple.Args.Length; i++) {
             result.Add(DafnyModelVariableFactory.Get(state, Unbox(fnTuple.Args[i]),
               "[" + i + "]", var));

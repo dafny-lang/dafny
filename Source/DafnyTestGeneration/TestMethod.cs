@@ -19,8 +19,10 @@ namespace DafnyTestGeneration {
     private readonly Dictionary<string, HashSet<int>> reservedValues = new();
     // maps a particular element to a value reserved for it (see above)
     private readonly Dictionary<Model.Element, int> reservedValuesMap = new();
-    // maps a variable pointing to an object to its unique id and type
-    public readonly Dictionary<DafnyModelVariable, (string id, DafnyModelType type)> ObjectsToMock = new();
+    // list of values to mock together with their types
+    public readonly List<(string id, DafnyModelType type)> ObjectsToMock = new();
+    // maps a variable that is mocked to its unique id
+    private readonly Dictionary<DafnyModelVariable, string> mockedVarId = new();
     public readonly List<(string parentId, string fieldName, string childId)> Assignments = new();
     private readonly int id = nextId++;
     public readonly DafnyInfo DafnyInfo;
@@ -57,7 +59,7 @@ namespace DafnyTestGeneration {
       var vars = state.ExpandedVariableSet(null);
       for (var i = 0; i < printOutput.Count; i++) {
         if (printOutput[i] == "") {
-          result.Add(GetDefaultValue(types[i].Split("<").First()));
+          result.Add(GetDefaultValue(DafnyModelType.FromString(types[i])));
           continue;
         }
         if (!printOutput[i].StartsWith("T@")) {
@@ -85,8 +87,8 @@ namespace DafnyTestGeneration {
     /// assignments, reservedValues, reservedValuesMap, and objectsToMock.
     /// </summary>
     private string ExtractVariable(DafnyModelVariable variable) {
-      if (ObjectsToMock.ContainsKey(variable)) {
-        return ObjectsToMock[variable].id;
+      if (mockedVarId.ContainsKey(variable)) {
+        return mockedVarId[variable];
       }
 
       if (variable.Value.StartsWith("?")) {
@@ -142,8 +144,9 @@ namespace DafnyTestGeneration {
         default:
           var varId = $"v{ObjectsToMock.Count}";
           var dafnyType =
-            new DafnyModelType(variable.Type.InDafnyFormat().Name.TrimEnd('?'));
-          ObjectsToMock[variable] = new($"v{ObjectsToMock.Count}", dafnyType);
+            new DafnyModelType(variable.Type.GetNonNullable().InDafnyFormat().ToString());
+          ObjectsToMock.Add(new (varId, dafnyType));
+          mockedVarId[variable] = varId;
           foreach (var filedName in variable.children.Keys) {
             if (variable.children[filedName].Count != 1) {
               continue;
@@ -210,9 +213,8 @@ namespace DafnyTestGeneration {
     /// An unspecified value is such a value for which a model does reserve
     /// an element (e.g. T@U!val!25).
     /// </summary>
-    /// <param name="typeName">see DafnyModelType.Name</param>
-    private static string GetDefaultValue(string typeName) {
-      return typeName switch {
+    private string GetDefaultValue(DafnyModelType type) {
+      var result = type.Name switch {
         "char" => "\'a\'",
         "bool" => "false",
         "int" => "0",
@@ -222,12 +224,15 @@ namespace DafnyTestGeneration {
         "map" => "map[]",
         var bv when new Regex("^bv[0-9]+$").IsMatch(bv) => $"(0 as {bv})",
         var nullable when new Regex("^.*?$").IsMatch(nullable) => "null",
-        _ => "null" // TODO: Non-nullables, arrays, renamed types like strings
+        _ => null // TODO: Arrays, dataTypes, renamed types like strings
       };
-    }
-
-    private static string GetDefaultValue(DafnyModelType type) {
-      return GetDefaultValue(type.Name);
+      if (result != null) {
+        return result;
+      }
+      // this should only be reached if the type is non-nullable
+      var varId = $"v{ObjectsToMock.Count}";
+      ObjectsToMock.Add(new(varId, type));
+      return varId;
     }
 
     /// <summary>
@@ -329,7 +334,7 @@ namespace DafnyTestGeneration {
       List<string> lines = new();
 
       // test method parameters and declaration:
-      var parameters = string.Join(", ", ObjectsToMock.Values
+      var parameters = string.Join(", ", ObjectsToMock
         .Select(kVPair => $"{kVPair.id}:{kVPair.type}"));
       var returnParNames = new List<string>();
       for (var i = 0; i < DafnyInfo.GetReturnTypes(MethodName).Count; i++) {
@@ -340,7 +345,7 @@ namespace DafnyTestGeneration {
         Enumerable.Range(0, returnParNames.Count).Select(i =>
             $"{returnParNames[i]}:{DafnyInfo.GetReturnTypes(MethodName)[i]}"));
       var modifiesClause = string.Join("",
-        ObjectsToMock.Values.Select(i => $" modifies {i.id}"));
+        ObjectsToMock.Select(i => $" modifies {i.id}"));
       lines.Add($"method test{id}({parameters}) " +
                 $"returns ({returnsDeclaration}) {modifiesClause} {{");
 

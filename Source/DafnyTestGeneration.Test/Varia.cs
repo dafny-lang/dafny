@@ -220,5 +220,32 @@ module Objects {
         m.ObjectsToMock.Count == 2));
     }
 
+    [TestMethod]
+    public void NonNullableObjects() {
+      var source = @"
+module Module {
+  class Value<T> {
+    var v:T;
+    constructor(v:T) {
+      this.v := v;
+    }
+  }
+  method ignoreNonNullableObject(v:Value<char>, b:bool) {
+    assert b;
+  }
+}
+".TrimStart();
+      var program = Utils.Parse(source);
+      DafnyOptions.O.MethodToTest = "Module.ignoreNonNullableObject";
+      var methods = Main.GetTestMethodsForProgram(program).ToList();
+      Assert.AreEqual(1, methods.Count);
+      var m = methods[0];
+      Assert.AreEqual("Module.ignoreNonNullableObject", m.MethodName);
+      Assert.IsTrue(m.DafnyInfo.IsStatic("Module.ignoreNonNullableObject"));
+      Assert.AreEqual(2, m.ArgValues.Count);
+      Assert.AreEqual(1, m.ObjectsToMock.Count);
+      Assert.AreEqual("Module.Value<char>", m.ObjectsToMock[0].type.Name);
+    }
+
   }
 }
