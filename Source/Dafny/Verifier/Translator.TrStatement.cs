@@ -11,6 +11,34 @@ namespace Microsoft.Dafny
 {
   public partial class Translator
   {
+    private void AddSplittingAssume(BoogieStmtListBuilder b, IToken tok)
+    {
+      Contract.Requires(b != null);
+      Contract.Requires(tok != null);
+      b.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.True, new Bpl.QKeyValue(tok, "split_here", new List<object>(), null)));
+    }
+
+    private bool processSplitAttribute(Attributes attrs, IToken tok, bool defaultValue = false)
+    {
+      bool split = defaultValue;
+      Attributes attr = Attributes.GetAttribute(attrs, "split");
+      if (attr != null) {
+        if (attr.Args.Count == 0) {
+          split = true;
+        } else if (attr.Args.Count == 1) {
+          var arg = attr.Args[0] as LiteralExpr;
+          if (arg != null && arg.Value is bool) {
+            split = (bool)arg.Value;
+          } else {
+            this.reporter.Error(MessageSource.Translator, tok, "Attribute split only accepts true/false");
+          }
+        } else {
+          this.reporter.Error(MessageSource.Translator, tok, "Attribute split accepts at most 1 argument");
+        }
+      }
+      return split;
+    }
+
     private void TrStmt(Statement stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
     {
       Contract.Requires(stmt != null);
@@ -21,6 +49,9 @@ namespace Microsoft.Dafny
       Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
 
       stmtContext = StmtType.NONE;
+      bool splitAttributeValue = processSplitAttribute(stmt.Attributes,
+                                  stmt.Tok,
+                                  stmt is CalcStmt || stmt is AssertStmt || stmt is ForallStmt);
       adjustFuelForExists = true;  // fuel for exists might need to be adjusted based on whether it's in an assert or assume stmt.
       if (stmt is PredicateStmt) {
         var stmtBuilder = new BoogieStmtListBuilder(this);
@@ -43,6 +74,9 @@ namespace Microsoft.Dafny
             if (assertStmt.Proof != null) {
               proofBuilder = new BoogieStmtListBuilder(this);
               AddComment(proofBuilder, stmt, "assert statement proof");
+              if (splitAttributeValue) {
+               AddSplittingAssume(proofBuilder, stmt.Tok);
+              }
               CurrentIdGenerator.Push();
               TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
               CurrentIdGenerator.Pop();
@@ -433,6 +467,9 @@ namespace Microsoft.Dafny
           IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran, stmt.IsGhost);
           CurrentIdGenerator.Pop();
         }
+        if (splitAttributeValue) {
+          AddSplittingAssume(proofBuilder, stmt.Tok);
+        }
         CurrentIdGenerator.Push();
         Bpl.StmtList thn = TrStmt2StmtList(b, s.Thn, locals, etran);
         CurrentIdGenerator.Pop();
@@ -445,6 +482,14 @@ namespace Microsoft.Dafny
         if (s.Els == null) {
           els = b.Collect(s.Tok);
         } else {
+          if (!(s.Els is IfStmt) && processSplitAttribute(s.Els.Attributes, s.Els.Tok, splitAttributeValue)) {
+            AddSplittingAssume(b, s.Els.Tok);
+          } else if (!Attributes.Contains(s.Els.Attributes, "split")) {
+            // inherit the splitting attributes of previous if.
+            var args = new List<Expression> ();
+            args.Add(new LiteralExpr(s.Tok, splitAttributeValue));
+            s.Els.Attributes = new Attributes ("split", args, s.Els.Attributes);
+          }
           CurrentIdGenerator.Push();
           els = TrStmt2StmtList(b, s.Els, locals, etran);
           CurrentIdGenerator.Pop();
@@ -461,8 +506,7 @@ namespace Microsoft.Dafny
         AddComment(builder, stmt, "alternative statement");
         var s = (AlternativeStmt)stmt;
         var elseCase = Assert(s.Tok, Bpl.Expr.False, "alternative cases fail to cover all possibilties");
-        TrAlternatives(s.Alternatives, elseCase, null, builder, locals, etran, stmt.IsGhost);
-
+        TrAlternatives(s.Alternatives, elseCase, null, builder, locals, etran, stmt.IsGhost, splitAttributeValue);
       } else if (stmt is WhileStmt) {
         AddComment(builder, stmt, "while statement");
         this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
@@ -476,7 +520,7 @@ namespace Microsoft.Dafny
             CurrentIdGenerator.Pop();
           };
         }
-        TrLoop(s, s.Guard, bodyTr, builder, locals, etran);
+        TrLoop(s, s.Guard, bodyTr, builder, locals, etran, splitAttributeValue);
         this.fuelContext = FuelSetting.PopFuelContext();
       } else if (stmt is AlternativeLoopStmt) {
         AddComment(builder, stmt, "alternative loop statement");
@@ -487,7 +531,7 @@ namespace Microsoft.Dafny
           delegate(BoogieStmtListBuilder bld, ExpressionTranslator e) {
             TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e, stmt.IsGhost);
           },
-          builder, locals, etran);
+          builder, locals, etran, splitAttributeValue);
 
       } else if (stmt is ForLoopStmt) {
         var s = (ForLoopStmt)stmt;
@@ -579,7 +623,7 @@ namespace Microsoft.Dafny
           };
         }
 
-        TrLoop(s, guard, bodyTr, builder, locals, etran, freeInvariant, s.Decreases.Expressions.Count != 0);
+        TrLoop(s, guard, bodyTr, builder, locals, etran, splitAttributeValue, freeInvariant, s.Decreases.Expressions.Count != 0);
 
       } else if (stmt is ModifyStmt) {
         AddComment(builder, stmt, "modify statement");
@@ -645,12 +689,14 @@ namespace Microsoft.Dafny
           } else {
             var s0 = (CallStmt)s.S0;
             if (Attributes.Contains(s.Attributes, "_trustWellformed")) {
-              TrForallStmtCall(s.Tok, s.BoundVars, s.Bounds, s.Range, null, s.ForallExpressions, s0, null, builder, locals, etran);
+              TrForallStmtCall(s.Tok, s.BoundVars, s.Bounds, s.Range, null, s.ForallExpressions, s0, null, builder,
+                locals, etran, splitAttributeValue);
             } else {
               var definedness = new BoogieStmtListBuilder(this);
               DefineFuelConstant(stmt.Tok, stmt.Attributes, definedness, etran);
               var exporter = new BoogieStmtListBuilder(this);
-              TrForallStmtCall(s.Tok, s.BoundVars, s.Bounds, s.Range, null, s.ForallExpressions, s0, definedness, exporter, locals, etran);
+              TrForallStmtCall(s.Tok, s.BoundVars, s.Bounds, s.Range, null, s.ForallExpressions,
+                s0, definedness, exporter, locals, etran, splitAttributeValue);
               // All done, so put the two pieces together
               builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
             }
@@ -662,7 +708,7 @@ namespace Microsoft.Dafny
           var definedness = new BoogieStmtListBuilder(this);
           var exporter = new BoogieStmtListBuilder(this);
           DefineFuelConstant(stmt.Tok, stmt.Attributes, definedness, etran);
-          TrForallProof(s, definedness, exporter, locals, etran);
+          TrForallProof(s, definedness, exporter, locals, etran, splitAttributeValue);
           // All done, so put the two pieces together
           builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
           builder.Add(CaptureState(stmt));
@@ -708,6 +754,9 @@ namespace Microsoft.Dafny
           // check steps:
           for (int i = stepCount; 0 <= --i; ) {
             b = new BoogieStmtListBuilder(this);
+            if (splitAttributeValue) {
+              AddSplittingAssume(b, s.Tok);
+            }
             // assume wf[line<i>]:
             AddComment(b, stmt, "assume wf[lhs]");
             CurrentIdGenerator.Push();
@@ -734,7 +783,7 @@ namespace Microsoft.Dafny
                 }
               }
               TrStmt_CheckWellformed(CalcStmt.Rhs(s.Steps[i]), b, locals, etran, false);
-              bool splitHappened;
+              bool splitHappened; // this is a different kind of split
               var ss = TrSplitExpr(s.Steps[i], etran, true, out splitHappened);
               // assert step:
               AddComment(b, stmt, "assert line" + i.ToString() + " " + (s.StepOps[i] ?? s.Op).ToString() + " line" + (i + 1).ToString());
@@ -805,6 +854,9 @@ namespace Microsoft.Dafny
           CurrentIdGenerator.Push();
           // havoc all bound variables
           b = new BoogieStmtListBuilder(this);
+          if (processSplitAttribute(s.Cases[i].Attributes, s.Cases[i].tok, splitAttributeValue)) {
+            AddSplittingAssume(b, mc.tok);
+          }
           List<Variable> newLocals = new List<Variable>();
           Bpl.Expr r = CtorInvocation(mc, s.Source.Type, etran, newLocals, b, s.IsGhost ? NOALLOC : ISALLOC);
           locals.AddRange(newLocals);
@@ -906,9 +958,10 @@ namespace Microsoft.Dafny
       }
     }
 
-    
 
-    void TrForallProof(ForallStmt s, BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, List<Variable> locals, ExpressionTranslator etran) {
+
+    void TrForallProof(ForallStmt s, BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter,
+      List<Variable> locals, ExpressionTranslator etran, bool splitAttributeValue) {
       // Translate:
       //   forall (x,y | Range(x,y))
       //     ensures Post(x,y);
@@ -951,6 +1004,9 @@ namespace Microsoft.Dafny
       definedness.Add(TrAssumeCmd(s.Range.tok, etran.TrExpr(s.Range)));
 
       if (s.Body != null) {
+        if (splitAttributeValue) {
+          AddSplittingAssume(definedness, tok);
+        }
         TrStmt(s.Body, definedness, locals, etran);
 
         // check that postconditions hold
@@ -980,7 +1036,7 @@ namespace Microsoft.Dafny
         exporter.Add(TrAssumeCmd(s.Tok, BplAnd(se, ((Bpl.ForallExpr)qq).Body)));
       }
     }
-    
+
     /// <summary>
     /// "lhs" is expected to be a resolved form of an expression, i.e., not a conrete-syntax expression.
     /// </summary>
@@ -1195,7 +1251,7 @@ namespace Microsoft.Dafny
         }
       }
     }
-    
+
     /// <summary>
     /// Generate:
     ///   assume (forall x,y :: Range(x,y)[$Heap:=oldHeap] ==>
@@ -1249,7 +1305,7 @@ namespace Microsoft.Dafny
       }
       return new Bpl.ForallExpr(tok, xBvars, tr, Bpl.Expr.Imp(xAnte, Bpl.Expr.Eq(xHeapOF, g)));
     }
-    
+
     private void TrIfStmt(IfStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
     {
       AddComment(builder, stmt, "if statement");
@@ -1715,9 +1771,10 @@ namespace Microsoft.Dafny
 
       this.fuelContext = FuelSetting.PopFuelContext();
     }
-    
+
     void TrLoop(LoopStmt s, Expression Guard, BodyTranslator/*?*/ bodyTr,
-                BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+                BoogieStmtListBuilder builder, List<Variable> locals,
+                ExpressionTranslator etran, bool splitAttributeValue
                 Bpl.Expr freeInvariant = null, bool includeTerminationCheck = true) {
       Contract.Requires(s != null);
       Contract.Requires(builder != null);
@@ -1856,7 +1913,9 @@ namespace Microsoft.Dafny
       // As the first thing inside the loop, generate:  if (!w) { CheckWellformed(inv); assume false; }
       invDefinednessBuilder.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
       loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, Bpl.Expr.Not(w), invDefinednessBuilder.Collect(s.Tok), null, null));
-
+      if (splitAttributeValue) {
+        AddSplittingAssume(loopBodyBuilder, s.Tok);
+      }
       // Generate:  CheckWellformed(guard); if (!guard) { break; }
       // but if this is a body-less loop, put all of that inside:  if (*) { ... }
       // Without this, Boogie's abstract interpreter may figure out that the loop guard is always false
@@ -1918,6 +1977,9 @@ namespace Microsoft.Dafny
         loopBodyBuilder.Add(new Bpl.HavocCmd(s.Tok, bplTargets));
         loopBodyBuilder.Add(Bpl.Cmd.SimpleAssign(s.Tok, w, Bpl.Expr.False));
       }
+      if (splitAttributeValue) {
+        AddSplittingAssume(loopBodyBuilder, s.Tok);
+      }
       // Finally, assume the well-formedness of the invariant (which has been checked once and for all above), so that the check
       // of invariant-maintenance can use the appropriate canCall predicates.
       foreach (AttributedExpression loopInv in s.Invariants) {
@@ -1928,7 +1990,8 @@ namespace Microsoft.Dafny
       builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, body));
     }
     void TrAlternatives(List<GuardedAlternative> alternatives, Bpl.Cmd elseCase0, Bpl.StructuredCmd elseCase1,
-                        BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, bool isGhost) {
+                        BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+                        bool isGhost, bool splitAttributeValue = false) {
       Contract.Requires(alternatives != null);
       Contract.Requires((elseCase0 == null) != (elseCase1 == null));  // ugly way of doing a type union
       Contract.Requires(builder != null);
@@ -1978,6 +2041,9 @@ namespace Microsoft.Dafny
           b.Add(new AssumeCmd(alternative.Guard.tok, etran.TrExpr(alternative.Guard)));
         }
         var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
+        if (processSplitAttribute(alternative.Attributes, alternative.Tok, splitAttributeValue)) {
+          AddSplittingAssume(b, alternative.Tok);
+        }
         foreach (var s in alternative.Body) {
           TrStmt(s, b, locals, etran);
         }
@@ -2323,7 +2389,8 @@ namespace Microsoft.Dafny
       }
     }
     void TrForallStmtCall(IToken tok, List<BoundVar> boundVars, List<ComprehensionExpr.BoundedPool> bounds, Expression range, ExpressionConverter additionalRange, List<Expression> forallExpressions, CallStmt s0,
-      BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, List<Variable> locals, ExpressionTranslator etran) {
+      BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, List<Variable> locals,
+      ExpressionTranslator etran, bool splitAttributeValue = false) {
       Contract.Requires(tok != null);
       Contract.Requires(boundVars != null);
       Contract.Requires(bounds != null);
@@ -2378,6 +2445,9 @@ namespace Microsoft.Dafny
         }
         TrStmt_CheckWellformed(range, definedness, locals, etran, false);
         definedness.Add(TrAssumeCmd(range.tok, etran.TrExpr(range)));
+        if (splitAttributeValue) {
+          AddSplittingAssume(definedness, tok);
+        }
         if (additionalRange != null) {
           var es = additionalRange(new Dictionary<IVariable, Expression>(), etran);
           definedness.Add(TrAssumeCmd(es.tok, es));
@@ -2491,7 +2561,7 @@ namespace Microsoft.Dafny
       // assume $IsGoodHeap($Heap)
       builder.Add(AssumeGoodHeap(tok, etran));
     }
-    
+
     private string GetObjFieldDetails(Expression lhs, ExpressionTranslator etran, out Bpl.Expr obj, out Bpl.Expr F) {
       string description;
       if (lhs is MemberSelectExpr) {
