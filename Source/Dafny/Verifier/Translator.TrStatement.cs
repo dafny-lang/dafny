@@ -468,7 +468,7 @@ namespace Microsoft.Dafny
           CurrentIdGenerator.Pop();
         }
         if (splitAttributeValue) {
-          AddSplittingAssume(proofBuilder, stmt.Tok);
+          AddSplittingAssume(b, stmt.Tok);
         }
         CurrentIdGenerator.Push();
         Bpl.StmtList thn = TrStmt2StmtList(b, s.Thn, locals, etran);
@@ -1005,7 +1005,7 @@ namespace Microsoft.Dafny
 
       if (s.Body != null) {
         if (splitAttributeValue) {
-          AddSplittingAssume(definedness, tok);
+          AddSplittingAssume(definedness, s.Tok);
         }
         TrStmt(s.Body, definedness, locals, etran);
 
@@ -1350,7 +1350,8 @@ namespace Microsoft.Dafny
         elsIf, els));
     }
 
-    private void TrWhileStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, WhileStmt whileStmt)
+    private void TrWhileStmt(BoogieStmtListBuilder builder, List<Variable> locals,
+      ExpressionTranslator etran, bool splitAttributeValue, WhileStmt whileStmt)
     {
       AddComment(builder, whileStmt, "while statement");
       this.fuelContext =
@@ -1366,11 +1367,12 @@ namespace Microsoft.Dafny
         };
       }
 
-      TrLoop(whileStmt, whileStmt.Guard, bodyTr, builder, locals, etran);
+      TrLoop(whileStmt, whileStmt.Guard, bodyTr, builder, locals, etran, splitAttributeValue);
       this.fuelContext = FuelSetting.PopFuelContext();
     }
 
-    private void TrForLoop(ForLoopStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+    private void TrForLoop(ForLoopStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals,
+      ExpressionTranslator etran, bool splitAttributeValue) {
       AddComment(builder, stmt, "for-loop statement");
 
       var indexVar = stmt.LoopIndex;
@@ -1465,7 +1467,7 @@ namespace Microsoft.Dafny
         };
       }
 
-      TrLoop(stmt, guard, bodyTr, builder, locals, etran, freeInvariant, stmt.Decreases.Expressions.Count != 0);
+      TrLoop(stmt, guard, bodyTr, builder, locals, etran, splitAttributeValue, freeInvariant, stmt.Decreases.Expressions.Count != 0);
     }
 
     private void TrMatchStmt(MatchStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
@@ -1774,7 +1776,7 @@ namespace Microsoft.Dafny
 
     void TrLoop(LoopStmt s, Expression Guard, BodyTranslator/*?*/ bodyTr,
                 BoogieStmtListBuilder builder, List<Variable> locals,
-                ExpressionTranslator etran, bool splitAttributeValue
+                ExpressionTranslator etran, bool splitAttributeValue,
                 Bpl.Expr freeInvariant = null, bool includeTerminationCheck = true) {
       Contract.Requires(s != null);
       Contract.Requires(builder != null);
