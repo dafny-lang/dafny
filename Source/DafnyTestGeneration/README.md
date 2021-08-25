@@ -69,8 +69,8 @@ there is no non-determinism in the tested code.
 ## How to Generate Tests?
 
 - Test generation currently works with all basic types, user-defined classes,
-  sequences, sets, and maps. It does not work with datatypes, arrays,
-  multisets, and non-nullable types
+  sequences, sets, and maps. It does not work with datatypes, arrays, and
+  multisets
 - To generate block- or path-coverage tests use the `/testMode:Block` or
   `/testMode:Path` arguments respectively. You will likely also need
   `definiteAssignment:3`.
