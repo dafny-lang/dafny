@@ -81,7 +81,7 @@ method MultiSets() {
   print "  proper subset: ", a < b, " ", b < c, " ", c < c, " ", c < d, "\n";
   print "  superset: ", a >= b, " ", b >= a, " ", c >= c, "\n";
   print "  proper superset: ", a > b, " ", b > a, " ", c > c, "\n";
-  print "  membership: ", 17 in a, " ", 17 in b, " ", 17 in c, " ", 12 in d, "\n";
+  print "  membership: ", 17 in a, " ", 17 in b, " ", 17 in c, " ", 12 in e, "\n";
   print "  update: ", a[17 := 2], " ", b[17 := 2], " ", c[17 := 2], "\n";
   print "  multiplicity: ", a[17], " ", b[17], " ", c[17], "\n";
 }
