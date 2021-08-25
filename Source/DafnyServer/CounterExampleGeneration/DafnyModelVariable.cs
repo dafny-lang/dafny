@@ -10,7 +10,7 @@ using Microsoft.Boogie;
 namespace DafnyServer.CounterExampleGeneration {
 
   public static class DafnyModelVariableFactory {
-    
+
     /// <summary>
     /// Create a new variable to be associated with the given model element in
     /// a given counterexample state or return such a variable if one already
@@ -26,8 +26,8 @@ namespace DafnyServer.CounterExampleGeneration {
     /// <param name="duplicate">forces the creation of a new variable even if
     /// one already exists </param>
     /// <returns></returns>
-    public static DafnyModelVariable Get(DafnyModelState state, 
-      Model.Element element, string name, DafnyModelVariable parent=null, 
+    public static DafnyModelVariable Get(DafnyModelState state,
+      Model.Element element, string name, DafnyModelVariable parent=null,
       bool duplicate=false) {
       if (state.ExistsVar(element)) {
         parent?.AddChild(name, state.GetVar(element));
@@ -36,29 +36,29 @@ namespace DafnyServer.CounterExampleGeneration {
         }
         return new DuplicateVariable(state, state.GetVar(element), name, parent);
       }
-      if (state.Model.GetDafnyType(element).StartsWith("seq<")) {
+      if (state.Model.GetDafnyType(element).Name == "seq") {
         return new SeqVariable(state, element, name, parent);
       }
-      if (state.Model.GetDafnyType(element).StartsWith("map<")) {
+      if (state.Model.GetDafnyType(element).Name == "map") {
         return new MapVariable(state, element, name, parent);
       }
       return new DafnyModelVariable(state, element, name, parent);
     }
   }
-  
+
   public class DafnyModelVariable {
-    
+
     public readonly string Name; // name given to the variable at creation
-    public readonly string Type; // Dafny type of the variable
-    internal readonly Model.Element Element;
+    public readonly DafnyModelType Type; // Dafny type of the variable
+    public readonly Model.Element Element;
     private readonly DafnyModelState state; // the associated captured state
     // A child is a field or a value at a given index of an array, etc.
     // This dictionary associates a child name with resp. variable:
     // several children can have same names (particularly, sets can have
     // many children called true and falls)
-    private readonly Dictionary<string, HashSet<DafnyModelVariable>> children;
+    public readonly Dictionary<string, HashSet<DafnyModelVariable>> children;
 
-    internal DafnyModelVariable(DafnyModelState state, Model.Element element, 
+    internal DafnyModelVariable(DafnyModelState state, Model.Element element,
       string name, DafnyModelVariable parent) {
       this.state = state;
       Element = element;
@@ -68,6 +68,8 @@ namespace DafnyServer.CounterExampleGeneration {
       if (parent == null) {
         Name = name;
       } else {
+        // TODO: a case can be made for refactoring this so that the indices
+        // are model-wide rather than state-wide
         Name = "@" + state.VarIndex++;
         parent.AddChild(name, this);
       }
@@ -94,19 +96,19 @@ namespace DafnyServer.CounterExampleGeneration {
           }
         }
         string childValues;
-        if (Type.StartsWith("set<")) {
+        if (Type.Name == "set") {
           childValues = string.Join(", ",
             childList.ConvertAll(tpl => tpl.Item2 + " := " + tpl.Item1));
           return result + "{" + childValues + "}";
         }
         childValues = string.Join(", ",
-            childList.ConvertAll(tpl => tpl.Item1 + " := " + tpl.Item2)); 
+            childList.ConvertAll(tpl => tpl.Item1 + " := " + tpl.Item2));
         return result + "(" + childValues + ")";
       }
     }
 
     public bool IsPrimitive => DafnyModel.IsPrimitive(Element, state);
-    
+
     public string ShortName {
       get {
         var shortName = Regex.Replace(Name, @"#.*$", "");
@@ -133,7 +135,7 @@ namespace DafnyServer.CounterExampleGeneration {
   }
 
   public class DuplicateVariable : DafnyModelVariable {
-    private readonly DafnyModelVariable original;
+    public readonly DafnyModelVariable original;
 
     internal DuplicateVariable(DafnyModelState state, DafnyModelVariable original, string newName, DafnyModelVariable parent)
       : base(state, original.Element, newName, parent) {
@@ -146,9 +148,9 @@ namespace DafnyServer.CounterExampleGeneration {
       return original.GetExpansion();
     }
   }
-  
+
   public class SeqVariable : DafnyModelVariable {
-    
+
     private DafnyModelVariable seqLength;
     Dictionary<int, DafnyModelVariable> seqElements;
 
@@ -160,7 +162,7 @@ namespace DafnyServer.CounterExampleGeneration {
 
     public override string Value {
       get {
-        var length = (seqLength?.Element as Model.Integer)?.AsInt();
+        var length = GetLength();
         if (length == null || seqElements.Count != length) {
           return base.Value;
         }
@@ -169,12 +171,20 @@ namespace DafnyServer.CounterExampleGeneration {
           if (!seqElements.ContainsKey(i)) {
             return base.Value;
           }
-          result.Add(seqElements[i].IsPrimitive ? 
-            seqElements[i].Value : 
+          result.Add(seqElements[i].IsPrimitive ?
+            seqElements[i].Value :
             seqElements[i].ShortName);
         }
         return "[" + String.Join(", ", result) + "]";
       }
+    }
+
+    public int? GetLength() {
+      return (seqLength?.Element as Model.Integer)?.AsInt();
+    }
+
+    public DafnyModelVariable GetAtIndex(int i) {
+      return seqElements.GetValueOrDefault(i, null);
     }
 
     public void SetLength(DafnyModelVariable seqLength) {
@@ -191,7 +201,7 @@ namespace DafnyServer.CounterExampleGeneration {
 
   public class MapVariable : DafnyModelVariable {
 
-    private readonly Dictionary<DafnyModelVariable, DafnyModelVariable> mappings = new();
+    public readonly Dictionary<DafnyModelVariable, DafnyModelVariable> mappings = new();
 
     internal MapVariable(DafnyModelState state, Model.Element element, string name, DafnyModelVariable parent) : base(state, element, name, parent) { }
 
@@ -214,18 +224,101 @@ namespace DafnyServer.CounterExampleGeneration {
           mapStrings[mapString] = mapStrings.GetValueOrDefault(mapString, 0) + 1;
         }
         return "(" + String.Join(", ", mapStrings.Keys.ToList()
-          .ConvertAll(keyValuePair => 
-            mapStrings[keyValuePair] == 1 ? 
-              keyValuePair: 
+          .ConvertAll(keyValuePair =>
+            mapStrings[keyValuePair] == 1 ?
+              keyValuePair:
               keyValuePair + " [+"+ (mapStrings[keyValuePair] - 1) + "]")) + ")";
       }
     }
-    
+
     public void AddMapping(DafnyModelVariable from, DafnyModelVariable to) {
       if (mappings.ContainsKey(from)) {
         return;
       }
       mappings[from] = to;
     }
-  }  
+  }
+
+  public class DafnyModelType  {
+
+    public readonly string Name;
+    public readonly List<DafnyModelType> TypeArgs;
+
+    public DafnyModelType(string name, List<DafnyModelType> typeArgs) {
+      Name = name;
+      TypeArgs = typeArgs;
+    }
+
+    public DafnyModelType(string name):this(name, new List<DafnyModelType>()) { }
+
+    public override string ToString() {
+      if (TypeArgs.Count == 0) {
+        return Name;
+      }
+      return Name + "<" + String.Join(",", TypeArgs.ConvertAll(x => x.ToString())) + ">";
+    }
+
+    /// <summary>
+    /// Recursively convert this type's name and the names of its type arguments
+    /// to the Dafny format. So, for instance,
+    /// Mo__dule___mModule2__.Cla____ss is converted to  Mo_dule_.Module2_.Cla__ss
+    /// </summary>
+    public DafnyModelType InDafnyFormat() {
+      // The line below converts "_m" used in boogie to separate modules to ".":
+      var tmp = Regex.Replace(Name, "(?<=[^_](__)*)_m", ".");
+      // The code below converts every "__" to "_":
+      var removeNextUnderscore = false;
+      var newName = "";
+      foreach (var c in tmp) {
+        if (c == '_') {
+          if (!removeNextUnderscore) {
+            newName += c;
+          }
+          removeNextUnderscore = !removeNextUnderscore;
+        } else {
+          newName += c;
+        }
+      }
+      return new(newName, TypeArgs.ConvertAll(type => type.InDafnyFormat()));
+    }
+
+    public DafnyModelType GetNonNullable() {
+      var newName = Name.Trim('?');
+      return new DafnyModelType(newName, TypeArgs);
+    }
+
+    /// <summary>
+    /// Parse a string into a type. Throw an error if string is not well-formed
+    /// </summary>
+    public static DafnyModelType FromString(string type) {
+      type = Regex.Replace(type, " ", "");
+      if (!type.Contains("<")) {
+        return new DafnyModelType(type);
+      }
+      List<DafnyModelType> typeArgs = new();
+      var id = type.IndexOf("<", StringComparison.Ordinal);
+      var name = type.Substring(id);
+      id += 1;
+      var lastId = id;
+      var openBrackets = 0;
+      // ',' inside brackets should not be counted as separating parameters:
+      while (id < type.Length) {
+        switch (type[id]) {
+          case '<':
+            openBrackets += 1;
+            break;
+          case '>':
+            openBrackets -= 1;
+            break;
+          case ',':
+            if (openBrackets == 0) {
+              typeArgs.Add(FromString(type.Substring(lastId, id - lastId)));
+            }
+            break;
+        }
+        id++;
+      }
+      return new DafnyModelType(name, typeArgs);
+    }
+  }
 }
