@@ -6,6 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using DafnyServer.CounterExampleGeneration;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
   [TestClass]
@@ -979,6 +980,26 @@ module Mo_dule_ {
       Assert.AreEqual(1, counterExamples[0].Variables.Count);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("this:Mo_dule_.Module2_.Cla__ss?"));
       Assert.AreEqual("(i := 5)", counterExamples[0].Variables["this:Mo_dule_.Module2_.Cla__ss?"]);
+    }
+
+    [TestMethod]
+    public void DafnyModelTypeFromString() {
+      var type1 = DafnyModelType.FromString("seq<int, char>");
+      Assert.AreEqual("seq", type1.Name);
+      Assert.AreEqual(2, type1.TypeArgs.Count);
+      Assert.AreEqual("int", type1.TypeArgs[0].Name);
+      Assert.AreEqual("char", type1.TypeArgs[1].Name);
+      Assert.AreEqual(0, type1.TypeArgs[0].TypeArgs.Count);
+      Assert.AreEqual(0, type1.TypeArgs[1].TypeArgs.Count);
+      var type2 = DafnyModelType.FromString("seq<map<char, int>>");
+      Assert.AreEqual("seq", type2.Name);
+      Assert.AreEqual(1, type2.TypeArgs.Count);
+      Assert.AreEqual("map", type2.TypeArgs[0].Name);
+      Assert.AreEqual(2, type2.TypeArgs[0].TypeArgs.Count);
+      Assert.AreEqual("char", type2.TypeArgs[0].TypeArgs[0].Name);
+      Assert.AreEqual("int", type2.TypeArgs[0].TypeArgs[1].Name);
+      Assert.AreEqual(0, type2.TypeArgs[0].TypeArgs[0].TypeArgs.Count);
+      Assert.AreEqual(0, type2.TypeArgs[0].TypeArgs[1].TypeArgs.Count);
     }
   }
 }

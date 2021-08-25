@@ -239,7 +239,7 @@ namespace DafnyServer.CounterExampleGeneration {
     }
   }
 
-  public class DafnyModelType  {
+  public class DafnyModelType {
 
     public readonly string Name;
     public readonly List<DafnyModelType> TypeArgs;
@@ -249,19 +249,23 @@ namespace DafnyServer.CounterExampleGeneration {
       TypeArgs = typeArgs;
     }
 
-    public DafnyModelType(string name):this(name, new List<DafnyModelType>()) { }
+    public DafnyModelType(string name) :
+      this(name, new List<DafnyModelType>()) {
+    }
 
     public override string ToString() {
       if (TypeArgs.Count == 0) {
         return Name;
       }
-      return Name + "<" + String.Join(",", TypeArgs.ConvertAll(x => x.ToString())) + ">";
+      return Name + "<" + String.Join(",",
+        TypeArgs.ConvertAll(x => x.ToString())) + ">";
     }
 
     /// <summary>
     /// Recursively convert this type's name and the names of its type arguments
     /// to the Dafny format. So, for instance,
-    /// Mo__dule___mModule2__.Cla____ss is converted to  Mo_dule_.Module2_.Cla__ss
+    /// Mo__dule___mModule2__.Cla____ss is converted to
+    /// Mo_dule_.Module2_.Cla__ss
     /// </summary>
     public DafnyModelType InDafnyFormat() {
       // The line below converts "_m" used in boogie to separate modules to ".":
@@ -288,7 +292,7 @@ namespace DafnyServer.CounterExampleGeneration {
     }
 
     /// <summary>
-    /// Parse a string into a type. Throw an error if string is not well-formed
+    /// Parse a string into a type.
     /// </summary>
     public static DafnyModelType FromString(string type) {
       type = Regex.Replace(type, " ", "");
@@ -297,7 +301,7 @@ namespace DafnyServer.CounterExampleGeneration {
       }
       List<DafnyModelType> typeArgs = new();
       var id = type.IndexOf("<", StringComparison.Ordinal);
-      var name = type.Substring(id);
+      var name = type[..id];
       id += 1;
       var lastId = id;
       var openBrackets = 0;
@@ -313,11 +317,13 @@ namespace DafnyServer.CounterExampleGeneration {
           case ',':
             if (openBrackets == 0) {
               typeArgs.Add(FromString(type.Substring(lastId, id - lastId)));
+              lastId = id + 1;
             }
             break;
         }
         id++;
       }
+      typeArgs.Add(FromString(type.Substring(lastId, id - lastId - 1)));
       return new DafnyModelType(name, typeArgs);
     }
   }
