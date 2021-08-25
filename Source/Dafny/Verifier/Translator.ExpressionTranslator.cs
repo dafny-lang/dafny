@@ -6,12 +6,9 @@ using System.Numerics;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
-namespace Microsoft.Dafny
-{
-  public partial class Translator
-  {
-    internal class ExpressionTranslator
-    {
+namespace Microsoft.Dafny {
+  public partial class Translator {
+    internal class ExpressionTranslator {
       // HeapExpr == null ==> translation of pure (no-heap) expression
       readonly Boogie.Expr _the_heap_expr;
       public Boogie.Expr HeapExpr {
@@ -32,8 +29,7 @@ namespace Microsoft.Dafny
       public int Statistics_HeapUses = 0;
       public readonly bool stripLits = false;
       [ContractInvariantMethod]
-      void ObjectInvariant()
-      {
+      void ObjectInvariant() {
         // In the following line, it is important to use _the_heap_expr directly, rather than HeapExpr, because
         // the HeapExpr getter has a side effect on Statistics_HeapUses.
         Contract.Invariant(_the_heap_expr == null || _the_heap_expr is Boogie.OldExpr || _the_heap_expr is Boogie.IdentifierExpr);
@@ -104,8 +100,7 @@ namespace Microsoft.Dafny
       }
 
       public ExpressionTranslator(ExpressionTranslator etran, Boogie.Expr heap)
-        : this(etran.translator, etran.predef, heap, etran.This, etran.applyLimited_CurrentFunction, etran.layerInterCluster, etran.layerIntraCluster, etran.modifiesFrame, etran.stripLits)
-      {
+        : this(etran.translator, etran.predef, heap, etran.This, etran.applyLimited_CurrentFunction, etran.layerInterCluster, etran.layerIntraCluster, etran.modifiesFrame, etran.stripLits) {
         Contract.Requires(etran != null);
       }
 
@@ -143,8 +138,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      public ExpressionTranslator WithLayer(Boogie.Expr layerArgument)
-      {
+      public ExpressionTranslator WithLayer(Boogie.Expr layerArgument) {
         // different layer and 0 fuel amount.
         Contract.Requires(layerArgument != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
@@ -207,8 +201,7 @@ namespace Microsoft.Dafny
         return et;
       }
 
-      public Boogie.IdentifierExpr TheFrame(IToken tok)
-      {
+      public Boogie.IdentifierExpr TheFrame(IToken tok) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>().Type != null);
@@ -244,8 +237,7 @@ namespace Microsoft.Dafny
         return new Boogie.IdentifierExpr(Token.NoToken, "$FunctionContextHeight", Boogie.Type.Int);
       }
 
-      public Boogie.Expr HeightContext(ICallable m)
-      {
+      public Boogie.Expr HeightContext(ICallable m) {
         Contract.Requires(m != null);
         // free requires fh == FunctionContextHeight;
         var module = m.EnclosingModule;
@@ -254,8 +246,7 @@ namespace Microsoft.Dafny
         return context;
       }
 
-      public Expression GetSubstitutedBody(LetExpr e)
-      {
+      public Expression GetSubstitutedBody(LetExpr e) {
         Contract.Requires(e != null);
         Contract.Requires(e.Exact);
         Contract.Assert(e.LHSs.Count == e.RHSs.Count);  // checked by resolution
@@ -552,39 +543,29 @@ namespace Microsoft.Dafny
 
         } else if (expr is SeqUpdateExpr) {
           SeqUpdateExpr e = (SeqUpdateExpr)expr;
-          if (e.ResolvedUpdateExpr != null)
-          {
+          if (e.ResolvedUpdateExpr != null) {
             return TrExpr(e.ResolvedUpdateExpr);
-          }
-          else
-          {
+          } else {
             Boogie.Expr seq = TrExpr(e.Seq);
             var seqType = e.Seq.Type.NormalizeExpand();
-            if (seqType is SeqType)
-            {
+            if (seqType is SeqType) {
               Type elmtType = cce.NonNull((SeqType)seqType).Arg;
               Boogie.Expr index = TrExpr(e.Index);
               index = translator.ConvertExpression(e.Index.tok, index, e.Index.Type, Type.Int);
               Boogie.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), elmtType);
               return translator.FunctionCall(expr.tok, BuiltinFunction.SeqUpdate, predef.BoxType, seq, index, val);
-            }
-            else if (seqType is MapType)
-            {
+            } else if (seqType is MapType) {
               MapType mt = (MapType)seqType;
               Boogie.Type maptype = predef.MapType(expr.tok, mt.Finite, predef.BoxType, predef.BoxType);
               Boogie.Expr index = BoxIfNecessary(expr.tok, TrExpr(e.Index), mt.Domain);
               Boogie.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), mt.Range);
               return FunctionCall(expr.tok, mt.Finite ? "Map#Build" : "IMap#Build", maptype, seq, index, val);
-            }
-            else if (seqType is MultiSetType)
-            {
+            } else if (seqType is MultiSetType) {
               Type elmtType = cce.NonNull((MultiSetType)seqType).Arg;
               Boogie.Expr index = BoxIfNecessary(expr.tok, TrExpr(e.Index), elmtType);
               Boogie.Expr val = TrExpr(e.Value);
               return Boogie.Expr.StoreTok(expr.tok, seq, index, val);
-            }
-            else
-            {
+            } else {
               Contract.Assert(false);
               throw new cce.UnreachableException();
             }
@@ -592,7 +573,7 @@ namespace Microsoft.Dafny
 
         } else if (expr is MultiSelectExpr) {
           MultiSelectExpr e = (MultiSelectExpr)expr;
-          Type elmtType = UserDefinedType.ArrayElementType(e.Array.Type);;
+          Type elmtType = UserDefinedType.ArrayElementType(e.Array.Type); ;
           Boogie.Type elType = translator.TrType(elmtType);
 
           Boogie.Expr fieldName = GetArrayIndexFieldName(expr.tok, e.Indices);
@@ -628,7 +609,7 @@ namespace Microsoft.Dafny
           Func<Expression, Boogie.Expr> TrArg = arg => translator.BoxIfUnboxed(TrExpr(arg), arg.Type);
 
           var applied = FunctionCall(expr.tok, Translator.Apply(arity), predef.BoxType,
-            Concat(Map(tt.TypeArgs,translator.TypeToTy),
+            Concat(Map(tt.TypeArgs, translator.TypeToTy),
               Cons(HeapExpr, Cons(TrExpr(e.Function), e.Args.ConvertAll(arg => TrArg(arg))))));
 
           return translator.UnboxIfBoxed(applied, tt.Result);
@@ -790,9 +771,9 @@ namespace Microsoft.Dafny
                 return Boogie.Expr.Binary(expr.tok, BinaryOperator.Opcode.And, oNull, oIsFresh);
               }
             case UnaryOpExpr.Opcode.Allocated: {
-              var aType = e.E.Type.NormalizeExpand();
-              return translator.MkIsAlloc(TrExpr(e.E), aType, HeapExpr);
-            }
+                var aType = e.E.Type.NormalizeExpand();
+                return translator.MkIsAlloc(TrExpr(e.E), aType, HeapExpr);
+              }
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
           }
@@ -1012,45 +993,45 @@ namespace Microsoft.Dafny
               }
 
             case BinaryExpr.ResolvedOpcode.LeftShift: {
-              Contract.Assert(0 <= bvWidth);
-              return TrToFunctionCall(expr.tok, "LeftShift_bv" + bvWidth, translator.BplBvType(bvWidth), e0, translator.ConvertExpression(expr.tok, e1, e.E1.Type, e.Type), liftLit);
-            }
+                Contract.Assert(0 <= bvWidth);
+                return TrToFunctionCall(expr.tok, "LeftShift_bv" + bvWidth, translator.BplBvType(bvWidth), e0, translator.ConvertExpression(expr.tok, e1, e.E1.Type, e.Type), liftLit);
+              }
             case BinaryExpr.ResolvedOpcode.RightShift: {
-              Contract.Assert(0 <= bvWidth);
-              return TrToFunctionCall(expr.tok, "RightShift_bv" + bvWidth, translator.BplBvType(bvWidth), e0, translator.ConvertExpression(expr.tok, e1, e.E1.Type, e.Type), liftLit);
-            }
+                Contract.Assert(0 <= bvWidth);
+                return TrToFunctionCall(expr.tok, "RightShift_bv" + bvWidth, translator.BplBvType(bvWidth), e0, translator.ConvertExpression(expr.tok, e1, e.E1.Type, e.Type), liftLit);
+              }
             case BinaryExpr.ResolvedOpcode.BitwiseAnd: {
-              Contract.Assert(0 <= bvWidth);
-              return TrToFunctionCall(expr.tok, "and_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
-            }
+                Contract.Assert(0 <= bvWidth);
+                return TrToFunctionCall(expr.tok, "and_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
+              }
             case BinaryExpr.ResolvedOpcode.BitwiseOr: {
-              Contract.Assert(0 <= bvWidth);
-              return TrToFunctionCall(expr.tok, "or_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
-            }
+                Contract.Assert(0 <= bvWidth);
+                return TrToFunctionCall(expr.tok, "or_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
+              }
             case BinaryExpr.ResolvedOpcode.BitwiseXor: {
-              Contract.Assert(0 <= bvWidth);
-              return TrToFunctionCall(expr.tok, "xor_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
-            }
+                Contract.Assert(0 <= bvWidth);
+                return TrToFunctionCall(expr.tok, "xor_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
+              }
 
             case BinaryExpr.ResolvedOpcode.LtChar:
             case BinaryExpr.ResolvedOpcode.LeChar:
             case BinaryExpr.ResolvedOpcode.GeChar:
             case BinaryExpr.ResolvedOpcode.GtChar: {
-              // work off the original operands (that is, allow them to be lit-wrapped)
-              var operand0 = translator.FunctionCall(e0.tok, BuiltinFunction.CharToInt, null, oe0);
-              var operand1 = translator.FunctionCall(e0.tok, BuiltinFunction.CharToInt, null, oe1);
-              BinaryOperator.Opcode bOp;
-              switch (e.ResolvedOp) {
-                case BinaryExpr.ResolvedOpcode.LtChar:  bOp = BinaryOperator.Opcode.Lt; break;
-                case BinaryExpr.ResolvedOpcode.LeChar: bOp = BinaryOperator.Opcode.Le; break;
-                case BinaryExpr.ResolvedOpcode.GeChar: bOp = BinaryOperator.Opcode.Ge; break;
-                case BinaryExpr.ResolvedOpcode.GtChar: bOp = BinaryOperator.Opcode.Gt; break;
-                default:
-                  Contract.Assert(false);  // unexpected case
-                  throw new cce.UnreachableException();  // to please compiler
+                // work off the original operands (that is, allow them to be lit-wrapped)
+                var operand0 = translator.FunctionCall(e0.tok, BuiltinFunction.CharToInt, null, oe0);
+                var operand1 = translator.FunctionCall(e0.tok, BuiltinFunction.CharToInt, null, oe1);
+                BinaryOperator.Opcode bOp;
+                switch (e.ResolvedOp) {
+                  case BinaryExpr.ResolvedOpcode.LtChar: bOp = BinaryOperator.Opcode.Lt; break;
+                  case BinaryExpr.ResolvedOpcode.LeChar: bOp = BinaryOperator.Opcode.Le; break;
+                  case BinaryExpr.ResolvedOpcode.GeChar: bOp = BinaryOperator.Opcode.Ge; break;
+                  case BinaryExpr.ResolvedOpcode.GtChar: bOp = BinaryOperator.Opcode.Gt; break;
+                  default:
+                    Contract.Assert(false);  // unexpected case
+                    throw new cce.UnreachableException();  // to please compiler
+                }
+                return Boogie.Expr.Binary(expr.tok, bOp, operand0, operand1);
               }
-              return Boogie.Expr.Binary(expr.tok, bOp, operand0, operand1);
-            }
 
             case BinaryExpr.ResolvedOpcode.SetEq:
             case BinaryExpr.ResolvedOpcode.MultiSetEq:
@@ -1064,44 +1045,44 @@ namespace Microsoft.Dafny
               return Boogie.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, translator.TypeSpecificEqual(expr.tok, e.E0.Type, e0, e1));
 
             case BinaryExpr.ResolvedOpcode.ProperSubset: {
-              return translator.ProperSubset(expr.tok, e0, e1);
-            }
+                return translator.ProperSubset(expr.tok, e0, e1);
+              }
             case BinaryExpr.ResolvedOpcode.Subset: {
-              bool finite = e.E1.Type.AsSetType.Finite;
-              var f = finite ? BuiltinFunction.SetSubset : BuiltinFunction.ISetSubset;
-              return translator.FunctionCall(expr.tok, f, null, e0, e1);
-            }
+                bool finite = e.E1.Type.AsSetType.Finite;
+                var f = finite ? BuiltinFunction.SetSubset : BuiltinFunction.ISetSubset;
+                return translator.FunctionCall(expr.tok, f, null, e0, e1);
+              }
             case BinaryExpr.ResolvedOpcode.Superset: {
-              bool finite = e.E1.Type.AsSetType.Finite;
-              var f = finite ? BuiltinFunction.SetSubset : BuiltinFunction.ISetSubset;
-              return translator.FunctionCall(expr.tok, f, null, e1, e0);
-            }
+                bool finite = e.E1.Type.AsSetType.Finite;
+                var f = finite ? BuiltinFunction.SetSubset : BuiltinFunction.ISetSubset;
+                return translator.FunctionCall(expr.tok, f, null, e1, e0);
+              }
             case BinaryExpr.ResolvedOpcode.ProperSuperset:
               return translator.ProperSubset(expr.tok, e1, e0);
             case BinaryExpr.ResolvedOpcode.Disjoint: {
-              bool finite = e.E1.Type.AsSetType.Finite;
-              var f = finite ? BuiltinFunction.SetDisjoint : BuiltinFunction.ISetDisjoint;
-              return translator.FunctionCall(expr.tok, f, null, e0, e1);
-            }
+                bool finite = e.E1.Type.AsSetType.Finite;
+                var f = finite ? BuiltinFunction.SetDisjoint : BuiltinFunction.ISetDisjoint;
+                return translator.FunctionCall(expr.tok, f, null, e0, e1);
+              }
             case BinaryExpr.ResolvedOpcode.InSet:
               Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
             case BinaryExpr.ResolvedOpcode.NotInSet:
               Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
             case BinaryExpr.ResolvedOpcode.Union: {
-              bool finite = e.E1.Type.AsSetType.Finite;
-              var f = finite ? BuiltinFunction.SetUnion : BuiltinFunction.ISetUnion;
-              return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
-            }
+                bool finite = e.E1.Type.AsSetType.Finite;
+                var f = finite ? BuiltinFunction.SetUnion : BuiltinFunction.ISetUnion;
+                return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
+              }
             case BinaryExpr.ResolvedOpcode.Intersection: {
-              bool finite = e.E1.Type.AsSetType.Finite;
-              var f = finite ? BuiltinFunction.SetIntersection : BuiltinFunction.ISetIntersection;
-              return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
-            }
+                bool finite = e.E1.Type.AsSetType.Finite;
+                var f = finite ? BuiltinFunction.SetIntersection : BuiltinFunction.ISetIntersection;
+                return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
+              }
             case BinaryExpr.ResolvedOpcode.SetDifference: {
-              bool finite = e.E1.Type.AsSetType.Finite;
-              var f = finite ? BuiltinFunction.SetDifference : BuiltinFunction.ISetDifference;
-              return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
-            }
+                bool finite = e.E1.Type.AsSetType.Finite;
+                var f = finite ? BuiltinFunction.SetDifference : BuiltinFunction.ISetDifference;
+                return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
+              }
             case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
               return translator.ProperMultiset(expr.tok, e0, e1);
             case BinaryExpr.ResolvedOpcode.MultiSubset:
@@ -1125,14 +1106,13 @@ namespace Microsoft.Dafny
 
             case BinaryExpr.ResolvedOpcode.ProperPrefix:
               return translator.ProperPrefix(expr.tok, e0, e1);
-            case BinaryExpr.ResolvedOpcode.Prefix:
-            {
-              Boogie.Expr len0 = translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, e0);
-              Boogie.Expr len1 = translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, e1);
-              return Boogie.Expr.Binary(expr.tok, BinaryOperator.Opcode.And,
-                Boogie.Expr.Le(len0, len1),
-                translator.FunctionCall(expr.tok, BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
-            }
+            case BinaryExpr.ResolvedOpcode.Prefix: {
+                Boogie.Expr len0 = translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, e0);
+                Boogie.Expr len1 = translator.FunctionCall(expr.tok, BuiltinFunction.SeqLength, null, e1);
+                return Boogie.Expr.Binary(expr.tok, BinaryOperator.Opcode.And,
+                  Boogie.Expr.Le(len0, len1),
+                  translator.FunctionCall(expr.tok, BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
+              }
             case BinaryExpr.ResolvedOpcode.Concat:
               return translator.FunctionCall(expr.tok, BuiltinFunction.SeqAppend, translator.TrType(expr.Type.AsSeqType.Arg), e0, e1);
             case BinaryExpr.ResolvedOpcode.InSeq:
@@ -1143,28 +1123,28 @@ namespace Microsoft.Dafny
                 BoxIfNecessary(expr.tok, e0, cce.NonNull(e.E0.Type)));
               return Boogie.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, arg);
             case BinaryExpr.ResolvedOpcode.InMap: {
-              bool finite = e.E1.Type.AsMapType.Finite;
-              var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-              return Boogie.Expr.SelectTok(expr.tok, translator.FunctionCall(expr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), e1),
-                BoxIfNecessary(expr.tok, e0, e.E0.Type));
-            }
+                bool finite = e.E1.Type.AsMapType.Finite;
+                var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
+                return Boogie.Expr.SelectTok(expr.tok, translator.FunctionCall(expr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), e1),
+                  BoxIfNecessary(expr.tok, e0, e.E0.Type));
+              }
             case BinaryExpr.ResolvedOpcode.NotInMap: {
-              bool finite = e.E1.Type.AsMapType.Finite;
-              var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-              Boogie.Expr inMap = Boogie.Expr.SelectTok(expr.tok, translator.FunctionCall(expr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), e1),
-                BoxIfNecessary(expr.tok, e0, e.E0.Type));
-              return Boogie.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, inMap);
-            }
+                bool finite = e.E1.Type.AsMapType.Finite;
+                var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
+                Boogie.Expr inMap = Boogie.Expr.SelectTok(expr.tok, translator.FunctionCall(expr.tok, f, predef.MapType(e.tok, finite, predef.BoxType, predef.BoxType), e1),
+                  BoxIfNecessary(expr.tok, e0, e.E0.Type));
+                return Boogie.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, inMap);
+              }
             case BinaryExpr.ResolvedOpcode.MapMerge: {
-              bool finite = e.E0.Type.AsMapType.Finite;
-              var f = finite ? "Map#Merge" : "IMap#Merge";
-              return FunctionCall(expr.tok, f, translator.TrType(expr.Type), e0, e1);
-            }
+                bool finite = e.E0.Type.AsMapType.Finite;
+                var f = finite ? "Map#Merge" : "IMap#Merge";
+                return FunctionCall(expr.tok, f, translator.TrType(expr.Type), e0, e1);
+              }
             case BinaryExpr.ResolvedOpcode.MapSubtraction: {
-              bool finite = e.E0.Type.AsMapType.Finite;
-              var f = finite ? "Map#Subtract" : "IMap#Subtract";
-              return FunctionCall(expr.tok, f, translator.TrType(expr.Type), e0, e1);
-            }
+                bool finite = e.E0.Type.AsMapType.Finite;
+                var f = finite ? "Map#Subtract" : "IMap#Subtract";
+                return FunctionCall(expr.tok, f, translator.TrType(expr.Type), e0, e1);
+              }
 
             case BinaryExpr.ResolvedOpcode.RankLt:
               return Boogie.Expr.Binary(expr.tok, BinaryOperator.Opcode.Lt,
@@ -1173,7 +1153,7 @@ namespace Microsoft.Dafny
             case BinaryExpr.ResolvedOpcode.RankGt:
               return Boogie.Expr.Binary(expr.tok, BinaryOperator.Opcode.Gt,
                 translator.FunctionCall(expr.tok, BuiltinFunction.DtRank, null, e0),
-                translator.FunctionCall(expr.tok, e.E1.Type.IsDatatype ? BuiltinFunction.DtRank: BuiltinFunction.BoxRank, null, e1));
+                translator.FunctionCall(expr.tok, e.E1.Type.IsDatatype ? BuiltinFunction.DtRank : BuiltinFunction.BoxRank, null, e1));
 
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
@@ -1368,7 +1348,7 @@ namespace Microsoft.Dafny
             var w = new Boogie.IdentifierExpr(expr.tok, wVar);
             Boogie.Expr unboxw = translator.UnboxIfBoxed(w, bv.Type);
             Boogie.Expr typeAntecedent = translator.MkIsBox(w, bv.Type);
-            var subst = new Dictionary<IVariable,Expression>();
+            var subst = new Dictionary<IVariable, Expression>();
             subst.Add(bv, new BoogieWrapper(unboxw, bv.Type));
 
             var ebody = BplAnd(typeAntecedent, TrExpr(Translator.Substitute(e.Range, null, subst)));
@@ -1481,8 +1461,9 @@ namespace Microsoft.Dafny
 
         var heap = BplBoundVar(varNameGen.FreshId("#heap#"), predef.HeapType, bvars);
 
-        var ves = (from bv in e.BoundVars select
-          BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType, bvars)).ToList();
+        var ves = (from bv in e.BoundVars
+                   select
+BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType, bvars)).ToList();
         var subst = e.BoundVars.Zip(ves, (bv, ve) => {
           var unboxy = translator.UnboxIfBoxed(ve, bv.Type);
           return new KeyValuePair<IVariable, Expression>(bv, new BoogieWrapper(unboxy, bv.Type));
@@ -1555,7 +1536,7 @@ namespace Microsoft.Dafny
         //   t
         // where is "t" is some value (in particular, the default value) of the expected type.
         Expression r = null;
-        for (int i = e.Cases.Count; 0 <= --i; ) {
+        for (int i = e.Cases.Count; 0 <= --i;) {
           var mc = e.Cases[i];
           var substMap = new Dictionary<IVariable, Expression>();
           var argIndex = 0;

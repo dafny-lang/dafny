@@ -28,13 +28,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     public override Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken) {
       _logger.LogTrace("received hover request for {Document}", request.TextDocument);
       DafnyDocument? textDocument;
-      if(!_documents.TryGetDocument(request.TextDocument, out textDocument)) {
+      if (!_documents.TryGetDocument(request.TextDocument, out textDocument)) {
         _logger.LogWarning("the document {Document} is not loaded", request.TextDocument);
         return Task.FromResult<Hover?>(null);
       }
 
       ILocalizableSymbol? symbol;
-      if(!textDocument.SymbolTable.TryGetSymbolAt(request.Position, out symbol)) {
+      if (!textDocument.SymbolTable.TryGetSymbolAt(request.Position, out symbol)) {
         _logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
         return Task.FromResult<Hover?>(null);
       }

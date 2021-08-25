@@ -20,11 +20,9 @@ using System.Runtime.Loader;
 using System.Text.Json;
 using Microsoft.BaseTypes;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
-  
-namespace Microsoft.Dafny
-{
-  public class CsharpCompiler : Compiler
-  {
+
+namespace Microsoft.Dafny {
+  public class CsharpCompiler : Compiler {
     public CsharpCompiler(ErrorReporter reporter)
       : base(reporter) {
     }
@@ -129,7 +127,7 @@ namespace Microsoft.Dafny
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw) {
-      var wr = ((ClassWriter) cw).StaticMemberWriter;
+      var wr = ((ClassWriter)cw).StaticMemberWriter;
       // See EmitCallToMain() - this is named differently because otherwise C# tries
       // to resolve the reference to the instance-level Main method
       return wr.NewBlock("public static void _StaticMain()");
@@ -157,7 +155,7 @@ namespace Microsoft.Dafny
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string /*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, Bpl.IToken tok, ConcreteSyntaxTree wr) {
       var wBody = WriteTypeHeader("partial class", name, typeParameters, superClasses, tok, wr);
-      
+
       ConcreteSyntaxTree/*?*/ wCtorBody = null;
       if (cls is ClassDecl cl && !(cl is TraitDecl) && !cl.IsDefaultClass) {
         if (cl.Members.TrueForAll(member => !(member is Constructor ctor) || !ctor.IsExtern(out var _, out var _))) {
@@ -262,7 +260,7 @@ namespace Microsoft.Dafny
       //     }
       //   }
 
-      var cw = (ClassWriter) CreateClass(IdProtect(iter.EnclosingModuleDefinition.CompileName), IdName(iter), iter, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(iter.EnclosingModuleDefinition.CompileName), IdName(iter), iter, wr);
       var w = cw.InstanceMemberWriter;
       // here come the fields
 
@@ -703,7 +701,7 @@ namespace Microsoft.Dafny
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter) CreateClass(IdProtect(nt.EnclosingModuleDefinition.CompileName), IdName(nt), nt, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(nt.EnclosingModuleDefinition.CompileName), IdName(nt), nt, wr);
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var wEnum = w.NewBlock($"public static System.Collections.Generic.IEnumerable<{GetNativeTypeName(nt.NativeType)}> IntegerRange(BigInteger lo, BigInteger hi)");
@@ -727,7 +725,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter) CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
+      var cw = (ClassWriter)CreateClass(IdProtect(sst.EnclosingModuleDefinition.CompileName), IdName(sst), sst, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.RelativeIndentLevel);
         TrExpr(sst.Witness, sw, false);
@@ -796,8 +794,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected class ClassWriter : IClassWriter
-    {
+    protected class ClassWriter : IClassWriter {
       public readonly CsharpCompiler Compiler;
       public readonly ConcreteSyntaxTree InstanceMemberWriter;
       public readonly ConcreteSyntaxTree StaticMemberWriter;
@@ -889,7 +886,7 @@ namespace Microsoft.Dafny
       return parameters;
     }
 
-  private ConcreteSyntaxTree GetFunctionParameters(List<Formal> formals, MemberDecl m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver) {
+    private ConcreteSyntaxTree GetFunctionParameters(List<Formal> formals, MemberDecl m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver) {
       var parameters = new ConcreteSyntaxTree();
       var sep = "";
       WriteRuntimeTypeDescriptorsFormals(m, ForTypeDescriptors(typeArgs, m, lookasideBody), parameters, ref sep,
@@ -930,10 +927,10 @@ namespace Microsoft.Dafny
 
       AddTestCheckerIfNeeded(name, member, wr);
       wr.Write(Keywords(createBody, isStatic || customReceiver, hasDllImportAttribute));
-      
+
       var typeParameters = TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, member, lookasideBody)));
       var parameters = GetFunctionParameters(formals, member, typeArgs, lookasideBody, customReceiver);
-      
+
       wr.Write($"{TypeName(resultType, wr, tok)} {name}{typeParameters}({parameters})");
       if (!createBody || hasDllImportAttribute) {
         wr.WriteLine(";");
@@ -1438,14 +1435,12 @@ namespace Microsoft.Dafny
 
     // ----- Statements -------------------------------------------------------------
 
-    protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg)
-    {
+    protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var typeArgs = arg.Type.AsArrowType == null ? "" : $"<{TypeName(arg.Type, wr, null, null)}>";
       wr.WriteLine($"{DafnyHelpersClass}.Print{typeArgs}({Expr(arg, false)});");
     }
 
-    protected override void EmitReturn(List<Formal> outParams, ConcreteSyntaxTree wr)
-    {
+    protected override void EmitReturn(List<Formal> outParams, ConcreteSyntaxTree wr) {
       outParams = outParams.Where(f => !f.IsGhost).ToList();
       var returnExpr = outParams.Count == 1 ? IdName(outParams[0]) : "";
       wr.WriteLine($"return {returnExpr};");
@@ -1486,7 +1481,7 @@ namespace Microsoft.Dafny
     protected override ConcreteSyntaxTree EmitForStmt(Bpl.IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
       List<Statement> body, ConcreteSyntaxTree wr) {
 
-      wr.Write($"for ({TypeName(loopIndex.Type,wr, tok)} {loopIndex.CompileName} = ");
+      wr.Write($"for ({TypeName(loopIndex.Type, wr, tok)} {loopIndex.CompileName} = ");
       var startWr = wr.Fork();
       wr.Write($"; ");
 
@@ -1811,7 +1806,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitTupleSelect(string prefix, int i, ConcreteSyntaxTree wr) {
-      wr.Write($"{prefix}.Item{i+1}");
+      wr.Write($"{prefix}.Item{i + 1}");
     }
 
     protected override string IdProtect(string name) {
@@ -1980,7 +1975,7 @@ namespace Microsoft.Dafny
           break;
         case SpecialField.ID.ArrayLength:
         case SpecialField.ID.ArrayLengthInt:
-          compiledName = idParam == null ? "Length" : $"GetLength({(int) idParam})";
+          compiledName = idParam == null ? "Length" : $"GetLength({(int)idParam})";
           if (id == SpecialField.ID.ArrayLength) {
             preString = "new BigInteger(";
             postString = ")";
@@ -2065,7 +2060,7 @@ namespace Microsoft.Dafny
           var prefixSep = "";
           var arguments = lambdaHeader.ForkInParens();
           lambdaHeader.Write(" => ");
-          
+
           foreach (var arg in fn.Formals) {
             if (!arg.IsGhost) {
               var name = idGenerator.FreshId("_eta");
@@ -2162,14 +2157,14 @@ namespace Microsoft.Dafny
       if (xType is SeqType || xType is MapType) {
         wr.Write(TypeHelperName(xType, wr, source.tok) + ".Update");
         wr.Append(ParensList(
-          Expr(source, inLetExprBody), 
-          Expr(index, inLetExprBody), 
+          Expr(source, inLetExprBody),
+          Expr(index, inLetExprBody),
           Expr(value, inLetExprBody)));
       } else {
         TrParenExpr(source, wr, inLetExprBody);
         wr.Write(".Update");
         wr.Append(ParensList(
-          Expr(index, inLetExprBody), 
+          Expr(index, inLetExprBody),
           Expr(value, inLetExprBody)));
       }
     }
@@ -2332,7 +2327,7 @@ namespace Microsoft.Dafny
       // )
       wr = wr.ForkInParens();
       if (!untyped) {
-        wr.Write($"(System.Func<{inTypes.Concat(new [] {resultType}).Comma(t => TypeName(t, wr, tok))}>)");
+        wr.Write($"(System.Func<{inTypes.Concat(new[] { resultType }).Comma(t => TypeName(t, wr, tok))}>)");
       }
       wr.Format($"(({inNames.Comma(nm => nm)}) =>{ExprBlock(out ConcreteSyntaxTree body)})");
       return body;
@@ -2666,8 +2661,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, ConcreteSyntaxTree wr) {
-      var arguments = elements.Select(p =>
-      {
+      var arguments = elements.Select(p => {
         var result = new ConcreteSyntaxTree();
         result.Format($"new Dafny.Pair{BracketList((LineSegment)TypeName(p.A.Type, result, p.A.tok), (LineSegment)TypeName(p.B.Type, result, p.B.tok))}");
         result.Append(ParensList(Expr(p.A, inLetExprBody), Expr(p.B, inLetExprBody)));
@@ -2727,8 +2721,7 @@ namespace Microsoft.Dafny
 
     // ----- Target compilation and execution -------------------------------------------------------------
 
-    private class CSharpCompilationResult
-    {
+    private class CSharpCompilationResult {
       public Assembly CompiledAssembly;
     }
 

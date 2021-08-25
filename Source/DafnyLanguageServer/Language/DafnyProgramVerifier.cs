@@ -35,8 +35,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="logger">A logger instance that may be used by this verifier instance.</param>
     /// <returns>A safely created dafny verifier instance.</returns>
     public static DafnyProgramVerifier Create(ILogger<DafnyProgramVerifier> logger) {
-      lock(_initializationSyncObject) {
-        if(!_initialized) {
+      lock (_initializationSyncObject) {
+        if (!_initialized) {
           // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
           //      A dash means write to the textwriter instead of a file.
           // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
@@ -56,12 +56,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var printer = new ModelCapturingOutputPrinter(_logger, errorReporter);
         ExecutionEngine.printer = printer;
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
-        foreach(var (_, boogieProgram) in translated) {
+        foreach (var (_, boogieProgram) in translated) {
           cancellationToken.ThrowIfCancellationRequested();
           VerifyWithBoogie(boogieProgram, cancellationToken);
         }
         return new VerificationResult(printer.SerializedCounterExamples);
-      } finally {
+      }
+      finally {
         _mutex.Release();
       }
     }
@@ -79,7 +80,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       //      synchronization event which are serialized. Thus, no event is processed until the pending
       //      synchronization is completed.
       var uniqueId = Guid.NewGuid().ToString();
-      using(cancellationToken.Register(() => CancelVerification(uniqueId))) {
+      using (cancellationToken.Register(() => CancelVerification(uniqueId))) {
         // TODO any use of the verification state?
         ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), uniqueId, error => { }, uniqueId);
       }
@@ -127,7 +128,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
 
       private void CaptureCounterExamples(ErrorInformation errorInfo) {
-        if(errorInfo.Model is StringWriter modelString) {
+        if (errorInfo.Model is StringWriter modelString) {
           // We do not know a-priori how many errors we'll receive. Therefore we capture all models
           // in a custom stringbuilder and reset the original one to not duplicate the outputs.
           _serializedCounterExamples ??= new StringBuilder();
