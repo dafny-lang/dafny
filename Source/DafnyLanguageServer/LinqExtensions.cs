@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer {
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
     public static IEnumerable<TEntry> WithCancellation<TEntry>(this IEnumerable<TEntry> entries, CancellationToken cancellationToken) {
-      foreach(var entry in entries) {
+      foreach (var entry in entries) {
         cancellationToken.ThrowIfCancellationRequested();
         yield return entry;
       }

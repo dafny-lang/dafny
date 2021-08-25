@@ -33,8 +33,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="logger">A logger instance that may be used by this parser instance.</param>
     /// <returns>A safely created dafny parser instance.</returns>
     public static DafnyLangParser Create(ILogger<DafnyLangParser> logger) {
-      lock(_initializationSyncObject) {
-        if(!_initialized) {
+      lock (_initializationSyncObject) {
+        if (!_initialized) {
           // TODO no error reporter is supplied at this time since it appears that there is not any usage inside dafny.
           DafnyOptions.Install(new DafnyOptions());
           DafnyOptions.Clo.ApplyDefaultOptions();
@@ -62,15 +62,16 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           builtIns,
           errorReporter
         );
-        if(parseErrors != 0) {
+        if (parseErrors != 0) {
           _logger.LogDebug("encountered {ErrorCount} errors while parsing {DocumentUri}", parseErrors, document.Uri);
         }
-        if(!TryParseIncludesOfModule(module, builtIns, errorReporter)) {
+        if (!TryParseIncludesOfModule(module, builtIns, errorReporter)) {
           _logger.LogDebug("encountered error while parsing the includes of {DocumentUri}", document.Uri);
         }
         // TODO Remove PoC workaround: the file system path is used as a program name to
         return new Dafny.Program(document.Uri.GetFileSystemPath(), module, builtIns, errorReporter);
-      } finally {
+      }
+      finally {
         _mutex.Release();
       }
     }
@@ -91,16 +92,16 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       dependencyMap.AddIncludes(resolvedIncludes);
 
       bool newIncludeParsed = true;
-      while(newIncludeParsed) {
+      while (newIncludeParsed) {
         newIncludeParsed = false;
         // Parser.Parse appears to modify the include list; thus, we create a copy to avoid concurrent modifications.
         var moduleIncludes = new List<Include>(((LiteralModuleDecl)module).ModuleDef.Includes);
         dependencyMap.AddIncludes(moduleIncludes);
-        foreach(var include in moduleIncludes) {
+        foreach (var include in moduleIncludes) {
           bool isNewInclude = resolvedIncludes.Add(include);
-          if(isNewInclude) {
+          if (isNewInclude) {
             newIncludeParsed = true;
-            if(!TryParseInclude(include, module, builtIns, errorReporter, errors)) {
+            if (!TryParseInclude(include, module, builtIns, errorReporter, errors)) {
               return false;
             }
           }
@@ -110,7 +111,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return true;
     }
 
-    private bool TryParseInclude(Include include,  ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter, Errors errors) {
+    private bool TryParseInclude(Include include, ModuleDecl module, BuiltIns builtIns, ErrorReporter errorReporter, Errors errors) {
       try {
         var dafnyFile = new DafnyFile(include.includedFilename);
         int errorCount = Parser.Parse(
@@ -123,15 +124,15 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           verifyThisFile: false,
           compileThisFile: false
         );
-        if(errorCount != 0) {
+        if (errorCount != 0) {
           errorReporter.Error(MessageSource.Parser, include.tok, $"{errorCount} parse error(s) detected in {include.includedFilename}");
           return false;
         }
-      } catch(IllegalDafnyFile e) {
+      } catch (IllegalDafnyFile e) {
         errorReporter.Error(MessageSource.Parser, include.tok, $"Include of file {include.includedFilename} failed.");
         _logger.LogDebug(e, "encountered include of illegal dafny file {Filename}", include.includedFilename);
         return false;
-      } catch(IOException e) {
+      } catch (IOException e) {
         errorReporter.Error(MessageSource.Parser, include.tok, $"Unable to open the include {include.includedFilename}.");
         _logger.LogDebug(e, "could not open file {Filename}", include.includedFilename);
         return false;

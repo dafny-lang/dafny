@@ -7,9 +7,9 @@ using System.Linq;
 using Microsoft.Boogie;
 
 namespace DafnyServer.CounterExampleGeneration {
-  
+
   public class DafnyModelState {
-    
+
     internal readonly DafnyModel Model;
     internal readonly Model.CapturedState State;
     internal int VarIndex; // used to assign unique indices to variables
@@ -25,7 +25,7 @@ namespace DafnyServer.CounterExampleGeneration {
       State = state;
       VarIndex = 0;
       vars = new();
-      varMap = new ();
+      varMap = new();
       varNamesMap = new();
       skolems = new List<DafnyModelVariable>(SkolemVars());
       SetupVars();
@@ -60,8 +60,8 @@ namespace DafnyServer.CounterExampleGeneration {
         expandedSet.Add(next);
         // fields of primitive types are skipped:
         foreach (var v in next.GetExpansion().
-            Where(variable => !expandedSet.Contains(variable) && !variable.IsPrimitive)) { 
-            varsToAdd.Add(new Tuple<DafnyModelVariable, int>(v, depth + 1));
+            Where(variable => !expandedSet.Contains(variable) && !variable.IsPrimitive)) {
+          varsToAdd.Add(new Tuple<DafnyModelVariable, int>(v, depth + 1));
         }
       }
       return expandedSet;
@@ -76,7 +76,7 @@ namespace DafnyServer.CounterExampleGeneration {
         varMap[element] = var;
       }
     }
-    
+
     public DafnyModelVariable GetVar(Model.Element element) {
       return varMap[element];
     }
@@ -88,11 +88,11 @@ namespace DafnyServer.CounterExampleGeneration {
     public bool VarNameIsShared(string name) {
       return varNamesMap.GetValueOrDefault(name, 0) > 1;
     }
-    
+
     public string FullStateName => State.Name;
 
     public string ShortenedStateName => ShortenName(State.Name, 20);
-    
+
     /// <summary>
     /// Initialize the vars list, which stores all variables relevant to
     /// the counterexample except for Skolem constants
@@ -110,7 +110,7 @@ namespace DafnyServer.CounterExampleGeneration {
           continue;
         }
         var val = State.TryGet(v);
-        var vn = DafnyModelVariableFactory.Get(this, val, v, duplicate:true);
+        var vn = DafnyModelVariableFactory.Get(this, val, v, duplicate: true);
         if (curVars.ContainsKey(v)) {
           Model.RegisterLocalValue(vn.Name, val);
         }
@@ -134,16 +134,16 @@ namespace DafnyServer.CounterExampleGeneration {
         if (!name.Contains('#')) {
           continue;
         }
-        yield return DafnyModelVariableFactory.Get(this, f.GetConstant(), name, 
+        yield return DafnyModelVariableFactory.Get(this, f.GetConstant(), name,
           null, true);
       }
     }
-    
+
     private static string ShortenName(string name, int fnLimit) {
       var loc = TryParseSourceLocation(name);
       if (loc != null) {
         var fn = loc.Filename;
-        var idx = fn.LastIndexOfAny(new[]{ '\\', '/' });
+        var idx = fn.LastIndexOfAny(new[] { '\\', '/' });
         if (idx > 0) {
           fn = fn.Substring(idx + 1);
         }
@@ -158,7 +158,7 @@ namespace DafnyServer.CounterExampleGeneration {
       }
       return name;
     }
-    
+
     /// <summary>
     /// Parse a string (typically the name of the captured state in Boogie) to
     /// extract a SourceLocation from it. An example of a string to be parsed:
@@ -186,7 +186,7 @@ namespace DafnyServer.CounterExampleGeneration {
       res.AddInfo = colon > 0 ? name.Substring(colon + 1).Trim() : "";
       return res;
     }
-    
+
     private class SourceLocation {
       public string Filename;
       public string AddInfo;

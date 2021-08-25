@@ -121,7 +121,7 @@ method a(r:real) {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("r:real"));
       Assert.AreEqual("1.0", counterExamples[0].Variables["r:real"]);
     }
-    
+
     [TestMethod]
     public async Task FractionAsAReal() {
       var source = @"
@@ -137,7 +137,7 @@ method a(r:real) {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("r:real"));
       StringAssert.Matches(counterExamples[0].Variables["r:real"], new Regex("[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+"));
     }
-    
+
     [TestMethod]
     public async Task WholeNumberFieldAsReal() {
       var source = @"
@@ -156,7 +156,7 @@ method a(v:Value) {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("v:_module.Value?"));
       Assert.AreEqual("(v := 0.0)", counterExamples[0].Variables["v:_module.Value?"]);
     }
-    
+
     [TestMethod]
     public async Task FractionFieldAsReal() {
       var source = @"
@@ -175,7 +175,7 @@ method a(v:Value) {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("v:_module.Value?"));
       StringAssert.Matches(counterExamples[0].Variables["v:_module.Value?"], new Regex("\\(v := [0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+\\)"));
     }
-    
+
     [TestMethod]
     public async Task SelfReferringObject() {
       var source = @"
@@ -194,7 +194,7 @@ method IsSelfReferring(n:Node) {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("n:_module.Node?"));
       Assert.AreEqual("(next := n)", counterExamples[0].Variables["n:_module.Node?"]);
     }
-    
+
     [TestMethod]
     public async Task ObjectWithANonNullField() {
       var source = @"
@@ -213,7 +213,7 @@ method IsSelfRecursive(n:Node) {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("n:_module.Node?"));
       StringAssert.Matches(counterExamples[0].Variables["n:_module.Node?"], new Regex("\\(next := @[0-9]+\\)"));
     }
-    
+
     [TestMethod]
     public async Task ObjectWithANullField() {
       var source = @"
@@ -263,7 +263,7 @@ class BankAccountUnsafe {
       StringAssert.Matches(counterExamples[0].Variables["this:_module.BankAccountUnsafe?"], new Regex("\\(balance := [0-9]+\\)"));
       StringAssert.Matches(counterExamples[1].Variables["this:_module.BankAccountUnsafe?"], new Regex("\\(balance := \\-[0-9]+\\)"));
     }
-    
+
     [TestMethod]
     public async Task SpecificCharacter() {
       var source = @"
@@ -279,7 +279,7 @@ method a(c:char) {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("c:char"));
       Assert.AreEqual("'0'", counterExamples[0].Variables["c:char"]);
     }
-    
+
     [TestMethod]
     public async Task ArbitraryCharacter() {
       var source = @"
@@ -296,7 +296,7 @@ method a(c:char) {
       StringAssert.Matches(counterExamples[0].Variables["c:char"], new Regex("('.'|\\?#[0-9]+)"));
       Assert.AreNotEqual(counterExamples[0].Variables["c:char"], "'0'");
     }
-    
+
     [TestMethod]
     public async Task DatatypeWithUnnamedDestructor() {
       var source = @"
@@ -313,7 +313,7 @@ method a(b:B) {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("b:_module.B"));
       Assert.AreEqual("A(_h0 := 5)", counterExamples[0].Variables["b:_module.B"]);
     }
-    
+
     [TestMethod]
     public async Task DatatypeWithDestructorThanIsADataValue() {
       var source = @"
@@ -330,7 +330,7 @@ method destructorNameTest(a:A) {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("a:_module.A"));
       StringAssert.Matches(counterExamples[0].Variables["a:_module.A"], new Regex("B\\(x := -[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+\\)"));
     }
-    
+
     [TestMethod]
     public async Task DatatypeWithDifferentDestructorsForDifferentConstructors() {
       var source = @"
@@ -350,7 +350,7 @@ method T_datatype0_1(h0:Hand, h1:Hand)
       StringAssert.Matches(counterExamples[0].Variables["h0:_module.Hand"], new Regex("Right\\([a|b] := -?[0-9]+, [b|a] := -?[0-9]+\\)"));
       StringAssert.Matches(counterExamples[0].Variables["h1:_module.Hand"], new Regex("Left\\([x|y] := -?[0-9]+, [x|y] := -?[0-9]+\\)"));
     }
-    
+
     [TestMethod]
     public async Task DatatypeObjectWithTwoDestructorsWhoseValuesAreEqual() {
       var source = @"
@@ -367,7 +367,7 @@ method T_datatype0_1(h:Hand)  {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("h:_module.Hand"));
       StringAssert.Matches(counterExamples[0].Variables["h:_module.Hand"], new Regex("Left\\([a|b] := 3, [a|b] := 3\\)"));
     }
-    
+
     [TestMethod]
     public async Task DatatypeWithDestructorsWhoseNamesShadowBuiltInDestructors() {
       var source = @"
@@ -384,7 +384,7 @@ method m (a:A) requires !a.B_?{
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("a:_module.A"));
       StringAssert.Matches(counterExamples[0].Variables["a:_module.A"], new Regex("[B|C]\\((B__q|C__q|D__q) := false, (B__q|C__q|D__q) := false, (B__q|C__q|D__q) := false\\)"));
     }
-    
+
 
     [TestMethod]
     public async Task DatatypeWithTypeParameters() {
@@ -402,7 +402,7 @@ method m(a:A<bool>) requires a == One(false) || a == One(true) {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("a:_module.A<bool>"));
       Assert.AreEqual("One(b := false)", counterExamples[0].Variables["a:_module.A<bool>"]);
     }
-    
+
     [TestMethod]
     public async Task ArbitraryBool() {
       var source = @"
@@ -421,7 +421,7 @@ method listHasSingleElement(list:List<bool>)
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("list:_module.List<bool>"));
       StringAssert.Matches(counterExamples[0].Variables["list:_module.List<bool>"], new Regex("Cons\\(head := \\?#[0-9]+, tail := @[0-9]+\\)"));
     }
-    
+
     [TestMethod]
     public async Task ArbitraryInt() {
       var source = @"
@@ -440,7 +440,7 @@ method listHasSingleElement(list:List<int>)
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("list:_module.List<int>"));
       StringAssert.Matches(counterExamples[0].Variables["list:_module.List<int>"], new Regex("Cons\\(head := \\?#[0-9]+, tail := @[0-9]+\\)"));
     }
-    
+
     [TestMethod]
     public async Task ArbitraryReal() {
       var source = @"
@@ -475,7 +475,7 @@ method a(arr:array<int>) requires arr.Length == 2 {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("arr:_System.array?<int>"));
       Assert.AreEqual("(Length := 2, [0] := 4, [1] := 5)", counterExamples[0].Variables["arr:_System.array?<int>"]);
     }
-    
+
     [TestMethod]
     public async Task SequenceSimpleTest() {
       var source = @"
@@ -491,7 +491,7 @@ method a(s:seq<int>) requires |s| == 1 {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("s:seq<int>"));
       Assert.AreEqual("[4]", counterExamples[0].Variables["s:seq<int>"]);
     }
-    
+
     [TestMethod]
     public async Task SequenceOfBitVectors() {
       var source = @"
@@ -507,7 +507,7 @@ method a(s:seq<bv5>) requires |s| == 2 {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("s:seq<bv5>"));
       Assert.AreEqual("(Length := 2, [1] := 2bv5)", counterExamples[0].Variables["s:seq<bv5>"]);
     }
-    
+
     [TestMethod]
     public async Task SpecificBitVector() {
       var source = @"
@@ -523,7 +523,7 @@ method a(bv:bv7) {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("bv:bv7"));
       Assert.AreEqual("2", counterExamples[0].Variables["bv:bv7"]);
     }
-    
+
     [TestMethod]
     public async Task ArbitraryBitVector() {
       var source = @"
@@ -539,7 +539,7 @@ method a(b:bv2) {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("b:bv2"));
       StringAssert.Matches(counterExamples[0].Variables["b:bv2"], new Regex("[023]"));
     }
-    
+
     [TestMethod]
     public async Task BitWiseAnd() {
       var source = @"
@@ -557,7 +557,7 @@ method m(a:bv1, b:bv1) {
       StringAssert.Matches(counterExamples[0].Variables["a:bv1"], new Regex("(1|b)"));
       StringAssert.Matches(counterExamples[0].Variables["b:bv1"], new Regex("(1|a)"));
     }
-    
+
     [TestMethod]
     public async Task BitVectorField() {
       var source = @"
@@ -576,7 +576,7 @@ method a(v:Value) {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("v:_module.Value?"));
       Assert.AreEqual("(b := 2bv5)", counterExamples[0].Variables["v:_module.Value?"]);
     }
-    
+
     [TestMethod]
     public async Task SeqSetAndArrayAsTypeParameters() {
       var source = @"
@@ -591,7 +591,7 @@ method a(s:set<seq<set<array<int>>>>) requires |s| <= 1{
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("s:set<seq<set<_System.array<int>>>>"));
       StringAssert.Matches(counterExamples[0].Variables["s:set<seq<set<_System.array<int>>>>"], new Regex("\\{@[0-9]+ := true\\}"));
     }
-    
+
     [TestMethod]
     public async Task MultiDimensionalArray() {
       var source = @"
@@ -607,7 +607,7 @@ method m(a:array3<int>) requires a.Length0 == 4 requires a.Length1 == 5 requires
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("a:_System.array3?<int>"));
       Assert.AreEqual("(Length0 := 4, Length1 := 5, Length2 := 6, [2,3,1] := 7)", counterExamples[0].Variables["a:_System.array3?<int>"]);
     }
-    
+
     [TestMethod]
     public async Task ArrayEqualityByReference() {
       var source = @"
@@ -661,7 +661,7 @@ method a(s1:set<char>, s2:set<char>) {
       Assert.IsTrue(sUnion.Contains("'b' := true"));
       Assert.IsTrue(sInter.Contains("'b' := true"));
     }
-    
+
     [TestMethod]
     public async Task SetSingleElement() {
       var source = @"
@@ -681,8 +681,8 @@ method test() {
     [TestMethod]
     public async Task StringBuilding() {
       var source = "" +
-"method a(s:string) {" + 
-"    assert s != \"abc\";"+
+"method a(s:string) {" +
+"    assert s != \"abc\";" +
 "    }".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
@@ -692,10 +692,10 @@ method test() {
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("s:seq<char>"));
       Assert.AreEqual("['a', 'b', 'c']", counterExamples[0].Variables["s:seq<char>"]);
     }
-    
+
     [TestMethod]
     public async Task SequenceEdit() {
-      var source = "" + 
+      var source = "" +
 "method a(c:char, s1:string) requires s1 == \"abc\"{" +
 "    var s2:string := s1[1 := c];" +
 "    assert s2[0] != 'a' || s2[1] !='d' || s2[2] != 'c';}".TrimStart();
@@ -711,7 +711,7 @@ method test() {
       Assert.AreEqual("['a', 'd', 'c']", counterExamples[1].Variables["s2:seq<char>"]);
       Assert.AreEqual("'d'", counterExamples[1].Variables["c:char"]);
     }
-    
+
     [TestMethod]
     public async Task SequenceSingleElement() {
       var source = @"
@@ -747,7 +747,7 @@ method a(s1:string, s2:string) requires |s1| == 1 && |s2| == 1 {
       Assert.AreEqual("['a']", counterExamples[1].Variables["s2:seq<char>"]);
       Assert.AreEqual("['a', 'b']", counterExamples[1].Variables["sCat:seq<char>"]);
     }
-    
+
     [TestMethod]
     public async Task SequenceGenerate() {
       var source = @"
@@ -783,7 +783,7 @@ method a(s:seq<char>) requires |s| == 5 {
       Assert.AreEqual("['a', 'b']", counterExamples[1].Variables["sSub:seq<char>"]);
       StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[2\\] := 'a', \\[3\\] := 'b'.*"));
     }
-    
+
     [TestMethod]
     public async Task SequenceDrop() {
       var source = @"
@@ -801,7 +801,7 @@ method a(s:seq<char>) requires |s| == 5 {
       Assert.AreEqual("['a', 'b', 'c']", counterExamples[1].Variables["sSub:seq<char>"]);
       StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[2\\] := 'a', \\[3\\] := 'b', \\[4\\] := 'c'.*"));
     }
-    
+
     [TestMethod]
     public async Task SequenceTake() {
       var source = @"
@@ -819,7 +819,7 @@ method a(s:seq<char>) requires |s| == 5 {
       Assert.AreEqual("['a', 'b', 'c']", counterExamples[1].Variables["sSub:seq<char>"]);
       StringAssert.Matches(counterExamples[0].Variables["s:seq<char>"], new Regex("\\(Length := 5,.*\\[0\\] := 'a', \\[1\\] := 'b', \\[2\\] := 'c'.*"));
     }
-    
+
     [TestMethod]
     public async Task VariableNameShadowing() {
       var source = @"
@@ -832,7 +832,7 @@ method test(m:set<int>) {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
       // Just make sure there are no errors ot infinite loops here
     }
-    
+
     [TestMethod]
     public async Task MapsCreation() {
       var source = @"
@@ -873,7 +873,7 @@ method test(value:int) {
       StringAssert.Matches(counterExamples[3].Variables["value:int"], new Regex("[1-9][0-9]*"));
       StringAssert.Matches(counterExamples[3].Variables["m:map<int,int>"], new Regex("\\(.*3 := [1-9].*"));
     }
-    
+
     [TestMethod]
     public async Task MapsUpdateStoredInANewVariable() {
       var source = @"
@@ -895,9 +895,9 @@ method T_map1(m:map<int,int>, key:int, val:int)
       Assert.IsTrue(counterExamples[2].Variables.ContainsKey("key:int"));
       var key = counterExamples[2].Variables["key:int"];
       var val = counterExamples[2].Variables["val:int"];
-      StringAssert.Matches(counterExamples[2].Variables["m':map<int,int>"], new Regex("\\(.*"+key+" := "+val+".*"));
+      StringAssert.Matches(counterExamples[2].Variables["m':map<int,int>"], new Regex("\\(.*" + key + " := " + val + ".*"));
     }
-    
+
     [TestMethod]
     public async Task MapsValuesUpdate() {
       // This corner case previously triggered infinite loops
@@ -918,7 +918,7 @@ method T_map0(m:map<int,int>, key:int, val:int)
       Assert.IsTrue(counterExamples[1].Variables.ContainsKey("key:int"));
       var key = counterExamples[1].Variables["key:int"];
       var val = counterExamples[1].Variables["val:int"];
-      StringAssert.Matches(counterExamples[1].Variables["m':map<int,int>"], new Regex("\\(.*"+key+" := "+val+".*"));
+      StringAssert.Matches(counterExamples[1].Variables["m':map<int,int>"], new Regex("\\(.*" + key + " := " + val + ".*"));
     }
 
     [TestMethod]
@@ -938,7 +938,7 @@ method T_map0(m:map<int,int>, key:int, val:int)
       StringAssert.Matches(counterExamples[1].Variables["m:map<int,char>"], new Regex("\\(.*25 := .*"));
       StringAssert.Matches(counterExamples[1].Variables["keys:set<int>"], new Regex("\\{.*25 := true.*"));
     }
-    
+
     [TestMethod]
     public async Task MapsValues() {
       var source = @"

@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private bool VerifyOnSave => _options.Verify == AutoVerification.OnSave;
 
     private string[] ProverOptions =>
-      _options.ProverOptions.Split(new[] {" ", "\n", "\t"},
+      _options.ProverOptions.Split(new[] { " ", "\n", "\t" },
         StringSplitOptions.RemoveEmptyEntries);
 
     public DocumentDatabase(
@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public DafnyDocument? CloseDocument(TextDocumentIdentifier documentId) {
       DafnyDocument? document;
-      if(!_documents.TryRemove(documentId.Uri, out document)) {
+      if (!_documents.TryRemove(documentId.Uri, out document)) {
         _logger.LogTrace("the document {DocumentId} was already closed", documentId);
         return null;
       }
@@ -83,23 +83,23 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument?> SaveDocumentAsync(TextDocumentIdentifier documentId, CancellationToken cancellationToken) {
-      if(VerifyOnSave) {
+      if (VerifyOnSave) {
         return await VerifyDocumentAsync(documentId, cancellationToken);
       }
-      if(_documents.TryGetValue(documentId.Uri, out var document)) {
+      if (_documents.TryGetValue(documentId.Uri, out var document)) {
         return document;
       }
       return null;
     }
 
     public async Task<DafnyDocument?> VerifyDocumentAsync(TextDocumentIdentifier documentId, CancellationToken cancellationToken) {
-      while(_documents.TryGetValue(documentId.Uri, out var oldDocument)) {
+      while (_documents.TryGetValue(documentId.Uri, out var oldDocument)) {
         cancellationToken.ThrowIfCancellationRequested();
         var verifiedDocument = await _documentLoader.LoadAsync(oldDocument.Text, true, cancellationToken);
         // We do not update the document if the symbol resolution failed. Otherwise we'd lose
         // the previous semantic model migrations.
         var newDocument = verifiedDocument.SymbolTable.Resolved ? verifiedDocument : oldDocument;
-        if(_documents.TryUpdate(documentId.Uri, newDocument, oldDocument)) {
+        if (_documents.TryUpdate(documentId.Uri, newDocument, oldDocument)) {
           return newDocument;
         }
       }

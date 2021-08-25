@@ -68,8 +68,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(args != null);
 
       Reporter.Error(MessageSource.Compiler, tok, msg, args);
-      if (wr != null)
-      {
+      if (wr != null) {
         wr.WriteLine("/* {0} */", string.Format("Compilation error: " + msg, args));
       }
     }
@@ -333,7 +332,8 @@ namespace Microsoft.Dafny {
     protected virtual void EmitActualOutArg(string actualOutParamName, ConcreteSyntaxTree wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, ConcreteSyntaxTree wr) { }  // called only for return-style calls
     protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, ConcreteSyntaxTree wr, List<Type> formalOutParamTypes, List<Type> lhsTypes, Bpl.IToken tok) {
-      EmitOutParameterSplits(outCollector, actualOutParamNames, wr); }
+      EmitOutParameterSplits(outCollector, actualOutParamNames, wr);
+    }
 
     protected abstract void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, ConcreteSyntaxTree wr);
 
@@ -415,7 +415,7 @@ namespace Microsoft.Dafny {
             var resolved = (MemberSelectExpr)lexpr;
             string target = EmitAssignmentLhs(resolved.Obj, wr);
             var typeArgs = TypeArgumentInstantiation.ListFromMember(resolved.Member, null, resolved.TypeApplication_JustMember);
-            ILvalue newLhs =  EmitMemberSelect(w => w.Write(target), resolved.Obj.Type, resolved.Member, typeArgs, resolved.TypeArgumentSubstitutionsWithParents(), resolved.Type);
+            ILvalue newLhs = EmitMemberSelect(w => w.Write(target), resolved.Obj.Type, resolved.Member, typeArgs, resolved.TypeArgumentSubstitutionsWithParents(), resolved.Type);
             lhssn.Add(newLhs);
           } else if (lexpr is SeqSelectExpr) {
             var seqExpr = (SeqSelectExpr)lexpr;
@@ -439,7 +439,7 @@ namespace Microsoft.Dafny {
             }
             ILvalue newLhs = EmitArraySelectAsLvalue(targetArray, targetIndices, lhsTypes[i]);
             lhssn.Add(newLhs);
-          } else  {
+          } else {
             Contract.Assert(false); // Unknown kind of expression
             lhssn.Add(lhs);
           }
@@ -571,7 +571,7 @@ namespace Microsoft.Dafny {
     protected abstract void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e);
     protected abstract void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, ConcreteSyntaxTree wr);
-    protected delegate void FCE_Arg_Translator(Expression e, ConcreteSyntaxTree wr, bool inLetExpr=false);
+    protected delegate void FCE_Arg_Translator(Expression e, ConcreteSyntaxTree wr, bool inLetExpr = false);
 
     protected abstract void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr, bool inLetExprBody, FCE_Arg_Translator tr);
     /// <summary>
@@ -753,8 +753,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// A "TypeArgumentInstantiation" is essentially a pair consisting of a formal type parameter and an actual type for that parameter.
     /// </summary>
-    public class TypeArgumentInstantiation
-    {
+    public class TypeArgumentInstantiation {
       public readonly TypeParameter Formal;
       public readonly Type Actual;
 
@@ -1117,7 +1116,7 @@ namespace Microsoft.Dafny {
 
     protected virtual void DeclareExternType(OpaqueTypeDecl d, Expression compileTypeHint, ConcreteSyntaxTree wr) { }
 
-    protected virtual void OrganizeModules(Program program, out List<ModuleDefinition> modules){
+    protected virtual void OrganizeModules(Program program, out List<ModuleDefinition> modules) {
       modules = program.CompileModules;
     }
 
@@ -1298,7 +1297,8 @@ namespace Microsoft.Dafny {
     }
 
     protected void WriteFromFile(string inputFilename, TextWriter outputWriter) {
-      var rd = new StreamReader(new FileStream(inputFilename, FileMode.Open, FileAccess.Read)); {
+      var rd = new StreamReader(new FileStream(inputFilename, FileMode.Open, FileAccess.Read));
+      {
         while (true) {
           string s = rd.ReadLine();
           if (s == null) {
@@ -1524,8 +1524,7 @@ namespace Microsoft.Dafny {
         reason = "";
         return true;
       }
-      if (m.Req.Count != 0)
-      {
+      if (m.Req.Count != 0) {
         reason = "the method has requires clauses";
         return false;
       }
@@ -2271,11 +2270,11 @@ namespace Microsoft.Dafny {
     }
 
 
-    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, ConcreteSyntaxTree wr, bool inLetExprBody) where VT: IVariable {
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, ConcreteSyntaxTree wr, bool inLetExprBody) where VT : IVariable {
       TrCasePatternOpt(pat, rhs, null, rhs.Type, rhs.tok, wr, inLetExprBody);
     }
 
-    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, Type rhsType, Bpl.IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody) where VT: IVariable {
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, Type rhsType, Bpl.IToken rhsTok, ConcreteSyntaxTree wr, bool inLetExprBody) where VT : IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(pat.Var != null || rhs != null || rhs_string != null);
       Contract.Requires(rhs != null || rhs_string != null);
@@ -2290,7 +2289,7 @@ namespace Microsoft.Dafny {
         if (!bv.IsGhost) {
           var w = DeclareLocalVar(IdProtect(bv.CompileName), bv.Type, rhsTok, wr);
           if (rhs != null) {
-            w = EmitCoercionIfNecessary(from: rhs.Type, to: bv.Type, tok:rhsTok, wr:w);
+            w = EmitCoercionIfNecessary(from: rhs.Type, to: bv.Type, tok: rhsTok, wr: w);
             TrExpr(rhs, w, inLetExprBody);
           } else {
             w.Write(rhs_string);
@@ -2613,8 +2612,7 @@ namespace Microsoft.Dafny {
 
     // ----- Stmt ---------------------------------------------------------------------------------
 
-    public class CheckHasNoAssumes_Visitor : BottomUpVisitor
-    {
+    public class CheckHasNoAssumes_Visitor : BottomUpVisitor {
       readonly Compiler compiler;
       ConcreteSyntaxTree wr;
       public CheckHasNoAssumes_Visitor(Compiler c, ConcreteSyntaxTree wr) {
@@ -2892,7 +2890,8 @@ namespace Microsoft.Dafny {
             Coverage.Instrument(alternative.Tok, "while-case branch", thn);
             TrStmtList(alternative.Body, thn);
           }
-          var wElse = w.NewBlock(""); {
+          var wElse = w.NewBlock("");
+          {
             EmitBreak(null, wElse);
           }
         }
@@ -2977,18 +2976,18 @@ namespace Microsoft.Dafny {
           string tupleTypeArgs;
           List<Type> tupleTypeArgsList;
           if (s0.Lhs is MemberSelectExpr) {
-            var lhs = (MemberSelectExpr) s0.Lhs;
+            var lhs = (MemberSelectExpr)s0.Lhs;
             L = 2;
             tupleTypeArgs = TypeArgumentName(lhs.Obj.Type, wr, lhs.tok);
             tupleTypeArgsList = new List<Type> { lhs.Obj.Type };
           } else if (s0.Lhs is SeqSelectExpr) {
-            var lhs = (SeqSelectExpr) s0.Lhs;
+            var lhs = (SeqSelectExpr)s0.Lhs;
             L = 3;
             // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
             tupleTypeArgs = TypeArgumentName(lhs.Seq.Type, wr, lhs.tok) + IntSelect;
             tupleTypeArgsList = new List<Type> { lhs.Seq.Type, null };
           } else {
-            var lhs = (MultiSelectExpr) s0.Lhs;
+            var lhs = (MultiSelectExpr)s0.Lhs;
             L = 2 + lhs.Indices.Count;
             if (8 < L) {
               Error(lhs.tok, "compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements", wr);
@@ -3031,7 +3030,7 @@ namespace Microsoft.Dafny {
           }
         }
       } else if (stmt is ConcreteSyntaxStatement) {
-        var s = (ConcreteSyntaxStatement) stmt;
+        var s = (ConcreteSyntaxStatement)stmt;
         TrStmt(s.ResolvedStatement, wr);
 
       } else if (stmt is MatchStmt) {
@@ -3096,30 +3095,30 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected virtual ConcreteSyntaxTree EmitIngredients(ConcreteSyntaxTree wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs){
+    protected virtual ConcreteSyntaxTree EmitIngredients(ConcreteSyntaxTree wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs) {
 
-      var wrVarInit = DeclareLocalVar(ingredients, null, null, wr);{
+      var wrVarInit = DeclareLocalVar(ingredients, null, null, wr);
+      {
         EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
       }
 
       var wrOuter = wr;
       wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
 
-      var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr);{
-        if (s0.Lhs is MemberSelectExpr){
-          var lhs = (MemberSelectExpr) s0.Lhs;
+      var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr);
+      {
+        if (s0.Lhs is MemberSelectExpr) {
+          var lhs = (MemberSelectExpr)s0.Lhs;
           TrExpr(lhs.Obj, wrTuple, false);
-        }
-        else if (s0.Lhs is SeqSelectExpr){
-          var lhs = (SeqSelectExpr) s0.Lhs;
+        } else if (s0.Lhs is SeqSelectExpr) {
+          var lhs = (SeqSelectExpr)s0.Lhs;
           TrExpr(lhs.Seq, wrTuple, false);
           wrTuple.Write(", ");
           EmitExprAsInt(lhs.E0, false, wrTuple);
-        }
-        else{
-          var lhs = (MultiSelectExpr) s0.Lhs;
+        } else {
+          var lhs = (MultiSelectExpr)s0.Lhs;
           TrExpr(lhs.Array, wrTuple, false);
-          for (int i = 0; i < lhs.Indices.Count; i++){
+          for (int i = 0; i < lhs.Indices.Count; i++) {
             wrTuple.Write(", ");
             EmitExprAsInt(lhs.Indices[i], false, wrTuple);
           }
@@ -3151,8 +3150,8 @@ namespace Microsoft.Dafny {
       EmitTupleSelect(tup, 1, wCoerced);
     }
 
-    protected virtual void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup){
-      var lhs = (SeqSelectExpr) s0.Lhs;
+    protected virtual void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
+      var lhs = (SeqSelectExpr)s0.Lhs;
       ConcreteSyntaxTree wColl, wIndex, wValue;
       EmitIndexCollectionUpdate(out wColl, out wIndex, out wValue, wr, nativeIndex: true);
       var wCoerce = EmitCoercionIfNecessary(from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
@@ -3163,14 +3162,14 @@ namespace Microsoft.Dafny {
       EndStmt(wr);
     }
 
-    protected virtual void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L){
-      var lhs = (MultiSelectExpr) s0.Lhs;
+    protected virtual void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L) {
+      var lhs = (MultiSelectExpr)s0.Lhs;
       var wArray = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
       var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
       EmitTupleSelect(tup, 0, wCoerced);
       var array = wArray.ToString();
       var indices = new List<string>();
-      for (int i = 0; i < lhs.Indices.Count; i++){
+      for (int i = 0; i < lhs.Indices.Count; i++) {
         var wIndex = new ConcreteSyntaxTree();
         EmitTupleSelect(tup, i + 1, wIndex);
         indices.Add(wIndex.ToString());
@@ -3312,7 +3311,7 @@ namespace Microsoft.Dafny {
       // substitute the inner boundvar with its bound.
       var bnd = lowBound ? b.LowerBound : b.UpperBound;
       var sm = new Dictionary<IVariable, Expression>();
-      for (int i = index+1; i < boundVars.Count; i++) {
+      for (int i = index + 1; i < boundVars.Count; i++) {
         var bound = bounds[i];
         if (bound is ComprehensionExpr.IntBoundedPool) {
           var ib = (ComprehensionExpr.IntBoundedPool)bound;
@@ -3388,7 +3387,7 @@ namespace Microsoft.Dafny {
           noMultiDArrayAccesses(mse.Indices.ToArray());
       } else {
         // !@#$#@$% scope rules won't let me call this mse ...
-        var mse2 = (MemberSelectExpr) lhs;
+        var mse2 = (MemberSelectExpr)lhs;
 
         return
           noFieldAccesses(mse2.Member, mse2.Obj, range, rhs) ||
@@ -3400,7 +3399,7 @@ namespace Microsoft.Dafny {
 
       bool noImpureFunctionCalls(params Expression[] exprs) {
         return exprs.All(e => Check<ApplyExpr>(e, ae => {
-          var ty = (UserDefinedType) ae.Function.Type.NormalizeExpandKeepConstraints();
+          var ty = (UserDefinedType)ae.Function.Type.NormalizeExpandKeepConstraints();
           return ArrowType.IsPartialArrowTypeName(ty.Name) || ArrowType.IsTotalArrowTypeName(ty.Name);
         }));
       }
@@ -3601,8 +3600,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private class CoercedLvalueImpl : ILvalue
-    {
+    private class CoercedLvalueImpl : ILvalue {
       private readonly Compiler Compiler;
       private readonly ILvalue lvalue;
       private readonly Type /*?*/ from;
@@ -4104,7 +4102,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected void TrStmtList(List<Statement> stmts, ConcreteSyntaxTree writer){
+    protected void TrStmtList(List<Statement> stmts, ConcreteSyntaxTree writer) {
       Contract.Requires(cce.NonNullElements(stmts));
       Contract.Requires(writer != null);
       foreach (Statement ss in stmts) {
@@ -4213,8 +4211,7 @@ namespace Microsoft.Dafny {
 
     protected virtual void WriteCast(string s, ConcreteSyntaxTree wr) { }
 
-    protected ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody)
-    {
+    protected ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody) {
       var result = new ConcreteSyntaxTree();
       TrExpr(expr, result, inLetExprBody);
       return result;
@@ -4382,7 +4379,7 @@ namespace Microsoft.Dafny {
           var formal = dtv.Ctor.Formals[i];
           if (!formal.IsGhost) {
             wrArgumentList.Write(sep);
-            var w = EmitCoercionIfNecessary(from:dtv.Arguments[i].Type, to:dtv.Ctor.Formals[i].Type, tok:dtv.tok, wr:wrArgumentList);
+            var w = EmitCoercionIfNecessary(from: dtv.Arguments[i].Type, to: dtv.Ctor.Formals[i].Type, tok: dtv.tok, wr: wrArgumentList);
             TrExpr(dtv.Arguments[i], w, inLetExprBody);
             sep = ", ";
           }
@@ -4612,7 +4609,7 @@ namespace Microsoft.Dafny {
           CompileCollection(bound, bv, inLetExprBody, false, su, wBody, e.Bounds, e.BoundVars, i);
           wBody.Write(", {0}, ", expr is ForallExpr ? "true" : "false");
           var native = AsNativeType(e.BoundVars[i].Type);
-          ConcreteSyntaxTree newWBody = CreateLambda(new List<Type>{ bv.Type }, e.tok, new List<string>{ IdName(bv) }, Type.Bool, wBody, untyped: true);
+          ConcreteSyntaxTree newWBody = CreateLambda(new List<Type> { bv.Type }, e.tok, new List<string> { IdName(bv) }, Type.Bool, wBody, untyped: true);
           newWBody = EmitReturnExpr(newWBody);
           wBody.Write(')');
           wBody = newWBody;
@@ -5073,8 +5070,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class CoverageInstrumenter
-  {
+  public class CoverageInstrumenter {
     private readonly Compiler compiler;
     private List<(Bpl.IToken, string)>/*?*/ legend;  // non-null implies DafnyOptions.O.CoverageLegendFile is non-null
 
@@ -5142,7 +5138,8 @@ namespace Microsoft.Dafny {
       if (legend != null) {
         var filename = DafnyOptions.O.CoverageLegendFile;
         Contract.Assert(filename != null);
-        TextWriter wr = filename == "-" ? System.Console.Out : new StreamWriter(new FileStream(Path.GetFullPath(filename), System.IO.FileMode.Create)); {
+        TextWriter wr = filename == "-" ? System.Console.Out : new StreamWriter(new FileStream(Path.GetFullPath(filename), System.IO.FileMode.Create));
+        {
           for (var i = 0; i < legend.Count; i++) {
             var e = legend[i];
             wr.WriteLine("{0}: {1}({2},{3}): {4}", i, e.Item1.filename, e.Item1.line, e.Item1.col, e.Item2);
