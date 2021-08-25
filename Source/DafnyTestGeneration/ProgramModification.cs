@@ -51,15 +51,10 @@ namespace DafnyTestGeneration {
       options.EnhancedErrorMessages = 1;
       options.ModelViewFile = "-";
       options.ProverOptions = new List<string>() {
-        "O:auto_config=false",
-        "O:type_check=true",
-        "O:smt.case_split=3",
-        "O:smt.qi.eager_threshold=100",
-        "O:smt.delay_units=true",
-        "O:smt.arith.solver=2",
         "O:model_compress=false",
         "O:model.completion=true",
         "O:model_evaluator.completion=true"};
+      options.ProverOptions.AddRange(DafnyOptions.O.ProverOptions);
       options.LoopUnrollCount = DafnyOptions.O.LoopUnrollCount;
       options.SeqLengthLimit = DafnyOptions.O.SeqLengthLimit;
       options.DefiniteAssignmentLevel = DafnyOptions.O.DefiniteAssignmentLevel;
