@@ -9305,7 +9305,7 @@ namespace Microsoft.Dafny
       }
       CheckOverride_ResolvedParameters(nw.tok, old.Formals, nw.Formals, nw.Name, "function", "parameter", typeMap);
       var oldResultType = Resolver.SubstType(old.ResultType, typeMap);
-      if (!nw.ResultType.Equals(oldResultType)) {
+      if (!nw.ResultType.Equals(oldResultType, true)) {
         reporter.Error(MessageSource.Resolver, nw, "the result type of function '{0}' ({1}) differs from that in the overridden function ({2})",
           nw.Name, nw.ResultType, oldResultType);
       }
@@ -9387,7 +9387,7 @@ namespace Microsoft.Dafny
               parameterKind, n.Name, thing, name);
           } else {
             var oo = Resolver.SubstType(o.Type, typeMap);
-            if (!n.Type.Equals(oo)) {
+            if (!n.Type.Equals(oo, true)) {
               reporter.Error(MessageSource.Resolver, n.tok,
                 "the type of {0} '{1}' is different from the type of the corresponding {0} in trait {2} ('{3}' instead of '{4}')",
                 parameterKind, n.Name, thing, n.Type, oo);
