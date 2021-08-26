@@ -3562,11 +3562,10 @@ namespace Microsoft.Dafny {
       }
 
       // Build the triggers
-      // { f(Succ(s), args), f'(Succ(s), args') }
+      // { f'(Succ(s), args') }
       Bpl.Trigger tr = BplTriggerHeap(this, overridingFunction.tok,
-        funcAppl,
-        readsHeap ? etran.HeapExpr : null,
-        overridingFuncAppl);
+        overridingFuncAppl,
+        readsHeap ? etran.HeapExpr : null);
       // { f(Succ(s), args), $Is(this, T') }
       var exprs = new List<Bpl.Expr>() {funcAppl, isOfSubtype};
       if (readsHeap) {
@@ -3578,10 +3577,17 @@ namespace Microsoft.Dafny {
       var synonyms = Bpl.Expr.Eq(
         funcAppl,
         ModeledAsBoxType(f.ResultType) ? BoxIfUnboxed(overridingFuncAppl, overridingFunction.ResultType) : overridingFuncAppl);
-
+      // add overridingFunction#canCall ==> f#canCall to the axiom
+      var callName = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+      var callArgs = f.IsFuelAware() ? argsJF.TakeLast(argsJF.Count() - 1).ToList() : argsJF;
+      var canCallFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), callArgs);
+      callName = new Bpl.IdentifierExpr(overridingFunction.tok, overridingFunction.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+      callArgs = overridingFunction.IsFuelAware() ? argsCF.TakeLast(argsCF.Count() - 1).ToList() : argsCF;
+      var canCallOverridingFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), callArgs);
+      var canCallImp = BplImp(canCallOverridingFunc, canCallFunc);
       // The axiom
       Bpl.Expr ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), forallFormals, null, tr,
-        Bpl.Expr.Imp(Bpl.Expr.And(ReceiverNotNull(bvThisExpr), isOfSubtype), synonyms));
+        Bpl.Expr.Imp(Bpl.Expr.And(ReceiverNotNull(bvThisExpr), isOfSubtype), BplAnd(canCallImp, synonyms)));
       var activate = AxiomActivation(f, etran);
       string comment = "override axiom for " + f.FullSanitizedName + " in class " + overridingFunction.EnclosingClass.FullSanitizedName;
       return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
