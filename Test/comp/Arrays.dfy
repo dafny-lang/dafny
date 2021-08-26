@@ -382,4 +382,6 @@ method PrintString() {
   print "  ", [["abc", "def"]], "\n";
   print "  ", {"abc", "def"}, "\n";
   print "  ", [['a', 'b', 'c'], ['d', 'e', 'f']], "\n";
+  var a : seq<seq<char>> := [[]];
+  print "  ", a, "\n";
 }
