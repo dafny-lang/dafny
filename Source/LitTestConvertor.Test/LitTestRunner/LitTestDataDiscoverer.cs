@@ -17,9 +17,9 @@ namespace DafnyDriver.Test {
     }
 
     protected override IEnumerable<object[]> FileData(IAttributeInfo attributeInfo, IMethodInfo testMethod, string fileName) {
-      string shortName = fileName[(GetBasePath(attributeInfo, testMethod).Length + 1)..];
+      // string shortName = fileName[(GetBasePath(attributeInfo, testMethod).Length + 1)..];
       try {
-        var (testCases, _) = convertor.ConvertLitCommands(shortName, File.ReadLines(fileName));
+        var (testCases, _) = convertor.ConvertLitCommands(fileName, File.ReadLines(fileName));
         return testCases.Select(testCase => new[] { testCase });
       } catch (Exception) {
         // Ignore for now

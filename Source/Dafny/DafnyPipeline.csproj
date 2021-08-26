@@ -34,4 +34,7 @@
   <ItemGroup>
     <Compile Include="..\version.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\Binaries\DafnyPrelude.bpl" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

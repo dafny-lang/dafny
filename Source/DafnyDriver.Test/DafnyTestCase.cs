@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using DafnyDriver.Test.XUnitExtensions;
+using Xunit.Abstractions;
 
 namespace DafnyDriver.Test {
   
@@ -15,18 +16,6 @@ namespace DafnyDriver.Test {
   {
 
     private static readonly Assembly DafnyDriverAssembly = Assembly.GetAssembly(typeof(Microsoft.Dafny.DafnyDriver));
-    
-    private static readonly DirectoryInfo OUTPUT_ROOT = new(Directory.GetCurrentDirectory());
-    
-    // TODO-RS: This is an ugly method of locating the project root.
-    // The proper fix is to run entirely out of the output directory,
-    // and the projects are at least partially configured to make that possible,
-    // but it's not quite working yet.
-    private static string DAFNY_ROOT = 
-      OUTPUT_ROOT.Parent.Parent.Parent.Parent.Parent.FullName;
-
-    public static readonly string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
-    public static readonly string OUTPUT_DIR = Path.Combine(TEST_ROOT, "Output") + Path.DirectorySeparatorChar;
     
     private static readonly Dictionary<string, object> defaultDafnyOptions = new() {
       ["countVerificationErrors"] = "0",
@@ -63,22 +52,35 @@ namespace DafnyDriver.Test {
       return $"/{pair.Key}:{pair.Value}";
     }
 
-    public readonly string SourcePath;
+    public string SourcePath;
     
     public Dictionary<string, object> DafnyOptions = new();
     public List<string> OtherFiles = new();
 
     public DafnyTestCase(string sourcePath, Dictionary<string, object> dafnyOptions, List<string> otherFiles, Expectation expected)
-      : base(DafnyDriverAssembly, OptionsToFullArguments(sourcePath, dafnyOptions, otherFiles), expected)
+      : base(DafnyDriverAssembly, OptionsToFullArguments(sourcePath, dafnyOptions, otherFiles), null, new List<string>(), expected)
     {
       SourcePath = sourcePath;
       DafnyOptions = dafnyOptions;
       OtherFiles = otherFiles;
-      Expected = expected;
     }
     
     public DafnyTestCase() {
       
+    }
+    
+    public void Serialize(IXunitSerializationInfo info) {
+      base.Serialize(info);
+      info.AddValue(nameof(SourcePath), SourcePath);
+      info.AddValue(nameof(DafnyOptions), DafnyOptions);
+      info.AddValue(nameof(OtherFiles), OtherFiles);
+    }
+    
+    public void Deserialize(IXunitSerializationInfo info) {
+      base.Deserialize(info);
+      SourcePath = info.GetValue<string>(nameof(SourcePath));
+      DafnyOptions = info.GetValue<Dictionary<string, object>>(nameof(DafnyOptions));
+      OtherFiles = info.GetValue<List<string>>(nameof(OtherFiles));
     }
     
     public override string ToString() {

@@ -90,21 +90,8 @@ namespace LitTestConvertor {
       List<CLITestCase> testConfigs = litCommands.Select(c => ParseDafnyCommandArguments(filePath, c)).ToList();
 
       if (testConfigs.Count == 1) {
-        var single = testConfigs.Single();
-        if (IsStandardVerifyOnly(single)) {
-          verifyOnlyCount++;
-        }
-        return (single, testContent);
+        return (testConfigs, testContent);
       } 
-      
-      if (IsStandardVerifyOnly(testConfigs[0]) && testConfigs.Skip(1).All(IsStandardCompileAndRun)
-            || testConfigs.Skip(1).All(IsStandardCompileAndRun)) {
-        defaultCount++;
-        // TODO: For now don't return a value, since we also have to split up the .expect
-        // files for this to work.
-        // return (null, testContent);
-        throw new ArgumentException("Default for-each-compiler test cases not yet supported");
-      }
       
       throw new ArgumentException("Multi-command lit tests require manual conversion");
     }
@@ -136,7 +123,7 @@ namespace LitTestConvertor {
     private CLITestCase ParseDafnyCommandArguments(string filePath, string dafnyCommand) {
       bool includeThisFile = true;
       List<string> otherFiles = new();
-      Dictionary<string, string> dafnyArguments = new();
+      Dictionary<string, object> dafnyArguments = new();
       
       if (!dafnyCommand.StartsWith(LIT_DAFNY)) {
         throw new ArgumentException("Lit command is not expected %dafny: " + dafnyCommand);
@@ -176,7 +163,9 @@ namespace LitTestConvertor {
         }
       }
 
-      return new DafnyTestCase();
+      var expected = new CLITestCase.Expectation(0, filePath + ".expect", null);
+      
+      return new DafnyTestCase(filePath, dafnyArguments, otherFiles, expected);
     }
 
     private static (string, string) ParseDafnyArgument(string argument) {

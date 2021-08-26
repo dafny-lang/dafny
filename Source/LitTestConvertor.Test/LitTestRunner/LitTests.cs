@@ -1,9 +1,9 @@
 using DafnyDriver.Test.XUnitExtensions;
 using Xunit;
 
-namespace LitTestConvertor.Test
+namespace LitTestConvertor.Test.LitTestRunner
 {
-  public class LitTestRunner
+  public class LitTests
   {
     [Theory]
     [LitTestData]

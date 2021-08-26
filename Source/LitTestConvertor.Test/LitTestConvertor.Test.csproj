@@ -25,7 +25,7 @@
 
     <ItemGroup>
         <Content Include="TestFiles\*.dfy" CopyToOutputDirectory="PreserveNewest" />
-        <Content Include="..\..\Test\**\*.*" LinkBase="TestFiles\LitTestRunner\LitTest">
+        <Content Include="..\..\Test\**\*.*" LinkBase="TestFiles\LitTests\LitTest">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
