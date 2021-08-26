@@ -3378,7 +3378,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
 
       // ante := useViaCanCall || (useViaContext && typeAnte && pre)
-      ante = Bpl.Expr.Or(useViaCanCall, ante);
+      ante = useViaCanCall;
 
       Bpl.Expr funcAppl;
       {
