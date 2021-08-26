@@ -27,8 +27,8 @@ namespace DafnyServer.CounterExampleGeneration {
     /// one already exists </param>
     /// <returns></returns>
     public static DafnyModelVariable Get(DafnyModelState state,
-      Model.Element element, string name, DafnyModelVariable parent=null,
-      bool duplicate=false) {
+      Model.Element element, string name, DafnyModelVariable parent = null,
+      bool duplicate = false) {
       if (state.ExistsVar(element)) {
         parent?.AddChild(name, state.GetVar(element));
         if (!duplicate) {
@@ -226,8 +226,8 @@ namespace DafnyServer.CounterExampleGeneration {
         return "(" + String.Join(", ", mapStrings.Keys.ToList()
           .ConvertAll(keyValuePair =>
             mapStrings[keyValuePair] == 1 ?
-              keyValuePair:
-              keyValuePair + " [+"+ (mapStrings[keyValuePair] - 1) + "]")) + ")";
+              keyValuePair :
+              keyValuePair + " [+" + (mapStrings[keyValuePair] - 1) + "]")) + ")";
       }
     }
 
@@ -239,7 +239,7 @@ namespace DafnyServer.CounterExampleGeneration {
     }
   }
 
-  public class DafnyModelType  {
+  public class DafnyModelType {
 
     public readonly string Name;
     public readonly List<DafnyModelType> TypeArgs;
@@ -249,7 +249,7 @@ namespace DafnyServer.CounterExampleGeneration {
       TypeArgs = typeArgs;
     }
 
-    public DafnyModelType(string name):this(name, new List<DafnyModelType>()) { }
+    public DafnyModelType(string name) : this(name, new List<DafnyModelType>()) { }
 
     public override string ToString() {
       if (TypeArgs.Count == 0) {

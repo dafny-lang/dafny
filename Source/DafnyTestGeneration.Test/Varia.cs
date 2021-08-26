@@ -110,7 +110,7 @@ class Paths {
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
       Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
       var values = methods.Select(m =>
-          int.TryParse(m.ArgValues[0], out var result) ? (int?) result : null)
+          int.TryParse(m.ArgValues[0], out var result) ? (int?)result : null)
         .ToList();
       Assert.IsTrue(values.All(i => i != null));
       Assert.IsTrue(values.Exists(i => i % 2 == 0 && i % 3 == 0 && i % 5 == 0));
@@ -154,7 +154,7 @@ class Paths {
       Assert.IsTrue(methods.All(m => m.ArgValues.Count == 1));
       Assert.IsTrue(methods.All(m => m.ObjectsToMock.Count == 0));
       var values = methods.Select(m =>
-          int.TryParse(m.ArgValues[0], out var result) ? (int?) result : null)
+          int.TryParse(m.ArgValues[0], out var result) ? (int?)result : null)
         .ToList();
       Assert.IsTrue(values.All(i => i != null));
       Assert.IsTrue(values.Exists(i => i % 2 == 0));

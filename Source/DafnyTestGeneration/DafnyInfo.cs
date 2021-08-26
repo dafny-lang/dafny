@@ -32,8 +32,7 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Fills in the Dafny Info data by traversing the AST
     /// </summary>
-    private class DafnyInfoExtractor : BottomUpVisitor
-    {
+    private class DafnyInfoExtractor : BottomUpVisitor {
 
       private readonly DafnyInfo info;
 

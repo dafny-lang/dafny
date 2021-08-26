@@ -162,7 +162,7 @@ namespace DafnyServer.CounterExampleGeneration {
        || IsBitVectorObject(element, state.Model)) &&
       element.Kind != Model.ElementKind.Array &&
       (element.Kind != Model.ElementKind.DataValue ||
-       ((Model.DatatypeValue) element).ConstructorName is "-" or "/");
+       ((Model.DatatypeValue)element).ConstructorName is "-" or "/");
 
     /// <summary>
     /// Return the name of the 0-arity function that maps to the element if such
@@ -220,7 +220,7 @@ namespace DafnyServer.CounterExampleGeneration {
         case Model.ElementKind.Real:
           return new DafnyModelType("real");
         case Model.ElementKind.BitVector:
-          return new DafnyModelType("bv" + ((Model.BitVector) element).Size);
+          return new DafnyModelType("bv" + ((Model.BitVector)element).Size);
         case Model.ElementKind.Uninterpreted:
           return GetDafnyType(element as Model.Uninterpreted);
         case Model.ElementKind.DataValue:
@@ -331,7 +331,7 @@ namespace DafnyServer.CounterExampleGeneration {
           if (mapOperation != null) {
             return GetDafnyType(mapOperation.Args.First());
           }
-          return new DafnyModelType("map", new List<DafnyModelType> {new("?"), new("?")});
+          return new DafnyModelType("map", new List<DafnyModelType> { new("?"), new("?") });
         case "refType":
           return ReconstructType(fDtype.OptEval(element));
         case null:
@@ -358,7 +358,7 @@ namespace DafnyServer.CounterExampleGeneration {
         return new DafnyModelType(fullName.Substring(1).ToLower());
       }
       if (fBv.AppWithResult(typeElement) != null) {
-        return new DafnyModelType("bv" + ((Model.Integer) fBv.AppWithResult(typeElement).Args[0]).AsInt());
+        return new DafnyModelType("bv" + ((Model.Integer)fBv.AppWithResult(typeElement).Args[0]).AsInt());
       }
       var tagElement = fTag.OptEval(typeElement);
       if (tagElement == null) {
@@ -419,9 +419,9 @@ namespace DafnyServer.CounterExampleGeneration {
         if (((Model.DatatypeValue)elt).ConstructorName == "-") {
           return "-" + CanonicalName(((Model.DatatypeValue)elt).Arguments.First(), state);
         }
-        if (((Model.DatatypeValue) elt).ConstructorName == "/") {
-          return CanonicalName(((Model.DatatypeValue) elt).Arguments.First(), state) +
-                 "/" + CanonicalName(((Model.DatatypeValue) elt).Arguments[1], state);
+        if (((Model.DatatypeValue)elt).ConstructorName == "/") {
+          return CanonicalName(((Model.DatatypeValue)elt).Arguments.First(), state) +
+                 "/" + CanonicalName(((Model.DatatypeValue)elt).Arguments[1], state);
         }
       }
       if (datatypeValues.TryGetValue(elt, out var fnTuple)) {

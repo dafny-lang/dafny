@@ -96,7 +96,7 @@ namespace DafnyTestGeneration {
       }
 
       if (variable is DuplicateVariable) {
-        return ExtractVariable(((DuplicateVariable) variable).original);
+        return ExtractVariable(((DuplicateVariable)variable).original);
       }
 
       List<string> elements = new();
@@ -145,7 +145,7 @@ namespace DafnyTestGeneration {
           var varId = $"v{ObjectsToMock.Count}";
           var dafnyType =
             new DafnyModelType(variable.Type.GetNonNullable().InDafnyFormat().ToString());
-          ObjectsToMock.Add(new (varId, dafnyType));
+          ObjectsToMock.Add(new(varId, dafnyType));
           mockedVarId[variable] = varId;
           foreach (var filedName in variable.children.Keys) {
             if (variable.children[filedName].Count != 1) {
@@ -243,7 +243,7 @@ namespace DafnyTestGeneration {
       var fCharToInt = model.MkFunc("char#ToInt", 1);
       reservedValues["char"] = new();
       foreach (var app in fCharToInt.Apps) {
-        reservedValues["char"].Add(((Model.Integer) app.Result).AsInt());
+        reservedValues["char"].Add(((Model.Integer)app.Result).AsInt());
       }
 
       var fU2Int = model.MkFunc("U_2_int", 1);
@@ -258,7 +258,7 @@ namespace DafnyTestGeneration {
       var fU2Bool = model.MkFunc("U_2_bool", 1);
       reservedValues["bool"] = new();
       foreach (var app in fU2Bool.Apps) {
-        reservedValues["bool"].Add(((Model.Boolean) app.Result).Value ? 1 : 0);
+        reservedValues["bool"].Add(((Model.Boolean)app.Result).Value ? 1 : 0);
       }
 
       var fU2Real = model.MkFunc("U_2_real", 1);
@@ -283,7 +283,7 @@ namespace DafnyTestGeneration {
         }
 
         foreach (var app in func.Apps) {
-          reservedValues[type].Add(((Model.BitVector) app.Result).AsInt());
+          reservedValues[type].Add(((Model.BitVector)app.Result).AsInt());
         }
       }
     }

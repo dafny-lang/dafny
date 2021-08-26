@@ -230,10 +230,8 @@ namespace Microsoft.Dafny {
         return exitValue;
       }
 
-      if (CommandLineOptions.Clo.VerifySeparately && 1 < dafnyFiles.Count)
-      {
-        foreach (var f in dafnyFiles)
-        {
+      if (CommandLineOptions.Clo.VerifySeparately && 1 < dafnyFiles.Count) {
+        foreach (var f in dafnyFiles) {
           Console.WriteLine();
           Console.WriteLine("-------------------- {0} --------------------", f);
           var ev = ProcessFiles(new List<DafnyFile> { f }, new List<string>().AsReadOnly(), reporter, lookForSnapshots, f.FilePath);

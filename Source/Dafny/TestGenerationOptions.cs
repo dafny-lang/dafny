@@ -7,7 +7,7 @@ namespace Microsoft.Dafny {
   /// <summary>
   /// An extension of DafnyOptions
   /// </summary>
-  public class TestGenerationOptions: DafnyOptions {
+  public class TestGenerationOptions : DafnyOptions {
 
     public enum Modes { None, Block, Path };
     public Modes Mode = Modes.None;
@@ -36,7 +36,7 @@ namespace Microsoft.Dafny {
         case "testSeqLengthLimit":
           var limit = 0;
           if (ps.GetNumericArgument(ref limit)) {
-            SeqLengthLimit = (uint) limit;
+            SeqLengthLimit = (uint)limit;
           }
           return true;
 
@@ -49,7 +49,7 @@ namespace Microsoft.Dafny {
         case "testInlineDepth":
           var depth = 0;
           if (ps.GetNumericArgument(ref depth)) {
-            TestInlineDepth = (uint) depth;
+            TestInlineDepth = (uint)depth;
           }
           return true;
       }

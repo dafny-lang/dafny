@@ -107,7 +107,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
         HashSet<DafnyModelVariable> vars = state.ExpandedVariableSet(maxDepth);
         return vars.WithCancellation(cancellationToken).ToDictionary(
             variable => variable.ShortName + ":" + variable.Type.InDafnyFormat(),
-            variable => variable.Value 
+            variable => variable.Value
           );
       }
     }

@@ -54,7 +54,7 @@ namespace DafnyTestGeneration {
       var output = Encoding.UTF8.GetString(
         stream.GetBuffer(),
         0,
-        (int) stream.Length);
+        (int)stream.Length);
       Console.SetOut(originalOut);
       Console.SetError(originalErr);
       return output;

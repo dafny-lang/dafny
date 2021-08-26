@@ -53,7 +53,7 @@ namespace DafnyTestGeneration {
     private static void AddAxioms(Program program) {
       Axiom axiom;
       if (DafnyOptions.O.TestGenOptions.SeqLengthLimit != null) {
-        var limit = (uint) DafnyOptions.O.TestGenOptions.SeqLengthLimit;
+        var limit = (uint)DafnyOptions.O.TestGenOptions.SeqLengthLimit;
         axiom = GetAxiom($"axiom (forall<T> y: Seq T :: " +
                          $"{{ Seq#Length(y) }} Seq#Length(y) <= {limit});");
         program.AddTopLevelDeclaration(axiom);
@@ -107,7 +107,7 @@ namespace DafnyTestGeneration {
     }
 
     private static AssumeCmd GetAssumeCmd(List<string> toPrint) {
-      return (AssumeCmd) GetCmd($"assume {{:print " +
+      return (AssumeCmd)GetCmd($"assume {{:print " +
                                 $"{string.Join(", \" | \", ", toPrint)}}} true;");
     }
 
@@ -118,7 +118,7 @@ namespace DafnyTestGeneration {
 
     private static Axiom GetAxiom(string source) {
       Parser.Parse(source, "", out var program);
-      return (Axiom) program.TopLevelDeclarations.ToList()[0];
+      return (Axiom)program.TopLevelDeclarations.ToList()[0];
     }
 
 
@@ -148,32 +148,32 @@ namespace DafnyTestGeneration {
         // consruct the call to the "Impl$$" implementation:
         Cmd cmd = new CallCmd(new Token(), calleName,
           node.InParams
-            .ConvertAll(v => (Expr) new IdentifierExpr(new Token(), v))
+            .ConvertAll(v => (Expr)new IdentifierExpr(new Token(), v))
             .ToList(),
           calleeProc.OutParams
             .ConvertAll(v => new IdentifierExpr(new Token(), v))
             .ToList());
         // create a block for this call:
-        var block = new Block(new Token(), "anon_0", new List<Cmd> {cmd},
+        var block = new Block(new Token(), "anon_0", new List<Cmd> { cmd },
           new ReturnCmd(new Token()));
         // define local variables to hold unused return values:
         var vars = calleeProc.OutParams
           .Where(p1 => !node.OutParams
             .Exists(p2 => p2.Name == p1.Name)).ToList()
           .ConvertAll(p1 =>
-            (Variable) new LocalVariable(new Token(), p1.TypedIdent)).ToList();
+            (Variable)new LocalVariable(new Token(), p1.TypedIdent)).ToList();
         // you cannot directly reuse node.InParams and node.OutParams
         // because they might contain where clauses which have to be removed
         var inParams = node.InParams.ConvertAll(v =>
-          (Variable) new LocalVariable(new Token(),
+          (Variable)new LocalVariable(new Token(),
             new TypedIdent(new Token(), v.Name, v.TypedIdent.Type))).ToList();
         var outParams = node.OutParams.ConvertAll(v =>
-          (Variable) new LocalVariable(new Token(),
+          (Variable)new LocalVariable(new Token(),
             new TypedIdent(new Token(), v.Name, v.TypedIdent.Type))).ToList();
         // construct the new implementation:
         var callerImpl = new Implementation(new Token(), callerName,
           node.TypeParameters, inParams, outParams, vars,
-          new List<Block> {block});
+          new List<Block> { block });
         implsToAdd.Add(callerImpl);
         return node;
       }
@@ -260,13 +260,13 @@ namespace DafnyTestGeneration {
 
         implName = node.Name;
         // print parameter types:
-        var types = new List<string> {"\"Types\""};
+        var types = new List<string> { "\"Types\"" };
         types.AddRange(node.InParams.Select(var =>
           $"\"{var.TypedIdent.Type}\""));
         node.Blocks[0].cmds.Insert(0, GetAssumeCmd(types));
 
         // record parameter values:
-        var values = new List<string> {"\"Impl\"", $"\"{implName}\""};
+        var values = new List<string> { "\"Impl\"", $"\"{implName}\"" };
         values.AddRange(node.InParams.Select(var => var.Name));
 
         var toTest = DafnyOptions.O.TestGenOptions.TargetMethod;

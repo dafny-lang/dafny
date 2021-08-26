@@ -399,17 +399,17 @@ namespace Microsoft.Dafny {
           }
 
         case "showSnippets": {
-          if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].Equals("0")) {
-              ShowSnippets = false;
-            } else if (args[ps.i].Equals("1")) {
-              ShowSnippets = true;
-            } else {
-              throw new Exception("Invalid value for showSnippets");
+            if (ps.ConfirmArgumentCount(1)) {
+              if (args[ps.i].Equals("0")) {
+                ShowSnippets = false;
+              } else if (args[ps.i].Equals("1")) {
+                ShowSnippets = true;
+              } else {
+                throw new Exception("Invalid value for showSnippets");
+              }
             }
+            return true;
           }
-          return true;
-        }
       }
 
       // Unless this is an option for test generation, defer to superclass
