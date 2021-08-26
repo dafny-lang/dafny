@@ -669,6 +669,11 @@ final class StringDafnySequence extends NonLazyDafnySequence<Character> {
     public String verbatimString() {
         return string;
     }
+
+    @Override
+    public String toString() {
+        return string;
+    }
 }
 
 abstract class LazyDafnySequence<T> extends DafnySequence<T> {

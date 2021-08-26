@@ -71,6 +71,8 @@ method Main() {
   CharValues();
 
   TypeSynonym.Test();
+
+  PrintString();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -315,7 +317,7 @@ class Cell<T> {
     x, y := arr, arr;
   }
   method UArray(x: T)
-    modifies arr 
+    modifies arr
   {
     if arr.Length > 0 {
       arr[0] := x;
@@ -372,4 +374,11 @@ module TypeSynonym {
     var b := new uint8[] [19, 18, 9, 8];
     BufferTest(b);
   }
+}
+
+method PrintString() {
+  print "String in collections:\n";
+  print "  ", ["abc", "def"], "\n";
+  print "  ", [["abc", "def"]], "\n";
+  print "  ", {"abc", "def"}, "\n";
 }
