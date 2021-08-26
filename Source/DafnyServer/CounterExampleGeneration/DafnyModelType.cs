@@ -68,8 +68,9 @@ namespace DafnyServer.CounterExampleGeneration {
       List<DafnyModelType> typeArgs = new();
       var id = type.IndexOf("<", StringComparison.Ordinal);
       var name = type[..id];
+      id++; // skip the first '<' since it opens the argument list
       var lastId = id;
-      var openBrackets = -1;
+      var openBrackets = 0;
       while (id < type.Length) {
         switch (type[id]) {
           case '<':
