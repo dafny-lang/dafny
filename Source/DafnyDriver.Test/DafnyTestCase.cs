@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using DafnyDriver.Test.XUnitExtensions;
 
 namespace DafnyDriver.Test {
@@ -9,8 +11,23 @@ namespace DafnyDriver.Test {
    * Specialization of CLITestCase that mainly exists to support a much more
    * concise definition of ToString().
    */
-  public class DafnyTestCase : CLITestCase {
+  public class DafnyTestCase : CLITestCase
+  {
 
+    private static readonly Assembly DafnyDriverAssembly = Assembly.GetAssembly(typeof(Microsoft.Dafny.DafnyDriver));
+    
+    private static readonly DirectoryInfo OUTPUT_ROOT = new(Directory.GetCurrentDirectory());
+    
+    // TODO-RS: This is an ugly method of locating the project root.
+    // The proper fix is to run entirely out of the output directory,
+    // and the projects are at least partially configured to make that possible,
+    // but it's not quite working yet.
+    private static string DAFNY_ROOT = 
+      OUTPUT_ROOT.Parent.Parent.Parent.Parent.Parent.FullName;
+
+    public static readonly string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
+    public static readonly string OUTPUT_DIR = Path.Combine(TEST_ROOT, "Output") + Path.DirectorySeparatorChar;
+    
     private static readonly Dictionary<string, object> defaultDafnyOptions = new() {
       ["countVerificationErrors"] = "0",
 
@@ -30,11 +47,7 @@ namespace DafnyDriver.Test {
         optionsWithDefaults[key] = value;
       }
 
-      return new[] {
-        "run --no-build --project ",
-        DafnyTestSpec.DAFNY_PROJ,
-        " --"
-      }.Concat(OptionsToArguments(sourcePath, optionsWithDefaults, otherFiles));
+      return OptionsToArguments(sourcePath, optionsWithDefaults, otherFiles);
     }
 
     private static IEnumerable<string> OptionsToArguments(string sourcePath, Dictionary<string, object> dafnyOptions, List<string> otherFiles) {
@@ -56,7 +69,7 @@ namespace DafnyDriver.Test {
     public List<string> OtherFiles = new();
 
     public DafnyTestCase(string sourcePath, Dictionary<string, object> dafnyOptions, List<string> otherFiles, Expectation expected)
-      : base("dotnet", OptionsToFullArguments(sourcePath, dafnyOptions, otherFiles), expected)
+      : base(DafnyDriverAssembly, OptionsToFullArguments(sourcePath, dafnyOptions, otherFiles), expected)
     {
       SourcePath = sourcePath;
       DafnyOptions = dafnyOptions;

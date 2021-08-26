@@ -12,20 +12,16 @@ namespace DafnyDriver.Test {
 
     private readonly LitTestConvertor.LitTestConvertor convertor = new();
     
-    private static DafnyTestSpec SpecForFileName(string fileName) {
-      string filePath = fileName.Substring("TestFiles/DafnyTests/Test".Length + 1);
-      return new DafnyTestSpec(filePath);
-    }
-
     public override bool SupportsDiscoveryEnumeration(IAttributeInfo dataAttribute, IMethodInfo testMethod) {
       return true;
     }
 
     protected override IEnumerable<object[]> FileData(IAttributeInfo attributeInfo, IMethodInfo testMethod, string fileName) {
+      string shortName = fileName[(GetBasePath(attributeInfo, testMethod).Length + 1)..];
       try {
-        var (testCases, _) = convertor.ConvertLitCommands(fileName, File.ReadLines(fileName));
+        var (testCases, _) = convertor.ConvertLitCommands(shortName, File.ReadLines(fileName));
         return testCases.Select(testCase => new[] { testCase });
-      } catch (Exception e) {
+      } catch (Exception) {
         // Ignore for now
         return Enumerable.Empty<object[]>();
       }

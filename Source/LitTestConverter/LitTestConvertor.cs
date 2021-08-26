@@ -87,7 +87,7 @@ namespace LitTestConvertor {
       }
       litCommands.RemoveAt(litCommands.Count - 1);
       
-      List<DafnyTestSpec> testConfigs = litCommands.Select(c => ParseDafnyCommandArguments(filePath, c)).ToList();
+      List<CLITestCase> testConfigs = litCommands.Select(c => ParseDafnyCommandArguments(filePath, c)).ToList();
 
       if (testConfigs.Count == 1) {
         var single = testConfigs.Single();
@@ -133,9 +133,11 @@ namespace LitTestConvertor {
       return line.Substring(LIT_COMMAND_PREFIX.Length).Trim();
     }
         
-    private DafnyTestSpec ParseDafnyCommandArguments(string filePath, string dafnyCommand) {
-      var spec = new DafnyTestSpec(filePath);
-
+    private CLITestCase ParseDafnyCommandArguments(string filePath, string dafnyCommand) {
+      bool includeThisFile = true;
+      List<string> otherFiles = new();
+      Dictionary<string, string> dafnyArguments = new();
+      
       if (!dafnyCommand.StartsWith(LIT_DAFNY)) {
         throw new ArgumentException("Lit command is not expected %dafny: " + dafnyCommand);
       }
@@ -155,41 +157,39 @@ namespace LitTestConvertor {
       arguments.RemoveRange(arguments.Count - 2, 2);
 
       if (!arguments.Remove("\"%s\"")) {
-        spec.DafnyArguments[TEST_CONFIG_INCLUDE_THIS_FILE] = "no";
+        includeThisFile = false;
       }
       
       // Check the arguments for anything non-standard
       foreach (var argument in arguments) {
-        KeyValuePair<string, string> pair = ParseDafnyArgument(argument);
-        if (DAFNY_IGNORED_OPTIONS.Contains(pair.Key)) {
+        var (key, value) = ParseDafnyArgument(argument);
+        if (DAFNY_IGNORED_OPTIONS.Contains(key)) {
           continue;
         }
-        if (pair.Value.Contains("%")) {
+        if (value.Contains("%")) {
           throw new ArgumentException("Use of lit substitution (% variable) requires manual conversion: " + argument);
         }
-        if (pair.Key.Equals(TEST_CONFIG_OTHER_FILES)) {
-          spec.OtherFiles.Add(pair.Value);
+        if (key.Equals(TEST_CONFIG_OTHER_FILES)) {
+          otherFiles.Add(value);
         } else {
-          spec.DafnyArguments.Add(pair.Key, pair.Value);
+          dafnyArguments.Add(key, value);
         }
       }
 
-      return spec;
+      return new DafnyTestCase();
     }
 
-    private static KeyValuePair<string, string> ParseDafnyArgument(string argument) {
+    private static (string, string) ParseDafnyArgument(string argument) {
       if (argument.StartsWith("-") || argument.StartsWith("/")) {
-        argument = argument.Substring(1);
+        argument = argument[1..];
         int colonIndex = argument.IndexOf(":");
         if (colonIndex >= 0) {
-          return new KeyValuePair<string, string>(
-              argument.Substring(0, colonIndex),
-              argument.Substring(colonIndex + 1));
+          return (argument[..colonIndex], argument[(colonIndex + 1)..]);
         } else {
-          return new KeyValuePair<string, string>(argument, "yes");
+          return (argument, "yes");
         }
       } else {
-        return new KeyValuePair<string, string>(TEST_CONFIG_OTHER_FILES, argument);
+        return (TEST_CONFIG_OTHER_FILES, argument);
       }
     }
 

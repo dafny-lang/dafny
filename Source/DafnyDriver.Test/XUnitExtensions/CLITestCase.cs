@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Text;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -12,8 +14,13 @@ namespace DafnyDriver.Test.XUnitExtensions {
   
   public class CLITestCase: IXunitSerializable
   {
-    public string CLIPath;
-    public string[] Arguments;
+    protected Assembly CLIAssembly;
+    protected string CLIAssemblyName;
+    
+    protected string[] Arguments;
+    protected string WorkingDirectory;
+    protected IEnumerable<string> PassthroughEnvironmentVariables;
+    protected Expectation Expected;
 
     public class Expectation : IXunitSerializable {
       // May be null if the test doesn't need to check the output
@@ -31,7 +38,6 @@ namespace DafnyDriver.Test.XUnitExtensions {
       }
 
       public Expectation() {
-        
       }
       
       public void Deserialize(IXunitSerializationInfo info) {
@@ -76,10 +82,8 @@ namespace DafnyDriver.Test.XUnitExtensions {
       }
     }
 
-    public Expectation Expected;
-
-    public CLITestCase(string cliPath, IEnumerable<string> arguments, Expectation expected) {
-      CLIPath = cliPath;
+    public CLITestCase(Assembly cliAssembly, IEnumerable<string> arguments, Expectation expected) {
+      CLIAssembly = cliAssembly;
       Arguments = arguments.ToArray();
       Expected = expected;
     }
@@ -89,58 +93,83 @@ namespace DafnyDriver.Test.XUnitExtensions {
     }
   
     public void Serialize(IXunitSerializationInfo info) {
+      info.AddValue(nameof(CLIAssemblyName), CLIAssemblyName);
       info.AddValue(nameof(Arguments), Arguments);
       info.AddValue(nameof(Expected), Expected);
     }
     
     public void Deserialize(IXunitSerializationInfo info) {
+      CLIAssemblyName = info.GetValue<string>(nameof(CLIAssemblyName));
+      CLIAssembly = AppDomain.CurrentDomain.GetAssemblies().First(a => a.FullName == CLIAssemblyName);
+      
       Arguments = info.GetValue<string[]>(nameof(Arguments));
       Expected = info.GetValue<Expectation>(nameof(Expected));
     }
 
-    public CLIResult RunDafny(IEnumerable<string> arguments) {
-      using (Process process = new Process()) {
-        process.StartInfo.FileName = CLIPath;
-        foreach (var argument in arguments) {
-          process.StartInfo.Arguments += " " + argument;
-        }
-        
-        process.StartInfo.UseShellExecute = false;
-        process.StartInfo.RedirectStandardOutput = true;
-        process.StartInfo.RedirectStandardError = true;
-        process.StartInfo.CreateNoWindow = true;
-        // Necessary for JS to find bignumber.js
-        process.StartInfo.WorkingDirectory = DafnyTestSpec.TEST_ROOT;
-
-        // Only preserve specific whitelisted environment variables
-        process.StartInfo.EnvironmentVariables.Clear();
-        process.StartInfo.EnvironmentVariables.Add("PATH", Environment.GetEnvironmentVariable("PATH"));
-        // Go requires this or GOCACHE
-        process.StartInfo.EnvironmentVariables.Add("HOME", Environment.GetEnvironmentVariable("HOME"));
-
-        process.Start();
-        string output = process.StandardOutput.ReadToEnd();
-        string error = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-        return new CLIResult(process.ExitCode, output, error);
+    public CLIResult InvokeCLI(IEnumerable<string> arguments) {
+      if (Environment.GetEnvironmentVariable("XUNIT_INVOKE_CLI_DIRECTLY") == "true") {
+        return InvokeCLIDirectly(arguments);
       }
+      return InvokeCLIViaProcess(arguments);
+    }
+    
+    public CLIResult InvokeCLIDirectly(IEnumerable<string> arguments) {
+      StringBuilder redirectedOut = new();
+      StringBuilder redirectedErr = new();
+
+      Console.SetOut(new StringWriter(redirectedOut));
+      Console.SetError(new StringWriter(redirectedErr));
+
+      int result = (int) CLIAssembly.EntryPoint.Invoke(null, new object[] { arguments });
+      
+      return new CLIResult(result, redirectedOut.ToString(), redirectedErr.ToString());
+    }
+    
+    public CLIResult InvokeCLIViaProcess(IEnumerable<string> arguments) {
+      using var process = new Process();
+      
+      process.StartInfo.FileName = "dotnet";
+      process.StartInfo.Arguments = CLIAssembly.Location;
+      foreach (var argument in arguments) {
+        process.StartInfo.Arguments += " " + argument;
+      }
+      
+      process.StartInfo.UseShellExecute = false;
+      process.StartInfo.RedirectStandardOutput = true;
+      process.StartInfo.RedirectStandardError = true;
+      process.StartInfo.CreateNoWindow = true;
+      // Necessary for JS to find bignumber.js
+      process.StartInfo.WorkingDirectory = WorkingDirectory;
+
+      // Only preserve specific whitelisted environment variables
+      process.StartInfo.EnvironmentVariables.Clear();
+      foreach(var passthrough in PassthroughEnvironmentVariables) {
+        process.StartInfo.EnvironmentVariables.Add(passthrough, Environment.GetEnvironmentVariable(passthrough));
+      }
+      
+      process.Start();
+      string output = process.StandardOutput.ReadToEnd();
+      string error = process.StandardError.ReadToEnd();
+      process.WaitForExit();
+
+      return new CLIResult(process.ExitCode, output, error);
     }
 
     public void Run() {
       CLIResult result;
       if (Arguments.Any(arg => arg.StartsWith("/out"))) {
-        result = RunDafny(Arguments);
+        result = InvokeCLI(Arguments);
       } else {
         // Note that the temporary directory has to be an ancestor of Test
         // or else Javascript won't be able to locate bignumber.js :(
-        using var tempDir = new TemporaryDirectory(DafnyTestSpec.OUTPUT_DIR);
+        using var tempDir = new TemporaryDirectory(DafnyTestCase.OUTPUT_DIR);
           
         // Add an extra component to the path to keep the files created inside the
         // temporary directory, since some compilers will
         // interpret the path as a single file basename rather than a directory.
         var outArgument = "/out:" + tempDir.DirInfo.FullName + "/Program";
         var dafnyArguments = Arguments.Concat(new []{ outArgument });
-        result = RunDafny(dafnyArguments);
+        result = InvokeCLI(dafnyArguments);
       }
 
       if (result.ExitCode != Expected.ExitCode) {

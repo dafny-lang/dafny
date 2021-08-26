@@ -14,20 +14,6 @@ namespace DafnyDriver.Test
   
   public class DafnyTestSpec: IEnumerable<DafnyTestCase> {
 
-    private static readonly DirectoryInfo OUTPUT_ROOT = new(Directory.GetCurrentDirectory());
-    
-    // TODO-RS: This is an ugly method of locating the project root.
-    // The proper fix is to run entirely out of the output directory,
-    // and the projects are at least partially configured to make that possible,
-    // but it's not quite working yet.
-    private static string DAFNY_ROOT = 
-      OUTPUT_ROOT.Parent.Parent.Parent.Parent.Parent.FullName;
-
-    public static readonly string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
-    public static readonly string OUTPUT_DIR = Path.Combine(TEST_ROOT, "Output") + Path.DirectorySeparatorChar;
-    
-    public static readonly string DAFNY_PROJ = Path.Combine(DAFNY_ROOT, "Source/DafnyDriver/DafnyDriver.csproj");
-
     // Dafny options with special handling
     public const string DAFNY_COMPILE_OPTION = "compile";
     public const string DAFNY_COMPILE_TARGET_OPTION = "compileTarget";
