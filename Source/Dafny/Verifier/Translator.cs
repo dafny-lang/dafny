@@ -7206,18 +7206,23 @@ namespace Microsoft.Dafny {
     private class CanCallOptions
     {
       public readonly Function SelfCallsAllowance;
-      public readonly Function HostFunction;
+      public readonly Function EnclosingFunction;
 
-      public CanCallOptions(Function f) {
+      public bool skipIsA;
+
+      public CanCallOptions(Function f, bool skip = false) {
         this.SelfCallsAllowance = f;
-        this.HostFunction = f;
+        this.EnclosingFunction = f;
+        this.skipIsA = skip;
       }
 
-      public CanCallOptions(Function f, Function g) {
-        Contract.Assert(f.Formals.Count() == g.Formals.Count);
+      public CanCallOptions(Function f, Function g, bool skip = false) {
+        Contract.Assert(f.Formals.Count() == g.Formals.Count());
         this.SelfCallsAllowance = f;
-        this.HostFunction = g;
+        this.EnclosingFunction = g;
+        this.skipIsA = skip;
       }
+
     }
 
     /// <summary>
