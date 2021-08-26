@@ -3077,15 +3077,22 @@ namespace Microsoft.Dafny {
       Bpl.Expr useViaContext = !InVerificationScope(f) ? Bpl.Expr.True :
         (Bpl.Expr)Bpl.Expr.Neq(Bpl.Expr.Literal(mod.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
       // useViaCanCall: f#canCall(args)
-      Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-      Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
+      var canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+      var useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
+      var reqCallID = new Bpl.IdentifierExpr(f.tok, RequiresName(f), Bpl.Type.Bool);
+      var fuelargs = new List<Expr>();
+      if(f.IsFuelAware()) {
+        fuelargs.Add(new Bpl.IdentifierExpr(f.tok, layer));
+      }
+      var reqCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(reqCallID), Concat(tyargs, Concat(fuelargs, args)));
 
       // ante := useViaCanCall || (useViaContext && typeAnte && pre)
       // ante = Bpl.Expr.Or(useViaCanCall, BplAnd(useViaContext, BplAnd(ante, pre)));
       ante = useViaCanCall;
-
       Bpl.Trigger tr = BplTriggerHeap(this, f.tok, funcAppl,
-        (AlwaysUseHeap || f.ReadsHeap || !readsHeap) ? null : etran.HeapExpr);
+        (!AlwaysUseHeap && !f.ReadsHeap && readsHeap) ? etran.HeapExpr : null);
+      var trReq = BplTriggerHeap(this, f.tok, reqCall,
+        (!AlwaysUseHeap && !f.ReadsHeap && readsHeap) ? etran.HeapExpr : null);
       Bpl.Expr post = Bpl.Expr.True;
       // substitute function return value with the function call.
       if (f.Result != null) {
@@ -3102,8 +3109,10 @@ namespace Microsoft.Dafny {
       if (whr != null) { post = Bpl.Expr.And(post, whr); }
 
       Bpl.Expr ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), formals, null, tr, Bpl.Expr.Imp(ante, post));
+      Bpl.Expr reqAx = BplForall(f.tok, new List<Bpl.TypeVariable>(), formals, null, trReq, Bpl.Expr.Imp(reqCall, ante));
       var activate = AxiomActivation(f, etran);
       string comment = "consequence axiom for " + f.FullSanitizedName;
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, BplImp(AxiomActivation(f, etran, true), reqAx), "#requires ==> #canCall for " + f.FullSanitizedName));
       sink.AddTopLevelDeclaration(new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment));
 
       if (CommonHeapUse && !readsHeap) {
@@ -3119,19 +3128,22 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran) {
+    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran, bool strict = false) {
       Contract.Requires(f != null);
       Contract.Requires(etran != null);
       Contract.Requires(VisibleInScope(f));
       var module = f.EnclosingClass.EnclosingModuleDefinition;
-
       if (InVerificationScope(f)) {
-        return
-          Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
+        if (strict) {
+          return Bpl.Expr.Lt(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
+        } else {
+          return Bpl.Expr.Le(Bpl.Expr.Literal(module.CallGraph.GetSCCRepresentativeId(f)), etran.FunctionContextHeight());
+        }
       } else {
         return Bpl.Expr.True;
       }
     }
+
 
     /// <summary>
     /// The list of formals "lits" is allowed to contain an object of type ThisSurrogate, which indicates that
