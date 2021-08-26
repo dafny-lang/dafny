@@ -142,7 +142,7 @@ method Abs(x: int) returns (y: int)
 
       public async Task<CompilationStatusParams> AwaitNextCompilationStatusAsync(CancellationToken cancellationToken) {
         await _availableDiagnostics.WaitAsync(cancellationToken);
-        if(_compilationStatuses.TryDequeue(out var diagnostics)) {
+        if (_compilationStatuses.TryDequeue(out var diagnostics)) {
           return diagnostics;
         }
         throw new System.InvalidOperationException("got a signal for a received diagnostic but it was not present in the queue");

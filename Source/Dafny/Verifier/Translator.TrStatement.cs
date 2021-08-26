@@ -514,7 +514,7 @@ namespace Microsoft.Dafny
         var s = (WhileStmt)stmt;
         BodyTranslator bodyTr = null;
         if (s.Body != null) {
-          bodyTr = delegate(BoogieStmtListBuilder bld, ExpressionTranslator e) {
+          bodyTr = delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
             CurrentIdGenerator.Push();
             TrStmt(s.Body, bld, locals, e);
             CurrentIdGenerator.Pop();
@@ -528,7 +528,7 @@ namespace Microsoft.Dafny
         var tru = new LiteralExpr(s.Tok, true);
         tru.Type = Type.Bool; // resolve here
         TrLoop(s, tru,
-          delegate(BoogieStmtListBuilder bld, ExpressionTranslator e) {
+          delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
             TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e, stmt.IsGhost);
           },
           builder, locals, etran, splitAttributeValue);
@@ -610,7 +610,7 @@ namespace Microsoft.Dafny
 
         BodyTranslator bodyTr = null;
         if (s.Body != null) {
-          bodyTr = delegate(BoogieStmtListBuilder bld, ExpressionTranslator e) {
+          bodyTr = delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
             CurrentIdGenerator.Push();
             if (!s.GoingUp) {
               bld.Add(Bpl.Cmd.SimpleAssign(s.Tok, bIndex, Bpl.Expr.Sub(bIndex, Bpl.Expr.Literal(1))));
@@ -752,7 +752,7 @@ namespace Microsoft.Dafny
           // if the dangling hint is empty, do not generate anything for the dummy step
           var stepCount = s.Hints.Last().Body.Count == 0 ? s.Steps.Count - 1 : s.Steps.Count;
           // check steps:
-          for (int i = stepCount; 0 <= --i; ) {
+          for (int i = stepCount; 0 <= --i;) {
             b = new BoogieStmtListBuilder(this);
             if (splitAttributeValue) {
               AddSplittingAssume(b, s.Tok);
@@ -776,7 +776,7 @@ namespace Microsoft.Dafny
               AddComment(b, stmt, "assert wf[rhs]");
               if (s.Steps[i] is TernaryExpr) {
                 // check the prefix-equality limit
-                var index = ((TernaryExpr) s.Steps[i]).E0;
+                var index = ((TernaryExpr)s.Steps[i]).E0;
                 TrStmt_CheckWellformed(index, b, locals, etran, false);
                 if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
                   b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), "prefix-equality limit must be at least 0"));
@@ -834,8 +834,7 @@ namespace Microsoft.Dafny
           Bpl.Expr r = CtorInvocation(s.Tok, missingCtor, etran, newLocals, b);
           locals.AddRange(newLocals);
 
-          if (newLocals.Count != 0)
-          {
+          if (newLocals.Count != 0) {
             List<Bpl.IdentifierExpr> havocIds = new List<Bpl.IdentifierExpr>();
             foreach (Variable local in newLocals) {
               havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
@@ -849,7 +848,7 @@ namespace Microsoft.Dafny
           ifCmd = new Bpl.IfCmd(s.Tok, guard, b.Collect(s.Tok), ifCmd, els);
           els = null;
         }
-        for (int i = s.Cases.Count; 0 <= --i; ) {
+        for (int i = s.Cases.Count; 0 <= --i;) {
           var mc = (MatchCaseStmt)s.Cases[i];
           CurrentIdGenerator.Push();
           // havoc all bound variables
@@ -861,8 +860,7 @@ namespace Microsoft.Dafny
           Bpl.Expr r = CtorInvocation(mc, s.Source.Type, etran, newLocals, b, s.IsGhost ? NOALLOC : ISALLOC);
           locals.AddRange(newLocals);
 
-          if (newLocals.Count != 0)
-          {
+          if (newLocals.Count != 0) {
             List<Bpl.IdentifierExpr> havocIds = new List<Bpl.IdentifierExpr>();
             foreach (Variable local in newLocals) {
               havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
@@ -958,8 +956,6 @@ namespace Microsoft.Dafny
       }
     }
 
-
-
     void TrForallProof(ForallStmt s, BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter,
       List<Variable> locals, ExpressionTranslator etran, bool splitAttributeValue) {
       // Translate:
@@ -1041,8 +1037,7 @@ namespace Microsoft.Dafny
     /// "lhs" is expected to be a resolved form of an expression, i.e., not a conrete-syntax expression.
     /// </summary>
     void TrAssignment(Statement stmt, Expression lhs, AssignmentRhs rhs,
-      BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
-    {
+      BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(stmt != null);
       Contract.Requires(lhs != null);
       Contract.Requires(!(lhs is ConcreteSyntaxExpression));
@@ -1306,21 +1301,20 @@ namespace Microsoft.Dafny
       return new Bpl.ForallExpr(tok, xBvars, tr, Bpl.Expr.Imp(xAnte, Bpl.Expr.Eq(xHeapOF, g)));
     }
 
-    private void TrIfStmt(IfStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
-    {
+    private void TrIfStmt(IfStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       AddComment(builder, stmt, "if statement");
       Expression guard;
       if (stmt.Guard == null) {
         guard = null;
       } else {
-        guard = stmt.IsBindingGuard ? AlphaRename((ExistsExpr) stmt.Guard, "eg$") : stmt.Guard;
+        guard = stmt.IsBindingGuard ? AlphaRename((ExistsExpr)stmt.Guard, "eg$") : stmt.Guard;
         TrStmt_CheckWellformed(guard, builder, locals, etran, true);
       }
 
       BoogieStmtListBuilder b = new BoogieStmtListBuilder(this);
       CurrentIdGenerator.Push();
       if (stmt.IsBindingGuard) {
-        var exists = (ExistsExpr) stmt.Guard; // the original (that is, not alpha-renamed) guard
+        var exists = (ExistsExpr)stmt.Guard; // the original (that is, not alpha-renamed) guard
         IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran, stmt.IsGhost);
       }
 
@@ -1340,7 +1334,7 @@ namespace Microsoft.Dafny
         if (els.BigBlocks.Count == 1) {
           Boogie.BigBlock bb = els.BigBlocks[0];
           if (bb.LabelName == null && bb.simpleCmds.Count == 0 && bb.ec is Boogie.IfCmd) {
-            elsIf = (Boogie.IfCmd) bb.ec;
+            elsIf = (Boogie.IfCmd)bb.ec;
             els = null;
           }
         }
@@ -1351,16 +1345,14 @@ namespace Microsoft.Dafny
     }
 
     private void TrWhileStmt(BoogieStmtListBuilder builder, List<Variable> locals,
-      ExpressionTranslator etran, bool splitAttributeValue, WhileStmt whileStmt)
-    {
+      ExpressionTranslator etran, bool splitAttributeValue, WhileStmt whileStmt) {
       AddComment(builder, whileStmt, "while statement");
       this.fuelContext =
         FuelSetting.ExpandFuelContext(whileStmt.Attributes, whileStmt.Tok, this.fuelContext, this.reporter);
       DefineFuelConstant(whileStmt.Tok, whileStmt.Attributes, builder, etran);
       BodyTranslator bodyTr = null;
       if (whileStmt.Body != null) {
-        bodyTr = delegate(BoogieStmtListBuilder bld, ExpressionTranslator e)
-        {
+        bodyTr = delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
           CurrentIdGenerator.Push();
           TrStmt(whileStmt.Body, bld, locals, e);
           CurrentIdGenerator.Pop();
@@ -1429,7 +1421,7 @@ namespace Microsoft.Dafny
         var cre = GetSubrangeCheck(x, Type.Int, indexVar.Type, out msg);
         if (cre != null) {
           locals.Add(xVar);
-          builder.Add(new Boogie.HavocCmd(tok, new List<Boogie.IdentifierExpr>() {x}));
+          builder.Add(new Boogie.HavocCmd(tok, new List<Boogie.IdentifierExpr>() { x }));
           builder.Add(new Boogie.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
           builder.Add(Assert(tok, cre, "entire range must be assignable to index variable, but some " + msg));
         }
@@ -1451,8 +1443,7 @@ namespace Microsoft.Dafny
 
       BodyTranslator bodyTr = null;
       if (stmt.Body != null) {
-        bodyTr = delegate(BoogieStmtListBuilder bld, ExpressionTranslator e)
-        {
+        bodyTr = delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
           CurrentIdGenerator.Push();
           if (!stmt.GoingUp) {
             bld.Add(Boogie.Cmd.SimpleAssign(stmt.Tok, bIndex, Boogie.Expr.Sub(bIndex, Boogie.Expr.Literal(1))));
@@ -1470,8 +1461,7 @@ namespace Microsoft.Dafny
       TrLoop(stmt, guard, bodyTr, builder, locals, etran, splitAttributeValue, freeInvariant, stmt.Decreases.Expressions.Count != 0);
     }
 
-    private void TrMatchStmt(MatchStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
-    {
+    private void TrMatchStmt(MatchStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       TrStmt_CheckWellformed(stmt.Source, builder, locals, etran, true);
       Boogie.Expr source = etran.TrExpr(stmt.Source);
       var b = new BoogieStmtListBuilder(this);
@@ -1537,8 +1527,7 @@ namespace Microsoft.Dafny
       builder.Add(ifCmd);
     }
 
-    private void TrCalcStmt(CalcStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
-    {
+    private void TrCalcStmt(CalcStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       /* Translate into:
         if (*) {
             assert wf(line0);
@@ -1579,7 +1568,7 @@ namespace Microsoft.Dafny
           assertAsAssume = true;
           TrStmt_CheckWellformed(CalcStmt.Lhs(stmt.Steps[i]), b, locals, etran, false);
           assertAsAssume = false;
-          if (stmt.Steps[i] is BinaryExpr && (((BinaryExpr) stmt.Steps[i]).ResolvedOp == BinaryExpr.ResolvedOpcode.Imp)) {
+          if (stmt.Steps[i] is BinaryExpr && (((BinaryExpr)stmt.Steps[i]).ResolvedOp == BinaryExpr.ResolvedOpcode.Imp)) {
             // assume line<i>:
             AddComment(b, stmt, "assume lhs");
             b.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(CalcStmt.Lhs(stmt.Steps[i]))));
@@ -1594,7 +1583,7 @@ namespace Microsoft.Dafny
             AddComment(b, stmt, "assert wf[rhs]");
             if (stmt.Steps[i] is TernaryExpr) {
               // check the prefix-equality limit
-              var index = ((TernaryExpr) stmt.Steps[i]).E0;
+              var index = ((TernaryExpr)stmt.Steps[i]).E0;
               TrStmt_CheckWellformed(index, b, locals, etran, false);
               if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
                 b.Add(AssertNS(index.tok, Boogie.Expr.Le(Boogie.Expr.Literal(0), etran.TrExpr(index)),
@@ -1644,8 +1633,7 @@ namespace Microsoft.Dafny
       this.fuelContext = FuelSetting.PopFuelContext();
     }
 
-    private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
-    {
+    private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       var stmtBuilder = new BoogieStmtListBuilder(this);
       string errorMessage = CustomErrorMessage(stmt.Attributes);
       this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
@@ -1666,7 +1654,7 @@ namespace Microsoft.Dafny
           if (assertStmt.Proof != null) {
             proofBuilder = new BoogieStmtListBuilder(this);
             AddComment(proofBuilder, stmt, "assert statement proof");
-            TrStmt(((AssertStmt) stmt).Proof, proofBuilder, locals, etran);
+            TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
           } else if (assertStmt.Label != null) {
             proofBuilder = new BoogieStmtListBuilder(this);
             AddComment(proofBuilder, stmt, "assert statement proof");
@@ -1743,7 +1731,7 @@ namespace Microsoft.Dafny
         }
       } else if (stmt is ExpectStmt) {
         AddComment(builder, stmt, "expect statement");
-        ExpectStmt s = (ExpectStmt) stmt;
+        ExpectStmt s = (ExpectStmt)stmt;
         stmtContext = StmtType.ASSUME;
         TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
 
@@ -1764,7 +1752,7 @@ namespace Microsoft.Dafny
         stmtContext = StmtType.NONE; // done with translating expect stmt.
       } else if (stmt is AssumeStmt) {
         AddComment(builder, stmt, "assume statement");
-        AssumeStmt s = (AssumeStmt) stmt;
+        AssumeStmt s = (AssumeStmt)stmt;
         stmtContext = StmtType.ASSUME;
         TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
         builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(s.Expr), etran.TrAttributes(stmt.Attributes, null)));
@@ -1843,12 +1831,12 @@ namespace Microsoft.Dafny
         var ss = TrSplitExpr(loopInv.E, etran, false, out splitHappened);
         if (!splitHappened) {
           var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
-          invariants.Add(Assert(loopInv.E.tok, wInv, errorMessage??"loop invariant violation"));
+          invariants.Add(Assert(loopInv.E.tok, wInv, errorMessage ?? "loop invariant violation"));
         } else {
           foreach (var split in ss) {
             var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
             if (split.IsChecked) {
-              invariants.Add(Assert(split.E.tok, wInv, errorMessage??"loop invariant violation"));  // TODO: it would be fine to have this use {:subsumption 0}
+              invariants.Add(Assert(split.E.tok, wInv, errorMessage ?? "loop invariant violation"));  // TODO: it would be fine to have this use {:subsumption 0}
             } else {
               invariants.Add(TrAssumeCmd(split.E.tok, wInv));
             }
@@ -2030,7 +2018,7 @@ namespace Microsoft.Dafny
       Bpl.StmtList els = b.Collect(elseTok);
 
       Bpl.IfCmd elsIf = null;
-      for (int i = alternatives.Count; 0 <= --i; ) {
+      for (int i = alternatives.Count; 0 <= --i;) {
         Contract.Assert(elsIf == null || els == null);  // loop invariant
         CurrentIdGenerator.Push();
         var alternative = alternatives[i];
