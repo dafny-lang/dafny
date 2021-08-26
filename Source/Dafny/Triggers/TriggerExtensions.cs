@@ -337,8 +337,8 @@ namespace Microsoft.Dafny.Triggers {
     private static bool ShallowEq(ComprehensionExpr expr1, ComprehensionExpr expr2) {
       if (!TriggerUtils.SameLists(expr1.BoundVars, expr2.BoundVars, SameBoundVar) ||
           !ShallowSameAttributes(expr1.Attributes, expr2.Attributes) ||
-        // Filled in during resolution: !SameLists(expr1.Bounds, expr2.Bounds, ReferenceCompare) ||
-        //                              !SameLists(expr1.MissingBounds, expr2.MissingBounds, SameBoundVar) ||
+          // Filled in during resolution: !SameLists(expr1.Bounds, expr2.Bounds, ReferenceCompare) ||
+          //                              !SameLists(expr1.MissingBounds, expr2.MissingBounds, SameBoundVar) ||
           !TriggerUtils.SameNullity(expr1.Range, expr2.Range)) { //TODO Check
         return false;
       }
@@ -505,9 +505,9 @@ namespace Microsoft.Dafny.Triggers {
 
     private static bool ShallowEq(DatatypeValue expr1, DatatypeValue expr2) {
       return // Implied by Ctor equality: expr1.DatatypeName == expr2.DatatypeName &&
-        // Implied by Ctor equality: expr1.MemberName == expr2.MemberName &&
+             // Implied by Ctor equality: expr1.MemberName == expr2.MemberName &&
              expr1.Ctor == expr2.Ctor &&
-        // Contextual information: expr1.IsCoCall == expr2.IsCoCall &&
+             // Contextual information: expr1.IsCoCall == expr2.IsCoCall &&
              TriggerUtils.SameLists(expr1.InferredTypeArgs, expr2.InferredTypeArgs, TypeEq);
     }
 

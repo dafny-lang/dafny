@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private IEnumerable<DocumentSymbol> CreateSymbolsOfEntryDocument(ILocalizableSymbol symbol, Boogie.IToken token, SymbolKind kind) {
       var children = symbol.Children.SelectMany(Visit);
-      if(!IsPartOfEntryDocument(token)) {
+      if (!IsPartOfEntryDocument(token)) {
         return children;
       }
       var documentSymbol = new DocumentSymbol {
@@ -74,7 +74,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         Detail = symbol.GetDetailText(_cancellationToken),
         Children = children.ToArray()
       };
-      if(_symbolTable.TryGetLocationOf(symbol, out var location)) {
+      if (_symbolTable.TryGetLocationOf(symbol, out var location)) {
         documentSymbol = documentSymbol with {
           Range = location.Declaration,
           SelectionRange = location.Name

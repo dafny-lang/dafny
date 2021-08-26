@@ -2,8 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
-namespace Microsoft.Dafny
-{
+namespace Microsoft.Dafny {
   public class VisibilityScope {
     private static uint maxScopeID = 0;
 

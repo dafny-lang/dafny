@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override Task<SignatureHelp?> Handle(SignatureHelpParams request, CancellationToken cancellationToken) {
       DafnyDocument? document;
-      if(!_documents.TryGetDocument(request.TextDocument, out document)) {
+      if (!_documents.TryGetDocument(request.TextDocument, out document)) {
         _logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return Task.FromResult<SignatureHelp?>(null);
       }
@@ -53,7 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       public SignatureHelp? Process() {
         ISymbol? symbol;
-        if(!_symbolGuesser.TryGetSymbolBefore(_document, GetOpenParenthesePosition(), _cancellationToken, out symbol)) {
+        if (!_symbolGuesser.TryGetSymbolBefore(_document, GetOpenParenthesePosition(), _cancellationToken, out symbol)) {
           return null;
         }
         return CreateSignatureHelp(symbol);
@@ -69,7 +69,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           FunctionSymbol function => CreateSignatureInformation(function),
           _ => null
         };
-        if(signatureInformation == null) {
+        if (signatureInformation == null) {
           return null;
         }
         return new SignatureHelp {

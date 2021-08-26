@@ -13,8 +13,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <returns>The string representation of the variables seperated by commas.</returns>
     public static string AsCommaSeperatedText<TVariable>(this IEnumerable<TVariable> variables) where TVariable : IVariable {
       var combined = new StringBuilder();
-      foreach(var formal in variables) {
-        if(combined.Length > 0) {
+      foreach (var formal in variables) {
+        if (combined.Length > 0) {
           combined.Append(", ");
         }
         combined.Append(formal.AsText());

@@ -27,8 +27,8 @@ namespace DafnyServer.CounterExampleGeneration {
     /// one already exists </param>
     /// <returns></returns>
     public static DafnyModelVariable Get(DafnyModelState state,
-      Model.Element element, string name, DafnyModelVariable parent=null,
-      bool duplicate=false) {
+      Model.Element element, string name, DafnyModelVariable parent = null,
+      bool duplicate = false) {
       if (state.ExistsVar(element)) {
         parent?.AddChild(name, state.GetVar(element));
         if (!duplicate) {
@@ -195,7 +195,7 @@ namespace DafnyServer.CounterExampleGeneration {
       if (index == null) {
         return;
       }
-      seqElements[(int) index] = e;
+      seqElements[(int)index] = e;
     }
   }
 
@@ -226,8 +226,8 @@ namespace DafnyServer.CounterExampleGeneration {
         return "(" + String.Join(", ", mapStrings.Keys.ToList()
           .ConvertAll(keyValuePair =>
             mapStrings[keyValuePair] == 1 ?
-              keyValuePair:
-              keyValuePair + " [+"+ (mapStrings[keyValuePair] - 1) + "]")) + ")";
+              keyValuePair :
+              keyValuePair + " [+" + (mapStrings[keyValuePair] - 1) + "]")) + ")";
       }
     }
 

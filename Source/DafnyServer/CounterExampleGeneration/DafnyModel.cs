@@ -94,8 +94,7 @@ namespace DafnyServer.CounterExampleGeneration {
             Contract.Assert(ar[idx] == null);
             ar[idx] = len;
           }
-        }
-        else if (fn.Name.StartsWith("#") && fn.Name.IndexOf('.') != -1 && fn.Name[1] != '#') {
+        } else if (fn.Name.StartsWith("#") && fn.Name.IndexOf('.') != -1 && fn.Name[1] != '#') {
           foreach (var tpl in fn.Apps) {
             var elt = tpl.Result;
             datatypeValues.Add(elt, tpl);
@@ -163,7 +162,7 @@ namespace DafnyServer.CounterExampleGeneration {
        || IsBitVectorObject(element, state.Model)) &&
       element.Kind != Model.ElementKind.Array &&
       (element.Kind != Model.ElementKind.DataValue ||
-       ((Model.DatatypeValue) element).ConstructorName is "-" or "/");
+       ((Model.DatatypeValue)element).ConstructorName is "-" or "/");
 
     /// <summary>
     /// Return the name of the 0-arity function that maps to the element if such
@@ -225,9 +224,9 @@ namespace DafnyServer.CounterExampleGeneration {
         case Model.ElementKind.Uninterpreted:
           return GetDafnyType(element as Model.Uninterpreted);
         case Model.ElementKind.DataValue:
-          if (((Model.DatatypeValue) element).ConstructorName is "-" or "/") {
+          if (((Model.DatatypeValue)element).ConstructorName is "-" or "/") {
             return GetDafnyType(
-              ((Model.DatatypeValue) element).Arguments.First());
+              ((Model.DatatypeValue)element).Arguments.First());
           }
           return new DafnyModelType("?"); // This shouldn't be reachable.
         default:
@@ -241,7 +240,7 @@ namespace DafnyServer.CounterExampleGeneration {
     private List<Model.Element> GetIsResults(Model.Element element) {
       List<Model.Element> result = new();
       foreach (var tuple in Model.GetFunc("$Is").AppsWithArg(0, element)) {
-        if (((Model.Boolean) tuple.Result).Value) {
+        if (((Model.Boolean)tuple.Result).Value) {
           result.Add(tuple.Args[1]);
         }
       }
@@ -254,7 +253,10 @@ namespace DafnyServer.CounterExampleGeneration {
       List<Model.Element> isOfType;
       List<DafnyModelType> typeArgs = new();
       switch (boogieType) {
-        case "intType": case "realType": case "charType": case "boolType":
+        case "intType":
+        case "realType":
+        case "charType":
+        case "boolType":
           return new DafnyModelType(boogieType.Substring(0, boogieType.Length - 4));
         case "SeqType":
           isOfType = GetIsResults(element);
@@ -414,8 +416,8 @@ namespace DafnyServer.CounterExampleGeneration {
         return "?#" + GetShortElementId(elt);
       }
       if (elt.Kind == Model.ElementKind.DataValue) {
-        if (((Model.DatatypeValue) elt).ConstructorName == "-") {
-          return "-" + CanonicalName(((Model.DatatypeValue) elt).Arguments.First(), state);
+        if (((Model.DatatypeValue)elt).ConstructorName == "-") {
+          return "-" + CanonicalName(((Model.DatatypeValue)elt).Arguments.First(), state);
         }
         if (((Model.DatatypeValue) elt).ConstructorName == "/") {
           return CanonicalName(((Model.DatatypeValue) elt).Arguments.First(), state) +
@@ -428,7 +430,7 @@ namespace DafnyServer.CounterExampleGeneration {
       if (fType.OptEval(elt) == fChar.GetConstant()) {
         int utfCode;
         if (fCharToInt.OptEval(elt) != null) {
-          utfCode = ((Model.Integer) fCharToInt.OptEval(elt)).AsInt();
+          utfCode = ((Model.Integer)fCharToInt.OptEval(elt)).AsInt();
           return "'" + char.ConvertFromUtf32(utfCode) + "'";
         }
         return "?#" + GetShortElementId(elt);
@@ -467,7 +469,7 @@ namespace DafnyServer.CounterExampleGeneration {
     /// sequences, etc.
     /// </summary>
     public IEnumerable<DafnyModelVariable> GetExpansion(DafnyModelState state, DafnyModelVariable var) {
-      HashSet<DafnyModelVariable> result = new ();
+      HashSet<DafnyModelVariable> result = new();
       if (var.Element.Kind != Model.ElementKind.Uninterpreted) {
         return result;  // primitive types can't have fields
       }
@@ -511,7 +513,7 @@ namespace DafnyServer.CounterExampleGeneration {
         }
         // Otherwise, sequence can be reconstructed index by index:
         foreach (var tpl in fSeqIndex.AppsWithArg(0, var.Element)) {
-          var e =DafnyModelVariableFactory.Get(state, Unbox(tpl.Result),
+          var e = DafnyModelVariableFactory.Get(state, Unbox(tpl.Result),
             "[" + tpl.Args[1] + "]", var);
           result.Add(e);
           (var as SeqVariable)?.AddAtIndex(e, (tpl.Args[1] as Model.Integer)?.AsInt());
@@ -549,14 +551,14 @@ namespace DafnyServer.CounterExampleGeneration {
       }
       if (mapDomain != null && mapElements != null) {
         foreach (var app in fSetSelect.AppsWithArg(0, mapDomain)) {
-          if (!((Model.Boolean) app.Result).Value) {
+          if (!((Model.Boolean)app.Result).Value) {
             continue; // TODO: maybe do something else in this situation?
           }
           var key = DafnyModelVariableFactory.Get(state, Unbox(app.Args[1]), "", var);
           result.Add(key);
           var valueElement = fSetSelect.OptEval(mapElements, app.Args[1]);
           if (valueElement == null) {
-              ((MapVariable)var).AddMapping(key, null);
+            ((MapVariable)var).AddMapping(key, null);
           } else {
             var value = DafnyModelVariableFactory.Get(state, Unbox(valueElement), "", var);
             result.Add(value);
@@ -624,8 +626,8 @@ namespace DafnyServer.CounterExampleGeneration {
         return fieldName.Split(".").Last();
       }
       // Reaching this code means elt is an index into an array
-      var indices = new Model.Element[(int) dims];
-      for (var i = (int) dims; 0 <= --i;) {
+      var indices = new Model.Element[(int)dims];
+      for (var i = (int)dims; 0 <= --i;) {
         Model.FuncTuple dimTuple;
         if (i == 0) {
           dimTuple = fIndexField.AppWithResult(elt);

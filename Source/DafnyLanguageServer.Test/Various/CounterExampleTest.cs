@@ -683,7 +683,8 @@ method test() {
     public async Task StringBuilding() {
       var source = "" +
 "method a(s:string) {" +
-"    assert s != \"abc\";"+
+"    assert s != \"abc\";" +
+
 "    }".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
@@ -896,7 +897,7 @@ method T_map1(m:map<int,int>, key:int, val:int)
       Assert.IsTrue(counterExamples[2].Variables.ContainsKey("key:int"));
       var key = counterExamples[2].Variables["key:int"];
       var val = counterExamples[2].Variables["val:int"];
-      StringAssert.Matches(counterExamples[2].Variables["m':map<int,int>"], new Regex("\\(.*"+key+" := "+val+".*"));
+      StringAssert.Matches(counterExamples[2].Variables["m':map<int,int>"], new Regex("\\(.*" + key + " := " + val + ".*"));
     }
 
     [TestMethod]
@@ -922,6 +923,7 @@ method T_map0(m:map<int,int>, key:int, val:int)
       var mapRegex = new Regex("\\(.*" + key + " := " + val + ".*");
       Assert.IsTrue(mapRegex.IsMatch(counterExamples[1].Variables["m':map<int,int>"]) ||
                     mapRegex.IsMatch(counterExamples[1].Variables["m:map<int,int>"]));
+
     }
 
     [TestMethod]

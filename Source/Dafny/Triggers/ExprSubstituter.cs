@@ -2,14 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
-namespace Microsoft.Dafny
-{
+namespace Microsoft.Dafny {
   public class ExprSubstituter : Substituter {
     readonly List<Tuple<Expression, IdentifierExpr>> exprSubstMap;
     List<Tuple<Expression, IdentifierExpr>> usedSubstMap;
 
     public ExprSubstituter(List<Tuple<Expression, IdentifierExpr>> exprSubstMap)
-      : base(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter,Type>()) {
+      : base(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>()) {
       this.exprSubstMap = exprSubstMap;
       this.usedSubstMap = new List<Tuple<Expression, IdentifierExpr>>();
     }

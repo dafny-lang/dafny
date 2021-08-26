@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           return entry.Value;
         }
       }
-      
+
       return Enumerable.Empty<Diagnostic>();
     }
 
