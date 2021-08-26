@@ -12,12 +12,12 @@
 
 Block- and path-coverage tests of Dafny code can be used to:
 - Identify dead code (see [example](#dead-code-identification-example)).
-- Test the use and specification of external methods by increasing one's
+- Test the implementation of unverified external methods by increasing one's
   assurance that compiled tests produce no errors when run.
-- Check that code is efficient by timing how long it takes for a test to run.
-- Test compilers of Dafny to other languages by verifying that they produce
-  identical results when some compiled method is run against a test suite that
-  should cover multiple edge cases.
+- Increase assurance that Dafny and Java (C#, Rust, etc.) implementations of
+  some functionality are equivalent by generating tests in Dafny and
+  comparing the results of running these tests on compiled Dafny and original
+  Java (C#, Rust, etc.).
 
 ## General Approach
 
@@ -75,13 +75,13 @@ there is no non-determinism in the tested code.
 
 - Test generation currently works with all basic types, user-defined classes,
   sequences, sets, and maps. It does not work with datatypes, arrays, and
-  multisets
+  multisets. It is also not possible to generate tests for constructors.
 - To generate block- or path-coverage tests use the `/testMode:Block` or
   `/testMode:Path` arguments respectively. You will likely also need
   `definiteAssignment:3`, which will endure that you generate tests even for those
   methods that do not contain any assertions or pre-\post-conditions.
 - If you wish to test a particular method rather than all the methods in a
-  file, you can specify such a method by using the `/testTargetMethod` command line
+  file, you can specify such a method with the `/testTargetMethod` command line
   argument and providing the fully qualified method name.
 - If you are using `/testTargetMethod` and would like to inline methods that are
   called from the method of interest, you can do so by setting
@@ -94,8 +94,8 @@ there is no non-determinism in the tested code.
   ensure that the number of loop unrolls is sufficient with respect to the
   length of any input sequence but it can also cause the program to miss
   certain corner cases.
-- Using the `/testMode:DeadCode` argument will make Dafny identify potential
-  dead code in the specified file. Not that false negatives are possible if
+- The`/testMode:DeadCode` argument will make Dafny identify potential
+  dead code in the specified file. Note that false negatives are possible if
   `/loopUnroll` is not used. False positives are also possible for a variety of
   reasons, such as `/loopUnroll` being assigned not high enough value.
 
