@@ -96,7 +96,7 @@ namespace DafnyTestGeneration {
       }
 
       if (variable is DuplicateVariable duplicateVariable) {
-        return ExtractVariable(duplicateVariable.original);
+        return ExtractVariable(duplicateVariable.Original);
       }
 
       List<string> elements = new();
@@ -115,7 +115,7 @@ namespace DafnyTestGeneration {
             return "[]";
           }
           for (var i = 0; i < seqVar.GetLength(); i++) {
-            var element = seqVar.GetAtIndex(i);
+            var element = seqVar[i];
             if (element == null) {
               elements.Add(GetDefaultValue(variable.Type.TypeArgs.First()));
               continue;
@@ -134,7 +134,7 @@ namespace DafnyTestGeneration {
         case "map":
           var mapVar = variable as MapVariable;
           List<string> mappingStrings = new();
-          foreach (var mapping in mapVar?.mappings ?? new()) {
+          foreach (var mapping in mapVar?.Mappings ?? new()) {
             mappingStrings.Add($"{ExtractVariable(mapping.Key)} := {ExtractVariable(mapping.Value)}");
           }
           return $"map[{string.Join(", ", mappingStrings)}]";
