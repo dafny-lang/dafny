@@ -9,7 +9,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class TestGenerationOptions : DafnyOptions {
 
-    public enum Modes { None, Block, Path };
+    public enum Modes { None, Block, Path, DeadCode };
     public Modes Mode = Modes.None;
     [CanBeNull] public string TargetMethod = null;
     public uint? SeqLengthLimit = null;
@@ -28,6 +28,7 @@ namespace Microsoft.Dafny {
               "None" => Modes.None,
               "Block" => Modes.Block,
               "Path" => Modes.Path,
+              "DeadCode" => Modes.DeadCode,
               _ => throw new Exception("Invalid value for testMode")
             };
           }
@@ -58,10 +59,11 @@ namespace Microsoft.Dafny {
     }
 
     public override string Help => @"
-/testMode:<None|Block|Path>
+/testMode:<None|Block|Path|DeadCode>
     None is the default and has no effect.
     Block prints block-coverage tests for the given program.
     Path prints path-coverage tests for the given program.
+    DeadCode uses block-coverage tests to identify potential dead code.
     Using \definiteAssignment:3 and \loopUnroll is highly recommended when
     generating tests.
 /testSeqLengthLimit:<n>

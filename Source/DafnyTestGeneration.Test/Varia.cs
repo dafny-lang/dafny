@@ -250,5 +250,41 @@ module Module {
       Assert.AreEqual("Module.Value<char>", m.ObjectsToMock[0].type.Name);
     }
 
+    [TestMethod]
+    public void DeadCode() {
+      var source = @"
+method m(a:int) returns (b:int)
+  requires a > 0
+{
+  if (a == 0) {
+    return 0;
+  }
+  return 1;
+}
+".TrimStart();
+      var program = Utils.Parse(source);
+      DafnyOptions.O.TestGenOptions.Mode = TestGenerationOptions.Modes.DeadCode;
+      var stats = Main.GetDeadCodeStatistics(program).ToList();
+      Assert.IsTrue(stats.Contains("Code at (5,12) is potentially unreachable."));
+      Assert.AreEqual(2, stats.Count); // second is line with stats
+    }
+
+    [TestMethod]
+    public void NoDeadCode() {
+      var source = @"
+method m(a:int) returns (b:int)
+{
+  if (a == 0) {
+    return 0;
+  }
+  return 1;
+}
+".TrimStart();
+      var program = Utils.Parse(source);
+      DafnyOptions.O.TestGenOptions.Mode = TestGenerationOptions.Modes.DeadCode;
+      var stats = Main.GetDeadCodeStatistics(program).ToList();
+      Assert.AreEqual(1, stats.Count); // the only line with stats
+    }
+
   }
 }

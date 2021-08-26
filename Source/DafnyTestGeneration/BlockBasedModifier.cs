@@ -30,7 +30,7 @@ namespace DafnyTestGeneration {
       node.cmds.Add(GetCmd("assert false;"));
       var record = new BlockBasedModification(program,
         ProcedureName ?? implName,
-        node.UniqueId);
+        node.UniqueId, ExtractCapturedStates(node));
       modifications.Add(record);
       node.cmds.RemoveAt(node.cmds.Count - 1);
       return node;
@@ -47,6 +47,23 @@ namespace DafnyTestGeneration {
     public override Program VisitProgram(Program node) {
       program = node;
       return base.VisitProgram(node);
+    }
+
+    /// <summary>
+    /// Return the list of all states covered by the block.
+    /// A state is represented by the string recorded via :captureState
+    /// </summary>
+    private static HashSet<string> ExtractCapturedStates(Block node) {
+      HashSet<string> result = new();
+      foreach (var cmd in node.cmds) {
+        if (!(cmd is AssumeCmd assumeCmd)) {
+          continue;
+        }
+        if (assumeCmd.Attributes?.Key == "captureState") {
+          result.Add(assumeCmd.Attributes?.Params?[0]?.ToString() ?? "");
+        }
+      }
+      return result;
     }
   }
 }

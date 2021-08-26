@@ -5,15 +5,19 @@
 [**Implementation**](#implementation) <br>
 [**How to Generate Tests?**](#how-to-generate-tests) <br>
 [**How to Run Tests?**](#how-to-run-tests) <br>
-[**Example**](#example)
+[**Example**](#example) <br>
+[**Dead Code Identification Example**](#dead-code-identification-example)
 
 ## Purpose
 
 Block- and path-coverage tests of Dafny code can be used to:
-- Identify dead code
-- Test the use and specification of external methods
-- Check that code is efficient
-- Test new and existing compilers of Dafny to other languages
+- Identify dead code (see [example](#dead-code-identification-example)).
+- Test the use and specification of external methods by increasing one's
+  assurance that compiled tests produce no errors when run.
+- Check that code is efficient by timing how long it takes for a test to run.
+- Test compilers of Dafny to other languages by verifying that they produce
+  identical results when some compiled method is run against a test suite that
+  should cover multiple edge cases.
 
 ## General Approach
 
@@ -90,6 +94,10 @@ there is no non-determinism in the tested code.
   ensure that the number of loop unrolls is sufficient with respect to the
   length of any input sequence but it can also cause the program to miss
   certain corner cases.
+- Using the `/testMode:DeadCode` argument will make Dafny identify potential
+  dead code in the specified file. Not that false negatives are possible if
+  `/loopUnroll` is not used. False positives are also possible for a variety of
+  reasons, such as `/loopUnroll` being assigned not high enough value.
 
 ## How to Run Tests?
 
@@ -126,7 +134,7 @@ public static Object[] mockParameters(Method method) {
 
 ## Example
 
-Below is a simple example of what test generation will do to a file called `Char.dfy` with the following code:
+Suppose you have a file called `Char.dfy` with the following code:
 ```
 module Char {
   method compareToB(c: char) returns (i: int) {
@@ -169,4 +177,32 @@ yields the following output:
 test2 0
 test1 1
 test0 -1
+```
+
+## Dead Code Identification Example
+
+Suppose you have a file called "Sample.dfy" with the following code:
+
+```
+method m(a:int) returns (b:int)
+  requires a > 0
+{
+  if (a == 0) {
+    return 0;
+  }
+  return 1;
+}
+```
+
+Running dead code identification like this:
+
+`dafny /testMode:DeadCode /definiteAssignment:3 ../examples/Sample.dfy`
+
+Will give the following information:
+
+```
+Code at ../examples/Sample.dfy(5,12) is potentially unreachable.
+Out of 5 basic blocks (3 capturedStates), 4 (2) are reachable.
+There might be false negatives if you are not unrolling loops.
+False positives are always possible.
 ```
