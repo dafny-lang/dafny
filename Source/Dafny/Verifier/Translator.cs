@@ -4572,15 +4572,19 @@ namespace Microsoft.Dafny {
             var decrTypes = new List<Type>();
             var decrCallee = new List<Expr>();
             var decrCaller = new List<Expr>();
+            Bpl.Expr canCalls = Bpl.Expr.True;
             foreach (var ee in m.Decreases.Expressions) {
               decrToks.Add(ee.tok);
               decrTypes.Add(ee.Type.NormalizeExpand());
+              canCalls = BplAnd(canCalls, CanCallAssumption(ee, exprTran));
               decrCaller.Add(exprTran.TrExpr(ee));
               Expression es = Substitute(ee, receiverSubst, substMap);
               es = Substitute(es, null, decrSubstMap);
+              canCalls = BplAnd(canCalls, CanCallAssumption(ee, exprTran));
               decrCallee.Add(exprTran.TrExpr(es));
             }
-            return DecreasesCheck(decrToks, decrTypes, decrTypes, decrCallee, decrCaller, null, null, false, true);
+            return BplImp(canCalls,
+              DecreasesCheck(decrToks, decrTypes, decrTypes, decrCallee, decrCaller, null, null, false, true));
           };
 
 #if VERIFY_CORRECTNESS_OF_TRANSLATION_FORALL_STATEMENT_RANGE
