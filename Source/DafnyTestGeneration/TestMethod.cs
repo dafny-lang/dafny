@@ -54,7 +54,7 @@ namespace DafnyTestGeneration {
     /// type alone </param>
     /// <param name="types">the types of the elements</param>
     /// <returns></returns>
-    private List<string> ExtractInputs(DafnyModelState state, List<string> printOutput, List<string> types) {
+    private List<string> ExtractInputs(DafnyModelState state, IReadOnlyList<string> printOutput, IReadOnlyList<string> types) {
       var result = new List<string>();
       var vars = state.ExpandedVariableSet(null);
       for (var i = 0; i < printOutput.Count; i++) {
@@ -95,8 +95,8 @@ namespace DafnyTestGeneration {
         return GetUnspecifiedValue(variable.Type, variable.Element);
       }
 
-      if (variable is DuplicateVariable) {
-        return ExtractVariable(((DuplicateVariable)variable).original);
+      if (variable is DuplicateVariable duplicateVariable) {
+        return ExtractVariable(duplicateVariable.original);
       }
 
       List<string> elements = new();
@@ -139,8 +139,7 @@ namespace DafnyTestGeneration {
           }
           return $"map[{string.Join(", ", mappingStrings)}]";
         case var arrType when new Regex("^_System.array[0-9]*\\?$").IsMatch(arrType):
-          break; // TODO: introduce arrays
-        // TODO: dataTypes!
+          break;
         default:
           var varId = $"v{ObjectsToMock.Count}";
           var dafnyType =
@@ -224,7 +223,7 @@ namespace DafnyTestGeneration {
         "map" => "map[]",
         var bv when new Regex("^bv[0-9]+$").IsMatch(bv) => $"(0 as {bv})",
         var nullable when new Regex("^.*?$").IsMatch(nullable) => "null",
-        _ => null // TODO: Arrays, dataTypes, renamed types like strings
+        _ => null
       };
       if (result != null) {
         return result;
@@ -369,7 +368,7 @@ namespace DafnyTestGeneration {
 
       var returnValues = "";
       if (returnParNames.Count != 0) {
-        returnValues = String.Join(", ", returnParNames) + " := ";
+        returnValues = string.Join(", ", returnParNames) + " := ";
       }
 
       lines.Add(returnValues + methodCall);

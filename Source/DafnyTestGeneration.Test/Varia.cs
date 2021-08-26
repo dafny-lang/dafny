@@ -286,5 +286,44 @@ method m(a:int) returns (b:int)
       Assert.AreEqual(1, stats.Count); // the only line with stats
     }
 
+    /// <summary>
+    /// If this fails, consider amending ProgramModifier.MergeBoogiePrograms
+    /// </summary>
+    [TestMethod]
+    public void MultipleModules() {
+      var source = @"
+module A {
+  method m(i:int) { assert i != 0; }
+}
+module B {
+  method m(c:char) { assert c != '0'; }
+}
+module C {
+  method m(r:real) { assert r != 0.0; }
+}
+".TrimStart();
+      var program = Utils.Parse(source);
+      var methods = Main.GetTestMethodsForProgram(program).ToList();
+      Assert.AreEqual(3, methods.Count);
+      Assert.IsTrue(methods.Exists(m => m.MethodName == "A.m" &&
+                                        m.DafnyInfo.IsStatic("A.m") &&
+                                        m.ObjectsToMock.Count == 0 &&
+                                        m.Assignments.Count == 0 &&
+                                        m.ArgValues.Count == 1 &&
+                                        m.ArgValues[0] == "0"));
+      Assert.IsTrue(methods.Exists(m => m.MethodName == "B.m" &&
+                                        m.DafnyInfo.IsStatic("B.m") &&
+                                        m.ObjectsToMock.Count == 0 &&
+                                        m.Assignments.Count == 0 &&
+                                        m.ArgValues.Count == 1 &&
+                                        m.ArgValues[0] == "'0'"));
+      Assert.IsTrue(methods.Exists(m => m.MethodName == "C.m" &&
+                                        m.DafnyInfo.IsStatic("C.m") &&
+                                        m.ObjectsToMock.Count == 0 &&
+                                        m.Assignments.Count == 0 &&
+                                        m.ArgValues.Count == 1 &&
+                                        m.ArgValues[0] == "0.0"));
+    }
+
   }
 }

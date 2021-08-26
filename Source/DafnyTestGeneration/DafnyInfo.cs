@@ -21,7 +21,7 @@ namespace DafnyTestGeneration {
       visitor.Visit(program);
     }
 
-    public List<string> GetReturnTypes(string method) {
+    public IList<string> GetReturnTypes(string method) {
       return returnTypes[method];
     }
 

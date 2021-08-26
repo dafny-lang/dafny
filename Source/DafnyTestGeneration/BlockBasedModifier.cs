@@ -13,7 +13,7 @@ namespace DafnyTestGeneration {
     private Program? program; // the original program
     private List<ProgramModification> modifications = new();
 
-    protected override List<ProgramModification> Modify(Program p) {
+    protected override IEnumerable<ProgramModification> GetModifications(Program p) {
       modifications = new List<ProgramModification>();
       VisitProgram(p);
       return modifications;
@@ -53,7 +53,7 @@ namespace DafnyTestGeneration {
     /// Return the list of all states covered by the block.
     /// A state is represented by the string recorded via :captureState
     /// </summary>
-    private static HashSet<string> ExtractCapturedStates(Block node) {
+    private static ISet<string> ExtractCapturedStates(Block node) {
       HashSet<string> result = new();
       foreach (var cmd in node.cmds) {
         if (!(cmd is AssumeCmd assumeCmd)) {

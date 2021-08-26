@@ -13,7 +13,7 @@ namespace DafnyTestGeneration {
     private const string blockVarNamePrefix = "$$visited$$_";
     private List<Path> paths = new();
 
-    protected override List<ProgramModification> Modify(Program p) {
+    protected override IEnumerable<ProgramModification> GetModifications(Program p) {
       paths = new List<Path>();
       var result = new List<ProgramModification>();
       p = VisitProgram(p); // populates paths
@@ -110,7 +110,7 @@ namespace DafnyTestGeneration {
       private readonly List<int> path; // indices of blocks along the path
       private readonly Block returnBlock; // block where the path ends
 
-      internal Path(Implementation impl, List<int> path, Block returnBlock) {
+      internal Path(Implementation impl, IEnumerable<int> path, Block returnBlock) {
         Impl = impl;
         this.path = new List<int>();
         this.path.AddRange(path); // deepcopy is necessary here

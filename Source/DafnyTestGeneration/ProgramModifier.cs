@@ -27,7 +27,7 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Create tests and return the list of bpl test files
     /// </summary>
-    public List<ProgramModification> Modify(IEnumerable<Program> programs) {
+    public IEnumerable<ProgramModification> GetModifications(IEnumerable<Program> programs) {
       var program = MergeBoogiePrograms(programs);
       program = new AddImplementationsForCalls().VisitProgram(program);
       var annotator = new AnnotationVisitor();
@@ -37,12 +37,11 @@ namespace DafnyTestGeneration {
       callGraphVisitor.VisitProgram(program);
       toModify = callGraphVisitor.GetCallees(ProcedureName);
       AddAxioms(program);
-      return Modify(program);
+      return GetModifications(program);
     }
 
-    protected abstract List<ProgramModification> Modify(Program p);
+    protected abstract IEnumerable<ProgramModification> GetModifications(Program p);
 
-    // TODO: Should generating tests for constructors be allowed?
     protected bool ProcedureIsToBeTested(string procName) =>
       (ProcedureName == null || toModify.Contains(procName)) &&
       procName.StartsWith("Impl$$") && !procName.EndsWith("__ctor");
@@ -75,17 +74,20 @@ namespace DafnyTestGeneration {
         program.AddTopLevelDeclarations(p.TopLevelDeclarations);
       }
       // Remove duplicates afterwards:
-      var declarations = new HashSet<string>();
+      var declarations = new Dictionary<string, HashSet<string?>>();
       var toRemove = new List<Declaration>();
       foreach (var declaration in program.TopLevelDeclarations) {
         var typeName = declaration.GetType().Name;
         if (typeName.Equals("Axiom")) {
           continue;
         }
-        if (declarations.Contains($"{typeName}_{declaration}")) {
+        if (!declarations.ContainsKey(typeName)) {
+          declarations[typeName] = new();
+        }
+        if (declarations[typeName].Contains(declaration.ToString())) {
           toRemove.Add(declaration);
         } else {
-          declarations.Add($"{typeName}_{declaration}");
+          declarations[typeName].Add(declaration.ToString());
         }
       }
       toRemove.ForEach(x => program.RemoveTopLevelDeclaration(x));

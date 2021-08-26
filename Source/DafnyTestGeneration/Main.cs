@@ -20,7 +20,7 @@ namespace DafnyTestGeneration {
     public static IEnumerable<string> GetDeadCodeStatistics(Program program) {
 
       DafnyOptions.O.TestGenOptions.Mode = TestGenerationOptions.Modes.DeadCode;
-      var modifications = GetModifications(program);
+      var modifications = GetModifications(program).ToList();
       var blocksReached = modifications.Count;
       HashSet<string> allStates = new();
       HashSet<string> allDeadStates = new();
@@ -60,7 +60,7 @@ namespace DafnyTestGeneration {
       }
     }
 
-    private static List<ProgramModification> GetModifications(Program program) {
+    private static IEnumerable<ProgramModification> GetModifications(Program program) {
       // Translate the Program to Boogie:
       var oldPrintInstrumented = DafnyOptions.O.PrintInstrumented;
       DafnyOptions.O.PrintInstrumented = true;
@@ -74,7 +74,7 @@ namespace DafnyTestGeneration {
         DafnyOptions.O.TestGenOptions.Mode == TestGenerationOptions.Modes.Path
           ? new PathBasedModifier()
           : new BlockBasedModifier();
-      return programModifier.Modify(boogiePrograms);
+      return programModifier.GetModifications(boogiePrograms);
     }
 
     /// <summary>
@@ -85,7 +85,7 @@ namespace DafnyTestGeneration {
       Program program, DafnyInfo? dafnyInfo = null) {
 
       dafnyInfo ??= new DafnyInfo(program);
-      var modifications = GetModifications(program);
+      var modifications = GetModifications(program).ToList();
 
       // Generate tests based on counterexamples produced from modifications
       var testMethods = new ConcurrentBag<TestMethod>();

@@ -98,12 +98,12 @@ namespace DafnyTestGeneration {
   public class BlockBasedModification : ProgramModification {
 
     private readonly int blockId;
-    private static readonly HashSet<int> covered = new();
+    private static readonly ISet<int> covered = new HashSet<int>();
     // set of states (points in Dafny code) captured by the block in question:
-    private readonly HashSet<string> capturedStates;
+    private readonly ISet<string> capturedStates;
 
     public BlockBasedModification(Program program, string procedure,
-      int blockId, HashSet<string> capturedStates) : base(program, procedure) {
+      int blockId, ISet<string> capturedStates) : base(program, procedure) {
       this.blockId = blockId;
       this.capturedStates = capturedStates;
     }
@@ -142,14 +142,14 @@ namespace DafnyTestGeneration {
     /// any. Return an empty set otherwise. Make sure to run
     /// GetCounterExampleLog before calling this method.
     /// </summary>
-    public HashSet<string> GetKnownDeadStates() {
+    public ISet<string> GetKnownDeadStates() {
       if (covered.Contains(blockId)) {
         return new HashSet<string>();
       }
       return capturedStates;
     }
 
-    public HashSet<string> GetAllStates() {
+    public ISet<string> GetAllStates() {
       return capturedStates;
     }
   }
