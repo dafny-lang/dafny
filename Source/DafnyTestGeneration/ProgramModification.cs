@@ -56,7 +56,6 @@ namespace DafnyTestGeneration {
         "O:model_evaluator.completion=true"};
       options.ProverOptions.AddRange(DafnyOptions.O.ProverOptions);
       options.LoopUnrollCount = DafnyOptions.O.LoopUnrollCount;
-      options.SeqLengthLimit = DafnyOptions.O.SeqLengthLimit;
       options.DefiniteAssignmentLevel = DafnyOptions.O.DefiniteAssignmentLevel;
       options.WarnShadowing = DafnyOptions.O.WarnShadowing;
       options.VerifyAllModules = DafnyOptions.O.VerifyAllModules;

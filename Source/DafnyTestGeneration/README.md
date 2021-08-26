@@ -4,7 +4,8 @@
 [**General Approach**](#general-approach) <br>
 [**Implementation**](#implementation) <br>
 [**How to Generate Tests?**](#how-to-generate-tests) <br>
-[**How to Run Tests?**](#how-to-run-tests)
+[**How to Run Tests?**](#how-to-run-tests) <br>
+[**Example**](#example)
 
 ## Purpose
 
@@ -73,16 +74,17 @@ there is no non-determinism in the tested code.
   multisets
 - To generate block- or path-coverage tests use the `/testMode:Block` or
   `/testMode:Path` arguments respectively. You will likely also need
-  `definiteAssignment:3`.
+  `definiteAssignment:3`, which will endure that you generate tests even for those
+  methods that do not contain any assertions or pre-\post-conditions.
 - If you wish to test a particular method rather than all the methods in a
-  file, you can specify such a method by using the `/methodToTest` command line
+  file, you can specify such a method by using the `/testTargetMethod` command line
   argument and providing the fully qualified method name.
-- If you are using `/methodToTest` and would like to inline methods that are
+- If you are using `/testTargetMethod` and would like to inline methods that are
   called from the method of interest, you can do so by setting
   `/testInlineDepth` to something larger than zero (zero is the default). The
   `/verifyAllModules` argument might also be relevant if the methods to be
   inlined are defined in included files.
-- To deal with loops, you should use `/loopUnroll` and also `/seqLengthLimit`.
+- To deal with loops, you should use `/loopUnroll` and also `/testSeqLengthLimit`.
   The latter argument adds an axiom that limits the length of any sequence to
   be no greater than some specified value. This restriction can be used to
   ensure that the number of loop unrolls is sufficient with respect to the
@@ -120,4 +122,51 @@ public static Object[] mockParameters(Method method) {
     }
     return parameters;
 }
+```
+
+## Example
+
+Below is a simple example of what test generation will do to a file called `Char.dfy` with the following code:
+```
+module Char {
+  method compareToB(c: char) returns (i: int) {
+    if (c == 'B') {
+        return 0;
+    } else if (c > 'B') {
+        return 1;
+    } else {
+        return -1;
+    }
+  }
+}
+```
+Running test generation like this:
+
+```dafny /definiteAssignment:3 /testMode:Block Char.dfy ```
+
+Will give the following list of tests (tabulation added manually):
+```
+include "Char.dfy"
+module CharUnitTests {
+  import Char
+  method test0() returns (r0:int)  {
+    r0 := Char.compareToB('!');
+  }
+  method test1() returns (r0:int)  {
+    r0 := Char.compareToB(']');
+  }
+  method test2() returns (r0:int)  {
+    r0 := Char.compareToB('B');
+  }
+}
+```
+
+Compiling this to Java and, after inserting the code shown
+[above](#how-to-run-tests), compiling and running the resulting Java code
+yields the following output:
+
+```
+test2 0
+test1 1
+test0 -1
 ```

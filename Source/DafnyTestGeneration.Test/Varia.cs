@@ -62,7 +62,7 @@ class Inlining {
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.MethodToTest = "Inlining.a";
+      DafnyOptions.O.TestTargetMethod = "Inlining.a";
       DafnyOptions.O.TestInlineDepth = 1;
       var methods = Main.GetTestMethodsForProgram(program).ToList();
       Assert.AreEqual(2, methods.Count);
@@ -190,7 +190,7 @@ module Objects {
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.MethodToTest = "Objects.List.IsACircleOfLessThanThree";
+      DafnyOptions.O.TestTargetMethod = "Objects.List.IsACircleOfLessThanThree";
       var methods = Main.GetTestMethodsForProgram(program).ToList();
       Assert.AreEqual(3, methods.Count);
       Assert.IsTrue(methods.All(m =>
@@ -236,7 +236,7 @@ module Module {
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.MethodToTest = "Module.ignoreNonNullableObject";
+      DafnyOptions.O.TestTargetMethod = "Module.ignoreNonNullableObject";
       var methods = Main.GetTestMethodsForProgram(program).ToList();
       Assert.AreEqual(1, methods.Count);
       var m = methods[0];

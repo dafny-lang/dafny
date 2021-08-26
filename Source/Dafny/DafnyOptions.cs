@@ -103,8 +103,8 @@ namespace Microsoft.Dafny
     public bool ShowSnippets = false;
     public enum TestModes { None, Block, Path };
     public TestModes TestMode = TestModes.None;
-    public string MethodToTest = null;
-    public uint? SeqLengthLimit = null;
+    public string TestTargetMethod = null;
+    public uint? TestSeqLengthLimit = null;
     public uint TestInlineDepth = 0;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
@@ -423,15 +423,12 @@ namespace Microsoft.Dafny
 
         case "testMode":
           if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].Equals("None")) {
-              TestMode = TestModes.None;
-            } else if (args[ps.i].Equals("Block")) {
-              TestMode = TestModes.Block;
-            } else if (args[ps.i].Equals("Path")) {
-              TestMode = TestModes.Path;
-            } else {
-              throw new Exception("Invalid value for testMode");
-            }
+            TestMode = args[ps.i] switch {
+              "None" => TestModes.None,
+              "Block" => TestModes.Block,
+              "Path" => TestModes.Path,
+              _ => throw new Exception("Invalid value for testMode")
+            };
             if (TestMode != TestModes.None) {
               Compile = false;
               DafnyVerify = false;
@@ -439,16 +436,16 @@ namespace Microsoft.Dafny
           }
           return true;
 
-        case "seqLengthLimit":
+        case "testSeqLengthLimit":
           var limit = 0;
           if (ps.GetNumericArgument(ref limit)) {
-            SeqLengthLimit = (uint) limit;
+            TestSeqLengthLimit = (uint) limit;
           }
           return true;
 
-        case "methodToTest":
+        case "testTargetMethod":
           if (ps.ConfirmArgumentCount(1)) {
-            MethodToTest = args[ps.i];
+            TestTargetMethod = args[ps.i];
           }
           return true;
 
@@ -919,15 +916,16 @@ namespace Microsoft.Dafny
     Path prints path-coverage tests for the given program.
     Using \definiteAssignment:3 and \loopUnroll is highly recommended when
     generating tests.
-/seqLengthLimit:<n>
-    If testMode is not None, using this argument adds an axiom that sets the
+/testSeqLengthLimit:<n>
+    If \testMode is not None, using this argument adds an axiom that sets the
     length of all sequences to be no greater than <n>. This is useful in
     conjunction with loop unrolling.
-/methodToTest:<methodName>
+/testTargetMethod:<methodName>
     If specified, only this method will be tested.
 /testInlineDepth:<n>
-    0 is the default. When used in conjunction with methodToTest, this argument
-    specifies the depth up to which all non-tested methods should be inlined.
+    0 is the default. When used in conjunction with \testTargetMethod, this
+    argument specifies the depth up to which all non-tested methods should be
+    inlined.
 
 Dafny generally accepts Boogie options and passes these on to Boogie. However,
 some Boogie options, like /loopUnroll, may not be sound for Dafny or may not
