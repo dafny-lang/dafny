@@ -55,7 +55,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     public static DafnySequence<Character> of(char ... elements) {
-        return DafnySequence.fromArray(TypeDescriptor.CHAR, Array.wrap(elements));
+        return asString(new String(elements));
     }
 
     public static <T> DafnySequence<T> empty(TypeDescriptor<T> type) {
