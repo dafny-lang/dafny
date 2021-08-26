@@ -1,12 +1,10 @@
 using System.Collections.Generic;
 
-namespace Microsoft.Dafny
-{
-  public class FunctionCallSubstituter : Substituter
-  {
+namespace Microsoft.Dafny {
+  public class FunctionCallSubstituter : Substituter {
     public readonly Function A, B;
     public FunctionCallSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Function a, Function b)
-      : base(receiverReplacement, substMap, new Dictionary<TypeParameter,Type>()) {
+      : base(receiverReplacement, substMap, new Dictionary<TypeParameter, Type>()) {
       A = a;
       B = b;
     }

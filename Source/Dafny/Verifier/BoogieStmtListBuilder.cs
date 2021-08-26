@@ -1,9 +1,7 @@
 using Microsoft.Boogie;
 
-namespace Microsoft.Dafny
-{
-  internal class BoogieStmtListBuilder
-  {
+namespace Microsoft.Dafny {
+  internal class BoogieStmtListBuilder {
     public Boogie.StmtListBuilder builder;
     public Translator tran;
 
@@ -29,7 +27,7 @@ namespace Microsoft.Dafny
       }
     }
     public void Add(StructuredCmd scmd) { builder.Add(scmd); }
-    public void Add(TransferCmd tcmd) { builder.Add(tcmd);  }
+    public void Add(TransferCmd tcmd) { builder.Add(tcmd); }
     public void AddLabelCmd(string label) { builder.AddLabelCmd(label); }
     public void AddLocalVariable(string name) { builder.AddLocalVariable(name); }
 

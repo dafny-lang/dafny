@@ -18,8 +18,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     public AutoVerification Verify { get; set; } = AutoVerification.OnChange;
 
     public string ProverOptions { get; set; } =
-      String.Join(" ", CommandLineOptions.Clo.ProverOptions) + 
-      " O:model_compress=false" + " O:model.completion=true" + 
+      String.Join(" ", CommandLineOptions.Clo.ProverOptions) +
+      " O:model_compress=false" + " O:model.completion=true" +
       " O:model_evaluator.completion=true";
   }
 }

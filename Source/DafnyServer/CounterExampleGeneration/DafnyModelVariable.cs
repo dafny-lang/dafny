@@ -195,7 +195,7 @@ namespace DafnyServer.CounterExampleGeneration {
       if (index == null) {
         return;
       }
-      seqElements[(int) index] = e;
+      seqElements[(int)index] = e;
     }
   }
 

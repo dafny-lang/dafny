@@ -7,18 +7,16 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny {
 
-  public class Graph<Node> where Node : class
-  {
+  public class Graph<Node> where Node : class {
     public enum VisitedStatus { Unvisited, OnStack, Visited }
     public class Vertex {
       public readonly Node N;
       public readonly List<Vertex/*!*/>/*!*/ Successors = new List<Vertex/*!*/>();
       public List<Vertex/*!*/> SccMembers;  // non-null only for the representative of the SCC
       [ContractInvariantMethod]
-      void ObjectInvariant()
-      {
+      void ObjectInvariant() {
         Contract.Invariant(cce.NonNullElements(Successors));
-        Contract.Invariant(SccMembers==null || cce.NonNullElements(SccMembers));
+        Contract.Invariant(SccMembers == null || cce.NonNullElements(SccMembers));
       }
 
       public Vertex SccRepresentative;  // null if not computed
@@ -43,11 +41,10 @@ namespace Microsoft.Dafny {
 
 
     [ContractInvariantMethod]
-    void ObjectInvariant()
-    {
-      Contract.Invariant(vertices!=null);
+    void ObjectInvariant() {
+      Contract.Invariant(vertices != null);
       Contract.Invariant(cce.NonNullElements(vertices.Values));
-      Contract.Invariant(topologicallySortedRepresentatives==null || cce.NonNullElements(topologicallySortedRepresentatives));
+      Contract.Invariant(topologicallySortedRepresentatives == null || cce.NonNullElements(topologicallySortedRepresentatives));
       Contract.Invariant(!sccComputed || topologicallySortedRepresentatives != null);
     }
 
@@ -64,8 +61,7 @@ namespace Microsoft.Dafny {
     }
     int generation = 0;
 
-    public Graph()
-    {
+    public Graph() {
     }
 
     [Pure]
@@ -169,7 +165,8 @@ namespace Microsoft.Dafny {
     /// Idempotently adds 'n' as a vertex and then returns the set of Node's in the strongly connected component
     /// that contains 'n'.
     /// </summary>
-    public List<Node> GetSCC(Node n) {Contract.Ensures(cce.NonNullElements(Contract.Result<List<Node>>()));
+    public List<Node> GetSCC(Node n) {
+      Contract.Ensures(cce.NonNullElements(Contract.Result<List<Node>>()));
       Vertex v = GetVertex(n);
       ComputeSCCs();
       Vertex repr = v.SccRepresentative;
@@ -185,7 +182,7 @@ namespace Microsoft.Dafny {
     /// Idempotently adds 'n' as a vertex and then returns the size of the set of Node's in the strongly connected component
     /// that contains 'n'.
     /// </summary>
-    public int GetSCCSize(Node n){
+    public int GetSCCSize(Node n) {
       Contract.Ensures(1 <= Contract.Result<int>());
 
       Vertex v = GetVertex(n);
@@ -202,8 +199,7 @@ namespace Microsoft.Dafny {
     /// As a side effect, this method may change the Visited, DfNumber, and LowLink fields
     /// of the vertices.
     /// </summary>
-    void ComputeSCCs()
-    {
+    void ComputeSCCs() {
       Contract.Ensures(sccComputed);
 
       if (sccComputed) { return; }  // check if already computed
@@ -229,7 +225,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// This is the 'SearchC' procedure from the Aho, Hopcroft, and Ullman book 'The Design and Analysis of Computer Algorithms'.
     /// </summary>
-    void SearchC(Vertex/*!*/ v, Stack<Vertex/*!*/>/*!*/ stack, ref int cnt){
+    void SearchC(Vertex/*!*/ v, Stack<Vertex/*!*/>/*!*/ stack, ref int cnt) {
       Contract.Requires(v != null);
       Contract.Requires(cce.NonNullElements(stack));
       Contract.Requires(v.Visited == VisitedStatus.Unvisited);
@@ -370,8 +366,7 @@ namespace Microsoft.Dafny {
     /// w on the stack followed by the vertices (in reverse order) in the returned list, where
     /// w is the first vertex in the list returned.
     /// </summary>
-    List<Vertex/*!*/> CycleSearch(Vertex v)
-    {
+    List<Vertex/*!*/> CycleSearch(Vertex v) {
       Contract.Requires(v != null);
       Contract.Requires(v.Visited == VisitedStatus.Unvisited);
       Contract.Ensures(v.Visited != VisitedStatus.Unvisited);
@@ -440,7 +435,7 @@ namespace Microsoft.Dafny {
         return false;
       } else {
         source.Gen = generation;
-        return Contract.Exists(source.Successors,succ=> ReachSearch(succ, sink));
+        return Contract.Exists(source.Successors, succ => ReachSearch(succ, sink));
       }
     }
   }
