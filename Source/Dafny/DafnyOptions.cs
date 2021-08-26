@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
 using System.IO;
+using JetBrains.Annotations;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny
@@ -101,11 +102,10 @@ namespace Microsoft.Dafny
     public int Allocated = 3;
     public bool UseStdin = false;
     public bool ShowSnippets = false;
-    public enum TestModes { None, Block, Path };
-    public TestModes TestMode = TestModes.None;
-    public string TestTargetMethod = null;
-    public uint? TestSeqLengthLimit = null;
-    public uint TestInlineDepth = 0;
+    [CanBeNull] private TestGenerationOptions testGenOptions = null;
+
+    public virtual TestGenerationOptions TestGenOptions =>
+      testGenOptions ??= new TestGenerationOptions();
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -420,47 +420,10 @@ namespace Microsoft.Dafny
           }
           return true;
         }
-
-        case "testMode":
-          if (ps.ConfirmArgumentCount(1)) {
-            TestMode = args[ps.i] switch {
-              "None" => TestModes.None,
-              "Block" => TestModes.Block,
-              "Path" => TestModes.Path,
-              _ => throw new Exception("Invalid value for testMode")
-            };
-            if (TestMode != TestModes.None) {
-              Compile = false;
-              DafnyVerify = false;
-            }
-          }
-          return true;
-
-        case "testSeqLengthLimit":
-          var limit = 0;
-          if (ps.GetNumericArgument(ref limit)) {
-            TestSeqLengthLimit = (uint) limit;
-          }
-          return true;
-
-        case "testTargetMethod":
-          if (ps.ConfirmArgumentCount(1)) {
-            TestTargetMethod = args[ps.i];
-          }
-          return true;
-
-        case "testInlineDepth":
-          var depth = 0;
-          if (ps.GetNumericArgument(ref depth)) {
-            TestInlineDepth = (uint) depth;
-          }
-          return true;
-
-        default:
-          break;
       }
-      // not a Dafny-specific option, so defer to superclass
-      return base.ParseOption(name, ps);
+
+      // Unless this is an option for test generation, defer to superclass
+      return TestGenOptions.ParseOption(name, ps) || base.ParseOption(name, ps);
     }
 
     public override void ApplyDefaultOptions() {
@@ -693,7 +656,7 @@ namespace Microsoft.Dafny
 
     public override string Help =>
       base.Help +
-@"
+$@"
 
   ---- Dafny options ---------------------------------------------------------
 
@@ -712,7 +675,7 @@ namespace Microsoft.Dafny
 /printMode:<Everything|DllEmbed|NoIncludes|NoGhost>
     Everything is the default.
     DllEmbed prints the source that will be included in a compiled dll.
-    NoIncludes disables printing of {:verify false} methods incorporated via the
+    NoIncludes disables printing of {{:verify false}} methods incorporated via the
     include mechanism, as well as datatypes and fields included from other files.
     NoGhost disables printing of functions, ghost methods, and proof statements in
     implementation methods.  It also disables anything NoIncludes disables.
@@ -754,7 +717,7 @@ namespace Microsoft.Dafny
     functions, and advanced features like traits or co-inductive types.
 /Main:<name>
     The (fully-qualified) name of the method to use as the executable entry point.
-    Default is the method with the {:main} atrribute, or else the method named 'Main'.
+    Default is the method with the {{:main}} atrribute, or else the method named 'Main'.
 /compileVerbose:<n>
     0 - don't print status of compilation to the console
     1 (default) - print information such as files being written by
@@ -836,8 +799,8 @@ namespace Microsoft.Dafny
     0 - Set exit code to 0 regardless of the presence of any other errors.
     1 (default) - Emit usual exit code (cf. beginning of the help message).
 /autoTriggers:<n>
-    0 - Do not generate {:trigger} annotations for user-level quantifiers.
-    1 (default) - Add a {:trigger} to each user-level quantifier. Existing
+    0 - Do not generate {{:trigger}} annotations for user-level quantifiers.
+    1 (default) - Add a {{:trigger}} to each user-level quantifier. Existing
                   annotations are preserved.
 /rewriteFocalPredicates:<n>
     0 - Don't rewrite predicates in the body of prefix lemmas.
@@ -910,22 +873,7 @@ namespace Microsoft.Dafny
     or type definitions during translation.
 /stdin
     Read standard input and treat it as an input .dfy file.
-/testMode:<None|Block|Path>
-    None is the default and has no effect.
-    Block prints block-coverage tests for the given program.
-    Path prints path-coverage tests for the given program.
-    Using \definiteAssignment:3 and \loopUnroll is highly recommended when
-    generating tests.
-/testSeqLengthLimit:<n>
-    If \testMode is not None, using this argument adds an axiom that sets the
-    length of all sequences to be no greater than <n>. This is useful in
-    conjunction with loop unrolling.
-/testTargetMethod:<methodName>
-    If specified, only this method will be tested.
-/testInlineDepth:<n>
-    0 is the default. When used in conjunction with \testTargetMethod, this
-    argument specifies the depth up to which all non-tested methods should be
-    inlined.
+{TestGenOptions.Help}
 
 Dafny generally accepts Boogie options and passes these on to Boogie. However,
 some Boogie options, like /loopUnroll, may not be sound for Dafny or may not

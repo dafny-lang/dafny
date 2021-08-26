@@ -11,6 +11,7 @@
 //---------------------------------------------------------------------------------------------
 
 using System.Security;
+using DafnyTestGeneration;
 
 namespace Microsoft.Dafny
 {
@@ -221,7 +222,7 @@ namespace Microsoft.Dafny
       }
 
       if (dafnyFiles.Count > 1 &&
-          DafnyOptions.O.TestMode != DafnyOptions.TestModes.None) {
+          DafnyOptions.O.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         ExecutionEngine.printer.ErrorWriteLine(Console.Out,
           "*** Error: Only one .dfy file can be specified for testing");
         return CommandLineArgumentsResult.PREPROCESSING_ERROR;
@@ -236,7 +237,7 @@ namespace Microsoft.Dafny
       var dafnyFileNames = DafnyFile.fileNames(dafnyFiles);
 
       ExitValue exitValue = ExitValue.SUCCESS;
-      if (DafnyOptions.O.TestMode != DafnyOptions.TestModes.None) {
+      if (DafnyOptions.O.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         var output = DafnyTestGeneration.Main
           .GetTestClassForProgram(dafnyFileNames[0]);
         Console.WriteLine(output);

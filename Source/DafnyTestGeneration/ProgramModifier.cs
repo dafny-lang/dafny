@@ -52,8 +52,8 @@ namespace DafnyTestGeneration {
     /// </summary>
     private static void AddAxioms(Program program) {
       Axiom axiom;
-      if (DafnyOptions.O.TestSeqLengthLimit != null) {
-        var limit = (uint) DafnyOptions.O.TestSeqLengthLimit;
+      if (DafnyOptions.O.TestGenOptions.SeqLengthLimit != null) {
+        var limit = (uint) DafnyOptions.O.TestGenOptions.SeqLengthLimit;
         axiom = GetAxiom($"axiom (forall<T> y: Seq T :: " +
                          $"{{ Seq#Length(y) }} Seq#Length(y) <= {limit});");
         program.AddTopLevelDeclaration(axiom);
@@ -269,8 +269,8 @@ namespace DafnyTestGeneration {
         var values = new List<string> {"\"Impl\"", $"\"{implName}\""};
         values.AddRange(node.InParams.Select(var => var.Name));
 
-        var toTest = DafnyOptions.O.TestTargetMethod;
-        var depth = DafnyOptions.O.TestInlineDepth;
+        var toTest = DafnyOptions.O.TestGenOptions.TargetMethod;
+        var depth = DafnyOptions.O.TestGenOptions.TestInlineDepth;
         if (toTest == null) {
           // All methods are tested/modified
           node.Blocks[0].cmds.Insert(0, GetAssumeCmd(values));

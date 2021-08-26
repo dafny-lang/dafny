@@ -11,9 +11,9 @@ namespace DafnyTestGeneration.Test {
       options.WarnShadowing = true;
       options.VerifyAllModules = true;
       options.LoopUnrollCount = 5;
-      options.TestSeqLengthLimit = 3;
-      options.TestMode = DafnyOptions.TestModes.Block;
-      options.TestInlineDepth = 0;
+      options.TestGenOptions.SeqLengthLimit = 3;
+      options.TestGenOptions.Mode = TestGenerationOptions.Modes.Block;
+      options.TestGenOptions.TestInlineDepth = 0;
       DafnyOptions.Install(options);
     }
 

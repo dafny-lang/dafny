@@ -26,7 +26,7 @@ namespace DafnyTestGeneration {
 
       // Create modifications of the program with assertions for each block\path
       ProgramModifier programModifier =
-        DafnyOptions.O.TestMode == DafnyOptions.TestModes.Block
+        DafnyOptions.O.TestGenOptions.Mode == TestGenerationOptions.Modes.Block
           ? new BlockBasedModifier()
           : new PathBasedModifier();
       dafnyInfo ??= new DafnyInfo(program);
