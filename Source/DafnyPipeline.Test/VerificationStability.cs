@@ -181,22 +181,22 @@ method M(heap: object)
 
     private static readonly string dafnyDirectory;
 
-        private static string DafnyDriverProjectFile => Path.Combine(dafnyDirectory, "Source", "DafnyDriver", "DafnyDriver.csproj");
-        private static string DefaultDafnyArgs => $"run --no-build --project {DafnyDriverProjectFile} -- -useBaseNameForFileName -countVerificationErrors:0 -compileVerbose:0 /errorTrace:0";
-        
-        string GetBoogie(string dafnyProgram, string optionalFileName = null) {
-          string fileName = optionalFileName ?? Path.GetTempFileName() + ".dfy";
-          File.WriteAllText(fileName, dafnyProgram);
-          var processStartInfo = new ProcessStartInfo {
-            FileName = "dotnet",
-            Arguments = $"{DefaultDafnyArgs} /compile:0 /env:0 /print:- {fileName}",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-          };
-          using var dafnyProcess = Process.Start(processStartInfo);
-          var result = dafnyProcess.StandardOutput.ReadToEnd();
-          dafnyProcess.WaitForExit();
+    private static string DafnyDriverProjectFile => Path.Combine(dafnyDirectory, "Source", "DafnyDriver", "DafnyDriver.csproj");
+    private static string DefaultDafnyArgs => $"run --no-build --project {DafnyDriverProjectFile} -- -useBaseNameForFileName -countVerificationErrors:0 -compileVerbose:0 /errorTrace:0";
+
+    string GetBoogie(string dafnyProgram, string optionalFileName = null) {
+      string fileName = optionalFileName ?? Path.GetTempFileName() + ".dfy";
+      File.WriteAllText(fileName, dafnyProgram);
+      var processStartInfo = new ProcessStartInfo {
+        FileName = "dotnet",
+        Arguments = $"{DefaultDafnyArgs} /compile:0 /env:0 /print:- {fileName}",
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        UseShellExecute = false
+      };
+      using var dafnyProcess = Process.Start(processStartInfo);
+      var result = dafnyProcess.StandardOutput.ReadToEnd();
+      dafnyProcess.WaitForExit();
 
       if (dafnyProcess.ExitCode != 0) {
         Console.Out.WriteLine("Arguments:", processStartInfo.Arguments);

@@ -71,7 +71,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         }
         // The file system path is used as the program's name to identify the entry document. See PathExtensions
         return new Dafny.Program(document.GetFilePath(), module, builtIns, errorReporter);
-      } finally {
+      }
+      finally {
         _mutex.Release();
       }
     }

@@ -3,8 +3,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.IO;
 
-namespace Microsoft.Dafny.LanguageServer.Util
-{
+namespace Microsoft.Dafny.LanguageServer.Util {
   /// <summary>
   /// Collection of methods related to path operations to ensure that all path operations
   /// are compatible with each other.
