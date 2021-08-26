@@ -1757,7 +1757,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr) {
-      var fromType = (ArrowType) expr.Initializer.Type.NormalizeExpand();
+      var fromType = (ArrowType)expr.Initializer.Type.NormalizeExpand();
       wr.Write($"{DafnySeqClass}.Create(");
       TrExpr(expr.N, wr, inLetExprBody);
       wr.Write(", ");

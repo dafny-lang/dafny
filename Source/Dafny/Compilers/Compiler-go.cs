@@ -2694,14 +2694,14 @@ namespace Microsoft.Dafny {
       TrExpr(expr.N, wr, inLetExprBody);
       wr.Write(", ");
       var rawFromType = expr.Initializer.Type.NormalizeExpand();
-      var fromType = (UserDefinedType) rawFromType;
+      var fromType = (UserDefinedType)rawFromType;
       var atd = (ArrowTypeDecl)fromType.ResolvedClass;
       var tParam = new UserDefinedType(expr.tok, new TypeParameter(expr.tok, "X", TypeParameter.TPVarianceSyntax.NonVariant_Strict));
       var toType = new ArrowType(expr.tok, atd, new List<Type>() { Type.Int }, tParam);
       var initWr = EmitCoercionIfNecessary(fromType, toType, expr.tok, wr);
       TrExpr(expr.Initializer, initWr, inLetExprBody);
       wr.Write(")");
-      if (((ArrowType) rawFromType).Result.IsCharType) {
+      if (((ArrowType)rawFromType).Result.IsCharType) {
         wr.Write(".SetString()");
       }
     }
