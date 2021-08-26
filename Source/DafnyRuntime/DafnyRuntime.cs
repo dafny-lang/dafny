@@ -429,8 +429,14 @@ namespace Dafny
         return false;
       }
       foreach (T t in a.dict.Keys) {
-        if (!b.dict.ContainsKey(t) || b.dict[t] < a.dict[t]) {
-          return false;
+        if (b.dict.ContainsKey(t)) {
+          if (b.dict[t] < a.dict[t]) {
+            return false;
+          }
+        } else {
+          if (a.dict[t] != BigInteger.Zero) {
+            return false;
+          }
         }
       }
       return true;

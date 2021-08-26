@@ -70,20 +70,34 @@ method MultiSets() {
   var b : IntMultiSet := multiset{17, 82, 17, 82};
   var c := multiset{12, 17};
   var d := multiset{12, 12, 17};
-  var e := c[12 := 0];
   print "Multisets: ", a, " ", b, " ", c, "\n";
   print "  cardinality: ", |a|, " ", |b|, " ", |c|, "\n";
   print "  union: ", a + b, " ", b + c, "\n";
   print "  intersection: ", a * b, " ", b * c, "\n";
   print "  difference: ", a - b, " ", b - c, "\n";
-  print "  disjoint: ", a !! b, " ", b !! c, " ", c !! e, "\n";
+  print "  disjoint: ", a !! b, " ", b !! c, "\n";
   print "  subset: ", a <= b, " ", b <= c, " ", c <= c, " ", c <= d, "\n";
   print "  proper subset: ", a < b, " ", b < c, " ", c < c, " ", c < d, "\n";
   print "  superset: ", a >= b, " ", b >= a, " ", c >= c, "\n";
   print "  proper superset: ", a > b, " ", b > a, " ", c > c, "\n";
-  print "  membership: ", 17 in a, " ", 17 in b, " ", 17 in c, " ", 12 in e, "\n";
+  print "  membership: ", 17 in a, " ", 17 in b, " ", 17 in c, "\n";
   print "  update: ", a[17 := 2], " ", b[17 := 2], " ", c[17 := 2], "\n";
   print "  multiplicity: ", a[17], " ", b[17], " ", c[17], "\n";
+
+  zeroMultiplicity();
+}
+
+method zeroMultiplicity() {
+  var a := multiset{12}[12 := 0];
+  var b := multiset{42};
+  var c := multiset{1, 2}[1 := 0][2 := 0];
+  var d := multiset{12};
+  print "Test zero multiplicity:\n";
+  print "  membership: ", 12 in a, "\n";
+  print "  equality: ", a == b, "\n";
+  print "  subset: ", a <= b, " ", a <= c, " ", c <= a, "\n";
+  print "  strict subset: ", a < b, " ", a < c, " ", c < a, "\n";
+  print "  disjoint: ", d !! a, "\n";
 }
 
 // -------------------------------------------------------------------------------------------
