@@ -9,6 +9,12 @@ using Microsoft.Boogie;
 
 namespace DafnyServer.CounterExampleGeneration {
 
+  /// <summary>
+  /// A static class for generating instance of DafnyModelvariable and its
+  /// subclasses. The factory chooses which subclass of DafnyModelVariable to
+  /// employ depending on the DafnyModelType` of the `Element` for which the
+  /// variable is generated.
+  /// </summary>
   public static class DafnyModelVariableFactory {
 
     /// <summary>
@@ -46,6 +52,11 @@ namespace DafnyServer.CounterExampleGeneration {
     }
   }
 
+  /// <summary>
+  /// Represents a variable at a particular state. Note that a variable in Dafny
+  /// source can be represented by multiple DafnyModelVariables, one for each
+  /// DafnyModelState in DafnyModel.
+  /// </summary>
   public class DafnyModelVariable {
 
     public readonly string Name; // name given to the variable at creation
@@ -63,7 +74,7 @@ namespace DafnyServer.CounterExampleGeneration {
       this.state = state;
       Element = element;
       Type = state.Model.GetDafnyType(element);
-      children = new();
+      children = new Dictionary<string, HashSet<DafnyModelVariable>>();
       state.AddVar(element, this);
       if (parent == null) {
         Name = name;
@@ -82,7 +93,7 @@ namespace DafnyServer.CounterExampleGeneration {
 
     public virtual string Value {
       get {
-        string result = state.Model.CanonicalName(Element, state);
+        var result = state.Model.CanonicalName(Element);
         if (children.Count == 0)
           return result == "" ? "()" : result;
         List<(string ChildName, string ChildValue)> childList = new();
@@ -134,25 +145,34 @@ namespace DafnyServer.CounterExampleGeneration {
     }
   }
 
+  /// <summary>
+  /// a variable that has a different name but represents the same Element in
+  /// the same DafnyModelState as some other variable.
+  /// </summary>
   public class DuplicateVariable : DafnyModelVariable {
-    public readonly DafnyModelVariable original;
+
+    public readonly DafnyModelVariable Original;
 
     internal DuplicateVariable(DafnyModelState state, DafnyModelVariable original, string newName, DafnyModelVariable parent)
       : base(state, original.Element, newName, parent) {
-      this.original = original;
+      Original = original;
     }
 
-    public override string Value => original.ShortName;
+    public override string Value => Original.ShortName;
 
     public override IEnumerable<DafnyModelVariable> GetExpansion() {
-      return original.GetExpansion();
+      return Original.GetExpansion();
     }
   }
 
+  /// <summary>
+  /// a variable that represents a sequence. Allows displaying the sequence
+  /// using Dafny syntax.
+  /// </summary>
   public class SeqVariable : DafnyModelVariable {
 
     private DafnyModelVariable seqLength;
-    Dictionary<int, DafnyModelVariable> seqElements;
+    private readonly Dictionary<int, DafnyModelVariable> seqElements;
 
     internal SeqVariable(DafnyModelState state, Model.Element element, string name, DafnyModelVariable parent)
       : base(state, element, name, parent) {
@@ -167,7 +187,7 @@ namespace DafnyServer.CounterExampleGeneration {
           return base.Value;
         }
         List<string> result = new();
-        for (int i = 0; i < length; i++) {
+        for (var i = 0; i < length; i++) {
           if (!seqElements.ContainsKey(i)) {
             return base.Value;
           }
@@ -175,7 +195,7 @@ namespace DafnyServer.CounterExampleGeneration {
             seqElements[i].Value :
             seqElements[i].ShortName);
         }
-        return "[" + String.Join(", ", result) + "]";
+        return "[" + string.Join(", ", result) + "]";
       }
     }
 
@@ -183,9 +203,7 @@ namespace DafnyServer.CounterExampleGeneration {
       return (seqLength?.Element as Model.Integer)?.AsInt();
     }
 
-    public DafnyModelVariable GetAtIndex(int i) {
-      return seqElements.GetValueOrDefault(i, null);
-    }
+    public DafnyModelVariable this[int index] => seqElements.GetValueOrDefault(index, null);
 
     public void SetLength(DafnyModelVariable seqLength) {
       this.seqLength = seqLength;
@@ -199,31 +217,35 @@ namespace DafnyServer.CounterExampleGeneration {
     }
   }
 
+  /// <summary>
+  /// a variable that represents a map. Allows adding mappings to the map and
+  /// displaying the map using Dafny syntax.
+  /// </summary>
   public class MapVariable : DafnyModelVariable {
 
-    public readonly Dictionary<DafnyModelVariable, DafnyModelVariable> mappings = new();
+    public readonly Dictionary<DafnyModelVariable, DafnyModelVariable> Mappings = new();
 
     internal MapVariable(DafnyModelState state, Model.Element element, string name, DafnyModelVariable parent) : base(state, element, name, parent) { }
 
     public override string Value {
       get {
-        if (mappings.Count == 0)
+        if (Mappings.Count == 0)
           return "()";
         // maps a key value pair to how many times it appears in the map
         // a key value pair can appear many times in a map due to "?:int" etc.
         Dictionary<string, int> mapStrings = new();
-        foreach (var key in mappings.Keys) {
+        foreach (var key in Mappings.Keys) {
           var keyString = key.IsPrimitive ? key.Value : key.Name;
           var valueString = "?";
-          if (mappings[key] != null) {
-            valueString = mappings[key].IsPrimitive
-              ? mappings[key].Value
-              : mappings[key].Name;
+          if (Mappings[key] != null) {
+            valueString = Mappings[key].IsPrimitive
+              ? Mappings[key].Value
+              : Mappings[key].Name;
           }
           var mapString = keyString + " := " + valueString;
           mapStrings[mapString] = mapStrings.GetValueOrDefault(mapString, 0) + 1;
         }
-        return "(" + String.Join(", ", mapStrings.Keys.ToList()
+        return "(" + string.Join(", ", mapStrings.Keys.ToList()
           .ConvertAll(keyValuePair =>
             mapStrings[keyValuePair] == 1 ?
               keyValuePair :
@@ -232,10 +254,10 @@ namespace DafnyServer.CounterExampleGeneration {
     }
 
     public void AddMapping(DafnyModelVariable from, DafnyModelVariable to) {
-      if (mappings.ContainsKey(from)) {
+      if (Mappings.ContainsKey(from)) {
         return;
       }
-      mappings[from] = to;
+      Mappings[from] = to;
     }
   }
 
