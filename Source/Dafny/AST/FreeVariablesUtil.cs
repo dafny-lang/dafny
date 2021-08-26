@@ -2,10 +2,8 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 
-namespace Microsoft.Dafny
-{
-  public class FreeVariablesUtil
-  {
+namespace Microsoft.Dafny {
+  public class FreeVariablesUtil {
     /// <summary>
     /// Returns true iff
     ///   (if 'v' is non-null) 'v' occurs as a free variable in 'expr' or
@@ -93,7 +91,7 @@ namespace Microsoft.Dafny
       } else if (expr is ApplyExpr) {
         usesHeap = true; // because the translation of an ApplyExpr always throws in the heap variable
       } else if (expr is UnaryOpExpr) {
-        var e = (UnaryOpExpr) expr;
+        var e = (UnaryOpExpr)expr;
         if (e.Op == UnaryOpExpr.Opcode.Fresh) {
           var f = (FreshExpr)e;
           if (f.AtLabel == null) {
@@ -109,7 +107,7 @@ namespace Microsoft.Dafny
       // visit subexpressions
       bool uHeap = false, uOldHeap = false;
       Type uThis = null;
-      foreach(var subExpression in expr.SubExpressions) {
+      foreach (var subExpression in expr.SubExpressions) {
         ComputeFreeVariables(subExpression, fvs, ref uHeap, ref uOldHeap, freeHeapAtVariables, ref uThis);
       }
       Contract.Assert(usesThis == null || uThis == null || usesThis.Equals(uThis));

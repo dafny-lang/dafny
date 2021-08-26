@@ -10,7 +10,7 @@ using Microsoft.Boogie;
 namespace DafnyServer.CounterExampleGeneration {
 
   public static class DafnyModelVariableFactory {
-    
+
     /// <summary>
     /// Create a new variable to be associated with the given model element in
     /// a given counterexample state or return such a variable if one already
@@ -26,9 +26,9 @@ namespace DafnyServer.CounterExampleGeneration {
     /// <param name="duplicate">forces the creation of a new variable even if
     /// one already exists </param>
     /// <returns></returns>
-    public static DafnyModelVariable Get(DafnyModelState state, 
-      Model.Element element, string name, DafnyModelVariable parent=null, 
-      bool duplicate=false) {
+    public static DafnyModelVariable Get(DafnyModelState state,
+      Model.Element element, string name, DafnyModelVariable parent = null,
+      bool duplicate = false) {
       if (state.ExistsVar(element)) {
         parent?.AddChild(name, state.GetVar(element));
         if (!duplicate) {
@@ -45,9 +45,9 @@ namespace DafnyServer.CounterExampleGeneration {
       return new DafnyModelVariable(state, element, name, parent);
     }
   }
-  
+
   public class DafnyModelVariable {
-    
+
     public readonly string Name; // name given to the variable at creation
     public readonly string Type; // Dafny type of the variable
     internal readonly Model.Element Element;
@@ -58,7 +58,7 @@ namespace DafnyServer.CounterExampleGeneration {
     // many children called true and falls)
     private readonly Dictionary<string, HashSet<DafnyModelVariable>> children;
 
-    internal DafnyModelVariable(DafnyModelState state, Model.Element element, 
+    internal DafnyModelVariable(DafnyModelState state, Model.Element element,
       string name, DafnyModelVariable parent) {
       this.state = state;
       Element = element;
@@ -100,13 +100,13 @@ namespace DafnyServer.CounterExampleGeneration {
           return result + "{" + childValues + "}";
         }
         childValues = string.Join(", ",
-            childList.ConvertAll(tpl => tpl.Item1 + " := " + tpl.Item2)); 
+            childList.ConvertAll(tpl => tpl.Item1 + " := " + tpl.Item2));
         return result + "(" + childValues + ")";
       }
     }
 
     public bool IsPrimitive => DafnyModel.IsPrimitive(Element, state);
-    
+
     public string ShortName {
       get {
         var shortName = Regex.Replace(Name, @"#.*$", "");
@@ -146,9 +146,9 @@ namespace DafnyServer.CounterExampleGeneration {
       return original.GetExpansion();
     }
   }
-  
+
   public class SeqVariable : DafnyModelVariable {
-    
+
     private DafnyModelVariable seqLength;
     Dictionary<int, DafnyModelVariable> seqElements;
 
@@ -169,8 +169,8 @@ namespace DafnyServer.CounterExampleGeneration {
           if (!seqElements.ContainsKey(i)) {
             return base.Value;
           }
-          result.Add(seqElements[i].IsPrimitive ? 
-            seqElements[i].Value : 
+          result.Add(seqElements[i].IsPrimitive ?
+            seqElements[i].Value :
             seqElements[i].ShortName);
         }
         return "[" + String.Join(", ", result) + "]";
@@ -185,7 +185,7 @@ namespace DafnyServer.CounterExampleGeneration {
       if (index == null) {
         return;
       }
-      seqElements[(int) index] = e;
+      seqElements[(int)index] = e;
     }
   }
 
@@ -214,18 +214,18 @@ namespace DafnyServer.CounterExampleGeneration {
           mapStrings[mapString] = mapStrings.GetValueOrDefault(mapString, 0) + 1;
         }
         return "(" + String.Join(", ", mapStrings.Keys.ToList()
-          .ConvertAll(keyValuePair => 
-            mapStrings[keyValuePair] == 1 ? 
-              keyValuePair: 
-              keyValuePair + " [+"+ (mapStrings[keyValuePair] - 1) + "]")) + ")";
+          .ConvertAll(keyValuePair =>
+            mapStrings[keyValuePair] == 1 ?
+              keyValuePair :
+              keyValuePair + " [+" + (mapStrings[keyValuePair] - 1) + "]")) + ")";
       }
     }
-    
+
     public void AddMapping(DafnyModelVariable from, DafnyModelVariable to) {
       if (mappings.ContainsKey(from)) {
         return;
       }
       mappings[from] = to;
     }
-  }  
+  }
 }

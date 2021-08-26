@@ -2,8 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 
-namespace Microsoft.Dafny
-{
+namespace Microsoft.Dafny {
   public class FileSyntax : ICanRender {
     public readonly string Filename;
 
@@ -15,8 +14,7 @@ namespace Microsoft.Dafny
 
     public ConcreteSyntaxTree Tree { get; }
 
-    public void Render(TextWriter writer, int indentation, WriterState writerState, Queue<FileSyntax> files)
-    {
+    public void Render(TextWriter writer, int indentation, WriterState writerState, Queue<FileSyntax> files) {
       files.Enqueue(this);
     }
   }

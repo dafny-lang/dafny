@@ -24,7 +24,8 @@ namespace Microsoft.Dafny.LanguageServer {
             .WithDafnyLanguageServer(configuration)
         );
         await server.WaitForExit;
-      } finally {
+      }
+      finally {
         Log.CloseAndFlush();
       }
     }

@@ -1,10 +1,8 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
-namespace Microsoft.Dafny
-{
-  public class PrefixCallSubstituter : Substituter
-  {
+namespace Microsoft.Dafny {
+  public class PrefixCallSubstituter : Substituter {
     readonly ExtremePredicate extremePred;
     readonly Expression unrollDepth;
     readonly ModuleDefinition module;

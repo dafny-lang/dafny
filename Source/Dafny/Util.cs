@@ -11,9 +11,8 @@ using Microsoft.Boogie;
 
 
 namespace Microsoft.Dafny {
-  public static class Util
-  {
-    
+  public static class Util {
+
     public static string Comma(this IEnumerable<string> l) {
       return Comma(l, s => s);
     }
@@ -21,13 +20,12 @@ namespace Microsoft.Dafny {
     public static string Comma<T>(this IEnumerable<T> l, Func<T, string> f) {
       return Comma(", ", l, (element, index) => f(element));
     }
-    
+
     public static string Comma<T>(this IEnumerable<T> l, Func<T, int, string> f) {
       return Comma(", ", l, f);
     }
 
-    public static string Comma<T>(string comma, IEnumerable<T> l, Func<T, string> f)
-    {
+    public static string Comma<T>(string comma, IEnumerable<T> l, Func<T, string> f) {
       return Comma(comma, l, (element, index) => f(element));
     }
 
@@ -66,8 +64,7 @@ namespace Microsoft.Dafny {
       return n == 1 ? "" : "s";
     }
 
-    public static List<B> Map<A, B>(IEnumerable<A> xs, Func<A, B> f)
-    {
+    public static List<B> Map<A, B>(IEnumerable<A> xs, Func<A, B> f) {
       List<B> ys = new List<B>();
       foreach (A x in xs) {
         ys.Add(f(x));
@@ -97,19 +94,19 @@ namespace Microsoft.Dafny {
       return cpy;
     }
 
-    public static Dictionary<A,B> Dict<A,B>(IEnumerable<A> xs, IEnumerable<B> ys) {
-      return Dict<A,B>(LinqExtender.Zip(xs, ys));
+    public static Dictionary<A, B> Dict<A, B>(IEnumerable<A> xs, IEnumerable<B> ys) {
+      return Dict<A, B>(LinqExtender.Zip(xs, ys));
     }
 
-    public static Dictionary<A,B> Dict<A,B>(IEnumerable<Tuple<A,B>> xys) {
-      Dictionary<A,B> res = new Dictionary<A,B>();
+    public static Dictionary<A, B> Dict<A, B>(IEnumerable<Tuple<A, B>> xys) {
+      Dictionary<A, B> res = new Dictionary<A, B>();
       foreach (var p in xys) {
         res[p.Item1] = p.Item2;
       }
       return res;
     }
 
-    public static void AddToDict<A,B>(Dictionary<A,B> dict, List<A> xs, List<B> ys) {
+    public static void AddToDict<A, B>(Dictionary<A, B> dict, List<A> xs, List<B> ys) {
       Contract.Requires(dict != null);
       Contract.Requires(xs != null);
       Contract.Requires(ys != null);
@@ -411,8 +408,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class DependencyMap
-  {
+  public class DependencyMap {
     private Dictionary<string, SortedSet<string>> dependencies;
 
     public DependencyMap() {
@@ -455,7 +451,7 @@ namespace Microsoft.Dafny {
       }
     }
   }
-  
+
   class IEnumerableComparer<T> : IEqualityComparer<IEnumerable<T>> {
     public bool Equals(IEnumerable<T> x, IEnumerable<T> y) {
       return x.SequenceEqual(y);

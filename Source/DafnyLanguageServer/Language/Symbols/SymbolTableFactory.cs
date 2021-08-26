@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       var designatorVisitor = new DesignatorVisitor(_logger, program, declarations, compilationUnit, cancellationToken);
       var declarationLocationVisitor = new SymbolDeclarationLocationVisitor(cancellationToken);
       var symbolsResolved = !program.reporter.HasErrors;
-      if(symbolsResolved) {
+      if (symbolsResolved) {
         designatorVisitor.Visit(program);
         declarationLocationVisitor.Visit(compilationUnit);
       } else {
@@ -45,9 +45,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
     private static IDictionary<AstElement, ILocalizableSymbol> CreateDeclarationDictionary(CompilationUnit compilationUnit, CancellationToken cancellationToken) {
       var declarations = new Dictionary<AstElement, ILocalizableSymbol>();
-      foreach(var symbol in compilationUnit.GetAllDescendantsAndSelf()) {
+      foreach (var symbol in compilationUnit.GetAllDescendantsAndSelf()) {
         cancellationToken.ThrowIfCancellationRequested();
-        if(symbol is ILocalizableSymbol localizableSymbol) {
+        if (symbol is ILocalizableSymbol localizableSymbol) {
           // TODO we're using try-add since it appears that nodes of the System module are re-used accross several builtins.
           // TODO Maybe refine the mapping of the "declarations".
           declarations.TryAdd(localizableSymbol.Node, localizableSymbol);
@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       private readonly Dafny.Program _program;
       private readonly IDictionary<AstElement, ILocalizableSymbol> _declarations;
       private readonly DafnyLangTypeResolver _typeResolver;
-      private readonly IDictionary<AstElement, ISymbol> _designators =  new Dictionary<AstElement, ISymbol>();
+      private readonly IDictionary<AstElement, ISymbol> _designators = new Dictionary<AstElement, ISymbol>();
       private readonly CancellationToken _cancellationToken;
 
       private ISymbol _currentScope;
@@ -91,7 +91,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(ClassDecl classDeclaration) {
         _cancellationToken.ThrowIfCancellationRequested();
-        foreach(var parentTrait in classDeclaration.ParentTraits) {
+        foreach (var parentTrait in classDeclaration.ParentTraits) {
           RegisterTypeDesignator(_currentScope, parentTrait);
         }
         ProcessNestedScope(classDeclaration, classDeclaration.tok, () => base.Visit(classDeclaration));
@@ -128,7 +128,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       public override void Visit(ExprDotName expressionDotName) {
         _cancellationToken.ThrowIfCancellationRequested();
         base.Visit(expressionDotName);
-        if(_typeResolver.TryGetTypeSymbol(expressionDotName.Lhs, out var leftHandSideType)) {
+        if (_typeResolver.TryGetTypeSymbol(expressionDotName.Lhs, out var leftHandSideType)) {
           RegisterDesignator(leftHandSideType, expressionDotName, expressionDotName.tok, expressionDotName.SuffixName);
         }
       }
@@ -161,14 +161,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         // TODO We currently rely on the resolver to locate "NamePath" (i.e. the type designator).
         //      The "typeRhs" only points to the "new" keyword with its token.
         //      Find an alternative to get the type designator without requiring the resolver.
-        if(type is UserDefinedType userDefinedType) {
+        if (type is UserDefinedType userDefinedType) {
           RegisterDesignator(scope, type, userDefinedType.NamePath.tok, userDefinedType.Name);
         }
       }
 
       private void RegisterDesignator(ISymbol scope, AstElement node, Boogie.IToken token, string identifier) {
         var symbol = GetSymbolDeclarationByName(scope, identifier);
-        if(symbol != null) {
+        if (symbol != null) {
           // Many resolutions for automatically generated nodes (e.g. Decreases, Update when initializating a variable
           // at declaration) cause duplicated visits. These cannot be prevented at this time as it seems there's no way
           // to distinguish nodes from automatically created one (i.e. nodes of the original syntax tree vs. nodes of the
@@ -184,7 +184,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private void ProcessNestedScope(AstElement node, Boogie.IToken token, System.Action visit) {
-        if(!_program.IsPartOfEntryDocument(token)) {
+        if (!_program.IsPartOfEntryDocument(token)) {
           return;
         }
         var oldScope = _currentScope;
@@ -195,10 +195,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       private ILocalizableSymbol? GetSymbolDeclarationByName(ISymbol scope, string name) {
         var currentScope = scope;
-        while(currentScope != null) {
-          foreach(var child in currentScope.Children.OfType<ILocalizableSymbol>()) {
+        while (currentScope != null) {
+          foreach (var child in currentScope.Children.OfType<ILocalizableSymbol>()) {
             _cancellationToken.ThrowIfCancellationRequested();
-            if(child.Name == name) {
+            if (child.Name == name) {
               return child;
             }
           }
@@ -270,8 +270,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           fieldSymbol.Declaration.tok,
           fieldSymbol.Declaration.tok.GetLspRange(),
           fieldSymbol.Declaration.tok.GetLspRange()
-          // TODO BodyEndToken returns a token with location (0, 0)
-          //new Range(fieldSymbol.Declaration.tok.GetLspPosition(), fieldSymbol.Declaration.BodyEndTok.GetLspPosition())
+        // TODO BodyEndToken returns a token with location (0, 0)
+        //new Range(fieldSymbol.Declaration.tok.GetLspPosition(), fieldSymbol.Declaration.BodyEndTok.GetLspPosition())
         );
         VisitChildren(fieldSymbol);
         return Unit.Value;
@@ -326,13 +326,13 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private void VisitChildren(ISymbol symbol) {
-        foreach(var child in symbol.Children) {
+        foreach (var child in symbol.Children) {
           child.Accept(this);
         }
       }
 
       private void RegisterLocation(ISymbol symbol, Boogie.IToken token, Range name, Range declaration) {
-        if(token.filename != null) {
+        if (token.filename != null) {
           // The filename is null if we have a default or System based symbol. This is also reflected by the ranges being usually -1.
           Locations.Add(symbol, new SymbolLocation(token.GetDocumentUri(), name, declaration));
         }

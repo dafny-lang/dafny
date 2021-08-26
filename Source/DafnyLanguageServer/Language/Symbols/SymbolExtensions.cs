@@ -12,8 +12,8 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <returns>The descendants in pre-order of the given symbol.</returns>
     public static IEnumerable<ISymbol> GetAllDescendantsAndSelf(this ISymbol symbol) {
       yield return symbol;
-      foreach(var child in symbol.Children) {
-        foreach(var descendant in GetAllDescendantsAndSelf(child)) {
+      foreach (var child in symbol.Children) {
+        foreach (var descendant in GetAllDescendantsAndSelf(child)) {
           yield return descendant;
         }
       }
