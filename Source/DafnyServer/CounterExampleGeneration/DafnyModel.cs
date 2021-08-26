@@ -10,6 +10,12 @@ using Microsoft.Boogie;
 
 namespace DafnyServer.CounterExampleGeneration {
 
+  /// <summary>
+  /// a wrapper around Boogie's Model class that
+  /// defines Dafny specific functions and provides functionality for extracting
+  /// types and values of Elements representing Dafny variables. The three core
+  /// methods are: GetDafnyType, CanonicalName, and GetExpansion
+  /// </summary>
   public class DafnyModel {
 
     public readonly Model Model;
@@ -67,7 +73,7 @@ namespace DafnyServer.CounterExampleGeneration {
       fU2Int = model.MkFunc("U_2_int", 1);
       fTag = model.MkFunc("Tag", 1);
       fBv = model.MkFunc("TBitvector", 1);
-      InitArraysAndDatatypes();
+      InitArraysAndDataTypes();
       foreach (var s in model.States) {
         var sn = new DafnyModelState(this, s);
         States.Add(sn);
@@ -78,12 +84,12 @@ namespace DafnyServer.CounterExampleGeneration {
     /// Collect the array dimensions from the various array.Length functions,
     /// and collect all known datatype values
     /// </summary>
-    private void InitArraysAndDatatypes() {
+    private void InitArraysAndDataTypes() {
       foreach (var fn in Model.Functions) {
         if (Regex.IsMatch(fn.Name, "^_System.array[0-9]*.Length[0-9]*$")) {
           var j = fn.Name.IndexOf('.', 13);
           var dims = j == 13 ? 1 : int.Parse(fn.Name.Substring(13, j - 13));
-          var idx = j == 13 ? 0 : int.Parse(fn.Name.Substring(j + 7));
+          var idx = j == 13 ? 0 : int.Parse(fn.Name[(j + 7)..]);
           foreach (var tpl in fn.Apps) {
             var elt = tpl.Args[0];
             var len = tpl.Result;
@@ -205,7 +211,7 @@ namespace DafnyServer.CounterExampleGeneration {
         return "SetType";
       }
       if (Model.GetFunc("MapTypeInv0").OptEval(typeElement) != null) {
-        return "MapType"; // TODO: make sure this clearly differentiates maps
+        return "MapType";
       }
       return null;
     }
@@ -391,7 +397,7 @@ namespace DafnyServer.CounterExampleGeneration {
     /// Return "" if !IsPrimitive(elt, state) unless elt is a datatype,
     /// in which case return the corresponding constructor name.
     /// </summary>
-    public string CanonicalName(Model.Element elt, DafnyModelState state) {
+    public string CanonicalName(Model.Element elt) {
       if (elt == null) {
         return "?";
       }
@@ -417,11 +423,11 @@ namespace DafnyServer.CounterExampleGeneration {
       }
       if (elt.Kind == Model.ElementKind.DataValue) {
         if (((Model.DatatypeValue)elt).ConstructorName == "-") {
-          return "-" + CanonicalName(((Model.DatatypeValue)elt).Arguments.First(), state);
+          return "-" + CanonicalName(((Model.DatatypeValue)elt).Arguments.First());
         }
         if (((Model.DatatypeValue)elt).ConstructorName == "/") {
-          return CanonicalName(((Model.DatatypeValue)elt).Arguments.First(), state) +
-                 "/" + CanonicalName(((Model.DatatypeValue)elt).Arguments[1], state);
+          return CanonicalName(((Model.DatatypeValue)elt).Arguments.First()) +
+                 "/" + CanonicalName(((Model.DatatypeValue)elt).Arguments[1]);
         }
       }
       if (datatypeValues.TryGetValue(elt, out var fnTuple)) {
@@ -437,19 +443,19 @@ namespace DafnyServer.CounterExampleGeneration {
       }
       if (fType.OptEval(elt) == fReal.GetConstant()) {
         if (fU2Real.OptEval(elt) != null) {
-          return CanonicalName(fU2Real.OptEval(elt), state);
+          return CanonicalName(fU2Real.OptEval(elt));
         }
         return "?#" + GetShortElementId(elt);
       }
       if (fType.OptEval(elt) == fBool.GetConstant()) {
         if (fU2Bool.OptEval(elt) != null) {
-          return CanonicalName(fU2Bool.OptEval(elt), state);
+          return CanonicalName(fU2Bool.OptEval(elt));
         }
         return "?#" + GetShortElementId(elt);
       }
       if (fType.OptEval(elt) == fInt.GetConstant()) {
         if (fU2Int.OptEval(elt) != null) {
-          return CanonicalName(fU2Int.OptEval(elt), state);
+          return CanonicalName(fU2Int.OptEval(elt));
         }
         return "?#" + GetShortElementId(elt);
       }
@@ -552,7 +558,7 @@ namespace DafnyServer.CounterExampleGeneration {
       if (mapDomain != null && mapElements != null) {
         foreach (var app in fSetSelect.AppsWithArg(0, mapDomain)) {
           if (!((Model.Boolean)app.Result).Value) {
-            continue; // TODO: maybe do something else in this situation?
+            continue;
           }
           var key = DafnyModelVariableFactory.Get(state, Unbox(app.Args[1]), "", var);
           result.Add(key);
@@ -638,7 +644,7 @@ namespace DafnyServer.CounterExampleGeneration {
           elt = dimTuple.Args[0];
         }
       }
-      return "[" + String.Join(",", indices.ToList().
+      return "[" + string.Join(",", indices.ToList().
         ConvertAll(element => element.ToString())) + "]";
     }
 

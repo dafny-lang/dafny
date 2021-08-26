@@ -985,23 +985,61 @@ module Mo_dule_ {
     }
 
     [TestMethod]
-    public void DafnyModelTypeFromString() {
-      var type1 = DafnyModelType.FromString("seq<int, char>");
-      Assert.AreEqual("seq", type1.Name);
-      Assert.AreEqual(2, type1.TypeArgs.Count);
-      Assert.AreEqual("int", type1.TypeArgs[0].Name);
-      Assert.AreEqual("char", type1.TypeArgs[1].Name);
-      Assert.AreEqual(0, type1.TypeArgs[0].TypeArgs.Count);
-      Assert.AreEqual(0, type1.TypeArgs[1].TypeArgs.Count);
-      var type2 = DafnyModelType.FromString("seq<map<char, int>>");
-      Assert.AreEqual("seq", type2.Name);
-      Assert.AreEqual(1, type2.TypeArgs.Count);
-      Assert.AreEqual("map", type2.TypeArgs[0].Name);
-      Assert.AreEqual(2, type2.TypeArgs[0].TypeArgs.Count);
-      Assert.AreEqual("char", type2.TypeArgs[0].TypeArgs[0].Name);
-      Assert.AreEqual("int", type2.TypeArgs[0].TypeArgs[1].Name);
-      Assert.AreEqual(0, type2.TypeArgs[0].TypeArgs[0].TypeArgs.Count);
-      Assert.AreEqual(0, type2.TypeArgs[0].TypeArgs[1].TypeArgs.Count);
+    public void DafnyModelTypeMultipleArguments() {
+      var type = DafnyModelType.FromString("seq<int, char>");
+      Assert.AreEqual("seq", type.Name);
+      Assert.AreEqual(2, type.TypeArgs.Count);
+      Assert.AreEqual("int", type.TypeArgs[0].Name);
+      Assert.AreEqual("char", type.TypeArgs[1].Name);
+      Assert.AreEqual(0, type.TypeArgs[0].TypeArgs.Count);
+      Assert.AreEqual(0, type.TypeArgs[1].TypeArgs.Count);
+    }
+
+
+    [TestMethod]
+    public void DafnyModelTypeNestedArguments() {
+      var type = DafnyModelType.FromString("seq<map<char, int>>");
+      Assert.AreEqual("seq", type.Name);
+      Assert.AreEqual(1, type.TypeArgs.Count);
+      Assert.AreEqual("map", type.TypeArgs[0].Name);
+      Assert.AreEqual(2, type.TypeArgs[0].TypeArgs.Count);
+      Assert.AreEqual("char", type.TypeArgs[0].TypeArgs[0].Name);
+      Assert.AreEqual("int", type.TypeArgs[0].TypeArgs[1].Name);
+      Assert.AreEqual(0, type.TypeArgs[0].TypeArgs[0].TypeArgs.Count);
+      Assert.AreEqual(0, type.TypeArgs[0].TypeArgs[1].TypeArgs.Count);
+    }
+
+    [TestMethod]
+    public void DafnyModelTypeComplexCase() {
+      var type = DafnyModelType.FromString("Custom<Value<set<map<bv6, real>>>, map<char, int>, array<bool>>");
+      Assert.AreEqual("Custom", type.Name);
+      Assert.AreEqual(3, type.TypeArgs.Count);
+      var arg = type.TypeArgs[0];
+      Assert.AreEqual("Value", arg.Name);
+      Assert.AreEqual(1, arg.TypeArgs.Count);
+      arg = arg.TypeArgs[0];
+      Assert.AreEqual("set", arg.Name);
+      Assert.AreEqual(1, arg.TypeArgs.Count);
+      arg = arg.TypeArgs[0];
+      Assert.AreEqual("map", arg.Name);
+      Assert.AreEqual(2, arg.TypeArgs.Count);
+      Assert.AreEqual("bv6", arg.TypeArgs[0].Name);
+      Assert.AreEqual("real", arg.TypeArgs[1].Name);
+      Assert.AreEqual(0, arg.TypeArgs[0].TypeArgs.Count);
+      Assert.AreEqual(0, arg.TypeArgs[1].TypeArgs.Count);
+      arg = type.TypeArgs[1];
+      Assert.AreEqual("map", arg.Name);
+      Assert.AreEqual(2, arg.TypeArgs.Count);
+      Assert.AreEqual("char", arg.TypeArgs[0].Name);
+      Assert.AreEqual("int", arg.TypeArgs[1].Name);
+      Assert.AreEqual(0, arg.TypeArgs[0].TypeArgs.Count);
+      Assert.AreEqual(0, arg.TypeArgs[1].TypeArgs.Count);
+      arg = type.TypeArgs[2];
+      Assert.AreEqual("array", arg.Name);
+      Assert.AreEqual(1, arg.TypeArgs.Count);
+      arg = arg.TypeArgs[0];
+      Assert.AreEqual("bool", arg.Name);
+      Assert.AreEqual(0, arg.TypeArgs.Count);
     }
   }
 }

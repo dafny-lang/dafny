@@ -15,7 +15,7 @@ feature of Dafny:
   - `GetExpansion`, which computes all the "children" of a particular variable,
     that is fields for objects, destructor values for datatypes, elements for
     sequences, etc.
-- [DafnyModelState](DafnyModelState.cs) - Represent a state in a `DafnyModel`
+- [DafnyModelState](DafnyModelState.cs) - Represents a state in a `DafnyModel`
   and captures the values of all variables at a particular point in the code.
 - [DafnyModelVariable](DafnyModelVariable.cs) - Represents a variable at a
   particular state. Note that a variable in Dafny source can be represented by
@@ -31,7 +31,7 @@ feature of Dafny:
   generating instance of `DafnyModelvariable` and its subclasses. The factory
   chooses which subclass of `DafnyModelVariable` to employ depending on the
   `DafnyModelType` of the `Element` for which the variable is generated.
-- [DafnyModelType](DafnyModelVariable.cs) - Represents the type of a
+- [DafnyModelType](DafnyModelType.cs) - Represents the type of a
   `DafnyModelVariable`. The `InDafnyFormat` method allows to reconstruct the
   original Dafny type name from its Boogie translation (e.g.
   `Mo_dule_.Module2_.Cla__ss` from `Mo__dule___mModule2__.Cla____ss`).
