@@ -889,7 +889,10 @@ namespace Microsoft.Dafny {
         return $"{DafnySetClass}.Empty";
       } else if (xType is MultiSetType) {
         return $"{DafnyMultiSetClass}.Empty";
-      } else if (xType is SeqType) {
+      } else if (xType is SeqType seq) {
+        if (seq.Arg.IsCharType) {
+          return "''";
+        }
         return $"{DafnySeqClass}.of()";
       } else if (xType is MapType) {
         return $"{DafnyMapClass}.Empty";
@@ -1754,11 +1757,15 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr) {
+      var fromType = (ArrowType) expr.Initializer.Type.NormalizeExpand();
       wr.Write($"{DafnySeqClass}.Create(");
       TrExpr(expr.N, wr, inLetExprBody);
       wr.Write(", ");
       TrExpr(expr.Initializer, wr, inLetExprBody);
       wr.Write(")");
+      if (fromType.Result.IsCharType) {
+        wr.Write(".join('')");
+      }
     }
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr) {
