@@ -6810,9 +6810,28 @@ namespace Microsoft.Dafny {
         return total;
       } else if (expr is ApplyExpr) {
         ApplyExpr e = (ApplyExpr)expr;
+
+        Func<Expression, Bpl.Expr> TrArg = arg => {
+          Bpl.Expr inner = etran.TrExpr(arg);
+          if (ModeledAsBoxType(arg.Type)) {
+            return inner;
+          } else {
+            return FunctionCall(arg.tok, BuiltinFunction.Box, null, inner);
+          }
+        };
+
+        var args = Concat(
+          Map(e.Function.Type.AsArrowType.TypeArgs, TypeToTy),
+          Cons(etran.HeapExpr,
+          Cons(etran.TrExpr(e.Function),
+          e.Args.ConvertAll(arg => TrArg(arg)))));
+
+        var requiresk = FunctionCall(e.tok, Requires(e.Args.Count), Bpl.Type.Bool, args);
         return BplAnd(
-          Cons(CanCallAssumption(e.Function, etran, cco),
-          e.Args.ConvertAll(ee => CanCallAssumption(ee, etran, cco))));
+                BplAnd(
+                  Cons(CanCallAssumption(e.Function, etran, cco),
+                  e.Args.ConvertAll(ee => CanCallAssumption(ee, etran, cco)))),
+                requiresk);
       } else if (expr is FunctionCallExpr) {
         FunctionCallExpr e = (FunctionCallExpr)expr;
         Bpl.Expr r = CanCallAssumption(e.Receiver, etran, cco);
