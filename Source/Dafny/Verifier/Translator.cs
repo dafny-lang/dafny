@@ -12102,8 +12102,9 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Generate:
-    ///   assume (forall x,y :: Range(x,y)[$Heap:=oldHeap] ==>
-    ///                         $Heap[ Object(x,y)[$Heap:=oldHeap], Field(x,y)[$Heap:=oldHeap] ] == G[$Heap:=oldHeap] ));
+    ///   assume (forall x,y :: Range#canCall AND
+    ///                         (Range(x,y)[$Heap:=oldHeap] ==>
+    ///                           $Heap[ Object(x,y)[$Heap:=oldHeap], Field(x,y)[$Heap:=oldHeap] ] == G[$Heap:=oldHeap])));
     /// where
     ///   x,y           represent boundVars
     ///   Object(x,y)   is the first part of lhs
@@ -12151,7 +12152,12 @@ namespace Microsoft.Dafny {
           tr = new Bpl.Trigger(tok, true, tt, tr);
         }
       }
-      return new Bpl.ForallExpr(tok, xBvars, tr, Bpl.Expr.Imp(xAnte, Bpl.Expr.Eq(xHeapOF, g)));
+      var canCalls = BplAnd(CanCallAssumption(lhs, prevEtran), CanCallAssumption(rhs, prevEtran));
+      var canCallRange = CanCallAssumption(range, prevEtran);
+      var body = BplAnd(canCalls, Bpl.Expr.Eq(xHeapOF, g));
+      body = BplImp(xAnte, body);
+      body = BplAnd(canCallRange, body);
+      return new Bpl.ForallExpr(tok, xBvars, tr, body);
     }
 
     delegate Bpl.Expr ExpressionConverter(Dictionary<IVariable, Expression> substMap, ExpressionTranslator etran);
