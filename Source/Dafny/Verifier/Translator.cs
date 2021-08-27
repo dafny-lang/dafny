@@ -12507,7 +12507,8 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(loopInv.E, invDefinednessBuilder, locals, etran, false);
         invDefinednessBuilder.Add(TrAssumeCmd(loopInv.E.tok, etran.TrExpr(loopInv.E)));
 
-        invariants.Add(TrAssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, CanCallAssumption(loopInv.E, etran))));
+        builder.Add(TrAssumeCmd(loopInv.E.tok, BplImp(w, CanCallAssumption(loopInv.E, etran))));
+        invariants.Add(TrAssumeCmd(loopInv.E.tok, BplImp(w, CanCallAssumption(loopInv.E, etran))));
         bool splitHappened;
         var ss = TrSplitExpr(loopInv.E, etran, false, out splitHappened);
         if (!splitHappened) {
@@ -12526,6 +12527,7 @@ namespace Microsoft.Dafny {
       }
       // check definedness of decreases clause
       foreach (Expression e in theDecreases) {
+        builder.Add(TrAssumeCmd(e.tok, Bpl.Expr.Imp(w, CanCallAssumption(e, etran))));
         TrStmt_CheckWellformed(e, invDefinednessBuilder, locals, etran, true);
       }
       if (codeContext is IMethodCodeContext) {
@@ -12611,7 +12613,12 @@ namespace Microsoft.Dafny {
           // omit termination checking for this loop
           bodyTr(loopBodyBuilder, updatedFrameEtran);
         } else {
-          List<Bpl.Expr> oldBfs = RecordDecreasesValue(theDecreases, loopBodyBuilder, locals, etran, "$decr$" + suffix);
+
+          foreach (Expression e in theDecreases) {
+            loopBodyBuilder.Add(TrAssumeCmd(e.tok, BplImp(w, CanCallAssumption(e, etran))));
+          }
+
+            List<Bpl.Expr> oldBfs = RecordDecreasesValue(theDecreases, loopBodyBuilder, locals, etran, "$decr$" + suffix);
           // time for the actual loop body
           bodyTr(loopBodyBuilder, updatedFrameEtran);
           // check definedness of decreases expressions
@@ -12622,6 +12629,8 @@ namespace Microsoft.Dafny {
             toks.Add(e.tok);
             types.Add(e.Type.NormalizeExpand());
             decrs.Add(etran.TrExpr(e));
+            // need to add can calls again because the actual loop body updates the variables
+            loopBodyBuilder.Add(TrAssumeCmd(e.tok, BplImp(w, CanCallAssumption(e, etran))));
           }
           if (includeTerminationCheck) {
             AddComment(loopBodyBuilder, s, "loop termination check");
