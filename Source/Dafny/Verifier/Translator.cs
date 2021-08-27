@@ -12285,13 +12285,17 @@ namespace Microsoft.Dafny {
             var arg = Substitute(s0.Args[i], null, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());  // substitute the renamed bound variables for the declared ones
             argsSubstMap.Add(s0.Method.Ins[i], new BoogieWrapper(initEtran.TrExpr(arg), s0.Args[i].Type));
           }
-          ante = BplAnd(ante, initEtran.TrExpr(Substitute(range, null, substMap)));
+          var rangeSubst = Substitute(range, null, substMap);
+          var r = BplImp(CanCallAssumption(rangeSubst, initEtran), initEtran.TrExpr(rangeSubst));
+          ante = BplAnd(ante, r);
           if (additionalRange != null) {
+            // additionalRange produces something of the form canCallAssumptions ==> TrExpr
             ante = BplAnd(ante, additionalRange(substMap, initEtran));
           }
           var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents())), s0.Receiver.Type);
           foreach (var ens in s0.Method.Ens) {
             var p = Substitute(ens.E, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());  // substitute the call's actuals for the method's formals
+            post = BplAnd(post, CanCallAssumption(p, callEtran));
             post = BplAnd(post, callEtran.TrExpr(p));
           }
           tr = antitriggerBoundVarTypes;
@@ -12379,6 +12383,7 @@ namespace Microsoft.Dafny {
 
         // check that postconditions hold
         foreach (var ens in s.Ens) {
+          definedness.Add(TrAssumeCmd(ens.E.tok, CanCallAssumption(ens.E, etran)));
 
           bool splitHappened;  // we actually don't care
           foreach (var split in TrSplitExpr(ens.E, etran, true, out splitHappened)) {
@@ -12398,11 +12403,9 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       var p = Substitute(s.ForallExpressions[0], null, substMap);
       var qq = etran.TrExpr(p);
-      if (s.BoundVars.Count != 0) {
-        exporter.Add(TrAssumeCmd(s.Tok, BplAnd(se, qq)));
-      } else {
-        exporter.Add(TrAssumeCmd(s.Tok, BplAnd(se, ((Bpl.ForallExpr)qq).Body)));
-      }
+      var expr = (s.BoundVars.Count != 0) ? BplAnd(se, qq) : BplAnd(se, ((Bpl.ForallExpr)qq).Body);
+      exporter.Add(TrAssumeCmd(s.Tok, CanCallAssumption(p, etran)));
+      exporter.Add(TrAssumeCmd(s.Tok, expr));
     }
 
     private string GetObjFieldDetails(Expression lhs, ExpressionTranslator etran, out Bpl.Expr obj, out Bpl.Expr F) {
