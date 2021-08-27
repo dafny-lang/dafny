@@ -83,11 +83,10 @@ namespace DafnyDriver.Test.XUnitExtensions {
     }
 
     public CLITestCase(Assembly cliAssembly, IEnumerable<string> arguments, 
-                       string workingDirectory, IEnumerable<string> passthroughEnvironmentVariables,
+                       IEnumerable<string> passthroughEnvironmentVariables,
                        Expectation expected) {
       CLIAssembly = cliAssembly;
       Arguments = arguments.ToArray();
-      WorkingDirectory = workingDirectory;
       PassthroughEnvironmentVariables = passthroughEnvironmentVariables;
       Expected = expected;
     }
@@ -141,8 +140,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
       process.StartInfo.UseShellExecute = false;
       process.StartInfo.RedirectStandardOutput = true;
       process.StartInfo.RedirectStandardError = true;
-      process.StartInfo.CreateNoWindow = true;
-      process.StartInfo.WorkingDirectory = WorkingDirectory;
+      process.StartInfo.CreateNoWindow = true; 
 
       process.StartInfo.EnvironmentVariables.Clear();
       foreach(var passthrough in PassthroughEnvironmentVariables) {

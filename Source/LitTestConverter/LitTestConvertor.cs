@@ -20,36 +20,25 @@ namespace LitTestConvertor {
     public const string TEST_CONFIG_OTHER_FILES = "otherFiles";
     public const string TEST_CONFIG_INCLUDE_THIS_FILE = "includeThisFile";
     
-    // Arguments that are taken care of automatically. If a test is actually using the output of
-    // one of these as input in another command, that will be flagged as an unsupported
-    // use of lit substitution.
-    private static readonly string[] DAFNY_IGNORED_OPTIONS = {
-      "print",
-      "dprint",
-      "rprint"
-    };
-    
     private int count = 0;
     private int verifyOnlyCount = 0;
     private int defaultCount = 0;
     private int alreadyConverted = 0;
     private int invalidCount = 0;
 
-    public void ConvertLitTest(string filePath) {
+    public void ConvertLitTest(string basePath, string filePath) {
       IEnumerable<CLITestCase> testSpec;
       IEnumerable<string> testContent;
       if (filePath.Contains("/Inputs/")) {
         testSpec = Enumerable.Empty<CLITestCase>();
         testContent = File.ReadAllLines(filePath);
       } else {
-        (testSpec, testContent) = ConvertLitCommands(filePath, File.ReadAllLines(filePath));
+        (testSpec, testContent) = ConvertLitCommands(basePath, filePath, File.ReadAllLines(filePath));
       }
       
       ISerializer serializer = new SerializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults)
-        .WithTagMapping("!dafnyTestSpec", typeof(DafnyTestSpec))
-        .WithTagMapping("!foreach", typeof(ForEachArgumentList))
         .Build();
       
       using (StreamWriter file = new StreamWriter(filePath)) {
@@ -65,7 +54,7 @@ namespace LitTestConvertor {
       }
     }
 
-    public (IEnumerable<CLITestCase> spec, IEnumerable<string> content) ConvertLitCommands(string filePath, IEnumerable<string> lines) {
+    public (IEnumerable<CLITestCase> spec, IEnumerable<string> content) ConvertLitCommands(string basePath, string filePath, IEnumerable<string> lines) {
       var litCommands = lines.Select(ExtractLitCommand).TakeWhile(c => c != null).ToList();
       if (!litCommands.Any()) {
         throw new ArgumentException("No lit commands found");
@@ -87,25 +76,13 @@ namespace LitTestConvertor {
       }
       litCommands.RemoveAt(litCommands.Count - 1);
       
-      List<CLITestCase> testConfigs = litCommands.Select(c => ParseDafnyCommandArguments(filePath, c)).ToList();
+      List<CLITestCase> testConfigs = litCommands.Select(c => ParseDafnyCommandArguments(basePath, filePath, c)).ToList();
 
       if (testConfigs.Count == 1) {
         return (testConfigs, testContent);
       } 
       
       throw new ArgumentException("Multi-command lit tests require manual conversion");
-    }
-    
-    private static bool IsStandardCompileAndRun(DafnyTestSpec spec) {
-      
-      return spec.CompileTarget != null &&
-             ((spec.Compile == 3 && spec.DafnyArguments.Count == 2) ||
-              // /compile:4 might be used with /noVerify
-              (spec.Compile == 4 && spec.DafnyArguments.Count <= 3));
-    }
-    
-    private static bool IsStandardVerifyOnly(DafnyTestSpec spec) {
-      return spec.Compile == 0 && spec.DafnyArguments.Count == 1;
     }
     
     private static string ExtractLitCommand(string line) {
@@ -120,7 +97,7 @@ namespace LitTestConvertor {
       return line.Substring(LIT_COMMAND_PREFIX.Length).Trim();
     }
         
-    private CLITestCase ParseDafnyCommandArguments(string filePath, string dafnyCommand) {
+    private CLITestCase ParseDafnyCommandArguments(string basePath, string filePath, string dafnyCommand) {
       bool includeThisFile = true;
       List<string> otherFiles = new();
       Dictionary<string, object> dafnyArguments = new();
@@ -150,9 +127,6 @@ namespace LitTestConvertor {
       // Check the arguments for anything non-standard
       foreach (var argument in arguments) {
         var (key, value) = ParseDafnyArgument(argument);
-        if (DAFNY_IGNORED_OPTIONS.Contains(key)) {
-          continue;
-        }
         if (value.Contains("%")) {
           throw new ArgumentException("Use of lit substitution (% variable) requires manual conversion: " + argument);
         }
@@ -165,7 +139,7 @@ namespace LitTestConvertor {
 
       var expected = new CLITestCase.Expectation(0, filePath + ".expect", null);
       
-      return new DafnyTestCase(filePath, dafnyArguments, otherFiles, expected);
+      return new DafnyTestCase(basePath, filePath, dafnyArguments, otherFiles, expected);
     }
 
     private static (string, string) ParseDafnyArgument(string argument) {
@@ -185,13 +159,13 @@ namespace LitTestConvertor {
     public void Run(string root) {
       // TODO-RS: Search for "*.transcript" too
       if (!Directory.Exists(root)) {
-        ConvertLitTest(root);
+        ConvertLitTest(root, root);
         return;
       }
       foreach (var file in Directory.GetFiles(root, "*.dfy", SearchOption.AllDirectories)) {
         try {
           count++;
-          ConvertLitTest(file);
+          ConvertLitTest(root, file);
         } catch (ArgumentException e) {
           invalidCount++;
           Console.WriteLine(file + ": " + e.Message);

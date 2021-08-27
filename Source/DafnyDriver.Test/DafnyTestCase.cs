@@ -12,10 +12,9 @@ namespace DafnyDriver.Test {
    * Specialization of CLITestCase that mainly exists to support a much more
    * concise definition of ToString().
    */
-  public class DafnyTestCase : CLITestCase
-  {
+  public class DafnyTestCase : CLITestCase {
 
-    private static readonly Assembly DafnyDriverAssembly = Assembly.GetAssembly(typeof(Microsoft.Dafny.DafnyDriver));
+    private static readonly Assembly dafnyDriverAssembly = Assembly.GetAssembly(typeof(Microsoft.Dafny.DafnyDriver));
     
     private static readonly Dictionary<string, object> defaultDafnyOptions = new() {
       ["countVerificationErrors"] = "0",
@@ -25,7 +24,10 @@ namespace DafnyDriver.Test {
 
       // We do not want output such as "Compiled program written to Foo.cs"
       // from the compilers, since that changes with the target language
-      ["compileVerbose"] = "0"
+      ["compileVerbose"] = "0",
+      
+      // Hide Boogie execution traces since they are meaningless for Dafny programs
+      ["errorTrace"] = "0"
     };
 
     private static IEnumerable<string> OptionsToFullArguments(string sourcePath,
@@ -52,15 +54,16 @@ namespace DafnyDriver.Test {
       return $"/{pair.Key}:{pair.Value}";
     }
 
-    public string SourcePath;
+    private string BasePath;
+    private string SourcePath;
     
-    public Dictionary<string, object> DafnyOptions = new();
-    public List<string> OtherFiles = new();
+    private Dictionary<string, object> DafnyOptions = new();
+    private List<string> OtherFiles = new();
 
-    public DafnyTestCase(string sourcePath, Dictionary<string, object> dafnyOptions, List<string> otherFiles, Expectation expected)
-      : base(DafnyDriverAssembly, OptionsToFullArguments(sourcePath, dafnyOptions, otherFiles), null, new List<string>(), expected)
-    {
-      SourcePath = sourcePath;
+    public DafnyTestCase(string basePath, string fullSourcePath, Dictionary<string, object> dafnyOptions, List<string> otherFiles, Expectation expected)
+      : base(dafnyDriverAssembly, OptionsToFullArguments(fullSourcePath, dafnyOptions, otherFiles), new List<string>(), expected) {
+      BasePath = basePath;
+      SourcePath = fullSourcePath;
       DafnyOptions = dafnyOptions;
       OtherFiles = otherFiles;
     }
@@ -71,6 +74,7 @@ namespace DafnyDriver.Test {
     
     public void Serialize(IXunitSerializationInfo info) {
       base.Serialize(info);
+      info.AddValue(nameof(BasePath), BasePath);
       info.AddValue(nameof(SourcePath), SourcePath);
       info.AddValue(nameof(DafnyOptions), DafnyOptions);
       info.AddValue(nameof(OtherFiles), OtherFiles);
@@ -78,13 +82,15 @@ namespace DafnyDriver.Test {
     
     public void Deserialize(IXunitSerializationInfo info) {
       base.Deserialize(info);
+      BasePath = info.GetValue<string>(nameof(BasePath));
       SourcePath = info.GetValue<string>(nameof(SourcePath));
       DafnyOptions = info.GetValue<Dictionary<string, object>>(nameof(DafnyOptions));
       OtherFiles = info.GetValue<List<string>>(nameof(OtherFiles));
     }
     
     public override string ToString() {
-      return String.Join(" ", OptionsToArguments(SourcePath, DafnyOptions, OtherFiles))  + " => " + Expected;
+      var relativePath = SourcePath[(BasePath.Length + 1)..];
+      return String.Join(" ", OptionsToArguments(relativePath, DafnyOptions, OtherFiles));
     }
   }
 }
