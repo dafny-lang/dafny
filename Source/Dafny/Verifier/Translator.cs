@@ -11405,6 +11405,7 @@ namespace Microsoft.Dafny {
           b.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
           ifCmd = new Bpl.IfCmd(s.Tok, null, b.Collect(s.Tok), ifCmd, null);
           builder.Add(ifCmd);
+          builder.Add(TrAssumeCmd(s.Result.tok, CanCallAssumption(s.Result, etran)));
           // assume result:
           if (s.Steps.Count > 1) {
             builder.Add(TrAssumeCmd(s.Tok, etran.TrExpr(s.Result)));
