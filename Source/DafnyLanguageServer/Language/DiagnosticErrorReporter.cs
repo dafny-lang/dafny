@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -24,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
               // During parsing, we store absolute paths to make reconstructing the Uri easier
               // https://github.com/dafny-lang/dafny/blob/06b498ee73c74660c61042bb752207df13930376/Source/DafnyLanguageServer/Language/DafnyLangParser.cs#L59 
-              Uri = DocumentUri.FromFileSystemPath(auxErrorInfo.Tok.filename)
+              Uri = auxErrorInfo.Tok.GetDocumentUri()
             }
           });
         } else {
@@ -34,7 +35,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           if (auxErrorInfo.Tok.line > 0) {
             Info(verifierMessageSource, auxErrorInfo.Tok, auxErrorInfo.Msg);
           }
-
         }
       }
       var item = new Diagnostic {
@@ -67,7 +67,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       if (counts.TryGetValue(ToSeverity(level), out var count)) {
         return count;
       }
-
       return 0;
     }
 
