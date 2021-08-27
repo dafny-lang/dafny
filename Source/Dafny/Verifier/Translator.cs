@@ -7905,6 +7905,7 @@ namespace Microsoft.Dafny {
           // check that the preconditions for the call hold
           foreach (AttributedExpression p in e.Function.Req) {
             Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
+            builder.Add(TrAssumeCmd(precond.tok, CanCallAssumption(precond, etran)));
             bool splitHappened;  // we don't actually care
             string errorMessage = CustomErrorMessage(p.Attributes);
             foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
