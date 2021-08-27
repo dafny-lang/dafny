@@ -5842,16 +5842,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
 
       // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
-      Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
-      Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
-      Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
-      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
-      Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
-      Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
-      Bpl.Expr oInCallee = InRWClause(tok, o, f, calleeFrame, etran, receiverReplacement, substMap);
+      var alpha = new Bpl.TypeVariable(tok, "alpha");
+      var oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
+      var o = new Bpl.IdentifierExpr(tok, oVar);
+      var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      var f = new Bpl.IdentifierExpr(tok, fVar);
+      var ante = BplAnd(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
+      var oInCallee = InRWClause(tok, o, f, calleeFrame, etran, receiverReplacement, substMap);
       Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(etran.TheFrame(tok), o, f);
       Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
-                                      Bpl.Expr.Imp(Bpl.Expr.And(ante, oInCallee), inEnclosingFrame));
+                                      BplImp(BplAnd(ante, oInCallee), inEnclosingFrame));
       MakeAssert(tok, q, errorMessage, kv);
     }
 
@@ -5953,13 +5953,26 @@ namespace Microsoft.Dafny {
         Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
         f0args.Add(formal); f1args.Add(formal); f0argsCanCall.Add(formal); f1argsCanCall.Add(formal);
         Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, etran0, useAlloc);
-        if (wh != null) { fwf0 = Bpl.Expr.And(fwf0, wh); }
+        if (wh != null) {
+          fwf0 = Bpl.Expr.And(fwf0, wh);
+        }
+        wh = GetWhereClause(p.tok, formal, p.Type, etran1, useAlloc);
+        if (wh != null) {
+          fwf1 = Bpl.Expr.And(fwf1, wh);
+        }
       }
       var canCall = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool));
-      wellFormed = Bpl.Expr.And(wellFormed, Bpl.Expr.And(
-        Bpl.Expr.Or(new Bpl.NAryExpr(f.tok, canCall, f0argsCanCall), fwf0),
-        Bpl.Expr.Or(new Bpl.NAryExpr(f.tok, canCall, f1argsCanCall), fwf1)));
-
+      var f0canCall = new Bpl.NAryExpr(f.tok, canCall, f0argsCanCall);
+      var f1canCall = new Bpl.NAryExpr(f.tok, canCall, f1argsCanCall);
+      wellFormed = Bpl.Expr.And(wellFormed, Bpl.Expr.Or(
+        Bpl.Expr.Or(f0canCall, fwf0),
+        Bpl.Expr.Or(f1canCall, fwf1)));
+      /*
+      JA: I conjecture that we don't need fwf0 or fwf1 here. But, we
+          will need both can calls,
+          i.e.,
+          wellFormed = BplAnd(wellFormed, BplOr(f0canCall, f1canCall))
+      */
       /*
       DR: I conjecture that this should be enough,
           as the requires is preserved when the frame is:
@@ -5971,7 +5984,8 @@ namespace Microsoft.Dafny {
       var fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType)));
       var F0 = new Bpl.NAryExpr(f.tok, fn, f0args);
       var F1 = new Bpl.NAryExpr(f.tok, fn, f1args);
-      var eq = Bpl.Expr.Eq(F0, F1);
+      Expr eq = Bpl.Expr.Eq(F0, F1);
+      eq = BplAnd(eq, Bpl.Expr.Eq(f0canCall, f1canCall));
       var tr = new Bpl.Trigger(f.tok, true, new List<Bpl.Expr> { h0IsHeapAnchor, heapSucc, F1 });
 
       var ax = new Bpl.ForallExpr(f.tok, new List<Bpl.TypeVariable>(), bvars, null, tr,
@@ -6038,6 +6052,7 @@ namespace Microsoft.Dafny {
         }
 
         e = Resolver.FrameArrowToObjectSet(e, CurrentIdGenerator, program.BuiltIns);
+        var canCallE = CanCallAssumption(e, etran);
 
         Bpl.Expr disjunct;
         var eType = e.Type.NormalizeExpand();
@@ -6078,7 +6093,7 @@ namespace Microsoft.Dafny {
           }
           disjunct = Bpl.Expr.And(disjunct, q);
         }
-        disjunction = BplOr(disjunction, disjunct);
+        disjunction = BplOr(disjunction, BplAnd(canCallE, disjunct));
       }
       return disjunction;
     }
