@@ -6890,7 +6890,8 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.NeqCommon: {
               Bpl.Expr r = Bpl.Expr.True;
               var dt = e.E0.Type.AsDatatype;
-              if (dt != null) {
+              bool optA = cco == null || (cco != null && !cco.skipIsA);
+              if (dt != null && optA) {
                 var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(expr.tok, "$IsA#" + dt.FullSanitizedName, Bpl.Type.Bool));
                 if (!(e.E0.Resolved is DatatypeValue)) {
                   r = BplAnd(r, new Bpl.NAryExpr(expr.tok, funcID, new List<Bpl.Expr> { etran.TrExpr(e.E0) }));
