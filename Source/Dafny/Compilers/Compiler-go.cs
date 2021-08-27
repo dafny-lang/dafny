@@ -750,7 +750,11 @@ namespace Microsoft.Dafny {
               var wDtor = wr.NewNamedBlock("func (_this {0}) {1}() {2}", name, FormatDatatypeDestructorName(arg.CompileName), TypeName(arg.Type, wr, arg.tok));
               var n = dtor.EnclosingCtors.Count;
               if (n == 1) {
-                wDtor.WriteLine("return _this.{0}", DatatypeFieldName(arg));
+                if (dt.Ctors.Count == 1) {
+                  wDtor.WriteLine("return _this.{0}", DatatypeFieldName(arg));
+                } else {
+                  wDtor.WriteLine("return _this.Get().({0}).{1}", structOfCtor(dtor.EnclosingCtors[0]), DatatypeFieldName(arg));
+                }
               } else {
                 wDtor = wDtor.NewBlock("switch data := _this.Get().(type)");
                 for (int i = 0; i < n - 1; i++) {
