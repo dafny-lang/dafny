@@ -11587,7 +11587,10 @@ namespace Microsoft.Dafny {
             typeConstraints = BplAnd(typeConstraints, MkIs(etran.TrExpr(be.Item2), be.Item1.Type));
           }
         }
+        var canCalls = CanCallAssumption(tup.Item2, etran);
+        body = BplImp(canCalls, body);
         body = BplAnd(typeConstraints, body);
+
         if (undetermined.Count != 0) {
           List<bool> freeOfAlloc = null;
           if (FrugalHeapUseX) {
