@@ -5010,17 +5010,6 @@ namespace Microsoft.Dafny {
           ie.Var = pOut; ie.Type = ie.Var.Type;
           substMap.Add(f.OverriddenFunction.Result, ie);
         }
-        // add can call assumptions as free requires for checking the implementation
-        // we want to prove properties about the overridden function,
-        // so let's not provide the canCall to it.
-        void addCanCallReq(List<AttributedExpression> spec, CanCallOptions cco) {
-          var exps = spec.Select(s => Substitute(s.E, null, substMap)).ToList();
-          exps.ForEach(e => req.Add(Requires(f.tok, true, CanCallAssumption(e, etran, cco), null, null)));
-        }
-        addCanCallReq(f.Req, new CanCallOptions(f));
-        addCanCallReq(f.Ens, new CanCallOptions(f));
-        addCanCallReq(f.OverriddenFunction.Req, new CanCallOptions(f.OverriddenFunction, f));
-        addCanCallReq(f.OverriddenFunction.Ens, new CanCallOptions(f.OverriddenFunction, f));
 
         var proc = new Bpl.Procedure(f.tok, "OverrideCheck$$" + f.FullSanitizedName, new List<Bpl.TypeVariable>(),
           Concat(Concat(typeInParams, inParams_Heap), inParams), outParams,
@@ -5108,9 +5097,12 @@ namespace Microsoft.Dafny {
     private void AddFunctionOverrideEnsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap, List<Bpl.Variable> implInParams, Bpl.Variable/*?*/ resultVariable) {
       Contract.Requires(f.Formals.Count <= implInParams.Count);
 
+      CanCallOptions cco = new CanCallOptions(f, true);
+      //generating class pre-conditions
       //generating class post-conditions
       foreach (var en in f.Ens)
       {
+        builder.Add(TrAssumeCmd(f.tok, CanCallAssumption(en.E, etran, cco)));
         builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(en.E)));
       }
 
@@ -5170,11 +5162,13 @@ namespace Microsoft.Dafny {
       }
 
       //generating trait post-conditions with class variables
+      cco = new CanCallOptions(f.OverriddenFunction, f, true);
       foreach (var en in f.OverriddenFunction.Ens) {
         Expression postcond = Substitute(en.E, null, substMap);
         bool splitHappened;  // we don't actually care
         foreach (var s in TrSplitExpr(postcond, etran, false, out splitHappened)) {
           if (s.IsChecked) {
+            builder.Add(TrAssumeCmd(f.tok, CanCallAssumption(postcond, etran, cco)));
             builder.Add(Assert(f.tok, s.E, "the function must provide an equal or more detailed postcondition than in its parent trait"));
           }
         }
@@ -5321,15 +5315,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(substMap != null);
       //generating trait pre-conditions with class variables
+      CanCallOptions cco = new CanCallOptions(f.OverriddenFunction, f, true);
       foreach (var req in f.OverriddenFunction.Req) {
         Expression precond = Substitute(req.E, null, substMap);
+        builder.Add(TrAssumeCmd(f.tok, CanCallAssumption(precond, etran, cco)));
         builder.Add(TrAssumeCmd(f.tok, etran.TrExpr(precond)));
       }
       //generating class pre-conditions
+      cco = new CanCallOptions(f, true);
       foreach (var req in f.Req) {
         bool splitHappened;  // we actually don't care
         foreach (var s in TrSplitExpr(req.E, etran, false, out splitHappened)) {
           if (s.IsChecked) {
+            builder.Add(TrAssumeCmd(f.tok, CanCallAssumption(req.E, etran, cco)));
             builder.Add(Assert(f.tok, s.E, "the function must provide an equal or more permissive precondition than in its parent trait"));
           }
         }
@@ -5384,15 +5382,13 @@ namespace Microsoft.Dafny {
             ie.Var = m.Outs[i]; ie.Type = ie.Var.Type;
             substMap.Add(m.OverriddenMethod.Outs[i], ie);
         }
-        void addCanCallReq(List<AttributedExpression> spec)
-        {
-          var exps = spec.Select(s => Substitute(s.E, null, substMap)).ToList();
-          exps.ForEach(e => proc.Requires.Add(Requires(m.tok, true, CanCallAssumption(e, etran), null, null)));
-        }
-        addCanCallReq(m.Req);
-        addCanCallReq(m.Ens);
-        addCanCallReq(m.OverriddenMethod.Req);
-        addCanCallReq(m.OverriddenMethod.Ens);
+
+        var prevHeapVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, "previous$Heap", predef.HeapType), true);
+        var currHeapVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, "current$Heap", predef.HeapType), true);
+        var tetran = new ExpressionTranslator(this,
+                                        predef,
+                                        new Bpl.IdentifierExpr(m.tok, currHeapVar),
+                                        new Bpl.IdentifierExpr(m.tok, prevHeapVar));
 
         Bpl.StmtList stmts;
         //adding assume Pre’; assert P; // this checks that Pre’ implies P
@@ -5454,6 +5450,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(substMap != null);
       //generating class post-conditions
       foreach (var en in m.Ens) {
+        builder.Add(TrAssumeCmd(m.tok, CanCallAssumption(en.E, etran)));
         builder.Add(TrAssumeCmd(m.tok, etran.TrExpr(en.E)));
       }
       //generating trait post-conditions with class variables
@@ -5462,6 +5459,7 @@ namespace Microsoft.Dafny {
         bool splitHappened;  // we actually don't care
         foreach (var s in TrSplitExpr(postcond, etran, false, out splitHappened)) {
           if (s.IsChecked) {
+            builder.Add(TrAssumeCmd(m.OverriddenMethod.tok, CanCallAssumption(postcond, etran)));
             builder.Add(Assert(m.tok, s.E, "the method must provide an equal or more detailed postcondition than in its parent trait"));
           }
         }
@@ -5478,12 +5476,14 @@ namespace Microsoft.Dafny {
       foreach (var req in m.OverriddenMethod.Req) {
         Expression precond = Substitute(req.E, null, substMap);
         builder.Add(TrAssumeCmd(m.tok, etran.TrExpr(precond)));
+        builder.Add(TrAssumeCmd(m.OverriddenMethod.tok, CanCallAssumption(precond, etran)));
       }
       //generating class pre-conditions
       foreach (var req in m.Req) {
         bool splitHappened;  // we actually don't care
         foreach (var s in TrSplitExpr(req.E, etran, false, out splitHappened)) {
           if (s.IsChecked) {
+            builder.Add(TrAssumeCmd(m.tok, CanCallAssumption(req.E, etran)));
             builder.Add(Assert(m.tok, s.E, "the method must provide an equal or more permissive precondition than in its parent trait"));
           }
         }
@@ -6161,7 +6161,7 @@ namespace Microsoft.Dafny {
         var splits = new List<SplitExprInfo>();
         bool splitHappened /*we actually don't care*/ = TrSplitExpr(p.E, splits, true, functionHeight, true, true, etran);
         string errorMessage = CustomErrorMessage(p.Attributes);
-        var canCalls = CanCallAssumption(p.E, etran, new CanCallOptions(f));
+        var canCalls = CanCallAssumption(p.E, etran, new CanCallOptions(f, true));
         AddEnsures(ens, Ensures(p.E.tok, true, canCalls, errorMessage, null, AlwaysAssumeAttribute(p.E.tok)));
         foreach (var s in splits) {
           if (s.IsChecked && !RefinementToken.IsInherited(s.E.tok, currentModule)) {
@@ -6247,6 +6247,7 @@ namespace Microsoft.Dafny {
       //   }
       // Here go the postconditions (termination checks included, but no reads checks)
       BoogieStmtListBuilder postCheckBuilder = new BoogieStmtListBuilder(this);
+      postCheckBuilder.Add(TrAssumeCmd(f.tok, Bpl.Expr.True, new Bpl.QKeyValue(f.tok, "split_here", new List<object>(), null)));
       // Assume the type returned by the call itself respects its type (this matters if the type is "nat", for example)
       {
         var args = new List<Bpl.Expr>();
@@ -6722,7 +6723,7 @@ namespace Microsoft.Dafny {
       {
         allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This)));
       }
-      var formals = cco == null ? e.Function.Formals : cco.HostFunction.Formals;
+      var formals = cco == null ? e.Function.Formals : cco.EnclosingFunction.Formals;
       for (int i = 0; i < e.Args.Count; i++)
       {
         Expression ee = e.Args[i];
