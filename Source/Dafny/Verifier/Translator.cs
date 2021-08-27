@@ -8258,9 +8258,14 @@ namespace Microsoft.Dafny {
                 guardPrime = comprehensionEtran.TrExpr(rangePrime);
               }
               BplIfIf(e.tok, guard != null, BplAnd(guard, guardPrime), newBuilder, b => {
+                var canCalls = CanCallAssumption(bodyLeft, comprehensionEtran);
+                canCalls = BplAnd(canCalls, CanCallAssumption(bodyLeftPrime, comprehensionEtran));
+                canCalls = BplAnd(canCalls, CanCallAssumption(body, comprehensionEtran));
+                canCalls = BplAnd(canCalls, CanCallAssumption(bodyPrime, comprehensionEtran));
                 var different = BplOr(
                   Bpl.Expr.Neq(comprehensionEtran.TrExpr(bodyLeft), comprehensionEtran.TrExpr(bodyLeftPrime)),
                   Bpl.Expr.Eq(comprehensionEtran.TrExpr(body), comprehensionEtran.TrExpr(bodyPrime)));
+                b.Add(new AssumeCmd(mc.TermLeft.tok, canCalls));
                 b.Add(Assert(mc.TermLeft.tok, different, "key expressions may be referring to the same value"));
               });
             }
