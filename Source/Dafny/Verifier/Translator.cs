@@ -3584,7 +3584,7 @@ namespace Microsoft.Dafny {
       callName = new Bpl.IdentifierExpr(overridingFunction.tok, overridingFunction.FullSanitizedName + "#canCall", Bpl.Type.Bool);
       callArgs = overridingFunction.IsFuelAware() ? argsCF.TakeLast(argsCF.Count() - 1).ToList() : argsCF;
       var canCallOverridingFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), callArgs);
-      var canCallImp = BplImp(canCallOverridingFunc, canCallFunc);
+      var canCallImp = BplImp(canCallFunc, canCallOverridingFunc);
       // The axiom
       Bpl.Expr ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), forallFormals, null, tr,
         Bpl.Expr.Imp(Bpl.Expr.And(ReceiverNotNull(bvThisExpr), isOfSubtype), BplAnd(canCallImp, synonyms)));
@@ -5382,13 +5382,6 @@ namespace Microsoft.Dafny {
             ie.Var = m.Outs[i]; ie.Type = ie.Var.Type;
             substMap.Add(m.OverriddenMethod.Outs[i], ie);
         }
-
-        var prevHeapVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, "previous$Heap", predef.HeapType), true);
-        var currHeapVar = new Bpl.Formal(m.tok, new Bpl.TypedIdent(m.tok, "current$Heap", predef.HeapType), true);
-        var tetran = new ExpressionTranslator(this,
-                                        predef,
-                                        new Bpl.IdentifierExpr(m.tok, currHeapVar),
-                                        new Bpl.IdentifierExpr(m.tok, prevHeapVar));
 
         Bpl.StmtList stmts;
         //adding assume Pre’; assert P; // this checks that Pre’ implies P
