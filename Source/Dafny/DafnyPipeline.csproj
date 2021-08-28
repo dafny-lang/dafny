@@ -36,5 +36,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\Binaries\DafnyPrelude.bpl" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\Binaries\DafnyRuntime.h" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -5,7 +5,7 @@ namespace LitTestConvertor.Test.LitTestRunner
   public class LitTests
   {
     [ParallelTheory]
-    [LitTestData]
+    [LitTestData(false)]
     public void LitTest(CLITestCase testCase) {
       testCase.Run();
     }

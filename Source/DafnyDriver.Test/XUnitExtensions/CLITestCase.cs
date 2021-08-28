@@ -14,11 +14,11 @@ namespace DafnyDriver.Test.XUnitExtensions {
   
   public class CLITestCase: IXunitSerializable
   {
-    protected Assembly CLIAssembly;
-    protected string CLIAssemblyName;
+    protected Assembly CliAssembly;
+    protected string CliAssemblyName;
+    protected bool InvokeDirectly;
     
     protected string[] Arguments;
-    protected string WorkingDirectory;
     protected IEnumerable<string> PassthroughEnvironmentVariables;
     protected Expectation Expected;
 
@@ -84,11 +84,12 @@ namespace DafnyDriver.Test.XUnitExtensions {
 
     public CLITestCase(Assembly cliAssembly, IEnumerable<string> arguments, 
                        IEnumerable<string> passthroughEnvironmentVariables,
-                       Expectation expected) {
-      CLIAssembly = cliAssembly;
+                       Expectation expected, bool invokeDirectly) {
+      CliAssembly = cliAssembly;
       Arguments = arguments.ToArray();
       PassthroughEnvironmentVariables = passthroughEnvironmentVariables;
       Expected = expected;
+      InvokeDirectly = invokeDirectly;
     }
 
     public CLITestCase() {
@@ -96,21 +97,21 @@ namespace DafnyDriver.Test.XUnitExtensions {
     }
   
     public void Serialize(IXunitSerializationInfo info) {
-      info.AddValue(nameof(CLIAssemblyName), CLIAssemblyName);
+      info.AddValue(nameof(CliAssemblyName), CliAssemblyName);
       info.AddValue(nameof(Arguments), Arguments);
       info.AddValue(nameof(Expected), Expected);
     }
     
     public void Deserialize(IXunitSerializationInfo info) {
-      CLIAssemblyName = info.GetValue<string>(nameof(CLIAssemblyName));
-      CLIAssembly = AppDomain.CurrentDomain.GetAssemblies().First(a => a.FullName == CLIAssemblyName);
+      CliAssemblyName = info.GetValue<string>(nameof(CliAssemblyName));
+      CliAssembly = AppDomain.CurrentDomain.GetAssemblies().First(a => a.FullName == CliAssemblyName);
       
       Arguments = info.GetValue<string[]>(nameof(Arguments));
       Expected = info.GetValue<Expectation>(nameof(Expected));
     }
 
     public CLIResult InvokeCLI() {
-      if (Environment.GetEnvironmentVariable("XUNIT_INVOKE_CLI_DIRECTLY") == "true") {
+      if (InvokeDirectly || Environment.GetEnvironmentVariable("XUNIT_INVOKE_CLI_DIRECTLY") == "true") {
         return InvokeCLIDirectly();
       }
       return InvokeCLIViaProcess();
@@ -123,7 +124,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
       Console.SetOut(new StringWriter(redirectedOut));
       Console.SetError(new StringWriter(redirectedErr));
 
-      int result = (int) CLIAssembly.EntryPoint.Invoke(null, new object[] { Arguments });
+      int result = (int) CliAssembly.EntryPoint.Invoke(null, new object[] { Arguments });
       
       return new CLIResult(result, redirectedOut.ToString(), redirectedErr.ToString());
     }
@@ -132,7 +133,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
       using var process = new Process();
       
       process.StartInfo.FileName = "dotnet";
-      process.StartInfo.Arguments = CLIAssembly.Location;
+      process.StartInfo.Arguments = CliAssembly.Location;
       foreach (var argument in Arguments) {
         process.StartInfo.Arguments += " " + argument;
       }

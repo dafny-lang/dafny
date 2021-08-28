@@ -60,8 +60,9 @@ namespace DafnyDriver.Test {
     private Dictionary<string, object> DafnyOptions = new();
     private List<string> OtherFiles = new();
 
-    public DafnyTestCase(string basePath, string fullSourcePath, Dictionary<string, object> dafnyOptions, List<string> otherFiles, Expectation expected)
-      : base(dafnyDriverAssembly, OptionsToFullArguments(fullSourcePath, dafnyOptions, otherFiles), new List<string>(), expected) {
+    public DafnyTestCase(string basePath, string fullSourcePath, Dictionary<string, object> dafnyOptions, List<string> otherFiles,
+                         Expectation expected, bool invokeDirectly)
+      : base(dafnyDriverAssembly, OptionsToFullArguments(fullSourcePath, dafnyOptions, otherFiles), new List<string>(), expected, invokeDirectly) {
       BasePath = basePath;
       SourcePath = fullSourcePath;
       DafnyOptions = dafnyOptions;

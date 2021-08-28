@@ -24,7 +24,7 @@ namespace XUnitExtensions {
       // This discoverer requires pre-enumeration in order to assign a collection to each test case.
       discoveryOptions.SetValue("xunit.discovery.PreEnumerateTheories", true);
             
-      IEnumerable<IXunitTestCase> testCases = theoryDiscoverer.Discover(discoveryOptions, testMethod, factAttribute);
+      var testCases = theoryDiscoverer.Discover(discoveryOptions, testMethod, factAttribute);
       
       // Select the requested fraction of the test cases if using the XUNIT_SHARD[_COUNT} environment variables.
       // Ideally this would be handled at a higher level so that cases from different test methods could be

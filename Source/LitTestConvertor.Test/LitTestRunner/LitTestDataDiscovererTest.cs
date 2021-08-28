@@ -19,10 +19,11 @@ namespace LitTestConvertor.Test.LitTestRunner {
       var discoverer = new LitTestDataDiscoverer();
       var test = new LitTests();
       var methodInfo = GetMethodInfo(test.LitTest);
-      var method = Reflector.Wrap(GetMethodInfo(test.LitTest));
+      var method = Reflector.Wrap(methodInfo);
       var attribute = CustomAttributeData.GetCustomAttributes(methodInfo).First(a => a.AttributeType == typeof(LitTestDataAttribute));
       var xunitAttribute = Reflector.Wrap(attribute);
-      discoverer.GetData(xunitAttribute, method);
+      var data = discoverer.GetData(xunitAttribute, method);
+      Assert.True(data.Any());
     }
   }
 }

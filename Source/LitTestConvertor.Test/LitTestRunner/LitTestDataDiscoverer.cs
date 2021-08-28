@@ -17,8 +17,9 @@ namespace DafnyDriver.Test {
     }
 
     protected override IEnumerable<object[]> FileData(IAttributeInfo attributeInfo, IMethodInfo testMethod, string fileName) {
+      bool invokeDirectly = attributeInfo.GetNamedArgument<bool>(nameof(LitTestDataAttribute.InvokeCliDirectly));
       try {
-        var (testCases, _) = convertor.ConvertLitCommands(GetBasePath(attributeInfo, testMethod), fileName, File.ReadLines(fileName));
+        var (testCases, _) = convertor.ConvertLitCommands(GetBasePath(attributeInfo, testMethod), fileName, invokeDirectly, File.ReadLines(fileName));
         return testCases.Select(testCase => new[] { testCase });
       } catch (Exception) {
         // Ignore for now
@@ -29,7 +30,10 @@ namespace DafnyDriver.Test {
 }
 
 [DataDiscoverer("DafnyDriver.Test.LitTestDataDiscoverer", "LitTestConvertor.Test")]
-public class LitTestDataAttribute : FileDataAttribute {
-  public LitTestDataAttribute() : base(extension: ".dfy") {
+public class LitTestDataAttribute : FileDataAttribute
+{
+  public bool InvokeCliDirectly;
+  public LitTestDataAttribute(bool invokeCliDirectly = false) : base(extension: ".dfy") {
+    InvokeCliDirectly = invokeCliDirectly;
   }
 }
