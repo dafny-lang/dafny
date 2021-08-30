@@ -1,16 +1,14 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
-namespace Microsoft.Dafny
-{
+namespace Microsoft.Dafny {
   /// <summary>
   /// The substituter has methods to create an expression from an existing one, where the new one has the indicated
   /// substitutions for "this" (receiverReplacement), variables (substMap), and types (typeMap).
   /// CAUTION:  The result of the substitution is intended for use by TrExpr, not for well-formedness checks.  In
   /// particular, the substituter does not copy parts of an expression that are used only for well-formedness checks.
   /// </summary>
-  public class Substituter
-  {
+  public class Substituter {
     public readonly Expression receiverReplacement;
     public readonly Dictionary<IVariable, Expression/*!*/>/*!*/ substMap;
     public readonly Dictionary<TypeParameter, Type/*!*/>/*!*/ typeMap;
@@ -139,6 +137,7 @@ namespace Microsoft.Dafny
           newFce.CoCallHint = e.CoCallHint;  // and any co-call hint
           newFce.TypeApplication_AtEnclosingClass = newTypeApplicationAtEnclosingClass;
           newFce.TypeApplication_JustFunction = newTypeApplicationJustFunction;
+          newFce.IsByMethodCall = e.IsByMethodCall;
           newExpr = newFce;
         }
 
@@ -154,7 +153,7 @@ namespace Microsoft.Dafny
         if (newArguments != dtv.Bindings.Arguments) {
           DatatypeValue newDtv = new DatatypeValue(dtv.tok, dtv.DatatypeName, dtv.MemberName, newArguments);
           newDtv.Ctor = dtv.Ctor;  // resolve on the fly (and set newDtv.Type below, at end)
-          newDtv.InferredTypeArgs = Translator.Map(dtv.InferredTypeArgs, tt => Resolver.SubstType(tt, typeMap));
+          newDtv.InferredTypeArgs = Util.Map(dtv.InferredTypeArgs, tt => Resolver.SubstType(tt, typeMap));
           // ^ Set the correct type arguments to the constructor
           newExpr = newDtv;
         }
@@ -402,7 +401,7 @@ namespace Microsoft.Dafny
         // keep copies of the substitution maps so we can reuse them at desugaring time
         var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
         var newTypeMap = new Dictionary<TypeParameter, Type>(typeMap);
-        return new Translator.SubstLetExpr(letExpr.tok, letExpr.LHSs, new List<Expression> {rhs}, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
+        return new Translator.SubstLetExpr(letExpr.tok, letExpr.LHSs, new List<Expression> { rhs }, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
       }
     }
 

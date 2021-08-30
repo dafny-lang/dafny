@@ -441,8 +441,7 @@ namespace Microsoft.Dafny {
                 // This is a recursive destuctor, so we need to allocate space and copy the input in
                 wc.WriteLine("COMPILER_result_subStruct.{0} = std::make_shared<{1}>({0});", arg.CompileName,
                   DtT_protected);
-              }
-              else {
+              } else {
                 wc.WriteLine("COMPILER_result_subStruct.{0} = {0};", arg.CompileName);
               }
             }
@@ -487,8 +486,8 @@ namespace Microsoft.Dafny {
           var holds = String.Format("std::holds_alternative<{0}{1}>", name, InstantiateTemplate(dt.TypeArgs));
           ws.WriteLine("bool is_{0}() const {{ return {1}(v); }}", name, holds);
           wdecl.WriteLine("{0}\ninline bool is_{1}(const struct {2}{3} d);", DeclareTemplate(dt.TypeArgs), name, DtT_protected, InstantiateTemplate(dt.TypeArgs));
-           wdef.WriteLine("{0}\ninline bool is_{1}(const struct {2}{3} d) {{ return {4}(d.v); }}",
-             DeclareTemplate(dt.TypeArgs), name, DtT_protected, InstantiateTemplate(dt.TypeArgs), holds);
+          wdef.WriteLine("{0}\ninline bool is_{1}(const struct {2}{3} d) {{ return {4}(d.v); }}",
+            DeclareTemplate(dt.TypeArgs), name, DtT_protected, InstantiateTemplate(dt.TypeArgs), holds);
         }
 
         // Overload the comparison operator
@@ -511,8 +510,7 @@ namespace Microsoft.Dafny {
                   arg.CompileName);
                 if (dt.IsRecordType) {
                   wDtor.WriteLine("return this.{0};", IdName(arg));
-                }
-                else {
+                } else {
                   var n = dtor.EnclosingCtors.Count;
                   for (int i = 0; i < n - 1; i++) {
                     var ctor_i = dtor.EnclosingCtors[i];
@@ -626,7 +624,7 @@ namespace Microsoft.Dafny {
 
       var wDefault = w.NewBlock(String.Format("static {0}{1} get_Default()", IdName(sst), InstantiateTemplate(sst.TypeArgs)));
       var udt = new UserDefinedType(sst.tok, sst.Name, sst,
-        sst.TypeArgs.ConvertAll(tp => (Type) new UserDefinedType(tp)));
+        sst.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
       var d = TypeInitializationValue(udt, wr, sst.tok, false, false);
       wDefault.WriteLine("return {0};", d);
     }
@@ -863,7 +861,7 @@ namespace Microsoft.Dafny {
     // Because we use reference counting (via shared_ptr), the TypeName of a class differs
     // depending on whether we are declaring a variable or talking about the class itself.
     // Use class_name = true if you want the actual name of the class, not the type used when declaring variables/arguments/etc.
-    protected string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null, bool class_name=false) {
+    protected string TypeName(Type type, ConcreteSyntaxTree wr, Bpl.IToken tok, MemberDecl/*?*/ member = null, bool class_name = false) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -973,14 +971,14 @@ namespace Microsoft.Dafny {
           return "new BigNumber(0)";
         }
       } else if (xType is SetType) {
-        var s = (SetType) xType;
+        var s = (SetType)xType;
         return String.Format("DafnySet<{0}>::empty()", TypeName(s.Arg, wr, tok));
       } else if (xType is MultiSetType) {
         throw NotSupported("MultiSets");
       } else if (xType is SeqType) {
         return string.Format("DafnySequence<{0}>()", TypeName(xType.AsSeqType.Arg, wr, tok, null, false));
       } else if (xType is MapType) {
-        var m = (MapType) xType;
+        var m = (MapType)xType;
         return String.Format("DafnyMap<{0},{1}>::empty()", TypeName(m.Domain, wr, tok), TypeName(m.Range, wr, tok));
       }
 
@@ -1097,8 +1095,8 @@ namespace Microsoft.Dafny {
       var r = rhs != null ? rhs : DefaultValue(type, wr, tok);
       var t = TypeName(type, wr, tok);
       if (isStatic) {
-          wr.WriteLine("static {0} {1};", t, name);
-          finisher.WriteLine("{5} {0} {1}{4}::{2} = {3};", t, className, name, r, InstantiateTemplate(targs), DeclareTemplate(targs));
+        wr.WriteLine("static {0} {1};", t, name);
+        finisher.WriteLine("{5} {0} {1}{4}::{2} = {3};", t, className, name, r, InstantiateTemplate(targs), DeclareTemplate(targs));
       } else {
         wr.WriteLine("{0} {1} = {2};", t, name, r);
       }
@@ -1385,7 +1383,7 @@ namespace Microsoft.Dafny {
         TrStringLiteral(str, wr);
       } else if (AsNativeType(e.Type) is NativeType nt) {
         wr.Write("({0}){1}", GetNativeTypeName(nt), (BigInteger)e.Value);
-        if ((BigInteger) e.Value > 9223372036854775807) {
+        if ((BigInteger)e.Value > 9223372036854775807) {
           // Avoid compiler warning: integer literal is too large to be represented in a signed integer type
           wr.Write("U");
         }
@@ -1410,7 +1408,7 @@ namespace Microsoft.Dafny {
       } else {
         wr.Write("\"");
         for (var i = 0; i < n; i++) {
-          if (str[i] == '\"' && i+1 < n && str[i+1] == '\"') {
+          if (str[i] == '\"' && i + 1 < n && str[i + 1] == '\"') {
             wr.Write("\\\"");
             i++;
           } else if (str[i] == '\\') {
@@ -1682,7 +1680,7 @@ namespace Microsoft.Dafny {
         // This used to work, but now obj comes in wanting to use TypeName on the class, which results in (std::shared_ptr<_module::MyClass>)::c;
         //return SuffixLvalue(obj, "::{0}", member.CompileName);
         return SimpleLvalue(wr => {
-          wr.Write("{0}::{1}::{2}", IdProtect(member.EnclosingClass.EnclosingModuleDefinition.CompileName), IdProtect(member.EnclosingClass.CompileName) , IdProtect(member.CompileName));
+          wr.Write("{0}::{1}::{2}", IdProtect(member.EnclosingClass.EnclosingModuleDefinition.CompileName), IdProtect(member.EnclosingClass.CompileName), IdProtect(member.CompileName));
         });
       } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
         return SuffixLvalue(obj, ".get<{0}>()", dtor.Name);
@@ -2106,7 +2104,7 @@ namespace Microsoft.Dafny {
             var nt = AsNativeType(resultType);
             if (nt.LowerBound < BigInteger.Zero) {
               // Want Euclidean division for signed types
-              staticCallString =  "EuclideanDivision_" + GetNativeTypeName(AsNativeType(resultType));
+              staticCallString = "EuclideanDivision_" + GetNativeTypeName(AsNativeType(resultType));
             } else {
               // Native division is fine for unsigned
               opString = "/";
@@ -2291,7 +2289,7 @@ namespace Microsoft.Dafny {
         wr.Write("DafnySet<{0}>::Create({{", TypeName(ct.TypeArgs[0], wr, tok, null, false));
         for (var i = 0; i < elements.Count; i++) {
           TrExpr(elements[i], wr, inLetExprBody);
-          if (i < elements.Count - 1)  {
+          if (i < elements.Count - 1) {
             wr.Write(",");
           }
         }
@@ -2306,7 +2304,7 @@ namespace Microsoft.Dafny {
           wr.Write("DafnySequence<{0}>::Create({{", TypeName(ct.TypeArgs[0], wr, tok, null, false));
           for (var i = 0; i < elements.Count; i++) {
             TrExpr(elements[i], wr, inLetExprBody);
-            if (i < elements.Count - 1)  {
+            if (i < elements.Count - 1) {
               wr.Write(",");
             }
           }

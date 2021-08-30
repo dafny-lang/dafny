@@ -21,10 +21,8 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using IToken = Microsoft.Boogie.IToken;
 
-namespace Microsoft.Dafny
-{
-  public class RefinementToken : TokenWrapper
-  {
+namespace Microsoft.Dafny {
+  public class RefinementToken : TokenWrapper {
     public readonly ModuleDefinition InheritingModule;
     public RefinementToken(IToken tok, ModuleDefinition m)
       : base(tok) {
@@ -53,8 +51,7 @@ namespace Microsoft.Dafny
     }
   }
 
-  public class RefinementTransformer : IRewriter
-  {
+  public class RefinementTransformer : IRewriter {
     Cloner rawCloner; // This cloner just gives exactly the same thing back.
     RefinementCloner refinementCloner; // This cloner wraps things in a RefinementToken
 
@@ -201,7 +198,7 @@ namespace Microsoft.Dafny
           if (!(nw is ModuleExportDecl)) {
             reporter.Error(MessageSource.RefinementTransformer, nw, "a module export ({0}) must refine another export", nw.Name);
           } else {
-            MergeModuleExports((ModuleExportDecl)nw,(ModuleExportDecl)d);
+            MergeModuleExports((ModuleExportDecl)nw, (ModuleExportDecl)d);
           }
         } else if (!(d is AbstractModuleDecl)) {
           reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only refine a module facade", nw.Name);
@@ -291,13 +288,13 @@ namespace Microsoft.Dafny
         }
       } else if (nw is TraitDecl) {
         if (d is TraitDecl) {
-          m.TopLevelDecls[index] = MergeClass((TraitDecl) nw, (TraitDecl) d);
+          m.TopLevelDecls[index] = MergeClass((TraitDecl)nw, (TraitDecl)d);
         } else {
           reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
         }
       } else if (nw is ClassDecl) {
         if (d is ClassDecl && !(d is TraitDecl)) {
-          m.TopLevelDecls[index] = MergeClass((ClassDecl) nw, (ClassDecl) d);
+          m.TopLevelDecls[index] = MergeClass((ClassDecl)nw, (ClassDecl)d);
         } else {
           reporter.Error(MessageSource.RefinementTransformer, nw, commonMsg, nw.WhatKind, nw.Name);
         }
@@ -311,8 +308,6 @@ namespace Microsoft.Dafny
     }
 
     public bool CheckIsRefinement(ModuleDecl derived, AbstractModuleDecl original) {
-
-
       // Check explicit refinement
       // TODO syntactic analysis of export sets is not quite right
       var derivedPointer = derived.Signature.ModuleDef;
@@ -449,10 +444,13 @@ namespace Microsoft.Dafny
         body = refinementCloner.CloneExpr(f.Body);
         bodyOrigin = Predicate.BodyOriginKind.OriginalOrInherited;
       }
+      var byMethodBody = refinementCloner.CloneBlockStmt(f.ByMethodBody);
 
       if (f is Predicate) {
         return new Predicate(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals,
-          req, reads, ens, decreases, body, bodyOrigin, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
+          req, reads, ens, decreases, body, bodyOrigin,
+          f.ByMethodTok == null ? null : refinementCloner.Tok(f.ByMethodTok), byMethodBody,
+          refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else if (f is LeastPredicate) {
         return new LeastPredicate(tok, f.Name, f.HasStaticKeyword, ((LeastPredicate)f).TypeOfK, tps, formals,
           req, reads, ens, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
@@ -467,7 +465,9 @@ namespace Microsoft.Dafny
           req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       } else {
         return new Function(tok, f.Name, f.HasStaticKeyword, isGhost, tps, formals, result, refinementCloner.CloneType(f.ResultType),
-          req, reads, ens, decreases, body, refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
+          req, reads, ens, decreases, body,
+          f.ByMethodTok == null ? null : refinementCloner.Tok(f.ByMethodTok), byMethodBody,
+          refinementCloner.MergeAttributes(f.Attributes, moreAttributes), null);
       }
     }
 
@@ -511,7 +511,7 @@ namespace Microsoft.Dafny
           req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       } else {
         return new Method(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.HasStaticKeyword, m.IsGhost, tps, ins, m.Outs.ConvertAll(refinementCloner.CloneFormal),
-          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
+          req, mod, ens, decreases, body, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null, m.IsByMethod);
       }
     }
 
@@ -1280,7 +1280,7 @@ namespace Microsoft.Dafny
           }
         }
         return false;  // labels of 'nxt' don't match any label of 'other'
-      } else  if (nxt is SkeletonStatement) {
+      } else if (nxt is SkeletonStatement) {
         var S = ((SkeletonStatement)nxt).S;
         if (S is AssertStmt) {
           return other is PredicateStmt;
@@ -1423,8 +1423,7 @@ namespace Microsoft.Dafny
         var a = (AssignStmt)s;
         reporter.Error(MessageSource.RefinementTransformer, a.Tok, "cannot have assignment statement");
       } else if (s is ConcreteUpdateStatement) {
-        postTasks.Enqueue(() =>
-        {
+        postTasks.Enqueue(() => {
           CheckIsOkayUpdateStmt((ConcreteUpdateStatement)s, moduleUnderConstruction);
         });
       } else if (s is CallStmt) {

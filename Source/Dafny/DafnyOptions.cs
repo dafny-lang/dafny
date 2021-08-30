@@ -9,15 +9,13 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using Bpl = Microsoft.Boogie;
 
-namespace Microsoft.Dafny
-{
-  public class DafnyOptions : Bpl.CommandLineOptions
-  {
+namespace Microsoft.Dafny {
+  public class DafnyOptions : Bpl.CommandLineOptions {
     private ErrorReporter errorReporter;
 
     public DafnyOptions(ErrorReporter errorReporter = null)
       : base("Dafny", "Dafny program verifier") {
-        this.errorReporter = errorReporter;
+      this.errorReporter = errorReporter;
     }
 
     public override string VersionNumber {
@@ -101,6 +99,7 @@ namespace Microsoft.Dafny
     public bool DisableScopes = false;
     public int Allocated = 3;
     public bool UseStdin = false;
+    public bool ShowSnippets = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -122,22 +121,14 @@ namespace Microsoft.Dafny
           if (ps.ConfirmArgumentCount(1)) {
             if (args[ps.i].Equals("Everything")) {
               PrintMode = PrintModes.Everything;
-            }
-            else if (args[ps.i].Equals("NoIncludes"))
-            {
-                PrintMode = PrintModes.NoIncludes;
-            }
-            else if (args[ps.i].Equals("NoGhost"))
-            {
-                PrintMode = PrintModes.NoGhost;
-            }
-            else if (args[ps.i].Equals("DllEmbed"))
-            {
-                PrintMode = PrintModes.DllEmbed;
-            }
-            else
-            {
-                throw new Exception("Invalid value for printMode");
+            } else if (args[ps.i].Equals("NoIncludes")) {
+              PrintMode = PrintModes.NoIncludes;
+            } else if (args[ps.i].Equals("NoGhost")) {
+              PrintMode = PrintModes.NoGhost;
+            } else if (args[ps.i].Equals("DllEmbed")) {
+              PrintMode = PrintModes.DllEmbed;
+            } else {
+              throw new Exception("Invalid value for printMode");
             }
           }
           return true;
@@ -185,28 +176,28 @@ namespace Microsoft.Dafny
           return true;
 
         case "compileVerbose": {
-          int verbosity = 0;
-          if (ps.GetNumericArgument(ref verbosity, 2)) {
-            CompileVerbose = verbosity == 1;
-          }
-          return true;
-        }
-
-        case "Main": case "main": {
-          if (ps.ConfirmArgumentCount(1)) {
-            MainMethod = args[ps.i];
-          }
-          return true;
-        }
-
-        case "dafnyVerify":
-            {
-                int verify = 0;
-                if (ps.GetNumericArgument(ref verify, 2)) {
-                    DafnyVerify = verify != 0; // convert to boolean
-                }
-                return true;
+            int verbosity = 0;
+            if (ps.GetNumericArgument(ref verbosity, 2)) {
+              CompileVerbose = verbosity == 1;
             }
+            return true;
+          }
+
+        case "Main":
+        case "main": {
+            if (ps.ConfirmArgumentCount(1)) {
+              MainMethod = args[ps.i];
+            }
+            return true;
+          }
+
+        case "dafnyVerify": {
+            int verify = 0;
+            if (ps.GetNumericArgument(ref verify, 2)) {
+              DafnyVerify = verify != 0; // convert to boolean
+            }
+            return true;
+          }
 
         case "spillTargetCode": {
             int spill = 0;
@@ -223,11 +214,11 @@ namespace Microsoft.Dafny
           }
 
         case "coverage": {
-          if (ps.ConfirmArgumentCount(1)) {
-            CoverageLegendFile = args[ps.i];
+            if (ps.ConfirmArgumentCount(1)) {
+              CoverageLegendFile = args[ps.i];
+            }
+            return true;
           }
-          return true;
-        }
 
         case "noCheating": {
             int cheat = 0; // 0 is default, allows cheating
@@ -275,7 +266,7 @@ namespace Microsoft.Dafny
 
         case "autoReqPrint":
           if (ps.ConfirmArgumentCount(1)) {
-              AutoReqPrintFile = args[ps.i];
+            AutoReqPrintFile = args[ps.i];
           }
           return true;
 
@@ -308,20 +299,20 @@ namespace Microsoft.Dafny
           return true;
 
         case "deprecation": {
-          int d = 1;
-          if (ps.GetNumericArgument(ref d, 3)) {
-            DeprecationNoise = d;
+            int d = 1;
+            if (ps.GetNumericArgument(ref d, 3)) {
+              DeprecationNoise = d;
+            }
+            return true;
           }
-          return true;
-        }
 
         case "countVerificationErrors": {
-          int countErrors = 1; // defaults to reporting verification errors
-          if (ps.GetNumericArgument(ref countErrors, 2)) {
-            CountVerificationErrors = countErrors == 1;
+            int countErrors = 1; // defaults to reporting verification errors
+            if (ps.GetNumericArgument(ref countErrors, 2)) {
+              CountVerificationErrors = countErrors == 1;
+            }
+            return true;
           }
-          return true;
-        }
 
         case "printTooltips":
           PrintTooltips = true;
@@ -346,12 +337,12 @@ namespace Microsoft.Dafny
         case "optimize": {
             Optimize = true;
             return true;
-        }
+          }
 
         case "allocated": {
             ps.GetNumericArgument(ref Allocated, 5);
             return true;
-        }
+          }
 
         case "optimizeResolution": {
             int d = 2;
@@ -400,6 +391,19 @@ namespace Microsoft.Dafny
 
         case "stdin": {
             UseStdin = true;
+            return true;
+          }
+
+        case "showSnippets": {
+            if (ps.ConfirmArgumentCount(1)) {
+              if (args[ps.i].Equals("0")) {
+                ShowSnippets = false;
+              } else if (args[ps.i].Equals("1")) {
+                ShowSnippets = true;
+              } else {
+                throw new Exception("Invalid value for showSnippets");
+              }
+            }
             return true;
           }
 
@@ -609,16 +613,13 @@ namespace Microsoft.Dafny
     }
 
     // Set a Z3 option, but only if it is not overwriting an existing option.
-    private void SetZ3Option(string name, string value)
-    {
-      if (!ProverOptions.Any(o => o.StartsWith($"O:{name}=")))
-      {
+    private void SetZ3Option(string name, string value) {
+      if (!ProverOptions.Any(o => o.StartsWith($"O:{name}="))) {
         ProverOptions.Add($"O:{name}={value}");
       }
     }
 
-    private void SetZ3Options()
-    {
+    private void SetZ3Options() {
       // Boogie sets the following Z3 options by default:
       // smt.mbqi = false
       // model.compact = false
@@ -744,6 +745,9 @@ namespace Microsoft.Dafny
     1,2,3,4,5 - levels in between, ordered as follows as far as
         how discriminating they are:  0 < 1 < 2 < (3,4) < 5 < 6
     6 (default) - most discriminating
+/showSnippets:<n>
+    0 (default) - don't show source code snippets for Dafny messages
+    1 - show a source code snippet for each Dafny message
 /noIncludes   Ignore include directives
 /noExterns    Ignore extern and dllimport attributes
 /noNLarith    Reduce Z3's knowledge of non-linear arithmetic (*,/,%).

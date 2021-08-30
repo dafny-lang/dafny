@@ -206,7 +206,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(1, diagnostics[0].RelatedInformation.Count());
       var relatedInformation = diagnostics[0].RelatedInformation.First();
       Assert.AreEqual("This is the postcondition that might not hold.", relatedInformation.Message);
-      Assert.AreEqual(new Range(new Position(2,38), new Position(2,40)), relatedInformation.Location.Range);
+      Assert.AreEqual(new Range(new Position(2, 38), new Position(2, 40)), relatedInformation.Location.Range);
     }
 
     [TestMethod]
@@ -573,7 +573,7 @@ method Multiply(x: int, y: int) returns (product: int)
 
       public async Task<PublishDiagnosticsParams> AwaitNextPublishDiagnostics(CancellationToken cancellationToken) {
         await _availableDiagnostics.WaitAsync(cancellationToken);
-        if(_diagnostics.TryDequeue(out var diagnostics)) {
+        if (_diagnostics.TryDequeue(out var diagnostics)) {
           return diagnostics;
         }
         throw new System.InvalidOperationException("got a signal for a received diagnostic but it was not present in the queue");
