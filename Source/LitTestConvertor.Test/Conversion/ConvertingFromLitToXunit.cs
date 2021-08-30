@@ -6,14 +6,6 @@ using Xunit;
 namespace LitTestConvertor.Test {
   public class ConvertingFromLitToXunit {
 
-
-    private static IEnumerable<string> ReadLines(StreamReader reader) {
-      string line;
-      while ((line = reader.ReadLine()) != null) {
-        yield return line;
-      }
-    }
-
     [Fact]
     public void HelloWorld() {
       var convertor = new LitTestConverter.LitTestConvertor();

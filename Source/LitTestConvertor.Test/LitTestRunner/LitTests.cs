@@ -1,4 +1,7 @@
+using Xunit;
 using XUnitExtensions;
+
+[assembly: TestCollectionOrderer("XUnitExtensions.TestCollectionShardFilter", "XUnitExtensions")]
 
 namespace LitTestConvertor.Test.LitTestRunner {
   public class LitTests {
