@@ -3,5 +3,5 @@ using Xunit;
 using Xunit.Sdk;
 
 [AttributeUsage(AttributeTargets.Method)]
-[XunitTestCaseDiscoverer("XUnitExtensions.CollectionPerTestCaseTheoryDiscoverer", "DafnyDriver.Test")]
+[XunitTestCaseDiscoverer("XUnitExtensions.CollectionPerTestCaseTheoryDiscoverer", "XUnitExtensions")]
 public class ParallelTheoryAttribute : TheoryAttribute { }
