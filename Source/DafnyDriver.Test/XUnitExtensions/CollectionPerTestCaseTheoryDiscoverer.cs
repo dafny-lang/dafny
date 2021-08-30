@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace XUnitExtensions {
   public class CollectionPerTestCaseTheoryDiscoverer : IXunitTestCaseDiscoverer {
         
-    readonly IXunitTestCaseDiscoverer theoryDiscoverer;
+    private readonly IXunitTestCaseDiscoverer theoryDiscoverer;
 
     public CollectionPerTestCaseTheoryDiscoverer(IMessageSink diagnosticMessageSink)
     {
@@ -26,7 +25,7 @@ namespace XUnitExtensions {
             
       var testCases = theoryDiscoverer.Discover(discoveryOptions, testMethod, factAttribute);
       
-      // Select the requested fraction of the test cases if using the XUNIT_SHARD[_COUNT} environment variables.
+      // Select the requested fraction of the test cases if using the XUNIT_SHARD[_COUNT] environment variables.
       // Ideally this would be handled at a higher level so that cases from different test methods could be
       // balanced as a whole.
       var shardEnvVar = Environment.GetEnvironmentVariable("XUNIT_SHARD");

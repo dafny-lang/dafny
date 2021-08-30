@@ -11,14 +11,14 @@ namespace XUnitExtensions {
   public class TestCaseWithCollection : LongLivedMarshalByRefObject, IXunitTestCase {
         
     private IXunitTestCase testCase;
-    private ITestMethod testMethod;
+    public ITestMethod TestMethod { get; set; }
 
     public TestCaseWithCollection(IXunitTestCase testCase, ITestCollection collection)
     {
       this.testCase = testCase;
             
       var testClassWithCollection = new TestClass(collection, testCase.TestMethod.TestClass.Class);
-      this.testMethod = new TestMethod(testClassWithCollection, testCase.TestMethod.Method);
+      TestMethod = new TestMethod(testClassWithCollection, testCase.TestMethod.Method);
     }
         
     [Obsolete("Called by the de-serializer", error: true)]
@@ -26,25 +26,24 @@ namespace XUnitExtensions {
         
     public void Deserialize(IXunitSerializationInfo info) {
       testCase = info.GetValue<IXunitTestCase>("InnerTestCase");
-      testMethod = info.GetValue<ITestMethod>("TestMethod");
+      TestMethod = info.GetValue<ITestMethod>("TestMethod");
     }
 
     public void Serialize(IXunitSerializationInfo info) {
       info.AddValue("InnerTestCase", testCase);
-      info.AddValue("TestMethod", testMethod);
+      info.AddValue("TestMethod", TestMethod);
     }
-    public string DisplayName { get { return testCase.DisplayName; } }
-    public string SkipReason { get { return testCase.SkipReason; } }
+    public string DisplayName => testCase.DisplayName;
+    public string SkipReason =>  testCase.SkipReason;
     public ISourceInformation SourceInformation
     {
-      get { return testCase.SourceInformation; }
-      set { testCase.SourceInformation = value; }
+      get => testCase.SourceInformation;
+      set => testCase.SourceInformation = value;
     }
-    public ITestMethod TestMethod { get { return testMethod; } }
 
-    public object[] TestMethodArguments { get { return testCase.TestMethodArguments; } }
-    public Dictionary<string, List<string>> Traits { get { return testCase.Traits; } }
-    public string UniqueID { get { return testCase.UniqueID; } }
+    public object[] TestMethodArguments => testCase.TestMethodArguments;
+    public Dictionary<string, List<string>> Traits => testCase.Traits;
+    public string UniqueID => testCase.UniqueID;
 
     public Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments,
       ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource) {
