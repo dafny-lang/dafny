@@ -111,8 +111,9 @@ method Recurse(x: int) returns (r: int) {
       var source = "";
       var documentItem = CreateTestDocument(source);
       await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var _));
-      //Assert.IsTrue(!document.Errors.HasErrors);
+      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      // Empty files currently yield only a warning.
+      Assert.IsTrue(!document.Errors.HasErrors);
     }
 
     [TestMethod]
@@ -120,8 +121,8 @@ method Recurse(x: int) returns (r: int) {
       var source = "";
       var documentItem = CreateTestDocument(source);
       await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var _));
-      //Assert.IsTrue(!document.Errors.HasErrors);
+      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      Assert.IsTrue(!document.Errors.HasErrors);
     }
 
     [TestMethod]
