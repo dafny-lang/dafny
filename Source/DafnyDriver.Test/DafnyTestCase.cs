@@ -72,7 +72,7 @@ namespace DafnyDriver.Test {
 
     }
 
-    public void Serialize(IXunitSerializationInfo info) {
+    public new void Serialize(IXunitSerializationInfo info) {
       base.Serialize(info);
       info.AddValue(nameof(BasePath), BasePath);
       info.AddValue(nameof(SourcePath), SourcePath);
@@ -80,7 +80,7 @@ namespace DafnyDriver.Test {
       info.AddValue(nameof(OtherFiles), OtherFiles);
     }
 
-    public void Deserialize(IXunitSerializationInfo info) {
+    public new void Deserialize(IXunitSerializationInfo info) {
       base.Deserialize(info);
       BasePath = info.GetValue<string>(nameof(BasePath));
       SourcePath = info.GetValue<string>(nameof(SourcePath));

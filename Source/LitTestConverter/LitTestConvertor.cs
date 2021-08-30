@@ -98,7 +98,6 @@ namespace LitTestConvertor {
     }
 
     private CLITestCase ParseDafnyCommandArguments(string basePath, string filePath, bool invokeDirectly, string dafnyCommand) {
-      bool includeThisFile = true;
       List<string> otherFiles = new();
       Dictionary<string, object> dafnyArguments = new();
 
@@ -120,7 +119,7 @@ namespace LitTestConvertor {
       arguments.RemoveRange(arguments.Count - 2, 2);
 
       if (!arguments.Remove("\"%s\"")) {
-        includeThisFile = false;
+        throw new ArgumentException("Test cases that do not include the current file are not yet supported");
       }
 
       // Check the arguments for anything non-standard
