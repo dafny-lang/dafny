@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
-using DafnyDriver.Test.XUnitExtensions;
 using Xunit.Abstractions;
+using XUnitExtensions;
 
 namespace DafnyDriver.Test {
 

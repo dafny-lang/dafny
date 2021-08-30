@@ -8,9 +8,8 @@ using System.Text;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
-using XUnitExtensions;
 
-namespace DafnyDriver.Test.XUnitExtensions {
+namespace XUnitExtensions {
 
   public class CLITestCase : IXunitSerializable {
     protected Assembly CliAssembly;

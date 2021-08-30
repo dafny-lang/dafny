@@ -2,9 +2,9 @@ using System;
 using System.Linq;
 using System.Reflection;
 using DafnyDriver.Test;
-using DafnyDriver.Test.XUnitExtensions;
 using Xunit;
 using Xunit.Sdk;
+using XUnitExtensions;
 
 namespace LitTestConvertor.Test.LitTestRunner {
   public class LitTestDataDiscovererTest {

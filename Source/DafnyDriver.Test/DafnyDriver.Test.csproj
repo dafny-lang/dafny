@@ -6,14 +6,15 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="DiffPlex" Version="1.6.3" />
+        <PackageReference Include="DiffPlex" Version="1.7.0" />
         <PackageReference Include="FluentAssertions" Version="5.10.3" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.9.4" />
         <PackageReference Include="xunit" Version="2.4.1" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1" />
         <PackageReference Include="Xunit.SkippableFact" Version="1.4.8" />
         <PackageReference Include="YamlDotNet" Version="8.1.2" />
         <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
+        <ProjectReference Include="..\XUnitExtensions\XUnitExtensions.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -26,5 +27,9 @@
         <Content Include="..\..\Test\c++\**\*.*" LinkBase="TestFiles\DafnyTests\Test\c++">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="XUnitExtensions" />
     </ItemGroup>
 </Project>

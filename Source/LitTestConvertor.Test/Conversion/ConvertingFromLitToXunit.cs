@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using DafnyDriver.Test;
 using Xunit;
 
 namespace LitTestConvertor.Test {
@@ -18,14 +16,14 @@ namespace LitTestConvertor.Test {
 
     [Fact]
     public void HelloWorld() {
-      var convertor = new LitTestConvertor();
+      var convertor = new LitTestConverter.LitTestConvertor();
       var lines = File.ReadLines("TestFiles/HelloWorldLitTest.dfy");
       var (testCases, testContent) = convertor.ConvertLitCommands("TestFiles", "TestFiles/HelloWorldLitTest.dfy", false, lines);
     }
 
     [Fact]
     public void VerifyOnly() {
-      var convertor = new LitTestConvertor();
+      var convertor = new LitTestConverter.LitTestConvertor();
       using var stream =
         Assembly.GetExecutingAssembly().GetManifestResourceStream("LitTestConvertor.Test.TestFiles.VerifyOnlyLitTest.dfy");
       using var reader = new StreamReader(stream);

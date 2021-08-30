@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using DafnyDriver.Test.XUnitExtensions;
 using Xunit.Abstractions;
 using Xunit.Sdk;
+using XUnitExtensions;
 
 namespace DafnyDriver.Test {
   public class LitTestDataDiscoverer : FileDataDiscoverer {
 
-    private readonly LitTestConvertor.LitTestConvertor convertor = new();
+    private readonly LitTestConverter.LitTestConvertor convertor = new();
 
     public override bool SupportsDiscoveryEnumeration(IAttributeInfo dataAttribute, IMethodInfo testMethod) {
       return true;

@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DafnyDriver.Test;
-using DafnyDriver.Test.XUnitExtensions;
+using XUnitExtensions;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace LitTestConvertor {
+namespace LitTestConverter {
 
   public class LitTestConvertor {
 

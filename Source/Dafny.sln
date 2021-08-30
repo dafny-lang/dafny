@@ -28,6 +28,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyLanguageServer", "Dafn
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyLanguageServer.Test", "DafnyLanguageServer.Test\DafnyLanguageServer.Test.csproj", "{320C02A3-D3E6-4AC7-A7E2-170AF86A6EEC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XUnitExtensions", "XUnitExtensions\XUnitExtensions.csproj", "{43731A57-DBA9-43AC-BC83-A9211DA7EB77}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Checked|.NET = Checked|.NET
@@ -284,6 +286,30 @@ Global
 		{FA2A3A73-3035-497B-B9D7-B6BC4888A058}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{FA2A3A73-3035-497B-B9D7-B6BC4888A058}.Release|x86.ActiveCfg = Release|Any CPU
 		{FA2A3A73-3035-497B-B9D7-B6BC4888A058}.Release|x86.Build.0 = Release|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Checked|.NET.ActiveCfg = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Checked|.NET.Build.0 = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Checked|Any CPU.ActiveCfg = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Checked|Any CPU.Build.0 = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Checked|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Checked|Mixed Platforms.Build.0 = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Checked|x86.ActiveCfg = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Checked|x86.Build.0 = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Debug|.NET.ActiveCfg = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Debug|.NET.Build.0 = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Debug|x86.Build.0 = Debug|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Release|.NET.ActiveCfg = Release|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Release|.NET.Build.0 = Release|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Release|x86.ActiveCfg = Release|Any CPU
+		{43731A57-DBA9-43AC-BC83-A9211DA7EB77}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

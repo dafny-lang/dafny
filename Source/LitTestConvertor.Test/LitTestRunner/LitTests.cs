@@ -1,4 +1,4 @@
-using DafnyDriver.Test.XUnitExtensions;
+using XUnitExtensions;
 
 namespace LitTestConvertor.Test.LitTestRunner {
   public class LitTests {

@@ -6,7 +6,7 @@ using System.Reflection;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
-namespace DafnyDriver.Test.XUnitExtensions {
+namespace XUnitExtensions {
   public abstract class FileDataDiscoverer : IDataDiscoverer {
     protected string GetBasePath(IAttributeInfo attributeInfo, IMethodInfo testMethod) {
       var path = attributeInfo.GetNamedArgument<string>(nameof(FileDataAttribute.Path));
