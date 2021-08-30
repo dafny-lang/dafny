@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System.IO;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   [TestClass]
@@ -100,6 +101,33 @@ method Recurse(x: int) returns (r: int) {
         { $"{DocumentOptions.Section}:{nameof(DocumentOptions.Verify)}", nameof(AutoVerification.Never) }
       });
       var documentItem = CreateTestDocument(source);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      Assert.IsTrue(!document.Errors.HasErrors);
+    }
+
+    [TestMethod]
+    public async Task EmptyDocumentCanBeOpened() {
+      var source = "";
+      var documentItem = CreateTestDocument(source);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var _));
+      //Assert.IsTrue(!document.Errors.HasErrors);
+    }
+
+    [TestMethod]
+    public async Task DocumentWithNoValidTokensCanBeOpened() {
+      var source = "";
+      var documentItem = CreateTestDocument(source);
+      await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var _));
+      //Assert.IsTrue(!document.Errors.HasErrors);
+    }
+
+    [TestMethod]
+    public async Task EmptyDocumentCanBeIncluded() {
+      var source = "include \"empty.dfy\"";
+      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
       await _client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
       Assert.IsTrue(!document.Errors.HasErrors);
