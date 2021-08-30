@@ -36,11 +36,11 @@ namespace DafnyDriver.Test.XUnitExtensions {
         }
       };
     }
-    
+
     public override bool SupportsDiscoveryEnumeration(IAttributeInfo dataAttribute, IMethodInfo testMethod) {
       return true;
     }
-    
+
     protected override IEnumerable<object[]> FileData(IAttributeInfo dataAttribute, IMethodInfo testMethod, string fileName) {
       var withParameterNames = dataAttribute.GetNamedArgument<bool>(nameof(YamlDataAttribute.WithParameterNames));
       // YamlDotNet's deserialization framework requires runtime type information
@@ -48,11 +48,11 @@ namespace DafnyDriver.Test.XUnitExtensions {
       if (methodInfo == null) {
         return null;
       }
-      
+
       try {
         using Stream stream = File.OpenRead(fileName);
         IParser parser = GetYamlParser(fileName, stream);
-        if (parser == null) { 
+        if (parser == null) {
           return Enumerable.Empty<object[]>();
         }
 
@@ -66,7 +66,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
           var nestedObjectDeserializer = ForMethodInfoDeserializeFn(deserializer, methodInfo);
           if (collectionDeserializer.Deserialize(parser, typeof(List<MethodArguments>), nestedObjectDeserializer,
             out var value)) {
-            List<MethodArguments> argumentses = (List<MethodArguments>) value;
+            List<MethodArguments> argumentses = (List<MethodArguments>)value;
             return argumentses.SelectMany(a => a.Combinations());
           } else {
             throw new ArgumentException();
@@ -74,8 +74,8 @@ namespace DafnyDriver.Test.XUnitExtensions {
         } else {
           IEnumerable<ParameterInfo> parameters = methodInfo.GetParameters();
           Type targetType = typeof(IEnumerable<>).MakeGenericType(parameters.Single().ParameterType);
-          IEnumerable<object> results = (IEnumerable<object>) deserializer.Deserialize(parser, targetType);
-          return results.Select(value => new[] {value});
+          IEnumerable<object> results = (IEnumerable<object>)deserializer.Deserialize(parser, targetType);
+          return results.Select(value => new[] { value });
         }
       } catch (Exception e) {
         throw new ArgumentException(
@@ -97,7 +97,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
         .Select((value, index) => new KeyValuePair<string, int>(value.Name, index))
         .ToDictionary(p => p.Key, p => p.Value);
     }
-    
+
     public void Read(IParser parser, Type expectedType, ObjectDeserializer nestedObjectDeserializer) {
       if (!parser.TryConsume(out MappingStart _)) {
         throw new ArgumentException();
@@ -111,11 +111,11 @@ namespace DafnyDriver.Test.XUnitExtensions {
         if (forEach != null) {
           parameterType = forEach.EnumerableTypeOf(parameterType);
         }
-        
+
         object argument = nestedObjectDeserializer(parameterType);
         IValuePromise valuePromise = argument as IValuePromise;
         if (valuePromise != null) {
-          valuePromise.ValueAvailable += (Action<object>) (v => Arguments[parameterIndex] = TypeConverter.ChangeType(v, parameterType));
+          valuePromise.ValueAvailable += (Action<object>)(v => Arguments[parameterIndex] = TypeConverter.ChangeType(v, parameterType));
         } else {
           Arguments[parameterIndex] = TypeConverter.ChangeType(argument, parameterType);
         }
@@ -131,7 +131,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
       IEnumerable<IEnumerable<object>> lifted = Arguments.Select((arg, index) => {
         ParameterInfo parameter = Method.GetParameters()[index];
         ForEachAttribute forEach = parameter.GetCustomAttribute<ForEachAttribute>();
-        return forEach == null ? new[] {arg} : ((IEnumerable)arg).Cast<object>();
+        return forEach == null ? new[] { arg } : ((IEnumerable)arg).Cast<object>();
       });
       return lifted.CartesianProduct().Select(e => e.ToArray());
     }

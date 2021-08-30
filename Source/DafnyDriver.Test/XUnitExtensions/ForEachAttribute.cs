@@ -5,7 +5,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
   public class ForEachAttribute : Attribute {
 
     private readonly Type EnumeratorClass;
-    
+
     public ForEachAttribute(Type enumeratorClass = null) {
       EnumeratorClass = enumeratorClass ?? typeof(IEnumerable<>);
     }

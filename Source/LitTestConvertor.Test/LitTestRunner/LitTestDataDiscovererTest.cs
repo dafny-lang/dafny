@@ -9,11 +9,10 @@ using Xunit.Sdk;
 namespace LitTestConvertor.Test.LitTestRunner {
   public class LitTestDataDiscovererTest {
 
-    MethodInfo GetMethodInfo(Action<CLITestCase> a)
-    {
+    MethodInfo GetMethodInfo(Action<CLITestCase> a) {
       return a.Method;
     }
-    
+
     [Fact]
     public void Discoverer() {
       var discoverer = new LitTestDataDiscoverer();

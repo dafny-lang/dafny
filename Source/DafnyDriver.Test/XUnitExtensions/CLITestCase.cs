@@ -11,13 +11,12 @@ using Xunit.Sdk;
 using XUnitExtensions;
 
 namespace DafnyDriver.Test.XUnitExtensions {
-  
-  public class CLITestCase: IXunitSerializable
-  {
+
+  public class CLITestCase : IXunitSerializable {
     protected Assembly CliAssembly;
     protected string CliAssemblyName;
     protected bool InvokeDirectly;
-    
+
     protected string[] Arguments;
     protected IEnumerable<string> PassthroughEnvironmentVariables;
     protected Expectation Expected;
@@ -30,7 +29,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
       public string SpecialCaseReason;
 
       public static Expectation NO_OUTPUT = new Expectation(0, null, null);
-      
+
       public Expectation(int exitCode, string outputFile, string specialCaseReason) {
         ExitCode = exitCode;
         OutputFile = outputFile;
@@ -39,7 +38,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
 
       public Expectation() {
       }
-      
+
       public void Deserialize(IXunitSerializationInfo info) {
         OutputFile = info.GetValue<string>(nameof(OutputFile));
         ExitCode = info.GetValue<int>(nameof(ExitCode));
@@ -82,7 +81,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
       }
     }
 
-    public CLITestCase(Assembly cliAssembly, IEnumerable<string> arguments, 
+    public CLITestCase(Assembly cliAssembly, IEnumerable<string> arguments,
                        IEnumerable<string> passthroughEnvironmentVariables,
                        Expectation expected, bool invokeDirectly) {
       CliAssembly = cliAssembly;
@@ -93,19 +92,19 @@ namespace DafnyDriver.Test.XUnitExtensions {
     }
 
     public CLITestCase() {
-      
+
     }
-  
+
     public void Serialize(IXunitSerializationInfo info) {
       info.AddValue(nameof(CliAssemblyName), CliAssemblyName);
       info.AddValue(nameof(Arguments), Arguments);
       info.AddValue(nameof(Expected), Expected);
     }
-    
+
     public void Deserialize(IXunitSerializationInfo info) {
       CliAssemblyName = info.GetValue<string>(nameof(CliAssemblyName));
       CliAssembly = AppDomain.CurrentDomain.GetAssemblies().First(a => a.FullName == CliAssemblyName);
-      
+
       Arguments = info.GetValue<string[]>(nameof(Arguments));
       Expected = info.GetValue<Expectation>(nameof(Expected));
     }
@@ -116,7 +115,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
       }
       return InvokeCLIViaProcess();
     }
-    
+
     public CLIResult InvokeCLIDirectly() {
       StringBuilder redirectedOut = new();
       StringBuilder redirectedErr = new();
@@ -124,30 +123,30 @@ namespace DafnyDriver.Test.XUnitExtensions {
       Console.SetOut(new StringWriter(redirectedOut));
       Console.SetError(new StringWriter(redirectedErr));
 
-      int result = (int) CliAssembly.EntryPoint.Invoke(null, new object[] { Arguments });
-      
+      int result = (int)CliAssembly.EntryPoint.Invoke(null, new object[] { Arguments });
+
       return new CLIResult(result, redirectedOut.ToString(), redirectedErr.ToString());
     }
-    
+
     public CLIResult InvokeCLIViaProcess() {
       using var process = new Process();
-      
+
       process.StartInfo.FileName = "dotnet";
       process.StartInfo.Arguments = CliAssembly.Location;
       foreach (var argument in Arguments) {
         process.StartInfo.Arguments += " " + argument;
       }
-      
+
       process.StartInfo.UseShellExecute = false;
       process.StartInfo.RedirectStandardOutput = true;
       process.StartInfo.RedirectStandardError = true;
-      process.StartInfo.CreateNoWindow = true; 
+      process.StartInfo.CreateNoWindow = true;
 
       process.StartInfo.EnvironmentVariables.Clear();
-      foreach(var passthrough in PassthroughEnvironmentVariables) {
+      foreach (var passthrough in PassthroughEnvironmentVariables) {
         process.StartInfo.EnvironmentVariables.Add(passthrough, Environment.GetEnvironmentVariable(passthrough));
       }
-      
+
       process.Start();
       string output = process.StandardOutput.ReadToEnd();
       string error = process.StandardError.ReadToEnd();

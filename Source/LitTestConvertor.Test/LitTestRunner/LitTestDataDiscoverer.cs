@@ -7,11 +7,10 @@ using Xunit.Abstractions;
 using Xunit.Sdk;
 
 namespace DafnyDriver.Test {
-  public class LitTestDataDiscoverer : FileDataDiscoverer
-  {
+  public class LitTestDataDiscoverer : FileDataDiscoverer {
 
     private readonly LitTestConvertor.LitTestConvertor convertor = new();
-    
+
     public override bool SupportsDiscoveryEnumeration(IAttributeInfo dataAttribute, IMethodInfo testMethod) {
       return true;
     }
@@ -30,8 +29,7 @@ namespace DafnyDriver.Test {
 }
 
 [DataDiscoverer("DafnyDriver.Test.LitTestDataDiscoverer", "LitTestConvertor.Test")]
-public class LitTestDataAttribute : FileDataAttribute
-{
+public class LitTestDataAttribute : FileDataAttribute {
   public bool InvokeCliDirectly;
   public LitTestDataAttribute(bool invokeCliDirectly = false) : base(extension: ".dfy") {
     InvokeCliDirectly = invokeCliDirectly;

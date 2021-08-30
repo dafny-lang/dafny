@@ -5,12 +5,10 @@ using System.Reflection;
 using DafnyDriver.Test;
 using Xunit;
 
-namespace LitTestConvertor.Test
-{
-  public class ConvertingFromLitToXunit
-  {
-        
-    
+namespace LitTestConvertor.Test {
+  public class ConvertingFromLitToXunit {
+
+
     private static IEnumerable<string> ReadLines(StreamReader reader) {
       string line;
       while ((line = reader.ReadLine()) != null) {
@@ -24,7 +22,7 @@ namespace LitTestConvertor.Test
       var lines = File.ReadLines("TestFiles/HelloWorldLitTest.dfy");
       var (testCases, testContent) = convertor.ConvertLitCommands("TestFiles", "TestFiles/HelloWorldLitTest.dfy", false, lines);
     }
- 
+
     [Fact]
     public void VerifyOnly() {
       var convertor = new LitTestConvertor();

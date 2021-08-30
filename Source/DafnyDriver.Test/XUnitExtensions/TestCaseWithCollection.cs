@@ -9,21 +9,20 @@ using Xunit.Sdk;
 
 namespace XUnitExtensions {
   public class TestCaseWithCollection : LongLivedMarshalByRefObject, IXunitTestCase {
-        
+
     private IXunitTestCase testCase;
     public ITestMethod TestMethod { get; set; }
 
-    public TestCaseWithCollection(IXunitTestCase testCase, ITestCollection collection)
-    {
+    public TestCaseWithCollection(IXunitTestCase testCase, ITestCollection collection) {
       this.testCase = testCase;
-            
+
       var testClassWithCollection = new TestClass(collection, testCase.TestMethod.TestClass.Class);
       TestMethod = new TestMethod(testClassWithCollection, testCase.TestMethod.Method);
     }
-        
+
     [Obsolete("Called by the de-serializer", error: true)]
     public TestCaseWithCollection() { }
-        
+
     public void Deserialize(IXunitSerializationInfo info) {
       testCase = info.GetValue<IXunitTestCase>("InnerTestCase");
       TestMethod = info.GetValue<ITestMethod>("TestMethod");
@@ -34,9 +33,8 @@ namespace XUnitExtensions {
       info.AddValue("TestMethod", TestMethod);
     }
     public string DisplayName => testCase.DisplayName;
-    public string SkipReason =>  testCase.SkipReason;
-    public ISourceInformation SourceInformation
-    {
+    public string SkipReason => testCase.SkipReason;
+    public ISourceInformation SourceInformation {
       get => testCase.SourceInformation;
       set => testCase.SourceInformation = value;
     }

@@ -23,11 +23,11 @@ namespace DafnyDriver.Test {
     ~TemporaryDirectory() {
       Dispose(false);
     }
-        
+
     protected virtual void Dispose(bool disposing) {
       SafeDelete();
     }
-        
+
     private void SafeDelete() {
       try {
         DirInfo.Delete(true);

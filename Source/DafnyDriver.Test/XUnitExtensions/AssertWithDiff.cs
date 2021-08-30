@@ -27,7 +27,7 @@ namespace XUnitExtensions {
           }
           message.AppendLine(line.Text);
         }
-                
+
         throw new AssertActualExpectedException(expected, actual, message.ToString());
       }
     }

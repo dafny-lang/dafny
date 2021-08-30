@@ -8,18 +8,18 @@ using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
 namespace LitTestConvertor {
-  
+
   public class LitTestConvertor {
 
     private const string DAFNY_COMMENT_PREFIX = "//";
     private const string LIT_COMMAND_PREFIX = "RUN:";
     private const string LIT_DAFNY = "%dafny";
     private const string LIT_SERVER = "%server";
-    
+
     // Fake options for which files are passed to the CLI
     public const string TEST_CONFIG_OTHER_FILES = "otherFiles";
     public const string TEST_CONFIG_INCLUDE_THIS_FILE = "includeThisFile";
-    
+
     private int count = 0;
     private int verifyOnlyCount = 0;
     private int defaultCount = 0;
@@ -35,12 +35,12 @@ namespace LitTestConvertor {
       } else {
         (testSpec, testContent) = ConvertLitCommands(basePath, filePath, invokeDirectly, File.ReadAllLines(filePath));
       }
-      
+
       ISerializer serializer = new SerializerBuilder()
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
         .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitDefaults)
         .Build();
-      
+
       using (StreamWriter file = new StreamWriter(filePath)) {
         if (testSpec != null) {
           file.WriteLine("/*");
@@ -59,7 +59,7 @@ namespace LitTestConvertor {
       if (!litCommands.Any()) {
         throw new ArgumentException("No lit commands found");
       }
-      
+
       // Make sure the commands are consecutive
       var testContent = lines.Skip(litCommands.Count);
       if (testContent.Any(line => ExtractLitCommand(line) != null)) {
@@ -75,16 +75,16 @@ namespace LitTestConvertor {
         throw new ArgumentException("Last lit command is not expected %diff: " + litCommands[^1]);
       }
       litCommands.RemoveAt(litCommands.Count - 1);
-      
+
       List<CLITestCase> testConfigs = litCommands.Select(c => ParseDafnyCommandArguments(basePath, filePath, invokeDirectly, c)).ToList();
 
       if (testConfigs.Count == 1) {
         return (testConfigs, testContent);
-      } 
-      
+      }
+
       throw new ArgumentException("Multi-command lit tests require manual conversion");
     }
-    
+
     private static string ExtractLitCommand(string line) {
       if (!line.StartsWith(DAFNY_COMMENT_PREFIX)) {
         return null;
@@ -96,26 +96,25 @@ namespace LitTestConvertor {
       }
       return line.Substring(LIT_COMMAND_PREFIX.Length).Trim();
     }
-        
+
     private CLITestCase ParseDafnyCommandArguments(string basePath, string filePath, bool invokeDirectly, string dafnyCommand) {
       bool includeThisFile = true;
       List<string> otherFiles = new();
       Dictionary<string, object> dafnyArguments = new();
-      
+
       if (!dafnyCommand.StartsWith(LIT_DAFNY)) {
         throw new ArgumentException("Lit command is not expected %dafny: " + dafnyCommand);
       }
 
       string argumentsString = dafnyCommand.Substring(LIT_DAFNY.Length);
       var arguments = argumentsString.Split((char[])null, StringSplitOptions.RemoveEmptyEntries).ToList();
-      
+
       // Ensure the last two parts are > "%t" or >> "%t"
       if (arguments.Count < 3) {
         throw new ArgumentException("Not enough arguments to %dafny command: " + dafnyCommand);
       }
-      if (!arguments[^1].Equals("\"%t\"") 
-          || !(arguments[^2].Equals(">") || arguments[^2].Equals(">>")))
-      {
+      if (!arguments[^1].Equals("\"%t\"")
+          || !(arguments[^2].Equals(">") || arguments[^2].Equals(">>"))) {
         throw new ArgumentException("Non-standard output in %dafny command: " + dafnyCommand);
       }
       arguments.RemoveRange(arguments.Count - 2, 2);
@@ -123,7 +122,7 @@ namespace LitTestConvertor {
       if (!arguments.Remove("\"%s\"")) {
         includeThisFile = false;
       }
-      
+
       // Check the arguments for anything non-standard
       foreach (var argument in arguments) {
         var (key, value) = ParseDafnyArgument(argument);
@@ -140,7 +139,7 @@ namespace LitTestConvertor {
       }
 
       var expected = new CLITestCase.Expectation(0, filePath + ".expect", null);
-      
+
       return new DafnyTestCase(basePath, filePath, dafnyArguments, otherFiles, expected, invokeDirectly);
     }
 
@@ -173,7 +172,7 @@ namespace LitTestConvertor {
           Console.WriteLine(file + ": " + e.Message);
         }
       }
-      
+
       Console.WriteLine("");
       Console.WriteLine("Already converted: " + alreadyConverted + "/" + count);
       Console.WriteLine("Default: " + defaultCount + "/" + count);
@@ -181,7 +180,7 @@ namespace LitTestConvertor {
       Console.WriteLine("Invalid: " + invalidCount + "/" + count);
     }
 
-    public static void Main(string[] args) { 
+    public static void Main(string[] args) {
       new LitTestConvertor().Run(args[0]);
     }
   }

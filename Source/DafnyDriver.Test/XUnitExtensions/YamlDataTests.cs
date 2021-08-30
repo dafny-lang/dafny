@@ -20,7 +20,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
       var discoverer = new YamlDataDiscoverer();
       Assert.Equal(expectedData, discoverer.GetData(Reflector.Wrap(attribute), Reflector.Wrap(method)));
     }
-    
+
     [Theory]
     [YamlData]
     public void CalculatorTest(int lhs, int rhs, int expected) {
@@ -29,21 +29,21 @@ namespace DafnyDriver.Test.XUnitExtensions {
 
     [Fact]
     public void CalculatorTestData() {
-      AssertTheoryData(nameof(CalculatorTest), new [] {
+      AssertTheoryData(nameof(CalculatorTest), new[] {
         new object[]{ 2, 2, 4 },
         new object[]{ 3, 4, 7 }
       });
     }
-    
+
     [Theory]
     [YamlData]
     public void CalculatorCombinatorialTest([ForEach] int lhs, [ForEach] int rhs) {
       Assert.Equal(rhs + lhs, lhs + rhs);
     }
-    
+
     [Fact]
     public void CalculatorCombinatorialTestData() {
-      AssertTheoryData(nameof(CalculatorCombinatorialTest), new [] {
+      AssertTheoryData(nameof(CalculatorCombinatorialTest), new[] {
         new object[]{ 1, 5 },
         new object[]{ 1, 10 },
         new object[]{ 2, 5 },
@@ -56,16 +56,16 @@ namespace DafnyDriver.Test.XUnitExtensions {
         new object[]{ 5, 10 },
       });
     }
-    
+
     [Theory]
     [YamlData]
     public void MultiFileTest(int a, int b) {
       Assert.Equal(a + 1, b);
     }
-    
+
     [Fact]
     public void MultiFileTestData() {
-      AssertTheoryData(nameof(MultiFileTest), new [] {
+      AssertTheoryData(nameof(MultiFileTest), new[] {
         new object[]{ 1, 2 },
         new object[]{ 3, 4 },
         new object[]{ 5, 6 },
@@ -78,10 +78,10 @@ namespace DafnyDriver.Test.XUnitExtensions {
     public void DictionaryTest(Dictionary<string, string> config) {
       Assert.Equal(3, config.Count);
     }
-    
+
     [Fact]
     public void DictionaryTestData() {
-      AssertTheoryData(nameof(DictionaryTest), new [] {
+      AssertTheoryData(nameof(DictionaryTest), new[] {
         new object[]{ new Dictionary<string, object> {
           ["one"] = "1",
           ["two"] = "2",
@@ -100,16 +100,16 @@ namespace DafnyDriver.Test.XUnitExtensions {
       public CustomYamlDataAttribute(bool withParameterNames = true) : base(withParameterNames) {
       }
     }
-    
+
     [Theory]
     [CustomYamlData()]
     public void CustomDataDiscovererTest([ForEach()] int lhs, [ForEach()] int rhs) {
       Assert.Equal(rhs + lhs, lhs + rhs);
     }
-    
+
     [Fact]
     public void CustomDataDiscovererTestData() {
-      AssertTheoryData(nameof(CustomDataDiscovererTest), new [] {
+      AssertTheoryData(nameof(CustomDataDiscovererTest), new[] {
         new object[]{ 0, 0 },
         new object[]{ 0, 1 },
         new object[]{ 1, 0 },
@@ -123,7 +123,7 @@ namespace DafnyDriver.Test.XUnitExtensions {
       });
     }
   }
-  
+
   public class Range : IEnumerable<int> {
 
     public int Start;
