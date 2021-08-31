@@ -893,12 +893,12 @@ namespace Microsoft.Dafny {
     private void AddBitvectorFunction(int w, string namePrefix, string smtFunctionName, bool binary = true, Bpl.Type resultType = null, bool bodyForBv0 = false) {
       Contract.Requires(0 <= w);
       Contract.Requires(namePrefix != null);
-      if (!DafnyOptions.O.UseBvSynonyms) {
+      if (!DafnyOptions.O.UseBvSynonyms && w > 0) {
         AddBitvectorBuiltin(w, namePrefix, smtFunctionName, binary, resultType, bodyForBv0);
         return;
       }
 
-      var smtFunc = AddBitvectorBuiltin(w, "smt_"+ namePrefix, smtFunctionName, binary, resultType, bodyForBv0);
+      var smtFunc = AddBitvectorBuiltin(w, "smt_" + namePrefix, smtFunctionName, binary, resultType, bodyForBv0);
       var tok = Token.NoToken;
       var t = BplBvType(w);
       List<Bpl.Variable> args;
@@ -969,7 +969,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(0 <= w);
       Contract.Requires(namePrefix != null);
 
-      if (!DafnyOptions.O.UseBvSynonyms) {
+      if (!DafnyOptions.O.UseBvSynonyms && w > 0) {
         AddBitvectorShiftBuiltin(w, namePrefix, smtFunctionName);
         return;
       }
