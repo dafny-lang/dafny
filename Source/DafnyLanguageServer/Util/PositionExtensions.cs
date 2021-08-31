@@ -23,17 +23,17 @@ namespace Microsoft.Dafny.LanguageServer.Util {
       int absolutePosition = 0;
       do {
         cancellationToken.ThrowIfCancellationRequested();
-        if(line == position.Line && character == position.Character) {
+        if (line == position.Line && character == position.Character) {
           return absolutePosition;
         }
-        if(IsEndOfLine(text, absolutePosition)) {
+        if (IsEndOfLine(text, absolutePosition)) {
           line++;
           character = 0;
         } else {
           character++;
         }
         absolutePosition++;
-      } while(line <= position.Line && absolutePosition <= text.Length);
+      } while (line <= position.Line && absolutePosition <= text.Length);
       throw new ArgumentException("could not resolve the absolute position");
     }
 
@@ -52,23 +52,22 @@ namespace Microsoft.Dafny.LanguageServer.Util {
       int absolutePosition = 0;
       do {
         cancellationToken.ThrowIfCancellationRequested();
-        if(IsEndOfLine(text, absolutePosition)) {
+        if (IsEndOfLine(text, absolutePosition)) {
           line++;
           character = 0;
         } else {
           character++;
         }
         absolutePosition++;
-      } while(absolutePosition <= text.Length);
+      } while (absolutePosition <= text.Length);
       return new Position(line, character);
     }
 
     private static bool IsEndOfLine(string text, int absolutePosition) {
-      if(absolutePosition >= text.Length) {
+      if (absolutePosition >= text.Length) {
         return false;
       }
-      return text[absolutePosition] switch
-      {
+      return text[absolutePosition] switch {
         '\n' => true,
         '\r' => absolutePosition + 1 == text.Length || text[absolutePosition + 1] != '\n',
         _ => false

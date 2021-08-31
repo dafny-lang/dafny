@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     private ISymbol? GetSymbolByDeclaration(AstElement node) {
-      if(_declarations.TryGetValue(node, out var symbol)) {
+      if (_declarations.TryGetValue(node, out var symbol)) {
         return symbol;
       }
       return null;

@@ -1,9 +1,9 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol.Document;
+﻿using Microsoft.Dafny.LanguageServer.Util;
+using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticPublisher : IDiagnosticPublisher {
@@ -34,15 +34,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private static IEnumerable<Diagnostic> ToDiagnostics(DafnyDocument document) {
-      foreach (var entry in document.Errors.Diagnostics) {
-        // Skip errors from included files.
-        if (document.Uri.Path == entry.Key) {
-          return entry.Value;
-        }
+      // Only report errors of the entry-document.
+      if (document.Errors.Diagnostics.TryGetValue(document.GetFilePath(), out var diagnostics)) {
+        return diagnostics;
       }
-      
       return Enumerable.Empty<Diagnostic>();
     }
-
   }
 }

@@ -39,12 +39,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       public (ISymbol? Designator, ISymbol? Type) GetSymbolAndItsTypeBefore(Position requestPosition) {
         var position = GetLinePositionBefore(requestPosition);
-        if(position == null) {
+        if (position == null) {
           _logger.LogTrace("the request position {Position} is at the beginning of the line, no chance to find a symbol there", requestPosition);
           return (null, null);
         }
         var memberAccesses = GetMemberAccessChainEndingAt(position);
-        if(memberAccesses.Length == 0) {
+        if (memberAccesses.Length == 0) {
           _logger.LogDebug("could not resolve the member access chain in front of of {Position}", requestPosition);
           return (null, null);
         }
@@ -53,7 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       private static Position? GetLinePositionBefore(Position requestPosition) {
         var position = requestPosition;
-        if(position.Character < 1) {
+        if (position.Character < 1) {
           return null;
         }
         return new Position(position.Line, position.Character - 1);
@@ -63,11 +63,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var enclosingSymbol = _document.SymbolTable.GetEnclosingSymbol(position, _cancellationToken);
         ISymbol? currentDesignator = null;
         ISymbol? currentDesignatorType = null;
-        for(int currentMemberAccess = 0; currentMemberAccess < memberAccessChain.Length; currentMemberAccess++) {
+        for (int currentMemberAccess = 0; currentMemberAccess < memberAccessChain.Length; currentMemberAccess++) {
           _cancellationToken.ThrowIfCancellationRequested();
           var currentDesignatorName = memberAccessChain[currentMemberAccess];
-          if(currentMemberAccess == 0) {
-            if(currentDesignatorName == "this") {
+          if (currentMemberAccess == 0) {
+            if (currentDesignatorName == "this") {
               // This actually the type, but TryGetTypeOf respects the case that the symbol itself is already a type.
               currentDesignator = GetEnclosingClass(enclosingSymbol);
             } else {
@@ -76,7 +76,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           } else {
             currentDesignator = FindSymbolWithName(currentDesignatorType!, currentDesignatorName);
           }
-          if(currentDesignator == null || !_document.SymbolTable.TryGetTypeOf(currentDesignator, out currentDesignatorType)) {
+          if (currentDesignator == null || !_document.SymbolTable.TryGetTypeOf(currentDesignator, out currentDesignatorType)) {
             _logger.LogDebug("could not resolve the type of the designator {MemberName} of the member access chain '{Chain}'",
               currentMemberAccess, memberAccessChain);
             return (currentDesignator, null);
@@ -88,7 +88,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       private ISymbol? GetAccessedSymbolOfEnclosingScopes(ISymbol scope, string name) {
         _cancellationToken.ThrowIfCancellationRequested();
         var symbol = FindSymbolWithName(scope, name);
-        if(symbol == null && scope.Scope != null) {
+        if (symbol == null && scope.Scope != null) {
           return GetAccessedSymbolOfEnclosingScopes(scope.Scope, name);
         }
         return symbol;
@@ -96,7 +96,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       private ClassSymbol? GetEnclosingClass(ISymbol scope) {
         _cancellationToken.ThrowIfCancellationRequested();
-        if(scope is ClassSymbol classSymbol) {
+        if (scope is ClassSymbol classSymbol) {
           return classSymbol;
         }
         return scope.Scope == null ? null : GetEnclosingClass(scope.Scope);
@@ -162,20 +162,20 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       public IEnumerable<string> ResolveFromBehind() {
-        while(_position >= 0) {
+        while (_position >= 0) {
           _cancellationToken.ThrowIfCancellationRequested();
           SkipWhitespaces();
-          if(IsAtNewStatement) {
+          if (IsAtNewStatement) {
             yield break;
           }
           // TODO method/function invocations and indexers are not supported yet. Maybe just skip to their designator?
-          if(IsIdentifierCharacter) {
+          if (IsIdentifierCharacter) {
             yield return ReadIdentifier();
           } else {
             yield break;
           }
           SkipWhitespaces();
-          if(IsMemberAccessOperator) {
+          if (IsMemberAccessOperator) {
             _position--;
           } else {
             yield break;
@@ -184,7 +184,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       private void SkipWhitespaces() {
-        while(_position >= 0 && IsWhitespace) {
+        while (_position >= 0 && IsWhitespace) {
           _cancellationToken.ThrowIfCancellationRequested();
           _position--;
         }
@@ -192,7 +192,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       private string ReadIdentifier() {
         int identifierEnd = _position + 1;
-        while(_position >= 0 && IsIdentifierCharacter) {
+        while (_position >= 0 && IsIdentifierCharacter) {
           _cancellationToken.ThrowIfCancellationRequested();
           _position--;
         }

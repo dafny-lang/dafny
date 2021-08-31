@@ -635,8 +635,7 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr)
-    {
+    protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr) {
       var beforeReturnBlock = wr.Fork(0);
       EmitReturn(m.Outs, wr);
       return beforeReturnBlock;
@@ -1317,7 +1316,7 @@ namespace Microsoft.Dafny {
       } else {
         wr.Write("\"");
         for (var i = 0; i < n; i++) {
-          if (str[i] == '\"' && i+1 < n && str[i+1] == '\"') {
+          if (str[i] == '\"' && i + 1 < n && str[i + 1] == '\"') {
             wr.Write("\\\"");
             i++;
           } else if (str[i] == '\\') {
@@ -1992,7 +1991,7 @@ namespace Microsoft.Dafny {
             // change that would render this translation incorrect.
             Contract.Assert(resultType.AsBitVectorType.Width == 0);
             opString = "+";  // 0 + 0 == 0 == 0 << 0
-             convertE1_to_int = true;
+            convertE1_to_int = true;
           } else {
             staticCallString = "_dafny.ShiftLeft";
             truncateResult = true; convertE1_to_int = true;
@@ -2006,7 +2005,7 @@ namespace Microsoft.Dafny {
             // change that would render this translation incorrect.
             Contract.Assert(resultType.AsBitVectorType.Width == 0);
             opString = "+";  // 0 + 0 == 0 == 0 << 0
-             convertE1_to_int = true;
+            convertE1_to_int = true;
           } else {
             staticCallString = "_dafny.ShiftRight";
             truncateResult = true; convertE1_to_int = true;
@@ -2177,7 +2176,7 @@ namespace Microsoft.Dafny {
             MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
             if (literal != null) {
               // Optimize constant to avoid intermediate BigInteger
-              wr.Write("(" + literal  + ")");
+              wr.Write("(" + literal + ")");
             } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
               // Optimize .Count to avoid intermediate BigInteger
               TrParenExpr(u.E, wr, inLetExprBody);

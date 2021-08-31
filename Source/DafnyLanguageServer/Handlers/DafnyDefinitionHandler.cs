@@ -28,17 +28,17 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override Task<LocationOrLocationLinks> Handle(DefinitionParams request, CancellationToken cancellationToken) {
       DafnyDocument? document;
-      if(!_documents.TryGetDocument(request.TextDocument, out document)) {
+      if (!_documents.TryGetDocument(request.TextDocument, out document)) {
         _logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return Task.FromResult(new LocationOrLocationLinks());
       }
       ILocalizableSymbol? symbol;
-      if(!document.SymbolTable.TryGetSymbolAt(request.Position, out symbol)) {
+      if (!document.SymbolTable.TryGetSymbolAt(request.Position, out symbol)) {
         _logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
         return Task.FromResult(new LocationOrLocationLinks());
       }
       var location = GetLspLocation(document, symbol);
-      if(location == null) {
+      if (location == null) {
         _logger.LogDebug("failed to resolve the location of the symbol {SymbolName} at {Position} in {Document}",
           symbol.Name, request.Position, request.TextDocument);
         return Task.FromResult(new LocationOrLocationLinks());
@@ -47,7 +47,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private static LocationOrLocationLink? GetLspLocation(DafnyDocument document, ISymbol symbol) {
-      if(document.SymbolTable.TryGetLocationOf(symbol, out var location)) {
+      if (document.SymbolTable.TryGetLocationOf(symbol, out var location)) {
         return new Location {
           Uri = location.Uri,
           Range = location.Name

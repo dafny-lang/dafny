@@ -281,7 +281,7 @@ namespace Microsoft.Dafny.Triggers {
       if (!(expr is BinaryExpr)) {
         return false;
       }
-      BinaryExpr e = (BinaryExpr) expr;
+      BinaryExpr e = (BinaryExpr)expr;
       bool isReal = e.E0.Type.IsNumericBased(Type.NumericPersuasion.Real);
       switch (e.ResolvedOp) {
         case BinaryExpr.ResolvedOpcode.Lt:
@@ -423,11 +423,10 @@ namespace Microsoft.Dafny.Triggers {
 
     private TriggerAnnotation AnnotateComprehensionExpr(ComprehensionExpr expr) {
       var terms = CollectExportedCandidates(expr);
-      return new TriggerAnnotation(true, CollectVariables(expr), terms,  OnlyPrivateCandidates(terms, expr.BoundVars));
+      return new TriggerAnnotation(true, CollectVariables(expr), terms, OnlyPrivateCandidates(terms, expr.BoundVars));
     }
 
-    private TriggerAnnotation AnnotateMatchExpr(MatchExpr expr)
-    {
+    private TriggerAnnotation AnnotateMatchExpr(MatchExpr expr) {
       var pts = CollectExportedCandidates(expr);
       // collects that argument boundvar of matchcaseexpr
       var variables = expr.Cases.Select(e => e.Arguments).
