@@ -34,6 +34,7 @@ module M {
     ch := r as char;
     ch := o as char;
 
+    assert {:split_here} true;
     var nn: int;
     var nnn: int;
     nn := c as int;
@@ -42,6 +43,7 @@ module M {
     nn := nnn as int;
     nn := o as int;
 
+    assert {:split_here} true;
     var rr: real;
     rr := c as real;
     rr := n as real;
@@ -49,6 +51,7 @@ module M {
     rr := r as real;
     rr := o as real;
 
+    assert {:split_here} true;
     var bb: bv32;
     bb := c as bv32;
     bb := n as bv32;
@@ -56,6 +59,7 @@ module M {
     bb := b as bv32;
     bb := o as bv32;
 
+    assert {:split_here} true;
     var oo: ORDINAL;
     oo := c as ORDINAL;
     oo := n as ORDINAL;
@@ -78,7 +82,7 @@ module M {
     assert c == c as ORDINAL as char;
     expect c == c as ORDINAL as char;
     if c as int < mx { print c as char, " ", c as int, " ", c as real, " ", c as bv, " ", c as ORDINAL, "\n"; }
-
+    assert {:split_here} true;
     // assert b == b as bv; // in Test3
     // expect b == b as bv; // in Test3
     // assert b == b as char as bv; // in Test3
@@ -94,6 +98,7 @@ module M {
     expect n == n as int;
     assert 0 <= n < mxch ==> n == n as char as int;
     expect 0 <= n < mxch ==> n == n as char as int;
+    assert {:split_here} true;
     // assert 0 <= n < mx ==> n == n as bv as int; // in Test3
     // expect 0 <= n < mx ==> n == n as bv as int; // in Test3
     assert n == n as real as int;
@@ -101,6 +106,7 @@ module M {
     assert 0 <= n ==> n == n as ORDINAL as int;
     expect 0 <= n ==> n == n as ORDINAL as int;
     if 0 <= n < mx && n < mxch { print n as char, " ", n as int, " ", n as real, " ", n as bv, " ", n as ORDINAL, "\n"; }
+    assert {:split_here} true;
 
     assert r == r as real;
     expect r == r as real;
@@ -113,6 +119,7 @@ module M {
     assert r == r.Floor as real  ==> 0.0 <= r ==> r == r as ORDINAL as real;
     expect r == r.Floor as real  ==> 0.0 <= r ==> r == r as ORDINAL as real;
     if r == r.Floor as real && 0.0 <= r < (mx as real) && r < (mxch as real) { print r as char, " ", r as int, " ", r as real, " ", r as bv, " ", r as ORDINAL, "\n"; }
+    assert {:split_here} true;
 
     assert o == o as ORDINAL;
     expect o == o as ORDINAL;
@@ -126,6 +133,7 @@ module M {
     // expect o.IsNat && o as int < mx ==> o == o as bv as ORDINAL; // in Test3
     if o.IsNat && o as int < mx && o as int < mxch { print o as char, " ", o as int, " ", o as real, " ", o as bv, " ", o as ORDINAL, "\n"; }
 
+    assert {:split_here} true;
     // subset type
     var nnn: int := x; // Implicit conversion allowed
     assert x == x as Tx;
@@ -151,6 +159,7 @@ module M {
     assert o.IsNat && o as int <= 100 ==> o == o as Tx as ORDINAL;
     expect o.IsNat && o as int <= 100 ==> o == o as Tx as ORDINAL;
 
+    assert {:split_here} true;
     assert h == h as Tr;
     expect h == h as Tr;
     assert h == h as Tx as Tr;
@@ -167,6 +176,7 @@ module M {
     expect h == h as ORDINAL as Tr;
     assert x == x as Tr as Tx;
     expect x == x as Tr as Tx;
+    assert {:split_here} true;
     assert c as int <= 100 ==> c == c as Tr as char;
     expect c as int <= 100 ==> c == c as Tr as char;
     assert 0 <= n as int <= 100 ==> n == n as Tr as int;
@@ -193,12 +203,14 @@ module M {
     expect b == b as bv32 as bv; // assumes bv32 is at least as wide as bv
     assert b as int < mxch ==> b == b as char as bv;
     expect b as int < mxch ==> b == b as char as bv;
+    assert {:split_here} true;
     assert b == b as int as bv;
     expect b == b as int as bv;
     assert b == b as real as bv;
     expect b == b as real as bv;
     assert b == b as ORDINAL as bv;
     expect b == b as ORDINAL as bv;
+    assert {:split_here} true;
 
     assert 0 <= n < mx ==> n == n as bv as int;
     expect 0 <= n < mx ==> n == n as bv as int;
