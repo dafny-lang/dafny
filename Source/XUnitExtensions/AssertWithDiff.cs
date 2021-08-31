@@ -16,13 +16,13 @@ namespace XUnitExtensions {
         foreach (var line in diff.Lines) {
           switch (line.Type) {
             case ChangeType.Inserted:
-              message.Append("+");
+              message.Append('+');
               break;
             case ChangeType.Deleted:
-              message.Append("-");
+              message.Append('-');
               break;
             default:
-              message.Append(" ");
+              message.Append(' ');
               break;
           }
           message.AppendLine(line.Text);

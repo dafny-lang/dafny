@@ -13,7 +13,7 @@ namespace XUnitExtensions {
       theoryDiscoverer = new SkippableTheoryDiscoverer(diagnosticMessageSink);
     }
 
-    private TestCollection testCollectionForTestCase(IXunitTestCase testCase) {
+    private static TestCollection TestCollectionForTestCase(ITestCase testCase) {
       return new TestCollection(testCase.TestMethod.TestClass.TestCollection.TestAssembly,
         (ITypeInfo)null, "Test collection for " + testCase.DisplayName);
     }
@@ -24,7 +24,7 @@ namespace XUnitExtensions {
 
       var testCases = theoryDiscoverer.Discover(discoveryOptions, testMethod, factAttribute);
 
-      return testCases.Select(testCase => new TestCaseWithCollection(testCase, testCollectionForTestCase(testCase)));
+      return testCases.Select(testCase => new FileTestCase(testCase, TestCollectionForTestCase(testCase)));
     }
   }
 }
