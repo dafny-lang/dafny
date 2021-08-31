@@ -52,8 +52,9 @@ namespace DafnyTestGeneration {
       options.ModelViewFile = "-";
       options.ProverOptions = new List<string>() {
         "O:model_compress=false",
-        "O:model.completion=true",
-        "O:model_evaluator.completion=true"};
+        "O:model_evaluator.completion=true",
+        "O:model.completion=true"
+      };
       options.ProverOptions.AddRange(DafnyOptions.O.ProverOptions);
       options.LoopUnrollCount = DafnyOptions.O.LoopUnrollCount;
       options.DefiniteAssignmentLevel = DafnyOptions.O.DefiniteAssignmentLevel;
