@@ -64,16 +64,16 @@ namespace Microsoft.Dafny {
     Block prints block-coverage tests for the given program.
     Path prints path-coverage tests for the given program.
     DeadCode uses block-coverage tests to identify potential dead code.
-    Using \definiteAssignment:3 and \loopUnroll is highly recommended when
+    Using /definiteAssignment:3 and /loopUnroll is highly recommended when
     generating tests.
 /testSeqLengthLimit:<n>
-    If \testMode is not None, using this argument adds an axiom that sets the
+    If /testMode is not None, using this argument adds an axiom that sets the
     length of all sequences to be no greater than <n>. This is useful in
     conjunction with loop unrolling.
 /testTargetMethod:<methodName>
     If specified, only this method will be tested.
 /testInlineDepth:<n>
-    0 is the default. When used in conjunction with \testTargetMethod, this
+    0 is the default. When used in conjunction with /testTargetMethod, this
     argument specifies the depth up to which all non-tested methods should be
     inlined.";
 

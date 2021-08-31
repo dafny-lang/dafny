@@ -104,28 +104,29 @@ namespace DafnyTestGeneration {
     }
 
     /// <summary>
-    /// Return a Dafny class (as a string) with tests for the given Dafny file
+    /// Return a Dafny class (list of lines) with tests for the given Dafny file
     /// </summary>
-    public static string GetTestClassForProgram(string sourceFile) {
+    public static IEnumerable<string> GetTestClassForProgram(string sourceFile) {
 
-      var result = "";
       var source = new StreamReader(sourceFile).ReadToEnd();
       var program = Utils.Parse(source, sourceFile);
       if (program == null) {
-        return result;
+        yield break;
       }
       var dafnyInfo = new DafnyInfo(program);
       var rawName = sourceFile.Split("/").Last().Split(".").First();
 
-      result += $"include \"{rawName}.dfy\"\n";
-      result += $"module {rawName}UnitTests {{\n";
-      result += string.Join("\n", dafnyInfo.ToImport
-        .Select(module => $"import {module}")) + "\n";
+      yield return $"include \"{rawName}.dfy\"";
+      yield return $"module {rawName}UnitTests {{";
+      foreach (var module in dafnyInfo.ToImport) {
+        yield return $"import {module}";
+      }
 
-      result = GetTestMethodsForProgram(program, dafnyInfo)
-        .Aggregate(result, (current, method) => current + method + "\n");
+      foreach (var method in GetTestMethodsForProgram(program, dafnyInfo)) {
+        yield return method.ToString();
+      }
 
-      return result + "}";
+      yield return "}";
     }
   }
 }

@@ -231,9 +231,10 @@ namespace Microsoft.Dafny {
         return exitValue;
       }
       if (DafnyOptions.O.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
-        var output = DafnyTestGeneration.Main
-          .GetTestClassForProgram(dafnyFileNames[0]);
-        Console.WriteLine(output);
+        foreach (var line in DafnyTestGeneration.Main
+          .GetTestClassForProgram(dafnyFileNames[0])) {
+          Console.WriteLine(line);
+        }
         return exitValue;
       }
 

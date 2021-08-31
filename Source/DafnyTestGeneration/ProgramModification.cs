@@ -59,6 +59,7 @@ namespace DafnyTestGeneration {
       options.DefiniteAssignmentLevel = DafnyOptions.O.DefiniteAssignmentLevel;
       options.WarnShadowing = DafnyOptions.O.WarnShadowing;
       options.VerifyAllModules = DafnyOptions.O.VerifyAllModules;
+      options.TimeLimit = DafnyOptions.O.TimeLimit;
       return options;
     }
 
