@@ -78,7 +78,7 @@ public static Object[] mockParameters(Method method) {
 ## Example
 
 Suppose you have a file called `Char.dfy` with the following code:
-```
+```dafny
 module Char {
   method compareToB(c: char) returns (i: int) {
     if (c == 'B') {
@@ -96,7 +96,7 @@ Running test generation like this:
 ```dafny /definiteAssignment:3 /testMode:Block Char.dfy ```
 
 Will give the following list of tests (tabulation added manually):
-```
+```dafny
 include "Char.dfy"
 module CharUnitTests {
   import Char
@@ -124,7 +124,7 @@ test0 -1
 
 Suppose you have a file called "Sample.dfy" with the following code:
 
-```
+```dafny
 method m(a:int) returns (b:int)
   requires a > 0
 {
