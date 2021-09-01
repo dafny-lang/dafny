@@ -82,12 +82,12 @@ class Paths {
   static method eightPaths (i:int)
     returns (divBy2:bool, divBy3:bool, divBy5:bool)
   {
-		if (i % 2 == 0) {
-			divBy2 := true;
-		} else {
-			divBy2 := false;
-		}
-		if (i % 3 == 0) {
+    if (i % 2 == 0) {
+      divBy2 := true;
+    } else {
+      divBy2 := false;
+    }
+    if (i % 3 == 0) {
       divBy3 := true;
     } else {
       divBy3 := false;
@@ -97,7 +97,7 @@ class Paths {
     } else {
       divBy5 := false;
     }
-	}
+  }
 }
 ".TrimStart();
       var program = Utils.Parse(source);
@@ -128,12 +128,12 @@ class Paths {
       var source = @"
 class Paths {
   static method eightPaths (i:int) returns (divBy2:bool, divBy3:bool, divBy5:bool) {
-		if (i % 2 == 0) {
-			divBy2 := true;
-		} else {
-			divBy2 := false;
-		}
-		if (i % 3 == 0) {
+    if (i % 2 == 0) {
+      divBy2 := true;
+    } else {
+      divBy2 := false;
+    }
+    if (i % 3 == 0) {
       divBy3 := true;
     } else {
       divBy3 := false;
@@ -143,7 +143,7 @@ class Paths {
     } else {
       divBy5 := false;
     }
-	}
+  }
 }
 ".TrimStart();
       var program = Utils.Parse(source);
