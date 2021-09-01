@@ -680,10 +680,10 @@ namespace Microsoft.Dafny {
         AddBitvectorFunction(w, "div_bv", "bvudiv");
         AddBitvectorFunction(w, "mod_bv", "bvurem");
         // comparisons
-        AddBitvectorFunction(w, "lt_bv", "bvult", true, Bpl.Type.Bool, false) ;
-        AddBitvectorFunction(w, "le_bv", "bvule", true, Bpl.Type.Bool, true) ;  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
-        AddBitvectorFunction(w, "ge_bv", "bvuge", true, Bpl.Type.Bool, true) ;  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
-        AddBitvectorFunction(w, "gt_bv", "bvugt", true, Bpl.Type.Bool, false) ;  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "lt_bv", "bvult", true, Bpl.Type.Bool, false);
+        AddBitvectorFunction(w, "le_bv", "bvule", true, Bpl.Type.Bool, true);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "ge_bv", "bvuge", true, Bpl.Type.Bool, true);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
+        AddBitvectorFunction(w, "gt_bv", "bvugt", true, Bpl.Type.Bool, false);  // Z3 supports this, but it seems not to be in the SMT-LIB 2 standard
         // shifts
         AddBitvectorShiftFunction(w, "LeftShift_bv", "bvshl");
         AddBitvectorShiftFunction(w, "RightShift_bv", "bvlshr");
