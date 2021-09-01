@@ -28,7 +28,7 @@ namespace Microsoft.Dafny {
           Mode = Modes.Block;
           return true;
 
-        case "testMode":
+        case "generateTestMode":
           if (ps.ConfirmArgumentCount(1)) {
             Mode = args[ps.i] switch {
               "None" => Modes.None,
@@ -39,20 +39,20 @@ namespace Microsoft.Dafny {
           }
           return true;
 
-        case "testSeqLengthLimit":
+        case "generateTestSeqLengthLimit":
           var limit = 0;
           if (ps.GetNumericArgument(ref limit)) {
             SeqLengthLimit = (uint)limit;
           }
           return true;
 
-        case "testTargetMethod":
+        case "generateTestTargetMethod":
           if (ps.ConfirmArgumentCount(1)) {
             TargetMethod = args[ps.i];
           }
           return true;
 
-        case "testInlineDepth":
+        case "generateTestInlineDepth":
           var depth = 0;
           if (ps.GetNumericArgument(ref depth)) {
             TestInlineDepth = (uint)depth;
@@ -64,7 +64,7 @@ namespace Microsoft.Dafny {
     }
 
     public override string Help => @"
-/testMode:<None|Block|Path>
+/generateTestMode:<None|Block|Path>
     None is the default and has no effect.
     Block prints block-coverage tests for the given program.
     Path prints path-coverage tests for the given program.
@@ -72,13 +72,13 @@ namespace Microsoft.Dafny {
     generating tests.
 /warnDeadCode
     Use block-coverage tests to warn about potential dead code.
-/testSeqLengthLimit:<n>
+/generateTestSeqLengthLimit:<n>
     If /testMode is not None, using this argument adds an axiom that sets the
     length of all sequences to be no greater than <n>. This is useful in
     conjunction with loop unrolling.
-/testTargetMethod:<methodName>
+/generateTestTargetMethod:<methodName>
     If specified, only this method will be tested.
-/testInlineDepth:<n>
+/generateTestInlineDepth:<n>
     0 is the default. When used in conjunction with /testTargetMethod, this
     argument specifies the depth up to which all non-tested methods should be
     inlined.";

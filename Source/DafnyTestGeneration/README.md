@@ -39,10 +39,10 @@ Even though it is possible to run the tests in this way, we currently provide no
 ## How to Generate Tests?
 
 - Test generation currently works with all basic types, user-defined classes, sequences, sets, and maps. It does not work with datatypes, arrays, and multisets. It is also not possible to generate tests for constructors.
-- To generate block- or path-coverage tests use the `/testMode:Block` or `/testMode:Path` arguments respectively. You will likely also need `definiteAssignment:3`, which will ensure that you generate tests even for those methods that do not contain any assertions or pre-\post-conditions.
-- If you wish to test a particular method rather than all the methods in a file, you can specify such a method with the `/testTargetMethod` command line argument and providing the fully qualified method name.
-- If you are using `/testTargetMethod` and would like to inline methods that are called from the method of interest, you can do so by setting `/testInlineDepth` to something larger than zero (zero is the default). The `/verifyAllModules` argument might also be relevant if the methods to be inlined are defined in included files.
-- To deal with loops, you should use `/loopUnroll` and also `/testSeqLengthLimit`. The latter argument adds an axiom that limits the length of any sequence to be no greater than some specified value. This restriction can be used to ensure that the number of loop unrolls is sufficient with respect to the length of any input sequence but it can also cause the program to miss certain corner cases.
+- To generate block- or path-coverage tests use the `/generateTestMode:Block` or `/generateTestMode:Path` arguments respectively. You will likely also need `definiteAssignment:3`, which will ensure that you generate tests even for those methods that do not contain any assertions or pre-\post-conditions.
+- If you wish to test a particular method rather than all the methods in a file, you can specify such a method with the `/generateTestTargetMethod` command line argument and providing the fully qualified method name.
+- If you are using `/generateTestTargetMethod` and would like to inline methods that are called from the method of interest, you can do so by setting `/generateTestInlineDepth` to something larger than zero (zero is the default). The `/verifyAllModules` argument might also be relevant if the methods to be inlined are defined in included files.
+- To deal with loops, you should use `/loopUnroll` and also `/generateTestSeqLengthLimit`. The latter argument adds an axiom that limits the length of any sequence to be no greater than some specified value. This restriction can be used to ensure that the number of loop unrolls is sufficient with respect to the length of any input sequence but it can also cause the program to miss certain corner cases.
 - The`/warnDeadCode` argument will make Dafny identify potential dead code in the specified file. Note that false negatives are possible if `/loopUnroll` is not used. False positives are also possible for a variety of reasons, such as `/loopUnroll` being assigned not high enough value.
 
 ## How to Run Tests?
@@ -93,7 +93,7 @@ module Char {
 ```
 Running test generation like this:
 
-```dafny /definiteAssignment:3 /testMode:Block Char.dfy ```
+```dafny /definiteAssignment:3 /generateTestMode:Block Char.dfy ```
 
 Will give the following list of tests (tabulation added manually):
 ```dafny
