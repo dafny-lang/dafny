@@ -427,7 +427,7 @@ let _dafny = (function() {
     }
     IsDisjointFrom(that) {
       let intersection = this.Intersect(that);
-      return intersection.length === 0;
+      return intersection.cardinality().isZero();
     }
     IsSubsetOf(that) {
       for (let e of this) {

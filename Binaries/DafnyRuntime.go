@@ -1278,6 +1278,10 @@ func (mset MultiSet) Union(mset2 MultiSet) MultiSet {
 
   elts := make([]msetElt, 0, len(mset.elts)+len(mset2.elts))
   for _, e := range mset.elts {
+    if e.count.Cmp(Zero) == 0 {
+      // e.value in mset2 will be added in the next separate for loop
+      continue
+    }
     m := mset2.Multiplicity(e.value)
     elts = append(elts, msetElt{e.value, e.count.Plus(m)})
   }
@@ -1335,7 +1339,7 @@ func (mset MultiSet) IsDisjointFrom(mset2 MultiSet) bool {
   }
 
   for _, e := range mset.elts {
-    if mset2.Contains(e.value) {
+    if (e.count.Cmp(Zero) != 0) && mset2.Contains(e.value) {
       return false
     }
   }

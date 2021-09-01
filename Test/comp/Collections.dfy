@@ -92,12 +92,16 @@ method zeroMultiplicity() {
   var b := multiset{42};
   var c := multiset{1, 2}[1 := 0][2 := 0];
   var d := multiset{12};
+  var e := multiset{null}[null := 0];
+  var f := multiset{null};
   print "Test zero multiplicity:\n";
-  print "  membership: ", 12 in a, "\n";
-  print "  equality: ", a == b, "\n";
-  print "  subset: ", a <= b, " ", a <= c, " ", c <= a, "\n";
-  print "  strict subset: ", a < b, " ", a < c, " ", c < a, "\n";
-  print "  disjoint: ", d !! a, "\n";
+  print "  printing: ", multiset{a, multiset{42}}, " ", a + d, "\n";
+  print "  union: ", |a + d|, " ", |d + a|, " ", |e + f|, " ", |f + e|, "\n";
+  print "  membership: ", 12 in a, " ", null in e, "\n";
+  print "  equality: ", a == b, " ", e == f, "\n";
+  print "  subset: ", a <= b, " ", a <= c, " ", c <= a, " ", e <= f, " ", f <= e, "\n";
+  print "  strict subset: ", a < b, " ", a < c, " ", c < a, " ", e < f, " ", f < e, "\n";
+  print "  disjoint: ", a !! d, " ", d !! a, " ", e !! f, " ", f !! e, "\n";
 }
 
 // -------------------------------------------------------------------------------------------
