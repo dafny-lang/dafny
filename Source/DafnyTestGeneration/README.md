@@ -38,7 +38,7 @@ Even though it is possible to run the tests in this way, we currently provide no
 
 ## How to Generate Tests?
 
-- Test generation currently works with all basic types, user-defined classes, sequences, sets, and maps. It does not work with datatypes, arrays, and multisets. It is also not possible to generate tests for constructors.
+- Test generation currently works with all basic types, user-defined classes, sequences, sets, and maps. It does not work with datatypes, arrays, and multisets. It is also not possible to generate tests for constructors. Please avoid top-level methods and wrap them inside classes or modules.
 - To generate block- or path-coverage tests use the `/generateTestMode:Block` or `/generateTestMode:Path` arguments respectively. You will likely also need `definiteAssignment:3`, which forces the Dafny-to-Boogie translator to emit implementations even for those methods that don't have any assertions or pre-\post-conditions. This, in turn, allows to generate tests for such methods.
 - If you wish to test a particular method rather than all the methods in a file, you can specify such a method with the `/generateTestTargetMethod` command line argument and providing the fully qualified method name.
 - If you are using `/generateTestTargetMethod` and would like to inline methods that are called from the method of interest, you can do so by setting `/generateTestInlineDepth` to something larger than zero (zero is the default). The `/verifyAllModules` argument might also be relevant if the methods to be inlined are defined in included files.
@@ -47,11 +47,11 @@ Even though it is possible to run the tests in this way, we currently provide no
 
 ## How to Run Tests?
 
-To run the tests, you would first need to compile the code to some other language. Once this is done, the main difficulty is to mock the arguments that the test methods take. The following code (to be inserted into the class with the tests) should do the job in Java:
+To run the tests, you would first need to compile the code to some other language. Once this is done, the main difficulty is to mock the arguments that the test methods take. The following code (to be inserted into the class with the tests) should do the job in Java (you would also need to add `import java.lang.reflect.*;` at the top of the file):
 
 ```java
 public static void main(String[] args) throws Exception {
-  for (Method method: CLASS_WITH_TESTS.class.getDeclaredMethods()) {
+  for (Method method: __default.class.getDeclaredMethods()) {
     if (!method.getName().startsWith("test"))
       continue;
     Object result = method.invoke(null, mockParameters(method));
@@ -77,47 +77,58 @@ public static Object[] mockParameters(Method method) {
 
 ## Example
 
-Suppose you have a file called `Char.dfy` with the following code:
+Suppose you have a file called `object.dfy` with the following code:
 ```dafny
-module Char {
-  method compareToB(c: char) returns (i: int) {
-    if (c == 'B') {
-        return 0;
-    } else if (c > 'B') {
-        return 1;
-    } else {
+module M {
+    class Value {
+        var v:int;
+    }
+    method compareToZero(v:Value) returns (i:int) {
+        if (v.v == 0) {
+            return 0;
+        } else if (v.v > 1) {
+            return 1;
+        }
         return -1;
     }
-  }
 }
 ```
 Running test generation like this:
 
-```dafny /definiteAssignment:3 /generateTestMode:Block Char.dfy ```
+```dafny /definiteAssignment:3 /generateTestMode:Block object.dfy ```
 
-Will give the following list of tests (tabulation added manually):
+Gives the following list of tests (tabulation added manually):
 ```dafny
-include "Char.dfy"
-module CharUnitTests {
-  import Char
-  method test0() returns (r0:int)  {
-    r0 := Char.compareToB('!');
-  }
-  method test1() returns (r0:int)  {
-    r0 := Char.compareToB(']');
-  }
-  method test2() returns (r0:int)  {
-    r0 := Char.compareToB('B');
-  }
+include "object.dfy"
+module objectUnitTests {
+    import M
+    method test0(v0:M.Value) returns (r0:int)  modifies v0 {
+        v0.v := -39;
+        r0 := M.compareToZero(v0);
+    }
+    method test1(v0:M.Value) returns (r0:int)  modifies v0 {
+        v0.v := 39;
+        r0 := M.compareToZero(v0);
+    }
+    method test2(v0:M.Value) returns (r0:int)  modifies v0 {
+        v0.v := 0;
+        r0 := M.compareToZero(v0);
+    }
 }
 ```
 
-Compiling this to Java and, after inserting the code shown [above](#how-to-run-tests), compiling and running the resulting Java code yields the following output:
+Saving these tests in a file `test.dfy` and compiling the code to Java using `dafny /compileTarget:java test.dfy` produces directory `test-java`. The tests are located in `test-java/objectUnitTests_Compile/__default.java`. To run the tests, it is first necessary to add the code shown [above](#how-to-run-tests) to the file with the tests. The code can then be compiled to bytecode using:
 
 ```
-test2 0
+javac -cp PATH_TO_DafnyRuntime.jar:test-java test-java/objectUnitTests_Compile/__default.java
+```
+
+Finally, running the code with `java -cp PATH_TO_DafnyRuntime.jar:test-java objectUnitTests_Compile/__default` yields:
+
+```
 test1 1
 test0 -1
+test2 0
 ```
 
 ## Dead Code Identification Example
