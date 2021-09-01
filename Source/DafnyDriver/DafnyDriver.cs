@@ -223,7 +223,7 @@ namespace Microsoft.Dafny {
       var dafnyFileNames = DafnyFile.fileNames(dafnyFiles);
 
       ExitValue exitValue = ExitValue.SUCCESS;
-      if (DafnyOptions.O.TestGenOptions.Mode == TestGenerationOptions.Modes.DeadCode) {
+      if (DafnyOptions.O.TestGenOptions.WarnDeadCode) {
         foreach (var line in DafnyTestGeneration.Main
           .GetDeadCodeStatistics(dafnyFileNames[0])) {
           Console.WriteLine(line);

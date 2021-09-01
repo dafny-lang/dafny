@@ -13,6 +13,7 @@ namespace DafnyTestGeneration.Test {
       options.LoopUnrollCount = 5;
       options.TestGenOptions.SeqLengthLimit = 3;
       options.TestGenOptions.Mode = TestGenerationOptions.Modes.Block;
+      options.TestGenOptions.WarnDeadCode = false;
       options.TestGenOptions.TestInlineDepth = 0;
       DafnyOptions.Install(options);
     }

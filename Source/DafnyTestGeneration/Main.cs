@@ -19,7 +19,6 @@ namespace DafnyTestGeneration {
     /// <returns></returns>
     public static IEnumerable<string> GetDeadCodeStatistics(Program program) {
 
-      DafnyOptions.O.TestGenOptions.Mode = TestGenerationOptions.Modes.DeadCode;
       var modifications = GetModifications(program).ToList();
       var blocksReached = modifications.Count;
       HashSet<string> allStates = new();

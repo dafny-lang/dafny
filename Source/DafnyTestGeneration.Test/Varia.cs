@@ -263,7 +263,7 @@ method m(a:int) returns (b:int)
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.TestGenOptions.Mode = TestGenerationOptions.Modes.DeadCode;
+      DafnyOptions.O.TestGenOptions.WarnDeadCode = true;
       var stats = Main.GetDeadCodeStatistics(program).ToList();
       Assert.IsTrue(stats.Contains("Code at (5,12) is potentially unreachable."));
       Assert.AreEqual(2, stats.Count); // second is line with stats
@@ -281,7 +281,7 @@ method m(a:int) returns (b:int)
 }
 ".TrimStart();
       var program = Utils.Parse(source);
-      DafnyOptions.O.TestGenOptions.Mode = TestGenerationOptions.Modes.DeadCode;
+      DafnyOptions.O.TestGenOptions.WarnDeadCode = true;
       var stats = Main.GetDeadCodeStatistics(program).ToList();
       Assert.AreEqual(1, stats.Count); // the only line with stats
     }

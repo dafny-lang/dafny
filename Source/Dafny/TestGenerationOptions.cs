@@ -9,7 +9,8 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class TestGenerationOptions : DafnyOptions {
 
-    public enum Modes { None, Block, Path, DeadCode };
+    public bool WarnDeadCode = false;
+    public enum Modes { None, Block, Path };
     public Modes Mode = Modes.None;
     [CanBeNull] public string TargetMethod = null;
     public uint? SeqLengthLimit = null;
@@ -22,13 +23,17 @@ namespace Microsoft.Dafny {
 
       switch (name) {
 
+        case "warnDeadCode":
+          WarnDeadCode = true;
+          Mode = Modes.Block;
+          return true;
+
         case "testMode":
           if (ps.ConfirmArgumentCount(1)) {
             Mode = args[ps.i] switch {
               "None" => Modes.None,
               "Block" => Modes.Block,
               "Path" => Modes.Path,
-              "DeadCode" => Modes.DeadCode,
               _ => throw new Exception("Invalid value for testMode")
             };
           }
@@ -59,13 +64,14 @@ namespace Microsoft.Dafny {
     }
 
     public override string Help => @"
-/testMode:<None|Block|Path|DeadCode>
+/testMode:<None|Block|Path>
     None is the default and has no effect.
     Block prints block-coverage tests for the given program.
     Path prints path-coverage tests for the given program.
-    DeadCode uses block-coverage tests to identify potential dead code.
     Using /definiteAssignment:3 and /loopUnroll is highly recommended when
     generating tests.
+/warnDeadCode
+    Use block-coverage tests to warn about potential dead code.
 /testSeqLengthLimit:<n>
     If /testMode is not None, using this argument adds an axiom that sets the
     length of all sequences to be no greater than <n>. This is useful in

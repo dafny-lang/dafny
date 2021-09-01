@@ -43,7 +43,7 @@ Even though it is possible to run the tests in this way, we currently provide no
 - If you wish to test a particular method rather than all the methods in a file, you can specify such a method with the `/testTargetMethod` command line argument and providing the fully qualified method name.
 - If you are using `/testTargetMethod` and would like to inline methods that are called from the method of interest, you can do so by setting `/testInlineDepth` to something larger than zero (zero is the default). The `/verifyAllModules` argument might also be relevant if the methods to be inlined are defined in included files.
 - To deal with loops, you should use `/loopUnroll` and also `/testSeqLengthLimit`. The latter argument adds an axiom that limits the length of any sequence to be no greater than some specified value. This restriction can be used to ensure that the number of loop unrolls is sufficient with respect to the length of any input sequence but it can also cause the program to miss certain corner cases.
-- The`/testMode:DeadCode` argument will make Dafny identify potential dead code in the specified file. Note that false negatives are possible if `/loopUnroll` is not used. False positives are also possible for a variety of reasons, such as `/loopUnroll` being assigned not high enough value.
+- The`/warnDeadCode` argument will make Dafny identify potential dead code in the specified file. Note that false negatives are possible if `/loopUnroll` is not used. False positives are also possible for a variety of reasons, such as `/loopUnroll` being assigned not high enough value.
 
 ## How to Run Tests?
 
@@ -137,7 +137,7 @@ method m(a:int) returns (b:int)
 
 Running dead code identification like this:
 
-`dafny /testMode:DeadCode /definiteAssignment:3 ../examples/Sample.dfy`
+`dafny /warnDeadCode /definiteAssignment:3 ../examples/Sample.dfy`
 
 Will give the following information:
 
