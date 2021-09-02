@@ -1,5 +1,19 @@
-// RUN: %dafny /definiteAssignment:3 /generateTestMode:Block TestGeneration.dfy > %t.raw
-// RUN: sed 's/[1-9][0-9]*/INT/g' %t.raw > %t
+// Generating tests:
+// RUN: cp TestGeneration.dfy %t.dfy
+// RUN: %dafny /definiteAssignment:3 /generateTestMode:Block %t.dfy > %t-tests.dfy
+
+// Compiling test to java:
+// RUN: cd Output; %dafny /compileTarget:java %t-tests.dfy
+
+// Adding reflection code that allows running the tests:
+// RUN: cp ../import.txt .
+// RUN: cp ../reflectionCode.txt .
+// RUN: perl -pe 's/import M_Compile.*;/`cat import.txt`/ge' -i %t-tests-java/TestGenerationUnitTests_Compile/__default.java
+// RUN: perl -pe 's/public class __default {/`cat reflectionCode.txt`/ge' -i %t-tests-java/TestGenerationUnitTests_Compile/__default.java
+
+// Compiling to bytecode and running the tests
+// RUN: javac -cp %t-tests-java:../../../Binaries/DafnyRuntime.jar %t-tests-java/TestGenerationUnitTests_Compile/__default.java
+// RUN: java -cp %t-tests-java:../../../Binaries/DafnyRuntime.jar TestGenerationUnitTests_Compile/__default > %t
 // RUN: %diff "%s.expect" "%t"
 
 module M {
