@@ -86,7 +86,7 @@ module M {
     method compareToZero(v:Value) returns (i:int) {
         if (v.v == 0) {
             return 0;
-        } else if (v.v > 1) {
+        } else if (v.v > 0) {
             return 1;
         }
         return -1;
