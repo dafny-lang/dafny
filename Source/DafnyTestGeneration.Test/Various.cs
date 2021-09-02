@@ -7,7 +7,7 @@ namespace DafnyTestGeneration.Test {
 
 
   [TestClass]
-  public class Varia {
+  public class Various {
 
     [TestInitialize]
     public void SetupDafnyOptions() {
