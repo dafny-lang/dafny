@@ -30,3 +30,10 @@ For example, to launch DafnyLS to only verify upon saving the document, use the 
 ```sh
 dotnet DafnyLanguageServer.dll --documents:verify=onsave
 ```
+
+Another option is specifying the severity of the information messages reported by the Dafny compiler using `--diagnostic:infoseverity`. The options are:
+
+- *Error*
+- *Warning*
+- *Information* (default)
+- *Hint*

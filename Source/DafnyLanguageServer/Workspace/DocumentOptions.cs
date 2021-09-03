@@ -1,6 +1,5 @@
-﻿using System;
-using System.Linq;
-using Microsoft.Boogie;
+﻿using Microsoft.Boogie;
+using System;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>

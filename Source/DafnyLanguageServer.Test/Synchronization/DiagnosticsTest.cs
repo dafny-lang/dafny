@@ -1,4 +1,5 @@
 ﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -560,6 +561,47 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.AreEqual(1, saveDiagnostics.Length);
       Assert.AreEqual("Other", saveDiagnostics[0].Source);
       Assert.AreEqual(DiagnosticSeverity.Error, saveDiagnostics[0].Severity);
+    }
+
+    [TestMethod]
+    public async Task OpeningDocumentTailRecursionReportsTailRecursionAsInformationByDefault() {
+      var source = @"
+function AsZero(x: int): int
+  requires x > 0
+  decreases x
+{
+  if x == 1 then 0 else AsZero(x - 1)
+}".TrimStart();
+      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+      _client.OpenDocument(documentItem);
+      var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var diagnostics = report.Diagnostics.ToArray();
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual("Resolver", diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Information, diagnostics[0].Severity);
+      Assert.AreEqual(new Range((0, 9), (0, 15)), diagnostics[0].Range);
+    }
+
+    [TestMethod]
+    public async Task OpeningDocumentTailRecursionReportsTailRecursionAsHintIfConfigured() {
+      var source = @"
+function AsZero(x: int): int
+  requires x > 0
+  decreases x
+{
+  if x == 1 then 0 else AsZero(x - 1)
+}".TrimStart();
+      await SetUp(new Dictionary<string, string>() {
+        { $"{DiagnosticOptions.Section}:{nameof(DiagnosticOptions.InfoSeverity)}", nameof(DiagnosticSeverity.Hint) }
+      });
+      var documentItem = CreateTestDocument(source, Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles/test.dfy"));
+      _client.OpenDocument(documentItem);
+      var report = await _diagnosticReceiver.AwaitNextPublishDiagnostics(CancellationToken);
+      var diagnostics = report.Diagnostics.ToArray();
+      Assert.AreEqual(1, diagnostics.Length);
+      Assert.AreEqual("Resolver", diagnostics[0].Source);
+      Assert.AreEqual(DiagnosticSeverity.Hint, diagnostics[0].Severity);
+      Assert.AreEqual(new Range((0, 9), (0, 15)), diagnostics[0].Range);
     }
 
     public class TestDiagnosticReceiver {

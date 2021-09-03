@@ -10,6 +10,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private const MessageSource verifierMessageSource = MessageSource.Other;
 
     private readonly DocumentUri entryDocumentUri;
+    private readonly DiagnosticOptions diagnosticOptions;
     private readonly Dictionary<DocumentUri, List<Diagnostic>> diagnostics = new();
     private readonly Dictionary<DiagnosticSeverity, int> counts = new();
 
@@ -19,11 +20,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// Creates a new instance with the given uri of the entry document.
     /// </summary>
     /// <param name="entryDocumentUri">The entry document's uri.</param>
+    /// <param name="diagnosticOptions">The configuration for the reported diagnostics.</param>
     /// <remarks>
     /// The uri of the entry document is necessary to report general compiler errors as part of this document.
     /// </remarks>
-    public DiagnosticErrorReporter(DocumentUri entryDocumentUri) {
+    public DiagnosticErrorReporter(DocumentUri entryDocumentUri, DiagnosticOptions diagnosticOptions) {
       this.entryDocumentUri = entryDocumentUri;
+      this.diagnosticOptions = diagnosticOptions;
     }
 
     public void ReportBoogieError(ErrorInformation error) {
@@ -97,11 +100,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : token.GetDocumentUri();
     }
 
-    private static DiagnosticSeverity ToSeverity(ErrorLevel level) {
+    private DiagnosticSeverity ToSeverity(ErrorLevel level) {
       return level switch {
         ErrorLevel.Error => DiagnosticSeverity.Error,
         ErrorLevel.Warning => DiagnosticSeverity.Warning,
-        ErrorLevel.Info => DiagnosticSeverity.Information,
+        ErrorLevel.Info => diagnosticOptions.InfoSeverity,
         _ => throw new ArgumentException($"unknown error level {level}", nameof(level))
       };
     }

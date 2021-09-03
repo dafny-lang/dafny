@@ -7,9 +7,11 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   public class TextDocumentLoader : ITextDocumentLoader {
+    private readonly DiagnosticOptions _diagnosticOptions;
     private readonly IDafnyParser _parser;
     private readonly ISymbolResolver _symbolResolver;
     private readonly IProgramVerifier _verifier;
@@ -17,12 +19,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly ICompilationStatusNotificationPublisher _notificationPublisher;
 
     public TextDocumentLoader(
+      IOptions<DiagnosticOptions> diagnosticOptions,
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
       IProgramVerifier verifier,
       ISymbolTableFactory symbolTableFactory,
       ICompilationStatusNotificationPublisher notificationPublisher
     ) {
+      _diagnosticOptions = diagnosticOptions.Value;
       _parser = parser;
       _symbolResolver = symbolResolver;
       _verifier = verifier;
@@ -31,7 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
-      var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
+      var errorReporter = new DiagnosticErrorReporter(textDocument.Uri, _diagnosticOptions);
       var program = await _parser.ParseAsync(textDocument, errorReporter, cancellationToken);
       if (errorReporter.HasErrors) {
         _notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
