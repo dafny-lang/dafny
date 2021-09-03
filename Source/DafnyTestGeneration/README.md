@@ -62,16 +62,16 @@ public static void main(String[] args) throws Exception {
 
 
 public static Object[] mockParameters(Method method) {
-    Object[] parameters = null;;
-    try {
-        Class<?>[] types = method.getParameterTypes();
-        parameters = new Object[types.length];
-        for (int i = 0; i < types.length; i++)
-            parameters[i] = types[i].getConstructor().newInstance();
-    } catch (Exception e) {
-        e.printStackTrace();
-    }
-    return parameters;
+  Object[] parameters = null;;
+  try {
+    Class<?>[] types = method.getParameterTypes();
+    parameters = new Object[types.length];
+    for (int i = 0; i < types.length; i++)
+      parameters[i] = types[i].getConstructor().newInstance();
+  } catch (Exception e) {
+    e.printStackTrace();
+  }
+  return parameters;
 }
 ```
 
@@ -80,17 +80,17 @@ public static Object[] mockParameters(Method method) {
 Suppose you have a file called `object.dfy` with the following code:
 ```dafny
 module M {
-    class Value {
-        var v:int;
+  class Value {
+    var v:int;
+  }
+  method compareToZero(v:Value) returns (i:int) {
+    if (v.v == 0) {
+      return 0;
+    } else if (v.v > 0) {
+      return 1;
     }
-    method compareToZero(v:Value) returns (i:int) {
-        if (v.v == 0) {
-            return 0;
-        } else if (v.v > 0) {
-            return 1;
-        }
-        return -1;
-    }
+    return -1;
+  }
 }
 ```
 Running test generation like this:
@@ -101,19 +101,19 @@ Gives the following list of tests (tabulation added manually):
 ```dafny
 include "object.dfy"
 module objectUnitTests {
-    import M
-    method test0(v0:M.Value) returns (r0:int)  modifies v0 {
-        v0.v := -39;
-        r0 := M.compareToZero(v0);
-    }
-    method test1(v0:M.Value) returns (r0:int)  modifies v0 {
-        v0.v := 39;
-        r0 := M.compareToZero(v0);
-    }
-    method test2(v0:M.Value) returns (r0:int)  modifies v0 {
-        v0.v := 0;
-        r0 := M.compareToZero(v0);
-    }
+  import M
+  method test0(v0:M.Value) returns (r0:int)  modifies v0 {
+    v0.v := -39;
+    r0 := M.compareToZero(v0);
+  }
+  method test1(v0:M.Value) returns (r0:int)  modifies v0 {
+    v0.v := 39;
+    r0 := M.compareToZero(v0);
+  }
+  method test2(v0:M.Value) returns (r0:int)  modifies v0 {
+    v0.v := 0;
+    r0 := M.compareToZero(v0);
+  }
 }
 ```
 
