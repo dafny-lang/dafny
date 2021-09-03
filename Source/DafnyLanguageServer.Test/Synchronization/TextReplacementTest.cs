@@ -214,5 +214,24 @@ function Some(): int {
 }".TrimStart();
       Assert.AreEqual(expected, document.Text.Text);
     }
+
+    [TestMethod]
+    public async Task RemoveCompleteDocumentContent() {
+      var source = @"
+function GetConstant(): int {
+  1
+}".TrimStart();
+      var change = "";
+      var documentItem = CreateTestDocument(source);
+      Client.OpenDocument(documentItem);
+      await ApplyChangeAndWaitCompletionAsync(
+        documentItem,
+        new Range((0, 0), (2, 1)),
+        change
+      );
+      Assert.IsTrue(Documents.TryGetDocument(documentItem.Uri, out var document));
+      var expected = "";
+      Assert.AreEqual(expected, document.Text.Text);
+    }
   }
 }

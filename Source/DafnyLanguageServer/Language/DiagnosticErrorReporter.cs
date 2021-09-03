@@ -1,17 +1,30 @@
-using System;
-using System.Collections.Generic;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System;
+using System.Collections.Generic;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   public class DiagnosticErrorReporter : ErrorReporter {
     private const MessageSource verifierMessageSource = MessageSource.Other;
-    private readonly Dictionary<string, List<Diagnostic>> diagnostics = new();
+
+    private readonly DocumentUri entryDocumentUri;
+    private readonly Dictionary<DocumentUri, List<Diagnostic>> diagnostics = new();
     private readonly Dictionary<DiagnosticSeverity, int> counts = new();
 
-    public IReadOnlyDictionary<string, List<Diagnostic>> Diagnostics => diagnostics;
+    public IReadOnlyDictionary<DocumentUri, List<Diagnostic>> Diagnostics => diagnostics;
+
+    /// <summary>
+    /// Creates a new instance with the given uri of the entry document.
+    /// </summary>
+    /// <param name="entryDocumentUri">The entry document's uri.</param>
+    /// <remarks>
+    /// The uri of the entry document is necessary to report general compiler errors as part of this document.
+    /// </remarks>
+    public DiagnosticErrorReporter(DocumentUri entryDocumentUri) {
+      this.entryDocumentUri = entryDocumentUri;
+    }
 
     public void ReportBoogieError(ErrorInformation error) {
       var tok = error.Tok;
@@ -44,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         RelatedInformation = relatedInformation,
         Source = verifierMessageSource.ToString()
       };
-      AddDiagnosticForFile(item, tok.filename);
+      AddDiagnosticForFile(item, GetDocumentUriOrDefault(tok));
     }
 
     public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
@@ -58,8 +71,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         Range = tok.GetLspRange(),
         Source = source.ToString()
       };
-      string filename = tok.filename;
-      AddDiagnosticForFile(item, filename);
+      AddDiagnosticForFile(item, GetDocumentUriOrDefault(tok));
       return true;
     }
 
@@ -70,13 +82,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return 0;
     }
 
-    private void AddDiagnosticForFile(Diagnostic item, string filename) {
-      var fileDiagnostics = diagnostics.GetOrCreate(filename, () => new List<Diagnostic>());
+    private void AddDiagnosticForFile(Diagnostic item, DocumentUri documentUri) {
+      var fileDiagnostics = diagnostics.GetOrCreate(documentUri, () => new List<Diagnostic>());
 
       var severity = item.Severity!.Value; // All our diagnostics have a severity.
       counts.TryGetValue(severity, out var count);
       counts[severity] = count + 1;
       fileDiagnostics.Add(item);
+    }
+
+    private DocumentUri GetDocumentUriOrDefault(IToken token) {
+      return token.filename == null
+        ? entryDocumentUri
+        : token.GetDocumentUri();
     }
 
     private static DiagnosticSeverity ToSeverity(ErrorLevel level) {
