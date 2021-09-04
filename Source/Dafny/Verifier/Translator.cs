@@ -5079,17 +5079,6 @@ namespace Microsoft.Dafny {
       return typeMap;
     }
 
-    private void HavocFunctionFrameLocations(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables) {
-      // play havoc with the heap according to the modifies clause
-      builder.Add(new Bpl.HavocCmd(f.tok, new List<Bpl.IdentifierExpr> { (Bpl.IdentifierExpr/*TODO: this cast is rather dubious*/)etran.HeapExpr }));
-      // assume the usual two-state boilerplate information
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(f.tok, f.Reads, f.IsGhost, etran.Old, etran, etran.Old)) {
-        if (tri.IsFree) {
-          builder.Add(TrAssumeCmd(f.tok, tri.Expr));
-        }
-      }
-    }
-
     private void AddFunctionOverrideSubsetChk(Function func, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables, Dictionary<IVariable, Expression> substMap) {
       //getting framePrime
       List<FrameExpression> traitFrameExps = new List<FrameExpression>();
