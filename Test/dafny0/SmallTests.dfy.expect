@@ -32,6 +32,7 @@ SmallTests.dfy(418,11): Error: assertion violation
 SmallTests.dfy(428,5): Error: cannot prove termination; try supplying a decreases clause
 SmallTests.dfy(733,13): Error: assertion violation
 SmallTests.dfy(754,13): Error: assertion violation
+SmallTests.dfy(757,13): Error: assertion violation
 SmallTests.dfy(338,2): Error: A postcondition might not hold on this return path.
 SmallTests.dfy(332,10): Related location: This is the postcondition that might not hold.
 SmallTests.dfy(332,40): Related location
@@ -51,7 +52,7 @@ SmallTests.dfy(701,9): Error: cannot establish the existence of LHS values that 
 SmallTests.dfy(703,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 SmallTests.dfy(716,8): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 
-Dafny program verifier finished with 56 verified, 47 errors
+Dafny program verifier finished with 56 verified, 48 errors
 SmallTests.dfy.tmp.dprint.dfy(450,4): Warning: /!\ No trigger covering all quantified variables found.
 
 Dafny program verifier did not attempt verification
