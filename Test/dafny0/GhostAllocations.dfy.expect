@@ -1,0 +1,10 @@
+GhostAllocations.dfy(28,11): Error: assertion violation
+GhostAllocations.dfy(31,11): Error: assertion violation
+GhostAllocations.dfy(60,9): Error: assertion violation
+GhostAllocations.dfy(73,9): Error: assertion violation
+GhostAllocations.dfy(79,9): Error: assertion violation
+GhostAllocations.dfy(91,9): Error: assertion violation
+GhostAllocations.dfy(102,9): Error: assertion violation
+GhostAllocations.dfy(114,9): Error: assertion violation
+
+Dafny program verifier finished with 2 verified, 8 errors

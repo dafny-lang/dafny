@@ -1797,7 +1797,7 @@ namespace Microsoft.Dafny {
           modifiesClause.AddRange(explicitModifies);
         }
         // include boilerplate invariants
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, modifiesClause, s.IsGhost, etranPreLoop, etran, etran.Old)) {
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, modifiesClause, s.IsGhost, codeContext.AllowsAllocation, etranPreLoop, etran, etran.Old)) {
           if (tri.IsFree) {
             invariants.Add(TrAssumeCmd(s.Tok, tri.Expr));
           } else {
@@ -2387,7 +2387,7 @@ namespace Microsoft.Dafny {
         // advance $Heap, Tick;
         exporter.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { heapIdExpr, etran.Tick() }));
         Contract.Assert(s0.Method.Mod.Expressions.Count == 0);  // checked by the resolver
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(tok, new List<FrameExpression>(), s0.IsGhost, initEtran, etran, initEtran)) {
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(tok, new List<FrameExpression>(), s0.IsGhost, s0.Method.AllowsAllocation, initEtran, etran, initEtran)) {
           if (tri.IsFree) {
             exporter.Add(TrAssumeCmd(tok, tri.Expr));
           }
