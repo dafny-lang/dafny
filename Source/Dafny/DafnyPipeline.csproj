@@ -21,6 +21,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+      <PackageReference Include="Boogie.ExecutionEngine" Version="2.9.3" />
       <PackageReference Include="JetBrains.Annotations" Version="2021.1.0" />
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
