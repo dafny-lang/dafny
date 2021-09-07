@@ -1,8 +1,0 @@
-{
-  "solution": "Dafny.sln",
-  "mappings": {
-    "Boogie.ExecutionEngine": [
-      "../boogie/Source/ExecutionEngine/ExecutionEngine.csproj",
-    ]
-  }
-}
