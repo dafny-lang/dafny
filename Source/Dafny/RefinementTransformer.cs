@@ -492,7 +492,7 @@ namespace Microsoft.Dafny {
 
       if (m is Constructor) {
         var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)m.BodyForRefinement);
-        return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, tps, ins,
+        return new Constructor(new RefinementToken(m.tok, moduleUnderConstruction), m.Name, m.IsGhost, tps, ins,
           req, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(m.Attributes, moreAttributes), null);
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(m.BodyForRefinement);

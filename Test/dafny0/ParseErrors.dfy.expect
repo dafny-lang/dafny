@@ -18,7 +18,6 @@ ParseErrors.dfy(96,0): Error: a lemma cannot be declared ghost (they are 'ghost'
 ParseErrors.dfy(98,0): Error: a least lemma cannot be declared ghost (they are 'ghost' by default).
 ParseErrors.dfy(100,0): Error: a greatest lemma cannot be declared ghost (they are 'ghost' by default).
 ParseErrors.dfy(102,0): Error: a two-state lemma cannot be declared ghost (they are 'ghost' by default).
-ParseErrors.dfy(105,2): Error: a constructor cannot be declared 'ghost'.
 ParseErrors.dfy(113,16): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(114,11): Error: formal cannot be declared 'ghost' in this context
 ParseErrors.dfy(116,8): Error: formal cannot be declared 'ghost' in this context
@@ -46,4 +45,5 @@ ParseErrors.dfy(179,14): Error: use of the 'nameonly' modifier must be accompani
 ParseErrors.dfy(183,23): Error: closeparen expected
 ParseErrors.dfy(186,28): Error: formal cannot be declared 'nameonly' in this context
 ParseErrors.dfy(189,33): Error: formal cannot be declared 'nameonly' in this context
+ParseErrors.dfy(202,24): Error: formal cannot be declared 'ghost' in this context
 48 parse errors detected in ParseErrors.dfy

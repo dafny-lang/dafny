@@ -102,7 +102,7 @@ ghost greatest lemma GhCL()  // error: a lemma is not allowed to be declared "gh
 ghost twostate lemma GhL2()  // error: a lemma is not allowed to be declared "ghost" -- it is already ghost
 
 class C {
-  ghost constructor Make()  // error: a constructor is not allowed to be ghost
+  constructor Make()
   ghost method M()
 }
 
@@ -187,4 +187,19 @@ module NameOnlyParameters {
   // yield-parameters
   iterator Iter0(nameonly x: int) yields (y: int)
   iterator Iter0(x: int) yields (nameonly y: int) // error: 'nameonly' not allowed here
+}
+
+// ------------------------- parameters of ghost constructors ------------------------------
+
+module GhostConstructors {
+  class Either {
+    constructor A(x: int) {
+    }
+    ghost constructor B(x: int) {
+    }
+    constructor C(ghost x: int) {
+    }
+    ghost constructor D(ghost x: int) { // error: don't use 'ghost' keyword for ghost constructor parameters
+    }
+}
 }

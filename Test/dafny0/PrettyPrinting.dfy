@@ -117,3 +117,10 @@ module ByMethod {
     return -j;
   }
 }
+
+module GhostConstructors {
+  class C {
+    constructor X()
+    ghost constructor Y()
+  }
+}

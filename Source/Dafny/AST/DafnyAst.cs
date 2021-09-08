@@ -6673,6 +6673,7 @@ namespace Microsoft.Dafny {
       }
     }
     public Constructor(IToken tok, string name,
+                  bool isGhost,
                   List<TypeParameter> typeArgs,
                   List<Formal> ins,
                   List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
@@ -6680,7 +6681,7 @@ namespace Microsoft.Dafny {
                   Specification<Expression> decreases,
                   DividedBlockStmt body,
                   Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, false, false, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, false, isGhost, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
