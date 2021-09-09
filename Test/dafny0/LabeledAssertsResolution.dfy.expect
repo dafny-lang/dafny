@@ -15,14 +15,14 @@ LabeledAssertsResolution.dfy(249,6): Error: yield statement is not allowed in th
 LabeledAssertsResolution.dfy(244,10): Error: yield statement is not allowed inside a hint
 LabeledAssertsResolution.dfy(249,6): Error: yield statement is not allowed inside an assert-by body
 LabeledAssertsResolution.dfy(123,6): Error: an assert-by body is not allowed to update a variable it doesn't declare
-LabeledAssertsResolution.dfy(137,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+LabeledAssertsResolution.dfy(137,8): Error: assignment to non-ghost variable is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
 LabeledAssertsResolution.dfy(137,6): Error: an assert-by body is not allowed to update a variable it doesn't declare
-LabeledAssertsResolution.dfy(171,13): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-LabeledAssertsResolution.dfy(172,15): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-LabeledAssertsResolution.dfy(176,11): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-LabeledAssertsResolution.dfy(177,13): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-LabeledAssertsResolution.dfy(186,15): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-LabeledAssertsResolution.dfy(187,17): Error: Assignment to array element is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+LabeledAssertsResolution.dfy(171,13): Error: assignment to array element is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
+LabeledAssertsResolution.dfy(172,15): Error: assignment to array element is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
+LabeledAssertsResolution.dfy(176,11): Error: assignment to array element is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
+LabeledAssertsResolution.dfy(177,13): Error: assignment to array element is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
+LabeledAssertsResolution.dfy(186,15): Error: assignment to array element is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
+LabeledAssertsResolution.dfy(187,17): Error: assignment to array element is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
 LabeledAssertsResolution.dfy(167,8): Error: an assert-by body is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(168,8): Error: an assert-by body is not allowed to update a variable it doesn't declare
 LabeledAssertsResolution.dfy(169,8): Error: an assert-by body is not allowed to update a variable it doesn't declare

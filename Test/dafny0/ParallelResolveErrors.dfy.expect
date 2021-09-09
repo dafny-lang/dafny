@@ -19,5 +19,5 @@ ParallelResolveErrors.dfy(95,24): Error: break label is undefined or not in scop
 ParallelResolveErrors.dfy(106,5): Error: the body of the enclosing forall statement is not allowed to update heap locations
 ParallelResolveErrors.dfy(114,29): Error: the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause
 ParallelResolveErrors.dfy(119,29): Error: the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause
-ParallelResolveErrors.dfy(129,11): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ParallelResolveErrors.dfy(129,11): Error: assignment to non-ghost field is not allowed in this context (because this is a ghost method)
 22 resolution/type errors detected in ParallelResolveErrors.dfy

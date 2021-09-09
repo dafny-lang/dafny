@@ -8492,8 +8492,13 @@ namespace Microsoft.Dafny {
           } else if (gk == AssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
             // cool
           } else if (mustBeErasable) {
-            Error(stmt, "Assignment to {0} is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)",
-              AssignStmt.NonGhostKind_To_String(gk));
+            string reason;
+            if (codeContext.IsGhost) {
+              reason = string.Format("this is a ghost {0}", codeContext is MemberDecl member ? member.WhatKind : "context");
+            } else {
+              reason = "the statement is in a ghost context; e.g., it may be guarded by a specification-only expression";
+            }
+            Error(stmt, $"assignment to {AssignStmt.NonGhostKind_To_String(gk)} is not allowed in this context (because {reason})");
           } else {
             if (gk == AssignStmt.NonGhostKind.Field) {
               var mse = (MemberSelectExpr)lhs;

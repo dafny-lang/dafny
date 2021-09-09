@@ -618,11 +618,11 @@ module NonInferredType {
 module GhostAllocationTests {
   class G { }
   iterator GIter() { }
-
-  ghost method GhostNew0()
+  class H { constructor () }
+  lemma GhostNew0()
     ensures exists o: G :: fresh(o);
   {
-    var p := new G;  // error: ghost context is not allowed to allocate state
+    var p := new G;  // error: lemma context is not allowed to allocate state
     p := new G;  // error: ditto
   }
 
@@ -632,7 +632,7 @@ module GhostAllocationTests {
       z, t := 5, new G;  // fine
     }
     if n < g {
-      var zz, tt := 5, new G;  // error: 'new' not allowed in ghost contexts
+      var tt := new H();  // error: 'new' not allowed in ghost contexts
     }
   }
 

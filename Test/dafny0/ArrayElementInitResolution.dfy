@@ -60,8 +60,8 @@ module AM {
 
 module BM {
   function GhostF(x: int): char { 'D' }
-  method M(n: nat) {
-    var a := new char[n](GhostF);  // error: use of ghost function not allowed here
+  method M(n: nat) returns (a: array<char>) {
+    a := new char[n](GhostF);  // error: use of ghost function not allowed here
     if 5 < n {
       assert a[5] == 'D';
     }
