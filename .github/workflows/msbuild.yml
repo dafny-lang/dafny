@@ -9,7 +9,7 @@ on:
 env:
   dotnet-version: 5.0.x # SDK Version for building Dafny; x will use the latest version of the 5.0 channel
 jobs:
-  format:
+  singletons:
     runs-on: ubuntu-16.04
     steps:
     - name: Setup dotnet 5.0
@@ -26,6 +26,9 @@ jobs:
     - name: Check code style
       working-directory: dafny/Source
       run: dotnet tool run dotnet-format -w --check Dafny.sln
+    - name: Attempt custom Boogie patch
+      working-directory: dafny
+      run: git apply customBoogie.patch
       
   build:
     runs-on: ${{ matrix.os }}
