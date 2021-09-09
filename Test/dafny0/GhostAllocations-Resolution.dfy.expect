@@ -1,0 +1,34 @@
+GhostAllocations-Resolution.dfy(17,11): Error: ghost variables are allowed only in specification contexts
+GhostAllocations-Resolution.dfy(39,11): Error: ghost variables are allowed only in specification contexts
+GhostAllocations-Resolution.dfy(47,22): Error: ghost variables are allowed only in specification contexts
+GhostAllocations-Resolution.dfy(55,20): Error: the result of a ghost constructor can only be assigned to a ghost variable
+GhostAllocations-Resolution.dfy(56,20): Error: only ghost methods can be called from this context
+GhostAllocations-Resolution.dfy(62,20): Error: only ghost methods can be called from this context
+GhostAllocations-Resolution.dfy(72,23): Error: the result of a ghost constructor can only be assigned to a ghost variable
+GhostAllocations-Resolution.dfy(75,26): Error: the result of a ghost constructor can only be assigned to a ghost variable
+GhostAllocations-Resolution.dfy(78,22): Error: the result of a ghost constructor can only be assigned to a ghost variable
+GhostAllocations-Resolution.dfy(90,17): Error: ghost variables are allowed only in specification contexts
+GhostAllocations-Resolution.dfy(99,22): Error: ghost variables are allowed only in specification contexts
+GhostAllocations-Resolution.dfy(111,11): Error: ghost variables are allowed only in specification contexts
+GhostAllocations-Resolution.dfy(115,11): Error: ghost variables are allowed only in specification contexts
+GhostAllocations-Resolution.dfy(125,11): Error: ghost variables are allowed only in specification contexts
+GhostAllocations-Resolution.dfy(127,11): Error: ghost variables are allowed only in specification contexts
+GhostAllocations-Resolution.dfy(129,11): Error: ghost variables are allowed only in specification contexts
+GhostAllocations-Resolution.dfy(143,6): Error: LHS of assignment must denote a mutable field
+GhostAllocations-Resolution.dfy(144,6): Error: LHS of assignment must denote a mutable field
+GhostAllocations-Resolution.dfy(146,6): Error: LHS of assignment must denote a mutable field
+GhostAllocations-Resolution.dfy(147,6): Error: LHS of assignment must denote a mutable field
+GhostAllocations-Resolution.dfy(161,8): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+GhostAllocations-Resolution.dfy(162,8): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+GhostAllocations-Resolution.dfy(164,16): Error: only ghost methods can be called from this context
+GhostAllocations-Resolution.dfy(169,8): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+GhostAllocations-Resolution.dfy(171,14): Error: only ghost methods can be called from this context
+GhostAllocations-Resolution.dfy(193,13): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+GhostAllocations-Resolution.dfy(201,8): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+GhostAllocations-Resolution.dfy(202,10): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+GhostAllocations-Resolution.dfy(203,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+GhostAllocations-Resolution.dfy(205,8): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+GhostAllocations-Resolution.dfy(206,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+GhostAllocations-Resolution.dfy(223,11): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+GhostAllocations-Resolution.dfy(234,11): Error: ghost variables are allowed only in specification contexts
+33 resolution/type errors detected in GhostAllocations-Resolution.dfy

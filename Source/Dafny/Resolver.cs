@@ -8464,19 +8464,25 @@ namespace Microsoft.Dafny {
           var lhs = s.Lhs.Resolved;
 
           // Make an auto-ghost variable a ghost if the RHS is a ghost
-          if (lhs.Resolved is AutoGhostIdentifierExpr && s.Rhs is ExprRhs) {
-            var rhs = (ExprRhs)s.Rhs;
-            if (resolver.UsesSpecFeatures(rhs.Expr)) {
-              var autoGhostIdExpr = (AutoGhostIdentifierExpr)lhs.Resolved;
+          if (lhs.Resolved is AutoGhostIdentifierExpr autoGhostIdExpr) {
+            if (s.Rhs is ExprRhs eRhs && resolver.UsesSpecFeatures(eRhs.Expr)) {
               autoGhostIdExpr.Var.MakeGhost();
+            } else if (s.Rhs is TypeRhs tRhs) {
+              if (tRhs.InitCall != null && tRhs.InitCall.Method.IsGhost) {
+                autoGhostIdExpr.Var.MakeGhost();
+              } else if (tRhs.ArrayDimensions != null && tRhs.ArrayDimensions.Exists(resolver.UsesSpecFeatures)) {
+                autoGhostIdExpr.Var.MakeGhost();
+              } else if (tRhs.ElementInit != null && resolver.UsesSpecFeatures(tRhs.ElementInit)) {
+                autoGhostIdExpr.Var.MakeGhost();
+              }
             }
           }
 
           var gk = AssignStmt.LhsIsToGhost_Which(lhs);
           if (gk == AssignStmt.NonGhostKind.IsGhost) {
             s.IsGhost = true;
-            if (s.Rhs is TypeRhs) {
-              Error(s.Rhs.Tok, "'new' is not allowed in ghost contexts");
+            if (s.Rhs is TypeRhs tRhs && tRhs.InitCall != null) {
+              Visit(tRhs.InitCall, true);
             }
           } else if (gk == AssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
             // cool
@@ -8510,8 +8516,12 @@ namespace Microsoft.Dafny {
                 }
               }
               if (rhs.InitCall != null) {
+                var callee = rhs.InitCall.Method;
+                if (callee.IsGhost) {
+                  Error(rhs.InitCall, "the result of a ghost constructor can only be assigned to a ghost variable");
+                }
                 for (var i = 0; i < rhs.InitCall.Args.Count; i++) {
-                  if (!rhs.InitCall.Method.Ins[i].IsGhost) {
+                  if (!callee.Ins[i].IsGhost) {
                     resolver.CheckIsCompilable(rhs.InitCall.Args[i], codeContext);
                   }
                 }
