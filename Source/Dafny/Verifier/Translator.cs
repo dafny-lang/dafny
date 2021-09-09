@@ -10239,6 +10239,15 @@ namespace Microsoft.Dafny {
       return Assert(tok, condition, errorMessage, tok);
     }
 
+    Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.QKeyValue kv) {
+      Contract.Requires(tok != null);
+      Contract.Requires(errorMessage != null);
+      Contract.Requires(condition != null);
+      Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
+
+      return Assert(tok, condition, errorMessage, tok, kv);
+    }
+
     Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesToken, Bpl.QKeyValue kv = null) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
@@ -10251,13 +10260,14 @@ namespace Microsoft.Dafny {
       } else {
         var cmd = TrAssertCmd(ForceCheckToken.Unwrap(tok), condition, kv);
         cmd.ErrorData = "Error: " + errorMessage;
-        this.assertionCount++;
         return cmd;
       }
     }
+
     Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage) {
       return AssertNS(tok, condition, errorMessage, tok, null);
     }
+
     Bpl.PredicateCmd AssertNS(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.IToken refinesTok, Bpl.QKeyValue kv) {
       Contract.Requires(tok != null);
       Contract.Requires(errorMessage != null);
@@ -10272,22 +10282,6 @@ namespace Microsoft.Dafny {
         var args = new List<object>();
         args.Add(Bpl.Expr.Literal(0));
         Bpl.AssertCmd cmd = TrAssertCmd(tok, condition, new Bpl.QKeyValue(tok, "subsumption", args, kv));
-        cmd.ErrorData = "Error: " + errorMessage;
-        return cmd;
-      }
-    }
-
-    Bpl.PredicateCmd Assert(Bpl.IToken tok, Bpl.Expr condition, string errorMessage, Bpl.QKeyValue kv) {
-      Contract.Requires(tok != null);
-      Contract.Requires(errorMessage != null);
-      Contract.Requires(condition != null);
-      Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
-
-      if (assertAsAssume || (RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
-        // produce an assume instead
-        return TrAssumeCmd(tok, condition, kv);
-      } else {
-        var cmd = TrAssertCmd(ForceCheckToken.Unwrap(tok), condition, kv);
         cmd.ErrorData = "Error: " + errorMessage;
         return cmd;
       }
@@ -10721,13 +10715,23 @@ namespace Microsoft.Dafny {
     delegate Bpl.Expr ExpressionConverter(Dictionary<IVariable, Expression> substMap, ExpressionTranslator etran);
 
     Bpl.AssumeCmd TrAssumeCmd(IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
-      var lit = RemoveLit(expr);
-      return attributes == null ? new Bpl.AssumeCmd(tok, lit) : new Bpl.AssumeCmd(tok, lit, attributes);
+      // It may be that "expr" is a Lit expression. It might seem we don't need a Lit expression
+      // around the boolean expression that is being assumed. However, we keep it. For one,
+      // it doesn't change the semantics of the assume command. More importantly, leaving
+      // a Lit around the expression is useful to avoid sending an "assume false;" to Boogie--since
+      // Boogie looks especially for "assume false;" commands and processes them in such a way
+      // that loops no longer are loops (which is confusing for Dafny users).
+      return attributes == null ? new Bpl.AssumeCmd(tok, expr) : new Bpl.AssumeCmd(tok, expr, attributes);
     }
 
     Bpl.AssertCmd TrAssertCmd(IToken tok, Bpl.Expr expr, Bpl.QKeyValue attributes = null) {
-      var lit = RemoveLit(expr);
-      return attributes == null ? new Bpl.AssertCmd(tok, lit) : new Bpl.AssertCmd(tok, lit, attributes);
+      // It may be that "expr" is a Lit expression. It might seem we don't need a Lit expression
+      // around the boolean expression that is being asserted. However, we keep it. For one,
+      // it doesn't change the semantics of the assert command. More importantly, leaving
+      // a Lit around the expression is useful to avoid sending an "assert false;" to Boogie--since
+      // Boogie looks especially for "assert false;" commands and processes them in such a way
+      // that loops no longer are loops (which is confusing for Dafny users).
+      return attributes == null ? new Bpl.AssertCmd(tok, expr) : new Bpl.AssertCmd(tok, expr, attributes);
     }
 
     delegate void BodyTranslator(BoogieStmtListBuilder builder, ExpressionTranslator etr);
