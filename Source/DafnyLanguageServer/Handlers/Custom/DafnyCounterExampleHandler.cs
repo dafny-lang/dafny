@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
     public Task<CounterExampleList> Handle(CounterExampleParams request, CancellationToken cancellationToken) {
       DafnyDocument? document;
-      if(!_documents.TryGetDocument(request.TextDocument, out document)) {
+      if (!_documents.TryGetDocument(request.TextDocument, out document)) {
         _logger.LogWarning("counter-examples requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return Task.FromResult(new CounterExampleList());
       }
@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       public CounterExampleList GetCounterExamples() {
-        if(document.SerializedCounterExamples == null) {
+        if (document.SerializedCounterExamples == null) {
           logger.LogDebug("got no counter-examples for document {DocumentUri}", document.Uri);
           return new CounterExampleList();
         }
@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
       private static Position GetPositionFromInitialState(DafnyModelState state) {
         var match = statePositionRegex.Match(state.ShortenedStateName);
-        if(!match.Success) {
+        if (!match.Success) {
           throw new ArgumentException($"state does not contain position: {state.ShortenedStateName}");
         }
         // Note: lines in a model start with 1, characters/columns with 0.
@@ -106,8 +106,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       private IDictionary<string, string> GetVariablesFromState(DafnyModelState state, int maxDepth) {
         HashSet<DafnyModelVariable> vars = state.ExpandedVariableSet(maxDepth);
         return vars.WithCancellation(cancellationToken).ToDictionary(
-            variable => variable.ShortName + ":" + variable.Type,
-            variable => variable.Value 
+            variable => variable.ShortName + ":" + variable.Type.InDafnyFormat(),
+            variable => variable.Value
           );
       }
     }

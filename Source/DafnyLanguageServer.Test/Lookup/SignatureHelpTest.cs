@@ -6,8 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup
-{
+namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   [TestClass]
   public class SignatureHelpTest : DafnyLanguageServerTestBase {
     // At this time, the main logic happens within ISymbolGuesser since we have to primarily work

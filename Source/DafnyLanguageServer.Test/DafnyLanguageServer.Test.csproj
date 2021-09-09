@@ -26,6 +26,9 @@
     <None Update="Synchronization\TestFiles\semanticError.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Synchronization\TestFiles\empty.dfy">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Synchronization\TestFiles\syntaxError.dfy">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.Triggers {
       CollectAndShareTriggers(triggersCollector);
       TrimInvalidTriggers();
       BuildDependenciesGraph();
-      if(SuppressMatchingLoops() && RewriteMatchingLoop()) {
+      if (SuppressMatchingLoops() && RewriteMatchingLoop()) {
         CollectWithoutShareTriggers(triggersCollector);
         TrimInvalidTriggers();
         SuppressMatchingLoops();
@@ -90,8 +90,7 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    void CollectWithoutShareTriggers(TriggersCollector triggersCollector)
-    {
+    void CollectWithoutShareTriggers(TriggersCollector triggersCollector) {
       foreach (var q in quantifiers) {
         var candidates = triggersCollector.CollectTriggers(q.quantifier).Deduplicate(TriggerTerm.Eq);
         q.CandidateTerms = candidates; // The list of candidate terms is immutable
@@ -165,8 +164,7 @@ namespace Microsoft.Dafny.Triggers {
       return foundloop;
     }
 
-    bool RewriteMatchingLoop()
-    {
+    bool RewriteMatchingLoop() {
       if (expr is QuantifierExpr) {
         QuantifierExpr quantifier = (QuantifierExpr)expr;
         var l = new List<QuantifierWithTriggers>();
@@ -208,8 +206,7 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    internal class QuantifierGroup
-    {
+    internal class QuantifierGroup {
       internal QuantifierWithTriggers quantifier;
       internal List<ComprehensionExpr> expressions;
 

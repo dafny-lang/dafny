@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     public override Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
       DafnyDocument? document;
-      if(!_documents.TryGetDocument(request.TextDocument, out document)) {
+      if (!_documents.TryGetDocument(request.TextDocument, out document)) {
         _logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return Task.FromResult(new CompletionList());
       }
@@ -61,7 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       public CompletionList Process() {
-        if(GetTriggerCharacter() == ".") {
+        if (GetTriggerCharacter() == ".") {
           return CreateDotCompletionList();
         }
         return new CompletionList();
@@ -76,9 +76,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       private CompletionList CreateDotCompletionList() {
         IEnumerable<ISymbol> members;
-        if(_symbolGuesser.TryGetTypeBefore(_document, GetDotPosition(), _cancellationToken, out var typeSymbol)) {
+        if (_symbolGuesser.TryGetTypeBefore(_document, GetDotPosition(), _cancellationToken, out var typeSymbol)) {
           // TODO Introduce a specialized symbol interface for types. At this time, the most types are treated as a UserDefinedType => class.
-          if(typeSymbol is ClassSymbol classSymbol) {
+          if (typeSymbol is ClassSymbol classSymbol) {
             members = classSymbol.Members;
           } else {
             // TODO This should never happen at this time.
