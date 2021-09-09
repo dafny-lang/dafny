@@ -380,7 +380,7 @@ namespace Microsoft.Dafny {
         fields.RemoveAll(f => f == null);
         var localSurrogates = fields.ConvertAll(f => new Bpl.LocalVariable(f.tok, new TypedIdent(f.tok, SurrogateName(f), TrType(f.Type))));
         locals.AddRange(localSurrogates);
-        fields.Iter(f => AddDefiniteAssignmentTrackerSurrogate(f, cl, locals));
+        fields.Iter(f => AddDefiniteAssignmentTrackerSurrogate(f, cl, locals, codeContext is Constructor && codeContext.IsGhost));
 
         Contract.Assert(!inBodyInitContext);
         inBodyInitContext = true;

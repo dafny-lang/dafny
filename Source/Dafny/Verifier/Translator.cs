@@ -4579,12 +4579,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddDefiniteAssignmentTrackerSurrogate(Field field, TopLevelDeclWithMembers enclosingClass, List<Variable> localVariables) {
+    void AddDefiniteAssignmentTrackerSurrogate(Field field, TopLevelDeclWithMembers enclosingClass, List<Variable> localVariables, bool forceGhostVar) {
       Contract.Requires(field != null);
       Contract.Requires(localVariables != null);
 
       var type = Resolver.SubstType(field.Type, enclosingClass.ParentFormalTypeParametersToActuals);
-      if (!NeedsDefiniteAssignmentTracker(field.IsGhost, type)) {
+      if (!NeedsDefiniteAssignmentTracker(field.IsGhost || forceGhostVar, type)) {
         return;
       }
       var nm = SurrogateName(field);

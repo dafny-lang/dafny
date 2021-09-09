@@ -50,6 +50,9 @@ class CellWrapper {
   constructor (c: Cell) {
     this.c := c;
   }
+  ghost constructor Gh(c: Cell) {
+    this.c := c;
+  }
 }
 
 method Modify0(w: CellWrapper)
@@ -112,4 +115,86 @@ method ModifyBody1(w: CellWrapper)
   }
   assert fresh(c);
   assert false; // error
+}
+
+// ------------------- new -------------------
+
+method SimpleNew() {
+  ghost var c: Cell;
+  c := new Cell;
+
+  ghost var w: CellWrapper;
+  w := new CellWrapper.Gh(c);
+
+  ghost var arr: array<int>, m: array2<real>;
+  arr := new int[20];
+  m := new real[2, 390];
+
+  var arr': array<int>, m': array2<real>;
+  arr' := new int[20];
+  m' := new real[2, 390];
+  arr, m := arr', m';
+}
+
+type GGG(00)
+
+class GhostableNonempty {
+  var g: GGG
+  ghost var h: GGG
+
+  constructor A(g: GGG) {
+    this.g := g;
+  }
+
+  constructor B() {
+  } // error: g is never assigned
+
+  ghost constructor C(g: GGG) {
+    this.g := g;
+  }
+
+  ghost constructor D() { // in a ghost context, we only need to know that g's type is nonempty (same as for h all along)
+  }
+}
+
+type HHH(0)
+
+class GhostableAutoInit {
+  var g: HHH
+  ghost var h: HHH
+
+  constructor A(g: HHH) {
+    this.g := g;
+  }
+
+  constructor B() {
+  }
+
+  ghost constructor C(g: HHH) {
+    this.g := g;
+  }
+
+  ghost constructor D() {
+  }
+}
+
+type JJJ
+
+class GhostablePossibleEmpty {
+  var g: JJJ
+  ghost var h: JJJ
+
+  constructor A(g: JJJ) {
+    this.g := g;
+  } // error: h is never assigned
+
+  constructor B() {
+  } // error (x2): g and h are never assigned
+
+  ghost constructor C(g: JJJ) {
+    this.g := g;
+  } // error: h is never assigned
+
+  ghost constructor D() {
+  } // error (x2): g and h are never assigned
 }
