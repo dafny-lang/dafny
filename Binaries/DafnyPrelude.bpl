@@ -1100,7 +1100,7 @@ axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
         0 <= n && n <= i && i < Seq#Length(s) ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Update(Seq#Drop(s, n), i-n, v) );
 axiom (forall<T> s: Seq T, i: int, v: T, n: int ::
         { Seq#Drop(Seq#Update(s, i, v), n) }
-        0 <= i && i < n && n < Seq#Length(s) ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Drop(s, n));
+        0 <= i && i < n && n <= Seq#Length(s) ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Drop(s, n));
 // Extension axiom, triggers only on Takes from arrays.
 axiom (forall h: Heap, a: ref, n0, n1: int ::
         { Seq#Take(Seq#FromArray(h, a), n0), Seq#Take(Seq#FromArray(h, a), n1) }
