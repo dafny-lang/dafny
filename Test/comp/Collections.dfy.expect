@@ -10,6 +10,8 @@ Sets: {} {17, 82} {12, 17}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   eq covariance: 1 true true
 false true
@@ -21,8 +23,10 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   intersection: multiset{} multiset{17}
   difference: multiset{} multiset{17, 82, 82}
   disjoint: true false
-  subset: true false true
-  proper subset: true false false
+  subset: true false true true
+  proper subset: true false false true
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
   multiplicity: 0 2 1
@@ -125,6 +129,8 @@ Sets: {} {17, 82} {12, 17}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   eq covariance: 1 true true
 false true
@@ -136,8 +142,10 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   intersection: multiset{} multiset{17}
   difference: multiset{} multiset{17, 82, 82}
   disjoint: true false
-  subset: true false true
-  proper subset: true false false
+  subset: true false true true
+  proper subset: true false false true
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
   multiplicity: 0 2 1
@@ -240,6 +248,8 @@ Sets: {} {17, 82} {12, 17}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   eq covariance: 1 true true
 false true
@@ -251,8 +261,10 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   intersection: multiset{} multiset{17}
   difference: multiset{} multiset{17, 82, 82}
   disjoint: true false
-  subset: true false true
-  proper subset: true false false
+  subset: true false true true
+  proper subset: true false false true
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
   multiplicity: 0 2 1
@@ -355,6 +367,8 @@ Sets: {} {17, 82} {17, 12}
   disjoint: true false
   subset: true false true
   proper subset: true false false
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   eq covariance: 1 true true
 false true
@@ -366,8 +380,10 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{17, 12}
   intersection: multiset{} multiset{17}
   difference: multiset{} multiset{17, 82, 82}
   disjoint: true false
-  subset: true false true
-  proper subset: true false false
+  subset: true false true true
+  proper subset: true false false true
+  superset: false true true
+  proper superset: false true false
   membership: false true true
   update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{17, 17, 12}
   multiplicity: 0 2 1

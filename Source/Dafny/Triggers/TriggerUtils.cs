@@ -209,8 +209,7 @@ namespace Microsoft.Dafny.Triggers {
       return !Attributes.Contains(quantifier.Attributes, "trigger") && WantsAutoTriggers(quantifier);
     }
 
-    internal static bool WantsMatchingLoopRewrite(ComprehensionExpr quantifier)
-    {
+    internal static bool WantsMatchingLoopRewrite(ComprehensionExpr quantifier) {
       Contract.Requires(!(quantifier is QuantifierExpr) || ((QuantifierExpr)quantifier).SplitQuantifier == null);
       bool wantsMatchingLoopRewrite = true;
       return (!Attributes.ContainsBool(quantifier.Attributes, "matchinglooprewrite", ref wantsMatchingLoopRewrite) || wantsMatchingLoopRewrite) && WantsAutoTriggers(quantifier);

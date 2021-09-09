@@ -36,15 +36,6 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     /// <summary>
-    /// Checks if the specified token is part of this document.
-    /// </summary>
-    /// <param name="token">The token to check.</param>
-    /// <returns><c>true</c> if the given token belongs to this document.</returns>
-    public bool IsPartOf(Boogie.IToken token) {
-      return Program.IsPartOfEntryDocument(token);
-    }
-
-    /// <summary>
     /// Checks if the given document uri is pointing to this dafny document.
     /// </summary>
     /// <param name="documentUri">The document uri to check.</param>
