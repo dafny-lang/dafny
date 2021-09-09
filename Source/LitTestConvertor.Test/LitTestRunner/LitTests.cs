@@ -5,8 +5,8 @@ using XUnitExtensions;
 
 namespace LitTestConvertor.Test.LitTestRunner {
   public class LitTests {
-    [ParallelTheory]
-    [LitTestData(false)]
+    [FileTheory]
+    [LitTestData(Extension = ".dfy", InvokeCliDirectly = false)]
     public void LitTest(CLITestCase testCase) {
       testCase.Run();
     }

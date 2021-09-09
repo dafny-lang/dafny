@@ -1,8 +1,17 @@
 using System.Collections.Generic;
 using Xunit;
+using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace XUnitExtensions {
-  public interface ITheoryRowData {
+  public interface IFileTheoryRowData {
+
+    /// <summary>
+    /// Gets the source information for this row of data; if <c>null</c> is returned, then the location
+    /// of the test method is ussed.
+    /// </summary>
+    ISourceInformation? SourceInformation { get; }
+    
     /// <summary>
     /// Gets the reason for skipping this row of data; if <c>null</c> is returned, then the data
     /// row isn't skipped.

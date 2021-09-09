@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 using XUnitExtensions;
 
 namespace DafnyDriver.Test {
@@ -11,7 +12,7 @@ namespace DafnyDriver.Test {
    * Specialization of CLITestCase that mainly exists to support a much more
    * concise definition of ToString().
    */
-  public class DafnyTestCase : CLITestCase {
+  public class DafnyTestCase : CLITestCase, IFileTheoryRowData {
 
     private static readonly Assembly dafnyDriverAssembly = Assembly.GetAssembly(typeof(Microsoft.Dafny.DafnyDriver));
 
@@ -53,7 +54,6 @@ namespace DafnyDriver.Test {
     }
 
     private string BasePath;
-    private string SourcePath;
 
     private Dictionary<string, object> DafnyOptions = new();
     private List<string> OtherFiles = new();
@@ -62,7 +62,9 @@ namespace DafnyDriver.Test {
                          Expectation expected, bool invokeDirectly)
       : base(dafnyDriverAssembly, OptionsToFullArguments(fullSourcePath, dafnyOptions, otherFiles), new string[] { "PATH", "HOME" }, expected, invokeDirectly) {
       BasePath = basePath;
-      SourcePath = fullSourcePath;
+      SourceInformation = new SourceInformation();
+      SourceInformation.FileName = fullSourcePath;
+      SourceInformation.LineNumber = 0;
       DafnyOptions = dafnyOptions;
       OtherFiles = otherFiles;
     }
@@ -74,7 +76,7 @@ namespace DafnyDriver.Test {
     public new void Serialize(IXunitSerializationInfo info) {
       base.Serialize(info);
       info.AddValue(nameof(BasePath), BasePath);
-      info.AddValue(nameof(SourcePath), SourcePath);
+      info.AddValue(nameof(SourceInformation), SourceInformation);
       info.AddValue(nameof(DafnyOptions), DafnyOptions);
       info.AddValue(nameof(OtherFiles), OtherFiles);
     }
@@ -82,14 +84,22 @@ namespace DafnyDriver.Test {
     public new void Deserialize(IXunitSerializationInfo info) {
       base.Deserialize(info);
       BasePath = info.GetValue<string>(nameof(BasePath));
-      SourcePath = info.GetValue<string>(nameof(SourcePath));
+      SourceInformation = info.GetValue<ISourceInformation>(nameof(SourceInformation));
       DafnyOptions = info.GetValue<Dictionary<string, object>>(nameof(DafnyOptions));
       OtherFiles = info.GetValue<List<string>>(nameof(OtherFiles));
     }
 
     public override string ToString() {
-      var relativePath = SourcePath[(BasePath.Length + 1)..];
+      var relativePath = SourceInformation.FileName[(BasePath.Length + 1)..];
       return String.Join(" ", OptionsToArguments(relativePath, DafnyOptions, OtherFiles));
+    }
+
+    public ISourceInformation SourceInformation { get; protected set;  }
+    public string? Skip => null;
+    public string? TestDisplayName => SourceInformation.FileName;
+    public Dictionary<string, List<string>>? Traits => null;
+    public object[] GetData() {
+      return new object[] { this };
     }
   }
 }

@@ -12,12 +12,21 @@ namespace XUnitExtensions {
 
     protected XunitTestCase innerTestCase;
 
-    public FileTestCase(IMessageSink diagnosticMessageSink, string path, ITestMethod testMethod, ITheoryRowData data) {
-      innerTestCase = new XunitTestCase(diagnosticMessageSink, TestMethodDisplay.Method, testMethod, data.GetData());
-      foreach (var (key, value) in data.Traits) {
-        innerTestCase.Traits.Add(key, value);
+    public FileTestCase(IMessageSink diagnosticMessageSink, ITestMethod testMethod, IFileTheoryRowData data) {
+      var collection = new TestCollection(testMethod.TestClass.TestCollection.TestAssembly,
+        (ITypeInfo)null, "Test collection for " + data.TestDisplayName);
+      var testClassWithCollection = new TestClass(collection, testMethod.TestClass.Class);
+      var testMethodWithCollection = new TestMethod(testClassWithCollection, testMethod.Method);
+      
+      innerTestCase = new XunitTestCase(diagnosticMessageSink, TestMethodDisplay.Method, TestMethodDisplayOptions.All,
+        testMethodWithCollection, data.GetData());
+      if (data.Traits != null) {
+        foreach(var (key, value) in data.Traits) {
+          innerTestCase.Traits.Add(key, value);
+        }
       }
-      innerTestCase.SourceInformation = new SourceInformation { FileName = path };
+
+      innerTestCase.SourceInformation = data.SourceInformation;
       SkipReason = data.Skip;
     }
 
@@ -33,22 +42,22 @@ namespace XUnitExtensions {
       info.AddValue(nameof(innerTestCase), innerTestCase);
       info.AddValue(nameof(SkipReason), SkipReason);
     }
-    public string DisplayName => innerTestCase.DisplayName;
-    public string SkipReason {
-      get;
-      protected set;
-    }
+    public string SkipReason { get; protected set; }
 
     public ISourceInformation SourceInformation {
       get => innerTestCase.SourceInformation;
       set => innerTestCase.SourceInformation = value;
     }
 
+    public string DisplayName => innerTestCase.DisplayName;
     public ITestMethod TestMethod => innerTestCase.TestMethod;
     public object[] TestMethodArguments => innerTestCase.TestMethodArguments;
     public Dictionary<string, List<string>> Traits => innerTestCase.Traits;
     public string UniqueID => innerTestCase.UniqueID;
-
+    public Exception InitializationException => innerTestCase.InitializationException;
+    public IMethodInfo Method => innerTestCase.Method;
+    public int Timeout => innerTestCase.Timeout;
+    
     public Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink, IMessageBus messageBus, object[] constructorArguments,
       ExceptionAggregator aggregator, CancellationTokenSource cancellationTokenSource) {
 
@@ -63,9 +72,5 @@ namespace XUnitExtensions {
         cancellationTokenSource
       ).RunAsync();
     }
-
-    public Exception InitializationException => innerTestCase.InitializationException;
-    public IMethodInfo Method => innerTestCase.Method;
-    public int Timeout => innerTestCase.Timeout;
   }
 }

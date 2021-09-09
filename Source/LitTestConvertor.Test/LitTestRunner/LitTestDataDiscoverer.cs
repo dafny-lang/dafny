@@ -30,8 +30,5 @@ namespace DafnyDriver.Test {
 
 [DataDiscoverer("DafnyDriver.Test.LitTestDataDiscoverer", "LitTestConvertor.Test")]
 public class LitTestDataAttribute : FileDataAttribute {
-  public bool InvokeCliDirectly;
-  public LitTestDataAttribute(bool invokeCliDirectly = false) : base(extension: ".dfy") {
-    InvokeCliDirectly = invokeCliDirectly;
-  }
+  public bool InvokeCliDirectly { get; set; }
 }
