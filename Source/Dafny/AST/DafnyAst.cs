@@ -6583,7 +6583,7 @@ namespace Microsoft.Dafny {
       get {
         // Lemma from included files do not need to be resolved and translated
         // so we return emptyBody. This is to speed up resolvor and translator.
-        if (methodBody != null && (this is Lemma || this is TwoStateLemma) && this.tok is IncludeToken && !DafnyOptions.O.VerifyAllModules) {
+        if (methodBody != null && IsLemmaLike && this.tok is IncludeToken && !DafnyOptions.O.VerifyAllModules) {
           return Method.emptyBody;
         } else {
           return methodBody;
@@ -6593,6 +6593,8 @@ namespace Microsoft.Dafny {
         methodBody = value;
       }
     }
+
+    public bool IsLemmaLike => this is Lemma || this is TwoStateLemma || this is ExtremeLemma || this is PrefixLemma;
 
     public BlockStmt BodyForRefinement {
       // For refinement, we still need to merge in the body

@@ -10128,7 +10128,7 @@ namespace Microsoft.Dafny {
         ResolveAttributes(m.Mod.Attributes, null, new ResolveOpts(m, false));
         foreach (FrameExpression fe in m.Mod.Expressions) {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, m);
-          if (m is Lemma || m is TwoStateLemma || m is ExtremeLemma) {
+          if (m.IsLemmaLike) {
             reporter.Error(MessageSource.Resolver, fe.tok, "{0}s are not allowed to have modifies clauses", m.WhatKind);
           } else if (m.IsGhost) {
             DisallowNonGhostFieldSpecifiers(fe);
