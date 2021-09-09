@@ -8481,8 +8481,13 @@ namespace Microsoft.Dafny {
           var gk = AssignStmt.LhsIsToGhost_Which(lhs);
           if (gk == AssignStmt.NonGhostKind.IsGhost) {
             s.IsGhost = true;
-            if (s.Rhs is TypeRhs tRhs && tRhs.InitCall != null) {
-              Visit(tRhs.InitCall, true);
+            if (s.Rhs is TypeRhs tRhs) {
+              if (codeContext is Method m && m.IsLemmaLike) {
+                Error(s.Rhs.Tok, "'new' is not allowed in lemma contexts");
+              }
+              if (tRhs.InitCall != null) {
+                Visit(tRhs.InitCall, true);
+              }
             }
           } else if (gk == AssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
             // cool
@@ -13558,6 +13563,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
         CheckHintLhs(s.Lhs.tok, s.Lhs.Resolved, localsAllowedInUpdates, where);
+        if (s.Rhs is TypeRhs) {
+          reporter.Error(MessageSource.Resolver, s.Rhs.Tok, $"{where} is not allowed to use 'new'");
+        }
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         if (s.Method.Mod.Expressions.Count != 0) {
