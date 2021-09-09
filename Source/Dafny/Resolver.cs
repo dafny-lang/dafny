@@ -8293,17 +8293,19 @@ namespace Microsoft.Dafny {
     public void ComputeGhostInterest(Statement stmt, bool mustBeErasable, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
-      var visitor = new GhostInterest_Visitor(codeContext, this);
+      var visitor = new GhostInterest_Visitor(codeContext, this, false);
       visitor.Visit(stmt, mustBeErasable);
     }
     class GhostInterest_Visitor {
       readonly ICodeContext codeContext;
       readonly Resolver resolver;
-      public GhostInterest_Visitor(ICodeContext codeContext, Resolver resolver) {
+      private readonly bool inFirstBlockDivision;
+      public GhostInterest_Visitor(ICodeContext codeContext, Resolver resolver, bool inFirstBlockDivision) {
         Contract.Requires(codeContext != null);
         Contract.Requires(resolver != null);
         this.codeContext = codeContext;
         this.resolver = resolver;
+        this.inFirstBlockDivision = inFirstBlockDivision;
       }
       protected void Error(Statement stmt, string msg, params object[] msgArgs) {
         Contract.Requires(stmt != null);
@@ -8492,13 +8494,17 @@ namespace Microsoft.Dafny {
           } else if (gk == AssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
             // cool
           } else if (mustBeErasable) {
-            string reason;
-            if (codeContext.IsGhost) {
-              reason = string.Format("this is a ghost {0}", codeContext is MemberDecl member ? member.WhatKind : "context");
+            if (inFirstBlockDivision && codeContext is Constructor && codeContext.IsGhost && lhs is MemberSelectExpr mse && mse.Obj.Resolved is ThisExpr) {
+              // in this first division (before "new;") of a ghost constructor, allow assignment to non-ghost field of the object being constructor
             } else {
-              reason = "the statement is in a ghost context; e.g., it may be guarded by a specification-only expression";
+              string reason;
+              if (codeContext.IsGhost) {
+                reason = string.Format("this is a ghost {0}", codeContext is MemberDecl member ? member.WhatKind : "context");
+              } else {
+                reason = "the statement is in a ghost context; e.g., it may be guarded by a specification-only expression";
+              }
+              Error(stmt, $"assignment to {AssignStmt.NonGhostKind_To_String(gk)} is not allowed in this context (because {reason})");
             }
-            Error(stmt, $"assignment to {AssignStmt.NonGhostKind_To_String(gk)} is not allowed in this context (because {reason})");
           } else {
             if (gk == AssignStmt.NonGhostKind.Field) {
               var mse = (MemberSelectExpr)lhs;
@@ -8594,7 +8600,13 @@ namespace Microsoft.Dafny {
         } else if (stmt is BlockStmt) {
           var s = (BlockStmt)stmt;
           s.IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
-          s.Body.Iter(ss => Visit(ss, mustBeErasable));
+          if (s is DividedBlockStmt ds) {
+            var giv = new GhostInterest_Visitor(this.codeContext, this.resolver, true);
+            ds.BodyInit.Iter(ss => giv.Visit(ss, mustBeErasable));
+            ds.BodyProper.Iter(ss => Visit(ss, mustBeErasable));
+          } else {
+            s.Body.Iter(ss => Visit(ss, mustBeErasable));
+          }
           s.IsGhost = s.IsGhost || s.Body.All(ss => ss.IsGhost);  // mark the block statement as ghost if all its substatements are ghost
 
         } else if (stmt is IfStmt) {

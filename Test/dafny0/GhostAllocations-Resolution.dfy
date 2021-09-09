@@ -158,8 +158,8 @@ module GhostConstructors1 {
 
     ghost constructor (x: int) {
       b, d := x, x + a;
-      a := 2; // error: cannot assign to non-ghost in ghost constructor (TODO: should this be allowed?)
-      c := 3; // error: cannot assign to non-ghost in ghost constructor (TODO: should this be allowed?)
+      a := 2;
+      c := 3;
       if x < 17 {
         Compiled(); // error: cannot call non-ghost from a ghost context
         Ghost();
@@ -190,7 +190,7 @@ module GhostConstructors1 {
     constructor B() { // definite-assignment rules are not satisfied, but that's check during verification (see GhostAllocations.dfy)
     }
     ghost constructor C(g: GGG) {
-      this.g := g; // error: cannot assign to non-ghost in ghost constructor (TODO: should this be allowed?)
+      this.g := g;
     }
     ghost constructor D() { // in a ghost context, we only need to know that g's type is nonempty (same as for h all along)
     }
@@ -198,7 +198,7 @@ module GhostConstructors1 {
     ghost constructor PostNew(c: GhostableAutoInit)
       modifies c
     {
-      g := h; // error: cannot assign to non-ghost in ghost constructor (TODO: should this be allowed? Should be fine before "new;")
+      g := h; // fine before "new;"
       c.g := h; // error: cannot assign to non-ghost field of non-this
       print "hello\n"; // error: cannot use print in ghost context
       new;
