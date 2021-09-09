@@ -487,7 +487,9 @@ namespace Microsoft.Dafny
       that is, it may use 'print' statements and may call other methods
       that have print effects. The attribute can be applied to compiled
       methods, constructors, and iterators, and it gives an error if
-      applied to functions or ghost methods.
+      applied to functions or ghost methods. An overriding method is
+      allowed to use a {:print} attribute only if the overridden method
+      does.
       Print effects are enforced only with /trackPrintEffects:1.
 
     {:nativeType}

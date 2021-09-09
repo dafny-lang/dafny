@@ -23,7 +23,7 @@ method {:print} P() {
   var cl := new Cl.NoPrint();
   cl := new Cl.Print();
 
-
+  TestOverrides();
 }
 
 method MoveNexts(iter0: NoPrintIter, iter1: PrintIter)
@@ -69,4 +69,39 @@ class Cl {
   constructor {:print} Print() {
     print "Cl.Print ctor\n";
   }
+}
+
+trait Trait {
+  method {:print} MayPrint()
+  method {:print} AlwaysPrints()
+}
+
+class Overrides extends Trait {
+  method MayPrint() { // allowed to drop {:print} attribute
+    print "Override X"; // error: cannot print without a {:print} attribute
+  }
+  method {:print} AlwaysPrints() {
+    print " Y\n";
+  }
+}
+
+method {:print} TestOverrides() {
+  var c: Overrides := new Overrides;
+  var t: Trait := c;
+
+  t.MayPrint();
+  t.AlwaysPrints();
+
+  c.MayPrint();
+  c.AlwaysPrints();
+
+  TestOverridesNoPrint(c, t);
+}
+
+method TestOverridesNoPrint(c: Overrides, t: Trait) {
+  t.MayPrint(); // error: cannot call printing method
+  t.AlwaysPrints(); // error: cannot call printing method
+
+  c.MayPrint();
+  c.AlwaysPrints(); // error: cannot call printing method
 }

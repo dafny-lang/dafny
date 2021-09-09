@@ -33,3 +33,18 @@ greatest predicate {:print} Q() { // error: cannot apply {:print} to function
 
 method {:print "badArgument"} O() { // error: {:print} does not allow an argument
 }
+
+trait Trait {
+  method DoesNotPrint()
+  method {:print} MayPrint()
+  method {:print} AlwaysPrints()
+}
+
+class Overrides extends Trait {
+  method {:print} DoesNotPrint() { // error: override is not allowed to add {:print} attribute
+  }
+  method MayPrint() { // allowed to drop {:print} attribute
+  }
+  method {:print} AlwaysPrints() {
+  }
+}
