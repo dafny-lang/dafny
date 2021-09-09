@@ -22,6 +22,8 @@ method {:print} P() {
   MoveNexts(iter0, iter1);
   var cl := new Cl.NoPrint();
   cl := new Cl.Print();
+
+
 }
 
 method MoveNexts(iter0: NoPrintIter, iter1: PrintIter)
