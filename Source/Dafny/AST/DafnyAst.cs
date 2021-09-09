@@ -429,6 +429,10 @@ namespace Microsoft.Dafny {
       return false;
     }
 
+    public static Attributes GetAttribute(Attributes attrs, String nm) {
+       return attrs.AsEnumerable().Where(a => a.Name == nm).LastOrDefault();
+    }
+
     /// <summary>
     /// Checks whether a Boolean attribute has been set on the declaration itself,
     /// the enclosing class, or any enclosing module.  Settings closer to the declaration
@@ -8563,8 +8567,10 @@ namespace Microsoft.Dafny {
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
     public readonly bool UsesOptionalBraces;
     public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it
-    public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, MatchingContext context = null)
-      : base(tok, endTok) {
+
+    public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, MatchingContext context = null, Attributes attrs = null)
+      : base(tok, endTok, attrs)
+    {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(source != null);
