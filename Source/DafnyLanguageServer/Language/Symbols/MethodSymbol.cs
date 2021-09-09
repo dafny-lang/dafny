@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// </summary>
     public ScopeSymbol? Block { get; set; }
 
-    private IEnumerable<ISymbol> BlockAsEnumerable => Block != null ? new [] { Block } : Enumerable.Empty<ISymbol>();
+    private IEnumerable<ISymbol> BlockAsEnumerable => Block != null ? new[] { Block } : Enumerable.Empty<ISymbol>();
 
     public override IEnumerable<ISymbol> Children => BlockAsEnumerable.Concat(Parameters).Concat(Returns);
 

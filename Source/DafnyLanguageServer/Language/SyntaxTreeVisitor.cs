@@ -14,78 +14,78 @@
     public abstract void VisitUnknown(object node, Boogie.IToken token);
 
     public virtual void Visit(Dafny.Program program) {
-      foreach(var module in program.Modules()) {
+      foreach (var module in program.Modules()) {
         Visit(module);
       }
     }
 
     public virtual void Visit(ModuleDefinition moduleDefinition) {
-      foreach(var topLevelDeclaration in moduleDefinition.TopLevelDecls) {
+      foreach (var topLevelDeclaration in moduleDefinition.TopLevelDecls) {
         Visit(topLevelDeclaration);
       }
     }
 
     public virtual void Visit(TopLevelDecl topLevelDeclaration) {
-      switch(topLevelDeclaration) {
-      case ClassDecl classDeclaration:
-        Visit(classDeclaration);
-        break;
-      case ModuleDecl moduleDeclaration:
-      case DatatypeDecl dataTypeDeclaration:
-      case ValuetypeDecl valueTypeDeclaration:
-      case OpaqueTypeDecl opaqueTypeDeclaration:
-      case NewtypeDecl newTypeDeclaration:
-      case TypeSynonymDecl typeSynonymDeclaration:
-      default:
-        VisitUnknown(topLevelDeclaration, topLevelDeclaration.tok);
-        break;
+      switch (topLevelDeclaration) {
+        case ClassDecl classDeclaration:
+          Visit(classDeclaration);
+          break;
+        case ModuleDecl moduleDeclaration:
+        case DatatypeDecl dataTypeDeclaration:
+        case ValuetypeDecl valueTypeDeclaration:
+        case OpaqueTypeDecl opaqueTypeDeclaration:
+        case NewtypeDecl newTypeDeclaration:
+        case TypeSynonymDecl typeSynonymDeclaration:
+        default:
+          VisitUnknown(topLevelDeclaration, topLevelDeclaration.tok);
+          break;
       }
     }
 
     public virtual void Visit(ClassDecl classDeclaration) {
-      foreach(var member in classDeclaration.Members) {
+      foreach (var member in classDeclaration.Members) {
         Visit(member);
       }
     }
 
     public virtual void Visit(MemberDecl memberDeclaration) {
-      switch(memberDeclaration) {
-      case Field field:
-        Visit(field);
-        break;
-      case Function function:
-        Visit(function);
-        break;
-      case Method method:
-        Visit(method);
-        break;
-      default:
-        VisitUnknown(memberDeclaration, memberDeclaration.tok);
-        break;
+      switch (memberDeclaration) {
+        case Field field:
+          Visit(field);
+          break;
+        case Function function:
+          Visit(function);
+          break;
+        case Method method:
+          Visit(method);
+          break;
+        default:
+          VisitUnknown(memberDeclaration, memberDeclaration.tok);
+          break;
       }
     }
 
     public virtual void Visit(Field field) {
-      foreach(var expression in field.SubExpressions) {
+      foreach (var expression in field.SubExpressions) {
         Visit(expression);
       }
     }
 
     public virtual void Visit(Method method) {
-      foreach(var typeArgument in method.TypeArgs) {
+      foreach (var typeArgument in method.TypeArgs) {
         Visit(typeArgument);
       }
-      foreach(var inDefinition in method.Ins) {
+      foreach (var inDefinition in method.Ins) {
         Visit(inDefinition);
       }
-      foreach(var outDefinition in method.Outs) {
+      foreach (var outDefinition in method.Outs) {
         Visit(outDefinition);
       }
       VisitNullableAttributes(method.Attributes);
-      foreach(var requirement in method.Req) {
+      foreach (var requirement in method.Req) {
         Visit(requirement);
       }
-      foreach(var ensurement in method.Ens) {
+      foreach (var ensurement in method.Ens) {
         Visit(ensurement);
       }
       Visit(method.Decreases);
@@ -94,26 +94,26 @@
     }
 
     public virtual void Visit(Constructor constructor) {
-      foreach(var outDefinition in constructor.Outs) {
+      foreach (var outDefinition in constructor.Outs) {
         Visit(outDefinition);
       }
       VisitNullableBlock(constructor.Body);
     }
 
     public virtual void Visit(Function function) {
-      foreach(var typeArgument in function.TypeArgs) {
+      foreach (var typeArgument in function.TypeArgs) {
         Visit(typeArgument);
       }
-      foreach(var formal in function.Formals) {
+      foreach (var formal in function.Formals) {
         Visit(formal);
       }
-      foreach(var read in function.Reads) {
+      foreach (var read in function.Reads) {
         Visit(read);
       }
-      foreach(var requirement in function.Req) {
+      foreach (var requirement in function.Req) {
         Visit(requirement);
       }
-      foreach(var ensurement in function.Ens) {
+      foreach (var ensurement in function.Ens) {
         Visit(ensurement);
       }
       Visit(function.Decreases);
@@ -131,69 +131,69 @@
     }
 
     private void VisitNullableAttributes(Attributes? attributes) {
-      if(attributes != null) {
+      if (attributes != null) {
         Visit(attributes);
       }
     }
 
     public virtual void Visit(Attributes attributes) {
-      foreach(var argument in attributes.Args) {
+      foreach (var argument in attributes.Args) {
         Visit(argument);
       }
     }
 
     public virtual void Visit(Statement statement) {
-      switch(statement) {
-      case WhileStmt whileStatement:
-        Visit(whileStatement);
-        break;
-      case ForLoopStmt forStatement:
-        Visit(forStatement);
-        break;
-      case AlternativeLoopStmt alternativeLoopStmt:
-        Visit(alternativeLoopStmt);
-        break;
-      case IfStmt ifStatement:
-        Visit(ifStatement);
-        break;
-      case AlternativeStmt alternativeStatement:
-        Visit(alternativeStatement);
-        break;
-      case VarDeclStmt variableDeclarationStatement:
-        Visit(variableDeclarationStatement);
-        break;
-      case UpdateStmt updateStatement:
-        Visit(updateStatement);
-        break;
-      case AssertStmt assertStatement:
-        Visit(assertStatement);
-        break;
-      case ReturnStmt returnStatement:
-        Visit(returnStatement);
-        break;
-      case BlockStmt blockStatement:
-        Visit(blockStatement);
-        break;
-      case MatchStmt matchStatement:
-        Visit(matchStatement);
-        break;
-      case NestedMatchStmt nestedMatchStatement:
-        Visit(nestedMatchStatement);
-        break;
-      case ForallStmt forAllStatement:
-        Visit(forAllStatement);
-        break;
-      case PrintStmt printStatement:
-        Visit(printStatement);
-        break;
-      default:
-        VisitUnknown(statement, statement.Tok);
-        break;
+      switch (statement) {
+        case WhileStmt whileStatement:
+          Visit(whileStatement);
+          break;
+        case ForLoopStmt forStatement:
+          Visit(forStatement);
+          break;
+        case AlternativeLoopStmt alternativeLoopStmt:
+          Visit(alternativeLoopStmt);
+          break;
+        case IfStmt ifStatement:
+          Visit(ifStatement);
+          break;
+        case AlternativeStmt alternativeStatement:
+          Visit(alternativeStatement);
+          break;
+        case VarDeclStmt variableDeclarationStatement:
+          Visit(variableDeclarationStatement);
+          break;
+        case UpdateStmt updateStatement:
+          Visit(updateStatement);
+          break;
+        case AssertStmt assertStatement:
+          Visit(assertStatement);
+          break;
+        case ReturnStmt returnStatement:
+          Visit(returnStatement);
+          break;
+        case BlockStmt blockStatement:
+          Visit(blockStatement);
+          break;
+        case MatchStmt matchStatement:
+          Visit(matchStatement);
+          break;
+        case NestedMatchStmt nestedMatchStatement:
+          Visit(nestedMatchStatement);
+          break;
+        case ForallStmt forAllStatement:
+          Visit(forAllStatement);
+          break;
+        case PrintStmt printStatement:
+          Visit(printStatement);
+          break;
+        default:
+          VisitUnknown(statement, statement.Tok);
+          break;
       }
     }
 
     private void VisitNullableStatement(Statement? statement) {
-      if(statement != null) {
+      if (statement != null) {
         Visit(statement);
       }
     }
@@ -204,16 +204,16 @@
     }
 
     public virtual void Visit(AssignmentRhs assignmentRhs) {
-      switch(assignmentRhs) {
-      case ExprRhs expressionRhs:
-        Visit(expressionRhs);
-        break;
-      case TypeRhs typeRhs:
-        Visit(typeRhs);
-        break;
-      default:
-        VisitUnknown(assignmentRhs, assignmentRhs.Tok);
-        break;
+      switch (assignmentRhs) {
+        case ExprRhs expressionRhs:
+          Visit(expressionRhs);
+          break;
+        case TypeRhs typeRhs:
+          Visit(typeRhs);
+          break;
+        default:
+          VisitUnknown(assignmentRhs, assignmentRhs.Tok);
+          break;
       }
     }
 
@@ -222,8 +222,8 @@
       if (typeRhs.Bindings != null) {
         Visit(typeRhs.Bindings);
       }
-      if(typeRhs.ArrayDimensions != null) {
-        foreach(var dimension in typeRhs.ArrayDimensions) {
+      if (typeRhs.ArrayDimensions != null) {
+        foreach (var dimension in typeRhs.ArrayDimensions) {
           Visit(dimension);
         }
       }
@@ -231,13 +231,13 @@
 
     public virtual void Visit(BlockStmt blockStatement) {
       VisitNullableAttributes(blockStatement.Attributes);
-      foreach(var statement in blockStatement.Body) {
+      foreach (var statement in blockStatement.Body) {
         Visit(statement);
       }
     }
 
     private void VisitNullableBlock(BlockStmt? blockStatement) {
-      if(blockStatement != null) {
+      if (blockStatement != null) {
         Visit(blockStatement);
       }
     }
@@ -245,7 +245,7 @@
     public virtual void Visit(WhileStmt whileStatement) {
       Visit(whileStatement.Guard);
       VisitNullableAttributes(whileStatement.Attributes);
-      foreach(var invariant in whileStatement.Invariants) {
+      foreach (var invariant in whileStatement.Invariants) {
         Visit(invariant);
       }
       // TODO Problematic GenericSort test case. Automatically generated decrease specifications
@@ -263,7 +263,7 @@
       Visit(forStatement.Start);
       VisitNullableExpression(forStatement.End);
       VisitNullableAttributes(forStatement.Attributes);
-      foreach(var invariant in forStatement.Invariants) {
+      foreach (var invariant in forStatement.Invariants) {
         Visit(invariant);
       }
       Visit(forStatement.Decreases);
@@ -275,7 +275,7 @@
       VisitNullableAttributes(alternativeLoopStatement.Attributes);
       Visit(alternativeLoopStatement.Decreases);
       Visit(alternativeLoopStatement.Mod);
-      foreach(var guardedAlternative in alternativeLoopStatement.Alternatives) {
+      foreach (var guardedAlternative in alternativeLoopStatement.Alternatives) {
         Visit(guardedAlternative);
       }
     }
@@ -290,33 +290,33 @@
 
     public virtual void Visit(AlternativeStmt alternativeStatement) {
       VisitNullableAttributes(alternativeStatement.Attributes);
-      foreach(var guardedAlternative in alternativeStatement.Alternatives) {
+      foreach (var guardedAlternative in alternativeStatement.Alternatives) {
         Visit(guardedAlternative);
       }
     }
 
     public virtual void Visit(GuardedAlternative guardedAlternative) {
       Visit(guardedAlternative.Guard);
-      foreach(var statement in guardedAlternative.Body) {
+      foreach (var statement in guardedAlternative.Body) {
         Visit(statement);
       }
     }
 
     public virtual void Visit(VarDeclStmt variableDeclarationStatement) {
-      foreach(var localVariable in variableDeclarationStatement.Locals) {
+      foreach (var localVariable in variableDeclarationStatement.Locals) {
         Visit(localVariable);
       }
-      if(variableDeclarationStatement.Update != null) {
+      if (variableDeclarationStatement.Update != null) {
         Visit(variableDeclarationStatement.Update);
       }
     }
 
     public virtual void Visit(UpdateStmt updateStatement) {
       VisitNullableAttributes(updateStatement.Attributes);
-      foreach(var leftHandSide in updateStatement.Lhss) {
+      foreach (var leftHandSide in updateStatement.Lhss) {
         Visit(leftHandSide);
       }
-      foreach(var rightHandSide in updateStatement.Rhss) {
+      foreach (var rightHandSide in updateStatement.Rhss) {
         Visit(rightHandSide);
       }
     }
@@ -329,11 +329,11 @@
 
     public virtual void Visit(ReturnStmt returnStatement) {
       VisitNullableAttributes(returnStatement.Attributes);
-      if(returnStatement.rhss != null) {
+      if (returnStatement.rhss != null) {
         // In integration test run on ubuntu showed that this might be null.
         // https://github.com/DafnyVSCode/language-server-csharp/runs/1390714082?check_suite_focus=true#step:9:907
         // At the time of this writing, there is no contract in dafny-lang enforcing non-null - so this should be true.
-        foreach(var rhs in returnStatement.rhss) {
+        foreach (var rhs in returnStatement.rhss) {
           Visit(rhs);
         }
       }
@@ -342,16 +342,16 @@
     public virtual void Visit(MatchStmt matchStatement) {
       VisitNullableAttributes(matchStatement.Attributes);
       Visit(matchStatement.Source);
-      foreach(var matchCase in matchStatement.Cases) {
+      foreach (var matchCase in matchStatement.Cases) {
         Visit(matchCase);
       }
     }
 
     public virtual void Visit(MatchCaseStmt matchCaseStatement) {
-      foreach(var argument in matchCaseStatement.Arguments) {
+      foreach (var argument in matchCaseStatement.Arguments) {
         Visit(argument);
       }
-      foreach(var body in matchCaseStatement.Body) {
+      foreach (var body in matchCaseStatement.Body) {
         Visit(body);
       }
     }
@@ -359,13 +359,13 @@
     public virtual void Visit(NestedMatchStmt nestedMatchStatement) {
       VisitNullableAttributes(nestedMatchStatement.Attributes);
       Visit(nestedMatchStatement.Source);
-      foreach(var nestedMatchCase in nestedMatchStatement.Cases) {
+      foreach (var nestedMatchCase in nestedMatchStatement.Cases) {
         Visit(nestedMatchCase);
       }
     }
 
     public virtual void Visit(NestedMatchCaseStmt nestedMatchCaseStatement) {
-      foreach(var body in nestedMatchCaseStatement.Body) {
+      foreach (var body in nestedMatchCaseStatement.Body) {
         Visit(body);
       }
     }
@@ -377,7 +377,7 @@
 
     public virtual void Visit(PrintStmt printStatement) {
       VisitNullableAttributes(printStatement.Attributes);
-      foreach(var argument in printStatement.Args) {
+      foreach (var argument in printStatement.Args) {
         Visit(argument);
       }
     }
@@ -391,78 +391,78 @@
     }
 
     public virtual void Visit(Expression expression) {
-      switch(expression) {
-      case LiteralExpr literalExpression:
-        Visit(literalExpression);
-        break;
-      case ThisExpr thisExpression:
-        Visit(thisExpression);
-        break;
-      case IdentifierExpr identifierExpression:
-        Visit(identifierExpression);
-        break;
-      case SeqSelectExpr sequenceSelectExpression:
-        Visit(sequenceSelectExpression);
-        break;
-      case UnaryExpr unaryExpression:
-        Visit(unaryExpression);
-        break;
-      case BinaryExpr binaryExpression:
-        Visit(binaryExpression);
-        break;
-      case TernaryExpr ternaryExpression:
-        Visit(ternaryExpression);
-        break;
-      case NameSegment nameSegment:
-        Visit(nameSegment);
-        break;
-      case ParensExpression parenthesesExpression:
-        Visit(parenthesesExpression);
-        break;
-      case ExprDotName expressionDotName:
-        Visit(expressionDotName);
-        break;
-      case ApplySuffix applySuffix:
-        Visit(applySuffix);
-        break;
-      case ChainingExpression chainingExpression:
-        Visit(chainingExpression);
-        break;
-      case NegationExpression negationExpression:
-        Visit(negationExpression);
-        break;
-      case OldExpr oldExpression:
-        Visit(oldExpression);
-        break;
-      case ITEExpr ifThenElseExpression:
-        Visit(ifThenElseExpression);
-        break;
-      case ForallExpr forAllExpression:
-        Visit(forAllExpression);
-        break;
-      case NestedMatchExpr nestedMatchExpression:
-        Visit(nestedMatchExpression);
-        break;
-      case SetDisplayExpr setDisplayExpression:
-        Visit(setDisplayExpression);
-        break;
-      case MultiSetDisplayExpr multiSetDisplayExpression:
-        Visit(multiSetDisplayExpression);
-        break;
-      case SeqDisplayExpr sequenceDisplayExpression:
-        Visit(sequenceDisplayExpression);
-        break;
-      case StmtExpr statementExpression:
-        Visit(statementExpression);
-        break;
-      default:
-        VisitUnknown(expression, expression.tok);
-        break;
+      switch (expression) {
+        case LiteralExpr literalExpression:
+          Visit(literalExpression);
+          break;
+        case ThisExpr thisExpression:
+          Visit(thisExpression);
+          break;
+        case IdentifierExpr identifierExpression:
+          Visit(identifierExpression);
+          break;
+        case SeqSelectExpr sequenceSelectExpression:
+          Visit(sequenceSelectExpression);
+          break;
+        case UnaryExpr unaryExpression:
+          Visit(unaryExpression);
+          break;
+        case BinaryExpr binaryExpression:
+          Visit(binaryExpression);
+          break;
+        case TernaryExpr ternaryExpression:
+          Visit(ternaryExpression);
+          break;
+        case NameSegment nameSegment:
+          Visit(nameSegment);
+          break;
+        case ParensExpression parenthesesExpression:
+          Visit(parenthesesExpression);
+          break;
+        case ExprDotName expressionDotName:
+          Visit(expressionDotName);
+          break;
+        case ApplySuffix applySuffix:
+          Visit(applySuffix);
+          break;
+        case ChainingExpression chainingExpression:
+          Visit(chainingExpression);
+          break;
+        case NegationExpression negationExpression:
+          Visit(negationExpression);
+          break;
+        case OldExpr oldExpression:
+          Visit(oldExpression);
+          break;
+        case ITEExpr ifThenElseExpression:
+          Visit(ifThenElseExpression);
+          break;
+        case ForallExpr forAllExpression:
+          Visit(forAllExpression);
+          break;
+        case NestedMatchExpr nestedMatchExpression:
+          Visit(nestedMatchExpression);
+          break;
+        case SetDisplayExpr setDisplayExpression:
+          Visit(setDisplayExpression);
+          break;
+        case MultiSetDisplayExpr multiSetDisplayExpression:
+          Visit(multiSetDisplayExpression);
+          break;
+        case SeqDisplayExpr sequenceDisplayExpression:
+          Visit(sequenceDisplayExpression);
+          break;
+        case StmtExpr statementExpression:
+          Visit(statementExpression);
+          break;
+        default:
+          VisitUnknown(expression, expression.tok);
+          break;
       }
     }
 
     private void VisitNullableExpression(Expression? expression) {
-      if(expression != null) {
+      if (expression != null) {
         Visit(expression);
       }
     }
@@ -534,7 +534,7 @@
     }
 
     public virtual void Visit(ChainingExpression chainingExpression) {
-      foreach(var operand in chainingExpression.Operands) {
+      foreach (var operand in chainingExpression.Operands) {
         Visit(operand);
       }
     }
@@ -561,7 +561,7 @@
 
     public virtual void Visit(NestedMatchExpr nestedMatchExpression) {
       Visit(nestedMatchExpression.Source);
-      foreach(var nestedMatchCaseExpression in nestedMatchExpression.Cases) {
+      foreach (var nestedMatchCaseExpression in nestedMatchExpression.Cases) {
         Visit(nestedMatchCaseExpression);
       }
     }
@@ -572,27 +572,27 @@
     }
 
     public virtual void Visit(SetDisplayExpr setDisplayExpression) {
-      foreach(var element in setDisplayExpression.Elements) {
+      foreach (var element in setDisplayExpression.Elements) {
         Visit(element);
       }
     }
 
     public virtual void Visit(MultiSetDisplayExpr multiSetDisplayExpression) {
-      foreach(var element in multiSetDisplayExpression.Elements) {
+      foreach (var element in multiSetDisplayExpression.Elements) {
         Visit(element);
       }
     }
 
     public virtual void Visit(SeqDisplayExpr sequenceDisplayExpression) {
-      foreach(var element in sequenceDisplayExpression.Elements) {
+      foreach (var element in sequenceDisplayExpression.Elements) {
         Visit(element);
       }
     }
 
     public virtual void Visit(Specification<Expression> specification) {
       VisitNullableAttributes(specification.Attributes);
-      if(specification.Expressions != null) {
-        foreach(var expression in specification.Expressions) {
+      if (specification.Expressions != null) {
+        foreach (var expression in specification.Expressions) {
           Visit(expression);
         }
       }
@@ -600,8 +600,8 @@
 
     public virtual void Visit(Specification<FrameExpression> specification) {
       VisitNullableAttributes(specification.Attributes);
-      if(specification.Expressions != null) {
-        foreach(var expression in specification.Expressions) {
+      if (specification.Expressions != null) {
+        foreach (var expression in specification.Expressions) {
           Visit(expression);
         }
       }

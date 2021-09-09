@@ -23,9 +23,8 @@ namespace Microsoft.Dafny {
     bool printingDesugared = false;
 
     [ContractInvariantMethod]
-    void ObjectInvariant()
-    {
-      Contract.Invariant(wr!=null);
+    void ObjectInvariant() {
+      Contract.Invariant(wr != null);
     }
 
     public Printer(TextWriter wr, DafnyOptions.PrintModes printMode = DafnyOptions.PrintModes.Everything) {
@@ -34,8 +33,7 @@ namespace Microsoft.Dafny {
       this.printMode = printMode;
     }
 
-    public static string ExprToString(Expression expr)
-    {
+    public static string ExprToString(Expression expr) {
       Contract.Requires(expr != null);
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr);
@@ -201,7 +199,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == DafnyOptions.PrintModes.Everything) {
-         // print call graph
+        // print call graph
         Indent(indent); wr.WriteLine("/* CALL GRAPH for module {0}:", module.Name);
         var SCCs = module.CallGraph.TopologicallySortedComponents();
         SCCs.Reverse();
@@ -219,7 +217,7 @@ namespace Microsoft.Dafny {
     }
 
     public void PrintTopLevelDecls(List<TopLevelDecl> decls, int indent, List<Bpl.IToken>/*?*/ prefixIds, string fileBeingPrinted) {
-      Contract.Requires(decls!= null);
+      Contract.Requires(decls != null);
       int i = 0;
       foreach (TopLevelDecl d in decls) {
         Contract.Assert(d != null);
@@ -402,7 +400,7 @@ namespace Microsoft.Dafny {
             wr.WriteLine();
 
           } else if (d is ModuleExportDecl) {
-            ModuleExportDecl e = (ModuleExportDecl) d;
+            ModuleExportDecl e = (ModuleExportDecl)d;
             if (!e.IsDefault) {
               wr.Write("export {0}", e.Name);
             } else {
@@ -625,8 +623,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintMembers(List<MemberDecl> members, int indent, string fileBeingPrinted)
-    {
+    public void PrintMembers(List<MemberDecl> members, int indent, string fileBeingPrinted) {
       Contract.Requires(members != null);
 
       int state = 0;  // 0 - no members yet; 1 - previous member was a field; 2 - previous member was non-field
@@ -899,31 +896,24 @@ namespace Microsoft.Dafny {
     // ----------------------------- PrintMethod -----------------------------
 
     const int IndentAmount = 2; // The amount of indent for each new scope
-    void Indent(int amount)
-    {
+    void Indent(int amount) {
       Contract.Requires(0 <= amount);
       wr.Write(new String(' ', amount));
     }
 
-    private bool PrintModeSkipFunctionOrMethod(bool IsGhost, Attributes attributes, string name)
-    {
-      if (printMode == DafnyOptions.PrintModes.NoGhost && IsGhost)
-          { return true; }
-      if (printMode == DafnyOptions.PrintModes.NoIncludes || printMode == DafnyOptions.PrintModes.NoGhost)
-      {
-          bool verify = true;
-          if (Attributes.ContainsBool(attributes, "verify", ref verify) && !verify)
-          { return true; }
-          if (name.Contains("INTERNAL") || name.StartsWith("reveal_"))
-          { return true; }
+    private bool PrintModeSkipFunctionOrMethod(bool IsGhost, Attributes attributes, string name) {
+      if (printMode == DafnyOptions.PrintModes.NoGhost && IsGhost) { return true; }
+      if (printMode == DafnyOptions.PrintModes.NoIncludes || printMode == DafnyOptions.PrintModes.NoGhost) {
+        bool verify = true;
+        if (Attributes.ContainsBool(attributes, "verify", ref verify) && !verify) { return true; }
+        if (name.Contains("INTERNAL") || name.StartsWith("reveal_")) { return true; }
       }
       return false;
     }
 
-    private bool PrintModeSkipGeneral(Bpl.IToken tok, string fileBeingPrinted)
-    {
-        return (printMode == DafnyOptions.PrintModes.NoIncludes || printMode == DafnyOptions.PrintModes.NoGhost)
-               && (tok.filename != null && fileBeingPrinted != null && Path.GetFullPath(tok.filename) != fileBeingPrinted);
+    private bool PrintModeSkipGeneral(Bpl.IToken tok, string fileBeingPrinted) {
+      return (printMode == DafnyOptions.PrintModes.NoIncludes || printMode == DafnyOptions.PrintModes.NoGhost)
+             && (tok.filename != null && fileBeingPrinted != null && Path.GetFullPath(tok.filename) != fileBeingPrinted);
     }
 
     public void PrintMethod(Method method, int indent, bool printSignatureOnly) {
@@ -1042,8 +1032,7 @@ namespace Microsoft.Dafny {
         wr.WriteLine();
         Indent(indent);
         wr.Write("decreases");
-        if (decs.HasAttributes())
-        {
+        if (decs.HasAttributes()) {
           PrintAttributes(decs.Attributes);
         }
         wr.Write(" ");
@@ -1221,7 +1210,7 @@ namespace Microsoft.Dafny {
         }
 
       } else if (stmt is ProduceStmt) {
-        var s = (ProduceStmt) stmt;
+        var s = (ProduceStmt)stmt;
         wr.Write(s is YieldStmt ? "yield" : "return");
         if (s.rhss != null) {
           var sep = " ";
@@ -1231,7 +1220,7 @@ namespace Microsoft.Dafny {
             sep = ", ";
           }
         }
-          wr.Write(";");
+        wr.Write(";");
 
       } else if (stmt is AssignStmt) {
         AssignStmt s = (AssignStmt)stmt;
@@ -1811,8 +1800,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
       }
 
-      if (rhs.HasAttributes())
-      {
+      if (rhs.HasAttributes()) {
         PrintAttributes(rhs.Attributes);
       }
     }
@@ -1842,7 +1830,7 @@ namespace Microsoft.Dafny {
       wr.Write(op.ToString());
       if (op is CalcStmt.TernaryCalcOp) {
         wr.Write("[");
-        PrintExpression(((CalcStmt.TernaryCalcOp) op).Index, false);
+        PrintExpression(((CalcStmt.TernaryCalcOp)op).Index, false);
         wr.Write("]");
       }
     }
@@ -1865,9 +1853,9 @@ namespace Microsoft.Dafny {
           PrintExtendedExpr(ite.Thn, indent + IndentAmount, true, false);
           expr = ite.Els;
           if (expr is ITEExpr) {
-            Indent(indent);  wr.Write("else ");
+            Indent(indent); wr.Write("else ");
           } else {
-            Indent(indent);  wr.WriteLine("else");
+            Indent(indent); wr.WriteLine("else");
             Indent(indent + IndentAmount);
             PrintExpression(expr, isRightmost, false);
             wr.WriteLine(endWithCloseParen ? ")" : "");
@@ -1921,7 +1909,7 @@ namespace Microsoft.Dafny {
           if (e.UsesOptionalBraces) {
             Indent(indent);
             wr.WriteLine("}");
-        }
+          }
         }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
@@ -2036,8 +2024,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// An indent of -1 means print the entire expression on one line.
     /// </summary>
-    void PrintExpr(Expression expr, int contextBindingStrength, bool fragileContext, bool isRightmost, bool isFollowedBySemicolon, int indent, string keyword = null, int resolv_count = 2 )
-    {
+    void PrintExpr(Expression expr, int contextBindingStrength, bool fragileContext, bool isRightmost, bool isFollowedBySemicolon, int indent, string keyword = null, int resolv_count = 2) {
       Contract.Requires(-1 <= indent);
       Contract.Requires(expr != null);
 
@@ -2417,19 +2404,19 @@ namespace Microsoft.Dafny {
           case BinaryExpr.Opcode.RightShift:
             opBindingStrength = 0x48; fragileRightContext = true; break;
           case BinaryExpr.Opcode.Add: {
-            opBindingStrength = 0x40;
-            var t1 = e.E1.Type;
-            fragileRightContext = t1 == null || !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
-            break;
-          }
+              opBindingStrength = 0x40;
+              var t1 = e.E1.Type;
+              fragileRightContext = t1 == null || !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
+              break;
+            }
           case BinaryExpr.Opcode.Sub:
             opBindingStrength = 0x40; fragileRightContext = true; break;
           case BinaryExpr.Opcode.Mul: {
-            opBindingStrength = 0x50;
-            var t1 = e.E1.Type;
-            fragileRightContext = t1 == null || !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
-            break;
-          }
+              opBindingStrength = 0x50;
+              var t1 = e.E1.Type;
+              fragileRightContext = t1 == null || !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
+              break;
+            }
           case BinaryExpr.Opcode.Div:
           case BinaryExpr.Opcode.Mod:
             opBindingStrength = 0x50; fragileRightContext = true; break;
@@ -2733,7 +2720,7 @@ namespace Microsoft.Dafny {
         wr.Write(op);
         PrintExpr(e.E, opBindingStrength, false, parensNeeded || isRightmost, !parensNeeded && isFollowedBySemicolon, -1, keyword);
         if (parensNeeded) { wr.Write(")"); }
-      } else if (expr is NestedMatchExpr){
+      } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
         if (e.ResolvedExpression != null) {
           PrintExpr(e.ResolvedExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
@@ -2812,7 +2799,7 @@ namespace Microsoft.Dafny {
       return parenPairs != 0 && (expr is NameSegment || expr is ExprDotName);
     }
 
-    void PrintCasePattern<VT>(CasePattern<VT> pat) where VT: IVariable {
+    void PrintCasePattern<VT>(CasePattern<VT> pat) where VT : IVariable {
       Contract.Requires(pat != null);
       var v = pat.Var;
       if (v != null) {

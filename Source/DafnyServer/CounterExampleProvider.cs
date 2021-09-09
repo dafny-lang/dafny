@@ -11,8 +11,7 @@ using DafnyServer.CounterExampleGeneration;
 using Microsoft.Boogie;
 
 namespace DafnyServer {
-  public class CounterExampleProvider
-  {
+  public class CounterExampleProvider {
     private const int maximumCounterexampleDepth = 5;
     public const string ModelBvd = "./model.bvd";
 

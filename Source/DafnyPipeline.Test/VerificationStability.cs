@@ -9,13 +9,11 @@ using DiffPlex.DiffBuilder.Model;
 using Microsoft.VisualStudio.TestPlatform.PlatformAbstractions;
 using Xunit;
 
-namespace DafnyPipeline.Test
-{
-    public class VerificationStability
-    {
-        [Fact]
-        public void CreatingBoogieVariableNameCollisionsHasExpectedDiff() {
-          var beforeChange = @"
+namespace DafnyPipeline.Test {
+  public class VerificationStability {
+    [Fact]
+    public void CreatingBoogieVariableNameCollisionsHasExpectedDiff() {
+      var beforeChange = @"
 method M(heap: object) 
 modifies heap
 {
@@ -53,7 +51,7 @@ modifies heap
   var y := 200;
 }";
 
-          var afterChange = @"
+      var afterChange = @"
 method M(heap: object) 
   modifies heap
 {
@@ -90,12 +88,12 @@ method M(heap: object)
   }
   var y := 200;
 }";
-          var tempPath = Path.GetTempFileName() + ".dfy";
-          var beforeBoogie = GetBoogie(beforeChange, tempPath);
-          var afterBoogie = GetBoogie(afterChange, tempPath);
-          var diff = GetDiff(beforeBoogie, afterBoogie);
+      var tempPath = Path.GetTempFileName() + ".dfy";
+      var beforeBoogie = GetBoogie(beforeChange, tempPath);
+      var afterBoogie = GetBoogie(afterChange, tempPath);
+      var diff = GetDiff(beforeBoogie, afterBoogie);
 
-          var expectedDiff = @"-   var eg$y#0: int;
+      var expectedDiff = @"-   var eg$y#0: int;
 -   var y#0_0: int;
 -   var x#1_0: int;
 -   var y#2_0: int;
@@ -148,72 +146,67 @@ method M(heap: object)
 -         y#7_0 := LitInt(0);
 +         j#7_0 := LitInt(0);
 ";
-          Assert.Equal(expectedDiff, diff);
-        }
-
-        string GetDiff(string before, string after) {
-          var diff = InlineDiffBuilder.Diff(before, after);
-          var result = new StringBuilder();
-          foreach (var line in diff.Lines)
-          {
-            switch (line.Type)
-            {
-              case ChangeType.Inserted:
-                result.Append("+ ");
-                result.AppendLine(line.Text);
-                break;
-              case ChangeType.Deleted:
-                result.Append("- ");
-                result.AppendLine(line.Text);
-                break;
-            }
-
-          }
-
-          return result.ToString();
-        }
-
-        static VerificationStability() {
-          var testAssemblyPath = Assembly.GetAssembly(typeof(VerificationStability)).GetAssemblyLocation();
-          var parts = testAssemblyPath.Split(Path.DirectorySeparatorChar);
-          // This way of finding the repository root is not reliable, we should instead reference the DafnyPipeline assembly and run Dafny in the same process as the unit tests.
-          var sourceIndex = Array.FindIndex(parts, e => e == "Source");
-          dafnyDirectory = Path.Combine(Path.GetPathRoot(testAssemblyPath)!, Path.Combine(parts.Take(sourceIndex).ToArray()));
-          Console.WriteLine("dafnyDirectory: " + dafnyDirectory);
-          Console.WriteLine("DafnyDriverProjectFile: " + DafnyDriverProjectFile);
-        }
-
-        private static readonly string dafnyDirectory;
-
-        private static string DafnyDriverProjectFile => Path.Combine(dafnyDirectory, "Source", "DafnyDriver", "DafnyDriver.csproj");
-        private static string DefaultDafnyArgs => $"run --no-build --project {DafnyDriverProjectFile} -- -useBaseNameForFileName -countVerificationErrors:0 -compileVerbose:0 /errorTrace:0";
-        
-        string GetBoogie(string dafnyProgram, string optionalFileName = null) {
-          string fileName = optionalFileName ?? Path.GetTempFileName() + ".dfy";
-          var writer  = File.CreateText(fileName);
-          writer.Write(dafnyProgram);
-          writer.Flush();
-          var processStartInfo = new ProcessStartInfo
-          {
-            FileName = "dotnet",
-            Arguments = $"{DefaultDafnyArgs} /compile:0 /env:0 /print:- {fileName}",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-          };
-          var dafnyProcess = Process.Start(processStartInfo);
-          var result = dafnyProcess.StandardOutput.ReadToEnd();
-          dafnyProcess.WaitForExit();
-
-          if (dafnyProcess.ExitCode != 0) {
-            Console.Out.WriteLine("Arguments:", processStartInfo.Arguments);
-            Console.Out.WriteLine("Result:");
-            Console.Out.WriteLine(result);
-            Console.Out.WriteLine(dafnyProcess.StandardError.ReadToEnd());
-            Console.Out.Flush();
-          }
-          Assert.Equal(0, dafnyProcess.ExitCode);
-          return result;
-        }
+      Assert.Equal(expectedDiff, diff);
     }
+
+    string GetDiff(string before, string after) {
+      var diff = InlineDiffBuilder.Diff(before, after);
+      var result = new StringBuilder();
+      foreach (var line in diff.Lines) {
+        switch (line.Type) {
+          case ChangeType.Inserted:
+            result.Append("+ ");
+            result.AppendLine(line.Text);
+            break;
+          case ChangeType.Deleted:
+            result.Append("- ");
+            result.AppendLine(line.Text);
+            break;
+        }
+
+      }
+
+      return result.ToString();
+    }
+
+    static VerificationStability() {
+      var testAssemblyPath = Assembly.GetAssembly(typeof(VerificationStability)).GetAssemblyLocation();
+      var parts = testAssemblyPath.Split(Path.DirectorySeparatorChar);
+      // This way of finding the repository root is not reliable, we should instead reference the DafnyPipeline assembly and run Dafny in the same process as the unit tests.
+      var sourceIndex = Array.FindIndex(parts, e => e == "Source");
+      dafnyDirectory = Path.Combine(Path.GetPathRoot(testAssemblyPath)!, Path.Combine(parts.Take(sourceIndex).ToArray()));
+      Console.WriteLine("dafnyDirectory: " + dafnyDirectory);
+      Console.WriteLine("DafnyDriverProjectFile: " + DafnyDriverProjectFile);
+    }
+
+    private static readonly string dafnyDirectory;
+
+    private static string DafnyDriverProjectFile => Path.Combine(dafnyDirectory, "Source", "DafnyDriver", "DafnyDriver.csproj");
+    private static string DefaultDafnyArgs => $"run --no-build --project {DafnyDriverProjectFile} -- -useBaseNameForFileName -countVerificationErrors:0 -compileVerbose:0 /errorTrace:0";
+
+    string GetBoogie(string dafnyProgram, string optionalFileName = null) {
+      string fileName = optionalFileName ?? Path.GetTempFileName() + ".dfy";
+      File.WriteAllText(fileName, dafnyProgram);
+      var processStartInfo = new ProcessStartInfo {
+        FileName = "dotnet",
+        Arguments = $"{DefaultDafnyArgs} /compile:0 /env:0 /print:- {fileName}",
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        UseShellExecute = false
+      };
+      using var dafnyProcess = Process.Start(processStartInfo);
+      var result = dafnyProcess.StandardOutput.ReadToEnd();
+      dafnyProcess.WaitForExit();
+
+      if (dafnyProcess.ExitCode != 0) {
+        Console.Out.WriteLine("Arguments:", processStartInfo.Arguments);
+        Console.Out.WriteLine("Result:");
+        Console.Out.WriteLine(result);
+        Console.Out.WriteLine(dafnyProcess.StandardError.ReadToEnd());
+        Console.Out.Flush();
+      }
+      Assert.Equal(0, dafnyProcess.ExitCode);
+      return result;
+    }
+  }
 }

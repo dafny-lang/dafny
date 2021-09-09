@@ -1,18 +1,16 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
-namespace Microsoft.Dafny
-{
+namespace Microsoft.Dafny {
   /// <summary>
   /// This substituter performs substitutions in such a way that it's okay to print the resulting expression without a human getting confused.
   /// More precisely, bound variables first gets alpha-renamed.  Also, "this" is never left implicit, including in the
   /// case where "receiverReplacement" is given as ImplicitThisExpr (but no attempt is made to substitute for all ImplicitThisExpr's in
   /// "receiverReplacement" and the range of "substMap").
   /// </summary>
-  public class AlphaConverting_Substituter : Substituter
-  {
+  public class AlphaConvertingSubstituter : Substituter {
     ISet<string> namesToAvoid = new HashSet<string>();
-    public AlphaConverting_Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
+    public AlphaConvertingSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
       : base(receiverReplacement is ImplicitThisExpr ? new ThisExpr(receiverReplacement.tok) { Type = receiverReplacement.Type } : receiverReplacement, substMap, typeMap) {
       Contract.Requires(substMap != null);
       Contract.Requires(typeMap != null);

@@ -6,7 +6,27 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  dotnet-version: 5.0.x # SDK Version for building Dafny; x will use the latest version of the 5.0 channel
 jobs:
+  format:
+    runs-on: ubuntu-16.04
+    steps:
+    - name: Setup dotnet 5.0
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: ${{env.dotnet-version}}
+    - name: Checkout Dafny
+      uses: actions/checkout@v2
+      with:
+        path: dafny
+    - name: Restore tools
+      working-directory: dafny/Source
+      run: dotnet tool restore
+    - name: Check code style
+      working-directory: dafny/Source
+      run: dotnet tool run dotnet-format -w --check Dafny.sln
+      
   build:
     runs-on: ${{ matrix.os }}
 
@@ -44,7 +64,7 @@ jobs:
     - name: Setup dotnet 5.0
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '5.0.x' # SDK Version for building Dafny; x will use the latest version of the 5.0 channel
+        dotnet-version: ${{env.dotnet-version}}
     - name: C++ for ubuntu 16.04
       if: matrix.os == 'ubuntu-16.04'
       run: |
@@ -67,7 +87,6 @@ jobs:
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
-        submodules: recursive
         path: dafny
     - name: Create release
       run: |

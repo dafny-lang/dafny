@@ -31,16 +31,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
-      var errorReporter = new DiagnosticErrorReporter();
+      var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
       var program = await _parser.ParseAsync(textDocument, errorReporter, cancellationToken);
-      if(errorReporter.HasErrors) {
+      if (errorReporter.HasErrors) {
         _notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ParsingFailed);
         return CreateDocumentWithParserErrors(textDocument, errorReporter, program);
       }
       var compilationUnit = await _symbolResolver.ResolveSymbolsAsync(textDocument, program, cancellationToken);
       var symbolTable = _symbolTableFactory.CreateFrom(program, compilationUnit, cancellationToken);
       string? serializedCounterExamples;
-      if(errorReporter.HasErrors) {
+      if (errorReporter.HasErrors) {
         _notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.ResolutionFailed);
         serializedCounterExamples = null;
       } else {
@@ -71,7 +71,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private async Task<string?> VerifyIfEnabledAsync(TextDocumentItem textDocument, Dafny.Program program, bool verify, CancellationToken cancellationToken) {
-      if(!verify) {
+      if (!verify) {
         return null;
       }
       _notificationPublisher.SendStatusNotification(textDocument, CompilationStatus.VerificationStarted);
