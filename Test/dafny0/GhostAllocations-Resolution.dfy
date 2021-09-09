@@ -150,6 +150,10 @@ module GhostConstructors0 {
 }
 
 module GhostConstructors1 {
+  class Cell {
+    var data: int
+  }
+
   class G {
     var a: int
     ghost var b: int
@@ -187,11 +191,14 @@ module GhostConstructors1 {
     constructor A(g: GGG) {
       this.g := g;
     }
+
     constructor B() { // definite-assignment rules are not satisfied, but that's check during verification (see GhostAllocations.dfy)
     }
+
     ghost constructor C(g: GGG) {
       this.g := g;
     }
+
     ghost constructor D() { // in a ghost context, we only need to know that g's type is nonempty (same as for h all along)
     }
 
@@ -204,6 +211,23 @@ module GhostConstructors1 {
       new;
       g := h; // error: after "new;", rules are as normal, so cannot assign to non-ghost field in this ghost context
       print "bye\n"; // error: cannot use print in ghost context
+    }
+
+    ghost constructor CalcBeforeNew() {
+      var c0 := new Cell; // fine here
+      var g0 := new G(5); // fine here
+      calc {
+        5;
+      ==  { var c1 := new Cell; // error: cannot allocate inside calc hint
+            var g1 := new G(5); // error: cannot allocate inside calc hint
+          }
+        2 + 3;
+      }
+      assert true by {
+        var c2 := new Cell; // error: cannot allocate inside assert-by
+        var g2 := new G(5); // error: cannot allocate inside assert-by
+      }
+      new;
     }
   }
 }
@@ -233,5 +257,41 @@ module GhostInitializingMethods {
     } else {
       g := b; // error: cannot assign ghost to non-ghost
     }
+  }
+}
+
+// ------- lemmas are not allowed to allocate any state
+
+module Lemmas {
+  class Cell {
+    var data: int
+  }
+
+  class Point {
+    constructor XY(x: real, y: real)
+    ghost constructor Polar(theta: real, mag: real)
+  }
+  
+  lemma A() {
+    var o := new object; // error: lemma is not allowed to allocate state
+    var c := new Cell; // error: lemma is not allowed to allocate state
+  }
+
+  lemma B() {
+    var pt0 := new Point.XY(1.0, 0.0); // error: cannot call non-ghost constructor
+    var pt1 := new Point.Polar(0.0, 1.0); // error: ... or a ghost constructor, for that matter
+  }
+
+  lemma C() {
+    var a := new int[25]; // error: lemma is not allowed to allocate state
+    var m := new real[640, 480]; // error: lemma is not allowed to allocate state
+  }
+
+  twostate lemma D() {
+    var c := new Cell; // error: lemma is not allowed to allocate state
+  }
+
+  greatest lemma E() {
+    var c := new Cell; // error: lemma is not allowed to allocate state
   }
 }
