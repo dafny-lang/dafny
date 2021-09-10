@@ -44,7 +44,7 @@ jobs:
     - name: Checkout Boogie
       uses: actions/checkout@v2
       with:
-        name: boogie-org/boogie
+        repository: boogie-org/boogie
         path: boogie
         ref: v${{ steps.regex-match.outputs.group1 }}
     - name: Build Dafny with local Boogie
