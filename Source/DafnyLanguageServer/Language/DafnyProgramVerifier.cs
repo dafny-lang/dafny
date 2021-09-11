@@ -1,5 +1,6 @@
 ﻿using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -22,10 +23,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     private static bool _initialized;
 
     private readonly ILogger _logger;
+    private readonly VerifierOptions _options;
     private readonly SemaphoreSlim _mutex = new(1);
 
-    private DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger) {
+    private DafnyProgramVerifier(ILogger<DafnyProgramVerifier> logger, VerifierOptions options) {
       _logger = logger;
+      _options = options;
     }
 
     /// <summary>
@@ -33,8 +36,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// settings are set exactly ones.
     /// </summary>
     /// <param name="logger">A logger instance that may be used by this verifier instance.</param>
+    /// <param name="options">Settings for the verifier.</param>
     /// <returns>A safely created dafny verifier instance.</returns>
-    public static DafnyProgramVerifier Create(ILogger<DafnyProgramVerifier> logger) {
+    public static DafnyProgramVerifier Create(ILogger<DafnyProgramVerifier> logger, IOptions<VerifierOptions> options) {
       lock (_initializationSyncObject) {
         if (!_initialized) {
           // TODO This may be subject to change. See Microsoft.Boogie.Counterexample
@@ -44,7 +48,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           _initialized = true;
           logger.LogTrace("initialized the boogie verifier...");
         }
-        return new DafnyProgramVerifier(logger);
+        return new DafnyProgramVerifier(logger, options.Value);
       }
     }
 
@@ -55,6 +59,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var errorReporter = (DiagnosticErrorReporter)program.reporter;
         var printer = new ModelCapturingOutputPrinter(_logger, errorReporter);
         ExecutionEngine.printer = printer;
+        // Do not set the time limit within the construction/statically. It will break some VerificationNotificationTest unit tests
+        // since we change the configured time limit depending on the test.
+        DafnyOptions.O.TimeLimit = _options.TimeLimit;
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
         bool verified = true;
         foreach (var (_, boogieProgram) in translated) {
