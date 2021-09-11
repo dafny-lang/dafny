@@ -56,18 +56,20 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var printer = new ModelCapturingOutputPrinter(_logger, errorReporter);
         ExecutionEngine.printer = printer;
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
+        bool verified = true;
         foreach (var (_, boogieProgram) in translated) {
           cancellationToken.ThrowIfCancellationRequested();
-          VerifyWithBoogie(boogieProgram, cancellationToken);
+          var verificationResult = VerifyWithBoogie(boogieProgram, cancellationToken);
+          verified = verified && verificationResult;
         }
-        return new VerificationResult(printer.SerializedCounterExamples);
+        return new VerificationResult(verified, printer.SerializedCounterExamples);
       }
       finally {
         _mutex.Release();
       }
     }
 
-    private void VerifyWithBoogie(Boogie.Program program, CancellationToken cancellationToken) {
+    private bool VerifyWithBoogie(Boogie.Program program, CancellationToken cancellationToken) {
       program.Resolve();
       program.Typecheck();
 
@@ -81,9 +83,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       //      synchronization is completed.
       var uniqueId = Guid.NewGuid().ToString();
       using (cancellationToken.Register(() => CancelVerification(uniqueId))) {
-        // TODO any use of the verification state?
-        ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), uniqueId, error => { }, uniqueId);
+        var statistics = new PipelineStatistics();
+        var outcome = ExecutionEngine.InferAndVerify(program, statistics, uniqueId, error => { }, uniqueId);
+        return IsVerified(outcome, statistics);
       }
+    }
+
+    private static bool IsVerified(PipelineOutcome outcome, PipelineStatistics statistics) {
+      return (outcome == PipelineOutcome.Done || outcome == PipelineOutcome.VerificationCompleted)
+        && statistics.ErrorCount == 0
+        && statistics.InconclusiveCount == 0
+        && statistics.TimeoutCount == 0
+        && statistics.OutOfResourceCount == 0
+        && statistics.OutOfMemoryCount == 0;
     }
 
     private void CancelVerification(string requestId) {
