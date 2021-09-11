@@ -131,6 +131,39 @@ method Abs(x: int) returns (y: int)
       Assert.AreEqual(CompilationStatus.VerificationFailed, completed.Status);
     }
 
+    [TestMethod, Timeout(10000)]
+    public async Task DocumentWithOnlyVerifierTimeoutSendsCompilationSucceededVerificationStartedAndVerificationFailedStatuses() {
+      var source = @"
+lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
+  requires p > 0 && q > 0
+  ensures (p * p) !=  2 * (q * q)
+{ 
+  if (p * p) ==  2 * (q * q) {
+    calc == {
+      (2 * q - p) * (2 * q - p);
+      4 * q * q + p * p - 4 * p * q;
+      {assert 2 * q * q == p * p;}
+      2 * q * q + 2 * p * p - 4 * p * q;
+      2 * (p - q) * (p - q);
+    }
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var compilation = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, compilation.Uri);
+      Assert.AreEqual(documentItem.Version, compilation.Version);
+      Assert.AreEqual(CompilationStatus.CompilationSucceeded, compilation.Status);
+      var started = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, started.Uri);
+      Assert.AreEqual(documentItem.Version, started.Version);
+      Assert.AreEqual(CompilationStatus.VerificationStarted, started.Status);
+      var completed = await _notificationReceiver.AwaitNextCompilationStatusAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, completed.Uri);
+      Assert.AreEqual(documentItem.Version, completed.Version);
+      Assert.AreEqual(CompilationStatus.VerificationFailed, completed.Status);
+    }
+
     public class TestNotificationReceiver {
       private readonly SemaphoreSlim _availableDiagnostics = new(0);
       private readonly ConcurrentQueue<CompilationStatusParams> _compilationStatuses = new();
