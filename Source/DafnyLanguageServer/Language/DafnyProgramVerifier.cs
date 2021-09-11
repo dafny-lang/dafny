@@ -85,17 +85,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       using (cancellationToken.Register(() => CancelVerification(uniqueId))) {
         var statistics = new PipelineStatistics();
         var outcome = ExecutionEngine.InferAndVerify(program, statistics, uniqueId, error => { }, uniqueId);
-        return IsVerified(outcome, statistics);
+        return DafnyDriver.IsBoogieVerified(outcome, statistics);
       }
-    }
-
-    private static bool IsVerified(PipelineOutcome outcome, PipelineStatistics statistics) {
-      return (outcome == PipelineOutcome.Done || outcome == PipelineOutcome.VerificationCompleted)
-        && statistics.ErrorCount == 0
-        && statistics.InconclusiveCount == 0
-        && statistics.TimeoutCount == 0
-        && statistics.OutOfResourceCount == 0
-        && statistics.OutOfMemoryCount == 0;
     }
 
     private void CancelVerification(string requestId) {
