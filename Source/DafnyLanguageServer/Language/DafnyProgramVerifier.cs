@@ -49,11 +49,11 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public async Task<string?> VerifyAsync(Dafny.Program program, CancellationToken cancellationToken) {
+    public async Task<VerificationResult> VerifyAsync(Dafny.Program program, CancellationToken cancellationToken) {
       if(program.reporter.AllMessages[ErrorLevel.Error].Count > 0) {
         // TODO Change logic so that the loader is responsible to ensure that the previous steps were sucessful.
         _logger.LogDebug("skipping program verification since the parser or resolvers already reported errors");
-        return null;
+        return new VerificationResult(false, null);
       }
       await _mutex.WaitAsync(cancellationToken);
       try {
@@ -62,17 +62,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         var printer = new ModelCapturingOutputPrinter(_logger, errorReporter);
         ExecutionEngine.printer = printer;
         var translated = Translator.Translate(program, errorReporter, new Translator.TranslatorFlags { InsertChecksums = true });
-        foreach(var (_, boogieProgram) in translated) {
+        bool verified = true;
+        foreach (var (_, boogieProgram) in translated) {
           cancellationToken.ThrowIfCancellationRequested();
-          VerifyWithBoogie(boogieProgram, cancellationToken);
+          var verificationResult = VerifyWithBoogie(boogieProgram, cancellationToken);
+          verified = verified && verificationResult;
         }
-        return printer.SerializedCounterExamples;
+        return new VerificationResult(verified, printer.SerializedCounterExamples);
       } finally {
         _mutex.Release();
       }
     }
 
-    private void VerifyWithBoogie(Boogie.Program program, CancellationToken cancellationToken) {
+    private bool VerifyWithBoogie(Boogie.Program program, CancellationToken cancellationToken) {
       program.Resolve();
       program.Typecheck();
 
@@ -86,9 +88,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       //      synchronization is completed.
       var uniqueId = Guid.NewGuid().ToString();
       using(cancellationToken.Register(() => CancelVerification(uniqueId))) {
-        // TODO any use of the verification state?
-        ExecutionEngine.InferAndVerify(program, new PipelineStatistics(), uniqueId, error => { }, uniqueId);
+        var statistics = new PipelineStatistics();
+        var outcome = ExecutionEngine.InferAndVerify(program, statistics, uniqueId, error => { }, uniqueId);
+        return IsBoogieVerified(outcome, statistics);
       }
+    }
+
+    public static bool IsBoogieVerified(PipelineOutcome outcome, PipelineStatistics statistics) {
+      return (outcome == PipelineOutcome.Done || outcome == PipelineOutcome.VerificationCompleted)
+        && statistics.ErrorCount == 0
+        && statistics.InconclusiveCount == 0
+        && statistics.TimeoutCount == 0
+        && statistics.OutOfResourceCount == 0
+        && statistics.OutOfMemoryCount == 0;
     }
 
     private void CancelVerification(string requestId) {

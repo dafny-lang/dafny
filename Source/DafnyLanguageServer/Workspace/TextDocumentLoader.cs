@@ -40,9 +40,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return null;
       }
       _notificationPublisher.Started(textDocument);
-      var serializedCounterExamples = await _verifier.VerifyAsync(program, cancellationToken);
-      _notificationPublisher.Completed(textDocument, serializedCounterExamples == null);
-      return serializedCounterExamples;
+      var verificationResult = await _verifier.VerifyAsync(program, cancellationToken);
+      _notificationPublisher.Completed(textDocument, verificationResult.Verified);
+      return verificationResult.SerializedCounterExamples;
     }
   }
 }

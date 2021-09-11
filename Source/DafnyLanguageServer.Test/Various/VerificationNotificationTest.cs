@@ -78,6 +78,34 @@ method Abs(x: int) returns (y: int)
       Assert.IsFalse(completed.Verified);
     }
 
+    [TestMethod]
+    public async Task VerifyingDocumentWithVerifierTimeoutSendsActivityAndNotVerifiedStatus() {
+      var source = @"
+lemma {:timeLimit 3} SquareRoot2NotRational(p: nat, q: nat)
+  requires p > 0 && q > 0
+  ensures (p * p) !=  2 * (q * q)
+{ 
+  if (p * p) ==  2 * (q * q) {
+    calc == {
+      (2 * q - p) * (2 * q - p);
+      4 * q * q + p * p - 4 * p * q;
+      {assert 2 * q * q == p * p;}
+      2 * q * q + 2 * p * p - 4 * p * q;
+      2 * (p - q) * (p - q);
+    }
+  }
+}".TrimStart();
+      var documentItem = CreateTestDocument(source);
+      _client.OpenDocument(documentItem);
+      var started = (VerificationStartedParams)await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, started.Uri);
+      Assert.AreEqual(documentItem.Version, started.Version);
+      var completed = (VerificationCompletedParams)await _notificationReceiver.AwaitNextPublishDiagnosticsAsync(CancellationToken);
+      Assert.AreEqual(documentItem.Uri, completed.Uri);
+      Assert.AreEqual(documentItem.Version, completed.Version);
+      Assert.IsFalse(completed.Verified);
+    }
+
     public class TestNotificationReceiver {
       private readonly SemaphoreSlim _availableDiagnostics = new(0);
       private readonly ConcurrentQueue<VerificationParams> _diagnostics = new();
