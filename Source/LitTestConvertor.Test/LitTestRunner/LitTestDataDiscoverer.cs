@@ -16,13 +16,19 @@ namespace DafnyDriver.Test {
     }
 
     protected override IEnumerable<object[]> FileData(IAttributeInfo attributeInfo, IMethodInfo testMethod, string fileName) {
-      bool invokeDirectly = attributeInfo.GetNamedArgument<bool>(nameof(LitTestDataAttribute.InvokeCliDirectly));
+      var invokeDirectly = attributeInfo.GetNamedArgument<bool>(nameof(LitTestDataAttribute.InvokeCliDirectly));
+      var basePath = GetBasePath(attributeInfo, testMethod);
       try {
-        var (testCases, _) = convertor.ConvertLitCommands(GetBasePath(attributeInfo, testMethod), fileName, invokeDirectly, File.ReadLines(fileName));
+        var (testCases, _) = convertor.ConvertLitCommands(basePath, fileName, invokeDirectly, File.ReadLines(fileName));
         return testCases.Select(testCase => new[] { testCase });
-      } catch (Exception) {
-        // Ignore for now
-        return Enumerable.Empty<object[]>();
+      } catch (Exception e) {
+        var dummyTestCase = new DafnyTestCase(basePath, fileName, new(), new(), null, false);
+        var skippedCase = new FileTheoryDataRow(dummyTestCase) {
+          SourceInformation = new SourceInformation() { FileName = fileName, LineNumber = 0},
+          TestDisplayName = basePath,
+          Skip = $"Exception: {e}"
+        };
+        return new[] { new[] { skippedCase } };
       }
     }
   }

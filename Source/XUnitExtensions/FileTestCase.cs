@@ -12,6 +12,9 @@ namespace XUnitExtensions {
 
     protected XunitTestCase innerTestCase;
 
+    public string DisplayName { get; protected set; }
+    public string SkipReason { get; protected set; }
+
     public FileTestCase(IMessageSink diagnosticMessageSink, ITestMethod testMethod, IFileTheoryRowData data) {
       var collection = new TestCollection(testMethod.TestClass.TestCollection.TestAssembly,
         (ITypeInfo)null, "Test collection for " + data.TestDisplayName);
@@ -27,6 +30,7 @@ namespace XUnitExtensions {
       }
 
       innerTestCase.SourceInformation = data.SourceInformation;
+      DisplayName = data.SourceInformation.FileName;
       SkipReason = data.Skip;
     }
 
@@ -35,21 +39,21 @@ namespace XUnitExtensions {
 
     public void Deserialize(IXunitSerializationInfo info) {
       innerTestCase = info.GetValue<XunitTestCase>(nameof(innerTestCase));
+      DisplayName = info.GetValue<string>(nameof(DisplayName));
       SkipReason = info.GetValue<string>(nameof(SkipReason));
     }
 
     public void Serialize(IXunitSerializationInfo info) {
       info.AddValue(nameof(innerTestCase), innerTestCase);
+      info.AddValue(nameof(DisplayName), DisplayName);
       info.AddValue(nameof(SkipReason), SkipReason);
     }
-    public string SkipReason { get; protected set; }
-
+    
     public ISourceInformation SourceInformation {
       get => innerTestCase.SourceInformation;
       set => innerTestCase.SourceInformation = value;
     }
 
-    public string DisplayName => innerTestCase.DisplayName;
     public ITestMethod TestMethod => innerTestCase.TestMethod;
     public object[] TestMethodArguments => innerTestCase.TestMethodArguments;
     public Dictionary<string, List<string>> Traits => innerTestCase.Traits;

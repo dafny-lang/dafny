@@ -16,13 +16,13 @@ namespace XUnitExtensions {
       return base.Discover(discoveryOptions, testMethod, factAttribute);
     }
 
-    protected override IXunitTestCase CreateTestCaseForDataRow(ITestFrameworkDiscoveryOptions discoveryOptions, ITestMethod testMethod,
+    protected override IEnumerable<IXunitTestCase> CreateTestCasesForDataRow(ITestFrameworkDiscoveryOptions discoveryOptions, ITestMethod testMethod,
           IAttributeInfo theoryAttribute, object[] dataRow) {
       if (dataRow.Length == 1 && dataRow[0] is IFileTheoryRowData theoryRowData) {
-        return new FileTestCase(DiagnosticMessageSink, testMethod, theoryRowData);
+        return new[] { new FileTestCase(DiagnosticMessageSink, testMethod, theoryRowData) };
       }
       
-      return base.CreateTestCaseForDataRow(discoveryOptions, testMethod, theoryAttribute, dataRow);
+      return base.CreateTestCasesForDataRow(discoveryOptions, testMethod, theoryAttribute, dataRow);
     }
   }
 }
