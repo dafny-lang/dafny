@@ -958,7 +958,7 @@ Semantically, they are defined as the following respective `while` loops:
 }
 ```
 
-Note that expressions ``lo` and `hi` are evaluated just once, before the loop
+Note that expressions `lo` and `hi` are evaluated just once, before the loop
 iterations start.
 
 Also, note in all variations that the values of `i` in the body are the values

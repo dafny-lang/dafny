@@ -201,9 +201,6 @@ namespace DafnyServer.CounterExampleGeneration {
         return null;
       }
       var name = GetTrueName(typeElement);
-      if (name != null) {
-        return name;
-      }
       if (Model.GetFunc("SeqTypeInv0").OptEval(typeElement) != null) {
         return "SeqType";
       }
@@ -213,7 +210,7 @@ namespace DafnyServer.CounterExampleGeneration {
       if (Model.GetFunc("MapTypeInv0").OptEval(typeElement) != null) {
         return "MapType";
       }
-      return null;
+      return name;
     }
 
     /// <summary> Get the Dafny type of an element </summary>
@@ -266,8 +263,10 @@ namespace DafnyServer.CounterExampleGeneration {
           return new DafnyModelType(boogieType.Substring(0, boogieType.Length - 4));
         case "SeqType":
           isOfType = GetIsResults(element);
-          if (isOfType.Count > 0) {
-            return ReconstructType(isOfType[0]);
+          foreach (var isType in isOfType) {
+            if (isType.Names.Any(app => app.Func.Name == "TSeq")) {
+              return ReconstructType(isType);
+            }
           }
           var seqOperation = fSeqAppend.AppWithResult(element);
           seqOperation ??= fSeqDrop.AppWithResult(element);
@@ -296,8 +295,10 @@ namespace DafnyServer.CounterExampleGeneration {
           return new DafnyModelType("seq", typeArgs);
         case "SetType":
           isOfType = GetIsResults(element);
-          if (isOfType.Count > 0) {
-            return ReconstructType(isOfType[0]);
+          foreach (var isType in isOfType) {
+            if (isType.Names.Any(app => app.Func.Name == "TSet")) {
+              return ReconstructType(isType);
+            }
           }
           var setOperation = fSetUnion.AppWithResult(element);
           setOperation ??= fSetIntersection.AppWithResult(element);
@@ -330,8 +331,10 @@ namespace DafnyServer.CounterExampleGeneration {
           return new DafnyModelType("?");
         case "MapType":
           isOfType = GetIsResults(element);
-          if (isOfType.Count > 0) {
-            return ReconstructType(isOfType[0]);
+          foreach (var isType in isOfType) {
+            if (isType.Names.Any(app => app.Func.Name == "TMap")) {
+              return ReconstructType(isType);
+            }
           }
           var mapOperation = fMapBuild.AppWithResult(element);
           if (mapOperation != null) {
