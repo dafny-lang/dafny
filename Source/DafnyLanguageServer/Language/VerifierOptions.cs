@@ -11,6 +11,6 @@
     /// <summary>
     /// Gets or sets the time limit of the verifier.
     /// </summary>
-    public uint TimeLimit { get; set; } = 0;
+    public uint TimeLimit { get; set; } = 10;
   }
 }
