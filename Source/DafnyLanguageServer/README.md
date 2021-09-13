@@ -55,9 +55,9 @@ Options provided through the command line have higher priority than the options 
 ### Verifier
 
 ```sh
-# Sets maximum execution time for verifications
+# Sets maximum execution time (in seconds) for verifications
 # Default: 0 (no time limit)
---verifier:timeout=0
+--verifier:timelimit=0
 
 # Sets the maximum number of virtual cores to use. 
 # Default: 0 (use half of the available virtual cores).
