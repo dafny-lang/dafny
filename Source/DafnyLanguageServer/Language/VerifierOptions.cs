@@ -9,7 +9,7 @@
     public const string Section = "verifier";
 
     /// <summary>
-    /// Gets or sets the time limit of the verifier. 0 = no time limit
+    /// Gets or sets the time limit of the verifier (in seconds). 0 = no time limit
     /// </summary>
     public uint TimeLimit { get; set; } = 0;
 
