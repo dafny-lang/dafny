@@ -16,6 +16,6 @@
     /// <summary>
     /// Gets or sets that may be used for verification. 0 = automatic.
     /// </summary>
-    public uint Cores { get; set; } = 0;
+    public uint VcsCores { get; set; } = 0;
   }
 }

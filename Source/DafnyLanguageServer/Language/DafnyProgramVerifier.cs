@@ -54,9 +54,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     private static int GetConfiguredCoreCount(VerifierOptions options) {
-      return options.Cores == 0
+      return options.VcsCores == 0
         ? Environment.ProcessorCount / 2
-        : Convert.ToInt32(options.Cores);
+        : Convert.ToInt32(options.VcsCores);
     }
 
     public async Task<VerificationResult> VerifyAsync(Dafny.Program program, CancellationToken cancellationToken) {

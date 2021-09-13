@@ -61,5 +61,5 @@ Options provided through the command line have higher priority than the options 
 
 # Sets the maximum number of virtual cores to use. 
 # Default: 0 (use half of the available virtual cores).
---verifier:cores=0
+--verifier:vcscores=0
 ```
