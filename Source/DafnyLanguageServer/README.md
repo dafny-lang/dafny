@@ -68,14 +68,10 @@ dotnet DafnyLanguageServer.dll --documents:verify=onsave
 
 ```sh
 # Sets maximum execution time for verifications
-# Default: 10
---verifier:timeout=10
+# Default: 0 (no time limit)
+--verifier:timeout=0
 
 # Sets the maximum number of virtual cores to use. 
 # Default: 0 (use half of the available virtual cores).
 --verifier:cores=0
-
-# How many verification snapshots boogie can make.
-# Default: 3
---verifier:snapshots=3
 ```
