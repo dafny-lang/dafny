@@ -52,18 +52,6 @@ Options provided through the command line have higher priority than the options 
 --documents:verify=onchange
 ```
 
-It is possible to change the moment when a document is verified by providing the `--documents:verify` command-line argument. The options are:
-
-- *never* - Never verifies the document.
-- *onchange* (default) - Verifies the document with each change.
-- *onsave* - Verifies the document each time it is saved.
-
-For example, to launch DafnyLS to only verify upon saving the document, use the following command:
-
-```sh
-dotnet DafnyLanguageServer.dll --documents:verify=onsave
-```
-
 ### Verifier
 
 ```sh
