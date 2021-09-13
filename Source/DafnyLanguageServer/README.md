@@ -19,7 +19,38 @@ dotnet DafnyLanguageServer.dll
 
 ## Configuration
 
+The language server can be configured using the `DafnyLanguageServer.appsettings.json` file as well as using CLI arguments.
+
+For example, if you want to configure the automatic verification through the command line:
+
+```sh
+dotnet DafnyLanguageServer.dll --documents:verify=onsave
+```
+
+Or using the `DafnyLanguageServer.appsettings.json` configuration file:
+
+```json
+{
+  "Documents": {
+    "Verify": "onsave"
+  }
+}
+```
+
+Options provided through the command line have higher priority than the options provided within `DafnyLanguageServer.appsettings.json`.
+
+
 ### Documents
+
+```sh
+# Sets when the automatic verification should be applied.
+# Options:
+# - never - Never verifies the document.
+# - onchange - Verifies the document with each change.
+# - onsave - Verifies the document each time it is saved.
+# default: onchange
+--documents:verify=onchange
+```
 
 It is possible to change the moment when a document is verified by providing the `--documents:verify` command-line argument. The options are:
 
@@ -35,9 +66,16 @@ dotnet DafnyLanguageServer.dll --documents:verify=onsave
 
 ### Verifier
 
-
-You may specify a verification time limit (in seconds) using `--verifier:timeout`. For example, for a timeout of three seconds start the language server as follows:
-
 ```sh
-dotnet DafnyLanguageServer.dll --verifier:timeout=3
+# Sets maximum execution time for verifications
+# Default: 10
+--verifier:timeout=10
+
+# Sets the maximum number of virtual cores to use. 
+# Default: 0 (use half of the available virtual cores).
+--verifier:cores=0
+
+# How many verification snapshots boogie can make.
+# Default: 3
+--verifier:snapshots=3
 ```

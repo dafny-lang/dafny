@@ -45,11 +45,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           //      A dash means write to the textwriter instead of a file.
           // https://github.com/boogie-org/boogie/blob/b03dd2e4d5170757006eef94cbb07739ba50dddb/Source/VCGeneration/Couterexample.cs#L217
           DafnyOptions.O.ModelViewFile = "-";
+          DafnyOptions.O.VcsCores = GetConfiguredCoreCount(options.Value);
+          DafnyOptions.O.VerifySnapshots = options.Value.Snapshots;
           _initialized = true;
           logger.LogTrace("initialized the boogie verifier...");
         }
         return new DafnyProgramVerifier(logger, options.Value);
       }
+    }
+
+    private static int GetConfiguredCoreCount(VerifierOptions options) {
+      return options.Cores == 0
+        ? Environment.ProcessorCount / 2
+        : Convert.ToInt32(options.Cores);
     }
 
     public async Task<VerificationResult> VerifyAsync(Dafny.Program program, CancellationToken cancellationToken) {
