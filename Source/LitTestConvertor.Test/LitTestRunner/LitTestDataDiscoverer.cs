@@ -22,10 +22,11 @@ namespace DafnyDriver.Test {
         var (testCases, _) = convertor.ConvertLitCommands(basePath, fileName, invokeDirectly, File.ReadLines(fileName));
         return testCases.Select(testCase => new[] { testCase });
       } catch (Exception e) {
+        var shortPath = fileName[(basePath.Length + 1)..];
         var dummyTestCase = new DafnyTestCase(basePath, fileName, new(), new(), null, false);
         var skippedCase = new FileTheoryDataRow(dummyTestCase) {
           SourceInformation = new SourceInformation() { FileName = fileName, LineNumber = 0},
-          TestDisplayName = basePath,
+          TestDisplayName = shortPath,
           Skip = $"Exception: {e}"
         };
         return new[] { new[] { skippedCase } };

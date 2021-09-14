@@ -30,7 +30,7 @@ namespace XUnitExtensions {
       }
 
       innerTestCase.SourceInformation = data.SourceInformation;
-      DisplayName = data.SourceInformation.FileName;
+      DisplayName = data.TestDisplayName;
       SkipReason = data.Skip;
     }
 

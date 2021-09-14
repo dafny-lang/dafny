@@ -62,9 +62,10 @@ namespace DafnyDriver.Test {
                          Expectation expected, bool invokeDirectly)
       : base(dafnyDriverAssembly, OptionsToFullArguments(fullSourcePath, dafnyOptions, otherFiles), new string[] { "PATH", "HOME" }, expected, invokeDirectly) {
       BasePath = basePath;
-      SourceInformation = new SourceInformation();
-      SourceInformation.FileName = fullSourcePath;
-      SourceInformation.LineNumber = 0;
+      SourceInformation = new SourceInformation {
+        FileName = fullSourcePath,
+        LineNumber = 0
+      };
       DafnyOptions = dafnyOptions;
       OtherFiles = otherFiles;
     }
@@ -94,9 +95,12 @@ namespace DafnyDriver.Test {
       return String.Join(" ", OptionsToArguments(relativePath, DafnyOptions, OtherFiles));
     }
 
-    public ISourceInformation SourceInformation { get; protected set;  }
+    public ISourceInformation SourceInformation {
+      get; 
+      protected set;
+    }
     public string? Skip => null;
-    public string? TestDisplayName => SourceInformation.FileName;
+    public string? TestDisplayName => SourceInformation.FileName[(BasePath.Length + 1)..];
     public Dictionary<string, List<string>>? Traits => null;
     public object[] GetData() {
       return new object[] { this };
