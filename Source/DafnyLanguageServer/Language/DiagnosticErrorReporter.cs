@@ -101,7 +101,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       return level switch {
         ErrorLevel.Error => DiagnosticSeverity.Error,
         ErrorLevel.Warning => DiagnosticSeverity.Warning,
-        ErrorLevel.Info => DiagnosticSeverity.Information,
+        ErrorLevel.Info => DiagnosticSeverity.Hint,
         _ => throw new ArgumentException($"unknown error level {level}", nameof(level))
       };
     }
