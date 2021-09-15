@@ -34,6 +34,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DafnyDriver\DafnyDriver.csproj" />
     <ProjectReference Include="..\DafnyServer\DafnyServer.csproj" />
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj" />
   </ItemGroup>

@@ -19,6 +19,8 @@ dotnet DafnyLanguageServer.dll
 
 ## Configuration
 
+### Documents
+
 It is possible to change the moment when a document is verified by providing the `--documents:verify` command-line argument. The options are:
 
 - *never* - Never verifies the document.
@@ -29,4 +31,13 @@ For example, to launch DafnyLS to only verify upon saving the document, use the 
 
 ```sh
 dotnet DafnyLanguageServer.dll --documents:verify=onsave
+```
+
+### Verifier
+
+
+You may specify a verification time limit (in seconds) using `--verifier:timeout`. For example, for a timeout of three seconds start the language server as follows:
+
+```sh
+dotnet DafnyLanguageServer.dll --verifier:timeout=3
 ```
