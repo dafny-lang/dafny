@@ -2506,7 +2506,7 @@ namespace Microsoft.Dafny {
         // arrows are right associative, so we need parentheses around the domain type
         domainNeedsParens = true;
       } else {
-        // if the domain type consists of a single tuple type, then an extra set of parentheses is needed
+        // if the domain type consists of a single tuple type, then an extra set of parentheses is need
         // Note, we do NOT call .AsDatatype or .AsIndDatatype here, because those calls will do a NormalizeExpand().  Instead, we do the check manually.
         var udt = typeArgs[0].Normalize() as UserDefinedType;  // note, we do Normalize(), not NormalizeExpand(), since the TypeName will use any synony
         
