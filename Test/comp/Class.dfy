@@ -131,6 +131,7 @@ method Main() {
   DependentStaticConsts.Test();
   NewtypeWithMethods.Test();
   TestGhostables(70);
+  TestInitializationMethods();
 }
 
 module Module1 {
@@ -213,4 +214,31 @@ method TestGhostables(ghost n: nat) {
   c0 := new int[10](x => x + 2);
   c1 := new int[n](x => x + n);
   c1 := new int[100](GInit);
+}
+
+// ---------------------------------------------------
+
+// Additional tests cases for order of evaluation of initialization-method parameters.
+
+class HasInitializationMethod {
+  var data: int
+
+  method Init(x: int)
+    requires x == 15
+    modifies this
+    ensures data == x + 1
+  {
+    print "Init called with x=", x, "\n";
+    data := x + 1;
+  }
+}
+
+method TestInitializationMethods() {
+  var c := new HasInitializationMethod;
+  c.data := 15;
+  print c.data, "\n"; // 15
+
+  c := new HasInitializationMethod.Init(c.data); // should pass in c.data, not (new HasInitializationMethod).data
+  
+  print c.data, "\n"; // 16
 }

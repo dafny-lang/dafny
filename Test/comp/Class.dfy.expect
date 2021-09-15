@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 14 verified, 0 errors
+Dafny program verifier finished with 16 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 true true false
@@ -14,6 +14,9 @@ true true false
 hi later
 21 4 42 5 1
 TestGhostables
+15
+Init called with x=15
+16
 
 Dafny program verifier did not attempt verification
 true true false
@@ -28,6 +31,9 @@ true true false
 hi later
 21 4 42 5 1
 TestGhostables
+15
+Init called with x=15
+16
 
 Dafny program verifier did not attempt verification
 true true false
@@ -42,6 +48,9 @@ true true false
 hi later
 21 4 42 5 1
 TestGhostables
+15
+Init called with x=15
+16
 
 Dafny program verifier did not attempt verification
 true true false
@@ -56,3 +65,6 @@ true true false
 hi later
 21 4 42 5 1
 TestGhostables
+15
+Init called with x=15
+16
