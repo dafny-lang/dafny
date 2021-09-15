@@ -20,10 +20,6 @@
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <DefineConstants>CONTRACTS_FULL;TRACE</DefineConstants>
-  </PropertyGroup>
-
   <ItemGroup>
       <PackageReference Include="JetBrains.Annotations" Version="2021.1.0" />
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.7.0" />
