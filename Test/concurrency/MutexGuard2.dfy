@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-// This program uses ownership to model the write capability of a Rust-like MutexGuard.
+// This program models the ownership of a Rust-like MutexGuard.
 // To speed up the verification: /vcsLoad:0.5 /proverOpt:O:smt.qi.eager_threshold=30
 
 // A universe of objects playing under LCI rules
