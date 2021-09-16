@@ -14,8 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ macos-latest ]
-        ##os: [ macos-latest, ubuntu-16.04, ubuntu-latest ]
-
+        ##os: [ macos-latest, ubuntu-18.04, ubuntu-latest ]
 
     steps:
     - name: OS
