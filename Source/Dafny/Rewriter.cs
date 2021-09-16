@@ -1020,11 +1020,11 @@ namespace Microsoft.Dafny {
       Method reveal;
       if (f is TwoStateFunction) {
         reveal = new TwoStateLemma(f.tok, "reveal_" + f.Name, f.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
-          new Specification<FrameExpression>(new List<FrameExpression>(), null), /* newEnsuresList*/new List<AttributedExpression>(),
+          new List<FrameExpression>(), new Specification<FrameExpression>(new List<FrameExpression>(), null), /* newEnsuresList*/new List<AttributedExpression>(),
           new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
       } else {
         reveal = new Lemma(f.tok, "reveal_" + f.Name, f.HasStaticKeyword, new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), new List<AttributedExpression>(),
-          new Specification<FrameExpression>(new List<FrameExpression>(), null), /* newEnsuresList*/new List<AttributedExpression>(),
+          new List<FrameExpression>(), new Specification<FrameExpression>(new List<FrameExpression>(), null), /* newEnsuresList*/new List<AttributedExpression>(),
           new Specification<Expression>(new List<Expression>(), null), null, lemma_attrs, null);
       }
       newDecls.Add(reveal);

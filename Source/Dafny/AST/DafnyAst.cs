@@ -6446,6 +6446,7 @@ namespace Microsoft.Dafny {
     public readonly List<Formal> Ins;
     public readonly List<Formal> Outs;
     public readonly List<AttributedExpression> Req;
+    public readonly List<FrameExpression> Reads;
     public readonly Specification<FrameExpression> Mod;
     public readonly List<AttributedExpression> Ens;
     public readonly Specification<Expression> Decreases;
@@ -6493,7 +6494,9 @@ namespace Microsoft.Dafny {
                   bool hasStaticKeyword, bool isGhost,
                   [Captured] List<TypeParameter> typeArgs,
                   [Captured] List<Formal> ins, [Captured] List<Formal> outs,
-                  [Captured] List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+                  [Captured] List<AttributedExpression> req,
+                  [Captured] List<FrameExpression> reads,
+                  [Captured] Specification<FrameExpression> mod,
                   [Captured] List<AttributedExpression> ens,
                   [Captured] Specification<Expression> decreases,
                   [Captured] BlockStmt body,
@@ -6505,12 +6508,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(ins));
       Contract.Requires(cce.NonNullElements(outs));
       Contract.Requires(cce.NonNullElements(req));
+      Contract.Requires(reads != null);
       Contract.Requires(mod != null);
       Contract.Requires(cce.NonNullElements(ens));
       Contract.Requires(decreases != null);
       this.TypeArgs = typeArgs;
       this.Ins = ins;
       this.Outs = outs;
+      this.Reads = reads;
       this.Req = req;
       this.Mod = mod;
       this.Ens = ens;
@@ -6599,12 +6604,14 @@ namespace Microsoft.Dafny {
                  bool hasStaticKeyword,
                  [Captured] List<TypeParameter> typeArgs,
                  [Captured] List<Formal> ins, [Captured] List<Formal> outs,
-                 [Captured] List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+                 [Captured] List<AttributedExpression> req,
+                 [Captured] List<FrameExpression> reads,
+                 [Captured] Specification<FrameExpression> mod,
                  [Captured] List<AttributedExpression> ens,
                  [Captured] Specification<Expression> decreases,
                  [Captured] BlockStmt body,
                  Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     }
   }
 
@@ -6615,12 +6622,13 @@ namespace Microsoft.Dafny {
                  [Captured] List<TypeParameter> typeArgs,
                  [Captured] List<Formal> ins, [Captured] List<Formal> outs,
                  [Captured] List<AttributedExpression> req,
+                 [Captured] List<FrameExpression> reads,
                  [Captured] Specification<FrameExpression> mod,
                  [Captured] List<AttributedExpression> ens,
                  [Captured] Specification<Expression> decreases,
                  [Captured] BlockStmt body,
                  Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);
@@ -6660,12 +6668,14 @@ namespace Microsoft.Dafny {
     public Constructor(IToken tok, string name,
                   List<TypeParameter> typeArgs,
                   List<Formal> ins,
-                  List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+                  List<AttributedExpression> req,
+                  List<FrameExpression> reads,
+                  [Captured] Specification<FrameExpression> mod,
                   List<AttributedExpression> ens,
                   Specification<Expression> decreases,
                   DividedBlockStmt body,
                   Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, false, false, typeArgs, ins, new List<Formal>(), req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, false, false, typeArgs, ins, new List<Formal>(), req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -6692,9 +6702,10 @@ namespace Microsoft.Dafny {
     public readonly ExtremeLemma ExtremeLemma;
     public PrefixLemma(IToken tok, string name, bool hasStaticKeyword,
                        List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
-                       List<AttributedExpression> req, Specification<FrameExpression> mod, List<AttributedExpression> ens, Specification<Expression> decreases,
+                       List<AttributedExpression> req, List<FrameExpression> reads, Specification<FrameExpression> mod, 
+                       List<AttributedExpression> ens, Specification<Expression> decreases,
                        BlockStmt body, Attributes attributes, ExtremeLemma extremeLemma)
-      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, null) {
+      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
       Contract.Requires(ins != null && 1 <= ins.Count && ins[0] == k);
       Contract.Requires(extremeLemma != null);
@@ -6716,12 +6727,14 @@ namespace Microsoft.Dafny {
                          bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
                          List<TypeParameter> typeArgs,
                          List<Formal> ins, [Captured] List<Formal> outs,
-                         List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+                         List<AttributedExpression> req,
+                         List<FrameExpression> reads,
+                         [Captured] Specification<FrameExpression> mod,
                          List<AttributedExpression> ens,
                          Specification<Expression> decreases,
                          BlockStmt body,
                          Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -6742,12 +6755,14 @@ namespace Microsoft.Dafny {
                           bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
                           List<TypeParameter> typeArgs,
                           List<Formal> ins, [Captured] List<Formal> outs,
-                          List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+                          List<AttributedExpression> req,
+                          List<FrameExpression> reads,
+                          [Captured] Specification<FrameExpression> mod,
                           List<AttributedExpression> ens,
                           Specification<Expression> decreases,
                           BlockStmt body,
                           Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
@@ -6767,12 +6782,14 @@ namespace Microsoft.Dafny {
                    bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
                    List<TypeParameter> typeArgs,
                    List<Formal> ins, [Captured] List<Formal> outs,
-                   List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+                   List<AttributedExpression> req,
+                   List<FrameExpression> reads,
+                   [Captured] Specification<FrameExpression> mod,
                    List<AttributedExpression> ens,
                    Specification<Expression> decreases,
                    BlockStmt body,
                    Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, signatureEllipsis) {
+      : base(tok, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
