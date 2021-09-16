@@ -59,7 +59,7 @@ trait Universe {
         && (forall o: OwnedObject | o in old(content) && old(o.owner) is Thread ::
             // Threads created during a legalTransitionsSequence are allowed to run
             old(o.owner) as Thread !in running && old(allocated(o.owner)) ==> old(o.nonvolatileVersion) == o.nonvolatileVersion
-        ) // NEW
+        )
     }
 
     twostate predicate legalTransitionsSequenceAnyThread() reads * {

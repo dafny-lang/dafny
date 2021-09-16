@@ -56,7 +56,7 @@ trait Universe {
         // && (running == {} ==> unchanged(this`content) && unchanged(content))
         // Version numbers only increase
         // Updated objects must obey their transitive 2-state invariants.
-        && (forall o: Object | o in old(content) && o in content :: unchanged(o) || o.sequenceInv2()) // NEW
+        && (forall o: Object | o in old(content) && o in content :: unchanged(o) || o.sequenceInv2())
         // Objects cannot change the nonvolatile fields if they are directly owned by threads that cannot run.
         // The 2-state invariant of OwnedObject extends this property to objects that are *transitively* owned by the threads.
         && (forall o: OwnedObject | o in old(content) && old(o.owner) is Thread ::
@@ -1330,6 +1330,4 @@ method Main(ghost universe: Universe, ghost running: Thread, ghost scope: Lifeti
     // transitive as every type definition should ensure.
     assume universe.globalSequenceInv2();
     assert {:split_here} true;
-
-    //assert false; // Smoke test
 }
