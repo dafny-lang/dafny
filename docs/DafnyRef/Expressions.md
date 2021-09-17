@@ -589,7 +589,16 @@ AllocatedExpression_ =
   "allocated" "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
-TO BE WRITTEN -- allocated predicate
+For any expression `e`, the expression `allocated(e)` evaluates to `true`
+in a state if the value of `e` is available in that state, meaning that
+it could in principle have been the value of a variable in that state.
+This can be useful when, for example, `allocated(e)` is evaluated in an
+`old` state. For instance, if `d` is a local variable holding a datatype value
+`Cons(r, Nil)` where `r` is an object that was allocated in the enclosing
+method, then `old(allocated(d))` is `false`.
+
+If the expression `e` is of a reference type, then `!old(allocated(e))`
+is the same as `fresh(e)`.
 
 ## 20.23. Unchanged Expressions {#sec-unchanged-expression}
 
