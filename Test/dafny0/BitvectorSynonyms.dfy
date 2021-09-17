@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" "%s" > "%t"
+// RUN: %dafny /compile:0 /useBvSynonyms:1 /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Z(a: bv0, b: bv0) returns (c: bv0, d: bv10)
