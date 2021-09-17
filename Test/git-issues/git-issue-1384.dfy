@@ -3,7 +3,5 @@
 
 method Test()
 {
-    
-    var f : ((int,int)) -> int := ( x: (int,int)) => 1;
-
+    var f: ((int,int)) -> int := (x: (int,int)) => 1;
 }
