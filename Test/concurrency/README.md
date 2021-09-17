@@ -4,24 +4,24 @@ This folder contains Dafny programs that verify concurrent code, using the [Loca
 
 These programs are the result of various iterations. The number in the file name represents the order in which the programs were written.
 
-| Program                         | Encoding style  | Recursive invariants | Special features                                                       | Timeout issues |
-|---------------------------------|-----------------|----------------------|------------------------------------------------------------------------|----------------|
-| `01-InnerOuter.dfy`             |                 | unsupported          |                                                                        | no             |
-| `02-DoubleRead.dfy`             | state machine   | unsupported          |                                                                        | no             |
-| `03-SimpleCounter.dfy `         | state machine   | unsupported          |                                                                        | no             |
-| `04-LeastGreatest.dfy `         |                 |                      |                                                                        | no             |
-| `05-RecInvariantCut.dfy`        | state machine   | supported            |                                                                        | no             |
-| `06-ThreadOwnership.dfy`        | sequential code | supported            | ownership                                                              | no             |
-| `07-CounterThreadOwnership.dfy` | state machine   | supported            | ownership, volatile                                                    | no             |
-| `08-CounterNoTermination.dfy`   | state machine   | supported            | ownership, volatile                                                    | no             |
-| `09-CounterNoStateMachine.dfy`  | sequential code | supported            | ownership, volatile, preemption                                        | yes            |
-| `10-SequenceInvariant.dfy`      | sequential code | supported            | ownership, volatile, preemption, transitivity                          | yes            |
-| `11-MutexGuard2.dfy`            | sequential code | supported            | ownership, volatile, preemption, transitivity, method calls            | no             |
-| `12-MutexLifetime-long.dfy`     | sequential code | supported            | ownership, volatile, preemption, transitivity, method calls, lifetimes | yes            |
-| `12-MutexLifetime-short.dfy`    | sequential code | supported            | ownership, volatile, preemption, transitivity, method calls, lifetimes | no             |
+| Program                         | Encoding style     | Recursive invariants | Special features                                                       | Timeout issues |
+|---------------------------------|--------------------|----------------------|------------------------------------------------------------------------|----------------|
+| `01-InnerOuter.dfy`             |                    | unsupported          |                                                                        | no             |
+| `02-DoubleRead.dfy`             | atomic transitions | unsupported          |                                                                        | no             |
+| `03-SimpleCounter.dfy `         | atomic transitions | unsupported          |                                                                        | no             |
+| `04-LeastGreatest.dfy `         |                    |                      |                                                                        | no             |
+| `05-RecInvariantCut.dfy`        | atomic transitions | supported            |                                                                        | no             |
+| `06-ThreadOwnership.dfy`        | sequential code    | supported            | ownership                                                              | no             |
+| `07-CounterThreadOwnership.dfy` | atomic transitions | supported            | ownership, volatile                                                    | no             |
+| `08-CounterNoTermination.dfy`   | atomic transitions | supported            | ownership, volatile                                                    | no             |
+| `09-CounterNoStateMachine.dfy`  | sequential code    | supported            | ownership, volatile, preemption                                        | yes            |
+| `10-SequenceInvariant.dfy`      | sequential code    | supported            | ownership, volatile, preemption, transitivity                          | yes            |
+| `11-MutexGuard2.dfy`            | sequential code    | supported            | ownership, volatile, preemption, transitivity, method calls            | no             |
+| `12-MutexLifetime-long.dfy`     | sequential code    | supported            | ownership, volatile, preemption, transitivity, method calls, lifetimes | yes            |
+| `12-MutexLifetime-short.dfy`    | sequential code    | supported            | ownership, volatile, preemption, transitivity, method calls, lifetimes | no             |
 
 Columns:
-- **Encoding style**: A concurrent method is encoded either to a state machine or to sequential Dafny code. The state machine encoding verifies quickly but requires the user to provide an invariant for each program point. The sequential code encoding requires much less annotations but typically needs more time to verify.
+- **Encoding style**: A concurrent method is encoded either to a state machine of atomic transitions or to sequential Dafny code. The state machine encoding verifies quickly but requires the user to provide an invariant for each program point. The sequential code encoding requires much less annotations but typically needs more time to verify.
 - **Recursive invariants**: Whether (mutually) recursive single- and two-state class invariants are supported.
 - **Special features**:
     - *ownership*: The encoding ensures that objects transitively owned by a thread cannot be modified by other threads. This is useful to frame objects across preemption points.
