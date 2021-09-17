@@ -1,4 +1,4 @@
-// UNSUPPORTED: windows posix
+// UNSUPPORTED: windows,posix
 // RUN: %dafny /compile:0 /proverOpt:O:smt.qi.eager_threshold=30 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 

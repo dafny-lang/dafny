@@ -24,7 +24,7 @@ Columns:
 - **Encoding style**: A concurrent method is encoded either to a state machine or to sequential Dafny code. The state machine encoding verifies quickly but requires the user to provide an invariant for each program point. The sequential code encoding requires much less annotations but typically needs more time to verify.
 - **Recursive invariants**: Whether (mutually) recursive single- and two-state class invariants are supported.
 - **Special features**:
-    - *ownership*: Ensures that objects transitively owned by a thread cannot be modified by other threads. This is useful to frame objects across preemption points.
+    - *ownership*: The encoding ensures that objects transitively owned by a thread cannot be modified by other threads. This is useful to frame objects across preemption points.
     - *volatile*: An exception to the ownership mechanism. Volatile fields are allowed to be modified by a thread even if their object is owned by a different thread.
     - *preemption*: The sequential code encoding can call a special `Preemption` method that havocs all fields that might be modified by the environment during a preemption.
     - *transitivity*: The encoding uses a transitive two-state invariant to define the ownership rules.
