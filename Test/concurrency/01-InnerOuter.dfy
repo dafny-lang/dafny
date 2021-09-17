@@ -9,19 +9,19 @@ trait S {
   ghost var obs: set<O>
 
   // Workaround Dafny not supporting _ as object
-  function upCast(o: object): object   {o}
+  function upCast(o: object): object {o}
   
   // Universe invariant: the universe doesn't contain itself, 
   // and its objects in this universe agree that they are in this universe.
   // We define this to allow a generic object operation (O.join below) to add the object to the universe, 
   // without having to check the object invariants.
-  predicate i0() reads this, obs    { forall o: O | o in obs :: o.s == this && upCast(o) != this }
+  predicate i0() reads this, obs { forall o: O | o in obs :: o.s == this && upCast(o) != this }
   
   // Global 1-state invariant: all objects satisfy their individual invariants.
-  predicate i() reads *         { i0() && forall o: O | o in obs :: o.i() }
+  predicate i() reads * { i0() && forall o: O | o in obs :: o.i() }
   
   // Global 2-state invariant: all old objects satisfy their 2-state invariants.
-  twostate predicate i2() reads *   { forall o: O | o in old(obs) :: o in obs && o.i2() }
+  twostate predicate i2() reads * { forall o: O | o in old(obs) :: o in obs && o.i2() }
   
   // The first condition for legality: old objects that change a field must obey their 1- and 2-state invariants.
   twostate predicate legal0() reads * { forall o: O | o in old(obs) :: unchanged(o) || (o.i2() && o.i()) }
@@ -30,7 +30,7 @@ trait S {
   twostate predicate legal1() reads * { forall o: O | o in obs && o !in old(obs) :: o.i() }
   
   // A legal transition is one that starts from a good state, preserves the universe invariant, and meets the legality conditions. 
-  twostate predicate legal() reads *  { old(i()) && i0() && old(obs) <= obs && legal0() && legal1() }
+  twostate predicate legal() reads * { old(i()) && i0() && old(obs) <= obs && legal0() && legal1() }
   
   // LCI soundness: legal transitions are good. This makes use of the admissibility obligations build into O's.
   twostate lemma lci() requires legal() ensures i() && i2() {
@@ -65,7 +65,7 @@ trait O {
   predicate gi() reads * { i0() && s.i() }
 
   // Global 2-state invariant (from o's perspective).
-  twostate predicate gi2() requires old(gi()) reads *  { i0()  && s.i2() }
+  twostate predicate gi2() requires old(gi()) reads * { i0() && s.i2() }
 
   // To be implemented in the class: 1-state invariant, 2-state invariant, and admissibility proof.
   predicate i() reads *
@@ -77,7 +77,7 @@ class Inner extends O {
   var data: int
 
   // Invariant
-  predicate i() reads * {  
+  predicate i() reads * {
     && i0()
   }
   twostate predicate i2() reads * {

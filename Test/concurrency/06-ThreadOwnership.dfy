@@ -107,7 +107,7 @@ trait Object {
   predicate objectGlobalInv() reads * { baseInv() && universe.globalInv() }
 
   // Global 2-state invariant (from o's perspective).
-  twostate predicate objectGlobalInv2() requires old(objectGlobalInv()) reads *  { baseInv()  && universe.globalInv2() }
+  twostate predicate objectGlobalInv2() requires old(objectGlobalInv()) reads * { baseInv() && universe.globalInv2() }
 
   // To be implemented in the class: 1-state invariant, 2-state invariant, and admissibility proof.
   predicate localInv() reads *
@@ -272,8 +272,8 @@ class EmptyType extends OwnedObject {
     ensures objectGlobalInv() && universe.globalInv2()
     // The following might not always be needed
     ensures this.universe == universe && this.owner == running && this.closed == false
-    //ensures running.ownedObjects == old(running.ownedObjects)  + { this }
-    ensures universe.content == old(universe.content)  + { this }
+    //ensures running.ownedObjects == old(running.ownedObjects) + { this }
+    ensures universe.content == old(universe.content) + { this }
   {
     this.universe := universe;
     this.owner := running;
@@ -324,8 +324,8 @@ class AtomicCounter extends OwnedObject {
     ensures objectGlobalInv() && universe.globalInv2()
     // The following might not always be needed
     ensures this.universe == universe && this.owner == running && this.value == initialValue && this.closed == false 
-    //ensures running.ownedObjects == old(running.ownedObjects)  + { this }
-    ensures universe.content == old(universe.content)  + { this }
+    //ensures running.ownedObjects == old(running.ownedObjects) + { this }
+    ensures universe.content == old(universe.content) + { this }
   {
     this.universe := universe;
     this.owner := running;
@@ -339,11 +339,11 @@ class AtomicCounter extends OwnedObject {
   }
 }
 
-// fn double_read(counter: Arc<AtomicIsize>) {   // 0: pre state
+// fn double_read(counter: Arc<AtomicIsize>) { // 0: pre state
 //   let initial_value = counter.load(SeqCst); // 1: after first statement
 //   let final_value = counter.load(SeqCst);   // 2: after second statement
-//   assert!(final_value >= initial_value);  // 3: post state, after the last statement
-// }                       // 4: after checking the postcondition
+//   assert!(final_value >= initial_value);    // 3: post state, after the last statement
+// }                                           // 4: after checking the postcondition
 
 class DoubleReadMethod extends OwnedObject {
   var programCounter: int
@@ -418,40 +418,40 @@ class DoubleReadMethod extends OwnedObject {
     requires programCounter == 0 && closed && this.owner == running // Special requirements of Run
     modifies universe, universe.content, this
   {
-    universe.Preemption(running);                // Interference
+    universe.Preemption(running);                              // Interference
 
     label l0:
-      assert universe.globalInv() && programCounter == 0;    // Check that the initial state is good (redundant)
-    initial_value := counter.value;                // Execute the statement
-    programCounter := 1;                     // Update the program counter
-      universe.lci@l0(running);
-      assert universe.globalInv() && universe.globalInv2@l0(); // Check that the transition is legal
+    assert universe.globalInv() && programCounter == 0;        // Check that the initial state is good (redundant)
+    initial_value := counter.value;                            // Execute the statement
+    programCounter := 1;                                       // Update the program counter
+    universe.lci@l0(running);
+    assert universe.globalInv() && universe.globalInv2@l0();   // Check that the transition is legal
 
-    universe.Preemption(running);                // Interference
+    universe.Preemption(running);                              // Interference
 
     label l1:
-      assert universe.globalInv() && programCounter == 1;    // Check that the initial state is good (redundant)
-    final_value := counter.value;                // Execute the statement
-    programCounter := 2;                     // Update the program counter
-      universe.lci@l1(running);
-      assert universe.globalInv() && universe.globalInv2@l1(); // Check that the transition is legal
+    assert universe.globalInv() && programCounter == 1;        // Check that the initial state is good (redundant)
+    final_value := counter.value;                              // Execute the statement
+    programCounter := 2;                                       // Update the program counter
+    universe.lci@l1(running);
+    assert universe.globalInv() && universe.globalInv2@l1();   // Check that the transition is legal
 
-    universe.Preemption(running);                // Interference
+    universe.Preemption(running);                              // Interference
 
     label l2:
-      assert universe.globalInv() && programCounter == 2;    // Check that the initial state is good (redundant)
-    assert initial_value <= final_value;             // Execute the statement
-    programCounter := 3;                     // Update the program counter
-      universe.lci@l2(running);
-      assert universe.globalInv() && universe.globalInv2@l2(); // Check that the transition is legal
+    assert universe.globalInv() && programCounter == 2;        // Check that the initial state is good (redundant)
+    assert initial_value <= final_value;                       // Execute the statement
+    programCounter := 3;                                       // Update the program counter
+    universe.lci@l2(running);
+    assert universe.globalInv() && universe.globalInv2@l2();   // Check that the transition is legal
 
-    universe.Preemption(running);                // Interference
+    universe.Preemption(running);                              // Interference
 
     label l3:
-      assert universe.globalInv() && programCounter == 3;    // Check that the initial state is good (redundant)
-    assert true;                         // Check the postcondition
-    programCounter := 4;                     // Update the program counter
-      universe.lci@l3(running);                // (redundant)
-      assert universe.globalInv() && universe.globalInv2@l3(); // Check that the transition is legal (redundant)
+    assert universe.globalInv() && programCounter == 3;        // Check that the initial state is good (redundant)
+    assert true;                                               // Check the postcondition
+    programCounter := 4;                                       // Update the program counter
+    universe.lci@l3(running);                                  // (redundant)
+    assert universe.globalInv() && universe.globalInv2@l3();   // Check that the transition is legal (redundant)
   }
 }

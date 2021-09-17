@@ -49,7 +49,7 @@ trait Universe {
   }
   
   // A legal transition is one that starts from a good state, preserves the universe invariant, and meets the legality conditions. 
-  twostate predicate legal() reads *  {
+  twostate predicate legal() reads * {
     old(i()) && i0() && old(content) <= content && legal0() && legal1()
   }
   
@@ -89,7 +89,7 @@ trait Object {
   predicate gi() reads * { i0() && universe.i() }
 
   // Global 2-state invariant (from o's perspective).
-  twostate predicate gi2() requires old(gi()) reads *  { i0()  && universe.i2() }
+  twostate predicate gi2() requires old(gi()) reads * { i0() && universe.i2() }
 
   // To be implemented in the class: 1-state invariant, 2-state invariant, and admissibility proof.
   predicate i() reads * // what is the * here?
@@ -102,7 +102,7 @@ class ArcAtomicIsize extends Object {
   var data: int
 
   // Invariant
-  predicate i() reads * {  
+  predicate i() reads * {
     // Base invariant holds: Instances of this type are in the universe and they all have a reference to the universe.
     && i0()
   }
@@ -130,10 +130,10 @@ class ArcAtomicIsize extends Object {
 }
 
 // fn worker(counter: Arc<AtomicIsize>) {
-//   let initial_value = counter.load(SeqCst);  // 1
-//   let final_value = counter.load(SeqCst);  // 2
-//   assert!(final_value >= initial_value);   // 3
-// }                        // 4
+//   let initial_value = counter.load(SeqCst); // 1
+//   let final_value = counter.load(SeqCst);   // 2
+//   assert!(final_value >= initial_value);    // 3
+// }                                           // 4
 
 class WorkerMethod extends Object {
   var next_stmt: int // The next statement that should be executed.

@@ -199,7 +199,7 @@ trait Object {
   predicate objectGlobalInv() reads * { this in universe.content && universe.globalInv() }
 
   // Global 2-state invariant (from o's perspective).
-  twostate predicate objectGlobalInv2() requires old(objectGlobalInv()) reads *  { objectGlobalBaseInv()  && universe.globalInv2() }
+  twostate predicate objectGlobalInv2() requires old(objectGlobalInv()) reads * { objectGlobalBaseInv() && universe.globalInv2() }
 
   predicate triggerAxioms() reads this ensures triggerAxioms() {
     assume (this is OwnedObject || this is Thread) && !(this is OwnedObject && this is Thread);
@@ -269,7 +269,7 @@ class Thread extends Object {
   twostate predicate sequenceInv2() reads * {
     true
   }
-  twostate predicate inv2() reads * ensures inv2() ==> localInv2() && sequenceInv2()  {
+  twostate predicate inv2() reads * ensures inv2() ==> localInv2() && sequenceInv2() {
     localInv2() && sequenceInv2()
   }
 
@@ -444,7 +444,7 @@ class IncreasingCounter extends OwnedObject {
     ensures objectGlobalInv() && universe.globalInv2()
     // The following might not always be needed
     ensures this.universe == universe && this.owner == running && this.value == value
-    ensures universe.content == old(universe.content)  + { this }
+    ensures universe.content == old(universe.content) + { this }
   {
     this.universe := universe;
     this.value := value;
@@ -621,13 +621,13 @@ method Incrementer(universe: Universe, running: Thread, counter: IncreasingCount
    ensures universe.globalInv() && universe.baseLegalTransitionsSequence()
    ensures remaining.value == 0 // USER postcondition
 {
-    universe.Interference(running);
+  universe.Interference(running);
 
   label l0:
   var i := 0;
   universe.lci@l0(running);
 
-    universe.Interference(running);
+  universe.Interference(running);
 
   label l1:
   while i < 10
@@ -642,19 +642,19 @@ method Incrementer(universe: Universe, running: Thread, counter: IncreasingCount
     var claim1 := new ClaimIncreasingCounterGreaterThanConstant(universe, running, counter, initial_value);
     universe.lci@l2(running);
 
-      universe.Interference(running);
+    universe.Interference(running);
 
     label l3:
     counter.value := counter.value + 1;
     universe.lci@l3(running);
     
-      // No interference!
+    // No interference!
 
     label l3p1:
     var initial_value_plus_one := new ConstantInteger(universe, running, initial_value.value + 1);
     universe.lci@l3p1(running);
     
-      // No interference!
+    // No interference!
 
     label l3p2:
     // assert claim1.inv(); // Help Dafny (1)
@@ -662,7 +662,7 @@ method Incrementer(universe: Universe, running: Thread, counter: IncreasingCount
     var claim2 := new ClaimIncreasingCounterGreaterThanConstant(universe, running, counter, initial_value_plus_one);
     universe.lci@l3p2(running);
 
-      universe.Interference(running);
+    universe.Interference(running);
 
     label l4:
     // assert claim2.inv(); // Help Dafny (1)
@@ -670,7 +670,7 @@ method Incrementer(universe: Universe, running: Thread, counter: IncreasingCount
     var final_value := new ConstantInteger(universe, running, counter.value);
     universe.lci@l4(running);
 
-      universe.Interference(running);
+    universe.Interference(running);
 
     label l5:
     // assert claim1.inv(); // Help Dafny (1)
@@ -682,13 +682,13 @@ method Incrementer(universe: Universe, running: Thread, counter: IncreasingCount
     assert {:split_here} true;
     universe.lci@l5(running);
 
-      universe.Interference(running);
+    universe.Interference(running);
 
     label l6:
     i := i + 1;
     universe.lci@l6(running);
 
-      universe.Interference(running);
+    universe.Interference(running);
 
     assume false; // FIXME the following code takes too long to verify; something has to be fixed.
 
@@ -703,14 +703,14 @@ method Incrementer(universe: Universe, running: Thread, counter: IncreasingCount
     assert {:split_here} universe.legalTransition@l7(running); // Help Dafny?
     universe.lci@l7(running);
 
-      universe.Interference(running);
+    universe.Interference(running);
   }
 
-    universe.Interference(running);
+  universe.Interference(running);
 
   label l8:
   assert i == 10;
   universe.lci@l8(running);
 
-    universe.Interference(running);
+  universe.Interference(running);
 }

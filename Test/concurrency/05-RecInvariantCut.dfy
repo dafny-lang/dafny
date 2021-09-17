@@ -31,7 +31,7 @@ trait Universe {
   }
   
   // A legal transition is one that starts from a good state, preserves the universe invariant, and meets the legality conditions. 
-  twostate predicate legalTransition() reads *  {
+  twostate predicate legalTransition() reads * {
     && old(globalInv())
     && globalBaseInv()
     && old(content) <= content
@@ -82,7 +82,7 @@ trait Object {
   predicate globalInv() reads * { baseInv() && universe.globalInv() }
 
   // Global 2-state invariant (from o's perspective).
-  twostate predicate globalInv2() requires old(globalInv()) reads *  { baseInv()  && universe.globalInv2() }
+  twostate predicate globalInv2() requires old(globalInv()) reads * { baseInv() && universe.globalInv2() }
 
   // To be implemented in the class: 1-state invariant, 2-state invariant, and admissibility proof.
   predicate inv() reads *
@@ -142,11 +142,11 @@ class B extends Object {
   ghost var valid: bool // Like in VCC
   ghost var a: A
 
-  predicate inv() reads * {  
+  predicate inv() reads * {
     && localInv()
     && (valid ==> a.inv())
   }
-  predicate localInv() reads * {  
+  predicate localInv() reads * {
     && baseInv()
     && universe == a.universe
     && (valid ==>

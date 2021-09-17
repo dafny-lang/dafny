@@ -112,7 +112,7 @@ trait Object {
   predicate objectGlobalInv() reads * { baseInv() && universe.globalInv() }
 
   // Global 2-state invariant (from o's perspective).
-  twostate predicate objectGlobalInv2() requires old(objectGlobalInv()) reads *  { baseInv()  && universe.globalInv2() }
+  twostate predicate objectGlobalInv2() requires old(objectGlobalInv()) reads * { baseInv() && universe.globalInv2() }
 
   // To be implemented in the class: 1-state invariant, 2-state invariant, and admissibility proof.
   predicate localInv() reads *
@@ -141,7 +141,7 @@ class Thread extends NonOwnedObject {
   twostate predicate localInv2() reads * {
     true
   }
-  twostate predicate inv2() reads * ensures inv2() ==> localInv2()  {
+  twostate predicate inv2() reads * ensures inv2() ==> localInv2() {
     localInv2()
   }
 
@@ -271,7 +271,7 @@ class EmptyType extends OwnedObject {
     modifies universe
     ensures objectGlobalInv() && universe.globalInv2()
     ensures this.universe == universe && this.owner == running
-    ensures universe.content == old(universe.content)  + { this }
+    ensures universe.content == old(universe.content) + { this }
   {
     this.universe := universe;
     this.owner := running;
@@ -317,7 +317,7 @@ class AtomicCounter extends OwnedObject {
     modifies universe
     ensures objectGlobalInv() && universe.globalInv2()
     ensures this.universe == universe && this.owner == running && this.value == initialValue
-    ensures universe.content == old(universe.content)  + { this }
+    ensures universe.content == old(universe.content) + { this }
   {
     this.universe := universe;
     this.value := initialValue;
@@ -381,27 +381,27 @@ class Remaining extends OwnedObject {
 //   requires remaining.data == 10
 //   ensures remaining.data == 0
 // {
-//                           // 0: inv_pre: remaining.data == 10  
+//            // 0: inv_pre: remaining.data == 10
 //   let mut i = 0;
-//                           // 1: inv_pre: 0 <= i <= 10 && remaining.data == 10
+//            // 1: inv_pre: 0 <= i <= 10 && remaining.data == 10
 //   while i < 10 {
-//                             // 2: inv_pre: 0 <= i <= 9 && remaining.data + i == 10
+//            // 2: inv_pre: 0 <= i <= 9 && remaining.data + i == 10
 //     let initial_value = counter.load(SeqCst);
-//                             // 3: inv_pre: 0 <= i <= 9 && initial_value <= counter.data && remaining.data + i == 10
+//            // 3: inv_pre: 0 <= i <= 9 && initial_value <= counter.data && remaining.data + i == 10
 //     counter.fetch_add(1, SeqCst);
-//                             // 4: inv_pre: 0 <= i <= 9 && initial_value + 1 <= counter.data && remaining.data + i == 10
+//            // 4: inv_pre: 0 <= i <= 9 && initial_value + 1 <= counter.data && remaining.data + i == 10
 //     let final_value = counter.load(SeqCst);
-//                             // 5: inv_pre: 0 <= i <= 9 && initial_value + 1 <= final_value <= counter.data && remaining.data + i == 10
+//            // 5: inv_pre: 0 <= i <= 9 && initial_value + 1 <= final_value <= counter.data && remaining.data + i == 10
 //     assert!(final_value >= initial_value + 1);
-//                             // 6: inv_pre: 0 <= i <= 9 && remaining.data + i == 10
+//            // 6: inv_pre: 0 <= i <= 9 && remaining.data + i == 10
 //     i += 1;
-//                             // 7: inv_pre: 0 <= i <= 10 && remaining.data + i == 11
+//            // 7: inv_pre: 0 <= i <= 10 && remaining.data + i == 11
 //     remaining.fetch_sub(1, SeqCst);
-//                             // 8: inv_pre: 0 <= i <= 10 && remaining.data + i == 10
+//            // 8: inv_pre: 0 <= i <= 10 && remaining.data + i == 10
 //   }
-//                           // 9: (after loop) inv_pre: i == 10 && remaining.data == 0
+//            // 9: (after loop) inv_pre: i == 10 && remaining.data == 0
 //   assert!(i == 10);
-//                           // 10: remaining.data == 0
+//            // 10: remaining.data == 0
 //   (check postcondition)
 // }
 
@@ -432,15 +432,15 @@ class IncrementerMethod extends OwnedObject {
     && remaining.owner == this
     && 0 <= programCounter <= 10
     && (programCounter ==  0 ==> remaining.value == 10)
-    && (programCounter ==  1 ==> remaining.value == 10   && i == 0)
+    && (programCounter ==  1 ==> remaining.value == 10     && i == 0)
     && (programCounter ==  2 ==> remaining.value + i == 10 && 0 <= i <= 9)
-    && (programCounter ==  3 ==> remaining.value + i == 10 && 0 <= i <= 9   && initial_value <= counter.value)
-    && (programCounter ==  4 ==> remaining.value + i == 10 && 0 <= i <= 9   && initial_value + 1 <= counter.value)
-    && (programCounter ==  5 ==> remaining.value + i == 10 && 0 <= i <= 9   && initial_value + 1 <= final_value <= counter.value)
+    && (programCounter ==  3 ==> remaining.value + i == 10 && 0 <= i <= 9 && initial_value <= counter.value)
+    && (programCounter ==  4 ==> remaining.value + i == 10 && 0 <= i <= 9 && initial_value + 1 <= counter.value)
+    && (programCounter ==  5 ==> remaining.value + i == 10 && 0 <= i <= 9 && initial_value + 1 <= final_value <= counter.value)
     && (programCounter ==  6 ==> remaining.value + i == 10 && 0 <= i <= 9)
     && (programCounter ==  7 ==> remaining.value + i == 11 && 0 <= i <= 10)
     && (programCounter ==  8 ==> remaining.value + i == 10 && 0 <= i <= 10)
-    && (programCounter ==  9 ==> remaining.value == 0    && i == 10)
+    && (programCounter ==  9 ==> remaining.value == 0      && i == 10)
     && (programCounter == 10 ==> remaining.value == 0)
   }
   predicate userInv() reads * ensures userInv() ==> localUserInv() {

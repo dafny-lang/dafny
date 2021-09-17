@@ -305,7 +305,7 @@ trait Object {
   predicate objectGlobalInv() reads * { this in universe.content && universe.globalInv() }
 
   // Global 2-state invariant (from o's perspective).
-  twostate predicate objectGlobalInv2() requires old(objectGlobalInv()) reads *  { objectGlobalBaseInv()  && universe.globalInv2() }
+  twostate predicate objectGlobalInv2() requires old(objectGlobalInv()) reads * { objectGlobalBaseInv() && universe.globalInv2() }
 
   predicate nonAliasing() reads this {
     && (objectClassKind() == Thread) == (this is Thread)
@@ -379,7 +379,7 @@ class Thread extends Object {
   twostate predicate sequenceInv2() reads * {
     true
   }
-  twostate predicate inv2() reads * ensures inv2() ==> localInv2() && sequenceInv2()  {
+  twostate predicate inv2() reads * ensures inv2() ==> localInv2() && sequenceInv2() {
     localInv2() && sequenceInv2()
   }
 
@@ -542,8 +542,8 @@ function Bump(last: int): int ensures Bump(last) > last
 
 class Lifetime extends Object {
   // All fields are nonvolatile
-  ghost var owner: Thread?        // `null` if the lifetime is not alive.
-  ghost var elements: set<OwnedObject>  // The objects that are part of this lifetime.
+  ghost var owner: Thread?                // `null` if the lifetime is not alive.
+  ghost var elements: set<OwnedObject>    // The objects that are part of this lifetime.
   ghost var mightPointTo: set<Lifetime>   // The lifetimes that can be pointed by the objects in this lifetime.
   ghost var mightPointFrom: set<Lifetime> // The lifetimes that might point to the objects in this lifetime.
 
@@ -582,7 +582,7 @@ class Lifetime extends Object {
     && objectGlobalBaseInv()
     && (forall o: OwnedObject | o in elements :: o.lifetime == this)
     //&& (alive() ==> forall o: OwnedObject | o in elements :: o.alive()) // This is what Rust does. However,
-    && (forall o: OwnedObject | o in elements :: o.alive() == alive())  // this allows to have shorter contracts. 
+    && (forall o: OwnedObject | o in elements :: o.alive() == alive())    // this allows to have shorter contracts. 
     && (alive() ==> forall l: Lifetime | l in mightPointTo :: l.alive())
     && (!alive() ==> forall l: Lifetime | l in mightPointFrom :: !l.alive())
     && (forall l: Lifetime | l in mightPointTo :: this in l.mightPointFrom)
@@ -616,7 +616,7 @@ class Lifetime extends Object {
     ensures objectGlobalInv() && universe.legalTransition(running)
     ensures this.universe == universe && this.owner == owner
     ensures this.elements == {} && this.mightPointTo == mightPointTo && this.mightPointFrom == {}
-    ensures universe.content == old(universe.content)  + { this }
+    ensures universe.content == old(universe.content) + { this }
     ensures forall l: Lifetime | l in mightPointTo :: l.mightPointFrom == old(l.mightPointFrom) + { this }
   {
     this.universe := universe;
@@ -658,7 +658,7 @@ class OwnedU32 extends OwnedObject {
     ensures objectGlobalInv() && universe.legalTransitionsSequence({running})
     ensures this.universe == universe && this.owner == running
     ensures this.value == value && this.lifetime.owner == running
-    ensures universe.content == old(universe.content)  + { this, this.lifetime }
+    ensures universe.content == old(universe.content) + { this, this.lifetime }
     ensures this.lifetime.mightPointFrom == {} && this.lifetime.elements == { this }
   {
     label lci_l1:

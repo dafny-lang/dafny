@@ -59,7 +59,7 @@ lemma BuildAAux(k: ORDINAL, x: Object) ensures A#[k](x) {
 }
 
 lemma BuildBAux(k: ORDINAL, x: Object) ensures B#[k](x) {
-  forall j: ORDINAL | j < k  { BuildAAux(j, x); }
+  forall j: ORDINAL | j < k { BuildAAux(j, x); }
 }
 
 // Mutually recursive, using two different traits
@@ -76,7 +76,7 @@ greatest predicate invA(self: TraitA) reads * {
   invB(self.b)
 }
 
-greatest predicate invB(self: TraitB) reads * {  
+greatest predicate invB(self: TraitB) reads * {
   invA(self.a)
 }
 

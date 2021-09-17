@@ -204,7 +204,7 @@ trait Object {
   predicate objectGlobalInv() reads * { this in universe.content && universe.globalInv() }
 
   // Global 2-state invariant (from o's perspective).
-  twostate predicate objectGlobalInv2() requires old(objectGlobalInv()) reads *  { objectGlobalBaseInv()  && universe.globalInv2() }
+  twostate predicate objectGlobalInv2() requires old(objectGlobalInv()) reads * { objectGlobalBaseInv() && universe.globalInv2() }
 
   predicate triggerAxioms() reads this ensures triggerAxioms() {
     assume (this is OwnedObject || this is Thread) && !(this is OwnedObject && this is Thread);
@@ -274,7 +274,7 @@ class Thread extends Object {
   twostate predicate sequenceInv2() reads * {
     true
   }
-  twostate predicate inv2() reads * ensures inv2() ==> localInv2() && sequenceInv2()  {
+  twostate predicate inv2() reads * ensures inv2() ==> localInv2() && sequenceInv2() {
     localInv2() && sequenceInv2()
   }
 
@@ -456,7 +456,7 @@ class OwnedU32 extends OwnedObject {
     modifies universe
     ensures objectGlobalInv() && universe.legalTransition(running)
     ensures this.universe == universe && this.owner == running && this.value == value
-    ensures universe.content == old(universe.content)  + { this }
+    ensures universe.content == old(universe.content) + { this }
   {
     this.universe := universe;
     this.owner := running;
@@ -694,7 +694,7 @@ method SetData(universe: Universe, running: Thread, mutex: Mutex)
   guard.mutex.data.nonvolatileVersion := BumpVersion(guard.mutex.data.nonvolatileVersion);
   guard.nonvolatileVersion := BumpVersion(guard.nonvolatileVersion);
   universe.lci@lci_l17(running);
-  assert {:split_here} true;  
+  assert {:split_here} true;
 
   universe.Interference(running);
   assert {:split_here} true;
