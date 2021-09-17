@@ -584,13 +584,13 @@ namespace Microsoft.Dafny {
         // check well-formedness of the modifies clauses
         CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
         // check that the modifies is a subset
-        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "modify statement may violate context's modifies clause", null);
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, "modify statement may violate context's modifies clause", null);
         // cause the change of the heap according to the given frame
         var suffix = CurrentIdGenerator.FreshId("modify#");
         string modifyFrameName = "$Frame$" + suffix;
         var preModifyHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreModifyHeap$" + suffix, predef.HeapType));
         locals.Add(preModifyHeapVar);
-        DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, modifyFrameName);
+        DefineFrame(s.Tok, etran.ModifiesFrame(s.Tok), s.Mod.Expressions, builder, locals, modifyFrameName);
         if (s.Body == null) {
           var preModifyHeap = new Bpl.IdentifierExpr(s.Tok, preModifyHeapVar);
           // preModifyHeap := $Heap;
@@ -601,11 +601,11 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmd(s.Tok, HeapSucc(preModifyHeap, etran.HeapExpr, s.IsGhost)));
           // assume nothing outside the frame was changed
           var etranPreLoop = new ExpressionTranslator(this, predef, preModifyHeap);
-          var updatedFrameEtran = new ExpressionTranslator(etran, modifyFrameName);
+          var updatedFrameEtran = new ExpressionTranslator(etran, etran.readsFrame, modifyFrameName);
           builder.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran)));
         } else {
           // do the body, but with preModifyHeapVar as the governing frame
-          var updatedFrameEtran = new ExpressionTranslator(etran, modifyFrameName);
+          var updatedFrameEtran = new ExpressionTranslator(etran, etran.readsFrame, modifyFrameName);
           CurrentIdGenerator.Push();
           TrStmt(s.Body, builder, locals, updatedFrameEtran);
           CurrentIdGenerator.Pop();
@@ -1085,7 +1085,7 @@ namespace Microsoft.Dafny {
       TrStmt_CheckWellformed(lhs, definedness, locals, etran, false);
       Bpl.Expr obj, F;
       string description = GetObjFieldDetails(lhs, etran, out obj, out F);
-      definedness.Add(Assert(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.TheFrame(lhs.tok), obj, F),
+      definedness.Add(Assert(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.ModifiesFrame(lhs.tok), obj, F),
         "assignment may update " + description + " not in the enclosing context's modifies clause"));
       if (s0.Rhs is ExprRhs) {
         var r = (ExprRhs)s0.Rhs;
@@ -1722,15 +1722,15 @@ namespace Microsoft.Dafny {
       ExpressionTranslator updatedFrameEtran;
       string loopFrameName = "$Frame$" + suffix;
       if (s.Mod.Expressions != null) {
-        updatedFrameEtran = new ExpressionTranslator(etran, loopFrameName);
+        updatedFrameEtran = new ExpressionTranslator(etran, etran.readsFrame, loopFrameName);
       } else {
         updatedFrameEtran = etran;
       }
 
       if (s.Mod.Expressions != null) { // check well-formedness and that the modifies is a subset
         CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
-        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, builder, "loop modifies clause may violate context's modifies clause", null);
-        DefineFrame(s.Tok, s.Mod.Expressions, builder, locals, loopFrameName);
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, "loop modifies clause may violate context's modifies clause", null);
+        DefineFrame(s.Tok, etran.ModifiesFrame(s.Tok), s.Mod.Expressions, builder, locals, loopFrameName);
       }
       builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
 
@@ -2239,7 +2239,7 @@ namespace Microsoft.Dafny {
       if (codeContext is IMethodCodeContext) {
         var s = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
         CheckFrameSubset(tok, callee.Mod.Expressions.ConvertAll(s.SubstFrameExpr),
-          receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
+          receiver, substMap, etran, etran.ModifiesFrame(tok), builder, "call may violate context's modifies clause", null);
       }
 
       // Check termination

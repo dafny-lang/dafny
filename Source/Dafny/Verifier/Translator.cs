@@ -2479,7 +2479,7 @@ namespace Microsoft.Dafny {
       var builder = new BoogieStmtListBuilder(this);
       var etran = new ExpressionTranslator(this, predef, iter.tok);
       var localVariables = new List<Variable>();
-      GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables);
+      GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables, etran);
 
       // check well-formedness of any default-value expressions (before assuming preconditions)
       foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
@@ -2618,7 +2618,7 @@ namespace Microsoft.Dafny {
       var builder = new BoogieStmtListBuilder(this);
       var etran = new ExpressionTranslator(this, predef, iter.tok);
       var localVariables = new List<Variable>();
-      GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables);
+      GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables, etran);
 
       // add locals for the yield-history variables and the extra variables
       // Assume the precondition and postconditions of the iterator constructor method
@@ -4338,7 +4338,7 @@ namespace Microsoft.Dafny {
       var etran = new ExpressionTranslator(this, predef, m.tok);
       InitializeFuelConstant(m.tok, builder, etran);
       var localVariables = new List<Variable>();
-      GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
+      GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables, etran);
 
       if (UseOptimizationInZ3) {
         // We ask Z3 to minimize all parameters of type 'nat'.
@@ -5103,7 +5103,7 @@ namespace Microsoft.Dafny {
 
       IToken tok = func.tok;
       // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
-      Bpl.IdentifierExpr traitFrame = etran.TheFrame(func.OverriddenFunction.tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
+      Bpl.IdentifierExpr traitFrame = etran.ReadsFrame(func.OverriddenFunction.tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
       traitFrame.Name = func.EnclosingClass.Name + "_" + traitFrame.Name;
       Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of TheFrame
       Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type));
@@ -5369,7 +5369,8 @@ namespace Microsoft.Dafny {
 
       IToken tok = m.tok;
       // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
-      Bpl.IdentifierExpr traitFrame = etran.TheFrame(m.OverriddenMethod.tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
+      // TODO: need to check reads clauses as well
+      Bpl.IdentifierExpr traitFrame = etran.ModifiesFrame(m.OverriddenMethod.tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
       traitFrame.Name = m.EnclosingClass.Name + "_" + traitFrame.Name;
       Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of TheFrame
       Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type));
@@ -5504,7 +5505,7 @@ namespace Microsoft.Dafny {
     }
 
     void GenerateImplPrelude(Method m, bool wellformednessProc, List<Variable> inParams, List<Variable> outParams,
-                             BoogieStmtListBuilder builder, List<Variable> localVariables) {
+                             BoogieStmtListBuilder builder, List<Variable> localVariables, ExpressionTranslator etran) {
       Contract.Requires(m != null);
       Contract.Requires(inParams != null);
       Contract.Requires(outParams != null);
@@ -5520,7 +5521,7 @@ namespace Microsoft.Dafny {
       }
 
       // set up the information used to verify the method's modifies clause
-      DefineFrame(m.tok, m.Mod.Expressions, builder, localVariables, null);
+      DefineFrame(m.tok, etran.ModifiesFrame(m.tok), m.Mod.Expressions, builder, localVariables, null);
       if (wellformednessProc) {
         builder.Add(CaptureState(m.tok, false, "initial state"));
       } else {
@@ -5531,7 +5532,7 @@ namespace Microsoft.Dafny {
     }
 
     void GenerateIteratorImplPrelude(IteratorDecl iter, List<Variable> inParams, List<Variable> outParams,
-                                     BoogieStmtListBuilder builder, List<Variable> localVariables) {
+                                     BoogieStmtListBuilder builder, List<Variable> localVariables, ExpressionTranslator etran) {
       Contract.Requires(iter != null);
       Contract.Requires(inParams != null);
       Contract.Requires(outParams != null);
@@ -5544,7 +5545,7 @@ namespace Microsoft.Dafny {
       var th = new ThisExpr(iter);
       iteratorFrame.Add(new FrameExpression(iter.tok, th, null));
       iteratorFrame.AddRange(iter.Modifies.Expressions);
-      DefineFrame(iter.tok, iteratorFrame, builder, localVariables, null);
+      DefineFrame(iter.tok, etran.ModifiesFrame(iter.tok), iteratorFrame, builder, localVariables, null);
       builder.Add(CaptureState(iter.tok, false, "initial state"));
     }
 
@@ -5562,9 +5563,11 @@ namespace Microsoft.Dafny {
       return CaptureState(stmt.EndTok, true, null);
     }
 
-    void DefineFrame(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frameClause,
+    void DefineFrame(IToken/*!*/ tok, Boogie.IdentifierExpr frameIdentifier, List<FrameExpression/*!*/>/*!*/ frameClause,
       BoogieStmtListBuilder/*!*/ builder, List<Variable>/*!*/ localVariables, string name, ExpressionTranslator/*?*/ etran = null) {
       Contract.Requires(tok != null);
+      Contract.Requires(frameIdentifier != null);
+      Contract.Requires(frameIdentifier.Type != null);
       Contract.Requires(cce.NonNullElements(frameClause));
       Contract.Requires(builder != null);
       Contract.Requires(cce.NonNullElements(localVariables));
@@ -5577,9 +5580,7 @@ namespace Microsoft.Dafny {
         etran = new ExpressionTranslator(this, predef, tok);
       }
       // Declare a local variable $_Frame: <alpha>[ref, Field alpha]bool
-      Bpl.IdentifierExpr theFrame = etran.TheFrame(tok);  // this is a throw-away expression, used only to extract the type and name of the $_Frame variable
-      Contract.Assert(theFrame.Type != null);  // follows from the postcondition of TheFrame
-      Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name ?? theFrame.Name, theFrame.Type));
+      Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name ?? frameIdentifier.Name, frameIdentifier.Type));
       localVariables.Add(frame);
       // $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
       // $_Frame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null                    ==> ($o,$f) in Modifies/Reads-Clause);
@@ -5599,17 +5600,17 @@ namespace Microsoft.Dafny {
 
     void CheckFrameSubset(IToken tok, List<FrameExpression> calleeFrame,
                           Expression receiverReplacement, Dictionary<IVariable, Expression /*!*/> substMap,
-                          ExpressionTranslator /*!*/ etran,
+                          ExpressionTranslator /*!*/ etran, Boogie.IdentifierExpr /*!*/ enclosingFrame,
                           BoogieStmtListBuilder /*!*/ builder,
                           string errorMessage,
                           Bpl.QKeyValue kv) {
-      CheckFrameSubset(tok, calleeFrame, receiverReplacement, substMap, etran,
+      CheckFrameSubset(tok, calleeFrame, receiverReplacement, substMap, etran, enclosingFrame,
         (t, e, s, q) => builder.Add(Assert(t, e, s, q)), errorMessage, kv);
     }
 
     void CheckFrameSubset(IToken tok, List<FrameExpression> calleeFrame,
                           Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/> substMap,
-                          ExpressionTranslator/*!*/ etran,
+                          ExpressionTranslator/*!*/ etran, Boogie.IdentifierExpr enclosingFrame,
                           Action<IToken, Bpl.Expr, string, Bpl.QKeyValue> MakeAssert,
                           string errorMessage,
                           Bpl.QKeyValue kv) {
@@ -5629,7 +5630,7 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
       Bpl.Expr oInCallee = InRWClause(tok, o, f, calleeFrame, etran, receiverReplacement, substMap);
-      Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(etran.TheFrame(tok), o, f);
+      Bpl.Expr inEnclosingFrame = Bpl.Expr.Select(enclosingFrame, o, f);
       Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
                                       Bpl.Expr.Imp(Bpl.Expr.And(ante, oInCallee), inEnclosingFrame));
       MakeAssert(tok, q, errorMessage, kv);
@@ -5972,7 +5973,7 @@ namespace Microsoft.Dafny {
       }
       builder.Add(CaptureState(f.tok, false, "initial state"));
 
-      DefineFrame(f.tok, f.Reads, builder, locals, null);
+      DefineFrame(f.tok, etran.ReadsFrame(f.tok), f.Reads, builder, locals, null);
       InitializeFuelConstant(f.tok, builder, etran);
 
       // Check well-formedness of any default-value expressions (before assuming preconditions).
@@ -6082,7 +6083,7 @@ namespace Microsoft.Dafny {
         }
         Bpl.Expr funcAppl = new Bpl.NAryExpr(f.tok, funcID, args);
 
-        DefineFrame(f.tok, f.Reads, bodyCheckBuilder
+        DefineFrame(f.tok, etran.ReadsFrame(f.tok), f.Reads, bodyCheckBuilder
                    , new List<Variable>() /* dummy local variable list, since frame axiom variable (and its definition)
                                            * is already added. The only reason why we add the frame axiom definition
                                            * again is to make boogie gives the same trace as before the change that
@@ -6177,7 +6178,7 @@ namespace Microsoft.Dafny {
       builder.Add(CaptureState(decl.tok, false, "initial state"));
       isAllocContext = new IsAllocContext(true);
 
-      DefineFrame(decl.tok, new List<FrameExpression>(), builder, locals, null);
+      DefineFrame(decl.tok, etran.ReadsFrame(decl.tok), new List<FrameExpression>(), builder, locals, null);
 
       // some initialization stuff;  // This is collected in builderInitializationArea
       // define frame;
@@ -6329,7 +6330,7 @@ namespace Microsoft.Dafny {
       builder.Add(CaptureState(decl.tok, false, "initial state"));
       isAllocContext = new IsAllocContext(true);
 
-      DefineFrame(decl.tok, new List<FrameExpression>(), builder, locals, null);
+      DefineFrame(decl.tok, etran.ReadsFrame(decl.tok), new List<FrameExpression>(), builder, locals, null);
 
       // check well-formedness of the RHS expression
       CheckWellformed(decl.Rhs, new WFOptions(null, true), locals, builder, etran);
@@ -6400,7 +6401,7 @@ namespace Microsoft.Dafny {
       builder.Add(CaptureState(ctor.tok, false, "initial state"));
       isAllocContext = new IsAllocContext(true);
 
-      DefineFrame(ctor.tok, new List<FrameExpression>(), builder, locals, null);
+      DefineFrame(ctor.tok, etran.ReadsFrame(ctor.tok), new List<FrameExpression>(), builder, locals, null);
 
       // check well-formedness of each default-value expression
       foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
@@ -7307,7 +7308,7 @@ namespace Microsoft.Dafny {
           }
         }
         if (options.DoReadsChecks && e.Member is Field && ((Field)e.Member).IsMutable) {
-          options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), etran.TrExpr(e.Obj), GetField(e)), "insufficient reads clause to read field", options.AssertKv);
+          options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.ReadsFrame(expr.tok), etran.TrExpr(e.Obj), GetField(e)), "insufficient reads clause to read field", options.AssertKv);
         }
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
@@ -7356,7 +7357,7 @@ namespace Microsoft.Dafny {
             var i = etran.TrExpr(e.E0);
             i = ConvertExpression(expr.tok, i, e.E0.Type, Type.Int);
             Bpl.Expr fieldName = FunctionCall(expr.tok, BuiltinFunction.IndexField, null, i);
-            options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), seq, fieldName), "insufficient reads clause to read array element", options.AssertKv);
+            options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.ReadsFrame(expr.tok), seq, fieldName), "insufficient reads clause to read array element", options.AssertKv);
           } else {
             Bpl.Expr lowerBound = e.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(e.E0);
             Contract.Assert(eSeqType.AsArrayType.Dims == 1);
@@ -7366,7 +7367,7 @@ namespace Microsoft.Dafny {
             Bpl.IdentifierExpr i = new Bpl.IdentifierExpr(e.tok, iVar);
             var range = BplAnd(Bpl.Expr.Le(lowerBound, i), Bpl.Expr.Lt(i, upperBound));
             var fieldName = FunctionCall(e.tok, BuiltinFunction.IndexField, null, i);
-            var allowedToRead = Bpl.Expr.SelectTok(e.tok, etran.TheFrame(e.tok), seq, fieldName);
+            var allowedToRead = Bpl.Expr.SelectTok(e.tok, etran.ReadsFrame(e.tok), seq, fieldName);
             var trigger = BplTrigger(allowedToRead); // Note, the assertion we're about to produce only seems useful in the check-only mode (that is, with subsumption 0), but if it were to be assumed, we'll use this entire RHS as the trigger
             var qq = new Bpl.ForallExpr(e.tok, new List<Variable> { iVar }, trigger, BplImp(range, allowedToRead));
             options.AssertSink(this, builder)(expr.tok, qq, "insufficient reads clause to read the indicated range of array elements", options.AssertKv);
@@ -7395,7 +7396,7 @@ namespace Microsoft.Dafny {
         }
         if (options.DoReadsChecks) {
           Bpl.Expr fieldName = etran.GetArrayIndexFieldName(e.tok, e.Indices);
-          options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), array, fieldName), "insufficient reads clause to read array element", options.AssertKv);
+          options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.ReadsFrame(expr.tok), array, fieldName), "insufficient reads clause to read array element", options.AssertKv);
         }
       } else if (expr is SeqUpdateExpr) {
         var e = (SeqUpdateExpr)expr;
@@ -7510,7 +7511,7 @@ namespace Microsoft.Dafny {
             objset);
           var reads = new FrameExpression(e.tok, wrap, null);
           CheckFrameSubset(expr.tok, new List<FrameExpression> { reads }, null, null,
-            etran, options.AssertSink(this, builder), "insufficient reads clause to invoke function", options.AssertKv);
+            etran, etran.ReadsFrame(expr.tok), options.AssertSink(this, builder), "insufficient reads clause to invoke function", options.AssertKv);
         }
 
       } else if (expr is FunctionCallExpr) {
@@ -7628,7 +7629,7 @@ namespace Microsoft.Dafny {
             var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
             CheckFrameSubset(expr.tok,
               e.Function.Reads.ConvertAll(s.SubstFrameExpr),
-              e.Receiver, substMap, etran, options.AssertSink(this, builder), "insufficient reads clause to invoke function", options.AssertKv);
+              e.Receiver, substMap, etran, etran.ReadsFrame(expr.tok), options.AssertSink(this, builder), "insufficient reads clause to invoke function", options.AssertKv);
           }
 
           Bpl.Expr allowance = null;
@@ -7920,9 +7921,9 @@ namespace Microsoft.Dafny {
               // Set up a new frame
               var frameName = CurrentIdGenerator.FreshId("$_Frame#l");
               reads = lam.Reads.ConvertAll(s.SubstFrameExpr);
-              DefineFrame(e.tok, reads, newBuilder, locals, frameName, comprehensionEtran);
-              comprehensionEtran = new ExpressionTranslator(comprehensionEtran, frameName);
-
+              comprehensionEtran = new ExpressionTranslator(comprehensionEtran, frameName, comprehensionEtran.modifiesFrame);
+              DefineFrame(e.tok, comprehensionEtran.ReadsFrame(e.tok), reads, newBuilder, locals, frameName, comprehensionEtran);
+              
               // Check frame WF and that it read covers itself
               newOptions = new WFOptions(options.SelfCallsAllowance, true /* check reads clauses */, true /* delay reads checks */);
               CheckFrameWellFormed(newOptions, reads, locals, newBuilder, comprehensionEtran);
@@ -10062,7 +10063,8 @@ namespace Microsoft.Dafny {
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etranPre.IsAlloced(tok, o));
       Bpl.Expr consequent = Bpl.Expr.Eq(heapOF, preHeapOF);
 
-      consequent = Bpl.Expr.Or(consequent, Bpl.Expr.SelectTok(tok, etranMod.TheFrame(tok), o, f));
+      // TODO: double check this is modifies and not reads
+      consequent = Bpl.Expr.Or(consequent, Bpl.Expr.SelectTok(tok, etranMod.ModifiesFrame(tok), o, f));
 
       Bpl.Trigger tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapOF });
       return new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null, tr, Bpl.Expr.Imp(ante, consequent));
@@ -11651,7 +11653,7 @@ namespace Microsoft.Dafny {
           prevObj[i] = obj;
           if (!useSurrogateLocal) {
             // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj]);
-            builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, GetField(fse)), "assignment may update an object not in the enclosing context's modifies clause"));
+            builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, GetField(fse)), "assignment may update an object not in the enclosing context's modifies clause"));
           }
 
           if (useSurrogateLocal) {
@@ -11696,7 +11698,7 @@ namespace Microsoft.Dafny {
           prevObj[i] = obj;
           prevIndex[i] = fieldName;
           // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
-          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing context's modifies clause"));
+          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing context's modifies clause"));
 
           bLhss.Add(null);
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
@@ -11719,7 +11721,7 @@ namespace Microsoft.Dafny {
             "$index" + i, predef.FieldName(mse.tok, predef.BoxType), builder, locals);
           prevObj[i] = obj;
           prevIndex[i] = fieldName;
-          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.TheFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing context's modifies clause"));
+          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), "assignment may update an array element not in the enclosing context's modifies clause"));
 
           bLhss.Add(null);
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
@@ -11947,7 +11949,7 @@ namespace Microsoft.Dafny {
           options.AssertSink(this, builder)(t, qe, s, qk);
         };
         CheckFrameSubset(tok, new List<FrameExpression> { reads }, null, null,
-          etran, maker,
+          etran, etran.ReadsFrame(tok), maker,
           "insufficient reads clause to invoke the function passed as an argument to the sequence constructor",
           options.AssertKv);
       }
