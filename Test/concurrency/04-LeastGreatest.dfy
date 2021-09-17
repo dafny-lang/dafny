@@ -6,7 +6,7 @@
 // Note: `least predicate P(x: int) { true && P(x) }` would be equivalent to `false`.
 
 least predicate P(x: int) {
-    x == 123 || P(x)
+  x == 123 || P(x)
 }
 
 lemma BuildP(x: int) requires x == 123 ensures P(x) {}
@@ -14,18 +14,18 @@ lemma BuildP(x: int) requires x == 123 ensures P(x) {}
 // Simple greatest predicate
 
 greatest predicate Q(x: int) {
-    true && Q(x)
+  true && Q(x)
 }
 
 greatest lemma BuildQ(x: int)
-    ensures Q(x)
+  ensures Q(x)
 {
 }
 
 lemma AdvBuildQ(x: int)
-    ensures Q(x)
+  ensures Q(x)
 {
-    forall k: ORDINAL { AdvBuildQAux(k, x); }
+  forall k: ORDINAL { AdvBuildQAux(k, x); }
 }
 
 lemma AdvBuildQAux(k: ORDINAL, x: int) ensures Q#[k](x) {}
@@ -33,7 +33,7 @@ lemma AdvBuildQAux(k: ORDINAL, x: int) ensures Q#[k](x) {}
 // Another simple greatest predicate
 
 greatest predicate R(x: bool) {
-    x ==> R(x)
+  x ==> R(x)
 }
 
 greatest lemma BuildR(x: bool) ensures R(true) {}
@@ -43,65 +43,65 @@ greatest lemma BuildR(x: bool) ensures R(true) {}
 trait Object {}
 
 greatest predicate A(x: Object) {
-    B(x)
+  B(x)
 }
 
 greatest predicate B(x: Object) {
-    A(x)
+  A(x)
 }
 
 lemma BuildA(x: Object) ensures A(x) {
-    forall k: ORDINAL { BuildAAux(k, x); }
+  forall k: ORDINAL { BuildAAux(k, x); }
 }
 
 lemma BuildAAux(k: ORDINAL, x: Object) ensures A#[k](x) {
-    forall j: ORDINAL | j < k { BuildBAux(j, x); }
+  forall j: ORDINAL | j < k { BuildBAux(j, x); }
 }
 
 lemma BuildBAux(k: ORDINAL, x: Object) ensures B#[k](x) {
-    forall j: ORDINAL | j < k  { BuildAAux(j, x); }
+  forall j: ORDINAL | j < k  { BuildAAux(j, x); }
 }
 
 // Mutually recursive, using two different traits
 
 trait TraitA {
-    var b: TraitB;
+  var b: TraitB
 }
 
 trait TraitB {
-    var a: TraitA;
+  var a: TraitA
 }
 
 greatest predicate invA(self: TraitA) reads * {
-    invB(self.b)
+  invB(self.b)
 }
 
-greatest predicate invB(self: TraitB) reads * {    
-    invA(self.a)
+greatest predicate invB(self: TraitB) reads * {  
+  invA(self.a)
 }
 
 lemma EstablishInvA(self: TraitA)
-    ensures invA(self)
+  ensures invA(self)
 {
-    forall k: ORDINAL { EstablishInvAuxA(k, self); }
+  forall k: ORDINAL { EstablishInvAuxA(k, self); }
 }
 
 lemma EstablishInvAuxA(k: ORDINAL, self: TraitA)
-    ensures invA#[k](self)
+  ensures invA#[k](self)
 {
-    forall j: ORDINAL | j < k { EstablishInvAuxB(j, self.b); }
+  forall j: ORDINAL | j < k { EstablishInvAuxB(j, self.b); }
 }
 
 lemma EstablishInvB(self: TraitB)
-    ensures invB(self)
+  ensures invB(self)
 {
-    forall k: ORDINAL { EstablishInvAuxB(k, self); }
+  forall k: ORDINAL { EstablishInvAuxB(k, self); }
 }
 
 lemma EstablishInvAuxB(k: ORDINAL, self: TraitB)
-    ensures invB#[k](self)
+  ensures invB#[k](self)
 {
-    forall j: ORDINAL | j < k { EstablishInvAuxA(j, self.a); }
+  forall j: ORDINAL | j < k { EstablishInvAuxA(j, self.a); }
 }
 
 greatest lemma AlternativeEstablishInvA(self: TraitA) ensures invA(self) && invB(self.b) {}
