@@ -10127,6 +10127,10 @@ namespace Microsoft.Dafny {
           ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
         }
 
+        foreach (FrameExpression fe in m.Reads) {
+          ResolveFrameExpression(fe, FrameExpressionUse.Reads, m);
+        }
+
         ResolveAttributes(m.Mod.Attributes, null, new ResolveOpts(m, false));
         foreach (FrameExpression fe in m.Mod.Expressions) {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, m);

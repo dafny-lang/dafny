@@ -1,0 +1,3 @@
+github-issue-reads-on-methods.dfy(24,9): Error: insufficient reads clause to read field
+
+Dafny program verifier finished with 3 verified, 1 error
