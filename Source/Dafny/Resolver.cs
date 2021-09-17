@@ -10127,6 +10127,11 @@ namespace Microsoft.Dafny {
           ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
         }
 
+        // The default reads clause for methods is * rather than {}.
+        // TODO-RS: Not sure if this is the best way to set the default
+        if (m.Reads.Count == 0) {
+          m.Reads.Add(new FrameExpression(m.tok, new WildcardExpr(m.tok), null));
+        }
         foreach (FrameExpression fe in m.Reads) {
           ResolveFrameExpression(fe, FrameExpressionUse.Reads, m);
         }
