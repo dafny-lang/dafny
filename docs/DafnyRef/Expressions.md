@@ -518,7 +518,26 @@ type `nat -> T` where `T` is the array element type:
 ```dafny
 var a := new int[5](i => i*i);
 ```
-TODO: what about multi-dimensional arrays
+
+To allocate a multi-dimensional array, simply give the sizes of
+each dimension. For example,
+```dafny
+var m := new real[640, 480];
+```
+allocates a 640-by-480 two-dimensional array of `real`s. The initialization
+portion cannot give a display of elements like in the one-dimensional
+case, but it can use an initialization function. A function used to initialize
+a n-dimensional array requires a function from n `nat`s to a `T`, where `T`
+is element type of the array. Here is an example:
+```dafny
+var diag := new int[30, 30]((i, j) => if i == j then 1 else 0);
+```
+
+Array allocation is permitted in ghost contexts. If any expression
+used to specify a dimension or initialization value is ghost, then the
+`new` allocation can only be used in ghost contexts. Because the
+elements of an array are non-ghost, an array allocated in a ghost
+context in effect cannot be changed after initialization.
 
 ## 20.17. Object Allocation
 ````grammar
