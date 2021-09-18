@@ -14,30 +14,30 @@ GhostAllocations-Resolution.dfy(115,11): Error: ghost variables are allowed only
 GhostAllocations-Resolution.dfy(125,11): Error: ghost variables are allowed only in specification contexts
 GhostAllocations-Resolution.dfy(127,11): Error: ghost variables are allowed only in specification contexts
 GhostAllocations-Resolution.dfy(129,11): Error: ghost variables are allowed only in specification contexts
-GhostAllocations-Resolution.dfy(143,6): Error: LHS of assignment must denote a mutable field
-GhostAllocations-Resolution.dfy(144,6): Error: LHS of assignment must denote a mutable field
-GhostAllocations-Resolution.dfy(146,6): Error: LHS of assignment must denote a mutable field
-GhostAllocations-Resolution.dfy(147,6): Error: LHS of assignment must denote a mutable field
-GhostAllocations-Resolution.dfy(168,16): Error: only ghost methods can be called from this context
-GhostAllocations-Resolution.dfy(173,8): Error: assignment to non-ghost field is not allowed in this context (because this is a ghost constructor)
-GhostAllocations-Resolution.dfy(175,14): Error: only ghost methods can be called from this context
-GhostAllocations-Resolution.dfy(209,10): Error: assignment to non-ghost field is not allowed in this context (because this is a ghost constructor)
-GhostAllocations-Resolution.dfy(210,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-GhostAllocations-Resolution.dfy(212,8): Error: assignment to non-ghost field is not allowed in this context (because this is a ghost constructor)
-GhostAllocations-Resolution.dfy(213,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-GhostAllocations-Resolution.dfy(221,22): Error: a hint is not allowed to use 'new'
-GhostAllocations-Resolution.dfy(222,22): Error: a hint is not allowed to use 'new'
-GhostAllocations-Resolution.dfy(227,18): Error: an assert-by body is not allowed to use 'new'
-GhostAllocations-Resolution.dfy(228,18): Error: an assert-by body is not allowed to use 'new'
-GhostAllocations-Resolution.dfy(247,11): Error: assignment to non-ghost field is not allowed in this context (because this is a ghost method)
-GhostAllocations-Resolution.dfy(258,11): Error: ghost variables are allowed only in specification contexts
-GhostAllocations-Resolution.dfy(276,13): Error: 'new' is not allowed in lemma contexts
-GhostAllocations-Resolution.dfy(277,13): Error: 'new' is not allowed in lemma contexts
-GhostAllocations-Resolution.dfy(281,15): Error: 'new' is not allowed in lemma contexts
-GhostAllocations-Resolution.dfy(281,25): Error: only ghost methods can be called from this context
-GhostAllocations-Resolution.dfy(282,15): Error: 'new' is not allowed in lemma contexts
-GhostAllocations-Resolution.dfy(286,13): Error: 'new' is not allowed in lemma contexts
-GhostAllocations-Resolution.dfy(287,13): Error: 'new' is not allowed in lemma contexts
-GhostAllocations-Resolution.dfy(291,13): Error: 'new' is not allowed in lemma contexts
-GhostAllocations-Resolution.dfy(295,13): Error: 'new' is not allowed in lemma contexts
+GhostAllocations-Resolution.dfy(170,6): Error: LHS of assignment must denote a mutable field
+GhostAllocations-Resolution.dfy(171,6): Error: LHS of assignment must denote a mutable field
+GhostAllocations-Resolution.dfy(173,6): Error: LHS of assignment must denote a mutable field
+GhostAllocations-Resolution.dfy(174,6): Error: LHS of assignment must denote a mutable field
+GhostAllocations-Resolution.dfy(195,16): Error: only ghost methods can be called from this context
+GhostAllocations-Resolution.dfy(200,8): Error: assignment to non-ghost field is not allowed in this context (because this is a ghost constructor)
+GhostAllocations-Resolution.dfy(202,14): Error: only ghost methods can be called from this context
+GhostAllocations-Resolution.dfy(236,10): Error: assignment to non-ghost field is not allowed in this context (because this is a ghost constructor)
+GhostAllocations-Resolution.dfy(237,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+GhostAllocations-Resolution.dfy(239,8): Error: assignment to non-ghost field is not allowed in this context (because this is a ghost constructor)
+GhostAllocations-Resolution.dfy(240,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+GhostAllocations-Resolution.dfy(248,22): Error: a hint is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(249,22): Error: a hint is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(254,18): Error: an assert-by body is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(255,18): Error: an assert-by body is not allowed to use 'new'
+GhostAllocations-Resolution.dfy(274,11): Error: assignment to non-ghost field is not allowed in this context (because this is a ghost method)
+GhostAllocations-Resolution.dfy(285,11): Error: ghost variables are allowed only in specification contexts
+GhostAllocations-Resolution.dfy(303,13): Error: 'new' is not allowed in lemma contexts
+GhostAllocations-Resolution.dfy(304,13): Error: 'new' is not allowed in lemma contexts
+GhostAllocations-Resolution.dfy(308,15): Error: 'new' is not allowed in lemma contexts
+GhostAllocations-Resolution.dfy(308,25): Error: only ghost methods can be called from this context
+GhostAllocations-Resolution.dfy(309,15): Error: 'new' is not allowed in lemma contexts
+GhostAllocations-Resolution.dfy(313,13): Error: 'new' is not allowed in lemma contexts
+GhostAllocations-Resolution.dfy(314,13): Error: 'new' is not allowed in lemma contexts
+GhostAllocations-Resolution.dfy(318,13): Error: 'new' is not allowed in lemma contexts
+GhostAllocations-Resolution.dfy(322,13): Error: 'new' is not allowed in lemma contexts
 42 resolution/type errors detected in GhostAllocations-Resolution.dfy

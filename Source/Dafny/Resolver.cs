@@ -8476,6 +8476,8 @@ namespace Microsoft.Dafny {
                 autoGhostIdExpr.Var.MakeGhost();
               } else if (tRhs.ElementInit != null && resolver.UsesSpecFeatures(tRhs.ElementInit)) {
                 autoGhostIdExpr.Var.MakeGhost();
+              } else if (tRhs.InitDisplay != null && tRhs.InitDisplay.Any(resolver.UsesSpecFeatures)) {
+                autoGhostIdExpr.Var.MakeGhost();
               }
             }
           }

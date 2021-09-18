@@ -128,6 +128,33 @@ module Arrays {
     case true =>
       r := d; // error: cannot assign ghost to non-ghost
   }
+
+  method Array4() returns (ghost r: array<int>) {
+    ghost var a := new int[20];
+    ghost var b := new int[] [2, 3, 5, 7, var k := 11; k, ghost var g := 13; g];
+    ghost var c := new int[100](i => 2 * i);
+    ghost var d := new int[] [2, 3, b[2], 7, 11, 13];
+    r := a;
+    r := b;
+    r := c;
+    r := d;
+  }
+
+  method Array5(ghost n: int) returns (ghost r: array<int>)
+    requires n == 20
+  {
+    // a, b, c, d are auto-ghost
+    var a := new int[n];
+    var b := new int[] [2, 3, 5, 7, var k := 11; k, ghost var g := 13; g];
+    var c := new int[100](Double);
+    var d := new int[] [2, 3, b[2], 7, 11, 13];
+    r := a;
+    r := b;
+    r := c;
+    r := d;
+  }
+
+  function Double(i: int): int { 2 * i }
 }
 
 // ------- ghost constructors
