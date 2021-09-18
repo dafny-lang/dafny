@@ -41,4 +41,7 @@ method TestDestructors() {
   b := (ghost 9, ghost 16, 25, 36);
   c := (ghost 7, 5);
   d := (ghost 9, ghost 16, 25);
+
+  print a.2, " ", b.2, "\n"; // 9 25
+  print c.1, " ", d.2, "\n"; // 5 25
 }
