@@ -3077,8 +3077,9 @@ namespace Microsoft.Dafny {
       } else if (cl is DatatypeDecl dt) {
         var s = FullTypeName(udt);
         var typeargs = "";
-        if (udt.TypeArgs.Count != 0) {
-          typeargs = $"<{BoxedTypeNames(udt.TypeArgs, wr, udt.tok)}>";
+        var nonGhostTypeArgs = SelectNonGhost(cl, udt.TypeArgs);
+        if (nonGhostTypeArgs.Count != 0) {
+          typeargs = $"<{BoxedTypeNames(nonGhostTypeArgs, wr, udt.tok)}>";
         }
         // In an auto-init context (like a field initializer), we may not have
         // access to all the type descriptors, so we can't construct the

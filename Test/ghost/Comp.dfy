@@ -14,12 +14,31 @@ method Test3(t3: ((ghost int), (ghost int, int), ghost int)) { print "Test3: ", 
 
 method Main() {
   var p := PhantomData(123);
-  var t0 := (ghost 00);
-  var t1 := (ghost 11, 22);
-  var t2 := (33, ghost 44, 55);
-  var t3 := ((ghost 66), (ghost 77, 88), ghost 99);
+  var t0, t1, t2, t3;
   Test0(t0);
   Test1(t1);
   Test2(t2);
   Test3(t3);
+  t0 := (ghost 00);
+  t1 := (ghost 11, 22);
+  t2 := (33, ghost 44, 55);
+  t3 := ((ghost 66), (ghost 77, 88), ghost 99);
+  Test0(t0);
+  Test1(t1);
+  Test2(t2);
+  Test3(t3);
+  TestDestructors();
+}
+
+method TestDestructors() {
+  var u := (100, 200);
+  print u.0, " ", u.1, "\n"; // 100 200
+
+  var a, b, c, d; // will be initialized to default values
+  print a, " ", b, " ", c, " ", d, "\n"; // 
+
+  a := (5, ghost 7, 9);
+  b := (ghost 9, ghost 16, 25, 36);
+  c := (ghost 7, 5);
+  d := (ghost 9, ghost 16, 25);
 }
