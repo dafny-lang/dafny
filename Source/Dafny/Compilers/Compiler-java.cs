@@ -1995,7 +1995,7 @@ namespace Microsoft.Dafny {
 
       var dt = ctor.EnclosingDatatype;
       if (dt is TupleTypeDecl tupleDecl) {
-        return DafnyTupleClass(tupleDecl.TypeArgs.Count);
+        return DafnyTupleClass(tupleDecl.NonGhostDims);
       }
       var dtName = IdProtect(dt.CompileName);
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.CompileName;
@@ -3152,7 +3152,7 @@ namespace Microsoft.Dafny {
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       string dtorName;
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
-        dtorName = $"dtor__{dtor.Name}()";
+        dtorName = $"dtor__{dtor.NameForCompilation}()";
       } else if (int.TryParse(dtor.Name, out _)) {
         dtorName = $"dtor_{dtor.Name}()";
       } else {

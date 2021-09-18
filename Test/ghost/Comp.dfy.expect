@@ -14,6 +14,11 @@ Test3: ((), (88))
 (0, 0) (0, 0) (0) (0)
 9 25
 5 25
+5 9
+25 36
+5
+25
+14 61 5 25
 
 Dafny program verifier did not attempt verification
 Test0: ()
@@ -28,6 +33,11 @@ Test3: ((), (88))
 (0, 0) (0, 0) (0) (0)
 9 25
 5 25
+5 9
+25 36
+5
+25
+14 61 5 25
 
 Dafny program verifier did not attempt verification
 Test0: ()
@@ -42,6 +52,11 @@ Test3: ((), (88))
 (0, 0) (0, 0) (0) (0)
 9 25
 5 25
+5 9
+25 36
+5
+25
+14 61 5 25
 
 Dafny program verifier did not attempt verification
 Test0: ()
@@ -56,3 +71,8 @@ Test3: ((), (88))
 (0, 0) (0, 0) (0) (0)
 9 25
 5 25
+5 9
+25 36
+5
+25
+14 61 5 25

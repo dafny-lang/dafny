@@ -28,6 +28,7 @@ method Main() {
   Test2(t2);
   Test3(t3);
   TestDestructors();
+  TestMatchDestructions();
 }
 
 method TestDestructors() {
@@ -44,4 +45,35 @@ method TestDestructors() {
 
   print a.2, " ", b.2, "\n"; // 9 25
   print c.1, " ", d.2, "\n"; // 5 25
+}
+
+method TestMatchDestructions() {
+  var e := (ghost 15);
+  var a := (5, ghost 7, 9);
+  var b := (ghost 9, ghost 16, 25, 36);
+  var c := (ghost 7, 5);
+  var d := (ghost 9, ghost 16, 25);
+
+  // match statements
+
+  match a {
+    case (x, _, y) => print x, " ", y, "\n"; // 5 9
+  }
+  match b {
+    case (_, _, x, y) => print x, " ", y, "\n"; // 25 36
+  }
+  match c {
+    case (_, x) => print x, "\n"; // 5
+  }
+  match d {
+    case (_, _, x) => print x, "\n"; // 25
+  }
+
+  // match expressions
+
+  var aa := match a case (x, _, y) => x + y; // 14
+  var bb := match b case (_, _, x, y) => x + y; // 61
+  var cc := match c case (_, x) => x; // 5
+  var dd := match d case (_, _, x) => x; // 25
+  print aa, " ", bb, " ", cc, " ", dd, "\n";
 }
