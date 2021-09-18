@@ -3014,15 +3014,12 @@ ExtendedPattern<.out ExtendedPattern pat.>
       [ ExtendedPattern<out pat>           (. arguments.Add(pat); .)
       { "," ExtendedPattern<out pat>       (. arguments.Add(pat); .)
       }]
-    ")"                                    (. if (arguments.Count == 1) {
-                                                SemErr(t, "parentheses are not allowed around a pattern");
-                                              } else {
-                                                // make sure the tuple type exists
-                                                theBuiltIns.TupleType(id, arguments.Count, true);
-                                                //use the TupleTypeCtors
-                                                string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;
-                                                pat = new IdPattern(id, ctor, arguments);
-                                               } .)
+    ")"                                    (. // make sure the tuple type exists
+                                              theBuiltIns.TupleType(id, arguments.Count, true);
+                                              //use the TupleTypeCtors
+                                              string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;
+                                              pat = new IdPattern(id, ctor, arguments);
+                                           .)
   | IF(IsIdentParen())
     Ident<out id>                          (. arguments = new List<ExtendedPattern>(); .)
     "("

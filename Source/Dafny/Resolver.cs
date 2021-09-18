@@ -12349,7 +12349,11 @@ namespace Microsoft.Dafny {
 
     private void CheckLinearVarPattern(Type type, IdPattern pat, ResolveOpts opts) {
       if (pat.Arguments != null) {
-        reporter.Error(MessageSource.Resolver, pat.Tok, "member {0} does not exist in type {1}", pat.Id, type);
+        if (pat.Id == BuiltIns.TupleTypeCtorNamePrefix + "1") {
+          reporter.Error(MessageSource.Resolver, pat.Tok, "parentheses are not allowed around a pattern");
+        } else {
+          reporter.Error(MessageSource.Resolver, pat.Tok, "member {0} does not exist in type {1}", pat.Id, type);
+        }
         return;
       }
 

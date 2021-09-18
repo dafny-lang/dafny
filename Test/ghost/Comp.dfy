@@ -56,6 +56,9 @@ method TestMatchDestructions() {
 
   // match statements
 
+  match e {
+    case (_) => print e, "\n"; // ()
+  }
   match a {
     case (x, _, y) => print x, " ", y, "\n"; // 5 9
   }
@@ -71,9 +74,10 @@ method TestMatchDestructions() {
 
   // match expressions
 
+  var ee := match e case (_) => e;
   var aa := match a case (x, _, y) => x + y; // 14
   var bb := match b case (_, _, x, y) => x + y; // 61
   var cc := match c case (_, x) => x; // 5
   var dd := match d case (_, _, x) => x; // 25
-  print aa, " ", bb, " ", cc, " ", dd, "\n";
+  print ee, " ", aa, " ", bb, " ", cc, " ", dd, "\n";
 }
