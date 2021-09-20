@@ -218,13 +218,13 @@ ResolutionErrors.dfy(1502,10): Error: a hint is not allowed to update heap locat
 ResolutionErrors.dfy(1503,20): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(1506,21): Error: a loop statement used inside a hint is not allowed to have a modifies clause
 ResolutionErrors.dfy(1488,24): Error: only ghost methods can be called from this context
-ResolutionErrors.dfy(1501,18): Error: assignment to non-ghost field is not allowed in this context (because this is a ghost function)
+ResolutionErrors.dfy(1501,18): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost function
 ResolutionErrors.dfy(1530,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1531,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1532,11): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(1535,21): Error: a loop statement used inside a hint is not allowed to have a modifies clause
 ResolutionErrors.dfy(1523,24): Error: only ghost methods can be called from this context
-ResolutionErrors.dfy(1530,18): Error: assignment to non-ghost field is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
+ResolutionErrors.dfy(1530,18): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ResolutionErrors.dfy(1559,20): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(1452,29): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(1454,17): Error: calls to methods with side-effects are not allowed inside a hint
@@ -241,14 +241,14 @@ ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could n
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
 ResolutionErrors.dfy(1647,10): Error: the type of the bound variable 't' could not be determined
 ResolutionErrors.dfy(1665,15): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
-ResolutionErrors.dfy(1667,10): Error: assignment to non-ghost field is not allowed in this context (because this is a ghost method)
+ResolutionErrors.dfy(1667,10): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost method
 ResolutionErrors.dfy(1692,15): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
-ResolutionErrors.dfy(1694,25): Error: assignment to non-ghost variable is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
-ResolutionErrors.dfy(1695,35): Error: assignment to non-ghost variable is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
+ResolutionErrors.dfy(1694,25): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ResolutionErrors.dfy(1695,35): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ResolutionErrors.dfy(1705,4): Error: 'decreases *' is not allowed on ghost loops
-ResolutionErrors.dfy(1709,8): Error: assignment to non-ghost variable is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
+ResolutionErrors.dfy(1709,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ResolutionErrors.dfy(1719,4): Error: 'decreases *' is not allowed on ghost loops
-ResolutionErrors.dfy(1723,29): Error: assignment to non-ghost variable is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
+ResolutionErrors.dfy(1723,29): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ResolutionErrors.dfy(1731,21): Error: the type of the bound variable 'u' could not be determined
 ResolutionErrors.dfy(1732,23): Error: the type of the bound variable 'u' could not be determined
 ResolutionErrors.dfy(1735,27): Error: the type of the bound variable 'u' could not be determined

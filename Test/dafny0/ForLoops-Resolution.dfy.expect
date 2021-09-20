@@ -25,12 +25,12 @@ ForLoops-Resolution.dfy(321,12): Error: break label is undefined or not in scope
 ForLoops-Resolution.dfy(332,11): Error: unresolved identifier: i
 ForLoops-Resolution.dfy(353,18): Error: break label is undefined or not in scope: A
 ForLoops-Resolution.dfy(355,18): Error: trying to break out of more loop levels than there are enclosing loops
-ForLoops-Resolution.dfy(390,10): Error: assignment to non-ghost field is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
-ForLoops-Resolution.dfy(412,10): Error: assignment to non-ghost field is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
-ForLoops-Resolution.dfy(434,10): Error: assignment to non-ghost field is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
-ForLoops-Resolution.dfy(446,10): Error: assignment to non-ghost field is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
-ForLoops-Resolution.dfy(457,10): Error: assignment to non-ghost field is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
-ForLoops-Resolution.dfy(479,8): Error: assignment to non-ghost variable is not allowed in this context (because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression)
+ForLoops-Resolution.dfy(390,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(412,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(434,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(446,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(457,10): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ForLoops-Resolution.dfy(479,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ForLoops-Resolution.dfy(490,16): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
 ForLoops-Resolution.dfy(503,6): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
 ForLoops-Resolution.dfy(490,16): Error: return statement is not allowed inside a hint

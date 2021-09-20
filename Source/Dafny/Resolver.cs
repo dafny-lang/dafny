@@ -8714,7 +8714,7 @@ namespace Microsoft.Dafny {
             } else {
               reason = "the statement is in a ghost context; e.g., it may be guarded by a specification-only expression";
             }
-            Error(s, $"assignment to {AssignStmt.NonGhostKind_To_String(gk)} is not allowed in this context (because {reason})");
+            Error(s, $"assignment to {AssignStmt.NonGhostKind_To_String(gk)} is not allowed in this context, because {reason}");
           }
         } else {
           if (gk == AssignStmt.NonGhostKind.Field) {
