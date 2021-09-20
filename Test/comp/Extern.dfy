@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:3 /compileTarget:cs "%s" Extern2.cs > "%t"
 // RUN: %dafny /compile:3 /compileTarget:js "%s" Extern3.js >> "%t"
 // RUN: %dafny /compile:3 /compileTarget:go "%s" Extern4.go >> "%t"
-// RUN: %dafny /compile:3 /compileTarget:java "%s" LibClass.java OtherClass.java AllDafny.java Mixed.java AllExtern.java >> "%t"
+// RUN: %dafny /compile:3 /compileTarget:java "%s" LibClass.java OtherClass.java AllDafny.java Mixed.java AllExtern.java SingletonOptimization.java >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
@@ -19,6 +19,10 @@ method Main() {
   print m.IF(), "\n";
   Library.AllExtern.P();
   assert Library.AllDafny.Seven() == Library.Mixed.Seven() == Library.AllExtern.Seven();
+
+  var singleton := Library.SingletonOptimization.SingletonTuple((ghost 2, 3));
+  assert singleton.0 == 3;
+  print singleton.0, "\n"; // 3
 }
 
 module {:extern "Library"} Library {
@@ -48,5 +52,11 @@ module {:extern "Library"} Library {
   class {:extern} AllExtern {
     static function Seven(): int { 7 }
     static method {:extern} P()
+  }
+
+  class {:extern} SingletonOptimization {
+    // The in-parameter and out-parameter of this method can be optimized to just an "MyInt"
+    static method {:extern} SingletonTuple(a: (ghost MyInt, MyInt)) returns (b: (MyInt, ghost MyInt, ghost MyInt))
+      ensures b.0 == a.1
   }
 }

@@ -51,5 +51,11 @@ let Library = (function() {
     }
   };
 
+  $module.SingletonOptimization = class SingletonOptimization {
+    static SingletonTuple(a) {
+      return a;
+    }
+  };
+
   return $module;
 })();

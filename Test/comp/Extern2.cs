@@ -43,4 +43,10 @@ namespace Library {
       System.Console.WriteLine("AllExtern.P");
     }
   }
+
+  public partial class SingletonOptimization {
+    public static int SingletonTuple(int a) {
+      return a;
+    }
+  }
 }

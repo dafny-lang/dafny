@@ -86,3 +86,9 @@ var Companion_AllExtern_ = AllExtern{}
 func (AllExtern) P() {
   fmt.Print("AllExtern.P\n")
 }
+
+type SingletonOptimization struct{}
+var Companion_SingletonOptimization_ = SingletonOptimization{}
+func (SingletonOptimization) SingletonTuple(a int32) int32 {
+  return a
+}

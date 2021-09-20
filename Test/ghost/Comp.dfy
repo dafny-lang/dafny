@@ -29,6 +29,8 @@ method Main() {
   Test3(t3);
   TestDestructors();
   TestMatchDestructions();
+  var sss := TestSingletons();
+  print sss.1, "\n"; // 1213
 }
 
 method TestDestructors() {
@@ -81,3 +83,35 @@ method TestMatchDestructions() {
   var dd := match d case (_, _, x) => x; // 25
   print ee, " ", aa, " ", bb, " ", cc, " ", dd, "\n";
 }
+
+method TestSingletons() returns (r: (ghost int, int, ghost real, ghost real)) {
+  var s0 := Singleton0();
+  var s1 := Singleton1();
+  var s2 := Singleton2();
+  var c := SingletonConst;
+  var u := (if s0.1 == s1.0 then 1100 else 1099) + s2.2 + c.0;
+  assert u == 1212;
+
+  var x;
+  match s2 {
+    case (a, b, c, d) => x := c;
+  }
+  x := x + match s2 case (a, b, c, d) => 1 - c;
+  assert x == 1;
+
+  return (ghost u + 50, u + x, ghost s0.1, ghost s2.0);
+}
+
+function method Singleton0(): (ghost int, real) {
+  (ghost 2, 3.2)
+}
+
+function method Singleton1(): (real, ghost int) {
+  (3.2, ghost 2)
+}
+
+function method Singleton2(): (ghost real, ghost (), int, ghost char) {
+  (ghost 5.0, ghost (), 100, ghost 'D')
+}
+
+const SingletonConst := (12, ghost 13)
