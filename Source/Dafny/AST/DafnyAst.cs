@@ -2713,7 +2713,7 @@ namespace Microsoft.Dafny {
 
     public string FullName {
       get {
-        if (ResolvedClass != null && !ResolvedClass.EnclosingModuleDefinition.IsDefaultModule) {
+        if (ResolvedClass != null && ResolvedClass.EnclosingModuleDefinition != null && !ResolvedClass.EnclosingModuleDefinition.IsDefaultModule) {
           return ResolvedClass.EnclosingModuleDefinition.Name + "." + Name;
         } else {
           return Name;
