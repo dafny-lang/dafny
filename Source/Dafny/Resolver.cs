@@ -8463,89 +8463,7 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
-          var lhs = s.Lhs.Resolved;
-
-          // Make an auto-ghost variable a ghost if the RHS is a ghost
-          if (lhs.Resolved is AutoGhostIdentifierExpr autoGhostIdExpr) {
-            if (s.Rhs is ExprRhs eRhs && resolver.UsesSpecFeatures(eRhs.Expr)) {
-              autoGhostIdExpr.Var.MakeGhost();
-            } else if (s.Rhs is TypeRhs tRhs) {
-              if (tRhs.InitCall != null && tRhs.InitCall.Method.IsGhost) {
-                autoGhostIdExpr.Var.MakeGhost();
-              } else if (tRhs.ArrayDimensions != null && tRhs.ArrayDimensions.Exists(resolver.UsesSpecFeatures)) {
-                autoGhostIdExpr.Var.MakeGhost();
-              } else if (tRhs.ElementInit != null && resolver.UsesSpecFeatures(tRhs.ElementInit)) {
-                autoGhostIdExpr.Var.MakeGhost();
-              } else if (tRhs.InitDisplay != null && tRhs.InitDisplay.Any(resolver.UsesSpecFeatures)) {
-                autoGhostIdExpr.Var.MakeGhost();
-              }
-            }
-          }
-
-          var gk = AssignStmt.LhsIsToGhost_Which(lhs);
-          if (gk == AssignStmt.NonGhostKind.IsGhost) {
-            s.IsGhost = true;
-            if (s.Rhs is TypeRhs tRhs) {
-              if (codeContext is Method m && m.IsLemmaLike) {
-                Error(s.Rhs.Tok, "'new' is not allowed in lemma contexts");
-              }
-              if (tRhs.InitCall != null) {
-                Visit(tRhs.InitCall, true);
-              }
-            }
-          } else if (gk == AssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
-            // cool
-          } else if (mustBeErasable) {
-            if (inFirstBlockDivision && codeContext is Constructor && codeContext.IsGhost && lhs is MemberSelectExpr mse && mse.Obj.Resolved is ThisExpr) {
-              // in this first division (before "new;") of a ghost constructor, allow assignment to non-ghost field of the object being constructor
-            } else {
-              string reason;
-              if (codeContext.IsGhost) {
-                reason = string.Format("this is a ghost {0}", codeContext is MemberDecl member ? member.WhatKind : "context");
-              } else {
-                reason = "the statement is in a ghost context; e.g., it may be guarded by a specification-only expression";
-              }
-              Error(stmt, $"assignment to {AssignStmt.NonGhostKind_To_String(gk)} is not allowed in this context (because {reason})");
-            }
-          } else {
-            if (gk == AssignStmt.NonGhostKind.Field) {
-              var mse = (MemberSelectExpr)lhs;
-              resolver.CheckIsCompilable(mse.Obj, codeContext);
-            } else if (gk == AssignStmt.NonGhostKind.ArrayElement) {
-              resolver.CheckIsCompilable(lhs, codeContext);
-            }
-
-            if (s.Rhs is ExprRhs) {
-              var rhs = (ExprRhs)s.Rhs;
-              if (!AssignStmt.LhsIsToGhost(lhs)) {
-                resolver.CheckIsCompilable(rhs.Expr, codeContext);
-              }
-            } else if (s.Rhs is HavocRhs) {
-              // cool
-            } else {
-              var rhs = (TypeRhs)s.Rhs;
-              if (rhs.ArrayDimensions != null) {
-                rhs.ArrayDimensions.ForEach(ee => resolver.CheckIsCompilable(ee, codeContext));
-                if (rhs.ElementInit != null) {
-                  resolver.CheckIsCompilable(rhs.ElementInit, codeContext);
-                }
-                if (rhs.InitDisplay != null) {
-                  rhs.InitDisplay.ForEach(ee => resolver.CheckIsCompilable(ee, codeContext));
-                }
-              }
-              if (rhs.InitCall != null) {
-                var callee = rhs.InitCall.Method;
-                if (callee.IsGhost) {
-                  Error(rhs.InitCall, "the result of a ghost constructor can only be assigned to a ghost variable");
-                }
-                for (var i = 0; i < rhs.InitCall.Args.Count; i++) {
-                  if (!callee.Ins[i].IsGhost) {
-                    resolver.CheckIsCompilable(rhs.InitCall.Args[i], codeContext);
-                  }
-                }
-              }
-            }
-          }
+          CheckAssignStmt(s, mustBeErasable);
 
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
@@ -8747,6 +8665,95 @@ namespace Microsoft.Dafny {
 
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();
+        }
+      }
+
+      private void CheckAssignStmt(AssignStmt s, bool mustBeErasable) {
+        Contract.Requires(s != null);
+
+        var lhs = s.Lhs.Resolved;
+
+        // Make an auto-ghost variable a ghost if the RHS is a ghost
+        if (lhs.Resolved is AutoGhostIdentifierExpr autoGhostIdExpr) {
+          if (s.Rhs is ExprRhs eRhs && resolver.UsesSpecFeatures(eRhs.Expr)) {
+            autoGhostIdExpr.Var.MakeGhost();
+          } else if (s.Rhs is TypeRhs tRhs) {
+            if (tRhs.InitCall != null && tRhs.InitCall.Method.IsGhost) {
+              autoGhostIdExpr.Var.MakeGhost();
+            } else if (tRhs.ArrayDimensions != null && tRhs.ArrayDimensions.Exists(resolver.UsesSpecFeatures)) {
+              autoGhostIdExpr.Var.MakeGhost();
+            } else if (tRhs.ElementInit != null && resolver.UsesSpecFeatures(tRhs.ElementInit)) {
+              autoGhostIdExpr.Var.MakeGhost();
+            } else if (tRhs.InitDisplay != null && tRhs.InitDisplay.Any(resolver.UsesSpecFeatures)) {
+              autoGhostIdExpr.Var.MakeGhost();
+            }
+          }
+        }
+
+        var gk = AssignStmt.LhsIsToGhost_Which(lhs);
+        if (gk == AssignStmt.NonGhostKind.IsGhost) {
+          s.IsGhost = true;
+          if (s.Rhs is TypeRhs tRhs) {
+            if (codeContext is Method m && m.IsLemmaLike) {
+              Error(s.Rhs.Tok, "'new' is not allowed in lemma contexts");
+            }
+            if (tRhs.InitCall != null) {
+              Visit(tRhs.InitCall, true);
+            }
+          }
+        } else if (gk == AssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
+          // cool
+        } else if (mustBeErasable) {
+          if (inFirstBlockDivision && codeContext is Constructor && codeContext.IsGhost && lhs is MemberSelectExpr mse &&
+              mse.Obj.Resolved is ThisExpr) {
+            // in this first division (before "new;") of a ghost constructor, allow assignment to non-ghost field of the object being constructed
+          } else {
+            string reason;
+            if (codeContext.IsGhost) {
+              reason = string.Format("this is a ghost {0}", codeContext is MemberDecl member ? member.WhatKind : "context");
+            } else {
+              reason = "the statement is in a ghost context; e.g., it may be guarded by a specification-only expression";
+            }
+            Error(s, $"assignment to {AssignStmt.NonGhostKind_To_String(gk)} is not allowed in this context (because {reason})");
+          }
+        } else {
+          if (gk == AssignStmt.NonGhostKind.Field) {
+            var mse = (MemberSelectExpr)lhs;
+            resolver.CheckIsCompilable(mse.Obj, codeContext);
+          } else if (gk == AssignStmt.NonGhostKind.ArrayElement) {
+            resolver.CheckIsCompilable(lhs, codeContext);
+          }
+
+          if (s.Rhs is ExprRhs) {
+            var rhs = (ExprRhs)s.Rhs;
+            if (!AssignStmt.LhsIsToGhost(lhs)) {
+              resolver.CheckIsCompilable(rhs.Expr, codeContext);
+            }
+          } else if (s.Rhs is HavocRhs) {
+            // cool
+          } else {
+            var rhs = (TypeRhs)s.Rhs;
+            if (rhs.ArrayDimensions != null) {
+              rhs.ArrayDimensions.ForEach(ee => resolver.CheckIsCompilable(ee, codeContext));
+              if (rhs.ElementInit != null) {
+                resolver.CheckIsCompilable(rhs.ElementInit, codeContext);
+              }
+              if (rhs.InitDisplay != null) {
+                rhs.InitDisplay.ForEach(ee => resolver.CheckIsCompilable(ee, codeContext));
+              }
+            }
+            if (rhs.InitCall != null) {
+              var callee = rhs.InitCall.Method;
+              if (callee.IsGhost) {
+                Error(rhs.InitCall, "the result of a ghost constructor can only be assigned to a ghost variable");
+              }
+              for (var i = 0; i < rhs.InitCall.Args.Count; i++) {
+                if (!callee.Ins[i].IsGhost) {
+                  resolver.CheckIsCompilable(rhs.InitCall.Args[i], codeContext);
+                }
+              }
+            }
+          }
         }
       }
     }
