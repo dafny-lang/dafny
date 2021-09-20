@@ -8299,13 +8299,13 @@ namespace Microsoft.Dafny {
     class GhostInterest_Visitor {
       readonly ICodeContext codeContext;
       readonly Resolver resolver;
-      private readonly bool inFirstBlockDivision;
-      public GhostInterest_Visitor(ICodeContext codeContext, Resolver resolver, bool inFirstBlockDivision) {
+      private readonly bool inConstructorInitializationPhase;
+      public GhostInterest_Visitor(ICodeContext codeContext, Resolver resolver, bool inConstructorInitializationPhase) {
         Contract.Requires(codeContext != null);
         Contract.Requires(resolver != null);
         this.codeContext = codeContext;
         this.resolver = resolver;
-        this.inFirstBlockDivision = inFirstBlockDivision;
+        this.inConstructorInitializationPhase = inConstructorInitializationPhase;
       }
       protected void Error(Statement stmt, string msg, params object[] msgArgs) {
         Contract.Requires(stmt != null);
@@ -8704,7 +8704,7 @@ namespace Microsoft.Dafny {
         } else if (gk == AssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
           // cool
         } else if (mustBeErasable) {
-          if (inFirstBlockDivision && codeContext is Constructor && codeContext.IsGhost && lhs is MemberSelectExpr mse &&
+          if (inConstructorInitializationPhase && codeContext is Constructor && codeContext.IsGhost && lhs is MemberSelectExpr mse &&
               mse.Obj.Resolved is ThisExpr) {
             // in this first division (before "new;") of a ghost constructor, allow assignment to non-ghost field of the object being constructed
           } else {
