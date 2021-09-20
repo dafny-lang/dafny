@@ -98,7 +98,9 @@ method Negate(a: int) returns (b: int)
 ".TrimStart();
       var documentItem = CreateTestDocument(source);
       _client.OpenDocument(documentItem);
-      var counterExamples = (await RequestCounterExamples(documentItem.Uri)).ToArray();
+      var counterExamples = (await RequestCounterExamples(documentItem.Uri))
+        .OrderBy(counterExample => counterExample.Position)
+        .ToArray();
       Assert.AreEqual(2, counterExamples.Length);
       Assert.AreEqual((2, 0), counterExamples[0].Position);
       Assert.IsTrue(counterExamples[0].Variables.ContainsKey("y:int"));

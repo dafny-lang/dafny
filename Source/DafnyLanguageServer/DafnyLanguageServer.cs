@@ -21,7 +21,7 @@ namespace Microsoft.Dafny.LanguageServer {
 
     public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options, IConfiguration configuration) {
       return options
-        .WithDafnyLanguage()
+        .WithDafnyLanguage(configuration)
         .WithDafnyWorkspace(configuration)
         .WithDafnyHandlers()
         .OnInitialize(InitializeAsync)
