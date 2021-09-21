@@ -11590,7 +11590,7 @@ namespace Microsoft.Dafny {
           var ctorId = mc.Ctor.Name;
           if (s.Source.Type.AsDatatype is TupleTypeDecl) {
             var tuple = (TupleTypeDecl)s.Source.Type.AsDatatype;
-            ctorId = BuiltIns.TupleTypeCtorNamePrefix + tuple.Dims;
+            ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
           }
           if (!ctors.ContainsKey(ctorId)) {
             reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
@@ -12390,7 +12390,11 @@ namespace Microsoft.Dafny {
 
     private void CheckLinearVarPattern(Type type, IdPattern pat, ResolveOpts opts) {
       if (pat.Arguments != null) {
-        reporter.Error(MessageSource.Resolver, pat.Tok, "member {0} does not exist in type {1}", pat.Id, type);
+        if (pat.Id == BuiltIns.TupleTypeCtorName(1)) {
+          reporter.Error(MessageSource.Resolver, pat.Tok, "parentheses are not allowed around a pattern");
+        } else {
+          reporter.Error(MessageSource.Resolver, pat.Tok, "member {0} does not exist in type {1}", pat.Id, type);
+        }
         return;
       }
 
@@ -15764,7 +15768,7 @@ namespace Microsoft.Dafny {
           var ctorId = mc.Ctor.Name;
           if (me.Source.Type.AsDatatype is TupleTypeDecl) {
             var tuple = (TupleTypeDecl)me.Source.Type.AsDatatype;
-            ctorId = BuiltIns.TupleTypeCtorNamePrefix + tuple.Dims;
+            ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
           }
           if (!ctors.ContainsKey(ctorId)) {
             reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
