@@ -1568,7 +1568,9 @@ namespace Microsoft.Dafny {
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
       if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
-        return SuffixLvalue(obj, "[{0}]", dtor.Name);
+        Contract.Assert(dtor.CorrespondingFormals.Count == 1);
+        var formal = dtor.CorrespondingFormals[0];
+        return SuffixLvalue(obj, "[{0}]", formal.NameForCompilation);
       } else if (member is SpecialField sf && !(member is ConstantField)) {
         string compiledName, preStr, postStr;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out compiledName, out preStr, out postStr);
