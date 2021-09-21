@@ -3,19 +3,31 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
+  /// <summary>
+  /// Text document loader implementation that offloads the whole procedure on one dedicated
+  /// thread with a stack size of 256MB.
+  /// </summary>
   public class TextDocumentLoader : ITextDocumentLoader {
+    // 256MB
+    private const int MaxStackSize = 0x10000000;
+
     private readonly IDafnyParser parser;
     private readonly ISymbolResolver symbolResolver;
     private readonly IProgramVerifier verifier;
     private readonly ISymbolTableFactory symbolTableFactory;
     private readonly ICompilationStatusNotificationPublisher notificationPublisher;
 
-    public TextDocumentLoader(
+    private readonly Thread loadThread;
+    private readonly BlockingCollection<LoadRequest> loadRequests = new();
+    private readonly CancellationTokenSource loadCancellationToken = new();
+
+    private TextDocumentLoader(
       IDafnyParser parser,
       ISymbolResolver symbolResolver,
       IProgramVerifier verifier,
@@ -27,10 +39,33 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.verifier = verifier;
       this.symbolTableFactory = symbolTableFactory;
       this.notificationPublisher = notificationPublisher;
+      loadThread = new(LoadLoop, MaxStackSize) { IsBackground = true };
     }
 
-    public Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
-      return Task.Run(() => LoadInternal(textDocument, verify, cancellationToken), cancellationToken);
+    public static TextDocumentLoader Create(
+      IDafnyParser parser,
+      ISymbolResolver symbolResolver,
+      IProgramVerifier verifier,
+      ISymbolTableFactory symbolTableFactory,
+      ICompilationStatusNotificationPublisher notificationPublisher
+    ) {
+      var loader = new TextDocumentLoader(parser, symbolResolver, verifier, symbolTableFactory, notificationPublisher);
+      loader.loadThread.Start();
+      return loader;
+    }
+
+    public async Task<DafnyDocument> LoadAsync(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
+      var request = new LoadRequest(textDocument, verify, cancellationToken);
+      loadRequests.Add(request, cancellationToken);
+      return await request.Document.Task;
+    }
+
+    private void LoadLoop() {
+      for(; ;) {
+        var request = loadRequests.Take(loadCancellationToken.Token);
+        var document = LoadInternal(request.TextDocument, request.Verify, request.CancellationToken);
+        request.Document.SetResult(document);
+      }
     }
 
     public DafnyDocument LoadInternal(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
