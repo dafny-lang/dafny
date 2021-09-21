@@ -25,8 +25,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly IProgramVerifier verifier;
     private readonly ISymbolTableFactory symbolTableFactory;
     private readonly ICompilationStatusNotificationPublisher notificationPublisher;
-
-    private readonly Thread loadThread;
     private readonly BlockingCollection<LoadRequest> loadRequests = new();
 
     private TextDocumentLoader(
@@ -41,7 +39,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       this.verifier = verifier;
       this.symbolTableFactory = symbolTableFactory;
       this.notificationPublisher = notificationPublisher;
-      loadThread = new(LoadLoop, MaxStackSize) { IsBackground = true };
     }
 
     public static TextDocumentLoader Create(
@@ -52,7 +49,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ICompilationStatusNotificationPublisher notificationPublisher
     ) {
       var loader = new TextDocumentLoader(parser, symbolResolver, verifier, symbolTableFactory, notificationPublisher);
-      loader.loadThread.Start();
+      var loadThread = new Thread(loader.Run, MaxStackSize) { IsBackground = true };
+      loadThread.Start();
       return loader;
     }
 
@@ -62,8 +60,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       return await request.Document.Task;
     }
 
-    private void LoadLoop() {
-      for(; ;) {
+    private void Run() {
+      for (; ; ) {
         var request = loadRequests.Take();
         var document = LoadInternal(request);
         request.Document.SetResult(document);
