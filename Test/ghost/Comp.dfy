@@ -87,10 +87,12 @@ method TestMatchDestructions() {
 method TestSingletons() returns (r: (ghost int, int, ghost real, ghost real)) {
   var s0 := Singleton0();
   var s1 := Singleton1();
+  print s1, "\n"; // as usual for datatypes, ghost components are omitted
   var s2 := Singleton2();
   var c := SingletonConst;
   var u := (if s0.1 == s1.0 then 1100 else 1099) + s2.2 + c.0;
   assert u == 1212;
+  r := (ghost u + 50, u, ghost s0.1, ghost s2.0);
 
   var x;
   match s2 {
@@ -99,7 +101,7 @@ method TestSingletons() returns (r: (ghost int, int, ghost real, ghost real)) {
   x := x + match s2 case (a, b, c, d) => 1 - c;
   assert x == 1;
 
-  return (ghost u + 50, u + x, ghost s0.1, ghost s2.0);
+  return r.(1 := r.1 + x);
 }
 
 function method Singleton0(): (ghost int, real) {

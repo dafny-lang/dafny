@@ -299,6 +299,8 @@ namespace Microsoft.Dafny {
       return beforeYield;
     }
 
+    protected override bool OptimizesSingletonTuples => true;
+    
     protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
       var w = CompileDatatypeBase(dt, wr);
       CompileDatatypeConstructors(dt, wr);
@@ -1053,6 +1055,11 @@ namespace Microsoft.Dafny {
           if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
             return TypeName(instantiatedTypeParameter, wr, tok, member);
           }
+        } else if (udt.ResolvedClass is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1) {
+          // optimize singleton tuple into its argument
+          var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
+          Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
+          return TypeName(udt.TypeArgs[nonGhostComponent], wr, tok, member);
         }
         var s = FullTypeName(udt, member);
         var cl = udt.ResolvedClass;
@@ -2032,7 +2039,9 @@ namespace Microsoft.Dafny {
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      if (member is SpecialField sf && !(member is ConstantField)) {
+      if ((member.EnclosingClass as TupleTypeDecl)?.NonGhostDims == 1) {
+        return SimpleLvalue(obj);
+      } else if (member is SpecialField sf && !(member is ConstantField)) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out string compiledName, out string _, out string _);
         if (compiledName.Length != 0) {
           return SuffixLvalue(obj, ".{0}", compiledName);
@@ -2312,8 +2321,12 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      var dtorName = FormalName(dtor, formalNonGhostIndex);
-      wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? "._Get()" : "", dtorName);
+      if ((ctor.EnclosingDatatype as TupleTypeDecl)?.NonGhostDims == 1) {
+        wr.Write(source);
+      } else {
+        var dtorName = FormalName(dtor, formalNonGhostIndex);
+        wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? "._Get()" : "", dtorName);
+      }
     }
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, ConcreteSyntaxTree wr, bool untyped = false) {

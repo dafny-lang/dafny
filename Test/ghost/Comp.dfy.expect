@@ -3,15 +3,15 @@ Dafny program verifier finished with 2 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 Test0: ()
-Test1: (0)
+Test1: 0
 Test2: (0, 0)
-Test3: ((), (0))
+Test3: ((), 0)
 Test0: ()
-Test1: (22)
+Test1: 22
 Test2: (33, 55)
-Test3: ((), (88))
+Test3: ((), 88)
 100 200
-(0, 0) (0, 0) (0) (0)
+(0, 0) (0, 0) 0 0
 9 25
 5 25
 ()
@@ -20,19 +20,20 @@ Test3: ((), (88))
 5
 25
 () 14 61 5 25
+3.2
 1213
 
 Dafny program verifier did not attempt verification
 Test0: ()
-Test1: (0)
+Test1: 0
 Test2: (0, 0)
-Test3: ((), (0))
+Test3: ((), 0)
 Test0: ()
-Test1: (22)
+Test1: 22
 Test2: (33, 55)
-Test3: ((), (88))
+Test3: ((), 88)
 100 200
-(0, 0) (0, 0) (0) (0)
+(0, 0) (0, 0) 0 0
 9 25
 5 25
 ()
@@ -41,19 +42,20 @@ Test3: ((), (88))
 5
 25
 () 14 61 5 25
+3.2
 1213
 
 Dafny program verifier did not attempt verification
 Test0: ()
-Test1: (0)
+Test1: 0
 Test2: (0, 0)
-Test3: ((), (0))
+Test3: ((), 0)
 Test0: ()
-Test1: (22)
+Test1: 22
 Test2: (33, 55)
-Test3: ((), (88))
+Test3: ((), 88)
 100 200
-(0, 0) (0, 0) (0) (0)
+(0, 0) (0, 0) 0 0
 9 25
 5 25
 ()
@@ -62,19 +64,20 @@ Test3: ((), (88))
 5
 25
 () 14 61 5 25
+3.2
 1213
 
 Dafny program verifier did not attempt verification
 Test0: ()
-Test1: (0)
+Test1: 0
 Test2: (0, 0)
-Test3: ((), (0))
+Test3: ((), 0)
 Test0: ()
-Test1: (22)
+Test1: 22
 Test2: (33, 55)
-Test3: ((), (88))
+Test3: ((), 88)
 100 200
-(0, 0) (0, 0) (0) (0)
+(0, 0) (0, 0) 0 0
 9 25
 5 25
 ()
@@ -83,4 +86,5 @@ Test3: ((), (88))
 5
 25
 () 14 61 5 25
+3.2
 1213

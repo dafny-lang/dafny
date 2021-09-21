@@ -656,6 +656,11 @@ namespace Microsoft.Dafny {
           if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
             return TypeName(instantiatedTypeParameter, wr, tok, true, member);
           }
+        } else if (udt.ResolvedClass is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1) {
+          // optimize singleton tuple into its argument
+          var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
+          Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
+          return TypeName(udt.TypeArgs[nonGhostComponent], wr, tok, member);
         }
         var s = FullTypeName(udt, member);
         if (s.Equals("string")) {
@@ -1239,7 +1244,9 @@ namespace Microsoft.Dafny {
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      if (member is SpecialField sf && !(member is ConstantField)) {
+      if ((member.EnclosingClass as TupleTypeDecl)?.NonGhostDims == 1) {
+              return SimpleLvalue(obj);
+      } else if (member is SpecialField sf && !(member is ConstantField)) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
         if (compiledName.Length != 0) {
           if (member.EnclosingClass is DatatypeDecl) {
@@ -1664,6 +1671,8 @@ namespace Microsoft.Dafny {
       return w;
     }
 
+    protected override bool OptimizesSingletonTuples => true;
+    
     protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
       if (dt is TupleTypeDecl tupleDecl) {
         tuples.Add(tupleDecl.NonGhostDims);
@@ -3151,8 +3160,13 @@ namespace Microsoft.Dafny {
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
       string dtorName;
-      if (ctor.EnclosingDatatype is TupleTypeDecl) {
-        dtorName = $"dtor__{dtor.NameForCompilation}()";
+      if (ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl) {
+        if (tupleTypeDecl.NonGhostDims == 1) {
+          wr.Write(source);
+          return;
+        } else {
+          dtorName = $"dtor__{dtor.NameForCompilation}()";
+        }
       } else if (int.TryParse(dtor.Name, out _)) {
         dtorName = $"dtor_{dtor.Name}()";
       } else {

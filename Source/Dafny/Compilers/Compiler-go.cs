@@ -464,6 +464,8 @@ namespace Microsoft.Dafny {
       return wRun;
     }
 
+    protected override bool OptimizesSingletonTuples => true;
+    
     protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
       // ===== For inductive datatypes:
       //
@@ -1366,7 +1368,13 @@ namespace Microsoft.Dafny {
           return "ulong";
         } else if (xType is ArrowType at) {
           return string.Format("func ({0}) {1}", Util.Comma(at.Args, arg => TypeName(arg, wr, tok)), TypeName(at.Result, wr, tok));
-        } else if (cl is TupleTypeDecl) {
+        } else if (cl is TupleTypeDecl tupleTypeDecl) {
+          if (tupleTypeDecl.NonGhostDims == 1) {
+            // optimize singleton tuple into its argument
+            var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
+            Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
+            return TypeName(udt.TypeArgs[nonGhostComponent], wr, tok, member);
+          }
           return "_dafny.Tuple";
         } else if (udt.IsTypeParameter) {
           return "interface{}";
@@ -2410,7 +2418,9 @@ namespace Microsoft.Dafny {
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter = null, bool internalAccess = false) {
-      if (member is DatatypeDestructor dtor) {
+      if ((member.EnclosingClass as TupleTypeDecl)?.NonGhostDims == 1) {
+        return SimpleLvalue(obj);
+      } else if (member is DatatypeDestructor dtor) {
         return SimpleLvalue(wr => {
           wr = EmitCoercionIfNecessary(dtor.Type, expectedType, Bpl.Token.NoToken, wr);
           if (dtor.EnclosingClass is TupleTypeDecl) {
@@ -2739,8 +2749,12 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
-      if (ctor.EnclosingDatatype is TupleTypeDecl) {
-        wr.Write("(*({0}).IndexInt({1})).({2})", source, formalNonGhostIndex, TypeName(typeArgs[formalNonGhostIndex], wr, Bpl.Token.NoToken));
+      if (ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl) {
+        if (tupleTypeDecl.NonGhostDims == 1) {
+          wr.Write(source);
+        } else {
+          wr.Write("(*({0}).IndexInt({1})).({2})", source, formalNonGhostIndex, TypeName(typeArgs[formalNonGhostIndex], wr, Bpl.Token.NoToken));
+        }
       } else {
         var dtorName = DatatypeFieldName(dtor, formalNonGhostIndex);
         wr = EmitCoercionIfNecessary(from: dtor.Type, to: bvType, tok: dtor.tok, wr: wr);

@@ -135,6 +135,10 @@ namespace Microsoft.Dafny {
     protected virtual bool SupportsProperties { get => true; }
     protected abstract ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr);
     /// <summary>
+    /// Returns "true" if the compiler turns singleton tuples into the single component they represent.
+    /// </summary>
+    protected virtual bool OptimizesSingletonTuples => false;
+    /// <summary>
     /// Returns an IClassWriter that can be used to write additional members. If "dt" is already written
     /// in the DafnyRuntime.targetlanguage file, then returns "null".
     /// </summary>
@@ -1181,6 +1185,8 @@ namespace Microsoft.Dafny {
             var w = DeclareNewtype(nt, wr);
             v.Visit(nt);
             CompileClassMembers(program, nt, w);
+          } else if ((d as TupleTypeDecl)?.NonGhostDims == 1 && OptimizesSingletonTuples) {
+            // ignore this type declaration
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             CheckForCapitalizationConflicts(dt.Ctors);
@@ -2594,6 +2600,11 @@ namespace Microsoft.Dafny {
 
       type = type.NormalizeExpandKeepConstraints();
       Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
+      if (type.AsDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1 && OptimizesSingletonTuples) {
+        var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
+        Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
+        return PlaceboValue(type.TypeArgs[nonGhostComponent], wr, tok, constructTypeParameterDefaultsFromTypeDescriptors);
+      }
       bool usePlaceboValue = !type.HasCompilableValue;
       return TypeInitializationValue(type, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
     }
@@ -2607,6 +2618,11 @@ namespace Microsoft.Dafny {
 
       type = type.NormalizeExpandKeepConstraints();
       Contract.Assert(type is NonProxyType);  // this should never happen, since all types should have been successfully resolved
+      if (type.AsDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1 && OptimizesSingletonTuples) {
+        var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
+        Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
+        return DefaultValue(type.TypeArgs[nonGhostComponent], wr, tok, constructTypeParameterDefaultsFromTypeDescriptors);
+      }
       return TypeInitializationValue(type, wr, tok, false, constructTypeParameterDefaultsFromTypeDescriptors);
     }
 
@@ -4372,6 +4388,14 @@ namespace Microsoft.Dafny {
       } else if (expr is DatatypeValue) {
         var dtv = (DatatypeValue)expr;
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
+
+        // optimize singleton tuple into its argument
+        if (dtv.Ctor.EnclosingDatatype is TupleTypeDecl tupleTypeDecl && tupleTypeDecl.NonGhostDims == 1) {
+          var nonGhostComponent = tupleTypeDecl.ArgumentGhostness.IndexOf(false);
+          Contract.Assert(0 <= nonGhostComponent && nonGhostComponent < tupleTypeDecl.Dims); // since .NonGhostDims == 1
+          TrExpr(dtv.Arguments[nonGhostComponent], wr, inLetExprBody);
+          return;
+        }
 
         var wrArgumentList = new ConcreteSyntaxTree();
         string sep = "";
