@@ -63,12 +63,13 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private void LoadLoop() {
       for(; ;) {
         var request = loadRequests.Take(loadCancellationToken.Token);
-        var document = LoadInternal(request.TextDocument, request.Verify, request.CancellationToken);
+        var document = LoadInternal(request);
         request.Document.SetResult(document);
       }
     }
 
-    public DafnyDocument LoadInternal(TextDocumentItem textDocument, bool verify, CancellationToken cancellationToken) {
+    private DafnyDocument LoadInternal(LoadRequest loadRequest) {
+      var (textDocument, verify, cancellationToken) = loadRequest;
       var errorReporter = new DiagnosticErrorReporter(textDocument.Uri);
       var program = parser.Parse(textDocument, errorReporter, cancellationToken);
       if (errorReporter.HasErrors) {
