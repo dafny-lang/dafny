@@ -4237,10 +4237,10 @@ namespace Microsoft.Dafny {
 
       } else if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
-        if (e.Var is Formal && inLetExprBody && !((Formal)e.Var).InParam) {
-          // out param in letExpr body, need to copy it to a temp since
-          // letExpr body is translated to an anonymous function that doesn't
-          // allow out parameters
+        if (inLetExprBody && !(e.Var is BoundVar)) {
+          // copy variable to a temp since
+          //   - C# doesn't allow out param in letExpr body, and
+          //   - Java doesn't allow any non-final variable in letExpr body.
           var name = string.Format("_pat_let_tv{0}", GetUniqueAstNumber(e));
           wr.Write(name);
           DeclareLocalVar(name, null, null, false, IdName(e.Var), copyInstrWriters.Peek(), e.Type);

@@ -32,6 +32,8 @@ method Main() {
   AllBerry();
   TestConflictingNames();
   TestModule();
+
+  var _, _ := UpdateRegression(6);
 }
 
 function method Up(m: nat, n: nat): List
@@ -133,4 +135,28 @@ method PrintMaybe(x : Module.OptionInt) {
   match x
   case Some(n) => print n, "\n";
   case None => print "None\n";
+}
+
+datatype Record = Record(ghost x: int, y: int, ghost z: bool)
+
+method UpdateRegression(six: int) returns (eight: int, ten: int) {
+  eight, ten := 8, 10;
+
+  var r := Record(10, 20, true);
+  r := r.(z := false);
+  var twentytwo := 22;
+  // In the following, the local variable "twentytwo", in-parameter "six", and
+  // match-bound variable "yy" were once not adequately protected (in Java).
+  match r {
+    case Record(_, yy, _) =>
+      r := r.(y := twentytwo + ten + six + yy);
+  }
+  print r, "\n"; // Record.Record(58)
+
+  var f;
+  match r {
+    case Record(_, yy, _) =>
+      f := x => x + twentytwo + 3 + ten + six + yy;
+  }
+  print f(100), "\n"; // 199
 }

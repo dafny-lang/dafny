@@ -17,6 +17,8 @@ CoBerry.Hjortron true true false
 false
 42 q hello
 1701
+Record.Record(58)
+199
 
 Dafny program verifier finished with 12 verified, 0 errors
 List.Nil
@@ -36,6 +38,8 @@ CoBerry.Hjortron true true false
 false
 42 q hello
 1701
+Record.Record(58)
+199
 
 Dafny program verifier finished with 12 verified, 0 errors
 List.Nil
@@ -55,6 +59,8 @@ CoBerry.Hjortron true true false
 false
 42 q hello
 1701
+Record.Record(58)
+199
 
 Dafny program verifier finished with 12 verified, 0 errors
 List.Nil
@@ -74,3 +80,5 @@ CoBerry.Hjortron true true false
 false
 42 q hello
 1701
+Record.Record(58)
+199
