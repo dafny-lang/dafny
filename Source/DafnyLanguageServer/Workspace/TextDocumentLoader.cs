@@ -28,7 +28,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private readonly Thread loadThread;
     private readonly BlockingCollection<LoadRequest> loadRequests = new();
-    private readonly CancellationTokenSource loadCancellationToken = new();
 
     private TextDocumentLoader(
       IDafnyParser parser,
@@ -65,7 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private void LoadLoop() {
       for(; ;) {
-        var request = loadRequests.Take(loadCancellationToken.Token);
+        var request = loadRequests.Take();
         var document = LoadInternal(request);
         request.Document.SetResult(document);
       }
