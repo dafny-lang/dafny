@@ -61,8 +61,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private void Run() {
-      for (; ; ) {
-        var request = loadRequests.Take();
+      foreach (var request in loadRequests.GetConsumingEnumerable()) {
         var document = LoadInternal(request);
         request.Document.SetResult(document);
       }
