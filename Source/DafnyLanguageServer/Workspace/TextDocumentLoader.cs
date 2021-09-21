@@ -13,6 +13,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// Text document loader implementation that offloads the whole procedure on one dedicated
   /// thread with a stack size of 256MB.
   /// </summary>
+  /// <remarks>
+  /// The increased stack size is necessary to solve the issue https://github.com/dafny-lang/dafny/issues/1447.
+  /// </remarks>
   public class TextDocumentLoader : ITextDocumentLoader {
     // 256MB
     private const int MaxStackSize = 0x10000000;
