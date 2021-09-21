@@ -369,6 +369,11 @@ namespace Microsoft.Dafny {
       return s.StartsWith("_tuple#");
     }
     public const string TupleTypeCtorNamePrefix = "_#Make";  // the printer wants this name prefix to be uniquely recognizable
+
+    public static string TupleTypeCtorName(int dims) {
+      Contract.Assert(0 <= dims);
+      return TupleTypeCtorNamePrefix + dims;
+    }
   }
 
   /// <summary>
@@ -4680,12 +4685,22 @@ namespace Microsoft.Dafny {
     private static List<DatatypeCtor> CreateConstructors(List<TypeParameter> typeArgs, List<bool> argumentGhostness) {
       Contract.Requires(typeArgs != null);
       var formals = new List<Formal>();
+      var nonGhostArgs = 0;
       for (int i = 0; i < typeArgs.Count; i++) {
+        string compileName;
+        if (argumentGhostness[i]) {
+          // This name is irrelevant, since it won't be used in compilation. Give it a strange name
+          // that would alert us of any bug that nevertheless tries to access this name.
+          compileName = "this * is * never * used * " + i.ToString();
+        } else {
+          compileName = nonGhostArgs.ToString();
+          nonGhostArgs++;
+        }
         var tp = typeArgs[i];
-        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, argumentGhostness[i], null);
+        var f = new Formal(Token.NoToken, i.ToString(), new UserDefinedType(Token.NoToken, tp), true, argumentGhostness[i], null, nameForCompilation: compileName);
         formals.Add(f);
       }
-      string ctorName = BuiltIns.TupleTypeCtorNamePrefix + typeArgs.Count;
+      string ctorName = BuiltIns.TupleTypeCtorName(typeArgs.Count);
       var ctor = new DatatypeCtor(Token.NoToken, ctorName, formals, null);
       return new List<DatatypeCtor>() { ctor };
     }
@@ -5997,8 +6012,10 @@ namespace Microsoft.Dafny {
     public readonly bool IsOld;
     public readonly Expression DefaultValue;
     public readonly bool IsNameOnly;
+    public readonly string NameForCompilation;
 
-    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue, bool isOld = false, bool isNameOnly = false)
+    public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue,
+      bool isOld = false, bool isNameOnly = false, string nameForCompilation = null)
       : base(tok, name, type, isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -6009,6 +6026,7 @@ namespace Microsoft.Dafny {
       IsOld = isOld;
       DefaultValue = defaultValue;
       IsNameOnly = isNameOnly;
+      NameForCompilation = nameForCompilation ?? name;
     }
 
     public bool HasName {
@@ -6019,7 +6037,7 @@ namespace Microsoft.Dafny {
     public override string CompileName {
       get {
         if (compileName == null) {
-          compileName = CompilerizeName(Name);
+          compileName = CompilerizeName(NameForCompilation);
         }
         return compileName;
       }
