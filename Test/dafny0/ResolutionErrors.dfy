@@ -781,16 +781,16 @@ module StatementsInExpressions {
       5;
     }
 
-    ghost method MyLemma()
+    lemma MyLemma()
+    ghost method MyEffectlessGhostMethod()
     ghost method MyGhostMethod()
       modifies this;
     method OrdinaryMethod()
     ghost method OutParamMethod() returns (y: int)
-
     function UseLemma(): int
-    {
+    { MyEffectlessGhostMethod(); // error: cannot call ghost methods (only lemmas) from this context
       MyLemma();
-      MyGhostMethod();   // error: modifi2es state
+      MyGhostMethod();   // error: modifies state
       OutParamMethod();  // error: has out-parameters
       10
     }
@@ -930,22 +930,22 @@ module LhsLvalue {
     var c := new MyRecord[29];
 
     mySeq[0] := 5;  // error: cannot assign to a sequence element
-    mySeq[0] := MyLemma();  // error: ditto
+    mySeq[0] := MyMethod();  // error: ditto
     a[0] := 5;
-    a[0] := MyLemma();
+    a[0] := MyMethod();
     b[20, 18] := 5;
-    b[20, 18] := MyLemma();
+    b[20, 18] := MyMethod();
     c[25].x := 5;  // error: cannot assign to a destructor
-    c[25].x := MyLemma();  // error: ditto
+    c[25].x := MyMethod();  // error: ditto
     mySeq[0..4] := 5;  // error: cannot assign to a range
-    mySeq[0..4] := MyLemma();  // error: ditto
+    mySeq[0..4] := MyMethod();  // error: ditto
     a[0..4] := 5;  // error: cannot assign to a range
-    a[0..4] := MyLemma();  // error: ditto
+    a[0..4] := MyMethod();  // error: ditto
   }
 
   datatype MyRecord = Make(x: int, y: int)
 
-  method MyLemma() returns (w: int)
+  method MyMethod() returns (w: int)
 }
 
 // ------------------- dirty loops -------------------
@@ -1547,18 +1547,18 @@ module GhostTests {
       }
       5;
     }
-    ghost method MyLemma()
-    ghost method MyGhostMethod()
-      modifies this;
-    method OrdinaryMethod()
-    ghost method OutParamMethod() returns (y: int)
 
-    function UseLemma(): int
-    {
-      MyLemma();
-      OrdinaryMethod();  // error: not a ghost
-      10
-    }
+
+
+
+
+
+
+
+
+
+
+
   }
 }
 

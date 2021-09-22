@@ -6,7 +6,7 @@ class C {
   var n: nat
   var st: set<object>
 
-  ghost method CLemma(k: int)
+  lemma CLemma(k: int)
     requires k != -23
     ensures data < k  // magic, isn't it (or bogus, some would say)
 }

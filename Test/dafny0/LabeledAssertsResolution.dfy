@@ -165,7 +165,7 @@ module GitIssue408 {
         var u := 11;
         u := 20;
         x := 20;  // error: x is declared outside this assert-by block
-        x := Six();  // error: x is declared outside this assert-by block
+        x := Six();  // error (x2): x is declared outside this assert-by block, and Six is a ghost method
         y := 20;  // error: y is declared outside this assert-by block
         c.data := 20.0;  // error: assert-by cannot modify heap locations
         a[0] := 20.0;  // error: assert-by cannot modify heap locations
@@ -190,7 +190,7 @@ module GitIssue408 {
       5;
     ==  { var y := 9;
           y := 10;
-          x := Six();  // error: x is declared outside this hint
+          x := Six();  // error (x2): x is declared outside this hint, and Six is a ghost method
           assert 2 < 12 by {
             var u := 11;
             u := 20;

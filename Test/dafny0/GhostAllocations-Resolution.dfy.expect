@@ -25,6 +25,8 @@ GhostAllocations-Resolution.dfy(236,10): Error: assignment to non-ghost field is
 GhostAllocations-Resolution.dfy(237,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 GhostAllocations-Resolution.dfy(239,8): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost constructor
 GhostAllocations-Resolution.dfy(240,6): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+GhostAllocations-Resolution.dfy(249,22): Error: in a hint, calls are allowed only to lemmas
+GhostAllocations-Resolution.dfy(255,18): Error: in an assert-by body, calls are allowed only to lemmas
 GhostAllocations-Resolution.dfy(248,22): Error: a hint is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(249,22): Error: a hint is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(254,18): Error: an assert-by body is not allowed to use 'new'
@@ -34,10 +36,11 @@ GhostAllocations-Resolution.dfy(285,11): Error: ghost variables are allowed only
 GhostAllocations-Resolution.dfy(303,13): Error: 'new' is not allowed in lemma contexts
 GhostAllocations-Resolution.dfy(304,13): Error: 'new' is not allowed in lemma contexts
 GhostAllocations-Resolution.dfy(308,15): Error: 'new' is not allowed in lemma contexts
-GhostAllocations-Resolution.dfy(308,25): Error: only ghost methods can be called from this context
+GhostAllocations-Resolution.dfy(308,25): Error: in a lemma, calls are allowed only to lemmas
 GhostAllocations-Resolution.dfy(309,15): Error: 'new' is not allowed in lemma contexts
+GhostAllocations-Resolution.dfy(309,25): Error: in a lemma, calls are allowed only to lemmas
 GhostAllocations-Resolution.dfy(313,13): Error: 'new' is not allowed in lemma contexts
 GhostAllocations-Resolution.dfy(314,13): Error: 'new' is not allowed in lemma contexts
 GhostAllocations-Resolution.dfy(318,13): Error: 'new' is not allowed in lemma contexts
 GhostAllocations-Resolution.dfy(322,13): Error: 'new' is not allowed in lemma contexts
-42 resolution/type errors detected in GhostAllocations-Resolution.dfy
+45 resolution/type errors detected in GhostAllocations-Resolution.dfy

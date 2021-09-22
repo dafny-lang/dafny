@@ -120,7 +120,7 @@ method Constraints() returns (x: ORDINAL, y: ConstrainedOrdinal)
     y := 16;  // error: may not assign 16 to a ConstrainedOrdinal
 }
 
-ghost method Members(a: ORDINAL, n: nat)
+lemma Members(a: ORDINAL, n: nat)
 {
   var b: ORDINAL := 25;
   assert b.IsNat;

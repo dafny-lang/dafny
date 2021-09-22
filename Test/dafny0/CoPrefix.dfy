@@ -41,7 +41,7 @@ greatest lemma {:induction false} Theorem0()
   }
 }
 
-ghost method Theorem0_Manual()
+lemma Theorem0_Manual()
   ensures atmost(zeros(), ones());
 {
   forall k: ORDINAL {
@@ -78,7 +78,7 @@ greatest lemma {:induction false} Theorem0_TerminationFailure_DefaultDecreases(y
   Theorem0_TerminationFailure_DefaultDecreases#[_k-1](y);
 }
 
-ghost method {:induction true} Theorem0_Lemma(k: ORDINAL)
+lemma {:induction true} Theorem0_Lemma(k: ORDINAL)
   ensures atmost#[k](zeros(), ones());
 {
 }

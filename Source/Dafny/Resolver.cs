@@ -8479,12 +8479,14 @@ namespace Microsoft.Dafny {
           var callee = s.Method;
           Contract.Assert(callee != null);  // follows from the invariant of CallStmt
           s.IsGhost = callee.IsGhost;
-          // check in-parameters
-          if (mustBeErasable) {
+          if (proofContext != null && !callee.IsLemmaLike) {
+            Error(s, $"in {proofContext}, calls are allowed only to lemmas");
+          } else if (mustBeErasable) {
             if (!s.IsGhost) {
               Error(s, "only ghost methods can be called from this context");
             }
           } else {
+            // check in-parameters
             int j;
             if (!callee.IsGhost) {
               resolver.CheckIsCompilable(s.Receiver, codeContext);
@@ -13607,9 +13609,6 @@ namespace Microsoft.Dafny {
         }
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
-        if (s.Method.Mod.Expressions.Count != 0) {
-          reporter.Error(MessageSource.Resolver, stmt, "calls to methods with side-effects are not allowed inside {0}", where);
-        }
         foreach (var lhs in s.Lhs) {
           CheckHintLhs(lhs.tok, lhs.Resolved, localsAllowedInUpdates, where);
         }
@@ -15357,8 +15356,8 @@ namespace Microsoft.Dafny {
           var r = e.S as UpdateStmt;
           if (r != null && r.ResolvedStatements.Count == 1) {
             var call = r.ResolvedStatements[0] as CallStmt;
-            if (call.Method.Mod.Expressions.Count != 0) {
-              reporter.Error(MessageSource.Resolver, call, "calls to methods with side-effects are not allowed inside a statement expression");
+            if (!call.Method.IsLemmaLike) {
+              reporter.Error(MessageSource.Resolver, call, "in a statement expression, calls are allowed only to lemmas");
             } else if (call.Method is TwoStateLemma && !opts.twoState) {
               reporter.Error(MessageSource.Resolver, call, "two-state lemmas can only be used in two-state contexts");
             }

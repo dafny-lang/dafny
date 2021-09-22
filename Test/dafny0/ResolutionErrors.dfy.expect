@@ -65,7 +65,7 @@ ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bo
 ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(420,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(420,8): Error: arguments must have comparable types (got bool and int)
-ResolutionErrors.dfy(454,13): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(454,13): Error: in a hint, calls are allowed only to lemmas
 ResolutionErrors.dfy(456,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(458,10): Error: a hint is not allowed to update a variable it doesn't declare
 ResolutionErrors.dfy(479,4): Error: More than one anonymous constructor
@@ -95,7 +95,8 @@ ResolutionErrors.dfy(685,18): Error: second argument to "in" must be a set, mult
 ResolutionErrors.dfy(702,13): Error: lemmas are not allowed to have modifies clauses
 ResolutionErrors.dfy(729,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(762,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
-ResolutionErrors.dfy(793,19): Error: calls to methods with side-effects are not allowed inside a statement expression
+ResolutionErrors.dfy(791,29): Error: in a statement expression, calls are allowed only to lemmas
+ResolutionErrors.dfy(793,19): Error: in a statement expression, calls are allowed only to lemmas
 ResolutionErrors.dfy(794,20): Error: wrong number of method result arguments (got 0, expected 1)
 ResolutionErrors.dfy(816,4): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(827,40): Error: ghost variables are allowed only in specification contexts
@@ -212,22 +213,21 @@ ResolutionErrors.dfy(1433,13): Error: type of RHS of assign-such-that statement 
 ResolutionErrors.dfy(1436,15): Error: type of left argument to + (int) must agree with the result type (bool)
 ResolutionErrors.dfy(1436,15): Error: type of right argument to + (int) must agree with the result type (bool)
 ResolutionErrors.dfy(1436,15): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
-ResolutionErrors.dfy(1479,20): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(1479,20): Error: in a hint, calls are allowed only to lemmas
 ResolutionErrors.dfy(1501,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1502,10): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(1503,20): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(1506,21): Error: a loop statement used inside a hint is not allowed to have a modifies clause
-ResolutionErrors.dfy(1488,24): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(1488,24): Error: in a hint, calls are allowed only to lemmas
 ResolutionErrors.dfy(1501,18): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost function
+ResolutionErrors.dfy(1503,20): Error: in a hint, calls are allowed only to lemmas
 ResolutionErrors.dfy(1530,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1531,10): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(1532,11): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(1535,21): Error: a loop statement used inside a hint is not allowed to have a modifies clause
-ResolutionErrors.dfy(1523,24): Error: only ghost methods can be called from this context
+ResolutionErrors.dfy(1523,24): Error: in a hint, calls are allowed only to lemmas
 ResolutionErrors.dfy(1530,18): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-ResolutionErrors.dfy(1559,20): Error: only ghost methods can be called from this context
-ResolutionErrors.dfy(1452,29): Error: only ghost methods can be called from this context
-ResolutionErrors.dfy(1454,17): Error: calls to methods with side-effects are not allowed inside a hint
+ResolutionErrors.dfy(1532,11): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors.dfy(1452,29): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors.dfy(1454,17): Error: in a hint, calls are allowed only to lemmas
 ResolutionErrors.dfy(1570,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1588,12): Error: trying to break out of more loop levels than there are enclosing loops
 ResolutionErrors.dfy(1600,20): Error: ghost fields are allowed only in specification contexts
