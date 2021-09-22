@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -1651,7 +1652,7 @@ namespace Microsoft.Dafny {
                : "");
     }
 
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     private static bool EquivIfPresent<T1, T2>(Dictionary<T1, T2> dic, T1 key, T2 val)
       where T2 : class {
       T2 val2;
@@ -2824,7 +2825,7 @@ namespace Microsoft.Dafny {
             if (iter.Body != null) {
               CheckTypeInference(iter.Body, iter);
               if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
-                ComputeGhostInterest(iter.Body, false, iter);
+                ComputeGhostInterest(iter.Body, false, null, iter);
                 CheckExpression(iter.Body, this, iter);
               }
             }
@@ -3507,7 +3508,7 @@ namespace Microsoft.Dafny {
             var m = (Method)member;
             ResolveParameterDefaultValues_Pass1(m.Ins, m);
             if (m.Body != null) {
-              ComputeGhostInterest(m.Body, m.IsGhost, m);
+              ComputeGhostInterest(m.Body, m.IsGhost, m.IsLemmaLike ? "a " + m.WhatKind : null, m);
               CheckExpression(m.Body, this, m);
               DetermineTailRecursion(m);
             }
@@ -3524,7 +3525,7 @@ namespace Microsoft.Dafny {
             } else {
               var m = f.ByMethodDecl;
               Contract.Assert(m != null && !m.IsGhost);
-              ComputeGhostInterest(m.Body, false, m);
+              ComputeGhostInterest(m.Body, false, null, m);
               CheckExpression(m.Body, this, m);
               DetermineTailRecursion(m);
             }
@@ -6943,7 +6944,7 @@ namespace Microsoft.Dafny {
       protected override void VisitOneExpr(Expression expr) {
         if (expr is StmtExpr) {
           var e = (StmtExpr)expr;
-          resolver.ComputeGhostInterest(e.S, true, CodeContext);
+          resolver.ComputeGhostInterest(e.S, true, "a statement expression", CodeContext);
         } else if (expr is LetExpr) {
           var e = (LetExpr)expr;
           if (CodeContext.IsGhost) {
@@ -8290,11 +8291,11 @@ namespace Microsoft.Dafny {
     // ----- ComputeGhostInterest ---------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
     #region ComputeGhostInterest
-    public void ComputeGhostInterest(Statement stmt, bool mustBeErasable, ICodeContext codeContext) {
+    public void ComputeGhostInterest(Statement stmt, bool mustBeErasable, [CanBeNull] string proofContext, ICodeContext codeContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(codeContext != null);
       var visitor = new GhostInterest_Visitor(codeContext, this, false);
-      visitor.Visit(stmt, mustBeErasable);
+      visitor.Visit(stmt, mustBeErasable, proofContext);
     }
     class GhostInterest_Visitor {
       readonly ICodeContext codeContext;
@@ -8326,11 +8327,18 @@ namespace Microsoft.Dafny {
         resolver.reporter.Error(MessageSource.Resolver, tok, msg, msgArgs);
       }
       /// <summary>
+      /// There are three kinds of contexts for statements.
+      ///   - compiled contexts, where the statement must be compilable
+      ///     -- !mustBeErasable && proofContext == null
+      ///   - ghost contexts that allow the allocation of new object
+      ///     -- mustBeErasable && proofContext == null
+      ///   - lemma/proof contexts, which are ghost and are not allowed to allocate new objects
+      ///     -- mustBeErasable && proofContext != null
+      /// 
       /// This method does three things, in order:
       /// 0. Sets .IsGhost to "true" if the statement is ghost.  This often depends on some guard of the statement
       ///    (like the guard of an "if" statement) or the LHS of the statement (if it is an assignment).
       ///    Note, if "mustBeErasable", then the statement is already in a ghost context.
-      ///    statement itself is ghost) or and the statement assigns to a non-ghost field
       /// 1. Determines if the statement and all its subparts are legal under its computed .IsGhost setting.
       /// 2. ``Upgrades'' .IsGhost to "true" if, after investigation of the substatements of the statement, it
       ///    turns out that the statement can be erased during compilation.
@@ -8344,15 +8352,16 @@ namespace Microsoft.Dafny {
       ///   this reason, it is not necessary to visit all subexpressions, unless the subexpression
       ///   matter for the ghost checking/recording of "stmt".
       /// </summary>
-      public void Visit(Statement stmt, bool mustBeErasable) {
+      public void Visit(Statement stmt, bool mustBeErasable, [CanBeNull] string proofContext) {
         Contract.Requires(stmt != null);
-        Contract.Assume(!codeContext.IsGhost || mustBeErasable);  // (this is really a precondition) codeContext.IsGhost ==> mustBeErasable
+        Contract.Assume(!codeContext.IsGhost || mustBeErasable); // (this is really a precondition) codeContext.IsGhost ==> mustBeErasable
+        Contract.Assume(mustBeErasable || proofContext == null); // (this is really a precondition) !mustBeErasable ==> proofContext == null 
 
         if (stmt is AssertStmt || stmt is AssumeStmt) {
           stmt.IsGhost = true;
           var assertStmt = stmt as AssertStmt;
           if (assertStmt != null && assertStmt.Proof != null) {
-            Visit(assertStmt.Proof, true);
+            Visit(assertStmt.Proof, true, "an assert-by body");
           }
 
         } else if (stmt is ExpectStmt) {
@@ -8377,7 +8386,7 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is RevealStmt) {
           var s = (RevealStmt)stmt;
-          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable));
+          s.ResolvedStatements.Iter(ss => Visit(ss, true, "a reveal statement"));
           s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
         } else if (stmt is BreakStmt) {
           var s = (BreakStmt)stmt;
@@ -8394,7 +8403,7 @@ namespace Microsoft.Dafny {
             Error(stmt, "{0} statement is not allowed in this context (because it is guarded by a specification-only expression)", kind);
           }
           if (s.hiddenUpdate != null) {
-            Visit(s.hiddenUpdate, mustBeErasable);
+            Visit(s.hiddenUpdate, mustBeErasable, proofContext);
           }
 
         } else if (stmt is AssignSuchThatStmt) {
@@ -8418,12 +8427,12 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is UpdateStmt) {
           var s = (UpdateStmt)stmt;
-          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable));
+          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable, proofContext));
           s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
 
         } else if (stmt is AssignOrReturnStmt) {
           var s = (AssignOrReturnStmt)stmt;
-          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable));
+          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable, proofContext));
           s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
 
         } else if (stmt is VarDeclStmt) {
@@ -8435,7 +8444,7 @@ namespace Microsoft.Dafny {
             }
           }
           if (s.Update != null) {
-            Visit(s.Update, mustBeErasable);
+            Visit(s.Update, mustBeErasable, proofContext);
           }
           s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
 
@@ -8463,7 +8472,7 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
-          CheckAssignStmt(s, mustBeErasable);
+          CheckAssignStmt(s, mustBeErasable, proofContext);
 
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
@@ -8522,10 +8531,10 @@ namespace Microsoft.Dafny {
           s.IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
           if (s is DividedBlockStmt ds) {
             var giv = new GhostInterest_Visitor(this.codeContext, this.resolver, true);
-            ds.BodyInit.Iter(ss => giv.Visit(ss, mustBeErasable));
-            ds.BodyProper.Iter(ss => Visit(ss, mustBeErasable));
+            ds.BodyInit.Iter(ss => giv.Visit(ss, mustBeErasable, proofContext));
+            ds.BodyProper.Iter(ss => Visit(ss, mustBeErasable, proofContext));
           } else {
-            s.Body.Iter(ss => Visit(ss, mustBeErasable));
+            s.Body.Iter(ss => Visit(ss, mustBeErasable, proofContext));
           }
           s.IsGhost = s.IsGhost || s.Body.All(ss => ss.IsGhost);  // mark the block statement as ghost if all its substatements are ghost
 
@@ -8535,9 +8544,9 @@ namespace Microsoft.Dafny {
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
           }
-          Visit(s.Thn, s.IsGhost);
+          Visit(s.Thn, s.IsGhost, proofContext);
           if (s.Els != null) {
-            Visit(s.Els, s.IsGhost);
+            Visit(s.Els, s.IsGhost, proofContext);
           }
           // if both branches were all ghost, then we can mark the enclosing statement as ghost as well
           s.IsGhost = s.IsGhost || (s.Thn.IsGhost && (s.Els == null || s.Els.IsGhost));
@@ -8548,7 +8557,7 @@ namespace Microsoft.Dafny {
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
           }
-          s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost)));
+          s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
 
         } else if (stmt is WhileStmt) {
@@ -8564,7 +8573,7 @@ namespace Microsoft.Dafny {
             s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
           }
           if (s.Body != null) {
-            Visit(s.Body, s.IsGhost);
+            Visit(s.Body, s.IsGhost, proofContext);
             if (s.Body.IsGhost && !s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
               s.IsGhost = true;
             }
@@ -8582,7 +8591,7 @@ namespace Microsoft.Dafny {
           if (s.IsGhost && s.Mod.Expressions != null) {
             s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
           }
-          s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost)));
+          s.Alternatives.Iter(alt => alt.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || (!s.Decreases.Expressions.Exists(e => e is WildcardExpr) && s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost)));
 
         } else if (stmt is ForLoopStmt) {
@@ -8602,7 +8611,7 @@ namespace Microsoft.Dafny {
             s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
           }
           if (s.Body != null) {
-            Visit(s.Body, s.IsGhost);
+            Visit(s.Body, s.IsGhost, proofContext);
             if (s.Body.IsGhost) {
               s.IsGhost = true;
             }
@@ -8612,7 +8621,7 @@ namespace Microsoft.Dafny {
           var s = (ForallStmt)stmt;
           s.IsGhost = mustBeErasable || s.Kind != ForallStmt.BodyKind.Assign || resolver.UsesSpecFeatures(s.Range);
           if (s.Body != null) {
-            Visit(s.Body, s.IsGhost);
+            Visit(s.Body, s.IsGhost, s.Kind == ForallStmt.BodyKind.Assign ? proofContext : "a forall statement");
           }
           s.IsGhost = s.IsGhost || s.Body == null || s.Body.IsGhost;
 
@@ -8633,14 +8642,14 @@ namespace Microsoft.Dafny {
             s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
           }
           if (s.Body != null) {
-            Visit(s.Body, mustBeErasable);
+            Visit(s.Body, mustBeErasable, proofContext);
           }
 
         } else if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;
           s.IsGhost = true;
           foreach (var h in s.Hints) {
-            Visit(h, true);
+            Visit(h, true, "a hint");
           }
 
         } else if (stmt is MatchStmt) {
@@ -8649,17 +8658,17 @@ namespace Microsoft.Dafny {
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
           }
-          s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, s.IsGhost)));
+          s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, s.IsGhost, proofContext)));
           s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
         } else if (stmt is ConcreteSyntaxStatement) {
           var s = (ConcreteSyntaxStatement)stmt;
-          Visit(s.ResolvedStatement, mustBeErasable);
+          Visit(s.ResolvedStatement, mustBeErasable, proofContext);
           s.IsGhost = s.IsGhost || s.ResolvedStatement.IsGhost;
         } else if (stmt is SkeletonStatement) {
           var s = (SkeletonStatement)stmt;
           s.IsGhost = mustBeErasable;
           if (s.S != null) {
-            Visit(s.S, mustBeErasable);
+            Visit(s.S, mustBeErasable, proofContext);
             s.IsGhost = s.IsGhost || s.S.IsGhost;
           }
 
@@ -8668,7 +8677,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      private void CheckAssignStmt(AssignStmt s, bool mustBeErasable) {
+      private void CheckAssignStmt(AssignStmt s, bool mustBeErasable, [CanBeNull] string proofContext) {
         Contract.Requires(s != null);
 
         var lhs = s.Lhs.Resolved;
@@ -8698,7 +8707,7 @@ namespace Microsoft.Dafny {
               Error(s.Rhs.Tok, "'new' is not allowed in lemma contexts");
             }
             if (tRhs.InitCall != null) {
-              Visit(tRhs.InitCall, true);
+              Visit(tRhs.InitCall, true, proofContext);
             }
           }
         } else if (gk == AssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
