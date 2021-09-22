@@ -82,8 +82,8 @@ module CM {
 
 module DM {
   method Ghost(ghost g: int)
-  {
-    var a := new int[4] [100, 75, g, 25];  // error: "g" is ghost
+  { var a;
+    a := new int[4] [100, 75, g, 25];  // error: "g" is ghost
   }
 }
 
