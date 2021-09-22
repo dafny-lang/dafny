@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -47,8 +46,8 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public async Task<Dafny.Program> ParseAsync(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
-      await _mutex.WaitAsync(cancellationToken);
+    public Dafny.Program Parse(TextDocumentItem document, ErrorReporter errorReporter, CancellationToken cancellationToken) {
+      _mutex.Wait(cancellationToken);
       try {
         // Ensure that the statically kept scopes are empty when parsing a new document.
         Type.ResetScopes();
