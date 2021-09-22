@@ -8351,6 +8351,11 @@ namespace Microsoft.Dafny {
       /// * The method called by a StmtExpr must be ghost; however, this is checked elsewhere.  For
       ///   this reason, it is not necessary to visit all subexpressions, unless the subexpression
       ///   matter for the ghost checking/recording of "stmt".
+      ///
+      /// If "proofContext" is non-null, then this method also checks that "stmt" does not allocate
+      /// memory or modify the heap, either directly or indirectly using a statement like "modify", a loop with
+      /// an explicit "modifies" clause, or a call to a method that may allocate memory or modify the heap.
+      /// The "proofContext" string is something that can be printed as part of an error message.
       /// </summary>
       public void Visit(Statement stmt, bool mustBeErasable, [CanBeNull] string proofContext) {
         Contract.Requires(stmt != null);
@@ -8564,6 +8569,10 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
+          if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
+            resolver.reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+          }
+
           s.IsGhost = mustBeErasable || (s.Guard != null && resolver.UsesSpecFeatures(s.Guard));
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
@@ -8583,6 +8592,10 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is AlternativeLoopStmt) {
           var s = (AlternativeLoopStmt)stmt;
+          if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
+            resolver.reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+          }
+
           s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => resolver.UsesSpecFeatures(alt.Guard));
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
@@ -8598,6 +8611,10 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is ForLoopStmt) {
           var s = (ForLoopStmt)stmt;
+          if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
+            resolver.reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+          }
+
           s.IsGhost = mustBeErasable || resolver.UsesSpecFeatures(s.Start) || (s.End != null && resolver.UsesSpecFeatures(s.End));
           if (!mustBeErasable && s.IsGhost) {
             resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
@@ -8639,6 +8656,10 @@ namespace Microsoft.Dafny {
 
         } else if (stmt is ModifyStmt) {
           var s = (ModifyStmt)stmt;
+          if (proofContext != null) {
+            resolver.reporter.Error(MessageSource.Resolver, stmt, $"a modify statement is not allowed in {proofContext}");
+          }
+
           s.IsGhost = mustBeErasable;
           if (s.IsGhost) {
             s.Mod.Expressions.Iter(resolver.DisallowNonGhostFieldSpecifiers);
@@ -13624,9 +13645,9 @@ namespace Microsoft.Dafny {
           CheckHintRestrictions(s.Update, localsAllowedInUpdates, where);
         }
       } else if (stmt is VarDeclPattern) {
-        // Are we fine?
+        // fine
       } else if (stmt is ModifyStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "modify statements are not allowed inside {0}", where);
+        // no further complaints (note, ghost interests have already checked for 'modify' statements)
       } else if (stmt is BlockStmt) {
         var s = (BlockStmt)stmt;
         var newScopeForLocals = new HashSet<LocalVariable>(localsAllowedInUpdates);
@@ -13652,7 +13673,6 @@ namespace Microsoft.Dafny {
       } else if (stmt is OneBodyLoopStmt) {
         var s = (OneBodyLoopStmt)stmt;
         if (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-          reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a loop statement used inside {0} is not allowed to have a modifies clause", where);
         }
         if (s.Body != null) {
           CheckHintRestrictions(s.Body, localsAllowedInUpdates, where);
@@ -13661,7 +13681,6 @@ namespace Microsoft.Dafny {
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         if (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-          reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a loop statement used inside {0} is not allowed to have a modifies clause", where);
         }
         foreach (var alt in s.Alternatives) {
           foreach (var ss in alt.Body) {
