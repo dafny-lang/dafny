@@ -322,3 +322,139 @@ module Lemmas {
     var c := new Cell; // error: lemma is not allowed to allocate state
   }
 }
+
+// ------- ghost methods cannot be called from lemma/proof contexts
+
+module GhostMethodVersusLemma {
+  class Marker { }
+
+  class Cell {
+    ghost var m: Marker?
+  }
+
+  ghost method G(m: Marker)
+    ensures exists c: Cell :: allocated(c) && fresh(c) && c.m == m
+  {
+    var c := new Cell;
+    c.m := m;
+  }
+
+  method M0() {
+    var m := new Marker;
+    forall c: Cell | allocated(c)
+      ensures c.m != m
+    {
+      assert old(allocated(c));
+    }
+    var x := (G(m); 3); // error: not allowed to call ghost method in an expression
+    assert exists c: Cell :: allocated(c) && c.m == m;
+    assert false;
+  }
+
+  method M1(ghost b: bool) {
+    var m := new Marker;
+    G(m);
+    if b {
+      G(m);
+    }
+    assert b by {
+      G(m); // error: not allowed to call ghost method from a hint
+    }
+    assert false;
+  }
+
+  lemma GG(m: Marker)
+    ensures exists c: Cell :: allocated(c) && fresh(c) && c.m == m
+  {
+    G(m); // error: not allowed to call ghost method from a lemma
+  }
+
+  method M2() {
+    var m := new Marker;
+    calc {
+      5;
+    ==  { G(m); } // error: not allowed to call ghost method from a hint
+      7 - 2;
+    }
+  }
+
+  lemma M3(m: Marker) {
+    calc {
+      5;
+    ==  { G(m); } // error: not allowed to call ghost method from a lemma
+      7 - 2;
+    }
+  }
+
+  lemma Modify0() {
+    var i := 0;
+    while i < 10
+      modifies {} // error: not allowed modifies clause in lemma context
+    {
+      i := i + 1;
+    }
+    while
+      modifies {} // error: not allowed modifies clause in lemma context
+    {
+      case i < 20 => i := i + 1;
+    }
+    for j := 0 to 100
+      modifies {} // error: not allowed modifies clause in lemma context
+    {
+    }
+    ghost var S: set<object> := {};
+    modify S; // error: not allowed modify statement in lemma context
+    modify S { // error: not allowed modify statement in lemma context
+    }
+    var c := new Cell; // error: 'new' not allowed in lemma context
+  }
+
+  ghost method Modify1() {
+    assert true by {
+      var i := 0;
+      while i < 10
+        modifies {} // error: not allowed modifies clause in lemma context
+      {
+        i := i + 1;
+      }
+      while
+        modifies {} // error: not allowed modifies clause in lemma context
+      {
+        case i < 20 => i := i + 1;
+      }
+      for j := 0 to 100
+        modifies {} // error: not allowed modifies clause in lemma context
+      {
+      }
+      ghost var S: set<object> := {};
+      modify S; // error: not allowed modify statement in lemma context
+      modify S { // error: not allowed modify statement in lemma context
+      }
+      var c := new Cell; // error: 'new' not allowed in lemma context
+    }
+  }
+
+  ghost method Modify2() {
+    var i := 0;
+    while i < 10
+      modifies {}
+    {
+      i := i + 1;
+    }
+    while
+      modifies {}
+    {
+      case i < 20 => i := i + 1;
+    }
+    for j := 0 to 100
+      modifies {}
+    {
+    }
+    ghost var S: set<object> := {};
+    modify S;
+    modify S {
+    }
+    var c := new Cell;
+  }
+}
+

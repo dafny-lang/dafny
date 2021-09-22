@@ -43,4 +43,21 @@ GhostAllocations-Resolution.dfy(313,13): Error: 'new' is not allowed in lemma co
 GhostAllocations-Resolution.dfy(314,13): Error: 'new' is not allowed in lemma contexts
 GhostAllocations-Resolution.dfy(318,13): Error: 'new' is not allowed in lemma contexts
 GhostAllocations-Resolution.dfy(322,13): Error: 'new' is not allowed in lemma contexts
-45 resolution/type errors detected in GhostAllocations-Resolution.dfy
+GhostAllocations-Resolution.dfy(349,15): Error: in a statement expression, calls are allowed only to lemmas
+GhostAllocations-Resolution.dfy(361,7): Error: in an assert-by body, calls are allowed only to lemmas
+GhostAllocations-Resolution.dfy(369,5): Error: in a lemma, calls are allowed only to lemmas
+GhostAllocations-Resolution.dfy(376,11): Error: in a hint, calls are allowed only to lemmas
+GhostAllocations-Resolution.dfy(384,11): Error: in a hint, calls are allowed only to lemmas
+GhostAllocations-Resolution.dfy(392,15): Error: a loop in a lemma is not allowed to use 'modifies' clauses
+GhostAllocations-Resolution.dfy(397,15): Error: a loop in a lemma is not allowed to use 'modifies' clauses
+GhostAllocations-Resolution.dfy(402,15): Error: a loop in a lemma is not allowed to use 'modifies' clauses
+GhostAllocations-Resolution.dfy(406,4): Error: a modify statement is not allowed in a lemma
+GhostAllocations-Resolution.dfy(407,4): Error: a modify statement is not allowed in a lemma
+GhostAllocations-Resolution.dfy(409,13): Error: 'new' is not allowed in lemma contexts
+GhostAllocations-Resolution.dfy(416,17): Error: a loop in an assert-by body is not allowed to use 'modifies' clauses
+GhostAllocations-Resolution.dfy(421,17): Error: a loop in an assert-by body is not allowed to use 'modifies' clauses
+GhostAllocations-Resolution.dfy(426,17): Error: a loop in an assert-by body is not allowed to use 'modifies' clauses
+GhostAllocations-Resolution.dfy(430,6): Error: a modify statement is not allowed in an assert-by body
+GhostAllocations-Resolution.dfy(431,6): Error: a modify statement is not allowed in an assert-by body
+GhostAllocations-Resolution.dfy(433,15): Error: an assert-by body is not allowed to use 'new'
+62 resolution/type errors detected in GhostAllocations-Resolution.dfy
