@@ -95,9 +95,7 @@ ResolutionErrors.dfy(685,18): Error: second argument to "in" must be a set, mult
 ResolutionErrors.dfy(702,13): Error: lemmas are not allowed to have modifies clauses
 ResolutionErrors.dfy(729,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(762,22): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
-ResolutionErrors.dfy(791,29): Error: in a statement expression, calls are allowed only to lemmas
-ResolutionErrors.dfy(793,19): Error: in a statement expression, calls are allowed only to lemmas
-ResolutionErrors.dfy(794,20): Error: wrong number of method result arguments (got 0, expected 1)
+ResolutionErrors.dfy(795,17): Error: wrong number of method result arguments (got 0, expected 1)
 ResolutionErrors.dfy(816,4): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(827,40): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(850,6): Error: RHS (of type B) not assignable to LHS (of type object)
@@ -228,6 +226,7 @@ ResolutionErrors.dfy(1530,18): Error: assignment to non-ghost field is not allow
 ResolutionErrors.dfy(1532,11): Error: in a hint, calls are allowed only to lemmas
 ResolutionErrors.dfy(1452,29): Error: in a hint, calls are allowed only to lemmas
 ResolutionErrors.dfy(1454,17): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors.dfy(1558,29): Error: in a statement expression, calls are allowed only to lemmas
 ResolutionErrors.dfy(1570,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors.dfy(1588,12): Error: trying to break out of more loop levels than there are enclosing loops
 ResolutionErrors.dfy(1600,20): Error: ghost fields are allowed only in specification contexts
@@ -586,4 +585,4 @@ ResolutionErrors.dfy(3617,10): Error: a reads-clause expression must denote an o
 ResolutionErrors.dfy(3626,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got int -> int)
 ResolutionErrors.dfy(3631,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got set<object> -> int)
 ResolutionErrors.dfy(3633,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got bool -> map<object, object>)
-583 resolution/type errors detected in ResolutionErrors.dfy
+582 resolution/type errors detected in ResolutionErrors.dfy

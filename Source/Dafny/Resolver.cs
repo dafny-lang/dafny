@@ -15356,9 +15356,7 @@ namespace Microsoft.Dafny {
           var r = e.S as UpdateStmt;
           if (r != null && r.ResolvedStatements.Count == 1) {
             var call = r.ResolvedStatements[0] as CallStmt;
-            if (!call.Method.IsLemmaLike) {
-              reporter.Error(MessageSource.Resolver, call, "in a statement expression, calls are allowed only to lemmas");
-            } else if (call.Method is TwoStateLemma && !opts.twoState) {
+            if (call.Method is TwoStateLemma && !opts.twoState) {
               reporter.Error(MessageSource.Resolver, call, "two-state lemmas can only be used in two-state contexts");
             }
           }

@@ -780,20 +780,20 @@ module StatementsInExpressions {
       }
       5;
     }
+  }
+}
 
-    lemma MyLemma()
-    ghost method MyEffectlessGhostMethod()
-    ghost method MyGhostMethod()
-      modifies this;
-    method OrdinaryMethod()
-    ghost method OutParamMethod() returns (y: int)
-    function UseLemma(): int
-    { MyEffectlessGhostMethod(); // error: cannot call ghost methods (only lemmas) from this context
-      MyLemma();
-      MyGhostMethod();   // error: modifies state
-      OutParamMethod();  // error: has out-parameters
-      10
-    }
+module StmtExprOutParams {
+
+  lemma MyLemma()
+
+  lemma OutParamLemma() returns (y: int)
+
+  function UseLemma(): int
+  {
+    MyLemma();
+    OutParamLemma(); // error: has out-parameters
+    10
   }
 }
 
@@ -1547,18 +1547,18 @@ module GhostTests {
       }
       5;
     }
-
-
-
-
-
-
-
-
-
-
-
-
+  }
+}
+module CallsInStmtExpr {
+  class MyClass {
+    lemma MyLemma()
+    ghost method MyEffectlessGhostMethod()
+    function UseLemma(): int
+    {
+      MyEffectlessGhostMethod(); // error: cannot call ghost methods (only lemmas) from this context
+      MyLemma();
+      10
+    }
   }
 }
 
