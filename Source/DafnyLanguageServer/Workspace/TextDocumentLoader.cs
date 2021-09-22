@@ -63,16 +63,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     private void Run() {
       foreach (var request in loadRequests.GetConsumingEnumerable()) {
-        if(request.CancellationToken.IsCancellationRequested) {
+        if (request.CancellationToken.IsCancellationRequested) {
           request.Document.SetCanceled(request.CancellationToken);
           continue;
         }
         try {
           var document = LoadInternal(request);
           request.Document.SetResult(document);
-        } catch(OperationCanceledException e) {
+        } catch (OperationCanceledException e) {
           request.Document.SetCanceled(e.CancellationToken);
-        } catch(Exception e) {
+        } catch (Exception e) {
           request.Document.SetException(e);
         }
       }
