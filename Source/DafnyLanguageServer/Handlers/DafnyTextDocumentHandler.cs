@@ -73,7 +73,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private async Task PublishDiagnostics(Task<DafnyDocument> document) {
       try {
         _diagnosticPublisher.PublishDiagnostics(await document);
-      } catch (Exception e) {
+      } catch (Exception e) when (e is not OperationCanceledException) {
         _logger.LogError(e, "error handling document event");
       }
     }
@@ -81,7 +81,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     private async Task HideDiagnostics(Task<DafnyDocument> document) {
       try {
         _diagnosticPublisher.HideDiagnostics(await document);
-      } catch (Exception e) {
+      } catch (Exception e) when (e is not OperationCanceledException) {
         _logger.LogError(e, "error handling document event");
       }
     }
