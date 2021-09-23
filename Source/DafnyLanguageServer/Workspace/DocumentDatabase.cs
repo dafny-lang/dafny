@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using System.Collections.Generic;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// <summary>
@@ -28,10 +29,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private bool VerifyOnLoad => _options.Verify == AutoVerification.OnChange;
     private bool VerifyOnSave => _options.Verify == AutoVerification.OnSave;
 
-    private string[] ProverOptions =>
-      _options.ProverOptions.Split(new[] { " ", "\n", "\t" },
-        StringSplitOptions.RemoveEmptyEntries);
-
     public DocumentDatabase(
       ILogger<DocumentDatabase> logger,
       IOptions<DocumentOptions> options,
@@ -42,7 +39,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       _options = options.Value;
       _documentLoader = documentLoader;
       _documentUpdater = documentUpdater;
-      CommandLineOptions.Clo.ProverOptions = ProverOptions.ToList();
+      CommandLineOptions.Clo.ProverOptions = GetProverOptions(_options);
+    }
+
+    private static List<string> GetProverOptions(DocumentOptions options) {
+      return options.ProverOptions.Split(
+        new[] { " ", "\n", "\t" },
+        StringSplitOptions.RemoveEmptyEntries
+      ).ToList();
     }
 
     public async Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
