@@ -31,18 +31,24 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Version = documentChange.TextDocument.Version,
         Text = changeProcessor.MigrateText()
       };
-      var loadedDocument = await _documentLoader.LoadAsync(mergedItem, Verify, cancellationToken);
-      if (!loadedDocument.SymbolTable.Resolved) {
+
+      DafnyDocument? newDocument;
+      try {
+        newDocument = await _documentLoader.LoadAsync(mergedItem, Verify, cancellationToken);
+      } catch(System.OperationCanceledException) {
+        _logger.LogTrace("document loading canceled, applying migration");
+        newDocument = oldDocument;
+      }
+      if (!newDocument.SymbolTable.Resolved) {
         return new DafnyDocument(
-          loadedDocument.Text,
-          loadedDocument.Errors,
-          loadedDocument.Program,
+          mergedItem,
+          newDocument.Errors,
+          newDocument.Program,
           changeProcessor.MigrateSymbolTable(),
-          // TODO migrate counterexamples?
-          null
+          serializedCounterExamples: null
         );
       }
-      return loadedDocument;
+      return newDocument;
     }
 
     private class ChangeProcessor {
