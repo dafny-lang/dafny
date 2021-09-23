@@ -46,7 +46,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       _logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
       _documents.LoadDocumentAsync(notification.TextDocument, cancellationToken)
         .ContinueWith(PublishDiagnostics);
-      return Task.FromResult(Unit.Value);
+      return Unit.Task;
     }
 
     public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
@@ -56,18 +56,18 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return Unit.Task;
     }
 
-    public override async Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
+    public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received change notification {DocumentUri}", notification.TextDocument.Uri);
       _documents.UpdateDocumentAsync(notification, cancellationToken)
         .ContinueWith(PublishDiagnostics);
-      return Unit.Value;
+      return Unit.Task;
     }
 
-    public override async Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
+    public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
       _documents.SaveDocumentAsync(notification.TextDocument, cancellationToken)
         .ContinueWith(PublishDiagnostics);
-      return Unit.Value;
+      return Unit.Task;
     }
 
     private async Task PublishDiagnostics(Task<DafnyDocument> document) {
