@@ -31,24 +31,26 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         Version = documentChange.TextDocument.Version,
         Text = changeProcessor.MigrateText()
       };
-
-      DafnyDocument? newDocument;
       try {
-        newDocument = await _documentLoader.LoadAsync(mergedItem, Verify, cancellationToken);
+        var newDocument = await _documentLoader.LoadAsync(mergedItem, Verify, cancellationToken);
+        if (newDocument.SymbolTable.Resolved) {
+          return newDocument;
+        }
+        return MigrateDocument(mergedItem, newDocument, changeProcessor);
       } catch (System.OperationCanceledException) {
         _logger.LogTrace("document loading canceled, applying migration");
-        newDocument = oldDocument;
+        return MigrateDocument(mergedItem, oldDocument, changeProcessor);
       }
-      if (!newDocument.SymbolTable.Resolved) {
-        return new DafnyDocument(
-          mergedItem,
-          newDocument.Errors,
-          newDocument.Program,
-          changeProcessor.MigrateSymbolTable(),
-          serializedCounterExamples: null
-        );
-      }
-      return newDocument;
+    }
+
+    private static DafnyDocument MigrateDocument(TextDocumentItem mergedItem, DafnyDocument document, ChangeProcessor changeProcessor) {
+      return new DafnyDocument(
+        mergedItem,
+        document.Errors,
+        document.Program,
+        changeProcessor.MigrateSymbolTable(),
+        serializedCounterExamples: null
+      );
     }
 
     private class ChangeProcessor {
