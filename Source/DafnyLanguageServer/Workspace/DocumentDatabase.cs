@@ -123,8 +123,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private record DocumentEntry(int? Version, Task<DafnyDocument> Document, CancellationTokenSource CancellationSource) {
-      public CancellationToken CancellationToken => CancellationSource.Token;
-
       public void CancelPendingUpdates() {
         CancellationSource.Cancel();
       }
