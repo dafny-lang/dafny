@@ -54,16 +54,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     Task<DafnyDocument?> SaveDocumentAsync(TextDocumentIdentifier documentId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Enforces the document database to verify the given document.
-    /// </summary>
-    /// <param name="documentId">The ID of the document to verify.</param>
-    /// <param name="cancellationToken">A token to cancel the verification before its completion.</param>
-    /// <returns>The verified document.</returns>
-    /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    Task<DafnyDocument?> VerifyDocumentAsync(TextDocumentIdentifier documentId, CancellationToken cancellationToken);
-
-    /// <summary>
     /// Tries to resolve a document with the specified identifier.
     /// </summary>
     /// <param name="documentId">The ID of the document to resolve.</param>
