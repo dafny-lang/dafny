@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task<DafnyDocument> ApplyChangesAsync(DafnyDocument oldDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
-      var changeProcessor = new ChangeProcessor(_logger, oldDocument, documentChange.ContentChanges, cancellationToken);
+      var changeProcessor = new ChangeProcessor(_logger, oldDocument, documentChange.ContentChanges);
       var mergedItem = new TextDocumentItem {
         LanguageId = oldDocument.Text.LanguageId,
         Uri = oldDocument.Uri,
@@ -49,19 +49,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       private readonly ILogger _logger;
       private readonly DafnyDocument _originalDocument;
       private readonly Container<TextDocumentContentChangeEvent> _contentChanges;
-      private readonly CancellationToken _cancellationToken;
 
-      public ChangeProcessor(ILogger logger, DafnyDocument originalDocument, Container<TextDocumentContentChangeEvent> contentChanges, CancellationToken cancellationToken) {
+      public ChangeProcessor(ILogger logger, DafnyDocument originalDocument, Container<TextDocumentContentChangeEvent> contentChanges) {
         _logger = logger;
         _originalDocument = originalDocument;
         _contentChanges = contentChanges;
-        _cancellationToken = cancellationToken;
       }
 
       public string MigrateText() {
         var mergedText = _originalDocument.Text.Text;
         foreach (var change in _contentChanges) {
-          _cancellationToken.ThrowIfCancellationRequested();
           mergedText = ApplyTextChange(mergedText, change);
         }
         return mergedText;
@@ -71,8 +68,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         if (change.Range == null) {
           throw new System.InvalidOperationException("the range of the change must not be null");
         }
-        int absoluteStart = change.Range.Start.ToAbsolutePosition(previousText, _cancellationToken);
-        int absoluteEnd = change.Range.End.ToAbsolutePosition(previousText, _cancellationToken);
+        int absoluteStart = change.Range.Start.ToAbsolutePosition(previousText);
+        int absoluteEnd = change.Range.End.ToAbsolutePosition(previousText);
         return previousText[..absoluteStart] + change.Text + previousText[absoluteEnd..];
       }
 
@@ -83,7 +80,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           if (change.Range == null) {
             throw new System.InvalidOperationException("the range of the change must not be null");
           }
-          _cancellationToken.ThrowIfCancellationRequested();
           var afterChangeEndOffset = GetPositionAtEndOfAppliedChange(change.Range, change.Text);
           migratedLookupTree = ApplyLookupTreeChange(migratedLookupTree, change.Range, afterChangeEndOffset);
           migratedDeclarations = ApplyDeclarationsChange(migratedDeclarations, change.Range, afterChangeEndOffset);
@@ -104,7 +100,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ) {
         var migratedLookupTree = new IntervalTree<Position, ILocalizableSymbol>();
         foreach (var entry in previousLookupTree) {
-          _cancellationToken.ThrowIfCancellationRequested();
           if (IsPositionBeforeChange(changeRange, entry.To)) {
             migratedLookupTree.Add(entry.From, entry.To, entry.Value);
           }
@@ -120,7 +115,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       private Position GetPositionAtEndOfAppliedChange(Range changeRange, string changeText) {
         var changeStart = changeRange.Start;
-        var changeEof = changeText.GetEofPosition(_cancellationToken);
+        var changeEof = changeText.GetEofPosition();
         var characterOffset = changeEof.Character;
         if (changeEof.Line == 0) {
           characterOffset = changeStart.Character + changeEof.Character;
@@ -151,7 +146,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       ) {
         var migratedDeclarations = new Dictionary<ISymbol, SymbolLocation>();
         foreach (var (symbol, location) in previousDeclarations) {
-          _cancellationToken.ThrowIfCancellationRequested();
           if (!_originalDocument.IsDocument(location.Uri)) {
             migratedDeclarations.Add(symbol, location);
             continue;
